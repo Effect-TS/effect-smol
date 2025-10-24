@@ -229,10 +229,10 @@ describe("ToJsonSchema", () => {
   describe("draft-07", () => {
     describe("String", () => {
       const jsonAnnotations = {
-        title: "title",
-        description: "description",
-        default: "",
-        examples: ["", "a", "aa"]
+        "title": "title",
+        "description": "description",
+        "default": "",
+        "examples": ["", "a", "aa"]
       }
 
       it("String", async () => {
@@ -240,7 +240,7 @@ describe("ToJsonSchema", () => {
           Schema.String,
           {
             schema: {
-              type: "string"
+              "type": "string"
             }
           }
         )
@@ -250,7 +250,7 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              type: "string",
+              "type": "string",
               ...jsonAnnotations
             }
           }
@@ -262,14 +262,14 @@ describe("ToJsonSchema", () => {
           Schema.String.annotate({
             jsonSchema: {
               _tag: "Override",
-              override: () => ({ type: "string", minLength: 1 })
+              override: () => ({ "type": "string", minLength: 1 })
             }
           }),
           {
             schema: {
-              $comment: "Override",
-              type: "string",
-              minLength: 1
+              "$comment": "Override",
+              "type": "string",
+              "minLength": 1
             }
           }
         )
@@ -277,15 +277,15 @@ describe("ToJsonSchema", () => {
           Schema.String.annotate({
             jsonSchema: {
               _tag: "Override",
-              override: () => ({ type: "string", minLength: 1 })
+              override: () => ({ "type": "string", minLength: 1 })
             },
             ...jsonAnnotations
           }),
           {
             schema: {
-              $comment: "Override",
-              type: "string",
-              minLength: 1,
+              "$comment": "Override",
+              "type": "string",
+              "minLength": 1,
               ...jsonAnnotations
             }
           }
@@ -299,11 +299,11 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              $ref: "#/definitions/ID"
+              "$ref": "#/definitions/ID"
             },
             definitions: {
-              ID: {
-                type: "string"
+              "ID": {
+                "type": "string"
               }
             }
           }
@@ -315,11 +315,11 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              $ref: "#/definitions/ID"
+              "$ref": "#/definitions/ID"
             },
             definitions: {
-              ID: {
-                type: "string",
+              "ID": {
+                "type": "string",
                 ...jsonAnnotations
               }
             }
@@ -333,17 +333,17 @@ describe("ToJsonSchema", () => {
             identifier: "ID",
             jsonSchema: {
               _tag: "Override",
-              override: () => ({ type: "string", minLength: 1 })
+              override: () => ({ "type": "string", minLength: 1 })
             }
           }),
           {
             schema: {
-              $ref: "#/definitions/ID"
+              "$ref": "#/definitions/ID"
             },
             definitions: {
-              ID: {
-                $comment: "Override",
-                type: "string",
+              "ID": {
+                "$comment": "Override",
+                "type": "string",
                 minLength: 1
               }
             }
@@ -354,18 +354,18 @@ describe("ToJsonSchema", () => {
             identifier: "ID",
             jsonSchema: {
               _tag: "Override",
-              override: () => ({ type: "string", minLength: 1 })
+              override: () => ({ "type": "string", minLength: 1 })
             },
             ...jsonAnnotations
           }),
           {
             schema: {
-              $ref: "#/definitions/ID"
+              "$ref": "#/definitions/ID"
             },
             definitions: {
-              ID: {
-                $comment: "Override",
-                type: "string",
+              "ID": {
+                "$comment": "Override",
+                "type": "string",
                 minLength: 1,
                 ...jsonAnnotations
               }
@@ -381,7 +381,7 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              type: "string"
+              "type": "string"
             }
           }
         )
@@ -392,10 +392,10 @@ describe("ToJsonSchema", () => {
           Schema.String.check(Schema.isMinLength(2)),
           {
             schema: {
-              type: "string",
-              allOf: [
+              "type": "string",
+              "allOf": [
                 {
-                  $comment: "Filter",
+                  "$comment": "Filter",
                   title: "isMinLength(2)",
                   description: "a value with a length of at least 2",
                   minLength: 2
@@ -409,16 +409,16 @@ describe("ToJsonSchema", () => {
       it("String & override & check", async () => {
         await assertDraft7(
           Schema.String.annotate({
-            jsonSchema: { _tag: "Override", override: () => ({ type: "string", minLength: 1 }) }
+            jsonSchema: { _tag: "Override", override: () => ({ "type": "string", minLength: 1 }) }
           }).check(Schema.isMinLength(2)),
           {
             schema: {
-              $comment: "Override",
-              type: "string",
+              "$comment": "Override",
+              "type": "string",
               minLength: 1,
-              allOf: [
+              "allOf": [
                 {
-                  $comment: "Filter",
+                  "$comment": "Filter",
                   title: "isMinLength(2)",
                   description: "a value with a length of at least 2",
                   minLength: 2
@@ -429,14 +429,15 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it.todo("String & check & override", async () => {
+      it("String & check & override", async () => {
         await assertDraft7(
           Schema.String.check(Schema.isMinLength(2)).annotate({
-            jsonSchema: { _tag: "Override", override: () => ({ type: "string", minLength: 1 }) }
+            jsonSchema: { _tag: "Override", override: () => ({ "type": "string", minLength: 1 }) }
           }),
           {
             schema: {
-              type: "string",
+              "$comment": "Override",
+              "type": "string",
               minLength: 1
             }
           }
@@ -448,17 +449,17 @@ describe("ToJsonSchema", () => {
           Schema.String.check(Schema.isMinLength(2, { identifier: "ID" })),
           {
             schema: {
-              $ref: "#/definitions/ID"
+              "$ref": "#/definitions/ID"
             },
             definitions: {
-              ID: {
-                type: "string",
-                allOf: [
+              "ID": {
+                "type": "string",
+                "allOf": [
                   {
-                    $comment: "Filter",
-                    title: "isMinLength(2)",
-                    description: "a value with a length of at least 2",
-                    minLength: 2
+                    "$comment": "Filter",
+                    "title": "isMinLength(2)",
+                    "description": "a value with a length of at least 2",
+                    "minLength": 2
                   }
                 ]
               }
@@ -474,14 +475,14 @@ describe("ToJsonSchema", () => {
           }).check(Schema.isMinLength(2)),
           {
             schema: {
-              type: "string",
+              "type": "string",
               ...jsonAnnotations,
-              allOf: [
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  title: "isMinLength(2)",
-                  description: "a value with a length of at least 2",
-                  minLength: 2
+                  "$comment": "Filter",
+                  "title": "isMinLength(2)",
+                  "description": "a value with a length of at least 2",
+                  "minLength": 2
                 }
               ]
             }
@@ -496,18 +497,18 @@ describe("ToJsonSchema", () => {
           }).check(Schema.isMinLength(2, { identifier: "ID" })),
           {
             schema: {
-              $ref: "#/definitions/ID"
+              "$ref": "#/definitions/ID"
             },
             definitions: {
               ID: {
-                type: "string",
+                "type": "string",
                 ...jsonAnnotations,
-                allOf: [
+                "allOf": [
                   {
-                    $comment: "Filter",
-                    title: "isMinLength(2)",
-                    description: "a value with a length of at least 2",
-                    minLength: 2
+                    "$comment": "Filter",
+                    "title": "isMinLength(2)",
+                    "description": "a value with a length of at least 2",
+                    "minLength": 2
                   }
                 ]
               }
@@ -523,11 +524,11 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              type: "string",
-              allOf: [
+              "type": "string",
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  minLength: 2,
+                  "$comment": "Filter",
+                  "minLength": 2,
                   ...jsonAnnotations
                 }
               ]
@@ -544,15 +545,15 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              $ref: "#/definitions/ID"
+              "$ref": "#/definitions/ID"
             },
             definitions: {
               ID: {
-                type: "string",
-                allOf: [
+                "type": "string",
+                "allOf": [
                   {
-                    $comment: "Filter",
-                    minLength: 2,
+                    "$comment": "Filter",
+                    "minLength": 2,
                     ...jsonAnnotations
                   }
                 ]
@@ -567,19 +568,19 @@ describe("ToJsonSchema", () => {
           Schema.String.check(Schema.isMinLength(2), Schema.isMaxLength(3)),
           {
             schema: {
-              type: "string",
-              allOf: [
+              "type": "string",
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  title: "isMinLength(2)",
-                  description: "a value with a length of at least 2",
-                  minLength: 2
+                  "$comment": "Filter",
+                  "title": "isMinLength(2)",
+                  "description": "a value with a length of at least 2",
+                  "minLength": 2
                 },
                 {
-                  $comment: "Filter",
-                  title: "isMaxLength(3)",
-                  description: "a value with a length of at most 3",
-                  maxLength: 3
+                  "$comment": "Filter",
+                  "title": "isMaxLength(3)",
+                  "description": "a value with a length of at most 3",
+                  "maxLength": 3
                 }
               ]
             }
@@ -594,23 +595,563 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              type: "string",
-              allOf: [
+              "type": "string",
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  title: "isMinLength(2)",
-                  description: "a value with a length of at least 2",
-                  minLength: 2
+                  "$comment": "Filter",
+                  "title": "isMinLength(2)",
+                  "description": "a value with a length of at least 2",
+                  "minLength": 2
                 },
                 {
-                  $comment: "Filter",
-                  maxLength: 3,
+                  "$comment": "Filter",
+                  "maxLength": 3,
                   ...jsonAnnotations
                 }
               ]
             }
           }
         )
+      })
+    })
+
+    it("Void", async () => {
+      const schema = Schema.Void
+      await assertDraft7(schema, {
+        schema: {}
+      })
+    })
+
+    it("Unknown", async () => {
+      const schema = Schema.Unknown
+      await assertDraft7(schema, {
+        schema: {}
+      })
+    })
+
+    it("Any", async () => {
+      const schema = Schema.Any
+      await assertDraft7(schema, {
+        schema: {}
+      })
+    })
+
+    it("Never", async () => {
+      const schema = Schema.Never
+      await assertDraft7(schema, {
+        schema: {
+          "not": {}
+        }
+      })
+    })
+
+    it("Null", async () => {
+      const schema = Schema.Null
+      await assertDraft7(schema, {
+        schema: {
+          "type": "null"
+        }
+      })
+    })
+
+    it("Number", async () => {
+      const schema = Schema.Number
+      await assertDraft7(schema, {
+        schema: {
+          "type": "number"
+        }
+      })
+    })
+
+    it("Boolean", async () => {
+      const schema = Schema.Boolean
+      await assertDraft7(schema, {
+        schema: {
+          "type": "boolean"
+        }
+      })
+    })
+
+    it("ObjectKeyword", async () => {
+      const schema = Schema.ObjectKeyword
+      await assertDraft7(schema, {
+        schema: {
+          "anyOf": [
+            { "type": "object" },
+            { "type": "array" }
+          ]
+        }
+      })
+    })
+
+    describe("Literal", () => {
+      it("string", async () => {
+        const schema = Schema.Literal("a")
+        await assertDraft7(schema, {
+          schema: {
+            "type": "string",
+            "enum": ["a"]
+          }
+        })
+      })
+
+      it("string & annotate", async () => {
+        const schema = Schema.Literal("a").annotate({
+          title: "title",
+          description: "description",
+          default: "a",
+          examples: ["a"]
+        })
+        await assertDraft7(schema, {
+          schema: {
+            "type": "string",
+            "enum": ["a"],
+            "title": "title",
+            "description": "description",
+            "default": "a",
+            "examples": ["a"]
+          }
+        })
+      })
+
+      it("number", async () => {
+        const schema = Schema.Literal(1)
+        await assertDraft7(schema, {
+          schema: {
+            "type": "number",
+            "enum": [1]
+          }
+        })
+      })
+
+      it("number & annotate", async () => {
+        const schema = Schema.Literal(1).annotate({
+          title: "title",
+          description: "description",
+          default: 1,
+          examples: [1]
+        })
+        await assertDraft7(schema, {
+          schema: {
+            "type": "number",
+            "enum": [1],
+            "title": "title",
+            "description": "description",
+            "default": 1,
+            "examples": [1]
+          }
+        })
+      })
+
+      it("boolean", async () => {
+        const schema = Schema.Literal(true)
+        await assertDraft7(schema, {
+          schema: {
+            "type": "boolean",
+            "enum": [true]
+          }
+        })
+      })
+
+      it("boolean & annotate", async () => {
+        const schema = Schema.Literal(true).annotate({
+          title: "title",
+          description: "description",
+          default: true,
+          examples: [true]
+        })
+        await assertDraft7(schema, {
+          schema: {
+            "type": "boolean",
+            "enum": [true],
+            "title": "title",
+            "description": "description",
+            "default": true,
+            "examples": [true]
+          }
+        })
+      })
+    })
+
+    describe("Literals", () => {
+      it("strings", async () => {
+        const schema = Schema.Literals(["a", "b"])
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["a"]
+              },
+              {
+                "type": "string",
+                "enum": ["b"]
+              }
+            ]
+          }
+        })
+      })
+
+      it("strings & annotate", async () => {
+        const schema = Schema.Literals(["a", "b"]).annotate({ description: "description" })
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["a"]
+              },
+              {
+                "type": "string",
+                "enum": ["b"]
+              }
+            ],
+            "description": "description"
+          }
+        })
+      })
+
+      it("numbers", async () => {
+        const schema = Schema.Literals([1, 2])
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "number",
+                "enum": [1]
+              },
+              {
+                "type": "number",
+                "enum": [2]
+              }
+            ]
+          }
+        })
+      })
+
+      it("booleans", async () => {
+        const schema = Schema.Literals([true, false])
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "boolean",
+                "enum": [true]
+              },
+              {
+                "type": "boolean",
+                "enum": [false]
+              }
+            ]
+          }
+        })
+      })
+
+      it("strings & numbers", async () => {
+        const schema = Schema.Literals(["a", 1])
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["a"]
+              },
+              {
+                "type": "number",
+                "enum": [1]
+              }
+            ]
+          }
+        })
+      })
+    })
+
+    describe("Union of literals", () => {
+      it("strings", async () => {
+        const schema = Schema.Union([
+          Schema.Literal("a"),
+          Schema.Literal("b")
+        ])
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["a"]
+              },
+              {
+                "type": "string",
+                "enum": ["b"]
+              }
+            ]
+          }
+        })
+      })
+
+      it("strings & outer annotate", async () => {
+        const schema = Schema.Union([
+          Schema.Literal("a"),
+          Schema.Literal("b")
+        ]).annotate({ description: "description" })
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["a"]
+              },
+              {
+                "type": "string",
+                "enum": ["b"]
+              }
+            ],
+            "description": "description"
+          }
+        })
+      })
+
+      it("strings & inner annotate", async () => {
+        const schema = Schema.Union([
+          Schema.Literal("a"),
+          Schema.Literal("b").annotate({ description: "description" })
+        ])
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["a"]
+              },
+              {
+                "type": "string",
+                "enum": ["b"],
+                "description": "description"
+              }
+            ]
+          }
+        })
+      })
+
+      it("strings & inner annotate & outer annotate", async () => {
+        const schema = Schema.Union([
+          Schema.Literal("a"),
+          Schema.Literal("b").annotate({ description: "inner-description" })
+        ])
+          .annotate({ description: "outer-description" })
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["a"]
+              },
+              {
+                "type": "string",
+                "enum": ["b"],
+                "description": "inner-description"
+              }
+            ],
+            "description": "outer-description"
+          }
+        })
+      })
+
+      it("numbers", async () => {
+        const schema = Schema.Union([Schema.Literal(1), Schema.Literal(2)])
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "number",
+                "enum": [1]
+              },
+              {
+                "type": "number",
+                "enum": [2]
+              }
+            ]
+          }
+        })
+      })
+
+      it("booleans", async () => {
+        const schema = Schema.Union([Schema.Literal(true), Schema.Literal(false)])
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "boolean",
+                "enum": [true]
+              },
+              {
+                "type": "boolean",
+                "enum": [false]
+              }
+            ]
+          }
+        })
+      })
+
+      it("strings & numbers", async () => {
+        const schema = Schema.Union([Schema.Literal("a"), Schema.Literal(1)])
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["a"]
+              },
+              {
+                "type": "number",
+                "enum": [1]
+              }
+            ]
+          }
+        })
+      })
+    })
+
+    describe("Enum", () => {
+      it("empty enum", async () => {
+        enum Empty {}
+        await assertDraft7(Schema.Enum(Empty), {
+          schema: {
+            "not": {}
+          }
+        })
+        await assertDraft7(Schema.Enum(Empty).annotate({ description: "description" }), {
+          schema: {
+            "not": {},
+            "description": "description"
+          }
+        })
+      })
+
+      it("single enum", async () => {
+        enum Fruits {
+          Apple
+        }
+        await assertDraft7(Schema.Enum(Fruits), {
+          schema: {
+            "type": "number",
+            "enum": [0],
+            "title": "Apple"
+          }
+        })
+        await assertDraft7(Schema.Enum(Fruits).annotate({ description: "description" }), {
+          schema: {
+            "type": "number",
+            "enum": [0],
+            "title": "Apple",
+            "description": "description"
+          }
+        })
+      })
+
+      it("many enums", async () => {
+        enum Fruits {
+          Apple,
+          Banana,
+          Orange = "orange"
+        }
+
+        const schema = Schema.Enum(Fruits)
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "number",
+                "enum": [0],
+                "title": "Apple"
+              },
+              {
+                "type": "number",
+                "enum": [1],
+                "title": "Banana"
+              },
+              {
+                "type": "string",
+                "enum": ["orange"],
+                "title": "Orange"
+              }
+            ]
+          }
+        })
+      })
+
+      it("Enum & annotate", async () => {
+        enum Fruits {
+          Apple,
+          Banana,
+          Orange = "orange"
+        }
+
+        const schema = Schema.Enum(Fruits).annotate({
+          title: "title",
+          description: "description",
+          default: Fruits.Apple,
+          examples: [Fruits.Banana, Fruits.Orange]
+        })
+        await assertDraft7(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "type": "number",
+                "enum": [0],
+                "title": "Apple"
+              },
+              {
+                "type": "number",
+                "enum": [1],
+                "title": "Banana"
+              },
+              {
+                "type": "string",
+                "enum": ["orange"],
+                "title": "Orange"
+              }
+            ],
+            "title": "title",
+            "description": "description",
+            "default": Fruits.Apple,
+            "examples": [Fruits.Banana, Fruits.Orange]
+          }
+        })
+      })
+
+      it("const enum", async () => {
+        const Fruits = {
+          Apple: "apple",
+          Banana: "banana",
+          Cantaloupe: 3
+        } as const
+        await assertDraft7(Schema.Enum(Fruits), {
+          schema: {
+            "anyOf": [
+              { "type": "string", "title": "Apple", "enum": ["apple"] },
+              { "type": "string", "title": "Banana", "enum": ["banana"] },
+              { "type": "number", "title": "Cantaloupe", "enum": [3] }
+            ]
+          }
+        })
+      })
+
+      it("enum & identifier", async () => {
+        enum Fruits {
+          Apple
+        }
+        await assertDraft7(Schema.Enum(Fruits).annotate({ identifier: "ID", title: "title" }), {
+          schema: {
+            "$ref": "#/definitions/ID"
+          },
+          definitions: {
+            "ID": {
+              "type": "number",
+              "title": "title",
+              "enum": [0]
+            }
+          }
+        })
       })
     })
 
@@ -629,66 +1170,66 @@ describe("ToJsonSchema", () => {
         })
         await assertDraft7(schema, {
           schema: {
-            type: "object",
-            properties: {
-              a: {
-                type: "string"
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
               },
-              b: {
-                type: "string",
-                description: "b"
+              "b": {
+                "type": "string",
+                "description": "b"
               },
-              c: {
-                type: "string",
-                allOf: [{
-                  $comment: "key annotations",
-                  description: "c-key"
+              "c": {
+                "type": "string",
+                "allOf": [{
+                  "$comment": "key annotations",
+                  "description": "c-key"
                 }]
               },
-              d: {
-                type: "string",
-                description: "d",
-                allOf: [{
-                  $comment: "key annotations",
-                  description: "d-key"
+              "d": {
+                "type": "string",
+                "description": "d",
+                "allOf": [{
+                  "$comment": "key annotations",
+                  "description": "d-key"
                 }]
               },
-              id1: { "$ref": "#/definitions/id1" },
-              id2: {
-                allOf: [
+              "id1": { "$ref": "#/definitions/id1" },
+              "id2": {
+                "allOf": [
                   { "$ref": "#/definitions/id2" },
                   {
-                    $comment: "key annotations",
-                    description: "id2-key"
+                    "$comment": "key annotations",
+                    "description": "id2-key"
                   }
                 ]
               },
-              id3_1: {
-                allOf: [
+              "id3_1": {
+                "allOf": [
                   { "$ref": "#/definitions/id3" },
                   {
-                    $comment: "key annotations",
-                    description: "id3_1-key"
+                    "$comment": "key annotations",
+                    "description": "id3_1-key"
                   }
                 ]
               },
-              id3_2: {
-                allOf: [
+              "id3_2": {
+                "allOf": [
                   { "$ref": "#/definitions/id3" },
                   {
-                    $comment: "key annotations",
-                    description: "id3_2-key"
+                    "$comment": "key annotations",
+                    "description": "id3_2-key"
                   }
                 ]
               }
             },
-            required: ["a", "b", "c", "d", "id1", "id2", "id3_1", "id3_2"],
-            additionalProperties: false
+            "required": ["a", "b", "c", "d", "id1", "id2", "id3_1", "id3_2"],
+            "additionalProperties": false
           },
           definitions: {
-            id1: { type: "string" },
-            id2: { type: "string" },
-            id3: { type: "string" }
+            "id1": { "type": "string" },
+            "id2": { "type": "string" },
+            "id3": { "type": "string" }
           }
         })
       })
@@ -706,15 +1247,15 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              type: "object",
-              properties: {
-                a: {
-                  $comment: "Override",
-                  type: "string"
+              "type": "object",
+              "properties": {
+                "a": {
+                  "$comment": "Override",
+                  "type": "string"
                 }
               },
-              required: [],
-              additionalProperties: false
+              "required": [],
+              "additionalProperties": false
             }
           }
         )
@@ -727,12 +1268,12 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              type: "object",
-              properties: {
-                a: { type: "string" }
+              "type": "object",
+              "properties": {
+                "a": { "type": "string" }
               },
-              required: [],
-              additionalProperties: false
+              "required": [],
+              "additionalProperties": false
             }
           }
         )
@@ -751,15 +1292,15 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              type: "object",
-              properties: {
-                a: {
-                  $comment: "Override",
-                  type: "string"
+              "type": "object",
+              "properties": {
+                "a": {
+                  "$comment": "Override",
+                  "type": "string"
                 }
               },
-              required: ["a"],
-              additionalProperties: false
+              "required": ["a"],
+              "additionalProperties": false
             }
           }
         )
@@ -772,12 +1313,15 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              type: "object",
-              properties: {
-                a: { type: "string" }
+              "type": "object",
+              "properties": {
+                "a": {
+                  "$comment": "Encoding",
+                  "type": "string"
+                }
               },
-              required: ["a"],
-              additionalProperties: false
+              "required": ["a"],
+              "additionalProperties": false
             }
           }
         )
@@ -793,37 +1337,37 @@ describe("ToJsonSchema", () => {
         })
         await assertDraft7(schema, {
           schema: {
-            type: "object",
-            properties: {
-              a: {
-                type: "string"
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
               },
-              b: {
-                type: "string",
-                description: "b"
+              "b": {
+                "type": "string",
+                "description": "b"
               },
-              c: {
-                type: "string",
-                description: "c"
+              "c": {
+                "type": "string",
+                "description": "c"
               },
-              d: {
-                type: "string",
-                allOf: [{
-                  $comment: "key annotations",
-                  description: "d-key"
+              "d": {
+                "type": "string",
+                "allOf": [{
+                  "$comment": "key annotations",
+                  "description": "d-key"
                 }]
               },
-              e: {
-                type: "string",
-                description: "e",
-                allOf: [{
-                  $comment: "key annotations",
-                  description: "e-key"
+              "e": {
+                "type": "string",
+                "description": "e",
+                "allOf": [{
+                  "$comment": "key annotations",
+                  "description": "e-key"
                 }]
               }
             },
-            required: [],
-            additionalProperties: false
+            "required": [],
+            "additionalProperties": false
           }
         })
       })
@@ -841,15 +1385,15 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              type: "object",
-              properties: {
-                a: {
-                  $comment: "Override",
-                  type: "string"
+              "type": "object",
+              "properties": {
+                "a": {
+                  "$comment": "Override",
+                  "type": "string"
                 }
               },
-              required: ["a"],
-              additionalProperties: false
+              "required": ["a"],
+              "additionalProperties": false
             }
           }
         )
@@ -862,9 +1406,9 @@ describe("ToJsonSchema", () => {
           Schema.Union([Schema.String, Schema.Number]),
           {
             schema: {
-              anyOf: [
-                { type: "string" },
-                { type: "number" }
+              "anyOf": [
+                { "type": "string" },
+                { "type": "number" }
               ]
             }
           }
@@ -878,14 +1422,14 @@ describe("ToJsonSchema", () => {
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt()),
           {
             schema: {
-              type: "number",
-              description: "description",
-              allOf: [
+              "type": "number",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  type: "integer",
-                  description: "an integer",
-                  title: "isInt"
+                  "$comment": "Filter",
+                  "type": "integer",
+                  "description": "an integer",
+                  "title": "isInt"
                 }
               ]
             }
@@ -898,26 +1442,26 @@ describe("ToJsonSchema", () => {
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt32()),
           {
             schema: {
-              type: "number",
-              description: "description",
-              allOf: [
+              "type": "number",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "FilterGroup",
-                  description: "a 32-bit integer",
-                  title: "isInt32",
-                  allOf: [
+                  "$comment": "FilterGroup",
+                  "description": "a 32-bit integer",
+                  "title": "isInt32",
+                  "allOf": [
                     {
-                      $comment: "Filter",
-                      type: "integer",
-                      description: "an integer",
-                      title: "isInt"
+                      "$comment": "Filter",
+                      "type": "integer",
+                      "description": "an integer",
+                      "title": "isInt"
                     },
                     {
-                      $comment: "Filter",
-                      description: "a value between -2147483648 and 2147483647",
-                      maximum: 2147483647,
-                      minimum: -2147483648,
-                      title: "isBetween(-2147483648, 2147483647)"
+                      "$comment": "Filter",
+                      "description": "a value between -2147483648 and 2147483647",
+                      "maximum": 2147483647,
+                      "minimum": -2147483648,
+                      "title": "isBetween(-2147483648, 2147483647)"
                     }
                   ]
                 }
@@ -932,26 +1476,26 @@ describe("ToJsonSchema", () => {
           Schema.Number.annotate({ description: "description" }).check(Schema.isUint32()),
           {
             schema: {
-              type: "number",
-              description: "description",
-              allOf: [
+              "type": "number",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "FilterGroup",
-                  description: "a 32-bit unsigned integer",
-                  title: "isUint32",
-                  allOf: [
+                  "$comment": "FilterGroup",
+                  "description": "a 32-bit unsigned integer",
+                  "title": "isUint32",
+                  "allOf": [
                     {
-                      $comment: "Filter",
-                      type: "integer",
-                      description: "an integer",
-                      title: "isInt"
+                      "$comment": "Filter",
+                      "type": "integer",
+                      "description": "an integer",
+                      "title": "isInt"
                     },
                     {
-                      $comment: "Filter",
-                      description: "a value between 0 and 4294967295",
-                      maximum: 4294967295,
-                      minimum: 0,
-                      title: "isBetween(0, 4294967295)"
+                      "$comment": "Filter",
+                      "description": "a value between 0 and 4294967295",
+                      "maximum": 4294967295,
+                      "minimum": 0,
+                      "title": "isBetween(0, 4294967295)"
                     }
                   ]
                 }
@@ -966,14 +1510,14 @@ describe("ToJsonSchema", () => {
           Schema.String.annotate({ description: "description" }).check(Schema.isBase64()),
           {
             schema: {
-              type: "string",
-              description: "description",
-              allOf: [
+              "type": "string",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  description: "a base64 encoded string",
-                  title: "isBase64",
-                  pattern: "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
+                  "$comment": "Filter",
+                  "description": "a base64 encoded string",
+                  "title": "isBase64",
+                  "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
                 }
               ]
             }
@@ -986,19 +1530,80 @@ describe("ToJsonSchema", () => {
           Schema.String.annotate({ description: "description" }).check(Schema.isBase64Url()),
           {
             schema: {
-              type: "string",
-              description: "description",
-              allOf: [
+              "type": "string",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  description: "a base64url encoded string",
-                  title: "isBase64Url",
-                  pattern: "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
+                  "$comment": "Filter",
+                  "description": "a base64url encoded string",
+                  "title": "isBase64Url",
+                  "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
                 }
               ]
             }
           }
         )
+      })
+    })
+
+    describe("fromJsonString", () => {
+      it("top level fromJsonString", async () => {
+        await assertDraft7(
+          Schema.fromJsonString(Schema.FiniteFromString),
+          {
+            schema: {
+              "$comment": "Override",
+              "type": "string",
+              "description": "a string that will be decoded as JSON"
+            }
+          }
+        )
+      })
+
+      it("nested fromJsonString", async () => {
+        const schema = Schema.fromJsonString(Schema.Struct({
+          a: Schema.fromJsonString(Schema.FiniteFromString)
+        }))
+        await assertDraft7(schema, {
+          schema: {
+            "$comment": "Override",
+            "type": "string",
+            "description": "a string that will be decoded as JSON"
+          }
+        })
+      })
+    })
+
+    it("Uint8ArrayFromHex", async () => {
+      const schema = Schema.Uint8ArrayFromHex
+      await assertDraft7(schema, {
+        schema: {
+          "$comment": "Encoding",
+          "type": "string",
+          "description": "a string that will be decoded as Uint8Array"
+        }
+      })
+    })
+
+    it("Uint8ArrayFromBase64", async () => {
+      const schema = Schema.Uint8ArrayFromBase64
+      await assertDraft7(schema, {
+        schema: {
+          "$comment": "Encoding",
+          "type": "string",
+          "description": "a string that will be decoded as Uint8Array"
+        }
+      })
+    })
+
+    it("Uint8ArrayFromBase64Url", async () => {
+      const schema = Schema.Uint8ArrayFromBase64Url
+      await assertDraft7(schema, {
+        schema: {
+          "$comment": "Encoding",
+          "type": "string",
+          "description": "a string that will be decoded as Uint8Array"
+        }
       })
     })
   })
@@ -1010,14 +1615,14 @@ describe("ToJsonSchema", () => {
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt()),
           {
             schema: {
-              type: "number",
-              description: "description",
-              allOf: [
+              "type": "number",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  type: "integer",
-                  description: "an integer",
-                  title: "isInt"
+                  "$comment": "Filter",
+                  "type": "integer",
+                  "description": "an integer",
+                  "title": "isInt"
                 }
               ]
             }
@@ -1030,26 +1635,26 @@ describe("ToJsonSchema", () => {
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt32()),
           {
             schema: {
-              type: "number",
-              description: "description",
-              allOf: [
+              "type": "number",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "FilterGroup",
-                  description: "a 32-bit integer",
-                  title: "isInt32",
-                  allOf: [
+                  "$comment": "FilterGroup",
+                  "description": "a 32-bit integer",
+                  "title": "isInt32",
+                  "allOf": [
                     {
-                      $comment: "Filter",
-                      type: "integer",
-                      description: "an integer",
-                      title: "isInt"
+                      "$comment": "Filter",
+                      "type": "integer",
+                      "description": "an integer",
+                      "title": "isInt"
                     },
                     {
-                      $comment: "Filter",
-                      description: "a value between -2147483648 and 2147483647",
-                      maximum: 2147483647,
-                      minimum: -2147483648,
-                      title: "isBetween(-2147483648, 2147483647)"
+                      "$comment": "Filter",
+                      "description": "a value between -2147483648 and 2147483647",
+                      "maximum": 2147483647,
+                      "minimum": -2147483648,
+                      "title": "isBetween(-2147483648, 2147483647)"
                     }
                   ]
                 }
@@ -1064,26 +1669,26 @@ describe("ToJsonSchema", () => {
           Schema.Number.annotate({ description: "description" }).check(Schema.isUint32()),
           {
             schema: {
-              type: "number",
-              description: "description",
-              allOf: [
+              "type": "number",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "FilterGroup",
-                  description: "a 32-bit unsigned integer",
-                  title: "isUint32",
-                  allOf: [
+                  "$comment": "FilterGroup",
+                  "description": "a 32-bit unsigned integer",
+                  "title": "isUint32",
+                  "allOf": [
                     {
-                      $comment: "Filter",
-                      type: "integer",
-                      description: "an integer",
-                      title: "isInt"
+                      "$comment": "Filter",
+                      "type": "integer",
+                      "description": "an integer",
+                      "title": "isInt"
                     },
                     {
-                      $comment: "Filter",
-                      description: "a value between 0 and 4294967295",
-                      maximum: 4294967295,
-                      minimum: 0,
-                      title: "isBetween(0, 4294967295)"
+                      "$comment": "Filter",
+                      "description": "a value between 0 and 4294967295",
+                      "maximum": 4294967295,
+                      "minimum": 0,
+                      "title": "isBetween(0, 4294967295)"
                     }
                   ]
                 }
@@ -1098,14 +1703,14 @@ describe("ToJsonSchema", () => {
           Schema.String.annotate({ description: "description" }).check(Schema.isBase64()),
           {
             schema: {
-              type: "string",
-              description: "description",
-              allOf: [
+              "type": "string",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  description: "a base64 encoded string",
-                  title: "isBase64",
-                  pattern: "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
+                  "$comment": "Filter",
+                  "description": "a base64 encoded string",
+                  "title": "isBase64",
+                  "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
                 }
               ]
             }
@@ -1118,14 +1723,14 @@ describe("ToJsonSchema", () => {
           Schema.String.annotate({ description: "description" }).check(Schema.isBase64Url()),
           {
             schema: {
-              type: "string",
-              description: "description",
-              allOf: [
+              "type": "string",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  description: "a base64url encoded string",
-                  title: "isBase64Url",
-                  pattern: "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
+                  "$comment": "Filter",
+                  "description": "a base64url encoded string",
+                  "title": "isBase64Url",
+                  "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
                 }
               ]
             }
@@ -1135,21 +1740,55 @@ describe("ToJsonSchema", () => {
     })
 
     describe("fromJsonString", () => {
-      it.todo("top level fromJsonString", async () => {
+      it("top level fromJsonString", async () => {
         await assertDraft2020_12(
           Schema.fromJsonString(Schema.FiniteFromString),
           {
             schema: {
+              "$comment": "Override",
               "type": "string",
               "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
               "contentSchema": {
+                "$comment": "Encoding",
                 "type": "string",
                 "description": "a string that will be decoded as a finite number"
               }
             }
           }
         )
+      })
+
+      it("nested fromJsonString", async () => {
+        const schema = Schema.fromJsonString(Schema.Struct({
+          a: Schema.fromJsonString(Schema.FiniteFromString)
+        }))
+        await assertDraft2020_12(schema, {
+          schema: {
+            "$comment": "Override",
+            "type": "string",
+            "description": "a string that will be decoded as JSON",
+            "contentMediaType": "application/json",
+            "contentSchema": {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "$comment": "Override",
+                  "type": "string",
+                  "description": "a string that will be decoded as JSON",
+                  "contentMediaType": "application/json",
+                  "contentSchema": {
+                    "$comment": "Encoding",
+                    "type": "string",
+                    "description": "a string that will be decoded as a finite number"
+                  }
+                }
+              },
+              "required": ["a"],
+              "additionalProperties": false
+            }
+          }
+        })
       })
     })
   })
@@ -1161,14 +1800,14 @@ describe("ToJsonSchema", () => {
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt()),
           {
             schema: {
-              type: "number",
-              description: "description",
-              allOf: [
+              "type": "number",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  type: "integer",
-                  description: "an integer",
-                  title: "isInt"
+                  "$comment": "Filter",
+                  "type": "integer",
+                  "description": "an integer",
+                  "title": "isInt"
                 }
               ]
             }
@@ -1181,26 +1820,26 @@ describe("ToJsonSchema", () => {
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt32()),
           {
             schema: {
-              type: "number",
-              description: "description",
-              allOf: [
+              "type": "number",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "FilterGroup",
-                  description: "a 32-bit integer",
-                  title: "isInt32",
-                  allOf: [
+                  "$comment": "FilterGroup",
+                  "description": "a 32-bit integer",
+                  "title": "isInt32",
+                  "allOf": [
                     {
-                      $comment: "Filter",
-                      type: "integer",
-                      description: "an integer",
-                      title: "isInt"
+                      "$comment": "Filter",
+                      "type": "integer",
+                      "description": "an integer",
+                      "title": "isInt"
                     },
                     {
-                      $comment: "Filter",
-                      description: "a value between -2147483648 and 2147483647",
-                      maximum: 2147483647,
-                      minimum: -2147483648,
-                      title: "isBetween(-2147483648, 2147483647)"
+                      "$comment": "Filter",
+                      "description": "a value between -2147483648 and 2147483647",
+                      "maximum": 2147483647,
+                      "minimum": -2147483648,
+                      "title": "isBetween(-2147483648, 2147483647)"
                     }
                   ]
                 }
@@ -1215,26 +1854,26 @@ describe("ToJsonSchema", () => {
           Schema.Number.annotate({ description: "description" }).check(Schema.isUint32()),
           {
             schema: {
-              type: "number",
-              description: "description",
-              allOf: [
+              "type": "number",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "FilterGroup",
-                  description: "a 32-bit unsigned integer",
-                  title: "isUint32",
-                  allOf: [
+                  "$comment": "FilterGroup",
+                  "description": "a 32-bit unsigned integer",
+                  "title": "isUint32",
+                  "allOf": [
                     {
-                      $comment: "Filter",
-                      type: "integer",
-                      description: "an integer",
-                      title: "isInt"
+                      "$comment": "Filter",
+                      "type": "integer",
+                      "description": "an integer",
+                      "title": "isInt"
                     },
                     {
-                      $comment: "Filter",
-                      description: "a value between 0 and 4294967295",
-                      maximum: 4294967295,
-                      minimum: 0,
-                      title: "isBetween(0, 4294967295)"
+                      "$comment": "Filter",
+                      "description": "a value between 0 and 4294967295",
+                      "maximum": 4294967295,
+                      "minimum": 0,
+                      "title": "isBetween(0, 4294967295)"
                     }
                   ]
                 }
@@ -1249,14 +1888,14 @@ describe("ToJsonSchema", () => {
           Schema.String.annotate({ description: "description" }).check(Schema.isBase64()),
           {
             schema: {
-              type: "string",
-              description: "description",
-              allOf: [
+              "type": "string",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  description: "a base64 encoded string",
-                  title: "isBase64",
-                  pattern: "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
+                  "$comment": "Filter",
+                  "description": "a base64 encoded string",
+                  "title": "isBase64",
+                  "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
                 }
               ]
             }
@@ -1269,14 +1908,14 @@ describe("ToJsonSchema", () => {
           Schema.String.annotate({ description: "description" }).check(Schema.isBase64Url()),
           {
             schema: {
-              type: "string",
-              description: "description",
-              allOf: [
+              "type": "string",
+              "description": "description",
+              "allOf": [
                 {
-                  $comment: "Filter",
-                  description: "a base64url encoded string",
-                  title: "isBase64Url",
-                  pattern: "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
+                  "$comment": "Filter",
+                  "description": "a base64url encoded string",
+                  "title": "isBase64Url",
+                  "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
                 }
               ]
             }
