@@ -1,11 +1,10 @@
-import type { Option } from "../data/Option.ts"
+import * as Arr from "../collections/Array.ts"
 import * as Predicate from "../data/Predicate.ts"
 import type * as Record from "../data/Record.ts"
 import { formatPath } from "../interfaces/Inspectable.ts"
 import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
 import type * as Schema from "../schema/Schema.ts"
-import * as ToParser from "../schema/ToParser.ts"
 
 interface Options extends Schema.JsonSchemaOptions {
   readonly target: Annotations.JsonSchema.Target
@@ -54,6 +53,7 @@ function go(
   ignoreAnnotation: boolean,
   ignoreErrors: boolean
 ): Annotations.JsonSchema.JsonSchema {
+  const target = options.target
   // ---------------------------------------------
   // handle identifier annotation
   // ---------------------------------------------
@@ -61,10 +61,10 @@ function go(
     !ignoreIdentifier &&
     (options.referenceStrategy !== "skip" || AST.isSuspend(ast))
   ) {
-    const identifier = getId(ast)
+    const identifier = getIdentifier(ast)
     if (identifier !== undefined) {
       const escapedIdentifier = identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
-      const $ref = { $ref: getPointer(options.target) + escapedIdentifier }
+      const $ref = { $ref: getPointer(target) + escapedIdentifier }
       if (Object.hasOwn(options.definitions, identifier)) {
         return $ref
       } else {
@@ -81,38 +81,81 @@ function go(
     return go(ast.encoding[ast.encoding.length - 1].to, path, options, false, false, ignoreErrors)
   }
   // ---------------------------------------------
-  // handle checks and annotatios
+  // handle checks
   // ---------------------------------------------
-  if (ast.checks || ast.annotations) {
+  if (ast.checks) {
+    const last = ast.checks[ast.checks.length - 1]
+    const init = ast.checks.slice(0, -1)
     let out = go(
-      AST.replaceAnnotations(AST.replaceChecks(ast, undefined), undefined),
+      AST.replaceChecks(ast, Arr.isReadonlyArrayNonEmpty(init) ? init : undefined),
       path,
       options,
       false,
       false,
-      ignoreErrors
+      false
     )
-
-    const annotations = getJsonSchemaAnnotations(ast, options.target, ast.annotations)
+    if (!ignoreAnnotation) {
+      const annotation = getAnnotation(last.annotations)
+      if (annotation) {
+        switch (annotation._tag) {
+          case "Override":
+            return {
+              $comment: "Override",
+              ...annotation.override({
+                target,
+                jsonSchema: go(ast, path, options, ignoreIdentifier, true, true),
+                make: (ast) => go(ast, path, options, ignoreIdentifier, false, false)
+              })
+            }
+          case "Constraint": {
+            const fragment = getFragment(ast, last, target, out.type)
+            if (fragment) {
+              if ("$ref" in out) {
+                out = { allOf: [out] }
+              }
+              if (Array.isArray(out.allOf)) {
+                return { ...out, allOf: [...out.allOf, fragment] }
+              } else {
+                return { ...out, allOf: [fragment] }
+              }
+            }
+          }
+        }
+      }
+    }
+    return out
+  }
+  // ---------------------------------------------
+  // handle annotations
+  // ---------------------------------------------
+  if (ast.annotations) {
+    let out = go(AST.replaceAnnotations(ast, undefined), path, options, false, false, ignoreErrors)
+    if (!ignoreAnnotation) {
+      const annotation = getAnnotation(ast.annotations)
+      if (annotation) {
+        switch (annotation._tag) {
+          case "Override":
+            out = {
+              $comment: "Override",
+              ...annotation.override({
+                target,
+                jsonSchema: go(ast, path, options, ignoreIdentifier, true, true),
+                make: (ast) => go(ast, path, options, ignoreIdentifier, false, false)
+              })
+            }
+            break
+          case "Constraint":
+            throw new Error("Constraint annotation found on non-constrained AST", { cause: ast })
+        }
+      }
+    }
+    const annotations = getJsonSchemaAnnotations(target, ast.annotations)
     if (annotations) {
-      if (options.target === "draft-07" && "$ref" in out) {
+      if ("$ref" in out) {
         out = { allOf: [out] }
       }
       out = { ...out, ...annotations }
     }
-
-    if (ast.checks) {
-      const allOf = getChecksConstraints(ast, ast.checks, options.target, out.type)
-      if (options.target === "draft-07" && "$ref" in out) {
-        out = { allOf: [out] }
-      }
-      if (Array.isArray(out.allOf)) {
-        out = { ...out, allOf: [...out.allOf, ...allOf] }
-      } else {
-        out = { ...out, allOf }
-      }
-    }
-
     return out
   }
   // ---------------------------------------------
@@ -192,8 +235,8 @@ function go(
       const items = ast.elements.map((e, i) => {
         return merge(
           go(e, [...path, i], options, false, false, ignoreErrors),
-          getJsonSchemaAnnotations(e, options.target, e.context?.annotations, "key annotations"),
-          options.target
+          getJsonSchemaAnnotations(target, e.context?.annotations, "key annotations"),
+          target
         )
       })
       const minItems = ast.elements.findIndex(isOptional)
@@ -209,7 +252,7 @@ function go(
       if (items.length === 0) {
         out.items = additionalItems
       } else {
-        switch (options.target) {
+        switch (target) {
           case "draft-07": {
             out.items = items
             out.additionalItems = additionalItems
@@ -242,8 +285,8 @@ function go(
         } else {
           out.properties[name] = merge(
             go(ps.type, [...path, name], options, false, false, ignoreErrors),
-            getJsonSchemaAnnotations(ps.type, options.target, ps.type.context?.annotations, "key annotations"),
-            options.target
+            getJsonSchemaAnnotations(target, ps.type.context?.annotations, "key annotations"),
+            target
           )
           if (!isOptional(ps.type)) {
             out.required.push(name)
@@ -288,7 +331,7 @@ function go(
       }
     }
     case "Suspend": {
-      const id = getId(ast)
+      const id = getIdentifier(ast)
       if (id !== undefined) {
         return go(ast.thunk(), path, options, true, false, ignoreErrors)
       }
@@ -323,44 +366,74 @@ function getPointer(target: Annotations.JsonSchema.Target) {
   }
 }
 
-function getChecksConstraints(
+function getConstraint<T>(
+  check: AST.Check<T>,
+  target: Annotations.JsonSchema.Target,
+  type?: Annotations.JsonSchema.Type
+): Annotations.JsonSchema.Fragment | undefined {
+  const annotation = getAnnotation(check.annotations)
+  if (annotation && annotation._tag === "Constraint") {
+    return annotation.constraint({ target, type })
+  }
+}
+
+function getFragment(
+  ast: AST.AST,
+  check: AST.Check<any>,
+  target: Annotations.JsonSchema.Target,
+  type?: Annotations.JsonSchema.Type
+): Annotations.JsonSchema.Fragment | undefined {
+  const annotations = getJsonSchemaAnnotations(target, check.annotations)
+  switch (check._tag) {
+    case "Filter": {
+      const fragment = getConstraint(check, target, type)
+      return {
+        $comment: "Filter",
+        ...annotations,
+        ...fragment
+      }
+    }
+    case "FilterGroup": {
+      return {
+        $comment: "FilterGroup",
+        ...annotations,
+        allOf: getConstraints(ast, check.checks, target, type)
+      }
+    }
+  }
+}
+
+function getConstraints(
   ast: AST.AST,
   checks: AST.Checks,
   target: Annotations.JsonSchema.Target,
   type?: Annotations.JsonSchema.Type
 ): Array<Annotations.JsonSchema.Fragment> {
-  const fragments: Array<Annotations.JsonSchema.Fragment> = []
-  for (let i = 0; i < checks.length; i++) {
-    const check = checks[i]
-    const annotations = getJsonSchemaAnnotations(ast, target, check.annotations)
-    switch (check._tag) {
-      case "Filter": {
-        const fragment = getCheckConstraint(check, target, type)
-        fragments.push({
-          $comment: "Filter",
-          ...annotations,
-          ...fragment
-        })
-        break
-      }
-      case "FilterGroup": {
-        fragments.push({
-          $comment: "FilterGroup",
-          ...annotations,
-          allOf: getChecksConstraints(ast, check.checks, target, type)
-        })
-        break
-      }
-    }
-  }
-  return fragments
+  return checks.map((check) => getFragment(ast, check, target, type)).filter(Predicate.isNotUndefined)
 }
 
-function isOptional(ast: AST.AST): boolean {
-  const annotation = getAnnotation(ast.annotations)
+function getAnnotation(
+  annotations: Annotations.Annotations | undefined
+): Annotations.JsonSchema.Override | Annotations.JsonSchema.Constraint | undefined {
+  return annotations?.jsonSchema as Annotations.JsonSchema.Override | Annotations.JsonSchema.Constraint | undefined
+}
+
+function getRequired(annotations: Annotations.Annotations | undefined): boolean | undefined {
+  const annotation = getAnnotation(annotations)
   if (annotation && annotation._tag === "Override" && annotation.required !== undefined) {
     return !annotation.required
   }
+}
+
+function isOptional(ast: AST.AST): boolean {
+  if (ast.checks) {
+    for (let i = ast.checks.length - 1; i >= 0; i--) {
+      const required = getRequired(ast.checks[i].annotations)
+      if (required !== undefined) return required
+    }
+  }
+  const required = getRequired(ast.annotations)
+  if (required !== undefined) return required
   const encodedAST = AST.encodedAST(ast)
   return AST.isOptional(encodedAST) || AST.containsUndefined(encodedAST)
 }
@@ -388,27 +461,11 @@ function getPattern(
   throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
 }
 
-function getAnnotationsParser(ast: AST.AST) {
-  return ToParser.asOption(ToParser.run(AST.flip(ast)))
-}
-
-function isContentEncodingSupported(target: Annotations.JsonSchema.Target): boolean {
-  switch (target) {
-    case "draft-07":
-      return false
-    case "draft-2020-12":
-    case "openApi3.1":
-      return true
-  }
-}
-
 function getJsonSchemaAnnotations(
-  ast: AST.AST,
   target: Annotations.JsonSchema.Target,
   annotations: Annotations.Annotations | undefined,
   comment?: string | undefined
 ): Annotations.JsonSchema.Fragment | undefined {
-  let parser: (input: unknown, options?: AST.ParseOptions) => Option<unknown>
   if (annotations) {
     const out: Annotations.JsonSchema.Fragment = {}
     if (Predicate.isString(annotations.title)) {
@@ -418,32 +475,10 @@ function getJsonSchemaAnnotations(
       out.description = annotations.description
     }
     if (annotations.default !== undefined) {
-      parser ??= getAnnotationsParser(ast)
-      const o = parser(annotations.default)
-      if (o._tag === "Some") {
-        out.default = o.value
-      }
+      out.default = annotations.default
     }
     if (Array.isArray(annotations.examples)) {
-      parser ??= getAnnotationsParser(ast)
-      const examples = []
-      for (const example of annotations.examples) {
-        if (example !== undefined) {
-          const o = parser(example)
-          if (o._tag === "Some") {
-            examples.push(o.value)
-          }
-        }
-      }
-      if (examples.length > 0) {
-        out.examples = examples
-      }
-    }
-    if (
-      isContentEncodingSupported(target) &&
-      Predicate.isString(annotations.contentEncoding)
-    ) {
-      out.contentEncoding = annotations.contentEncoding
+      out.examples = annotations.examples
     }
     return Object.keys(out).length > 0 ? comment !== undefined ? { $comment: comment, ...out } : out : undefined
   }
@@ -478,54 +513,10 @@ function merge(
   return jsonSchema
 }
 
-// function overwrite(
-//   jsonSchema: Annotations.JsonSchema.JsonSchema,
-//   fragment: Annotations.JsonSchema.Fragment | undefined,
-//   target: Annotations.JsonSchema.Target
-// ): Annotations.JsonSchema.JsonSchema {
-//   if (fragment) {
-//     if (target === "draft-07" && "$ref" in jsonSchema) {
-//       jsonSchema = { allOf: [jsonSchema], ...fragment }
-//     }
-//     return { ...jsonSchema, ...fragment }
-//   }
-//   return jsonSchema
-// }
-
-function getAnnotation(
-  annotations: Annotations.Annotations | undefined
-): Annotations.JsonSchema.Override | Annotations.JsonSchema.Constraint | undefined {
-  return annotations?.jsonSchema as Annotations.JsonSchema.Override | Annotations.JsonSchema.Constraint | undefined
-}
-
-function getCheckConstraint<T>(
-  check: AST.Check<T>,
-  target: Annotations.JsonSchema.Target,
-  type?: Annotations.JsonSchema.Type
-): Annotations.JsonSchema.Fragment | undefined {
-  const annotation = getAnnotation(check.annotations)
-  if (annotation && annotation._tag === "Constraint") {
-    return annotation.constraint({ target, type })
-  }
-}
-
-// function handleAnnotations(
-//   jsonSchema: Annotations.JsonSchema.JsonSchema,
-//   ast: AST.AST,
-//   options: GoOptions
-// ): Annotations.JsonSchema.JsonSchema {
-//   const target = options.target
-//   const annotations = getJsonSchemaAnnotations(ast, target, ast.annotations)
-//   if (annotations) {
-//     jsonSchema = merge(jsonSchema, annotations, target)
-//   }
-//   return jsonSchema
-// }
-
-function getId(ast: AST.AST): string | undefined {
+function getIdentifier(ast: AST.AST): string | undefined {
   const id = Annotations.getIdentifier(ast)
   if (id !== undefined) return id
   if (AST.isSuspend(ast)) {
-    return getId(ast.thunk())
+    return getIdentifier(ast.thunk())
   }
 }

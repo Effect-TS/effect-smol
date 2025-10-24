@@ -3352,7 +3352,6 @@ export function isBase64(annotations?: Annotations.Filter) {
     Annotations.combine({
       title: "isBase64",
       description: "a base64 encoded string",
-      contentEncoding: "base64",
       meta: {
         _tag: "isBase64",
         regex
@@ -3372,7 +3371,6 @@ export function isBase64Url(annotations?: Annotations.Filter) {
     Annotations.combine({
       title: "isBase64Url",
       description: "a base64url encoded string",
-      contentEncoding: "base64",
       meta: {
         _tag: "isBase64Url",
         regex
@@ -4237,7 +4235,6 @@ export function isMinLength(minLength: number, annotations?: Annotations.Filter)
               return { minLength }
             case "array":
               return { minItems: minLength }
-            default:
           }
         }
       },
