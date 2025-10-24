@@ -192,7 +192,7 @@ function go(
       const items = ast.elements.map((e, i) => {
         return merge(
           go(e, [...path, i], options, false, false, ignoreErrors),
-          getJsonSchemaAnnotations(e, options.target, e.context?.annotations),
+          getJsonSchemaAnnotations(e, options.target, e.context?.annotations, "key annotations"),
           options.target
         )
       })
@@ -242,7 +242,7 @@ function go(
         } else {
           out.properties[name] = merge(
             go(ps.type, [...path, name], options, false, false, ignoreErrors),
-            getJsonSchemaAnnotations(ps.type, options.target, ps.type.context?.annotations),
+            getJsonSchemaAnnotations(ps.type, options.target, ps.type.context?.annotations, "key annotations"),
             options.target
           )
           if (!isOptional(ps.type)) {
@@ -337,6 +337,7 @@ function getChecksConstraints(
       case "Filter": {
         const fragment = getCheckConstraint(check, target, type)
         fragments.push({
+          $comment: "Filter",
           ...annotations,
           ...fragment
         })
@@ -344,6 +345,7 @@ function getChecksConstraints(
       }
       case "FilterGroup": {
         fragments.push({
+          $comment: "FilterGroup",
           ...annotations,
           allOf: getChecksConstraints(ast, check.checks, target, type)
         })
@@ -404,25 +406,25 @@ function getJsonSchemaAnnotations(
   ast: AST.AST,
   target: Annotations.JsonSchema.Target,
   annotations: Annotations.Annotations | undefined,
-  blacklist?: ReadonlySet<string>
+  comment?: string | undefined
 ): Annotations.JsonSchema.Fragment | undefined {
   let parser: (input: unknown, options?: AST.ParseOptions) => Option<unknown>
   if (annotations) {
     const out: Annotations.JsonSchema.Fragment = {}
-    if (!blacklist?.has("title") && Predicate.isString(annotations.title)) {
+    if (Predicate.isString(annotations.title)) {
       out.title = annotations.title
     }
-    if (!blacklist?.has("description") && Predicate.isString(annotations.description)) {
+    if (Predicate.isString(annotations.description)) {
       out.description = annotations.description
     }
-    if (!blacklist?.has("default") && annotations.default !== undefined) {
+    if (annotations.default !== undefined) {
       parser ??= getAnnotationsParser(ast)
       const o = parser(annotations.default)
       if (o._tag === "Some") {
         out.default = o.value
       }
     }
-    if (!blacklist?.has("examples") && Array.isArray(annotations.examples)) {
+    if (Array.isArray(annotations.examples)) {
       parser ??= getAnnotationsParser(ast)
       const examples = []
       for (const example of annotations.examples) {
@@ -438,12 +440,12 @@ function getJsonSchemaAnnotations(
       }
     }
     if (
-      !blacklist?.has("contentEncoding") && isContentEncodingSupported(target) &&
+      isContentEncodingSupported(target) &&
       Predicate.isString(annotations.contentEncoding)
     ) {
       out.contentEncoding = annotations.contentEncoding
     }
-    return Object.keys(out).length > 0 ? out : undefined
+    return Object.keys(out).length > 0 ? comment !== undefined ? { $comment: comment, ...out } : out : undefined
   }
 }
 

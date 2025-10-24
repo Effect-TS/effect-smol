@@ -325,6 +325,7 @@ describe("ToJsonSchema", () => {
               type: "string",
               allOf: [
                 {
+                  $comment: "Filter",
                   title: "isMinLength(2)",
                   description: "a value with a length of at least 2",
                   minLength: 2
@@ -347,6 +348,7 @@ describe("ToJsonSchema", () => {
                 type: "string",
                 allOf: [
                   {
+                    $comment: "Filter",
                     title: "isMinLength(2)",
                     description: "a value with a length of at least 2",
                     minLength: 2
@@ -378,6 +380,7 @@ describe("ToJsonSchema", () => {
               examples: ["aa", "aaa"],
               allOf: [
                 {
+                  $comment: "Filter",
                   title: "isMinLength(2)",
                   description: "a value with a length of at least 2",
                   minLength: 2
@@ -397,6 +400,7 @@ describe("ToJsonSchema", () => {
               default: "aa",
               allOf: [
                 {
+                  $comment: "Filter",
                   title: "isMinLength(2)",
                   description: "a value with a length of at least 2",
                   minLength: 2
@@ -434,6 +438,7 @@ describe("ToJsonSchema", () => {
                 ],
                 allOf: [
                   {
+                    $comment: "Filter",
                     title: "isMinLength(2)",
                     description: "a value with a length of at least 2",
                     minLength: 2
@@ -463,6 +468,7 @@ describe("ToJsonSchema", () => {
               type: "string",
               allOf: [
                 {
+                  $comment: "Filter",
                   title: "title",
                   description: "description",
                   examples: ["aa", "aaa"],
@@ -482,6 +488,7 @@ describe("ToJsonSchema", () => {
               type: "string",
               allOf: [
                 {
+                  $comment: "Filter",
                   title: "isMinLength(2)",
                   description: "a value with a length of at least 2",
                   default: "aa",
@@ -516,6 +523,7 @@ describe("ToJsonSchema", () => {
                 type: "string",
                 allOf: [
                   {
+                    $comment: "Filter",
                     title: "title",
                     description: "description",
                     examples: ["aa", "aaa"],
@@ -536,11 +544,13 @@ describe("ToJsonSchema", () => {
               type: "string",
               allOf: [
                 {
+                  $comment: "Filter",
                   title: "isMinLength(2)",
                   description: "a value with a length of at least 2",
                   minLength: 2
                 },
                 {
+                  $comment: "Filter",
                   title: "isMaxLength(3)",
                   description: "a value with a length of at most 3",
                   maxLength: 3
@@ -570,11 +580,13 @@ describe("ToJsonSchema", () => {
               type: "string",
               allOf: [
                 {
+                  $comment: "Filter",
                   title: "isMinLength(2)",
                   description: "a value with a length of at least 2",
                   minLength: 2
                 },
                 {
+                  $comment: "Filter",
                   title: "title",
                   description: "description",
                   maxLength: 3,
@@ -594,11 +606,13 @@ describe("ToJsonSchema", () => {
               type: "string",
               allOf: [
                 {
+                  $comment: "Filter",
                   title: "isMinLength(2)",
                   description: "a value with a length of at least 2",
                   minLength: 2
                 },
                 {
+                  $comment: "Filter",
                   title: "isMaxLength(3)",
                   description: "a value with a length of at most 3",
                   maxLength: 3,
@@ -637,30 +651,45 @@ describe("ToJsonSchema", () => {
               },
               c: {
                 type: "string",
-                allOf: [{ description: "c-key" }]
+                allOf: [{
+                  $comment: "key annotations",
+                  description: "c-key"
+                }]
               },
               d: {
                 type: "string",
                 description: "d",
-                allOf: [{ description: "d-key" }]
+                allOf: [{
+                  $comment: "key annotations",
+                  description: "d-key"
+                }]
               },
               id1: { "$ref": "#/definitions/id1" },
               id2: {
                 allOf: [
                   { "$ref": "#/definitions/id2" },
-                  { description: "id2-key" }
+                  {
+                    $comment: "key annotations",
+                    description: "id2-key"
+                  }
                 ]
               },
               id3_1: {
                 allOf: [
                   { "$ref": "#/definitions/id3" },
-                  { description: "id3_1-key" }
+                  {
+                    $comment: "key annotations",
+                    description: "id3_1-key"
+                  }
                 ]
               },
               id3_2: {
                 allOf: [
                   { "$ref": "#/definitions/id3" },
-                  { description: "id3_2-key" }
+                  {
+                    $comment: "key annotations",
+                    description: "id3_2-key"
+                  }
                 ]
               }
             },
@@ -784,12 +813,18 @@ describe("ToJsonSchema", () => {
               },
               d: {
                 type: "string",
-                allOf: [{ description: "d-key" }]
+                allOf: [{
+                  $comment: "key annotations",
+                  description: "d-key"
+                }]
               },
               e: {
                 type: "string",
                 description: "e",
-                allOf: [{ description: "e-key" }]
+                allOf: [{
+                  $comment: "key annotations",
+                  description: "e-key"
+                }]
               }
             },
             required: [],
@@ -849,6 +884,7 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "Filter",
                   type: "integer",
                   description: "an integer",
                   title: "isInt"
@@ -868,15 +904,18 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "FilterGroup",
                   description: "a 32-bit integer",
                   title: "isInt32",
                   allOf: [
                     {
+                      $comment: "Filter",
                       type: "integer",
                       description: "an integer",
                       title: "isInt"
                     },
                     {
+                      $comment: "Filter",
                       description: "a value between -2147483648 and 2147483647",
                       maximum: 2147483647,
                       minimum: -2147483648,
@@ -899,15 +938,18 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "FilterGroup",
                   description: "a 32-bit unsigned integer",
                   title: "isUint32",
                   allOf: [
                     {
+                      $comment: "Filter",
                       type: "integer",
                       description: "an integer",
                       title: "isInt"
                     },
                     {
+                      $comment: "Filter",
                       description: "a value between 0 and 4294967295",
                       maximum: 4294967295,
                       minimum: 0,
@@ -930,6 +972,7 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "Filter",
                   description: "a base64 encoded string",
                   title: "isBase64",
                   pattern: "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
@@ -949,6 +992,7 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "Filter",
                   description: "a base64url encoded string",
                   title: "isBase64Url",
                   pattern: "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
@@ -972,6 +1016,7 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "Filter",
                   type: "integer",
                   description: "an integer",
                   title: "isInt"
@@ -991,15 +1036,18 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "FilterGroup",
                   description: "a 32-bit integer",
                   title: "isInt32",
                   allOf: [
                     {
+                      $comment: "Filter",
                       type: "integer",
                       description: "an integer",
                       title: "isInt"
                     },
                     {
+                      $comment: "Filter",
                       description: "a value between -2147483648 and 2147483647",
                       maximum: 2147483647,
                       minimum: -2147483648,
@@ -1022,15 +1070,18 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "FilterGroup",
                   description: "a 32-bit unsigned integer",
                   title: "isUint32",
                   allOf: [
                     {
+                      $comment: "Filter",
                       type: "integer",
                       description: "an integer",
                       title: "isInt"
                     },
                     {
+                      $comment: "Filter",
                       description: "a value between 0 and 4294967295",
                       maximum: 4294967295,
                       minimum: 0,
@@ -1053,6 +1104,7 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "Filter",
                   contentEncoding: "base64",
                   description: "a base64 encoded string",
                   title: "isBase64",
@@ -1073,6 +1125,7 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "Filter",
                   contentEncoding: "base64",
                   description: "a base64url encoded string",
                   title: "isBase64Url",
@@ -1116,6 +1169,7 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "Filter",
                   type: "integer",
                   description: "an integer",
                   title: "isInt"
@@ -1135,15 +1189,18 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "FilterGroup",
                   description: "a 32-bit integer",
                   title: "isInt32",
                   allOf: [
                     {
+                      $comment: "Filter",
                       type: "integer",
                       description: "an integer",
                       title: "isInt"
                     },
                     {
+                      $comment: "Filter",
                       description: "a value between -2147483648 and 2147483647",
                       maximum: 2147483647,
                       minimum: -2147483648,
@@ -1166,15 +1223,18 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "FilterGroup",
                   description: "a 32-bit unsigned integer",
                   title: "isUint32",
                   allOf: [
                     {
+                      $comment: "Filter",
                       type: "integer",
                       description: "an integer",
                       title: "isInt"
                     },
                     {
+                      $comment: "Filter",
                       description: "a value between 0 and 4294967295",
                       maximum: 4294967295,
                       minimum: 0,
@@ -1197,6 +1257,7 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "Filter",
                   contentEncoding: "base64",
                   description: "a base64 encoded string",
                   title: "isBase64",
@@ -1217,6 +1278,7 @@ describe("ToJsonSchema", () => {
               description: "description",
               allOf: [
                 {
+                  $comment: "Filter",
                   contentEncoding: "base64",
                   description: "a base64url encoded string",
                   title: "isBase64Url",
