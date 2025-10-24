@@ -75,12 +75,6 @@ function go(
     }
   }
   // ---------------------------------------------
-  // handle encoding
-  // ---------------------------------------------
-  if (ast.encoding) {
-    return go(ast.encoding[ast.encoding.length - 1].to, path, options, false, false, ignoreErrors)
-  }
-  // ---------------------------------------------
   // handle checks
   // ---------------------------------------------
   if (ast.checks) {
@@ -134,7 +128,7 @@ function go(
       const annotation = getAnnotation(ast.annotations)
       if (annotation) {
         switch (annotation._tag) {
-          case "Override":
+          case "Override": {
             out = {
               $comment: "Override",
               ...annotation.override({
@@ -144,19 +138,33 @@ function go(
               })
             }
             break
-          case "Constraint":
+          }
+          case "Constraint": {
+            if (ignoreErrors) return {}
             throw new Error("Constraint annotation found on non-constrained AST", { cause: ast })
+          }
         }
       }
     }
-    const annotations = getJsonSchemaAnnotations(target, ast.annotations)
-    if (annotations) {
-      if ("$ref" in out) {
-        out = { allOf: [out] }
+    if (!ast.encoding) {
+      const annotations = getJsonSchemaAnnotations(target, ast.annotations)
+      if (annotations) {
+        if ("$ref" in out) {
+          out = { allOf: [out] }
+        }
+        out = { ...out, ...annotations }
       }
-      out = { ...out, ...annotations }
     }
     return out
+  }
+  // ---------------------------------------------
+  // handle encoding
+  // ---------------------------------------------
+  if (ast.encoding) {
+    return {
+      $comment: "Encoding",
+      ...go(ast.encoding[ast.encoding.length - 1].to, path, options, false, false, ignoreErrors)
+    }
   }
   // ---------------------------------------------
   // handle base cases
@@ -167,11 +175,11 @@ function go(
     case "Symbol":
     case "Undefined":
     case "UniqueSymbol": {
-      if (ignoreErrors) return {}
       if (options.onMissingJsonSchemaAnnotation) {
         const out = options.onMissingJsonSchemaAnnotation(ast)
         if (out) return out
       }
+      if (ignoreErrors) return {}
       throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
     }
 
