@@ -221,16 +221,16 @@ describe("Record", () => {
       deepStrictEqual(pipe(o, Record.separate), [{}, {}])
     })
 
-    it("isEmptyRecord", () => {
-      deepStrictEqual(Record.isEmptyRecord({}), true)
-      deepStrictEqual(Record.isEmptyRecord({ [symA]: null }), true)
-      deepStrictEqual(Record.isEmptyRecord({ a: 3 }), false)
+    it("isRecordEmpty", () => {
+      deepStrictEqual(Record.isRecordEmpty({}), true)
+      deepStrictEqual(Record.isRecordEmpty({ [symA]: null }), true)
+      deepStrictEqual(Record.isRecordEmpty({ a: 3 }), false)
     })
 
-    it("isEmptyReadonlyRecord", () => {
-      deepStrictEqual(Record.isEmptyReadonlyRecord({}), true)
-      deepStrictEqual(Record.isEmptyReadonlyRecord({ [symA]: null }), true)
-      deepStrictEqual(Record.isEmptyReadonlyRecord({ a: 3 }), false)
+    it("isReadonlyRecordEmpty", () => {
+      deepStrictEqual(Record.isReadonlyRecordEmpty({}), true)
+      deepStrictEqual(Record.isReadonlyRecordEmpty({ [symA]: null }), true)
+      deepStrictEqual(Record.isReadonlyRecordEmpty({ a: 3 }), false)
     })
 
     it("size", () => {

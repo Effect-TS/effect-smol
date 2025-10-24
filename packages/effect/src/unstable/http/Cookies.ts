@@ -333,7 +333,7 @@ export const empty: Cookies = fromIterable([])
  * @since 4.0.0
  * @category refinements
  */
-export const isEmpty = (self: Cookies): boolean => Record.isEmptyRecord(self.cookies)
+export const isEmpty = (self: Cookies): boolean => Record.isRecordEmpty(self.cookies)
 
 // eslint-disable-next-line no-control-regex
 const fieldContentRegExp = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/

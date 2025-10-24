@@ -162,14 +162,14 @@ export const empty = <K extends string | symbol = never, V = never>(): Record<
  * import * as assert from "node:assert"
  * import { Record } from "effect/data"
  *
- * assert.deepStrictEqual(Record.isEmptyRecord({}), true);
- * assert.deepStrictEqual(Record.isEmptyRecord({ a: 3 }), false);
+ * assert.deepStrictEqual(Record.isRecordEmpty({}), true);
+ * assert.deepStrictEqual(Record.isRecordEmpty({ a: 3 }), false);
  * ```
  *
  * @category guards
  * @since 2.0.0
  */
-export const isEmptyRecord = <K extends string, A>(self: Record<K, A>): self is Record<K, never> =>
+export const isRecordEmpty = <K extends string, A>(self: Record<K, A>): self is Record<K, never> =>
   keys(self).length === 0
 
 /**
@@ -180,16 +180,16 @@ export const isEmptyRecord = <K extends string, A>(self: Record<K, A>): self is 
  * import * as assert from "node:assert"
  * import { Record } from "effect/data"
  *
- * assert.deepStrictEqual(Record.isEmptyReadonlyRecord({}), true);
- * assert.deepStrictEqual(Record.isEmptyReadonlyRecord({ a: 3 }), false);
+ * assert.deepStrictEqual(Record.isReadonlyRecordEmpty({}), true);
+ * assert.deepStrictEqual(Record.isReadonlyRecordEmpty({ a: 3 }), false);
  * ```
  *
  * @category guards
  * @since 2.0.0
  */
-export const isEmptyReadonlyRecord: <K extends string, A>(
+export const isReadonlyRecordEmpty: <K extends string, A>(
   self: ReadonlyRecord<K, A>
-) => self is ReadonlyRecord<K, never> = isEmptyRecord
+) => self is ReadonlyRecord<K, never> = isRecordEmpty
 
 /**
  * Takes an iterable and a projection function and returns a record.
@@ -1224,10 +1224,10 @@ export const union: {
     that: ReadonlyRecord<K1, B>,
     combine: (selfValue: A, thatValue: B) => C
   ): Record<K0 | K1, A | B | C> => {
-    if (isEmptyRecord(self)) {
+    if (isRecordEmpty(self)) {
       return { ...that } as any
     }
-    if (isEmptyRecord(that)) {
+    if (isRecordEmpty(that)) {
       return { ...self } as any
     }
     const out: Record<string, A | B | C> = empty()
@@ -1283,7 +1283,7 @@ export const intersection: {
     combine: (selfValue: A, thatValue: B) => C
   ): Record<ReadonlyRecord.IntersectKeys<K0, K1>, C> => {
     const out: Record<string, C> = empty()
-    if (isEmptyRecord(self) || isEmptyRecord(that)) {
+    if (isRecordEmpty(self) || isRecordEmpty(that)) {
       return out
     }
     for (const key of keys(self)) {
@@ -1325,10 +1325,10 @@ export const difference: {
   self: ReadonlyRecord<K0, A>,
   that: ReadonlyRecord<K1, B>
 ): Record<K0 | K1, A | B> => {
-  if (isEmptyRecord(self)) {
+  if (isRecordEmpty(self)) {
     return { ...that } as any
   }
-  if (isEmptyRecord(that)) {
+  if (isRecordEmpty(that)) {
     return { ...self } as any
   }
   const out = {} as Record<K0 | K1, A | B>

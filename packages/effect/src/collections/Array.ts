@@ -569,14 +569,14 @@ export const isArray: {
  * ```ts
  * import { Array } from "effect/collections"
  *
- * console.log(Array.isEmptyArray([])) // true
- * console.log(Array.isEmptyArray([1, 2, 3])) // false
+ * console.log(Array.isArrayEmpty([])) // true
+ * console.log(Array.isArrayEmpty([1, 2, 3])) // false
  * ```
  *
  * @category guards
  * @since 2.0.0
  */
-export const isEmptyArray = <A>(self: Array<A>): self is [] => self.length === 0
+export const isArrayEmpty = <A>(self: Array<A>): self is [] => self.length === 0
 
 /**
  * Determine if a `ReadonlyArray` is empty narrowing down the type to `readonly []`.
@@ -586,14 +586,14 @@ export const isEmptyArray = <A>(self: Array<A>): self is [] => self.length === 0
  * ```ts
  * import { Array } from "effect/collections"
  *
- * console.log(Array.isEmptyReadonlyArray([])) // true
- * console.log(Array.isEmptyReadonlyArray([1, 2, 3])) // false
+ * console.log(Array.isReadonlyArrayEmpty([])) // true
+ * console.log(Array.isReadonlyArrayEmpty([1, 2, 3])) // false
  * ```
  *
  * @category guards
  * @since 2.0.0
  */
-export const isEmptyReadonlyArray: <A>(self: ReadonlyArray<A>) => self is readonly [] = isEmptyArray as any
+export const isReadonlyArrayEmpty: <A>(self: ReadonlyArray<A>) => self is readonly [] = isArrayEmpty as any
 
 /**
  * Determine if an `Array` is non empty narrowing down the type to `NonEmptyArray`.
@@ -2642,7 +2642,7 @@ export const flatMap: {
 } = dual(
   2,
   <A, B>(self: ReadonlyArray<A>, f: (a: A, i: number) => ReadonlyArray<B>): Array<B> => {
-    if (isEmptyReadonlyArray(self)) {
+    if (isReadonlyArrayEmpty(self)) {
       return []
     }
     const out: Array<B> = []
