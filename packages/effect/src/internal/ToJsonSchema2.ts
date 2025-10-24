@@ -104,14 +104,7 @@ function go(
           case "Constraint": {
             const fragment = getFragment(ast, last, target, out.type)
             if (fragment) {
-              if ("$ref" in out) {
-                out = { allOf: [out] }
-              }
-              if (Array.isArray(out.allOf)) {
-                return { ...out, allOf: [...out.allOf, fragment] }
-              } else {
-                return { ...out, allOf: [fragment] }
-              }
+              out = merge(out, fragment)
             }
           }
         }
@@ -243,8 +236,7 @@ function go(
       const items = ast.elements.map((e, i) => {
         return merge(
           go(e, [...path, i], options, false, false, ignoreErrors),
-          getJsonSchemaAnnotations(target, e.context?.annotations, "key annotations"),
-          target
+          getJsonSchemaAnnotations(target, e.context?.annotations, "key annotations")
         )
       })
       const minItems = ast.elements.findIndex(isOptional)
@@ -293,8 +285,7 @@ function go(
         } else {
           out.properties[name] = merge(
             go(ps.type, [...path, name], options, false, false, ignoreErrors),
-            getJsonSchemaAnnotations(target, ps.type.context?.annotations, "key annotations"),
-            target
+            getJsonSchemaAnnotations(target, ps.type.context?.annotations, "key annotations")
           )
           if (!isOptional(ps.type)) {
             out.required.push(name)
@@ -329,14 +320,13 @@ function go(
       const types = ast.types.filter((ast) => !AST.isUndefined(ast)).map((t) =>
         go(t, path, options, false, false, ignoreErrors)
       )
-      switch (types.length) {
-        case 0:
-          return { not: {} }
-        case 1:
-          return types[0]
-        default:
-          return ast.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
-      }
+      return types.length === 0
+        ? { not: {} }
+        : types.length === 1
+        ? types[0]
+        : ast.mode === "anyOf"
+        ? { anyOf: types }
+        : { oneOf: types }
     }
     case "Suspend": {
       const id = getIdentifier(ast)
@@ -505,11 +495,10 @@ function getJsonSchemaAnnotations(
 
 function merge(
   jsonSchema: Annotations.JsonSchema.JsonSchema,
-  fragment: Annotations.JsonSchema.Fragment | undefined,
-  target: Annotations.JsonSchema.Target
+  fragment: Annotations.JsonSchema.Fragment | undefined
 ): Annotations.JsonSchema.JsonSchema {
   if (fragment) {
-    if (target === "draft-07" && "$ref" in jsonSchema) {
+    if ("$ref" in jsonSchema) {
       jsonSchema = { allOf: [jsonSchema] }
     }
     if (Array.isArray(jsonSchema.allOf)) {
