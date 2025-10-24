@@ -10,8 +10,7 @@ It's important to understand the architecture of the Effect MCP server.
 Here is an example of a MCP server implementation:
 
 ```typescript
-import { Effect, Layer } from "effect"
-import { Logger } from "effect"
+import { Effect, Layer, Logger } from "effect"
 import { Schema } from "effect/schema"
 import { McpServer, Tool, Toolkit } from "effect/unstable/ai"
 import { NodeStream, NodeSink, NodeRuntime } from "@effect/platform-node"
