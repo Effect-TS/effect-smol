@@ -45,16 +45,6 @@ export function make<S extends Schema.Top>(schema: S, options?: Options): Annota
   return out
 }
 
-function isContentEncodingSupported(target: Annotations.JsonSchema.Target): boolean {
-  switch (target) {
-    case "draft-07":
-      return false
-    case "draft-2020-12":
-    case "openApi3.1":
-      return true
-  }
-}
-
 function getAnnotationsParser(ast: AST.AST) {
   return ToParser.asOption(ToParser.run(AST.flip(ast)))
 }
@@ -93,11 +83,6 @@ function getJsonSchemaAnnotations(
       }
       if (examples.length > 0) {
         out.examples = examples
-      }
-    }
-    if (isContentEncodingSupported(target)) {
-      if (Predicate.isString(annotations.contentEncoding)) {
-        out.contentEncoding = annotations.contentEncoding
       }
     }
     return Object.keys(out).length > 0 ? out : undefined

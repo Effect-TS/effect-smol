@@ -79,7 +79,6 @@ export interface Key<T> extends Documentation<T> {
  * @since 4.0.0
  */
 export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top>> extends Documentation<T> {
-  readonly contentEncoding?: string | undefined
   /**
    * The message to use when the value is invalid.
    */
@@ -172,7 +171,6 @@ export interface Filter extends Annotations {
    */
   readonly meta?: Meta | undefined
   readonly jsonSchema?:
-    | JsonSchema.Override
     | JsonSchema.Constraint
     | undefined
   readonly arbitrary?:

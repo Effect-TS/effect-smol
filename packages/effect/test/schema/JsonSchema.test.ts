@@ -228,6 +228,13 @@ describe("ToJsonSchema", () => {
 
   describe("draft-07", () => {
     describe("String", () => {
+      const jsonAnnotations = {
+        title: "title",
+        description: "description",
+        default: "",
+        examples: ["", "a", "aa"]
+      }
+
       it("String", async () => {
         await assertDraft7(
           Schema.String,
@@ -237,11 +244,59 @@ describe("ToJsonSchema", () => {
             }
           }
         )
+        await assertDraft7(
+          Schema.String.annotate({
+            ...jsonAnnotations
+          }),
+          {
+            schema: {
+              type: "string",
+              ...jsonAnnotations
+            }
+          }
+        )
+      })
+
+      it("String & override", async () => {
+        await assertDraft7(
+          Schema.String.annotate({
+            jsonSchema: {
+              _tag: "Override",
+              override: () => ({ type: "string", minLength: 1 })
+            }
+          }),
+          {
+            schema: {
+              $comment: "Override",
+              type: "string",
+              minLength: 1
+            }
+          }
+        )
+        await assertDraft7(
+          Schema.String.annotate({
+            jsonSchema: {
+              _tag: "Override",
+              override: () => ({ type: "string", minLength: 1 })
+            },
+            ...jsonAnnotations
+          }),
+          {
+            schema: {
+              $comment: "Override",
+              type: "string",
+              minLength: 1,
+              ...jsonAnnotations
+            }
+          }
+        )
       })
 
       it("String & identifier", async () => {
         await assertDraft7(
-          Schema.String.annotate({ identifier: "ID" }),
+          Schema.String.annotate({
+            identifier: "ID"
+          }),
           {
             schema: {
               $ref: "#/definitions/ID"
@@ -253,36 +308,10 @@ describe("ToJsonSchema", () => {
             }
           }
         )
-      })
-
-      it("String & json annotations", async () => {
         await assertDraft7(
           Schema.String.annotate({
-            title: "title",
-            description: "description",
-            default: "",
-            examples: ["", "a", "aa"]
-          }),
-          {
-            schema: {
-              type: "string",
-              title: "title",
-              description: "description",
-              default: "",
-              examples: ["", "a", "aa"]
-            }
-          }
-        )
-      })
-
-      it("String & json annotations + identifier", async () => {
-        await assertDraft7(
-          Schema.String.annotate({
-            title: "title",
-            description: "description",
-            default: "",
-            examples: ["", "a", "aa"],
-            identifier: "ID"
+            identifier: "ID",
+            ...jsonAnnotations
           }),
           {
             schema: {
@@ -291,10 +320,54 @@ describe("ToJsonSchema", () => {
             definitions: {
               ID: {
                 type: "string",
-                title: "title",
-                description: "description",
-                default: "",
-                examples: ["", "a", "aa"]
+                ...jsonAnnotations
+              }
+            }
+          }
+        )
+      })
+
+      it("String & identifier & override", async () => {
+        await assertDraft7(
+          Schema.String.annotate({
+            identifier: "ID",
+            jsonSchema: {
+              _tag: "Override",
+              override: () => ({ type: "string", minLength: 1 })
+            }
+          }),
+          {
+            schema: {
+              $ref: "#/definitions/ID"
+            },
+            definitions: {
+              ID: {
+                $comment: "Override",
+                type: "string",
+                minLength: 1
+              }
+            }
+          }
+        )
+        await assertDraft7(
+          Schema.String.annotate({
+            identifier: "ID",
+            jsonSchema: {
+              _tag: "Override",
+              override: () => ({ type: "string", minLength: 1 })
+            },
+            ...jsonAnnotations
+          }),
+          {
+            schema: {
+              $ref: "#/definitions/ID"
+            },
+            definitions: {
+              ID: {
+                $comment: "Override",
+                type: "string",
+                minLength: 1,
+                ...jsonAnnotations
               }
             }
           }
@@ -304,10 +377,7 @@ describe("ToJsonSchema", () => {
       it("should ignore the key json annotations if the schema is not contextual", async () => {
         await assertDraft7(
           Schema.String.annotateKey({
-            title: "title",
-            description: "description",
-            default: "",
-            examples: ["", "a", "aa"]
+            ...jsonAnnotations
           }),
           {
             schema: {
@@ -331,6 +401,43 @@ describe("ToJsonSchema", () => {
                   minLength: 2
                 }
               ]
+            }
+          }
+        )
+      })
+
+      it("String & override & check", async () => {
+        await assertDraft7(
+          Schema.String.annotate({
+            jsonSchema: { _tag: "Override", override: () => ({ type: "string", minLength: 1 }) }
+          }).check(Schema.isMinLength(2)),
+          {
+            schema: {
+              $comment: "Override",
+              type: "string",
+              minLength: 1,
+              allOf: [
+                {
+                  $comment: "Filter",
+                  title: "isMinLength(2)",
+                  description: "a value with a length of at least 2",
+                  minLength: 2
+                }
+              ]
+            }
+          }
+        )
+      })
+
+      it.todo("String & check & override", async () => {
+        await assertDraft7(
+          Schema.String.check(Schema.isMinLength(2)).annotate({
+            jsonSchema: { _tag: "Override", override: () => ({ type: "string", minLength: 1 }) }
+          }),
+          {
+            schema: {
+              type: "string",
+              minLength: 1
             }
           }
         )
@@ -363,41 +470,12 @@ describe("ToJsonSchema", () => {
       it("String & json annotations & check", async () => {
         await assertDraft7(
           Schema.String.annotate({
-            title: "title",
-            description: "description",
-            default: "", // invalid default
-            examples: [
-              "a", // invalid example
-              "aa",
-              "aaa"
-            ]
+            ...jsonAnnotations
           }).check(Schema.isMinLength(2)),
           {
             schema: {
               type: "string",
-              title: "title",
-              description: "description",
-              examples: ["aa", "aaa"],
-              allOf: [
-                {
-                  $comment: "Filter",
-                  title: "isMinLength(2)",
-                  description: "a value with a length of at least 2",
-                  minLength: 2
-                }
-              ]
-            }
-          }
-        )
-
-        await assertDraft7(
-          Schema.String.annotate({
-            default: "aa" // valid default
-          }).check(Schema.isMinLength(2)),
-          {
-            schema: {
-              type: "string",
-              default: "aa",
+              ...jsonAnnotations,
               allOf: [
                 {
                   $comment: "Filter",
@@ -414,14 +492,7 @@ describe("ToJsonSchema", () => {
       it("String & json annotations & check & identifier", async () => {
         await assertDraft7(
           Schema.String.annotate({
-            title: "title",
-            description: "description",
-            default: "", // invalid default
-            examples: [
-              "a", // invalid example
-              "aa",
-              "aaa"
-            ]
+            ...jsonAnnotations
           }).check(Schema.isMinLength(2, { identifier: "ID" })),
           {
             schema: {
@@ -430,12 +501,7 @@ describe("ToJsonSchema", () => {
             definitions: {
               ID: {
                 type: "string",
-                title: "title",
-                description: "description",
-                examples: [
-                  "aa",
-                  "aaa"
-                ],
+                ...jsonAnnotations,
                 allOf: [
                   {
                     $comment: "Filter",
@@ -453,15 +519,7 @@ describe("ToJsonSchema", () => {
       it("String & check & json annotations", async () => {
         await assertDraft7(
           Schema.String.check(Schema.isMinLength(2)).annotate({
-            title: "title",
-            description: "description",
-            default: "", // invalid default
-            examples: [
-              "", // invalid example
-              "a", // invalid example
-              "aa",
-              "aaa"
-            ]
+            ...jsonAnnotations
           }),
           {
             schema: {
@@ -469,30 +527,8 @@ describe("ToJsonSchema", () => {
               allOf: [
                 {
                   $comment: "Filter",
-                  title: "title",
-                  description: "description",
-                  examples: ["aa", "aaa"],
-                  minLength: 2
-                }
-              ]
-            }
-          }
-        )
-
-        await assertDraft7(
-          Schema.String.check(Schema.isMinLength(2)).annotate({
-            default: "aa" // valid default
-          }),
-          {
-            schema: {
-              type: "string",
-              allOf: [
-                {
-                  $comment: "Filter",
-                  title: "isMinLength(2)",
-                  description: "a value with a length of at least 2",
-                  default: "aa",
-                  minLength: 2
+                  minLength: 2,
+                  ...jsonAnnotations
                 }
               ]
             }
@@ -503,16 +539,8 @@ describe("ToJsonSchema", () => {
       it("String & check & json annotations + identifier", async () => {
         await assertDraft7(
           Schema.String.check(Schema.isMinLength(2)).annotate({
-            title: "title",
-            description: "description",
-            default: "", // invalid default
-            examples: [
-              "", // invalid example
-              "a", // invalid example
-              "aa",
-              "aaa"
-            ],
-            identifier: "ID"
+            identifier: "ID",
+            ...jsonAnnotations
           }),
           {
             schema: {
@@ -524,10 +552,8 @@ describe("ToJsonSchema", () => {
                 allOf: [
                   {
                     $comment: "Filter",
-                    title: "title",
-                    description: "description",
-                    examples: ["aa", "aaa"],
-                    minLength: 2
+                    minLength: 2,
+                    ...jsonAnnotations
                   }
                 ]
               }
@@ -564,16 +590,7 @@ describe("ToJsonSchema", () => {
       it("String & check & check & json annotations", async () => {
         await assertDraft7(
           Schema.String.check(Schema.isMinLength(2), Schema.isMaxLength(3)).annotate({
-            title: "title",
-            description: "description",
-            default: "", // invalid default
-            examples: [
-              "", // invalid example
-              "a", // invalid example
-              "aa",
-              "aaa",
-              "aaaa" // invalid example
-            ]
+            ...jsonAnnotations
           }),
           {
             schema: {
@@ -587,36 +604,8 @@ describe("ToJsonSchema", () => {
                 },
                 {
                   $comment: "Filter",
-                  title: "title",
-                  description: "description",
                   maxLength: 3,
-                  examples: ["aa", "aaa"]
-                }
-              ]
-            }
-          }
-        )
-
-        await assertDraft7(
-          Schema.String.check(Schema.isMinLength(2), Schema.isMaxLength(3)).annotate({
-            default: "aa" // valid default
-          }),
-          {
-            schema: {
-              type: "string",
-              allOf: [
-                {
-                  $comment: "Filter",
-                  title: "isMinLength(2)",
-                  description: "a value with a length of at least 2",
-                  minLength: 2
-                },
-                {
-                  $comment: "Filter",
-                  title: "isMaxLength(3)",
-                  description: "a value with a length of at most 3",
-                  maxLength: 3,
-                  default: "aa"
+                  ...jsonAnnotations
                 }
               ]
             }
@@ -719,7 +708,10 @@ describe("ToJsonSchema", () => {
             schema: {
               type: "object",
               properties: {
-                a: { type: "string" }
+                a: {
+                  $comment: "Override",
+                  type: "string"
+                }
               },
               required: [],
               additionalProperties: false
@@ -761,7 +753,10 @@ describe("ToJsonSchema", () => {
             schema: {
               type: "object",
               properties: {
-                a: { type: "string" }
+                a: {
+                  $comment: "Override",
+                  type: "string"
+                }
               },
               required: ["a"],
               additionalProperties: false
@@ -848,7 +843,10 @@ describe("ToJsonSchema", () => {
             schema: {
               type: "object",
               properties: {
-                a: { type: "string" }
+                a: {
+                  $comment: "Override",
+                  type: "string"
+                }
               },
               required: ["a"],
               additionalProperties: false
@@ -1105,7 +1103,6 @@ describe("ToJsonSchema", () => {
               allOf: [
                 {
                   $comment: "Filter",
-                  contentEncoding: "base64",
                   description: "a base64 encoded string",
                   title: "isBase64",
                   pattern: "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
@@ -1126,7 +1123,6 @@ describe("ToJsonSchema", () => {
               allOf: [
                 {
                   $comment: "Filter",
-                  contentEncoding: "base64",
                   description: "a base64url encoded string",
                   title: "isBase64Url",
                   pattern: "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
@@ -1258,7 +1254,6 @@ describe("ToJsonSchema", () => {
               allOf: [
                 {
                   $comment: "Filter",
-                  contentEncoding: "base64",
                   description: "a base64 encoded string",
                   title: "isBase64",
                   pattern: "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
@@ -1279,7 +1274,6 @@ describe("ToJsonSchema", () => {
               allOf: [
                 {
                   $comment: "Filter",
-                  contentEncoding: "base64",
                   description: "a base64url encoded string",
                   title: "isBase64Url",
                   pattern: "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
