@@ -2086,6 +2086,16 @@ function modifyOwnPropertyDescriptors<A extends AST>(
 }
 
 /** @internal */
+export function replaceAnnotations<A extends AST>(ast: A, annotations: Annotations.Annotations | undefined): A {
+  if (ast.annotations === annotations) {
+    return ast
+  }
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    d.annotations.value = annotations
+  })
+}
+
+/** @internal */
 export function replaceEncoding<A extends AST>(ast: A, encoding: Encoding | undefined): A {
   if (ast.encoding === encoding) {
     return ast

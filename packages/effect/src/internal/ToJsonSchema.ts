@@ -7,7 +7,7 @@ import * as AST from "../schema/AST.ts"
 import type * as Schema from "../schema/Schema.ts"
 import * as ToParser from "../schema/ToParser.ts"
 
-interface Options extends Schema.JsonSchemaDraft07Options {
+interface Options extends Schema.JsonSchemaOptions {
   readonly target?: Annotations.JsonSchema.Target | undefined
 }
 
@@ -24,17 +24,17 @@ function get$schema(target: Annotations.JsonSchema.Target) {
 /** @internal */
 export function make<S extends Schema.Top>(schema: S, options?: Options): Annotations.JsonSchema.JsonSchema {
   const definitions = options?.definitions ?? {}
-  const getRef = options?.getRef ?? ((id: string) => "#/$defs/" + id)
+  const getRef = (id: string) => "#/$defs/" + id
   const target = options?.target ?? "draft-07"
   const additionalPropertiesStrategy = options?.additionalPropertiesStrategy ?? "strict"
-  const topLevelReferenceStrategy = options?.topLevelReferenceStrategy ?? "keep"
+  const referenceStrategy = options?.referenceStrategy ?? "keep"
   const out: Annotations.JsonSchema.JsonSchema = {
     $schema: get$schema(target),
     ...go(schema.ast, [], {
       definitions,
       getRef,
       target,
-      topLevelReferenceStrategy,
+      referenceStrategy,
       additionalPropertiesStrategy,
       onMissingJsonSchemaAnnotation: options?.onMissingJsonSchemaAnnotation
     })
@@ -43,16 +43,6 @@ export function make<S extends Schema.Top>(schema: S, options?: Options): Annota
     out.$defs = definitions
   }
   return out
-}
-
-function isContentEncodingSupported(target: Annotations.JsonSchema.Target): boolean {
-  switch (target) {
-    case "draft-07":
-      return false
-    case "draft-2020-12":
-    case "openApi3.1":
-      return true
-  }
 }
 
 function getAnnotationsParser(ast: AST.AST) {
@@ -87,17 +77,12 @@ function getJsonSchemaAnnotations(
         if (example !== undefined) {
           const o = parser(example)
           if (o._tag === "Some") {
-            examples.push(example)
+            examples.push(o.value)
           }
         }
       }
       if (examples.length > 0) {
         out.examples = examples
-      }
-    }
-    if (isContentEncodingSupported(target)) {
-      if (Predicate.isString(annotations.contentEncoding)) {
-        out.contentEncoding = annotations.contentEncoding
       }
     }
     return Object.keys(out).length > 0 ? out : undefined
@@ -196,7 +181,7 @@ type GoOptions = {
   readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
   readonly getRef: (id: string) => string
   readonly target: Annotations.JsonSchema.Target
-  readonly topLevelReferenceStrategy: Schema.JsonSchemaTopLevelReferenceStrategy
+  readonly referenceStrategy: Schema.JsonSchemaReferenceStrategy
   readonly additionalPropertiesStrategy: Schema.JsonSchemaAdditionalPropertiesStrategy
   readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => Annotations.JsonSchema.JsonSchema | undefined) | undefined
 }
@@ -268,7 +253,7 @@ function go(
   // ---------------------------------------------
   if (
     !ignoreIdentifier &&
-    (options.topLevelReferenceStrategy !== "skip" || AST.isSuspend(ast))
+    (options.referenceStrategy !== "skip" || AST.isSuspend(ast))
   ) {
     const identifier = getId(ast)
     if (identifier !== undefined) {
@@ -332,14 +317,13 @@ function go(
       }
       throw new Error(`cannot generate JSON Schema for ${ast.getExpected()} at ${formatPath(path) || "root"}`)
     }
+    case "Never":
     case "Undefined":
       return { not: {}, ...getChecksJsonFragment(ast, target) }
     case "Void":
     case "Unknown":
     case "Any":
       return { ...getChecksJsonFragment(ast, target) }
-    case "Never":
-      return { not: {}, ...getChecksJsonFragment(ast, target) }
     case "Null": {
       const constraint = getChecksJsonFragment(ast, target, "null")
       return { type: "null", ...constraint }
