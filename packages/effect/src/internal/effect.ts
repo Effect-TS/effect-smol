@@ -11,7 +11,7 @@ import * as Duration from "../Duration.ts"
 import type * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
 import type * as Fiber from "../Fiber.ts"
-import type { LazyArg } from "../Function.ts"
+import type { FunctionN, LazyArg } from "../Function.ts"
 import { constant, constFalse, constTrue, constVoid, dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
@@ -890,52 +890,74 @@ const void_: Effect.Effect<void> = succeed(void 0)
 export { void_ as void }
 
 /** @internal */
-const try_ = <A, E>(options: {
-  try: LazyArg<A>
-  catch: (error: unknown) => E
-}): Effect.Effect<A, E> =>
-  suspend(() => {
+function attempt<A, E = never>(
+  thunk: LazyArg<A>,
+  rescue?: ((error: unknown) => E) | undefined
+): A | E {
+  if (rescue) {
     try {
-      return succeed(internalCall(options.try))
-    } catch (err) {
-      return fail(internalCall(() => options.catch(err)))
+      return thunk()
+    } catch (error) {
+      return rescue(error)
     }
-  })
+  }
+  return thunk()
+}
+
+type TryOptions<Thunk, E> =
+  | { readonly try: Thunk; readonly catch: (error: unknown) => E }
+  | { readonly try: Thunk }
+  | Thunk
+
+/** @internal */
+export const try_ = <A, E = Cause.UnknownError>(
+  options: TryOptions<LazyArg<A>, E>
+): Effect.Effect<A, E> => {
+  const thunk = typeof options === "function" ? options : options.try
+
+  const recover = typeof options === "function"
+    ? undefined
+    : "catch" in options
+    ? options.catch
+    : (e: unknown) => new UnknownError(e, "An error occurred in Effect.try") as E
+
+  const rescue = recover && ((e: unknown) => fail(internalCall(() => recover(e))))
+
+  return suspend(() =>
+    attempt(
+      () => succeed(internalCall(thunk)),
+      rescue
+    )
+  )
+}
+
 /** @internal */
 export { try_ as try }
 
 /** @internal */
-export const promise = <A>(
-  evaluate: (signal: AbortSignal) => PromiseLike<A>
-): Effect.Effect<A> =>
-  callbackOptions<A>(function(resume, signal) {
-    internalCall(() => evaluate(signal!)).then(
-      (a) => resume(succeed(a)),
-      (e) => resume(die(e))
-    )
-  }, evaluate.length !== 0)
-
-/** @internal */
-export const tryPromise = <A, E = Cause.UnknownError>(
-  options: {
-    readonly try: (signal: AbortSignal) => PromiseLike<A>
-    readonly catch: (error: unknown) => E
-  } | ((signal: AbortSignal) => PromiseLike<A>)
+export const promise = <A, E = Cause.UnknownError>(
+  options: TryOptions<FunctionN<[signal: AbortSignal], PromiseLike<A>>, E>
 ): Effect.Effect<A, E> => {
-  const f = typeof options === "function" ? options : options.try
-  const catcher = typeof options === "function"
-    ? ((cause: unknown) => new UnknownError(cause, "An error occurred in Effect.tryPromise"))
-    : options.catch
+  const thunk = typeof options === "function" ? options : options.try
+
+  const recover = typeof options === "function"
+    ? undefined
+    : "catch" in options
+    ? options.catch
+    : (e: unknown) => new UnknownError(e, "An error occurred in Effect.promise") as E
+
+  const rescue = recover && ((e: unknown) => fail(internalCall(() => recover(e))))
+
   return callbackOptions<A, E>(function(resume, signal) {
-    try {
-      internalCall(() => f(signal!)).then(
-        (a) => resume(succeed(a)),
-        (e) => resume(fail(internalCall(() => catcher(e)) as E))
-      )
-    } catch (err) {
-      resume(fail(internalCall(() => catcher(err)) as E))
-    }
-  }, eval.length !== 0)
+    attempt(
+      () =>
+        internalCall(() => thunk(signal!)).then(
+          (a) => resume(succeed(a)),
+          (e) => resume(rescue ? rescue(e) : die(e))
+        ),
+      rescue
+    )
+  }, thunk.length !== 0)
 }
 
 /** @internal */
