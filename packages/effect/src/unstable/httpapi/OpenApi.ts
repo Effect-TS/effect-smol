@@ -4,6 +4,7 @@
 import type { NonEmptyArray } from "../../collections/Array.ts"
 import * as Option from "../../data/Option.ts"
 import { constFalse } from "../../Function.ts"
+import type * as Annotations from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -220,7 +221,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   if (cached !== undefined) {
     return cached
   }
-  const jsonSchemaDefs: Record<string, object> = {}
+  const jsonSchemaDefs: Record<string, Annotations.JsonSchema.JsonSchema> = {}
   let spec: OpenAPISpec = {
     openapi: "3.1.0",
     info: {
@@ -237,15 +238,12 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   }
 
   function processAST(ast: AST.AST): object {
-    const { definitions, jsonSchema, uri } = Schema.makeJsonSchemaOpenApi3_1(Schema.make(ast), {
+    const { jsonSchema } = Schema.makeJsonSchemaOpenApi3_1(Schema.make(ast), {
+      definitions: jsonSchemaDefs,
       additionalPropertiesStrategy: options?.additionalPropertiesStrategy,
       referenceStrategy: "keep"
     })
-    Object.assign(jsonSchemaDefs, definitions) // TODO: try passing jsonSchemaDefs above instead
-    return {
-      $schema: uri,
-      ...jsonSchema
-    }
+    return jsonSchema
   }
 
   function processHttpApiSecurity(
