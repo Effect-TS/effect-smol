@@ -51,7 +51,7 @@ function go(
   options: GoOptions,
   ignoreIdentifier: boolean,
   ignoreAnnotation: boolean,
-  ignoreErrors: boolean
+  ignoreErrors: boolean // TODO: remove this option
 ): Annotations.JsonSchema.JsonSchema {
   const target = options.target
   // ---------------------------------------------
@@ -92,7 +92,7 @@ function go(
       const annotation = getAnnotation(last.annotations)
       if (annotation) {
         switch (annotation._tag) {
-          case "Override":
+          case "Override": {
             return {
               $comment: "Override",
               ...annotation.override({
@@ -101,6 +101,7 @@ function go(
                 make: (ast) => go(ast, path, options, ignoreIdentifier, false, false)
               })
             }
+          }
           case "Constraint": {
             const fragment = getFragment(ast, last, target, out.type)
             if (fragment) {
@@ -116,7 +117,7 @@ function go(
   // handle annotations
   // ---------------------------------------------
   if (ast.annotations) {
-    let out = go(AST.replaceAnnotations(ast, undefined), path, options, false, false, ignoreErrors)
+    let out
     if (!ignoreAnnotation) {
       const annotation = getAnnotation(ast.annotations)
       if (annotation) {
@@ -133,14 +134,16 @@ function go(
             break
           }
           case "Constraint": {
-            if (ignoreErrors) return {}
-            throw new Error("Constraint annotation found on non-constrained AST", { cause: ast })
+            const message = "Constraint annotation found on non-constrained AST"
+            if (ignoreErrors) return { $comment: message }
+            throw new Error(message, { cause: ast })
           }
         }
       }
     }
+    out = out ?? go(AST.replaceAnnotations(ast, undefined), path, options, false, false, ignoreErrors)
     if (!ast.encoding) {
-      const annotations = getJsonSchemaAnnotations(target, ast.annotations)
+      const annotations = getJsonSchemaAnnotations(ast.annotations)
       if (annotations) {
         if ("$ref" in out) {
           out = { allOf: [out] }
@@ -172,8 +175,9 @@ function go(
         const out = options.onMissingJsonSchemaAnnotation(ast)
         if (out) return out
       }
-      if (ignoreErrors) return {}
-      throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+      const message = `cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`
+      if (ignoreErrors) return { $comment: message }
+      throw new Error(message, { cause: ast })
     }
 
     case "Never":
@@ -209,8 +213,9 @@ function go(
       if (Predicate.isBoolean(ast.literal)) {
         return { type: "boolean", enum: [ast.literal] }
       }
-      if (ignoreErrors) return {}
-      throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+      const message = `cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`
+      if (ignoreErrors) return { $comment: message }
+      throw new Error(message, { cause: ast })
     }
 
     case "Enum":
@@ -224,10 +229,10 @@ function go(
       // handle post rest elements
       // ---------------------------------------------
       if (ast.rest.length > 1) {
-        if (ignoreErrors) return {}
-        throw new Error(
+        const message =
           "Generating a JSON Schema for post-rest elements is not currently supported. You're welcome to contribute by submitting a Pull Request"
-        )
+        if (ignoreErrors) return { $comment: message }
+        throw new Error(message, { cause: ast })
       }
       const out: any = { type: "array" }
       // ---------------------------------------------
@@ -236,7 +241,7 @@ function go(
       const items = ast.elements.map((e, i) => {
         return merge(
           go(e, [...path, i], options, false, false, ignoreErrors),
-          getJsonSchemaAnnotations(target, e.context?.annotations, "key annotations")
+          getJsonSchemaAnnotations(e.context?.annotations, "key annotations")
         )
       })
       const minItems = ast.elements.findIndex(isOptional)
@@ -280,12 +285,13 @@ function go(
       for (const ps of ast.propertySignatures) {
         const name = ps.name as string
         if (Predicate.isSymbol(name)) {
-          if (ignoreErrors) return {}
-          throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath([...path, name]) || "root"}`)
+          const message = `cannot generate JSON Schema for ${ast._tag} at ${formatPath([...path, name]) || "root"}`
+          if (ignoreErrors) return { $comment: message }
+          throw new Error(message, { cause: ast })
         } else {
           out.properties[name] = merge(
             go(ps.type, [...path, name], options, false, false, ignoreErrors),
-            getJsonSchemaAnnotations(target, ps.type.context?.annotations, "key annotations")
+            getJsonSchemaAnnotations(ps.type.context?.annotations, "key annotations")
           )
           if (!isOptional(ps.type)) {
             out.required.push(name)
@@ -319,7 +325,7 @@ function go(
     case "Union": {
       const types = ast.types.map((type) =>
         AST.isUndefined(type) ?
-          { $comment: "Undefined", not: {} } :
+          undefinedSchema :
           go(type, path, options, false, false, ignoreErrors)
       )
       return types.length === 0
@@ -333,15 +339,16 @@ function go(
       if (id !== undefined) {
         return go(ast.thunk(), path, options, true, false, ignoreErrors)
       }
-      if (ignoreErrors) return {}
-      throw new Error(
-        `cannot generate JSON Schema for ${ast._tag} at ${
-          formatPath(path) || "root"
-        }, required \`identifier\` annotation`
-      )
+      const message = `cannot generate JSON Schema for ${ast._tag} at ${
+        formatPath(path) || "root"
+      }, required \`identifier\` annotation`
+      if (ignoreErrors) return { $comment: message }
+      throw new Error(message, { cause: ast })
     }
   }
 }
+
+const undefinedSchema = { $comment: "Undefined", not: {} }
 
 function getMetaSchemaUri(target: Annotations.JsonSchema.Target) {
   switch (target) {
@@ -381,7 +388,7 @@ function getFragment(
   target: Annotations.JsonSchema.Target,
   type?: Annotations.JsonSchema.Type
 ): Annotations.JsonSchema.Fragment | undefined {
-  const annotations = getJsonSchemaAnnotations(target, check.annotations)
+  const annotations = getJsonSchemaAnnotations(check.annotations)
   switch (check._tag) {
     case "Filter": {
       const fragment = getConstraint(check, target, type)
@@ -455,14 +462,14 @@ function getPattern(
     case "TemplateLiteral":
       return AST.getTemplateLiteralRegExp(ast).source
   }
+  const message = `cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`
   if (ignoreErrors) return undefined
-  throw new Error(`cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`)
+  throw new Error(message, { cause: ast })
 }
 
 function getJsonSchemaAnnotations(
-  target: Annotations.JsonSchema.Target,
   annotations: Annotations.Annotations | undefined,
-  comment?: string | undefined
+  $comment?: string | undefined
 ): Annotations.JsonSchema.Fragment | undefined {
   if (annotations) {
     const out: Annotations.JsonSchema.Fragment = {}
@@ -478,7 +485,9 @@ function getJsonSchemaAnnotations(
     if (Array.isArray(annotations.examples)) {
       out.examples = annotations.examples
     }
-    return Object.keys(out).length > 0 ? comment !== undefined ? { $comment: comment, ...out } : out : undefined
+    if (Object.keys(out).length > 0) {
+      return $comment !== undefined ? { $comment, ...out } : out
+    }
   }
 }
 

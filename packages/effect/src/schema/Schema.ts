@@ -1533,8 +1533,8 @@ export function Struct<const Fields extends Struct.Fields>(fields: Fields): Stru
 }
 
 /**
+ * @category Struct transformations
  * @since 4.0.0
- * @experimental
  */
 export function encodeKeys<
   S extends Struct<Struct.Fields>,
