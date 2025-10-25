@@ -97,7 +97,7 @@ export function assertAjvDraft7Failure<S extends Schema.Top>(
 }
 
 export function expectError(schema: Schema.Top, message: string, options?: Schema.JsonSchemaOptions) {
-  throws(() => Schema.makeJsonSchemaDraft07(schema, options), new Error(message))
+  throws(() => Schema.makeJsonSchemaDraft07(schema, options), message)
 }
 
 describe("ToJsonSchema", () => {
@@ -226,6 +226,94 @@ describe("ToJsonSchema", () => {
     })
   })
 
+  describe("Override", () => {
+    it("declare", async () => {
+      const schema = Schema.instanceOf(URL, {
+        jsonSchema: {
+          _tag: "Override",
+          override: () => ({ "type": "string" })
+        }
+      })
+      await assertDraft7(schema, {
+        schema: {
+          "$comment": "Override",
+          "type": "string"
+        }
+      })
+    })
+
+    describe("String", () => {
+      it("String & override", async () => {
+        const schema = Schema.String.annotate({
+          jsonSchema: {
+            _tag: "Override",
+            override: () => ({ "type": "string", minLength: 1 })
+          }
+        })
+        await assertDraft7(
+          schema,
+          {
+            schema: {
+              "$comment": "Override",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        )
+        await assertDraft7(
+          schema.annotate({ description: "description" }),
+          {
+            schema: {
+              "$comment": "Override",
+              "type": "string",
+              "minLength": 1,
+              "description": "description"
+            }
+          }
+        )
+      })
+
+      it("String & identifier & override", async () => {
+        await assertDraft7(
+          Schema.String.annotate({
+            identifier: "ID",
+            jsonSchema: {
+              _tag: "Override",
+              override: () => ({ "type": "string", minLength: 1 })
+            }
+          }),
+          {
+            schema: {
+              "$ref": "#/definitions/ID"
+            },
+            definitions: {
+              "ID": {
+                "$comment": "Override",
+                "type": "string",
+                minLength: 1
+              }
+            }
+          }
+        )
+      })
+
+      it("String & check & override", async () => {
+        await assertDraft7(
+          Schema.String.check(Schema.isMinLength(2)).annotate({
+            jsonSchema: { _tag: "Override", override: () => ({ "type": "string", minLength: 1 }) }
+          }),
+          {
+            schema: {
+              "$comment": "Override",
+              "type": "string",
+              minLength: 1
+            }
+          }
+        )
+      })
+    })
+  })
+
   describe("draft-07", () => {
     describe("String", () => {
       const jsonAnnotations = {
@@ -251,41 +339,6 @@ describe("ToJsonSchema", () => {
           {
             schema: {
               "type": "string",
-              ...jsonAnnotations
-            }
-          }
-        )
-      })
-
-      it("String & override", async () => {
-        await assertDraft7(
-          Schema.String.annotate({
-            jsonSchema: {
-              _tag: "Override",
-              override: () => ({ "type": "string", minLength: 1 })
-            }
-          }),
-          {
-            schema: {
-              "$comment": "Override",
-              "type": "string",
-              "minLength": 1
-            }
-          }
-        )
-        await assertDraft7(
-          Schema.String.annotate({
-            jsonSchema: {
-              _tag: "Override",
-              override: () => ({ "type": "string", minLength: 1 })
-            },
-            ...jsonAnnotations
-          }),
-          {
-            schema: {
-              "$comment": "Override",
-              "type": "string",
-              "minLength": 1,
               ...jsonAnnotations
             }
           }
@@ -320,53 +373,6 @@ describe("ToJsonSchema", () => {
             definitions: {
               "ID": {
                 "type": "string",
-                ...jsonAnnotations
-              }
-            }
-          }
-        )
-      })
-
-      it("String & identifier & override", async () => {
-        await assertDraft7(
-          Schema.String.annotate({
-            identifier: "ID",
-            jsonSchema: {
-              _tag: "Override",
-              override: () => ({ "type": "string", minLength: 1 })
-            }
-          }),
-          {
-            schema: {
-              "$ref": "#/definitions/ID"
-            },
-            definitions: {
-              "ID": {
-                "$comment": "Override",
-                "type": "string",
-                minLength: 1
-              }
-            }
-          }
-        )
-        await assertDraft7(
-          Schema.String.annotate({
-            identifier: "ID",
-            jsonSchema: {
-              _tag: "Override",
-              override: () => ({ "type": "string", minLength: 1 })
-            },
-            ...jsonAnnotations
-          }),
-          {
-            schema: {
-              "$ref": "#/definitions/ID"
-            },
-            definitions: {
-              "ID": {
-                "$comment": "Override",
-                "type": "string",
-                minLength: 1,
                 ...jsonAnnotations
               }
             }
@@ -424,21 +430,6 @@ describe("ToJsonSchema", () => {
                   minLength: 2
                 }
               ]
-            }
-          }
-        )
-      })
-
-      it("String & check & override", async () => {
-        await assertDraft7(
-          Schema.String.check(Schema.isMinLength(2)).annotate({
-            jsonSchema: { _tag: "Override", override: () => ({ "type": "string", minLength: 1 }) }
-          }),
-          {
-            schema: {
-              "$comment": "Override",
-              "type": "string",
-              minLength: 1
             }
           }
         )

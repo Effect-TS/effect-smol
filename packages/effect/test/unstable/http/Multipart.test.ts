@@ -9,10 +9,11 @@ describe("Multipart", () => {
       const { definitions, jsonSchema, uri } = Schema.makeJsonSchemaDraft07(Multipart.FileSchema)
       strictEqual(uri, "http://json-schema.org/draft-07/schema")
       deepStrictEqual(jsonSchema, {
-        "$ref": "#/$defs/PersistedFile"
+        "$ref": "#/definitions/PersistedFile"
       })
       deepStrictEqual(definitions, {
         "PersistedFile": {
+          "$comment": "Override",
           "type": "string",
           "format": "binary"
         }
