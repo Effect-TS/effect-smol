@@ -904,14 +904,14 @@ function attempt<A, E = never>(
   return thunk()
 }
 
-type TryOptions<Thunk, E> =
-  | { readonly try: Thunk; readonly catch: (error: unknown) => E }
+type ExecOptions<Thunk, Rescue> =
+  | { readonly try: Thunk; readonly catch: Rescue }
   | { readonly try: Thunk }
   | Thunk
 
 /** @internal */
 export const try_ = <A, E = Cause.UnknownError>(
-  options: TryOptions<LazyArg<A>, E>
+  options: ExecOptions<LazyArg<A>, FunctionN<[error: unknown], E>>
 ): Effect.Effect<A, E> => {
   const thunk = typeof options === "function" ? options : options.try
 
@@ -936,7 +936,7 @@ export { try_ as try }
 
 /** @internal */
 export const promise = <A, E = Cause.UnknownError>(
-  options: TryOptions<FunctionN<[signal: AbortSignal], PromiseLike<A>>, E>
+  options: ExecOptions<FunctionN<[signal: AbortSignal], PromiseLike<A>>, FunctionN<[error: unknown], E>>
 ): Effect.Effect<A, E> => {
   const thunk = typeof options === "function" ? options : options.try
 
