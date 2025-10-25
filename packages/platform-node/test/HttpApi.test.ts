@@ -331,7 +331,6 @@ describe("HttpApi", () => {
           "content": {
             "application/json": {
               "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "anyOf": [
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
@@ -362,7 +361,6 @@ describe("HttpApi", () => {
           "content": {
             "application/json": {
               "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "anyOf": [
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
@@ -394,7 +392,6 @@ describe("HttpApi", () => {
           "content": {
             "application/json": {
               "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "$ref": "#/components/schemas/ID"
               }
             }
@@ -420,7 +417,6 @@ describe("HttpApi", () => {
           "content": {
             "application/json": {
               "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "anyOf": [
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
@@ -439,7 +435,6 @@ describe("HttpApi", () => {
           "content": {
             "application/json": {
               "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "number"
               }
             }
@@ -470,7 +465,6 @@ describe("HttpApi", () => {
           "content": {
             "application/json": {
               "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "string"
               }
             }
@@ -496,7 +490,6 @@ describe("HttpApi", () => {
           "content": {
             "application/json": {
               "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "anyOf": [
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
@@ -533,7 +526,6 @@ describe("HttpApi", () => {
           "content": {
             "application/json": {
               "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "anyOf": [
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   { "type": "string" }
