@@ -317,13 +317,13 @@ function go(
       return out
     }
     case "Union": {
-      const types = ast.types.filter((ast) => !AST.isUndefined(ast)).map((t) =>
-        go(t, path, options, false, false, ignoreErrors)
+      const types = ast.types.map((type) =>
+        AST.isUndefined(type) ?
+          { $comment: "Undefined", not: {} } :
+          go(type, path, options, false, false, ignoreErrors)
       )
       return types.length === 0
         ? { not: {} }
-        : types.length === 1
-        ? types[0]
         : ast.mode === "anyOf"
         ? { anyOf: types }
         : { oneOf: types }

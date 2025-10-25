@@ -30,7 +30,7 @@ async function assertDraft7<S extends Schema.Top>(
   return jsonSchema
 }
 
-describe("ToJsonSchema", () => {
+describe.skip("ToJsonSchema", () => {
   describe("options", () => {
     describe("topLevelReferenceStrategy", () => {
       describe(`"skip"`, () => {
