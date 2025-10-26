@@ -95,7 +95,6 @@ export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top>> ext
   readonly meta?: Meta | undefined
   readonly jsonSchema?:
     | JsonSchema.Override
-    | JsonSchema.Constraint
     | undefined
   readonly arbitrary?:
     | Arbitrary.Override<T, TypeParameters>

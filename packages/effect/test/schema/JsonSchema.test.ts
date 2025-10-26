@@ -293,30 +293,6 @@ describe("ToJsonSchema", () => {
     })
   })
 
-  describe("Constraint", () => {
-    it("when applied to a non-constrained AST should apply the constraint to a default generated JSON Schema", () => {
-      assertDraft07(
-        Schema.String.annotate({
-          jsonSchema: {
-            _tag: "Constraint",
-            constraint: () => ({ minLength: 1 })
-          }
-        }),
-        {
-          schema: {
-            "type": "string",
-            "allOf": [
-              {
-                "$comment": "Constraint annotation",
-                "minLength": 1
-              }
-            ]
-          }
-        }
-      )
-    })
-  })
-
   describe("draft-07", () => {
     describe("String", () => {
       const jsonAnnotations = {
@@ -460,6 +436,17 @@ describe("ToJsonSchema", () => {
                   "minLength": 2
                 }
               ]
+            }
+          }
+        )
+      })
+
+      it("String & empty check", () => {
+        assertDraft07(
+          Schema.String.check(Schema.makeFilter(() => true)),
+          {
+            schema: {
+              "type": "string"
             }
           }
         )

@@ -1,3 +1,4 @@
+import * as Arr from "../collections/Array.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Inspectable from "../interfaces/Inspectable.ts"
 import * as Annotations from "../schema/Annotations.ts"
@@ -119,13 +120,15 @@ function go(
   // ---------------------------------------------
   if (ast.checks) {
     const allOf = getFragments(ast.checks, options.target, out.type)
-    if ("$ref" in out) {
-      out = { allOf: [out] }
-    }
-    if (Array.isArray(out.allOf)) {
-      out = { allOf: [...out.allOf, ...allOf] }
-    } else {
-      out = { ...out, allOf }
+    if (allOf) {
+      if ("$ref" in out) {
+        out = { allOf: [out] }
+      }
+      if (Array.isArray(out.allOf)) {
+        out = { allOf: [...out.allOf, ...allOf] }
+      } else {
+        out = { ...out, allOf }
+      }
     }
   }
   // ---------------------------------------------
@@ -174,17 +177,6 @@ function base(
             $comment: "Override annotation",
             ...out
           }
-        }
-        case "Constraint": {
-          let out = base(ast, path, options, true, true, true)
-          const fragment = annotation.constraint({ target, type: out.type })
-          if (fragment) {
-            out = merge(out, {
-              $comment: "Constraint annotation",
-              ...fragment
-            })
-          }
-          return out
         }
       }
     }
@@ -399,13 +391,15 @@ function getFragments(
   checks: AST.Checks,
   target: Annotations.JsonSchema.Target,
   type?: Annotations.JsonSchema.Type
-): Array<Annotations.JsonSchema.Fragment> {
+): [Annotations.JsonSchema.Fragment, ...Array<Annotations.JsonSchema.Fragment>] | undefined {
   const allOf = []
   for (let i = 0; i < checks.length; i++) {
     const fragment = getFragment(checks[i], target, type)
     if (fragment) allOf.push(fragment)
   }
-  return allOf
+  if (Arr.isArrayNonEmpty(allOf)) {
+    return allOf
+  }
 }
 
 function getFragment(
@@ -417,18 +411,25 @@ function getFragment(
   switch (check._tag) {
     case "Filter": {
       const fragment = getConstraint(check, target, type)
-      return {
-        $comment: "Filter",
-        ...annotations,
-        ...fragment
+      if (annotations || fragment) {
+        return {
+          $comment: "Filter",
+          ...annotations,
+          ...fragment
+        }
       }
+      break
     }
     case "FilterGroup": {
-      return {
-        $comment: "FilterGroup",
-        ...annotations,
-        allOf: getFragments(check.checks, target, type)
+      const allOf = getFragments(check.checks, target, type)
+      if (annotations || allOf) {
+        return {
+          $comment: "FilterGroup",
+          ...annotations,
+          allOf
+        }
       }
+      break
     }
   }
 }
