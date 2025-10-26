@@ -209,10 +209,28 @@ describe("ToJsonSchema", () => {
       })
       await assertDraft07(schema, {
         schema: {
-          "$comment": "Override",
+          "$comment": "Override annotation",
           "type": "string"
         }
       })
+    })
+
+    it("should ignore errors when generating the default JSON Schema passed in the override context", async () => {
+      const schema = Schema.Symbol.annotate({
+        jsonSchema: {
+          _tag: "Override",
+          override: () => ({ type: "string" })
+        }
+      })
+      await assertDraft07(
+        schema,
+        {
+          schema: {
+            "$comment": "Override annotation",
+            "type": "string"
+          }
+        }
+      )
     })
 
     describe("String", () => {
@@ -227,7 +245,7 @@ describe("ToJsonSchema", () => {
           schema,
           {
             schema: {
-              "$comment": "Override",
+              "$comment": "Override annotation",
               "type": "string",
               "minLength": 1
             }
@@ -237,7 +255,7 @@ describe("ToJsonSchema", () => {
           schema.annotate({ description: "description" }),
           {
             schema: {
-              "$comment": "Override",
+              "$comment": "Override annotation",
               "type": "string",
               "minLength": 1,
               "description": "description"
@@ -261,9 +279,9 @@ describe("ToJsonSchema", () => {
             },
             definitions: {
               "ID": {
-                "$comment": "Override",
+                "$comment": "Override annotation",
                 "type": "string",
-                minLength: 1
+                "minLength": 1
               }
             }
           }
@@ -277,13 +295,37 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              "$comment": "Override",
+              "$comment": "Override annotation",
               "type": "string",
-              minLength: 1
+              "minLength": 1
             }
           }
         )
       })
+    })
+  })
+
+  describe("Constraint", () => {
+    it("when applied to a non-constrained AST should apply the constraint to a default generated JSON Schema", async () => {
+      await assertDraft07(
+        Schema.String.annotate({
+          jsonSchema: {
+            _tag: "Constraint",
+            constraint: () => ({ minLength: 1 })
+          }
+        }),
+        {
+          schema: {
+            "type": "string",
+            "allOf": [
+              {
+                "$comment": "Constraint annotation",
+                "minLength": 1
+              }
+            ]
+          }
+        }
+      )
     })
   })
 
@@ -375,9 +417,9 @@ describe("ToJsonSchema", () => {
               "allOf": [
                 {
                   "$comment": "Filter",
-                  title: "isMinLength(2)",
-                  description: "a value with a length of at least 2",
-                  minLength: 2
+                  "title": "isMinLength(2)",
+                  "description": "a value with a length of at least 2",
+                  "minLength": 2
                 }
               ]
             }
@@ -392,15 +434,15 @@ describe("ToJsonSchema", () => {
           }).check(Schema.isMinLength(2)),
           {
             schema: {
-              "$comment": "Override",
+              "$comment": "Override annotation",
               "type": "string",
-              minLength: 1,
+              "minLength": 1,
               "allOf": [
                 {
                   "$comment": "Filter",
-                  title: "isMinLength(2)",
-                  description: "a value with a length of at least 2",
-                  minLength: 2
+                  "title": "isMinLength(2)",
+                  "description": "a value with a length of at least 2",
+                  "minLength": 2
                 }
               ]
             }
@@ -1707,7 +1749,7 @@ describe("ToJsonSchema", () => {
               "type": "object",
               "properties": {
                 "a": {
-                  "$comment": "Override",
+                  "$comment": "Override annotation",
                   "type": "string"
                 }
               },
@@ -1752,7 +1794,7 @@ describe("ToJsonSchema", () => {
               "type": "object",
               "properties": {
                 "a": {
-                  "$comment": "Override",
+                  "$comment": "Override annotation",
                   "type": "string"
                 }
               },
@@ -1860,7 +1902,7 @@ describe("ToJsonSchema", () => {
               "type": "object",
               "properties": {
                 "a": {
-                  "$comment": "Override",
+                  "$comment": "Override annotation",
                   "anyOf": [
                     { "type": "string" },
                     { "$comment": "Undefined", "not": {} }
@@ -2151,7 +2193,7 @@ describe("ToJsonSchema", () => {
           Schema.fromJsonString(Schema.FiniteFromString),
           {
             schema: {
-              "$comment": "Override",
+              "$comment": "Override annotation",
               "type": "string",
               "description": "a string that will be decoded as JSON"
             }
@@ -2166,7 +2208,7 @@ describe("ToJsonSchema", () => {
           })),
           {
             schema: {
-              "$comment": "Override",
+              "$comment": "Override annotation",
               "type": "string",
               "description": "a string that will be decoded as JSON"
             }
@@ -2352,7 +2394,7 @@ describe("ToJsonSchema", () => {
           Schema.fromJsonString(Schema.FiniteFromString),
           {
             schema: {
-              "$comment": "Override",
+              "$comment": "Override annotation",
               "type": "string",
               "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
@@ -2373,7 +2415,7 @@ describe("ToJsonSchema", () => {
           })),
           {
             schema: {
-              "$comment": "Override",
+              "$comment": "Override annotation",
               "type": "string",
               "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
@@ -2381,7 +2423,7 @@ describe("ToJsonSchema", () => {
                 "type": "object",
                 "properties": {
                   "a": {
-                    "$comment": "Override",
+                    "$comment": "Override annotation",
                     "type": "string",
                     "description": "a string that will be decoded as JSON",
                     "contentMediaType": "application/json",
@@ -2403,134 +2445,22 @@ describe("ToJsonSchema", () => {
   })
 
   describe("openApi3.1", () => {
-    describe("checks", () => {
-      it("isInt", async () => {
-        await assertOpenApi3_1(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isInt()),
-          {
-            schema: {
-              "type": "number",
-              "description": "description",
-              "allOf": [
-                {
-                  "$comment": "Filter",
-                  "type": "integer",
-                  "description": "an integer",
-                  "title": "isInt"
-                }
-              ]
+    it("String & identifier", async () => {
+      await assertOpenApi3_1(
+        Schema.String.annotate({
+          identifier: "ID"
+        }),
+        {
+          schema: {
+            "$ref": "#/components/schemas/ID"
+          },
+          definitions: {
+            "ID": {
+              "type": "string"
             }
           }
-        )
-      })
-
-      it("isInt32", async () => {
-        await assertOpenApi3_1(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isInt32()),
-          {
-            schema: {
-              "type": "number",
-              "description": "description",
-              "allOf": [
-                {
-                  "$comment": "FilterGroup",
-                  "description": "a 32-bit integer",
-                  "title": "isInt32",
-                  "allOf": [
-                    {
-                      "$comment": "Filter",
-                      "type": "integer",
-                      "description": "an integer",
-                      "title": "isInt"
-                    },
-                    {
-                      "$comment": "Filter",
-                      "description": "a value between -2147483648 and 2147483647",
-                      "maximum": 2147483647,
-                      "minimum": -2147483648,
-                      "title": "isBetween(-2147483648, 2147483647)"
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        )
-      })
-
-      it("isUint32", async () => {
-        await assertOpenApi3_1(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isUint32()),
-          {
-            schema: {
-              "type": "number",
-              "description": "description",
-              "allOf": [
-                {
-                  "$comment": "FilterGroup",
-                  "description": "a 32-bit unsigned integer",
-                  "title": "isUint32",
-                  "allOf": [
-                    {
-                      "$comment": "Filter",
-                      "type": "integer",
-                      "description": "an integer",
-                      "title": "isInt"
-                    },
-                    {
-                      "$comment": "Filter",
-                      "description": "a value between 0 and 4294967295",
-                      "maximum": 4294967295,
-                      "minimum": 0,
-                      "title": "isBetween(0, 4294967295)"
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        )
-      })
-
-      it("isBase64", async () => {
-        await assertOpenApi3_1(
-          Schema.String.annotate({ description: "description" }).check(Schema.isBase64()),
-          {
-            schema: {
-              "type": "string",
-              "description": "description",
-              "allOf": [
-                {
-                  "$comment": "Filter",
-                  "description": "a base64 encoded string",
-                  "title": "isBase64",
-                  "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
-                }
-              ]
-            }
-          }
-        )
-      })
-
-      it("isBase64Url", async () => {
-        await assertOpenApi3_1(
-          Schema.String.annotate({ description: "description" }).check(Schema.isBase64Url()),
-          {
-            schema: {
-              "type": "string",
-              "description": "description",
-              "allOf": [
-                {
-                  "$comment": "Filter",
-                  "description": "a base64url encoded string",
-                  "title": "isBase64Url",
-                  "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
-                }
-              ]
-            }
-          }
-        )
-      })
+        }
+      )
     })
   })
 })

@@ -5851,7 +5851,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJs
  * @since 4.0.0
  */
 export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
-  return UnknownFromJsonString.pipe(decodeTo(schema)).annotate({
+  return UnknownFromJsonString.annotate({
     jsonSchema: {
       _tag: "Override",
       override: (ctx: Annotations.JsonSchema.OverrideContext) => {
@@ -5872,7 +5872,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
         }
       }
     }
-  })
+  }).pipe(decodeTo(schema))
 }
 
 /**

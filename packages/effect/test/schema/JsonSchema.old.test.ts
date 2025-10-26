@@ -1980,18 +1980,6 @@ describe.skip("ToJsonSchema", () => {
             "additionalProperties": false
           })
         })
-
-        it("should ignore errors", async () => {
-          const schema = Schema.Symbol.annotate({
-            jsonSchema: {
-              _tag: "Override",
-              override: () => ({ type: "string" })
-            }
-          })
-          await assertDraft7(schema, {
-            "type": "string"
-          })
-        })
       })
 
       describe("Constraint", () => {

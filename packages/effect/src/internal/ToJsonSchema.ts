@@ -94,11 +94,11 @@ function go(
         switch (annotation._tag) {
           case "Override": {
             return {
-              $comment: "Override",
+              $comment: "Override annotation",
               ...annotation.override({
                 target,
-                jsonSchema: go(ast, path, options, ignoreIdentifier, true, true),
-                make: (ast) => go(ast, path, options, ignoreIdentifier, false, false)
+                jsonSchema: go(ast, path, options, false, true, true),
+                make: (ast) => go(ast, path, options, false, false, false)
               })
             }
           }
@@ -124,7 +124,7 @@ function go(
         switch (annotation._tag) {
           case "Override": {
             out = {
-              $comment: "Override",
+              $comment: "Override annotation",
               ...annotation.override({
                 target,
                 jsonSchema: go(ast, path, options, ignoreIdentifier, true, true),
@@ -134,9 +134,14 @@ function go(
             break
           }
           case "Constraint": {
-            const message = "Constraint annotation found on non-constrained AST"
-            if (ignoreErrors) return { $comment: message }
-            throw new Error(message)
+            out = go(ast, path, options, false, true, true)
+            const fragment = annotation.constraint({ target, type: out.type })
+            if (fragment) {
+              out = merge(out, {
+                $comment: "Constraint annotation",
+                ...fragment
+              })
+            }
           }
         }
       }
