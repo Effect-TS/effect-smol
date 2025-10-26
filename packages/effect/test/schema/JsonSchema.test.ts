@@ -1,9 +1,9 @@
 import type { Options as AjvOptions } from "ajv"
 // eslint-disable-next-line import-x/no-named-as-default
 import Ajv from "ajv"
-import { Schema } from "effect/schema"
+import { Getter, Schema } from "effect/schema"
 import { describe, it } from "vitest"
-import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
+import { assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const Ajv2020 = require("ajv/dist/2020")
@@ -22,7 +22,7 @@ function assertUnsupportedSchema(schema: Schema.Top, message: string, options?: 
   throws(() => Schema.makeJsonSchemaDraft07(schema, options), message)
 }
 
-async function assertDraft07<S extends Schema.Top>(
+function assertDraft07<S extends Schema.Top>(
   schema: S,
   expected: { schema: object; definitions?: Record<string, object> },
   options?: Schema.JsonSchemaOptions
@@ -31,15 +31,11 @@ async function assertDraft07<S extends Schema.Top>(
   strictEqual(uri, "http://json-schema.org/draft-07/schema")
   deepStrictEqual(jsonSchema, expected.schema)
   deepStrictEqual(definitions, expected.definitions ?? {})
-  const valid = ajvDraft07.validateSchema(jsonSchema)
-  if (valid instanceof Promise) {
-    await valid
-  }
-  strictEqual(ajvDraft07.errors, null)
-  return jsonSchema
+  const valid = ajvDraft07.validateSchema({ $schema: uri, ...jsonSchema })
+  assertTrue(valid)
 }
 
-export async function assertDraft2020_12<S extends Schema.Top>(
+export function assertDraft2020_12<S extends Schema.Top>(
   schema: S,
   expected: { schema: object; definitions?: Record<string, object> },
   options?: Schema.JsonSchemaOptions
@@ -48,15 +44,11 @@ export async function assertDraft2020_12<S extends Schema.Top>(
   strictEqual(uri, "https://json-schema.org/draft/2020-12/schema")
   deepStrictEqual(jsonSchema, expected.schema)
   deepStrictEqual(definitions, expected.definitions ?? {})
-  const valid = ajvDraft2020_12.validateSchema(jsonSchema)
-  if (valid instanceof Promise) {
-    await valid
-  }
-  strictEqual(ajvDraft07.errors, null)
-  return jsonSchema
+  const valid = ajvDraft2020_12.validateSchema({ $schema: uri, ...jsonSchema })
+  assertTrue(valid)
 }
 
-export async function assertOpenApi3_1<S extends Schema.Top>(
+export function assertOpenApi3_1<S extends Schema.Top>(
   schema: S,
   expected: { schema: object; definitions?: Record<string, object> },
   options?: Schema.JsonSchemaOptions
@@ -65,45 +57,41 @@ export async function assertOpenApi3_1<S extends Schema.Top>(
   strictEqual(uri, "https://json-schema.org/draft/2020-12/schema")
   deepStrictEqual(jsonSchema, expected.schema)
   deepStrictEqual(definitions, expected.definitions ?? {})
-  const valid = ajvDraft2020_12.validateSchema(jsonSchema)
-  if (valid instanceof Promise) {
-    await valid
-  }
-  strictEqual(ajvDraft2020_12.errors, null)
-  return jsonSchema
+  const valid = ajvDraft2020_12.validateSchema({ $schema: uri, ...jsonSchema })
+  assertTrue(valid)
 }
 
 describe("ToJsonSchema", () => {
   describe("Unsupported schemas", () => {
-    it("Declaration", async () => {
+    it("Declaration", () => {
       assertUnsupportedSchema(
         Schema.instanceOf(globalThis.URL),
         `Unsupported schema Declaration at root`
       )
     })
 
-    it("Undefined", async () => {
+    it("Undefined", () => {
       assertUnsupportedSchema(
         Schema.Undefined,
         `Unsupported schema Undefined at root`
       )
     })
 
-    it("BigInt", async () => {
+    it("BigInt", () => {
       assertUnsupportedSchema(
         Schema.BigInt,
         `Unsupported schema BigInt at root`
       )
     })
 
-    it("UniqueSymbol", async () => {
+    it("UniqueSymbol", () => {
       assertUnsupportedSchema(
         Schema.UniqueSymbol(Symbol.for("effect/Schema/test/a")),
         `Unsupported schema UniqueSymbol at root`
       )
     })
 
-    it("Symbol", async () => {
+    it("Symbol", () => {
       assertUnsupportedSchema(
         Schema.Symbol,
         `Unsupported schema Symbol at root`
@@ -173,8 +161,8 @@ describe("ToJsonSchema", () => {
     })
 
     describe("onMissingJsonSchemaAnnotation", () => {
-      it("when returns a JSON Schema", async () => {
-        await assertDraft07(
+      it("when returns a JSON Schema", () => {
+        assertDraft07(
           Schema.Date,
           {
             schema: {
@@ -187,7 +175,7 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("when returns undefined", async () => {
+      it("when returns undefined", () => {
         assertUnsupportedSchema(
           Schema.Date,
           `Unsupported schema Declaration at root`,
@@ -200,14 +188,14 @@ describe("ToJsonSchema", () => {
   })
 
   describe("Override", () => {
-    it("declare", async () => {
+    it("declare", () => {
       const schema = Schema.instanceOf(URL, {
         jsonSchema: {
           _tag: "Override",
           override: () => ({ "type": "string" })
         }
       })
-      await assertDraft07(schema, {
+      assertDraft07(schema, {
         schema: {
           "$comment": "Override annotation",
           "type": "string"
@@ -215,14 +203,14 @@ describe("ToJsonSchema", () => {
       })
     })
 
-    it("should ignore errors when generating the default JSON Schema passed in the override context", async () => {
+    it("should ignore errors when generating the default JSON Schema passed in the override context", () => {
       const schema = Schema.Symbol.annotate({
         jsonSchema: {
           _tag: "Override",
           override: () => ({ type: "string" })
         }
       })
-      await assertDraft07(
+      assertDraft07(
         schema,
         {
           schema: {
@@ -234,14 +222,14 @@ describe("ToJsonSchema", () => {
     })
 
     describe("String", () => {
-      it("String & override", async () => {
+      it("String & override", () => {
         const schema = Schema.String.annotate({
           jsonSchema: {
             _tag: "Override",
             override: () => ({ "type": "string", minLength: 1 })
           }
         })
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -251,7 +239,7 @@ describe("ToJsonSchema", () => {
             }
           }
         )
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({ description: "description" }),
           {
             schema: {
@@ -264,8 +252,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & identifier & override", async () => {
-        await assertDraft07(
+      it("String & identifier & override", () => {
+        assertDraft07(
           Schema.String.annotate({
             identifier: "ID",
             jsonSchema: {
@@ -288,8 +276,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & check & override", async () => {
-        await assertDraft07(
+      it("String & check & override", () => {
+        assertDraft07(
           Schema.String.check(Schema.isMinLength(2)).annotate({
             jsonSchema: { _tag: "Override", override: () => ({ "type": "string", minLength: 1 }) }
           }),
@@ -306,8 +294,8 @@ describe("ToJsonSchema", () => {
   })
 
   describe("Constraint", () => {
-    it("when applied to a non-constrained AST should apply the constraint to a default generated JSON Schema", async () => {
-      await assertDraft07(
+    it("when applied to a non-constrained AST should apply the constraint to a default generated JSON Schema", () => {
+      assertDraft07(
         Schema.String.annotate({
           jsonSchema: {
             _tag: "Constraint",
@@ -338,8 +326,8 @@ describe("ToJsonSchema", () => {
         "examples": ["", "a", "aa"]
       }
 
-      it("String", async () => {
-        await assertDraft07(
+      it("String", () => {
+        assertDraft07(
           Schema.String,
           {
             schema: {
@@ -347,7 +335,7 @@ describe("ToJsonSchema", () => {
             }
           }
         )
-        await assertDraft07(
+        assertDraft07(
           Schema.String.annotate({
             ...jsonAnnotations
           }),
@@ -360,8 +348,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & identifier", async () => {
-        await assertDraft07(
+      it("String & identifier", () => {
+        assertDraft07(
           Schema.String.annotate({
             identifier: "ID"
           }),
@@ -376,7 +364,7 @@ describe("ToJsonSchema", () => {
             }
           }
         )
-        await assertDraft07(
+        assertDraft07(
           Schema.String.annotate({
             identifier: "ID",
             ...jsonAnnotations
@@ -395,8 +383,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("should ignore the key json annotations if the schema is not contextual", async () => {
-        await assertDraft07(
+      it("should ignore the key json annotations if the schema is not contextual", () => {
+        assertDraft07(
           Schema.String.annotateKey({
             ...jsonAnnotations
           }),
@@ -408,8 +396,58 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & check", async () => {
-        await assertDraft07(
+      it("using a schema with two different encodings", () => {
+        const To = Schema.String.annotate({ identifier: "ID" })
+        const schema1 = To.pipe(Schema.encodeTo(Schema.Literal(1), {
+          decode: Getter.succeed("a"),
+          encode: Getter.succeed(1)
+        }))
+        const schema2 = To.pipe(Schema.encodeTo(Schema.Literal(2), {
+          decode: Getter.succeed("b"),
+          encode: Getter.succeed(2)
+        }))
+        const schema = Schema.Union([schema1, schema2])
+        assertDraft07(schema, {
+          schema: {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/ID"
+              },
+              {
+                "$comment": "Encoding",
+                "type": "number",
+                "enum": [2]
+              }
+            ]
+          },
+          definitions: {
+            "ID": {
+              "$comment": "Encoding",
+              "type": "number",
+              "enum": [1]
+            }
+          }
+        })
+      })
+
+      it("using the same identifier annotated schema twice", () => {
+        const schema1 = Schema.String.annotate({ identifier: "ID" })
+        const schema = Schema.Union([schema1, schema1])
+        assertDraft07(schema, {
+          schema: {
+            "anyOf": [
+              { "$ref": "#/definitions/ID" },
+              { "$ref": "#/definitions/ID" }
+            ]
+          },
+          definitions: {
+            "ID": { "type": "string" }
+          }
+        })
+      })
+
+      it("String & check", () => {
+        assertDraft07(
           Schema.String.check(Schema.isMinLength(2)),
           {
             schema: {
@@ -427,8 +465,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & override & check", async () => {
-        await assertDraft07(
+      it("String & override & check", () => {
+        assertDraft07(
           Schema.String.annotate({
             jsonSchema: { _tag: "Override", override: () => ({ "type": "string", minLength: 1 }) }
           }).check(Schema.isMinLength(2)),
@@ -450,8 +488,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & check & identifier", async () => {
-        await assertDraft07(
+      it("String & check & identifier", () => {
+        assertDraft07(
           Schema.String.check(Schema.isMinLength(2, { identifier: "ID" })),
           {
             schema: {
@@ -474,8 +512,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & json annotations & check", async () => {
-        await assertDraft07(
+      it("String & json annotations & check", () => {
+        assertDraft07(
           Schema.String.annotate({
             ...jsonAnnotations
           }).check(Schema.isMinLength(2)),
@@ -496,8 +534,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & json annotations & check & identifier", async () => {
-        await assertDraft07(
+      it("String & json annotations & check & identifier", () => {
+        assertDraft07(
           Schema.String.annotate({
             ...jsonAnnotations
           }).check(Schema.isMinLength(2, { identifier: "ID" })),
@@ -523,8 +561,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & check & json annotations", async () => {
-        await assertDraft07(
+      it("String & check & json annotations", () => {
+        assertDraft07(
           Schema.String.check(Schema.isMinLength(2)).annotate({
             ...jsonAnnotations
           }),
@@ -543,8 +581,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & check & json annotations + identifier", async () => {
-        await assertDraft07(
+      it("String & check & json annotations + identifier", () => {
+        assertDraft07(
           Schema.String.check(Schema.isMinLength(2)).annotate({
             identifier: "ID",
             ...jsonAnnotations
@@ -569,8 +607,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & check & check", async () => {
-        await assertDraft07(
+      it("String & check & check", () => {
+        assertDraft07(
           Schema.String.check(Schema.isMinLength(2), Schema.isMaxLength(3)),
           {
             schema: {
@@ -594,8 +632,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & check & check & json annotations", async () => {
-        await assertDraft07(
+      it("String & check & check & json annotations", () => {
+        assertDraft07(
           Schema.String.check(Schema.isMinLength(2), Schema.isMaxLength(3)).annotate({
             ...jsonAnnotations
           }),
@@ -621,9 +659,9 @@ describe("ToJsonSchema", () => {
       })
     })
 
-    it("Void", async () => {
+    it("Void", () => {
       const schema = Schema.Void
-      await assertDraft07(
+      assertDraft07(
         schema,
         {
           schema: {}
@@ -633,7 +671,7 @@ describe("ToJsonSchema", () => {
         "title": "title",
         "description": "description"
       }
-      await assertDraft07(
+      assertDraft07(
         schema.annotate({
           ...jsonAnnotations
         }),
@@ -645,9 +683,9 @@ describe("ToJsonSchema", () => {
       )
     })
 
-    it("Unknown", async () => {
+    it("Unknown", () => {
       const schema = Schema.Unknown
-      await assertDraft07(
+      assertDraft07(
         schema,
         {
           schema: {}
@@ -659,7 +697,7 @@ describe("ToJsonSchema", () => {
         "default": null,
         "examples": [null, "a", 1]
       }
-      await assertDraft07(
+      assertDraft07(
         schema.annotate({
           ...jsonAnnotations
         }),
@@ -671,9 +709,9 @@ describe("ToJsonSchema", () => {
       )
     })
 
-    it("Any", async () => {
+    it("Any", () => {
       const schema = Schema.Any
-      await assertDraft07(
+      assertDraft07(
         schema,
         {
           schema: {}
@@ -685,7 +723,7 @@ describe("ToJsonSchema", () => {
         "default": null,
         "examples": [null, "a", 1]
       }
-      await assertDraft07(
+      assertDraft07(
         schema.annotate({
           ...jsonAnnotations
         }),
@@ -697,9 +735,9 @@ describe("ToJsonSchema", () => {
       )
     })
 
-    it("Never", async () => {
+    it("Never", () => {
       const schema = Schema.Never
-      await assertDraft07(
+      assertDraft07(
         schema,
         {
           schema: {
@@ -711,7 +749,7 @@ describe("ToJsonSchema", () => {
         "title": "title",
         "description": "description"
       }
-      await assertDraft07(
+      assertDraft07(
         schema.annotate({
           ...jsonAnnotations
         }),
@@ -724,9 +762,9 @@ describe("ToJsonSchema", () => {
       )
     })
 
-    it("Null", async () => {
+    it("Null", () => {
       const schema = Schema.Null
-      await assertDraft07(
+      assertDraft07(
         schema,
         {
           schema: {
@@ -740,7 +778,7 @@ describe("ToJsonSchema", () => {
         "default": null,
         "examples": [null]
       }
-      await assertDraft07(
+      assertDraft07(
         schema.annotate({
           ...jsonAnnotations
         }),
@@ -753,9 +791,9 @@ describe("ToJsonSchema", () => {
       )
     })
 
-    it("Number", async () => {
+    it("Number", () => {
       const schema = Schema.Number
-      await assertDraft07(
+      assertDraft07(
         schema,
         {
           schema: {
@@ -769,7 +807,7 @@ describe("ToJsonSchema", () => {
         "default": 0,
         "examples": [0, 1, 2]
       }
-      await assertDraft07(
+      assertDraft07(
         schema.annotate({
           ...jsonAnnotations
         }),
@@ -782,9 +820,9 @@ describe("ToJsonSchema", () => {
       )
     })
 
-    it("Boolean", async () => {
+    it("Boolean", () => {
       const schema = Schema.Boolean
-      await assertDraft07(
+      assertDraft07(
         schema,
         {
           schema: {
@@ -798,7 +836,7 @@ describe("ToJsonSchema", () => {
         "default": false,
         "examples": [false, true]
       }
-      await assertDraft07(
+      assertDraft07(
         schema.annotate({
           ...jsonAnnotations
         }),
@@ -811,9 +849,9 @@ describe("ToJsonSchema", () => {
       )
     })
 
-    it("ObjectKeyword", async () => {
+    it("ObjectKeyword", () => {
       const schema = Schema.ObjectKeyword
-      await assertDraft07(
+      assertDraft07(
         schema,
         {
           schema: {
@@ -830,7 +868,7 @@ describe("ToJsonSchema", () => {
         "default": {},
         "examples": [{}, []]
       }
-      await assertDraft07(
+      assertDraft07(
         schema.annotate({
           ...jsonAnnotations
         }),
@@ -847,9 +885,9 @@ describe("ToJsonSchema", () => {
     })
 
     describe("Literal", () => {
-      it("string", async () => {
+      it("string", () => {
         const schema = Schema.Literal("a")
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -864,7 +902,7 @@ describe("ToJsonSchema", () => {
           "default": "a" as const,
           "examples": ["a"] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({
             ...jsonAnnotations
           }),
@@ -878,9 +916,9 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("number", async () => {
+      it("number", () => {
         const schema = Schema.Literal(1)
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -895,7 +933,7 @@ describe("ToJsonSchema", () => {
           "default": 1 as const,
           "examples": [1] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({
             ...jsonAnnotations
           }),
@@ -909,9 +947,9 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("boolean", async () => {
+      it("boolean", () => {
         const schema = Schema.Literal(true)
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -926,7 +964,7 @@ describe("ToJsonSchema", () => {
           "default": true as const,
           "examples": [true] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({
             ...jsonAnnotations
           }),
@@ -942,9 +980,9 @@ describe("ToJsonSchema", () => {
     })
 
     describe("Literals", () => {
-      it("empty literals", async () => {
+      it("empty literals", () => {
         const schema = Schema.Literals([])
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -956,7 +994,7 @@ describe("ToJsonSchema", () => {
           "title": "title",
           "description": "description"
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({
             ...jsonAnnotations
           }),
@@ -969,9 +1007,9 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("strings", async () => {
+      it("strings", () => {
         const schema = Schema.Literals(["a", "b"])
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -994,7 +1032,7 @@ describe("ToJsonSchema", () => {
           "default": "a" as const,
           "examples": ["a", "b"] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({
             ...jsonAnnotations
           }),
@@ -1016,9 +1054,9 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("numbers", async () => {
+      it("numbers", () => {
         const schema = Schema.Literals([1, 2])
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1041,7 +1079,7 @@ describe("ToJsonSchema", () => {
           "default": 1 as const,
           "examples": [1, 2] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({
             ...jsonAnnotations
           }),
@@ -1063,9 +1101,9 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("booleans", async () => {
+      it("booleans", () => {
         const schema = Schema.Literals([true, false])
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1088,7 +1126,7 @@ describe("ToJsonSchema", () => {
           "default": true as const,
           "examples": [true, false] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({
             ...jsonAnnotations
           }),
@@ -1110,9 +1148,9 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("strings & numbers", async () => {
+      it("strings & numbers", () => {
         const schema = Schema.Literals(["a", 1])
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1135,7 +1173,7 @@ describe("ToJsonSchema", () => {
           "default": "a" as const,
           "examples": ["a", 1] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({
             ...jsonAnnotations
           }),
@@ -1159,12 +1197,12 @@ describe("ToJsonSchema", () => {
     })
 
     describe("Union of literals", () => {
-      it("strings", async () => {
+      it("strings", () => {
         const schema = Schema.Union([
           Schema.Literal("a"),
           Schema.Literal("b")
         ])
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1187,7 +1225,7 @@ describe("ToJsonSchema", () => {
           "default": "a" as const,
           "examples": ["a", "b"] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({ ...jsonAnnotations }),
           {
             schema: {
@@ -1207,12 +1245,12 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("strings & inner annotate", async () => {
+      it("strings & inner annotate", () => {
         const schema = Schema.Union([
           Schema.Literal("a"),
           Schema.Literal("b").annotate({ description: "b-description" })
         ])
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1236,7 +1274,7 @@ describe("ToJsonSchema", () => {
           "default": "a" as const,
           "examples": ["a", "b"] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({ ...jsonAnnotations }),
           {
             schema: {
@@ -1257,12 +1295,12 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("numbers", async () => {
+      it("numbers", () => {
         const schema = Schema.Union([
           Schema.Literal(1),
           Schema.Literal(2)
         ])
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1285,7 +1323,7 @@ describe("ToJsonSchema", () => {
           "default": 1 as const,
           "examples": [1, 2] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({ ...jsonAnnotations }),
           {
             schema: {
@@ -1305,12 +1343,12 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("booleans", async () => {
+      it("booleans", () => {
         const schema = Schema.Union([
           Schema.Literal(true),
           Schema.Literal(false)
         ])
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1333,7 +1371,7 @@ describe("ToJsonSchema", () => {
           "default": true as const,
           "examples": [true, false] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({ ...jsonAnnotations }),
           {
             schema: {
@@ -1353,12 +1391,12 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("strings & numbers", async () => {
+      it("strings & numbers", () => {
         const schema = Schema.Union([
           Schema.Literal("a"),
           Schema.Literal(1)
         ])
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1381,7 +1419,7 @@ describe("ToJsonSchema", () => {
           "default": "a" as const,
           "examples": ["a", 1] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({ ...jsonAnnotations }),
           {
             schema: {
@@ -1403,10 +1441,10 @@ describe("ToJsonSchema", () => {
     })
 
     describe("Enum", () => {
-      it("empty enum", async () => {
+      it("empty enum", () => {
         enum Empty {}
         const schema = Schema.Enum(Empty)
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1418,7 +1456,7 @@ describe("ToJsonSchema", () => {
           "title": "title",
           "description": "description"
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({ ...jsonAnnotations }),
           {
             schema: {
@@ -1429,12 +1467,12 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("single enum", async () => {
+      it("single enum", () => {
         enum Fruits {
           Apple
         }
         const schema = Schema.Enum(Fruits)
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1454,7 +1492,7 @@ describe("ToJsonSchema", () => {
           "default": Fruits.Apple,
           "examples": [Fruits.Apple] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({ ...jsonAnnotations }),
           {
             schema: {
@@ -1469,7 +1507,7 @@ describe("ToJsonSchema", () => {
             }
           }
         )
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({
             identifier: "ID",
             description: "description"
@@ -1494,14 +1532,14 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("mixed enums (number & string)", async () => {
+      it("mixed enums (number & string)", () => {
         enum Fruits {
           Apple,
           Banana,
           Orange = "orange"
         }
         const schema = Schema.Enum(Fruits)
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1531,7 +1569,7 @@ describe("ToJsonSchema", () => {
           "default": Fruits.Apple,
           "examples": [Fruits.Banana, Fruits.Orange] as const
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({ ...jsonAnnotations }),
           {
             schema: {
@@ -1558,14 +1596,14 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("const enum", async () => {
+      it("const enum", () => {
         const Fruits = {
           Apple: "apple",
           Banana: "banana",
           Cantaloupe: 3
         } as const
         const schema = Schema.Enum(Fruits)
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1592,9 +1630,9 @@ describe("ToJsonSchema", () => {
       })
     })
 
-    it("TemplateLiteral", async () => {
+    it("TemplateLiteral", () => {
       const schema = Schema.TemplateLiteral(["a", Schema.String])
-      await assertDraft07(schema, {
+      assertDraft07(schema, {
         schema: {
           "type": "string",
           "pattern": "^(a)([\\s\\S]*?)$"
@@ -1606,7 +1644,7 @@ describe("ToJsonSchema", () => {
         "default": "a" as const,
         "examples": ["a", "aa", "ab"] as const
       }
-      await assertDraft07(schema.annotate({ ...jsonAnnotations }), {
+      assertDraft07(schema.annotate({ ...jsonAnnotations }), {
         schema: {
           "type": "string",
           "pattern": "^(a)([\\s\\S]*?)$",
@@ -1616,9 +1654,9 @@ describe("ToJsonSchema", () => {
     })
 
     describe("Struct", () => {
-      it("empty struct", async () => {
+      it("empty struct", () => {
         const schema = Schema.Struct({})
-        await assertDraft07(
+        assertDraft07(
           schema,
           {
             schema: {
@@ -1635,7 +1673,7 @@ describe("ToJsonSchema", () => {
           "default": {},
           "examples": [{}, []]
         }
-        await assertDraft07(
+        assertDraft07(
           schema.annotate({ ...jsonAnnotations }),
           {
             schema: {
@@ -1653,9 +1691,9 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("required property", async () => {
+      it("required property", () => {
         const Id3 = Schema.String.annotate({ identifier: "id3" })
-        await assertDraft07(
+        assertDraft07(
           Schema.Struct({
             a: Schema.String,
             b: Schema.String.annotate({ description: "b" }),
@@ -1712,8 +1750,8 @@ describe("ToJsonSchema", () => {
                   ]
                 },
                 "id3_2": {
+                  "type": "string",
                   "allOf": [
-                    { "$ref": "#/definitions/id3" },
                     {
                       "$comment": "key annotations",
                       "description": "id3_2-key"
@@ -1733,8 +1771,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("required key + required: false annotation", async () => {
-        await assertDraft07(
+      it("required key + required: false annotation", () => {
+        assertDraft07(
           Schema.Struct({
             a: Schema.String.annotate({
               jsonSchema: {
@@ -1760,8 +1798,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("optionalKey properties", async () => {
-        await assertDraft07(
+      it("optionalKey properties", () => {
+        assertDraft07(
           Schema.Struct({
             a: Schema.optionalKey(Schema.String)
           }),
@@ -1778,8 +1816,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("optionalKey + required: true annotation", async () => {
-        await assertDraft07(
+      it("optionalKey + required: true annotation", () => {
+        assertDraft07(
           Schema.Struct({
             a: Schema.optionalKey(Schema.String).annotate({
               jsonSchema: {
@@ -1805,8 +1843,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("optionalKey to required key", async () => {
-        await assertDraft07(
+      it("optionalKey to required key", () => {
+        assertDraft07(
           Schema.Struct({
             a: Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String))
           }),
@@ -1826,8 +1864,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("optional properties", async () => {
-        await assertDraft07(
+      it("optional properties", () => {
+        assertDraft07(
           Schema.Struct({
             a: Schema.optional(Schema.String),
             b: Schema.optional(Schema.String.annotate({ description: "b" })),
@@ -1886,8 +1924,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("optional + required: true annotation", async () => {
-        await assertDraft07(
+      it("optional + required: true annotation", () => {
+        assertDraft07(
           Schema.Struct({
             a: Schema.optional(Schema.String).annotate({
               jsonSchema: {
@@ -1916,7 +1954,7 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("UndefinedOr fields", async () => {
+      it("UndefinedOr fields", () => {
         const schema = Schema.Struct({
           a: Schema.UndefinedOr(Schema.String),
           b: Schema.UndefinedOr(Schema.String.annotate({ description: "b-inner-description" })),
@@ -1927,7 +1965,7 @@ describe("ToJsonSchema", () => {
             description: "d-key-description"
           })
         })
-        await assertDraft07(schema, {
+        assertDraft07(schema, {
           schema: {
             "type": "object",
             "properties": {
@@ -1978,9 +2016,9 @@ describe("ToJsonSchema", () => {
     })
 
     describe("Union", () => {
-      it("empty union", async () => {
+      it("empty union", () => {
         const schema = Schema.Union([])
-        await assertDraft07(schema, {
+        assertDraft07(schema, {
           schema: {
             "not": {}
           }
@@ -1989,7 +2027,7 @@ describe("ToJsonSchema", () => {
           "title": "title",
           "description": "description"
         }
-        await assertDraft07(schema.annotate({ ...jsonAnnotations }), {
+        assertDraft07(schema.annotate({ ...jsonAnnotations }), {
           schema: {
             "not": {},
             ...jsonAnnotations
@@ -1997,9 +2035,9 @@ describe("ToJsonSchema", () => {
         })
       })
 
-      it("single member", async () => {
+      it("single member", () => {
         const schema = Schema.Union([Schema.String])
-        await assertDraft07(schema, {
+        assertDraft07(schema, {
           schema: {
             "anyOf": [
               { "type": "string" }
@@ -2012,7 +2050,7 @@ describe("ToJsonSchema", () => {
           "default": "a",
           "examples": ["a", "b"]
         }
-        await assertDraft07(schema.annotate({ ...jsonAnnotations }), {
+        assertDraft07(schema.annotate({ ...jsonAnnotations }), {
           schema: {
             "anyOf": [
               { "type": "string" }
@@ -2020,7 +2058,7 @@ describe("ToJsonSchema", () => {
             ...jsonAnnotations
           }
         })
-        await assertDraft07(
+        assertDraft07(
           Schema.Union([Schema.String.annotate({
             description: "inner-description",
             title: "inner-title"
@@ -2042,8 +2080,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String | Number", async () => {
-        await assertDraft07(
+      it("String | Number", () => {
+        assertDraft07(
           Schema.Union([Schema.String, Schema.Number]),
           {
             schema: {
@@ -2058,8 +2096,8 @@ describe("ToJsonSchema", () => {
     })
 
     describe("checks", () => {
-      it("isInt", async () => {
-        await assertDraft07(
+      it("isInt", () => {
+        assertDraft07(
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt()),
           {
             schema: {
@@ -2078,8 +2116,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("isInt32", async () => {
-        await assertDraft07(
+      it("isInt32", () => {
+        assertDraft07(
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt32()),
           {
             schema: {
@@ -2112,8 +2150,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("isUint32", async () => {
-        await assertDraft07(
+      it("isUint32", () => {
+        assertDraft07(
           Schema.Number.annotate({ description: "description" }).check(Schema.isUint32()),
           {
             schema: {
@@ -2146,8 +2184,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("isBase64", async () => {
-        await assertDraft07(
+      it("isBase64", () => {
+        assertDraft07(
           Schema.String.annotate({ description: "description" }).check(Schema.isBase64()),
           {
             schema: {
@@ -2166,8 +2204,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("isBase64Url", async () => {
-        await assertDraft07(
+      it("isBase64Url", () => {
+        assertDraft07(
           Schema.String.annotate({ description: "description" }).check(Schema.isBase64Url()),
           {
             schema: {
@@ -2187,9 +2225,97 @@ describe("ToJsonSchema", () => {
       })
     })
 
+    describe("Suspend", () => {
+      it("inner annotation", () => {
+        interface A {
+          readonly a: string
+          readonly as: ReadonlyArray<A>
+        }
+        const schema = Schema.Struct({
+          a: Schema.String,
+          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ identifier: "A" })))
+        })
+        assertDraft07(schema, {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
+              },
+              "as": {
+                "type": "array",
+                "items": { "$ref": "#/definitions/A" }
+              }
+            },
+            "required": ["a", "as"],
+            "additionalProperties": false
+          },
+          definitions: {
+            "A": {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "as": {
+                  "type": "array",
+                  "items": { "$ref": "#/definitions/A" }
+                }
+              },
+              "required": ["a", "as"],
+              "additionalProperties": false
+            }
+          }
+        })
+      })
+
+      it("outer annotation", () => {
+        interface A {
+          readonly a: string
+          readonly as: ReadonlyArray<A>
+        }
+        const schema = Schema.Struct({
+          a: Schema.String,
+          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema).annotate({ identifier: "A" }))
+        })
+        assertDraft07(schema, {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
+              },
+              "as": {
+                "type": "array",
+                "items": { "$ref": "#/definitions/A" }
+              }
+            },
+            "required": ["a", "as"],
+            "additionalProperties": false
+          },
+          definitions: {
+            "A": {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "as": {
+                  "type": "array",
+                  "items": { "$ref": "#/definitions/A" }
+                }
+              },
+              "required": ["a", "as"],
+              "additionalProperties": false
+            }
+          }
+        })
+      })
+    })
+
     describe("fromJsonString", () => {
-      it("top level fromJsonString", async () => {
-        await assertDraft07(
+      it("top level fromJsonString", () => {
+        assertDraft07(
           Schema.fromJsonString(Schema.FiniteFromString),
           {
             schema: {
@@ -2201,8 +2327,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("nested fromJsonString", async () => {
-        await assertDraft07(
+      it("nested fromJsonString", () => {
+        assertDraft07(
           Schema.fromJsonString(Schema.Struct({
             a: Schema.fromJsonString(Schema.FiniteFromString)
           })),
@@ -2217,8 +2343,84 @@ describe("ToJsonSchema", () => {
       })
     })
 
-    it("Uint8ArrayFromHex", async () => {
-      await assertDraft07(
+    describe("Class", () => {
+      it("fields", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {}
+        assertDraft07(
+          A,
+          {
+            schema: {
+              "$ref": "#/definitions/A"
+            },
+            definitions: {
+              "A": {
+                "$comment": "Encoding",
+                "type": "object",
+                "properties": {
+                  "a": { "type": "string" }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+      })
+
+      it("fields & annotations", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }, { description: "description" }) {}
+        assertDraft07(
+          A,
+          {
+            schema: {
+              "$ref": "#/definitions/A"
+            },
+            definitions: {
+              "A": {
+                "$comment": "Encoding",
+                "type": "object",
+                "properties": {
+                  "a": { "type": "string" }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+      })
+    })
+
+    describe("ErrorClass", () => {
+      it("fields", () => {
+        class E extends Schema.ErrorClass<E>("E")({
+          a: Schema.String
+        }) {}
+        assertDraft07(E, {
+          schema: {
+            "$ref": "#/definitions/E"
+          },
+          definitions: {
+            "E": {
+              "$comment": "Encoding",
+              "type": "object",
+              "properties": {
+                "a": { "type": "string" }
+              },
+              "required": ["a"],
+              "additionalProperties": false
+            }
+          }
+        })
+      })
+    })
+
+    it("Uint8ArrayFromHex", () => {
+      assertDraft07(
         Schema.Uint8ArrayFromHex,
         {
           schema: {
@@ -2230,8 +2432,8 @@ describe("ToJsonSchema", () => {
       )
     })
 
-    it("Uint8ArrayFromBase64", async () => {
-      await assertDraft07(
+    it("Uint8ArrayFromBase64", () => {
+      assertDraft07(
         Schema.Uint8ArrayFromBase64,
         {
           schema: {
@@ -2243,8 +2445,8 @@ describe("ToJsonSchema", () => {
       )
     })
 
-    it("Uint8ArrayFromBase64Url", async () => {
-      await assertDraft07(
+    it("Uint8ArrayFromBase64Url", () => {
+      assertDraft07(
         Schema.Uint8ArrayFromBase64Url,
         {
           schema: {
@@ -2259,8 +2461,8 @@ describe("ToJsonSchema", () => {
 
   describe("draft-2020-12", () => {
     describe("checks", () => {
-      it("isInt", async () => {
-        await assertDraft2020_12(
+      it("isInt", () => {
+        assertDraft2020_12(
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt()),
           {
             schema: {
@@ -2279,8 +2481,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("isInt32", async () => {
-        await assertDraft2020_12(
+      it("isInt32", () => {
+        assertDraft2020_12(
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt32()),
           {
             schema: {
@@ -2313,8 +2515,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("isUint32", async () => {
-        await assertDraft2020_12(
+      it("isUint32", () => {
+        assertDraft2020_12(
           Schema.Number.annotate({ description: "description" }).check(Schema.isUint32()),
           {
             schema: {
@@ -2347,8 +2549,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("isBase64", async () => {
-        await assertDraft2020_12(
+      it("isBase64", () => {
+        assertDraft2020_12(
           Schema.String.annotate({ description: "description" }).check(Schema.isBase64()),
           {
             schema: {
@@ -2367,8 +2569,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("isBase64Url", async () => {
-        await assertDraft2020_12(
+      it("isBase64Url", () => {
+        assertDraft2020_12(
           Schema.String.annotate({ description: "description" }).check(Schema.isBase64Url()),
           {
             schema: {
@@ -2389,8 +2591,8 @@ describe("ToJsonSchema", () => {
     })
 
     describe("fromJsonString", () => {
-      it("top level fromJsonString", async () => {
-        await assertDraft2020_12(
+      it("top level fromJsonString", () => {
+        assertDraft2020_12(
           Schema.fromJsonString(Schema.FiniteFromString),
           {
             schema: {
@@ -2408,8 +2610,8 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("nested fromJsonString", async () => {
-        await assertDraft2020_12(
+      it("nested fromJsonString", () => {
+        assertDraft2020_12(
           Schema.fromJsonString(Schema.Struct({
             a: Schema.fromJsonString(Schema.FiniteFromString)
           })),
@@ -2445,8 +2647,8 @@ describe("ToJsonSchema", () => {
   })
 
   describe("openApi3.1", () => {
-    it("String & identifier", async () => {
-      await assertOpenApi3_1(
+    it("String & identifier", () => {
+      assertOpenApi3_1(
         Schema.String.annotate({
           identifier: "ID"
         }),

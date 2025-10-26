@@ -334,9 +334,15 @@ describe("HttpApi", () => {
                 "anyOf": [
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
-                    "type": "integer",
-                    "title": "isInt",
-                    "description": "an integer"
+                    "type": "number",
+                    "allOf": [
+                      {
+                        "$comment": "Filter",
+                        "type": "integer",
+                        "title": "isInt",
+                        "description": "an integer"
+                      }
+                    ]
                   }
                 ]
               }
@@ -421,9 +427,14 @@ describe("HttpApi", () => {
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
                     "type": "string",
-                    "description": "a value with a length of at least 1",
-                    "minLength": 1,
-                    "title": "isMinLength(1)"
+                    "allOf": [
+                      {
+                        "$comment": "Filter",
+                        "description": "a value with a length of at least 1",
+                        "minLength": 1,
+                        "title": "isMinLength(1)"
+                      }
+                    ]
                   }
                 ]
               }
@@ -465,6 +476,7 @@ describe("HttpApi", () => {
           "content": {
             "application/json": {
               "schema": {
+                "$comment": "Override annotation",
                 "type": "string"
               }
             }
@@ -528,7 +540,10 @@ describe("HttpApi", () => {
               "schema": {
                 "anyOf": [
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
-                  { "type": "string" }
+                  {
+                    "$comment": "Encoding",
+                    "type": "string"
+                  }
                 ]
               }
             }

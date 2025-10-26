@@ -51,14 +51,6 @@ describe("Schema", () => {
     strictEqual(String(result.cause.failures[0]), "Fail(SchemaError(Expected string, got null))")
   })
 
-  describe("annotate", () => {
-    it("should remove any existing id annotation", () => {
-      const schema = Schema.String.annotate({ identifier: "a" })
-      strictEqual(schema.ast.annotations?.identifier, "a")
-      strictEqual(schema.annotate({}).ast.annotations?.identifier, undefined)
-    })
-  })
-
   describe("parseOptions annotation", () => {
     it("Number", async () => {
       const schema = Schema.Number.check(Schema.isPositive(), Schema.isInt()).annotate({
@@ -4564,6 +4556,13 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       assertTrue(A.ast === A.ast)
     })
 
+    it("should set the identifier annotation", () => {
+      class A extends Schema.Class<A>("A")({
+        a: Schema.String
+      }) {}
+      strictEqual(A.ast.annotations?.identifier, "A")
+    })
+
     describe("should be compatible with `immer`", () => {
       it("`[immerable]`", () => {
         class A extends Schema.Class<A>("A")({
@@ -6487,14 +6486,6 @@ describe("Check", () => {
         assertGetter(annotations, "d", "d")
       })
     })
-
-    it("should remove any existing identifier annotation", () => {
-      const filter = Schema.isNonEmpty().annotate({
-        identifier: "a"
-      })
-      strictEqual(filter.annotations?.identifier, "a")
-      strictEqual(filter.annotate({}).annotations?.identifier, undefined)
-    })
   })
 
   describe("FilterGroup", () => {
@@ -6534,14 +6525,6 @@ describe("Check", () => {
         assertGetter(annotations, "b", "b")
         assertGetter(annotations, "c", "c2")
         assertGetter(annotations, "d", "d")
-      })
-
-      it("should remove any existing identifier annotation", () => {
-        const filter = Schema.isInt32().annotate({
-          identifier: "a"
-        })
-        strictEqual(filter.annotations?.identifier, "a")
-        strictEqual(filter.annotate({}).annotations?.identifier, undefined)
       })
     })
   })

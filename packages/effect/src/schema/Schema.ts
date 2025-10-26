@@ -5787,7 +5787,7 @@ export const UnknownFromJsonString: UnknownFromJsonString = String.annotate({
 /**
  * @since 4.0.0
  */
-export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJsonString> {}
+export interface fromJsonString<S extends Top> extends decodeTo<S, String> {}
 
 /**
  * Returns a schema that decodes a JSON string and then decodes the parsed value
@@ -5851,28 +5851,35 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, UnknownFromJs
  * @since 4.0.0
  */
 export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
-  return UnknownFromJsonString.annotate({
+  return String.annotate({
+    description: "a string that will be decoded as JSON",
     jsonSchema: {
       _tag: "Override",
       override: (ctx: Annotations.JsonSchema.OverrideContext) => {
         switch (ctx.target) {
           case "draft-07":
             return {
-              "type": "string",
-              "description": "a string that will be decoded as JSON"
+              "type": "string"
             }
           case "draft-2020-12":
           case "openApi3.1":
             return {
               "type": "string",
-              "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
               "contentSchema": ctx.make(schema.ast)
             }
         }
       }
     }
-  }).pipe(decodeTo(schema))
+  }).pipe(
+    decodeTo(
+      schema,
+      new Transformation.Transformation<unknown, string>(
+        Getter.parseJson(),
+        Getter.stringifyJson()
+      )
+    )
+  )
 }
 
 /**
@@ -6430,6 +6437,7 @@ function getClassSchemaFactory<S extends Top>(
               Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
           },
           Annotations.combine({
+            identifier,
             [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
             serializer: ([from]) => new AST.Link(from.ast, transformation),
             arbitrary: {
@@ -6448,7 +6456,7 @@ function getClassSchemaFactory<S extends Top>(
           to,
           getClassTransformation(self)
         )
-      ).annotate({ identifier })
+      )
     }
     return memo
   }
@@ -6528,6 +6536,7 @@ export interface RequestClass<
   readonly error: Error
 }
 
+// TODO: remove this?
 /**
  * @category Constructors
  * @since 4.0.0

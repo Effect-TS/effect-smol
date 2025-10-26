@@ -387,7 +387,6 @@ export function combine<A extends Annotations>(existing: A | undefined, incoming
   const out: any = {}
   // Apply existing descriptors first
   for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(existing))) {
-    if (key === "identifier") continue
     Object.defineProperty(out, key, descriptor)
   }
   // Apply incoming descriptors (this will override existing ones)

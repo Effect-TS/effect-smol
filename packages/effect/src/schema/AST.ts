@@ -2109,7 +2109,8 @@ function replaceLastLink(encoding: Encoding, link: Link): Encoding {
   return Arr.append(encoding.slice(0, encoding.length - 1), link)
 }
 
-function replaceContext<A extends AST>(ast: A, context: Context | undefined): A {
+/** @internal */
+export function replaceContext<A extends AST>(ast: A, context: Context | undefined): A {
   if (ast.context === context) {
     return ast
   }

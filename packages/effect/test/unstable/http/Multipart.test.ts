@@ -13,7 +13,7 @@ describe("Multipart", () => {
       })
       deepStrictEqual(definitions, {
         "PersistedFile": {
-          "$comment": "Override",
+          "$comment": "Override annotation",
           "type": "string",
           "format": "binary"
         }
