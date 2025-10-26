@@ -170,7 +170,7 @@ export const empty = <K extends string | symbol = never, V = never>(): Record<
  * @since 2.0.0
  */
 export const isRecordEmpty = <K extends string, A>(self: Record<K, A>): self is Record<K, never> =>
-  keys(self).length === 0
+  Object.keys(self).length === 0
 
 /**
  * Determine if a record is empty.

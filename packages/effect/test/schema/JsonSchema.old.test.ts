@@ -267,7 +267,7 @@ describe.skip("ToJsonSchema", () => {
           "required": ["a"],
           "additionalProperties": true
         }, {
-          additionalPropertiesStrategy: "allow"
+          additionalProperties: true
         })
       })
     })

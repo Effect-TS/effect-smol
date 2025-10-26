@@ -180,12 +180,6 @@ function processAnnotation<Services, S, I>(
 }
 
 /**
- * @since 4.0.0
- * @category models
- */
-export type AdditionalPropertiesStrategy = "allow" | "strict"
-
-/**
  * Converts an `HttpApi` instance into an OpenAPI Specification object.
  *
  * **Details**
@@ -214,7 +208,7 @@ export type AdditionalPropertiesStrategy = "allow" | "strict"
 export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
   options?: {
-    readonly additionalPropertiesStrategy?: AdditionalPropertiesStrategy | undefined
+    readonly additionalProperties?: true | false | Annotations.JsonSchema.JsonSchema | undefined
   } | undefined
 ): OpenAPISpec => {
   const cached = apiCache.get(api)
@@ -240,7 +234,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   function processAST(ast: AST.AST): object {
     const { jsonSchema } = Schema.makeJsonSchemaOpenApi3_1(Schema.make(ast), {
       definitions: jsonSchemaDefs,
-      additionalPropertiesStrategy: options?.additionalPropertiesStrategy,
+      additionalProperties: options?.additionalProperties,
       referenceStrategy: "keep"
     })
     return jsonSchema

@@ -31,7 +31,7 @@ import * as core from "../internal/core.ts"
 import * as InternalArbitrary from "../internal/ToArbitrary.ts"
 import * as InternalDiffer from "../internal/ToDiffer.ts"
 import * as InternalEquivalence from "../internal/ToEquivalence.ts"
-import * as InternalJsonSchema2 from "../internal/ToJsonSchema2.ts"
+import * as InternalJsonSchema from "../internal/ToJsonSchema.ts"
 import { remainder } from "../Number.ts"
 import * as Optic_ from "../Optic.ts"
 import * as Request from "../Request.ts"
@@ -6789,18 +6789,6 @@ export function makeEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T
 // -----------------------------------------------------------------------------
 
 /**
- * @category JsonSchema
- * @since 4.0.0
- */
-export type JsonSchemaAdditionalPropertiesStrategy = "allow" | "strict"
-
-/**
- * @category JsonSchema
- * @since 4.0.0
- */
-export type JsonSchemaReferenceStrategy = "skip" | "keep"
-
-/**
  * @since 4.0.0
  */
 export interface JsonSchemaOptions {
@@ -6812,18 +6800,22 @@ export interface JsonSchemaOptions {
   readonly definitions?: Record<string, Annotations.JsonSchema.JsonSchema> | undefined
   /**
    * Controls how additional properties are handled while resolving the JSON
-   * schema. Possible values include:
-   * - `"allow"`: Allow additional properties
-   * - `"strict"`: Disallow additional properties (default)
+   * schema.
+   *
+   * Possible values include:
+   * - `true`: Allow additional properties
+   * - `false`: Disallow additional properties (default)
+   * - `JsonSchema`: Use the provided JSON Schema for additional properties
    */
-  readonly additionalPropertiesStrategy?: JsonSchemaAdditionalPropertiesStrategy | undefined
+  readonly additionalProperties?: true | false | Annotations.JsonSchema.JsonSchema | undefined
   /**
    * Controls how references are handled while resolving the JSON schema.
+   *
    * Possible values include:
    * - `"keep"`: Keep the top-level reference (default)
    * - `"skip"`: Skip the top-level reference
    */
-  readonly referenceStrategy?: JsonSchemaReferenceStrategy | undefined
+  readonly referenceStrategy?: "skip" | "keep" | undefined
   readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => Annotations.JsonSchema.JsonSchema | undefined) | undefined
 }
 
@@ -6841,7 +6833,7 @@ export function makeJsonSchemaDraft07<S extends Top>(
   readonly jsonSchema: Annotations.JsonSchema.JsonSchema
   readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
 } {
-  return InternalJsonSchema2.make(schema, {
+  return InternalJsonSchema.make(schema, {
     ...options,
     target: "draft-07"
   })
@@ -6866,7 +6858,7 @@ export function makeJsonSchemaDraft2020_12<S extends Top>(
   readonly jsonSchema: Annotations.JsonSchema.JsonSchema
   readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
 } {
-  return InternalJsonSchema2.make(schema, {
+  return InternalJsonSchema.make(schema, {
     ...options,
     target: "draft-2020-12"
   })
@@ -6884,7 +6876,7 @@ export function makeJsonSchemaOpenApi3_1<S extends Top>(
   readonly jsonSchema: Annotations.JsonSchema.JsonSchema
   readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
 } {
-  return InternalJsonSchema2.make(schema, {
+  return InternalJsonSchema.make(schema, {
     ...options,
     target: "openApi3.1"
   })
