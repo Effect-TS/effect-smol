@@ -197,7 +197,6 @@ describe("ToJsonSchema", () => {
       })
       assertDraft07(schema, {
         schema: {
-          "$comment": "Override annotation",
           "type": "string"
         }
       })
@@ -214,7 +213,6 @@ describe("ToJsonSchema", () => {
         schema,
         {
           schema: {
-            "$comment": "Override annotation",
             "type": "string"
           }
         }
@@ -233,7 +231,6 @@ describe("ToJsonSchema", () => {
           schema,
           {
             schema: {
-              "$comment": "Override annotation",
               "type": "string",
               "minLength": 1
             }
@@ -243,7 +240,6 @@ describe("ToJsonSchema", () => {
           schema.annotate({ description: "description" }),
           {
             schema: {
-              "$comment": "Override annotation",
               "type": "string",
               "minLength": 1,
               "description": "description"
@@ -267,7 +263,6 @@ describe("ToJsonSchema", () => {
             },
             definitions: {
               "ID": {
-                "$comment": "Override annotation",
                 "type": "string",
                 "minLength": 1
               }
@@ -283,7 +278,6 @@ describe("ToJsonSchema", () => {
           }),
           {
             schema: {
-              "$comment": "Override annotation",
               "type": "string",
               "minLength": 1
             }
@@ -390,7 +384,6 @@ describe("ToJsonSchema", () => {
                 "$ref": "#/definitions/ID"
               },
               {
-                "$comment": "Encoding",
                 "type": "number",
                 "enum": [2]
               }
@@ -398,7 +391,6 @@ describe("ToJsonSchema", () => {
           },
           definitions: {
             "ID": {
-              "$comment": "Encoding",
               "type": "number",
               "enum": [1]
             }
@@ -449,7 +441,6 @@ describe("ToJsonSchema", () => {
               "type": "string",
               "allOf": [
                 {
-                  "$comment": "Filter",
                   "title": "isMinLength(2)",
                   "description": "a value with a length of at least 2",
                   "minLength": 2
@@ -478,12 +469,10 @@ describe("ToJsonSchema", () => {
           }).check(Schema.isMinLength(2)),
           {
             schema: {
-              "$comment": "Override annotation",
               "type": "string",
               "minLength": 1,
               "allOf": [
                 {
-                  "$comment": "Filter",
                   "title": "isMinLength(2)",
                   "description": "a value with a length of at least 2",
                   "minLength": 2
@@ -506,7 +495,6 @@ describe("ToJsonSchema", () => {
                 "type": "string",
                 "allOf": [
                   {
-                    "$comment": "Filter",
                     "title": "isMinLength(2)",
                     "description": "a value with a length of at least 2",
                     "minLength": 2
@@ -529,7 +517,6 @@ describe("ToJsonSchema", () => {
               ...jsonAnnotations,
               "allOf": [
                 {
-                  "$comment": "Filter",
                   "title": "isMinLength(2)",
                   "description": "a value with a length of at least 2",
                   "minLength": 2
@@ -555,7 +542,6 @@ describe("ToJsonSchema", () => {
                 ...jsonAnnotations,
                 "allOf": [
                   {
-                    "$comment": "Filter",
                     "title": "isMinLength(2)",
                     "description": "a value with a length of at least 2",
                     "minLength": 2
@@ -577,7 +563,6 @@ describe("ToJsonSchema", () => {
               "type": "string",
               "allOf": [
                 {
-                  "$comment": "Filter",
                   "minLength": 2,
                   ...jsonAnnotations
                 }
@@ -602,7 +587,6 @@ describe("ToJsonSchema", () => {
                 "type": "string",
                 "allOf": [
                   {
-                    "$comment": "Filter",
                     "minLength": 2,
                     ...jsonAnnotations
                   }
@@ -621,13 +605,11 @@ describe("ToJsonSchema", () => {
               "type": "string",
               "allOf": [
                 {
-                  "$comment": "Filter",
                   "title": "isMinLength(2)",
                   "description": "a value with a length of at least 2",
                   "minLength": 2
                 },
                 {
-                  "$comment": "Filter",
                   "title": "isMaxLength(3)",
                   "description": "a value with a length of at most 3",
                   "maxLength": 3
@@ -648,13 +630,11 @@ describe("ToJsonSchema", () => {
               "type": "string",
               "allOf": [
                 {
-                  "$comment": "Filter",
                   "title": "isMinLength(2)",
                   "description": "a value with a length of at least 2",
                   "minLength": 2
                 },
                 {
-                  "$comment": "Filter",
                   "maxLength": 3,
                   ...jsonAnnotations
                 }
@@ -1724,7 +1704,6 @@ describe("ToJsonSchema", () => {
                 "c": {
                   "type": "string",
                   "allOf": [{
-                    "$comment": "key annotations",
                     "description": "c-key"
                   }]
                 },
@@ -1732,7 +1711,6 @@ describe("ToJsonSchema", () => {
                   "type": "string",
                   "description": "d",
                   "allOf": [{
-                    "$comment": "key annotations",
                     "description": "d-key"
                   }]
                 },
@@ -1741,7 +1719,6 @@ describe("ToJsonSchema", () => {
                   "allOf": [
                     { "$ref": "#/definitions/id2" },
                     {
-                      "$comment": "key annotations",
                       "description": "id2-key"
                     }
                   ]
@@ -1750,7 +1727,6 @@ describe("ToJsonSchema", () => {
                   "allOf": [
                     { "$ref": "#/definitions/id3" },
                     {
-                      "$comment": "key annotations",
                       "description": "id3_1-key"
                     }
                   ]
@@ -1759,7 +1735,6 @@ describe("ToJsonSchema", () => {
                   "allOf": [
                     { "$ref": "#/definitions/id3" },
                     {
-                      "$comment": "key annotations",
                       "description": "id3_2-key"
                     }
                   ]
@@ -1793,7 +1768,6 @@ describe("ToJsonSchema", () => {
               "type": "object",
               "properties": {
                 "a": {
-                  "$comment": "Override annotation",
                   "type": "string"
                 }
               },
@@ -1838,7 +1812,6 @@ describe("ToJsonSchema", () => {
               "type": "object",
               "properties": {
                 "a": {
-                  "$comment": "Override annotation",
                   "type": "string"
                 }
               },
@@ -1859,7 +1832,6 @@ describe("ToJsonSchema", () => {
               "type": "object",
               "properties": {
                 "a": {
-                  "$comment": "Encoding",
                   "type": "string"
                 }
               },
@@ -1885,40 +1857,33 @@ describe("ToJsonSchema", () => {
               "properties": {
                 "a": {
                   "anyOf": [
-                    { "type": "string" },
-                    { "$comment": "Undefined", "not": {} }
+                    { "type": "string" }
                   ]
                 },
                 "b": {
                   "anyOf": [
-                    { "type": "string", "description": "b" },
-                    { "$comment": "Undefined", "not": {} }
+                    { "type": "string", "description": "b" }
                   ]
                 },
                 "c": {
                   "anyOf": [
-                    { "type": "string" },
-                    { "$comment": "Undefined", "not": {} }
+                    { "type": "string" }
                   ],
                   "description": "c"
                 },
                 "d": {
                   "anyOf": [
-                    { "type": "string" },
-                    { "$comment": "Undefined", "not": {} }
+                    { "type": "string" }
                   ],
                   "allOf": [{
-                    "$comment": "key annotations",
                     "description": "d-key"
                   }]
                 },
                 "e": {
                   "anyOf": [
-                    { "type": "string", "description": "e" },
-                    { "$comment": "Undefined", "not": {} }
+                    { "type": "string", "description": "e" }
                   ],
                   "allOf": [{
-                    "$comment": "key annotations",
                     "description": "e-key"
                   }]
                 }
@@ -1946,10 +1911,8 @@ describe("ToJsonSchema", () => {
               "type": "object",
               "properties": {
                 "a": {
-                  "$comment": "Override annotation",
                   "anyOf": [
-                    { "type": "string" },
-                    { "$comment": "Undefined", "not": {} }
+                    { "type": "string" }
                   ]
                 }
               },
@@ -1977,8 +1940,7 @@ describe("ToJsonSchema", () => {
             "properties": {
               "a": {
                 "anyOf": [
-                  { "type": "string" },
-                  { "$comment": "Undefined", not: {} }
+                  { "type": "string" }
                 ]
               },
               "b": {
@@ -1986,8 +1948,7 @@ describe("ToJsonSchema", () => {
                   {
                     "type": "string",
                     "description": "b-inner-description"
-                  },
-                  { "$comment": "Undefined", not: {} }
+                  }
                 ]
               },
               "c": {
@@ -1995,8 +1956,7 @@ describe("ToJsonSchema", () => {
                   {
                     "description": "c-inner-description",
                     "type": "string"
-                  },
-                  { "$comment": "Undefined", "not": {} }
+                  }
                 ],
                 "description": "c-outer-description"
               },
@@ -2005,11 +1965,9 @@ describe("ToJsonSchema", () => {
                   {
                     "type": "string",
                     "description": "d-inner-description"
-                  },
-                  { "$comment": "Undefined", "not": {} }
+                  }
                 ],
                 "allOf": [{
-                  "$comment": "key annotations",
                   "description": "d-key-description"
                 }]
               }
@@ -2111,7 +2069,6 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "$comment": "Filter",
                   "type": "integer",
                   "description": "an integer",
                   "title": "isInt"
@@ -2131,18 +2088,15 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "$comment": "FilterGroup",
                   "description": "a 32-bit integer",
                   "title": "isInt32",
                   "allOf": [
                     {
-                      "$comment": "Filter",
                       "type": "integer",
                       "description": "an integer",
                       "title": "isInt"
                     },
                     {
-                      "$comment": "Filter",
                       "description": "a value between -2147483648 and 2147483647",
                       "maximum": 2147483647,
                       "minimum": -2147483648,
@@ -2165,18 +2119,15 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "$comment": "FilterGroup",
                   "description": "a 32-bit unsigned integer",
                   "title": "isUint32",
                   "allOf": [
                     {
-                      "$comment": "Filter",
                       "type": "integer",
                       "description": "an integer",
                       "title": "isInt"
                     },
                     {
-                      "$comment": "Filter",
                       "description": "a value between 0 and 4294967295",
                       "maximum": 4294967295,
                       "minimum": 0,
@@ -2199,7 +2150,6 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "$comment": "Filter",
                   "description": "a base64 encoded string",
                   "title": "isBase64",
                   "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
@@ -2219,7 +2169,6 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "$comment": "Filter",
                   "description": "a base64url encoded string",
                   "title": "isBase64Url",
                   "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
@@ -2325,7 +2274,6 @@ describe("ToJsonSchema", () => {
           Schema.fromJsonString(Schema.FiniteFromString),
           {
             schema: {
-              "$comment": "Override annotation",
               "type": "string",
               "description": "a string that will be decoded as JSON"
             }
@@ -2340,7 +2288,6 @@ describe("ToJsonSchema", () => {
           })),
           {
             schema: {
-              "$comment": "Override annotation",
               "type": "string",
               "description": "a string that will be decoded as JSON"
             }
@@ -2362,7 +2309,6 @@ describe("ToJsonSchema", () => {
             },
             definitions: {
               "A": {
-                "$comment": "Encoding",
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -2387,7 +2333,6 @@ describe("ToJsonSchema", () => {
             },
             definitions: {
               "A": {
-                "$comment": "Encoding",
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -2412,7 +2357,6 @@ describe("ToJsonSchema", () => {
           },
           definitions: {
             "E": {
-              "$comment": "Encoding",
               "type": "object",
               "properties": {
                 "a": { "type": "string" }
@@ -2430,7 +2374,6 @@ describe("ToJsonSchema", () => {
         Schema.Uint8ArrayFromHex,
         {
           schema: {
-            "$comment": "Encoding",
             "type": "string",
             "description": "a string that will be decoded as Uint8Array"
           }
@@ -2443,7 +2386,6 @@ describe("ToJsonSchema", () => {
         Schema.Uint8ArrayFromBase64,
         {
           schema: {
-            "$comment": "Encoding",
             "type": "string",
             "description": "a string that will be decoded as Uint8Array"
           }
@@ -2456,7 +2398,6 @@ describe("ToJsonSchema", () => {
         Schema.Uint8ArrayFromBase64Url,
         {
           schema: {
-            "$comment": "Encoding",
             "type": "string",
             "description": "a string that will be decoded as Uint8Array"
           }
@@ -2476,7 +2417,6 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "$comment": "Filter",
                   "type": "integer",
                   "description": "an integer",
                   "title": "isInt"
@@ -2496,18 +2436,15 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "$comment": "FilterGroup",
                   "description": "a 32-bit integer",
                   "title": "isInt32",
                   "allOf": [
                     {
-                      "$comment": "Filter",
                       "type": "integer",
                       "description": "an integer",
                       "title": "isInt"
                     },
                     {
-                      "$comment": "Filter",
                       "description": "a value between -2147483648 and 2147483647",
                       "maximum": 2147483647,
                       "minimum": -2147483648,
@@ -2530,18 +2467,15 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "$comment": "FilterGroup",
                   "description": "a 32-bit unsigned integer",
                   "title": "isUint32",
                   "allOf": [
                     {
-                      "$comment": "Filter",
                       "type": "integer",
                       "description": "an integer",
                       "title": "isInt"
                     },
                     {
-                      "$comment": "Filter",
                       "description": "a value between 0 and 4294967295",
                       "maximum": 4294967295,
                       "minimum": 0,
@@ -2564,7 +2498,6 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "$comment": "Filter",
                   "description": "a base64 encoded string",
                   "title": "isBase64",
                   "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
@@ -2584,7 +2517,6 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "$comment": "Filter",
                   "description": "a base64url encoded string",
                   "title": "isBase64Url",
                   "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
@@ -2602,12 +2534,10 @@ describe("ToJsonSchema", () => {
           Schema.fromJsonString(Schema.FiniteFromString),
           {
             schema: {
-              "$comment": "Override annotation",
               "type": "string",
               "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
               "contentSchema": {
-                "$comment": "Encoding",
                 "type": "string",
                 "description": "a string that will be decoded as a finite number"
               }
@@ -2623,7 +2553,6 @@ describe("ToJsonSchema", () => {
           })),
           {
             schema: {
-              "$comment": "Override annotation",
               "type": "string",
               "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
@@ -2631,12 +2560,10 @@ describe("ToJsonSchema", () => {
                 "type": "object",
                 "properties": {
                   "a": {
-                    "$comment": "Override annotation",
                     "type": "string",
                     "description": "a string that will be decoded as JSON",
                     "contentMediaType": "application/json",
                     "contentSchema": {
-                      "$comment": "Encoding",
                       "type": "string",
                       "description": "a string that will be decoded as a finite number"
                     }

@@ -323,7 +323,7 @@ export declare namespace JsonSchema {
   /**
    * @since 4.0.0
    */
-  export type JsonSchema = {
+  export interface JsonSchema {
     type?: Type
     [x: string]: unknown
   }

@@ -334,15 +334,9 @@ describe("HttpApi", () => {
                 "anyOf": [
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
-                    "type": "number",
-                    "allOf": [
-                      {
-                        "$comment": "Filter",
-                        "type": "integer",
-                        "title": "isInt",
-                        "description": "an integer"
-                      }
-                    ]
+                    "type": "integer",
+                    "title": "isInt",
+                    "description": "an integer"
                   }
                 ]
               }
@@ -429,7 +423,6 @@ describe("HttpApi", () => {
                     "type": "string",
                     "allOf": [
                       {
-                        "$comment": "Filter",
                         "description": "a value with a length of at least 1",
                         "minLength": 1,
                         "title": "isMinLength(1)"
@@ -476,7 +469,6 @@ describe("HttpApi", () => {
           "content": {
             "application/json": {
               "schema": {
-                "$comment": "Override annotation",
                 "type": "string"
               }
             }
@@ -541,7 +533,6 @@ describe("HttpApi", () => {
                 "anyOf": [
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
-                    "$comment": "Encoding",
                     "type": "string"
                   }
                 ]
