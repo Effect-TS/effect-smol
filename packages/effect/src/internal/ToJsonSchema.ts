@@ -1,6 +1,6 @@
 import * as Arr from "../collections/Array.ts"
 import * as Predicate from "../data/Predicate.ts"
-import { formatPath } from "../interfaces/Inspectable.ts"
+import * as Inspectable from "../interfaces/Inspectable.ts"
 import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
 import type * as Schema from "../schema/Schema.ts"
@@ -175,7 +175,7 @@ function go(
         const out = options.onMissingJsonSchemaAnnotation(ast)
         if (out) return out
       }
-      const message = `cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`
+      const message = `Unsupported schema ${ast._tag} at ${formatPath(path)}`
       if (ignoreErrors) return { $comment: message }
       throw new Error(message)
     }
@@ -213,7 +213,7 @@ function go(
       if (Predicate.isBoolean(ast.literal)) {
         return { type: "boolean", enum: [ast.literal] }
       }
-      const message = `cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`
+      const message = `Unsupported literal ${Inspectable.format(ast.literal)} at ${formatPath(path)}`
       if (ignoreErrors) return { $comment: message }
       throw new Error(message)
     }
@@ -285,7 +285,9 @@ function go(
       for (const ps of ast.propertySignatures) {
         const name = ps.name as string
         if (Predicate.isSymbol(name)) {
-          const message = `cannot generate JSON Schema for ${ast._tag} at ${formatPath([...path, name]) || "root"}`
+          const message = `Unsupported property signature name ${Inspectable.format(name)} at ${
+            formatPath([...path, name])
+          }`
           if (ignoreErrors) return { $comment: message }
           throw new Error(message)
         } else {
@@ -335,13 +337,15 @@ function go(
       if (id !== undefined) {
         return go(ast.thunk(), path, options, true, false, ignoreErrors)
       }
-      const message = `cannot generate JSON Schema for ${ast._tag} at ${
-        formatPath(path) || "root"
-      }, required \`identifier\` annotation`
+      const message = `Missing identifier for ${ast._tag} at ${formatPath(path)}`
       if (ignoreErrors) return { $comment: message }
       throw new Error(message)
     }
   }
+}
+
+function formatPath(path: ReadonlyArray<PropertyKey>): string {
+  return path.length > 0 ? Inspectable.formatPath(path) : "root"
 }
 
 const undefinedSchema = { $comment: "Undefined", not: {} }
@@ -455,7 +459,7 @@ function getPattern(
       return AST.getTemplateLiteralRegExp(ast).source
   }
   if (ignoreErrors) return undefined
-  const message = `cannot generate JSON Schema for ${ast._tag} at ${formatPath(path) || "root"}`
+  const message = `Unsupported index signature parameter ${ast._tag} at ${formatPath(path)}`
   throw new Error(message)
 }
 

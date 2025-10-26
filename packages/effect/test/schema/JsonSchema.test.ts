@@ -78,42 +78,42 @@ describe("ToJsonSchema", () => {
     it("Declaration", async () => {
       assertUnsupportedSchema(
         Schema.instanceOf(globalThis.URL),
-        `cannot generate JSON Schema for Declaration at root`
+        `Unsupported schema Declaration at root`
       )
     })
 
     it("Undefined", async () => {
       assertUnsupportedSchema(
         Schema.Undefined,
-        `cannot generate JSON Schema for Undefined at root`
+        `Unsupported schema Undefined at root`
       )
     })
 
     it("BigInt", async () => {
       assertUnsupportedSchema(
         Schema.BigInt,
-        `cannot generate JSON Schema for BigInt at root`
+        `Unsupported schema BigInt at root`
       )
     })
 
     it("UniqueSymbol", async () => {
       assertUnsupportedSchema(
         Schema.UniqueSymbol(Symbol.for("effect/Schema/test/a")),
-        `cannot generate JSON Schema for UniqueSymbol at root`
+        `Unsupported schema UniqueSymbol at root`
       )
     })
 
     it("Symbol", async () => {
       assertUnsupportedSchema(
         Schema.Symbol,
-        `cannot generate JSON Schema for Symbol at root`
+        `Unsupported schema Symbol at root`
       )
     })
 
     it("Literal(bigint)", () => {
       assertUnsupportedSchema(
         Schema.Literal(1n),
-        `cannot generate JSON Schema for Literal at root`
+        `Unsupported literal 1n at root`
       )
     })
 
@@ -128,7 +128,7 @@ describe("ToJsonSchema", () => {
       })
       assertUnsupportedSchema(
         schema,
-        "cannot generate JSON Schema for Suspend at [\"as\"][0], required `identifier` annotation"
+        `Missing identifier for Suspend at ["as"][0]`
       )
     })
 
@@ -136,7 +136,7 @@ describe("ToJsonSchema", () => {
       it("Unsupported element", () => {
         assertUnsupportedSchema(
           Schema.Tuple([Schema.Symbol]),
-          `cannot generate JSON Schema for Symbol at [0]`
+          `Unsupported schema Symbol at [0]`
         )
       })
 
@@ -152,22 +152,22 @@ describe("ToJsonSchema", () => {
       it("Unsupported field", () => {
         assertUnsupportedSchema(
           Schema.Struct({ a: Schema.Symbol }),
-          `cannot generate JSON Schema for Symbol at ["a"]`
+          `Unsupported schema Symbol at ["a"]`
         )
       })
 
-      it("Unsupported property signature key", () => {
+      it("Unsupported property signature name", () => {
         const a = Symbol.for("effect/Schema/test/a")
         assertUnsupportedSchema(
           Schema.Struct({ [a]: Schema.String }),
-          `cannot generate JSON Schema for Objects at [Symbol(effect/Schema/test/a)]`
+          `Unsupported property signature name Symbol(effect/Schema/test/a) at [Symbol(effect/Schema/test/a)]`
         )
       })
 
       it("Unsupported index signature parameter", () => {
         assertUnsupportedSchema(
           Schema.Record(Schema.Symbol, Schema.Number),
-          `cannot generate JSON Schema for Symbol at root`
+          `Unsupported index signature parameter Symbol at root`
         )
       })
     })
@@ -190,7 +190,7 @@ describe("ToJsonSchema", () => {
       it("when returns undefined", async () => {
         assertUnsupportedSchema(
           Schema.Date,
-          `cannot generate JSON Schema for Declaration at root`,
+          `Unsupported schema Declaration at root`,
           {
             onMissingJsonSchemaAnnotation: () => undefined
           }
