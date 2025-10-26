@@ -408,18 +408,37 @@ describe("ToJsonSchema", () => {
 
       it("using the same identifier annotated schema twice", () => {
         const schema1 = Schema.String.annotate({ identifier: "ID" })
-        const schema = Schema.Union([schema1, schema1])
-        assertDraft07(schema, {
-          schema: {
-            "anyOf": [
-              { "$ref": "#/definitions/ID" },
-              { "$ref": "#/definitions/ID" }
-            ]
-          },
-          definitions: {
-            "ID": { "type": "string" }
+        assertDraft07(
+          Schema.Union([schema1, schema1]),
+          {
+            schema: {
+              "anyOf": [
+                { "$ref": "#/definitions/ID" },
+                { "$ref": "#/definitions/ID" }
+              ]
+            },
+            definitions: {
+              "ID": { "type": "string" }
+            }
           }
-        })
+        )
+        assertDraft07(
+          Schema.Union([schema1, schema1.annotate({ description: "description" })]),
+          {
+            schema: {
+              "anyOf": [
+                { "$ref": "#/definitions/ID" },
+                {
+                  "type": "string",
+                  "description": "description"
+                }
+              ]
+            },
+            definitions: {
+              "ID": { "type": "string" }
+            }
+          }
+        )
       })
 
       it("String & check", () => {
@@ -1737,8 +1756,8 @@ describe("ToJsonSchema", () => {
                   ]
                 },
                 "id3_2": {
-                  "type": "string",
                   "allOf": [
+                    { "$ref": "#/definitions/id3" },
                     {
                       "$comment": "key annotations",
                       "description": "id3_2-key"

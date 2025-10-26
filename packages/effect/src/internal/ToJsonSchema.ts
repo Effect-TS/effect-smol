@@ -1,5 +1,6 @@
 import * as Arr from "../collections/Array.ts"
 import * as Predicate from "../data/Predicate.ts"
+import * as Equal from "../interfaces/Equal.ts"
 import * as Inspectable from "../interfaces/Inspectable.ts"
 import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
@@ -65,9 +66,18 @@ function go(
       const escapedIdentifier = identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
       const $ref = { $ref: getPointer(target) + escapedIdentifier }
       if (Object.hasOwn(options.definitions, identifier)) {
-        // check for duplicated identifiers in different ASTs
-        if (visited.has(ast)) {
-          return $ref
+        if (AST.isSuspend(ast)) {
+          // check for duplicated identifiers in different ASTs
+          if (visited.has(ast)) {
+            return $ref
+          }
+        } else {
+          const existing = options.definitions[identifier]
+          const generated = go(ast, path, options, true, ignoreAnnotation, ignoreErrors)
+          // check for duplicated identifiers in different ASTs
+          if (Equal.equals(existing, generated)) {
+            return $ref
+          }
         }
       } else {
         visited.add(ast) // allows to check for duplicated identifiers in different ASTs

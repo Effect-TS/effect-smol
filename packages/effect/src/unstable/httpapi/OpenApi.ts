@@ -232,11 +232,11 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   }
 
   function processAST(ast: AST.AST): object {
-    const { jsonSchema } = Schema.makeJsonSchemaOpenApi3_1(Schema.make(ast), {
-      definitions: jsonSchemaDefs,
+    const { definitions, jsonSchema } = Schema.makeJsonSchemaOpenApi3_1(Schema.make(ast), {
       additionalProperties: options?.additionalProperties,
       referenceStrategy: "keep"
     })
+    Object.assign(jsonSchemaDefs, definitions)
     return jsonSchema
   }
 
