@@ -45,7 +45,7 @@
             }
           },
           "418": {
-            "description": "Error"
+            "description": "GroupError"
           }
         }
       }
@@ -366,7 +366,11 @@
                 "type": "object",
                 "properties": {
                   "uuid": {
-                    "type": "string"
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      }
+                    ]
                   },
                   "name": {
                     "type": "string"
@@ -399,8 +403,10 @@
             "name": "query",
             "in": "query",
             "schema": {
-              "type": "string",
-              "description": "search query"
+              "description": "search query",
+              "anyOf": [
+                { "type": "string" }
+              ]
             },
             "required": false
           }
@@ -458,7 +464,11 @@
             "name": "0",
             "in": "path",
             "schema": {
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                }
+              ]
             },
             "required": false
           }
@@ -480,9 +490,14 @@
                       "type": "string"
                     },
                     "length": {
-                      "type": "integer",
-                      "title": "isInt",
-                      "description": "an integer"
+                      "type": "number",
+                      "allOf": [
+                        {
+                          "type": "integer",
+                          "title": "isInt",
+                          "description": "an integer"
+                        }
+                      ]
                     }
                   },
                   "required": ["contentType", "length"],
@@ -543,9 +558,14 @@
                       "type": "string"
                     },
                     "length": {
-                      "type": "integer",
-                      "title": "isInt",
-                      "description": "an integer"
+                      "type": "number",
+                      "allOf": [
+                        {
+                          "type": "integer",
+                          "title": "isInt",
+                          "description": "an integer"
+                        }
+                      ]
                     }
                   },
                   "required": ["contentType", "length"],
@@ -617,9 +637,14 @@
              "type": "string"
            },
            "length": {
-             "description": "an integer",
-             "title": "isInt",
-             "type": "integer"
+             "type": "number",
+             "allOf": [
+               {
+                 "type": "integer",
+                 "title": "isInt",
+                 "description": "an integer"
+               }
+            ]
            }
          },
          "required": [
@@ -632,9 +657,14 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "title": "isInt",
-            "description": "an integer"
+            "type": "number",
+            "allOf": [
+              {
+                "type": "integer",
+                "title": "isInt",
+                "description": "an integer"
+              }
+            ]
           },
           "name": {
             "type": "string"
@@ -665,12 +695,21 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer",
-            "title": "isInt",
-            "description": "an integer"
+            "type": "number",
+            "allOf": [
+              {
+                "type": "integer",
+                "title": "isInt",
+                "description": "an integer"
+              }
+            ]
           },
           "uuid": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              }
+            ]
           },
           "name": {
             "type": "string"
