@@ -378,6 +378,20 @@ describe("ToJsonSchema", () => {
             }
           }
         )
+        // should support getters
+        assertDraft07(
+          Schema.String.annotate({
+            get description() {
+              return "description"
+            }
+          }),
+          {
+            schema: {
+              "type": "string",
+              "description": "description"
+            }
+          }
+        )
       })
 
       it("String & identifier", () => {
@@ -2041,6 +2055,97 @@ describe("ToJsonSchema", () => {
       })
     })
 
+    describe("Record", () => {
+      it("Record(String, Number)", () => {
+        assertDraft07(
+          Schema.Record(Schema.String, Schema.Number),
+          {
+            schema: {
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "additionalProperties": {
+                "type": "number"
+              }
+            }
+          }
+        )
+        assertDraft07(
+          Schema.Record(Schema.String, Schema.Number).annotate({ description: "description" }),
+          {
+            schema: {
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "additionalProperties": {
+                "type": "number"
+              },
+              "description": "description"
+            }
+          }
+        )
+      })
+
+      it("Record(`a${string}`, Number) & annotate", () => {
+        assertDraft07(
+          Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number),
+          {
+            schema: {
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "patternProperties": {
+                "^(a)([\\s\\S]*?)$": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        )
+      })
+    })
+
+    describe("Array", () => {
+      it("Array", () => {
+        assertDraft07(
+          Schema.Array(Schema.String),
+          {
+            schema: {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        )
+        assertDraft07(
+          Schema.Array(Schema.String).annotate({ description: "description" }),
+          {
+            schema: {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "description"
+            }
+          }
+        )
+      })
+
+      it("UniqueArray", () => {
+        assertDraft07(
+          Schema.UniqueArray(Schema.String),
+          {
+            schema: {
+              "type": "array",
+              "items": { "type": "string" },
+              "allOf": [{
+                "title": "isUnique",
+                "description": "an array with unique items",
+                "uniqueItems": true
+              }]
+            }
+          }
+        )
+      })
+    })
+
     describe("Union", () => {
       it("empty union", () => {
         const schema = Schema.Union([])
@@ -2108,7 +2213,10 @@ describe("ToJsonSchema", () => {
 
       it("String | Number", () => {
         assertDraft07(
-          Schema.Union([Schema.String, Schema.Number]),
+          Schema.Union([
+            Schema.String,
+            Schema.Number
+          ]),
           {
             schema: {
               "anyOf": [
@@ -2118,123 +2226,59 @@ describe("ToJsonSchema", () => {
             }
           }
         )
-      })
-    })
-
-    describe("checks", () => {
-      it("isInt", () => {
         assertDraft07(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isInt()),
+          Schema.Union([
+            Schema.String,
+            Schema.Number
+          ]).annotate({ description: "description" }),
           {
             schema: {
-              "type": "number",
-              "description": "description",
-              "allOf": [
-                {
-                  "type": "integer",
-                  "description": "an integer",
-                  "title": "isInt"
-                }
+              "anyOf": [
+                { "type": "string" },
+                { "type": "number" }
+              ],
+              "description": "description"
+            }
+          }
+        )
+      })
+
+      it(`1 | 2 | string`, () => {
+        assertDraft07(
+          Schema.Union([
+            Schema.Literal(1),
+            Schema.Literal(2).annotate({ description: "2-description" }),
+            Schema.String
+          ]),
+          {
+            schema: {
+              "anyOf": [
+                { "type": "number", "enum": [1] },
+                { "type": "number", "enum": [2], "description": "2-description" },
+                { "type": "string" }
               ]
             }
           }
         )
       })
 
-      it("isInt32", () => {
+      it(`(1 | 2) | string`, () => {
         assertDraft07(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isInt32()),
+          Schema.Union([
+            Schema.Literals([1, 2]).annotate({ description: "1-2-description" }),
+            Schema.String
+          ]),
           {
             schema: {
-              "type": "number",
-              "description": "description",
-              "allOf": [
+              "anyOf": [
                 {
-                  "description": "a 32-bit integer",
-                  "title": "isInt32",
-                  "allOf": [
-                    {
-                      "type": "integer",
-                      "description": "an integer",
-                      "title": "isInt"
-                    },
-                    {
-                      "description": "a value between -2147483648 and 2147483647",
-                      "maximum": 2147483647,
-                      "minimum": -2147483648,
-                      "title": "isBetween(-2147483648, 2147483647)"
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        )
-      })
-
-      it("isUint32", () => {
-        assertDraft07(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isUint32()),
-          {
-            schema: {
-              "type": "number",
-              "description": "description",
-              "allOf": [
-                {
-                  "description": "a 32-bit unsigned integer",
-                  "title": "isUint32",
-                  "allOf": [
-                    {
-                      "type": "integer",
-                      "description": "an integer",
-                      "title": "isInt"
-                    },
-                    {
-                      "description": "a value between 0 and 4294967295",
-                      "maximum": 4294967295,
-                      "minimum": 0,
-                      "title": "isBetween(0, 4294967295)"
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        )
-      })
-
-      it("isBase64", () => {
-        assertDraft07(
-          Schema.String.annotate({ description: "description" }).check(Schema.isBase64()),
-          {
-            schema: {
-              "type": "string",
-              "description": "description",
-              "allOf": [
-                {
-                  "description": "a base64 encoded string",
-                  "title": "isBase64",
-                  "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
-                }
-              ]
-            }
-          }
-        )
-      })
-
-      it("isBase64Url", () => {
-        assertDraft07(
-          Schema.String.annotate({ description: "description" }).check(Schema.isBase64Url()),
-          {
-            schema: {
-              "type": "string",
-              "description": "description",
-              "allOf": [
-                {
-                  "description": "a base64url encoded string",
-                  "title": "isBase64Url",
-                  "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
-                }
+                  "anyOf": [
+                    { "type": "number", "enum": [1] },
+                    { "type": "number", "enum": [2] }
+                  ],
+                  "description": "1-2-description"
+                },
+                { "type": "string" }
               ]
             }
           }
@@ -2327,6 +2371,542 @@ describe("ToJsonSchema", () => {
             }
           }
         })
+      })
+
+      it("top annotation", () => {
+        interface A {
+          readonly a: string
+          readonly as: ReadonlyArray<A>
+        }
+        const schema = Schema.Struct({
+          a: Schema.String,
+          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
+        }).annotate({ identifier: "A" })
+        assertDraft07(
+          schema,
+          {
+            schema: {
+              "$ref": "#/definitions/A"
+            },
+            definitions: {
+              "A": {
+                "type": "object",
+                "properties": {
+                  "a": {
+                    "type": "string"
+                  },
+                  "as": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/A" }
+                  }
+                },
+                "required": ["a", "as"],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+      })
+    })
+
+    describe("checks", () => {
+      it("isInt", () => {
+        assertDraft07(
+          Schema.Number.annotate({ description: "description" }).check(Schema.isInt()),
+          {
+            schema: {
+              "type": "number",
+              "description": "description",
+              "allOf": [
+                {
+                  "type": "integer",
+                  "description": "an integer",
+                  "title": "isInt"
+                }
+              ]
+            }
+          }
+        )
+      })
+
+      it("isInt32", () => {
+        assertDraft07(
+          Schema.Number.annotate({ description: "description" }).check(Schema.isInt32()),
+          {
+            schema: {
+              "type": "number",
+              "description": "description",
+              "allOf": [
+                {
+                  "description": "a 32-bit integer",
+                  "title": "isInt32",
+                  "allOf": [
+                    {
+                      "type": "integer",
+                      "description": "an integer",
+                      "title": "isInt"
+                    },
+                    {
+                      "description": "a value between -2147483648 and 2147483647",
+                      "maximum": 2147483647,
+                      "minimum": -2147483648,
+                      "title": "isBetween(-2147483648, 2147483647)"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        )
+      })
+
+      it("isUint32", () => {
+        assertDraft07(
+          Schema.Number.annotate({ description: "description" }).check(Schema.isUint32()),
+          {
+            schema: {
+              "type": "number",
+              "description": "description",
+              "allOf": [
+                {
+                  "description": "a 32-bit unsigned integer",
+                  "title": "isUint32",
+                  "allOf": [
+                    {
+                      "type": "integer",
+                      "description": "an integer",
+                      "title": "isInt"
+                    },
+                    {
+                      "description": "a value between 0 and 4294967295",
+                      "maximum": 4294967295,
+                      "minimum": 0,
+                      "title": "isBetween(0, 4294967295)"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        )
+      })
+
+      it("isGreaterThan", () => {
+        assertDraft07(
+          Schema.Number.check(Schema.isGreaterThan(1)),
+          {
+            schema: {
+              "type": "number",
+              "allOf": [
+                {
+                  "title": "isGreaterThan(1)",
+                  "description": "a value greater than 1",
+                  "exclusiveMinimum": 1
+                }
+              ]
+            }
+          }
+        )
+      })
+
+      it("isGreaterThanOrEqualTo", () => {
+        assertDraft07(
+          Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)),
+          {
+            schema: {
+              "type": "number",
+              "allOf": [
+                {
+                  "title": "isGreaterThanOrEqualTo(1)",
+                  "description": "a value greater than or equal to 1",
+                  "minimum": 1
+                }
+              ]
+            }
+          }
+        )
+      })
+
+      it("isLessThan", () => {
+        assertDraft07(Schema.Number.check(Schema.isLessThan(1)), {
+          schema: {
+            "type": "number",
+            "allOf": [
+              {
+                "title": "isLessThan(1)",
+                "description": "a value less than 1",
+                "exclusiveMaximum": 1
+              }
+            ]
+          }
+        })
+      })
+
+      it("isLessThanOrEqualTo", () => {
+        assertDraft07(Schema.Number.check(Schema.isLessThanOrEqualTo(1)), {
+          schema: {
+            "type": "number",
+            "allOf": [
+              {
+                "title": "isLessThanOrEqualTo(1)",
+                "description": "a value less than or equal to 1",
+                "maximum": 1
+              }
+            ]
+          }
+        })
+      })
+
+      it("isPattern", () => {
+        assertDraft07(Schema.String.check(Schema.isPattern(/^abb+$/)), {
+          schema: {
+            "type": "string",
+            "allOf": [
+              {
+                "title": "isPattern(^abb+$)",
+                "description": "a string matching the regex ^abb+$",
+                "pattern": "^abb+$"
+              }
+            ]
+          }
+        })
+      })
+
+      it("isTrimmed", () => {
+        const schema = Schema.Trimmed
+        assertDraft07(schema, {
+          schema: {
+            "type": "string",
+            "allOf": [
+              {
+                "title": "isTrimmed",
+                "description": "a string with no leading or trailing whitespace",
+                "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+              }
+            ]
+          }
+        })
+      })
+
+      it("isLowercased", () => {
+        const schema = Schema.String.check(Schema.isLowercased())
+        assertDraft07(schema, {
+          schema: {
+            "type": "string",
+            "allOf": [
+              {
+                "title": "isLowercased",
+                "description": "a string with all characters in lowercase",
+                "pattern": "^[^A-Z]*$"
+              }
+            ]
+          }
+        })
+      })
+
+      it("isUppercased", () => {
+        const schema = Schema.String.check(Schema.isUppercased())
+        assertDraft07(schema, {
+          schema: {
+            "type": "string",
+            "allOf": [
+              {
+                "title": "isUppercased",
+                "description": "a string with all characters in uppercase",
+                "pattern": "^[^a-z]*$"
+              }
+            ]
+          }
+        })
+      })
+
+      it("isCapitalized", () => {
+        const schema = Schema.String.check(Schema.isCapitalized())
+        assertDraft07(schema, {
+          schema: {
+            "type": "string",
+            "allOf": [
+              {
+                "title": "isCapitalized",
+                "description": "a string with the first character in uppercase",
+                "pattern": "^[^a-z]?.*$"
+              }
+            ]
+          }
+        })
+      })
+
+      it("isUncapitalized", () => {
+        const schema = Schema.String.check(Schema.isUncapitalized())
+        assertDraft07(schema, {
+          schema: {
+            "type": "string",
+            "allOf": [
+              {
+                "title": "isUncapitalized",
+                "description": "a string with the first character in lowercase",
+                "pattern": "^[^A-Z]?.*$"
+              }
+            ]
+          }
+        })
+      })
+
+      describe("isLength", () => {
+        it("String", () => {
+          assertDraft07(
+            Schema.String.check(Schema.isLength(2)),
+            {
+              schema: {
+                "type": "string",
+                "allOf": [
+                  {
+                    "title": "isLength(2)",
+                    "description": "a value with a length of 2",
+                    "maxLength": 2,
+                    "minLength": 2
+                  }
+                ]
+              }
+            }
+          )
+        })
+
+        it("Array", () => {
+          assertDraft07(
+            Schema.Array(Schema.String).check(Schema.isLength(2)),
+            {
+              schema: {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "allOf": [
+                  {
+                    "description": "a value with a length of 2",
+                    "title": "isLength(2)",
+                    "minItems": 2,
+                    "maxItems": 2
+                  }
+                ]
+              }
+            }
+          )
+        })
+
+        it("NonEmptyArray", () => {
+          assertDraft07(
+            Schema.NonEmptyArray(Schema.String).check(Schema.isLength(2)),
+            {
+              schema: {
+                "type": "array",
+                "items": [{
+                  "type": "string"
+                }],
+                "additionalItems": {
+                  "type": "string"
+                },
+                "allOf": [
+                  {
+                    "description": "a value with a length of 2",
+                    "title": "isLength(2)",
+                    "minItems": 2,
+                    "maxItems": 2
+                  }
+                ]
+              }
+            }
+          )
+        })
+      })
+
+      describe("isMinLength", () => {
+        it("String", () => {
+          assertDraft07(
+            Schema.String.check(Schema.isMinLength(2)),
+            {
+              schema: {
+                "type": "string",
+                "allOf": [
+                  {
+                    "description": "a value with a length of at least 2",
+                    "title": "isMinLength(2)",
+                    "minLength": 2
+                  }
+                ]
+              }
+            }
+          )
+        })
+
+        it("Array", () => {
+          assertDraft07(
+            Schema.Array(Schema.String).check(Schema.isMinLength(2)),
+            {
+              schema: {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "allOf": [
+                  {
+                    "description": "a value with a length of at least 2",
+                    "title": "isMinLength(2)",
+                    "minItems": 2
+                  }
+                ]
+              }
+            }
+          )
+        })
+
+        it("NonEmptyArray", () => {
+          assertDraft07(
+            Schema.NonEmptyArray(Schema.String).check(Schema.isMinLength(2)),
+            {
+              schema: {
+                "type": "array",
+                "items": [{
+                  "type": "string"
+                }],
+                "additionalItems": {
+                  "type": "string"
+                },
+                "allOf": [
+                  {
+                    "description": "a value with a length of at least 2",
+                    "title": "isMinLength(2)",
+                    "minItems": 2
+                  }
+                ]
+              }
+            }
+          )
+        })
+      })
+
+      describe("isMaxLength", () => {
+        it("String", () => {
+          assertDraft07(
+            Schema.String.check(Schema.isMaxLength(2)),
+            {
+              schema: {
+                "type": "string",
+                "allOf": [
+                  {
+                    "description": "a value with a length of at most 2",
+                    "title": "isMaxLength(2)",
+                    "maxLength": 2
+                  }
+                ]
+              }
+            }
+          )
+        })
+
+        it("Array", () => {
+          assertDraft07(
+            Schema.Array(Schema.String).check(Schema.isMaxLength(2)),
+            {
+              schema: {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "allOf": [
+                  {
+                    "description": "a value with a length of at most 2",
+                    "title": "isMaxLength(2)",
+                    "maxItems": 2
+                  }
+                ]
+              }
+            }
+          )
+        })
+
+        it("NonEmptyArray", () => {
+          assertDraft07(
+            Schema.NonEmptyArray(Schema.String).check(Schema.isMaxLength(2)),
+            {
+              schema: {
+                "type": "array",
+                "items": [{
+                  "type": "string"
+                }],
+                "additionalItems": {
+                  "type": "string"
+                },
+                "allOf": [
+                  {
+                    "description": "a value with a length of at most 2",
+                    "title": "isMaxLength(2)",
+                    "maxItems": 2
+                  }
+                ]
+              }
+            }
+          )
+        })
+      })
+
+      it("isUUID", () => {
+        assertDraft07(
+          Schema.String.annotate({ description: "description" }).check(Schema.isUUID()),
+          {
+            schema: {
+              "type": "string",
+              "description": "description",
+              "allOf": [
+                {
+                  "description": "a UUID",
+                  "format": "uuid",
+                  "pattern":
+                    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$",
+                  "title": "isUUID"
+                }
+              ]
+            }
+          }
+        )
+      })
+
+      it("isBase64", () => {
+        assertDraft07(
+          Schema.String.annotate({ description: "description" }).check(Schema.isBase64()),
+          {
+            schema: {
+              "type": "string",
+              "description": "description",
+              "allOf": [
+                {
+                  "description": "a base64 encoded string",
+                  "title": "isBase64",
+                  "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
+                }
+              ]
+            }
+          }
+        )
+      })
+
+      it("isBase64Url", () => {
+        assertDraft07(
+          Schema.String.annotate({ description: "description" }).check(Schema.isBase64Url()),
+          {
+            schema: {
+              "type": "string",
+              "description": "description",
+              "allOf": [
+                {
+                  "description": "a base64url encoded string",
+                  "title": "isBase64Url",
+                  "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
+                }
+              ]
+            }
+          }
+        )
       })
     })
 
@@ -2658,6 +3238,270 @@ describe("ToJsonSchema", () => {
           }
         }
       )
+    })
+  })
+
+  describe("options", () => {
+    describe("topLevelReferenceStrategy", () => {
+      describe(`"skip"`, () => {
+        it("String", () => {
+          const definitions = {}
+          assertDraft07(
+            Schema.String.annotate({ identifier: "ID" }),
+            {
+              schema: {
+                "type": "string"
+              }
+            },
+            {
+              referenceStrategy: "skip",
+              definitions
+            }
+          )
+          deepStrictEqual(definitions, {})
+        })
+
+        it("nested identifiers", () => {
+          class A extends Schema.Class<A>("A")({ s: Schema.String.annotate({ identifier: "ID4" }) }) {}
+          const schema = Schema.Struct({
+            a: Schema.String.annotate({ identifier: "ID" }),
+            b: Schema.Struct({
+              c: Schema.String.annotate({ identifier: "ID3" })
+            }).annotate({ identifier: "ID2" }),
+            d: A
+          })
+          assertDraft07(schema, {
+            schema: {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "b": {
+                  "type": "object",
+                  "properties": {
+                    "c": { "type": "string" }
+                  },
+                  "required": ["c"],
+                  "additionalProperties": false
+                },
+                "d": {
+                  "type": "object",
+                  "properties": {
+                    "s": { "type": "string" }
+                  },
+                  "required": ["s"],
+                  "additionalProperties": false
+                }
+              },
+              "required": ["a", "b", "d"],
+              "additionalProperties": false
+            }
+          }, {
+            referenceStrategy: "skip"
+          })
+        })
+
+        describe("Suspend", () => {
+          it("inner annotation", () => {
+            interface A {
+              readonly a: string
+              readonly as: ReadonlyArray<A>
+            }
+            const schema = Schema.Struct({
+              a: Schema.String,
+              as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ identifier: "A" })))
+            })
+            assertDraft07(schema, {
+              schema: {
+                "type": "object",
+                "properties": {
+                  "a": {
+                    "type": "string"
+                  },
+                  "as": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/A" }
+                  }
+                },
+                "required": ["a", "as"],
+                "additionalProperties": false
+              },
+              definitions: {
+                "A": {
+                  "type": "object",
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    },
+                    "as": {
+                      "type": "array",
+                      "items": { "$ref": "#/definitions/A" }
+                    }
+                  },
+                  "required": ["a", "as"],
+                  "additionalProperties": false
+                }
+              }
+            }, {
+              referenceStrategy: "skip"
+            })
+          })
+
+          it("outer annotation", () => {
+            interface A {
+              readonly a: string
+              readonly as: ReadonlyArray<A>
+            }
+            const schema = Schema.Struct({
+              a: Schema.String,
+              as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema).annotate({ identifier: "A" }))
+            })
+            assertDraft07(schema, {
+              schema: {
+                "type": "object",
+                "properties": {
+                  "a": {
+                    "type": "string"
+                  },
+                  "as": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/A" }
+                  }
+                },
+                "required": ["a", "as"],
+                "additionalProperties": false
+              },
+              definitions: {
+                "A": {
+                  "type": "object",
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    },
+                    "as": {
+                      "type": "array",
+                      "items": { "$ref": "#/definitions/A" }
+                    }
+                  },
+                  "required": ["a", "as"],
+                  "additionalProperties": false
+                }
+              }
+            }, {
+              referenceStrategy: "skip"
+            })
+          })
+
+          it("top annotation", () => {
+            interface A {
+              readonly a: string
+              readonly as: ReadonlyArray<A>
+            }
+            const schema = Schema.Struct({
+              a: Schema.String,
+              as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
+            }).annotate({ identifier: "A" })
+            assertDraft07(
+              schema,
+              {
+                schema: {
+                  "type": "object",
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    },
+                    "as": {
+                      "type": "array",
+                      "items": { "$ref": "#/definitions/A" }
+                    }
+                  },
+                  "required": ["a", "as"],
+                  "additionalProperties": false
+                },
+                definitions: {
+                  "A": {
+                    "type": "object",
+                    "properties": {
+                      "a": {
+                        "type": "string"
+                      },
+                      "as": {
+                        "type": "array",
+                        "items": { "$ref": "#/definitions/A" }
+                      }
+                    },
+                    "required": ["a", "as"],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              {
+                referenceStrategy: "skip"
+              }
+            )
+          })
+        })
+      })
+    })
+
+    describe("additionalProperties", () => {
+      it(`false (default)`, () => {
+        const schema = Schema.Struct({ a: Schema.String })
+
+        assertDraft07(schema, {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
+              }
+            },
+            "required": ["a"],
+            "additionalProperties": false
+          }
+        }, {
+          additionalProperties: false
+        })
+      })
+
+      it(`true`, () => {
+        const schema = Schema.Struct({ a: Schema.String })
+
+        assertDraft07(schema, {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
+              }
+            },
+            "required": ["a"],
+            "additionalProperties": true
+          }
+        }, {
+          additionalProperties: true
+        })
+      })
+
+      it(`schema`, () => {
+        const schema = Schema.Struct({ a: Schema.String })
+
+        assertDraft07(schema, {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string"
+              }
+            },
+            "required": ["a"],
+            "additionalProperties": { "type": "string" }
+          }
+        }, {
+          additionalProperties: { "type": "string" }
+        })
+      })
     })
   })
 })

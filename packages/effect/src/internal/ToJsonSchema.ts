@@ -45,8 +45,6 @@ interface GoOptions extends Options {
   readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
 }
 
-const visited = new WeakSet<AST.AST>()
-
 function go(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
@@ -58,17 +56,14 @@ function go(
   // ---------------------------------------------
   // handle identifier annotation
   // ---------------------------------------------
-  if (!ignoreIdentifier && options.referenceStrategy !== "skip") {
+  if (!ignoreIdentifier && (options.referenceStrategy !== "skip" || AST.isSuspend(ast))) {
     const identifier = getIdentifier(ast)
     if (identifier !== undefined) {
       const escapedIdentifier = identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
       const $ref = { $ref: getPointer(target) + escapedIdentifier }
       if (Object.hasOwn(options.definitions, identifier)) {
         if (AST.isSuspend(ast)) {
-          // check for duplicated identifiers in different ASTs
-          if (visited.has(ast)) {
-            return $ref
-          }
+          return $ref
         } else {
           const existing = options.definitions[identifier]
           const generated = go(ast, path, options, true, ignoreAnnotation)
@@ -78,7 +73,6 @@ function go(
           }
         }
       } else {
-        visited.add(ast) // allows to check for duplicated identifiers in different ASTs
         options.definitions[identifier] = $ref
         options.definitions[identifier] = go(ast, path, options, true, ignoreAnnotation)
         return $ref

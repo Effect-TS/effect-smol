@@ -6891,47 +6891,6 @@ export function makeJsonSchemaOpenApi3_1<S extends Top>(
   })
 }
 
-/**
- * @category JsonSchema
- * @since 4.0.0
- */
-export function makeJsonSchemaPruner(): (
-  jsonSchema: Annotations.JsonSchema.JsonSchema
-) => Annotations.JsonSchema.JsonSchema {
-  function pruner(s: any): any {
-    if (globalThis.Array.isArray(s)) {
-      s.forEach(pruner)
-    }
-    if (typeof s === "object" && s !== null) {
-      if (s.type === "number") {
-        if ("allOf" in s) {
-          const i = s.allOf.findIndex((item: any) => item.type === "integer")
-          if (i !== -1) {
-            s.type = "integer"
-            delete s.allOf[i].type
-            if (Object.keys(s).length === 2) {
-              Object.assign(s, s.allOf[i])
-              s.allOf.splice(i, 1)
-              if (s.allOf.length === 0) {
-                delete s.allOf
-              }
-            }
-          }
-        }
-      }
-      if ("anyOf" in s) {
-        if (s.anyOf.length === 1 && Object.keys(s).length === 1) {
-          Object.assign(s, s.anyOf[0])
-          delete s.anyOf
-        }
-      }
-      Object.keys(s).forEach((key) => pruner(s[key]))
-    }
-    return s
-  }
-  return pruner
-}
-
 // -----------------------------------------------------------------------------
 // Serializer APIs
 // -----------------------------------------------------------------------------
