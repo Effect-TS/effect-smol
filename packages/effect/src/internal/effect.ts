@@ -919,7 +919,7 @@ export const try_ = <A, E = Cause.UnknownError>(
     ? undefined
     : "catch" in options
     ? options.catch
-    : (e: unknown) => new UnknownError(e, "An error occurred in Effect.try") as E
+    : (e: unknown) => new UnknownError(e, "An error occurred in Effect.sync") as E
 
   const rescue = recover && ((e: unknown) => fail(internalCall(() => recover(e))))
 
