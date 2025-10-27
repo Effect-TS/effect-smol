@@ -66,42 +66,42 @@ describe("ToJsonSchema", () => {
     it("Declaration", () => {
       assertUnsupportedSchema(
         Schema.instanceOf(globalThis.URL),
-        `Unsupported schema Declaration at root`
+        `Unsupported schema Declaration`
       )
     })
 
     it("Undefined", () => {
       assertUnsupportedSchema(
         Schema.Undefined,
-        `Unsupported schema Undefined at root`
+        `Unsupported schema Undefined`
       )
     })
 
     it("BigInt", () => {
       assertUnsupportedSchema(
         Schema.BigInt,
-        `Unsupported schema BigInt at root`
+        `Unsupported schema BigInt`
       )
     })
 
     it("UniqueSymbol", () => {
       assertUnsupportedSchema(
         Schema.UniqueSymbol(Symbol.for("effect/Schema/test/a")),
-        `Unsupported schema UniqueSymbol at root`
+        `Unsupported schema UniqueSymbol`
       )
     })
 
     it("Symbol", () => {
       assertUnsupportedSchema(
         Schema.Symbol,
-        `Unsupported schema Symbol at root`
+        `Unsupported schema Symbol`
       )
     })
 
     it("Literal(bigint)", () => {
       assertUnsupportedSchema(
         Schema.Literal(1n),
-        `Unsupported literal 1n at root`
+        `Unsupported literal 1n`
       )
     })
 
@@ -116,7 +116,8 @@ describe("ToJsonSchema", () => {
       })
       assertUnsupportedSchema(
         schema,
-        `Missing identifier for Suspend at ["as"][0]`
+        `Missing identifier for Suspend
+  at ["as"][0]`
       )
     })
 
@@ -124,7 +125,8 @@ describe("ToJsonSchema", () => {
       it("Unsupported element", () => {
         assertUnsupportedSchema(
           Schema.Tuple([Schema.Symbol]),
-          `Unsupported schema Symbol at [0]`
+          `Unsupported schema Symbol
+  at [0]`
         )
       })
 
@@ -140,7 +142,8 @@ describe("ToJsonSchema", () => {
       it("Unsupported field", () => {
         assertUnsupportedSchema(
           Schema.Struct({ a: Schema.Symbol }),
-          `Unsupported schema Symbol at ["a"]`
+          `Unsupported schema Symbol
+  at ["a"]`
         )
       })
 
@@ -148,14 +151,15 @@ describe("ToJsonSchema", () => {
         const a = Symbol.for("effect/Schema/test/a")
         assertUnsupportedSchema(
           Schema.Struct({ [a]: Schema.String }),
-          `Unsupported property signature name Symbol(effect/Schema/test/a) at [Symbol(effect/Schema/test/a)]`
+          `Unsupported property signature name Symbol(effect/Schema/test/a)
+  at [Symbol(effect/Schema/test/a)]`
         )
       })
 
       it("Unsupported index signature parameter", () => {
         assertUnsupportedSchema(
           Schema.Record(Schema.Symbol, Schema.Number),
-          `Unsupported index signature parameter Symbol at root`
+          `Unsupported index signature parameter Symbol`
         )
       })
     })
@@ -178,7 +182,7 @@ describe("ToJsonSchema", () => {
       it("when returns undefined", () => {
         assertUnsupportedSchema(
           Schema.Date,
-          `Unsupported schema Declaration at root`,
+          `Unsupported schema Declaration`,
           {
             onMissingJsonSchemaAnnotation: () => undefined
           }
@@ -203,18 +207,64 @@ describe("ToJsonSchema", () => {
     })
 
     it("should ignore errors when generating the default JSON Schema passed in the override context", () => {
-      const schema = Schema.Symbol.annotate({
-        jsonSchema: {
-          _tag: "Override",
-          override: () => ({ type: "string" })
-        }
-      })
       assertDraft07(
-        schema,
+        Schema.Symbol.annotate({
+          jsonSchema: {
+            _tag: "Override",
+            override: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
+          }
+        }),
         {
           schema: {
             "type": "string"
           }
+        }
+      )
+      assertDraft07(
+        Schema.Symbol.annotate({
+          jsonSchema: {
+            _tag: "Override",
+            override: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
+          }
+        }),
+        {
+          schema: {
+            "$comment": "comment",
+            "type": "string"
+          }
+        },
+        {
+          onMissingJsonSchemaAnnotation: () => ({ "$comment": "comment" })
+        }
+      )
+      assertDraft07(
+        Schema.Symbol.check(Schema.makeFilter(() => true)).annotate({
+          jsonSchema: {
+            _tag: "Override",
+            override: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
+          }
+        }),
+        {
+          schema: {
+            "type": "string"
+          }
+        }
+      )
+      assertDraft07(
+        Schema.Symbol.check(Schema.makeFilter(() => true)).annotate({
+          jsonSchema: {
+            _tag: "Override",
+            override: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
+          }
+        }),
+        {
+          schema: {
+            "$comment": "comment",
+            "type": "string"
+          }
+        },
+        {
+          onMissingJsonSchemaAnnotation: () => ({ "$comment": "comment" })
         }
       )
     })
@@ -224,7 +274,10 @@ describe("ToJsonSchema", () => {
         const schema = Schema.String.annotate({
           jsonSchema: {
             _tag: "Override",
-            override: () => ({ "type": "string", minLength: 1 })
+            override: () => ({
+              "type": "string",
+              "minLength": 1
+            })
           }
         })
         assertDraft07(
@@ -241,8 +294,8 @@ describe("ToJsonSchema", () => {
           {
             schema: {
               "type": "string",
-              "minLength": 1,
-              "description": "description"
+              "description": "description",
+              "minLength": 1
             }
           }
         )
@@ -254,7 +307,10 @@ describe("ToJsonSchema", () => {
             identifier: "ID",
             jsonSchema: {
               _tag: "Override",
-              override: () => ({ "type": "string", minLength: 1 })
+              override: () => ({
+                "type": "string",
+                "minLength": 1
+              })
             }
           }),
           {
@@ -274,7 +330,13 @@ describe("ToJsonSchema", () => {
       it("String & check & override", () => {
         assertDraft07(
           Schema.String.check(Schema.isMinLength(2)).annotate({
-            jsonSchema: { _tag: "Override", override: () => ({ "type": "string", minLength: 1 }) }
+            jsonSchema: {
+              _tag: "Override",
+              override: () => ({
+                "type": "string",
+                "minLength": 1
+              })
+            }
           }),
           {
             schema: {

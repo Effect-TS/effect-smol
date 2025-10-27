@@ -31,7 +31,6 @@ export function make<S extends Schema.Top>(schema: S, options: Options): {
       onMissingJsonSchemaAnnotation: options.onMissingJsonSchemaAnnotation
     },
     false,
-    false,
     false
   )
   return {
@@ -53,8 +52,7 @@ function go(
   path: ReadonlyArray<PropertyKey>,
   options: GoOptions,
   ignoreIdentifier: boolean,
-  ignoreAnnotation: boolean,
-  ignoreErrors: boolean // TODO: remove this option, use try / catch instead
+  ignoreAnnotation: boolean
 ): Annotations.JsonSchema.JsonSchema {
   const target = options.target
   // ---------------------------------------------
@@ -73,7 +71,7 @@ function go(
           }
         } else {
           const existing = options.definitions[identifier]
-          const generated = go(ast, path, options, true, ignoreAnnotation, ignoreErrors)
+          const generated = go(ast, path, options, true, ignoreAnnotation)
           // check for duplicated identifiers in different ASTs
           if (Equal.equals(existing, generated)) {
             return $ref
@@ -82,7 +80,7 @@ function go(
       } else {
         visited.add(ast) // allows to check for duplicated identifiers in different ASTs
         options.definitions[identifier] = $ref
-        options.definitions[identifier] = go(ast, path, options, true, ignoreAnnotation, ignoreErrors)
+        options.definitions[identifier] = go(ast, path, options, true, ignoreAnnotation)
         return $ref
       }
     }
@@ -95,10 +93,17 @@ function go(
     if (annotation) {
       switch (annotation._tag) {
         case "Override": {
+          function getDefaultJsonSchema() {
+            try {
+              return go(ast, path, options, ignoreIdentifier, true)
+            } catch {
+              return {}
+            }
+          }
           let out = annotation.override({
             target,
-            jsonSchema: go(ast, path, options, ignoreIdentifier, true, true),
-            make: (ast) => go(ast, path, options, false, false, false)
+            jsonSchema: getDefaultJsonSchema(),
+            make: (ast) => go(ast, path, options, false, false)
           })
           const annotations = getJsonSchemaAnnotations(ast.annotations)
           if (annotations) {
@@ -116,9 +121,9 @@ function go(
   // handle encoding
   // ---------------------------------------------
   if (ast.encoding) {
-    return go(AST.encodedAST(ast), path, options, ignoreIdentifier, ignoreAnnotation, ignoreErrors)
+    return go(AST.encodedAST(ast), path, options, ignoreIdentifier, ignoreAnnotation)
   }
-  let out = base(ast, path, options, false, false, ignoreErrors)
+  let out = base(ast, path, options, false)
   // ---------------------------------------------
   // handle checks
   // ---------------------------------------------
@@ -152,9 +157,7 @@ function base(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
   options: GoOptions,
-  ignoreIdentifier: boolean,
-  ignoreAnnotation: boolean,
-  ignoreErrors: boolean // TODO: remove this option, use try / catch instead
+  ignoreAnnotation: boolean
 ): Annotations.JsonSchema.JsonSchema {
   const target = options.target
   // ---------------------------------------------
@@ -165,10 +168,17 @@ function base(
     if (annotation) {
       switch (annotation._tag) {
         case "Override": {
+          function getDefaultJsonSchema() {
+            try {
+              return base(ast, path, options, true)
+            } catch {
+              return {}
+            }
+          }
           let out = annotation.override({
             target,
-            jsonSchema: base(ast, path, options, true, true, true),
-            make: (ast) => go(ast, path, options, false, false, false)
+            jsonSchema: getDefaultJsonSchema(),
+            make: (ast) => go(ast, path, options, false, false)
           })
           const annotations = getJsonSchemaAnnotations(ast.annotations)
           if (annotations) {
@@ -192,9 +202,7 @@ function base(
         const out = options.onMissingJsonSchemaAnnotation(ast)
         if (out) return out
       }
-      if (ignoreErrors) return {}
-      const message = `Unsupported schema ${ast._tag} at ${formatPath(path)}`
-      throw new Error(message)
+      throw error(`Unsupported schema ${ast._tag}`, path)
     }
 
     case "Never":
@@ -230,13 +238,11 @@ function base(
       if (Predicate.isBoolean(ast.literal)) {
         return { type: "boolean", enum: [ast.literal] }
       }
-      if (ignoreErrors) return {}
-      const message = `Unsupported literal ${Inspectable.format(ast.literal)} at ${formatPath(path)}`
-      throw new Error(message)
+      throw error(`Unsupported literal ${Inspectable.format(ast.literal)}`, path)
     }
 
     case "Enum":
-      return go(AST.enumsToLiterals(ast), path, options, false, false, ignoreErrors)
+      return go(AST.enumsToLiterals(ast), path, options, false, false)
 
     case "TemplateLiteral":
       return { type: "string", pattern: AST.getTemplateLiteralRegExp(ast).source }
@@ -246,10 +252,10 @@ function base(
       // handle post rest elements
       // ---------------------------------------------
       if (ast.rest.length > 1) {
-        if (ignoreErrors) return {}
-        const message =
-          "Generating a JSON Schema for post-rest elements is not currently supported. You're welcome to contribute by submitting a Pull Request"
-        throw new Error(message)
+        throw error(
+          "Generating a JSON Schema for post-rest elements is not currently supported. You're welcome to contribute by submitting a Pull Request",
+          path
+        )
       }
       const out: any = { type: "array" }
       // ---------------------------------------------
@@ -257,7 +263,7 @@ function base(
       // ---------------------------------------------
       const items = ast.elements.map((e, i) => {
         return merge(
-          go(e, [...path, i], options, false, false, ignoreErrors),
+          go(e, [...path, i], options, false, false),
           getJsonSchemaAnnotations(e.context?.annotations)
         )
       })
@@ -269,7 +275,7 @@ function base(
       // handle rest element
       // ---------------------------------------------
       const additionalItems = ast.rest.length > 0
-        ? go(ast.rest[0], [...path, ast.elements.length], options, false, false, ignoreErrors)
+        ? go(ast.rest[0], [...path, ast.elements.length], options, false, false)
         : false
       if (items.length === 0) {
         out.items = additionalItems
@@ -302,14 +308,10 @@ function base(
       for (const ps of ast.propertySignatures) {
         const name = ps.name as string
         if (Predicate.isSymbol(name)) {
-          if (ignoreErrors) return {}
-          const message = `Unsupported property signature name ${Inspectable.format(name)} at ${
-            formatPath([...path, name])
-          }`
-          throw new Error(message)
+          throw error(`Unsupported property signature name ${Inspectable.format(name)}`, [...path, name])
         } else {
           out.properties[name] = merge(
-            go(ps.type, [...path, name], options, false, false, ignoreErrors),
+            go(ps.type, [...path, name], options, false, false),
             getJsonSchemaAnnotations(ps.type.context?.annotations)
           )
           if (!isOptional(ps.type)) {
@@ -323,8 +325,8 @@ function base(
       out.additionalProperties = options.additionalProperties
       const patternProperties: Record<string, object> = {}
       for (const is of ast.indexSignatures) {
-        const type = go(is.type, path, options, false, false, ignoreErrors)
-        const pattern = getPattern(is.parameter, path, options, ignoreErrors)
+        const type = go(is.type, path, options, false, false)
+        const pattern = getPattern(is.parameter, path, options)
         if (pattern !== undefined) {
           patternProperties[pattern] = type
         } else {
@@ -341,7 +343,7 @@ function base(
       const types: Array<Annotations.JsonSchema.JsonSchema> = []
       for (const type of ast.types) {
         if (!AST.isUndefined(type)) {
-          types.push(go(type, path, options, false, false, ignoreErrors))
+          types.push(go(type, path, options, false, false))
         }
       }
       return types.length === 0
@@ -353,17 +355,18 @@ function base(
     case "Suspend": {
       const identifier = getIdentifier(ast)
       if (identifier !== undefined) {
-        return go(ast.thunk(), path, options, true, false, ignoreErrors)
+        return go(ast.thunk(), path, options, true, false)
       }
-      if (ignoreErrors) return {}
-      const message = `Missing identifier for ${ast._tag} at ${formatPath(path)}`
-      throw new Error(message)
+      throw error(`Missing identifier for ${ast._tag}`, path)
     }
   }
 }
 
-function formatPath(path: ReadonlyArray<PropertyKey>): string {
-  return path.length > 0 ? Inspectable.formatPath(path) : "root"
+function error(message: string, path: ReadonlyArray<PropertyKey>) {
+  if (path.length > 0) {
+    message += `\n  at ${Inspectable.formatPath(path)}`
+  }
+  return new Error(message)
 }
 
 function getMetaSchemaUri(target: Annotations.JsonSchema.Target) {
@@ -459,25 +462,24 @@ function getRequired(annotations: Annotations.Annotations | undefined): boolean 
 function isOptional(ast: AST.AST): boolean {
   if (ast.checks) {
     const last = ast.checks[ast.checks.length - 1]
-    const required = getRequired(last.annotations)
-    if (required !== undefined) return required
+    const out = getRequired(last.annotations)
+    if (out !== undefined) return out
   } else {
-    const required = getRequired(ast.annotations)
-    if (required !== undefined) return required
+    const out = getRequired(ast.annotations)
+    if (out !== undefined) return out
   }
-  const encodedAST = AST.encodedAST(ast)
-  return AST.isOptional(encodedAST) || AST.containsUndefined(encodedAST)
+  const encoded = AST.encodedAST(ast)
+  return AST.isOptional(encoded) || AST.containsUndefined(encoded)
 }
 
 function getPattern(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
-  options: GoOptions,
-  ignoreErrors: boolean
+  options: GoOptions
 ): string | undefined {
   switch (ast._tag) {
     case "String": {
-      const jsonSchema = go(ast, path, options, false, false, ignoreErrors)
+      const jsonSchema = go(ast, path, options, false, false)
       if (Object.hasOwn(jsonSchema, "pattern") && Predicate.isString(jsonSchema.pattern)) {
         return jsonSchema.pattern
       }
@@ -487,10 +489,9 @@ function getPattern(
       return "^[0-9]+$"
     case "TemplateLiteral":
       return AST.getTemplateLiteralRegExp(ast).source
+    default:
+      throw error(`Unsupported index signature parameter ${ast._tag}`, path)
   }
-  if (ignoreErrors) return undefined
-  const message = `Unsupported index signature parameter ${ast._tag} at ${formatPath(path)}`
-  throw new Error(message)
 }
 
 function getJsonSchemaAnnotations(
@@ -510,9 +511,8 @@ function getJsonSchemaAnnotations(
     if (Array.isArray(annotations.examples)) {
       out.examples = annotations.examples
     }
-    if (Object.keys(out).length > 0) {
-      return out
-    }
+
+    if (Object.keys(out).length > 0) return out
   }
 }
 
@@ -536,7 +536,6 @@ function merge(
 function getIdentifier(ast: AST.AST): string | undefined {
   const identifier = Annotations.getIdentifier(ast)
   if (identifier !== undefined) return identifier
-  if (AST.isSuspend(ast)) {
-    return getIdentifier(ast.thunk())
-  }
+
+  if (AST.isSuspend(ast)) return getIdentifier(ast.thunk())
 }
