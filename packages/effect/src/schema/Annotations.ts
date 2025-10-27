@@ -98,7 +98,6 @@ export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top>> ext
     | undefined
   readonly arbitrary?:
     | Arbitrary.Override<T, TypeParameters>
-    | Arbitrary.Constraint
     | undefined
 }
 
