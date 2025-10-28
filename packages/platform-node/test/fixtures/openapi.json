@@ -366,11 +366,7 @@
                 "type": "object",
                 "properties": {
                   "uuid": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      }
-                    ]
+                    "type": "string"
                   },
                   "name": {
                     "type": "string"
@@ -403,10 +399,8 @@
             "name": "query",
             "in": "query",
             "schema": {
-              "description": "search query",
-              "anyOf": [
-                { "type": "string" }
-              ]
+              "type": "string",
+              "description": "search query"
             },
             "required": false
           }
@@ -464,11 +458,7 @@
             "name": "0",
             "in": "path",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           }
@@ -695,11 +685,7 @@
             ]
           },
           "uuid": {
-            "anyOf": [
-              {
-                "type": "string"
-              }
-            ]
+            "type": "string"
           },
           "name": {
             "type": "string"

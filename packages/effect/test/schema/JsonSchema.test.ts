@@ -478,11 +478,7 @@ describe("ToJsonSchema", () => {
             definitions: {
               "ID": {
                 "type": "string",
-                "allOf": [
-                  {
-                    "minLength": 2
-                  }
-                ]
+                "minLength": 2
               }
             }
           }
@@ -502,12 +498,8 @@ describe("ToJsonSchema", () => {
             definitions: {
               ID: {
                 "type": "string",
-                "allOf": [
-                  {
-                    "minLength": 2,
-                    ...jsonAnnotations
-                  }
-                ]
+                "minLength": 2,
+                ...jsonAnnotations
               }
             }
           }
@@ -645,11 +637,7 @@ describe("ToJsonSchema", () => {
           {
             schema: {
               "type": "string",
-              "allOf": [
-                {
-                  "minLength": 2
-                }
-              ]
+              "minLength": 2
             }
           }
         )
@@ -699,12 +687,8 @@ describe("ToJsonSchema", () => {
           {
             schema: {
               "type": "string",
-              ...jsonAnnotations,
-              "allOf": [
-                {
-                  "minLength": 2
-                }
-              ]
+              "minLength": 2,
+              ...jsonAnnotations
             }
           }
         )
@@ -722,12 +706,8 @@ describe("ToJsonSchema", () => {
             definitions: {
               ID: {
                 "type": "string",
-                ...jsonAnnotations,
-                "allOf": [
-                  {
-                    "minLength": 2
-                  }
-                ]
+                "minLength": 2,
+                ...jsonAnnotations
               }
             }
           }
@@ -742,12 +722,8 @@ describe("ToJsonSchema", () => {
           {
             schema: {
               "type": "string",
-              "allOf": [
-                {
-                  "minLength": 2,
-                  ...jsonAnnotations
-                }
-              ]
+              "minLength": 2,
+              ...jsonAnnotations
             }
           }
         )
@@ -759,14 +735,8 @@ describe("ToJsonSchema", () => {
           {
             schema: {
               "type": "string",
-              "allOf": [
-                {
-                  "minLength": 2
-                },
-                {
-                  "maxLength": 3
-                }
-              ]
+              "minLength": 2,
+              "maxLength": 3
             }
           }
         )
@@ -780,15 +750,9 @@ describe("ToJsonSchema", () => {
           {
             schema: {
               "type": "string",
-              "allOf": [
-                {
-                  "minLength": 2
-                },
-                {
-                  "maxLength": 3,
-                  ...jsonAnnotations
-                }
-              ]
+              "minLength": 2,
+              "maxLength": 3,
+              ...jsonAnnotations
             }
           }
         )
@@ -1612,13 +1576,9 @@ describe("ToJsonSchema", () => {
           schema,
           {
             schema: {
-              "anyOf": [
-                {
-                  "type": "number",
-                  "enum": [0],
-                  "title": "Apple"
-                }
-              ]
+              "type": "number",
+              "enum": [0],
+              "title": "Apple"
             }
           }
         )
@@ -1632,13 +1592,8 @@ describe("ToJsonSchema", () => {
           schema.annotate({ ...jsonAnnotations }),
           {
             schema: {
-              "anyOf": [
-                {
-                  "type": "number",
-                  "enum": [0],
-                  "title": "Apple"
-                }
-              ],
+              "type": "number",
+              "enum": [0],
               ...jsonAnnotations
             }
           }
@@ -1654,13 +1609,9 @@ describe("ToJsonSchema", () => {
             },
             definitions: {
               "ID": {
-                "anyOf": [
-                  {
-                    "type": "number",
-                    "enum": [0],
-                    "title": "Apple"
-                  }
-                ],
+                "type": "number",
+                "enum": [0],
+                "title": "Apple",
                 "description": "description"
               }
             }
@@ -1853,9 +1804,7 @@ describe("ToJsonSchema", () => {
                 },
                 "c": {
                   "type": "string",
-                  "allOf": [{
-                    "description": "c-key"
-                  }]
+                  "description": "c-key"
                 },
                 "d": {
                   "type": "string",
@@ -1954,33 +1903,23 @@ describe("ToJsonSchema", () => {
               "type": "object",
               "properties": {
                 "a": {
-                  "anyOf": [
-                    { "type": "string" }
-                  ]
+                  "type": "string"
                 },
                 "b": {
-                  "anyOf": [
-                    { "type": "string", "description": "b" }
-                  ]
+                  "type": "string",
+                  "description": "b"
                 },
                 "c": {
-                  "anyOf": [
-                    { "type": "string" }
-                  ],
+                  "type": "string",
                   "description": "c"
                 },
                 "d": {
-                  "anyOf": [
-                    { "type": "string" }
-                  ],
-                  "allOf": [{
-                    "description": "d-key"
-                  }]
+                  "type": "string",
+                  "description": "d-key"
                 },
                 "e": {
-                  "anyOf": [
-                    { "type": "string", "description": "e" }
-                  ],
+                  "type": "string",
+                  "description": "e",
                   "allOf": [{
                     "description": "e-key"
                   }]
@@ -2009,17 +1948,11 @@ describe("ToJsonSchema", () => {
             "type": "object",
             "properties": {
               "a": {
-                "anyOf": [
-                  { "type": "string" }
-                ]
+                "type": "string"
               },
               "b": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "description": "b-inner-description"
-                  }
-                ]
+                "type": "string",
+                "description": "b-inner-description"
               },
               "c": {
                 "anyOf": [
@@ -2031,12 +1964,8 @@ describe("ToJsonSchema", () => {
                 "description": "c-outer-description"
               },
               "d": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "description": "d-inner-description"
-                  }
-                ],
+                "type": "string",
+                "description": "d-inner-description",
                 "allOf": [{
                   "description": "d-key-description"
                 }]
@@ -2155,9 +2084,7 @@ describe("ToJsonSchema", () => {
                 },
                 {
                   "type": "string",
-                  "allOf": [{
-                    "description": "c-key"
-                  }]
+                  "description": "c-key"
                 },
                 {
                   "type": "string",
@@ -2254,33 +2181,23 @@ describe("ToJsonSchema", () => {
               "type": "array",
               "items": [
                 {
-                  "anyOf": [
-                    { "type": "string" }
-                  ]
+                  "type": "string"
                 },
                 {
-                  "anyOf": [
-                    { "type": "string", "description": "b" }
-                  ]
+                  "type": "string",
+                  "description": "b"
                 },
                 {
-                  "anyOf": [
-                    { "type": "string" }
-                  ],
+                  "type": "string",
                   "description": "c"
                 },
                 {
-                  "anyOf": [
-                    { "type": "string" }
-                  ],
-                  "allOf": [{
-                    "description": "d-key"
-                  }]
+                  "type": "string",
+                  "description": "d-key"
                 },
                 {
-                  "anyOf": [
-                    { "type": "string", "description": "e" }
-                  ],
+                  "type": "string",
+                  "description": "e",
                   "allOf": [{
                     "description": "e-key"
                   }]
@@ -2309,17 +2226,11 @@ describe("ToJsonSchema", () => {
             "type": "array",
             "items": [
               {
-                "anyOf": [
-                  { "type": "string" }
-                ]
+                "type": "string"
               },
               {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "description": "b-inner-description"
-                  }
-                ]
+                "type": "string",
+                "description": "b-inner-description"
               },
               {
                 "anyOf": [
@@ -2331,12 +2242,8 @@ describe("ToJsonSchema", () => {
                 "description": "c-outer-description"
               },
               {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "description": "d-inner-description"
-                  }
-                ],
+                "type": "string",
+                "description": "d-inner-description",
                 "allOf": [{
                   "description": "d-key-description"
                 }]
@@ -2379,9 +2286,7 @@ describe("ToJsonSchema", () => {
             schema: {
               "type": "array",
               "items": { "type": "string" },
-              "allOf": [{
-                "uniqueItems": true
-              }]
+              "uniqueItems": true
             }
           }
         )
@@ -2412,9 +2317,7 @@ describe("ToJsonSchema", () => {
         const schema = Schema.Union([Schema.String])
         assertDraft07(schema, {
           schema: {
-            "anyOf": [
-              { "type": "string" }
-            ]
+            "type": "string"
           }
         })
         const jsonAnnotations = {
@@ -2425,9 +2328,7 @@ describe("ToJsonSchema", () => {
         }
         assertDraft07(schema.annotate({ ...jsonAnnotations }), {
           schema: {
-            "anyOf": [
-              { "type": "string" }
-            ],
+            "type": "string",
             ...jsonAnnotations
           }
         })
@@ -2669,6 +2570,7 @@ describe("ToJsonSchema", () => {
         )
       })
 
+      // TODO
       it("isInt32", () => {
         assertDraft07(
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt32()),
@@ -2678,15 +2580,11 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "allOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "maximum": 2147483647,
-                      "minimum": -2147483648
-                    }
-                  ]
+                  "type": "integer"
+                },
+                {
+                  "maximum": 2147483647,
+                  "minimum": -2147483648
                 }
               ]
             }
@@ -2694,6 +2592,7 @@ describe("ToJsonSchema", () => {
         )
       })
 
+      // TODO
       it("isUint32", () => {
         assertDraft07(
           Schema.Number.annotate({ description: "description" }).check(Schema.isUint32()),
@@ -2703,15 +2602,11 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "allOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "maximum": 4294967295,
-                      "minimum": 0
-                    }
-                  ]
+                  "type": "integer"
+                },
+                {
+                  "maximum": 4294967295,
+                  "minimum": 0
                 }
               ]
             }
@@ -2725,11 +2620,7 @@ describe("ToJsonSchema", () => {
           {
             schema: {
               "type": "number",
-              "allOf": [
-                {
-                  "exclusiveMinimum": 1
-                }
-              ]
+              "exclusiveMinimum": 1
             }
           }
         )
@@ -2741,11 +2632,7 @@ describe("ToJsonSchema", () => {
           {
             schema: {
               "type": "number",
-              "allOf": [
-                {
-                  "minimum": 1
-                }
-              ]
+              "minimum": 1
             }
           }
         )
@@ -2755,11 +2642,7 @@ describe("ToJsonSchema", () => {
         assertDraft07(Schema.Number.check(Schema.isLessThan(1)), {
           schema: {
             "type": "number",
-            "allOf": [
-              {
-                "exclusiveMaximum": 1
-              }
-            ]
+            "exclusiveMaximum": 1
           }
         })
       })
@@ -2768,11 +2651,7 @@ describe("ToJsonSchema", () => {
         assertDraft07(Schema.Number.check(Schema.isLessThanOrEqualTo(1)), {
           schema: {
             "type": "number",
-            "allOf": [
-              {
-                "maximum": 1
-              }
-            ]
+            "maximum": 1
           }
         })
       })
@@ -2781,11 +2660,7 @@ describe("ToJsonSchema", () => {
         assertDraft07(Schema.String.check(Schema.isPattern(/^abb+$/)), {
           schema: {
             "type": "string",
-            "allOf": [
-              {
-                "pattern": "^abb+$"
-              }
-            ]
+            "pattern": "^abb+$"
           }
         })
       })
@@ -2795,11 +2670,7 @@ describe("ToJsonSchema", () => {
         assertDraft07(schema, {
           schema: {
             "type": "string",
-            "allOf": [
-              {
-                "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
-              }
-            ]
+            "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
           }
         })
       })
@@ -2809,11 +2680,7 @@ describe("ToJsonSchema", () => {
         assertDraft07(schema, {
           schema: {
             "type": "string",
-            "allOf": [
-              {
-                "pattern": "^[^A-Z]*$"
-              }
-            ]
+            "pattern": "^[^A-Z]*$"
           }
         })
       })
@@ -2823,11 +2690,7 @@ describe("ToJsonSchema", () => {
         assertDraft07(schema, {
           schema: {
             "type": "string",
-            "allOf": [
-              {
-                "pattern": "^[^a-z]*$"
-              }
-            ]
+            "pattern": "^[^a-z]*$"
           }
         })
       })
@@ -2837,11 +2700,7 @@ describe("ToJsonSchema", () => {
         assertDraft07(schema, {
           schema: {
             "type": "string",
-            "allOf": [
-              {
-                "pattern": "^[^a-z]?.*$"
-              }
-            ]
+            "pattern": "^[^a-z]?.*$"
           }
         })
       })
@@ -2851,11 +2710,7 @@ describe("ToJsonSchema", () => {
         assertDraft07(schema, {
           schema: {
             "type": "string",
-            "allOf": [
-              {
-                "pattern": "^[^A-Z]?.*$"
-              }
-            ]
+            "pattern": "^[^A-Z]?.*$"
           }
         })
       })
@@ -2867,12 +2722,8 @@ describe("ToJsonSchema", () => {
             {
               schema: {
                 "type": "string",
-                "allOf": [
-                  {
-                    "maxLength": 2,
-                    "minLength": 2
-                  }
-                ]
+                "maxLength": 2,
+                "minLength": 2
               }
             }
           )
@@ -2887,12 +2738,8 @@ describe("ToJsonSchema", () => {
                 "items": {
                   "type": "string"
                 },
-                "allOf": [
-                  {
-                    "minItems": 2,
-                    "maxItems": 2
-                  }
-                ]
+                "minItems": 2,
+                "maxItems": 2
               }
             }
           )
@@ -2910,12 +2757,8 @@ describe("ToJsonSchema", () => {
                 "additionalItems": {
                   "type": "string"
                 },
-                "allOf": [
-                  {
-                    "minItems": 2,
-                    "maxItems": 2
-                  }
-                ]
+                "minItems": 2,
+                "maxItems": 2
               }
             }
           )
@@ -2929,11 +2772,7 @@ describe("ToJsonSchema", () => {
             {
               schema: {
                 "type": "string",
-                "allOf": [
-                  {
-                    "minLength": 2
-                  }
-                ]
+                "minLength": 2
               }
             }
           )
@@ -2948,11 +2787,7 @@ describe("ToJsonSchema", () => {
                 "items": {
                   "type": "string"
                 },
-                "allOf": [
-                  {
-                    "minItems": 2
-                  }
-                ]
+                "minItems": 2
               }
             }
           )
@@ -2970,11 +2805,7 @@ describe("ToJsonSchema", () => {
                 "additionalItems": {
                   "type": "string"
                 },
-                "allOf": [
-                  {
-                    "minItems": 2
-                  }
-                ]
+                "minItems": 2
               }
             }
           )
@@ -2988,11 +2819,7 @@ describe("ToJsonSchema", () => {
             {
               schema: {
                 "type": "string",
-                "allOf": [
-                  {
-                    "maxLength": 2
-                  }
-                ]
+                "maxLength": 2
               }
             }
           )
@@ -3007,11 +2834,7 @@ describe("ToJsonSchema", () => {
                 "items": {
                   "type": "string"
                 },
-                "allOf": [
-                  {
-                    "maxItems": 2
-                  }
-                ]
+                "maxItems": 2
               }
             }
           )
@@ -3029,11 +2852,7 @@ describe("ToJsonSchema", () => {
                 "additionalItems": {
                   "type": "string"
                 },
-                "allOf": [
-                  {
-                    "maxItems": 2
-                  }
-                ]
+                "maxItems": 2
               }
             }
           )
@@ -3047,13 +2866,9 @@ describe("ToJsonSchema", () => {
             schema: {
               "type": "string",
               "description": "description",
-              "allOf": [
-                {
-                  "format": "uuid",
-                  "pattern":
-                    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
-                }
-              ]
+              "format": "uuid",
+              "pattern":
+                "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
             }
           }
         )
@@ -3066,11 +2881,7 @@ describe("ToJsonSchema", () => {
             schema: {
               "type": "string",
               "description": "description",
-              "allOf": [
-                {
-                  "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
-                }
-              ]
+              "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
             }
           }
         )
@@ -3083,11 +2894,7 @@ describe("ToJsonSchema", () => {
             schema: {
               "type": "string",
               "description": "description",
-              "allOf": [
-                {
-                  "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
-                }
-              ]
+              "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
             }
           }
         )
@@ -3307,9 +3114,7 @@ describe("ToJsonSchema", () => {
                 },
                 {
                   "type": "string",
-                  "allOf": [{
-                    "description": "c-key"
-                  }]
+                  "description": "c-key"
                 },
                 {
                   "type": "string",
@@ -3406,33 +3211,23 @@ describe("ToJsonSchema", () => {
               "type": "array",
               "prefixItems": [
                 {
-                  "anyOf": [
-                    { "type": "string" }
-                  ]
+                  "type": "string"
                 },
                 {
-                  "anyOf": [
-                    { "type": "string", "description": "b" }
-                  ]
+                  "type": "string",
+                  "description": "b"
                 },
                 {
-                  "anyOf": [
-                    { "type": "string" }
-                  ],
+                  "type": "string",
                   "description": "c"
                 },
                 {
-                  "anyOf": [
-                    { "type": "string" }
-                  ],
-                  "allOf": [{
-                    "description": "d-key"
-                  }]
+                  "type": "string",
+                  "description": "d-key"
                 },
                 {
-                  "anyOf": [
-                    { "type": "string", "description": "e" }
-                  ],
+                  "type": "string",
+                  "description": "e",
                   "allOf": [{
                     "description": "e-key"
                   }]
@@ -3461,17 +3256,11 @@ describe("ToJsonSchema", () => {
             "type": "array",
             "prefixItems": [
               {
-                "anyOf": [
-                  { "type": "string" }
-                ]
+                "type": "string"
               },
               {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "description": "b-inner-description"
-                  }
-                ]
+                "type": "string",
+                "description": "b-inner-description"
               },
               {
                 "anyOf": [
@@ -3483,12 +3272,8 @@ describe("ToJsonSchema", () => {
                 "description": "c-outer-description"
               },
               {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "description": "d-inner-description"
-                  }
-                ],
+                "type": "string",
+                "description": "d-inner-description",
                 "allOf": [{
                   "description": "d-key-description"
                 }]
@@ -3627,9 +3412,7 @@ describe("ToJsonSchema", () => {
                 },
                 {
                   "type": "string",
-                  "allOf": [{
-                    "description": "c-key"
-                  }]
+                  "description": "c-key"
                 },
                 {
                   "type": "string",
@@ -3726,33 +3509,23 @@ describe("ToJsonSchema", () => {
               "type": "array",
               "prefixItems": [
                 {
-                  "anyOf": [
-                    { "type": "string" }
-                  ]
+                  "type": "string"
                 },
                 {
-                  "anyOf": [
-                    { "type": "string", "description": "b" }
-                  ]
+                  "type": "string",
+                  "description": "b"
                 },
                 {
-                  "anyOf": [
-                    { "type": "string" }
-                  ],
+                  "type": "string",
                   "description": "c"
                 },
                 {
-                  "anyOf": [
-                    { "type": "string" }
-                  ],
-                  "allOf": [{
-                    "description": "d-key"
-                  }]
+                  "type": "string",
+                  "description": "d-key"
                 },
                 {
-                  "anyOf": [
-                    { "type": "string", "description": "e" }
-                  ],
+                  "type": "string",
+                  "description": "e",
                   "allOf": [{
                     "description": "e-key"
                   }]
@@ -3781,17 +3554,11 @@ describe("ToJsonSchema", () => {
             "type": "array",
             "prefixItems": [
               {
-                "anyOf": [
-                  { "type": "string" }
-                ]
+                "type": "string"
               },
               {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "description": "b-inner-description"
-                  }
-                ]
+                "type": "string",
+                "description": "b-inner-description"
               },
               {
                 "anyOf": [
@@ -3803,12 +3570,8 @@ describe("ToJsonSchema", () => {
                 "description": "c-outer-description"
               },
               {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "description": "d-inner-description"
-                  }
-                ],
+                "type": "string",
+                "description": "d-inner-description",
                 "allOf": [{
                   "description": "d-key-description"
                 }]

@@ -4469,18 +4469,14 @@ Output:
   "uri": "http://json-schema.org/draft-07/schema",
   "jsonSchema": {
     "type": "string",
-    "allOf": [
-      {
-        "title": "Username",
-        "description": "A non-empty user name string",
-        "default": "anonymous",
-        "examples": [
-          "alice",
-          "bob"
-        ],
-        "minLength": 1
-      }
-    ]
+    "title": "Username",
+    "description": "A non-empty user name string",
+    "default": "anonymous",
+    "examples": [
+      "alice",
+      "bob"
+    ],
+    "minLength": 1
   },
   "definitions": {}
 }
@@ -4511,19 +4507,13 @@ Output:
   "uri": "http://json-schema.org/draft-07/schema",
   "jsonSchema": {
     "type": "string",
-    "allOf": [
-      {
-        "title": "isMinLength(1)",
-        "description": "a value with a length of at least 1",
-        "default": "",
-        "examples": [
-          "alice",
-          "",
-          "bob"
-        ],
-        "minLength": 1
-      }
-    ]
+    "default": "",
+    "examples": [
+      "alice",
+      "",
+      "bob"
+    ],
+    "minLength": 1
   },
   "definitions": {}
 }
@@ -4552,14 +4542,10 @@ Output:
     "type": "object",
     "properties": {
       "a": {
-        "anyOf": [
-          {
-            "type": "number"
-          }
-        ]
+        "type": "number"
       }
     },
-    "required": [], // <= "a" is optional
+    "required": [],
     "additionalProperties": false
   },
   "definitions": {}
@@ -4583,14 +4569,10 @@ Output:
   "uri": "http://json-schema.org/draft-07/schema",
   "jsonSchema": {
     "type": "array",
-    "minItems": 0, // <= first element is optional
+    "minItems": 0,
     "items": [
       {
-        "anyOf": [
-          {
-            "type": "number"
-          }
-        ]
+        "type": "number"
       }
     ],
     "additionalItems": false
@@ -4664,27 +4646,22 @@ Output:
   "uri": "http://json-schema.org/draft-07/schema",
   "jsonSchema": {
     "type": "string",
-    "allOf": [
-      {
-        "title": "isMinLength(1)",
-        "description": "a value with a length of at least 1",
-        "minLength": 1
-      }
-    ]
+    "minLength": 1
   },
   "definitions": {}
 }
 */
 ```
 
-Because no outer `.annotate(...)` is present and this is the first filter, the fragment's keywords are merged into the top level.
-
 **Example** (Multiple filters: top-level + `allOf`)
 
 ```ts
 import { Schema } from "effect/schema"
 
-const schema = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(2))
+const schema = Schema.String.check(
+  Schema.isMinLength(1, { description: "description1" }),
+  Schema.isMaxLength(2, { description: "description2" })
+)
 
 const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
 
@@ -4695,15 +4672,11 @@ Output:
   "uri": "http://json-schema.org/draft-07/schema",
   "jsonSchema": {
     "type": "string",
+    "description": "description1",
+    "minLength": 1,
     "allOf": [
       {
-        "title": "isMinLength(1)",
-        "description": "a value with a length of at least 1",
-        "minLength": 1
-      },
-      {
-        "title": "isMaxLength(2)",
-        "description": "a value with a length of at most 2",
+        "description": "description2",
         "maxLength": 2
       }
     ]
@@ -4745,13 +4718,9 @@ Output:
   "uri": "http://json-schema.org/draft-07/schema",
   "jsonSchema": {
     "type": "string",
-    "allOf": [
-      {
-        "title": "containsFoo",
-        "description": "must contain 'foo'",
-        "pattern": "foo"
-      }
-    ]
+    "title": "containsFoo",
+    "description": "must contain 'foo'",
+    "pattern": "foo"
   },
   "definitions": {}
 }

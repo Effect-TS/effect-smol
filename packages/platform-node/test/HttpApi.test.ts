@@ -424,11 +424,7 @@ describe("HttpApi", () => {
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
                     "type": "string",
-                    "allOf": [
-                      {
-                        "minLength": 1
-                      }
-                    ]
+                    "minLength": 1
                   }
                 ]
               }

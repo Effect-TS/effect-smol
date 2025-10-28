@@ -97,20 +97,13 @@ function go(
           const typeParameters = AST.isDeclaration(ast)
             ? ast.typeParameters.map((tp) => go(tp, path, options, false, false))
             : []
-          let out = annotation.override({
+          const out = annotation.override({
             typeParameters,
             target,
             jsonSchema: getDefaultJsonSchema(),
             make: (ast) => go(ast, path, options, false, false)
           })
-          const annotations = getJsonSchemaAnnotations(ast.annotations)
-          if (annotations) {
-            if ("$ref" in out) {
-              out = { allOf: [out] }
-            }
-            out = { ...out, ...annotations }
-          }
-          return out
+          return overwriteJsonSchemaAnnotations(out, ast.annotations)
         }
       }
     }
@@ -126,29 +119,12 @@ function go(
   // handle checks
   // ---------------------------------------------
   if (ast.checks) {
-    const allOf = getFragments(ast.checks, options.target, out.type)
-    if (allOf) {
-      if ("$ref" in out) {
-        out = { allOf: [out] }
-      }
-      if (Array.isArray(out.allOf)) {
-        out = { allOf: [...out.allOf, ...allOf] }
-      } else {
-        out = { ...out, allOf }
-      }
-    }
+    out = appendFragments(out, getFragments(ast.checks, options.target, out.type))
   }
   // ---------------------------------------------
   // handle JSON Schema annotations
   // ---------------------------------------------
-  const annotations = getJsonSchemaAnnotations(ast.annotations)
-  if (annotations) {
-    if ("$ref" in out) {
-      out = { allOf: [out] }
-    }
-    out = { ...out, ...annotations }
-  }
-  return out
+  return overwriteJsonSchemaAnnotations(out, ast.annotations)
 }
 
 function base(
@@ -176,20 +152,13 @@ function base(
           const typeParameters = AST.isDeclaration(ast)
             ? ast.typeParameters.map((tp) => go(tp, path, options, false, false))
             : []
-          let out = annotation.override({
+          const out = annotation.override({
             typeParameters,
             target,
             jsonSchema: getDefaultJsonSchema(),
             make: (ast) => go(ast, path, options, false, false)
           })
-          const annotations = getJsonSchemaAnnotations(ast.annotations)
-          if (annotations) {
-            if ("$ref" in out) {
-              out = { allOf: [out] }
-            }
-            out = { ...out, ...annotations }
-          }
-          return out
+          return overwriteJsonSchemaAnnotations(out, ast.annotations)
         }
       }
     }
@@ -263,12 +232,12 @@ function base(
       // ---------------------------------------------
       // handle elements
       // ---------------------------------------------
-      const items = ast.elements.map((e, i) => {
-        return merge(
+      const items = ast.elements.map((e, i) =>
+        mergeOrAppendJsonSchemaAnnotations(
           go(e, [...path, i], options, false, false),
-          getJsonSchemaAnnotations(e.context?.annotations)
+          e.context?.annotations
         )
-      })
+      )
       const minItems = ast.elements.findIndex(isOptional)
       if (minItems !== -1) {
         out.minItems = minItems
@@ -313,9 +282,9 @@ function base(
         if (Predicate.isSymbol(name)) {
           throw error(`Unsupported property signature name ${Inspectable.format(name)}`, [...path, name])
         } else {
-          out.properties[name] = merge(
+          out.properties[name] = mergeOrAppendJsonSchemaAnnotations(
             go(ps.type, [...path, name], options, false, false),
-            getJsonSchemaAnnotations(ps.type.context?.annotations)
+            ps.type.context?.annotations
           )
           if (!isOptional(ps.type)) {
             out.required.push(name)
@@ -504,21 +473,77 @@ function getJsonSchemaAnnotations(
   }
 }
 
-function merge(
-  jsonSchema: Annotations.JsonSchema.JsonSchema,
-  fragment: Annotations.JsonSchema.Fragment | undefined
-): Annotations.JsonSchema.JsonSchema {
-  if (fragment) {
-    if ("$ref" in jsonSchema) {
-      jsonSchema = { allOf: [jsonSchema] }
-    }
-    if (Array.isArray(jsonSchema.allOf)) {
-      return { ...jsonSchema, allOf: [...jsonSchema.allOf, fragment] }
-    } else {
-      return { ...jsonSchema, allOf: [fragment] }
+function unwrap(jsonSchema: Annotations.JsonSchema.JsonSchema): Annotations.JsonSchema.JsonSchema | undefined {
+  if (Object.keys(jsonSchema).length === 1) {
+    if (Array.isArray(jsonSchema.anyOf) && jsonSchema.anyOf.length === 1) {
+      return jsonSchema.anyOf[0]
+    } else if (Array.isArray(jsonSchema.oneOf) && jsonSchema.oneOf.length === 1) {
+      return jsonSchema.oneOf[0]
+    } else if (Array.isArray(jsonSchema.allOf) && jsonSchema.allOf.length === 1) {
+      return jsonSchema.allOf[0]
     }
   }
-  return jsonSchema
+}
+
+function overwriteJsonSchemaAnnotations(
+  jsonSchema: Annotations.JsonSchema.JsonSchema,
+  annotations: Annotations.Annotations | undefined
+): Annotations.JsonSchema.JsonSchema {
+  const jsonSchemaAnnotations = getJsonSchemaAnnotations(annotations)
+  if (jsonSchemaAnnotations) {
+    if ("$ref" in jsonSchema) {
+      return { allOf: [jsonSchema, jsonSchemaAnnotations] }
+    } else {
+      const unwrapped = unwrap(jsonSchema)
+      if (unwrapped && !hasIntersection(unwrapped, jsonSchemaAnnotations)) {
+        return { ...unwrapped, ...jsonSchemaAnnotations }
+      } else {
+        return { ...jsonSchema, ...jsonSchemaAnnotations }
+      }
+    }
+  }
+  return unwrap(jsonSchema) ?? jsonSchema
+}
+
+function mergeOrAppendJsonSchemaAnnotations(
+  jsonSchema: Annotations.JsonSchema.JsonSchema,
+  annotations: Annotations.Annotations | undefined
+): Annotations.JsonSchema.JsonSchema {
+  const fragment = getJsonSchemaAnnotations(annotations)
+  return appendFragments(jsonSchema, fragment ? [fragment] : undefined)
+}
+
+function hasIntersection(
+  jsonSchema: Annotations.JsonSchema.JsonSchema,
+  fragment: Annotations.JsonSchema.Fragment
+): boolean {
+  return Object.keys(jsonSchema).some((key) => Object.hasOwn(fragment, key))
+}
+
+function appendFragments(
+  jsonSchema: Annotations.JsonSchema.JsonSchema,
+  fragments: [Annotations.JsonSchema.Fragment, ...Array<Annotations.JsonSchema.Fragment>] | undefined
+): Annotations.JsonSchema.JsonSchema {
+  if (fragments) {
+    if ("$ref" in jsonSchema) {
+      return { allOf: [jsonSchema, ...fragments] }
+    } else {
+      jsonSchema = unwrap(jsonSchema) ?? jsonSchema
+      for (const fragment of fragments) {
+        if (hasIntersection(jsonSchema, fragment)) {
+          if (Array.isArray(jsonSchema.allOf)) {
+            jsonSchema = { ...jsonSchema, allOf: [...jsonSchema.allOf, fragment] }
+          } else {
+            jsonSchema = { ...jsonSchema, allOf: [fragment] }
+          }
+        } else {
+          jsonSchema = { ...jsonSchema, ...fragment }
+        }
+      }
+      return jsonSchema
+    }
+  }
+  return unwrap(jsonSchema) ?? jsonSchema
 }
 
 function getIdentifier(ast: AST.AST): string | undefined {
