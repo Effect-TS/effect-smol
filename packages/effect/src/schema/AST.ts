@@ -365,7 +365,7 @@ export class Declaration extends Base {
   /** @internal */
   getExpected(): string {
     // Annotations on checks are ignored internally
-    const expected = this.annotations?.identifier ?? this.annotations?.title
+    const expected = this.annotations?.identifier ?? this.annotations?.title ?? this.annotations?.expected
     if (Predicate.isString(expected)) return expected
     return "<Declaration>"
   }
@@ -2048,8 +2048,7 @@ export function isPattern(regex: RegExp, annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => regex.test(s),
     Annotations.combine({
-      title: `isPattern(${source})`,
-      description: `a string matching the regex ${source}`,
+      expected: `a string matching the regex ${source}`,
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ pattern: regex.source })

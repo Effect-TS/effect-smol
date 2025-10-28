@@ -493,9 +493,7 @@
                       "type": "number",
                       "allOf": [
                         {
-                          "type": "integer",
-                          "title": "isInt",
-                          "description": "an integer"
+                          "type": "integer"
                         }
                       ]
                     }
@@ -561,9 +559,7 @@
                       "type": "number",
                       "allOf": [
                         {
-                          "type": "integer",
-                          "title": "isInt",
-                          "description": "an integer"
+                          "type": "integer"
                         }
                       ]
                     }
@@ -640,9 +636,7 @@
              "type": "number",
              "allOf": [
                {
-                 "type": "integer",
-                 "title": "isInt",
-                 "description": "an integer"
+                 "type": "integer"
                }
             ]
            }
@@ -660,9 +654,7 @@
             "type": "number",
             "allOf": [
               {
-                "type": "integer",
-                "title": "isInt",
-                "description": "an integer"
+                "type": "integer"
               }
             ]
           },
@@ -698,9 +690,7 @@
             "type": "number",
             "allOf": [
               {
-                "type": "integer",
-                "title": "isInt",
-                "description": "an integer"
+                "type": "integer"
               }
             ]
           },

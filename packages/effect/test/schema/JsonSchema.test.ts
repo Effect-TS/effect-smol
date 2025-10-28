@@ -170,9 +170,7 @@ describe("ToJsonSchema", () => {
         assertDraft07(
           Schema.Date,
           {
-            schema: {
-              title: "Date"
-            }
+            schema: {}
           },
           {
             onMissingJsonSchemaAnnotation: () => ({})
@@ -482,8 +480,6 @@ describe("ToJsonSchema", () => {
                 "type": "string",
                 "allOf": [
                   {
-                    "title": "isMinLength(2)",
-                    "description": "a value with a length of at least 2",
                     "minLength": 2
                   }
                 ]
@@ -651,8 +647,6 @@ describe("ToJsonSchema", () => {
               "type": "string",
               "allOf": [
                 {
-                  "title": "isMinLength(2)",
-                  "description": "a value with a length of at least 2",
                   "minLength": 2
                 }
               ]
@@ -689,8 +683,6 @@ describe("ToJsonSchema", () => {
               "minLength": 1,
               "allOf": [
                 {
-                  "title": "isMinLength(2)",
-                  "description": "a value with a length of at least 2",
                   "minLength": 2
                 }
               ]
@@ -710,8 +702,6 @@ describe("ToJsonSchema", () => {
               ...jsonAnnotations,
               "allOf": [
                 {
-                  "title": "isMinLength(2)",
-                  "description": "a value with a length of at least 2",
                   "minLength": 2
                 }
               ]
@@ -735,8 +725,6 @@ describe("ToJsonSchema", () => {
                 ...jsonAnnotations,
                 "allOf": [
                   {
-                    "title": "isMinLength(2)",
-                    "description": "a value with a length of at least 2",
                     "minLength": 2
                   }
                 ]
@@ -773,13 +761,9 @@ describe("ToJsonSchema", () => {
               "type": "string",
               "allOf": [
                 {
-                  "title": "isMinLength(2)",
-                  "description": "a value with a length of at least 2",
                   "minLength": 2
                 },
                 {
-                  "title": "isMaxLength(3)",
-                  "description": "a value with a length of at most 3",
                   "maxLength": 3
                 }
               ]
@@ -798,8 +782,6 @@ describe("ToJsonSchema", () => {
               "type": "string",
               "allOf": [
                 {
-                  "title": "isMinLength(2)",
-                  "description": "a value with a length of at least 2",
                   "minLength": 2
                 },
                 {
@@ -2398,8 +2380,6 @@ describe("ToJsonSchema", () => {
               "type": "array",
               "items": { "type": "string" },
               "allOf": [{
-                "title": "isUnique",
-                "description": "an array with unique items",
                 "uniqueItems": true
               }]
             }
@@ -2681,9 +2661,7 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "type": "integer",
-                  "description": "an integer",
-                  "title": "isInt"
+                  "type": "integer"
                 }
               ]
             }
@@ -2700,19 +2678,13 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "description": "a 32-bit integer",
-                  "title": "isInt32",
                   "allOf": [
                     {
-                      "type": "integer",
-                      "description": "an integer",
-                      "title": "isInt"
+                      "type": "integer"
                     },
                     {
-                      "description": "a value between -2147483648 and 2147483647",
                       "maximum": 2147483647,
-                      "minimum": -2147483648,
-                      "title": "isBetween(-2147483648, 2147483647)"
+                      "minimum": -2147483648
                     }
                   ]
                 }
@@ -2731,19 +2703,13 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "description": "a 32-bit unsigned integer",
-                  "title": "isUint32",
                   "allOf": [
                     {
-                      "type": "integer",
-                      "description": "an integer",
-                      "title": "isInt"
+                      "type": "integer"
                     },
                     {
-                      "description": "a value between 0 and 4294967295",
                       "maximum": 4294967295,
-                      "minimum": 0,
-                      "title": "isBetween(0, 4294967295)"
+                      "minimum": 0
                     }
                   ]
                 }
@@ -2761,8 +2727,6 @@ describe("ToJsonSchema", () => {
               "type": "number",
               "allOf": [
                 {
-                  "title": "isGreaterThan(1)",
-                  "description": "a value greater than 1",
                   "exclusiveMinimum": 1
                 }
               ]
@@ -2779,8 +2743,6 @@ describe("ToJsonSchema", () => {
               "type": "number",
               "allOf": [
                 {
-                  "title": "isGreaterThanOrEqualTo(1)",
-                  "description": "a value greater than or equal to 1",
                   "minimum": 1
                 }
               ]
@@ -2795,8 +2757,6 @@ describe("ToJsonSchema", () => {
             "type": "number",
             "allOf": [
               {
-                "title": "isLessThan(1)",
-                "description": "a value less than 1",
                 "exclusiveMaximum": 1
               }
             ]
@@ -2810,8 +2770,6 @@ describe("ToJsonSchema", () => {
             "type": "number",
             "allOf": [
               {
-                "title": "isLessThanOrEqualTo(1)",
-                "description": "a value less than or equal to 1",
                 "maximum": 1
               }
             ]
@@ -2825,8 +2783,6 @@ describe("ToJsonSchema", () => {
             "type": "string",
             "allOf": [
               {
-                "title": "isPattern(^abb+$)",
-                "description": "a string matching the regex ^abb+$",
                 "pattern": "^abb+$"
               }
             ]
@@ -2841,8 +2797,6 @@ describe("ToJsonSchema", () => {
             "type": "string",
             "allOf": [
               {
-                "title": "isTrimmed",
-                "description": "a string with no leading or trailing whitespace",
                 "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
               }
             ]
@@ -2857,8 +2811,6 @@ describe("ToJsonSchema", () => {
             "type": "string",
             "allOf": [
               {
-                "title": "isLowercased",
-                "description": "a string with all characters in lowercase",
                 "pattern": "^[^A-Z]*$"
               }
             ]
@@ -2873,8 +2825,6 @@ describe("ToJsonSchema", () => {
             "type": "string",
             "allOf": [
               {
-                "title": "isUppercased",
-                "description": "a string with all characters in uppercase",
                 "pattern": "^[^a-z]*$"
               }
             ]
@@ -2889,8 +2839,6 @@ describe("ToJsonSchema", () => {
             "type": "string",
             "allOf": [
               {
-                "title": "isCapitalized",
-                "description": "a string with the first character in uppercase",
                 "pattern": "^[^a-z]?.*$"
               }
             ]
@@ -2905,8 +2853,6 @@ describe("ToJsonSchema", () => {
             "type": "string",
             "allOf": [
               {
-                "title": "isUncapitalized",
-                "description": "a string with the first character in lowercase",
                 "pattern": "^[^A-Z]?.*$"
               }
             ]
@@ -2923,8 +2869,6 @@ describe("ToJsonSchema", () => {
                 "type": "string",
                 "allOf": [
                   {
-                    "title": "isLength(2)",
-                    "description": "a value with a length of 2",
                     "maxLength": 2,
                     "minLength": 2
                   }
@@ -2945,8 +2889,6 @@ describe("ToJsonSchema", () => {
                 },
                 "allOf": [
                   {
-                    "description": "a value with a length of 2",
-                    "title": "isLength(2)",
                     "minItems": 2,
                     "maxItems": 2
                   }
@@ -2970,8 +2912,6 @@ describe("ToJsonSchema", () => {
                 },
                 "allOf": [
                   {
-                    "description": "a value with a length of 2",
-                    "title": "isLength(2)",
                     "minItems": 2,
                     "maxItems": 2
                   }
@@ -2991,8 +2931,6 @@ describe("ToJsonSchema", () => {
                 "type": "string",
                 "allOf": [
                   {
-                    "description": "a value with a length of at least 2",
-                    "title": "isMinLength(2)",
                     "minLength": 2
                   }
                 ]
@@ -3012,8 +2950,6 @@ describe("ToJsonSchema", () => {
                 },
                 "allOf": [
                   {
-                    "description": "a value with a length of at least 2",
-                    "title": "isMinLength(2)",
                     "minItems": 2
                   }
                 ]
@@ -3036,8 +2972,6 @@ describe("ToJsonSchema", () => {
                 },
                 "allOf": [
                   {
-                    "description": "a value with a length of at least 2",
-                    "title": "isMinLength(2)",
                     "minItems": 2
                   }
                 ]
@@ -3056,8 +2990,6 @@ describe("ToJsonSchema", () => {
                 "type": "string",
                 "allOf": [
                   {
-                    "description": "a value with a length of at most 2",
-                    "title": "isMaxLength(2)",
                     "maxLength": 2
                   }
                 ]
@@ -3077,8 +3009,6 @@ describe("ToJsonSchema", () => {
                 },
                 "allOf": [
                   {
-                    "description": "a value with a length of at most 2",
-                    "title": "isMaxLength(2)",
                     "maxItems": 2
                   }
                 ]
@@ -3101,8 +3031,6 @@ describe("ToJsonSchema", () => {
                 },
                 "allOf": [
                   {
-                    "description": "a value with a length of at most 2",
-                    "title": "isMaxLength(2)",
                     "maxItems": 2
                   }
                 ]
@@ -3121,11 +3049,9 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "description": "a UUID",
                   "format": "uuid",
                   "pattern":
-                    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$",
-                  "title": "isUUID"
+                    "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
                 }
               ]
             }
@@ -3142,8 +3068,6 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "description": "a base64 encoded string",
-                  "title": "isBase64",
                   "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
                 }
               ]
@@ -3161,8 +3085,6 @@ describe("ToJsonSchema", () => {
               "description": "description",
               "allOf": [
                 {
-                  "description": "a base64url encoded string",
-                  "title": "isBase64Url",
                   "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
                 }
               ]

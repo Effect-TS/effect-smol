@@ -337,9 +337,7 @@ describe("HttpApi", () => {
                     "type": "number",
                     "allOf": [
                       {
-                        "type": "integer",
-                        "title": "isInt",
-                        "description": "an integer"
+                        "type": "integer"
                       }
                     ]
                   }
@@ -428,9 +426,7 @@ describe("HttpApi", () => {
                     "type": "string",
                     "allOf": [
                       {
-                        "description": "a value with a length of at least 1",
-                        "minLength": 1,
-                        "title": "isMinLength(1)"
+                        "minLength": 1
                       }
                     ]
                   }

@@ -3241,8 +3241,7 @@ export function isTrimmed(annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => s.trim() === s,
     Annotations.combine({
-      title: "isTrimmed",
-      description: "a string with no leading or trailing whitespace",
+      expected: "a string with no leading or trailing whitespace",
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ pattern: TRIMMED_PATTERN })
@@ -3311,8 +3310,7 @@ const getUUIDRegex = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): RegExp => {
 export function isUUID(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
   const re = getUUIDRegex(version)
   return isPattern(re, {
-    title: version ? `isUUID-v${version}` : "isUUID",
-    description: version ? `a UUID v${version}` : "a UUID",
+    expected: version ? `a UUID v${version}` : "a UUID",
     jsonSchema: {
       _tag: "Constraint",
       constraint: () => ({
@@ -3332,7 +3330,6 @@ export function isULID(annotations?: Annotations.Filter) {
   return isPattern(
     regex,
     Annotations.combine({
-      title: "isULID",
       meta: {
         _tag: "isULID",
         regex
@@ -3350,8 +3347,7 @@ export function isBase64(annotations?: Annotations.Filter) {
   return isPattern(
     regex,
     Annotations.combine({
-      title: "isBase64",
-      description: "a base64 encoded string",
+      expected: "a base64 encoded string",
       meta: {
         _tag: "isBase64",
         regex
@@ -3369,8 +3365,7 @@ export function isBase64Url(annotations?: Annotations.Filter) {
   return isPattern(
     regex,
     Annotations.combine({
-      title: "isBase64Url",
-      description: "a base64url encoded string",
+      expected: "a base64url encoded string",
       meta: {
         _tag: "isBase64Url",
         regex
@@ -3388,8 +3383,7 @@ export function isStartsWith(startsWith: string, annotations?: Annotations.Filte
   return makeFilter(
     (s: string) => s.startsWith(startsWith),
     Annotations.combine({
-      title: `isStartsWith(${formatted})`,
-      description: `a string starting with ${formatted}`,
+      expected: `a string starting with ${formatted}`,
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ pattern: `^${startsWith}` })
@@ -3419,8 +3413,7 @@ export function isEndsWith(endsWith: string, annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => s.endsWith(endsWith),
     Annotations.combine({
-      title: `isEndsWith(${formatted})`,
-      description: `a string ending with ${formatted}`,
+      expected: `a string ending with ${formatted}`,
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ pattern: `${endsWith}$` })
@@ -3450,8 +3443,7 @@ export function isIncludes(includes: string, annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => s.includes(includes),
     Annotations.combine({
-      title: `isIncludes(${formatted})`,
-      description: `a string including ${formatted}`,
+      expected: `a string including ${formatted}`,
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ pattern: includes })
@@ -3482,8 +3474,7 @@ export function isUppercased(annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => s.toUpperCase() === s,
     Annotations.combine({
-      title: "isUppercased",
-      description: "a string with all characters in uppercase",
+      expected: "a string with all characters in uppercase",
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ pattern: UPPERCASED_PATTERN })
@@ -3513,8 +3504,7 @@ export function isLowercased(annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => s.toLowerCase() === s,
     Annotations.combine({
-      title: "isLowercased",
-      description: "a string with all characters in lowercase",
+      expected: "a string with all characters in lowercase",
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ pattern: LOWERCASED_PATTERN })
@@ -3546,8 +3536,7 @@ export function isCapitalized(annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => s.charAt(0).toUpperCase() === s.charAt(0),
     Annotations.combine({
-      title: "isCapitalized",
-      description: "a string with the first character in uppercase",
+      expected: "a string with the first character in uppercase",
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ pattern: CAPITALIZED_PATTERN })
@@ -3579,8 +3568,7 @@ export function isUncapitalized(annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => s.charAt(0).toLowerCase() === s.charAt(0),
     Annotations.combine({
-      title: "isUncapitalized",
-      description: "a string with the first character in lowercase",
+      expected: "a string with the first character in lowercase",
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ pattern: UNCAPITALIZED_PATTERN })
@@ -3608,8 +3596,7 @@ export function isFinite(annotations?: Annotations.Filter) {
   return makeFilter(
     (n: number) => globalThis.Number.isFinite(n),
     Annotations.combine({
-      title: "isFinite",
-      description: "a finite number",
+      expected: "a finite number",
       meta: {
         _tag: "isFinite"
       },
@@ -3641,8 +3628,7 @@ export function deriveIsGreaterThan<T>(options: {
     return makeFilter<T>(
       (input) => greaterThan(input, exclusiveMinimum),
       Annotations.combine({
-        title: `isGreaterThan(${fmt(exclusiveMinimum)})`,
-        description: `a value greater than ${fmt(exclusiveMinimum)}`,
+        expected: `a value greater than ${fmt(exclusiveMinimum)}`,
         ...options.annotate?.(exclusiveMinimum)
       }, annotations)
     )
@@ -3664,8 +3650,7 @@ export function deriveIsGreaterThanOrEqualTo<T>(options: {
     return makeFilter<T>(
       (input) => greaterThanOrEqualTo(input, minimum),
       Annotations.combine({
-        title: `isGreaterThanOrEqualTo(${fmt(minimum)})`,
-        description: `a value greater than or equal to ${fmt(minimum)}`,
+        expected: `a value greater than or equal to ${fmt(minimum)}`,
         ...options.annotate?.(minimum)
       }, annotations)
     )
@@ -3687,8 +3672,7 @@ export function deriveIsLessThan<T>(options: {
     return makeFilter<T>(
       (input) => lessThan(input, exclusiveMaximum),
       Annotations.combine({
-        title: `isLessThan(${fmt(exclusiveMaximum)})`,
-        description: `a value less than ${fmt(exclusiveMaximum)}`,
+        expected: `a value less than ${fmt(exclusiveMaximum)}`,
         ...options.annotate?.(exclusiveMaximum)
       }, annotations)
     )
@@ -3710,8 +3694,7 @@ export function deriveIsLessThanOrEqualTo<T>(options: {
     return makeFilter<T>(
       (input) => lessThanOrEqualTo(input, maximum),
       Annotations.combine({
-        title: `isLessThanOrEqualTo(${fmt(maximum)})`,
-        description: `a value less than or equal to ${fmt(maximum)}`,
+        expected: `a value less than or equal to ${fmt(maximum)}`,
         ...options.annotate?.(maximum)
       }, annotations)
     )
@@ -3734,8 +3717,7 @@ export function deriveIsBetween<T>(options: {
     return makeFilter<T>(
       (input) => greaterThanOrEqualTo(input, minimum) && lessThanOrEqualTo(input, maximum),
       Annotations.combine({
-        title: `isBetween(${fmt(minimum)}, ${fmt(maximum)})`,
-        description: `a value between ${fmt(minimum)} and ${fmt(maximum)}`,
+        expected: `a value between ${fmt(minimum)} and ${fmt(maximum)}`,
         ...options.annotate?.(minimum, maximum)
       }, annotations)
     )
@@ -3757,8 +3739,7 @@ export function deriveIsMultipleOf<T>(options: {
     return makeFilter<T>(
       (input) => options.remainder(input, divisor) === options.zero,
       Annotations.combine({
-        title: `isMultipleOf(${fmt(divisor)})`,
-        description: `a value that is a multiple of ${fmt(divisor)}`,
+        expected: `a value that is a multiple of ${fmt(divisor)}`,
         ...options.annotate?.(divisor)
       }, annotations)
     )
@@ -3939,8 +3920,7 @@ export const isMultipleOf = deriveIsMultipleOf({
   remainder,
   zero: 0,
   annotate: (divisor) => ({
-    title: `isMultipleOf(${divisor})`,
-    description: `a value that is a multiple of ${divisor}`,
+    expected: `a value that is a multiple of ${divisor}`,
     jsonSchema: {
       _tag: "Constraint",
       constraint: () => ({ multipleOf: Math.abs(divisor) })
@@ -3958,8 +3938,7 @@ export function isInt(annotations?: Annotations.Filter) {
   return makeFilter(
     (n: number) => globalThis.Number.isSafeInteger(n),
     Annotations.combine({
-      title: "isInt",
-      description: "an integer",
+      expected: "an integer",
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ type: "integer" })
@@ -3990,8 +3969,7 @@ export function isInt32(annotations?: Annotations.Filter) {
       isBetween(-2147483648, 2147483647)
     ],
     Annotations.combine({
-      title: "isInt32",
-      description: "a 32-bit integer",
+      expected: "a 32-bit integer",
       jsonSchema: {
         _tag: "Constraint",
         constraint: (ctx) =>
@@ -4017,8 +3995,7 @@ export function isUint32(annotations?: Annotations.Filter) {
       isBetween(0, 4294967295)
     ],
     Annotations.combine({
-      title: "isUint32",
-      description: "a 32-bit unsigned integer",
+      expected: "a 32-bit unsigned integer",
       jsonSchema: {
         _tag: "Constraint",
         constraint: (ctx) =>
@@ -4041,8 +4018,7 @@ export function isValidDate(annotations?: Annotations.Filter) {
   return makeFilter<globalThis.Date>(
     (date) => !isNaN(date.getTime()),
     Annotations.combine({
-      title: "isValidDate",
-      description: "a valid date",
+      expected: "a valid date",
       meta: {
         _tag: "isValidDate"
       },
@@ -4199,10 +4175,7 @@ export const isBetweenBigInt = deriveIsBetween({
  * @since 4.0.0
  */
 export function isNonNegativeBigInt(annotations?: Annotations.Filter) {
-  return isGreaterThanOrEqualToBigInt(0n, {
-    title: "isNonNegativeBigInt",
-    ...annotations
-  })
+  return isGreaterThanOrEqualToBigInt(0n, annotations)
 }
 
 /**
@@ -4210,10 +4183,7 @@ export function isNonNegativeBigInt(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function isNonPositiveBigInt(annotations?: Annotations.Filter) {
-  return isLessThanOrEqualToBigInt(0n, {
-    title: "isNonPositiveBigInt",
-    ...annotations
-  })
+  return isLessThanOrEqualToBigInt(0n, annotations)
 }
 
 /**
@@ -4225,8 +4195,7 @@ export function isMinLength(minLength: number, annotations?: Annotations.Filter)
   return makeFilter<{ readonly length: number }>(
     (input) => input.length >= minLength,
     Annotations.combine({
-      title: `isMinLength(${minLength})`,
-      description: `a value with a length of at least ${minLength}`,
+      expected: `a value with a length of at least ${minLength}`,
       jsonSchema: {
         _tag: "Constraint",
         constraint: (ctx) => {
@@ -4275,8 +4244,7 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
   return makeFilter<{ readonly length: number }>(
     (input) => input.length <= maxLength,
     Annotations.combine({
-      title: `isMaxLength(${maxLength})`,
-      description: `a value with a length of at most ${maxLength}`,
+      expected: `a value with a length of at most ${maxLength}`,
       jsonSchema: {
         _tag: "Constraint",
         constraint: (ctx) => {
@@ -4317,8 +4285,7 @@ export function isLength(length: number, annotations?: Annotations.Filter) {
   return makeFilter<{ readonly length: number }>(
     (input) => input.length === length,
     Annotations.combine({
-      title: `isLength(${length})`,
-      description: `a value with a length of ${length}`,
+      expected: `a value with a length of ${length}`,
       jsonSchema: {
         _tag: "Constraint",
         constraint: (ctx) => {
@@ -4361,8 +4328,7 @@ export function isMinSize(minSize: number, annotations?: Annotations.Filter) {
   return makeFilter<{ readonly size: number }>(
     (input) => input.size >= minSize,
     Annotations.combine({
-      title: `isMinSize(${minSize})`,
-      description: `a value with a size of at least ${minSize}`,
+      expected: `a value with a size of at least ${minSize}`,
       meta: {
         _tag: "isMinSize",
         minSize
@@ -4389,8 +4355,7 @@ export function isMaxSize(maxSize: number, annotations?: Annotations.Filter) {
   return makeFilter<{ readonly size: number }>(
     (input) => input.size <= maxSize,
     Annotations.combine({
-      title: `isMaxSize(${maxSize})`,
-      description: `a value with a size of at most ${maxSize}`,
+      expected: `a value with a size of at most ${maxSize}`,
       meta: {
         _tag: "isMaxSize",
         maxSize
@@ -4417,8 +4382,7 @@ export function isSize(size: number, annotations?: Annotations.Filter) {
   return makeFilter<{ readonly size: number }>(
     (input) => input.size === size,
     Annotations.combine({
-      title: `isSize(${size})`,
-      description: `a value with a size of ${size}`,
+      expected: `a value with a size of ${size}`,
       meta: {
         _tag: "isSize",
         size
@@ -4446,8 +4410,7 @@ export function isMinEntries(minEntries: number, annotations?: Annotations.Filte
   return makeFilter<object>(
     (input) => Object.entries(input).length >= minEntries,
     Annotations.combine({
-      title: `isMinEntries(${minEntries})`,
-      description: `an object with at least ${minEntries} entries`,
+      expected: `an object with at least ${minEntries} entries`,
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ minProperties: minEntries })
@@ -4478,8 +4441,7 @@ export function isMaxEntries(maxEntries: number, annotations?: Annotations.Filte
   return makeFilter<object>(
     (input) => Object.entries(input).length <= maxEntries,
     Annotations.combine({
-      title: `isMaxEntries(${maxEntries})`,
-      description: `an object with at most ${maxEntries} entries`,
+      expected: `an object with at most ${maxEntries} entries`,
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ maxProperties: maxEntries })
@@ -4510,8 +4472,7 @@ export function isEntriesLength(length: number, annotations?: Annotations.Filter
   return makeFilter<object>(
     (input) => Object.entries(input).length === length,
     Annotations.combine({
-      title: `isEntriesLength(${length})`,
-      description: `an object with exactly ${length} entries`,
+      expected: `an object with exactly ${length} entries`,
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ minProperties: length, maxProperties: length })
@@ -4541,8 +4502,7 @@ export function isUnique<T>(equivalence: Equivalence.Equivalence<T>, annotations
   return makeFilter<ReadonlyArray<T>>(
     (input) => Arr.dedupeWith(input, equivalence).length === input.length,
     Annotations.combine({
-      title: "isUnique",
-      description: "an array with unique items",
+      expected: "an array with unique items",
       jsonSchema: {
         _tag: "Constraint",
         constraint: () => ({ uniqueItems: true })
@@ -4575,7 +4535,7 @@ export const isNotUndefined: <A>(annotations?: Annotations.Filter) => AST.Refine
 export function isNotNull<A>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<Exclude<A, null>, A>(
     Predicate.isNotNull,
-    Annotations.combine({ title: "isNotNull", description: "a value other than `null`" }, annotations)
+    Annotations.combine({ expected: "a value other than `null`" }, annotations)
   )
 }
 
@@ -4586,7 +4546,7 @@ export function isNotNullish<A>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<NonNullable<A>, A>(
     Predicate.isNotNullish,
     Annotations.combine(
-      { title: "isNotNullish", description: "a value other than `null` or `undefined  `" },
+      { expected: "a value other than `null` or `undefined  `" },
       annotations
     )
   )
@@ -4661,7 +4621,7 @@ export function Option<A extends Top>(value: A): Option<A> {
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
-      title: "Option",
+      expected: "Option",
       serializer: ([value]) =>
         link<Option_.Option<A["Encoded"]>>()(
           Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
@@ -4833,7 +4793,7 @@ export function Result<A extends Top, E extends Top>(
       }
     },
     {
-      title: "Result",
+      expected: "Result",
       serializer: ([success, failure]) =>
         link<Result_.Result<A["Encoded"], E["Encoded"]>>()(
           Union([
@@ -4945,7 +4905,7 @@ export function Redacted<S extends Top>(value: S, options?: {
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
-      title: "Redacted",
+      expected: "Redacted",
       defaultJsonSerializer: ([value]) =>
         link<Redacted_.Redacted<S["Encoded"]>>()(
           value,
@@ -5039,7 +4999,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
       }
     },
     {
-      title: "Cause.Failure",
+      expected: "Cause.Failure",
       serializer: ([error, defect]) =>
         link<Cause_.Failure<E["Encoded"]>>()(
           Union([
@@ -5144,7 +5104,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       })
     },
     {
-      title: "Cause",
+      expected: "Cause",
       serializer: ([failures]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
           failures,
@@ -5191,7 +5151,7 @@ const ErrorJsonEncoded = Struct({
  * @since 4.0.0
  */
 export const Error: Error = instanceOf(globalThis.Error, {
-  title: "Error",
+  expected: "Error",
   defaultJsonSerializer: () => link<globalThis.Error>()(ErrorJsonEncoded, Transformation.errorFromErrorJsonEncoded),
   arbitrary: {
     _tag: "Override",
@@ -5313,7 +5273,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
       }
     },
     {
-      title: "Exit",
+      expected: "Exit",
       serializer: ([value, cause]) =>
         link<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
           Union([
@@ -5416,7 +5376,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
-      title: "ReadonlyMap",
+      expected: "ReadonlyMap",
       serializer: ([key, value]) =>
         link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
           Array(Tuple([key, value])),
@@ -5501,7 +5461,7 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
-      title: "ReadonlySet",
+      expected: "ReadonlySet",
       serializer: ([value]) =>
         link<globalThis.Set<Value["Encoded"]>>()(
           Array(value),
@@ -5558,7 +5518,7 @@ export interface URL extends instanceOf<globalThis.URL> {}
 export const URL: URL = instanceOf(
   globalThis.URL,
   {
-    title: "URL",
+    expected: "URL",
     defaultJsonSerializer: () => link<globalThis.URL>()(String, Transformation.urlFromString),
     arbitrary: {
       _tag: "Override",
@@ -5608,7 +5568,7 @@ export interface Date extends instanceOf<globalThis.Date> {}
 export const Date: Date = instanceOf(
   globalThis.Date,
   {
-    title: "Date",
+    expected: "Date",
     defaultJsonSerializer: () =>
       link<globalThis.Date>()(
         String.annotate({ description: "a string that will be decoded as a date" }),
@@ -5656,7 +5616,7 @@ export interface Duration extends declare<Duration_.Duration> {}
 export const Duration: Duration = declare(
   Duration_.isDuration,
   {
-    title: "Duration",
+    expected: "Duration",
     defaultJsonSerializer: () =>
       link<Duration_.Duration>()(
         Union([Number, BigInt, Literal("Infinity")]),
@@ -6041,7 +6001,7 @@ const StringBase64 = String.annotate({ description: "a string that will be decod
 export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBufferLike>, {
   defaultJsonSerializer: () =>
     link<globalThis.Uint8Array<ArrayBufferLike>>()(StringBase64, Transformation.uint8ArrayFromString),
-  title: "Uint8Array",
+  expected: "Uint8Array",
   arbitrary: {
     _tag: "Override",
     override: () => (fc) => fc.uint8Array()
@@ -6142,7 +6102,7 @@ export interface DateTimeUtc extends declare<DateTime.Utc> {}
 export const DateTimeUtc: DateTimeUtc = declare(
   (u) => DateTime.isDateTime(u) && DateTime.isUtc(u),
   {
-    title: "DateTimeUtc",
+    expected: "DateTimeUtc",
     defaultJsonSerializer: () =>
       link<DateTime.Utc>()(
         String,

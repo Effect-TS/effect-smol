@@ -56,6 +56,7 @@ export interface Annotations {
  * @since 4.0.0
  */
 export interface Documentation<T> extends Annotations {
+  readonly expected?: string | undefined
   readonly title?: string | undefined
   readonly description?: string | undefined
   readonly documentation?: string | undefined
@@ -159,6 +160,7 @@ export const STRUCTURAL_ANNOTATION_KEY = "~structural"
  * @since 4.0.0
  */
 export interface Filter extends Annotations {
+  readonly expected?: string | undefined
   readonly title?: string | undefined
   readonly description?: string | undefined
   readonly documentation?: string | undefined
