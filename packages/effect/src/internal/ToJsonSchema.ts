@@ -447,22 +447,7 @@ function getAnnotation(
   return annotations?.jsonSchema as Annotations.JsonSchema.Override | Annotations.JsonSchema.Constraint | undefined
 }
 
-function getRequired(annotations: Annotations.Annotations | undefined): boolean | undefined {
-  const annotation = getAnnotation(annotations)
-  if (annotation && annotation._tag === "Override" && annotation.required !== undefined) {
-    return !annotation.required
-  }
-}
-
 function isOptional(ast: AST.AST): boolean {
-  if (ast.checks) {
-    const last = ast.checks[ast.checks.length - 1]
-    const out = getRequired(last.annotations)
-    if (out !== undefined) return out
-  } else {
-    const out = getRequired(ast.annotations)
-    if (out !== undefined) return out
-  }
   const encoded = AST.encodedAST(ast)
   return AST.isOptional(encoded) || AST.containsUndefined(encoded)
 }

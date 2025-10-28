@@ -1873,32 +1873,6 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("required key + required: false annotation", () => {
-        assertDraft07(
-          Schema.Struct({
-            a: Schema.String.annotate({
-              jsonSchema: {
-                _tag: "Override",
-                override: (ctx) => ctx.jsonSchema,
-                required: false
-              }
-            })
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": "string"
-                }
-              },
-              "required": [],
-              "additionalProperties": false
-            }
-          }
-        )
-      })
-
       it("optionalKey properties", () => {
         assertDraft07(
           Schema.Struct({
@@ -1911,32 +1885,6 @@ describe("ToJsonSchema", () => {
                 "a": { "type": "string" }
               },
               "required": [],
-              "additionalProperties": false
-            }
-          }
-        )
-      })
-
-      it("optionalKey + required: true annotation", () => {
-        assertDraft07(
-          Schema.Struct({
-            a: Schema.optionalKey(Schema.String).annotate({
-              jsonSchema: {
-                _tag: "Override",
-                override: (ctx) => ctx.jsonSchema,
-                required: true
-              }
-            })
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": "string"
-                }
-              },
-              "required": ["a"],
               "additionalProperties": false
             }
           }
@@ -2010,34 +1958,6 @@ describe("ToJsonSchema", () => {
                 }
               },
               "required": [],
-              "additionalProperties": false
-            }
-          }
-        )
-      })
-
-      it("optional + required: true annotation", () => {
-        assertDraft07(
-          Schema.Struct({
-            a: Schema.optional(Schema.String).annotate({
-              jsonSchema: {
-                _tag: "Override",
-                override: (ctx) => ctx.jsonSchema,
-                required: true
-              }
-            })
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "anyOf": [
-                    { "type": "string" }
-                  ]
-                }
-              },
-              "required": ["a"],
               "additionalProperties": false
             }
           }

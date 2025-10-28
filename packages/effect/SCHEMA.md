@@ -4642,53 +4642,6 @@ Output:
 */
 ```
 
-### Overriding the default optional strategy
-
-You can force a field to be required (or optional) regardless of `UndefinedOr` by setting `required` in the override.
-
-**Example** (Mark an otherwise optional field as required)
-
-```ts
-import { Schema } from "effect/schema"
-
-const schema = Schema.Struct({
-  a: Schema.UndefinedOr(Schema.Number).annotate({
-    jsonSchema: {
-      _tag: "Override",
-      override: (ctx) => ctx.jsonSchema, // keep the generated property schema
-      required: true // but mark it as required
-    }
-  })
-})
-
-const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
-
-console.log(JSON.stringify(jsonSchema, null, 2))
-/*
-Output:
-{
-  "uri": "http://json-schema.org/draft-07/schema",
-  "jsonSchema": {
-    "type": "object",
-    "properties": {
-      "a": {
-        "anyOf": [
-          {
-            "type": "number"
-          }
-        ]
-      }
-    },
-    "required": [
-      "a"
-    ],
-    "additionalProperties": false
-  },
-  "definitions": {}
-}
-*/
-```
-
 ### Adding JSON Schema Fragments For Filters
 
 When you call `.check(...)`, Effect attaches a filter. A filter may include a `"jsonSchema"` annotation that describes a JSON Schema fragment to merge into the final schema.

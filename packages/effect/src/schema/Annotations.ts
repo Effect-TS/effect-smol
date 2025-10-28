@@ -363,8 +363,6 @@ export declare namespace JsonSchema {
   export type Override = {
     readonly _tag: "Override"
     readonly override: (context: OverrideContext) => JsonSchema
-    /** Whether the field / element is required */
-    readonly required?: boolean | undefined
   }
 }
 
