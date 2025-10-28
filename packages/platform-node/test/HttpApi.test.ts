@@ -334,12 +334,7 @@ describe("HttpApi", () => {
                 "anyOf": [
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
-                    "type": "number",
-                    "allOf": [
-                      {
-                        "type": "integer"
-                      }
-                    ]
+                    "type": "integer"
                   }
                 ]
               }

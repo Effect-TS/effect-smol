@@ -367,10 +367,21 @@ function getFragments(
   target: Annotations.JsonSchema.Target,
   type?: Annotations.JsonSchema.Type
 ): [Annotations.JsonSchema.Fragment, ...Array<Annotations.JsonSchema.Fragment>] | undefined {
-  const allOf = []
+  const allOf: Array<Annotations.JsonSchema.Fragment> = []
   for (let i = 0; i < checks.length; i++) {
     const fragment = getFragment(checks[i], target, type)
-    if (fragment) allOf.push(fragment)
+    if (fragment) {
+      if (allOf.length === 0) {
+        allOf.push(fragment)
+      } else {
+        const last = allOf[allOf.length - 1]
+        if (hasIntersection(last, fragment)) {
+          allOf.push(fragment)
+        } else {
+          allOf[allOf.length - 1] = { ...last, ...fragment }
+        }
+      }
+    }
   }
   if (Arr.isArrayNonEmpty(allOf)) {
     return allOf
@@ -382,27 +393,22 @@ function getFragment(
   target: Annotations.JsonSchema.Target,
   type?: Annotations.JsonSchema.Type
 ): Annotations.JsonSchema.Fragment | undefined {
-  const annotations = getJsonSchemaAnnotations(check.annotations)
   switch (check._tag) {
     case "Filter": {
       const fragment = getConstraint(check, target, type)
-      if (annotations || fragment) {
-        return {
-          ...annotations,
-          ...fragment
-        }
+      if (fragment) {
+        return mergeOrAppendJsonSchemaAnnotations(fragment, check.annotations)
+      } else {
+        return getJsonSchemaAnnotations(check.annotations)
       }
-      break
     }
     case "FilterGroup": {
       const allOf = getFragments(check.checks, target, type)
-      if (annotations || allOf) {
-        return {
-          ...annotations,
-          allOf
-        }
+      if (allOf) {
+        return mergeOrAppendJsonSchemaAnnotations({ allOf }, check.annotations)
+      } else {
+        return getJsonSchemaAnnotations(check.annotations)
       }
-      break
     }
   }
 }
@@ -517,7 +523,7 @@ function hasIntersection(
   jsonSchema: Annotations.JsonSchema.JsonSchema,
   fragment: Annotations.JsonSchema.Fragment
 ): boolean {
-  return Object.keys(jsonSchema).some((key) => Object.hasOwn(fragment, key))
+  return Object.keys(jsonSchema).filter((key) => key !== "type").some((key) => Object.hasOwn(fragment, key))
 }
 
 function appendFragments(

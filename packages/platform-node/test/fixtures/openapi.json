@@ -480,12 +480,7 @@
                       "type": "string"
                     },
                     "length": {
-                      "type": "number",
-                      "allOf": [
-                        {
-                          "type": "integer"
-                        }
-                      ]
+                      "type": "integer"
                     }
                   },
                   "required": ["contentType", "length"],
@@ -546,12 +541,7 @@
                       "type": "string"
                     },
                     "length": {
-                      "type": "number",
-                      "allOf": [
-                        {
-                          "type": "integer"
-                        }
-                      ]
+                      "type": "integer"
                     }
                   },
                   "required": ["contentType", "length"],
@@ -623,12 +613,7 @@
              "type": "string"
            },
            "length": {
-             "type": "number",
-             "allOf": [
-               {
-                 "type": "integer"
-               }
-            ]
+             "type": "integer"
            }
          },
          "required": [
@@ -641,12 +626,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "number",
-            "allOf": [
-              {
-                "type": "integer"
-              }
-            ]
+            "type": "integer"
           },
           "name": {
             "type": "string"
@@ -677,12 +657,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "number",
-            "allOf": [
-              {
-                "type": "integer"
-              }
-            ]
+            "type": "integer"
           },
           "uuid": {
             "type": "string"

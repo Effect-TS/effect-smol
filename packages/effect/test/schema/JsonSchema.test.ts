@@ -2558,57 +2558,36 @@ describe("ToJsonSchema", () => {
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt()),
           {
             schema: {
-              "type": "number",
-              "description": "description",
-              "allOf": [
-                {
-                  "type": "integer"
-                }
-              ]
+              "type": "integer",
+              "description": "description"
             }
           }
         )
       })
 
-      // TODO
       it("isInt32", () => {
         assertDraft07(
           Schema.Number.annotate({ description: "description" }).check(Schema.isInt32()),
           {
             schema: {
-              "type": "number",
+              "type": "integer",
               "description": "description",
-              "allOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "maximum": 2147483647,
-                  "minimum": -2147483648
-                }
-              ]
+              "maximum": 2147483647,
+              "minimum": -2147483648
             }
           }
         )
       })
 
-      // TODO
       it("isUint32", () => {
         assertDraft07(
           Schema.Number.annotate({ description: "description" }).check(Schema.isUint32()),
           {
             schema: {
-              "type": "number",
+              "type": "integer",
               "description": "description",
-              "allOf": [
-                {
-                  "type": "integer"
-                },
-                {
-                  "maximum": 4294967295,
-                  "minimum": 0
-                }
-              ]
+              "maximum": 4294967295,
+              "minimum": 0
             }
           }
         )
