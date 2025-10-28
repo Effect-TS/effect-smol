@@ -280,7 +280,8 @@ function base(
             out.additionalItems = additionalItems
             break
           }
-          case "draft-2020-12": {
+          case "draft-2020-12":
+          case "openApi3.1": {
             out.prefixItems = items
             out.items = additionalItems
             break

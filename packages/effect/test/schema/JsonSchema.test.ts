@@ -62,7 +62,7 @@ export function assertOpenApi3_1<S extends Schema.Top>(
 }
 
 describe("ToJsonSchema", () => {
-  describe("Unsupported schemas", () => {
+  describe("Thrown errors", () => {
     it("Declaration", () => {
       assertUnsupportedSchema(
         Schema.instanceOf(globalThis.URL),
@@ -191,7 +191,7 @@ describe("ToJsonSchema", () => {
     })
   })
 
-  describe("Override", () => {
+  describe("Override annotation", () => {
     it("declare", () => {
       const schema = Schema.instanceOf(URL, {
         jsonSchema: {
@@ -350,45 +350,41 @@ describe("ToJsonSchema", () => {
   })
 
   describe("draft-07", () => {
-    describe("String", () => {
-      const jsonAnnotations = {
-        "title": "title",
-        "description": "description",
-        "default": "",
-        "examples": ["", "a", "aa"]
-      }
+    const jsonAnnotations = {
+      "title": "title",
+      "description": "description",
+      "default": "",
+      "examples": ["", "a", "aa"]
+    }
 
-      it("String", () => {
+    describe("refs", () => {
+      it(`refs should be created using the pattern: "#/definitions/IDENTIFIER"`, () => {
         assertDraft07(
-          Schema.String,
+          Schema.String.annotate({ identifier: "ID" }),
           {
             schema: {
-              "type": "string"
+              "$ref": "#/definitions/ID"
+            },
+            definitions: {
+              "ID": {
+                "type": "string"
+              }
             }
           }
         )
+      })
+
+      it(`refs should escape "~" and "/"`, () => {
         assertDraft07(
-          Schema.String.annotate({
-            ...jsonAnnotations
-          }),
+          Schema.String.annotate({ identifier: "ID~a/b" }),
           {
             schema: {
-              "type": "string",
-              ...jsonAnnotations
-            }
-          }
-        )
-        // should support getters
-        assertDraft07(
-          Schema.String.annotate({
-            get description() {
-              return "description"
-            }
-          }),
-          {
-            schema: {
-              "type": "string",
-              "description": "description"
+              "$ref": "#/definitions/ID~0a~1b"
+            },
+            definitions: {
+              "ID~a/b": {
+                "type": "string"
+              }
             }
           }
         )
@@ -396,9 +392,7 @@ describe("ToJsonSchema", () => {
 
       it("String & identifier", () => {
         assertDraft07(
-          Schema.String.annotate({
-            identifier: "ID"
-          }),
+          Schema.String.annotate({ identifier: "ID" }),
           {
             schema: {
               "$ref": "#/definitions/ID"
@@ -429,14 +423,49 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("should ignore the key json annotations if the schema is not contextual", () => {
+      it("String & check & identifier", () => {
         assertDraft07(
-          Schema.String.annotateKey({
+          Schema.String.check(Schema.isMinLength(2, { identifier: "ID" })),
+          {
+            schema: {
+              "$ref": "#/definitions/ID"
+            },
+            definitions: {
+              "ID": {
+                "type": "string",
+                "allOf": [
+                  {
+                    "title": "isMinLength(2)",
+                    "description": "a value with a length of at least 2",
+                    "minLength": 2
+                  }
+                ]
+              }
+            }
+          }
+        )
+      })
+
+      it("String & check & annotations + identifier", () => {
+        assertDraft07(
+          Schema.String.check(Schema.isMinLength(2)).annotate({
+            identifier: "ID",
             ...jsonAnnotations
           }),
           {
             schema: {
-              "type": "string"
+              "$ref": "#/definitions/ID"
+            },
+            definitions: {
+              ID: {
+                "type": "string",
+                "allOf": [
+                  {
+                    "minLength": 2,
+                    ...jsonAnnotations
+                  }
+                ]
+              }
             }
           }
         )
@@ -508,6 +537,64 @@ describe("ToJsonSchema", () => {
           }
         )
       })
+    })
+
+    describe("String", () => {
+      const jsonAnnotations = {
+        "title": "title",
+        "description": "description",
+        "default": "",
+        "examples": ["", "a", "aa"]
+      }
+
+      it("String", () => {
+        assertDraft07(
+          Schema.String,
+          {
+            schema: {
+              "type": "string"
+            }
+          }
+        )
+        assertDraft07(
+          Schema.String.annotate({
+            ...jsonAnnotations
+          }),
+          {
+            schema: {
+              "type": "string",
+              ...jsonAnnotations
+            }
+          }
+        )
+        // should support getters
+        assertDraft07(
+          Schema.String.annotate({
+            get description() {
+              return "description"
+            }
+          }),
+          {
+            schema: {
+              "type": "string",
+              "description": "description"
+            }
+          }
+        )
+      })
+
+      it("should ignore the key json annotations if the schema is not contextual", () => {
+        assertDraft07(
+          Schema.String.annotateKey({
+            ...jsonAnnotations
+          }),
+          {
+            schema: {
+              "type": "string"
+            }
+          }
+        )
+      })
 
       it("String & check", () => {
         assertDraft07(
@@ -541,7 +628,13 @@ describe("ToJsonSchema", () => {
       it("String & override & check", () => {
         assertDraft07(
           Schema.String.annotate({
-            jsonSchema: { _tag: "Override", override: () => ({ "type": "string", minLength: 1 }) }
+            jsonSchema: {
+              _tag: "Override",
+              override: () => ({
+                "type": "string",
+                "minLength": 1
+              })
+            }
           }).check(Schema.isMinLength(2)),
           {
             schema: {
@@ -559,30 +652,7 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & check & identifier", () => {
-        assertDraft07(
-          Schema.String.check(Schema.isMinLength(2, { identifier: "ID" })),
-          {
-            schema: {
-              "$ref": "#/definitions/ID"
-            },
-            definitions: {
-              "ID": {
-                "type": "string",
-                "allOf": [
-                  {
-                    "title": "isMinLength(2)",
-                    "description": "a value with a length of at least 2",
-                    "minLength": 2
-                  }
-                ]
-              }
-            }
-          }
-        )
-      })
-
-      it("String & json annotations & check", () => {
+      it("String & annotations & check", () => {
         assertDraft07(
           Schema.String.annotate({
             ...jsonAnnotations
@@ -603,7 +673,7 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & json annotations & check & identifier", () => {
+      it("String & annotations & check & identifier", () => {
         assertDraft07(
           Schema.String.annotate({
             ...jsonAnnotations
@@ -629,7 +699,7 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & check & json annotations", () => {
+      it("String & check & annotations", () => {
         assertDraft07(
           Schema.String.check(Schema.isMinLength(2)).annotate({
             ...jsonAnnotations
@@ -643,31 +713,6 @@ describe("ToJsonSchema", () => {
                   ...jsonAnnotations
                 }
               ]
-            }
-          }
-        )
-      })
-
-      it("String & check & json annotations + identifier", () => {
-        assertDraft07(
-          Schema.String.check(Schema.isMinLength(2)).annotate({
-            identifier: "ID",
-            ...jsonAnnotations
-          }),
-          {
-            schema: {
-              "$ref": "#/definitions/ID"
-            },
-            definitions: {
-              ID: {
-                "type": "string",
-                "allOf": [
-                  {
-                    "minLength": 2,
-                    ...jsonAnnotations
-                  }
-                ]
-              }
             }
           }
         )
@@ -696,7 +741,7 @@ describe("ToJsonSchema", () => {
         )
       })
 
-      it("String & check & check & json annotations", () => {
+      it("String & check & check & annotations", () => {
         assertDraft07(
           Schema.String.check(Schema.isMinLength(2), Schema.isMaxLength(3)).annotate({
             ...jsonAnnotations
@@ -2105,6 +2150,256 @@ describe("ToJsonSchema", () => {
       })
     })
 
+    describe("Tuple", () => {
+      it("empty tuple", () => {
+        const schema = Schema.Tuple([])
+        assertDraft07(
+          schema,
+          {
+            schema: {
+              "type": "array",
+              "items": false
+            }
+          }
+        )
+        const jsonAnnotations = {
+          "title": "title",
+          "description": "description",
+          "default": [] as const,
+          "examples": [[] as const]
+        }
+        assertDraft07(
+          schema.annotate({ ...jsonAnnotations }),
+          {
+            schema: {
+              "type": "array",
+              "items": false,
+              ...jsonAnnotations
+            }
+          }
+        )
+      })
+
+      it("required element", () => {
+        const Id3 = Schema.String.annotate({ identifier: "id3" })
+        assertDraft07(
+          Schema.Tuple([
+            Schema.String,
+            Schema.String.annotate({ description: "b" }),
+            Schema.String.annotateKey({ description: "c-key" }),
+            Schema.String.annotate({ description: "d" }).annotateKey({ description: "d-key" }),
+            Schema.String.annotate({ identifier: "id1" }),
+            Schema.String.annotate({ identifier: "id2" }).annotateKey({ description: "id2-key" }),
+            Id3.annotateKey({ description: "id3_1-key" }),
+            Id3.annotateKey({ description: "id3_2-key" })
+          ]),
+          {
+            schema: {
+              "type": "array",
+              "items": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "description": "b"
+                },
+                {
+                  "type": "string",
+                  "allOf": [{
+                    "description": "c-key"
+                  }]
+                },
+                {
+                  "type": "string",
+                  "description": "d",
+                  "allOf": [{
+                    "description": "d-key"
+                  }]
+                },
+                { "$ref": "#/definitions/id1" },
+                {
+                  "allOf": [
+                    { "$ref": "#/definitions/id2" },
+                    {
+                      "description": "id2-key"
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    { "$ref": "#/definitions/id3" },
+                    {
+                      "description": "id3_1-key"
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    { "$ref": "#/definitions/id3" },
+                    {
+                      "description": "id3_2-key"
+                    }
+                  ]
+                }
+              ],
+              "additionalItems": false
+            },
+            definitions: {
+              "id1": { "type": "string" },
+              "id2": { "type": "string" },
+              "id3": { "type": "string" }
+            }
+          }
+        )
+      })
+
+      it("optionalKey properties", () => {
+        assertDraft07(
+          Schema.Tuple([
+            Schema.optionalKey(Schema.String)
+          ]),
+          {
+            schema: {
+              "type": "array",
+              "items": [
+                { "type": "string" }
+              ],
+              "minItems": 0,
+              "additionalItems": false
+            }
+          }
+        )
+      })
+
+      it("optionalKey to required key", () => {
+        assertDraft07(
+          Schema.Tuple([
+            Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String))
+          ]),
+          {
+            schema: {
+              "type": "array",
+              "items": [
+                {
+                  "type": "string"
+                }
+              ],
+              "additionalItems": false
+            }
+          }
+        )
+      })
+
+      it("optional properties", () => {
+        assertDraft07(
+          Schema.Tuple([
+            Schema.optional(Schema.String),
+            Schema.optional(Schema.String.annotate({ description: "b" })),
+            Schema.optional(Schema.String).annotate({ description: "c" }),
+            Schema.optional(Schema.String).annotateKey({ description: "d-key" }),
+            Schema.optional(Schema.String.annotate({ description: "e" })).annotateKey({ description: "e-key" })
+          ]),
+          {
+            schema: {
+              "type": "array",
+              "items": [
+                {
+                  "anyOf": [
+                    { "type": "string" }
+                  ]
+                },
+                {
+                  "anyOf": [
+                    { "type": "string", "description": "b" }
+                  ]
+                },
+                {
+                  "anyOf": [
+                    { "type": "string" }
+                  ],
+                  "description": "c"
+                },
+                {
+                  "anyOf": [
+                    { "type": "string" }
+                  ],
+                  "allOf": [{
+                    "description": "d-key"
+                  }]
+                },
+                {
+                  "anyOf": [
+                    { "type": "string", "description": "e" }
+                  ],
+                  "allOf": [{
+                    "description": "e-key"
+                  }]
+                }
+              ],
+              "minItems": 0,
+              "additionalItems": false
+            }
+          }
+        )
+      })
+
+      it("UndefinedOr elements", () => {
+        const schema = Schema.Tuple([
+          Schema.UndefinedOr(Schema.String),
+          Schema.UndefinedOr(Schema.String.annotate({ description: "b-inner-description" })),
+          Schema.UndefinedOr(Schema.String.annotate({ description: "c-inner-description" })).annotate({
+            description: "c-outer-description"
+          }),
+          Schema.UndefinedOr(Schema.String.annotate({ description: "d-inner-description" })).annotateKey({
+            description: "d-key-description"
+          })
+        ])
+        assertDraft07(schema, {
+          schema: {
+            "type": "array",
+            "items": [
+              {
+                "anyOf": [
+                  { "type": "string" }
+                ]
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "b-inner-description"
+                  }
+                ]
+              },
+              {
+                "anyOf": [
+                  {
+                    "description": "c-inner-description",
+                    "type": "string"
+                  }
+                ],
+                "description": "c-outer-description"
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "d-inner-description"
+                  }
+                ],
+                "allOf": [{
+                  "description": "d-key-description"
+                }]
+              }
+            ],
+            "minItems": 0,
+            "additionalItems": false
+          }
+        })
+      })
+    })
+
     describe("Array", () => {
       it("Array", () => {
         assertDraft07(
@@ -3049,124 +3344,271 @@ describe("ToJsonSchema", () => {
   })
 
   describe("draft-2020-12", () => {
-    describe("checks", () => {
-      it("isInt", () => {
+    describe("refs", () => {
+      it(`refs should be created using the pattern: "#/$defs/IDENTIFIER"`, () => {
         assertDraft2020_12(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isInt()),
+          Schema.String.annotate({ identifier: "ID" }),
           {
             schema: {
-              "type": "number",
-              "description": "description",
-              "allOf": [
-                {
-                  "type": "integer",
-                  "description": "an integer",
-                  "title": "isInt"
-                }
-              ]
+              "$ref": "#/$defs/ID"
+            },
+            definitions: {
+              "ID": {
+                "type": "string"
+              }
+            }
+          }
+        )
+      })
+    })
+
+    describe("Tuple", () => {
+      it("empty tuple", () => {
+        const schema = Schema.Tuple([])
+        assertDraft2020_12(
+          schema,
+          {
+            schema: {
+              "type": "array",
+              "items": false
+            }
+          }
+        )
+        const jsonAnnotations = {
+          "title": "title",
+          "description": "description",
+          "default": [] as const,
+          "examples": [[] as const]
+        }
+        assertDraft2020_12(
+          schema.annotate({ ...jsonAnnotations }),
+          {
+            schema: {
+              "type": "array",
+              "items": false,
+              ...jsonAnnotations
             }
           }
         )
       })
 
-      it("isInt32", () => {
+      it("required element", () => {
+        const Id3 = Schema.String.annotate({ identifier: "id3" })
         assertDraft2020_12(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isInt32()),
+          Schema.Tuple([
+            Schema.String,
+            Schema.String.annotate({ description: "b" }),
+            Schema.String.annotateKey({ description: "c-key" }),
+            Schema.String.annotate({ description: "d" }).annotateKey({ description: "d-key" }),
+            Schema.String.annotate({ identifier: "id1" }),
+            Schema.String.annotate({ identifier: "id2" }).annotateKey({ description: "id2-key" }),
+            Id3.annotateKey({ description: "id3_1-key" }),
+            Id3.annotateKey({ description: "id3_2-key" })
+          ]),
           {
             schema: {
-              "type": "number",
-              "description": "description",
-              "allOf": [
+              "type": "array",
+              "prefixItems": [
                 {
-                  "description": "a 32-bit integer",
-                  "title": "isInt32",
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "description": "b"
+                },
+                {
+                  "type": "string",
+                  "allOf": [{
+                    "description": "c-key"
+                  }]
+                },
+                {
+                  "type": "string",
+                  "description": "d",
+                  "allOf": [{
+                    "description": "d-key"
+                  }]
+                },
+                { "$ref": "#/$defs/id1" },
+                {
                   "allOf": [
+                    { "$ref": "#/$defs/id2" },
                     {
-                      "type": "integer",
-                      "description": "an integer",
-                      "title": "isInt"
-                    },
+                      "description": "id2-key"
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    { "$ref": "#/$defs/id3" },
                     {
-                      "description": "a value between -2147483648 and 2147483647",
-                      "maximum": 2147483647,
-                      "minimum": -2147483648,
-                      "title": "isBetween(-2147483648, 2147483647)"
+                      "description": "id3_1-key"
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    { "$ref": "#/$defs/id3" },
+                    {
+                      "description": "id3_2-key"
                     }
                   ]
                 }
-              ]
+              ],
+              "items": false
+            },
+            definitions: {
+              "id1": { "type": "string" },
+              "id2": { "type": "string" },
+              "id3": { "type": "string" }
             }
           }
         )
       })
 
-      it("isUint32", () => {
+      it("optionalKey properties", () => {
         assertDraft2020_12(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isUint32()),
+          Schema.Tuple([
+            Schema.optionalKey(Schema.String)
+          ]),
           {
             schema: {
-              "type": "number",
-              "description": "description",
-              "allOf": [
+              "type": "array",
+              "prefixItems": [
+                { "type": "string" }
+              ],
+              "minItems": 0,
+              "items": false
+            }
+          }
+        )
+      })
+
+      it("optionalKey to required key", () => {
+        assertDraft2020_12(
+          Schema.Tuple([
+            Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String))
+          ]),
+          {
+            schema: {
+              "type": "array",
+              "prefixItems": [
                 {
-                  "description": "a 32-bit unsigned integer",
-                  "title": "isUint32",
-                  "allOf": [
-                    {
-                      "type": "integer",
-                      "description": "an integer",
-                      "title": "isInt"
-                    },
-                    {
-                      "description": "a value between 0 and 4294967295",
-                      "maximum": 4294967295,
-                      "minimum": 0,
-                      "title": "isBetween(0, 4294967295)"
-                    }
+                  "type": "string"
+                }
+              ],
+              "items": false
+            }
+          }
+        )
+      })
+
+      it("optional properties", () => {
+        assertDraft2020_12(
+          Schema.Tuple([
+            Schema.optional(Schema.String),
+            Schema.optional(Schema.String.annotate({ description: "b" })),
+            Schema.optional(Schema.String).annotate({ description: "c" }),
+            Schema.optional(Schema.String).annotateKey({ description: "d-key" }),
+            Schema.optional(Schema.String.annotate({ description: "e" })).annotateKey({ description: "e-key" })
+          ]),
+          {
+            schema: {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "anyOf": [
+                    { "type": "string" }
                   ]
+                },
+                {
+                  "anyOf": [
+                    { "type": "string", "description": "b" }
+                  ]
+                },
+                {
+                  "anyOf": [
+                    { "type": "string" }
+                  ],
+                  "description": "c"
+                },
+                {
+                  "anyOf": [
+                    { "type": "string" }
+                  ],
+                  "allOf": [{
+                    "description": "d-key"
+                  }]
+                },
+                {
+                  "anyOf": [
+                    { "type": "string", "description": "e" }
+                  ],
+                  "allOf": [{
+                    "description": "e-key"
+                  }]
                 }
-              ]
+              ],
+              "minItems": 0,
+              "items": false
             }
           }
         )
       })
 
-      it("isBase64", () => {
-        assertDraft2020_12(
-          Schema.String.annotate({ description: "description" }).check(Schema.isBase64()),
-          {
-            schema: {
-              "type": "string",
-              "description": "description",
-              "allOf": [
-                {
-                  "description": "a base64 encoded string",
-                  "title": "isBase64",
-                  "pattern": "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$"
-                }
-              ]
-            }
+      it("UndefinedOr elements", () => {
+        const schema = Schema.Tuple([
+          Schema.UndefinedOr(Schema.String),
+          Schema.UndefinedOr(Schema.String.annotate({ description: "b-inner-description" })),
+          Schema.UndefinedOr(Schema.String.annotate({ description: "c-inner-description" })).annotate({
+            description: "c-outer-description"
+          }),
+          Schema.UndefinedOr(Schema.String.annotate({ description: "d-inner-description" })).annotateKey({
+            description: "d-key-description"
+          })
+        ])
+        assertDraft2020_12(schema, {
+          schema: {
+            "type": "array",
+            "prefixItems": [
+              {
+                "anyOf": [
+                  { "type": "string" }
+                ]
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "b-inner-description"
+                  }
+                ]
+              },
+              {
+                "anyOf": [
+                  {
+                    "description": "c-inner-description",
+                    "type": "string"
+                  }
+                ],
+                "description": "c-outer-description"
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "d-inner-description"
+                  }
+                ],
+                "allOf": [{
+                  "description": "d-key-description"
+                }]
+              }
+            ],
+            "minItems": 0,
+            "items": false
           }
-        )
-      })
-
-      it("isBase64Url", () => {
-        assertDraft2020_12(
-          Schema.String.annotate({ description: "description" }).check(Schema.isBase64Url()),
-          {
-            schema: {
-              "type": "string",
-              "description": "description",
-              "allOf": [
-                {
-                  "description": "a base64url encoded string",
-                  "title": "isBase64Url",
-                  "pattern": "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$"
-                }
-              ]
-            }
-          }
-        )
+        })
       })
     })
 
@@ -3222,22 +3664,322 @@ describe("ToJsonSchema", () => {
   })
 
   describe("openApi3.1", () => {
-    it("String & identifier", () => {
-      assertOpenApi3_1(
-        Schema.String.annotate({
-          identifier: "ID"
-        }),
-        {
-          schema: {
-            "$ref": "#/components/schemas/ID"
-          },
-          definitions: {
-            "ID": {
-              "type": "string"
+    describe("refs", () => {
+      it(`refs should be created using the pattern: "#/components/schemas/IDENTIFIER"`, () => {
+        assertOpenApi3_1(
+          Schema.String.annotate({ identifier: "ID" }),
+          {
+            schema: {
+              "$ref": "#/components/schemas/ID"
+            },
+            definitions: {
+              "ID": {
+                "type": "string"
+              }
             }
           }
+        )
+      })
+    })
+
+    describe("Tuple", () => {
+      it("empty tuple", () => {
+        const schema = Schema.Tuple([])
+        assertOpenApi3_1(
+          schema,
+          {
+            schema: {
+              "type": "array",
+              "items": false
+            }
+          }
+        )
+        const jsonAnnotations = {
+          "title": "title",
+          "description": "description",
+          "default": [] as const,
+          "examples": [[] as const]
         }
-      )
+        assertOpenApi3_1(
+          schema.annotate({ ...jsonAnnotations }),
+          {
+            schema: {
+              "type": "array",
+              "items": false,
+              ...jsonAnnotations
+            }
+          }
+        )
+      })
+
+      it("required element", () => {
+        const Id3 = Schema.String.annotate({ identifier: "id3" })
+        assertOpenApi3_1(
+          Schema.Tuple([
+            Schema.String,
+            Schema.String.annotate({ description: "b" }),
+            Schema.String.annotateKey({ description: "c-key" }),
+            Schema.String.annotate({ description: "d" }).annotateKey({ description: "d-key" }),
+            Schema.String.annotate({ identifier: "id1" }),
+            Schema.String.annotate({ identifier: "id2" }).annotateKey({ description: "id2-key" }),
+            Id3.annotateKey({ description: "id3_1-key" }),
+            Id3.annotateKey({ description: "id3_2-key" })
+          ]),
+          {
+            schema: {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string",
+                  "description": "b"
+                },
+                {
+                  "type": "string",
+                  "allOf": [{
+                    "description": "c-key"
+                  }]
+                },
+                {
+                  "type": "string",
+                  "description": "d",
+                  "allOf": [{
+                    "description": "d-key"
+                  }]
+                },
+                { "$ref": "#/components/schemas/id1" },
+                {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/id2" },
+                    {
+                      "description": "id2-key"
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/id3" },
+                    {
+                      "description": "id3_1-key"
+                    }
+                  ]
+                },
+                {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/id3" },
+                    {
+                      "description": "id3_2-key"
+                    }
+                  ]
+                }
+              ],
+              "items": false
+            },
+            definitions: {
+              "id1": { "type": "string" },
+              "id2": { "type": "string" },
+              "id3": { "type": "string" }
+            }
+          }
+        )
+      })
+
+      it("optionalKey properties", () => {
+        assertOpenApi3_1(
+          Schema.Tuple([
+            Schema.optionalKey(Schema.String)
+          ]),
+          {
+            schema: {
+              "type": "array",
+              "prefixItems": [
+                { "type": "string" }
+              ],
+              "minItems": 0,
+              "items": false
+            }
+          }
+        )
+      })
+
+      it("optionalKey to required key", () => {
+        assertOpenApi3_1(
+          Schema.Tuple([
+            Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String))
+          ]),
+          {
+            schema: {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "string"
+                }
+              ],
+              "items": false
+            }
+          }
+        )
+      })
+
+      it("optional properties", () => {
+        assertOpenApi3_1(
+          Schema.Tuple([
+            Schema.optional(Schema.String),
+            Schema.optional(Schema.String.annotate({ description: "b" })),
+            Schema.optional(Schema.String).annotate({ description: "c" }),
+            Schema.optional(Schema.String).annotateKey({ description: "d-key" }),
+            Schema.optional(Schema.String.annotate({ description: "e" })).annotateKey({ description: "e-key" })
+          ]),
+          {
+            schema: {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "anyOf": [
+                    { "type": "string" }
+                  ]
+                },
+                {
+                  "anyOf": [
+                    { "type": "string", "description": "b" }
+                  ]
+                },
+                {
+                  "anyOf": [
+                    { "type": "string" }
+                  ],
+                  "description": "c"
+                },
+                {
+                  "anyOf": [
+                    { "type": "string" }
+                  ],
+                  "allOf": [{
+                    "description": "d-key"
+                  }]
+                },
+                {
+                  "anyOf": [
+                    { "type": "string", "description": "e" }
+                  ],
+                  "allOf": [{
+                    "description": "e-key"
+                  }]
+                }
+              ],
+              "minItems": 0,
+              "items": false
+            }
+          }
+        )
+      })
+
+      it("UndefinedOr elements", () => {
+        const schema = Schema.Tuple([
+          Schema.UndefinedOr(Schema.String),
+          Schema.UndefinedOr(Schema.String.annotate({ description: "b-inner-description" })),
+          Schema.UndefinedOr(Schema.String.annotate({ description: "c-inner-description" })).annotate({
+            description: "c-outer-description"
+          }),
+          Schema.UndefinedOr(Schema.String.annotate({ description: "d-inner-description" })).annotateKey({
+            description: "d-key-description"
+          })
+        ])
+        assertOpenApi3_1(schema, {
+          schema: {
+            "type": "array",
+            "prefixItems": [
+              {
+                "anyOf": [
+                  { "type": "string" }
+                ]
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "b-inner-description"
+                  }
+                ]
+              },
+              {
+                "anyOf": [
+                  {
+                    "description": "c-inner-description",
+                    "type": "string"
+                  }
+                ],
+                "description": "c-outer-description"
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "d-inner-description"
+                  }
+                ],
+                "allOf": [{
+                  "description": "d-key-description"
+                }]
+              }
+            ],
+            "minItems": 0,
+            "items": false
+          }
+        })
+      })
+    })
+
+    describe("fromJsonString", () => {
+      it("top level fromJsonString", () => {
+        assertOpenApi3_1(
+          Schema.fromJsonString(Schema.FiniteFromString),
+          {
+            schema: {
+              "type": "string",
+              "description": "a string that will be decoded as JSON",
+              "contentMediaType": "application/json",
+              "contentSchema": {
+                "type": "string",
+                "description": "a string that will be decoded as a finite number"
+              }
+            }
+          }
+        )
+      })
+
+      it("nested fromJsonString", () => {
+        assertOpenApi3_1(
+          Schema.fromJsonString(Schema.Struct({
+            a: Schema.fromJsonString(Schema.FiniteFromString)
+          })),
+          {
+            schema: {
+              "type": "string",
+              "description": "a string that will be decoded as JSON",
+              "contentMediaType": "application/json",
+              "contentSchema": {
+                "type": "object",
+                "properties": {
+                  "a": {
+                    "type": "string",
+                    "description": "a string that will be decoded as JSON",
+                    "contentMediaType": "application/json",
+                    "contentSchema": {
+                      "type": "string",
+                      "description": "a string that will be decoded as a finite number"
+                    }
+                  }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+      })
     })
   })
 
