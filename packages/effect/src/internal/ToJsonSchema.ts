@@ -257,8 +257,8 @@ function base(
             out.additionalItems = additionalItems
             break
           }
-          case "draft-2020-12":
-          case "openApi3.1": {
+          case "2020-12":
+          case "oas3.1": {
             out.prefixItems = items
             out.items = additionalItems
             break
@@ -345,8 +345,8 @@ function getMetaSchemaUri(target: Annotations.JsonSchema.Target) {
   switch (target) {
     case "draft-07":
       return "http://json-schema.org/draft-07/schema"
-    case "draft-2020-12":
-    case "openApi3.1":
+    case "2020-12":
+    case "oas3.1":
       return "https://json-schema.org/draft/2020-12/schema"
   }
 }
@@ -355,9 +355,9 @@ function getPointer(target: Annotations.JsonSchema.Target) {
   switch (target) {
     case "draft-07":
       return "#/definitions/"
-    case "draft-2020-12":
+    case "2020-12":
       return "#/$defs/"
-    case "openApi3.1":
+    case "oas3.1":
       return "#/components/schemas/"
   }
 }

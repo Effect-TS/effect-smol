@@ -309,7 +309,7 @@ export declare namespace JsonSchema {
   /**
    * @since 4.0.0
    */
-  export type Target = "draft-07" | "draft-2020-12" | "openApi3.1"
+  export type Target = "draft-07" | "2020-12" | "oas3.1"
 
   /**
    * @since 4.0.0

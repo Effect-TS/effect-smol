@@ -1,6 +1,7 @@
 import type { Options as AjvOptions } from "ajv"
 // eslint-disable-next-line import-x/no-named-as-default
 import Ajv from "ajv"
+import { isObject } from "effect/data/Predicate"
 import type { Annotations } from "effect/schema"
 import { Getter, Schema } from "effect/schema"
 import { describe, it } from "vitest"
@@ -3876,5 +3877,120 @@ describe("ToJsonSchema", () => {
         })
       })
     })
+  })
+})
+
+describe("makeJsonSchemaRewriter", () => {
+  // a top-level anyOf is not allowed
+  const topLevelAnyOf: Schema.JsonSchemaRewriter = (fragment, path) => {
+    if (isObject(fragment) && path.length === 0 && "anyOf" in fragment) {
+      throw new Error(`Top-level anyOf is not allowed`)
+    }
+    return fragment
+  }
+  // rewrite additionalProperties to false
+  const additionalProperties: Schema.JsonSchemaRewriter = (fragment) => {
+    if (isObject(fragment) && "type" in fragment && fragment.type === "object" && "additionalProperties" in fragment) {
+      return { ...fragment, additionalProperties: false }
+    }
+    return fragment
+  }
+  // rewrite oneOf to anyOf
+  const oneOf: Schema.JsonSchemaRewriter = (fragment) => {
+    if (isObject(fragment) && "oneOf" in fragment) {
+      const out = { ...fragment }
+      out.anyOf = fragment.oneOf
+      delete out.oneOf
+      return out
+    }
+    return fragment
+  }
+  // rewrite null type to enum
+  const nullType: Schema.JsonSchemaRewriter = (fragment) => {
+    if (isObject(fragment) && "type" in fragment && fragment.type === "null") {
+      const out = { ...fragment }
+      out.enum = [null]
+      delete out.type
+      return out
+    }
+    return fragment
+  }
+  const openApiRewriter = Schema.makeJsonSchemaRewriter([
+    topLevelAnyOf,
+    additionalProperties,
+    oneOf,
+    nullType
+  ])
+
+  function assertJsonSchema(
+    schema: Schema.Top,
+    expected: Annotations.JsonSchema.JsonSchema,
+    options?: Schema.JsonSchemaOptions
+  ) {
+    const result = openApiRewriter(Schema.makeJsonSchemaDraft07(schema, options).jsonSchema)
+    deepStrictEqual(result, expected)
+  }
+
+  function assertError(schema: Schema.Top, message: string) {
+    throws(() => openApiRewriter(Schema.makeJsonSchemaDraft07(schema).jsonSchema), message)
+  }
+
+  it("should throw an error if the schema has a top-level anyOf", () => {
+    assertError(Schema.Union([Schema.String, Schema.Number]), "Top-level anyOf is not allowed")
+  })
+
+  it("should overwrite additionalProperties to false", () => {
+    assertJsonSchema(Schema.Struct({ a: Schema.String }), {
+      "type": "object",
+      "properties": {
+        "a": { "type": "string" }
+      },
+      "required": ["a"],
+      "additionalProperties": false
+    }, {
+      additionalProperties: true
+    })
+  })
+
+  it("should rewrite oneOf to anyOf", () => {
+    assertJsonSchema(
+      Schema.Struct({
+        a: Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" })
+      }),
+      {
+        "type": "object",
+        "properties": {
+          "a": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "number" }
+            ]
+          }
+        },
+        "required": ["a"],
+        "additionalProperties": false
+      }
+    )
+  })
+
+  it("should rewrite null to an enum", () => {
+    assertJsonSchema(
+      Schema.Struct({
+        a: Schema.NullOr(Schema.String)
+      }),
+      {
+        "type": "object",
+        "properties": {
+          "a": {
+            "anyOf": [
+              { "type": "string" },
+              { "enum": [null] }
+            ]
+          }
+        },
+        "required": ["a"],
+        "additionalProperties": false
+      }
+    )
   })
 })

@@ -3973,7 +3973,7 @@ export function isInt32(annotations?: Annotations.Filter) {
       jsonSchema: {
         _tag: "Constraint",
         constraint: (ctx) =>
-          ctx.target === "openApi3.1" ?
+          ctx.target === "oas3.1" ?
             { format: "int32" } :
             undefined
       },
@@ -3999,7 +3999,7 @@ export function isUint32(annotations?: Annotations.Filter) {
       jsonSchema: {
         _tag: "Constraint",
         constraint: (ctx) =>
-          ctx.target === "openApi3.1" ?
+          ctx.target === "oas3.1" ?
             { format: "uint32" } :
             undefined
       },
@@ -5821,8 +5821,8 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
             return {
               "type": "string"
             }
-          case "draft-2020-12":
-          case "openApi3.1":
+          case "2020-12":
+          case "oas3.1":
             return {
               "type": "string",
               "contentMediaType": "application/json",
@@ -6758,6 +6758,54 @@ export function makeEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T
 // -----------------------------------------------------------------------------
 
 /**
+ * @category JsonSchema
+ * @since 4.0.0
+ */
+export interface JsonSchemaRewriter {
+  (fragment: unknown, path: ReadonlyArray<string | number>): unknown
+}
+
+/**
+ * @category JsonSchema
+ * @since 4.0.0
+ */
+export function makeJsonSchemaRewriter(
+  rewriters: ReadonlyArray<JsonSchemaRewriter>
+): (schema: Annotations.JsonSchema.JsonSchema) => Annotations.JsonSchema.JsonSchema {
+  function rewriteJsonSchema(
+    schema: Annotations.JsonSchema.JsonSchema,
+    path: ReadonlyArray<string | number> = []
+  ): Annotations.JsonSchema.JsonSchema {
+    // depth-first clone + rewriter pipeline
+    let out: any = globalThis.Array.isArray(schema) ? [...schema] : { ...schema }
+
+    // Recurse into objects/arrays
+    function recur(value: any, key: string | number) {
+      if (value && typeof value === "object") {
+        return rewriteJsonSchema(value, [...path, key])
+      }
+      return value
+    }
+
+    if (globalThis.Array.isArray(out)) {
+      out = out.map((v, i) => recur(v, i))
+    } else {
+      for (const k in out) {
+        out[k] = recur(out[k], k)
+      }
+    }
+
+    // Apply rewriters
+    for (const r of rewriters) {
+      out = r(out, path)
+    }
+
+    return out
+  }
+  return rewriteJsonSchema
+}
+
+/**
  * @since 4.0.0
  */
 export interface JsonSchemaOptions {
@@ -6789,19 +6837,21 @@ export interface JsonSchemaOptions {
 }
 
 /**
- * Returns a JSON Schema Draft 07 object.
+ * @since 4.0.0
+ */
+export interface JsonSchemaResult {
+  readonly uri: string
+  readonly jsonSchema: Annotations.JsonSchema.JsonSchema
+  readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
+}
+
+/**
+ * Returns a JSON Schema Draft 07 result.
  *
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeJsonSchemaDraft07<S extends Top>(
-  schema: S,
-  options?: JsonSchemaOptions
-): {
-  readonly uri: string
-  readonly jsonSchema: Annotations.JsonSchema.JsonSchema
-  readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
-} {
+export function makeJsonSchemaDraft07<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchemaResult {
   return InternalJsonSchema.make(schema, {
     ...options,
     target: "draft-07"
@@ -6809,45 +6859,28 @@ export function makeJsonSchemaDraft07<S extends Top>(
 }
 
 /**
- * Returns a JSON Schema Draft 2020-12 object.
- *
- * **OpenAPI 3.1**
- *
- * OpenAPI 3.1 schemas are fully compatible with JSON Schema Draft 2020-12 (see
- * OpenAPI Initiative blog announcement, February 18 2021)
+ * Returns a JSON Schema 2020-12 result.
  *
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeJsonSchemaDraft2020_12<S extends Top>(
-  schema: S,
-  options?: JsonSchemaOptions
-): {
-  readonly uri: string
-  readonly jsonSchema: Annotations.JsonSchema.JsonSchema
-  readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
-} {
+export function makeJsonSchemaDraft2020_12<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchemaResult {
   return InternalJsonSchema.make(schema, {
     ...options,
-    target: "draft-2020-12"
+    target: "2020-12"
   })
 }
 
 /**
+ * Returns a JSON Schema OpenAPI 3.1 result.
+ *
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeJsonSchemaOpenApi3_1<S extends Top>(
-  schema: S,
-  options?: JsonSchemaOptions
-): {
-  readonly uri: string
-  readonly jsonSchema: Annotations.JsonSchema.JsonSchema
-  readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
-} {
+export function makeJsonSchemaOpenApi3_1<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchemaResult {
   return InternalJsonSchema.make(schema, {
     ...options,
-    target: "openApi3.1"
+    target: "oas3.1"
   })
 }
 

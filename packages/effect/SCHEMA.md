@@ -5525,7 +5525,7 @@ export default function App() {
     defaultValues: {
       firstName: "John",
       age: ""
-    },
+    } satisfies (typeof schema)["Encoded"],
     validators: {
       onChangeAsync: Schema.asStandardSchemaV1(schema),
 
