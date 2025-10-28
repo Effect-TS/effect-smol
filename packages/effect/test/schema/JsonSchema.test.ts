@@ -1,6 +1,7 @@
 import type { Options as AjvOptions } from "ajv"
 // eslint-disable-next-line import-x/no-named-as-default
 import Ajv from "ajv"
+import type { Annotations } from "effect/schema"
 import { Getter, Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
@@ -192,7 +193,53 @@ describe("ToJsonSchema", () => {
   })
 
   describe("Override annotation", () => {
-    it("declare", () => {
+    it("typeParameters", () => {
+      function getOptionJsonSchema(value: Annotations.JsonSchema.JsonSchema): Annotations.JsonSchema.JsonSchema {
+        return {
+          "title": "Option",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "_tag": {
+                  "type": "string",
+                  "enum": ["Some"]
+                },
+                value
+              },
+              "required": ["_tag"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "_tag": {
+                  "type": "string",
+                  "enum": ["None"]
+                }
+              },
+              "required": ["_tag"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      }
+      const schema = Schema.Option(Schema.String).annotate({
+        jsonSchema: {
+          _tag: "Override",
+          override: (ctx) => {
+            return getOptionJsonSchema(ctx.typeParameters[0])
+          }
+        }
+      })
+      assertDraft07(schema, {
+        schema: getOptionJsonSchema({
+          "type": "string"
+        })
+      })
+    })
+
+    it("instanceOf", () => {
       const schema = Schema.instanceOf(URL, {
         jsonSchema: {
           _tag: "Override",

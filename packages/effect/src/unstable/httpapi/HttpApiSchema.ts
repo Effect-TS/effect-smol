@@ -428,8 +428,8 @@ export const withEncoding: {
         jsonSchema: {
           _tag: "Override",
           override: () => ({
-            type: "string",
-            format: "binary"
+            "type": "string",
+            "format": "binary"
           })
         }
       } :

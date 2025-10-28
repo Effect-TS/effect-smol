@@ -157,8 +157,8 @@ export const FileSchema: FileSchema = Schema.declare(
     jsonSchema: {
       _tag: "Override",
       override: () => ({
-        type: "string",
-        format: "binary"
+        "type": "string",
+        "format": "binary"
       })
     }
   }

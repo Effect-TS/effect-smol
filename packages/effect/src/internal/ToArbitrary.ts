@@ -19,7 +19,7 @@ function getAnnotation(
 ):
   | Annotations.Arbitrary.Constraint
   | Annotations.Arbitrary.Constraint
-  | Annotations.Arbitrary.Override<any, ReadonlyArray<any>>
+  | Annotations.Arbitrary.Override<any, ReadonlyArray<Schema.Top>>
   | undefined
 {
   return annotations?.arbitrary as any

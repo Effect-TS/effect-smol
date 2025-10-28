@@ -5435,7 +5435,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
           ).map((as) => new globalThis.Map(as))
         }
       },
-      equivalence: { // TODO: fix this
+      equivalence: {
         _tag: "Override",
         override: ([key, value]) => Equal.makeCompareMap(key, value)
       },
@@ -5855,7 +5855,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
     description: "a string that will be decoded as JSON",
     jsonSchema: {
       _tag: "Override",
-      override: (ctx: Annotations.JsonSchema.OverrideContext) => {
+      override: (ctx) => {
         switch (ctx.target) {
           case "draft-07":
             return {

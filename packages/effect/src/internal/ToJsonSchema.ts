@@ -94,7 +94,11 @@ function go(
               return {}
             }
           }
+          const typeParameters = AST.isDeclaration(ast)
+            ? ast.typeParameters.map((tp) => go(tp, path, options, false, false))
+            : []
           let out = annotation.override({
+            typeParameters,
             target,
             jsonSchema: getDefaultJsonSchema(),
             make: (ast) => go(ast, path, options, false, false)
@@ -169,7 +173,11 @@ function base(
               return {}
             }
           }
+          const typeParameters = AST.isDeclaration(ast)
+            ? ast.typeParameters.map((tp) => go(tp, path, options, false, false))
+            : []
           let out = annotation.override({
+            typeParameters,
             target,
             jsonSchema: getDefaultJsonSchema(),
             make: (ast) => go(ast, path, options, false, false)
@@ -443,8 +451,8 @@ function getConstraint<T>(
 
 function getAnnotation(
   annotations: Annotations.Annotations | undefined
-): Annotations.JsonSchema.Override | Annotations.JsonSchema.Constraint | undefined {
-  return annotations?.jsonSchema as Annotations.JsonSchema.Override | Annotations.JsonSchema.Constraint | undefined
+): Annotations.JsonSchema.Override<ReadonlyArray<Schema.Top>> | Annotations.JsonSchema.Constraint | undefined {
+  return annotations?.jsonSchema as any
 }
 
 function isOptional(ast: AST.AST): boolean {
