@@ -27,11 +27,11 @@ import { identity, memoize } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import { format, formatDate, formatPropertyKey } from "../interfaces/Inspectable.ts"
 import * as Pipeable from "../interfaces/Pipeable.ts"
+import * as InternalArbitrary from "../internal/arbitrary.ts"
 import * as core from "../internal/core.ts"
-import * as InternalArbitrary from "../internal/ToArbitrary.ts"
-import * as InternalDiffer from "../internal/ToDiffer.ts"
-import * as InternalEquivalence from "../internal/ToEquivalence.ts"
-import * as InternalJsonSchema from "../internal/ToJsonSchema.ts"
+import * as InternalDiffer from "../internal/differ.ts"
+import * as InternalEquivalence from "../internal/equivalence.ts"
+import * as InternalJsonSchema from "../internal/json-schema.ts"
 import { remainder } from "../Number.ts"
 import * as Optic_ from "../Optic.ts"
 import * as Request from "../Request.ts"
@@ -41,7 +41,7 @@ import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
-import * as ToParser from "./ToParser.ts"
+import * as ToParser from "./Parser.ts"
 import * as Transformation from "./Transformation.ts"
 
 /**
@@ -6954,7 +6954,7 @@ type XmlEncoderOptions = {
  * @category Serializer
  * @since 4.0.0
  */
-export function xmlEncoder<T, E, RD, RE>(
+export function makeEncoderXml<T, E, RD, RE>(
   codec: Codec<T, E, RD, RE>,
   options?: XmlEncoderOptions
 ) {

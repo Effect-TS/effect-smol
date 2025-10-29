@@ -1,4 +1,4 @@
-import * as InternalArbitrary from "effect/internal/ToArbitrary"
+import * as InternalArbitrary from "effect/internal/arbitrary"
 import type { Annotations } from "effect/schema"
 import { AST, Schema } from "effect/schema"
 import { TestSchema } from "effect/testing"
@@ -17,7 +17,7 @@ function verifyGeneration<S extends Schema.Codec<unknown, unknown, never, unknow
   asserts.arbitrary().verifyGeneration()
 }
 
-describe("ToArbitrary", () => {
+describe("Arbitrary generation", () => {
   it("Any", () => {
     verifyGeneration(Schema.Any)
   })

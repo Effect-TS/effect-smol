@@ -51,7 +51,7 @@ const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
       }))
 
     it.effect("google followRedirects", () =>
-      Effect.gen(function*() {
+      it.flakyTest(Effect.gen(function*() {
         const client = (yield* HttpClient.HttpClient).pipe(
           HttpClient.followRedirects()
         )
@@ -59,7 +59,7 @@ const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
           Effect.flatMap((_) => _.text)
         )
         expect(response).toContain("Google")
-      }))
+      })))
 
     it.effect("google stream", () =>
       Effect.gen(function*() {

@@ -4,7 +4,7 @@ import { Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"
 
-describe("ToFormat", () => {
+describe("Format generation", () => {
   it("Any", () => {
     const format = Schema.makeFormat(Schema.Any)
     strictEqual(format(1), "1")

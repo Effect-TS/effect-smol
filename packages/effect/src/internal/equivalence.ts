@@ -4,7 +4,7 @@ import { memoize } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
-import * as ToParser from "../schema/ToParser.ts"
+import * as ToParser from "../schema/Parser.ts"
 
 function getAnnotation(ast: AST.AST): Annotations.Equivalence.Override<any, ReadonlyArray<any>> | undefined {
   return Annotations.get(ast)?.["equivalence"] as any

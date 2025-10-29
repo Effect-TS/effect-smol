@@ -18,7 +18,7 @@ const Modulo3 = Schema.Number.annotate({
   }
 })
 
-describe("ToEquivalence", () => {
+describe("Equivalence generation", () => {
   it("String", () => {
     const schema = Schema.String
     const equivalence = Schema.makeEquivalence(schema)

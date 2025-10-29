@@ -16,8 +16,8 @@ const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
   })
 ))
 
-describe("Serializer", () => {
-  describe("json", () => {
+describe("Serializer generation", () => {
+  describe("makeSerializerJson", () => {
     describe("typeCodec", () => {
       describe("Unsupported schemas", () => {
         it("Declaration without defaultIsoSerializer annotation", async () => {
@@ -1195,7 +1195,7 @@ describe("Serializer", () => {
     })
   })
 
-  describe("stringPojo", () => {
+  describe("makeSerializerStringPojo", () => {
     describe("should return the same reference if nothing changed", () => {
       it("String", async () => {
         const schema = Schema.String
@@ -2015,7 +2015,7 @@ describe("Serializer", () => {
     })
   })
 
-  describe("ensureArray", () => {
+  describe("makeSerializerEnsureArray", () => {
     describe("should memoize the result", () => {
       it("Struct", async () => {
         const schema = Schema.Struct({
@@ -2046,14 +2046,14 @@ describe("Serializer", () => {
     })
   })
 
-  describe("xmlEncoder", () => {
+  describe("makeEncoderXml", () => {
     async function assertXml<T, E, RD>(schema: Schema.Codec<T, E, RD>, value: T, expected: string) {
-      const serializer = Schema.xmlEncoder(Schema.makeSerializerStringPojo(schema))
+      const serializer = Schema.makeEncoderXml(Schema.makeSerializerStringPojo(schema))
       strictEqual(await Effect.runPromise(serializer(value)), expected)
     }
 
     async function assertXmlFailure<T, E, RD>(schema: Schema.Codec<T, E, RD>, value: T, message: string) {
-      const serializer = Schema.xmlEncoder(Schema.makeSerializerStringPojo(schema))
+      const serializer = Schema.makeEncoderXml(Schema.makeSerializerStringPojo(schema))
       const r = await serializer(value).pipe(
         Effect.mapError((err) => err.issue.toString()),
         Effect.result,
@@ -2191,7 +2191,7 @@ describe("Serializer", () => {
     })
 
     it("Array with custom item name", async () => {
-      const serializer = Schema.xmlEncoder(Schema.makeSerializerStringPojo(Schema.Array(Schema.Number)), {
+      const serializer = Schema.makeEncoderXml(Schema.makeSerializerStringPojo(Schema.Array(Schema.Number)), {
         arrayItemName: "number"
       })
       strictEqual(
@@ -2395,14 +2395,14 @@ line2</root>`
     })
 
     it("XML Encoder Options - rootName", async () => {
-      const serializer = Schema.xmlEncoder(Schema.makeSerializerStringPojo(Schema.String), {
+      const serializer = Schema.makeEncoderXml(Schema.makeSerializerStringPojo(Schema.String), {
         rootName: "custom"
       })
       strictEqual(await Effect.runPromise(serializer("test")), "<custom>test</custom>")
     })
 
     it("XML Encoder Options - pretty: false", async () => {
-      const serializer = Schema.xmlEncoder(
+      const serializer = Schema.makeEncoderXml(
         Schema.makeSerializerStringPojo(Schema.Struct({
           a: Schema.Number,
           b: Schema.String
@@ -2415,7 +2415,7 @@ line2</root>`
     })
 
     it("XML Encoder Options - custom indent", async () => {
-      const serializer = Schema.xmlEncoder(
+      const serializer = Schema.makeEncoderXml(
         Schema.makeSerializerStringPojo(Schema.Struct({
           a: Schema.Number
         })),
@@ -2432,7 +2432,7 @@ line2</root>`
     })
 
     it("XML Encoder Options - sortKeys: false", async () => {
-      const serializer = Schema.xmlEncoder(
+      const serializer = Schema.makeEncoderXml(
         Schema.makeSerializerStringPojo(Schema.Struct({
           z: Schema.Number,
           a: Schema.Number,
@@ -2456,7 +2456,7 @@ line2</root>`
       const obj: any = { name: "test" }
       obj.self = obj
 
-      const serializer = Schema.xmlEncoder(Schema.makeSerializerStringPojo(Schema.Any))
+      const serializer = Schema.makeEncoderXml(Schema.makeSerializerStringPojo(Schema.Any))
       try {
         await Effect.runPromise(serializer(obj))
         throw new Error("Expected error")

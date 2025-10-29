@@ -30,7 +30,7 @@ export * as Schema from "./Schema.ts"
 /**
  * @since 4.0.0
  */
-export * as ToParser from "./ToParser.ts"
+export * as ToParser from "./Parser.ts"
 
 /**
  * @since 4.0.0

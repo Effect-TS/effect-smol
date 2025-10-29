@@ -19,8 +19,8 @@ import * as RegEx from "../RegExp.ts"
 import * as Annotations from "./Annotations.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
+import type * as ToParser from "./Parser.ts"
 import type * as Schema from "./Schema.ts"
-import type * as ToParser from "./ToParser.ts"
 import * as Transformation from "./Transformation.ts"
 
 /**

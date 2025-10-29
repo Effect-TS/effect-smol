@@ -21,7 +21,7 @@ function addTwo(date: Date): Date {
   return new Date(time + 2)
 }
 
-describe("ToOptic", () => {
+describe("Optic generation", () => {
   describe("override", () => {
     it("override", () => {
       const schema = Schema.URL.pipe(Schema.overrideIso(Schema.String, Transformation.urlFromString))

@@ -63,7 +63,7 @@ export function assertOpenApi3_1<S extends Schema.Top>(
   assertTrue(valid)
 }
 
-describe("ToJsonSchema", () => {
+describe("JsonSchema generation", () => {
   describe("Thrown errors", () => {
     it("Declaration", () => {
       assertUnsupportedSchema(

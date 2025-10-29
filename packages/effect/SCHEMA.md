@@ -553,7 +553,7 @@ everything is a string
 
 ## 🆕 XML Encoder
 
-`Schema.xmlEncoder` lets you serialize values to XML.
+`Schema.makeEncoderXml` lets you serialize values to XML.
 
 **Example**
 
@@ -573,7 +573,7 @@ const schema = Schema.Struct({
 })
 
 // const encoder: (t: {...}) => Effect<string, Schema.SchemaError, never>
-const xmlEncoder = Schema.xmlEncoder(schema)
+const xmlEncoder = Schema.makeEncoderXml(schema)
 
 console.log(
   Effect.runSync(
@@ -954,7 +954,7 @@ Default values can also be computed using effects, as long as the environment is
 ```ts
 import { Effect } from "effect"
 import { Option } from "effect/data"
-import { Schema, ToParser } from "effect/schema"
+import { Schema, Parser } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.Number.pipe(
@@ -967,7 +967,7 @@ const schema = Schema.Struct({
   )
 })
 
-ToParser.makeEffect(schema)({}).pipe(Effect.runPromise).then(console.log)
+Parser.makeEffect(schema)({}).pipe(Effect.runPromise).then(console.log)
 // { a: -1 }
 ```
 
@@ -976,7 +976,7 @@ ToParser.makeEffect(schema)({}).pipe(Effect.runPromise).then(console.log)
 ```ts
 import { Effect, ServiceMap } from "effect"
 import { Option } from "effect/data"
-import { Schema, ToParser } from "effect/schema"
+import { Schema, Parser } from "effect/schema"
 
 // Define a service that may provide a default value
 class ConstructorService extends ServiceMap.Service<ConstructorService, { defaultValue: Effect.Effect<number> }>()(
@@ -998,7 +998,7 @@ const schema = Schema.Struct({
   )
 })
 
-ToParser.makeEffect(schema)({})
+Parser.makeEffect(schema)({})
   .pipe(
     Effect.provideService(ConstructorService, ConstructorService.of({ defaultValue: Effect.succeed(-1) })),
     Effect.runPromise
@@ -5393,7 +5393,7 @@ You can use the `Schema.StandardSchemaV1FailureResult` schema to send a `Standar
 **Example** (Sending a FailureResult over the wire)
 
 ```ts
-import { Issue, Schema, ToParser } from "effect/schema"
+import { Issue, Schema, Parser } from "effect/schema"
 
 const b = Symbol.for("b")
 
@@ -5403,7 +5403,7 @@ const schema = Schema.Struct({
   c: Schema.Tuple([Schema.String])
 })
 
-const r = ToParser.decodeUnknownExit(schema)({ a: "", c: [] }, { errors: "all" })
+const r = Parser.decodeUnknownExit(schema)({ a: "", c: [] }, { errors: "all" })
 
 if (r._tag === "Failure") {
   const failures = r.cause.failures
@@ -5644,7 +5644,7 @@ Schema.Null
 To coerce input data to the appropriate type:
 
 ```ts
-import { Schema, Getter, ToParser } from "effect/schema"
+import { Schema, Getter, Parser } from "effect/schema"
 
 //      ┌─── Codec<string, unknown>
 //      ▼
@@ -5655,7 +5655,7 @@ const schema = Schema.Unknown.pipe(
   })
 )
 
-const parser = ToParser.decodeUnknownSync(schema)
+const parser = Parser.decodeUnknownSync(schema)
 
 console.log(parser("tuna")) // => "tuna"
 console.log(parser(42)) // => "42"
