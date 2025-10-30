@@ -188,7 +188,7 @@ function stripAnchors(src: string): string {
 
 const or = UndefinedOr.getReducer(Boolean_.ReducerOr)
 const last = UndefinedOr.getReducer(Combiner.last())
-const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => `${a} & ${b}`))
+const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => `${a} and ${b}`))
 
 const combiner: Combiner.Combiner<any> = Struct.getCombiner({
   type: UndefinedOr.getReducer(Combiner.first<string>()),

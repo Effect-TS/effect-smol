@@ -4775,6 +4775,8 @@ Output:
 
 Sometimes you need to adapt a schema to a different target format. For example, you might convert a JSON Schema to the subset supported by OpenAI (https://platform.openai.com/docs/guides/structured-outputs/supported-schemas?type-restrictions=string-restrictions#supported-schemas).
 
+Note: the more context that an LLM has, the more "correct" the structured output will be, so it's advised to pass the `generateDescriptions: true` option to `makeJsonSchemaDraft2020_12`.
+
 **Example** (Convert to an OpenAI-compatible schema)
 
 ```ts
@@ -4786,7 +4788,7 @@ const schema = Schema.Struct({
   a: Schema.optionalKey(Schema.NonEmptyString)
 })
 
-const document = Schema.makeJsonSchemaDraft2020_12(schema)
+const document = Schema.makeJsonSchemaDraft2020_12(schema, { generateDescriptions: true })
 
 console.log(JSON.stringify(document.schema, null, 2))
 /*
@@ -4796,7 +4798,8 @@ Output (before rewrite):
   "properties": {
     "a": {
       "type": "string",
-      "minLength": 1 // not supported by the OpenAI subset
+      "minLength": 1, // not supported by the OpenAI subset
+      "description": "a value with a length of at least 1" // generated description
     }
   },
   "required": [], // optional field (OpenAI requires all fields to be required)
@@ -4820,7 +4823,8 @@ Output:
       "type": [ // optional via nullability
         "string",
         "null"
-      ]
+      ],
+      "description": "a value with a length of at least 1"
     }
   },
   "required": [

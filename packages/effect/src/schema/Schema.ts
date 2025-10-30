@@ -6785,7 +6785,16 @@ export interface JsonSchemaOptions {
    * - `"skip"`: Skip the top-level reference
    */
   readonly referenceStrategy?: "skip" | "keep" | undefined
+  /**
+   * A function that is called when a JSON Schema annotation is missing. This
+   * will be the default result instead of throwing an error.
+   */
   readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => JsonSchema.Schema | undefined) | undefined
+  /**
+   * Controls whether to generate descriptions for checks (if the user has not
+   * provided them) based on the `expected` annotation of the check.
+   */
+  readonly generateDescriptions?: boolean | undefined
 }
 
 /**

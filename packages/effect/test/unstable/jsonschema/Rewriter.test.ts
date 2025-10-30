@@ -19,7 +19,10 @@ function assertJsonSchema(
       traces.push(change)
     }
   }
-  const document = rewriter(Schema.makeJsonSchemaDraft2020_12(schema, options), tracer)
+  const document = rewriter(
+    Schema.makeJsonSchemaDraft2020_12(schema, { generateDescriptions: true, ...options }),
+    tracer
+  )
   const copy = JSON.parse(JSON.stringify(document.schema))
   deepStrictEqual(document.schema, expected.schema)
   deepStrictEqual(document.definitions, expected.definitions ?? {})
@@ -603,7 +606,8 @@ describe("Rewriter", () => {
             "type": "object",
             "properties": {
               "a": {
-                "type": "string"
+                "type": "string",
+                "description": "a value with a length of at least 1"
               }
             },
             "required": ["a"],
@@ -668,12 +672,20 @@ describe("Rewriter", () => {
                 "a": {
                   "type": "number",
                   "minimum": 2,
-                  "maximum": 4
+                  "maximum": 4,
+                  "description": "a value greater than or equal to 2 and a value less than or equal to 4"
                 }
               },
               "required": ["a"],
               "additionalProperties": false
-            }
+            },
+            traces: [
+              {
+                name: "merge-allOf-fragments",
+                path: ["schema", "properties", "a"],
+                summary: `merged 1 allOf fragment(s)`
+              }
+            ]
           }
         )
         assertJsonSchema(
@@ -692,12 +704,19 @@ describe("Rewriter", () => {
                   "type": "number",
                   "minimum": 2,
                   "maximum": 4,
-                  "description": "isGreaterThanOrEqualTo(2)"
+                  "description": "isGreaterThanOrEqualTo(2) and a value less than or equal to 4"
                 }
               },
               "required": ["a"],
               "additionalProperties": false
-            }
+            },
+            traces: [
+              {
+                name: "merge-allOf-fragments",
+                path: ["schema", "properties", "a"],
+                summary: `merged 1 allOf fragment(s)`
+              }
+            ]
           }
         )
         assertJsonSchema(
@@ -716,7 +735,7 @@ describe("Rewriter", () => {
                   "type": "number",
                   "minimum": 2,
                   "maximum": 4,
-                  "description": "isGreaterThanOrEqualTo(2) & isLessThanOrEqualTo(4)"
+                  "description": "isGreaterThanOrEqualTo(2) and isLessThanOrEqualTo(4)"
                 }
               },
               "required": ["a"],
@@ -745,7 +764,8 @@ describe("Rewriter", () => {
               "properties": {
                 "a": {
                   "type": "number",
-                  "minimum": 3
+                  "minimum": 3,
+                  "description": "a value greater than or equal to 2 and a value greater than or equal to 3"
                 }
               },
               "required": ["a"],
@@ -771,7 +791,8 @@ describe("Rewriter", () => {
               "properties": {
                 "a": {
                   "type": "number",
-                  "minimum": 3
+                  "minimum": 3,
+                  "description": "a value greater than or equal to 3 and a value greater than or equal to 2"
                 }
               },
               "required": ["a"],
@@ -800,7 +821,8 @@ describe("Rewriter", () => {
               "properties": {
                 "a": {
                   "type": "number",
-                  "maximum": 2
+                  "maximum": 2,
+                  "description": "a value less than or equal to 2 and a value less than or equal to 3"
                 }
               },
               "required": ["a"],
@@ -826,7 +848,8 @@ describe("Rewriter", () => {
               "properties": {
                 "a": {
                   "type": "number",
-                  "maximum": 2
+                  "maximum": 2,
+                  "description": "a value less than or equal to 3 and a value less than or equal to 2"
                 }
               },
               "required": ["a"],
@@ -854,6 +877,7 @@ describe("Rewriter", () => {
             "properties": {
               "a": {
                 "type": "array",
+                "description": "an array with unique items",
                 "items": {
                   "type": "string"
                 }
