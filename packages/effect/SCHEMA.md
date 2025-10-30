@@ -4771,6 +4771,66 @@ Output:
 */
 ```
 
+### Rewriters
+
+Sometimes you need to adapt a schema to a different target format. For example, you might convert a JSON Schema to the subset supported by OpenAI.
+
+**Example** (Convert to an OpenAI-compatible schema)
+
+```ts
+import { Schema } from "effect/schema"
+import { Rewriter } from "effect/unstable/jsonschema"
+
+// Define a schema with an optional non-empty string field 'a'
+const schema = Schema.Struct({
+  a: Schema.optionalKey(Schema.NonEmptyString)
+})
+
+const document = Schema.makeJsonSchemaDraft2020_12(schema)
+
+console.log(JSON.stringify(document.schema, null, 2))
+/*
+Output (before rewrite):
+{
+  "type": "object",
+  "properties": {
+    "a": {
+      "type": "string",
+      "minLength": 1 // not supported by the OpenAI subset
+    }
+  },
+  "required": [], // optional field (OpenAI requires all fields to be required)
+  "additionalProperties": false
+}
+*/
+
+// Rewrite to the OpenAI subset:
+// - Make all fields required
+// - Represent optionality by unioning with null (T | null)
+// - Drop unsupported keywords like minLength
+const rewritten = Rewriter.openAi(document)
+
+console.log(JSON.stringify(rewritten.schema, null, 2))
+/*
+Output:
+{
+  "type": "object",
+  "properties": {
+    "a": {
+      "type": [ // optional via nullability
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "a" // now required
+  ],
+  "additionalProperties": false
+}
+*/
+```
+
 ## Generating an Arbitrary from a Schema
 
 ### Basic Conversion
