@@ -4773,7 +4773,7 @@ Output:
 
 ### Rewriters
 
-Sometimes you need to adapt a schema to a different target format. For example, you might convert a JSON Schema to the subset supported by OpenAI.
+Sometimes you need to adapt a schema to a different target format. For example, you might convert a JSON Schema to the subset supported by OpenAI (https://platform.openai.com/docs/guides/structured-outputs/supported-schemas?type-restrictions=string-restrictions#supported-schemas).
 
 **Example** (Convert to an OpenAI-compatible schema)
 

@@ -3,6 +3,12 @@
  */
 import * as Predicate from "effect/data/Predicate"
 import { constTrue } from "effect/Function"
+import * as Boolean_ from "../../Boolean.ts"
+import * as Array_ from "../../collections/Array.ts"
+import * as Combiner from "../../data/Combiner.ts"
+import * as Struct from "../../data/Struct.ts"
+import * as UndefinedOr from "../../data/UndefinedOr.ts"
+import * as Number_ from "../../Number.ts"
 import type * as Schema from "../../schema/Schema.ts"
 
 /**
@@ -168,6 +174,46 @@ export function onObject(
   })
 }
 
+// Return a pattern string that matches iff the ENTIRE string matches A and B.
+function combinePatterns(a: string, b: string): string {
+  const A = stripAnchors(a)
+  const B = stripAnchors(b)
+  return `(?=(?:${A})$)(?=(?:${B})$).*$`
+}
+
+function stripAnchors(src: string): string {
+  // remove a single leading ^ and trailing $ if present
+  return src.replace(/^\^/, "").replace(/\$$/, "")
+}
+
+const or = UndefinedOr.getReducer(Boolean_.ReducerOr)
+const last = UndefinedOr.getReducer(Combiner.last())
+const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => `${a} & ${b}`))
+
+const combiner: Combiner.Combiner<any> = Struct.getCombiner({
+  type: UndefinedOr.getReducer(Combiner.first<string>()),
+  description: join,
+  title: join,
+  default: last,
+  examples: UndefinedOr.getReducer(Array_.getReducerConcat()),
+  minimum: UndefinedOr.getReducer(Number_.ReducerMax),
+  maximum: UndefinedOr.getReducer(Number_.ReducerMin),
+  exclusiveMinimum: or,
+  exclusiveMaximum: or,
+  multipleOf: UndefinedOr.getReducer(Number_.ReducerMultiply),
+  format: last,
+  pattern: UndefinedOr.getReducer(Combiner.make(combinePatterns))
+}, {
+  omitKeyWhen: Predicate.isUndefined
+})
+
+function mergeAllOf(
+  schema: Schema.JsonSchema.Schema,
+  allOf: Array<Schema.JsonSchema.Fragment>
+): Schema.JsonSchema.Schema {
+  return allOf.reduce((acc, curr) => combiner.combine(acc, curr), schema)
+}
+
 /**
  * @see https://platform.openai.com/docs/guides/structured-outputs/supported-schemas?type-restrictions=string-restrictions#supported-schemas
  *
@@ -211,10 +257,33 @@ export const openAi = make([
     }
   }),
 
+  // merge allOf
+  onSchema((schema, ctx) => {
+    if (Array.isArray(schema.allOf)) {
+      const { allOf, ...rest } = schema
+
+      // tracer
+      ctx.tracer.push({
+        name: "merge-allOf-fragments",
+        path: ctx.path,
+        summary: `merged ${allOf.length} allOf fragment(s)`
+      })
+
+      return mergeAllOf(rest, allOf)
+    }
+  }),
+
   // Supported properties
   onSchema((schema, ctx) => {
+    const jsonSchemaAnnotations = {
+      title: constTrue,
+      description: constTrue,
+      default: constTrue,
+      examples: constTrue
+    }
     if (schema.type === "string") {
       return whitelistProperties(schema, ctx, {
+        ...jsonSchemaAnnotations,
         enum: constTrue,
         pattern: constTrue,
         format: (format) =>
@@ -232,6 +301,7 @@ export const openAi = make([
       })
     } else if (schema.type === "number") {
       return whitelistProperties(schema, ctx, {
+        ...jsonSchemaAnnotations,
         enum: constTrue,
         multipleOf: constTrue,
         minimum: constTrue,
@@ -241,6 +311,7 @@ export const openAi = make([
       })
     } else if (schema.type === "array") {
       return whitelistProperties(schema, ctx, {
+        ...jsonSchemaAnnotations,
         items: constTrue,
         additionalItems: constTrue,
         prefixItems: constTrue,
@@ -249,6 +320,7 @@ export const openAi = make([
       })
     } else if (schema.type === "object") {
       return whitelistProperties(schema, ctx, {
+        ...jsonSchemaAnnotations,
         properties: constTrue,
         required: constTrue,
         additionalProperties: constTrue
