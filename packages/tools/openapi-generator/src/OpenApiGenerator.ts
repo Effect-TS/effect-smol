@@ -2,7 +2,7 @@ import * as Option from "effect/data/Option"
 import * as Predicate from "effect/data/Predicate"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import type * as SchemaAnnotations from "effect/schema/Annotations"
+import type * as Schema from "effect/schema/Schema"
 import * as ServiceMap from "effect/ServiceMap"
 import * as String from "effect/String"
 import type { OpenAPISpec, OpenAPISpecMethodName, OpenAPISpecPathItem } from "effect/unstable/httpapi/OpenApi"
@@ -100,7 +100,7 @@ export const make = Effect.gen(function*() {
 
           if (validParameters.length > 0) {
             const schema = {
-              type: "object" as SchemaAnnotations.JsonSchema.Type,
+              type: "object" as Schema.JsonSchema.Type,
               properties: {} as Record<string, any>,
               required: [] as Array<string>
             }

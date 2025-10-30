@@ -45,6 +45,7 @@
     "./unstable/cluster": "./src/unstable/cluster/index.ts",
     "./unstable/http": "./src/unstable/http/index.ts",
     "./unstable/httpapi": "./src/unstable/httpapi/index.ts",
+    "./unstable/jsonschema": "./src/unstable/jsonschema/index.ts",
     "./unstable/observability": "./src/unstable/observability/index.ts",
     "./unstable/persistence": "./src/unstable/persistence/index.ts",
     "./unstable/reactivity": "./src/unstable/reactivity/index.ts",

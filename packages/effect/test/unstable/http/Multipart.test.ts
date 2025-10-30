@@ -6,12 +6,12 @@ import { deepStrictEqual, strictEqual } from "node:assert"
 describe("Multipart", () => {
   describe("FileSchema", () => {
     it("jsonSchema", () => {
-      const { definitions, jsonSchema, uri } = Schema.makeJsonSchemaDraft07(Multipart.FileSchema)
-      strictEqual(uri, "http://json-schema.org/draft-07/schema")
-      deepStrictEqual(jsonSchema, {
+      const document = Schema.makeJsonSchemaDraft07(Multipart.FileSchema)
+      strictEqual(document.uri, "http://json-schema.org/draft-07/schema")
+      deepStrictEqual(document.schema, {
         "$ref": "#/definitions/PersistedFile"
       })
-      deepStrictEqual(definitions, {
+      deepStrictEqual(document.definitions, {
         "PersistedFile": {
           "type": "string",
           "format": "binary"

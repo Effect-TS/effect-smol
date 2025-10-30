@@ -1,8 +1,6 @@
 import type { Options as AjvOptions } from "ajv"
 // eslint-disable-next-line import-x/no-named-as-default
 import Ajv from "ajv"
-import { isObject } from "effect/data/Predicate"
-import type { Annotations } from "effect/schema"
 import { Getter, Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
@@ -29,11 +27,11 @@ function assertDraft07<S extends Schema.Top>(
   expected: { schema: object; definitions?: Record<string, object> },
   options?: Schema.JsonSchemaOptions
 ) {
-  const { definitions, jsonSchema, uri } = Schema.makeJsonSchemaDraft07(schema, options)
-  strictEqual(uri, "http://json-schema.org/draft-07/schema")
-  deepStrictEqual(jsonSchema, expected.schema)
-  deepStrictEqual(definitions, expected.definitions ?? {})
-  const valid = ajvDraft07.validateSchema({ $schema: uri, ...jsonSchema })
+  const document = Schema.makeJsonSchemaDraft07(schema, options)
+  strictEqual(document.uri, "http://json-schema.org/draft-07/schema")
+  deepStrictEqual(document.schema, expected.schema)
+  deepStrictEqual(document.definitions, expected.definitions ?? {})
+  const valid = ajvDraft07.validateSchema({ $schema: document.uri, ...document.schema })
   assertTrue(valid)
 }
 
@@ -42,11 +40,11 @@ export function assertDraft2020_12<S extends Schema.Top>(
   expected: { schema: object; definitions?: Record<string, object> },
   options?: Schema.JsonSchemaOptions
 ) {
-  const { definitions, jsonSchema, uri } = Schema.makeJsonSchemaDraft2020_12(schema, options)
-  strictEqual(uri, "https://json-schema.org/draft/2020-12/schema")
-  deepStrictEqual(jsonSchema, expected.schema)
-  deepStrictEqual(definitions, expected.definitions ?? {})
-  const valid = ajvDraft2020_12.validateSchema({ $schema: uri, ...jsonSchema })
+  const document = Schema.makeJsonSchemaDraft2020_12(schema, options)
+  strictEqual(document.uri, "https://json-schema.org/draft/2020-12/schema")
+  deepStrictEqual(document.schema, expected.schema)
+  deepStrictEqual(document.definitions, expected.definitions ?? {})
+  const valid = ajvDraft2020_12.validateSchema({ $schema: document.uri, ...document.schema })
   assertTrue(valid)
 }
 
@@ -55,11 +53,11 @@ export function assertOpenApi3_1<S extends Schema.Top>(
   expected: { schema: object; definitions?: Record<string, object> },
   options?: Schema.JsonSchemaOptions
 ) {
-  const { definitions, jsonSchema, uri } = Schema.makeJsonSchemaOpenApi3_1(schema, options)
-  strictEqual(uri, "https://json-schema.org/draft/2020-12/schema")
-  deepStrictEqual(jsonSchema, expected.schema)
-  deepStrictEqual(definitions, expected.definitions ?? {})
-  const valid = ajvDraft2020_12.validateSchema({ $schema: uri, ...jsonSchema })
+  const document = Schema.makeJsonSchemaOpenApi3_1(schema, options)
+  strictEqual(document.uri, "https://json-schema.org/draft/2020-12/schema")
+  deepStrictEqual(document.schema, expected.schema)
+  deepStrictEqual(document.definitions, expected.definitions ?? {})
+  const valid = ajvDraft2020_12.validateSchema({ $schema: document.uri, ...document.schema })
   assertTrue(valid)
 }
 
@@ -193,7 +191,7 @@ describe("JsonSchema generation", () => {
 
   describe("Override annotation", () => {
     it("typeParameters", () => {
-      function getOptionJsonSchema(value: Annotations.JsonSchema.JsonSchema): Annotations.JsonSchema.JsonSchema {
+      function getOptionJsonSchema(value: Schema.JsonSchema.Schema): Schema.JsonSchema.Schema {
         return {
           "title": "Option",
           "oneOf": [
@@ -3877,120 +3875,5 @@ describe("JsonSchema generation", () => {
         })
       })
     })
-  })
-})
-
-describe("makeJsonSchemaRewriter", () => {
-  // a top-level anyOf is not allowed
-  const topLevelAnyOf: Schema.JsonSchemaRewriter = (fragment, path) => {
-    if (isObject(fragment) && path.length === 0 && "anyOf" in fragment) {
-      throw new Error(`Top-level anyOf is not allowed`)
-    }
-    return fragment
-  }
-  // rewrite additionalProperties to false
-  const additionalProperties: Schema.JsonSchemaRewriter = (fragment) => {
-    if (isObject(fragment) && "type" in fragment && fragment.type === "object" && "additionalProperties" in fragment) {
-      return { ...fragment, additionalProperties: false }
-    }
-    return fragment
-  }
-  // rewrite oneOf to anyOf
-  const oneOf: Schema.JsonSchemaRewriter = (fragment) => {
-    if (isObject(fragment) && "oneOf" in fragment) {
-      const out = { ...fragment }
-      out.anyOf = fragment.oneOf
-      delete out.oneOf
-      return out
-    }
-    return fragment
-  }
-  // rewrite null type to enum
-  const nullType: Schema.JsonSchemaRewriter = (fragment) => {
-    if (isObject(fragment) && "type" in fragment && fragment.type === "null") {
-      const out = { ...fragment }
-      out.enum = [null]
-      delete out.type
-      return out
-    }
-    return fragment
-  }
-  const openApiRewriter = Schema.makeJsonSchemaRewriter([
-    topLevelAnyOf,
-    additionalProperties,
-    oneOf,
-    nullType
-  ])
-
-  function assertJsonSchema(
-    schema: Schema.Top,
-    expected: Annotations.JsonSchema.JsonSchema,
-    options?: Schema.JsonSchemaOptions
-  ) {
-    const result = openApiRewriter(Schema.makeJsonSchemaDraft07(schema, options).jsonSchema)
-    deepStrictEqual(result, expected)
-  }
-
-  function assertError(schema: Schema.Top, message: string) {
-    throws(() => openApiRewriter(Schema.makeJsonSchemaDraft07(schema).jsonSchema), message)
-  }
-
-  it("should throw an error if the schema has a top-level anyOf", () => {
-    assertError(Schema.Union([Schema.String, Schema.Number]), "Top-level anyOf is not allowed")
-  })
-
-  it("should overwrite additionalProperties to false", () => {
-    assertJsonSchema(Schema.Struct({ a: Schema.String }), {
-      "type": "object",
-      "properties": {
-        "a": { "type": "string" }
-      },
-      "required": ["a"],
-      "additionalProperties": false
-    }, {
-      additionalProperties: true
-    })
-  })
-
-  it("should rewrite oneOf to anyOf", () => {
-    assertJsonSchema(
-      Schema.Struct({
-        a: Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" })
-      }),
-      {
-        "type": "object",
-        "properties": {
-          "a": {
-            "anyOf": [
-              { "type": "string" },
-              { "type": "number" }
-            ]
-          }
-        },
-        "required": ["a"],
-        "additionalProperties": false
-      }
-    )
-  })
-
-  it("should rewrite null to an enum", () => {
-    assertJsonSchema(
-      Schema.Struct({
-        a: Schema.NullOr(Schema.String)
-      }),
-      {
-        "type": "object",
-        "properties": {
-          "a": {
-            "anyOf": [
-              { "type": "string" },
-              { "enum": [null] }
-            ]
-          }
-        },
-        "required": ["a"],
-        "additionalProperties": false
-      }
-    )
   })
 })

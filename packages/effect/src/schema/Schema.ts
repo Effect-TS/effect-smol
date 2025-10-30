@@ -6758,54 +6758,6 @@ export function makeEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T
 // -----------------------------------------------------------------------------
 
 /**
- * @category JsonSchema
- * @since 4.0.0
- */
-export interface JsonSchemaRewriter {
-  (fragment: unknown, path: ReadonlyArray<string | number>): unknown
-}
-
-/**
- * @category JsonSchema
- * @since 4.0.0
- */
-export function makeJsonSchemaRewriter(
-  rewriters: ReadonlyArray<JsonSchemaRewriter>
-): (schema: Annotations.JsonSchema.JsonSchema) => Annotations.JsonSchema.JsonSchema {
-  function rewriteJsonSchema(
-    schema: Annotations.JsonSchema.JsonSchema,
-    path: ReadonlyArray<string | number> = []
-  ): Annotations.JsonSchema.JsonSchema {
-    // depth-first clone + rewriter pipeline
-    let out: any = globalThis.Array.isArray(schema) ? [...schema] : { ...schema }
-
-    // Recurse into objects/arrays
-    function recur(value: any, key: string | number) {
-      if (value && typeof value === "object") {
-        return rewriteJsonSchema(value, [...path, key])
-      }
-      return value
-    }
-
-    if (globalThis.Array.isArray(out)) {
-      out = out.map((v, i) => recur(v, i))
-    } else {
-      for (const k in out) {
-        out[k] = recur(out[k], k)
-      }
-    }
-
-    // Apply rewriters
-    for (const r of rewriters) {
-      out = r(out, path)
-    }
-
-    return out
-  }
-  return rewriteJsonSchema
-}
-
-/**
  * @since 4.0.0
  */
 export interface JsonSchemaOptions {
@@ -6814,7 +6766,7 @@ export interface JsonSchemaOptions {
    *
    * Defaults to the empty object `{}`.
    */
-  readonly definitions?: Record<string, Annotations.JsonSchema.JsonSchema> | undefined
+  readonly definitions?: Record<string, JsonSchema.Schema> | undefined
   /**
    * Controls how additional properties are handled while resolving the JSON
    * schema.
@@ -6824,7 +6776,7 @@ export interface JsonSchemaOptions {
    * - `false`: Disallow additional properties (default)
    * - `JsonSchema`: Use the provided JSON Schema for additional properties
    */
-  readonly additionalProperties?: true | false | Annotations.JsonSchema.JsonSchema | undefined
+  readonly additionalProperties?: true | false | JsonSchema.Schema | undefined
   /**
    * Controls how references are handled while resolving the JSON schema.
    *
@@ -6833,16 +6785,46 @@ export interface JsonSchemaOptions {
    * - `"skip"`: Skip the top-level reference
    */
   readonly referenceStrategy?: "skip" | "keep" | undefined
-  readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => Annotations.JsonSchema.JsonSchema | undefined) | undefined
+  readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => JsonSchema.Schema | undefined) | undefined
 }
 
 /**
+ * @category JsonSchema
  * @since 4.0.0
  */
-export interface JsonSchemaResult {
-  readonly uri: string
-  readonly jsonSchema: Annotations.JsonSchema.JsonSchema
-  readonly definitions: Record<string, Annotations.JsonSchema.JsonSchema>
+export declare namespace JsonSchema {
+  /**
+   * @since 4.0.0
+   */
+  export type Type = "string" | "number" | "boolean" | "array" | "object" | "null" | "integer"
+
+  /**
+   * @since 4.0.0
+   */
+  export type Fragment = {
+    [x: string]: unknown
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface Schema extends Fragment {
+    type?: Type
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface Definitions extends Record<string, Schema> {}
+
+  /**
+   * @since 4.0.0
+   */
+  export interface Document {
+    readonly uri: string
+    readonly schema: Schema
+    readonly definitions: Definitions
+  }
 }
 
 /**
@@ -6851,7 +6833,7 @@ export interface JsonSchemaResult {
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeJsonSchemaDraft07<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchemaResult {
+export function makeJsonSchemaDraft07<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchema.Document {
   return InternalJsonSchema.make(schema, {
     ...options,
     target: "draft-07"
@@ -6864,7 +6846,7 @@ export function makeJsonSchemaDraft07<S extends Top>(schema: S, options?: JsonSc
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeJsonSchemaDraft2020_12<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchemaResult {
+export function makeJsonSchemaDraft2020_12<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchema.Document {
   return InternalJsonSchema.make(schema, {
     ...options,
     target: "2020-12"
@@ -6877,7 +6859,7 @@ export function makeJsonSchemaDraft2020_12<S extends Top>(schema: S, options?: J
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeJsonSchemaOpenApi3_1<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchemaResult {
+export function makeJsonSchemaOpenApi3_1<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchema.Document {
   return InternalJsonSchema.make(schema, {
     ...options,
     target: "oas3.1"

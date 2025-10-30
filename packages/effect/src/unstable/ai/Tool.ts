@@ -1100,14 +1100,15 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * @since 4.0.0
  * @category utilities
  */
-export const getJsonSchema = <Tool extends Any>(tool: Tool): Annotations.JsonSchema.JsonSchema =>
+export const getJsonSchema = <Tool extends Any>(tool: Tool): Schema.JsonSchema.Schema =>
   getJsonSchemaFromSchema(tool.parametersSchema)
 
 /**
  * @since 4.0.0
  * @category utilities
  */
-export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): Annotations.JsonSchema.JsonSchema => {
+export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): Schema.JsonSchema.Schema => {
+  // TODO: replace this with a rewriter
   const props = AST.isObjects(schema.ast) ? schema.ast.propertySignatures : []
   if (props.length === 0) {
     return {
@@ -1117,15 +1118,13 @@ export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): Annota
       additionalProperties: false
     }
   }
-  const $defs = {}
-  const { definitions, jsonSchema } = Schema.makeJsonSchemaDraft2020_12(schema, {
-    definitions: $defs,
+  const document = Schema.makeJsonSchemaDraft2020_12(schema, {
     referenceStrategy: "skip"
   })
-  if (Object.keys(definitions).length > 0) {
-    jsonSchema.$defs = definitions
+  if (Object.keys(document.definitions).length > 0) {
+    document.schema.$defs = document.definitions
   }
-  return jsonSchema
+  return document.schema
 }
 
 // =============================================================================
