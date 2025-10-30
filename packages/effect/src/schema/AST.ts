@@ -730,8 +730,6 @@ export function coerceLiteral(ast: Literal): Literal {
  */
 export type LiteralValue = string | number | boolean | bigint
 
-const isProd = typeof process === "object" && process.env?.NODE_ENV === "production"
-
 /**
  * @category model
  * @since 4.0.0
@@ -748,10 +746,8 @@ export class Literal extends Base {
     context?: Context
   ) {
     super(annotations, checks, encoding, context)
-    if (!isProd) {
-      if (Predicate.isNumber(literal) && !globalThis.Number.isFinite(literal)) {
-        throw new Error(`LiteralType must be a finite number, got: ${literal}`)
-      }
+    if (Predicate.isNumber(literal) && !globalThis.Number.isFinite(literal)) {
+      throw new Error(`LiteralType must be a finite number, got: ${literal}`)
     }
     this.literal = literal
   }
@@ -925,17 +921,15 @@ export class Arrays extends Base {
     this.elements = elements
     this.rest = rest
 
-    if (!isProd) {
-      // A required element cannot follow an optional element. ts(1257)
-      const i = elements.findIndex(isOptional)
-      if (i !== -1 && (elements.slice(i + 1).some((e) => !isOptional(e)) || rest.length > 1)) {
-        throw new Error("A required element cannot follow an optional element. ts(1257)")
-      }
+    // A required element cannot follow an optional element. ts(1257)
+    const i = elements.findIndex(isOptional)
+    if (i !== -1 && (elements.slice(i + 1).some((e) => !isOptional(e)) || rest.length > 1)) {
+      throw new Error("A required element cannot follow an optional element. ts(1257)")
+    }
 
-      // An optional element cannot follow a rest element.ts(1266)
-      if (rest.length > 1 && rest.slice(1).some(isOptional)) {
-        throw new Error("An optional element cannot follow a rest element. ts(1266)")
-      }
+    // An optional element cannot follow a rest element.ts(1266)
+    if (rest.length > 1 && rest.slice(1).some(isOptional)) {
+      throw new Error("An optional element cannot follow a rest element. ts(1266)")
     }
   }
   /** @internal */
@@ -1188,10 +1182,8 @@ export class IndexSignature {
     this.parameter = parameter
     this.type = type
     this.merge = merge
-    if (!isProd) {
-      if (isOptional(type) && !containsUndefined(type)) {
-        throw new Error("Cannot use `Schema.optionalKey` with index signatures, use `Schema.optional` instead.")
-      }
+    if (isOptional(type) && !containsUndefined(type)) {
+      throw new Error("Cannot use `Schema.optionalKey` with index signatures, use `Schema.optional` instead.")
     }
   }
 }
@@ -1219,20 +1211,18 @@ export class Objects extends Base {
     this.propertySignatures = propertySignatures
     this.indexSignatures = indexSignatures
 
-    if (!isProd) {
-      // Duplicate property signatures
-      let duplicates = propertySignatures.map((ps) => ps.name).filter((name, i, arr) => arr.indexOf(name) !== i)
-      if (duplicates.length > 0) {
-        throw new Error(`Duplicate identifiers: ${JSON.stringify(duplicates)}. ts(2300)`)
-      }
+    // Duplicate property signatures
+    let duplicates = propertySignatures.map((ps) => ps.name).filter((name, i, arr) => arr.indexOf(name) !== i)
+    if (duplicates.length > 0) {
+      throw new Error(`Duplicate identifiers: ${JSON.stringify(duplicates)}. ts(2300)`)
+    }
 
-      // Duplicate index signatures
-      duplicates = indexSignatures.map((is) => getIndexSignatureHash(is.parameter)).filter((s, i, arr) =>
-        arr.indexOf(s) !== i
-      )
-      if (duplicates.length > 0) {
-        throw new Error(`Duplicate index signatures: ${JSON.stringify(duplicates)}. ts(2374)`)
-      }
+    // Duplicate index signatures
+    duplicates = indexSignatures.map((is) => getIndexSignatureHash(is.parameter)).filter((s, i, arr) =>
+      arr.indexOf(s) !== i
+    )
+    if (duplicates.length > 0) {
+      throw new Error(`Duplicate index signatures: ${JSON.stringify(duplicates)}. ts(2374)`)
     }
   }
   /** @internal */
@@ -1520,10 +1510,8 @@ export function union<Members extends ReadonlyArray<Schema.Top>>(
 
 /** @internal */
 export function structWithRest(ast: Objects, records: ReadonlyArray<Objects>): Objects {
-  if (!isProd) {
-    if (ast.encoding || records.some((r) => r.encoding)) {
-      throw new Error("StructWithRest does not support encodings")
-    }
+  if (ast.encoding || records.some((r) => r.encoding)) {
+    throw new Error("StructWithRest does not support encodings")
   }
   let propertySignatures = ast.propertySignatures
   let indexSignatures = ast.indexSignatures
@@ -1538,10 +1526,8 @@ export function structWithRest(ast: Objects, records: ReadonlyArray<Objects>): O
 
 /** @internal */
 export function tupleWithRest(ast: Arrays, rest: ReadonlyArray<AST>): Arrays {
-  if (!isProd) {
-    if (ast.encoding) {
-      throw new Error("TupleWithRest does not support encodings")
-    }
+  if (ast.encoding) {
+    throw new Error("TupleWithRest does not support encodings")
   }
   return new Arrays(ast.isMutable, ast.elements, rest, undefined, ast.checks)
 }
@@ -2041,10 +2027,8 @@ export function isFailure<A, E>(annotations?: Annotations.Filter) {
 
 /** @internal */
 export function isPattern(regex: RegExp, annotations?: Annotations.Filter) {
-  if (!isProd) {
-    if (regex.flags !== "") {
-      throw new globalThis.Error("regex flags are not supported")
-    }
+  if (regex.flags !== "") {
+    throw new globalThis.Error("regex flags are not supported")
   }
   const source = regex.source
   return makeFilter(

@@ -550,16 +550,12 @@ function make(node: Node): any {
   }
 }
 
-const isProd = typeof process === "object" && process.env?.NODE_ENV === "production"
-
 function cloneShallow<T>(pojo: T): T {
   if (Array.isArray(pojo)) return pojo.slice() as T
   if (typeof pojo === "object" && pojo !== null) {
-    if (!isProd) {
-      const proto = Object.getPrototypeOf(pojo)
-      if (proto !== Object.prototype && proto !== null) {
-        throw new Error("Cannot clone object with non-Object constructor or null prototype")
-      }
+    const proto = Object.getPrototypeOf(pojo)
+    if (proto !== Object.prototype && proto !== null) {
+      throw new Error("Cannot clone object with non-Object constructor or null prototype")
     }
     return { ...pojo } as T
   }
