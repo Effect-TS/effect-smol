@@ -48,6 +48,30 @@ describe("Rewriter", () => {
           ]
         }
       )
+      assertJsonSchema(
+        Rewriter.openAi,
+        Schema.Union([Schema.String, Schema.Number]).annotate({
+          description: "description",
+          title: "title",
+          default: "default",
+          examples: ["example"]
+        }),
+        {
+          schema: {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": false,
+            "description": "description",
+            "title": "title",
+            "default": "default",
+            "examples": ["example"]
+          },
+          traces: [
+            "replaced top level non-object with an empty object"
+          ]
+        }
+      )
     })
 
     it("refs are supported", () => {

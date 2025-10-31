@@ -232,12 +232,17 @@ export const openAi = make([
       // tracer
       ctx.tracer.push("replaced top level non-object with an empty object")
 
-      return {
+      const out: JsonObject = {
         "type": "object",
         "properties": {},
         "required": [],
         "additionalProperties": false
       }
+      if (schema.description !== undefined) out.description = schema.description
+      if (schema.title !== undefined) out.title = schema.title
+      if (schema.default !== undefined) out.default = schema.default
+      if (schema.examples !== undefined) out.examples = schema.examples
+      return out
     }
   }),
 
