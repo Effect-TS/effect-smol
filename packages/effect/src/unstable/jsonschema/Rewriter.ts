@@ -99,6 +99,20 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
       return out
     }
 
+    // handle anyOf
+    if (Array.isArray(schema.anyOf)) {
+      const out: any = whitelistProperties(schema, path, tracer, {
+        anyOf: constTrue,
+        ...jsonSchemaAnnotations
+      })
+      // recursively rewrite members
+      const anyOf = out.anyOf.map((value: Schema.JsonSchema.Schema, i: number) =>
+        recur(value, [...path, "anyOf", i], tracer)
+      )
+      out.anyOf = anyOf
+      return out
+    }
+
     // handle oneOf
     if (Array.isArray(schema.oneOf)) {
       const out: any = whitelistProperties(schema, path, tracer, {
@@ -106,11 +120,12 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
         ...jsonSchemaAnnotations
       })
       // recursively rewrite members
-      out.anyOf = out.oneOf.map((value: Schema.JsonSchema.Schema, i: number) =>
+      const anyOf = out.oneOf.map((value: Schema.JsonSchema.Schema, i: number) =>
         recur(value, [...path, "oneOf", i], tracer)
       )
-      tracer.push(change(path, `rewrote oneOf to anyOf`))
+      out.anyOf = anyOf
       delete out.oneOf
+      tracer.push(change(path, `rewrote oneOf to anyOf`))
       return out
     }
 
@@ -118,7 +133,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
     if (Array.isArray(schema.allOf)) {
       const { allOf, ...rest } = schema
       const merged = allOf.reduce((acc, curr) => propertiesCombiner.combine(acc, curr), rest)
-      tracer.push(change(path, `merged ${allOf.length} allOf fragment(s)`))
+      tracer.push(change(path, `merged ${allOf.length} fragment(s)`))
       return recur(merged, path, tracer)
     }
 
@@ -138,12 +153,23 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
 
     // handle arrays
     if (schema.type === "array") {
-      return whitelistProperties(schema, path, tracer, {
+      const array: any = whitelistProperties(schema, path, tracer, {
         type: constTrue,
         ...jsonSchemaAnnotations,
         items: constTrue,
         prefixItems: constTrue
       })
+      // recursively rewrite prefixItems
+      if (array.prefixItems) {
+        array.prefixItems = array.prefixItems.map((value: Schema.JsonSchema.Schema, i: number) =>
+          recur(value, [...path, "prefixItems", i], tracer)
+        )
+      }
+      // recursively rewrite items
+      if (array.items) {
+        array.items = recur(array.items, [...path, "items"], tracer)
+      }
+      return array
     }
 
     // handle objects
