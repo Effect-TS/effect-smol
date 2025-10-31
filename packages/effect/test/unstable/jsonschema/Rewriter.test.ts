@@ -48,7 +48,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            `return default schema at ["schema"]`
+            `root must be an object, returning default schema at ["schema"]`
           ]
         }
       )
@@ -72,7 +72,7 @@ describe("Rewriter", () => {
             "examples": ["example"]
           },
           traces: [
-            `return default schema at ["schema"]`
+            `root must be an object, returning default schema at ["schema"]`
           ]
         }
       )
