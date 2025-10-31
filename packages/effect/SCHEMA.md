@@ -4788,7 +4788,10 @@ const schema = Schema.Struct({
   a: Schema.optionalKey(Schema.NonEmptyString)
 })
 
-const document = Schema.makeJsonSchemaDraft2020_12(schema, { generateDescriptions: true })
+const document = Schema.makeJsonSchemaDraft2020_12(schema, {
+  referenceStrategy: "skip-top-level",
+  generateDescriptions: true
+})
 
 console.log(JSON.stringify(document.schema, null, 2))
 /*

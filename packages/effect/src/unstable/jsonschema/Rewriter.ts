@@ -24,8 +24,8 @@ export interface Tracer {
   push(change: string): void
 }
 
-function change(ctx: Context, summary: string) {
-  return `${summary} at ${Inspectable.formatPath(ctx.path)}`
+function change(path: Path, summary: string) {
+  return `${summary} at ${Inspectable.formatPath(path)}`
 }
 
 /**
@@ -33,17 +33,11 @@ function change(ctx: Context, summary: string) {
  */
 export const NoopTracer: Tracer = { push() {} }
 
-interface Context {
-  readonly path: Path
-  readonly definitions: Schema.JsonSchema.Definitions
-  readonly tracer: Tracer
-}
-
 /**
  * @since 4.0.0
  */
 export interface FragmentRewriter {
-  (fragment: Schema.JsonSchema.Fragment, ctx: Context): Schema.JsonSchema.Fragment | undefined
+  (fragment: Schema.JsonSchema.Fragment, path: Path, tracer: Tracer): Schema.JsonSchema.Fragment | undefined
 }
 
 /**
@@ -57,16 +51,16 @@ export interface Rewriter {
  * @since 4.0.0
  */
 export function make(rewriters: ReadonlyArray<FragmentRewriter>): Rewriter {
-  function recur(fragment: any, ctx: Context): any {
+  function recur(fragment: any, path: Path, tracer: Tracer): any {
     if (Array.isArray(fragment)) {
-      return fragment.map((v, i) => recur(v, { ...ctx, path: [...ctx.path, i] }))
+      return fragment.map((v, i) => recur(v, [...path, i], tracer))
     } else if (fragment && typeof fragment === "object") {
       let out = { ...fragment }
       for (const key of Object.keys(out)) {
-        out[key] = recur(out[key], { ...ctx, path: [...ctx.path, key] })
+        out[key] = recur(out[key], [...path, key], tracer)
       }
       for (const r of rewriters) {
-        const fragment = r(out, ctx)
+        const fragment = r(out, path, tracer)
         if (fragment) out = fragment
       }
       return out
@@ -78,8 +72,8 @@ export function make(rewriters: ReadonlyArray<FragmentRewriter>): Rewriter {
   return (document: Schema.JsonSchema.Document, tracer: Tracer = NoopTracer): Schema.JsonSchema.Document => {
     return {
       uri: document.uri,
-      schema: recur(document.schema, { path: ["schema"], definitions: document.definitions, tracer }),
-      definitions: recur(document.definitions, { path: ["definitions"], definitions: document.definitions, tracer })
+      schema: recur(document.schema, ["schema"], tracer),
+      definitions: recur(document.definitions, ["definitions"], tracer)
     }
   }
 }
@@ -89,7 +83,8 @@ export function make(rewriters: ReadonlyArray<FragmentRewriter>): Rewriter {
  */
 export function whitelistProperties(
   schema: Schema.JsonSchema.Schema,
-  ctx: Context,
+  path: Path,
+  tracer: Tracer,
   whitelist: Record<string, (value: unknown) => boolean>
 ) {
   const out = { ...schema }
@@ -97,7 +92,7 @@ export function whitelistProperties(
     if (key === "type" || (key in whitelist && whitelist[key](schema[key]))) continue
 
     // tracer
-    ctx.tracer.push(change(ctx, `removed property "${key}"`))
+    tracer.push(change(path, `removed property "${key}"`))
 
     delete out[key]
   }
@@ -141,10 +136,10 @@ function isSchema(path: Path): boolean {
  * @since 4.0.0
  */
 export function onSchema(
-  f: (schema: Schema.JsonSchema.Schema, ctx: Context) => Schema.JsonSchema.Fragment | undefined
+  f: (schema: Schema.JsonSchema.Schema, path: Path, tracer: Tracer) => Schema.JsonSchema.Fragment | undefined
 ): FragmentRewriter {
-  return (fragment, ctx) => {
-    if (isSchema(ctx.path)) return f(fragment, ctx)
+  return (fragment, path, tracer) => {
+    if (isSchema(path)) return f(fragment, path, tracer)
   }
 }
 
@@ -159,10 +154,10 @@ interface JsonObject extends Schema.JsonSchema.Schema {
  * @since 4.0.0
  */
 export function onObject(
-  f: (schema: JsonObject, ctx: Context) => Schema.JsonSchema.Fragment | undefined
+  f: (schema: JsonObject, path: Path, tracer: Tracer) => Schema.JsonSchema.Fragment | undefined
 ): FragmentRewriter {
-  return onSchema((fragment, ctx) => {
-    if (fragment.type === "object") return f(fragment as JsonObject, ctx)
+  return onSchema((fragment, path, tracer) => {
+    if (fragment.type === "object") return f(fragment as JsonObject, path, tracer)
   })
 }
 
@@ -213,10 +208,10 @@ function mergeAllOf(
  */
 export const openAi = make([
   // root must be an object
-  onSchema((schema, ctx) => {
-    if (ctx.path.length === 1 && ctx.path[0] === "schema" && schema.type !== "object") {
+  onSchema((schema, path, tracer) => {
+    if (path.length === 1 && path[0] === "schema" && schema.type !== "object") {
       // tracer
-      ctx.tracer.push("replaced top level non-object with an empty object")
+      tracer.push("replaced top level non-object with an empty object")
 
       const out: JsonObject = {
         "type": "object",
@@ -233,19 +228,19 @@ export const openAi = make([
   }),
 
   // merge allOf
-  onSchema((schema, ctx) => {
+  onSchema((schema, path, tracer) => {
     if (Array.isArray(schema.allOf)) {
       const { allOf, ...rest } = schema
 
       // tracer
-      ctx.tracer.push(change(ctx, `merged ${allOf.length} allOf fragment(s)`))
+      tracer.push(change(path, `merged ${allOf.length} allOf fragment(s)`))
 
       return mergeAllOf(rest, allOf)
     }
   }),
 
   // Supported constraints
-  onSchema((schema, ctx) => {
+  onSchema((schema, path, tracer) => {
     const jsonSchemaAnnotations = {
       title: constTrue,
       description: constTrue,
@@ -253,7 +248,7 @@ export const openAi = make([
       examples: constTrue
     }
     if (schema.type === "string") {
-      return whitelistProperties(schema, ctx, {
+      return whitelistProperties(schema, path, tracer, {
         ...jsonSchemaAnnotations,
         enum: constTrue,
         pattern: constTrue,
@@ -271,7 +266,7 @@ export const openAi = make([
             }
       })
     } else if (schema.type === "number") {
-      return whitelistProperties(schema, ctx, {
+      return whitelistProperties(schema, path, tracer, {
         ...jsonSchemaAnnotations,
         enum: constTrue,
         multipleOf: constTrue,
@@ -281,7 +276,7 @@ export const openAi = make([
         exclusiveMaximum: constTrue
       })
     } else if (schema.type === "array") {
-      return whitelistProperties(schema, ctx, {
+      return whitelistProperties(schema, path, tracer, {
         ...jsonSchemaAnnotations,
         items: constTrue,
         additionalItems: constTrue,
@@ -290,7 +285,7 @@ export const openAi = make([
         maxItems: constTrue
       })
     } else if (schema.type === "object") {
-      return whitelistProperties(schema, ctx, {
+      return whitelistProperties(schema, path, tracer, {
         ...jsonSchemaAnnotations,
         properties: constTrue,
         required: constTrue,
@@ -300,10 +295,10 @@ export const openAi = make([
   }),
 
   // additionalProperties: false must always be set in objects
-  onObject((schema, ctx) => {
+  onObject((schema, path, tracer) => {
     if (schema.additionalProperties !== false) {
       // tracer
-      ctx.tracer.push(change(ctx, `set additionalProperties to false`))
+      tracer.push(change(path, `set additionalProperties to false`))
 
       return { ...schema, additionalProperties: false }
     }
@@ -311,7 +306,7 @@ export const openAi = make([
 
   // all fields must be required
   // it is possible to emulate an optional parameter by using a union type with null
-  onObject((schema, ctx) => {
+  onObject((schema, path, tracer) => {
     const keys = Object.keys(schema.properties)
     if (schema.required.length < keys.length) {
       const required = new Set(schema.required)
@@ -322,7 +317,7 @@ export const openAi = make([
       for (const key of keys) {
         if (!required.has(key)) {
           // tracer
-          ctx.tracer.push(change(ctx, `added required property "${key}"`))
+          tracer.push(change(path, `added required property "${key}"`))
 
           out.required.push(key)
           const type = out.properties[key].type
@@ -346,10 +341,10 @@ export const openAi = make([
   }),
 
   // rewrite oneOf to anyOf
-  onSchema((schema, ctx) => {
+  onSchema((schema, path, tracer) => {
     if ("oneOf" in schema) {
       // tracer
-      ctx.tracer.push(change(ctx, `rewrote oneOf to anyOf`))
+      tracer.push(change(path, `rewrote oneOf to anyOf`))
 
       const out = { ...schema }
       out.anyOf = out.oneOf
