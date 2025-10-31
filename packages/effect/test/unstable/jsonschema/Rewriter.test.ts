@@ -20,7 +20,11 @@ function assertJsonSchema(
     }
   }
   const document = rewriter(
-    Schema.makeJsonSchemaDraft2020_12(schema, { generateDescriptions: true, ...options }),
+    Schema.makeJsonSchemaDraft2020_12(schema, {
+      generateDescriptions: true,
+      referenceStrategy: "skip-top-level",
+      ...options
+    }),
     tracer
   )
   const copy = JSON.parse(JSON.stringify(document.schema))
@@ -119,7 +123,9 @@ describe("Rewriter", () => {
               },
               "as": {
                 "type": "array",
-                "items": { "$ref": "#/$defs/A" }
+                "items": {
+                  "$ref": "#/$defs/A"
+                }
               }
             },
             "required": ["a", "as"],
@@ -135,10 +141,7 @@ describe("Rewriter", () => {
               "required": ["a", "as"],
               "additionalProperties": false
             }
-          },
-          traces: [
-            `resolved ref to "A" at ["schema"]`
-          ]
+          }
         }
       )
     })
@@ -570,7 +573,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            `removed unsupported property "minLength" at ["schema"]["properties"]["a"]`
+            `removed property "minLength" at ["schema"]["properties"]["a"]`
           ]
         }
       )
@@ -600,7 +603,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            `removed unsupported property "minLength" at ["schema"]["properties"]["a"]`
+            `removed property "minLength" at ["schema"]["properties"]["a"]`
           ]
         }
       )
@@ -797,17 +800,17 @@ describe("Rewriter", () => {
             "properties": {
               "a": {
                 "type": "array",
-                "description": "an array with unique items",
                 "items": {
                   "type": "string"
-                }
+                },
+                "description": "an array with unique items"
               }
             },
             "required": ["a"],
             "additionalProperties": false
           },
           traces: [
-            `removed unsupported property "uniqueItems" at ["schema"]["properties"]["a"]`
+            `removed property "uniqueItems" at ["schema"]["properties"]["a"]`
           ]
         }
       )

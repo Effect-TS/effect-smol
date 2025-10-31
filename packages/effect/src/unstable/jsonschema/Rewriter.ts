@@ -97,7 +97,7 @@ export function whitelistProperties(
     if (key === "type" || (key in whitelist && whitelist[key](schema[key]))) continue
 
     // tracer
-    ctx.tracer.push(change(ctx, `removed unsupported property "${key}"`))
+    ctx.tracer.push(change(ctx, `removed property "${key}"`))
 
     delete out[key]
   }
@@ -212,20 +212,6 @@ function mergeAllOf(
  * @since 4.0.0
  */
 export const openAi = make([
-  // rewrite top level refs
-  onSchema((schema, ctx) => {
-    if (
-      ctx.path.length === 1 && ctx.path[0] === "schema" && Predicate.isString(schema.$ref)
-    ) {
-      const identifier = unescapeJsonPointer(schema.$ref.split("/").at(-1)!)
-
-      // tracer
-      ctx.tracer.push(change(ctx, `resolved ref to "${identifier}"`))
-
-      return ctx.definitions[identifier]
-    }
-  }),
-
   // root must be an object
   onSchema((schema, ctx) => {
     if (ctx.path.length === 1 && ctx.path[0] === "schema" && schema.type !== "object") {
@@ -258,7 +244,7 @@ export const openAi = make([
     }
   }),
 
-  // Supported properties
+  // Supported constraints
   onSchema((schema, ctx) => {
     const jsonSchemaAnnotations = {
       title: constTrue,
@@ -273,15 +259,15 @@ export const openAi = make([
         pattern: constTrue,
         format: (format) =>
           Predicate.isString(format) && format in {
-              "date-time": true,
-              "time": true,
-              "date": true,
-              "duration": true,
-              "email": true,
-              "hostname": true,
-              "ipv4": true,
-              "ipv6": true,
-              "uuid": true
+              "date-time": null,
+              "time": null,
+              "date": null,
+              "duration": null,
+              "email": null,
+              "hostname": null,
+              "ipv4": null,
+              "ipv6": null,
+              "uuid": null
             }
       })
     } else if (schema.type === "number") {

@@ -58,7 +58,13 @@ function go(
   // ---------------------------------------------
   // handle identifier annotation
   // ---------------------------------------------
-  if (!ignoreIdentifier && (options.referenceStrategy !== "skip" || AST.isSuspend(ast))) {
+  if (
+    !ignoreIdentifier && (
+      options.referenceStrategy === "keep"
+      || options.referenceStrategy === "skip-top-level" && path.length > 0
+      || AST.isSuspend(ast)
+    )
+  ) {
     const identifier = getIdentifier(ast)
     if (identifier !== undefined) {
       const $ref = { $ref: getPointer(target) + escapeJsonPointer(identifier) }

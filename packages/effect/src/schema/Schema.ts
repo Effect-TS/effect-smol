@@ -6772,8 +6772,8 @@ export interface JsonSchemaOptions {
    * schema.
    *
    * Possible values include:
-   * - `true`: Allow additional properties
    * - `false`: Disallow additional properties (default)
+   * - `true`: Allow additional properties
    * - `JsonSchema`: Use the provided JSON Schema for additional properties
    */
   readonly additionalProperties?: true | false | JsonSchema.Schema | undefined
@@ -6781,10 +6781,11 @@ export interface JsonSchemaOptions {
    * Controls how references are handled while resolving the JSON schema.
    *
    * Possible values include:
-   * - `"keep"`: Keep the top-level reference (default)
-   * - `"skip"`: Skip the top-level reference
+   * - `"keep"`: Keep references (default)
+   * - `"skip"`: Skip all references (recursive schemas excluded)
+   * - `"skip-top-level"`: Skip top-level references
    */
-  readonly referenceStrategy?: "skip" | "keep" | undefined
+  readonly referenceStrategy?: "keep" | "skip" | "skip-top-level" | undefined
   /**
    * A function that is called when a JSON Schema annotation is missing. This
    * will be the default result instead of throwing an error.
