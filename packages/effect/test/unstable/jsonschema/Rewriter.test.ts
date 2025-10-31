@@ -48,7 +48,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            "replaced top level non-object with an empty object"
+            `return default schema at ["schema"]`
           ]
         }
       )
@@ -72,7 +72,7 @@ describe("Rewriter", () => {
             "examples": ["example"]
           },
           traces: [
-            "replaced top level non-object with an empty object"
+            `return default schema at ["schema"]`
           ]
         }
       )
@@ -559,7 +559,7 @@ describe("Rewriter", () => {
     it("should strip unsupported string properties", () => {
       assertJsonSchema(
         Rewriter.openAi,
-        Schema.Struct({ a: Schema.NonEmptyString }),
+        Schema.Struct({ a: Schema.String.check(Schema.isMinLength(1)) }),
         {
           schema: {
             "type": "object",
@@ -579,13 +579,33 @@ describe("Rewriter", () => {
       )
       assertJsonSchema(
         Rewriter.openAi,
+        Schema.Struct({ a: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10)) }),
+        {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": {
+                "type": "string",
+                "description": "a value with a length of at least 1 and a value with a length of at most 10"
+              }
+            },
+            "required": ["a"],
+            "additionalProperties": false
+          },
+          traces: [
+            `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
+          ]
+        }
+      )
+      assertJsonSchema(
+        Rewriter.openAi,
         Schema.Struct({
-          a: Schema.NonEmptyString.annotate({
-            title: "title",
+          a: Schema.String.check(Schema.isMinLength(1, {
             description: "description",
+            title: "title",
             default: "default",
             examples: ["example"]
-          })
+          }))
         }),
         {
           schema: {
@@ -607,187 +627,6 @@ describe("Rewriter", () => {
           ]
         }
       )
-    })
-
-    describe("should keep supported number properties", () => {
-      it("isGreaterThanOrEqualTo & isLessThanOrEqualTo", () => {
-        assertJsonSchema(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.Number.check(Schema.isGreaterThanOrEqualTo(2), Schema.isLessThanOrEqualTo(4))
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": "number",
-                  "minimum": 2,
-                  "maximum": 4,
-                  "description": "a value greater than or equal to 2 and a value less than or equal to 4"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            },
-            traces: [
-              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
-            ]
-          }
-        )
-        assertJsonSchema(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.Number.check(
-              Schema.isGreaterThanOrEqualTo(2, { description: "isGreaterThanOrEqualTo(2)" }),
-              Schema.isLessThanOrEqualTo(4)
-            )
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": "number",
-                  "minimum": 2,
-                  "maximum": 4,
-                  "description": "isGreaterThanOrEqualTo(2) and a value less than or equal to 4"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            },
-            traces: [
-              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
-            ]
-          }
-        )
-        assertJsonSchema(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.Number.check(
-              Schema.isGreaterThanOrEqualTo(2, { description: "isGreaterThanOrEqualTo(2)" }),
-              Schema.isLessThanOrEqualTo(4, { description: "isLessThanOrEqualTo(4)" })
-            )
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": "number",
-                  "minimum": 2,
-                  "maximum": 4,
-                  "description": "isGreaterThanOrEqualTo(2) and isLessThanOrEqualTo(4)"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            },
-            traces: [
-              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
-            ]
-          }
-        )
-      })
-
-      it("isGreaterThanOrEqualTo & isGreaterThanOrEqualTo should keep the maximum", () => {
-        assertJsonSchema(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.Number.check(Schema.isGreaterThanOrEqualTo(2), Schema.isGreaterThanOrEqualTo(3))
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": "number",
-                  "minimum": 3,
-                  "description": "a value greater than or equal to 2 and a value greater than or equal to 3"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            },
-            traces: [
-              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
-            ]
-          }
-        )
-        assertJsonSchema(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.Number.check(Schema.isGreaterThanOrEqualTo(3), Schema.isGreaterThanOrEqualTo(2))
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": "number",
-                  "minimum": 3,
-                  "description": "a value greater than or equal to 3 and a value greater than or equal to 2"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            },
-            traces: [
-              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
-            ]
-          }
-        )
-      })
-
-      it("isLessThanOrEqualTo & isLessThanOrEqualTo should keep the minimum", () => {
-        assertJsonSchema(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.Number.check(Schema.isLessThanOrEqualTo(2), Schema.isLessThanOrEqualTo(3))
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": "number",
-                  "maximum": 2,
-                  "description": "a value less than or equal to 2 and a value less than or equal to 3"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            },
-            traces: [
-              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
-            ]
-          }
-        )
-        assertJsonSchema(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.Number.check(Schema.isLessThanOrEqualTo(3), Schema.isLessThanOrEqualTo(2))
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": "number",
-                  "maximum": 2,
-                  "description": "a value less than or equal to 3 and a value less than or equal to 2"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            },
-            traces: [
-              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
-            ]
-          }
-        )
-      })
     })
 
     it("should strip unsupported array properties", () => {

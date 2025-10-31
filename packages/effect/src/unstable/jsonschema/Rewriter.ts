@@ -3,13 +3,11 @@
  */
 import * as Predicate from "effect/data/Predicate"
 import { constTrue } from "effect/Function"
-import * as Boolean_ from "../../Boolean.ts"
 import * as Array_ from "../../collections/Array.ts"
 import * as Combiner from "../../data/Combiner.ts"
 import * as Struct from "../../data/Struct.ts"
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
-import * as Number_ from "../../Number.ts"
 import type * as Schema from "../../schema/Schema.ts"
 
 /**
@@ -22,10 +20,6 @@ export type Path = readonly ["schema" | "definitions", ...ReadonlyArray<string |
  */
 export interface Tracer {
   push(change: string): void
-}
-
-function change(path: Path, summary: string) {
-  return `${summary} at ${Inspectable.formatPath(path)}`
 }
 
 /**
@@ -55,18 +49,17 @@ export function make(rewriters: ReadonlyArray<FragmentRewriter>): Rewriter {
     if (Array.isArray(fragment)) {
       return fragment.map((v, i) => recur(v, [...path, i], tracer))
     } else if (fragment && typeof fragment === "object") {
-      let out = { ...fragment }
-      for (const key of Object.keys(out)) {
-        out[key] = recur(out[key], [...path, key], tracer)
+      let out: any = {}
+      for (const key of Object.keys(fragment)) {
+        out[key] = recur(fragment[key], [...path, key], tracer)
       }
       for (const r of rewriters) {
         const fragment = r(out, path, tracer)
-        if (fragment) out = fragment
+        if (fragment !== undefined) out = fragment
       }
       return out
-    } else {
-      return fragment
     }
+    return fragment
   }
 
   return (document: Schema.JsonSchema.Document, tracer: Tracer = NoopTracer): Schema.JsonSchema.Document => {
@@ -76,6 +69,10 @@ export function make(rewriters: ReadonlyArray<FragmentRewriter>): Rewriter {
       definitions: recur(document.definitions, ["definitions"], tracer)
     }
   }
+}
+
+function change(path: Path, summary: string) {
+  return `${summary} at ${Inspectable.formatPath(path)}`
 }
 
 /**
@@ -89,7 +86,7 @@ export function whitelistProperties(
 ) {
   const out = { ...schema }
   for (const key of Object.keys(schema)) {
-    if (key === "type" || (key in whitelist && whitelist[key](schema[key]))) continue
+    if (key in whitelist && whitelist[key](schema[key])) continue
 
     // tracer
     tracer.push(change(path, `removed property "${key}"`))
@@ -161,44 +158,30 @@ export function onObject(
   })
 }
 
-// Return a pattern string that matches iff the ENTIRE string matches A and B.
-function combinePatterns(a: string, b: string): string {
-  const A = stripAnchors(a)
-  const B = stripAnchors(b)
-  return `(?=(?:${A})$)(?=(?:${B})$).*$`
-}
-
-function stripAnchors(src: string): string {
-  // remove a single leading ^ and trailing $ if present
-  return src.replace(/^\^/, "").replace(/\$$/, "")
-}
-
-const or = UndefinedOr.getReducer(Boolean_.ReducerOr)
-const last = UndefinedOr.getReducer(Combiner.last())
 const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => `${a} and ${b}`))
 
-const combiner: Combiner.Combiner<any> = Struct.getCombiner({
+const propertiesCombiner: Combiner.Combiner<any> = Struct.getCombiner({
   type: UndefinedOr.getReducer(Combiner.first<string>()),
   description: join,
   title: join,
-  default: last,
-  examples: UndefinedOr.getReducer(Array_.getReducerConcat()),
-  minimum: UndefinedOr.getReducer(Number_.ReducerMax),
-  maximum: UndefinedOr.getReducer(Number_.ReducerMin),
-  exclusiveMinimum: or,
-  exclusiveMaximum: or,
-  multipleOf: UndefinedOr.getReducer(Number_.ReducerMultiply),
-  format: last,
-  pattern: UndefinedOr.getReducer(Combiner.make(combinePatterns))
+  default: UndefinedOr.getReducer(Combiner.last()),
+  examples: UndefinedOr.getReducer(Array_.getReducerConcat())
 }, {
   omitKeyWhen: Predicate.isUndefined
 })
 
-function mergeAllOf(
-  schema: Schema.JsonSchema.Schema,
-  allOf: Array<Schema.JsonSchema.Fragment>
-): Schema.JsonSchema.Schema {
-  return allOf.reduce((acc, curr) => combiner.combine(acc, curr), schema)
+function getDefaultSchema(schema: Schema.JsonSchema.Schema): Schema.JsonSchema.Schema {
+  const out: JsonObject = {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  }
+  if (schema.description !== undefined) out.description = schema.description
+  if (schema.title !== undefined) out.title = schema.title
+  if (schema.default !== undefined) out.default = schema.default
+  if (schema.examples !== undefined) out.examples = schema.examples
+  return out
 }
 
 /**
@@ -207,26 +190,6 @@ function mergeAllOf(
  * @since 4.0.0
  */
 export const openAi = make([
-  // root must be an object
-  onSchema((schema, path, tracer) => {
-    if (path.length === 1 && path[0] === "schema" && schema.type !== "object") {
-      // tracer
-      tracer.push("replaced top level non-object with an empty object")
-
-      const out: JsonObject = {
-        "type": "object",
-        "properties": {},
-        "required": [],
-        "additionalProperties": false
-      }
-      if (schema.description !== undefined) out.description = schema.description
-      if (schema.title !== undefined) out.title = schema.title
-      if (schema.default !== undefined) out.default = schema.default
-      if (schema.examples !== undefined) out.examples = schema.examples
-      return out
-    }
-  }),
-
   // merge allOf
   onSchema((schema, path, tracer) => {
     if (Array.isArray(schema.allOf)) {
@@ -235,72 +198,7 @@ export const openAi = make([
       // tracer
       tracer.push(change(path, `merged ${allOf.length} allOf fragment(s)`))
 
-      return mergeAllOf(rest, allOf)
-    }
-  }),
-
-  // Supported constraints
-  onSchema((schema, path, tracer) => {
-    const jsonSchemaAnnotations = {
-      title: constTrue,
-      description: constTrue,
-      default: constTrue,
-      examples: constTrue
-    }
-    if (schema.type === "string") {
-      return whitelistProperties(schema, path, tracer, {
-        ...jsonSchemaAnnotations,
-        enum: constTrue,
-        pattern: constTrue,
-        format: (format) =>
-          Predicate.isString(format) && format in {
-              "date-time": null,
-              "time": null,
-              "date": null,
-              "duration": null,
-              "email": null,
-              "hostname": null,
-              "ipv4": null,
-              "ipv6": null,
-              "uuid": null
-            }
-      })
-    } else if (schema.type === "number") {
-      return whitelistProperties(schema, path, tracer, {
-        ...jsonSchemaAnnotations,
-        enum: constTrue,
-        multipleOf: constTrue,
-        minimum: constTrue,
-        maximum: constTrue,
-        exclusiveMinimum: constTrue,
-        exclusiveMaximum: constTrue
-      })
-    } else if (schema.type === "array") {
-      return whitelistProperties(schema, path, tracer, {
-        ...jsonSchemaAnnotations,
-        items: constTrue,
-        additionalItems: constTrue,
-        prefixItems: constTrue,
-        minItems: constTrue,
-        maxItems: constTrue
-      })
-    } else if (schema.type === "object") {
-      return whitelistProperties(schema, path, tracer, {
-        ...jsonSchemaAnnotations,
-        properties: constTrue,
-        required: constTrue,
-        additionalProperties: constTrue
-      })
-    }
-  }),
-
-  // additionalProperties: false must always be set in objects
-  onObject((schema, path, tracer) => {
-    if (schema.additionalProperties !== false) {
-      // tracer
-      tracer.push(change(path, `set additionalProperties to false`))
-
-      return { ...schema, additionalProperties: false }
+      return allOf.reduce((acc, curr) => propertiesCombiner.combine(acc, curr), rest)
     }
   }),
 
@@ -340,9 +238,65 @@ export const openAi = make([
     }
   }),
 
-  // rewrite oneOf to anyOf
+  // Supported types
   onSchema((schema, path, tracer) => {
-    if ("oneOf" in schema) {
+    // whitelist supported properties and types
+    const jsonSchemaAnnotations = {
+      title: constTrue,
+      description: constTrue,
+      default: constTrue,
+      examples: constTrue
+    }
+    if (
+      schema.type === "string"
+      || schema.type === "number"
+      || schema.type === "integer"
+      || schema.type === "boolean"
+    ) {
+      return whitelistProperties(schema, path, tracer, {
+        type: constTrue,
+        ...jsonSchemaAnnotations,
+        enum: constTrue
+      })
+    } else if (schema.type === "array") {
+      return whitelistProperties(schema, path, tracer, {
+        type: constTrue,
+        ...jsonSchemaAnnotations,
+        items: constTrue,
+        prefixItems: constTrue
+      })
+    } else if (schema.type === "object") {
+      // additionalProperties: false must always be set in objects
+      if (schema.additionalProperties !== false) {
+        // tracer
+        tracer.push(change(path, `set additionalProperties to false`))
+
+        schema = { ...schema, additionalProperties: false }
+      }
+
+      return whitelistProperties(schema, path, tracer, {
+        type: constTrue,
+        ...jsonSchemaAnnotations,
+        properties: constTrue,
+        required: constTrue,
+        additionalProperties: constTrue
+      })
+    } else if (schema.enum !== undefined) {
+      return whitelistProperties(schema, path, tracer, {
+        enum: constTrue,
+        ...jsonSchemaAnnotations
+      })
+    } else if (schema.anyOf !== undefined) {
+      return whitelistProperties(schema, path, tracer, {
+        anyOf: constTrue,
+        ...jsonSchemaAnnotations
+      })
+    } else if (schema.$ref !== undefined) {
+      return whitelistProperties(schema, path, tracer, {
+        $ref: constTrue,
+        ...jsonSchemaAnnotations
+      })
+    } else if ("oneOf" in schema) {
       // tracer
       tracer.push(change(path, `rewrote oneOf to anyOf`))
 
@@ -350,6 +304,16 @@ export const openAi = make([
       out.anyOf = out.oneOf
       delete out.oneOf
       return out
+    }
+  }),
+
+  // root must be an object
+  onSchema((schema, path, tracer) => {
+    if (path.length === 1 && path[0] === "schema" && schema.type !== "object") {
+      // tracer
+      tracer.push(change(path, `return default schema`))
+
+      return getDefaultSchema(schema)
     }
   })
 ])
