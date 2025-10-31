@@ -69,6 +69,20 @@ const propertiesCombiner: Combiner.Combiner<any> = Struct.getCombiner({
   omitKeyWhen: Predicate.isUndefined
 })
 
+function getDefaultSchema(schema: Schema.JsonSchema.Schema): Schema.JsonSchema.Schema {
+  const out: any = {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  }
+  if (schema.description !== undefined) out.description = schema.description
+  if (schema.title !== undefined) out.title = schema.title
+  if (schema.default !== undefined) out.default = schema.default
+  if (schema.examples !== undefined) out.examples = schema.examples
+  return out
+}
+
 /**
  * @see https://platform.openai.com/docs/guides/structured-outputs/supported-schemas?type-restrictions=string-restrictions#supported-schemas
  *
@@ -86,17 +100,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
     // root must be an object
     if (path.length === 1 && path[0] === "schema" && schema.type !== "object") {
       tracer.push(change(path, `root must be an object, returning default schema`))
-      const out: any = {
-        "type": "object",
-        "properties": {},
-        "required": [],
-        "additionalProperties": false
-      }
-      if (schema.description !== undefined) out.description = schema.description
-      if (schema.title !== undefined) out.title = schema.title
-      if (schema.default !== undefined) out.default = schema.default
-      if (schema.examples !== undefined) out.examples = schema.examples
-      return out
+      return getDefaultSchema(schema)
     }
 
     // handle anyOf
@@ -113,7 +117,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
       return out
     }
 
-    // handle oneOf
+    // rewrite oneOf to anyOf
     if (Array.isArray(schema.oneOf)) {
       const out: any = whitelistProperties(schema, path, tracer, {
         oneOf: constTrue,
@@ -129,7 +133,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
       return out
     }
 
-    // handle allOf
+    // merge allOf into a single schema
     if (Array.isArray(schema.allOf)) {
       const { allOf, ...rest } = schema
       const merged = allOf.reduce((acc, curr) => propertiesCombiner.combine(acc, curr), rest)
@@ -222,7 +226,25 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
       return object
     }
 
-    return schema
+    // handle $refs
+    if (schema.$ref !== undefined) {
+      return schema
+    }
+
+    // rewrite const to enum
+    if (schema.const !== undefined) {
+      const out: any = whitelistProperties(schema, path, tracer, {
+        const: constTrue,
+        ...jsonSchemaAnnotations
+      })
+      out.enum = [schema.const]
+      delete out.const
+      tracer.push(change(path, `rewrote const to enum`))
+      return out
+    }
+
+    tracer.push(change(path, `unknown schema type, returning default schema`))
+    return getDefaultSchema(schema)
   }
 
   return {

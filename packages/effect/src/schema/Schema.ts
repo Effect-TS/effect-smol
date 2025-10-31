@@ -2138,7 +2138,7 @@ export interface UniqueArray<S extends Top> extends Array$<S> {}
  * Returns a new array schema that ensures all elements are unique.
  *
  * The equivalence used to determine uniqueness is the one provided by
- * `ToEquivalence.make(item)`.
+ * `Schema.makeEquivalence(item)`.
  *
  * @category Constructors
  * @since 4.0.0

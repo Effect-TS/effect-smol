@@ -720,6 +720,39 @@ describe("Rewriter", () => {
       )
     })
 
+    it("const", () => {
+      assertJsonSchema(
+        Rewriter.openAi,
+        Schema.Struct({
+          a: Schema.String.annotate({
+            description: "description",
+            jsonSchema: {
+              _tag: "Override",
+              override: () => ({
+                const: "a"
+              })
+            }
+          })
+        }),
+        {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": {
+                "enum": ["a"],
+                "description": "description"
+              }
+            },
+            "required": ["a"],
+            "additionalProperties": false
+          },
+          traces: [
+            `rewrote const to enum at ["schema"]["properties"]["a"]`
+          ]
+        }
+      )
+    })
+
     it("UniqueArray", () => {
       assertJsonSchema(
         Rewriter.openAi,
