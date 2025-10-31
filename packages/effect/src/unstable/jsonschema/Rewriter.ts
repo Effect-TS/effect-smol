@@ -96,7 +96,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
     examples: constTrue
   }
 
-  function recur(schema: Schema.JsonSchema.Schema, path: Path, _tracer: Tracer): Schema.JsonSchema.Schema {
+  function recur(schema: Schema.JsonSchema.Schema, path: Path): Schema.JsonSchema.Schema {
     // root must be an object
     if (path.length === 1 && path[0] === "schema" && schema.type !== "object") {
       tracer.push(change(path, `root must be an object, returning default schema`))
@@ -110,9 +110,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
         ...jsonSchemaAnnotations
       })
       // recursively rewrite members
-      const anyOf = out.anyOf.map((value: Schema.JsonSchema.Schema, i: number) =>
-        recur(value, [...path, "anyOf", i], tracer)
-      )
+      const anyOf = out.anyOf.map((value: Schema.JsonSchema.Schema, i: number) => recur(value, [...path, "anyOf", i]))
       out.anyOf = anyOf
       return out
     }
@@ -124,9 +122,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
         ...jsonSchemaAnnotations
       })
       // recursively rewrite members
-      const anyOf = out.oneOf.map((value: Schema.JsonSchema.Schema, i: number) =>
-        recur(value, [...path, "oneOf", i], tracer)
-      )
+      const anyOf = out.oneOf.map((value: Schema.JsonSchema.Schema, i: number) => recur(value, [...path, "oneOf", i]))
       out.anyOf = anyOf
       delete out.oneOf
       tracer.push(change(path, `rewrote oneOf to anyOf`))
@@ -138,7 +134,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
       const { allOf, ...rest } = schema
       const merged = allOf.reduce((acc, curr) => propertiesCombiner.combine(acc, curr), rest)
       tracer.push(change(path, `merged ${allOf.length} fragment(s)`))
-      return recur(merged, path, tracer)
+      return recur(merged, path)
     }
 
     // handle strings, numbers, integers, and booleans
@@ -166,12 +162,12 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
       // recursively rewrite prefixItems
       if (array.prefixItems) {
         array.prefixItems = array.prefixItems.map((value: Schema.JsonSchema.Schema, i: number) =>
-          recur(value, [...path, "prefixItems", i], tracer)
+          recur(value, [...path, "prefixItems", i])
         )
       }
       // recursively rewrite items
       if (array.items) {
-        array.items = recur(array.items, [...path, "items"], tracer)
+        array.items = recur(array.items, [...path, "items"])
       }
       return array
     }
@@ -189,7 +185,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
       // recursively rewrite properties
       object.properties = Record_.map(
         object.properties,
-        (value: Schema.JsonSchema.Schema, key: string) => recur(value, [...path, "properties", key], tracer)
+        (value: Schema.JsonSchema.Schema, key: string) => recur(value, [...path, "properties", key])
       )
 
       // additionalProperties: false must always be set in objects
@@ -249,7 +245,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
 
   return {
     uri: document.uri,
-    schema: recur(document.schema, ["schema"], tracer),
-    definitions: Record_.map(document.definitions, (value) => recur(value, ["definitions"], tracer))
+    schema: recur(document.schema, ["schema"]),
+    definitions: Record_.map(document.definitions, (value) => recur(value, ["definitions"]))
   }
 }
