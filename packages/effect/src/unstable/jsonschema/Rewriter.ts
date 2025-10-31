@@ -8,6 +8,7 @@ import * as Array_ from "../../collections/Array.ts"
 import * as Combiner from "../../data/Combiner.ts"
 import * as Struct from "../../data/Struct.ts"
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
+import * as Inspectable from "../../interfaces/Inspectable.ts"
 import * as Number_ from "../../Number.ts"
 import type * as Schema from "../../schema/Schema.ts"
 
@@ -19,17 +20,12 @@ export type Path = readonly ["schema" | "definitions", ...ReadonlyArray<string |
 /**
  * @since 4.0.0
  */
-export type Change = {
-  readonly name: string // short machine id, e.g. "root.wrapObject"
-  readonly path: Path // where the change happened
-  readonly summary: string // human-friendly one-liner
+export interface Tracer {
+  push(change: string): void
 }
 
-/**
- * @since 4.0.0
- */
-export interface Tracer {
-  push(change: Change): void
+function change(ctx: Context, summary: string) {
+  return `${summary} at ${Inspectable.formatPath(ctx.path)}`
 }
 
 /**
@@ -101,11 +97,7 @@ export function whitelistProperties(
     if (key === "type" || (key in whitelist && whitelist[key](schema[key]))) continue
 
     // tracer
-    ctx.tracer.push({
-      name: "remove-unsupported-property",
-      path: ctx.path,
-      summary: `removed unsupported property "${key}"`
-    })
+    ctx.tracer.push(change(ctx, `removed unsupported property "${key}"`))
 
     delete out[key]
   }
@@ -228,11 +220,7 @@ export const openAi = make([
       const identifier = unescapeJsonPointer(schema.$ref.split("/").at(-1)!)
 
       // tracer
-      ctx.tracer.push({
-        name: "replace-top-level-ref-with-definition",
-        path: ctx.path,
-        summary: `replaced top level ref "${identifier}" with its definition`
-      })
+      ctx.tracer.push(change(ctx, `resolved ref to "${identifier}"`))
 
       return ctx.definitions[identifier]
     }
@@ -242,11 +230,7 @@ export const openAi = make([
   onSchema((schema, ctx) => {
     if (ctx.path.length === 1 && ctx.path[0] === "schema" && schema.type !== "object") {
       // tracer
-      ctx.tracer.push({
-        name: "root-must-be-an-object",
-        path: ctx.path,
-        summary: `replaced top level non-object with an empty object`
-      })
+      ctx.tracer.push("replaced top level non-object with an empty object")
 
       return {
         "type": "object",
@@ -263,11 +247,7 @@ export const openAi = make([
       const { allOf, ...rest } = schema
 
       // tracer
-      ctx.tracer.push({
-        name: "merge-allOf-fragments",
-        path: ctx.path,
-        summary: `merged ${allOf.length} allOf fragment(s)`
-      })
+      ctx.tracer.push(change(ctx, `merged ${allOf.length} allOf fragment(s)`))
 
       return mergeAllOf(rest, allOf)
     }
@@ -332,11 +312,7 @@ export const openAi = make([
   onObject((schema, ctx) => {
     if (schema.additionalProperties !== false) {
       // tracer
-      ctx.tracer.push({
-        name: "additionalProperties-must-be-false",
-        path: ctx.path,
-        summary: `set additionalProperties to false`
-      })
+      ctx.tracer.push(change(ctx, `set additionalProperties to false`))
 
       return { ...schema, additionalProperties: false }
     }
@@ -355,11 +331,7 @@ export const openAi = make([
       for (const key of keys) {
         if (!required.has(key)) {
           // tracer
-          ctx.tracer.push({
-            name: "add-required-property",
-            path: ctx.path,
-            summary: `added required property "${key}"`
-          })
+          ctx.tracer.push(change(ctx, `added required property "${key}"`))
 
           out.required.push(key)
           const type = out.properties[key].type
@@ -386,11 +358,7 @@ export const openAi = make([
   onSchema((schema, ctx) => {
     if ("oneOf" in schema) {
       // tracer
-      ctx.tracer.push({
-        name: "rewrite-oneOf-to-anyOf",
-        path: ctx.path,
-        summary: `rewrote oneOf to anyOf`
-      })
+      ctx.tracer.push(change(ctx, `rewrote oneOf to anyOf`))
 
       const out = { ...schema }
       out.anyOf = out.oneOf

@@ -9,11 +9,11 @@ function assertJsonSchema(
   expected: {
     readonly schema: Schema.JsonSchema.Schema
     readonly definitions?: Record<string, Schema.JsonSchema.Schema> | undefined
-    readonly traces?: Array<Rewriter.Change> | undefined
+    readonly traces?: Array<string> | undefined
   },
   options?: Schema.JsonSchemaOptions
 ) {
-  const traces: Array<Rewriter.Change> = []
+  const traces: Array<string> = []
   const tracer: Rewriter.Tracer = {
     push(change) {
       traces.push(change)
@@ -44,11 +44,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "root-must-be-an-object",
-              path: ["schema"],
-              summary: "replaced top level non-object with an empty object"
-            }
+            "replaced top level non-object with an empty object"
           ]
         }
       )
@@ -117,11 +113,7 @@ describe("Rewriter", () => {
             }
           },
           traces: [
-            {
-              name: "replace-top-level-ref-with-definition",
-              path: ["schema"],
-              summary: `replaced top level ref "A" with its definition`
-            }
+            `resolved ref to "A" at ["schema"]`
           ]
         }
       )
@@ -143,11 +135,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "additionalProperties-must-be-false",
-              path: ["schema"],
-              summary: `set additionalProperties to false`
-            }
+            `set additionalProperties to false at ["schema"]`
           ]
         },
         {
@@ -172,11 +160,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -208,11 +192,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -242,11 +222,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -265,11 +241,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -301,11 +273,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -335,11 +303,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -358,11 +322,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -394,11 +354,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -428,11 +384,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -452,11 +404,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -489,11 +437,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -516,11 +460,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -556,11 +496,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "add-required-property",
-              path: ["schema"],
-              summary: `added required property "a"`
-            }
+            `added required property "a" at ["schema"]`
           ]
         }
       )
@@ -587,11 +523,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "rewrite-oneOf-to-anyOf",
-              path: ["schema", "properties", "a"],
-              summary: `rewrote oneOf to anyOf`
-            }
+            `rewrote oneOf to anyOf at ["schema"]["properties"]["a"]`
           ]
         }
       )
@@ -614,11 +546,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "remove-unsupported-property",
-              path: ["schema", "properties", "a"],
-              summary: `removed unsupported property "minLength"`
-            }
+            `removed unsupported property "minLength" at ["schema"]["properties"]["a"]`
           ]
         }
       )
@@ -648,11 +576,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "remove-unsupported-property",
-              path: ["schema", "properties", "a"],
-              summary: `removed unsupported property "minLength"`
-            }
+            `removed unsupported property "minLength" at ["schema"]["properties"]["a"]`
           ]
         }
       )
@@ -680,11 +604,7 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              {
-                name: "merge-allOf-fragments",
-                path: ["schema", "properties", "a"],
-                summary: `merged 1 allOf fragment(s)`
-              }
+              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
             ]
           }
         )
@@ -711,11 +631,7 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              {
-                name: "merge-allOf-fragments",
-                path: ["schema", "properties", "a"],
-                summary: `merged 1 allOf fragment(s)`
-              }
+              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
             ]
           }
         )
@@ -742,11 +658,7 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              {
-                name: "merge-allOf-fragments",
-                path: ["schema", "properties", "a"],
-                summary: `merged 1 allOf fragment(s)`
-              }
+              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
             ]
           }
         )
@@ -772,11 +684,7 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              {
-                name: "merge-allOf-fragments",
-                path: ["schema", "properties", "a"],
-                summary: `merged 1 allOf fragment(s)`
-              }
+              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
             ]
           }
         )
@@ -799,11 +707,7 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              {
-                name: "merge-allOf-fragments",
-                path: ["schema", "properties", "a"],
-                summary: `merged 1 allOf fragment(s)`
-              }
+              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
             ]
           }
         )
@@ -829,11 +733,7 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              {
-                name: "merge-allOf-fragments",
-                path: ["schema", "properties", "a"],
-                summary: `merged 1 allOf fragment(s)`
-              }
+              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
             ]
           }
         )
@@ -856,11 +756,7 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              {
-                name: "merge-allOf-fragments",
-                path: ["schema", "properties", "a"],
-                summary: `merged 1 allOf fragment(s)`
-              }
+              `merged 1 allOf fragment(s) at ["schema"]["properties"]["a"]`
             ]
           }
         )
@@ -887,11 +783,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            {
-              name: "remove-unsupported-property",
-              path: ["schema", "properties", "a"],
-              summary: `removed unsupported property "uniqueItems"`
-            }
+            `removed unsupported property "uniqueItems" at ["schema"]["properties"]["a"]`
           ]
         }
       )
