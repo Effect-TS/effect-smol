@@ -52,14 +52,19 @@ export interface Annotations {
 }
 
 /**
- * @category Model
  * @since 4.0.0
  */
-export interface Documentation<T> extends Annotations {
+export interface Documentation extends Annotations {
   readonly expected?: string | undefined
   readonly title?: string | undefined
   readonly description?: string | undefined
   readonly documentation?: string | undefined
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface TypedDocumentation<T> extends Documentation {
   readonly default?: T | undefined
   readonly examples?: ReadonlyArray<T> | undefined
 }
@@ -68,7 +73,7 @@ export interface Documentation<T> extends Annotations {
  * @category Model
  * @since 4.0.0
  */
-export interface Key<T> extends Documentation<T> {
+export interface Key<T> extends TypedDocumentation<T> {
   /**
    * The message to use when a key is missing.
    */
@@ -79,7 +84,7 @@ export interface Key<T> extends Documentation<T> {
  * @category Model
  * @since 4.0.0
  */
-export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top>> extends Documentation<T> {
+export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top>> extends TypedDocumentation<T> {
   /**
    * The message to use when the value is invalid.
    */
@@ -159,11 +164,7 @@ export const STRUCTURAL_ANNOTATION_KEY = "~structural"
  * @category Model
  * @since 4.0.0
  */
-export interface Filter extends Annotations {
-  readonly expected?: string | undefined
-  readonly title?: string | undefined
-  readonly description?: string | undefined
-  readonly documentation?: string | undefined
+export interface Filter extends Documentation {
   readonly message?: string | undefined
   readonly identifier?: string | undefined
   /**
@@ -224,16 +225,6 @@ export declare namespace Arbitrary {
   /**
    * @since 4.0.0
    */
-  export type FastCheckConstraint =
-    | StringConstraints
-    | NumberConstraints
-    | BigIntConstraints
-    | ArrayConstraints
-    | DateConstraints
-
-  /**
-   * @since 4.0.0
-   */
   export type Constraint = {
     readonly _tag: "Constraint"
     readonly constraint: {
@@ -266,7 +257,7 @@ export declare namespace Arbitrary {
     readonly override: (
       /* Arbitraries for any type parameters of the schema (if present) */
       typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
-    ) => (fc: typeof FastCheck, context?: Context) => FastCheck.Arbitrary<T>
+    ) => (fc: typeof FastCheck, context: Context) => FastCheck.Arbitrary<T>
   }
 }
 

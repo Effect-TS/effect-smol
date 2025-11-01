@@ -12,12 +12,9 @@ import * as AST from "../schema/AST.ts"
 import type * as Schema from "../schema/Schema.ts"
 import type * as FastCheck from "../testing/FastCheck.ts"
 
-const arbitraryMemoMap = new WeakMap<AST.AST, Schema.LazyArbitrary<any>>()
+const arbitraryMemoMap = new WeakMap<AST.AST, LazyArbitraryWithContext<any>>()
 
-function getAnnotation(
-  annotations: Annotations.Annotations | undefined
-):
-  | Annotations.Arbitrary.Constraint
+function getAnnotation(annotations: Annotations.Annotations | undefined):
   | Annotations.Arbitrary.Constraint
   | Annotations.Arbitrary.Override<any, ReadonlyArray<Schema.Top>>
   | undefined
@@ -31,11 +28,7 @@ function getCheckAnnotation(
   return check.annotations?.arbitrary as any
 }
 
-function applyChecks(
-  ast: AST.AST,
-  filters: Array<AST.Filter<any>>,
-  arbitrary: FastCheck.Arbitrary<any>
-) {
+function applyChecks(ast: AST.AST, filters: Array<AST.Filter<any>>, arbitrary: FastCheck.Arbitrary<any>) {
   return filters.map((filter) => (a: any) => filter.run(a, ast, AST.defaultParseOptions) === undefined).reduce(
     (acc, filter) => acc.filter(filter),
     arbitrary
@@ -48,23 +41,19 @@ function isUniqueArrayConstraintsCustomCompare(
   return constraint?.comparator !== undefined
 }
 
-function array(
-  fc: typeof FastCheck,
-  ctx: Annotations.Arbitrary.Context | undefined,
-  item: FastCheck.Arbitrary<any>
-) {
-  const constraint = ctx?.constraints?.array
-  const array = isUniqueArrayConstraintsCustomCompare(constraint)
+function array(fc: typeof FastCheck, ctx: Annotations.Arbitrary.Context, item: FastCheck.Arbitrary<any>) {
+  const constraint = ctx.constraints?.array
+  const out = isUniqueArrayConstraintsCustomCompare(constraint)
     ? fc.uniqueArray(item, constraint)
     : fc.array(item, constraint)
-  if (ctx?.isSuspend) {
+  if (ctx.isSuspend) {
     return fc.oneof(
       { maxDepth: 2, depthIdentifier: "" },
       fc.constant([]),
-      array
+      out
     )
   }
-  return array
+  return out
 }
 
 const max = UndefinedOr.getReducer(Number.ReducerMax)
@@ -90,16 +79,22 @@ const combiner: Combiner.Combiner<any> = Struct.getCombiner({
   omitKeyWhen: Predicate.isUndefined
 })
 
+type FastCheckConstraint =
+  | Annotations.Arbitrary.StringConstraints
+  | Annotations.Arbitrary.NumberConstraints
+  | Annotations.Arbitrary.BigIntConstraints
+  | Annotations.Arbitrary.ArrayConstraints
+  | Annotations.Arbitrary.DateConstraints
+
 function merge(
   _tag: "string" | "number" | "bigint" | "array" | "date",
   constraints: Annotations.Arbitrary.Constraint["constraint"],
-  constraint: Annotations.Arbitrary.FastCheckConstraint
+  constraint: FastCheckConstraint
 ): Annotations.Arbitrary.Constraint["constraint"] {
   const c = constraints[_tag]
-  if (c) {
-    return { ...constraints, [_tag]: combiner.combine(c, constraint) }
-  } else {
-    return { ...constraints, [_tag]: constraint }
+  return {
+    ...constraints,
+    [_tag]: c ? combiner.combine(c, constraint) : constraint
   }
 }
 
@@ -118,7 +113,7 @@ function isConstraintKey(key: string): key is keyof Annotations.Arbitrary.Constr
 /** @internal */
 export function mergeFiltersConstraints(
   filters: Array<AST.Filter<any>>
-): (ctx: Annotations.Arbitrary.Context | undefined) => Annotations.Arbitrary.Context | undefined {
+): (ctx: Annotations.Arbitrary.Context) => Annotations.Arbitrary.Context {
   const annotations = filters.map(getCheckAnnotation).filter(Predicate.isNotUndefined)
   return (ctx) => {
     const constraints = annotations.reduce((acc: Annotations.Arbitrary.Constraint["constraint"], c) => {
@@ -133,19 +128,22 @@ export function mergeFiltersConstraints(
           return acc
         }
       }
-    }, ctx?.constraints || {})
+    }, ctx.constraints || {})
     return { ...ctx, constraints }
   }
 }
 
-function resetContext(ctx: Annotations.Arbitrary.Context | undefined): Annotations.Arbitrary.Context | undefined {
-  if (ctx) {
-    return { ...ctx, constraints: undefined }
-  }
+function resetContext(ctx: Annotations.Arbitrary.Context): Annotations.Arbitrary.Context {
+  return { ...ctx, constraints: undefined }
 }
 
+type LazyArbitraryWithContext<T> = (
+  fc: typeof FastCheck,
+  context: Annotations.Arbitrary.Context
+) => FastCheck.Arbitrary<T>
+
 /** @internal */
-export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
+export const go = memoize((ast: AST.AST): LazyArbitraryWithContext<any> => {
   if (ast.checks) {
     const filters = AST.getFilters(ast.checks)
     const f = mergeFiltersConstraints(filters)
@@ -184,7 +182,7 @@ export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
       return (fc) => fc.anything()
     case "String":
       return (fc, ctx) => {
-        const constraint = ctx?.constraints?.string
+        const constraint = ctx.constraints?.string
         const patterns = constraint?.patterns
         if (patterns) {
           return fc.oneof(...patterns.map((pattern) => fc.stringMatching(new RegExp(pattern))))
@@ -193,7 +191,7 @@ export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
       }
     case "Number":
       return (fc, ctx) => {
-        const constraint = ctx?.constraints?.number
+        const constraint = ctx.constraints?.number
         if (constraint?.isInteger) {
           return fc.integer(constraint)
         }
@@ -202,7 +200,7 @@ export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
     case "Boolean":
       return (fc) => fc.boolean()
     case "BigInt":
-      return (fc, ctx) => fc.bigInt(ctx?.constraints?.bigint ?? {})
+      return (fc, ctx) => fc.bigInt(ctx.constraints?.bigint ?? {})
     case "Symbol":
       return (fc) => fc.string().map(Symbol.for)
     case "Literal":
@@ -294,13 +292,15 @@ export const go = memoize((ast: AST.AST): Schema.LazyArbitrary<any> => {
       return (fc, ctx) => fc.oneof(...ast.types.map((ast) => go(ast)(fc, ctx)))
     case "Suspend": {
       const memo = arbitraryMemoMap.get(ast)
-      if (memo) {
-        return memo
-      }
+
+      if (memo) return memo
+
       const get = AST.memoizeThunk(() => go(ast.thunk()))
-      const out: Schema.LazyArbitrary<any> = (fc, ctx) =>
+      const out: LazyArbitraryWithContext<any> = (fc, ctx) =>
         fc.constant(null).chain(() => get()(fc, { ...ctx, isSuspend: true }))
+
       arbitraryMemoMap.set(ast, out)
+
       return out
     }
   }

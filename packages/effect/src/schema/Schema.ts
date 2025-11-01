@@ -6536,14 +6536,15 @@ export const RequestClass =
  * @category Arbitrary
  * @since 4.0.0
  */
-export type LazyArbitrary<T> = (fc: typeof FastCheck, context?: Annotations.Arbitrary.Context) => FastCheck.Arbitrary<T>
+export type LazyArbitrary<T> = (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
 
 /**
  * @category Arbitrary
  * @since 4.0.0
  */
 export function makeArbitraryLazy<S extends Top>(schema: S): LazyArbitrary<S["Type"]> {
-  return InternalArbitrary.go(schema.ast)
+  const go = InternalArbitrary.go(schema.ast)
+  return (fc) => go(fc, {})
 }
 
 /**
@@ -6551,7 +6552,7 @@ export function makeArbitraryLazy<S extends Top>(schema: S): LazyArbitrary<S["Ty
  * @since 4.0.0
  */
 export function makeArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["Type"]> {
-  return makeArbitraryLazy(schema)(FastCheck, {})
+  return makeArbitraryLazy(schema)(FastCheck)
 }
 
 // -----------------------------------------------------------------------------
