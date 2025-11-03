@@ -26,17 +26,13 @@ const expectValidValues = <A>(
 
 const expectInvalidValues = <A>(
   primitive: Primitive.Primitive<A>,
-  inputs: Array<string>,
-  errorMatcher?: (error: string) => boolean
+  inputs: ReadonlyArray<string>,
+  messages: ReadonlyArray<string>
 ) =>
   Effect.gen(function*() {
-    for (const input of inputs) {
-      const error = yield* Effect.flip(primitive.parse(input))
-      if (errorMatcher) {
-        assert.isTrue(errorMatcher(error))
-      } else {
-        assert.isString(error)
-      }
+    for (let i = 0; i < inputs.length; i++) {
+      const error = yield* Effect.flip(primitive.parse(inputs[i]))
+      assert.strictEqual(error, messages[i])
     }
   })
 
@@ -77,7 +73,7 @@ describe("Primitive", () => {
         expectInvalidValues(
           Primitive.boolean,
           ["invalid"],
-          (error) => error.startsWith("Failed to parse boolean:")
+          [`Expected "true" | "yes" | "on" | "1" | "y" | "false" | "no" | "off" | "0" | "n", got "invalid"`]
         ))
 
       it("should have correct _tag", () => {
@@ -98,7 +94,9 @@ describe("Primitive", () => {
         ]))
 
       it.effect("should fail for invalid values", () =>
-        expectInvalidValues(Primitive.float, ["not-a-number"], (error) => error.startsWith("Failed to parse number:")))
+        expectInvalidValues(Primitive.float, ["not-a-number"], [
+          `Expected a string representing a number, got "not-a-number"`
+        ]))
 
       it("should have correct _tag", () => {
         assert.strictEqual(Primitive.float._tag, "Float")
@@ -134,8 +132,8 @@ describe("Primitive", () => {
           ]
         ]))
 
-      it("should fail for invalid values", () =>
-        expectInvalidValues(Primitive.date, ["not-a-date"], (error) => error.startsWith("Failed to parse date:")))
+      it.effect("should fail for invalid values", () =>
+        expectInvalidValues(Primitive.date, ["not-a-date"], [`Expected a valid date, got Invalid Date`]))
 
       it("should have correct _tag", () => {
         assert.strictEqual(Primitive.date._tag, "Date")
@@ -159,7 +157,7 @@ describe("Primitive", () => {
         expectInvalidValues(
           Primitive.integer,
           ["3.14", "not-a-number"],
-          (error) => error.startsWith("Failed to parse integer:")
+          [`Expected an integer, got 3.14`, `Expected a string representing a number, got "not-a-number"`]
         ))
 
       it("should have correct _tag", () => {
@@ -204,7 +202,11 @@ describe("Primitive", () => {
         expectInvalidValues(
           colorChoice,
           ["yellow", "purple", ""],
-          (error) => error.includes("Expected one of: red, green, blue")
+          [
+            `Expected one of: red, green, blue. Got: yellow`,
+            `Expected one of: red, green, blue. Got: purple`,
+            `Expected one of: red, green, blue. Got: `
+          ]
         ))
 
       it("should have correct _tag", () => {

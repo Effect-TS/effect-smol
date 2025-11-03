@@ -96,16 +96,11 @@ const makePrimitive = <A>(
 
 const makeSchemaPrimitive = <T, E>(
   tag: string,
-  schema: Schema.Codec<T, E>,
-  errorPrefix: string
+  schema: Schema.Codec<T, E>
 ): Primitive<T> => {
   const serializer = Schema.makeSerializerStringPojo(schema)
   const decode = Schema.decodeUnknownEffect(serializer)
-  return makePrimitive(tag, (value) =>
-    Effect.mapError(
-      decode(value),
-      (error) => `${errorPrefix}: ${error.message}`
-    ))
+  return makePrimitive(tag, (value) => Effect.mapError(decode(value), (error) => error.message))
 }
 
 /**
@@ -140,8 +135,7 @@ const makeSchemaPrimitive = <T, E>(
  */
 export const boolean: Primitive<boolean> = makeSchemaPrimitive(
   "Boolean",
-  Config.Boolean,
-  "Failed to parse boolean"
+  Config.Boolean
 )
 
 /**
@@ -169,8 +163,7 @@ export const boolean: Primitive<boolean> = makeSchemaPrimitive(
  */
 export const float: Primitive<number> = makeSchemaPrimitive(
   "Float",
-  Schema.Finite,
-  "Failed to parse number"
+  Schema.Finite
 )
 
 /**
@@ -198,8 +191,7 @@ export const float: Primitive<number> = makeSchemaPrimitive(
  */
 export const integer: Primitive<number> = makeSchemaPrimitive(
   "Integer",
-  Schema.Int,
-  "Failed to parse integer"
+  Schema.Int
 )
 
 /**
@@ -227,8 +219,7 @@ export const integer: Primitive<number> = makeSchemaPrimitive(
  */
 export const date: Primitive<Date> = makeSchemaPrimitive(
   "Date",
-  Schema.ValidDate,
-  "Failed to parse date"
+  Schema.ValidDate
 )
 
 /**
