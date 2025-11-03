@@ -203,9 +203,9 @@ describe("Primitive", () => {
           colorChoice,
           ["yellow", "purple", ""],
           [
-            `Expected one of: red, green, blue. Got: yellow`,
-            `Expected one of: red, green, blue. Got: purple`,
-            `Expected one of: red, green, blue. Got: `
+            `Expected "red" | "green" | "blue", got "yellow"`,
+            `Expected "red" | "green" | "blue", got "purple"`,
+            `Expected "red" | "green" | "blue", got ""`
           ]
         ))
 

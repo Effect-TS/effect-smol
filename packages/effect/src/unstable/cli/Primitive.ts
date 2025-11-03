@@ -9,6 +9,7 @@ import * as Redacted from "../../data/Redacted.ts"
 import type * as Struct from "../../data/Struct.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
+import { format } from "../../interfaces/Inspectable.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"
 import type { Formatter } from "../../schema/Issue.ts"
@@ -280,12 +281,12 @@ export const choice = <A>(
   choices: ReadonlyArray<readonly [string, A]>
 ): Primitive<A> => {
   const choiceMap = new Map(choices)
-  const validChoices = choices.map(([key]) => key).join(", ")
+  const validChoices = choices.map(([key]) => format(key)).join(" | ")
   return makePrimitive("Choice", (value) => {
     if (choiceMap.has(value)) {
       return Effect.succeed(choiceMap.get(value)!)
     }
-    return Effect.fail(`Expected one of: ${validChoices}. Got: ${value}`)
+    return Effect.fail(`Expected ${validChoices}, got ${format(value)}`)
   })
 }
 
