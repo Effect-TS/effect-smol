@@ -1,7 +1,6 @@
-import type { Brand } from "effect/data"
+import { Brand, Option, Predicate, Struct, Tuple  } from "effect/data"
 import type { Exit  } from "effect";
-import { ServiceMap, Effect, flow, hole, String as Str     } from "effect"
-import { Option, Predicate, Struct, Tuple } from "effect/data"
+import { ServiceMap, Effect, flow, hole, String as Str } from "effect"
 import { AST, Getter, Schema, Transformation } from 'effect/schema'
 import type { Array } from "effect/collections"
 import { immerable, produce } from "immer"
@@ -106,6 +105,8 @@ describe("Schema", () => {
     it("brand", () => {
       const schema = Schema.String.pipe(Schema.brand<"a">())
       expect(schema.makeUnsafe).type.toBe<MakeUnsafe<string, string & Brand.Brand<"a">>>()
+      expect(schema).type.toBe<Schema.brand<Schema.String, "a">>()
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string & Brand.Brand<"a">, string, never, never>>()
     })
 
     it("refineByGuard", () => {
@@ -2900,5 +2901,36 @@ describe("Schema", () => {
       encode: Getter.passthrough()
     }))
     expect(Schema.asStandardSchemaV1).type.not.toBeCallableWith(DepString)
+  })
+
+  describe("fromBrand", () => {
+    it("should not be callable with a schema with wrong type", () => {
+      type Int = number & Brand.Brand<"Int">
+      const Int = Brand.check<Int>(Schema.isInt())
+      when(Schema.String.pipe).isCalledWith(expect(Schema.fromBrand).type.not.toBeCallableWith(Int))
+    })
+
+    it("single brand", () => {
+      type Int = number & Brand.Brand<"Int">
+      const Int = Brand.check<Int>(Schema.isInt())
+      const schema = Schema.Number.pipe(Schema.fromBrand(Int))
+      expect(schema).type.toBe<Schema.brand<Schema.Number, "Int">>()
+    })
+
+    it("should convert a union of keys to an intersection of brands", () => {
+      type Int = number & Brand.Brand<"Int">
+      const Int = Brand.check<Int>(Schema.isInt())
+
+      type Positive = number & Brand.Brand<"Positive">
+      const Positive = Brand.check<Positive>(Schema.isPositive())
+
+      const PositiveInt = Brand.all(Int, Positive)
+
+      const schema = Schema.Number.pipe(Schema.fromBrand(PositiveInt))
+      expect(schema).type.toBe<Schema.brand<Schema.Number, "Int" | "Positive">>()
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<number & Brand.Brand<"Int"> & Brand.Brand<"Positive">, number>
+      >()
+    })
   })
 })

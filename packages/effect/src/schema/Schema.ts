@@ -37,6 +37,7 @@ import * as Optic_ from "../Optic.ts"
 import * as Request from "../Request.ts"
 import * as Scheduler from "../Scheduler.ts"
 import * as FastCheck from "../testing/FastCheck.ts"
+import type { UnionToIntersection } from "../types/Types.ts"
 import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
@@ -2490,21 +2491,25 @@ export function refineByGuard<T extends S["Type"], S extends Top>(
   }
 }
 
+type DistributeBrands<T, B> =
+  & T
+  & UnionToIntersection<B extends infer U extends string | symbol ? Brand.Brand<U> : never>
+
 /**
  * @since 4.0.0
  */
-export interface brand<S extends Top, B extends string | symbol> extends
+export interface brand<S extends Top, B> extends
   Bottom<
-    S["Type"] & Brand.Brand<B>,
+    DistributeBrands<S["Type"], B>,
     S["Encoded"],
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
     brand<S, B>,
     S["~type.make.in"],
-    S["Type"] & Brand.Brand<B>,
+    DistributeBrands<S["Type"], B>,
     S["~type.parameters"],
-    S["Type"] & Brand.Brand<B>,
+    DistributeBrands<S["Type"], B>,
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -2523,6 +2528,18 @@ export interface brand<S extends Top, B extends string | symbol> extends
 export function brand<B extends string | symbol>() {
   return <S extends Top>(self: S): brand<S, B> => {
     return makeProto(self.ast, { schema: self })
+  }
+}
+
+/**
+ * @category Constructors
+ * @since 4.0.0
+ */
+export function fromBrand<A extends Brand.Brand<any>>(ctor: Brand.Constructor<A>) {
+  return <S extends Top & { readonly "Type": Brand.Brand.Unbranded<A> }>(
+    self: S
+  ): brand<S["~rebuild.out"], Brand.Brand.Keys<A>> => {
+    return (ctor.checks ? self.check(...ctor.checks) : self.annotate({})).pipe(brand<any>())
   }
 }
 

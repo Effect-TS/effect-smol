@@ -1,5 +1,5 @@
 import { Cause, DateTime, Duration, Effect, Exit, flow, pipe, ServiceMap, String as Str } from "effect"
-import { Option, Order, Predicate, Redacted, Result, Struct, Tuple } from "effect/data"
+import { Brand, Option, Order, Predicate, Redacted, Result, Struct, Tuple } from "effect/data"
 import { Equal } from "effect/interfaces"
 import { Annotations, AST, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"
@@ -6547,6 +6547,49 @@ describe("Check", () => {
     deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
       _tag: "isBase64Url",
       regex: /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
+    })
+  })
+
+  describe("fromBrand", () => {
+    it("nominal", async () => {
+      const schema = Schema.String.pipe(Schema.fromBrand(Brand.nominal<string & Brand.Brand<"MyString">>()))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("a")
+      await decoding.fail(1, `Expected string, got 1`)
+    })
+
+    it("single brand", async () => {
+      type Int = number & Brand.Brand<"Int">
+      const Int = Brand.check<Int>(Schema.isInt())
+      const schema = Schema.Number.pipe(Schema.fromBrand(Int))
+
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(1)
+      await decoding.fail("a", `Expected number, got "a"`)
+      await decoding.fail(1.2, `Expected an integer, got 1.2`)
+    })
+
+    it("multiple brands", async () => {
+      type Int = number & Brand.Brand<"Int">
+      const Int = Brand.check<Int>(Schema.isInt())
+
+      type Positive = number & Brand.Brand<"Positive">
+      const Positive = Brand.check<Positive>(Schema.isPositive())
+
+      const PositiveInt = Brand.all(Int, Positive)
+      const schema = Schema.Number.pipe(Schema.fromBrand(PositiveInt))
+
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(1)
+      await decoding.fail("a", `Expected number, got "a"`)
+      await decoding.fail(1.2, `Expected an integer, got 1.2`)
+      await decoding.fail(-1, `Expected a value greater than 0, got -1`)
     })
   })
 })

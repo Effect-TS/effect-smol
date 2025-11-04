@@ -6177,29 +6177,6 @@ const parser = Schema.TemplateLiteralParser(schema.parts)
 
 ### declare
 
-### fromBrand
-
-v3
-
-```ts
-import { Schema } from "effect"
-import { Brand } from "effect"
-
-// the existing branded type
-type UserId = string & Brand.Brand<"UserId">
-
-const UserId = Brand.nominal<UserId>()
-
-// Define a schema for the branded type
-const UserIdSchema = Schema.String.pipe(Schema.fromBrand(UserId))
-```
-
-v4
-
-```ts
-
-```
-
 ### BigIntFromSelf
 
 Renamed to `Schema.BigInt`.

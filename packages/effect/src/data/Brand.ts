@@ -3,23 +3,6 @@
  * branded types, which are TypeScript types with an added type tag to prevent
  * accidental usage of a value in the wrong context.
  *
- * The `refined` and `nominal` functions are both used to create branded types
- * in TypeScript. The main difference between them is that `refined` allows for
- * validation of the data, while `nominal` does not.
- *
- * The `nominal` function is used to create a new branded type that has the same
- * underlying type as the input, but with a different name. This is useful when
- * you want to distinguish between two values of the same type that have
- * different meanings. The `nominal` function does not perform any validation of
- * the input data.
- *
- * On the other hand, the `refined` function is used to create a new branded
- * type that has the same underlying type as the input, but with a different
- * name, and it also allows for validation of the input data. The `refined`
- * function takes a predicate that is used to validate the input data. If the
- * input data fails the validation, a `BrandErrors` is returned, which provides
- * information about the specific validation failure.
- *
  * @since 2.0.0
  */
 import * as Arr from "../collections/Array.ts"
@@ -34,21 +17,12 @@ const TypeId = "~effect/data/Brand"
 /**
  * A generic interface that defines a branded type.
  *
- * **Example**
- *
- * ```ts
- * import { Brand } from "effect/data"
- *
- * type UserId = number & Brand.Brand<"UserId">
- * type ProductId = number & Brand.Brand<"ProductId">
- * ```
- *
  * @since 2.0.0
  * @category models
  */
-export interface Brand<in out K extends string | symbol> {
+export interface Brand<in out Keys extends string | symbol> {
   readonly [TypeId]: {
-    readonly [k in K]: K
+    readonly [K in Keys]: Keys
   }
 }
 
@@ -59,34 +33,35 @@ export interface Brand<in out K extends string | symbol> {
  * @category models
  * @since 2.0.0
  */
-export interface Constructor<in out A extends Brand<any>> {
+export interface Constructor<in out B extends Brand<any>> {
   /**
-   * Constructs a branded type from a value of type `A`, throwing an error if
-   * the provided `A` is not valid.
+   * Constructs a branded type from a value of type `Unbranded<B>`, throwing an
+   * error if the provided value is not valid.
    */
-  (args: Brand.Unbranded<A>): A
+  (unbranded: Brand.Unbranded<B>): B
   /**
-   * Constructs a branded type from a value of type `A`, returning `Some<A>`
-   * if the provided `A` is valid, `None` otherwise.
+   * Constructs a branded type from a value of type `Unbranded<B>`, returning
+   * `Some<B>` if the provided value is valid, `None` otherwise.
    */
-  option(args: Brand.Unbranded<A>): Option.Option<A>
+  option(unbranded: Brand.Unbranded<B>): Option.Option<B>
   /**
-   * Constructs a branded type from a value of type `A`, returning `Ok<A>` if
-   * the provided `A` is valid, `Err<BrandError>` otherwise.
+   * Constructs a branded type from a value of type `Unbranded<B>`, returning
+   * `Success<B>` if the provided value is valid, `Failure<BrandError>`
+   * otherwise.
    */
-  result(args: Brand.Unbranded<A>): Result.Result<A, BrandError>
+  result(unbranded: Brand.Unbranded<B>): Result.Result<B, BrandError>
   /**
-   * Attempts to refine the provided value of type `A`, returning `true` if
-   * the provided `A` is valid, `false` otherwise.
+   * Attempts to refine the provided value of type `Unbranded<B>`, returning
+   * `true` if the provided value is a valid branded type, `false` otherwise.
    */
-  is(a: Brand.Unbranded<A>): a is Brand.Unbranded<A> & A
+  is(unbranded: Brand.Unbranded<B>): unbranded is Brand.Unbranded<B> & B
 
   /**
    * The checks that are applied to the branded type.
    *
    * @internal
    */
-  checks: readonly [AST.Check<Brand.Unbranded<A>>, ...Array<AST.Check<Brand.Unbranded<A>>>]
+  checks?: readonly [AST.Check<Brand.Unbranded<B>>, ...Array<AST.Check<Brand.Unbranded<B>>>] | undefined
 }
 
 /**
@@ -127,44 +102,42 @@ export class BrandError {
 }
 
 /**
- * @category models
  * @since 2.0.0
  */
 export declare namespace Brand {
   /**
    * A utility type to extract a branded type from a `Constructor`.
    *
-   * @category models
    * @since 2.0.0
    */
-  export type FromConstructor<A> = A extends Constructor<infer B> ? B : never
+  export type FromConstructor<C> = C extends Constructor<infer B> ? B : never
 
   /**
-   * A utility type to extract the value type from a brand.
+   * A utility type to extract the unbranded value type from a brand.
    *
-   * @category models
    * @since 2.0.0
    */
-  export type Unbranded<P> = P extends infer Q & Brands<P> ? Q : P
+  export type Unbranded<B extends Brand<any>> = B extends infer U & Brands<B> ? U : B
+
+  /**
+   * A utility type to extract the keys of a branded type.
+   *
+   * @since 2.0.0
+   */
+  export type Keys<B extends Brand<any>> = keyof B[typeof TypeId]
 
   /**
    * A utility type to extract the brands from a branded type.
    *
-   * @category models
    * @since 2.0.0
    */
-  export type Brands<P> = P extends Brand<any> ? Types.UnionToIntersection<
-      {
-        [k in keyof P[typeof TypeId]]: k extends string | symbol ? Brand<k>
-          : never
-      }[keyof P[typeof TypeId]]
-    >
-    : never
+  export type Brands<B extends Brand<any>> = Types.UnionToIntersection<
+    { [K in Keys<B>]: K extends string | symbol ? Brand<K> : never }[Keys<B>]
+  >
 
   /**
    * A utility type that checks that all brands have the same base type.
    *
-   * @category models
    * @since 2.0.0
    */
   export type EnsureCommonBase<
@@ -185,9 +158,7 @@ export declare namespace Brand {
  * @category alias
  * @since 2.0.0
  */
-export type Branded<A, K extends string | symbol> = A & Brand<K>
-
-const nominal_ = make<any>(() => undefined)
+export type Branded<A, Key extends string | symbol> = A & Brand<Key>
 
 /**
  * This function returns a `Constructor` that **does not apply any runtime
@@ -202,7 +173,11 @@ const nominal_ = make<any>(() => undefined)
  * @since 2.0.0
  */
 export function nominal<A extends Brand<any>>(): Constructor<A> {
-  return nominal_
+  return Object.assign((input: Brand.Unbranded<A>) => input as A, {
+    option: (input: Brand.Unbranded<A>) => Option.some(input as A),
+    result: (input: Brand.Unbranded<A>) => Result.succeed(input as A),
+    is: (_: Brand.Unbranded<A>): _ is Brand.Unbranded<A> & A => true
+  })
 }
 
 /**
@@ -268,7 +243,7 @@ export function all<Brands extends readonly [Constructor<any>, ...Array<Construc
   Types.UnionToIntersection<{ [B in keyof Brands]: Brand.FromConstructor<Brands[B]> }[number]> extends
     infer X extends Brand<any> ? X : Brand<any>
 > {
-  const checks = brands.flatMap((brand) => brand.checks)
+  const checks = brands.flatMap((brand) => brand.checks ?? [])
   return Arr.isArrayNonEmpty(checks) ?
     check(...checks) :
     nominal()
