@@ -2682,7 +2682,15 @@ export interface DijkstraConfig<E> {
  * @since 4.0.0
  * @category algorithms
  */
-export const dijkstra = <N, E, T extends Kind = "directed">(
+export const dijkstra: {
+  <E>(
+    config: DijkstraConfig<E>
+  ): <N, T extends Kind = "directed">(graph: Graph<N, E, T> | MutableGraph<N, E, T>) => PathResult<E> | undefined
+  <N, E, T extends Kind = "directed">(
+    graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+    config: DijkstraConfig<E>
+  ): PathResult<E> | undefined
+} = dual(2, <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: DijkstraConfig<E>
 ): PathResult<E> | undefined => {
@@ -2806,7 +2814,7 @@ export const dijkstra = <N, E, T extends Kind = "directed">(
     distance,
     costs
   }
-}
+})
 
 /**
  * Result of all-pairs shortest path computation.
@@ -2849,7 +2857,15 @@ export interface AllPairsResult<E> {
  * @since 4.0.0
  * @category algorithms
  */
-export const floydWarshall = <N, E, T extends Kind = "directed">(
+export const floydWarshall: {
+  <E>(
+    cost: (edgeData: E) => number
+  ): <N, T extends Kind = "directed">(graph: Graph<N, E, T> | MutableGraph<N, E, T>) => AllPairsResult<E>
+  <N, E, T extends Kind = "directed">(
+    graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+    cost: (edgeData: E) => number
+  ): AllPairsResult<E>
+} = dual(2, <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   cost: (edgeData: E) => number
 ): AllPairsResult<E> => {
@@ -2958,7 +2974,7 @@ export const floydWarshall = <N, E, T extends Kind = "directed">(
     paths,
     costs
   }
-}
+})
 
 /**
  * Configuration for A* pathfinding algorithm.
@@ -3012,7 +3028,15 @@ export interface AstarConfig<E, N> {
  * @since 4.0.0
  * @category algorithms
  */
-export const astar = <N, E, T extends Kind = "directed">(
+export const astar: {
+  <E, N>(
+    config: AstarConfig<E, N>
+  ): <T extends Kind = "directed">(graph: Graph<N, E, T> | MutableGraph<N, E, T>) => PathResult<E> | undefined
+  <N, E, T extends Kind = "directed">(
+    graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+    config: AstarConfig<E, N>
+  ): PathResult<E> | undefined
+} = dual(2, <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: AstarConfig<E, N>
 ): PathResult<E> | undefined => {
@@ -3160,7 +3184,7 @@ export const astar = <N, E, T extends Kind = "directed">(
     distance,
     costs
   }
-}
+})
 
 /**
  * Configuration for Bellman-Ford algorithm.
@@ -3209,7 +3233,15 @@ export interface BellmanFordConfig<E> {
  * @since 4.0.0
  * @category algorithms
  */
-export const bellmanFord = <N, E, T extends Kind = "directed">(
+export const bellmanFord: {
+  <E>(
+    config: BellmanFordConfig<E>
+  ): <N, T extends Kind = "directed">(graph: Graph<N, E, T> | MutableGraph<N, E, T>) => PathResult<E> | undefined
+  <N, E, T extends Kind = "directed">(
+    graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+    config: BellmanFordConfig<E>
+  ): PathResult<E> | undefined
+} = dual(2, <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: BellmanFordConfig<E>
 ): PathResult<E> | undefined => {
@@ -3336,7 +3368,7 @@ export const bellmanFord = <N, E, T extends Kind = "directed">(
     distance,
     costs
   }
-}
+})
 
 /**
  * Concrete class for iterables that produce [NodeIndex, NodeData] tuples.
@@ -3579,7 +3611,15 @@ export interface SearchConfig {
  * @since 4.0.0
  * @category iterators
  */
-export const dfs = <N, E, T extends Kind = "directed">(
+export const dfs: {
+  (
+    config?: SearchConfig
+  ): <N, E, T extends Kind = "directed">(graph: Graph<N, E, T> | MutableGraph<N, E, T>) => NodeWalker<N>
+  <N, E, T extends Kind = "directed">(
+    graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+    config?: SearchConfig
+  ): NodeWalker<N>
+} = dual((args) => isGraph(args[0]), <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: SearchConfig = {}
 ): NodeWalker<N> => {
@@ -3630,7 +3670,7 @@ export const dfs = <N, E, T extends Kind = "directed">(
       return { next: nextMapped }
     }
   }))
-}
+})
 
 /**
  * Creates a new BFS iterator with optional configuration.
@@ -3664,7 +3704,15 @@ export const dfs = <N, E, T extends Kind = "directed">(
  * @since 4.0.0
  * @category iterators
  */
-export const bfs = <N, E, T extends Kind = "directed">(
+export const bfs: {
+  (
+    config?: SearchConfig
+  ): <N, E, T extends Kind = "directed">(graph: Graph<N, E, T> | MutableGraph<N, E, T>) => NodeWalker<N>
+  <N, E, T extends Kind = "directed">(
+    graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+    config?: SearchConfig
+  ): NodeWalker<N>
+} = dual((args) => isGraph(args[0]), <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: SearchConfig = {}
 ): NodeWalker<N> => {
@@ -3711,7 +3759,7 @@ export const bfs = <N, E, T extends Kind = "directed">(
       return { next: nextMapped }
     }
   }))
-}
+})
 
 /**
  * Configuration options for topological sort iterator.
@@ -3768,7 +3816,12 @@ export interface TopoConfig {
  * @since 4.0.0
  * @category iterators
  */
-export const topo = <N, E, T extends Kind = "directed">(
+export const topo: {
+  (
+    config?: TopoConfig
+  ): <N, E, T extends Kind = "directed">(graph: Graph<N, E, T> | MutableGraph<N, E, T>) => NodeWalker<N>
+  <N, E, T extends Kind = "directed">(graph: Graph<N, E, T> | MutableGraph<N, E, T>, config?: TopoConfig): NodeWalker<N>
+} = dual((args) => isGraph(args[0]), <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: TopoConfig = {}
 ): NodeWalker<N> => {
@@ -3849,7 +3902,7 @@ export const topo = <N, E, T extends Kind = "directed">(
       return { next: nextMapped }
     }
   }))
-}
+})
 
 /**
  * Creates a new DFS postorder iterator with optional configuration.
@@ -3880,7 +3933,15 @@ export const topo = <N, E, T extends Kind = "directed">(
  * @since 4.0.0
  * @category iterators
  */
-export const dfsPostOrder = <N, E, T extends Kind = "directed">(
+export const dfsPostOrder: {
+  (
+    config?: SearchConfig
+  ): <N, E, T extends Kind = "directed">(graph: Graph<N, E, T> | MutableGraph<N, E, T>) => NodeWalker<N>
+  <N, E, T extends Kind = "directed">(
+    graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+    config?: SearchConfig
+  ): NodeWalker<N>
+} = dual((args) => isGraph(args[0]), <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: SearchConfig = {}
 ): NodeWalker<N> => {
@@ -3945,7 +4006,7 @@ export const dfsPostOrder = <N, E, T extends Kind = "directed">(
       return { next: nextMapped }
     }
   }))
-}
+})
 
 /**
  * Creates an iterator over all node indices in the graph.
@@ -4081,7 +4142,15 @@ export interface ExternalsConfig {
  * @since 4.0.0
  * @category iterators
  */
-export const externals = <N, E, T extends Kind = "directed">(
+export const externals: {
+  (
+    config?: ExternalsConfig
+  ): <N, E, T extends Kind = "directed">(graph: Graph<N, E, T> | MutableGraph<N, E, T>) => NodeWalker<N>
+  <N, E, T extends Kind = "directed">(
+    graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+    config?: ExternalsConfig
+  ): NodeWalker<N>
+} = dual((args) => isGraph(args[0]), <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: ExternalsConfig = {}
 ): NodeWalker<N> => {
@@ -4115,4 +4184,4 @@ export const externals = <N, E, T extends Kind = "directed">(
       return { next: nextMapped }
     }
   }))
-}
+})
