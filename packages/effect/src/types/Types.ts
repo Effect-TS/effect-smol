@@ -4,7 +4,9 @@
  * @since 2.0.0
  */
 
-type _TupleOf<T, N extends number, R extends Array<unknown>> = R["length"] extends N ? R : _TupleOf<T, N, [T, ...R]>
+type TupleOf_<T, N extends number, R extends Array<unknown>> = `${N}` extends `-${number}` ? never
+  : R["length"] extends N ? R
+  : TupleOf_<T, N, [T, ...R]>
 
 /**
  * Represents a tuple with a fixed number of elements of type `T`.
@@ -29,7 +31,7 @@ type _TupleOf<T, N extends number, R extends Array<unknown>> = R["length"] exten
  * @category tuples
  * @since 3.3.0
  */
-export type TupleOf<N extends number, T> = N extends N ? number extends N ? Array<T> : _TupleOf<T, N, []> : never
+export type TupleOf<N extends number, T> = N extends N ? number extends N ? Array<T> : TupleOf_<T, N, []> : never
 
 /**
  * Represents a tuple with at least `N` elements of type `T`.
