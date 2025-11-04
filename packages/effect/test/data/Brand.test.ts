@@ -129,7 +129,7 @@ Expected a value greater than 0, got -1.1`
   })
 
   it("refine", () => {
-    const Int = Brand.refine(Schema.isInt().pipe(Schema.isBranded("Int")))
+    const Int = Brand.refine(Schema.isInt().pipe(Schema.isBranded<"Int">()))
 
     assertSuccess(Int, 1)
     assertFailure(Int, 1.1, "Expected an integer, got 1.1")
@@ -137,7 +137,7 @@ Expected a value greater than 0, got -1.1`
   })
 
   it("intersection", () => {
-    const Int = Brand.refine(Schema.isInt().pipe(Schema.isBranded("Int")))
+    const Int = Brand.refine(Schema.isInt().pipe(Schema.isBranded<"Int">()))
 
     type Positive = number & Brand.Brand<"Positive">
     const Positive = Brand.check<Positive>(Schema.isPositive())

@@ -66,7 +66,7 @@ describe("Optic generation", () => {
 
     describe("brand", () => {
       it("Number & isPositive", () => {
-        const schema = Schema.Number.check(Schema.isPositive()).pipe(Schema.brand("isPositive"))
+        const schema = Schema.Number.check(Schema.isPositive()).pipe(Schema.brand<"isPositive">())
         const optic = Schema.makeIso(schema)
         const modify = optic.modify((n) => schema.makeUnsafe(n - 1))
 

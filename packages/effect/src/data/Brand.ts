@@ -207,7 +207,7 @@ export function nominal<A extends Brand<any>>(): Constructor<A> {
 
 /**
  * Returns a `Constructor` that can construct a branded type from an
- * unbranded value using the provided `refinement` predicate as validation of
+ * unbranded value using the provided `filter` predicate as validation of
  * the input data.
  *
  * If you don't want to perform any validation but only distinguish between two
@@ -217,12 +217,12 @@ export function nominal<A extends Brand<any>>(): Constructor<A> {
  * @since 2.0.0
  */
 export function make<A extends Brand<any>>(
-  f: (unbranded: Brand.Unbranded<A>) => undefined | boolean | string | Issue.Issue | {
+  filter: (unbranded: Brand.Unbranded<A>) => undefined | boolean | string | Issue.Issue | {
     readonly path: ReadonlyArray<PropertyKey>
     readonly message: string
   }
 ): Constructor<A> {
-  return check(AST.makeFilter(f))
+  return check(AST.makeFilter(filter))
 }
 
 /**

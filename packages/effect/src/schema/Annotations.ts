@@ -412,17 +412,6 @@ export const getExpected = memoize((ast: AST.AST): string => {
   return getIdentifier(ast) ?? ast.getExpected(getExpected)
 })
 
-/** @internal */
-export const BRAND_ANNOTATION_KEY = "~effect/schema/Check/brand"
-
-/** @internal */
-export function getBrand<T>(check: AST.Check<T>): string | symbol | undefined {
-  const brand = check.annotations?.[BRAND_ANNOTATION_KEY]
-  if (Predicate.isString(brand) || Predicate.isSymbol(brand)) {
-    return brand
-  }
-}
-
 /**
  * Return all the typed annotations from the schema.
  *

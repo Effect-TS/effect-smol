@@ -989,52 +989,6 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      describe("brand", () => {
-        it("single brand", () => {
-          const schema = Schema.Number.pipe(Schema.brand("MyBrand"))
-
-          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.["~effect/schema/Check/brand"], "MyBrand")
-        })
-
-        it("double brand", () => {
-          const schema = Schema.Number.pipe(
-            Schema.brand("MyBrand"),
-            Schema.brand("MyBrand2")
-          )
-
-          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.["~effect/schema/Check/brand"], "MyBrand")
-          deepStrictEqual(schema.ast.checks?.[1]?.annotations?.["~effect/schema/Check/brand"], "MyBrand2")
-        })
-
-        it("annotate should support getters", () => {
-          const schema = Schema.String.pipe(Schema.brand("brand")).annotate({
-            get examples() {
-              return [
-                schema.makeUnsafe("a"),
-                schema.makeUnsafe("b")
-              ]
-            }
-          })
-
-          deepStrictEqual(schema.ast.checks?.[0]?.annotations?.examples, ["a", "b"])
-        })
-
-        it("annotateKey should support getters", () => {
-          const schema = Schema.String.pipe(
-            Schema.brand("brand")
-          ).annotateKey({
-            get examples() {
-              return [
-                schema.makeUnsafe("a"),
-                schema.makeUnsafe("b")
-              ]
-            }
-          })
-
-          deepStrictEqual(schema.ast.context?.annotations?.examples, ["a", "b"])
-        })
-      })
-
       it("group", async () => {
         const usernameGroup = Schema.makeFilterGroup(
           [
@@ -1049,7 +1003,7 @@ Expected a string including "c", got "ab"`
             title: "username",
             description: "a valid username"
           }
-        ).pipe(Schema.isBranded("Username"))
+        ).pipe(Schema.isBranded<"Username">())
 
         const Username = Schema.String.pipe(Schema.refine(usernameGroup))
         const asserts = new TestSchema.Asserts(Username)

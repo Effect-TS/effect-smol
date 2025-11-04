@@ -777,7 +777,7 @@ For branded schemas, the default constructor accepts an unbranded input and retu
 ```ts
 import { Schema } from "effect/schema"
 
-const schema = Schema.String.pipe(Schema.brand("a"))
+const schema = Schema.String.pipe(Schema.brand<"a">())
 
 // makeUnsafe(input: string, options?: Schema.MakeOptions): string & Brand<"a">
 schema.makeUnsafe
@@ -789,7 +789,7 @@ However, when a branded schema is part of a composite (such as a struct), you mu
 import { Schema } from "effect/schema"
 
 const schema = Schema.Struct({
-  a: Schema.String.pipe(Schema.brand("a")),
+  a: Schema.String.pipe(Schema.brand<"a">()),
   b: Schema.Number
 })
 
@@ -1192,29 +1192,9 @@ const isInt32 = Schema.makeFilterGroup([Schema.isInt(), Schema.isBetween(-214748
 })
 ```
 
-### Refinements and Branding
+### Refinements
 
-Use `Schema.refine` to add extra checks to an existing schema. These checks can enforce type guards or add a brand.
-
-```ts
-import { Schema } from "effect/schema"
-
-//      ┌─── refine<readonly string[] & readonly [string, string, ...string[]], Schema.Array$<Schema.String>>
-//      ▼
-const guarded = Schema.Array(Schema.String).pipe(
-  Schema.refine(
-    Schema.makeRefinedByGuard(
-      (arr: ReadonlyArray<string>): arr is readonly [string, string, ...Array<string>] => arr.length >= 2
-    )
-  )
-)
-
-//      ┌─── refine<string & Brand<"UserId">, Schema.String>
-//      ▼
-const branded = Schema.String.pipe(Schema.refine(Schema.makeBrand("UserId")))
-```
-
-For convenience, `Schema.refineByGuard` and `Schema.brand` are shorthands for these patterns.
+Use `Schema.refine` to refine a schema to a more specific type.
 
 **Example** (Require at least two items in a string array)
 
@@ -1228,14 +1208,18 @@ const guarded = Schema.Array(Schema.String).pipe(
 )
 ```
 
+### Branding
+
+Use `Schema.brand` to add a brand to a schema.
+
 **Example** (Brand a string as a UserId)
 
 ```ts
 import { Schema } from "effect/schema"
 
-//      ┌─── Schema.refine<string & Brand<"UserId">, Schema.String>
+//      ┌─── Schema.brand<Schema.String, "UserId">
 //      ▼
-const branded = Schema.String.pipe(Schema.brand("UserId"))
+const branded = Schema.String.pipe(Schema.brand<"UserId">())
 ```
 
 ### 🆕 Refinement Groups
@@ -6194,6 +6178,27 @@ const parser = Schema.TemplateLiteralParser(schema.parts)
 ### declare
 
 ### fromBrand
+
+v3
+
+```ts
+import { Schema } from "effect"
+import { Brand } from "effect"
+
+// the existing branded type
+type UserId = string & Brand.Brand<"UserId">
+
+const UserId = Brand.nominal<UserId>()
+
+// Define a schema for the branded type
+const UserIdSchema = Schema.String.pipe(Schema.fromBrand(UserId))
+```
+
+v4
+
+```ts
+
+```
 
 ### BigIntFromSelf
 

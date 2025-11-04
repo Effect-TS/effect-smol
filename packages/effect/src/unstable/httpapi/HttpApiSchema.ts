@@ -3,7 +3,6 @@
  */
 import type { YieldableError } from "../../Cause.ts"
 import * as Iterable from "../../collections/Iterable.ts"
-import type { Brand } from "../../data/Brand.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
@@ -298,9 +297,7 @@ export type MultipartTypeId = typeof MultipartTypeId
  * @since 4.0.0
  * @category multipart
  */
-export interface Multipart<S extends Schema.Top>
-  extends Schema.refine<S["Type"] & Brand<"~effect/httpapi/HttpApiSchema/Multipart">, S["~rebuild.out"]>
-{}
+export interface Multipart<S extends Schema.Top> extends Schema.brand<S["~rebuild.out"], MultipartTypeId> {}
 
 /**
  * @since 4.0.0
@@ -313,9 +310,9 @@ export const Multipart = <S extends Schema.Top>(self: S, options?: {
   readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): Multipart<S> =>
-  self.pipe(Schema.brand(MultipartTypeId, {
+  self.pipe(Schema.brand<MultipartTypeId>()).annotate({
     httpApiMultipart: options ?? {}
-  }))
+  })
 
 /**
  * @since 4.0.0
@@ -333,9 +330,7 @@ export type MultipartStreamTypeId = typeof MultipartStreamTypeId
  * @since 4.0.0
  * @category multipart
  */
-export interface MultipartStream<S extends Schema.Top>
-  extends Schema.refine<S["Type"] & Brand<"~effect/httpapi/HttpApiSchema/MultipartStream">, S["~rebuild.out"]>
-{}
+export interface MultipartStream<S extends Schema.Top> extends Schema.brand<S["~rebuild.out"], MultipartStreamTypeId> {}
 
 /**
  * @since 4.0.0
@@ -348,9 +343,9 @@ export const MultipartStream = <S extends Schema.Top>(self: S, options?: {
   readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): MultipartStream<S> =>
-  self.pipe(Schema.brand(MultipartStreamTypeId, {
+  self.pipe(Schema.brand<MultipartStreamTypeId>()).annotate({
     httpApiMultipartStream: options ?? {}
-  }))
+  })
 
 /**
  * @since 4.0.0

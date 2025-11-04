@@ -5,7 +5,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec"
 import * as Cause_ from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
-import type { Brand } from "../data/Brand.ts"
+import type * as Brand from "../data/Brand.ts"
 import type * as Combiner from "../data/Combiner.ts"
 import * as Data from "../data/Data.ts"
 import type * as Equivalence from "../data/Equivalence.ts"
@@ -2464,6 +2464,7 @@ export interface refine<T extends S["Type"], S extends Top> extends
   >
 {
   readonly "~rebuild.out": this
+  readonly schema: S
 }
 
 /**
@@ -2471,9 +2472,8 @@ export interface refine<T extends S["Type"], S extends Top> extends
  * @since 4.0.0
  */
 export function refine<T extends E, E>(refine: AST.Refine<T, E>) {
-  return <S extends Schema<E>>(self: S): refine<S["Type"] & T, S["~rebuild.out"]> => {
-    const ast = AST.appendChecks(self.ast, [refine])
-    return self.rebuild(ast) as any
+  return <S extends Schema<E>>(self: S): refine<S["Type"] & T, S> => {
+    return makeProto(AST.appendChecks(self.ast, [refine]), { schema: self })
   }
 }
 
@@ -2485,18 +2485,44 @@ export function refineByGuard<T extends S["Type"], S extends Top>(
   is: (value: S["Type"]) => value is T,
   annotations?: Annotations.Filter
 ) {
-  return (self: S): refine<T, S["~rebuild.out"]> => {
+  return (self: S): refine<T, S> => {
     return self.pipe(refine(makeRefinedByGuard(is, annotations)))
   }
 }
 
 /**
- * @category Filtering
  * @since 4.0.0
  */
-export function brand<B extends string | symbol>(brand: B, annotations?: Annotations.Filter) {
-  return <S extends Top>(self: S): refine<S["Type"] & Brand<B>, S["~rebuild.out"]> => {
-    return self.pipe(refine(makeBrand(brand, annotations)))
+export interface brand<S extends Top, B extends string | symbol> extends
+  Bottom<
+    S["Type"] & Brand.Brand<B>,
+    S["Encoded"],
+    S["DecodingServices"],
+    S["EncodingServices"],
+    S["ast"],
+    brand<S, B>,
+    S["~type.make.in"],
+    S["Type"] & Brand.Brand<B>,
+    S["~type.parameters"],
+    S["Type"] & Brand.Brand<B>,
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
+  >
+{
+  readonly "~rebuild.out": this
+  readonly schema: S
+}
+
+/**
+ * @category Branding
+ * @since 4.0.0
+ */
+export function brand<B extends string | symbol>() {
+  return <S extends Top>(self: S): brand<S, B> => {
+    return makeProto(self.ast, { schema: self })
   }
 }
 
@@ -3169,6 +3195,7 @@ export function link<T>() { // TODO: better name
 // -----------------------------------------------------------------------------
 
 /**
+ * @category Checks Constructors
  * @since 4.0.0
  */
 export const makeRefinedByGuard: <T extends E, E>(
@@ -3177,6 +3204,7 @@ export const makeRefinedByGuard: <T extends E, E>(
 ) => AST.Refinement<T, E> = AST.makeRefinedByGuard
 
 /**
+ * @category Checks Combinators
  * @since 4.0.0
  */
 export function isRefinedByGuard<T extends E, E>(
@@ -3188,27 +3216,18 @@ export function isRefinedByGuard<T extends E, E>(
   }
 }
 
-const brand_ = makeRefinedByGuard((_u): _u is any => true)
-
-/** @internal */
-export function makeBrand<B extends string | symbol, T>(
-  brand: B,
-  annotations?: Annotations.Filter
-): AST.Refinement<T & Brand<B>, T> {
-  return brand_.annotate(Annotations.combine({ [Annotations.BRAND_ANNOTATION_KEY]: brand }, annotations))
-}
-
 /**
+ * @category Checks Combinators
  * @since 4.0.0
  */
-export function isBranded<B extends string | symbol>(brand: B, annotations?: Annotations.Filter) {
-  return <T>(self: AST.Check<T>): AST.RefinementGroup<T & Brand<B>, T> => {
-    return self.and(makeBrand(brand, annotations))
+export function isBranded<B extends string | symbol>() {
+  return <T>(self: AST.Check<T>): AST.RefinementGroup<T & Brand.Brand<B>, T> => {
+    return self as any
   }
 }
 
 /**
- * @category Constructors
+ * @category Checks Constructors
  * @since 4.0.0
  */
 export const makeFilter: <T>(
@@ -3221,7 +3240,7 @@ export const makeFilter: <T>(
 ) => AST.Filter<T> = AST.makeFilter
 
 /**
- * @category Constructors
+ * @category Checks Constructors
  * @since 4.0.0
  */
 export function makeFilterGroup<T>(

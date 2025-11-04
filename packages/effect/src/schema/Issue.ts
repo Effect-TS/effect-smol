@@ -629,9 +629,6 @@ function formatCheck<T>(check: AST.Check<T>): string {
   const out = check.annotations?.description ?? check.annotations?.title ?? check.annotations?.expected
   if (Predicate.isString(out)) return out
 
-  const brand = Annotations.getBrand(check)
-  if (brand !== undefined) return `Brand<"${String(brand)}">`
-
   switch (check._tag) {
     case "Filter":
       return "<filter>"

@@ -464,7 +464,7 @@ export const Override = <A>(value: A): A & Brand<"Override"> => value as any
  * @category overrideable
  */
 export interface Overrideable<S extends Schema.Top & Schema.WithoutConstructorDefault>
-  extends Schema.refine<S["Type"] & Brand<"Override">, Schema.withConstructorDefault<S>>
+  extends Schema.brand<Schema.withConstructorDefault<S>, "Override">
 {}
 
 /**
@@ -479,7 +479,7 @@ export const Overrideable = <S extends Schema.Top & Schema.WithoutConstructorDef
 ) =>
   schema.pipe(
     Schema.withConstructorDefault(constant(Effect.asSome(options.defaultValue))),
-    Schema.brand("Override")
+    Schema.brand<"Override">()
   )
 
 const StructProto = {

@@ -64,7 +64,7 @@ export {
    * import { Schema } from "effect/schema"
    * import { Model } from "effect/unstable/schema"
    *
-   * export const GroupId = Schema.Number.pipe(Schema.brand("GroupId"))
+   * export const GroupId = Schema.Number.pipe(Schema.brand<"GroupId">())
    *
    * export class Group extends Model.Class<Group>("Group")({
    *   id: Model.Generated(GroupId),
@@ -563,25 +563,14 @@ export const JsonFromString = <S extends Schema.Top>(
 
 /**
  * @since 4.0.0
- * @category Brand
- */
-export interface brand<S extends Schema.Top, B extends string | symbol> extends
-  Schema.refine<
-    S["Type"] & Brand<B>,
-    S["~rebuild.out"]
-  >
-{}
-
-/**
- * @since 4.0.0
  * @category uuid
  */
 export interface UuidV4Insert<B extends string | symbol> extends
   VariantSchema.Field<{
-    readonly select: brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
-    readonly insert: VariantSchema.Overrideable<brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>>
-    readonly update: brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
-    readonly json: brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
+    readonly select: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
+    readonly insert: VariantSchema.Overrideable<Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>>
+    readonly update: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
+    readonly json: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
   }>
 {}
 
@@ -598,8 +587,8 @@ export const Uint8Array: Schema.instanceOf<Uint8Array<ArrayBuffer>> = Schema.Uin
  * @category uuid
  */
 export const UuidV4WithGenerate = <B extends string | symbol>(
-  schema: brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
-): VariantSchema.Overrideable<brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>> =>
+  schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
+): VariantSchema.Overrideable<Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>> =>
   VariantSchema.Overrideable(schema, {
     defaultValue: Effect.sync(() => Uuid.v4({}, new globalThis.Uint8Array(16)))
   })
@@ -611,7 +600,7 @@ export const UuidV4WithGenerate = <B extends string | symbol>(
  * @category uuid
  */
 export const UuidV4Insert = <const B extends string | symbol>(
-  schema: brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
+  schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
 ): UuidV4Insert<B> =>
   Field({
     select: schema,
