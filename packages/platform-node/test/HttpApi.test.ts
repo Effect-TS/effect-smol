@@ -444,12 +444,9 @@ describe("HttpApi", () => {
             payload: Schema.String,
             success: Schema.String,
             error: Schema.Union([Schema.String, Schema.Number]).annotate({
-              jsonSchema: {
-                _tag: "Override",
-                override: () => ({
-                  type: "string"
-                })
-              }
+              jsonSchema: () => ({
+                "type": "string"
+              })
             })
           }))
         {}
