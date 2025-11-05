@@ -5007,6 +5007,69 @@ Example Output:
 */
 ```
 
+### Integration with synthetic data generation tools
+
+You can integrate `@faker-js/faker` by adding an `arbitrary` override to your schemas. The helper below ties Faker's randomness to Fast-Check's RNG so samples are reproducible and shrink well.
+
+**Example** (Faker-powered override tied to Fast-Check's RNG)
+
+```ts
+import { faker } from "@faker-js/faker"
+import type { Annotations } from "effect/schema"
+import { Schema } from "effect/schema"
+import { FastCheck } from "effect/testing"
+
+/**
+ * Make it easy to plug a Faker generator into a Schema's `arbitrary` override.
+ * The seed comes from Fast-Check so data is reproducible and shrinks correctly.
+ */
+function fake<A>(gen: (f: typeof faker) => A): Annotations.Arbitrary.Override<A, readonly []> {
+  return {
+    _tag: "Override",
+    override: () => (fc) =>
+      fc.nat().map((seed) => {
+        faker.seed(seed)
+        return gen(faker)
+      })
+  }
+}
+
+/** Leaf fields use Faker through the `arbitrary` override */
+const FirstName = Schema.String.annotate({
+  arbitrary: fake((f) => f.person.firstName())
+})
+
+const LastName = Schema.String.annotate({
+  arbitrary: fake((f) => f.person.lastName())
+})
+
+/** Compose leaves with regular Schema combinators */
+const FullName = Schema.Struct({
+  firstName: FirstName,
+  lastName: LastName
+})
+
+/** Build and sample an Arbitrary for the composed schema */
+console.log(JSON.stringify(FastCheck.sample(Schema.makeArbitrary(FullName), 3), null, 2))
+/*
+Example Output:
+[
+  {
+    "firstName": "Delpha",
+    "lastName": "Renner"
+  },
+  {
+    "firstName": "Luis",
+    "lastName": "Jaskolski"
+  },
+  {
+    "firstName": "Thalia",
+    "lastName": "Price"
+  }
+]
+*/
+```
+
 ## Generating an Equivalence from a Schema
 
 **Example** (Deriving equivalence for a basic schema)
