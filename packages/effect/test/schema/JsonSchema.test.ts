@@ -222,12 +222,7 @@ describe("JsonSchema generation", () => {
         }
       }
       const schema = Schema.Option(Schema.String).annotate({
-        jsonSchema: {
-          _tag: "Override",
-          override: (ctx) => {
-            return getOptionJsonSchema(ctx.typeParameters[0])
-          }
-        }
+        jsonSchema: (ctx) => getOptionJsonSchema(ctx.typeParameters[0])
       })
       assertDraft07(schema, {
         schema: getOptionJsonSchema({
@@ -238,10 +233,7 @@ describe("JsonSchema generation", () => {
 
     it("instanceOf", () => {
       const schema = Schema.instanceOf(URL, {
-        jsonSchema: {
-          _tag: "Override",
-          override: () => ({ "type": "string" })
-        }
+        jsonSchema: () => ({ "type": "string" })
       })
       assertDraft07(schema, {
         schema: {
@@ -253,10 +245,7 @@ describe("JsonSchema generation", () => {
     it("should ignore errors when generating the default JSON Schema passed in the override context", () => {
       assertDraft07(
         Schema.Symbol.annotate({
-          jsonSchema: {
-            _tag: "Override",
-            override: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
-          }
+          jsonSchema: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
         }),
         {
           schema: {
@@ -266,10 +255,7 @@ describe("JsonSchema generation", () => {
       )
       assertDraft07(
         Schema.Symbol.annotate({
-          jsonSchema: {
-            _tag: "Override",
-            override: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
-          }
+          jsonSchema: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
         }),
         {
           schema: {
@@ -283,10 +269,7 @@ describe("JsonSchema generation", () => {
       )
       assertDraft07(
         Schema.Symbol.check(Schema.makeFilter(() => true)).annotate({
-          jsonSchema: {
-            _tag: "Override",
-            override: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
-          }
+          jsonSchema: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
         }),
         {
           schema: {
@@ -296,10 +279,7 @@ describe("JsonSchema generation", () => {
       )
       assertDraft07(
         Schema.Symbol.check(Schema.makeFilter(() => true)).annotate({
-          jsonSchema: {
-            _tag: "Override",
-            override: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
-          }
+          jsonSchema: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
         }),
         {
           schema: {
@@ -316,13 +296,10 @@ describe("JsonSchema generation", () => {
     describe("String", () => {
       it("String & override", () => {
         const schema = Schema.String.annotate({
-          jsonSchema: {
-            _tag: "Override",
-            override: () => ({
-              "type": "string",
-              "minLength": 1
-            })
-          }
+          jsonSchema: () => ({
+            "type": "string",
+            "minLength": 1
+          })
         })
         assertDraft07(
           schema,
@@ -349,13 +326,10 @@ describe("JsonSchema generation", () => {
         assertDraft07(
           Schema.String.annotate({
             identifier: "ID",
-            jsonSchema: {
-              _tag: "Override",
-              override: () => ({
-                "type": "string",
-                "minLength": 1
-              })
-            }
+            jsonSchema: () => ({
+              "type": "string",
+              "minLength": 1
+            })
           }),
           {
             schema: {
@@ -374,13 +348,10 @@ describe("JsonSchema generation", () => {
       it("String & check & override", () => {
         assertDraft07(
           Schema.String.check(Schema.isMinLength(2)).annotate({
-            jsonSchema: {
-              _tag: "Override",
-              override: () => ({
-                "type": "string",
-                "minLength": 1
-              })
-            }
+            jsonSchema: () => ({
+              "type": "string",
+              "minLength": 1
+            })
           }),
           {
             schema: {
@@ -656,13 +627,10 @@ describe("JsonSchema generation", () => {
       it("String & override & check", () => {
         assertDraft07(
           Schema.String.annotate({
-            jsonSchema: {
-              _tag: "Override",
-              override: () => ({
-                "type": "string",
-                "minLength": 1
-              })
-            }
+            jsonSchema: () => ({
+              "type": "string",
+              "minLength": 1
+            })
           }).check(Schema.isMinLength(2)),
           {
             schema: {

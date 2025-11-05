@@ -154,13 +154,10 @@ export const FileSchema: FileSchema = Schema.declare(
   isPersistedFile,
   {
     identifier: "PersistedFile",
-    jsonSchema: {
-      _tag: "Override",
-      override: () => ({
-        "type": "string",
-        "format": "binary"
-      })
-    }
+    jsonSchema: () => ({
+      "type": "string",
+      "format": "binary"
+    })
   }
 )
 

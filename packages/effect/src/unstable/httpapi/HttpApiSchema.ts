@@ -420,13 +420,10 @@ export const withEncoding: {
     },
     ...(options.kind === "Uint8Array" ?
       {
-        jsonSchema: {
-          _tag: "Override",
-          override: () => ({
-            "type": "string",
-            "format": "binary"
-          })
-        }
+        jsonSchema: () => ({
+          "type": "string",
+          "format": "binary"
+        })
       } :
       undefined)
   }))

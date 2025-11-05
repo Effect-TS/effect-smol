@@ -3278,10 +3278,7 @@ export function isTrimmed(annotations?: Annotations.Filter) {
     (s: string) => s.trim() === s,
     Annotations.combine({
       expected: "a string with no leading or trailing whitespace",
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ pattern: TRIMMED_PATTERN })
-      },
+      jsonSchemaConstraint: () => ({ pattern: TRIMMED_PATTERN }),
       meta: {
         _tag: "isTrimmed"
       },
@@ -3344,13 +3341,10 @@ export function isUUID(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
   const re = getUUIDRegex(version)
   return isPattern(re, {
     expected: version ? `a UUID v${version}` : "a UUID",
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({
-        pattern: re.source,
-        format: "uuid"
-      })
-    }
+    jsonSchemaConstraint: () => ({
+      pattern: re.source,
+      format: "uuid"
+    })
   })
 }
 
@@ -3417,10 +3411,7 @@ export function isStartsWith(startsWith: string, annotations?: Annotations.Filte
     (s: string) => s.startsWith(startsWith),
     Annotations.combine({
       expected: `a string starting with ${formatted}`,
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ pattern: `^${startsWith}` })
-      },
+      jsonSchemaConstraint: () => ({ pattern: `^${startsWith}` }),
       meta: {
         _tag: "isStartsWith",
         startsWith
@@ -3444,10 +3435,7 @@ export function isEndsWith(endsWith: string, annotations?: Annotations.Filter) {
     (s: string) => s.endsWith(endsWith),
     Annotations.combine({
       expected: `a string ending with ${formatted}`,
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ pattern: `${endsWith}$` })
-      },
+      jsonSchemaConstraint: () => ({ pattern: `${endsWith}$` }),
       meta: {
         _tag: "isEndsWith",
         endsWith
@@ -3471,10 +3459,7 @@ export function isIncludes(includes: string, annotations?: Annotations.Filter) {
     (s: string) => s.includes(includes),
     Annotations.combine({
       expected: `a string including ${formatted}`,
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ pattern: includes })
-      },
+      jsonSchemaConstraint: () => ({ pattern: includes }),
       meta: {
         _tag: "isIncludes",
         includes
@@ -3499,10 +3484,7 @@ export function isUppercased(annotations?: Annotations.Filter) {
     (s: string) => s.toUpperCase() === s,
     Annotations.combine({
       expected: "a string with all characters in uppercase",
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ pattern: UPPERCASED_PATTERN })
-      },
+      jsonSchemaConstraint: () => ({ pattern: UPPERCASED_PATTERN }),
       meta: {
         _tag: "isUppercased"
       },
@@ -3526,10 +3508,7 @@ export function isLowercased(annotations?: Annotations.Filter) {
     (s: string) => s.toLowerCase() === s,
     Annotations.combine({
       expected: "a string with all characters in lowercase",
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ pattern: LOWERCASED_PATTERN })
-      },
+      jsonSchemaConstraint: () => ({ pattern: LOWERCASED_PATTERN }),
       meta: {
         _tag: "isLowercased"
       },
@@ -3555,10 +3534,7 @@ export function isCapitalized(annotations?: Annotations.Filter) {
     (s: string) => s.charAt(0).toUpperCase() === s.charAt(0),
     Annotations.combine({
       expected: "a string with the first character in uppercase",
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ pattern: CAPITALIZED_PATTERN })
-      },
+      jsonSchemaConstraint: () => ({ pattern: CAPITALIZED_PATTERN }),
       meta: {
         _tag: "isCapitalized"
       },
@@ -3584,10 +3560,7 @@ export function isUncapitalized(annotations?: Annotations.Filter) {
     (s: string) => s.charAt(0).toLowerCase() === s.charAt(0),
     Annotations.combine({
       expected: "a string with the first character in lowercase",
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ pattern: UNCAPITALIZED_PATTERN })
-      },
+      jsonSchemaConstraint: () => ({ pattern: UNCAPITALIZED_PATTERN }),
       meta: {
         _tag: "isUncapitalized"
       },
@@ -3762,10 +3735,7 @@ export function deriveIsMultipleOf<T>(options: {
 export const isGreaterThan = deriveIsGreaterThan({
   order: Order.number,
   annotate: (exclusiveMinimum) => ({
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({ exclusiveMinimum })
-    },
+    jsonSchemaConstraint: () => ({ exclusiveMinimum }),
     meta: {
       _tag: "isGreaterThan",
       exclusiveMinimum
@@ -3786,10 +3756,7 @@ export const isGreaterThan = deriveIsGreaterThan({
 export const isGreaterThanOrEqualTo = deriveIsGreaterThanOrEqualTo({
   order: Order.number,
   annotate: (minimum) => ({
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({ minimum })
-    },
+    jsonSchemaConstraint: () => ({ minimum }),
     meta: {
       _tag: "isGreaterThanOrEqualTo",
       minimum
@@ -3809,10 +3776,7 @@ export const isGreaterThanOrEqualTo = deriveIsGreaterThanOrEqualTo({
 export const isLessThan = deriveIsLessThan({
   order: Order.number,
   annotate: (exclusiveMaximum) => ({
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({ exclusiveMaximum })
-    },
+    jsonSchemaConstraint: () => ({ exclusiveMaximum }),
     meta: {
       _tag: "isLessThan",
       exclusiveMaximum
@@ -3833,10 +3797,7 @@ export const isLessThan = deriveIsLessThan({
 export const isLessThanOrEqualTo = deriveIsLessThanOrEqualTo({
   order: Order.number,
   annotate: (maximum) => ({
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({ maximum })
-    },
+    jsonSchemaConstraint: () => ({ maximum }),
     meta: {
       _tag: "isLessThanOrEqualTo",
       maximum
@@ -3856,10 +3817,7 @@ export const isLessThanOrEqualTo = deriveIsLessThanOrEqualTo({
 export const isBetween = deriveIsBetween({
   order: Order.number,
   annotate: (minimum, maximum) => ({
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({ minimum, maximum })
-    },
+    jsonSchemaConstraint: () => ({ minimum, maximum }),
     meta: {
       _tag: "isBetween",
       minimum,
@@ -3915,10 +3873,7 @@ export const isMultipleOf = deriveIsMultipleOf({
   zero: 0,
   annotate: (divisor) => ({
     expected: `a value that is a multiple of ${divisor}`,
-    jsonSchema: {
-      _tag: "Constraint",
-      constraint: () => ({ multipleOf: Math.abs(divisor) })
-    }
+    jsonSchemaConstraint: () => ({ multipleOf: Math.abs(divisor) })
   })
 })
 
@@ -3933,10 +3888,7 @@ export function isInt(annotations?: Annotations.Filter) {
     (n: number) => globalThis.Number.isSafeInteger(n),
     Annotations.combine({
       expected: "an integer",
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ type: "integer" })
-      },
+      jsonSchemaConstraint: () => ({ type: "integer" }),
       meta: {
         _tag: "isInt"
       },
@@ -3961,13 +3913,10 @@ export function isInt32(annotations?: Annotations.Filter) {
     ],
     Annotations.combine({
       expected: "a 32-bit integer",
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: (ctx) =>
-          ctx.target === "oas3.1" ?
-            { format: "int32" } :
-            undefined
-      },
+      jsonSchemaConstraint: (ctx) =>
+        ctx.target === "oas3.1" ?
+          { format: "int32" } :
+          undefined,
       meta: {
         _tag: "isInt32"
       }
@@ -3987,13 +3936,10 @@ export function isUint32(annotations?: Annotations.Filter) {
     ],
     Annotations.combine({
       expected: "a 32-bit unsigned integer",
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: (ctx) =>
-          ctx.target === "oas3.1" ?
-            { format: "uint32" } :
-            undefined
-      },
+      jsonSchemaConstraint: (ctx) =>
+        ctx.target === "oas3.1" ?
+          { format: "uint32" } :
+          undefined,
       meta: {
         _tag: "isUint32"
       }
@@ -4166,15 +4112,12 @@ export function isMinLength(minLength: number, annotations?: Annotations.Filter)
     (input) => input.length >= minLength,
     Annotations.combine({
       expected: `a value with a length of at least ${minLength}`,
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: (ctx) => {
-          switch (ctx.type) {
-            case "string":
-              return { minLength }
-            case "array":
-              return { minItems: minLength }
-          }
+      jsonSchemaConstraint: (ctx) => {
+        switch (ctx.type) {
+          case "string":
+            return { minLength }
+          case "array":
+            return { minItems: minLength }
         }
       },
       meta: {
@@ -4212,15 +4155,12 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
     (input) => input.length <= maxLength,
     Annotations.combine({
       expected: `a value with a length of at most ${maxLength}`,
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: (ctx) => {
-          switch (ctx.type) {
-            case "string":
-              return { maxLength }
-            case "array":
-              return { maxItems: maxLength }
-          }
+      jsonSchemaConstraint: (ctx) => {
+        switch (ctx.type) {
+          case "string":
+            return { maxLength }
+          case "array":
+            return { maxItems: maxLength }
         }
       },
       meta: {
@@ -4250,15 +4190,12 @@ export function isLength(length: number, annotations?: Annotations.Filter) {
     (input) => input.length === length,
     Annotations.combine({
       expected: `a value with a length of ${length}`,
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: (ctx) => {
-          switch (ctx.type) {
-            case "string":
-              return { minLength: length, maxLength: length }
-            case "array":
-              return { minItems: length, maxItems: length }
-          }
+      jsonSchemaConstraint: (ctx) => {
+        switch (ctx.type) {
+          case "string":
+            return { minLength: length, maxLength: length }
+          case "array":
+            return { minItems: length, maxItems: length }
         }
       },
       meta: {
@@ -4363,10 +4300,7 @@ export function isMinEntries(minEntries: number, annotations?: Annotations.Filte
     (input) => Object.entries(input).length >= minEntries,
     Annotations.combine({
       expected: `an object with at least ${minEntries} entries`,
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ minProperties: minEntries })
-      },
+      jsonSchemaConstraint: () => ({ minProperties: minEntries }),
       meta: {
         _tag: "isMinEntries",
         minEntries
@@ -4391,10 +4325,7 @@ export function isMaxEntries(maxEntries: number, annotations?: Annotations.Filte
     (input) => Object.entries(input).length <= maxEntries,
     Annotations.combine({
       expected: `an object with at most ${maxEntries} entries`,
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ maxProperties: maxEntries })
-      },
+      jsonSchemaConstraint: () => ({ maxProperties: maxEntries }),
       meta: {
         _tag: "isMaxEntries",
         maxEntries
@@ -4419,10 +4350,7 @@ export function isEntriesLength(length: number, annotations?: Annotations.Filter
     (input) => Object.entries(input).length === length,
     Annotations.combine({
       expected: `an object with exactly ${length} entries`,
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ minProperties: length, maxProperties: length })
-      },
+      jsonSchemaConstraint: () => ({ minProperties: length, maxProperties: length }),
       meta: {
         _tag: "isEntriesLength",
         length
@@ -4446,10 +4374,7 @@ export function isUnique<T>(equivalence: Equivalence.Equivalence<T>, annotations
     (input) => Arr.dedupeWith(input, equivalence).length === input.length,
     Annotations.combine({
       expected: "an array with unique items",
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ uniqueItems: true })
-      },
+      jsonSchemaConstraint: () => ({ uniqueItems: true }),
       meta: {
         _tag: "isUnique",
         equivalence
@@ -5657,22 +5582,19 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {}
 export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
   return String.annotate({
     description: "a string that will be decoded as JSON",
-    jsonSchema: {
-      _tag: "Override",
-      override: (ctx) => {
-        switch (ctx.target) {
-          case "draft-07":
-            return {
-              "type": "string"
-            }
-          case "2020-12":
-          case "oas3.1":
-            return {
-              "type": "string",
-              "contentMediaType": "application/json",
-              "contentSchema": ctx.make(schema.ast)
-            }
-        }
+    jsonSchema: (ctx) => {
+      switch (ctx.target) {
+        case "draft-07":
+          return {
+            "type": "string"
+          }
+        case "2020-12":
+        case "oas3.1":
+          return {
+            "type": "string",
+            "contentMediaType": "application/json",
+            "contentSchema": ctx.make(schema.ast)
+          }
       }
     }
   }).pipe(

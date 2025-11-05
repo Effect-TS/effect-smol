@@ -171,7 +171,7 @@ export interface Filter extends Documentation {
    * Optional metadata used to identify or extend the filter with custom data.
    */
   readonly meta?: Meta | undefined
-  readonly jsonSchema?:
+  readonly jsonSchemaConstraint?:
     | JsonSchema.Constraint
     | undefined
   readonly arbitraryConstraint?:
@@ -310,8 +310,7 @@ export declare namespace JsonSchema {
    * @since 4.0.0
    */
   export interface Constraint {
-    readonly _tag: "Constraint"
-    readonly constraint: (context: ConstraintContext) => Schema.JsonSchema.Fragment | undefined
+    (context: ConstraintContext): Schema.JsonSchema.Fragment | undefined
   }
 
   /**
@@ -332,8 +331,7 @@ export declare namespace JsonSchema {
    * @since 4.0.0
    */
   export interface Override<TypeParameters extends ReadonlyArray<Schema.Top>> {
-    readonly _tag: "Override"
-    readonly override: (context: Context<TypeParameters>) => Schema.JsonSchema.Schema
+    (context: Context<TypeParameters>): Schema.JsonSchema.Schema
   }
 }
 

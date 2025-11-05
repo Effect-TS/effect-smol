@@ -92,27 +92,23 @@ function go(
   if (!ignoreAnnotation) {
     const annotation = getAnnotation(Annotations.get(ast))
     if (annotation) {
-      switch (annotation._tag) {
-        case "Override": {
-          function getDefaultJsonSchema() {
-            try {
-              return go(ast, path, options, ignoreIdentifier, true)
-            } catch {
-              return {}
-            }
-          }
-          const typeParameters = AST.isDeclaration(ast)
-            ? ast.typeParameters.map((tp) => go(tp, path, options, false, false))
-            : []
-          const out = annotation.override({
-            typeParameters,
-            target,
-            jsonSchema: getDefaultJsonSchema(),
-            make: (ast) => go(ast, path, options, false, false)
-          })
-          return overwriteJsonSchemaAnnotations(out, ast.annotations, options.generateDescriptions)
+      function getDefaultJsonSchema() {
+        try {
+          return go(ast, path, options, ignoreIdentifier, true)
+        } catch {
+          return {}
         }
       }
+      const typeParameters = AST.isDeclaration(ast)
+        ? ast.typeParameters.map((tp) => go(tp, path, options, false, false))
+        : []
+      const out = annotation({
+        typeParameters,
+        target,
+        jsonSchema: getDefaultJsonSchema(),
+        make: (ast) => go(ast, path, options, false, false)
+      })
+      return overwriteJsonSchemaAnnotations(out, ast.annotations, options.generateDescriptions)
     }
   }
   // ---------------------------------------------
@@ -147,27 +143,23 @@ function base(
   if (!ignoreAnnotation) {
     const annotation = getAnnotation(ast.annotations)
     if (annotation) {
-      switch (annotation._tag) {
-        case "Override": {
-          function getDefaultJsonSchema() {
-            try {
-              return base(ast, path, options, true)
-            } catch {
-              return {}
-            }
-          }
-          const typeParameters = AST.isDeclaration(ast)
-            ? ast.typeParameters.map((tp) => go(tp, path, options, false, false))
-            : []
-          const out = annotation.override({
-            typeParameters,
-            target,
-            jsonSchema: getDefaultJsonSchema(),
-            make: (ast) => go(ast, path, options, false, false)
-          })
-          return overwriteJsonSchemaAnnotations(out, ast.annotations, options.generateDescriptions)
+      function getDefaultJsonSchema() {
+        try {
+          return base(ast, path, options, true)
+        } catch {
+          return {}
         }
       }
+      const typeParameters = AST.isDeclaration(ast)
+        ? ast.typeParameters.map((tp) => go(tp, path, options, false, false))
+        : []
+      const out = annotation({
+        typeParameters,
+        target,
+        jsonSchema: getDefaultJsonSchema(),
+        make: (ast) => go(ast, path, options, false, false)
+      })
+      return overwriteJsonSchemaAnnotations(out, ast.annotations, options.generateDescriptions)
     }
   }
   switch (ast._tag) {
@@ -427,15 +419,13 @@ function getConstraint<T>(
   target: Annotations.JsonSchema.Target,
   type?: Schema.JsonSchema.Type
 ): Schema.JsonSchema.Fragment | undefined {
-  const annotation = getAnnotation(check.annotations)
-  if (annotation && annotation._tag === "Constraint") {
-    return annotation.constraint({ target, type })
-  }
+  const annotation = check.annotations?.jsonSchemaConstraint as Annotations.JsonSchema.Constraint | undefined
+  if (annotation) return annotation({ target, type })
 }
 
 function getAnnotation(
   annotations: Annotations.Annotations | undefined
-): Annotations.JsonSchema.Override<ReadonlyArray<Schema.Top>> | Annotations.JsonSchema.Constraint | undefined {
+): Annotations.JsonSchema.Override<ReadonlyArray<Schema.Top>> | undefined {
   return annotations?.jsonSchema as any
 }
 

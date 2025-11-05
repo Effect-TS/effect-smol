@@ -2035,10 +2035,7 @@ export function isPattern(regex: RegExp, annotations?: Annotations.Filter) {
     (s: string) => regex.test(s),
     Annotations.combine({
       expected: `a string matching the regex ${source}`,
-      jsonSchema: {
-        _tag: "Constraint",
-        constraint: () => ({ pattern: regex.source })
-      },
+      jsonSchemaConstraint: () => ({ pattern: regex.source }),
       meta: {
         _tag: "isPattern",
         regex
