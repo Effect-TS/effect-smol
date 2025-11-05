@@ -4585,12 +4585,9 @@ You can specify a custom JSON Schema for custom types by using the `jsonSchema` 
 import { Schema } from "effect/schema"
 
 const schema = Schema.instanceOf(URL, {
-  jsonSchema: {
-    _tag: "Override",
-    override: () => ({
-      type: "string"
-    })
-  }
+  jsonSchema: () => ({
+    type: "string"
+  })
 })
 
 const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
@@ -4683,13 +4680,11 @@ const schema = Schema.String.check(
   Schema.makeFilter((s) => /foo/.test(s), {
     title: "containsFoo",
     description: "must contain 'foo'",
-    jsonSchema: {
-      _tag: "Constraint",
+    jsonSchemaConstraint:
       // Evaluated during generation; return a fragment that will be merged
-      constraint: () => ({
+      () => ({
         pattern: "foo"
       })
-    }
   })
 )
 
@@ -4898,11 +4893,9 @@ import { FastCheck } from "effect/testing"
 
 const URL = Schema.instanceOf(globalThis.URL, {
   title: "URL",
-  arbitrary: {
-    _tag: "Override",
+  arbitrary:
     // Build a URL by first generating a valid web URL string with Fast-Check
-    override: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
-  }
+    () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
 })
 
 console.log(FastCheck.sample(Schema.makeArbitrary(URL), 3))
@@ -5088,10 +5081,7 @@ class MyClass {
 }
 
 const schema = Schema.instanceOf(MyClass, {
-  equivalence: {
-    _tag: "Override",
-    override: () => (x, y) => x.a === y.a
-  }
+  equivalence: () => (x, y) => x.a === y.a
 })
 
 const equivalence = Schema.makeEquivalence(schema)
