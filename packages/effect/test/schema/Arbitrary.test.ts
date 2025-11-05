@@ -2,8 +2,12 @@ import * as InternalArbitrary from "effect/internal/arbitrary"
 import type { Annotations } from "effect/schema"
 import { Schema } from "effect/schema"
 import { TestSchema } from "effect/testing"
-import { deepStrictEqual } from "node:assert"
 import { describe, it } from "vitest"
+import { deepStrictEqual, throws } from "../utils/assert.ts"
+
+function assertUnsupportedSchema(schema: Schema.Top, message: string) {
+  throws(() => Schema.makeArbitrary(schema), message)
+}
 
 function assertFragments(schema: Schema.Schema<any>, ctx: Annotations.Arbitrary.Context) {
   const ast = schema.ast
@@ -18,6 +22,24 @@ function verifyGeneration<S extends Schema.Codec<unknown, unknown, never, unknow
 }
 
 describe("Arbitrary generation", () => {
+  describe("Thrown errors", () => {
+    it("Declaration", () => {
+      assertUnsupportedSchema(
+        Schema.Struct({ a: Schema.instanceOf(globalThis.URL) }),
+        `Unsupported schema Declaration
+  at ["a"]`
+      )
+    })
+
+    it("Never", () => {
+      assertUnsupportedSchema(
+        Schema.Struct({ a: Schema.Never }),
+        `Unsupported schema Never
+  at ["a"]`
+      )
+    })
+  })
+
   it("Any", () => {
     verifyGeneration(Schema.Any)
   })

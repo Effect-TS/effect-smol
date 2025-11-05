@@ -174,7 +174,7 @@ export interface Filter extends Documentation {
   readonly jsonSchema?:
     | JsonSchema.Constraint
     | undefined
-  readonly arbitrary?:
+  readonly arbitraryConstraint?:
     | Arbitrary.Constraint
     | undefined
   /**
@@ -225,15 +225,12 @@ export declare namespace Arbitrary {
   /**
    * @since 4.0.0
    */
-  export type Constraint = {
-    readonly _tag: "Constraint"
-    readonly constraint: {
-      readonly string?: StringConstraints | undefined
-      readonly number?: NumberConstraints | undefined
-      readonly bigint?: BigIntConstraints | undefined
-      readonly array?: ArrayConstraints | undefined
-      readonly date?: DateConstraints | undefined
-    }
+  export interface Constraint {
+    readonly string?: StringConstraints | undefined
+    readonly number?: NumberConstraints | undefined
+    readonly bigint?: BigIntConstraints | undefined
+    readonly array?: ArrayConstraints | undefined
+    readonly date?: DateConstraints | undefined
   }
 
   /**
@@ -246,18 +243,17 @@ export declare namespace Arbitrary {
      * suspends, so implementations should try to avoid excessive recursion.
      */
     readonly isSuspend?: boolean | undefined
-    readonly constraints?: Arbitrary.Constraint["constraint"] | undefined
+    readonly constraints?: Arbitrary.Constraint | undefined
   }
 
   /**
    * @since 4.0.0
    */
-  export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
-    readonly _tag: "Override"
-    readonly override: (
+  export interface Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
+    (
       /* Arbitraries for any type parameters of the schema (if present) */
       typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
-    ) => (fc: typeof FastCheck, context: Context) => FastCheck.Arbitrary<T>
+    ): (fc: typeof FastCheck, context: Context) => FastCheck.Arbitrary<T>
   }
 }
 
@@ -268,7 +264,7 @@ export declare namespace Format {
   /**
    * @since 4.0.0
    */
-  export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+  export interface Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
     readonly _tag: "Override"
     readonly override: (
       /* Formatters for any type parameters of the schema (if present) */
@@ -284,7 +280,7 @@ export declare namespace Equivalence {
   /**
    * @since 4.0.0
    */
-  export type Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> = {
+  export interface Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
     readonly _tag: "Override"
     readonly override: (
       /* Equivalences for any type parameters of the schema (if present) */
@@ -305,7 +301,7 @@ export declare namespace JsonSchema {
   /**
    * @since 4.0.0
    */
-  export type ConstraintContext = {
+  export interface ConstraintContext {
     /** The target of the JSON Schema */
     readonly target: Target
     /** The type of the JSON Schema */
@@ -315,7 +311,7 @@ export declare namespace JsonSchema {
   /**
    * @since 4.0.0
    */
-  export type Constraint = {
+  export interface Constraint {
     readonly _tag: "Constraint"
     readonly constraint: (context: ConstraintContext) => Schema.JsonSchema.Fragment | undefined
   }
@@ -323,7 +319,7 @@ export declare namespace JsonSchema {
   /**
    * @since 4.0.0
    */
-  export type Context<TypeParameters extends ReadonlyArray<Schema.Top>> = {
+  export interface Context<TypeParameters extends ReadonlyArray<Schema.Top>> {
     /** Json Schemas for any type parameters of the schema (if present) */
     readonly typeParameters: { readonly [K in keyof TypeParameters]: Schema.JsonSchema.Schema }
     /** The target of the JSON Schema */
@@ -337,7 +333,7 @@ export declare namespace JsonSchema {
   /**
    * @since 4.0.0
    */
-  export type Override<TypeParameters extends ReadonlyArray<Schema.Top>> = {
+  export interface Override<TypeParameters extends ReadonlyArray<Schema.Top>> {
     readonly _tag: "Override"
     readonly override: (context: Context<TypeParameters>) => Schema.JsonSchema.Schema
   }

@@ -15,14 +15,6 @@ import type * as FastCheck from "../testing/FastCheck.ts"
 
 const arbitraryMemoMap = new WeakMap<AST.AST, LazyArbitraryWithContext<any>>()
 
-function getAnnotation(annotations: Annotations.Annotations | undefined):
-  | Annotations.Arbitrary.Constraint
-  | Annotations.Arbitrary.Override<any, ReadonlyArray<Schema.Top>>
-  | undefined
-{
-  return annotations?.arbitrary as any
-}
-
 function applyChecks(ast: AST.AST, filters: Array<AST.Filter<any>>, arbitrary: FastCheck.Arbitrary<any>) {
   return filters.map((filter) => (a: any) => filter.run(a, ast, AST.defaultParseOptions) === undefined).reduce(
     (acc, filter) => acc.filter(filter),
@@ -83,9 +75,9 @@ type FastCheckConstraint =
 
 function merge(
   _tag: "string" | "number" | "bigint" | "array" | "date",
-  constraints: Annotations.Arbitrary.Constraint["constraint"],
+  constraints: Annotations.Arbitrary.Constraint,
   constraint: FastCheckConstraint
-): Annotations.Arbitrary.Constraint["constraint"] {
+): Annotations.Arbitrary.Constraint {
   const c = constraints[_tag]
   return {
     ...constraints,
@@ -101,7 +93,7 @@ const constraintsKeys = {
   date: null
 }
 
-function isConstraintKey(key: string): key is keyof Annotations.Arbitrary.Constraint["constraint"] {
+function isConstraintKey(key: string): key is keyof Annotations.Arbitrary.Constraint {
   return key in constraintsKeys
 }
 
@@ -109,22 +101,16 @@ function isConstraintKey(key: string): key is keyof Annotations.Arbitrary.Constr
 export function constraintContext(
   filters: Array<AST.Filter<any>>
 ): (ctx: Annotations.Arbitrary.Context) => Annotations.Arbitrary.Context {
-  const annotations = filters.map((filter) => getAnnotation(filter.annotations)).filter(Predicate.isNotUndefined)
+  const annotations = filters.map((filter) => filter.annotations?.arbitraryConstraint).filter(Predicate.isNotUndefined)
   return (ctx) => {
-    const constraints = annotations.reduce((acc: Annotations.Arbitrary.Constraint["constraint"], c) => {
-      switch (c._tag) {
-        case "Constraint": {
-          const keys = Object.keys(c.constraint)
-          for (const key of keys) {
-            if (isConstraintKey(key)) {
-              acc = merge(key, acc, c.constraint[key]!)
-            }
-          }
-          return acc
+    const constraints = annotations.reduce((acc: Annotations.Arbitrary.Constraint, c) => {
+      const keys = Object.keys(c)
+      for (const key of keys) {
+        if (isConstraintKey(key)) {
+          acc = merge(key, acc, c[key]!)
         }
-        case "Override":
-          return acc
       }
+      return acc
     }, ctx.constraints || {})
     return { ...ctx, constraints }
   }
@@ -169,21 +155,19 @@ function go(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithCo
   // ---------------------------------------------
   // handle Override annotation
   // ---------------------------------------------
-  const annotation = getAnnotation(Annotations.get(ast))
+  const annotation = Annotations.get(ast)?.arbitrary as
+    | Annotations.Arbitrary.Override<any, ReadonlyArray<Schema.Top>>
+    | undefined
   if (annotation) {
-    switch (annotation._tag) {
-      case "Override": {
-        const typeParameters = AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => go(tp, path)) : []
-        const filters = getFilters(ast.checks)
-        const f = constraintContext(filters)
-        return (fc, ctx) =>
-          applyChecks(
-            ast,
-            filters,
-            annotation.override(typeParameters.map((tp) => tp(fc, resetContext(ctx))))(fc, f(ctx))
-          )
-      }
-    }
+    const typeParameters = AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => go(tp, path)) : []
+    const filters = getFilters(ast.checks)
+    const f = constraintContext(filters)
+    return (fc, ctx) =>
+      applyChecks(
+        ast,
+        filters,
+        annotation(typeParameters.map((tp) => tp(fc, resetContext(ctx))))(fc, f(ctx))
+      )
   }
   if (ast.checks) {
     const filters = getFilters(ast.checks)

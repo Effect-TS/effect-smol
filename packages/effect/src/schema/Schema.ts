@@ -3285,12 +3285,9 @@ export function isTrimmed(annotations?: Annotations.Filter) {
       meta: {
         _tag: "isTrimmed"
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          string: {
-            patterns: [TRIMMED_PATTERN]
-          }
+      arbitraryConstraint: {
+        string: {
+          patterns: [TRIMMED_PATTERN]
         }
       }
     }, annotations)
@@ -3428,12 +3425,9 @@ export function isStartsWith(startsWith: string, annotations?: Annotations.Filte
         _tag: "isStartsWith",
         startsWith
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          string: {
-            patterns: [`^${startsWith}`]
-          }
+      arbitraryConstraint: {
+        string: {
+          patterns: [`^${startsWith}`]
         }
       }
     }, annotations)
@@ -3458,12 +3452,9 @@ export function isEndsWith(endsWith: string, annotations?: Annotations.Filter) {
         _tag: "isEndsWith",
         endsWith
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          string: {
-            patterns: [`${endsWith}$`]
-          }
+      arbitraryConstraint: {
+        string: {
+          patterns: [`${endsWith}$`]
         }
       }
     }, annotations)
@@ -3488,12 +3479,9 @@ export function isIncludes(includes: string, annotations?: Annotations.Filter) {
         _tag: "isIncludes",
         includes
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          string: {
-            patterns: [includes]
-          }
+      arbitraryConstraint: {
+        string: {
+          patterns: [includes]
         }
       }
     }, annotations)
@@ -3518,12 +3506,9 @@ export function isUppercased(annotations?: Annotations.Filter) {
       meta: {
         _tag: "isUppercased"
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          string: {
-            patterns: [UPPERCASED_PATTERN]
-          }
+      arbitraryConstraint: {
+        string: {
+          patterns: [UPPERCASED_PATTERN]
         }
       }
     }, annotations)
@@ -3548,12 +3533,9 @@ export function isLowercased(annotations?: Annotations.Filter) {
       meta: {
         _tag: "isLowercased"
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          string: {
-            patterns: [LOWERCASED_PATTERN]
-          }
+      arbitraryConstraint: {
+        string: {
+          patterns: [LOWERCASED_PATTERN]
         }
       }
     }, annotations)
@@ -3580,12 +3562,9 @@ export function isCapitalized(annotations?: Annotations.Filter) {
       meta: {
         _tag: "isCapitalized"
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          string: {
-            patterns: [CAPITALIZED_PATTERN]
-          }
+      arbitraryConstraint: {
+        string: {
+          patterns: [CAPITALIZED_PATTERN]
         }
       }
     }, annotations)
@@ -3612,12 +3591,9 @@ export function isUncapitalized(annotations?: Annotations.Filter) {
       meta: {
         _tag: "isUncapitalized"
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          string: {
-            patterns: [UNCAPITALIZED_PATTERN]
-          }
+      arbitraryConstraint: {
+        string: {
+          patterns: [UNCAPITALIZED_PATTERN]
         }
       }
     }, annotations)
@@ -3636,13 +3612,10 @@ export function isFinite(annotations?: Annotations.Filter) {
       meta: {
         _tag: "isFinite"
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          number: {
-            noDefaultInfinity: true,
-            noNaN: true
-          }
+      arbitraryConstraint: {
+        number: {
+          noDefaultInfinity: true,
+          noNaN: true
         }
       }
     }, annotations)
@@ -3797,13 +3770,10 @@ export const isGreaterThan = deriveIsGreaterThan({
       _tag: "isGreaterThan",
       exclusiveMinimum
     },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        number: {
-          min: exclusiveMinimum,
-          minExcluded: true
-        }
+    arbitraryConstraint: {
+      number: {
+        min: exclusiveMinimum,
+        minExcluded: true
       }
     }
   })
@@ -3824,12 +3794,9 @@ export const isGreaterThanOrEqualTo = deriveIsGreaterThanOrEqualTo({
       _tag: "isGreaterThanOrEqualTo",
       minimum
     },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        number: {
-          min: minimum
-        }
+    arbitraryConstraint: {
+      number: {
+        min: minimum
       }
     }
   })
@@ -3850,13 +3817,10 @@ export const isLessThan = deriveIsLessThan({
       _tag: "isLessThan",
       exclusiveMaximum
     },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        number: {
-          max: exclusiveMaximum,
-          maxExcluded: true
-        }
+    arbitraryConstraint: {
+      number: {
+        max: exclusiveMaximum,
+        maxExcluded: true
       }
     }
   })
@@ -3877,12 +3841,9 @@ export const isLessThanOrEqualTo = deriveIsLessThanOrEqualTo({
       _tag: "isLessThanOrEqualTo",
       maximum
     },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        number: {
-          max: maximum
-        }
+    arbitraryConstraint: {
+      number: {
+        max: maximum
       }
     }
   })
@@ -3904,13 +3865,10 @@ export const isBetween = deriveIsBetween({
       minimum,
       maximum
     },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        number: {
-          min: minimum,
-          max: maximum
-        }
+    arbitraryConstraint: {
+      number: {
+        min: minimum,
+        max: maximum
       }
     }
   })
@@ -3982,12 +3940,9 @@ export function isInt(annotations?: Annotations.Filter) {
       meta: {
         _tag: "isInt"
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          number: {
-            isInteger: true
-          }
+      arbitraryConstraint: {
+        number: {
+          isInteger: true
         }
       }
     }, annotations)
@@ -4058,12 +4013,9 @@ export function isValidDate(annotations?: Annotations.Filter) {
       meta: {
         _tag: "isValidDate"
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          date: {
-            noInvalidDate: true
-          }
+      arbitraryConstraint: {
+        date: {
+          noInvalidDate: true
         }
       }
     }, annotations)
@@ -4081,12 +4033,9 @@ export const isGreaterThanOrEqualToDate = deriveIsGreaterThanOrEqualTo({
       _tag: "isGreaterThanOrEqualToDate",
       minimum
     },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        date: {
-          min: minimum
-        }
+    arbitraryConstraint: {
+      date: {
+        min: minimum
       }
     }
   })
@@ -4103,12 +4052,9 @@ export const isLessThanOrEqualToDate = deriveIsLessThanOrEqualTo({
       _tag: "isLessThanOrEqualToDate",
       maximum
     },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        date: {
-          max: maximum
-        }
+    arbitraryConstraint: {
+      date: {
+        max: maximum
       }
     }
   })
@@ -4126,13 +4072,10 @@ export const isBetweenDate = deriveIsBetween({
       minimum,
       maximum
     },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        date: {
-          min: minimum,
-          max: maximum
-        }
+    arbitraryConstraint: {
+      date: {
+        min: minimum,
+        max: maximum
       }
     }
   })
@@ -4149,12 +4092,9 @@ export const isGreaterThanOrEqualToBigInt = deriveIsGreaterThanOrEqualTo({
       _tag: "isGreaterThanOrEqualToBigInt",
       minimum
     },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        bigint: {
-          min: minimum
-        }
+    arbitraryConstraint: {
+      bigint: {
+        min: minimum
       }
     }
   })
@@ -4171,12 +4111,9 @@ export const isLessThanOrEqualToBigInt = deriveIsLessThanOrEqualTo({
       _tag: "isLessThanOrEqualToBigInt",
       maximum
     },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        bigint: {
-          max: maximum
-        }
+    arbitraryConstraint: {
+      bigint: {
+        max: maximum
       }
     }
   })
@@ -4194,13 +4131,10 @@ export const isBetweenBigInt = deriveIsBetween({
       minimum,
       maximum
     },
-    arbitrary: {
-      _tag: "Constraint",
-      constraint: {
-        bigint: {
-          min: minimum,
-          max: maximum
-        }
+    arbitraryConstraint: {
+      bigint: {
+        min: minimum,
+        max: maximum
       }
     }
   })
@@ -4248,15 +4182,12 @@ export function isMinLength(minLength: number, annotations?: Annotations.Filter)
         minLength
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          string: {
-            minLength
-          },
-          array: {
-            minLength
-          }
+      arbitraryConstraint: {
+        string: {
+          minLength
+        },
+        array: {
+          minLength
         }
       }
     }, annotations)
@@ -4297,15 +4228,12 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
         maxLength
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          string: {
-            maxLength
-          },
-          array: {
-            maxLength
-          }
+      arbitraryConstraint: {
+        string: {
+          maxLength
+        },
+        array: {
+          maxLength
         }
       }
     }, annotations)
@@ -4338,17 +4266,14 @@ export function isLength(length: number, annotations?: Annotations.Filter) {
         length
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          string: {
-            minLength: length,
-            maxLength: length
-          },
-          array: {
-            minLength: length,
-            maxLength: length
-          }
+      arbitraryConstraint: {
+        string: {
+          minLength: length,
+          maxLength: length
+        },
+        array: {
+          minLength: length,
+          maxLength: length
         }
       }
     }, annotations)
@@ -4370,12 +4295,9 @@ export function isMinSize(minSize: number, annotations?: Annotations.Filter) {
         minSize
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          array: {
-            minLength: minSize
-          }
+      arbitraryConstraint: {
+        array: {
+          minLength: minSize
         }
       }
     }, annotations)
@@ -4397,12 +4319,9 @@ export function isMaxSize(maxSize: number, annotations?: Annotations.Filter) {
         maxSize
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          array: {
-            maxLength: maxSize
-          }
+      arbitraryConstraint: {
+        array: {
+          maxLength: maxSize
         }
       }
     }, annotations)
@@ -4424,13 +4343,10 @@ export function isSize(size: number, annotations?: Annotations.Filter) {
         size
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          array: {
-            minLength: size,
-            maxLength: size
-          }
+      arbitraryConstraint: {
+        array: {
+          minLength: size,
+          maxLength: size
         }
       }
     }, annotations)
@@ -4456,12 +4372,9 @@ export function isMinEntries(minEntries: number, annotations?: Annotations.Filte
         minEntries
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          array: {
-            minLength: minEntries
-          }
+      arbitraryConstraint: {
+        array: {
+          minLength: minEntries
         }
       }
     }, annotations)
@@ -4487,12 +4400,9 @@ export function isMaxEntries(maxEntries: number, annotations?: Annotations.Filte
         maxEntries
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          array: {
-            maxLength: maxEntries
-          }
+      arbitraryConstraint: {
+        array: {
+          maxLength: maxEntries
         }
       }
     }, annotations)
@@ -4518,13 +4428,10 @@ export function isEntriesLength(length: number, annotations?: Annotations.Filter
         length
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          array: {
-            minLength: length,
-            maxLength: length
-          }
+      arbitraryConstraint: {
+        array: {
+          minLength: length,
+          maxLength: length
         }
       }
     }, annotations)
@@ -4547,12 +4454,9 @@ export function isUnique<T>(equivalence: Equivalence.Equivalence<T>, annotations
         _tag: "isUnique",
         equivalence
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          array: {
-            comparator: equivalence
-          }
+      arbitraryConstraint: {
+        array: {
+          comparator: equivalence
         }
       }
     }, annotations)
@@ -4666,15 +4570,12 @@ export function Option<A extends Top>(value: A): Option<A> {
             encode: (o) => (Option_.isSome(o) ? { _tag: "Some", value: o.value } as const : { _tag: "None" } as const)
           })
         ),
-      arbitrary: {
-        _tag: "Override",
-        override: ([value]) => (fc, ctx) => {
-          return fc.oneof(
-            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Option" } : {},
-            fc.constant(Option_.none()),
-            value.map(Option_.some)
-          )
-        }
+      arbitrary: ([value]) => (fc, ctx) => {
+        return fc.oneof(
+          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Option" } : {},
+          fc.constant(Option_.none()),
+          value.map(Option_.some)
+        )
       },
       equivalence: {
         _tag: "Override",
@@ -4844,15 +4745,12 @@ export function Result<A extends Top, E extends Top>(
                 : { _tag: "Failure", failure: r.failure } as const
           })
         ),
-      arbitrary: {
-        _tag: "Override",
-        override: ([success, failure]) => (fc, ctx) => {
-          return fc.oneof(
-            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Result" } : {},
-            success.map(Result_.succeed),
-            failure.map(Result_.fail)
-          )
-        }
+      arbitrary: ([success, failure]) => (fc, ctx) => {
+        return fc.oneof(
+          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Result" } : {},
+          success.map(Result_.succeed),
+          failure.map(Result_.fail)
+        )
       },
       equivalence: {
         _tag: "Override",
@@ -4953,10 +4851,7 @@ export function Redacted<S extends Top>(value: S, options?: {
             )
           }
         ),
-      arbitrary: {
-        _tag: "Override",
-        override: ([value]) => () => value.map((a) => Redacted_.make(a, { label: options?.label }))
-      },
+      arbitrary: ([value]) => () => value.map((a) => Redacted_.make(a, { label: options?.label })),
       format: {
         _tag: "Override",
         override: () => globalThis.String
@@ -5057,17 +4952,14 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
             encode: identity
           })
         ),
-      arbitrary: {
-        _tag: "Override",
-        override: ([error, defect]) => (fc, ctx) => {
-          return fc.oneof(
-            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Cause.Failure" } : {},
-            fc.constant(Cause_.failureInterrupt()),
-            fc.integer({ min: 1 }).map(Cause_.failureInterrupt),
-            error.map((e) => Cause_.failureFail(e)),
-            defect.map((d) => Cause_.failureDie(d))
-          )
-        }
+      arbitrary: ([error, defect]) => (fc, ctx) => {
+        return fc.oneof(
+          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Cause.Failure" } : {},
+          fc.constant(Cause_.failureInterrupt()),
+          fc.integer({ min: 1 }).map(Cause_.failureInterrupt),
+          error.map((e) => Cause_.failureFail(e)),
+          defect.map((d) => Cause_.failureDie(d))
+        )
       },
       equivalence: {
         _tag: "Override",
@@ -5149,10 +5041,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
             encode: ({ failures }) => failures
           })
         ),
-      arbitrary: {
-        _tag: "Override",
-        override: ([failures]) => () => failures.map(Cause_.fromFailures)
-      },
+      arbitrary: ([failures]) => () => failures.map(Cause_.fromFailures),
       equivalence: {
         _tag: "Override",
         override: ([failures]) => (a, b) => failures(a.failures, b.failures)
@@ -5189,10 +5078,7 @@ const ErrorJsonEncoded = Struct({
 export const Error: Error = instanceOf(globalThis.Error, {
   expected: "Error",
   defaultJsonSerializer: () => link<globalThis.Error>()(ErrorJsonEncoded, Transformation.errorFromErrorJsonEncoded),
-  arbitrary: {
-    _tag: "Override",
-    override: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
-  }
+  arbitrary: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
 })
 
 /**
@@ -5236,10 +5122,7 @@ export const Defect: Defect = Union([
   Any.pipe(decodeTo(
     Unknown.annotate({
       defaultJsonSerializer: () => link<unknown>()(Any, defectTransformation),
-      arbitrary: {
-        _tag: "Override",
-        override: () => (fc) => fc.json()
-      }
+      arbitrary: () => (fc) => fc.json()
     }),
     defectTransformation
   ))
@@ -5325,15 +5208,12 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
                 : { _tag: "Failure", cause: exit.cause } as const
           })
         ),
-      arbitrary: {
-        _tag: "Override",
-        override: ([value, cause]) => (fc, ctx) =>
-          fc.oneof(
-            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Exit" } : {},
-            value.map((v) => Exit_.succeed(v)),
-            cause.map((cause) => Exit_.failCause(cause))
-          )
-      },
+      arbitrary: ([value, cause]) => (fc, ctx) =>
+        fc.oneof(
+          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Exit" } : {},
+          value.map((v) => Exit_.succeed(v)),
+          cause.map((cause) => Exit_.failCause(cause))
+        ),
       equivalence: {
         _tag: "Override",
         override: ([value, cause]) => (a, b) => {
@@ -5421,15 +5301,12 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
             encode: (map) => [...map.entries()]
           })
         ),
-      arbitrary: {
-        _tag: "Override",
-        override: ([key, value]) => (fc, ctx) => {
-          return fc.oneof(
-            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "ReadonlyMap" } : {},
-            fc.constant([]),
-            fc.array(fc.tuple(key, value), ctx?.constraints?.array)
-          ).map((as) => new globalThis.Map(as))
-        }
+      arbitrary: ([key, value]) => (fc, ctx) => {
+        return fc.oneof(
+          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "ReadonlyMap" } : {},
+          fc.constant([]),
+          fc.array(fc.tuple(key, value), ctx?.constraints?.array)
+        ).map((as) => new globalThis.Map(as))
       },
       equivalence: {
         _tag: "Override",
@@ -5506,15 +5383,12 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
             encode: (set) => [...set.values()]
           })
         ),
-      arbitrary: {
-        _tag: "Override",
-        override: ([value]) => (fc, ctx) => {
-          return fc.oneof(
-            ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "ReadonlySet" } : {},
-            fc.constant([]),
-            fc.array(value, ctx?.constraints?.array)
-          ).map((as) => new globalThis.Set(as))
-        }
+      arbitrary: ([value]) => (fc, ctx) => {
+        return fc.oneof(
+          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "ReadonlySet" } : {},
+          fc.constant([]),
+          fc.array(value, ctx?.constraints?.array)
+        ).map((as) => new globalThis.Set(as))
       },
       equivalence: {
         _tag: "Override",
@@ -5556,10 +5430,7 @@ export const URL: URL = instanceOf(
   {
     expected: "URL",
     defaultJsonSerializer: () => link<globalThis.URL>()(String, Transformation.urlFromString),
-    arbitrary: {
-      _tag: "Override",
-      override: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
-    },
+    arbitrary: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s)),
     equivalence: {
       _tag: "Override",
       override: () => (a, b) => a.toString() === b.toString()
@@ -5613,10 +5484,7 @@ export const Date: Date = instanceOf(
           encode: formatDate
         })
       ),
-    arbitrary: {
-      _tag: "Override",
-      override: () => (fc, ctx) => fc.date(ctx?.constraints?.date)
-    }
+    arbitrary: () => (fc, ctx) => fc.date(ctx?.constraints?.date)
   }
 )
 
@@ -5674,15 +5542,12 @@ export const Duration: Duration = declare(
           }
         })
       ),
-    arbitrary: {
-      _tag: "Override",
-      override: () => (fc) =>
-        fc.oneof(
-          fc.constant(Duration_.infinity),
-          fc.bigInt({ min: 0n }).map(Duration_.nanos),
-          fc.maxSafeNat().map(Duration_.millis)
-        )
-    },
+    arbitrary: () => (fc) =>
+      fc.oneof(
+        fc.constant(Duration_.infinity),
+        fc.bigInt({ min: 0n }).map(Duration_.nanos),
+        fc.maxSafeNat().map(Duration_.millis)
+      ),
     format: {
       _tag: "Override",
       override: () => globalThis.String
@@ -6038,10 +5903,7 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
   defaultJsonSerializer: () =>
     link<globalThis.Uint8Array<ArrayBufferLike>>()(StringBase64, Transformation.uint8ArrayFromString),
   expected: "Uint8Array",
-  arbitrary: {
-    _tag: "Override",
-    override: () => (fc) => fc.uint8Array()
-  }
+  arbitrary: () => (fc) => fc.uint8Array()
 })
 
 /**
@@ -6147,11 +6009,8 @@ export const DateTimeUtc: DateTimeUtc = declare(
           encode: Getter.transform(DateTime.formatIso)
         }
       ),
-    arbitrary: {
-      _tag: "Override",
-      override: () => (fc, ctx) =>
-        fc.date({ noInvalidDate: true, ...ctx?.constraints?.date }).map((date) => DateTime.fromDateUnsafe(date))
-    },
+    arbitrary: () => (fc, ctx) =>
+      fc.date({ noInvalidDate: true, ...ctx?.constraints?.date }).map((date) => DateTime.fromDateUnsafe(date)),
     format: {
       _tag: "Override",
       override: () => (utc) => utc.toString()
@@ -6436,10 +6295,7 @@ function getClassSchemaFactory<S extends Top>(
             identifier,
             [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
             serializer: ([from]) => new AST.Link(from.ast, transformation),
-            arbitrary: {
-              _tag: "Override",
-              override: ([from]) => () => from.map((args) => new self(args))
-            },
+            arbitrary: ([from]) => () => from.map((args) => new self(args)),
             format: {
               _tag: "Override",
               override: ([from]) => (t: Self) => `${self.identifier}(${from(t)})`

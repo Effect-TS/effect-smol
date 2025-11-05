@@ -2043,12 +2043,9 @@ export function isPattern(regex: RegExp, annotations?: Annotations.Filter) {
         _tag: "isPattern",
         regex
       },
-      arbitrary: {
-        _tag: "Constraint",
-        constraint: {
-          string: {
-            patterns: [regex.source]
-          }
+      arbitraryConstraint: {
+        string: {
+          patterns: [regex.source]
         }
       }
     }, annotations)
