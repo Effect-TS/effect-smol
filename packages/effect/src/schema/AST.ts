@@ -2557,21 +2557,6 @@ export const enumsToLiterals = memoize((ast: Enum): Union<Literal> => {
   )
 })
 
-/** @internal */
-export function getFilters(checks: Checks | undefined): Array<Filter<any>> {
-  if (checks) {
-    return checks.flatMap((check) => {
-      switch (check._tag) {
-        case "Filter":
-          return [check]
-        case "FilterGroup":
-          return getFilters(check.checks)
-      }
-    })
-  }
-  return []
-}
-
 /**
  * @category Visitor
  * @since 4.0.0

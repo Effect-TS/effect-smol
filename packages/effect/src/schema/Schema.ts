@@ -6579,8 +6579,8 @@ export type LazyArbitrary<T> = (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
  * @since 4.0.0
  */
 export function makeArbitraryLazy<S extends Top>(schema: S): LazyArbitrary<S["Type"]> {
-  const go = InternalArbitrary.go(schema.ast)
-  return (fc) => go(fc, {})
+  const lawc = InternalArbitrary.memoized(schema.ast)
+  return (fc) => lawc(fc, {})
 }
 
 /**

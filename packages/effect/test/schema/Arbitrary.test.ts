@@ -1,14 +1,14 @@
 import * as InternalArbitrary from "effect/internal/arbitrary"
 import type { Annotations } from "effect/schema"
-import { AST, Schema } from "effect/schema"
+import { Schema } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { deepStrictEqual } from "node:assert"
 import { describe, it } from "vitest"
 
 function assertFragments(schema: Schema.Schema<any>, ctx: Annotations.Arbitrary.Context) {
   const ast = schema.ast
-  const filters = AST.getFilters(ast.checks)
-  const f = InternalArbitrary.mergeFiltersConstraints(filters)
+  const filters = InternalArbitrary.getFilters(ast.checks)
+  const f = InternalArbitrary.constraintContext(filters)
   deepStrictEqual(f({}), ctx)
 }
 
@@ -444,8 +444,18 @@ describe("Arbitrary generation", () => {
       )
     })
 
+    it("isBetween(1, 100)", () => {
+      const schema = Schema.Number.check(Schema.isBetween(1, 100))
+      verifyGeneration(schema)
+    })
+
     it("isInt", () => {
       const schema = Schema.Number.check(Schema.isInt())
+      verifyGeneration(schema)
+    })
+
+    it("isInt & isBetween(1, 100)", () => {
+      const schema = Schema.Int.check(Schema.isBetween(1, 100))
       verifyGeneration(schema)
     })
 
