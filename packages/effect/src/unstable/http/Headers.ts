@@ -82,10 +82,7 @@ export const HeadersSchema: HeadersSchema = Schema.declare(
   isHeaders,
   {
     title: "Headers",
-    equivalence: {
-      _tag: "Override",
-      override: () => Equivalence
-    },
+    equivalence: () => Equivalence,
     serializer: () =>
       Schema.link<Headers>()(
         Schema.Record(Schema.String, Schema.String),

@@ -265,11 +265,10 @@ export declare namespace Format {
    * @since 4.0.0
    */
   export interface Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
-    readonly _tag: "Override"
-    readonly override: (
+    (
       /* Formatters for any type parameters of the schema (if present) */
       typeParameters: { readonly [K in keyof TypeParameters]: Format<TypeParameters[K]["Type"]> }
-    ) => Format<T>
+    ): Format<T>
   }
 }
 
@@ -281,11 +280,10 @@ export declare namespace Equivalence {
    * @since 4.0.0
    */
   export interface Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
-    readonly _tag: "Override"
-    readonly override: (
+    (
       /* Equivalences for any type parameters of the schema (if present) */
       typeParameters: { readonly [K in keyof TypeParameters]: Equivalence<TypeParameters[K]["Type"]> }
-    ) => Equivalence<T>
+    ): Equivalence<T>
   }
 }
 

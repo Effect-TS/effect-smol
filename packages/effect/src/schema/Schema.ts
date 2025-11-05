@@ -4577,18 +4577,12 @@ export function Option<A extends Top>(value: A): Option<A> {
           value.map(Option_.some)
         )
       },
-      equivalence: {
-        _tag: "Override",
-        override: ([value]) => Option_.getEquivalence(value)
-      },
-      format: {
-        _tag: "Override",
-        override: ([value]) =>
-          Option_.match({
-            onNone: () => "none()",
-            onSome: (t) => `some(${value(t)})`
-          })
-      }
+      equivalence: ([value]) => Option_.getEquivalence(value),
+      format: ([value]) =>
+        Option_.match({
+          onNone: () => "none()",
+          onSome: (t) => `some(${value(t)})`
+        })
     }
   )
   return makeProto(schema.ast, { value })
@@ -4752,18 +4746,12 @@ export function Result<A extends Top, E extends Top>(
           failure.map(Result_.fail)
         )
       },
-      equivalence: {
-        _tag: "Override",
-        override: ([success, failure]) => Result_.getEquivalence(success, failure)
-      },
-      format: {
-        _tag: "Override",
-        override: ([success, failure]) =>
-          Result_.match({
-            onSuccess: (t) => `success(${success(t)})`,
-            onFailure: (t) => `failure(${failure(t)})`
-          })
-      }
+      equivalence: ([success, failure]) => Result_.getEquivalence(success, failure),
+      format: ([success, failure]) =>
+        Result_.match({
+          onSuccess: (t) => `success(${success(t)})`,
+          onFailure: (t) => `failure(${failure(t)})`
+        })
     }
   )
   return makeProto(schema.ast, { success, failure })
@@ -4852,14 +4840,8 @@ export function Redacted<S extends Top>(value: S, options?: {
           }
         ),
       arbitrary: ([value]) => () => value.map((a) => Redacted_.make(a, { label: options?.label })),
-      format: {
-        _tag: "Override",
-        override: () => globalThis.String
-      },
-      equivalence: {
-        _tag: "Override",
-        override: ([value]) => Redacted_.getEquivalence(value)
-      }
+      format: () => globalThis.String,
+      equivalence: ([value]) => Redacted_.getEquivalence(value)
     }
   )
   return makeProto(schema.ast, { value })
@@ -4961,31 +4943,25 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
           defect.map((d) => Cause_.failureDie(d))
         )
       },
-      equivalence: {
-        _tag: "Override",
-        override: ([error, defect]) => (a, b) => {
-          if (a._tag !== b._tag) return false
-          switch (a._tag) {
-            case "Fail":
-              return error(a.error, (b as Cause_.Fail<unknown>).error)
-            case "Die":
-              return defect(a.defect, (b as Cause_.Die).defect)
-            case "Interrupt":
-              return Equal.equals(a.fiberId, (b as Cause_.Interrupt).fiberId)
-          }
+      equivalence: ([error, defect]) => (a, b) => {
+        if (a._tag !== b._tag) return false
+        switch (a._tag) {
+          case "Fail":
+            return error(a.error, (b as Cause_.Fail<unknown>).error)
+          case "Die":
+            return defect(a.defect, (b as Cause_.Die).defect)
+          case "Interrupt":
+            return Equal.equals(a.fiberId, (b as Cause_.Interrupt).fiberId)
         }
       },
-      format: {
-        _tag: "Override",
-        override: ([error, defect]) => (t) => {
-          switch (t._tag) {
-            case "Fail":
-              return `Fail(${error(t.error)})`
-            case "Die":
-              return `Die(${defect(t.defect)})`
-            case "Interrupt":
-              return "Interrupt"
-          }
+      format: ([error, defect]) => (t) => {
+        switch (t._tag) {
+          case "Fail":
+            return `Fail(${error(t.error)})`
+          case "Die":
+            return `Die(${defect(t.defect)})`
+          case "Interrupt":
+            return "Interrupt"
         }
       }
     }
@@ -5042,14 +5018,8 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
           })
         ),
       arbitrary: ([failures]) => () => failures.map(Cause_.fromFailures),
-      equivalence: {
-        _tag: "Override",
-        override: ([failures]) => (a, b) => failures(a.failures, b.failures)
-      },
-      format: {
-        _tag: "Override",
-        override: ([failures]) => (t) => `Cause(${failures(t.failures)})`
-      }
+      equivalence: ([failures]) => (a, b) => failures(a.failures, b.failures),
+      format: ([failures]) => (t) => `Cause(${failures(t.failures)})`
     }
   )
   return makeProto(schema.ast, { error, defect })
@@ -5214,27 +5184,21 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
           value.map((v) => Exit_.succeed(v)),
           cause.map((cause) => Exit_.failCause(cause))
         ),
-      equivalence: {
-        _tag: "Override",
-        override: ([value, cause]) => (a, b) => {
-          if (a._tag !== b._tag) return false
-          switch (a._tag) {
-            case "Success":
-              return value(a.value, (b as Exit_.Success<A["Type"]>).value)
-            case "Failure":
-              return cause(a.cause, (b as Exit_.Failure<E["Type"], D["Type"]>).cause)
-          }
+      equivalence: ([value, cause]) => (a, b) => {
+        if (a._tag !== b._tag) return false
+        switch (a._tag) {
+          case "Success":
+            return value(a.value, (b as Exit_.Success<A["Type"]>).value)
+          case "Failure":
+            return cause(a.cause, (b as Exit_.Failure<E["Type"], D["Type"]>).cause)
         }
       },
-      format: {
-        _tag: "Override",
-        override: ([value, cause]) => (t) => {
-          switch (t._tag) {
-            case "Success":
-              return `Exit.Success(${value(t.value)})`
-            case "Failure":
-              return `Exit.Failure(${cause(t.cause)})`
-          }
+      format: ([value, cause]) => (t) => {
+        switch (t._tag) {
+          case "Success":
+            return `Exit.Success(${value(t.value)})`
+          case "Failure":
+            return `Exit.Failure(${cause(t.cause)})`
         }
       }
     }
@@ -5308,20 +5272,14 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
           fc.array(fc.tuple(key, value), ctx?.constraints?.array)
         ).map((as) => new globalThis.Map(as))
       },
-      equivalence: {
-        _tag: "Override",
-        override: ([key, value]) => Equal.makeCompareMap(key, value)
-      },
-      format: {
-        _tag: "Override",
-        override: ([key, value]) => (t) => {
-          const size = t.size
-          if (size === 0) {
-            return "ReadonlyMap(0) {}"
-          }
-          const entries = globalThis.Array.from(t.entries()).sort().map(([k, v]) => `${key(k)} => ${value(v)}`)
-          return `ReadonlyMap(${size}) { ${entries.join(", ")} }`
+      equivalence: ([key, value]) => Equal.makeCompareMap(key, value),
+      format: ([key, value]) => (t) => {
+        const size = t.size
+        if (size === 0) {
+          return "ReadonlyMap(0) {}"
         }
+        const entries = globalThis.Array.from(t.entries()).sort().map(([k, v]) => `${key(k)} => ${value(v)}`)
+        return `ReadonlyMap(${size}) { ${entries.join(", ")} }`
       }
     }
   )
@@ -5390,20 +5348,14 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
           fc.array(value, ctx?.constraints?.array)
         ).map((as) => new globalThis.Set(as))
       },
-      equivalence: {
-        _tag: "Override",
-        override: ([value]) => Equal.makeCompareSet(value)
-      },
-      format: {
-        _tag: "Override",
-        override: ([value]) => (t) => {
-          const size = t.size
-          if (size === 0) {
-            return "ReadonlySet(0) {}"
-          }
-          const values = globalThis.Array.from(t.values()).sort().map((v) => `${value(v)}`)
-          return `ReadonlySet(${size}) { ${values.join(", ")} }`
+      equivalence: ([value]) => Equal.makeCompareSet(value),
+      format: ([value]) => (t) => {
+        const size = t.size
+        if (size === 0) {
+          return "ReadonlySet(0) {}"
         }
+        const values = globalThis.Array.from(t.values()).sort().map((v) => `${value(v)}`)
+        return `ReadonlySet(${size}) { ${values.join(", ")} }`
       }
     }
   )
@@ -5431,10 +5383,7 @@ export const URL: URL = instanceOf(
     expected: "URL",
     defaultJsonSerializer: () => link<globalThis.URL>()(String, Transformation.urlFromString),
     arbitrary: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s)),
-    equivalence: {
-      _tag: "Override",
-      override: () => (a, b) => a.toString() === b.toString()
-    }
+    equivalence: () => (a, b) => a.toString() === b.toString()
   }
 )
 
@@ -5548,14 +5497,8 @@ export const Duration: Duration = declare(
         fc.bigInt({ min: 0n }).map(Duration_.nanos),
         fc.maxSafeNat().map(Duration_.millis)
       ),
-    format: {
-      _tag: "Override",
-      override: () => globalThis.String
-    },
-    equivalence: {
-      _tag: "Override",
-      override: () => Duration_.Equivalence
-    }
+    format: () => globalThis.String,
+    equivalence: () => Duration_.Equivalence
   }
 )
 
@@ -6011,14 +5954,8 @@ export const DateTimeUtc: DateTimeUtc = declare(
       ),
     arbitrary: () => (fc, ctx) =>
       fc.date({ noInvalidDate: true, ...ctx?.constraints?.date }).map((date) => DateTime.fromDateUnsafe(date)),
-    format: {
-      _tag: "Override",
-      override: () => (utc) => utc.toString()
-    },
-    equivalence: {
-      _tag: "Override",
-      override: () => DateTime.Equivalence
-    }
+    format: () => (utc) => utc.toString(),
+    equivalence: () => DateTime.Equivalence
   }
 )
 
@@ -6296,10 +6233,7 @@ function getClassSchemaFactory<S extends Top>(
             [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
             serializer: ([from]) => new AST.Link(from.ast, transformation),
             arbitrary: ([from]) => () => from.map((args) => new self(args)),
-            format: {
-              _tag: "Override",
-              override: ([from]) => (t: Self) => `${self.identifier}(${from(t)})`
-            }
+            format: ([from]) => (t: Self) => `${self.identifier}(${from(t)})`
           }, annotations)
         )
       )
@@ -6460,14 +6394,10 @@ export function makeArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["
  * @category Format
  * @since 4.0.0
  */
-export function overrideFormat<S extends Top>(override: () => Format<S["Type"]>) {
+export function overrideFormat<S extends Top>(format: () => Format<S["Type"]>) {
   return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ format: { _tag: "Override", override } })
+    return self.annotate({ format })
   }
-}
-
-function getFormatAnnotation(ast: AST.AST): Annotations.Format.Override<any, ReadonlyArray<any>> | undefined {
-  return Annotations.get(ast)?.["format"] as any
 }
 
 const defaultFormat = () => format
@@ -6481,12 +6411,14 @@ export const defaultVisitorFormat: AST.Visitor<Format<any>> = {
     // ---------------------------------------------
     // handle annotations
     // ---------------------------------------------
-    const annotation = getFormatAnnotation(ast)
+    const annotation = Annotations.get(ast)?.["format"] as
+      | Annotations.Format.Override<any, ReadonlyArray<any>>
+      | undefined
     if (annotation) {
       if (AST.isDeclaration(ast)) {
-        return Option_.some(annotation.override(ast.typeParameters.map(visit)))
+        return Option_.some(annotation(ast.typeParameters.map(visit)))
       }
-      return Option_.some(annotation.override([]))
+      return Option_.some(annotation([]))
     }
     return Option_.none()
   },
@@ -6632,9 +6564,9 @@ export const makeFormat = makeVisitFormat(defaultVisitorFormat)
  * @category Equivalence
  * @since 4.0.0
  */
-export function overrideEquivalence<S extends Top>(override: () => Equivalence.Equivalence<S["Type"]>) {
+export function overrideEquivalence<S extends Top>(equivalence: () => Equivalence.Equivalence<S["Type"]>) {
   return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ equivalence: { _tag: "Override", override } })
+    return self.annotate({ equivalence })
   }
 }
 

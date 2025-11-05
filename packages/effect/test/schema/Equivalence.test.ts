@@ -5,17 +5,11 @@ import { describe, it } from "vitest"
 import { assertFalse, assertTrue } from "../utils/assert.ts"
 
 const Modulo2 = Schema.Number.annotate({
-  equivalence: {
-    _tag: "Override",
-    override: (): Equivalence.Equivalence<number> => Equivalence.make((a, b) => a % 2 === b % 2)
-  }
+  equivalence: (): Equivalence.Equivalence<number> => Equivalence.make((a, b) => a % 2 === b % 2)
 })
 
 const Modulo3 = Schema.Number.annotate({
-  equivalence: {
-    _tag: "Override",
-    override: (): Equivalence.Equivalence<number> => Equivalence.make((a, b) => a % 3 === b % 3)
-  }
+  equivalence: (): Equivalence.Equivalence<number> => Equivalence.make((a, b) => a % 3 === b % 3)
 })
 
 describe("Equivalence generation", () => {

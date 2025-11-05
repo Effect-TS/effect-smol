@@ -6,21 +6,19 @@ import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
 import * as ToParser from "../schema/Parser.ts"
 
-function getAnnotation(ast: AST.AST): Annotations.Equivalence.Override<any, ReadonlyArray<any>> | undefined {
-  return Annotations.get(ast)?.["equivalence"] as any
-}
-
 /** @internal */
 export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
   // ---------------------------------------------
   // handle annotations
   // ---------------------------------------------
-  const annotation = getAnnotation(ast)
+  const annotation = Annotations.get(ast)?.["equivalence"] as
+    | Annotations.Equivalence.Override<any, ReadonlyArray<any>>
+    | undefined
   if (annotation) {
     if (AST.isDeclaration(ast)) {
-      return annotation.override(ast.typeParameters.map(go))
+      return annotation(ast.typeParameters.map(go))
     }
-    return annotation.override([])
+    return annotation([])
   }
   switch (ast._tag) {
     case "Never":
