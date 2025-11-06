@@ -1186,10 +1186,13 @@ import { Schema } from "effect/schema"
 
 //      ┌─── FilterGroup<number>
 //      ▼
-const isInt32 = Schema.makeFilterGroup([Schema.isInt(), Schema.isBetween(-2147483648, 2147483647)], {
-  title: "isInt32",
-  description: "a 32-bit integer"
-})
+const isInt32 = Schema.makeFilterGroup(
+  [Schema.isInt(), Schema.isBetween({ minimum: -2147483648, maximum: 2147483647 })],
+  {
+    title: "isInt32",
+    description: "a 32-bit integer"
+  }
+)
 ```
 
 ### Refinements
@@ -5027,7 +5030,7 @@ const LastName = Schema.String.annotate({
   arbitrary: fake((f) => f.person.lastName())
 })
 
-const Age = Schema.Int.check(Schema.isBetween(18, 80)).annotate({
+const Age = Schema.Int.check(Schema.isBetween({ minimum: 18, maximum: 80 })).annotate({
   arbitrary: fake((f, ctx) => {
     // Use the constraints from the schema to generate a random age
     const min = ctx.constraints?.number?.min ?? 0
@@ -5598,9 +5601,12 @@ const FirstName = Schema.String.check(
 )
 const Age = Schema.Number.check(
   Schema.isInt({ message: "must be an integer" }).abort(),
-  Schema.isBetween(18, 100, {
-    message: "must be between 18 and 100"
-  })
+  Schema.isBetween(
+    { minimum: 18, maximum: 100 },
+    {
+      message: "must be between 18 and 100"
+    }
+  )
 ).pipe(Schema.encodeTo(Schema.String, Transformation.numberFromString))
 
 // Whole-form schema with a form-level rule:
@@ -5874,7 +5880,7 @@ number-specific validations
 ```ts
 import { Schema } from "effect/schema"
 
-Schema.Number.check(Schema.isBetween(5, 10))
+Schema.Number.check(Schema.isBetween({ minimum: 5, maximum: 10 }))
 Schema.Number.check(Schema.isGreaterThan(5))
 Schema.Number.check(Schema.isGreaterThanOrEqualTo(5))
 Schema.Number.check(Schema.isLessThan(5))
@@ -5919,7 +5925,7 @@ const isNonNegative = isGreaterThanOrEqualTo(0n)
 const isNegative = isLessThan(0n)
 const isNonPositive = isLessThanOrEqualTo(0n)
 
-Schema.BigInt.check(isBetween(5n, 10n))
+Schema.BigInt.check(isBetween({ minimum: 5n, maximum: 10n }))
 Schema.BigInt.check(isGreaterThan(5n))
 Schema.BigInt.check(isGreaterThanOrEqualTo(5n))
 Schema.BigInt.check(isLessThan(5n))

@@ -454,7 +454,7 @@ export const Duration = Schema.String.annotate({
  * @category Schema
  * @since 4.0.0
  */
-export const Port = Schema.Int.check(Schema.isBetween(1, 65535))
+export const Port = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 65535 }))
 
 /**
  * A schema for strings that can be parsed as log level values.

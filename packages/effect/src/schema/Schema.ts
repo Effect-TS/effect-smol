@@ -3687,20 +3687,44 @@ export function deriveIsLessThanOrEqualTo<T>(options: {
  * @category Order checks
  * @since 4.0.0
  */
-export function deriveIsBetween<T>(options: {
+export function deriveIsBetween<T>(deriveOptions: {
   readonly order: Order.Order<T>
-  readonly annotate?: ((minimum: T, maximum: T) => Annotations.Filter) | undefined
+  readonly annotate?:
+    | ((options: {
+      readonly minimum: T
+      readonly maximum: T
+      readonly exclusiveMinimum?: boolean | undefined
+      readonly exclusiveMaximum?: boolean | undefined
+    }) => Annotations.Filter)
+    | undefined
   readonly format?: (value: T) => string | undefined
 }) {
-  const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
-  const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
-  const fmt = options.format ?? format
-  return (minimum: T, maximum: T, annotations?: Annotations.Filter) => {
+  const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(deriveOptions.order)
+  const greaterThan = Order.greaterThan(deriveOptions.order)
+  const lessThanOrEqualTo = Order.lessThanOrEqualTo(deriveOptions.order)
+  const lessThan = Order.lessThan(deriveOptions.order)
+  const fmt = deriveOptions.format ?? format
+  return (options: {
+    readonly minimum: T
+    readonly maximum: T
+    readonly exclusiveMinimum?: boolean | undefined
+    readonly exclusiveMaximum?: boolean | undefined
+  }, annotations?: Annotations.Filter) => {
+    const gte = options.exclusiveMinimum ? greaterThan : greaterThanOrEqualTo
+    const lte = options.exclusiveMaximum ? lessThan : lessThanOrEqualTo
     return makeFilter<T>(
-      (input) => greaterThanOrEqualTo(input, minimum) && lessThanOrEqualTo(input, maximum),
+      (input) => gte(input, options.minimum) && lte(input, options.maximum),
       Annotations.combine({
-        expected: `a value between ${fmt(minimum)} and ${fmt(maximum)}`,
-        ...options.annotate?.(minimum, maximum)
+        expected: `a value between ${fmt(options.minimum)}${options.exclusiveMinimum ? " (excluded)" : ""} and ${
+          fmt(options.maximum)
+        }${options.exclusiveMaximum ? " (excluded)" : ""}`,
+        jsonSchemaConstraint: () => ({
+          minimum: options.exclusiveMinimum ? options.minimum : undefined,
+          maximum: options.exclusiveMaximum ? options.maximum : undefined,
+          exclusiveMinimum: options.exclusiveMinimum,
+          exclusiveMaximum: options.exclusiveMaximum
+        }),
+        ...deriveOptions.annotate?.(options)
       }, annotations)
     )
   }
@@ -3816,20 +3840,23 @@ export const isLessThanOrEqualTo = deriveIsLessThanOrEqualTo({
  */
 export const isBetween = deriveIsBetween({
   order: Order.number,
-  annotate: (minimum, maximum) => ({
-    jsonSchemaConstraint: () => ({ minimum, maximum }),
-    meta: {
-      _tag: "isBetween",
-      minimum,
-      maximum
-    },
-    arbitraryConstraint: {
-      number: {
-        min: minimum,
-        max: maximum
+  annotate: (options) => {
+    return {
+      jsonSchemaConstraint: () => options,
+      meta: {
+        _tag: "isBetween",
+        ...options
+      },
+      arbitraryConstraint: {
+        number: {
+          min: options.minimum,
+          max: options.maximum,
+          ...(options.exclusiveMinimum && { minExcluded: true }),
+          ...(options.exclusiveMaximum && { maxExcluded: true })
+        }
       }
     }
-  })
+  }
 })
 
 /**
@@ -3909,7 +3936,7 @@ export function isInt32(annotations?: Annotations.Filter) {
   return new AST.FilterGroup(
     [
       isInt(annotations),
-      isBetween(-2147483648, 2147483647)
+      isBetween({ minimum: -2147483648, maximum: 2147483647 })
     ],
     Annotations.combine({
       expected: "a 32-bit integer",
@@ -3932,7 +3959,7 @@ export function isUint32(annotations?: Annotations.Filter) {
   return new AST.FilterGroup(
     [
       isInt(),
-      isBetween(0, 4294967295)
+      isBetween({ minimum: 0, maximum: 4294967295 })
     ],
     Annotations.combine({
       expected: "a 32-bit unsigned integer",
@@ -4012,16 +4039,15 @@ export const isLessThanOrEqualToDate = deriveIsLessThanOrEqualTo({
  */
 export const isBetweenDate = deriveIsBetween({
   order: Order.Date,
-  annotate: (minimum, maximum) => ({
+  annotate: (options) => ({
     meta: {
       _tag: "isBetweenDate",
-      minimum,
-      maximum
+      ...options
     },
     arbitraryConstraint: {
       date: {
-        min: minimum,
-        max: maximum
+        min: options.minimum,
+        max: options.maximum
       }
     }
   })
@@ -4071,16 +4097,15 @@ export const isLessThanOrEqualToBigInt = deriveIsLessThanOrEqualTo({
  */
 export const isBetweenBigInt = deriveIsBetween({
   order: Order.bigint,
-  annotate: (minimum, maximum) => ({
+  annotate: (options) => ({
     meta: {
       _tag: "isBetweenBigInt",
-      minimum,
-      maximum
+      ...options
     },
     arbitraryConstraint: {
       bigint: {
-        min: minimum,
-        max: maximum
+        min: options.minimum,
+        max: options.maximum
       }
     }
   })

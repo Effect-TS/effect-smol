@@ -210,7 +210,7 @@ export class Annotations extends Schema.Opaque<Annotations>()(Schema.Struct({
    * effectively required, while 0 means "least important," and indicates that
    * the data is entirely optional.
    */
-  priority: optional(Schema.Number.check(Schema.isBetween(0, 1)))
+  priority: optional(Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 1 })))
 })) {}
 
 /**
@@ -1429,19 +1429,19 @@ export class ModelPreferences extends Schema.Class<ModelPreferences>(
    * is not important, while a value of 1 means cost is the most important
    * factor.
    */
-  costPriority: optional(Schema.Number.check(Schema.isBetween(0, 1))),
+  costPriority: optional(Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 1 }))),
   /**
    * How much to prioritize sampling speed (latency) when selecting a model. A
    * value of 0 means speed is not important, while a value of 1 means speed is
    * the most important factor.
    */
-  speedPriority: optional(Schema.Number.check(Schema.isBetween(0, 1))),
+  speedPriority: optional(Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 1 }))),
   /**
    * How much to prioritize intelligence and capabilities when selecting a
    * model. A value of 0 means intelligence is not important, while a value of 1
    * means intelligence is the most important factor.
    */
-  intelligencePriority: optional(Schema.Number.check(Schema.isBetween(0, 1)))
+  intelligencePriority: optional(Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 1 })))
 }) {}
 
 /**

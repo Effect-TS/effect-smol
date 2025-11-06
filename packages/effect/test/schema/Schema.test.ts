@@ -1267,23 +1267,110 @@ Expected a string including "c", got "ab"`
         )
       })
 
-      it("isBetween", async () => {
-        const schema = Schema.Number.check(Schema.isBetween(1, 3))
-        const asserts = new TestSchema.Asserts(schema)
+      describe("isBetween", () => {
+        it("included & included", async () => {
+          const schema = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 3 }))
+          const asserts = new TestSchema.Asserts(schema)
 
-        const decoding = asserts.decoding()
-        await decoding.succeed(2)
-        await decoding.fail(
-          0,
-          `Expected a value between 1 and 3, got 0`
-        )
+          const decoding = asserts.decoding()
+          await decoding.succeed(1)
+          await decoding.succeed(3)
+          await decoding.fail(
+            0,
+            `Expected a value between 1 and 3, got 0`
+          )
+          await decoding.fail(
+            4,
+            `Expected a value between 1 and 3, got 4`
+          )
 
-        const encoding = asserts.encoding()
-        await encoding.succeed(2)
-        await encoding.fail(
-          0,
-          `Expected a value between 1 and 3, got 0`
-        )
+          const encoding = asserts.encoding()
+          await encoding.succeed(1)
+          await encoding.succeed(3)
+          await encoding.fail(
+            0,
+            `Expected a value between 1 and 3, got 0`
+          )
+        })
+
+        it("included & excluded", async () => {
+          const schema = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 3, exclusiveMaximum: true }))
+          const asserts = new TestSchema.Asserts(schema)
+
+          const decoding = asserts.decoding()
+          await decoding.succeed(1)
+          await decoding.fail(3, `Expected a value between 1 and 3 (excluded), got 3`)
+          await decoding.fail(
+            0,
+            `Expected a value between 1 and 3 (excluded), got 0`
+          )
+          await decoding.fail(
+            4,
+            `Expected a value between 1 and 3 (excluded), got 4`
+          )
+
+          const encoding = asserts.encoding()
+          await encoding.succeed(1)
+          await encoding.fail(3, `Expected a value between 1 and 3 (excluded), got 3`)
+          await encoding.fail(
+            0,
+            `Expected a value between 1 and 3 (excluded), got 0`
+          )
+        })
+
+        it("excluded & included", async () => {
+          const schema = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 3, exclusiveMinimum: true }))
+          const asserts = new TestSchema.Asserts(schema)
+
+          const decoding = asserts.decoding()
+          await decoding.fail(1, `Expected a value between 1 (excluded) and 3, got 1`)
+          await decoding.succeed(3)
+          await decoding.fail(
+            0,
+            `Expected a value between 1 (excluded) and 3, got 0`
+          )
+          await decoding.fail(
+            4,
+            `Expected a value between 1 (excluded) and 3, got 4`
+          )
+
+          const encoding = asserts.encoding()
+          await encoding.fail(1, `Expected a value between 1 (excluded) and 3, got 1`)
+          await encoding.succeed(3)
+          await encoding.fail(
+            0,
+            `Expected a value between 1 (excluded) and 3, got 0`
+          )
+        })
+
+        it("excluded & excluded", async () => {
+          const schema = Schema.Int.check(
+            Schema.isBetween({ minimum: 1, maximum: 3, exclusiveMinimum: true, exclusiveMaximum: true })
+          )
+          const asserts = new TestSchema.Asserts(schema)
+
+          const decoding = asserts.decoding()
+          await decoding.succeed(2)
+          await decoding.fail(1, `Expected a value between 1 (excluded) and 3 (excluded), got 1`)
+          await decoding.fail(3, `Expected a value between 1 (excluded) and 3 (excluded), got 3`)
+          await decoding.fail(
+            0,
+            `Expected a value between 1 (excluded) and 3 (excluded), got 0`
+          )
+          await decoding.fail(
+            4,
+            `Expected a value between 1 (excluded) and 3 (excluded), got 4`
+          )
+
+          const encoding = asserts.encoding()
+          await encoding.succeed(2)
+          await encoding.fail(1, `Expected a value between 1 (excluded) and 3 (excluded), got 1`)
+          await encoding.fail(3, `Expected a value between 1 (excluded) and 3 (excluded), got 3`)
+          await encoding.fail(
+            0,
+            `Expected a value between 1 (excluded) and 3 (excluded), got 0`
+          )
+        })
       })
 
       it("isInt", async () => {
@@ -1369,7 +1456,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
       const isLessThanOrEqualTo = Schema.deriveIsLessThanOrEqualTo(options)
 
       it("isBetween", async () => {
-        const schema = Schema.BigInt.check(isBetween(5n, 10n))
+        const schema = Schema.BigInt.check(isBetween({ minimum: 5n, maximum: 10n }))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()

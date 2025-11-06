@@ -42,7 +42,7 @@ describe("Arbitrary generation", () => {
 
   it("should pass constraints to the override annotation", () => {
     let constraints: Annotations.Arbitrary.NumberConstraints | undefined
-    const schema = Schema.Int.check(Schema.isBetween(1, 100)).annotate({
+    const schema = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 100 })).annotate({
       arbitrary: () => (fc, ctx) => {
         constraints = ctx.constraints?.number
         return fc.float(constraints)
@@ -479,7 +479,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isBetween(1, 100)", () => {
-      verifyGeneration(Schema.Number.check(Schema.isBetween(1, 100)))
+      verifyGeneration(Schema.Number.check(Schema.isBetween({ minimum: 1, maximum: 100 })))
     })
 
     it("isInt", () => {
@@ -487,7 +487,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isInt & isBetween(1, 100)", () => {
-      verifyGeneration(Schema.Int.check(Schema.isBetween(1, 100)))
+      verifyGeneration(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 100 })))
     })
 
     it("isInt32", () => {
@@ -517,7 +517,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isBetweenDate", () => {
-      verifyGeneration(Schema.Date.check(Schema.isBetweenDate(new Date(0), new Date(10))))
+      verifyGeneration(Schema.Date.check(Schema.isBetweenDate({ minimum: new Date(0), maximum: new Date(10) })))
     })
 
     it("ValidDate", () => {
@@ -533,7 +533,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isBetweenBigInt", () => {
-      verifyGeneration(Schema.BigInt.check(Schema.isBetweenBigInt(BigInt(0), BigInt(10))))
+      verifyGeneration(Schema.BigInt.check(Schema.isBetweenBigInt({ minimum: BigInt(0), maximum: BigInt(10) })))
     })
   })
 
@@ -800,7 +800,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isBetweenDate", () => {
-      assertFragments(Schema.Date.check(Schema.isBetweenDate(new Date(0), new Date(10))), {
+      assertFragments(Schema.Date.check(Schema.isBetweenDate({ minimum: new Date(0), maximum: new Date(10) })), {
         constraints: {
           date: {
             min: new Date(0),
@@ -852,7 +852,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isBetweenBigInt", () => {
-      assertFragments(Schema.BigInt.check(Schema.isBetweenBigInt(BigInt(0), BigInt(10))), {
+      assertFragments(Schema.BigInt.check(Schema.isBetweenBigInt({ minimum: BigInt(0), maximum: BigInt(10) })), {
         constraints: {
           bigint: {
             min: BigInt(0),
