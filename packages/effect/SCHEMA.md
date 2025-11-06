@@ -5027,10 +5027,20 @@ const LastName = Schema.String.annotate({
   arbitrary: fake((f) => f.person.lastName())
 })
 
+const Age = Schema.Int.check(Schema.isBetween(18, 80)).annotate({
+  arbitrary: fake((f, ctx) => {
+    // Use the constraints from the schema to generate a random age
+    const min = ctx.constraints?.number?.min ?? 0
+    const max = ctx.constraints?.number?.max ?? Number.MAX_SAFE_INTEGER
+    return f.number.int({ min, max })
+  })
+})
+
 /** Compose leaves with regular Schema combinators */
 const FullName = Schema.Struct({
   firstName: FirstName,
-  lastName: LastName
+  lastName: LastName,
+  age: Age
 })
 
 /** Build and sample an Arbitrary for the composed schema */
@@ -5039,16 +5049,19 @@ console.log(JSON.stringify(FastCheck.sample(Schema.makeArbitrary(FullName), 3), 
 Example Output:
 [
   {
-    "firstName": "Delpha",
-    "lastName": "Renner"
+    "firstName": "Kiana",
+    "lastName": "Balistreri",
+    "age": 18
   },
   {
-    "firstName": "Luis",
-    "lastName": "Jaskolski"
+    "firstName": "Wendy",
+    "lastName": "Baumbach",
+    "age": 51
   },
   {
-    "firstName": "Thalia",
-    "lastName": "Price"
+    "firstName": "Kelton",
+    "lastName": "Kshlerin",
+    "age": 72
   }
 ]
 */
