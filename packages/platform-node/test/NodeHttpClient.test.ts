@@ -74,16 +74,18 @@ const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
       ))
 
     it.effect("google stream", () =>
-      Effect.gen(function*() {
-        const client = yield* HttpClient.HttpClient
-        const response = yield* client.get("https://www.google.com/").pipe(
-          Effect.map((_) => _.stream),
-          Stream.unwrap,
-          Stream.decodeText(),
-          Stream.mkString
-        )
-        expect(response).toContain("Google")
-      }).pipe(Effect.provide(layer)))
+      it.flakyTest(
+        Effect.gen(function*() {
+          const client = yield* HttpClient.HttpClient
+          const response = yield* client.get("https://www.google.com/").pipe(
+            Effect.map((_) => _.stream),
+            Stream.unwrap,
+            Stream.decodeText(),
+            Stream.mkString
+          )
+          expect(response).toContain("Google")
+        }).pipe(Effect.provide(layer))
+      ))
 
     it.effect("jsonplaceholder", () =>
       Effect.gen(function*() {
