@@ -2602,6 +2602,59 @@ describe("JsonSchema generation", () => {
         })
       })
 
+      it("isBetween", () => {
+        assertDraft07(
+          Schema.Number.annotate({ description: "description" }).check(Schema.isBetween({ minimum: 1, maximum: 10 })),
+          {
+            schema: {
+              "type": "number",
+              "description": "description",
+              "minimum": 1,
+              "maximum": 10
+            }
+          }
+        )
+        assertDraft07(
+          Schema.Number.annotate({ description: "description" }).check(
+            Schema.isBetween({ minimum: 1, maximum: 10, exclusiveMinimum: true })
+          ),
+          {
+            schema: {
+              "type": "number",
+              "description": "description",
+              "exclusiveMinimum": 1,
+              "maximum": 10
+            }
+          }
+        )
+        assertDraft07(
+          Schema.Number.annotate({ description: "description" }).check(
+            Schema.isBetween({ minimum: 1, maximum: 10, exclusiveMaximum: true })
+          ),
+          {
+            schema: {
+              "type": "number",
+              "description": "description",
+              "minimum": 1,
+              "exclusiveMaximum": 10
+            }
+          }
+        )
+        assertDraft07(
+          Schema.Number.annotate({ description: "description" }).check(
+            Schema.isBetween({ minimum: 1, maximum: 10, exclusiveMinimum: true, exclusiveMaximum: true })
+          ),
+          {
+            schema: {
+              "type": "number",
+              "description": "description",
+              "exclusiveMinimum": 1,
+              "exclusiveMaximum": 10
+            }
+          }
+        )
+      })
+
       it("isPattern", () => {
         assertDraft07(Schema.String.check(Schema.isPattern(/^abb+$/)), {
           schema: {

@@ -463,7 +463,7 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  * // Create a standard schema from a regular schema
  * const PersonSchema = Schema.Struct({
  *   name: Schema.NonEmptyString,
- *   age: Schema.Number.check(Schema.isBetween(0, 150))
+ *   age: Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 150 }))
  * })
  *
  * const standardSchema = Schema.asStandardSchemaV1(PersonSchema, {
@@ -3842,7 +3842,20 @@ export const isBetween = deriveIsBetween({
   order: Order.number,
   annotate: (options) => {
     return {
-      jsonSchemaConstraint: () => options,
+      jsonSchemaConstraint: () => {
+        const out: Record<string, unknown> = {}
+        if (options.exclusiveMinimum) {
+          out.exclusiveMinimum = options.minimum
+        } else {
+          out.minimum = options.minimum
+        }
+        if (options.exclusiveMaximum) {
+          out.exclusiveMaximum = options.maximum
+        } else {
+          out.maximum = options.maximum
+        }
+        return out
+      },
       meta: {
         _tag: "isBetween",
         ...options
