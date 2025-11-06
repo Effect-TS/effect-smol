@@ -40,6 +40,18 @@ describe("Arbitrary generation", () => {
     })
   })
 
+  it("should pass constraints to the override annotation", () => {
+    let constraints: Annotations.Arbitrary.NumberConstraints | undefined
+    const schema = Schema.Int.check(Schema.isBetween(1, 100)).annotate({
+      arbitrary: () => (fc, ctx) => {
+        constraints = ctx.constraints?.number
+        return fc.float(constraints)
+      }
+    })
+    verifyGeneration(schema)
+    deepStrictEqual(constraints, { min: 1, max: 100, isInteger: true })
+  })
+
   it("Any", () => {
     verifyGeneration(Schema.Any)
   })
@@ -467,23 +479,19 @@ describe("Arbitrary generation", () => {
     })
 
     it("isBetween(1, 100)", () => {
-      const schema = Schema.Number.check(Schema.isBetween(1, 100))
-      verifyGeneration(schema)
+      verifyGeneration(Schema.Number.check(Schema.isBetween(1, 100)))
     })
 
     it("isInt", () => {
-      const schema = Schema.Number.check(Schema.isInt())
-      verifyGeneration(schema)
+      verifyGeneration(Schema.Number.check(Schema.isInt()))
     })
 
     it("isInt & isBetween(1, 100)", () => {
-      const schema = Schema.Int.check(Schema.isBetween(1, 100))
-      verifyGeneration(schema)
+      verifyGeneration(Schema.Int.check(Schema.isBetween(1, 100)))
     })
 
     it("isInt32", () => {
-      const schema = Schema.Number.check(Schema.isInt32())
-      verifyGeneration(schema)
+      verifyGeneration(Schema.Number.check(Schema.isInt32()))
     })
 
     it("isPattern", () => {
