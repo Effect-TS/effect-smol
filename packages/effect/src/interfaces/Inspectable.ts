@@ -190,40 +190,6 @@ export const toJson = (input: unknown): unknown => {
   return redact(input)
 }
 
-/**
- * Formats a value as a pretty-printed JSON string.
- *
- * This function takes any value and converts it to a nicely formatted JSON string
- * with 2-space indentation. It's commonly used for debugging and logging purposes.
- *
- * @example
- * ```ts
- * import { Inspectable } from "effect/interfaces"
- *
- * const data = {
- *   name: "Alice",
- *   details: {
- *     age: 30,
- *     hobbies: ["reading", "coding"]
- *   }
- * }
- *
- * console.log(Inspectable.format(data))
- * // {
- * //   "name": "Alice",
- * //   "details": {
- * //     "age": 30,
- * //     "hobbies": [
- * //       "reading",
- * //       "coding"
- * //     ]
- * //   }
- * // }
- * ```
- *
- * @since 2.0.0
- * @category formatting
- */
 const CIRCULAR = "[Circular]"
 
 /** @internal */

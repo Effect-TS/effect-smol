@@ -553,15 +553,11 @@ export const defaultCheckHook: CheckHook = (issue): string | undefined => {
   return findMessage(issue.issue) ?? findMessage(issue)
 }
 
-// -----------------------------------------------------------------------------
-// makeStandardSchemaV1
-// -----------------------------------------------------------------------------
-
 /**
  * @category Formatter
  * @since 4.0.0
  */
-export function makeStandardSchemaV1(options?: {
+export function makeFormatterStandardSchemaV1(options?: {
   readonly leafHook?: LeafHook | undefined
   readonly checkHook?: CheckHook | undefined
 }): Formatter<StandardSchemaV1.FailureResult> {
@@ -637,10 +633,6 @@ function formatCheck<T>(check: AST.Check<T>): string {
   }
 }
 
-// -----------------------------------------------------------------------------
-// makeDefault
-// -----------------------------------------------------------------------------
-
 /**
  * The default formatter used across the Effect ecosystem to keep the bundle
  * size small.
@@ -648,7 +640,7 @@ function formatCheck<T>(check: AST.Check<T>): string {
  * @category Formatter
  * @since 4.0.0
  */
-export function makeDefault(): Formatter<string> {
+export function makeFormatterDefault(): Formatter<string> {
   return {
     format: (issue) =>
       toDefaultIssues(issue, [], defaultLeafHook, defaultCheckHook)
@@ -658,7 +650,7 @@ export function makeDefault(): Formatter<string> {
 }
 
 /** @internal */
-export const defaultFormatter = makeDefault()
+export const defaultFormatter = makeFormatterDefault()
 
 function formatDefaultIssue(issue: DefaultIssue): string {
   let out = issue.message

@@ -80,7 +80,7 @@ export * as Filter from "./Filter.ts"
 /**
  * @since 4.0.0
  */
-export * as Format from "./Format.ts"
+export * as Formatter from "./Formatter.ts"
 
 /**
  * This module provides small, allocation-free utilities for working with values of type

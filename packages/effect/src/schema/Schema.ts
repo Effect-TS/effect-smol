@@ -9,7 +9,7 @@ import type * as Brand from "../data/Brand.ts"
 import type * as Combiner from "../data/Combiner.ts"
 import * as Data from "../data/Data.ts"
 import type * as Equivalence from "../data/Equivalence.ts"
-import type { Format } from "../data/Format.ts"
+import type { Formatter } from "../data/Formatter.ts"
 import * as Option_ from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import * as Predicate from "../data/Predicate.ts"
@@ -501,7 +501,7 @@ export function asStandardSchemaV1<
     options?: AST.ParseOptions
   ) => Effect.Effect<S["Type"], Issue.Issue>
   const parseOptions: AST.ParseOptions = { errors: "all", ...options?.parseOptions }
-  const formatter = Issue.makeStandardSchemaV1(options)
+  const formatter = Issue.makeFormatterStandardSchemaV1(options)
   const standard: StandardSchemaV1<S["Encoded"], S["Type"]> = {
     "~standard": {
       version: 1,
@@ -4541,7 +4541,7 @@ export function Option<A extends Top>(value: A): Option<A> {
         )
       },
       equivalence: ([value]) => Option_.getEquivalence(value),
-      format: ([value]) =>
+      formatter: ([value]) =>
         Option_.match({
           onNone: () => "none()",
           onSome: (t) => `some(${value(t)})`
@@ -4710,7 +4710,7 @@ export function Result<A extends Top, E extends Top>(
         )
       },
       equivalence: ([success, failure]) => Result_.getEquivalence(success, failure),
-      format: ([success, failure]) =>
+      formatter: ([success, failure]) =>
         Result_.match({
           onSuccess: (t) => `success(${success(t)})`,
           onFailure: (t) => `failure(${failure(t)})`
@@ -4803,7 +4803,7 @@ export function Redacted<S extends Top>(value: S, options?: {
           }
         ),
       arbitrary: ([value]) => () => value.map((a) => Redacted_.make(a, { label: options?.label })),
-      format: () => globalThis.String,
+      formatter: () => globalThis.String,
       equivalence: ([value]) => Redacted_.getEquivalence(value)
     }
   )
@@ -4917,7 +4917,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
             return Equal.equals(a.fiberId, (b as Cause_.Interrupt).fiberId)
         }
       },
-      format: ([error, defect]) => (t) => {
+      formatter: ([error, defect]) => (t) => {
         switch (t._tag) {
           case "Fail":
             return `Fail(${error(t.error)})`
@@ -4982,7 +4982,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
         ),
       arbitrary: ([failures]) => () => failures.map(Cause_.fromFailures),
       equivalence: ([failures]) => (a, b) => failures(a.failures, b.failures),
-      format: ([failures]) => (t) => `Cause(${failures(t.failures)})`
+      formatter: ([failures]) => (t) => `Cause(${failures(t.failures)})`
     }
   )
   return makeProto(schema.ast, { error, defect })
@@ -5156,7 +5156,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
             return cause(a.cause, (b as Exit_.Failure<E["Type"], D["Type"]>).cause)
         }
       },
-      format: ([value, cause]) => (t) => {
+      formatter: ([value, cause]) => (t) => {
         switch (t._tag) {
           case "Success":
             return `Exit.Success(${value(t.value)})`
@@ -5236,7 +5236,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
         ).map((as) => new globalThis.Map(as))
       },
       equivalence: ([key, value]) => Equal.makeCompareMap(key, value),
-      format: ([key, value]) => (t) => {
+      formatter: ([key, value]) => (t) => {
         const size = t.size
         if (size === 0) {
           return "ReadonlyMap(0) {}"
@@ -5312,7 +5312,7 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
         ).map((as) => new globalThis.Set(as))
       },
       equivalence: ([value]) => Equal.makeCompareSet(value),
-      format: ([value]) => (t) => {
+      formatter: ([value]) => (t) => {
         const size = t.size
         if (size === 0) {
           return "ReadonlySet(0) {}"
@@ -5460,7 +5460,7 @@ export const Duration: Duration = declare(
         fc.bigInt({ min: 0n }).map(Duration_.nanos),
         fc.maxSafeNat().map(Duration_.millis)
       ),
-    format: () => globalThis.String,
+    formatter: () => globalThis.String,
     equivalence: () => Duration_.Equivalence
   }
 )
@@ -5914,7 +5914,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
       ),
     arbitrary: () => (fc, ctx) =>
       fc.date({ noInvalidDate: true, ...ctx?.constraints?.date }).map((date) => DateTime.fromDateUnsafe(date)),
-    format: () => (utc) => utc.toString(),
+    formatter: () => (utc) => utc.toString(),
     equivalence: () => DateTime.Equivalence
   }
 )
@@ -6193,7 +6193,7 @@ function getClassSchemaFactory<S extends Top>(
             [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
             serializer: ([from]) => new AST.Link(from.ast, transformation),
             arbitrary: ([from]) => () => from.map((args) => new self(args)),
-            format: ([from]) => (t: Self) => `${self.identifier}(${from(t)})`
+            formatter: ([from]) => (t: Self) => `${self.identifier}(${from(t)})`
           }, annotations)
         )
       )
@@ -6351,28 +6351,28 @@ export function makeArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["
  * This annotation cannot be added to `Annotations.Bottom` because it would make
  * the schema invariant.
  *
- * @category Format
+ * @category Formatter
  * @since 4.0.0
  */
-export function overrideFormat<S extends Top>(format: () => Format<S["Type"]>) {
+export function overrideFormatter<S extends Top>(formatter: () => Formatter<S["Type"]>) {
   return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ format })
+    return self.annotate({ formatter })
   }
 }
 
 const defaultFormat = () => format
 
 /**
- * @category Format
+ * @category Formatter
  * @since 4.0.0
  */
-export const defaultVisitorFormat: AST.Visitor<Format<any>> = {
+export const defaultVisitorFormat: AST.Visitor<Formatter<any>> = {
   onEnter: (ast, visit) => {
     // ---------------------------------------------
     // handle annotations
     // ---------------------------------------------
-    const annotation = Annotations.get(ast)?.["format"] as
-      | Annotations.Format.Override<any, ReadonlyArray<any>>
+    const annotation = Annotations.get(ast)?.["formatter"] as
+      | Annotations.Formatter.Override<any, ReadonlyArray<any>>
       | undefined
     if (annotation) {
       if (AST.isDeclaration(ast)) {
@@ -6495,21 +6495,21 @@ export const defaultVisitorFormat: AST.Visitor<Format<any>> = {
 }
 
 /**
- * @category Format
+ * @category Formatter
  * @since 4.0.0
  */
-export function makeVisitFormat(visitor: AST.Visitor<Format<any>>) {
-  const visit = memoize(AST.makeVisit<Format<any>>(visitor))
-  return <T>(schema: Schema<T>): Format<T> => {
+export function makeFormatterVisit(visitor: AST.Visitor<Formatter<any>>) {
+  const visit = memoize(AST.makeVisit<Formatter<any>>(visitor))
+  return <T>(schema: Schema<T>): Formatter<T> => {
     return visit(schema.ast)
   }
 }
 
 /**
- * @category Format
+ * @category Formatter
  * @since 4.0.0
  */
-export const makeFormat = makeVisitFormat(defaultVisitorFormat)
+export const makeFormatter = makeFormatterVisit(defaultVisitorFormat)
 
 // -----------------------------------------------------------------------------
 // Equivalence APIs

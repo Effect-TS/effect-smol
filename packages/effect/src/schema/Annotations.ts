@@ -3,7 +3,7 @@
  */
 
 import type { Equivalence } from "../data/Equivalence.ts"
-import type { Format } from "../data/Format.ts"
+import type { Formatter } from "../data/Formatter.ts"
 import * as Predicate from "../data/Predicate.ts"
 import { memoize } from "../Function.ts"
 import type * as FastCheck from "../testing/FastCheck.ts"
@@ -147,7 +147,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
   readonly jsonSchema?: JsonSchema.Override<TypeParameters> | undefined
   readonly arbitrary?: Arbitrary.Override<T, TypeParameters> | undefined
   readonly equivalence?: Equivalence.Override<T, TypeParameters> | undefined
-  readonly format?: Format.Override<T, TypeParameters> | undefined
+  readonly formatter?: Formatter.Override<T, TypeParameters> | undefined
   /** @internal */
   readonly "~sentinels"?: ReadonlyArray<AST.Sentinel> | undefined
 }
@@ -260,15 +260,15 @@ export declare namespace Arbitrary {
 /**
  * @since 4.0.0
  */
-export declare namespace Format {
+export declare namespace Formatter {
   /**
    * @since 4.0.0
    */
   export interface Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
     (
       /* Formatters for any type parameters of the schema (if present) */
-      typeParameters: { readonly [K in keyof TypeParameters]: Format<TypeParameters[K]["Type"]> }
-    ): Format<T>
+      typeParameters: { readonly [K in keyof TypeParameters]: Formatter<TypeParameters[K]["Type"]> }
+    ): Formatter<T>
   }
 }
 

@@ -30,7 +30,7 @@ export class Runner extends Schema.Class<Runner>(TypeId)({
   /**
    * @since 4.0.0
    */
-  static format = Schema.makeFormat(this)
+  static format = Schema.makeFormatter(this)
 
   /**
    * @since 4.0.0

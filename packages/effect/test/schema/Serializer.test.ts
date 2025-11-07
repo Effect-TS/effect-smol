@@ -1169,7 +1169,7 @@ describe("Serializer generation", () => {
       const failure = r.cause.failures[0]
       assertTrue(failure._tag === "Fail")
 
-      const failureResult = Issue.makeStandardSchemaV1({
+      const failureResult = Issue.makeFormatterStandardSchemaV1({
         leafHook: Issue.defaultLeafHook
       }).format(failure.error)
 

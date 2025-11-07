@@ -6,6 +6,6 @@
  * @category model
  * @since 4.0.0
  */
-export interface Format<T> {
+export interface Formatter<T> {
   (t: T): string
 }
