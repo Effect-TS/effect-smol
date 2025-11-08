@@ -6252,6 +6252,15 @@ error message 2`
       await decoding.succeed({ a: "2" }, { a: 2 })
     })
 
+    it("should return a decoding default value if the schema is used as standalone and the input is undefined", async () => {
+      const schema = Schema.String.pipe(Schema.withDecodingDefault(() => "a"))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(undefined, "a")
+      await decoding.succeed("b", "b")
+    })
+
     it("by default should pass through the value", async () => {
       const schema = Schema.Struct({
         a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(() => "1"))

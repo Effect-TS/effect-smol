@@ -6298,19 +6298,244 @@ Reason: The array syntax allows for future extensibility by making it possible t
 
 ### keyof
 
+No equivalent in v4.
+
 ### ArrayEnsure
+
+No equivalent in v4.
 
 ### NonEmptyArrayEnsure
 
+No equivalent in v4.
+
 ### withDefaults
+
+No equivalent in v4.
 
 ### fromKey
 
+No equivalent in v4.
+
+### optionalToOptional
+
+**Example** (Omitting Empty Strings from the Output)
+
+v3
+
+```ts
+import { identity, Option, Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.optionalToOptional(Schema.String, Schema.String, {
+    decode: Option.filter((s) => s !== ""),
+    encode: identity
+  })
+})
+
+// { readonly a?: string; }
+export type Type = (typeof schema)["Type"]
+// { readonly a?: string; }
+export type Encoded = (typeof schema)["Encoded"]
+
+const decode = Schema.decodeUnknownSync(schema)
+
+console.log(decode({}))
+// {}
+console.log(decode({ a: "" }))
+// {}
+console.log(decode({ a: "a non-empty string" }))
+// { a: 'a non-empty string' }
+
+const encode = Schema.encodeSync(schema)
+
+console.log(encode({}))
+// {}
+console.log(encode({ a: "" }))
+// { a: '' }
+console.log(encode({ a: "a non-empty string" }))
+// { a: 'a non-empty string' }
+```
+
+v4
+
+```ts
+import { Option } from "effect/data"
+import { Getter, Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.optionalKey(Schema.String).pipe(
+    Schema.decodeTo(Schema.optionalKey(Schema.String), {
+      decode: Getter.transformOptional(Option.filter((s) => s !== "")),
+      encode: Getter.passthrough()
+    })
+  )
+})
+
+// { readonly a?: string; }
+export type Type = (typeof schema)["Type"]
+// { readonly a?: string; }
+export type Encoded = (typeof schema)["Encoded"]
+
+const decode = Schema.decodeUnknownSync(schema)
+
+console.log(decode({}))
+// {}
+console.log(decode({ a: "" }))
+// {}
+console.log(decode({ a: "a non-empty string" }))
+// { a: 'a non-empty string' }
+
+const encode = Schema.encodeSync(schema)
+
+console.log(encode({}))
+// {}
+console.log(encode({ a: "" }))
+// { a: '' }
+console.log(encode({ a: "a non-empty string" }))
+// { a: 'a non-empty string' }
+```
+
 ### optionalToRequired
+
+**Example** (Setting `null` as Default for Missing Field)
+
+v3
+
+```ts
+import { Option, Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.optionalToRequired(Schema.String, Schema.NullOr(Schema.String), {
+    decode: Option.getOrElse(() => null),
+    encode: Option.liftPredicate((value) => value !== null)
+  })
+})
+
+// { readonly a: string | null; }
+export type Type = (typeof schema)["Type"]
+// { readonly a?: string; }
+export type Encoded = (typeof schema)["Encoded"]
+
+const decode = Schema.decodeUnknownSync(schema)
+
+console.log(decode({}))
+// { a: null }
+console.log(decode({ a: "a value" }))
+// { a: 'a value' }
+
+const encode = Schema.encodeSync(schema)
+
+console.log(encode({ a: "a value" }))
+// { a: 'a value' }
+console.log(encode({ a: null }))
+// {}
+```
+
+v4
+
+```ts
+import { Option } from "effect/data"
+import { Getter, Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.optionalKey(Schema.String).pipe(
+    Schema.decodeTo(Schema.NullOr(Schema.String), {
+      decode: Getter.transformOptional(Option.orElseSome(() => null)),
+      encode: Getter.transformOptional(Option.filter((value) => value !== null))
+    })
+  )
+})
+
+// { readonly a: string | null; }
+export type Type = (typeof schema)["Type"]
+// { readonly a?: string; }
+export type Encoded = (typeof schema)["Encoded"]
+
+const decode = Schema.decodeUnknownSync(schema)
+
+console.log(decode({}))
+// { a: null }
+console.log(decode({ a: "a value" }))
+// { a: 'a value' }
+
+const encode = Schema.encodeSync(schema)
+
+console.log(encode({ a: "a value" }))
+// { a: 'a value' }
+console.log(encode({ a: null }))
+// {}
+```
 
 ### requiredToOptional
 
-### optionalToOptional
+**Example** (Handling Empty String as Missing Value)
+
+v3
+
+```ts
+import { Option, Schema } from "effect"
+
+const schema = Schema.Struct({
+  a: Schema.requiredToOptional(Schema.String, Schema.String, {
+    decode: Option.liftPredicate((s) => s !== ""),
+    encode: Option.getOrElse(() => "")
+  })
+})
+
+// { readonly a?: string; }
+export type Type = (typeof schema)["Type"]
+// { readonly a: string; }
+export type Encoded = (typeof schema)["Encoded"]
+
+const decode = Schema.decodeUnknownSync(schema)
+
+console.log(decode({ a: "a value" }))
+// { a: 'a value' }
+console.log(decode({ a: "" }))
+// {}
+
+const encode = Schema.encodeSync(schema)
+
+console.log(encode({ a: "a value" }))
+// { a: 'a value' }
+console.log(encode({}))
+// { a: '' }
+```
+
+v4
+
+```ts
+import { Option } from "effect/data"
+import { Getter, Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.String.pipe(
+    Schema.decodeTo(Schema.optionalKey(Schema.String), {
+      decode: Getter.transformOptional(Option.filter((value) => value !== "")),
+      encode: Getter.transformOptional(Option.orElseSome(() => ""))
+    })
+  )
+})
+
+// { readonly a?: string; }
+export type Type = (typeof schema)["Type"]
+// { readonly a: string; }
+export type Encoded = (typeof schema)["Encoded"]
+
+const decode = Schema.decodeUnknownSync(schema)
+
+console.log(decode({ a: "a value" }))
+// { a: 'a value' }
+console.log(decode({ a: "" }))
+// {}
+
+const encode = Schema.encodeSync(schema)
+
+console.log(encode({ a: "a value" }))
+// { a: 'a value' }
+console.log(encode({}))
+// { a: '' }
+```
 
 ### optionalWith
 
