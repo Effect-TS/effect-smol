@@ -6855,6 +6855,50 @@ const schema = Schema.Struct({
 
 ### pluck
 
+v4
+
+```ts
+import { Struct } from "effect/data"
+import { Getter, Schema } from "effect/schema"
+
+const struct = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+})
+
+const manual = struct.mapFields(Struct.pick(["a"])).pipe(
+  Schema.decodeTo(Schema.String, {
+    decode: Getter.transform((whole) => whole.a),
+    encode: Getter.transform((value) => ({ a: value }))
+  })
+)
+
+console.log(Schema.decodeSync(manual)({ a: "a" }))
+// "a"
+console.log(Schema.encodeSync(manual)("a"))
+// { a: 'a' }
+
+function pluck<P extends PropertyKey>(key: P) {
+  return <S extends Schema.Top>(
+    schema: Schema.Struct<{ [K in P]: S }>
+  ): Schema.decodeTo<Schema.typeCodec<S>, Schema.Struct<{ [K in P]: S }>> => {
+    return schema.mapFields(Struct.pick([key])).pipe(
+      Schema.decodeTo(Schema.typeCodec(schema.fields[key]), {
+        decode: Getter.transform((whole: any) => whole[key]),
+        encode: Getter.transform((value) => ({ [key]: value }) as any)
+      })
+    )
+  }
+}
+
+const func = struct.pipe(pluck("a"))
+
+console.log(Schema.decodeSync(func)({ a: "a" }))
+// "a"
+console.log(Schema.encodeSync(func)("a"))
+// { a: 'a' }
+```
+
 ### partial
 
 v3
