@@ -646,12 +646,12 @@ Missing key
       })
     })
 
-    describe("merge", () => {
+    describe("assign", () => {
       it("Struct", async () => {
         const from = Schema.Struct({
           a: Schema.String
         })
-        const schema = from.mapFields(Struct.merge({ b: Schema.String }))
+        const schema = from.mapFields(Struct.assign({ b: Schema.String }))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -673,7 +673,7 @@ Missing key
           a: Schema.String,
           b: Schema.String
         })
-        const schema = from.mapFields(Struct.merge({ b: Schema.Number, c: Schema.Number }))
+        const schema = from.mapFields(Struct.assign({ b: Schema.Number, c: Schema.Number }))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -692,7 +692,7 @@ Missing key
         }).check(
           Schema.makeFilter(({ a, b }) => a === b, { title: "a === b" })
         )
-        const schema = from.mapFields(Struct.merge({ c: Schema.String }), { unsafePreserveChecks: true })
+        const schema = from.mapFields(Struct.assign({ c: Schema.String }), { unsafePreserveChecks: true })
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -6772,5 +6772,35 @@ describe("Check", () => {
   at ["a"]`
       )
     })
+  })
+
+  it("fieldsAssign", async () => {
+    const schema = Schema.Union([
+      Schema.Struct({
+        a: Schema.String
+      }),
+      Schema.Struct({
+        b: Schema.Number
+      })
+    ]).mapMembers(Tuple.map(Schema.fieldsAssign({ c: Schema.Number })))
+    const asserts = new TestSchema.Asserts(schema)
+
+    const decoding = asserts.decoding()
+    await decoding.succeed({ a: "a", c: 1 })
+    await decoding.succeed({ b: 1, c: 1 })
+    await decoding.fail(
+      { a: "a" },
+      `Missing key
+  at ["c"]
+Missing key
+  at ["b"]`
+    )
+    await decoding.fail(
+      { b: 1 },
+      `Missing key
+  at ["a"]
+Missing key
+  at ["c"]`
+    )
   })
 })

@@ -2054,7 +2054,7 @@ const schema = Schema.Struct({
 
 #### Merge
 
-Use `Struct.merge` to add new fields to an existing struct.
+Use `Struct.assign` to add new fields to an existing struct.
 
 **Example** (Adding fields to a struct)
 
@@ -2073,10 +2073,16 @@ const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
 }).mapFields(
-  Struct.merge({
+  Struct.assign({
     c: Schema.Boolean
   })
 )
+
+// or more succinctly
+const schema2 = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).pipe(Schema.fieldsAssign({ c: Schema.Boolean }))
 ```
 
 If you want to preserve the checks of the original struct, you can pass `{ unsafePreserveChecks: true }` to the `map` method.
@@ -2094,7 +2100,7 @@ const original = Schema.Struct({
   b: Schema.String
 }).check(Schema.makeFilter(({ a, b }) => a === b, { title: "a === b" }))
 
-const schema = original.mapFields(Struct.merge({ c: Schema.String }), {
+const schema = original.mapFields(Struct.assign({ c: Schema.String }), {
   unsafePreserveChecks: true
 })
 
@@ -7144,7 +7150,13 @@ const schema: Schema.Struct<{
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).mapFields(Struct.merge({ c: Schema.Number }))
+}).mapFields(Struct.assign({ c: Schema.Number }))
+
+// or more succinctly
+const schema2 = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).pipe(Schema.fieldsAssign({ c: Schema.Number }))
 ```
 
 Note that the result is more precise than the v3 result, it is still a `Struct` schema.
@@ -7169,7 +7181,7 @@ const schema = Schema.Union(
 v4
 
 ```ts
-import { Struct, Tuple } from "effect/data"
+import { Tuple } from "effect/data"
 import { Schema } from "effect/schema"
 
 /*
@@ -7188,12 +7200,7 @@ const schema = Schema.Union([
   Schema.Struct({
     b: Schema.Number
   })
-]).mapMembers(
-  Tuple.evolve([
-    (s) => s.mapFields(Struct.merge({ c: Schema.Number })),
-    (s) => s.mapFields(Struct.merge({ c: Schema.Number }))
-  ])
-)
+]).mapMembers(Tuple.map(Schema.fieldsAssign({ c: Schema.Number })))
 ```
 
 ### compose

@@ -45,7 +45,8 @@ export type Simplify<T> = { [K in keyof T]: T[K] } & {}
 export type Mutable<T> = { -readonly [K in keyof T]: T[K] } & {}
 
 /**
- * A utility type that merges two object types, with properties from the second type taking precedence.
+ * A utility type that merges two object types, with properties from the second
+ * type taking precedence (similar to `Object.assign`).
  *
  * @example
  * ```ts
@@ -53,14 +54,14 @@ export type Mutable<T> = { -readonly [K in keyof T]: T[K] } & {}
  *
  * type A = { a: string; b: number }
  * type B = { b: boolean; c: string }
- * type Merged = Struct.Merge<A, B>
+ * type Merged = Struct.Assign<A, B>
  * // Result: { a: string; b: boolean; c: string }
  * ```
  *
  * @category Type-Level Programming
  * @since 4.0.0
  */
-export type Merge<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyof T & keyof U> & U
+export type Assign<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, keyof T & keyof U> & U
 
 /**
  * Retrieves the value associated with the specified key from a struct.
@@ -167,16 +168,16 @@ export const omit: {
  * import { pipe } from "effect"
  * import { Struct } from "effect/data"
  *
- * console.log(pipe({ a: "a", b: 1 }, Struct.merge({ b: 2, c: 3 })))
+ * console.log(pipe({ a: "a", b: 1 }, Struct.assign({ b: 2, c: 3 })))
  * // { a: "a", b: 2, c: 3 }
  * ```
  *
  * @category combining
  * @since 4.0.0
  */
-export const merge: {
-  <O extends object>(that: O): <S extends object>(self: S) => Simplify<Merge<S, O>>
-  <O extends object, S extends object>(self: S, that: O): Simplify<Merge<S, O>>
+export const assign: {
+  <O extends object>(that: O): <S extends object>(self: S) => Simplify<Assign<S, O>>
+  <O extends object, S extends object>(self: S, that: O): Simplify<Assign<S, O>>
 } = dual(
   2,
   <O extends object, S extends object>(self: S, that: O) => {

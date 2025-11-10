@@ -16,8 +16,8 @@ import * as Predicate from "../data/Predicate.ts"
 import * as Record_ from "../data/Record.ts"
 import * as Redacted_ from "../data/Redacted.ts"
 import * as Result_ from "../data/Result.ts"
-import type { Lambda, Merge, Mutable, Simplify } from "../data/Struct.ts"
-import { lambda, renameKeys } from "../data/Struct.ts"
+import type { Assign, Lambda, Mutable, Simplify } from "../data/Struct.ts"
+import * as Struct_ from "../data/Struct.ts"
 import * as DateTime from "../DateTime.ts"
 import type { Differ } from "../Differ.ts"
 import * as Duration_ from "../Duration.ts"
@@ -832,9 +832,9 @@ interface optionalKeyLambda extends Lambda {
  *
  * @since 4.0.0
  */
-export const optionalKey = lambda<optionalKeyLambda>(function optionalKey<S extends Top>(schema: S): optionalKey<S> {
-  return makeProto(AST.optionalKey(schema.ast), { schema })
-})
+export const optionalKey = Struct_.lambda<optionalKeyLambda>((schema) =>
+  makeProto(AST.optionalKey(schema.ast), { schema })
+)
 
 interface requiredKeyLambda extends Lambda {
   <S extends Top>(self: optionalKey<S>): S
@@ -844,9 +844,7 @@ interface requiredKeyLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const requiredKey = lambda<requiredKeyLambda>(function requiredKey<S extends Top>(schema: optionalKey<S>): S {
-  return schema.schema
-})
+export const requiredKey = Struct_.lambda<requiredKeyLambda>((self) => self.schema)
 
 /**
  * @since 4.0.0
@@ -884,9 +882,7 @@ interface optionalLambda extends Lambda {
  *
  * @since 4.0.0
  */
-export const optional = lambda<optionalLambda>(function optional<S extends Top>(self: S): optional<S> {
-  return optionalKey(UndefinedOr(self))
-})
+export const optional = Struct_.lambda<optionalLambda>((self) => optionalKey(UndefinedOr(self)))
 
 interface requiredLambda extends Lambda {
   <S extends Top>(self: optional<S>): S
@@ -896,9 +892,7 @@ interface requiredLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const required = lambda<requiredLambda>(function required<S extends Top>(schema: optional<S>): S {
-  return schema.schema.members[0]
-})
+export const required = Struct_.lambda<requiredLambda>((self) => self.schema.members[0])
 
 /**
  * @since 4.0.0
@@ -934,9 +928,9 @@ interface mutableKeyLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const mutableKey = lambda<mutableKeyLambda>(function mutableKey<S extends Top>(schema: S): mutableKey<S> {
-  return makeProto(AST.mutableKey(schema.ast), { schema })
-})
+export const mutableKey = Struct_.lambda<mutableKeyLambda>((schema) =>
+  makeProto(AST.mutableKey(schema.ast), { schema })
+)
 
 /**
  * @since 4.0.0
@@ -971,9 +965,7 @@ interface typeCodecLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const typeCodec = lambda<typeCodecLambda>(function typeCodec<S extends Top>(schema: S): typeCodec<S> {
-  return makeProto(AST.typeAST(schema.ast), { schema })
-})
+export const typeCodec = Struct_.lambda<typeCodecLambda>((schema) => makeProto(AST.typeAST(schema.ast), { schema }))
 
 /**
  * @since 4.0.0
@@ -1008,10 +1000,8 @@ interface encodedCodecLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const encodedCodec = lambda<encodedCodecLambda>(
-  function encodedCodec<S extends Top>(schema: S): encodedCodec<S> {
-    return makeProto(AST.encodedAST(schema.ast), { schema })
-  }
+export const encodedCodec = Struct_.lambda<encodedCodecLambda>((schema) =>
+  makeProto(AST.encodedAST(schema.ast), { schema })
 )
 
 const FlipTypeId = "~effect/schema/Schema/flip"
@@ -1563,6 +1553,38 @@ export function Struct<const Fields extends Struct.Fields>(fields: Fields): Stru
   return makeStruct(AST.struct(fields, undefined), fields)
 }
 
+interface fieldsAssign<NewFields extends Struct.Fields> extends Lambda {
+  <Fields extends Struct.Fields>(
+    struct: Struct<Fields>
+  ): Struct<Struct_.Simplify<Struct_.Assign<Fields, NewFields>>>
+  readonly "~lambda.out": this["~lambda.in"] extends Struct<Struct.Fields>
+    ? Struct<Struct_.Simplify<Struct_.Assign<this["~lambda.in"]["fields"], NewFields>>>
+    : never
+}
+
+/**
+ * A shortcut for `MyStruct.mapFields(Struct.assign(fields))`. This is useful
+ * when you want to add new fields to an existing struct or a union of structs.
+ *
+ * **Example** (Adding fields to a union of structs)
+ *
+ * ```ts
+ * import { Schema } from "effect/schema"
+ * import { Tuple } from "effect/data"
+ *
+ * // Add a new field to all members of a union of structs
+ * const schema = Schema.Union([
+ *   Schema.Struct({ a: Schema.String }),
+ *   Schema.Struct({ b: Schema.Number })
+ * ]).mapMembers(Tuple.map(Schema.fieldsAssign({ c: Schema.Number })))
+ * ```
+ *
+ * @since 4.0.0
+ */
+export function fieldsAssign<const NewFields extends Struct.Fields>(fields: NewFields) {
+  return Struct_.lambda<fieldsAssign<NewFields>>((struct) => struct.mapFields(Struct_.assign(fields)))
+}
+
 /**
  * @category Struct transformations
  * @since 4.0.0
@@ -1596,8 +1618,8 @@ export function encodeKeys<
     return Struct(fields).pipe(decodeTo(
       self,
       Transformation.transform<any, any>({
-        decode: renameKeys(reverseMapping),
-        encode: renameKeys(mapping)
+        decode: Struct_.renameKeys(reverseMapping),
+        encode: Struct_.renameKeys(mapping)
       })
     ))
   }
@@ -2128,9 +2150,9 @@ interface ArrayLambda extends Lambda {
  * @category Constructors
  * @since 4.0.0
  */
-export const Array = lambda<ArrayLambda>(function Array<S extends Top>(schema: S): Array$<S> {
-  return makeProto(new AST.Arrays(false, [], [schema.ast]), { schema })
-})
+export const Array = Struct_.lambda<ArrayLambda>((schema) =>
+  makeProto(new AST.Arrays(false, [], [schema.ast]), { schema })
+)
 
 /**
  * @since 4.0.0
@@ -2160,10 +2182,8 @@ interface NonEmptyArrayLambda extends Lambda {
  * @category Constructors
  * @since 4.0.0
  */
-export const NonEmptyArray = lambda<NonEmptyArrayLambda>(
-  function NonEmptyArray<S extends Top>(schema: S): NonEmptyArray<S> {
-    return makeProto(new AST.Arrays(false, [schema.ast], [schema.ast]), { schema })
-  }
+export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
+  makeProto(new AST.Arrays(false, [schema.ast], [schema.ast]), { schema })
 )
 
 /**
@@ -2219,9 +2239,7 @@ interface mutableLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const mutable = lambda<mutableLambda>(function mutable<S extends Top>(schema: S): mutable<S> {
-  return makeProto(AST.mutable(schema.ast), { schema })
-})
+export const mutable = Struct_.lambda<mutableLambda>((schema) => makeProto(AST.mutable(schema.ast), { schema }))
 
 /**
  * @since 4.0.0
@@ -2257,9 +2275,7 @@ interface readonlyLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const readonly = lambda<readonlyLambda>(function readonly<S extends Top>(schema: S): readonly$<S> {
-  return makeProto(AST.readonly(schema.ast), { schema })
-})
+export const readonly = Struct_.lambda<readonlyLambda>((schema) => makeProto(AST.readonly(schema.ast), { schema }))
 
 /**
  * @since 4.0.0
@@ -2393,11 +2409,7 @@ interface NullOrLambda extends Lambda {
  * @category Constructors
  * @since 4.0.0
  */
-export const NullOr = lambda<NullOrLambda>(
-  function NullOr<S extends Top>(self: S) {
-    return Union([self, Null])
-  }
-)
+export const NullOr = Struct_.lambda<NullOrLambda>((self) => Union([self, Null]))
 
 /**
  * @since 4.0.0
@@ -2413,11 +2425,7 @@ interface UndefinedOrLambda extends Lambda {
  * @category Constructors
  * @since 4.0.0
  */
-export const UndefinedOr = lambda<UndefinedOrLambda>(
-  function UndefinedOr<S extends Top>(self: S) {
-    return Union([self, Undefined])
-  }
-)
+export const UndefinedOr = Struct_.lambda<UndefinedOrLambda>((self) => Union([self, Undefined]))
 
 /**
  * @since 4.0.0
@@ -2433,11 +2441,7 @@ interface NullishOrLambda extends Lambda {
  * @category Constructors
  * @since 4.0.0
  */
-export const NullishOr = lambda<NullishOrLambda>(
-  function NullishOr<S extends Top>(self: S) {
-    return Union([self, Null, Undefined])
-  }
-)
+export const NullishOr = Struct_.lambda<NullishOrLambda>((self) => Union([self, Null, Undefined]))
 
 /**
  * @since 4.0.0
@@ -2515,9 +2519,8 @@ export interface refine<T extends S["Type"], S extends Top> extends
  * @since 4.0.0
  */
 export function refine<T extends E, E>(refine: AST.Refine<T, E>) {
-  return <S extends Schema<E>>(self: S): refine<S["Type"] & T, S> => {
-    return makeProto(AST.appendChecks(self.ast, [refine]), { schema: self })
-  }
+  return <S extends Schema<E>>(schema: S): refine<S["Type"] & T, S> =>
+    makeProto(AST.appendChecks(schema.ast, [refine]), { schema })
 }
 
 /**
@@ -2528,9 +2531,7 @@ export function refineByGuard<T extends S["Type"], S extends Top>(
   is: (value: S["Type"]) => value is T,
   annotations?: Annotations.Filter
 ) {
-  return (self: S): refine<T, S> => {
-    return self.pipe(refine(makeRefinedByGuard(is, annotations)))
-  }
+  return (self: S): refine<T, S> => self.pipe(refine(makeRefinedByGuard(is, annotations)))
 }
 
 type DistributeBrands<T, B> =
@@ -2568,9 +2569,7 @@ export interface brand<S extends Top, B> extends
  * @since 4.0.0
  */
 export function brand<B extends string | symbol>() {
-  return <S extends Top>(self: S): brand<S, B> => {
-    return makeProto(self.ast, { schema: self })
-  }
+  return <S extends Top>(schema: S): brand<S, B> => makeProto(schema.ast, { schema })
 }
 
 /**
@@ -6106,9 +6105,9 @@ export interface ExtendableClass<Self, S extends Top & { readonly fields: Struct
     identifier: string
   ): <NewFields extends Struct.Fields>(
     fields: NewFields,
-    annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
+    annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Assign<S["fields"], NewFields>>>]>
   ) => AddStaticMembers<
-    ExtendableClass<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self & Brand>,
+    ExtendableClass<Extended, Struct<Simplify<Assign<S["fields"], NewFields>>>, Self & Brand>,
     Static
   >
 }
@@ -6190,8 +6189,8 @@ function makeClass<
       identifier: string
     ): <NewFields extends Struct.Fields>(
       fields: NewFields,
-      annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Merge<S["fields"], NewFields>>>]>
-    ) => Class<Extended, Struct<Simplify<Merge<S["fields"], NewFields>>>, Self> {
+      annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Assign<S["fields"], NewFields>>>]>
+    ) => Class<Extended, Struct<Simplify<Assign<S["fields"], NewFields>>>, Self> {
       return (newFields, annotations) => {
         const fields = { ...struct.fields, ...newFields }
         return makeClass(this, identifier, makeStruct(AST.struct(fields, struct.ast.checks), fields), annotations)

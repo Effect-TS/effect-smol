@@ -1914,15 +1914,15 @@ describe("Schema", () => {
   })
 
   describe("Struct.mapFields", () => {
-    describe("merge", () => {
+    describe("assign", () => {
       it("non-overlapping fields", () => {
-        const schema = Schema.Struct({ a: Schema.String }).mapFields(Struct.merge({ b: Schema.String }))
+        const schema = Schema.Struct({ a: Schema.String }).mapFields(Struct.assign({ b: Schema.String }))
         expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.String }>>()
       })
 
       it("overlapping fields", () => {
         const schema = Schema.Struct({ a: Schema.String, b: Schema.String }).mapFields(
-          Struct.merge({ b: Schema.Number, c: Schema.Number })
+          Struct.assign({ b: Schema.Number, c: Schema.Number })
         )
         expect(schema).type.toBe<
           Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.Number; readonly c: Schema.Number }>
@@ -2966,5 +2966,31 @@ describe("Schema", () => {
       }).mapFields(Struct.mapPick(["b"], Schema.required))
       expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String>; readonly b: Schema.Number; readonly c: Schema.Boolean }>>()
     })
+  })
+
+  it("fieldsAssign", () => {
+    const schema = Schema.Union([
+      Schema.Struct({
+        a: Schema.String
+      }),
+      Schema.Struct({
+        b: Schema.Number
+      })
+    ]).mapMembers(Tuple.map(Schema.fieldsAssign({ c: Schema.Number })))
+
+    expect(schema).type.toBe<
+      Schema.Union<
+        readonly [
+          Schema.Struct<{
+            readonly a: Schema.String
+            readonly c: Schema.Number
+          }>,
+          Schema.Struct<{
+            readonly b: Schema.Number
+            readonly c: Schema.Number
+          }>
+        ]
+      >
+    >()
   })
 })
