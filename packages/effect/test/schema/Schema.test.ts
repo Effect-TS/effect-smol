@@ -6688,4 +6688,89 @@ describe("Check", () => {
       await decoding.fail(-1, `Expected a value greater than 0, got -1`)
     })
   })
+
+  describe("requiredKey", () => {
+    it("should make all optionalKey keys required", async () => {
+      const schema = Schema.Struct({
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.optionalKey(Schema.Number)
+      }).mapFields(Struct.map(Schema.requiredKey))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: "a", b: 1 })
+      await decoding.fail(
+        { a: "a" },
+        `Missing key
+  at ["b"]`
+      )
+      await decoding.fail(
+        { a: "a", b: undefined },
+        `Expected number, got undefined
+  at ["b"]`
+      )
+      await decoding.fail(
+        { b: 1 },
+        `Missing key
+  at ["a"]`
+      )
+    })
+
+    it("should make all optional keys required", async () => {
+      const schema = Schema.Struct({
+        a: Schema.optional(Schema.String),
+        b: Schema.optional(Schema.Number)
+      }).mapFields(Struct.map(Schema.requiredKey))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: "a", b: 1 })
+      await decoding.succeed({ a: "a", b: undefined })
+      await decoding.succeed({ a: undefined, b: 1 })
+      await decoding.succeed({ a: undefined, b: undefined })
+      await decoding.fail(
+        { a: "a" },
+        `Missing key
+  at ["b"]`
+      )
+      await decoding.fail(
+        { b: 1 },
+        `Missing key
+  at ["a"]`
+      )
+    })
+  })
+
+  describe("required", () => {
+    it("should make all optional keys required", async () => {
+      const schema = Schema.Struct({
+        a: Schema.optional(Schema.String),
+        b: Schema.optional(Schema.Number)
+      }).mapFields(Struct.map(Schema.required))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: "a", b: 1 })
+      await decoding.fail(
+        { a: "a" },
+        `Missing key
+  at ["b"]`
+      )
+      await decoding.fail(
+        { a: "a", b: undefined },
+        `Expected number, got undefined
+  at ["b"]`
+      )
+      await decoding.fail(
+        { b: 1 },
+        `Missing key
+  at ["a"]`
+      )
+      await decoding.fail(
+        { a: undefined, b: 1 },
+        `Expected string, got undefined
+  at ["a"]`
+      )
+    })
+  })
 })

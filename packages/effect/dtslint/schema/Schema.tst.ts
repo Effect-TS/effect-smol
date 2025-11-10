@@ -2921,4 +2921,50 @@ describe("Schema", () => {
       >()
     })
   })
+
+  describe("requiredKey", () => {
+    it("should not be callable with a schema without Schema.optional{Key,}", () => {
+      expect(Schema.requiredKey).type.not.toBeCallableWith(Schema.String)
+    })
+
+    it("should be callable with a schema with Schema.optionalKey", () => {
+      const schema = Schema.requiredKey(Schema.optionalKey(Schema.String))
+      expect(schema).type.toBe<Schema.String>()
+    })
+
+    it("should be callable with a schema with Schema.optional", () => {
+      const schema = Schema.requiredKey(Schema.optional(Schema.String))
+      expect(schema).type.toBe<Schema.UndefinedOr<Schema.String>>()
+    })
+
+    it("smoke test", () => {
+      const schema = Schema.Struct({
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.optional(Schema.Number),
+        c: Schema.Boolean
+      }).mapFields(Struct.mapOmit(["c"], Schema.requiredKey))
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.UndefinedOr<Schema.Number>; readonly c: Schema.Boolean }>>()
+    })
+  })
+
+  describe("required", () => {
+    it("should not be callable with a schema without Schema.optional", () => {
+      expect(Schema.required).type.not.toBeCallableWith(Schema.String)
+      expect(Schema.required).type.not.toBeCallableWith(Schema.optionalKey(Schema.String))
+    })
+
+    it("should be callable with a schema with Schema.optional", () => {
+      const schema = Schema.required(Schema.optional(Schema.String))
+      expect(schema).type.toBe<Schema.String>()
+    })
+
+    it("smoke test", () => {
+      const schema = Schema.Struct({
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.optional(Schema.Number),
+        c: Schema.Boolean
+      }).mapFields(Struct.mapPick(["b"], Schema.required))
+      expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.optionalKey<Schema.String>; readonly b: Schema.Number; readonly c: Schema.Boolean }>>()
+    })
+  })
 })

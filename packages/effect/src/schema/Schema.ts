@@ -836,6 +836,18 @@ export const optionalKey = lambda<optionalKeyLambda>(function optionalKey<S exte
   return makeProto(AST.optionalKey(schema.ast), { schema })
 })
 
+interface requiredKeyLambda extends Lambda {
+  <S extends Top>(self: optionalKey<S>): S
+  readonly "~lambda.out": this["~lambda.in"] extends optionalKey<Top> ? this["~lambda.in"]["schema"] : never
+}
+
+/**
+ * @since 4.0.0
+ */
+export const requiredKey = lambda<requiredKeyLambda>(function requiredKey<S extends Top>(schema: optionalKey<S>): S {
+  return schema.schema
+})
+
 /**
  * @since 4.0.0
  */
@@ -874,6 +886,18 @@ interface optionalLambda extends Lambda {
  */
 export const optional = lambda<optionalLambda>(function optional<S extends Top>(self: S): optional<S> {
   return optionalKey(UndefinedOr(self))
+})
+
+interface requiredLambda extends Lambda {
+  <S extends Top>(self: optional<S>): S
+  readonly "~lambda.out": this["~lambda.in"] extends optional<Top> ? this["~lambda.in"]["schema"]["members"][0] : never
+}
+
+/**
+ * @since 4.0.0
+ */
+export const required = lambda<requiredLambda>(function required<S extends Top>(schema: optional<S>): S {
+  return schema.schema.members[0]
 })
 
 /**

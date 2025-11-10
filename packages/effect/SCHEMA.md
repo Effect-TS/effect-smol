@@ -6939,6 +6939,32 @@ const schema = Schema.Struct({
 }).mapFields(Struct.map(Schema.optional))
 ```
 
+You can also make a subset of fields partial:
+
+v4
+
+```ts
+import { Struct } from "effect/data"
+import { Schema } from "effect/schema"
+
+/*
+const schema: Schema.Struct<{
+    readonly a: Schema.optional<Schema.String>;
+    readonly b: Schema.Number;
+}>
+*/
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).mapFields(Struct.mapPick(["a"], Schema.optional))
+
+// or equivalently
+const schema2 = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+}).mapFields(Struct.mapOmit(["b"], Schema.optionalKey))
+```
+
 ### partialWith
 
 v3
@@ -6980,6 +7006,110 @@ const schema = Schema.Struct({
 ```
 
 ### required
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+// Create a schema with optional properties
+const original = Schema.Struct({
+  a: Schema.optionalWith(Schema.String, { exact: true }),
+  b: Schema.optionalWith(Schema.Number, { exact: true })
+})
+
+// Make all properties required
+const schema = Schema.required(original)
+
+//     ┌─── { readonly a: string; readonly b: number; }
+//     ▼
+type Type = typeof schema.Type
+```
+
+v4
+
+**Schema.requiredKey**
+
+You can make an optional key (with `Schema.optionalKey`) required:
+
+```ts
+import { Struct } from "effect/data"
+import { Schema } from "effect/schema"
+
+// Create a schema with optionalKey properties
+const original = Schema.Struct({
+  a: Schema.optionalKey(Schema.String),
+  b: Schema.optionalKey(Schema.Number)
+})
+
+// Make all properties required
+const schema = original.mapFields(Struct.map(Schema.requiredKey))
+
+//     ┌─── { readonly a: string; readonly b: number; }
+//     ▼
+type Type = typeof schema.Type
+```
+
+You can also make a subset of fields required:
+
+```ts
+import { Struct } from "effect/data"
+import { Schema } from "effect/schema"
+
+// Create a schema with optionalKey properties
+const original = Schema.Struct({
+  a: Schema.optionalKey(Schema.String),
+  b: Schema.optionalKey(Schema.Number)
+})
+
+const schema = original.mapFields(Struct.mapPick(["a"], Schema.requiredKey))
+
+//     ┌─── { readonly a: string; readonly b?: number; }
+//     ▼
+type Type = typeof schema.Type
+```
+
+An optional property (with `Schema.optional`) will be made required as a union with `undefined`:
+
+```ts
+import { Struct } from "effect/data"
+import { Schema } from "effect/schema"
+
+// Create a schema with optional properties
+const original = Schema.Struct({
+  a: Schema.optional(Schema.String),
+  b: Schema.optional(Schema.Number)
+})
+
+// Make all properties required
+const schema = original.mapFields(Struct.map(Schema.requiredKey))
+
+//     ┌─── { readonly a: string | undefined; readonly b: number | undefined; }
+//     ▼
+type Type = typeof schema.Type
+```
+
+**Schema.required**
+
+You can make an optional field (with `Schema.optional`) required:
+
+```ts
+import { Struct } from "effect/data"
+import { Schema } from "effect/schema"
+
+// Create a schema with optional properties
+const original = Schema.Struct({
+  a: Schema.optional(Schema.String),
+  b: Schema.optional(Schema.Number)
+})
+
+// Make all properties required
+const schema = original.mapFields(Struct.map(Schema.required))
+
+//     ┌─── { readonly a: string; readonly b: number; }
+//     ▼
+type Type = typeof schema.Type
+```
 
 ### extend
 
