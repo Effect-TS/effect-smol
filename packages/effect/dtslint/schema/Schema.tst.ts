@@ -1,7 +1,8 @@
 import { Brand, Option, Predicate, Struct, Tuple  } from "effect/data"
 import type { Exit  } from "effect";
 import { ServiceMap, Effect, flow, hole, String as Str } from "effect"
-import { AST, Getter, Schema, Transformation } from 'effect/schema'
+import type { AST} from 'effect/schema';
+import { Getter, Schema, Transformation } from 'effect/schema'
 import type { Array } from "effect/collections"
 import { immerable, produce } from "immer"
 import { describe, expect, it, when } from "tstyche"
@@ -1103,20 +1104,7 @@ describe("Schema", () => {
       }
     }
 
-    const schema = Schema.instanceOf(
-      MyError,
-      {
-        title: "MyError",
-        defaultJsonSerializer: () =>
-          new AST.Link(
-            Schema.String.ast,
-            Transformation.transform({
-              decode: (e) => e.message,
-              encode: (message) => new MyError(message)
-            })
-          )
-      }
-    )
+    const schema = Schema.instanceOf(MyError)
 
     expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<MyError, MyError, never, never>>()
     expect(schema).type.toBe<Schema.instanceOf<MyError>>()

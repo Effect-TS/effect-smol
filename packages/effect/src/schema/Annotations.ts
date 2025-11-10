@@ -137,11 +137,11 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
     | ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link)
     | undefined
   /** Used only by JSON serializers */
-  readonly defaultJsonSerializer?:
+  readonly serializerJson?:
     | ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link)
     | undefined
   /** Used only by ISO serializers */
-  readonly defaultIsoSerializer?:
+  readonly serializerIso?:
     | ((typeParameters: TypeParameters.Type<TypeParameters>) => AST.Link)
     | undefined
   readonly jsonSchema?: JsonSchema.Override<TypeParameters> | undefined

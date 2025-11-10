@@ -364,7 +364,7 @@ import { Schema, Transformation } from "effect/schema"
 
 // Define a Date schema with a default JSON serializer annotation
 const Date = Schema.instanceOf(globalThis.Date, {
-  defaultJsonSerializer: () =>
+  serializerJson: () =>
     Schema.link<globalThis.Date>()(
       Schema.String, // JSON representation
       Transformation.transform({
@@ -375,7 +375,7 @@ const Date = Schema.instanceOf(globalThis.Date, {
 })
 ```
 
-The same idea applies to `Schema.ReadonlySet`. When you call `Schema.makeSerializerJson` on `Schema.ReadonlySet(Schema.Date)`, the library walks the schema tree and combines the `defaultJsonSerializer` annotations it finds.
+The same idea applies to `Schema.ReadonlySet`. When you call `Schema.makeSerializerJson` on `Schema.ReadonlySet(Schema.Date)`, the library walks the schema tree and combines the `serializerJson` annotations it finds.
 
 ### Custom JSON Formats
 
@@ -3151,7 +3151,7 @@ class Person {
 const PersonSchema = Schema.instanceOf(Person, {
   title: "Person",
   // optional: default JSON serialization
-  defaultJsonSerializer: () =>
+  serializerJson: () =>
     Schema.link<Person>()(
       Schema.Tuple([Schema.String, Schema.Number]),
       Transformation.transform({
@@ -3190,7 +3190,7 @@ class Person {
 const PersonSchema = Schema.instanceOf(Person, {
   title: "Person",
   // optional: default JSON serialization
-  defaultJsonSerializer: () =>
+  serializerJson: () =>
     Schema.link<Person>()(
       Schema.Tuple([Schema.String, Schema.Number]),
       Transformation.transform({

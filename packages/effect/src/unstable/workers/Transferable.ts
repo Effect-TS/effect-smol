@@ -115,7 +115,7 @@ export const schema: {
   ): Transferable<S> =>
     self
       .annotate({
-        defaultJsonSerializer: () => passthroughLink
+        serializerJson: () => passthroughLink
       })
       .pipe(
         Schema.decode({

@@ -30,7 +30,7 @@ describe("Serializer generation", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             new A(),
-            "required `defaultJsonSerializer` or `serializer` annotation for Declaration"
+            "required `serializerJson` or `serializer` annotation for Declaration"
           )
         })
 
@@ -41,7 +41,7 @@ describe("Serializer generation", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             "a",
-            "required `defaultJsonSerializer` or `serializer` annotation for Unknown"
+            "required `serializerJson` or `serializer` annotation for Unknown"
           )
         })
 
@@ -52,7 +52,7 @@ describe("Serializer generation", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             {},
-            "required `defaultJsonSerializer` or `serializer` annotation for ObjectKeyword"
+            "required `serializerJson` or `serializer` annotation for ObjectKeyword"
           )
         })
 
@@ -1240,7 +1240,7 @@ describe("Serializer generation", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             new A(),
-            "required `defaultJsonSerializer` or `serializer` annotation for Declaration"
+            "required `serializerJson` or `serializer` annotation for Declaration"
           )
         })
 
@@ -1251,7 +1251,7 @@ describe("Serializer generation", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             "a",
-            "required `defaultJsonSerializer` or `serializer` annotation for Unknown"
+            "required `serializerJson` or `serializer` annotation for Unknown"
           )
         })
 
@@ -1262,7 +1262,7 @@ describe("Serializer generation", () => {
           const encoding = asserts.encoding()
           await encoding.fail(
             {},
-            "required `defaultJsonSerializer` or `serializer` annotation for ObjectKeyword"
+            "required `serializerJson` or `serializer` annotation for ObjectKeyword"
           )
         })
 
@@ -2067,7 +2067,7 @@ describe("Serializer generation", () => {
         await assertXmlFailure(
           Schema.Unknown,
           "test",
-          "required `defaultJsonSerializer` or `serializer` annotation for Unknown"
+          "required `serializerJson` or `serializer` annotation for Unknown"
         )
       })
 
@@ -2079,7 +2079,7 @@ describe("Serializer generation", () => {
         await assertXmlFailure(
           Schema.ObjectKeyword,
           {},
-          "required `defaultJsonSerializer` or `serializer` annotation for ObjectKeyword"
+          "required `serializerJson` or `serializer` annotation for ObjectKeyword"
         )
       })
     })

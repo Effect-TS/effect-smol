@@ -3179,8 +3179,6 @@ export interface instanceOf<T, Iso = T> extends declare<T, Iso> {
 /**
  * Creates a schema that validates an instance of a specific class constructor.
  *
- * It is recommended to add the `defaultJsonSerializer` annotation to the schema.
- *
  * @category Constructors
  * @since 4.0.0
  */
@@ -4791,7 +4789,7 @@ export function Redacted<S extends Top>(value: S, options?: {
     },
     {
       expected: "Redacted",
-      defaultJsonSerializer: ([value]) =>
+      serializerJson: ([value]) =>
         link<Redacted_.Redacted<S["Encoded"]>>()(
           value,
           {
@@ -5010,7 +5008,7 @@ const ErrorJsonEncoded = Struct({
  */
 export const Error: Error = instanceOf(globalThis.Error, {
   expected: "Error",
-  defaultJsonSerializer: () => link<globalThis.Error>()(ErrorJsonEncoded, Transformation.errorFromErrorJsonEncoded),
+  serializerJson: () => link<globalThis.Error>()(ErrorJsonEncoded, Transformation.errorFromErrorJsonEncoded),
   arbitrary: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
 })
 
@@ -5054,7 +5052,7 @@ export const Defect: Defect = Union([
   ErrorJsonEncoded.pipe(decodeTo(Error, Transformation.errorFromErrorJsonEncoded)),
   Any.pipe(decodeTo(
     Unknown.annotate({
-      defaultJsonSerializer: () => link<unknown>()(Any, defectTransformation),
+      serializerJson: () => link<unknown>()(Any, defectTransformation),
       arbitrary: () => (fc) => fc.json()
     }),
     defectTransformation
@@ -5344,7 +5342,7 @@ export const URL: URL = instanceOf(
   globalThis.URL,
   {
     expected: "URL",
-    defaultJsonSerializer: () => link<globalThis.URL>()(String, Transformation.urlFromString),
+    serializerJson: () => link<globalThis.URL>()(String, Transformation.urlFromString),
     arbitrary: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s)),
     equivalence: () => (a, b) => a.toString() === b.toString()
   }
@@ -5388,7 +5386,7 @@ export const Date: Date = instanceOf(
   globalThis.Date,
   {
     expected: "Date",
-    defaultJsonSerializer: () =>
+    serializerJson: () =>
       link<globalThis.Date>()(
         String.annotate({ description: "a string that will be decoded as a date" }),
         Transformation.transform({
@@ -5433,7 +5431,7 @@ export const Duration: Duration = declare(
   Duration_.isDuration,
   {
     expected: "Duration",
-    defaultJsonSerializer: () =>
+    serializerJson: () =>
       link<Duration_.Duration>()(
         Union([Number, BigInt, Literal("Infinity")]),
         Transformation.transform({
@@ -5803,7 +5801,7 @@ const StringBase64 = String.annotate({ description: "a string that will be decod
  * @since 4.0.0
  */
 export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBufferLike>, {
-  defaultJsonSerializer: () =>
+  serializerJson: () =>
     link<globalThis.Uint8Array<ArrayBufferLike>>()(StringBase64, Transformation.uint8ArrayFromString),
   expected: "Uint8Array",
   arbitrary: () => (fc) => fc.uint8Array()
@@ -5904,7 +5902,7 @@ export const DateTimeUtc: DateTimeUtc = declare(
   (u) => DateTime.isDateTime(u) && DateTime.isUtc(u),
   {
     expected: "DateTimeUtc",
-    defaultJsonSerializer: () =>
+    serializerJson: () =>
       link<DateTime.Utc>()(
         String,
         {
@@ -6747,7 +6745,7 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "ObjectKeyword":
       case "Never":
       case "Declaration": {
-        const getLink = ast.annotations?.defaultJsonSerializer ?? ast.annotations?.serializer
+        const getLink = ast.annotations?.serializerJson ?? ast.annotations?.serializer
         if (Predicate.isFunction(getLink)) {
           const tps = AST.isDeclaration(ast)
             ? ast.typeParameters.map((tp) => make(goJson(AST.encodedAST(tp))))
@@ -6789,7 +6787,7 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
 function requiredGoJsonAnnotation(ast: AST.AST): AST.AST {
   return forbidden(
     ast,
-    `required \`defaultJsonSerializer\` or \`serializer\` annotation for ${ast._tag}`
+    `required \`serializerJson\` or \`serializer\` annotation for ${ast._tag}`
   )
 }
 
@@ -6809,7 +6807,7 @@ const goIso = memoize((ast: AST.AST): AST.AST => {
   function go(ast: AST.AST): AST.AST {
     switch (ast._tag) {
       case "Declaration": {
-        const getLink = ast.annotations?.defaultIsoSerializer ?? ast.annotations?.serializer
+        const getLink = ast.annotations?.serializerIso ?? ast.annotations?.serializer
         if (Predicate.isFunction(getLink)) {
           const link = getLink(ast.typeParameters.map((tp) => make(goIso(tp))))
           const to = goIso(link.to)
@@ -6836,7 +6834,7 @@ const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "ObjectKeyword":
       case "Never":
       case "Declaration": {
-        const getLink = ast.annotations?.defaultJsonSerializer ?? ast.annotations?.serializer
+        const getLink = ast.annotations?.serializerJson ?? ast.annotations?.serializer
         if (Predicate.isFunction(getLink)) {
           const tps = AST.isDeclaration(ast)
             ? ast.typeParameters.map((tp) => make(goStringPojo(AST.encodedAST(tp))))
@@ -7080,7 +7078,7 @@ export function overrideIso<S extends Top, Iso>(
   return (schema: S): overrideIso<S, Iso> => {
     return makeProto(
       AST.annotate(schema.ast, {
-        defaultIsoSerializer: () => new AST.Link(to.ast, Transformation.make(transformation))
+        serializerIso: () => new AST.Link(to.ast, Transformation.make(transformation))
       }),
       { schema }
     )
