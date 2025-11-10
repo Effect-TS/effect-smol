@@ -685,14 +685,14 @@ Missing key
         )
       })
 
-      it("Struct & check & preserveChecks: true", async () => {
+      it("Struct & check & unsafePreserveChecks: true", async () => {
         const from = Schema.Struct({
           a: Schema.String,
           b: Schema.String
         }).check(
           Schema.makeFilter(({ a, b }) => a === b, { title: "a === b" })
         )
-        const schema = from.mapFields(Struct.merge({ c: Schema.String }), { preserveChecks: true })
+        const schema = from.mapFields(Struct.merge({ c: Schema.String }), { unsafePreserveChecks: true })
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()

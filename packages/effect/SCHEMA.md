@@ -2079,7 +2079,9 @@ const schema = Schema.Struct({
 )
 ```
 
-If you want to preserve the checks of the original struct, you can pass `{ preserveChecks: true }` to the `map` method.
+If you want to preserve the checks of the original struct, you can pass `{ unsafePreserveChecks: true }` to the `map` method.
+
+**Warning**: This is an unsafe operation. Since `mapFields` transformations change the schema type, the original refinement functions may no longer be valid or safe to apply to the transformed schema. Only use this option if you have verified that your refinements remain correct after the transformation.
 
 **Example** (Preserving checks when merging fields)
 
@@ -2093,7 +2095,7 @@ const original = Schema.Struct({
 }).check(Schema.makeFilter(({ a, b }) => a === b, { title: "a === b" }))
 
 const schema = original.mapFields(Struct.merge({ c: Schema.String }), {
-  preserveChecks: true
+  unsafePreserveChecks: true
 })
 
 console.log(

@@ -1523,13 +1523,19 @@ export interface Struct<Fields extends Struct.Fields> extends
    *
    * **Options**
    *
-   * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
-   *   were attached to the original struct. Defaults to `false`.
+   * - `unsafePreserveChecks` - if `true`, keep any `.check(...)` constraints
+   *   that were attached to the original union. Defaults to `false`.
+   *
+   *   **Warning**: This is an unsafe operation. Since `mapFields`
+   *   transformations change the schema type, the original refinement functions
+   *   may no longer be valid or safe to apply to the transformed schema. Only
+   *   use this option if you have verified that your refinements remain correct
+   *   after the transformation.
    */
   mapFields<To extends Struct.Fields>(
     f: (fields: Fields) => To,
     options?: {
-      readonly preserveChecks?: boolean | undefined
+      readonly unsafePreserveChecks?: boolean | undefined
     } | undefined
   ): Struct<Simplify<Readonly<To>>>
 }
@@ -1541,11 +1547,11 @@ function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields
       this: Struct<Fields>,
       f: (fields: Fields) => To,
       options?: {
-        readonly preserveChecks?: boolean | undefined
+        readonly unsafePreserveChecks?: boolean | undefined
       } | undefined
     ): Struct<To> {
       const fields = f(this.fields)
-      return makeStruct(AST.struct(fields, options?.preserveChecks ? this.ast.checks : undefined), fields)
+      return makeStruct(AST.struct(fields, options?.unsafePreserveChecks ? this.ast.checks : undefined), fields)
     }
   })
 }
@@ -1954,13 +1960,19 @@ export interface Tuple<Elements extends Tuple.Elements> extends
    *
    * **Options**
    *
-   * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
-   *   were attached to the original tuple. Defaults to `false`.
+   * - `unsafePreserveChecks` - if `true`, keep any `.check(...)` constraints
+   *   that were attached to the original union. Defaults to `false`.
+   *
+   *   **Warning**: This is an unsafe operation. Since `mapFields`
+   *   transformations change the schema type, the original refinement functions
+   *   may no longer be valid or safe to apply to the transformed schema. Only
+   *   use this option if you have verified that your refinements remain correct
+   *   after the transformation.
    */
   mapElements<To extends Tuple.Elements>(
     f: (elements: Elements) => To,
     options?: {
-      readonly preserveChecks?: boolean | undefined
+      readonly unsafePreserveChecks?: boolean | undefined
     } | undefined
   ): Tuple<Simplify<Readonly<To>>>
 }
@@ -1972,11 +1984,11 @@ function makeTuple<Elements extends Tuple.Elements>(ast: AST.Arrays, elements: E
       this: Tuple<Elements>,
       f: (elements: Elements) => To,
       options?: {
-        readonly preserveChecks?: boolean | undefined
+        readonly unsafePreserveChecks?: boolean | undefined
       } | undefined
     ): Tuple<Simplify<Readonly<To>>> {
       const elements = f(this.elements)
-      return makeTuple(AST.tuple(elements, options?.preserveChecks ? this.ast.checks : undefined), elements)
+      return makeTuple(AST.tuple(elements, options?.unsafePreserveChecks ? this.ast.checks : undefined), elements)
     }
   })
 }
@@ -2271,13 +2283,19 @@ export interface Union<Members extends ReadonlyArray<Top>> extends
    *
    * **Options**
    *
-   * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
-   *   were attached to the original union. Defaults to `false`.
+   * - `unsafePreserveChecks` - if `true`, keep any `.check(...)` constraints
+   *   that were attached to the original union. Defaults to `false`.
+   *
+   *   **Warning**: This is an unsafe operation. Since `mapFields`
+   *   transformations change the schema type, the original refinement functions
+   *   may no longer be valid or safe to apply to the transformed schema. Only
+   *   use this option if you have verified that your refinements remain correct
+   *   after the transformation.
    */
   mapMembers<To extends ReadonlyArray<Top>>(
     f: (members: Members) => To,
     options?: {
-      readonly preserveChecks?: boolean | undefined
+      readonly unsafePreserveChecks?: boolean | undefined
     } | undefined
   ): Union<Simplify<Readonly<To>>>
 }
@@ -2292,12 +2310,12 @@ function makeUnion<Members extends ReadonlyArray<Top>>(
       this: Union<Members>,
       f: (members: Members) => To,
       options?: {
-        readonly preserveChecks?: boolean | undefined
+        readonly unsafePreserveChecks?: boolean | undefined
       } | undefined
     ): Union<Simplify<Readonly<To>>> {
       const members = f(this.members)
       return makeUnion(
-        AST.union(members, this.ast.mode, options?.preserveChecks ? this.ast.checks : undefined),
+        AST.union(members, this.ast.mode, options?.unsafePreserveChecks ? this.ast.checks : undefined),
         members
       )
     }
@@ -6057,13 +6075,19 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
    *
    * **Options**
    *
-   * - `preserveChecks` - if `true`, keep any `.check(...)` constraints that
-   *   were attached to the original struct. Defaults to `false`.
+   * - `unsafePreserveChecks` - if `true`, keep any `.check(...)` constraints
+   *   that were attached to the original struct. Defaults to `false`.
+   *
+   *   **Warning**: This is an unsafe operation. Since `mapFields`
+   *   transformations change the schema type, the original refinement functions
+   *   may no longer be valid or safe to apply to the transformed schema. Only
+   *   use this option if you have verified that your refinements remain correct
+   *   after the transformation.
    */
   mapFields<To extends Struct.Fields>(
     f: (fields: S["fields"]) => To,
     options?: {
-      readonly preserveChecks?: boolean | undefined
+      readonly unsafePreserveChecks?: boolean | undefined
     } | undefined
   ): Struct<Simplify<Readonly<To>>>
 }
@@ -6176,7 +6200,7 @@ function makeClass<
     static mapFields<To extends Struct.Fields>(
       f: (fields: S["fields"]) => To,
       options?: {
-        readonly preserveChecks?: boolean | undefined
+        readonly unsafePreserveChecks?: boolean | undefined
       } | undefined
     ): Struct<Simplify<Readonly<To>>> {
       return struct.mapFields(f, options)
