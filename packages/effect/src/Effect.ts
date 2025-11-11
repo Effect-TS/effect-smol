@@ -3756,8 +3756,9 @@ export const raceFirst: {
  * @example
  * ```ts
  * import { Effect } from "effect"
+ * import { Filter } from "effect/data"
  *
- * const isEven = (n: number) => Effect.succeed(n % 2 === 0)
+ * const isEven = (n: number) => Effect.succeed(n % 2 === 0 ? n : Filter.fail(n))
  *
  * const program = Effect.filter([1, 2, 3, 4, 5], isEven)
  *
@@ -3787,6 +3788,7 @@ export const filter: <A, B, X, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
+ * import { Filter } from "effect/data"
  *
  * // An effect that produces a number
  * const program = Effect.succeed(5)
@@ -3794,7 +3796,7 @@ export const filter: <A, B, X, E, R>(
  * // Filter for even numbers, provide alternative for odd numbers
  * const filtered = Effect.filterOrElse(
  *   program,
- *   (n): n is number => n % 2 === 0,
+ *   (n) => n % 2 === 0 ? n : Filter.fail(n),
  *   (n) => Effect.succeed(`Number ${n} is odd`)
  * )
  *
@@ -3828,6 +3830,7 @@ export const filterOrElse: {
  * @example
  * ```ts
  * import { Effect } from "effect"
+ * import { Filter } from "effect/data"
  *
  * // An effect that produces a number
  * const program = Effect.succeed(5)
@@ -3835,7 +3838,7 @@ export const filterOrElse: {
  * // Filter for even numbers, fail for odd numbers
  * const filtered = Effect.filterOrFail(
  *   program,
- *   (n): n is number => n % 2 === 0,
+ *   (n) => n % 2 === 0 ? n : Filter.fail(n),
  *   (n) => `Expected even number, got ${n}`
  * )
  *
