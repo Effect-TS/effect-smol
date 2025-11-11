@@ -2587,14 +2587,14 @@ export function fromBrand<A extends Brand.Brand<any>>(ctor: Brand.Constructor<A>
 /**
  * @since 4.0.0
  */
-export interface decodingMiddleware<S extends Top, RD> extends
+export interface middlewareDecoding<S extends Top, RD> extends
   Bottom<
     S["Type"],
     S["Encoded"],
     RD,
     S["EncodingServices"],
     S["ast"],
-    decodingMiddleware<S, RD>,
+    middlewareDecoding<S, RD>,
     S["~type.make.in"],
     S["Iso"],
     S["~type.parameters"],
@@ -2613,31 +2613,30 @@ export interface decodingMiddleware<S extends Top, RD> extends
 /**
  * @since 4.0.0
  */
-export function decodingMiddleware<S extends Top, RD>(
+export function middlewareDecoding<S extends Top, RD>(
   decode: (
     effect: Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, S["DecodingServices"]>,
     options: AST.ParseOptions
   ) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, RD>
 ) {
-  return (schema: S): decodingMiddleware<S, RD> => {
-    return makeProto(
+  return (schema: S): middlewareDecoding<S, RD> =>
+    makeProto(
       AST.decodingMiddleware(schema.ast, new Transformation.Middleware(decode, identity)),
       { schema }
     )
-  }
 }
 
 /**
  * @since 4.0.0
  */
-export interface encodingMiddleware<S extends Top, RE> extends
+export interface middlewareEncoding<S extends Top, RE> extends
   Bottom<
     S["Type"],
     S["Encoded"],
     S["DecodingServices"],
     RE,
     S["ast"],
-    encodingMiddleware<S, RE>,
+    middlewareEncoding<S, RE>,
     S["~type.make.in"],
     S["Iso"],
     S["~type.parameters"],
@@ -2656,18 +2655,17 @@ export interface encodingMiddleware<S extends Top, RE> extends
 /**
  * @since 4.0.0
  */
-export function encodingMiddleware<S extends Top, RE>(
+export function middlewareEncoding<S extends Top, RE>(
   encode: (
-    sr: Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, S["EncodingServices"]>,
+    effect: Effect.Effect<Option_.Option<S["Encoded"]>, Issue.Issue, S["EncodingServices"]>,
     options: AST.ParseOptions
-  ) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, RE>
+  ) => Effect.Effect<Option_.Option<S["Encoded"]>, Issue.Issue, RE>
 ) {
-  return (schema: S): encodingMiddleware<S, RE> => {
-    return makeProto(
+  return (schema: S): middlewareEncoding<S, RE> =>
+    makeProto(
       AST.encodingMiddleware(schema.ast, new Transformation.Middleware(identity, encode)),
       { schema }
     )
-  }
 }
 
 /**
@@ -2685,9 +2683,8 @@ export function catchDecoding<S extends Top>(
 export function catchDecodingWithContext<S extends Top, R = never>(
   f: (issue: Issue.Issue) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, R>
 ) {
-  return (self: S): decodingMiddleware<S, S["DecodingServices"] | R> => {
-    return self.pipe(decodingMiddleware(Effect.catchEager(f)))
-  }
+  return (self: S): middlewareDecoding<S, S["DecodingServices"] | R> =>
+    self.pipe(middlewareDecoding(Effect.catchEager(f)))
 }
 
 /**
@@ -2705,9 +2702,8 @@ export function catchEncoding<S extends Top>(
 export function catchEncodingWithContext<S extends Top, R = never>(
   f: (issue: Issue.Issue) => Effect.Effect<Option_.Option<S["Encoded"]>, Issue.Issue, R>
 ) {
-  return (self: S): encodingMiddleware<S, S["EncodingServices"] | R> => {
-    return self.pipe(encodingMiddleware(Effect.catchEager(f)))
-  }
+  return (self: S): middlewareEncoding<S, S["EncodingServices"] | R> =>
+    self.pipe(middlewareEncoding(Effect.catchEager(f)))
 }
 
 /**

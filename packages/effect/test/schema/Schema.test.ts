@@ -5088,76 +5088,139 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await decoding.succeed(null, "b")
   })
 
-  describe("decodingMiddleware", () => {
+  describe("middlewareDecoding", () => {
     it("providing a service", async () => {
-      class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
+      class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<number> }>()("Service") {}
 
-      const schema = Schema.String.pipe(
-        Schema.catchDecodingWithContext(() =>
+      const schema = Schema.FiniteFromString.pipe(
+        Schema.catchDecodingWithContext((issue) =>
           Effect.gen(function*() {
+            if (issue._tag === "Encoding" && issue.issue._tag === "InvalidType") {
+              return yield* Effect.fail(issue)
+            }
             const service = yield* Service
             return Option.some(yield* service.fallback)
           })
         ),
-        Schema.decodingMiddleware((sr) =>
-          Effect.isEffect(sr)
-            ? Effect.provideService(sr, Service, { fallback: Effect.succeed("b") })
-            : sr
-        )
+        Schema.middlewareDecoding(Effect.provideService(Service, { fallback: Effect.succeed(0) }))
       )
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
-      await decoding.succeed("a")
-      await decoding.succeed(null, "b")
+      await decoding.succeed("1", 1)
+      await decoding.succeed("a", 0)
+      await decoding.fail(null, "Expected string, got null")
     })
 
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
-        Schema.decodingMiddleware(() => Effect.fail(new Issue.Forbidden(Option.none(), { message: "my message" })))
+        Schema.middlewareDecoding(() => Effect.fail(new Issue.Forbidden(Option.none(), { message: "my message" })))
       )
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
       await decoding.fail(
-        "a",
+        "1",
         "my message"
       )
     })
   })
 
-  describe("encodingMiddleware", () => {
+  describe("catchEncoding", () => {
+    it("sync fallback", async () => {
+      const fallback = Effect.succeed(Option.some(0))
+      const schema = Schema.Number.pipe(Schema.catchEncoding(() => fallback), Schema.encodeTo(Schema.Int))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(1)
+      await decoding.fail(
+        1.2,
+        `Expected an integer, got 1.2`
+      )
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(1)
+      await encoding.succeed(null, 0)
+      await encoding.fail(
+        1.2,
+        `Expected an integer, got 1.2`
+      )
+    })
+
+    it("async fallback", async () => {
+      const fallback = Effect.succeed(Option.some(0)).pipe(Effect.delay(100))
+      const schema = Schema.Number.pipe(Schema.catchEncoding(() => fallback), Schema.encodeTo(Schema.Int))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(1)
+      await encoding.succeed(null, 0)
+      await encoding.fail(
+        1.2,
+        `Expected an integer, got 1.2`
+      )
+    })
+  })
+
+  it("catchEncodingWithContext", async () => {
+    class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<number> }>()("Service") {}
+
+    const schema = Schema.Number.pipe(
+      Schema.catchEncodingWithContext(() =>
+        Effect.gen(function*() {
+          const service = yield* Service
+          return Option.some(yield* service.fallback)
+        })
+      ),
+      Schema.encodeTo(Schema.Int)
+    )
+    const asserts = new TestSchema.Asserts(schema)
+
+    const encoding = asserts.encoding().provide(
+      Service,
+      { fallback: Effect.succeed(0) }
+    )
+    await encoding.succeed(1)
+    await encoding.succeed(null, 0)
+    await encoding.fail(
+      1.2,
+      `Expected an integer, got 1.2`
+    )
+  })
+
+  describe("middlewareEncoding", () => {
     it("providing a service", async () => {
       class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
-      const schema = Schema.String.pipe(
-        Schema.catchEncodingWithContext(() =>
+      const schema = Schema.FiniteFromString.pipe(
+        Schema.catchEncodingWithContext((issue) =>
           Effect.gen(function*() {
+            if (issue._tag === "InvalidType") {
+              return yield* Effect.fail(issue)
+            }
             const service = yield* Service
             return Option.some(yield* service.fallback)
           })
         ),
-        Schema.encodingMiddleware((sr) =>
-          Effect.isEffect(sr)
-            ? Effect.provideService(sr, Service, { fallback: Effect.succeed("b") })
-            : sr
-        )
+        Schema.middlewareEncoding(Effect.provideService(Service, { fallback: Effect.succeed("b") }))
       )
       const asserts = new TestSchema.Asserts(schema)
 
       const encoding = asserts.encoding()
-      await encoding.succeed("a")
-      await encoding.succeed(null, "b")
+      await encoding.succeed(1, "1")
+      await encoding.succeed(NaN, "b")
+      await encoding.fail(null, "Expected number, got null")
     })
 
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
-        Schema.encodingMiddleware(() => Effect.fail(new Issue.Forbidden(Option.none(), { message: "my message" })))
+        Schema.middlewareEncoding(() => Effect.fail(new Issue.Forbidden(Option.none(), { message: "my message" })))
       )
       const asserts = new TestSchema.Asserts(schema)
 
       const encoding = asserts.encoding()
-      await encoding.fail("a", "my message")
+      await encoding.fail(1, "my message")
     })
   })
 

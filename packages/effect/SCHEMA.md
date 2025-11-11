@@ -4100,7 +4100,7 @@ const URLFromString = Schema.String.pipe(
 
 ### Schema composition
 
-You can compose transformations, but you can also compose schemas.
+You can compose transformations, but you can also compose schemas with `Schema.decodeTo`.
 
 **Example** (Converting meters to miles via kilometers)
 
@@ -4324,19 +4324,21 @@ class Service extends ServiceMap.Service<Service, { fallback: Effect.Effect<stri
 
 //      ┌─── Codec<string, string, Service, never>
 //      ▼
-const schema = Schema.String.pipe(
-  Schema.catchDecodingWithContext(() =>
-    Effect.gen(function* () {
-      const service = yield* Service
-      return Option.some(yield* service.fallback)
-    })
+const schema = Schema.revealCodec(
+  Schema.String.pipe(
+    Schema.catchDecodingWithContext(() =>
+      Effect.gen(function* () {
+        const service = yield* Service
+        return Option.some(yield* service.fallback)
+      })
+    )
   )
 )
 
 //      ┌─── Codec<string, string, never, never>
 //      ▼
-const provided = schema.pipe(
-  Schema.decodingMiddleware(Effect.provideService(Service, { fallback: Effect.succeed("b") }))
+const provided = Schema.revealCodec(
+  schema.pipe(Schema.middlewareDecoding(Effect.provideService(Service, { fallback: Effect.succeed("b") })))
 )
 
 console.log(String(Schema.decodeUnknownExit(provided)(null)))

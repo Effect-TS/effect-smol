@@ -14,31 +14,31 @@ import * as Issue from "./Issue.ts"
  * @category model
  * @since 4.0.0
  */
-export class Middleware<in out T, in out E, RD1, RD2, RE1, RE2> {
+export class Middleware<in out T, in out E, RDE, RDT, RET, REE> {
   readonly _tag = "Middleware"
   readonly decode: (
-    sr: Effect.Effect<Option.Option<E>, Issue.Issue, RD1>,
+    effect: Effect.Effect<Option.Option<E>, Issue.Issue, RDE>,
     options: AST.ParseOptions
-  ) => Effect.Effect<Option.Option<T>, Issue.Issue, RD2>
+  ) => Effect.Effect<Option.Option<T>, Issue.Issue, RDT>
   readonly encode: (
-    sr: Effect.Effect<Option.Option<T>, Issue.Issue, RE1>,
+    effect: Effect.Effect<Option.Option<T>, Issue.Issue, RET>,
     options: AST.ParseOptions
-  ) => Effect.Effect<Option.Option<E>, Issue.Issue, RE2>
+  ) => Effect.Effect<Option.Option<E>, Issue.Issue, REE>
 
   constructor(
     decode: (
-      sr: Effect.Effect<Option.Option<E>, Issue.Issue, RD1>,
+      effect: Effect.Effect<Option.Option<E>, Issue.Issue, RDE>,
       options: AST.ParseOptions
-    ) => Effect.Effect<Option.Option<T>, Issue.Issue, RD2>,
+    ) => Effect.Effect<Option.Option<T>, Issue.Issue, RDT>,
     encode: (
-      sr: Effect.Effect<Option.Option<T>, Issue.Issue, RE1>,
+      effect: Effect.Effect<Option.Option<T>, Issue.Issue, RET>,
       options: AST.ParseOptions
-    ) => Effect.Effect<Option.Option<E>, Issue.Issue, RE2>
+    ) => Effect.Effect<Option.Option<E>, Issue.Issue, REE>
   ) {
     this.decode = decode
     this.encode = encode
   }
-  flip(): Middleware<E, T, RE1, RE2, RD1, RD2> {
+  flip(): Middleware<E, T, RET, REE, RDE, RDT> {
     return new Middleware(this.encode, this.decode)
   }
 }
