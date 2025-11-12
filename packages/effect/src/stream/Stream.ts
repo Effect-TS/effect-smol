@@ -75,7 +75,7 @@ const TypeId = "~effect/stream/Stream"
  * @category models
  */
 export interface Stream<out A, out E = never, out R = never> extends Variance<A, E, R>, Pipeable {
-  readonly channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, R>
+  readonly channel: Channel.Channel<Arr.NonEmptyArray<A>, E, void, unknown, unknown, unknown, R>
   [Unify.typeSymbol]?: unknown
   [Unify.unifySymbol]?: StreamUnify<this>
   [Unify.ignoreSymbol]?: StreamUnifyIgnore
@@ -292,7 +292,7 @@ export type HaltStrategy = Channel.HaltStrategy
  * @since 2.0.0
  * @category constructors
  */
-export const fromChannel = <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
+export const fromChannel = <Arr extends Arr.NonEmptyReadonlyArray<unknown>, E, R>(
   channel: Channel.Channel<Arr, E, void, unknown, unknown, unknown, R>
 ): Stream<Arr extends Arr.NonEmptyReadonlyArray<infer A> ? A : never, E, R> => {
   const self = Object.create(StreamProto)
@@ -345,7 +345,7 @@ export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
         s = next
         return Arr.of(next)
       })
-    ) as Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | ES, void, R | RS>
+    ) as Pull.Pull<Arr.NonEmptyArray<A>, E | ES, void, R | RS>
     return Effect.suspend(() => {
       if (initial) {
         initial = false
@@ -458,7 +458,7 @@ export const transformPullBracket = <A, E, R, B, E2, R2, EX, RX>(
  */
 export const toChannel = <A, E, R>(
   stream: Stream<A, E, R>
-): Channel.Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, R> => stream.channel
+): Channel.Channel<Arr.NonEmptyArray<A>, E, void, unknown, unknown, unknown, R> => stream.channel
 
 /**
  * Creates a stream from an external resource.
@@ -2237,7 +2237,7 @@ export const raceAll = <S extends ReadonlyArray<Stream<any, any, any>>>(
 ): Stream<Success<S[number]>, Error<S[number]>, Services<S[number]>> =>
   fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
     let winner:
-      | Pull.Pull<Arr.NonEmptyReadonlyArray<Success<S[number]>>, Error<S[number]>, void, Services<S[number]>>
+      | Pull.Pull<Arr.NonEmptyArray<Success<S[number]>>, Error<S[number]>, void, Services<S[number]>>
       | undefined
     const race = Effect.raceAll(streams.map((stream) => {
       const childScope = Scope.forkUnsafe(scope)
@@ -2947,7 +2947,7 @@ export const drop: {
  * @since 2.0.0
  * @category utils
  */
-export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyReadonlyArray<A>, E, R> =>
+export const chunks = <A, E, R>(self: Stream<A, E, R>): Stream<Arr.NonEmptyArray<A>, E, R> =>
   self.channel.pipe(
     Channel.map(Arr.of),
     fromChannel
@@ -3501,11 +3501,11 @@ export const throttle: {
  * @category Grouping
  */
 export const grouped: {
-  (n: number): <A, E, R>(self: Stream<A, E, R>) => Stream<Arr.NonEmptyReadonlyArray<A>, E, R>
-  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<Arr.NonEmptyReadonlyArray<A>, E, R>
+  (n: number): <A, E, R>(self: Stream<A, E, R>) => Stream<Arr.NonEmptyArray<A>, E, R>
+  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<Arr.NonEmptyArray<A>, E, R>
 } = dual(
   2,
-  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<Arr.NonEmptyReadonlyArray<A>, E, R> => chunks(rechunk(self, n))
+  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<Arr.NonEmptyArray<A>, E, R> => chunks(rechunk(self, n))
 )
 
 /**
@@ -3688,22 +3688,22 @@ const groupByImpl = <A, E, R, K, V, E2, R2>(
 export const groupAdjacentBy: {
   <A, K>(
     f: (a: NoInfer<A>) => K
-  ): <E, R>(self: Stream<A, E, R>) => Stream<readonly [K, Arr.NonEmptyArray<A>], E, R>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<[K, Arr.NonEmptyArray<A>], E, R>
   <A, E, R, K>(
     self: Stream<A, E, R>,
     f: (a: NoInfer<A>) => K
-  ): Stream<readonly [K, Arr.NonEmptyArray<A>], E, R>
+  ): Stream<[K, Arr.NonEmptyArray<A>], E, R>
 } = dual(2, <A, E, R, K>(
   self: Stream<A, E, R>,
   f: (a: NoInfer<A>) => K
-): Stream<readonly [K, Arr.NonEmptyArray<A>], E, R> =>
+): Stream<[K, Arr.NonEmptyArray<A>], E, R> =>
   transformPull(self, (pull, _scope) =>
     Effect.sync(() => {
       let currentKey: K = undefined as any
       let group: Arr.NonEmptyArray<A> | undefined
-      let toEmit = Arr.empty<readonly [K, Arr.NonEmptyArray<A>]>()
+      let toEmit = Arr.empty<[K, Arr.NonEmptyArray<A>]>()
       const loop: Pull.Pull<
-        Arr.NonEmptyReadonlyArray<readonly [K, Arr.NonEmptyArray<A>]>,
+        Arr.NonEmptyArray<[K, Arr.NonEmptyArray<A>]>,
         E
       > = pull.pipe(
         Effect.flatMap((chunk) => {
@@ -3786,7 +3786,7 @@ export const transduce = dual<
             })
         )
         return Effect.suspend((): Pull.Pull<
-          Arr.NonEmptyReadonlyArray<A2>,
+          Arr.NonEmptyArray<A2>,
           E | E2,
           void,
           R2
@@ -3898,7 +3898,7 @@ export const aggregateWithin: {
     }).pipe(
       Effect.flatMap((pull) =>
         Effect.raceFirst(
-          catchSinkHalt(pull) as Pull.Pull<Arr.NonEmptyReadonlyArray<B>, E | E2, void, R2>,
+          catchSinkHalt(pull) as Pull.Pull<Arr.NonEmptyArray<B>, E | E2, void, R2>,
           stepToBuffer
         )
       )
@@ -4012,7 +4012,7 @@ export const share: {
  * // encoding/decoding, or platform-specific transformations.
  *
  * declare const transformChannel: Channel.Channel<
- *   readonly [string, ...string[]],
+ *   [string, ...string[]],
  *   never,
  *   unknown,
  *   readonly [number, ...number[]],
@@ -4036,7 +4036,7 @@ export const share: {
  *
  * // Practical example: combining two channels with pipeTo
  * declare const sourceChannel: Channel.Channel<
- *   readonly [number, ...number[]],
+ *   [number, ...number[]],
  *   never,
  *   void,
  *   unknown,
@@ -4045,7 +4045,7 @@ export const share: {
  *   never
  * >
  * declare const transformChannel: Channel.Channel<
- *   readonly [string, ...string[]],
+ *   [string, ...string[]],
  *   never,
  *   unknown,
  *   readonly [number, ...number[]],
@@ -4068,15 +4068,15 @@ export const share: {
  */
 export const pipeThroughChannel: {
   <R2, E, E2, A, A2>(
-    channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
+    channel: Channel.Channel<Arr.NonEmptyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
   ): <R>(self: Stream<A, E, R>) => Stream<A2, E2, R2 | R>
   <R, R2, E, E2, A, A2>(
     self: Stream<A, E, R>,
-    channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
+    channel: Channel.Channel<Arr.NonEmptyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
   ): Stream<A2, E2, R | R2>
 } = dual(2, <R, R2, E, E2, A, A2>(
   self: Stream<A, E, R>,
-  channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
+  channel: Channel.Channel<Arr.NonEmptyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
 ): Stream<A2, E2, R | R2> => fromChannel(Channel.pipeTo(self.channel, channel)))
 
 /**
@@ -4095,7 +4095,7 @@ export const pipeThroughChannel: {
  *
  * // Channel that might fail during processing
  * declare const transformChannel: Channel.Channel<
- *   readonly [string, ...string[]],
+ *   [string, ...string[]],
  *   "ChannelError",
  *   unknown,
  *   readonly [number, ...number[]],
@@ -4123,7 +4123,7 @@ export const pipeThroughChannel: {
  * )
  *
  * declare const numericTransformChannel: Channel.Channel<
- *   readonly [string, ...string[]],
+ *   [string, ...string[]],
  *   "ChannelError",
  *   unknown,
  *   readonly [number, ...number[]],
@@ -4146,15 +4146,15 @@ export const pipeThroughChannel: {
  */
 export const pipeThroughChannelOrFail: {
   <R2, E, E2, A, A2>(
-    channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
+    channel: Channel.Channel<Arr.NonEmptyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
   ): <R>(self: Stream<A, E, R>) => Stream<A2, E | E2, R2 | R>
   <R, R2, E, E2, A, A2>(
     self: Stream<A, E, R>,
-    channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
+    channel: Channel.Channel<Arr.NonEmptyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
   ): Stream<A2, E | E2, R | R2>
 } = dual(2, <R, R2, E, E2, A, A2>(
   self: Stream<A, E, R>,
-  channel: Channel.Channel<Arr.NonEmptyReadonlyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
+  channel: Channel.Channel<Arr.NonEmptyArray<A2>, E2, unknown, Arr.NonEmptyReadonlyArray<A>, E, unknown, R2>
 ): Stream<A2, E | E2, R | R2> => fromChannel(Channel.pipeToOrFail(self.channel, channel)))
 
 /**
@@ -4201,7 +4201,7 @@ export const changesWith: {
       Effect.sync(() => {
         let first = true
         let last: A
-        return Effect.flatMap(pull, function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> {
+        return Effect.flatMap(pull, function loop(arr): Pull.Pull<Arr.NonEmptyArray<A>, E> {
           const out: Array<A> = []
           let i = 0
           if (first) {
@@ -4251,7 +4251,7 @@ export const changesWithEffect: {
           pull,
           Effect.fnUntraced(function* loop(arr): Generator<
             Pull.Pull<any, E | E2, void, R2>,
-            Arr.NonEmptyReadonlyArray<A>,
+            Arr.NonEmptyArray<A>,
             any
           > {
             const out: Array<A> = []
@@ -5224,7 +5224,7 @@ export const toAsyncIterableWith: {
       const runPromise = Effect.runPromiseWith(services)
       const runPromiseExit = Effect.runPromiseExitWith(services)
       const scope = Scope.makeUnsafe()
-      let pull: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> | undefined
+      let pull: Pull.Pull<Arr.NonEmptyArray<A>, E, void, R> | undefined
       let currentIter: Iterator<A> | undefined
       return {
         async next(): Promise<IteratorResult<A>> {

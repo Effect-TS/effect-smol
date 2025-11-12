@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
+import type * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import * as Filter from "../../data/Filter.ts"
 import * as Predicate from "../../data/Predicate.ts"
@@ -189,10 +189,10 @@ export const toChannelMap = <IE, A>(
   self: Socket,
   f: (data: Uint8Array | string) => A
 ): Channel.Channel<
-  NonEmptyReadonlyArray<A>,
+  Arr.NonEmptyArray<A>,
   SocketError | IE,
   void,
-  NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
+  Arr.NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
   IE
 > =>
   Channel.fromTransform(Effect.fnUntraced(function*(upstream, scope) {
@@ -201,7 +201,7 @@ export const toChannelMap = <IE, A>(
     const writeScope = yield* Scope.fork(scope)
     const write = yield* Scope.provide(self.writer, writeScope)
 
-    let chunk: NonEmptyReadonlyArray<Uint8Array | string | CloseEvent> | undefined
+    let chunk: Arr.NonEmptyReadonlyArray<Uint8Array | string | CloseEvent> | undefined
     let index = 0
     const writeChunk = Effect.whileLoop({
       while: () => index < chunk!.length,
@@ -242,10 +242,10 @@ export const toChannelMap = <IE, A>(
 export const toChannel = <IE>(
   self: Socket
 ): Channel.Channel<
-  NonEmptyReadonlyArray<Uint8Array>,
+  Arr.NonEmptyArray<Uint8Array>,
   SocketError | IE,
   void,
-  NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
+  Arr.NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
   IE
 > => {
   const encoder = new TextEncoder()
@@ -258,30 +258,30 @@ export const toChannel = <IE>(
  */
 export const toChannelString: {
   (encoding?: string | undefined): <IE>(self: Socket) => Channel.Channel<
-    NonEmptyReadonlyArray<string>,
+    Arr.NonEmptyArray<string>,
     SocketError | IE,
     void,
-    NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
+    Arr.NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
     IE
   >
   <IE>(
     self: Socket,
     encoding?: string | undefined
   ): Channel.Channel<
-    NonEmptyReadonlyArray<string>,
+    Arr.NonEmptyArray<string>,
     SocketError | IE,
     void,
-    NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
+    Arr.NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
     IE
   >
 } = dual((args) => isSocket(args[0]), <IE>(
   self: Socket,
   encoding?: string | undefined
 ): Channel.Channel<
-  NonEmptyReadonlyArray<string>,
+  Arr.NonEmptyArray<string>,
   SocketError | IE,
   void,
-  NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
+  Arr.NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
   IE
 > => {
   const decoder = new TextDecoder(encoding)
@@ -296,10 +296,10 @@ export const toChannelWith = <IE = never>() =>
 (
   self: Socket
 ): Channel.Channel<
-  NonEmptyReadonlyArray<Uint8Array>,
+  Arr.NonEmptyArray<Uint8Array>,
   SocketError | IE,
   void,
-  NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
+  Arr.NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
   IE
 > => toChannel(self)
 
@@ -308,10 +308,10 @@ export const toChannelWith = <IE = never>() =>
  * @category constructors
  */
 export const makeChannel = <IE = never>(): Channel.Channel<
-  NonEmptyReadonlyArray<Uint8Array>,
+  Arr.NonEmptyArray<Uint8Array>,
   SocketError | IE,
   void,
-  NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
+  Arr.NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
   IE,
   unknown,
   Socket
@@ -505,10 +505,10 @@ export const makeWebSocketChannel = <IE = never>(
     readonly closeCodeIsError?: (code: number) => boolean
   }
 ): Channel.Channel<
-  NonEmptyReadonlyArray<Uint8Array>,
+  Arr.NonEmptyArray<Uint8Array>,
   SocketError | IE,
   void,
-  NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
+  Arr.NonEmptyReadonlyArray<Uint8Array | string | CloseEvent>,
   IE,
   unknown,
   WebSocketConstructor

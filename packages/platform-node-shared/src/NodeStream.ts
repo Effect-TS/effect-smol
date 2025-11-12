@@ -39,7 +39,7 @@ export const fromReadableChannel = <A = Uint8Array, E = Cause.UnknownError>(opti
   readonly onError?: (error: unknown) => E
   readonly chunkSize?: number | undefined
   readonly closeOnDone?: boolean | undefined
-}): Channel.Channel<Arr.NonEmptyReadonlyArray<A>, E> =>
+}): Channel.Channel<Arr.NonEmptyArray<A>, E> =>
   Channel.fromTransform((_, scope) =>
     readableToPullUnsafe({
       scope,
@@ -63,7 +63,7 @@ export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.Unknown
     readonly endOnDone?: boolean | undefined
     readonly encoding?: BufferEncoding | undefined
   }
-): Channel.Channel<Arr.NonEmptyReadonlyArray<O>, IE | E, void, Arr.NonEmptyReadonlyArray<I>, IE> =>
+): Channel.Channel<Arr.NonEmptyArray<O>, IE | E, void, Arr.NonEmptyReadonlyArray<I>, IE> =>
   Channel.fromTransform((upstream, scope) => {
     const duplex = options.evaluate()
     const exit = MutableRef.make<Exit.Exit<never, IE | E | Pull.Halt<void>> | undefined>(undefined)
@@ -316,7 +316,7 @@ const readableToPullUnsafe = <A, E>(options: {
   options.readable.once("error", onError)
   options.readable.once("end", onEnd)
 
-  const pull = Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> {
+  const pull = Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyArray<A>, E> {
     let item = options.readable.read(options.chunkSize) as A | null
     if (item === null) {
       if (exit.current) {

@@ -268,7 +268,7 @@ export interface Parser {
  * @category Encoding
  */
 export const encode = <IE, Done>(): Channel.Channel<
-  NonEmptyReadonlyArray<string>,
+  Arr.NonEmptyArray<string>,
   IE,
   void,
   NonEmptyReadonlyArray<Event>,
@@ -285,7 +285,7 @@ export const encode = <IE, Done>(): Channel.Channel<
           return Effect.succeed(Arr.of(encoder.write(retry)))
         }),
         Pull.catchHalt(() => Pull.haltVoid)
-      ) as Pull.Pull<Arr.NonEmptyReadonlyArray<string>, IE>
+      ) as Pull.Pull<Arr.NonEmptyArray<string>, IE>
       return Effect.suspend(() => done ? Pull.haltVoid : pull)
     })
   )

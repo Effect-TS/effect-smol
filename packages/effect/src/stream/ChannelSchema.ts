@@ -15,7 +15,7 @@ export const encode = <S extends Schema.Top>(
   schema: S
 ) =>
 <IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<S["Encoded"]>,
+  Arr.NonEmptyArray<S["Encoded"]>,
   IE | Schema.SchemaError,
   Done,
   Arr.NonEmptyReadonlyArray<S["Type"]>,
@@ -23,7 +23,7 @@ export const encode = <S extends Schema.Top>(
   Done,
   S["EncodingServices"]
 > => {
-  const encode = Schema.encodeEffect(Schema.NonEmptyArray(schema))
+  const encode: any = Schema.encodeEffect(Schema.NonEmptyArray(schema))
   return Channel.fromTransform((upstream, _scope) => Effect.succeed(Effect.flatMap(upstream, (chunk) => encode(chunk))))
 }
 
@@ -34,7 +34,7 @@ export const encode = <S extends Schema.Top>(
 export const encodeUnknown: <S extends Schema.Top>(
   schema: S
 ) => <IE = never, Done = unknown>() => Channel.Channel<
-  Arr.NonEmptyReadonlyArray<unknown>,
+  Arr.NonEmptyArray<unknown>,
   IE | Schema.SchemaError,
   Done,
   Arr.NonEmptyReadonlyArray<S["Type"]>,
@@ -51,7 +51,7 @@ export const decode = <S extends Schema.Top>(
   schema: S
 ) =>
 <IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<S["Type"]>,
+  Arr.NonEmptyArray<S["Type"]>,
   IE | Schema.SchemaError,
   Done,
   Arr.NonEmptyReadonlyArray<S["Encoded"]>,
@@ -59,7 +59,7 @@ export const decode = <S extends Schema.Top>(
   Done,
   S["DecodingServices"]
 > => {
-  const decode = Schema.decodeEffect(Schema.NonEmptyArray(schema))
+  const decode: any = Schema.decodeEffect(Schema.NonEmptyArray(schema))
   return Channel.fromTransform((upstream, _scope) => Effect.succeed(Effect.flatMap(upstream, (chunk) => decode(chunk))))
 }
 
@@ -70,7 +70,7 @@ export const decode = <S extends Schema.Top>(
 export const decodeUnknown: <S extends Schema.Top>(
   schema: S
 ) => <IE = never, Done = unknown>() => Channel.Channel<
-  Arr.NonEmptyReadonlyArray<S["Type"]>,
+  Arr.NonEmptyArray<S["Type"]>,
   IE | Schema.SchemaError,
   Done,
   Arr.NonEmptyReadonlyArray<S["Encoded"]>,
@@ -98,7 +98,7 @@ export const duplex: {
       R
     >
   ) => Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    Arr.NonEmptyArray<Out["Type"]>,
     Schema.SchemaError | OutErr,
     OutDone,
     Arr.NonEmptyReadonlyArray<In["Type"]>,
@@ -121,7 +121,7 @@ export const duplex: {
       readonly outputSchema: Out
     }
   ): Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    Arr.NonEmptyArray<Out["Type"]>,
     Schema.SchemaError | OutErr,
     OutDone,
     Arr.NonEmptyReadonlyArray<In["Type"]>,
@@ -144,7 +144,7 @@ export const duplex: {
     readonly outputSchema: Out
   }
 ): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Out["Type"]>,
+  Arr.NonEmptyArray<Out["Type"]>,
   Schema.SchemaError | OutErr,
   OutDone,
   Arr.NonEmptyReadonlyArray<In["Type"]>,
@@ -176,7 +176,7 @@ export const duplexUnknown: {
       R
     >
   ) => Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    Arr.NonEmptyArray<Out["Type"]>,
     Schema.SchemaError | OutErr,
     OutDone,
     Arr.NonEmptyReadonlyArray<In["Type"]>,
@@ -199,7 +199,7 @@ export const duplexUnknown: {
       readonly outputSchema: Out
     }
   ): Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    Arr.NonEmptyArray<Out["Type"]>,
     Schema.SchemaError | OutErr,
     OutDone,
     Arr.NonEmptyReadonlyArray<In["Type"]>,

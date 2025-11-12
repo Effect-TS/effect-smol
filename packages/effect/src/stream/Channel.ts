@@ -487,7 +487,7 @@ export const callbackArray = <A, E = never, R = never>(
     readonly bufferSize?: number | undefined
     readonly strategy?: "sliding" | "dropping" | "suspend" | undefined
   }
-): Channel<Arr.NonEmptyReadonlyArray<A>, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
+): Channel<Arr.NonEmptyArray<A>, E, void, unknown, unknown, unknown, Exclude<R, Scope.Scope>> =>
   fromTransform((_, scope) => Effect.map(asyncQueue(scope, f, options), Queue.toPullArray))
 
 /**
@@ -691,7 +691,7 @@ export const fromChunk = <A>(chunk: Chunk.Chunk<A>): Channel<A> => fromArray(Chu
 export const fromIteratorArray = <A, L>(
   iterator: LazyArg<Iterator<A, L>>,
   chunkSize = DefaultChunkSize
-): Channel<Arr.NonEmptyReadonlyArray<A>, never, L> =>
+): Channel<Arr.NonEmptyArray<A>, never, L> =>
   fromPull(
     Effect.sync(() => {
       const iter = iterator()
@@ -710,7 +710,7 @@ export const fromIteratorArray = <A, L>(
           }
           buffer.push(state.value)
         }
-        return Effect.succeed(buffer as any as Arr.NonEmptyReadonlyArray<A>)
+        return Effect.succeed(buffer as Arr.NonEmptyArray<A>)
       })
     })
   )
@@ -751,7 +751,7 @@ export const fromIterable = <A, L>(iterable: Iterable<A, L>): Channel<A, never, 
 export const fromIterableArray = <A, L>(
   iterable: Iterable<A, L>,
   chunkSize = DefaultChunkSize
-): Channel<Arr.NonEmptyReadonlyArray<A>, never, L> => fromIteratorArray(() => iterable[Symbol.iterator](), chunkSize)
+): Channel<Arr.NonEmptyArray<A>, never, L> => fromIteratorArray(() => iterable[Symbol.iterator](), chunkSize)
 
 /**
  * Creates a `Channel` that emits a single value and then ends.
@@ -1062,7 +1062,7 @@ export const fromEffect = <A, E, R>(
  */
 export const fromEffectTake = <A, E, Done, E2, R>(
   effect: Effect.Effect<Take.Take<A, E, Done>, E2, R>
-): Channel<Arr.NonEmptyReadonlyArray<A>, E | E2, Done, unknown, unknown, unknown, R> =>
+): Channel<Arr.NonEmptyArray<A>, E | E2, Done, unknown, unknown, unknown, R> =>
   fromPull(Effect.succeed(Effect.flatMap(effect, Take.toPull)))
 
 /**
@@ -1156,7 +1156,7 @@ export const fromQueue = <A, E>(
  */
 export const fromQueueArray = <A, E>(
   queue: Queue.Dequeue<A, E>
-): Channel<Arr.NonEmptyReadonlyArray<A>, Exclude<E, Queue.Done>> => fromPull(Effect.succeed(Queue.toPullArray(queue)))
+): Channel<Arr.NonEmptyArray<A>, Exclude<E, Queue.Done>> => fromPull(Effect.succeed(Queue.toPullArray(queue)))
 
 /**
  * @since 2.0.0
@@ -1327,7 +1327,7 @@ export const fromSubscription = <A>(
  */
 export const fromSubscriptionArray = <A>(
   subscription: PubSub.Subscription<A>
-): Channel<Arr.NonEmptyReadonlyArray<A>> =>
+): Channel<Arr.NonEmptyArray<A>> =>
   fromPull(Effect.succeed(Effect.onInterrupt(PubSub.takeAll(subscription), Pull.haltVoid)))
 
 /**
@@ -1576,7 +1576,7 @@ export const fromPubSub = <A>(
  * @since 4.0.0
  * @category constructors
  */
-export const fromPubSubArray = <A>(pubsub: PubSub.PubSub<A>): Channel<Arr.NonEmptyReadonlyArray<A>> =>
+export const fromPubSubArray = <A>(pubsub: PubSub.PubSub<A>): Channel<Arr.NonEmptyArray<A>> =>
   unwrap(Effect.map(PubSub.subscribe(pubsub), fromSubscriptionArray))
 
 /**
@@ -1585,7 +1585,7 @@ export const fromPubSubArray = <A>(pubsub: PubSub.PubSub<A>): Channel<Arr.NonEmp
  */
 export const fromPubSubTake = <A, E, Done>(
   pubsub: PubSub.PubSub<Take.Take<A, E, Done>>
-): Channel<Arr.NonEmptyReadonlyArray<A>, E, Done> =>
+): Channel<Arr.NonEmptyArray<A>, E, Done> =>
   unwrap(Effect.map(PubSub.subscribe(pubsub), (sub) => fromEffectTake(PubSub.take(sub))))
 
 /**
@@ -1632,7 +1632,7 @@ export const fromAsyncIterable = <A, D, E>(
 export const fromAsyncIterableArray = <A, D, E>(
   iterable: AsyncIterable<A, D>,
   onError: (error: unknown) => E
-): Channel<Arr.NonEmptyReadonlyArray<A>, E, D> => map(fromAsyncIterable(iterable, onError), Arr.of)
+): Channel<Arr.NonEmptyArray<A>, E, D> => map(fromAsyncIterable(iterable, onError), Arr.of)
 
 /**
  * Maps the output of this channel using the specified function.
@@ -2735,7 +2735,7 @@ export const flattenTake = <
   Env
 >(
   self: Channel<Take.Take<OutElem, OutErr, OutDone>, OutErr2, OutDone2, InElem, InErr, InDone, Env>
-): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr | OutErr2, OutDone, InElem, InErr, InDone, Env> =>
+): Channel<Arr.NonEmptyArray<OutElem>, OutErr | OutErr2, OutDone, InElem, InErr, InDone, Env> =>
   mapEffectSequential(self, Take.toPull) as any
 
 /**
@@ -2880,18 +2880,18 @@ export const filterArray: {
     filter: Filter.Filter<OutElem, B, X>
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  ) => Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<Arr.NonEmptyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
     filter: Filter.Filter<OutElem, B, X>
-  ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ): Channel<Arr.NonEmptyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
   self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
   filter_: Filter.Filter<OutElem, B, X>
-): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+): Channel<Arr.NonEmptyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
   filter(self, (arr) => {
     const [passes] = Arr.partitionFilter(arr, filter_)
-    return Arr.isReadonlyArrayNonEmpty(passes) ? passes : Filter.fail(arr)
+    return Arr.isArrayNonEmpty(passes) ? passes : Filter.fail(arr)
   }))
 
 /**
@@ -2903,21 +2903,21 @@ export const filterArrayEffect: {
     filter: Filter.FilterEffect<OutElem, B, X, E, R>
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  ) => Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
+  ) => Channel<Arr.NonEmptyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X, E, R>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
     filter: Filter.FilterEffect<OutElem, B, X, E, R>
-  ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
+  ): Channel<Arr.NonEmptyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X, E, R>(
   self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
   filter_: Filter.FilterEffect<OutElem, B, X, E, R>
-): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
+): Channel<Arr.NonEmptyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
   transformPull(self, (pull) => {
     const filter = Effect.flatMap(pull, (arr) => Effect.filter(arr, filter_))
     return Effect.succeed(Effect.flatMap(
       filter,
-      function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, Env | R> {
-        return Arr.isReadonlyArrayNonEmpty(arr) ? Effect.succeed(arr) : Effect.flatMap(filter, loop)
+      function loop(arr): Pull.Pull<Arr.NonEmptyArray<B>, OutErr | E, OutDone, Env | R> {
+        return Arr.isArrayNonEmpty(arr) ? Effect.succeed(arr) : Effect.flatMap(filter, loop)
       }
     ))
   }))
@@ -4265,7 +4265,7 @@ export const merge: {
  * @category String manipulation
  */
 export const splitLines = <Err, Done>(): Channel<
-  Arr.NonEmptyReadonlyArray<string>,
+  Arr.NonEmptyArray<string>,
   Err,
   Done,
   Arr.NonEmptyReadonlyArray<string>,
@@ -4277,7 +4277,7 @@ export const splitLines = <Err, Done>(): Channel<
       let stringBuilder = ""
       let midCRLF = false
 
-      const splitLinesArray = (chunk: Arr.NonEmptyReadonlyArray<string>): Arr.NonEmptyReadonlyArray<string> | null => {
+      const splitLinesArray = (chunk: Arr.NonEmptyReadonlyArray<string>): Arr.NonEmptyArray<string> | null => {
         const chunkBuilder: Array<string> = []
         for (let i = 0; i < chunk.length; i++) {
           const str = chunk[i]
@@ -4335,12 +4335,12 @@ export const splitLines = <Err, Done>(): Channel<
             }
           }
         }
-        return Arr.isReadonlyArrayNonEmpty(chunkBuilder) ? chunkBuilder : null
+        return Arr.isArrayNonEmpty(chunkBuilder) ? chunkBuilder : null
       }
 
       return Effect.flatMap(
         upstream,
-        function loop(chunk): Pull.Pull<Arr.NonEmptyReadonlyArray<string>, Err, Done> {
+        function loop(chunk): Pull.Pull<Arr.NonEmptyArray<string>, Err, Done> {
           const lines = splitLinesArray(chunk)
           return lines !== null ? Effect.succeed(lines) : Effect.flatMap(upstream, loop)
         }
@@ -4353,7 +4353,7 @@ export const splitLines = <Err, Done>(): Channel<
  * @category String manipulation
  */
 export const decodeText = <Err, Done>(encoding?: string, options?: TextDecoderOptions): Channel<
-  Arr.NonEmptyReadonlyArray<string>,
+  Arr.NonEmptyArray<string>,
   Err,
   Done,
   Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
@@ -4372,7 +4372,7 @@ export const decodeText = <Err, Done>(encoding?: string, options?: TextDecoderOp
  * @category String manipulation
  */
 export const encodeText = <Err, Done>(): Channel<
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Arr.NonEmptyArray<Uint8Array<ArrayBuffer>>,
   Err,
   Done,
   Arr.NonEmptyReadonlyArray<string>,
@@ -4669,21 +4669,21 @@ export const bufferArray: {
     }
   ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  ) => Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<Arr.NonEmptyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
     options: { readonly capacity: "unbounded" } | {
       readonly capacity: number
       readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
     }
-  ): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ): Channel<Arr.NonEmptyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
   self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
   options: { readonly capacity: "unbounded" } | {
     readonly capacity: number
     readonly strategy?: "dropping" | "sliding" | "suspend" | undefined
   }
-): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+): Channel<Arr.NonEmptyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
   fromTransform(Effect.fnUntraced(function*(upstream, scope) {
     const pull = yield* toTransform(self)(upstream, scope)
     const queue = yield* Queue.make<OutElem, OutErr | Pull.Halt<OutDone>>({

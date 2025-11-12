@@ -200,7 +200,7 @@ export const fromDuplex = <RO>(
 export const makeNetChannel = <IE = never>(
   options: Net.NetConnectOpts
 ): Channel.Channel<
-  Array.NonEmptyReadonlyArray<Uint8Array>,
+  Array.NonEmptyArray<Uint8Array>,
   Socket.SocketError | IE,
   void,
   Array.NonEmptyReadonlyArray<Uint8Array | string | Socket.CloseEvent>,

@@ -1491,7 +1491,7 @@ export const toPull: <A, E, L = void>(self: Dequeue<A, E | Done>) => Pull.Pull<A
  */
 export const toPullArray: <A, E, L = void>(
   self: Dequeue<A, E | Done>
-) => Pull.Pull<Arr.NonEmptyReadonlyArray<A>, Exclude<E, Done>, L> = takeAll as any
+) => Pull.Pull<Arr.NonEmptyArray<A>, Exclude<E, Done>, L> = takeAll as any
 
 // -----------------------------------------------------------------------------
 // internals

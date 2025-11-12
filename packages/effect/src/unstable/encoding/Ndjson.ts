@@ -40,7 +40,7 @@ export class NdjsonError extends Data.TaggedError("NdjsonError")<{
  * @category constructors
  */
 export const encodeString = <IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<string>,
+  Arr.NonEmptyArray<string>,
   IE | NdjsonError,
   Done,
   Arr.NonEmptyReadonlyArray<unknown>,
@@ -62,7 +62,7 @@ export const encodeString = <IE = never, Done = unknown>(): Channel.Channel<
  * @category constructors
  */
 export const encode = <IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Arr.NonEmptyArray<Uint8Array<ArrayBuffer>>,
   IE | NdjsonError,
   Done,
   Arr.NonEmptyReadonlyArray<unknown>,
@@ -78,7 +78,7 @@ export const encodeSchema = <S extends Schema.Top>(
   schema: S
 ) =>
 <IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Arr.NonEmptyArray<Uint8Array<ArrayBuffer>>,
   NdjsonError | Schema.SchemaError | IE,
   Done,
   Arr.NonEmptyReadonlyArray<S["Type"]>,
@@ -95,7 +95,7 @@ export const encodeSchemaString = <S extends Schema.Top>(
   schema: S
 ) =>
 <IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<string>,
+  Arr.NonEmptyArray<string>,
   NdjsonError | Schema.SchemaError | IE,
   Done,
   Arr.NonEmptyReadonlyArray<S["Type"]>,
@@ -111,7 +111,7 @@ export const encodeSchemaString = <S extends Schema.Top>(
 export const decodeString = <IE = never, Done = unknown>(options?: {
   readonly ignoreEmptyLines?: boolean | undefined
 }): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<unknown>,
+  Arr.NonEmptyArray<unknown>,
   IE | NdjsonError,
   Done,
   Arr.NonEmptyReadonlyArray<string>,
@@ -139,7 +139,7 @@ export const decodeString = <IE = never, Done = unknown>(options?: {
 export const decode = <IE = never, Done = unknown>(options?: {
   readonly ignoreEmptyLines?: boolean | undefined
 }): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<unknown>,
+  Arr.NonEmptyArray<unknown>,
   IE | NdjsonError,
   Done,
   Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
@@ -159,7 +159,7 @@ export const decodeSchema = <S extends Schema.Top>(
 <IE = never, Done = unknown>(options?: {
   readonly ignoreEmptyLines?: boolean | undefined
 }): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<S["Type"]>,
+  Arr.NonEmptyArray<S["Type"]>,
   Schema.SchemaError | NdjsonError | IE,
   Done,
   Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
@@ -178,7 +178,7 @@ export const decodeSchemaString = <S extends Schema.Top>(
 <IE = never, Done = unknown>(options?: {
   readonly ignoreEmptyLines?: boolean | undefined
 }): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<S["Type"]>,
+  Arr.NonEmptyArray<S["Type"]>,
   Schema.SchemaError | NdjsonError | IE,
   Done,
   Arr.NonEmptyReadonlyArray<string>,
@@ -205,7 +205,7 @@ export const duplex: {
       R
     >
   ) => Channel.Channel<
-    Arr.NonEmptyReadonlyArray<unknown>,
+    Arr.NonEmptyArray<unknown>,
     NdjsonError | OE,
     OutDone,
     Arr.NonEmptyReadonlyArray<unknown>,
@@ -227,7 +227,7 @@ export const duplex: {
       readonly ignoreEmptyLines?: boolean | undefined
     }
   ): Channel.Channel<
-    Arr.NonEmptyReadonlyArray<unknown>,
+    Arr.NonEmptyArray<unknown>,
     NdjsonError | OE,
     OutDone,
     Arr.NonEmptyReadonlyArray<unknown>,
@@ -249,7 +249,7 @@ export const duplex: {
     readonly ignoreEmptyLines?: boolean | undefined
   }
 ): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<unknown>,
+  Arr.NonEmptyArray<unknown>,
   NdjsonError | OE,
   OutDone,
   Arr.NonEmptyReadonlyArray<unknown>,
@@ -280,7 +280,7 @@ export const duplexString: {
       R
     >
   ) => Channel.Channel<
-    Arr.NonEmptyReadonlyArray<unknown>,
+    Arr.NonEmptyArray<unknown>,
     NdjsonError | OE,
     OutDone,
     Arr.NonEmptyReadonlyArray<unknown>,
@@ -302,7 +302,7 @@ export const duplexString: {
       readonly ignoreEmptyLines?: boolean | undefined
     }
   ): Channel.Channel<
-    Arr.NonEmptyReadonlyArray<unknown>,
+    Arr.NonEmptyArray<unknown>,
     NdjsonError | OE,
     OutDone,
     Arr.NonEmptyReadonlyArray<unknown>,
@@ -324,7 +324,7 @@ export const duplexString: {
     readonly ignoreEmptyLines?: boolean | undefined
   }
 ): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<unknown>,
+  Arr.NonEmptyArray<unknown>,
   NdjsonError | OE,
   OutDone,
   Arr.NonEmptyReadonlyArray<unknown>,
@@ -359,7 +359,7 @@ export const duplexSchema: {
       R
     >
   ) => Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    Arr.NonEmptyArray<Out["Type"]>,
     NdjsonError | Schema.SchemaError | OutErr,
     OutDone,
     Arr.NonEmptyReadonlyArray<In["Type"]>,
@@ -383,7 +383,7 @@ export const duplexSchema: {
       readonly ignoreEmptyLines?: boolean | undefined
     }
   ): Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    Arr.NonEmptyArray<Out["Type"]>,
     NdjsonError | Schema.SchemaError | OutErr,
     OutDone,
     Arr.NonEmptyReadonlyArray<In["Type"]>,
@@ -407,7 +407,7 @@ export const duplexSchema: {
     readonly ignoreEmptyLines?: boolean | undefined
   }
 ): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Out["Type"]>,
+  Arr.NonEmptyArray<Out["Type"]>,
   NdjsonError | Schema.SchemaError | OutErr,
   OutDone,
   Arr.NonEmptyReadonlyArray<In["Type"]>,
@@ -438,7 +438,7 @@ export const duplexSchemaString: {
       R
     >
   ) => Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    Arr.NonEmptyArray<Out["Type"]>,
     NdjsonError | Schema.SchemaError | OutErr,
     OutDone,
     Arr.NonEmptyReadonlyArray<In["Type"]>,
@@ -462,7 +462,7 @@ export const duplexSchemaString: {
       readonly ignoreEmptyLines?: boolean | undefined
     }
   ): Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    Arr.NonEmptyArray<Out["Type"]>,
     NdjsonError | Schema.SchemaError | OutErr,
     OutDone,
     Arr.NonEmptyReadonlyArray<In["Type"]>,
@@ -486,7 +486,7 @@ export const duplexSchemaString: {
     readonly ignoreEmptyLines?: boolean | undefined
   }
 ): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Out["Type"]>,
+  Arr.NonEmptyArray<Out["Type"]>,
   NdjsonError | Schema.SchemaError | OutErr,
   OutDone,
   Arr.NonEmptyReadonlyArray<In["Type"]>,

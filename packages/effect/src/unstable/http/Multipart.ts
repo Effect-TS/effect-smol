@@ -240,7 +240,7 @@ export const makeConfig = (
  * @category Parsers
  */
 export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Part>,
+  Arr.NonEmptyArray<Part>,
   MultipartError | IE,
   void,
   Arr.NonEmptyReadonlyArray<Uint8Array>,
@@ -261,8 +261,8 @@ export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channe
           let chunks: Array<Uint8Array> = []
           let finished = false
           const pullChunks = Channel.fromPull(
-            Effect.succeed(Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<Uint8Array>> {
-              if (!Arr.isReadonlyArrayNonEmpty(chunks)) {
+            Effect.succeed(Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyArray<Uint8Array>> {
+              if (!Arr.isArrayNonEmpty(chunks)) {
                 return finished ? Pull.haltVoid : Effect.flatMap(pump, loop)
               }
               const chunk = chunks
@@ -305,8 +305,8 @@ export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channe
       )
 
       return pump.pipe(
-        Effect.flatMap(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<Part>, IE | MultipartError> {
-          if (!Arr.isReadonlyArrayNonEmpty(partsBuffer)) {
+        Effect.flatMap(function loop(): Pull.Pull<Arr.NonEmptyArray<Part>, IE | MultipartError> {
+          if (!Arr.isArrayNonEmpty(partsBuffer)) {
             if (Option.isSome(exit)) {
               return exit.value
             }

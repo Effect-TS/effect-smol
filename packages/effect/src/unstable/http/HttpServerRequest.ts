@@ -109,7 +109,7 @@ export const searchParamsFromURL = (url: URL): ReadonlyRecord<string, string | A
  * @category accessors
  */
 export const upgradeChannel = <IE = never>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Uint8Array>,
+  Arr.NonEmptyArray<Uint8Array>,
   HttpServerError | IE | Socket.SocketError,
   void,
   Arr.NonEmptyReadonlyArray<string | Uint8Array | Socket.CloseEvent>,

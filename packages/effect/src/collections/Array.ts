@@ -103,7 +103,7 @@ export type NonEmptyArray<A> = [A, ...Array<A>]
  * @category constructors
  * @since 2.0.0
  */
-export const make = <Elements extends NonEmptyArray<any>>(
+export const make = <Elements extends NonEmptyArray<unknown>>(
   ...elements: Elements
 ): NonEmptyArray<Elements[number]> => elements
 

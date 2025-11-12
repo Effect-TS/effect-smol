@@ -1,7 +1,8 @@
 /**
  * @since 2.0.0
  */
-import type { NonEmptyReadonlyArray } from "../collections/Array.ts"
+import type { NonEmptyArray, NonEmptyReadonlyArray } from "../collections/Array.ts"
+import { copy } from "../collections/Array.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
 import * as Pull from "./Pull.ts"
@@ -16,7 +17,7 @@ export type Take<A, E = never, Done = void> = NonEmptyReadonlyArray<A> | Exit.Ex
  * @since 4.0.0
  * @categor Conversions
  */
-export const toPull = <A, E, Done>(take: Take<A, E, Done>): Pull.Pull<NonEmptyReadonlyArray<A>, E, Done> =>
+export const toPull = <A, E, Done>(take: Take<A, E, Done>): Pull.Pull<NonEmptyArray<A>, E, Done> =>
   Exit.isExit(take)
     ? Exit.isSuccess(take) ? Pull.halt(take.value) : (take as Exit.Exit<never, E>)
-    : Effect.succeed(take)
+    : Effect.succeed(copy(take))

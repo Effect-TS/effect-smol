@@ -44,7 +44,7 @@ export class MsgPackError extends Data.TaggedError("MsgPackError")<{
  * @category constructors
  */
 export const encode = <IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Arr.NonEmptyArray<Uint8Array<ArrayBuffer>>,
   IE | MsgPackError,
   Done,
   Arr.NonEmptyReadonlyArray<unknown>,
@@ -72,7 +72,7 @@ export const encodeSchema = <S extends Schema.Top>(
   schema: S
 ) =>
 <IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
+  Arr.NonEmptyArray<Uint8Array<ArrayBuffer>>,
   MsgPackError | Schema.SchemaError | IE,
   Done,
   Arr.NonEmptyReadonlyArray<S["Type"]>,
@@ -86,7 +86,7 @@ export const encodeSchema = <S extends Schema.Top>(
  * @category constructors
  */
 export const decode = <IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<unknown>,
+  Arr.NonEmptyArray<unknown>,
   IE | MsgPackError,
   Done,
   Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
@@ -99,7 +99,7 @@ export const decode = <IE = never, Done = unknown>(): Channel.Channel<
       let incomplete: Uint8Array<ArrayBuffer> | undefined = undefined
       return Effect.flatMap(
         upstream,
-        function loop(chunk): Pull.Pull<Arr.NonEmptyReadonlyArray<unknown>, IE | MsgPackError, Done> {
+        function loop(chunk): Pull.Pull<Arr.NonEmptyArray<unknown>, IE | MsgPackError, Done> {
           const out = Arr.empty<unknown>()
           for (let i = 0; i < chunk.length; i++) {
             let buf = chunk[i]
@@ -126,7 +126,7 @@ export const decode = <IE = never, Done = unknown>(): Channel.Channel<
               }
             }
           }
-          return Arr.isReadonlyArrayNonEmpty(out) ? Effect.succeed(out) : Effect.flatMap(upstream, loop)
+          return Arr.isArrayNonEmpty(out) ? Effect.succeed(out) : Effect.flatMap(upstream, loop)
         }
       )
     })
@@ -140,7 +140,7 @@ export const decodeSchema = <S extends Schema.Top>(
   schema: S
 ) =>
 <IE = never, Done = unknown>(): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<S["Type"]>,
+  Arr.NonEmptyArray<S["Type"]>,
   Schema.SchemaError | MsgPackError | IE,
   Done,
   Arr.NonEmptyReadonlyArray<Uint8Array<ArrayBuffer>>,
@@ -164,7 +164,7 @@ export const duplex = <R, IE, OE, OutDone, InDone>(
     R
   >
 ): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<unknown>,
+  Arr.NonEmptyArray<unknown>,
   MsgPackError | OE,
   OutDone,
   Arr.NonEmptyReadonlyArray<unknown>,
@@ -198,7 +198,7 @@ export const duplexSchema: {
       R
     >
   ) => Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    Arr.NonEmptyArray<Out["Type"]>,
     MsgPackError | Schema.SchemaError | OutErr,
     OutDone,
     Arr.NonEmptyReadonlyArray<In["Type"]>,
@@ -221,7 +221,7 @@ export const duplexSchema: {
       readonly outputSchema: Out
     }
   ): Channel.Channel<
-    Arr.NonEmptyReadonlyArray<Out["Type"]>,
+    Arr.NonEmptyArray<Out["Type"]>,
     MsgPackError | Schema.SchemaError | OutErr,
     OutDone,
     Arr.NonEmptyReadonlyArray<In["Type"]>,
@@ -244,7 +244,7 @@ export const duplexSchema: {
     readonly outputSchema: Out
   }
 ): Channel.Channel<
-  Arr.NonEmptyReadonlyArray<Out["Type"]>,
+  Arr.NonEmptyArray<Out["Type"]>,
   MsgPackError | Schema.SchemaError | OutErr,
   OutDone,
   Arr.NonEmptyReadonlyArray<In["Type"]>,
