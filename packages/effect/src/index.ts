@@ -1086,7 +1086,7 @@ export * as Queue from "./Queue.ts"
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const random = yield* Random
+ *   const random = yield* Random.Random
  *
  *   const randomFloat = yield* random.next()
  *   console.log("Random float:", randomFloat)

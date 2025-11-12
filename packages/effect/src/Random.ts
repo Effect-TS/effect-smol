@@ -8,7 +8,7 @@
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const random = yield* Random
+ *   const random = yield* Random.Random
  *
  *   const randomFloat = yield* random.next()
  *   console.log("Random float:", randomFloat)
@@ -36,7 +36,7 @@ import * as ServiceMap from "./ServiceMap.ts"
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const random = yield* Random
+ *   const random = yield* Random.Random
  *
  *   const float = yield* random.next()
  *   const integer = yield* random.nextInt()
@@ -65,7 +65,7 @@ export const Random = ServiceMap.Reference<Service>("effect/Random", {
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const random = yield* Random
+ *   const random = yield* Random.Random
  *
  *   const float = yield* random.next()
  *   const integer = yield* random.nextInt()
@@ -94,7 +94,7 @@ export interface Service {
    * import { Effect, Random } from "effect"
    *
    * const program = Effect.gen(function* () {
-   *   const random = yield* Random
+   *   const random = yield* Random.Random
    *   const value = random.nextUnsafe()
    *   console.log("Random value:", value)
    * })
@@ -110,7 +110,7 @@ export interface Service {
    * import { Effect, Random } from "effect"
    *
    * const program = Effect.gen(function* () {
-   *   const random = yield* Random
+   *   const random = yield* Random.Random
    *   const value = yield* random.next()
    *   console.log("Random value:", value)
    * })
@@ -127,7 +127,7 @@ export interface Service {
    * import { Effect, Random } from "effect"
    *
    * const program = Effect.gen(function* () {
-   *   const random = yield* Random
+   *   const random = yield* Random.Random
    *   const randomInt = yield* random.nextInt()
    *   console.log("Random integer:", randomInt)
    * })
@@ -143,7 +143,7 @@ export interface Service {
    * import { Effect, Random } from "effect"
    *
    * const program = Effect.gen(function* () {
-   *   const random = yield* Random
+   *   const random = yield* Random.Random
    *   const value = yield* random.nextBetween(10, 20)
    * })
    * ```
@@ -161,7 +161,7 @@ export interface Service {
    * import { Effect, Random } from "effect"
    *
    * const program = Effect.gen(function* () {
-   *   const random = yield* Random
+   *   const random = yield* Random.Random
    *   const diceRoll1 = yield* random.nextIntBetween(1, 6)
    *   const diceRoll2 = yield* random.nextIntBetween(1, 6, {
    *     halfOpen: true
@@ -182,7 +182,7 @@ export interface Service {
    * import { Effect, Random } from "effect"
    *
    * const program = Effect.gen(function* () {
-   *   const random = yield* Random
+   *   const random = yield* Random.Random
    *   const uuid = yield* random.nextUUID()
    *   console.log("UUID:", uuid)
    * })
@@ -199,8 +199,8 @@ export interface Service {
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const value = yield* Random.next()
- *   console.log("Random value:", value)
+ *   const randomDouble = yield* Random.next()
+ *   console.log("Random double:", randomDouble)
  * })
  * ```
  *
@@ -218,8 +218,7 @@ export const next = (): Effect.Effect<number> => Effect.flatMap(Effect.service(R
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const random = yield* Random
- *   const randomInt = yield* random.nextInt()
+ *   const randomInt = yield* Random.nextInt()
  *   console.log("Random integer:", randomInt)
  * })
  * ```
@@ -237,11 +236,8 @@ export const nextInt = (): Effect.Effect<number> => Effect.flatMap(Effect.servic
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const value1 = yield* Random.nextBetween(0, 1)
- *   const value2 = yield* Random.nextBetween(0, 1, {
- *     halfOpen: true
- *   })
- *   const value3 = yield* Random.nextBetween(10, 20)
+ *   const randomDouble = yield* Random.nextBetween(0, 1)
+ *   console.log("Random double: ", randomDouble)
  * })
  * ```
  *
@@ -262,12 +258,11 @@ export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const random = yield* Random
- *   const diceRoll1 = yield* random.nextIntBetween(1, 6)
- *   const diceRoll2 = yield* random.nextIntBetween(1, 6, {
+ *   const diceRoll1 = yield* Random.nextIntBetween(1, 6)
+ *   const diceRoll2 = yield* Random.nextIntBetween(1, 6, {
  *     halfOpen: true
  *   })
- *   const diceRoll3 = yield* random.nextIntBetween(0, 10)
+ *   const diceRoll3 = yield* Random.nextIntBetween(0, 10)
  * })
  * ```
  *
