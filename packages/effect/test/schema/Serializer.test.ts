@@ -1,6 +1,6 @@
 import { Cause, DateTime, Duration, Effect } from "effect"
 import { Option, Redacted, Result } from "effect/data"
-import { Issue, Schema, ToParser, Transformation } from "effect/schema"
+import { Issue, Parser, Schema, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { deepStrictEqual } from "node:assert"
 import { describe, it } from "vitest"
@@ -1162,7 +1162,7 @@ describe("Serializer generation", () => {
         c: Schema.Tuple([Schema.String])
       })
 
-      const r = ToParser.decodeUnknownExit(schema)({ a: "", c: [] }, { errors: "all" })
+      const r = Parser.decodeUnknownExit(schema)({ a: "", c: [] }, { errors: "all" })
 
       assertTrue(r._tag === "Failure")
       assertTrue(r.cause.failures.length === 1)
