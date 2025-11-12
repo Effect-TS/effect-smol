@@ -207,10 +207,7 @@ export interface Service {
  * @since 4.0.0
  * @category Random Number Generators
  */
-export const next: Effect.Effect<number> = Effect.flatMap(
-  Effect.service(Random),
-  (random) => random.next()
-)
+export const next = (): Effect.Effect<number> => Effect.flatMap(Effect.service(Random), (random) => random.next())
 
 /**
  * Generates a random integer between `Number.MIN_SAFE_INTEGER` (inclusive)
@@ -230,10 +227,7 @@ export const next: Effect.Effect<number> = Effect.flatMap(
  * @since 4.0.0
  * @category Random Number Generators
  */
-export const nextInt: Effect.Effect<number> = Effect.flatMap(
-  Effect.service(Random),
-  (random) => random.nextInt()
-)
+export const nextInt = (): Effect.Effect<number> => Effect.flatMap(Effect.service(Random), (random) => random.nextInt())
 
 /**
  * Generates a random number between `min` (inclusive) and `max` (inclusive).
@@ -336,7 +330,31 @@ class RandomImpl implements Service {
     })
   }
   nextUUID(): Effect.Effect<string> {
-    return Effect.sync(() => crypto.randomUUID())
+    return Effect.sync(() => {
+      // Generate 16 random bytes (128 bits) for UUID
+      const bytes: Array<number> = []
+      for (let i = 0; i < 16; i++) {
+        // Get unsigned byte [0, 255] from nextInt (signed 32-bit)
+        bytes.push((this.prng.nextInt() >>> 0) & 0xFF)
+      }
+
+      // Set version to 4 (bits 12-15 of time_hi_and_version)
+      bytes[6] = (bytes[6] & 0x0F) | 0x40
+
+      // Set variant to RFC 4122 (bits 6-7 of clock_seq_hi_and_reserved)
+      bytes[8] = (bytes[8] & 0x3F) | 0x80
+
+      // Format as UUID string: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+      const hex = (n: number) => n.toString(16).padStart(2, "0")
+
+      return [
+        bytes.slice(0, 4).map(hex).join(""),
+        bytes.slice(4, 6).map(hex).join(""),
+        bytes.slice(6, 8).map(hex).join(""),
+        bytes.slice(8, 10).map(hex).join(""),
+        bytes.slice(10, 16).map(hex).join("")
+      ].join("-")
+    })
   }
 }
 
