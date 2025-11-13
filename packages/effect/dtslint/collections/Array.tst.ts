@@ -5,6 +5,18 @@ import { describe, expect, it } from "tstyche"
 declare const iterableString: Iterable<string>
 
 describe("Array", () => {
+  describe("make", () => {
+    it("should raise an error if no elements are provided", () => {
+      // @ts-expect-error: Expected at least 1 arguments, but got 0
+      Array.make()
+    })
+
+    it("should return a non-empty array", () => {
+      expect(Array.make(1, 2, 3)).type.toBe<Array.NonEmptyArray<number>>()
+      expect(Array.make("a", 1, "b")).type.toBe<Array.NonEmptyArray<string | number>>()
+    })
+  })
+
   describe("window", () => {
     it("should infer a literal for n", () => {
       expect(Array.window(iterableString, 2)).type.toBe<Array<[string, string]>>()
