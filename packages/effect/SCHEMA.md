@@ -7399,28 +7399,28 @@ const schema = Schema.transformLiteral(0, "a")
 v4
 
 ```ts
-import { Getter, Schema, Transformation } from "effect/schema"
+import { Schema } from "effect/schema"
 
-const schema = Schema.Literal(0).pipe(
-  Schema.decodeTo(Schema.Literal("a"), {
-    decode: Getter.succeed("a"),
-    encode: Getter.succeed(0)
-  })
-)
-
-// or
-const schema2 = Schema.Literal(0).pipe(
-  Schema.decodeTo(
-    Schema.Literal("a"),
-    Transformation.transform({
-      decode: () => "a" as const,
-      encode: () => 0 as const
-    })
-  )
-)
+const schema = Schema.Literal(0).transform("a")
 ```
 
 ### transformLiterals
+
+v3
+
+```ts
+import * as Schema from "effect/Schema"
+
+const schema = Schema.transformLiterals([0, "a"], [1, "b"], [2, "c"])
+```
+
+v4
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Literals([0, 1, 2]).transform(["a", "b", "c"])
+```
 
 ### attachPropertySignature
 

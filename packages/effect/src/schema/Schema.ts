@@ -1054,6 +1054,7 @@ export function flip<S extends Top>(schema: S): flip<S> {
 export interface Literal<L extends AST.LiteralValue> extends Bottom<L, L, never, never, AST.Literal, Literal<L>> {
   readonly "~rebuild.out": this
   readonly literal: L
+  transform<L2 extends AST.LiteralValue>(to: L2): decodeTo<Literal<L2>, Literal<L>>
 }
 
 /**
@@ -1063,7 +1064,16 @@ export interface Literal<L extends AST.LiteralValue> extends Bottom<L, L, never,
  * @since 4.0.0
  */
 export function Literal<L extends AST.LiteralValue>(literal: L): Literal<L> {
-  return makeProto(new AST.Literal(literal), { literal })
+  const out = makeProto<Literal<L>>(new AST.Literal(literal), {
+    literal,
+    transform<L2 extends AST.LiteralValue>(to: L2): decodeTo<Literal<L2>, Literal<L>> {
+      return out.pipe(decodeTo(Literal(to), {
+        decode: Getter.transform(() => to),
+        encode: Getter.transform(() => literal)
+      }))
+    }
+  })
+  return out
 }
 
 /**
@@ -2371,6 +2381,10 @@ export interface Literals<L extends ReadonlyArray<AST.LiteralValue>>
   mapMembers<To extends ReadonlyArray<Top>>(f: (members: this["members"]) => To): Union<Simplify<Readonly<To>>>
 
   pick<const L2 extends ReadonlyArray<L[number]>>(literals: L2): Literals<L2>
+
+  transform<const L2 extends { readonly [I in keyof L]: AST.LiteralValue }>(
+    to: L2
+  ): Union<{ [I in keyof L]: decodeTo<Literal<L2[I]>, Literal<L[I]>> }>
 }
 
 /**
@@ -2391,6 +2405,11 @@ export function Literals<const L extends ReadonlyArray<AST.LiteralValue>>(litera
     },
     pick<const L2 extends ReadonlyArray<L[number]>>(literals: L2): Literals<L2> {
       return Literals(literals)
+    },
+    transform<const L2 extends { readonly [I in keyof L]: AST.LiteralValue }>(
+      to: L2
+    ): Union<{ [I in keyof L]: decodeTo<Literal<L2[I]>, Literal<L[I]>> }> {
+      return Union(members.map((member, index) => member.transform(to[index]))) as any
     }
   })
 }

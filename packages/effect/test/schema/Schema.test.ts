@@ -140,6 +140,19 @@ Expected an integer, got -1.2`
       await encoding.succeed(1)
       await encoding.fail("1", `Expected 1, got "1"`)
     })
+
+    it("transform", async () => {
+      const schema = Schema.Literal(0).transform("a")
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(0, "a")
+      await decoding.fail(1, `Expected 0, got 1`)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed("a", 0)
+      await encoding.fail("b", `Expected "a", got "b"`)
+    })
   })
 
   describe("Literals", () => {
@@ -154,6 +167,21 @@ Expected an integer, got -1.2`
       await make.succeed("green")
       await make.succeed("blue")
       await make.fail("yellow", `Expected "red" | "green" | "blue", got "yellow"`)
+    })
+
+    it("transform", async () => {
+      const schema = Schema.Literals([0, 1]).transform(["a", "b"])
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(0, "a")
+      await decoding.succeed(1, "b")
+      await decoding.fail(2, `Expected "a" | "b", got 2`)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed("a", 0)
+      await encoding.succeed("b", 1)
+      await encoding.fail("c", `Expected 0 | 1, got "c"`)
     })
 
     it("pick", () => {
