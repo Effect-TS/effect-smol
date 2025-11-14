@@ -1775,7 +1775,7 @@ export class Union<A extends AST = AST> extends Base {
       if (tracking.out) {
         return tracking.out
       } else {
-        return yield* Effect.fail(new Issue.AnyOf(ast, oinput, issues ?? []))
+        return yield* Effect.fail(new Issue.AnyOf(ast, input, issues ?? []))
       }
     })
   }

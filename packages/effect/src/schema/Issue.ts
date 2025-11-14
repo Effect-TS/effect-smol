@@ -379,11 +379,11 @@ export class AnyOf extends Base {
   /**
    * The schema that caused the issue.
    */
-  readonly ast: AST.AST
+  readonly ast: AST.Union
   /**
    * The input value that caused the issue.
    */
-  readonly actual: Option.Option<unknown>
+  readonly actual: unknown
   /**
    * The issues that occurred.
    */
@@ -393,11 +393,11 @@ export class AnyOf extends Base {
     /**
      * The schema that caused the issue.
      */
-    ast: AST.AST,
+    ast: AST.Union,
     /**
      * The input value that caused the issue.
      */
-    actual: Option.Option<unknown>,
+    actual: unknown,
     /**
      * The issues that occurred.
      */
@@ -466,8 +466,8 @@ export function getActual(issue: Issue): Option.Option<unknown> {
     case "Forbidden":
     case "Encoding":
     case "Composite":
-    case "AnyOf":
       return issue.actual
+    case "AnyOf":
     case "UnexpectedKey":
     case "OneOf":
     case "Filter":
@@ -610,7 +610,7 @@ function toDefaultIssues(
         return [{
           path,
           message: findMessage(issue) ??
-            getExpectedMessage(Annotations.getExpected(issue.ast), formatOption(issue.actual))
+            getExpectedMessage(Annotations.getExpected(issue.ast), format(issue.actual))
         }]
       }
       return issue.issues.flatMap((issue) => toDefaultIssues(issue, path, leafHook, checkHook))
