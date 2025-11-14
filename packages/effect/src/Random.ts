@@ -41,7 +41,7 @@ import * as ServiceMap from "./ServiceMap.ts"
  *   const float = yield* random.next()
  *   const integer = yield* random.nextInt()
  *   const inRange = yield* random.nextIntBetween(1, 100)
- *   const uuid = yield* random.nextUUID()
+ *   const uuid = yield* random.nextUUIDv4()
  *
  *   console.log("Float:", float)
  *   console.log("Integer:", integer)
@@ -70,7 +70,7 @@ export const Random = ServiceMap.Reference<Service>("effect/Random", {
  *   const float = yield* random.next()
  *   const integer = yield* random.nextInt()
  *   const inRange = yield* random.nextIntBetween(1, 100)
- *   const uuid = yield* random.nextUUID()
+ *   const uuid = yield* random.nextUUIDv4()
  *
  *   console.log("Float:", float)
  *   console.log("Integer:", integer)
@@ -183,12 +183,12 @@ export interface Service {
    *
    * const program = Effect.gen(function* () {
    *   const random = yield* Random.Random
-   *   const uuid = yield* random.nextUUID()
+   *   const uuid = yield* random.nextUUIDv4()
    *   console.log("UUID:", uuid)
    * })
    * ```
    */
-  readonly nextUUID: () => Effect.Effect<string>
+  readonly nextUUIDv4: () => Effect.Effect<string>
 }
 
 /**
@@ -282,7 +282,7 @@ export const nextIntBetween = (min: number, max: number, options?: {
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const uuid = yield* Random.nextUUID()
+ *   const uuid = yield* Random.nextUUIDv4()
  *   console.log("UUID:", uuid)
  * })
  * ```
@@ -290,8 +290,8 @@ export const nextIntBetween = (min: number, max: number, options?: {
  * @since 4.0.0
  * @category Random Number Generators
  */
-export const nextUUID = (): Effect.Effect<string> =>
-  Effect.flatMap(Effect.service(Random), (random) => random.nextUUID())
+export const nextUUIDv4 = (): Effect.Effect<string> =>
+  Effect.flatMap(Effect.service(Random), (random) => random.nextUUIDv4())
 
 class RandomImpl implements Service {
   private readonly prng: {
@@ -324,7 +324,7 @@ class RandomImpl implements Service {
         : Math.floor(this.nextUnsafe() * (maxInt - minInt + 1)) + minInt
     })
   }
-  nextUUID(): Effect.Effect<string> {
+  nextUUIDv4(): Effect.Effect<string> {
     return Effect.sync(() => {
       // Generate 16 random bytes (128 bits) for UUID
       const bytes: Array<number> = []
