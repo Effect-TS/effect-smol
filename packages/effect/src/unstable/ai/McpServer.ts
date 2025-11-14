@@ -867,7 +867,7 @@ export const registerPrompt = <
   for (const [name, prop] of Object.entries(props)) {
     args.push({
       name,
-      description: SchemaAnnotations.getDescription(prop.ast),
+      description: SchemaAnnotations.resolveDescription(prop.ast),
       required: !AST.isOptional(prop.ast)
     })
   }

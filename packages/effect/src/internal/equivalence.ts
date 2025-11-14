@@ -11,7 +11,7 @@ export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
   // ---------------------------------------------
   // handle annotations
   // ---------------------------------------------
-  const annotation = Annotations.get(ast)?.["equivalence"] as
+  const annotation = Annotations.resolve(ast)?.["equivalence"] as
     | Annotations.Equivalence.Override<any, ReadonlyArray<any>>
     | undefined
   if (annotation) {

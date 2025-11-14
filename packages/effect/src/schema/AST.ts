@@ -366,7 +366,7 @@ export class Declaration extends Base {
   getExpected(): string {
     // Annotations on checks are ignored internally
     const expected = this.annotations?.identifier ?? this.annotations?.title ?? this.annotations?.expected
-    if (Predicate.isString(expected)) return expected
+    if (typeof expected === "string") return expected
     return "<Declaration>"
   }
 }
@@ -571,7 +571,7 @@ export class Enum extends Base {
   }
   /** @internal */
   goStringPojo(): AST {
-    if (this.enums.some(([_, v]) => Predicate.isNumber(v))) {
+    if (this.enums.some(([_, v]) => typeof v === "number")) {
       const coercions = Object.fromEntries(this.enums.map(([_, v]) => [globalThis.String(v), v]))
       return replaceEncoding(this, [
         new Link(
@@ -746,7 +746,7 @@ export class Literal extends Base {
     context?: Context
   ) {
     super(annotations, checks, encoding, context)
-    if (Predicate.isNumber(literal) && !globalThis.Number.isFinite(literal)) {
+    if (typeof literal === "number" && !globalThis.Number.isFinite(literal)) {
       throw new Error(`LiteralType must be a finite number, got: ${literal}`)
     }
     this.literal = literal
@@ -757,15 +757,15 @@ export class Literal extends Base {
   }
   /** @internal */
   goJson(): AST {
-    return Predicate.isBigInt(this.literal) ? coerceLiteral(this) : this
+    return typeof this.literal === "bigint" ? coerceLiteral(this) : this
   }
   /** @internal */
   goStringPojo(): AST {
-    return Predicate.isString(this.literal) ? this : coerceLiteral(this)
+    return typeof this.literal === "string" ? this : coerceLiteral(this)
   }
   /** @internal */
   getExpected(): string {
-    return Predicate.isString(this.literal) ? JSON.stringify(this.literal) : globalThis.String(this.literal)
+    return typeof this.literal === "string" ? JSON.stringify(this.literal) : globalThis.String(this.literal)
   }
 }
 
@@ -1455,8 +1455,6 @@ export class Objects extends Base {
   /** @internal */
   getExpected(): string {
     if (this.propertySignatures.length === 0 && this.indexSignatures.length === 0) return "object | array"
-    const tag = this.propertySignatures.find((ps) => ps.name === "_tag")
-    if (tag) return `{ _tag: ${Annotations.getExpected(tag.type)}, ... }`
     return "object"
   }
 }

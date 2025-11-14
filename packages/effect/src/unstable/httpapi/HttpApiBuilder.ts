@@ -441,10 +441,10 @@ const handlerToRoute = (
 ): HttpRouter.Route<any, any> => {
   const endpoint = handler.endpoint
   const isMultipartStream = endpoint.payloadSchema?.pipe(
-    ({ ast }) => HttpApiSchema.getHttpApiMultipartStream(ast) !== undefined
+    ({ ast }) => HttpApiSchema.resolveHttpApiMultipartStream(ast) !== undefined
   ) ?? false
   const multipartLimits = endpoint.payloadSchema?.pipe(
-    ({ ast }) => HttpApiSchema.getHttpApiMultipartStream(ast) ?? HttpApiSchema.getHttpApiMultipart(ast)
+    ({ ast }) => HttpApiSchema.resolveHttpApiMultipartStream(ast) ?? HttpApiSchema.resolveHttpApiMultipart(ast)
   )
   const decodePath = UndefinedOr.map(endpoint.pathSchema, Schema.decodeUnknownEffect)
   const decodePayload = handler.withFullRequest || isMultipartStream

@@ -90,7 +90,7 @@ function go(
   // handle Override annotation
   // ---------------------------------------------
   if (!ignoreAnnotation) {
-    const annotation = getAnnotation(Annotations.get(ast))
+    const annotation = getAnnotation(Annotations.resolve(ast))
     if (annotation) {
       function getDefaultJsonSchema() {
         try {
@@ -199,16 +199,17 @@ function base(
       return { anyOf: [{ type: "object" }, { type: "array" }] }
 
     case "Literal": {
-      if (Predicate.isString(ast.literal)) {
-        return { type: "string", enum: [ast.literal] }
+      const literal = ast.literal
+      if (typeof literal === "string") {
+        return { type: "string", enum: [literal] }
       }
-      if (Predicate.isNumber(ast.literal)) {
-        return { type: "number", enum: [ast.literal] }
+      if (typeof literal === "number") {
+        return { type: "number", enum: [literal] }
       }
-      if (Predicate.isBoolean(ast.literal)) {
-        return { type: "boolean", enum: [ast.literal] }
+      if (typeof literal === "boolean") {
+        return { type: "boolean", enum: [literal] }
       }
-      throw error(`Unsupported literal ${Inspectable.format(ast.literal)}`, path)
+      throw error(`Unsupported literal ${Inspectable.format(literal)}`, path)
     }
 
     case "Enum":
@@ -442,7 +443,7 @@ function getPattern(
   switch (ast._tag) {
     case "String": {
       const jsonSchema = go(ast, path, options, false, false)
-      if (Object.hasOwn(jsonSchema, "pattern") && Predicate.isString(jsonSchema.pattern)) {
+      if (Object.hasOwn(jsonSchema, "pattern") && typeof jsonSchema.pattern === "string") {
         return jsonSchema.pattern
       }
       return undefined
@@ -462,12 +463,12 @@ function getJsonSchemaAnnotations(
 ): Schema.JsonSchema.Fragment | undefined {
   if (annotations) {
     const out: Schema.JsonSchema.Fragment = {}
-    if (Predicate.isString(annotations.title)) {
+    if (typeof annotations.title === "string") {
       out.title = annotations.title
     }
-    if (Predicate.isString(annotations.description)) {
+    if (typeof annotations.description === "string") {
       out.description = annotations.description
-    } else if (generateDescriptions && Predicate.isString(annotations.expected)) {
+    } else if (generateDescriptions && typeof annotations.expected === "string") {
       out.description = annotations.expected
     }
     if (annotations.default !== undefined) {
@@ -559,8 +560,5 @@ function appendFragments(
 }
 
 function getIdentifier(ast: AST.AST): string | undefined {
-  const identifier = Annotations.getIdentifier(ast)
-  if (identifier !== undefined) return identifier
-
-  if (AST.isSuspend(ast)) return getIdentifier(ast.thunk())
+  return Annotations.resolveIdentifier(ast) ?? (AST.isSuspend(ast) ? getIdentifier(ast.thunk()) : undefined)
 }

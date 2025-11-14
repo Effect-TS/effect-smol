@@ -269,8 +269,8 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 
 const emptyMap = new Map<never, never>()
 
-function getDescriptionOrIdentifier(ast: AST.AST): string | undefined {
-  return Annotations.getDescription(ast) ?? Annotations.getIdentifier(ast)
+function resoveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
+  return Annotations.resolveDescription(ast) ?? Annotations.resolveIdentifier(ast)
 }
 
 const extractMembers = (
@@ -286,12 +286,12 @@ const extractMembers = (
   }>()
   function process(type: Schema.Top) {
     const status = getStatus(type.ast)
-    const isEmpty = HttpApiSchema.getHttpApiIsEmpty(type.ast)
+    const isEmpty = HttpApiSchema.resolveHttpApiIsEmpty(type.ast)
     const current = members.get(status)
     members.set(
       status,
       {
-        description: current?.description ?? getDescriptionOrIdentifier(type.ast),
+        description: current?.description ?? resoveDescriptionOrIdentifier(type.ast),
         ast: UndefinedOr.map(current?.ast, (ast) => HttpApiSchema.UnionUnifyAST(ast, type.ast)) ??
           (!isEmpty && HttpApiSchema.isVoidEncoded(type.ast) ? undefined : type.ast)
       }
@@ -319,7 +319,7 @@ const extractPayloads = (topAst: AST.AST): ReadonlyMap<string, {
       ...ast.annotations
     })
     const encoding = HttpApiSchema.getEncoding(ast)
-    const contentType = HttpApiSchema.getHttpApiMultipart(ast) ?? HttpApiSchema.getHttpApiMultipartStream(ast)
+    const contentType = HttpApiSchema.resolveHttpApiMultipart(ast) ?? HttpApiSchema.resolveHttpApiMultipartStream(ast)
       ? "multipart/form-data"
       : encoding.contentType
     const current = members.get(contentType)

@@ -1064,7 +1064,7 @@ export const providerDefined = <
  * @category utilities
  */
 export const getDescription = <Tool extends Any>(tool: Tool): string | undefined =>
-  tool.description ?? Annotations.getDescription(tool.parametersSchema.ast)
+  tool.description ?? Annotations.resolveDescription(tool.parametersSchema.ast)
 
 /**
  * Generates a JSON Schema for a tool.

@@ -3,7 +3,6 @@
  */
 import type { YieldableError } from "../../Cause.ts"
 import * as Iterable from "../../collections/Iterable.ts"
-import * as Predicate from "../../data/Predicate.ts"
 import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import * as Annotations from "../../schema/Annotations.ts"
@@ -23,22 +22,16 @@ declare module "../../schema/Annotations.ts" {
   }
 }
 
-function isEncoding(u: unknown): u is Encoding {
-  return Predicate.isObject(u) // TODO: Add more checks?
-}
-
-function isMultipartWithLimitsOptions(u: unknown): u is Multipart_.withLimits.Options {
-  return Predicate.isObject(u) // TODO: Add more checks?
-}
-
 /** @internal */
-export const getHttpApiIsEmpty = Annotations.getAt("httpApiIsEmpty", Predicate.isBoolean)
-const getHttpApiEncoding = Annotations.getAt("httpApiEncoding", isEncoding)
+export const resolveHttpApiIsEmpty = Annotations.resolveAt<boolean>("httpApiIsEmpty")
+const resolveHttpApiEncoding = Annotations.resolveAt<Encoding>("httpApiEncoding")
 /** @internal */
-export const getHttpApiMultipart = Annotations.getAt("httpApiMultipart", isMultipartWithLimitsOptions)
+export const resolveHttpApiMultipart = Annotations.resolveAt<Multipart_.withLimits.Options>("httpApiMultipart")
 /** @internal */
-export const getHttpApiMultipartStream = Annotations.getAt("httpApiMultipartStream", isMultipartWithLimitsOptions)
-const getHttpApiStatus = Annotations.getAt("httpApiStatus", Predicate.isNumber)
+export const resolveHttpApiMultipartStream = Annotations.resolveAt<Multipart_.withLimits.Options>(
+  "httpApiMultipartStream"
+)
+const resolveHttpApiStatus = Annotations.resolveAt<number>("httpApiStatus")
 
 /** @internal */
 export function isVoidEncoded(ast: AST.AST): boolean {
@@ -57,13 +50,14 @@ export function isVoidEncoded(ast: AST.AST): boolean {
  * @since 4.0.0
  * @category reflection
  */
-export const getStatusSuccess = (self: AST.AST): number => getHttpApiStatus(self) ?? (isVoidEncoded(self) ? 204 : 200)
+export const getStatusSuccess = (self: AST.AST): number =>
+  resolveHttpApiStatus(self) ?? (isVoidEncoded(self) ? 204 : 200)
 
 /**
  * @since 4.0.0
  * @category reflection
  */
-export const getStatusError = (self: AST.AST): number => getHttpApiStatus(self) ?? 500
+export const getStatusError = (self: AST.AST): number => resolveHttpApiStatus(self) ?? 500
 
 function isHttpApiAnnotationKey(key: string): boolean {
   return key.startsWith("httpApi")
@@ -123,13 +117,13 @@ function shouldExtractUnion(ast: AST.Union): boolean {
   if (ast.encoding) return false
   if (
     ast.types.some((ast) => {
-      const annotations = Annotations.get(ast)
+      const annotations = Annotations.resolve(ast)
       return annotations && Object.keys(annotations).some(isHttpApiAnnotationKey)
     })
   ) {
     return true
   }
-  return Annotations.get(ast) === undefined
+  return Annotations.resolve(ast) === undefined
 }
 
 /**
@@ -438,7 +432,7 @@ const encodingJson: Encoding = {
  * @category annotations
  */
 export function getEncoding(ast: AST.AST, fallback = encodingJson): Encoding {
-  return getHttpApiEncoding(ast) ?? fallback
+  return resolveHttpApiEncoding(ast) ?? fallback
 }
 
 /**

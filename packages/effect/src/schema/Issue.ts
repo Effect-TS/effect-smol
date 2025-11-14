@@ -4,7 +4,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec"
 import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
-import * as Predicate from "../data/Predicate.ts"
 import { format, formatPath } from "../interfaces/Inspectable.ts"
 import * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
@@ -490,10 +489,10 @@ export function make(
   if (out === undefined) {
     return undefined
   }
-  if (Predicate.isBoolean(out)) {
+  if (typeof out === "boolean") {
     return out ? undefined : new InvalidValue(Option.some(input))
   }
-  if (Predicate.isString(out)) {
+  if (typeof out === "string") {
     return new InvalidValue(Option.some(input), { message: out })
   }
   return new Pointer(
@@ -623,7 +622,7 @@ function toDefaultIssues(
 
 function formatCheck<T>(check: AST.Check<T>): string {
   const out = check.annotations?.description ?? check.annotations?.title ?? check.annotations?.expected
-  if (Predicate.isString(out)) return out
+  if (typeof out === "string") return out
 
   switch (check._tag) {
     case "Filter":
@@ -687,7 +686,7 @@ function getMessageAnnotation(
   type: "message" | "messageMissingKey" | "messageUnexpectedKey" = "message"
 ): string | undefined {
   const message = annotations?.[type]
-  if (Predicate.isString(message)) return message
+  if (typeof message === "string") return message
 }
 
 function formatOption(actual: Option.Option<unknown>): string {

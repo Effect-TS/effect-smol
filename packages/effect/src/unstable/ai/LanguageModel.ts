@@ -1083,14 +1083,14 @@ export const getObjectName = <ObjectSchema extends Schema.Top>(
     return objectName
   }
   const _tag = Schema.getTag("_tag", schema.ast)
-  if (Predicate.isNotUndefined(_tag) && Predicate.isString(_tag)) {
+  if (typeof _tag === "string") {
     return _tag
   }
-  if ("identifier" in schema && Predicate.isString(schema.identifier)) {
+  if ("identifier" in schema && typeof schema.identifier === "string") {
     return schema.identifier
   }
-  const identifier = SchemaAnnotations.getIdentifier(schema.ast)
-  if (Predicate.isNotUndefined(identifier)) {
+  const identifier = SchemaAnnotations.resolveIdentifier(schema.ast)
+  if (typeof identifier === "string") {
     return identifier
   }
   return "generateObject"

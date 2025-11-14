@@ -345,13 +345,13 @@ const go = memoize(
     if (!ast.context && !ast.encoding && !ast.checks) {
       return (ou, options) => {
         parser ??= ast.parser(go)
-        return parser(ou, Annotations.get(ast)?.["parseOptions"] ?? options)
+        return parser(ou, Annotations.resolve(ast)?.["parseOptions"] ?? options)
       }
     }
     const isStructural = AST.isArrays(ast) || AST.isObjects(ast) ||
       (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
     return (ou, options) => {
-      options = Annotations.get(ast)?.["parseOptions"] ?? options
+      options = Annotations.resolve(ast)?.["parseOptions"] ?? options
       const encoding = ast.encoding
       let srou: Effect.Effect<Option.Option<unknown>, Issue.Issue, unknown> | undefined
       if (encoding) {

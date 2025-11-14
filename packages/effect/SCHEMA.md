@@ -726,7 +726,7 @@ Schema.flip(schema).makeUnsafe
 
 ## Typed Annotations
 
-You can retrieve typed annotations with the `Annotations.getUnsafe` function.
+You can retrieve typed annotations with the `Annotations.resolveInto` function.
 
 You can also extend the available annotations by adding your own in a module declaration file.
 
@@ -745,8 +745,8 @@ declare module "effect/schema/Annotations" {
 // The `version` annotation is now recognized by the TypeScript compiler
 const schema = Schema.String.annotate({ version: [1, 2, 0] })
 
-// Retrieve the annotation using `getUnsafe`
-const version = Annotations.getUnsafe(schema)?.["version"]
+// const version: readonly [major: number, minor: number, patch: number] | undefined
+const version = Annotations.resolveInto(schema)?.["version"]
 
 if (version) {
   // Access individual parts of the version

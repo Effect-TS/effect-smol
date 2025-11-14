@@ -1649,7 +1649,7 @@ export const empty: Prompt = makePrompt([])
  * @category constructors
  */
 export const make = (input: RawInput): Prompt => {
-  if (Predicate.isString(input)) {
+  if (typeof input === "string") {
     const part = makePart("text", { text: input })
     const message = makeMessage("user", { content: [part] })
     return makePrompt([message])

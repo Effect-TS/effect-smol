@@ -181,7 +181,7 @@ export const mapInput: {
  * @category Combinators
  */
 export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((path) =>
-  path.map((seg) => Predicate.isNumber(seg) ? seg : Str.constantCase(seg))
+  path.map((seg) => typeof seg === "number" ? seg : Str.constantCase(seg))
 )
 
 /**
@@ -194,7 +194,7 @@ export const nested: {
 } = dual(
   2,
   (self: ConfigProvider, prefix: string | Path): ConfigProvider => {
-    const path = Predicate.isString(prefix) ? [prefix] : prefix
+    const path = typeof prefix === "string" ? [prefix] : prefix
     return make(self.get, self.mapInput, self.prefix ? [...self.prefix, ...path] : path)
   }
 )
@@ -250,13 +250,13 @@ function resolvePath(input: StringPojo, path: Path): StringPojo | undefined {
   let out: StringPojo = input
 
   for (const seg of path) {
-    if (Predicate.isString(out)) return undefined
+    if (typeof out === "string") return undefined
     if (Array.isArray(out)) {
-      if (!Predicate.isNumber(seg) || !Number.isInteger(seg) || seg < 0 || seg >= out.length) {
+      if (typeof seg !== "number" || !Number.isInteger(seg) || seg < 0 || seg >= out.length) {
         return undefined
       }
     } else {
-      if (!Predicate.isString(seg) || !Object.prototype.hasOwnProperty.call(out, seg)) {
+      if (typeof seg !== "string" || !Object.prototype.hasOwnProperty.call(out, seg)) {
         return undefined
       }
     }
@@ -268,7 +268,7 @@ function resolvePath(input: StringPojo, path: Path): StringPojo | undefined {
 
 function describeStat(value: StringPojo | undefined): Stat | undefined {
   if (value === undefined) return undefined
-  if (Predicate.isString(value)) return leaf(value)
+  if (typeof value === "string") return leaf(value)
   if (Array.isArray(value)) return array(value.length)
   return object(new Set(Object.keys(value)))
 }
@@ -289,9 +289,9 @@ export function fromJson(root: unknown): ConfigProvider {
 
 function asStringPojo(u: unknown): StringPojo {
   if (u === null || u === undefined) return ""
-  if (Predicate.isString(u)) return u
-  if (Predicate.isNumber(u)) return String(u)
-  if (Predicate.isBoolean(u)) return String(u)
+  if (typeof u === "string") return u
+  if (typeof u === "number") return String(u)
+  if (typeof u === "boolean") return String(u)
   if (Array.isArray(u)) return u.map(asStringPojo)
 
   if (Predicate.isObject(u)) {
@@ -643,7 +643,7 @@ export const fromDir: (options?: {
     const asDirectory = fs.readDirectory(fullPath).pipe(
       Effect.map((entries: ReadonlyArray<any>) => {
         // Support both string paths and DirEntry-like objects
-        const keys = entries.map((e) => Predicate.isString(e) ? platformPath.basename(e) : String(e?.name ?? ""))
+        const keys = entries.map((e) => typeof e === "string" ? platformPath.basename(e) : String(e?.name ?? ""))
         return object(new Set(keys))
       })
     )

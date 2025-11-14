@@ -8,7 +8,7 @@ import * as Equivalence from "../data/Equivalence.ts"
 import * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
-import * as Predicate from "../data/Predicate.ts"
+import type * as Predicate from "../data/Predicate.ts"
 import * as Record from "../data/Record.ts"
 import * as Reducer from "../data/Reducer.ts"
 import * as Result from "../data/Result.ts"
@@ -1216,7 +1216,7 @@ export const findFirstWithIndex: {
     let i = 0
     for (const a of self) {
       const o = f(a, i)
-      if (Predicate.isBoolean(o)) {
+      if (typeof o === "boolean") {
         if (o) {
           return [a, i]
         }
@@ -1263,7 +1263,7 @@ export const findLast: {
     for (let i = input.length - 1; i >= 0; i--) {
       const a = input[i]
       const o = f(a, i)
-      if (Predicate.isBoolean(o)) {
+      if (typeof o === "boolean") {
         if (o) {
           return Option.some(a)
         }

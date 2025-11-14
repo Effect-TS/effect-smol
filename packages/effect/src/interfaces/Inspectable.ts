@@ -194,7 +194,7 @@ const CIRCULAR = "[Circular]"
 
 /** @internal */
 export function formatPropertyKey(name: PropertyKey): string {
-  return Predicate.isString(name) ? JSON.stringify(name) : String(name)
+  return typeof name === "string" ? JSON.stringify(name) : String(name)
 }
 
 /** @internal */
@@ -257,7 +257,7 @@ export function format(
 ): string {
   const space = options?.space ?? 0
   const seen = new WeakSet<object>()
-  const gap = !space ? "" : (Predicate.isNumber(space) ? " ".repeat(space) : space)
+  const gap = !space ? "" : (typeof space === "number" ? " ".repeat(space) : space)
   const ind = (d: number) => gap.repeat(d)
 
   const wrap = (v: unknown, body: string): string => {
@@ -298,16 +298,16 @@ export function format(
       return s
     }
 
-    if (Predicate.isString(v)) return JSON.stringify(v)
+    if (typeof v === "string") return JSON.stringify(v)
 
     if (
-      Predicate.isNumber(v) ||
+      typeof v === "number" ||
       v == null ||
-      Predicate.isBoolean(v) ||
-      Predicate.isSymbol(v)
+      typeof v === "boolean" ||
+      typeof v === "symbol"
     ) return String(v)
 
-    if (Predicate.isBigInt(v)) return String(v) + "n"
+    if (typeof v === "bigint") return String(v) + "n"
 
     if (v instanceof Set || v instanceof Map) {
       if (seen.has(v)) return CIRCULAR

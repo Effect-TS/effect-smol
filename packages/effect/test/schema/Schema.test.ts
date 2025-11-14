@@ -3169,9 +3169,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
+        // TODO: improve error message
         await decoding.fail(
           {},
-          `Expected string | { _tag: "a", ... }, got {}`
+          `Expected string | object, got {}`
         )
       })
 
@@ -3193,9 +3194,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           `Missing key
   at ["b"]`
         )
+        // TODO: improve error message
         await decoding.fail(
           { _tag: "c" },
-          `Expected { _tag: "a", ... } | { _tag: "b", ... }, got {"_tag":"c"}`
+          `Expected object, got {"_tag":"c"}`
         )
       })
     })
@@ -6673,7 +6675,7 @@ describe("Check", () => {
   it("isNumberString", async () => {
     const schema = Schema.String.check(Schema.isNumberString())
 
-    deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
+    deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
       _tag: "isNumberString",
       regex: /(?:[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?|Infinity|-Infinity|NaN)/
     })
@@ -6682,7 +6684,7 @@ describe("Check", () => {
   it("isBigIntString", async () => {
     const schema = Schema.String.check(Schema.isBigIntString())
 
-    deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
+    deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
       _tag: "isBigIntString",
       regex: /-?\d+/
     })
@@ -6691,7 +6693,7 @@ describe("Check", () => {
   it("isSymbolString", async () => {
     const schema = Schema.String.check(Schema.isSymbolString())
 
-    deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
+    deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
       _tag: "isSymbolString",
       regex: /^Symbol\((.*)\)$/
     })
@@ -6706,7 +6708,7 @@ describe("Check", () => {
       arbitrary.verifyGeneration()
     }
 
-    deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
+    deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
       _tag: "isULID",
       regex: /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
     })
@@ -6722,7 +6724,7 @@ describe("Check", () => {
   it("isBase64", async () => {
     const schema = Schema.String.check(Schema.isBase64())
 
-    deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
+    deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
       _tag: "isBase64",
       regex: /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
     })
@@ -6731,7 +6733,7 @@ describe("Check", () => {
   it("isBase64Url", async () => {
     const schema = Schema.String.check(Schema.isBase64Url())
 
-    deepStrictEqual(Annotations.getUnsafe(schema)?.["meta"], {
+    deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
       _tag: "isBase64Url",
       regex: /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
     })

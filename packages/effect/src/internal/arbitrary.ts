@@ -155,7 +155,7 @@ function go(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithCo
   // ---------------------------------------------
   // handle Override annotation
   // ---------------------------------------------
-  const annotation = Annotations.get(ast)?.arbitrary as
+  const annotation = Annotations.resolve(ast)?.arbitrary as
     | Annotations.Arbitrary.Override<any, ReadonlyArray<Schema.Top>>
     | undefined
   if (annotation) {

@@ -4,7 +4,6 @@
 
 import type { Equivalence } from "../data/Equivalence.ts"
 import type { Formatter } from "../data/Formatter.ts"
-import * as Predicate from "../data/Predicate.ts"
 import { memoize } from "../Function.ts"
 import type * as FastCheck from "../testing/FastCheck.ts"
 import type * as AST from "./AST.ts"
@@ -34,8 +33,8 @@ import type * as Schema from "./Schema.ts"
  * // The `version` annotation is now recognized by the TypeScript compiler
  * const schema = Schema.String.annotate({ version: [1, 2, 0] })
  *
- * // Retrieve the annotation using `getUnsafe`
- * const version = Annotations.getUnsafe(schema)?.["version"]
+ * // const version: readonly [major: number, minor: number, patch: number] | undefined
+ * const version = Annotations.resolveInto(schema)?.["version"]
  *
  * if (version) {
  *   // Access individual parts of the version
@@ -336,87 +335,6 @@ export declare namespace JsonSchema {
 }
 
 /**
- * Merges annotations while preserving getters from both objects.
- *
- * **Warning**. Any existing `identifier` annotation will be removed.
- *
- * @internal
- */
-export function combine<A extends Annotations>(existing: A, incoming: A | undefined): A
-export function combine<A extends Annotations>(existing: A | undefined, incoming: A): A
-export function combine<A extends Annotations>(existing: A | undefined, incoming: A | undefined): A | undefined
-export function combine<A extends Annotations>(existing: A | undefined, incoming: A | undefined): A | undefined {
-  if (!existing) return incoming
-  if (!incoming) return existing
-
-  const out: any = {}
-  // Apply existing descriptors first
-  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(existing))) {
-    Object.defineProperty(out, key, descriptor)
-  }
-  // Apply incoming descriptors (this will override existing ones)
-  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(incoming))) {
-    Object.defineProperty(out, key, descriptor)
-  }
-  return out
-}
-
-/**
- * Get all annotations from the AST.
- * If the AST has checks, it will return the annotations from the last check.
- *
- * @since 4.0.0
- */
-export function get(ast: AST.AST): Annotations | undefined {
-  return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations
-}
-
-/**
- * Get an annotation from the AST.
- * If the AST has checks, it will return the annotations from the last check.
- *
- * @since 4.0.0
- */
-export function getAt<A>(key: string, parser: (u: unknown) => u is A) {
-  return (ast: AST.AST): A | undefined => {
-    const value = get(ast)?.[key]
-    if (parser(value)) return value
-  }
-}
-
-/**
- * @since 4.0.0
- */
-export const getIdentifier = getAt("identifier", Predicate.isString)
-
-/**
- * @since 4.0.0
- */
-export const getTitle = getAt("title", Predicate.isString)
-
-/**
- * @since 4.0.0
- */
-export const getDescription = getAt("description", Predicate.isString)
-
-/** @internal */
-export const getExpected = memoize((ast: AST.AST): string => {
-  return getIdentifier(ast) ?? ast.getExpected(getExpected)
-})
-
-/**
- * Return all the typed annotations from the schema.
- *
- * This function is potentially unsafe because it returns the annotations as
- * they are stored in the AST, without any validation.
- *
- * @since 4.0.0
- */
-export function getUnsafe<S extends Schema.Top>(schema: S): S["~annotate.in"] | undefined {
-  return get(schema.ast)
-}
-
-/**
  * @category Model
  * @since 4.0.0
  */
@@ -611,3 +529,82 @@ export interface MetaRegistry {
  * @since 4.0.0
  */
 export type Meta = MetaRegistry[keyof MetaRegistry]
+
+/**
+ * Get all annotations from the AST.
+ * If the AST has checks, it will return the annotations from the last check.
+ *
+ * @category AST Resolvers
+ * @since 4.0.0
+ */
+export function resolve(ast: AST.AST): Annotations | undefined {
+  return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations
+}
+
+/**
+ * Get an annotation from the AST.
+ * If the AST has checks, it will return the annotations from the last check.
+ *
+ * @category AST Resolvers
+ * @since 4.0.0
+ */
+export function resolveAt<A>(key: string) {
+  return (ast: AST.AST): A | undefined => resolve(ast)?.[key] as A | undefined
+}
+
+/**
+ * @category AST Resolvers
+ * @since 4.0.0
+ */
+export const resolveIdentifier = resolveAt<string>("identifier")
+
+/**
+ * @category AST Resolvers
+ * @since 4.0.0
+ */
+export const resolveTitle = resolveAt<string>("title")
+
+/**
+ * @category AST Resolvers
+ * @since 4.0.0
+ */
+export const resolveDescription = resolveAt<string>("description")
+
+/** @internal */
+export const getExpected = memoize((ast: AST.AST): string => {
+  return resolveIdentifier(ast) ?? ast.getExpected(getExpected)
+})
+
+/**
+ * Return all the typed annotations from the schema.
+ *
+ * @category Schema Resolvers
+ * @since 4.0.0
+ */
+export function resolveInto<S extends Schema.Top>(schema: S): S["~annotate.in"] | undefined {
+  return resolve(schema.ast)
+}
+
+/**
+ * Merges annotations while preserving getters from both objects.
+ *
+ * @internal
+ */
+export function combine<A extends Annotations>(existing: A, incoming: A | undefined): A
+export function combine<A extends Annotations>(existing: A | undefined, incoming: A): A
+export function combine<A extends Annotations>(existing: A | undefined, incoming: A | undefined): A | undefined
+export function combine<A extends Annotations>(existing: A | undefined, incoming: A | undefined): A | undefined {
+  if (!existing) return incoming
+  if (!incoming) return existing
+
+  const out: any = {}
+  // Apply existing descriptors first
+  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(existing))) {
+    Object.defineProperty(out, key, descriptor)
+  }
+  // Apply incoming descriptors (this will override existing ones)
+  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(incoming))) {
+    Object.defineProperty(out, key, descriptor)
+  }
+  return out
+}

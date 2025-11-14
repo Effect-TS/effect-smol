@@ -326,7 +326,7 @@ const go: (
         const out: Record<string, Schema.StringPojo> = {}
         for (const ps of ast.propertySignatures) {
           const name = ps.name
-          if (Predicate.isString(name)) {
+          if (typeof name === "string") {
             const value = yield* go(ps.type, provider, [...path, name])
             if (value !== undefined) out[name] = value
           }
@@ -350,7 +350,7 @@ const go: (
       case "Arrays": {
         if (ast.rest.length > 0) {
           const out = yield* dump(provider, path)
-          if (Predicate.isString(out)) return out
+          if (typeof out === "string") return out
           return out
         }
         const stat = yield* provider.load(path)
@@ -389,7 +389,7 @@ export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigPr
   const serializer = Schema.makeSerializerEnsureArray(Schema.makeSerializerStringPojo(codec))
   const decodeUnknownEffect = ToParser.decodeUnknownEffect(serializer)
   const serializerEncodedAST = AST.encodedAST(serializer.ast)
-  const defaultPath = Predicate.isString(path) ? [path] : path ?? []
+  const defaultPath = typeof path === "string" ? [path] : path ?? []
   return make((provider) =>
     go(serializerEncodedAST, provider, defaultPath).pipe(
       Effect.flatMapEager((stringPojo) =>

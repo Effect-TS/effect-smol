@@ -4818,7 +4818,7 @@ export function Redacted<S extends Top>(value: S, options?: {
     [value],
     ([value]) => (input, ast, poptions) => {
       if (Redacted_.isRedacted(input)) {
-        const label: Effect.Effect<void, Issue.Issue, never> = Predicate.isString(options?.label)
+        const label: Effect.Effect<void, Issue.Issue, never> = typeof options?.label === "string"
           ? Effect.mapErrorEager(
             ToParser.decodeUnknownEffect(Literal(options.label))(input.label, poptions),
             (issue) => new Issue.Pointer(["label"], issue)
@@ -4852,7 +4852,7 @@ export function Redacted<S extends Top>(value: S, options?: {
             decode: Getter.transform((e) => Redacted_.make(e, { label: options?.label })),
             encode: Getter.forbidden((oe) =>
               "Cannot serialize Redacted" +
-              (Option_.isSome(oe) && Predicate.isString(oe.value.label) ? ` with label: "${oe.value.label}"` : "")
+              (Option_.isSome(oe) && typeof oe.value.label === "string" ? ` with label: "${oe.value.label}"` : "")
             )
           }
         ),
@@ -5493,7 +5493,7 @@ export const Duration: Duration = declare(
         Transformation.transform({
           decode: (value) => {
             if (value === "Infinity") return Duration_.infinity
-            if (Predicate.isBigInt(value)) return Duration_.nanos(value)
+            if (typeof value === "bigint") return Duration_.nanos(value)
             return Duration_.millis(value)
           },
           encode: (duration) => {
@@ -6431,7 +6431,7 @@ export const defaultVisitorFormat: AST.Visitor<Formatter<any>> = {
     // ---------------------------------------------
     // handle annotations
     // ---------------------------------------------
-    const annotation = Annotations.get(ast)?.["formatter"] as
+    const annotation = Annotations.resolve(ast)?.["formatter"] as
       | Annotations.Formatter.Override<any, ReadonlyArray<any>>
       | undefined
     if (annotation) {
@@ -6795,7 +6795,7 @@ export function makeEncoderXml<T, E, RD, RE>(
   codec: Codec<T, E, RD, RE>,
   options?: XmlEncoderOptions
 ) {
-  const rootName = Annotations.getIdentifier(codec.ast) ?? Annotations.getTitle(codec.ast)
+  const rootName = Annotations.resolveIdentifier(codec.ast) ?? Annotations.resolveTitle(codec.ast)
   const serialize = encodeEffect(makeSerializerStringPojo(codec))
   return (t: T) => serialize(t).pipe(Effect.map((pojo) => stringPojoToXml(pojo, { rootName, ...options })))
 }
@@ -6831,7 +6831,7 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "Union":
       case "Suspend": {
         if (AST.isObjects(ast)) {
-          if (ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
+          if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
             return forbidden(ast, "TypeLiteral property names must be strings")
           }
           // TODO: check for index signatures
@@ -6924,7 +6924,7 @@ const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "Union":
       case "Suspend": {
         if (AST.isObjects(ast)) {
-          if (ast.propertySignatures.some((ps) => !Predicate.isString(ps.name))) {
+          if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
             return forbidden(ast, "TypeLiteral property names must be strings")
           }
         }
