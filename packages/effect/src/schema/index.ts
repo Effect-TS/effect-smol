@@ -25,12 +25,12 @@ export * as Issue from "./Issue.ts"
 /**
  * @since 4.0.0
  */
-export * as Schema from "./Schema.ts"
+export * as Parser from "./Parser.ts"
 
 /**
  * @since 4.0.0
  */
-export * as ToParser from "./Parser.ts"
+export * as Schema from "./Schema.ts"
 
 /**
  * @since 4.0.0

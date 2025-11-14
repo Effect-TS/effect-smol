@@ -1,7 +1,7 @@
 import { Cause, DateTime, Duration, Effect, Exit, flow, pipe, ServiceMap, String as Str } from "effect"
 import { Brand, Option, Order, Predicate, Redacted, Result, Struct, Tuple } from "effect/data"
 import { Equal } from "effect/interfaces"
-import { Annotations, AST, Getter, Issue, Schema, ToParser, Transformation } from "effect/schema"
+import { Annotations, AST, Getter, Issue, Parser, Schema, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { produce } from "immer"
 import { deepStrictEqual, fail, ok, strictEqual } from "node:assert"
@@ -140,6 +140,19 @@ Expected an integer, got -1.2`
       await encoding.succeed(1)
       await encoding.fail("1", `Expected 1, got "1"`)
     })
+
+    it("transform", async () => {
+      const schema = Schema.Literal(0).transform("a")
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(0, "a")
+      await decoding.fail(1, `Expected 0, got 1`)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed("a", 0)
+      await encoding.fail("b", `Expected "a", got "b"`)
+    })
   })
 
   describe("Literals", () => {
@@ -154,6 +167,21 @@ Expected an integer, got -1.2`
       await make.succeed("green")
       await make.succeed("blue")
       await make.fail("yellow", `Expected "red" | "green" | "blue", got "yellow"`)
+    })
+
+    it("transform", async () => {
+      const schema = Schema.Literals([0, 1]).transform(["a", "b"])
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(0, "a")
+      await decoding.succeed(1, "b")
+      await decoding.fail(2, `Expected "a" | "b", got 2`)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed("a", 0)
+      await encoding.succeed("b", 1)
+      await encoding.fail("c", `Expected 0 | 1, got "c"`)
     })
 
     it("pick", () => {
@@ -2711,7 +2739,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           `Missing key
   at ["a"]`
         )
-        const effect = await ToParser.makeEffect(schema)({}).pipe(
+        const effect = await Parser.makeEffect(schema)({}).pipe(
           Effect.provideService(Service, { value: Effect.succeed(-1) }),
           Effect.result,
           Effect.runPromise
@@ -5566,7 +5594,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       }))
       const schema = AsyncString
 
-      throws(() => ToParser.decodeUnknownExit(schema)("1"))
+      throws(() => Parser.decodeUnknownExit(schema)("1"))
     })
 
     it("should die on missing dependency", () => {
@@ -5581,7 +5609,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         encode: Getter.passthrough()
       }))
       const schema = DepString
-      const exit = ToParser.decodeUnknownExit(schema as any)(1)
+      const exit = Parser.decodeUnknownExit(schema as any)(1)
       assertTrue(Exit.hasDie(exit))
     })
   })

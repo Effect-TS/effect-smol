@@ -491,15 +491,42 @@ describe("Schema", () => {
   })
 
   describe("Literal", () => {
-    const schema = Schema.Literal("a")
-
     it("ast type", () => {
+      const schema = Schema.Literal("a")
       expect(schema.ast).type.toBe<AST.Literal>()
     })
 
     it("revealCodec + annotate", () => {
+      const schema = Schema.Literal("a")
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<"a">>()
       expect(schema).type.toBe<Schema.Literal<"a">>()
+      expect(schema.annotate({})).type.toBe<Schema.Literal<"a">>()
+    })
+
+    it("transform", () => {
+      const schema = Schema.Literal(0).transform("a")
+      expect(schema).type.toBe<Schema.decodeTo<Schema.Literal<"a">, Schema.Literal<0>>>()
+    })
+  })
+
+  describe("Literals", () => {
+    it("revealCodec + annotate", () => {
+      const schema = Schema.Literals(["a", "b"])
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<"a" | "b">>()
+      expect(schema).type.toBe<Schema.Literals<readonly ["a", "b"]>>()
+      expect(schema.annotate({})).type.toBe<Schema.Literals<readonly ["a", "b"]>>()
+    })
+
+    it("transform", () => {
+      const schema = Schema.Literals([0, 1]).transform(["a", "b"])
+      expect(schema).type.toBe<
+        Schema.Union<
+          readonly [
+            Schema.decodeTo<Schema.Literal<"a">, Schema.Literal<0>>,
+            Schema.decodeTo<Schema.Literal<"b">, Schema.Literal<1>>
+          ]
+        >
+      >()
     })
   })
 
