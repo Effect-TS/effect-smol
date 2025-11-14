@@ -9,7 +9,7 @@ import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
 import * as AST from "../schema/AST.ts"
 import type * as Issue from "../schema/Issue.ts"
-import * as ToParser from "../schema/Parser.ts"
+import * as Parser from "../schema/Parser.ts"
 import * as Schema from "../schema/Schema.ts"
 import type * as ServiceMap from "../ServiceMap.ts"
 import * as FastCheck from "../testing/FastCheck.ts"
@@ -44,7 +44,7 @@ export class Asserts<S extends Schema.Top> {
    * Provides make operation testing utilities.
    */
   make(options?: Schema.MakeOptions) {
-    const makeEffect = ToParser.makeEffect(this.schema)
+    const makeEffect = Parser.makeEffect(this.schema)
     async function succeed(input: S["Type"]): Promise<void>
     async function succeed(input: S["~type.make.in"], expected: S["Type"]): Promise<void>
     async function succeed(input: S["~type.make.in"], expected?: S["Type"]) {
@@ -79,8 +79,8 @@ export class Asserts<S extends Schema.Top> {
   verifyLosslessTransformation<S extends Schema.Codec<unknown, unknown>>(this: Asserts<S>, options?: {
     readonly params?: FastCheck.Parameters<[S["Type"]]>
   }) {
-    const decodeUnknownEffect = ToParser.decodeUnknownEffect(this.schema)
-    const encodeEffect = ToParser.encodeEffect(this.schema)
+    const decodeUnknownEffect = Parser.decodeUnknownEffect(this.schema)
+    const encodeEffect = Parser.encodeEffect(this.schema)
     const arbitrary = Schema.makeArbitrary(this.schema)
     return FastCheck.assert(
       FastCheck.asyncProperty(arbitrary, async (t) => {
@@ -150,7 +150,7 @@ export class Decoding<S extends Schema.Top> {
     readonly parseOptions?: AST.ParseOptions | undefined
   }) {
     this.schema = schema
-    this.decodeUnknownEffect = ToParser.decodeUnknownEffect(schema)
+    this.decodeUnknownEffect = Parser.decodeUnknownEffect(schema)
     this.options = options
   }
   /**
@@ -226,7 +226,7 @@ class Encoding<S extends Schema.Top> {
     readonly parseOptions?: AST.ParseOptions | undefined
   }) {
     this.schema = schema
-    this.encodeUnknownEffect = ToParser.encodeUnknownEffect(schema)
+    this.encodeUnknownEffect = Parser.encodeUnknownEffect(schema)
     this.options = options
   }
   /**

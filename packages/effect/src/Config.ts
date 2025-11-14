@@ -15,7 +15,7 @@ import * as LogLevel_ from "./LogLevel.ts"
 import * as AST from "./schema/AST.ts"
 import * as Getter from "./schema/Getter.ts"
 import * as Issue from "./schema/Issue.ts"
-import * as ToParser from "./schema/Parser.ts"
+import * as Parser from "./schema/Parser.ts"
 import * as Schema from "./schema/Schema.ts"
 import * as Transformation from "./schema/Transformation.ts"
 
@@ -335,7 +335,7 @@ const go: (
           const stat = yield* provider.load(path)
           if (stat && stat._tag === "object") {
             for (const is of ast.indexSignatures) {
-              const matches = ToParser.refinement(is.parameter)
+              const matches = Parser.refinement(is.parameter)
               for (const key of stat.keys) {
                 if (!Object.prototype.hasOwnProperty.call(out, key) && matches(key)) {
                   const value = yield* go(is.type, provider, [...path, key])
@@ -387,7 +387,7 @@ const go: (
  */
 export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigProvider.Path): Config<T> {
   const serializer = Schema.makeSerializerEnsureArray(Schema.makeSerializerStringPojo(codec))
-  const decodeUnknownEffect = ToParser.decodeUnknownEffect(serializer)
+  const decodeUnknownEffect = Parser.decodeUnknownEffect(serializer)
   const serializerEncodedAST = AST.encodedAST(serializer.ast)
   const defaultPath = typeof path === "string" ? [path] : path ?? []
   return make((provider) =>

@@ -8,7 +8,7 @@ import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Issue from "../../schema/Issue.ts"
-import * as ToParser from "../../schema/Parser.ts"
+import * as Parser from "../../schema/Parser.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -187,7 +187,7 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
         if (!isReply(input) || input._tag !== "Chunk") {
           return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
         }
-        return Effect.mapBothEager(ToParser.decodeEffect(Schema.NonEmptyArray(success))(input.values, options), {
+        return Effect.mapBothEager(Parser.decodeEffect(Schema.NonEmptyArray(success))(input.values, options), {
           onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["values"], issue)]),
           onSuccess: (values) => new Chunk({ ...input, values } as any)
         })
@@ -273,7 +273,7 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
         if (!isReply(input) || input._tag !== "WithExit") {
           return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
         }
-        return Effect.mapBothEager(ToParser.decodeEffect(exit)(input.exit, options), {
+        return Effect.mapBothEager(Parser.decodeEffect(exit)(input.exit, options), {
           onFailure: (issue) => new Issue.Composite(ast, Option.some(input), [new Issue.Pointer(["exit"], issue)]),
           onSuccess: (exit) => new WithExit({ ...input, exit: exit as any })
         })

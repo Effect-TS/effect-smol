@@ -42,7 +42,7 @@ import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
-import * as ToParser from "./Parser.ts"
+import * as Parser from "./Parser.ts"
 import * as Transformation from "./Transformation.ts"
 
 /**
@@ -169,7 +169,7 @@ export function makeProto<S extends Top>(ast: AST.AST, options: object): S {
   Object.assign(self, options)
   self.ast = ast
   self.rebuild = (ast: AST.AST) => makeProto(ast, options)
-  self.makeUnsafe = ToParser.makeUnsafe(self)
+  self.makeUnsafe = Parser.makeUnsafe(self)
   return self
 }
 
@@ -496,7 +496,7 @@ export function asStandardSchemaV1<
     readonly parseOptions?: AST.ParseOptions | undefined
   }
 ): StandardSchemaV1<S["Encoded"], S["Type"]> & S {
-  const decodeUnknownEffect = ToParser.decodeUnknownEffect(self) as (
+  const decodeUnknownEffect = Parser.decodeUnknownEffect(self) as (
     input: unknown,
     options?: AST.ParseOptions
   ) => Effect.Effect<S["Type"], Issue.Issue>
@@ -560,7 +560,7 @@ export function asStandardSchemaV1<
  * @category Asserting
  * @since 4.0.0
  */
-export const is = ToParser.is
+export const is = Parser.is
 
 /**
  * Creates an assertion function that throws an error if the input doesn't match
@@ -596,14 +596,14 @@ export const is = ToParser.is
  * @category Asserting
  * @since 4.0.0
  */
-export const asserts = ToParser.asserts
+export const asserts = Parser.asserts
 
 /**
  * @category Decoding
  * @since 4.0.0
  */
 export function decodeUnknownEffect<S extends Top>(schema: S) {
-  const parser = ToParser.decodeUnknownEffect(schema)
+  const parser = Parser.decodeUnknownEffect(schema)
   return (input: unknown, options?: AST.ParseOptions): Effect.Effect<S["Type"], SchemaError, S["DecodingServices"]> => {
     return Effect.mapErrorEager(parser(input, options), (issue) => new SchemaError(issue))
   }
@@ -623,7 +623,7 @@ export const decodeEffect: <S extends Top>(
  * @since 4.0.0
  */
 export function decodeUnknownExit<S extends Top & { readonly DecodingServices: never }>(schema: S) {
-  const parser = ToParser.decodeUnknownExit(schema)
+  const parser = Parser.decodeUnknownExit(schema)
   return (input: unknown, options?: AST.ParseOptions): Exit_.Exit<S["Type"], SchemaError> => {
     return Exit_.mapError(parser(input, options), (issue) => new SchemaError(issue))
   }
@@ -641,44 +641,44 @@ export const decodeExit: <S extends Top & { readonly DecodingServices: never }>(
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeUnknownOption = ToParser.decodeUnknownOption
+export const decodeUnknownOption = Parser.decodeUnknownOption
 
 /**
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeOption = ToParser.decodeOption
+export const decodeOption = Parser.decodeOption
 
 /**
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeUnknownPromise = ToParser.decodeUnknownPromise
+export const decodeUnknownPromise = Parser.decodeUnknownPromise
 
 /**
  * @category Decoding
  * @since 4.0.0
  */
-export const decodePromise = ToParser.decodePromise
+export const decodePromise = Parser.decodePromise
 
 /**
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeUnknownSync = ToParser.decodeUnknownSync
+export const decodeUnknownSync = Parser.decodeUnknownSync
 
 /**
  * @category Decoding
  * @since 4.0.0
  */
-export const decodeSync = ToParser.decodeSync
+export const decodeSync = Parser.decodeSync
 
 /**
  * @category Encoding
  * @since 4.0.0
  */
 export function encodeUnknownEffect<S extends Top>(schema: S) {
-  const parser = ToParser.encodeUnknownEffect(schema)
+  const parser = Parser.encodeUnknownEffect(schema)
   return (
     input: unknown,
     options?: AST.ParseOptions
@@ -701,7 +701,7 @@ export const encodeEffect: <S extends Top>(
  * @since 4.0.0
  */
 export function encodeUnknownExit<S extends Top & { readonly EncodingServices: never }>(schema: S) {
-  const parser = ToParser.encodeUnknownExit(schema)
+  const parser = Parser.encodeUnknownExit(schema)
   return (input: unknown, options?: AST.ParseOptions): Exit_.Exit<S["Encoded"], SchemaError> => {
     return Exit_.mapError(parser(input, options), (issue) => new SchemaError(issue))
   }
@@ -719,37 +719,37 @@ export const encodeExit: <S extends Top & { readonly EncodingServices: never }>(
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeUnknownOption = ToParser.encodeUnknownOption
+export const encodeUnknownOption = Parser.encodeUnknownOption
 
 /**
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeOption = ToParser.encodeOption
+export const encodeOption = Parser.encodeOption
 
 /**
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeUnknownPromise = ToParser.encodeUnknownPromise
+export const encodeUnknownPromise = Parser.encodeUnknownPromise
 
 /**
  * @category Encoding
  * @since 4.0.0
  */
-export const encodePromise = ToParser.encodePromise
+export const encodePromise = Parser.encodePromise
 
 /**
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeUnknownSync = ToParser.encodeUnknownSync
+export const encodeUnknownSync = Parser.encodeUnknownSync
 
 /**
  * @category Encoding
  * @since 4.0.0
  */
-export const encodeSync = ToParser.encodeSync
+export const encodeSync = Parser.encodeSync
 
 /**
  * Creates a schema from an AST (Abstract Syntax Tree) node.
@@ -4568,7 +4568,7 @@ export function Option<A extends Top>(value: A): Option<A> {
           return Effect.succeedNone
         }
         return Effect.mapBothEager(
-          ToParser.decodeUnknownEffect(value)(input.value, options),
+          Parser.decodeUnknownEffect(value)(input.value, options),
           {
             onSuccess: Option_.some,
             onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["value"], issue)])
@@ -4729,12 +4729,12 @@ export function Result<A extends Top, E extends Top>(
       }
       switch (input._tag) {
         case "Success":
-          return Effect.mapBothEager(ToParser.decodeEffect(success)(input.success, options), {
+          return Effect.mapBothEager(Parser.decodeEffect(success)(input.success, options), {
             onSuccess: Result_.succeed,
             onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["success"], issue)])
           })
         case "Failure":
-          return Effect.mapBothEager(ToParser.decodeEffect(failure)(input.failure, options), {
+          return Effect.mapBothEager(Parser.decodeEffect(failure)(input.failure, options), {
             onSuccess: Result_.fail,
             onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failure"], issue)])
           })
@@ -4820,7 +4820,7 @@ export function Redacted<S extends Top>(value: S, options?: {
       if (Redacted_.isRedacted(input)) {
         const label: Effect.Effect<void, Issue.Issue, never> = typeof options?.label === "string"
           ? Effect.mapErrorEager(
-            ToParser.decodeUnknownEffect(Literal(options.label))(input.label, poptions),
+            Parser.decodeUnknownEffect(Literal(options.label))(input.label, poptions),
             (issue) => new Issue.Pointer(["label"], issue)
           )
           : Effect.void
@@ -4828,7 +4828,7 @@ export function Redacted<S extends Top>(value: S, options?: {
           label,
           () =>
             Effect.mapBothEager(
-              ToParser.decodeUnknownEffect(value)(Redacted_.value(input), poptions),
+              Parser.decodeUnknownEffect(value)(Redacted_.value(input), poptions),
               {
                 onSuccess: () => input,
                 onFailure: (/** ignore the actual issue because of security reasons */) => {
@@ -4909,7 +4909,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
       switch (input._tag) {
         case "Fail":
           return Effect.mapBothEager(
-            ToParser.decodeUnknownEffect(error)(input.error, options),
+            Parser.decodeUnknownEffect(error)(input.error, options),
             {
               onSuccess: Cause_.failureFail,
               onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["error"], issue)])
@@ -4917,7 +4917,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
           )
         case "Die":
           return Effect.mapBothEager(
-            ToParser.decodeUnknownEffect(defect)(input.defect, options),
+            Parser.decodeUnknownEffect(defect)(input.defect, options),
             {
               onSuccess: Cause_.failureDie,
               onFailure: (issue) =>
@@ -5019,7 +5019,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       if (!Cause_.isCause(input)) {
         return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
-      return Effect.mapBothEager(ToParser.decodeUnknownEffect(failures)(input.failures, options), {
+      return Effect.mapBothEager(Parser.decodeUnknownEffect(failures)(input.failures, options), {
         onSuccess: Cause_.fromFailures,
         onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failures"], issue)])
       })
@@ -5162,7 +5162,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
       switch (input._tag) {
         case "Success":
           return Effect.mapBothEager(
-            ToParser.decodeUnknownEffect(value)(input.value, options),
+            Parser.decodeUnknownEffect(value)(input.value, options),
             {
               onSuccess: Exit_.succeed,
               onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["value"], issue)])
@@ -5170,7 +5170,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
           )
         case "Failure":
           return Effect.mapBothEager(
-            ToParser.decodeUnknownEffect(cause)(input.cause, options),
+            Parser.decodeUnknownEffect(cause)(input.cause, options),
             {
               onSuccess: Exit_.failCause,
               onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["cause"], issue)])
@@ -5263,7 +5263,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
       if (input instanceof globalThis.Map) {
         const array = Array(Tuple([key, value]))
         return Effect.mapBothEager(
-          ToParser.decodeUnknownEffect(array)([...input], options),
+          Parser.decodeUnknownEffect(array)([...input], options),
           {
             onSuccess: (array: ReadonlyArray<readonly [Key["Type"], Value["Type"]]>) => new globalThis.Map(array),
             onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["entries"], issue)])
@@ -5339,7 +5339,7 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
       if (input instanceof globalThis.Set) {
         const array = Array(value)
         return Effect.mapBothEager(
-          ToParser.decodeUnknownEffect(array)([...input], options),
+          Parser.decodeUnknownEffect(array)([...input], options),
           {
             onSuccess: (array: ReadonlyArray<Value["Type"]>) => new globalThis.Set(array),
             onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["values"], issue)])
@@ -6539,7 +6539,7 @@ export const defaultVisitorFormat: AST.Visitor<Formatter<any>> = {
   },
   Union: (_, visit, getCandidates) => (t) => {
     const candidates = getCandidates(t)
-    const refinements = candidates.map(ToParser.refinement)
+    const refinements = candidates.map(Parser.refinement)
     for (let i = 0; i < candidates.length; i++) {
       const is = refinements[i]
       if (is(t)) {
@@ -7075,7 +7075,7 @@ const parseTagName = (name: string): { safe: string; changed: boolean } => {
  */
 export function makeIso<S extends Top>(schema: S): Optic_.Iso<S["Type"], S["Iso"]> {
   const serializer = makeSerializerIso(schema)
-  return Optic_.makeIso(ToParser.encodeSync(serializer), ToParser.decodeSync(serializer))
+  return Optic_.makeIso(Parser.encodeSync(serializer), Parser.decodeSync(serializer))
 }
 
 /**
@@ -7177,8 +7177,8 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  */
 export function makeDifferJsonPatch<T, E>(codec: Codec<T, E>): Differ<T, JsonPatch> {
   const serializer = makeSerializerJson(codec)
-  const get = ToParser.encodeSync(serializer)
-  const set = ToParser.decodeSync(serializer)
+  const get = Parser.encodeSync(serializer)
+  const set = Parser.decodeSync(serializer)
   return {
     empty: [],
     diff: (oldValue, newValue) => InternalDiffer.getJsonPatch(get(oldValue), get(newValue)),

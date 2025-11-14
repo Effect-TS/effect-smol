@@ -12,7 +12,7 @@ import { constFalse, constTrue, dual, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import type * as Schedule from "../../Schedule.ts"
 import * as Issue from "../../schema/Issue.ts"
-import * as ToParser from "../../schema/Parser.ts"
+import * as Parser from "../../schema/Parser.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Tranformation from "../../schema/Transformation.ts"
 import type * as Scope from "../../Scope.ts"
@@ -457,7 +457,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
           return Effect.fail(new Issue.InvalidType(ast, Option.some(input)))
         }
         return Effect.mapBothEager(
-          ToParser.decodeEffect(exit)(input.exit, options),
+          Parser.decodeEffect(exit)(input.exit, options),
           {
             onSuccess: (exit) => new Complete({ exit }),
             onFailure: (issue) =>

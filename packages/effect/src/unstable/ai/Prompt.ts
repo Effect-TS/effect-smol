@@ -58,7 +58,7 @@ import * as Effect from "../../Effect.ts"
 import { constFalse, dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as SchemaIssue from "../../schema/Issue.ts"
-import * as ToParser from "../../schema/Parser.ts"
+import * as Parser from "../../schema/Parser.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as SchemaTransformation from "../../schema/Transformation.ts"
 import type * as Response from "./Response.ts"
@@ -1539,7 +1539,7 @@ export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
     SchemaTransformation.transformOrFail({
       decode: (input) =>
         Effect.mapBothEager(
-          ToParser.decodeEffect(Schema.Array(Message))(input.content),
+          Parser.decodeEffect(Schema.Array(Message))(input.content),
           {
             onSuccess: makePrompt,
             onFailure: () =>
@@ -1548,7 +1548,7 @@ export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
         ),
       encode: (prompt) =>
         Effect.mapBothEager(
-          ToParser.encodeEffect(Schema.Array(Message))(prompt.content),
+          Parser.encodeEffect(Schema.Array(Message))(prompt.content),
           {
             onSuccess: (messages) => ({ content: messages }),
             onFailure: () =>

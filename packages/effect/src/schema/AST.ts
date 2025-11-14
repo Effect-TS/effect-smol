@@ -19,7 +19,7 @@ import * as RegEx from "../RegExp.ts"
 import * as Annotations from "./Annotations.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
-import type * as ToParser from "./Parser.ts"
+import type * as Parser from "./Parser.ts"
 import type * as Schema from "./Schema.ts"
 import * as Transformation from "./Transformation.ts"
 
@@ -344,7 +344,7 @@ export class Declaration extends Base {
     this.run = run
   }
   /** @internal */
-  parser(): ToParser.Parser {
+  parser(): Parser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     const run = ast.run(ast.typeParameters)
@@ -645,7 +645,7 @@ export class TemplateLiteral extends Base {
     this.encodedParts = encodedParts
   }
   /** @internal */
-  parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
+  parser(go: (ast: AST) => Parser.Parser): Parser.Parser {
     const parser = go(this.asTemplateLiteralParser())
     return (oinput: Option.Option<unknown>, options: ParseOptions) =>
       Effect.mapBothEager(parser(oinput, options), {
@@ -933,7 +933,7 @@ export class Arrays extends Base {
     }
   }
   /** @internal */
-  parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
+  parser(go: (ast: AST) => Parser.Parser): Parser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     const elements = ast.elements.map((ast) => ({
@@ -1226,14 +1226,14 @@ export class Objects extends Base {
     }
   }
   /** @internal */
-  parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
+  parser(go: (ast: AST) => Parser.Parser): Parser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     const expectedKeys: Array<PropertyKey> = []
     const expectedKeysSet = new Set<PropertyKey>()
     const properties: Array<{
       readonly ps: PropertySignature
-      readonly parser: ToParser.Parser
+      readonly parser: Parser.Parser
       readonly name: PropertyKey
       readonly type: AST
     }> = []
@@ -1727,7 +1727,7 @@ export class Union<A extends AST = AST> extends Base {
     this.mode = mode
   }
   /** @internal */
-  parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
+  parser(go: (ast: AST) => Parser.Parser): Parser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntracedEager(function*(oinput, options) {
@@ -1826,7 +1826,7 @@ export class Suspend extends Base {
     this.thunk = memoizeThunk(thunk)
   }
   /** @internal */
-  parser(go: (ast: AST) => ToParser.Parser): ToParser.Parser {
+  parser(go: (ast: AST) => Parser.Parser): Parser.Parser {
     return go(this.thunk())
   }
   /** @internal */
@@ -2515,7 +2515,7 @@ function handleTemplateLiteralASTPartParens(part: TemplateLiteralPart, s: string
 function fromConst<const T>(
   ast: AST,
   value: T
-): ToParser.Parser {
+): Parser.Parser {
   const succeed = Effect.succeedSome(value)
   return (oinput) => {
     if (oinput._tag === "None") {
@@ -2530,7 +2530,7 @@ function fromConst<const T>(
 function fromRefinement<T>(
   ast: AST,
   refinement: (input: unknown) => input is T
-): ToParser.Parser {
+): Parser.Parser {
   return (oinput) => {
     if (oinput._tag === "None") {
       return Effect.succeedNone

@@ -4,7 +4,7 @@ import { memoize } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
-import * as ToParser from "../schema/Parser.ts"
+import * as Parser from "../schema/Parser.ts"
 
 /** @internal */
 export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
@@ -133,7 +133,7 @@ export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
     case "Union":
       return Equivalence.make((a, b) => {
         const candidates = AST.getCandidates(a, ast.types)
-        const types = candidates.map(ToParser.refinement)
+        const types = candidates.map(Parser.refinement)
         for (let i = 0; i < candidates.length; i++) {
           const is = types[i]
           if (is(a) && is(b)) {
