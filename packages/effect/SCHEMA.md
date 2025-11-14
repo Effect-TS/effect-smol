@@ -5779,6 +5779,111 @@ export default function App() {
 }
 ```
 
+## Integrations
+
+### Elysia
+
+```ts
+import { Elysia } from "elysia"
+import { openapi } from "@elysiajs/openapi"
+import { node } from "@elysiajs/node"
+import { Schema } from "effect/schema"
+
+// ----------------------------------------------------
+// Utilities
+// ----------------------------------------------------
+
+function encodingJsonSchema<T, E, RD>(schema: Schema.Codec<T, E, RD, never>) {
+  return Schema.asStandardSchemaV1(
+    Schema.flip(Schema.makeSerializerJson(schema)).annotate({
+      direction: "encoding"
+    })
+  )
+}
+
+function decodingJsonSchema<T, E, RE>(schema: Schema.Codec<T, E, never, RE>) {
+  return Schema.asStandardSchemaV1(Schema.makeSerializerJson(schema))
+}
+
+function decodingStringSchema<T, E, RE>(schema: Schema.Codec<T, E, never, RE>) {
+  return Schema.asStandardSchemaV1(Schema.makeSerializerEnsureArray(Schema.makeSerializerStringPojo(schema)))
+}
+
+function mapJsonSchema(schema: Schema.Top) {
+  return Schema.makeJsonSchemaOpenApi3_1(
+    schema.ast.annotations?.direction === "encoding" ? Schema.flip(schema) : schema,
+    {
+      referenceStrategy: "skip"
+    }
+  ).schema
+}
+
+// ----------------------------------------------------
+// Application
+// ----------------------------------------------------
+
+new Elysia({ adapter: node() })
+  .use(
+    openapi({
+      mapJsonSchema: {
+        effect: mapJsonSchema
+      }
+    })
+  )
+  .get(
+    "/id/:id",
+    async ({ status, params, query }) => {
+      console.log(`params: ${JSON.stringify(params)}`)
+      console.log(`query: ${JSON.stringify(query)}`)
+      return status(200, { date: new Date() })
+    },
+    {
+      params: decodingStringSchema(
+        Schema.Struct({
+          id: Schema.Int
+        })
+      ),
+      query: decodingStringSchema(
+        Schema.Struct({
+          required: Schema.String,
+          optional: Schema.optionalKey(Schema.String),
+          array: Schema.Array(Schema.String),
+          tuple: Schema.Tuple([Schema.String, Schema.Int])
+        })
+      ),
+      response: {
+        200: encodingJsonSchema(
+          Schema.Struct({
+            date: Schema.ValidDate
+          })
+        )
+      }
+    }
+  )
+  .post(
+    "/body",
+    ({ body }) => {
+      console.log(body)
+      return { bigint: body.bigint + 1n }
+    },
+    {
+      body: decodingJsonSchema(
+        Schema.Struct({
+          bigint: Schema.BigInt
+        })
+      ),
+      response: {
+        200: encodingJsonSchema(
+          Schema.Struct({
+            bigint: Schema.BigInt
+          })
+        )
+      }
+    }
+  )
+  .listen(3000)
+```
+
 ## Usage
 
 ### Primitives
