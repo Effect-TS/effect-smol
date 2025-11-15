@@ -200,7 +200,7 @@ describe("AST", () => {
     })
   })
 
-  describe("getExpectedCandidates", () => {
+  describe("getExpected", () => {
     it("Objects", () => {
       const schema = Schema.Union([
         Schema.Struct({ _tag: Schema.Literal("a") }),
@@ -210,7 +210,7 @@ describe("AST", () => {
       ])
       const ast = schema.ast
       deepStrictEqual(
-        ast.getExpectedCandidates(Annotations.getExpected),
+        ast.getExpected(Annotations.getExpected),
         `{ readonly "_tag": "a", ... } | { readonly "_tag"?: "b", ... } | { "_tag": "c", ... } | { "_tag"?: "d", ... }`
       )
     })
@@ -224,7 +224,7 @@ describe("AST", () => {
       ])
       const ast = schema.ast
       deepStrictEqual(
-        ast.getExpectedCandidates(Annotations.getExpected),
+        ast.getExpected(Annotations.getExpected),
         `readonly [ "a", ... ] | readonly [ "b"?, ... ] | [ "c", ... ] | [ "d"?, ... ]`
       )
     })

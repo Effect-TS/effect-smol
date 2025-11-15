@@ -1787,16 +1787,11 @@ export class Union<A extends AST = AST> extends Base {
   /** @internal */
   getExpected(getExpected: (ast: AST) => string): string {
     if (this.types.length === 0) return "never"
-    return Array.from(new Set(this.types.map(getExpected))).join(" | ")
-  }
-  /** @internal */
-  getExpectedCandidates(getExpected: (ast: AST) => string): string {
-    if (this.types.length === 0) return "never"
     const expected = this.types.map((type) => {
       const encoded = encodedAST(type)
       switch (encoded._tag) {
         case "Arrays": {
-          const literals = encoded.elements.filter((e) => isLiteral(e))
+          const literals = encoded.elements.filter(isLiteral)
           if (literals.length > 0) {
             return `${formatIsMutable(encoded.isMutable)}[ ${
               literals.map((e) => getExpected(e) + formatIsOptional(e.context?.isOptional)).join(", ")
