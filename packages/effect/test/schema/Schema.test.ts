@@ -14,21 +14,9 @@ const verifyGeneration = true
 
 const equals = TestSchema.Asserts.ast.fields.equals
 
-const Trim = Schema.String.pipe(Schema.decode(Transformation.trim()))
-
 const SnakeToCamel = Schema.String.pipe(
   Schema.decode(
     Transformation.snakeToCamel()
-  )
-)
-
-const NumberFromString = Schema.String.pipe(
-  Schema.decodeTo(
-    Schema.Number,
-    {
-      decode: Getter.Number(),
-      encode: Getter.String()
-    }
   )
 )
 
@@ -1828,7 +1816,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("double transformation", async () => {
-      const schema = Trim.pipe(Schema.decodeTo(
+      const schema = Schema.Trim.pipe(Schema.decodeTo(
         Schema.FiniteFromString,
         Transformation.passthrough()
       ))
@@ -2007,7 +1995,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("double transformation", async () => {
       const schema = Schema.FiniteFromString.pipe(Schema.encodeTo(
-        Trim,
+        Schema.Trim,
         Transformation.passthrough()
       ))
       const asserts = new TestSchema.Asserts(schema)
@@ -2890,7 +2878,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("Record(SnakeToCamel, NumberFromString)", async () => {
-      const schema = Schema.Record(SnakeToCamel, NumberFromString)
+      const schema = Schema.Record(SnakeToCamel, Schema.NumberFromString)
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -2905,7 +2893,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("Record(SnakeToCamel, Number, { keyValueCombiner: ... })", async () => {
-      const schema = Schema.Record(SnakeToCamel, NumberFromString, {
+      const schema = Schema.Record(SnakeToCamel, Schema.NumberFromString, {
         keyValueCombiner: {
           decode: {
             combine: ([_, v1], [k2, v2]) => [k2, v1 + v2]
