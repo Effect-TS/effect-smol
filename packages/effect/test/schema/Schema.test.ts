@@ -372,6 +372,38 @@ Expected an integer, got -1.2`
     await encoding.fail("1", `Expected object | array | function, got "1"`)
   })
 
+  it("optionalKey", () => {
+    const schema = Schema.optionalKey(Schema.String)
+    strictEqual(schema.ast.context?.isOptional, true)
+  })
+
+  it("optionalKey & mutableKey", () => {
+    const schema = Schema.String.pipe(Schema.optionalKey, Schema.mutableKey)
+    strictEqual(schema.ast.context?.isOptional, true)
+    strictEqual(schema.ast.context?.isMutable, true)
+  })
+
+  it("optional", () => {
+    const schema = Schema.optionalKey(Schema.String)
+    strictEqual(schema.ast.context?.isOptional, true)
+  })
+
+  it("mutableKey", () => {
+    const schema = Schema.mutableKey(Schema.String)
+    strictEqual(schema.ast.context?.isMutable, true)
+  })
+
+  it("mutableKey & optionalKey", () => {
+    const schema = Schema.String.pipe(Schema.mutableKey, Schema.optionalKey)
+    strictEqual(schema.ast.context?.isOptional, true)
+    strictEqual(schema.ast.context?.isMutable, true)
+  })
+
+  it("readonlyKey", () => {
+    const schema = Schema.readonlyKey(Schema.mutableKey(Schema.String))
+    strictEqual(schema.ast.context?.isMutable, undefined)
+  })
+
   describe("Struct", () => {
     it("should throw an error if there are duplicate property signatures", () => {
       throws(
@@ -5744,6 +5776,18 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       equals(schema.fields, {
         a: Schema.mutableKey(Schema.String),
         b: Schema.mutableKey(Schema.Number)
+      })
+    })
+
+    it("readonlyKey", () => {
+      const schema = Schema.Struct({
+        a: Schema.mutableKey(Schema.String),
+        b: Schema.mutableKey(Schema.Number)
+      }).mapFields(Struct.map(Schema.readonlyKey))
+
+      equals(schema.fields, {
+        a: Schema.String,
+        b: Schema.Number
       })
     })
 

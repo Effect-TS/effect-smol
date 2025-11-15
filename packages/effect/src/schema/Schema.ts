@@ -838,7 +838,8 @@ export const optionalKey = Struct_.lambda<optionalKeyLambda>((schema) =>
 
 interface requiredKeyLambda extends Lambda {
   <S extends Top>(self: optionalKey<S>): S
-  readonly "~lambda.out": this["~lambda.in"] extends optionalKey<Top> ? this["~lambda.in"]["schema"] : never
+  readonly "~lambda.out": this["~lambda.in"] extends optionalKey<Top> ? this["~lambda.in"]["schema"]
+    : "Error: schema not eligible for requiredKey"
 }
 
 /**
@@ -886,7 +887,8 @@ export const optional = Struct_.lambda<optionalLambda>((self) => optionalKey(Und
 
 interface requiredLambda extends Lambda {
   <S extends Top>(self: optional<S>): S
-  readonly "~lambda.out": this["~lambda.in"] extends optional<Top> ? this["~lambda.in"]["schema"]["members"][0] : never
+  readonly "~lambda.out": this["~lambda.in"] extends optional<Top> ? this["~lambda.in"]["schema"]["members"][0]
+    : "Error: schema not eligible for required"
 }
 
 /**
@@ -932,7 +934,16 @@ export const mutableKey = Struct_.lambda<mutableKeyLambda>((schema) =>
   makeProto(AST.mutableKey(schema.ast), { schema })
 )
 
-// TODO: readonlyKey
+interface readonlyKeyLambda extends Lambda {
+  <S extends Top>(self: mutableKey<S>): S
+  readonly "~lambda.out": this["~lambda.in"] extends mutableKey<Top> ? this["~lambda.in"]["schema"]
+    : "Error: schema not eligible for readonlyKey"
+}
+
+/**
+ * @since 4.0.0
+ */
+export const readonlyKey = Struct_.lambda<readonlyKeyLambda>((self) => self.schema)
 
 /**
  * @since 4.0.0
@@ -1571,7 +1582,7 @@ interface fieldsAssign<NewFields extends Struct.Fields> extends Lambda {
   ): Struct<Struct_.Simplify<Struct_.Assign<Fields, NewFields>>>
   readonly "~lambda.out": this["~lambda.in"] extends Struct<Struct.Fields>
     ? Struct<Struct_.Simplify<Struct_.Assign<this["~lambda.in"]["fields"], NewFields>>>
-    : never
+    : "Error: schema not eligible for fieldsAssign"
 }
 
 /**
@@ -2246,7 +2257,7 @@ export interface mutable<S extends Top & { readonly "ast": AST.Arrays }> extends
 interface mutableLambda extends Lambda {
   <S extends Top & { readonly "ast": AST.Arrays }>(self: S): mutable<S>
   readonly "~lambda.out": this["~lambda.in"] extends Top & { readonly "ast": AST.Arrays } ? mutable<this["~lambda.in"]>
-    : never
+    : "Error: schema not eligible for mutable"
 }
 
 /**

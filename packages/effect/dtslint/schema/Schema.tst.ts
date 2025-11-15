@@ -1,4 +1,4 @@
-import { Brand, Option, Predicate, Tuple  } from "effect/data"
+import { Brand, Option, Predicate, Tuple, Struct  } from "effect/data"
 import { ServiceMap, Effect, hole } from "effect"
 import type { AST} from 'effect/schema';
 import { Getter, Schema, Transformation } from 'effect/schema'
@@ -967,10 +967,47 @@ describe("Schema", () => {
     }
   })
 
+  describe("readonlyKey", () => {
+    it("should not be callable with a schema without Schema.mutableKey{Key,}", () => {
+      expect(Schema.readonlyKey).type.not.toBeCallableWith(Schema.String)
+    })
+
+    it("should be callable with a schema with Schema.mutableKey", () => {
+      const schema = Schema.readonlyKey(Schema.mutableKey(Schema.String))
+      expect(schema).type.toBe<Schema.String>()
+    })
+
+    it("top level call", () => {
+      {
+        const schema = Schema.readonlyKey(Schema.mutableKey(Schema.String))
+        expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never>>()
+        expect(schema).type.toBe<Schema.String>()
+      }
+
+      {
+        const schema = Schema.mutableKey(Schema.String).pipe(Schema.readonlyKey)
+        expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never>>()
+        expect(schema).type.toBe<Schema.String>()
+      }
+    })
+
+    it("mapFields should throw an error if there is a field with no Schema.mutableKey", () => {
+      expect(Schema.Struct({
+        a: Schema.String,
+      }).mapFields).type.not.toBeCallableWith(Struct.map(Schema.readonlyKey))
+    })
+  })
+
   describe("mutable", () => {
     it("should not be callable with a non-array schema", () => {
       expect(Schema.mutable).type.not.toBeCallableWith(Schema.Struct({ a: Schema.Number }))
       expect(Schema.mutable).type.not.toBeCallableWith(Schema.Record(Schema.String, Schema.Number))
+    })
+
+    it("mapFields should throw an error if there is a field that is not an array or tuple", () => {
+      expect(Schema.Struct({
+        a: Schema.String,
+      }).mapFields).type.not.toBeCallableWith(Struct.map(Schema.mutable))
     })
   })
 
@@ -1002,6 +1039,12 @@ describe("Schema", () => {
         expect(schema).type.toBe<Schema.String>()
       }
     })
+
+    it("mapFields should throw an error if there is a field with no Schema.optionalKey", () => {
+      expect(Schema.Struct({
+        a: Schema.String,
+      }).mapFields).type.not.toBeCallableWith(Struct.map(Schema.requiredKey))
+    })
   })
 
   describe("required", () => {
@@ -1027,6 +1070,12 @@ describe("Schema", () => {
         expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never>>()
         expect(schema).type.toBe<Schema.String>()
       }
+    })
+
+    it("mapFields should throw an error if there is a field with no Schema.optional", () => {
+      expect(Schema.Struct({
+        a: Schema.String,
+      }).mapFields).type.not.toBeCallableWith(Struct.map(Schema.required))
     })
   })
 
@@ -1451,29 +1500,38 @@ describe("Schema", () => {
     })
   })
 
-  it("fieldsAssign", () => {
-    const schema = Schema.Union([
-      Schema.Struct({
-        a: Schema.String
-      }),
-      Schema.Struct({
-        b: Schema.Number
-      })
-    ]).mapMembers(Tuple.map(Schema.fieldsAssign({ c: Schema.Number })))
+  describe("fieldsAssign", () => {
+    it("Struct", () => {
+      const schema = Schema.Union([
+        Schema.Struct({
+          a: Schema.String
+        }),
+        Schema.Struct({
+          b: Schema.Number
+        })
+      ]).mapMembers(Tuple.map(Schema.fieldsAssign({ c: Schema.Number })))
 
-    expect(schema).type.toBe<
-      Schema.Union<
-        readonly [
-          Schema.Struct<{
-            readonly a: Schema.String
-            readonly c: Schema.Number
-          }>,
-          Schema.Struct<{
-            readonly b: Schema.Number
-            readonly c: Schema.Number
-          }>
-        ]
-      >
-    >()
+      expect(schema).type.toBe<
+        Schema.Union<
+          readonly [
+            Schema.Struct<{
+              readonly a: Schema.String
+              readonly c: Schema.Number
+            }>,
+            Schema.Struct<{
+              readonly b: Schema.Number
+              readonly c: Schema.Number
+            }>
+          ]
+        >
+      >()
+    })
+
+    it("should throw an error if there is a field that is not a struct", () => {
+      expect(Schema.Union([
+        Schema.String,
+        Schema.Number
+      ]).mapMembers).type.not.toBeCallableWith(Tuple.map(Schema.fieldsAssign({ c: Schema.Number })))
+    })
   })
 })
