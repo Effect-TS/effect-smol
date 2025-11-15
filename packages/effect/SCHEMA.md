@@ -6100,7 +6100,7 @@ const DateFromString = Schema.Date.pipe(
 
 ### Template literals
 
-You can use `Schema.TemplateLiteral` to define structured string patterns made of multiple parts. Each part can be a literal or a schema, and additional constraints (such as `minLength` or `maxLength`) can be applied to individual segments.
+You can use `Schema.TemplateLiteral` to define structured string patterns made of multiple parts. Each part can be a literal or a schema, and **additional constraints** (such as `isMinLength` or `isMaxLength`) can be applied to individual parts.
 
 **Example** (Constraining parts of an email-like string)
 
@@ -6123,8 +6123,16 @@ const email = Schema.TemplateLiteral([
 // The inferred type is `${string}@${string}`
 export type Type = typeof email.Type
 
+console.log(String(Schema.decodeUnknownExit(email)("a@b.com")))
+/*
+Success("a@b.com")
+*/
+
 console.log(String(Schema.decodeUnknownExit(email)("@b.com")))
-// Failure(Cause([Fail(SchemaError: Expected `${string}@${string}`, got "@b.com")]))
+/*
+Failure(Cause([Fail(SchemaError(Expected a value with a length of at least 1, got ""
+  at [0]))]))
+*/
 ```
 
 #### Template literal parser
@@ -6146,7 +6154,9 @@ const email = Schema.TemplateLiteralParser([
 export type Type = typeof email.Type
 
 console.log(String(Schema.decodeUnknownExit(email)("a@b.com")))
-// Success(["a","@","b.com"])
+/*
+Success(["a","@","b.com"])
+*/
 ```
 
 ## Migration from v3

@@ -464,22 +464,22 @@ Expected an integer, got -1.2`
         const decoding = asserts.decoding({ parseOptions: { onExcessProperty: "error" } })
         await decoding.fail(
           { a: "a", b: "b" },
-          `Unexpected key
+          `Unexpected key with value "b"
   at ["b"]`
         )
         const sym = Symbol("sym")
         await decoding.fail(
           { a: "a", [sym]: "sym" },
-          `Unexpected key
+          `Unexpected key with value "sym"
   at [Symbol(sym)]`
         )
 
         const decodingAll = asserts.decoding({ parseOptions: { onExcessProperty: "error", errors: "all" } })
         await decodingAll.fail(
           { a: "a", b: "b", c: "c" },
-          `Unexpected key
+          `Unexpected key with value "b"
   at ["b"]
-Unexpected key
+Unexpected key with value "c"
   at ["c"]`
         )
       })
@@ -798,15 +798,15 @@ Missing key
       const decoding = asserts.decoding()
       await decoding.fail(
         ["a", "b"],
-        `Unexpected key
+        `Unexpected key with value "b"
   at [1]`
       )
       const decodingAll = asserts.decoding({ parseOptions: { errors: "all" } })
       await decodingAll.fail(
         ["a", "b", "c"],
-        `Unexpected key
+        `Unexpected key with value "b"
   at [1]
-Unexpected key
+Unexpected key with value "c"
   at [2]`
       )
     })
@@ -2151,7 +2151,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
-  it("declareRefinement", async () => {
+  it("declare", async () => {
     const schema = Schema.declare(
       (u) => u instanceof File,
       { title: "File" }
@@ -4138,14 +4138,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed("a")
-      await decoding.fail(null, "Expected `a`, got null")
+      await decoding.fail(null, "Expected string, got null")
       await decoding.fail(
         "ab",
-        "Expected `a`, got \"ab\""
+        `Expected a value matching ^(a)$, got "ab"`
       )
       await decoding.fail(
         "",
-        "Expected `a`, got \"\""
+        `Expected a value matching ^(a)$, got ""`
       )
     })
 
@@ -4158,7 +4158,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await decoding.fail(
         "a  b",
-        "Expected `a b`, got \"a  b\""
+        `Expected a value matching ^(a)( )(b)$, got "a  b"`
       )
     })
 
@@ -4171,7 +4171,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await decoding.fail(
         "a",
-        "Expected `[${string}]`, got \"a\""
+        `Expected a value matching ^(\\[)([\\s\\S]*?)(\\])$, got "a"`
       )
     })
 
@@ -4185,11 +4185,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await decoding.fail(
         null,
-        "Expected `a${string}`, got null"
+        "Expected string, got null"
       )
       await decoding.fail(
         "",
-        "Expected `a${string}`, got \"\""
+        `Expected a value matching ^(a)([\\s\\S]*?)$, got ""`
       )
     })
 
@@ -4218,15 +4218,15 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await decoding.fail(
         null,
-        "Expected `a${number}`, got null"
+        "Expected string, got null"
       )
       await decoding.fail(
         "",
-        "Expected `a${number}`, got \"\""
+        `Expected a value matching ^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$, got ""`
       )
       await decoding.fail(
         "aa",
-        "Expected `a${number}`, got \"aa\""
+        `Expected a value matching ^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$, got "aa"`
       )
     })
 
@@ -4241,23 +4241,23 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await decoding.fail(
         null,
-        "Expected `a${bigint}`, got null"
+        "Expected string, got null"
       )
       await decoding.fail(
         "",
-        "Expected `a${bigint}`, got \"\""
+        `Expected a value matching ^(a)(-?\\d+)$, got ""`
       )
       await decoding.fail(
         "aa",
-        "Expected `a${bigint}`, got \"aa\""
+        `Expected a value matching ^(a)(-?\\d+)$, got "aa"`
       )
       await decoding.fail(
         "a1.2",
-        "Expected `a${bigint}`, got \"a1.2\""
+        `Expected a value matching ^(a)(-?\\d+)$, got "a1.2"`
       )
       await decoding.fail(
         "a+1",
-        "Expected `a${bigint}`, got \"a+1\""
+        `Expected a value matching ^(a)(-?\\d+)$, got "a+1"`
       )
     })
 
@@ -4284,7 +4284,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("\na")
       await decoding.fail(
         "a",
-        "Expected `\n${string}`, got \"a\""
+        `Expected a value matching ^(\\n)([\\s\\S]*?)$, got "a"`
       )
     })
 
@@ -4307,15 +4307,15 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("abb")
       await decoding.fail(
         "",
-        "Expected `a${string}b`, got \"\""
+        `Expected a value matching ^(a)([\\s\\S]*?)(b)$, got ""`
       )
       await decoding.fail(
         "a",
-        "Expected `a${string}b`, got \"a\""
+        `Expected a value matching ^(a)([\\s\\S]*?)(b)$, got "a"`
       )
       await decoding.fail(
         "b",
-        "Expected `a${string}b`, got \"b\""
+        `Expected a value matching ^(a)([\\s\\S]*?)(b)$, got "b"`
       )
 
       const encoding = asserts.encoding()
@@ -4332,11 +4332,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("acbd")
       await decoding.fail(
         "a",
-        "Expected `a${string}b${string}`, got \"a\""
+        `Expected a value matching ^(a)([\\s\\S]*?)(b)([\\s\\S]*?)$, got "a"`
       )
       await decoding.fail(
         "b",
-        "Expected `a${string}b${string}`, got \"b\""
+        `Expected a value matching ^(a)([\\s\\S]*?)(b)([\\s\\S]*?)$, got "b"`
       )
     })
 
@@ -4354,7 +4354,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await decoding.fail(
         "_id",
-        "Expected `${\"welcome_email\" | \"email_heading\" | \"footer_title\" | \"footer_sendoff\"}_id`, got \"_id\""
+        `Expected a value matching ^(welcome_email|email_heading|footer_title|footer_sendoff)(_id)$, got "_id"`
       )
     })
 
@@ -4366,7 +4366,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a0")
       await decoding.fail(
         "a",
-        "Expected `${string}0`, got \"a\""
+        `Expected a value matching ^([\\s\\S]*?)(0)$, got "a"`
       )
     })
 
@@ -4378,7 +4378,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a1")
       await decoding.fail(
         "a",
-        "Expected `${string}1`, got \"a\""
+        `Expected a value matching ^([\\s\\S]*?)(1)$, got "a"`
       )
     })
 
@@ -4391,7 +4391,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("aa")
       await decoding.fail(
         "b",
-        "Expected `${string}${\"a\" | 0}`, got \"b\""
+        `Expected a value matching ^([\\s\\S]*?)(a|0)$, got "b"`
       )
     })
 
@@ -4408,7 +4408,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("10.1")
       await decoding.fail(
         "",
-        "Expected `${string | 1}${number | \"true\"}`, got \"\""
+        `Expected a value matching ^([\\s\\S]*?|1)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|true)$, got ""`
       )
     })
 
@@ -4425,11 +4425,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("ca  bd")
       await decoding.fail(
         "",
-        "Expected `c${`a${string}b` | \"e\"}d`, got \"\""
+        `Expected a value matching ^(c)(a[\\s\\S]*?b|e)(d)$, got ""`
       )
     })
 
-    it("< + h + (1|2) + >", async () => {
+    it("< + h + (1|2n) + >", async () => {
       const schema = Schema.TemplateLiteral(["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2n])]), ">"])
       const asserts = new TestSchema.Asserts(schema)
 
@@ -4438,7 +4438,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("<h2>")
       await decoding.fail(
         "<h3>",
-        "Expected `<${`h${1 | 2}`}>`, got \"<h3>\""
+        `Expected a value matching ^(<)(h(?:1|2))(>)$, got "<h3>"`
       )
     })
 
@@ -4450,15 +4450,16 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("ab")
       await decoding.fail(
         null,
-        "Expected `a${string}`, got null"
+        "Expected string, got null"
       )
       await decoding.fail(
         "",
-        "Expected `a${string}`, got \"\""
+        `Expected a value matching ^(a)([\\s\\S]*?)$, got ""`
       )
       await decoding.fail(
         "a",
-        "Expected `a${string}`, got \"a\""
+        `Expected a value with a length of at least 1, got ""
+  at [1]`
       )
     })
 
@@ -4472,15 +4473,16 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await decoding.fail(
         null,
-        "Expected `a${string}`, got null"
+        "Expected string, got null"
       )
       await decoding.fail(
         "",
-        "Expected `a${string}`, got \"\""
+        `Expected a value matching ^(a)([\\s\\S]*?)$, got ""`
       )
       await decoding.fail(
         "ab",
-        "Expected `a${string}`, got \"ab\""
+        `Expected a finite number, got NaN
+  at [1]`
       )
     })
   })
@@ -4500,13 +4502,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a", ["a"])
       await decoding.fail(
         "ab",
-        `Missing key
-  at [0]`
+        `Expected a value matching ^(a)$, got "ab"`
       )
       await decoding.fail(
         "",
-        `Missing key
-  at [0]`
+        `Expected a value matching ^(a)$, got ""`
       )
       await decoding.fail(
         null,
@@ -4523,8 +4523,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await decoding.fail(
         "a  b",
-        `Missing key
-  at [0]`
+        `Expected a value matching ^(a)( )(b)$, got "a  b"`
       )
     })
 
@@ -4597,8 +4596,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
       await decoding.fail(
         "ed",
-        `Missing key
-  at [0]`
+        `Expected a value matching ^(c)([\\s\\S]*?|e)(d)$, got "ed"`
       )
     })
 
@@ -4623,8 +4621,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
       await decoding.fail(
         "ca-bd",
-        `Missing key
-  at [1][0]`
+        `Expected a value matching ^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)(b)$, got "a-b"
+  at [1]`
       )
     })
 
@@ -4637,8 +4635,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("<h2>", ["<", "h2", ">"])
       await decoding.fail(
         "<h3>",
-        `Missing key
-  at [0]`
+        `Expected a value matching ^(<)(h(?:1|2))(>)$, got "<h3>"`
       )
     })
 
@@ -4655,8 +4652,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("<h2>", ["<", ["h", 2], ">"])
       await decoding.fail(
         "<h3>",
-        `Missing key
-  at [1][0]`
+        `Expected a value matching ^(h)(1|2)$, got "h3"
+  at [1]`
       )
     })
   })

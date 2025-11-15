@@ -12,7 +12,7 @@ import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
 import { memoize } from "../Function.ts"
-import { formatPropertyKey } from "../interfaces/Inspectable.ts"
+import { format, formatPropertyKey } from "../interfaces/Inspectable.ts"
 import * as Pipeable from "../interfaces/Pipeable.ts"
 import { effectIsExit } from "../internal/effect.ts"
 import * as internalRecord from "../internal/record.ts"
@@ -651,12 +651,12 @@ export class TemplateLiteral extends Base {
     return (oinput: Option.Option<unknown>, options: ParseOptions) =>
       Effect.mapBothEager(parser(oinput, options), {
         onSuccess: () => oinput,
-        onFailure: () => new Issue.InvalidType(this, oinput)
+        onFailure: (issue) => new Issue.Composite(this, oinput, [issue])
       })
   }
   /** @internal */
   getExpected(): string {
-    return formatTemplateLiteral(this)
+    return "string"
   }
   /** @internal */
   asTemplateLiteralParser(): Arrays {
@@ -666,12 +666,14 @@ export class TemplateLiteral extends Base {
       string,
       tuple,
       new Transformation.Transformation(
-        Getter.transform((s: string) => {
+        Getter.transformOrFail((s: string) => {
           const match = regex.exec(s)
-          if (match) {
-            return match.slice(1, this.parts.length + 1)
-          }
-          return []
+          if (match) return Effect.succeed(match.slice(1, this.parts.length + 1))
+          return Effect.fail(
+            new Issue.InvalidValue(Option.some(s), {
+              message: `Expected a value matching ${regex.source}, got ${format(s)}`
+            })
+          )
         }),
         Getter.transform((parts) => parts.join(""))
       )
@@ -2409,43 +2411,6 @@ export function containsUndefined(ast: AST): boolean {
   }
 }
 
-function formatTemplateLiteral(ast: TemplateLiteral): string {
-  const formatUnionPart = (part: TemplateLiteralPart): string => {
-    if (isUnion(part)) {
-      return part.types.map(formatUnionPart).join(" | ")
-    }
-    switch (part._tag) {
-      case "Literal":
-        return Annotations.getExpected(part)
-      case "String":
-        return "string"
-      case "Number":
-        return "number"
-      case "BigInt":
-        return "bigint"
-      case "TemplateLiteral":
-        return formatTemplateLiteral(part)
-    }
-  }
-
-  return "`" + ast.encodedParts.map((part) => {
-    switch (part._tag) {
-      case "Literal":
-        return globalThis.String(part.literal)
-      case "String":
-        return "${string}"
-      case "Number":
-        return "${number}"
-      case "BigInt":
-        return "${bigint}"
-      case "TemplateLiteral":
-        return "${" + formatTemplateLiteral(part) + "}"
-      case "Union":
-        return "${" + part.types.map(formatUnionPart).join(" | ") + "}"
-    }
-  }).join("") + "`"
-}
-
 function getTemplateLiteralSource(ast: TemplateLiteral, top: boolean): string {
   return ast.encodedParts.map((part) =>
     handleTemplateLiteralASTPartParens(part, getTemplateLiteralASTPartPattern(part), top)
@@ -2483,7 +2448,7 @@ function getTemplateLiteralASTPartPattern(part: TemplateLiteralPart): string {
     case "TemplateLiteral":
       return getTemplateLiteralSource(part, false)
     case "Union":
-      return part.types.map((type) => getTemplateLiteralASTPartPattern(type)).join("|")
+      return part.types.map(getTemplateLiteralASTPartPattern).join("|")
   }
 }
 

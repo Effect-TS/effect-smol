@@ -530,7 +530,7 @@ export const defaultLeafHook: LeafHook = (issue): string => {
     case "MissingKey":
       return "Missing key"
     case "UnexpectedKey":
-      return "Unexpected key"
+      return `Unexpected key with value ${format(issue.actual)}`
     case "Forbidden":
       return "Forbidden operation"
     case "OneOf":
