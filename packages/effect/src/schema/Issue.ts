@@ -607,10 +607,13 @@ function toDefaultIssues(
       return issue.issues.flatMap((issue) => toDefaultIssues(issue, path, leafHook, checkHook))
     case "AnyOf": {
       if (issue.issues.length === 0) {
+        const message = findMessage(issue)
+        if (message !== undefined) {
+          return [{ path, message }]
+        }
         return [{
           path,
-          message: findMessage(issue) ??
-            getExpectedMessage(Annotations.getExpected(issue.ast), format(issue.actual))
+          message: getExpectedMessage(issue.ast.getExpectedCandidates(Annotations.getExpected), format(issue.actual))
         }]
       }
       return issue.issues.flatMap((issue) => toDefaultIssues(issue, path, leafHook, checkHook))

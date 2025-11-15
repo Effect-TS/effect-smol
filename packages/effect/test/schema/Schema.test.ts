@@ -164,12 +164,12 @@ Expected an integer, got -1.2`
       const decoding = asserts.decoding()
       await decoding.succeed(0, "a")
       await decoding.succeed(1, "b")
-      await decoding.fail(2, `Expected "a" | "b", got 2`)
+      await decoding.fail(2, `Expected 0 | 1, got 2`)
 
       const encoding = asserts.encoding()
       await encoding.succeed("a", 0)
       await encoding.succeed("b", 1)
-      await encoding.fail("c", `Expected 0 | 1, got "c"`)
+      await encoding.fail("c", `Expected "a" | "b", got "c"`)
     })
 
     it("pick", () => {
@@ -3189,14 +3189,27 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
-        // TODO: improve error message
         await decoding.fail(
           {},
-          `Expected string | object, got {}`
+          `Expected string | { readonly "_tag": "a", ... }, got {}`
         )
       })
 
-      it("tagged union", async () => {
+      it("string | tuple", async () => {
+        const schema = Schema.Union([
+          Schema.String,
+          Schema.Tuple([Schema.Literal("a"), Schema.String])
+        ])
+        const asserts = new TestSchema.Asserts(schema)
+
+        const decoding = asserts.decoding()
+        await decoding.fail(
+          [],
+          `Expected string | readonly [ "a", ... ], got []`
+        )
+      })
+
+      it("tagged struct union", async () => {
         const schema = Schema.Union([
           Schema.Struct({ _tag: Schema.Literal("a"), a: Schema.String }),
           Schema.Struct({ _tag: Schema.Literal("b"), b: Schema.Number })
@@ -3214,10 +3227,33 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           `Missing key
   at ["b"]`
         )
-        // TODO: improve error message
         await decoding.fail(
           { _tag: "c" },
-          `Expected object, got {"_tag":"c"}`
+          `Expected { readonly "_tag": "a", ... } | { readonly "_tag": "b", ... }, got {"_tag":"c"}`
+        )
+      })
+
+      it("tagged tuple union", async () => {
+        const schema = Schema.Union([
+          Schema.Tuple([Schema.Literal("a"), Schema.String]),
+          Schema.Tuple([Schema.Literal("b"), Schema.Number])
+        ])
+        const asserts = new TestSchema.Asserts(schema)
+
+        const decoding = asserts.decoding()
+        await decoding.fail(
+          ["a"],
+          `Missing key
+  at [1]`
+        )
+        await decoding.fail(
+          ["b"],
+          `Missing key
+  at [1]`
+        )
+        await decoding.fail(
+          ["c"],
+          `Expected readonly [ "a", ... ] | readonly [ "b", ... ], got ["c"]`
         )
       })
     })

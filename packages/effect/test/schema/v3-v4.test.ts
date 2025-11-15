@@ -150,7 +150,7 @@ describe("v3 -> v4 migration tests", () => {
       await decoding.succeed({ a: null }, {})
       await decoding.fail(
         { a: undefined },
-        `Expected number | null, got undefined
+        `Expected string | null, got undefined
   at ["a"]`
       )
 
@@ -230,7 +230,7 @@ describe("v3 -> v4 migration tests", () => {
       await decoding.succeed({ a: null }, { a: -1 })
       await decoding.fail(
         { a: undefined },
-        `Expected number | null, got undefined
+        `Expected string | null, got undefined
   at ["a"]`
       )
 

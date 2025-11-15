@@ -388,7 +388,7 @@ describe("Serializer generation", () => {
         const decoding = asserts.decoding()
         await decoding.fail(
           "-",
-          `Expected "a" | 1 | 2 | true, got "-"`
+          `Expected "a" | 1 | "2" | true, got "-"`
         )
       })
 
@@ -1479,7 +1479,7 @@ describe("Serializer generation", () => {
         const decoding = asserts.decoding()
         await decoding.fail(
           "-",
-          `Expected "a" | 1 | 2 | true, got "-"`
+          `Expected "a" | "1" | "2" | "true", got "-"`
         )
       })
 

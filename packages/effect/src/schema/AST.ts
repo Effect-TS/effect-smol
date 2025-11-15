@@ -12,6 +12,7 @@ import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
 import { memoize } from "../Function.ts"
+import { formatPropertyKey } from "../interfaces/Inspectable.ts"
 import * as Pipeable from "../interfaces/Pipeable.ts"
 import { effectIsExit } from "../internal/effect.ts"
 import * as internalRecord from "../internal/record.ts"
@@ -1788,6 +1789,47 @@ export class Union<A extends AST = AST> extends Base {
     if (this.types.length === 0) return "never"
     return Array.from(new Set(this.types.map(getExpected))).join(" | ")
   }
+  /** @internal */
+  getExpectedCandidates(getExpected: (ast: AST) => string): string {
+    if (this.types.length === 0) return "never"
+    const expected = this.types.map((type) => {
+      const encoded = encodedAST(type)
+      switch (encoded._tag) {
+        case "Arrays": {
+          const literals = encoded.elements.filter((e) => isLiteral(e))
+          if (literals.length > 0) {
+            return `${formatIsMutable(encoded.isMutable)}[ ${
+              literals.map((e) => getExpected(e) + formatIsOptional(e.context?.isOptional)).join(", ")
+            }, ... ]`
+          }
+          break
+        }
+        case "Objects": {
+          const literals = encoded.propertySignatures.filter((ps) => isLiteral(ps.type))
+          if (literals.length > 0) {
+            return `{ ${
+              literals.map((ps) =>
+                `${formatIsMutable(ps.type.context?.isMutable)}${formatPropertyKey(ps.name)}${
+                  formatIsOptional(ps.type.context?.isOptional)
+                }: ${getExpected(ps.type)}`
+              ).join(", ")
+            }, ... }`
+          }
+          break
+        }
+      }
+      return getExpected(encoded)
+    })
+    return Array.from(new Set(expected)).join(" | ")
+  }
+}
+
+function formatIsMutable(isMutable: boolean | undefined): string {
+  return isMutable ? "" : "readonly "
+}
+
+function formatIsOptional(isOptional: boolean | undefined): string {
+  return isOptional ? "?" : ""
 }
 
 /** @internal */
