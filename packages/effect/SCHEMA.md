@@ -1984,7 +1984,7 @@ import { Schema } from "effect/schema"
 
 // Define a schema with one fixed key "a" and any number of string keys mapping to numbers
 export const schema = Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
-  Schema.mutable(Schema.Record(Schema.String, Schema.Number))
+  Schema.Record(Schema.String, Schema.mutableKey(Schema.Number))
 ])
 
 /*

@@ -1167,18 +1167,15 @@ export class KeyValueCombiner {
  * @since 4.0.0
  */
 export class IndexSignature {
-  readonly isMutable: boolean
   readonly parameter: AST
   readonly type: AST
   readonly merge: KeyValueCombiner | undefined
 
   constructor(
-    isMutable: boolean,
     parameter: AST,
     type: AST,
     merge: KeyValueCombiner | undefined
   ) {
-    this.isMutable = isMutable
     this.parameter = parameter
     this.type = type
     this.merge = merge
@@ -1437,7 +1434,7 @@ export class Objects extends Base {
       const merge = flipMerge ? is.merge?.flip() : is.merge
       return p === is.parameter && t === is.type && merge === is.merge
         ? is
-        : new IndexSignature(is.isMutable, p, t, merge)
+        : new IndexSignature(p, t, merge)
     })
 
     return props === this.propertySignatures && indexes === this.indexSignatures
@@ -2257,54 +2254,6 @@ export function decodeTo<A extends AST>(
   return appendTransformation(from, transformation, to)
 }
 
-function mutableContext(ast: AST, isMutable: boolean): AST {
-  switch (ast._tag) {
-    case "Arrays":
-      return new Arrays(isMutable, ast.elements, ast.rest, ast.annotations, ast.checks, ast.encoding, ast.context)
-    case "Objects":
-      return new Objects(
-        ast.propertySignatures.map((ps) => {
-          const ast = ps.type
-          return new PropertySignature(
-            ps.name,
-            replaceContext(
-              ast,
-              ast.context
-                ? new Context(
-                  ast.context.isOptional,
-                  isMutable,
-                  ast.context.defaultValue,
-                  ast.context.annotations
-                )
-                : new Context(false, isMutable)
-            )
-          )
-        }),
-        ast.indexSignatures.map((is) => new IndexSignature(isMutable, is.parameter, is.type, is.merge)),
-        ast.annotations,
-        ast.checks,
-        ast.encoding,
-        ast.context
-      )
-    case "Union":
-      return new Union(ast.types.map(mutable), ast.mode, ast.annotations, ast.checks, ast.encoding, ast.context)
-    case "Suspend":
-      return new Suspend(() => mutable(ast.thunk()), ast.annotations, ast.checks, ast.encoding, ast.context)
-    default:
-      return ast
-  }
-}
-
-/** @internal */
-export function mutable<A extends AST>(ast: A): A {
-  return mutableContext(ast, true) as A
-}
-
-/** @internal */
-export function readonly<A extends AST>(ast: A): A {
-  return mutableContext(ast, false) as A
-}
-
 function parseParameter(ast: AST): {
   literals: ReadonlyArray<PropertyKey>
   parameters: ReadonlyArray<AST>
@@ -2349,7 +2298,7 @@ export function record(key: AST, value: AST, keyValueCombiner: KeyValueCombiner 
   const { literals, parameters: indexSignatures } = parseParameter(key)
   return new Objects(
     literals.map((literal) => new PropertySignature(literal, value)),
-    indexSignatures.map((parameter) => new IndexSignature(false, parameter, value, keyValueCombiner))
+    indexSignatures.map((parameter) => new IndexSignature(parameter, value, keyValueCombiner))
   )
 }
 

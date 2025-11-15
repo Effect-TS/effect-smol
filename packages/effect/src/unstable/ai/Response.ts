@@ -456,7 +456,7 @@ export const JsonValue: Schema.Schema<JsonValue> = Schema.Union([
   Schema.Number,
   Schema.Boolean,
   Schema.mutable(Schema.Array(Schema.suspend(() => JsonValue))),
-  Schema.mutable(Schema.Record(Schema.String, Schema.suspend(() => JsonValue)))
+  Schema.Record(Schema.String, Schema.mutableKey(Schema.suspend(() => JsonValue)))
 ])
 
 /**

@@ -932,6 +932,8 @@ export const mutableKey = Struct_.lambda<mutableKeyLambda>((schema) =>
   makeProto(AST.mutableKey(schema.ast), { schema })
 )
 
+// TODO: readonlyKey
+
 /**
  * @since 4.0.0
  */
@@ -1803,7 +1805,7 @@ export declare namespace StructWithRest {
   /**
    * @since 4.0.0
    */
-  export type Records = ReadonlyArray<Record.Record | mutable<Record.Record>>
+  export type Records = ReadonlyArray<Record.Record>
 
   type MergeTuple<T extends ReadonlyArray<unknown>> = T extends readonly [infer Head, ...infer Tail] ?
     Head & MergeTuple<Tail>
@@ -2125,10 +2127,10 @@ export interface TupleWithRest<
  * @category Constructors
  * @since 4.0.0
  */
-export function TupleWithRest<
-  S extends Tuple<Tuple.Elements> | mutable<Tuple<Tuple.Elements>>,
-  const Rest extends TupleWithRest.Rest
->(schema: S, rest: Rest): TupleWithRest<S, Rest> {
+export function TupleWithRest<S extends Tuple<Tuple.Elements>, const Rest extends TupleWithRest.Rest>(
+  schema: S,
+  rest: Rest
+): TupleWithRest<S, Rest> {
   return makeProto(AST.tupleWithRest(schema.ast, rest.map(AST.getAST)), { schema, rest })
 }
 
@@ -2217,7 +2219,7 @@ export function UniqueArray<S extends Top>(item: S): UniqueArray<S> {
 /**
  * @since 4.0.0
  */
-export interface mutable<S extends Top> extends
+export interface mutable<S extends Top & { readonly "ast": AST.Arrays }> extends
   Bottom<
     Mutable<S["Type"]>,
     Mutable<S["Encoded"]>,
@@ -2242,50 +2244,19 @@ export interface mutable<S extends Top> extends
 }
 
 interface mutableLambda extends Lambda {
-  <S extends Top>(self: S): mutable<S>
-  readonly "~lambda.out": this["~lambda.in"] extends Top ? mutable<this["~lambda.in"]> : never
+  <S extends Top & { readonly "ast": AST.Arrays }>(self: S): mutable<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top & { readonly "ast": AST.Arrays } ? mutable<this["~lambda.in"]>
+    : never
 }
 
 /**
+ * Makes arrays or tuples mutable.
+ *
  * @since 4.0.0
  */
-export const mutable = Struct_.lambda<mutableLambda>((schema) => makeProto(AST.mutable(schema.ast), { schema }))
-
-/**
- * @since 4.0.0
- */
-export interface readonly$<S extends Top> extends
-  Bottom<
-    Readonly<S["Type"]>,
-    Readonly<S["Encoded"]>,
-    S["DecodingServices"],
-    S["EncodingServices"],
-    S["ast"],
-    readonly$<S>,
-    S["~type.make.in"],
-    S["Iso"],
-    S["~type.parameters"],
-    S["~type.make"],
-    S["~type.mutability"],
-    S["~type.optionality"],
-    S["~type.constructor.default"],
-    S["~encoded.mutability"],
-    S["~encoded.optionality"]
-  >
-{
-  readonly "~rebuild.out": this
-  readonly schema: S
-}
-
-interface readonlyLambda extends Lambda {
-  <S extends Top>(self: S): readonly$<S>
-  readonly "~lambda.out": this["~lambda.in"] extends Top ? readonly$<this["~lambda.in"]> : never
-}
-
-/**
- * @since 4.0.0
- */
-export const readonly = Struct_.lambda<readonlyLambda>((schema) => makeProto(AST.readonly(schema.ast), { schema }))
+export const mutable = Struct_.lambda<mutableLambda>((schema) => {
+  return makeProto(new AST.Arrays(true, schema.ast.elements, schema.ast.rest), { schema })
+})
 
 /**
  * @since 4.0.0

@@ -5771,19 +5771,6 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       })
     })
 
-    it("readonly", () => {
-      const schema = Schema.Struct({
-        a: Schema.Array(Schema.String),
-        b: Schema.Tuple([Schema.Number])
-      }).mapFields(Struct.map(Schema.mutable))
-        .mapFields(Struct.map(Schema.readonly))
-
-      equals(schema.fields, {
-        a: Schema.readonly(Schema.Array(Schema.String)),
-        b: Schema.readonly(Schema.Tuple([Schema.Number]))
-      })
-    })
-
     it("NullOr", () => {
       const schema = Schema.Struct({
         a: Schema.String,
