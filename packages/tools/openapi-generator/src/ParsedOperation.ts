@@ -1,11 +1,10 @@
-import type * as Option from "effect/data/Option"
 import type * as Types from "effect/types/Types"
 import type { OpenAPISpecMethodName } from "effect/unstable/httpapi/OpenApi"
 
 export interface ParsedOperation {
   readonly id: string
   readonly method: OpenAPISpecMethodName
-  readonly description: Option.Option<string>
+  readonly description: string | undefined
   readonly params?: string
   readonly paramsOptional: boolean
   readonly urlParams: ReadonlyArray<string>
@@ -25,7 +24,7 @@ export const makeDeepMutable = (options: {
   readonly method: OpenAPISpecMethodName
   readonly pathIds: Array<string>
   readonly pathTemplate: string
-  readonly description: Option.Option<string>
+  readonly description: string | undefined
 }): Types.DeepMutable<ParsedOperation> => ({
   ...options,
   urlParams: [],

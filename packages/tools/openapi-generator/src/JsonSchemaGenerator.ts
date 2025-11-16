@@ -1,6 +1,7 @@
 import * as Arr from "effect/collections/Array"
 import * as Option from "effect/data/Option"
 import * as Predicate from "effect/data/Predicate"
+import * as UndefinedOr from "effect/data/UndefinedOr"
 import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
 import * as ServiceMap from "effect/ServiceMap"
@@ -122,7 +123,7 @@ export const make = Effect.gen(function*() {
     return name
   }
 
-  function topLevelSource(importName: string, name: string, schema: JsonSchema): Option.Option<string> {
+  function topLevelSource(importName: string, name: string, schema: JsonSchema): string | undefined {
     const isClass = classes.has(name)
     const isEnum = enums.has(name)
     const topLevel = transformer.supportsTopLevel({
@@ -132,15 +133,16 @@ export const make = Effect.gen(function*() {
       isClass,
       isEnum
     })
-    return toSource(
-      importName,
-      Object.keys(schema).length ? schema : {
-        properties: {}
-      } as JsonSchema,
-      name,
-      topLevel
-    ).pipe(
-      Option.map((source) =>
+    return UndefinedOr.map(
+      toSource(
+        importName,
+        Object.keys(schema).length ? schema : {
+          properties: {}
+        } as JsonSchema,
+        name,
+        topLevel
+      ),
+      (source) =>
         transformer.onTopLevel({
           importName,
           schema,
@@ -150,7 +152,6 @@ export const make = Effect.gen(function*() {
           isClass,
           isEnum
         })
-      )
     )
   }
 
@@ -183,13 +184,13 @@ export const make = Effect.gen(function*() {
     schema: JSONSchema,
     currentIdentifier: string,
     topLevel = false
-  ): Option.Option<string> {
+  ): string | undefined {
     if (typeof schema === "boolean") {
       if (schema === true) {
         // true = any/unknown
-        return Option.some(transformer.onUnknown({ importName }))
+        return transformer.onUnknown({ importName })
       } else {
-        return Option.none()
+        return undefined
       }
     }
 
@@ -205,11 +206,11 @@ export const make = Effect.gen(function*() {
           schema = cleanupSchema(schema as JsonSchema)
           const isOptional = !required.includes(key)
           const [enumNullable, filteredSchema] = filterNullable(fullSchema)
-          return toSource(
+          return Option.fromUndefinedOr(toSource(
             importName,
             enumNullable ? filteredSchema : schema,
             currentIdentifier + Utils.identifier(key)
-          ).pipe(
+          )).pipe(
             Option.map((source) =>
               transformer.onProperty({
                 importName,
@@ -227,52 +228,40 @@ export const make = Effect.gen(function*() {
         }),
         Arr.join(transformer.propertySeparator)
       )
-      return Option.some(
-        transformer.onObject({ importName, properties, topLevel })
-      )
+      return transformer.onObject({ importName, properties, topLevel })
     } else if (isSchemaNullable(schema)) {
-      return Option.some(transformer.onNull({ importName }))
+      return transformer.onNull({ importName })
     } else if (Predicate.isNotUndefined(schema.type) && schema.type === "object") {
-      return Option.some(transformer.onRecord({ importName }))
+      return transformer.onRecord({ importName })
     } else if (Predicate.isNotUndefined(schema.const)) {
-      return Option.some(
-        transformer.onEnum({
-          importName,
-          items: [JSON.stringify(schema.const)]
-        })
-      )
+      return transformer.onEnum({
+        importName,
+        items: [JSON.stringify(schema.const)]
+      })
     } else if (Predicate.isNotUndefined(schema.enum)) {
       if (!topLevel && enums.has(currentIdentifier)) {
-        return Option.some(
-          transformer.onRef({ importName, name: currentIdentifier })
-        )
+        return transformer.onRef({ importName, name: currentIdentifier })
       } else if (!topLevel && enums.has(currentIdentifier + "Enum")) {
-        return Option.some(
-          transformer.onRef({ importName, name: currentIdentifier + "Enum" })
-        )
+        return transformer.onRef({ importName, name: currentIdentifier + "Enum" })
       }
       const items = schema.enum.map((_) => JSON.stringify(_))
-      return Option.some(
-        transformer.onEnum({
-          importName,
-          items
-        })
-      )
+      return transformer.onEnum({
+        importName,
+        items
+      })
     } else if (Predicate.isNotUndefined(schema.$ref)) {
       if (!schema.$ref.startsWith("#")) {
-        return Option.none()
+        return undefined
       }
       const name = Utils.identifier(schema.$ref.split("/").pop()!)
-      return Option.some(transformer.onRef({ importName, name }))
+      return transformer.onRef({ importName, name })
     } else if (Predicate.isNotUndefined(schema.allOf)) {
       if (store.has(currentIdentifier)) {
-        return Option.some(
-          transformer.onRef({ importName, name: currentIdentifier })
-        )
+        return transformer.onRef({ importName, name: currentIdentifier })
       }
       const sources = (schema as any).allOf as Array<JSONSchema>
       if (sources.length === 0) {
-        return Option.none()
+        return undefined
       }
       const flattened = flattenAllOf(schema)
       return toSource(
@@ -304,7 +293,7 @@ export const make = Effect.gen(function*() {
       const items = pipe(
         itemSchemas,
         Arr.filterMap((_) =>
-          toSource(importName, _, currentIdentifier + "Enum").pipe(
+          Option.fromUndefinedOr(toSource(importName, _, currentIdentifier + "Enum")).pipe(
             Option.map(
               (source) =>
                 ({
@@ -317,18 +306,18 @@ export const make = Effect.gen(function*() {
         )
       )
       if (items.length === 0) {
-        return Option.none()
+        return undefined
       } else if (items.length === 1) {
-        return Option.some(items[0].source)
+        return items[0].source
       }
-      return Option.some(transformer.onUnion({ importName, items, topLevel }))
+      return transformer.onUnion({ importName, items, topLevel })
     } else if (Predicate.isNotUndefined(schema.type) && schema.type) {
       switch (schema.type) {
         case "string": {
-          return Option.some(transformer.onString({
+          return transformer.onString({
             importName,
             schema: schema as JSONSchema.String
-          }))
+          })
         }
         case "integer":
         case "number": {
@@ -344,45 +333,42 @@ export const make = Effect.gen(function*() {
           const exclusiveMaximum = typeof schema.exclusiveMaximum === "boolean"
             ? schema.exclusiveMaximum
             : typeof schema.exclusiveMaximum === "number"
-          return Option.some(
-            transformer.onNumber({
-              importName,
-              schema: schema as JSONSchema.Number,
-              minimum,
-              exclusiveMinimum,
-              maximum,
-              exclusiveMaximum
-            })
-          )
+          return transformer.onNumber({
+            importName,
+            schema: schema as JSONSchema.Number,
+            minimum,
+            exclusiveMinimum,
+            maximum,
+            exclusiveMaximum
+          })
         }
         case "boolean": {
-          return Option.some(transformer.onBoolean({ importName }))
+          return transformer.onBoolean({ importName })
         }
         case "array": {
           const nonEmpty = typeof schema.minItems === "number" && schema.minItems > 0
-          return toSource(importName, itemsSchema(schema.items), currentIdentifier).pipe(
-            Option.map((item) =>
+          return UndefinedOr.map(
+            toSource(importName, itemsSchema(schema.items), currentIdentifier),
+            (item) =>
               transformer.onArray({
                 importName,
                 schema: schema as JSONSchema.Array,
                 item,
                 nonEmpty
               })
-            )
           )
         }
       }
     }
-    return Option.none()
   }
 
   function itemsSchema(schema: JSONSchema.Array["items"]): JsonSchema {
     if (Predicate.isUndefined(schema)) {
-      return { $id: "/schemas/any" }
+      return {}
     } else if (Array.isArray(schema)) {
       return { anyOf: schema }
     } else if (typeof schema === "boolean") {
-      return schema === true ? { $id: "/schemas/any" } : { not: {} }
+      return schema === true ? {} : { not: {} }
     }
     return schema as JsonSchema
   }
@@ -391,7 +377,7 @@ export const make = Effect.gen(function*() {
     return Effect.sync(() =>
       pipe(
         store.entries(),
-        Arr.filterMap(([name, schema]) => topLevelSource(importName, name, schema)),
+        Arr.filterMap(([name, schema]) => Option.fromUndefinedOr(topLevelSource(importName, name, schema))),
         Arr.join("\n\n")
       )
     )

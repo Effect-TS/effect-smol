@@ -1,4 +1,3 @@
-import * as Option from "effect/data/Option"
 import * as Predicate from "effect/data/Predicate"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -78,9 +77,7 @@ export const make = Effect.gen(function*() {
             ? Utils.camelize(operation.operationId)
             : `${method.toUpperCase()}${path}`
 
-          const description = Utils.nonEmptyString(operation.description).pipe(
-            Option.orElse(() => Utils.nonEmptyString(operation.summary))
-          )
+          const description = Utils.nonEmptyString(operation.description) ?? Utils.nonEmptyString(operation.summary)
 
           const { pathIds, pathTemplate } = processPath(path)
 

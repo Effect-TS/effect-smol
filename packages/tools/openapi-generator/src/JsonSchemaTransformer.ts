@@ -1,4 +1,3 @@
-import * as Option from "effect/data/Option"
 import * as Predicate from "effect/data/Predicate"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -30,7 +29,7 @@ export class JsonSchemaTransformer extends ServiceMap.Service<
     readonly onTopLevel: (options: {
       readonly importName: string
       readonly schema: JsonSchema
-      readonly description: Option.Option<string>
+      readonly description: string | undefined
       readonly name: string
       readonly source: string
       readonly isClass: boolean
@@ -39,7 +38,7 @@ export class JsonSchemaTransformer extends ServiceMap.Service<
 
     readonly onProperty: (options: {
       readonly importName: string
-      readonly description: Option.Option<string>
+      readonly description: string | undefined
       readonly key: string
       readonly source: string
       readonly isOptional: boolean
@@ -94,8 +93,8 @@ export class JsonSchemaTransformer extends ServiceMap.Service<
       readonly importName: string
       readonly topLevel: boolean
       readonly items: ReadonlyArray<{
-        readonly description: Option.Option<string>
-        readonly title: Option.Option<string>
+        readonly description: string | undefined
+        readonly title: string | undefined
         readonly source: string
       }>
     }) => string
@@ -131,7 +130,7 @@ export const makeTransformerSchema = Effect.sync(() => {
             `|${S}.optional(${S}.NullOr(${source})).pipe(
              |  ${S}.decodeTo(${S}.optional(${source}), {
              |    decode: Getter.transformOptional(flow(
-             |      Option.filter(Predicate.isNotNull), 
+             |      Option.filter(Predicate.isNotNull),
              |      Option.orElseSome(${defaultSource})
              |    )),
              |    encode: Getter.passthrough()
@@ -324,13 +323,13 @@ export type ${name} = (typeof ${name})[keyof typeof ${name}];`
       return `ReadonlyArray<${item}>`
     },
     onUnion({ items, topLevel }) {
-      const useEnum = topLevel && !items.some((_) => Option.isNone(_.title))
+      const useEnum = topLevel && !items.some((_) => _.title === undefined)
       if (!useEnum) {
         return items.map((_) => _.source).join(" | ")
       }
       return `{\n  ${
         items.map(({ description, source, title }) =>
-          `${Utils.toComment(description)}${JSON.stringify(Option.getOrNull(title))}: ${source}`
+          `${Utils.toComment(description)}${JSON.stringify(title ?? null)}: ${source}`
         ).join(",\n  ")
       }} as const\n`
     },

@@ -1,5 +1,4 @@
-import * as Option from "effect/data/Option"
-import { flow } from "effect/Function"
+import * as UndefinedOr from "effect/data/UndefinedOr"
 import * as String from "effect/String"
 
 export const camelize = (self: string): string => {
@@ -27,16 +26,18 @@ export const camelize = (self: string): string => {
 
 export const identifier = (operationId: string) => String.capitalize(camelize(operationId))
 
-export const nonEmptyString = flow(
-  Option.fromNullishOr<unknown>,
-  Option.filter(String.isString),
-  Option.map(String.trim),
-  Option.filter(String.isNonEmpty)
-)
+export function nonEmptyString(a: unknown): string | undefined {
+  if (typeof a === "string") {
+    const trimmed = String.trim(a)
+    if (String.isNonEmpty(trimmed)) {
+      return trimmed
+    }
+  }
+}
 
-export const toComment = Option.match({
-  onNone: () => "",
-  onSome: (description: string) =>
+export const toComment = UndefinedOr.match({
+  onUndefined: () => "",
+  onDefined: (description: string) =>
     `/**
 * ${description.replace(/\*\//g, " * /").split("\n").join("\n* ")}
 */\n`
