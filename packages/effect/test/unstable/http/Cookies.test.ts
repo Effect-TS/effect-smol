@@ -6,7 +6,7 @@ import { assertSuccess } from "../../utils/assert.ts"
 
 describe("Cookies", () => {
   describe("CookiesSchema", () => {
-    it("defaultIsoSerializer", () => {
+    it("serializerIso annotation", () => {
       const _sessionId = Schema.makeIso(Cookies.CookiesSchema).at("sessionId")
       const cookies = Cookies.fromSetCookie([
         "sessionId=abc123; Path=/; HttpOnly; Secure",

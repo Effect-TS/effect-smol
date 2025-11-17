@@ -1,9 +1,9 @@
 import { Cause, DateTime, Duration, Effect } from "effect"
-import { Option, Redacted } from "effect/data"
+import { Option, Redacted, Result } from "effect/data"
 import { Issue, Parser, Schema, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
-import { assertTrue, strictEqual, throws } from "../utils/assert.ts"
+import { assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
 const isDeno = "Deno" in globalThis
 
@@ -113,7 +113,7 @@ describe("Serializer generation", () => {
         })
       })
 
-      describe("instanceOf with defaultIsoSerializer annotation", () => {
+      describe("instanceOf with serializer annotation", () => {
         it("arg: message: string", async () => {
           class MyError extends Error {
             constructor(message?: string) {
@@ -190,6 +190,14 @@ describe("Serializer generation", () => {
           const decoding = asserts.decoding()
           await decoding.succeed({ message: "a", cause: "b" }, new MyError({ message: "a", cause: "b" }))
         })
+      })
+
+      it("Never", async () => {
+        const schema = Schema.Never
+        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+
+        const encoding = asserts.encoding()
+        await encoding.fail({}, "Expected never, got {}")
       })
 
       it("Any", async () => {
@@ -1256,6 +1264,14 @@ describe("Serializer generation", () => {
         })
       })
 
+      it("Never", async () => {
+        const schema = Schema.Never
+        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+
+        const encoding = asserts.encoding()
+        await encoding.fail({}, "Expected never, got {}")
+      })
+
       it("Any", async () => {
         const schema = Schema.Any
         const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
@@ -2027,7 +2043,17 @@ describe("Serializer generation", () => {
       strictEqual(await Effect.runPromise(serializer(value)), expected)
     }
 
-    async function assertXmlFailure<T, E, RD>(schema: Schema.Codec<T, E, RD>, message: string) {
+    async function assertXmlFailure<T, E, RD>(schema: Schema.Codec<T, E, RD>, value: T, message: string) {
+      const serializer = Schema.makeEncoderXml(Schema.makeSerializerStringPojo(schema))
+      const r = await serializer(value).pipe(
+        Effect.mapError((err) => err.issue.toString()),
+        Effect.result,
+        Effect.runPromise
+      )
+      deepStrictEqual(r, Result.fail(message))
+    }
+
+    async function assertXmlError<T, E, RD>(schema: Schema.Codec<T, E, RD>, message: string) {
       throws(
         () => Schema.makeEncoderXml(Schema.makeSerializerStringPojo(schema)),
         message
@@ -2036,15 +2062,11 @@ describe("Serializer generation", () => {
 
     describe("Unsupported schemas", () => {
       it("Unknown", async () => {
-        assertXmlFailure(Schema.Unknown, "required `serializerJson` or `serializer` annotation")
-      })
-
-      it("Never", () => {
-        assertXmlFailure(Schema.Never, "required `serializerJson` or `serializer` annotation")
+        assertXmlError(Schema.Unknown, "required `serializerJson` or `serializer` annotation")
       })
 
       it("ObjectKeyword", () => {
-        assertXmlFailure(Schema.ObjectKeyword, "required `serializerJson` or `serializer` annotation")
+        assertXmlError(Schema.ObjectKeyword, "required `serializerJson` or `serializer` annotation")
       })
     })
 
@@ -2071,6 +2093,10 @@ describe("Serializer generation", () => {
         "",
         `<__value__ data-name="&lt;value/&gt;"></__value__>`
       )
+    })
+
+    it("Never", async () => {
+      await assertXmlFailure(Schema.Never, "test", `Expected never, got "test"`)
     })
 
     it("Any", async () => {

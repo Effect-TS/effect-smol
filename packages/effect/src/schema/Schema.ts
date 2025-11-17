@@ -6787,7 +6787,6 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
     switch (ast._tag) {
       case "Unknown":
       case "ObjectKeyword":
-      case "Never":
       case "Declaration": {
         const getLink = ast.annotations?.serializerJson ?? ast.annotations?.serializer
         if (Predicate.isFunction(getLink)) {
@@ -6854,7 +6853,6 @@ const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
     switch (ast._tag) {
       case "Unknown":
       case "ObjectKeyword":
-      case "Never":
       case "Declaration": {
         const getLink = ast.annotations?.serializerJson ?? ast.annotations?.serializer
         if (Predicate.isFunction(getLink)) {
