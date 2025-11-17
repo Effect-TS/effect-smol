@@ -66,35 +66,35 @@ describe("JsonSchema generation", () => {
     it("Declaration", () => {
       assertUnsupportedSchema(
         Schema.instanceOf(globalThis.URL),
-        `Unsupported schema Declaration`
+        `Unsupported AST Declaration`
       )
     })
 
     it("Undefined", () => {
       assertUnsupportedSchema(
         Schema.Undefined,
-        `Unsupported schema Undefined`
+        `Unsupported AST Undefined`
       )
     })
 
     it("BigInt", () => {
       assertUnsupportedSchema(
         Schema.BigInt,
-        `Unsupported schema BigInt`
+        `Unsupported AST BigInt`
       )
     })
 
     it("UniqueSymbol", () => {
       assertUnsupportedSchema(
         Schema.UniqueSymbol(Symbol.for("effect/Schema/test/a")),
-        `Unsupported schema UniqueSymbol`
+        `Unsupported AST UniqueSymbol`
       )
     })
 
     it("Symbol", () => {
       assertUnsupportedSchema(
         Schema.Symbol,
-        `Unsupported schema Symbol`
+        `Unsupported AST Symbol`
       )
     })
 
@@ -116,7 +116,7 @@ describe("JsonSchema generation", () => {
       })
       assertUnsupportedSchema(
         schema,
-        `Missing identifier for Suspend
+        `Missing identifier in suspended schema
   at ["as"][0]`
       )
     })
@@ -125,7 +125,7 @@ describe("JsonSchema generation", () => {
       it("Unsupported element", () => {
         assertUnsupportedSchema(
           Schema.Tuple([Schema.Symbol]),
-          `Unsupported schema Symbol
+          `Unsupported AST Symbol
   at [0]`
         )
       })
@@ -142,7 +142,7 @@ describe("JsonSchema generation", () => {
       it("Unsupported field", () => {
         assertUnsupportedSchema(
           Schema.Struct({ a: Schema.Symbol }),
-          `Unsupported schema Symbol
+          `Unsupported AST Symbol
   at ["a"]`
         )
       })
@@ -159,7 +159,7 @@ describe("JsonSchema generation", () => {
       it("Unsupported index signature parameter", () => {
         assertUnsupportedSchema(
           Schema.Record(Schema.Symbol, Schema.Number),
-          `Unsupported index signature parameter Symbol`
+          `Unsupported index signature parameter`
         )
       })
     })
@@ -180,7 +180,7 @@ describe("JsonSchema generation", () => {
       it("when returns undefined", () => {
         assertUnsupportedSchema(
           Schema.Date,
-          `Unsupported schema Declaration`,
+          `Unsupported AST Declaration`,
           {
             onMissingJsonSchemaAnnotation: () => undefined
           }

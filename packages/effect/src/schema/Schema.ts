@@ -1811,7 +1811,7 @@ export declare namespace StructWithRest {
   /**
    * @since 4.0.0
    */
-  export type TypeLiteral = Top & { readonly ast: AST.Objects }
+  export type Objects = Top & { readonly ast: AST.Objects }
 
   /**
    * @since 4.0.0
@@ -1825,42 +1825,42 @@ export declare namespace StructWithRest {
   /**
    * @since 4.0.0
    */
-  export type Type<S extends TypeLiteral, Records extends StructWithRest.Records> =
+  export type Type<S extends Objects, Records extends StructWithRest.Records> =
     & S["Type"]
     & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Type"] }>
 
   /**
    * @since 4.0.0
    */
-  export type Iso<S extends TypeLiteral, Records extends StructWithRest.Records> =
+  export type Iso<S extends Objects, Records extends StructWithRest.Records> =
     & S["Iso"]
     & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Iso"] }>
 
   /**
    * @since 4.0.0
    */
-  export type Encoded<S extends TypeLiteral, Records extends StructWithRest.Records> =
+  export type Encoded<S extends Objects, Records extends StructWithRest.Records> =
     & S["Encoded"]
     & MergeTuple<{ readonly [K in keyof Records]: Records[K]["Encoded"] }>
 
   /**
    * @since 4.0.0
    */
-  export type DecodingServices<S extends TypeLiteral, Records extends StructWithRest.Records> =
+  export type DecodingServices<S extends Objects, Records extends StructWithRest.Records> =
     | S["DecodingServices"]
     | { [K in keyof Records]: Records[K]["DecodingServices"] }[number]
 
   /**
    * @since 4.0.0
    */
-  export type EncodingServices<S extends TypeLiteral, Records extends StructWithRest.Records> =
+  export type EncodingServices<S extends Objects, Records extends StructWithRest.Records> =
     | S["EncodingServices"]
     | { [K in keyof Records]: Records[K]["EncodingServices"] }[number]
 
   /**
    * @since 4.0.0
    */
-  export type MakeIn<S extends TypeLiteral, Records extends StructWithRest.Records> =
+  export type MakeIn<S extends Objects, Records extends StructWithRest.Records> =
     & S["~type.make"]
     & MergeTuple<{ readonly [K in keyof Records]: Records[K]["~type.make"] }>
 }
@@ -1869,7 +1869,7 @@ export declare namespace StructWithRest {
  * @since 4.0.0
  */
 export interface StructWithRest<
-  S extends StructWithRest.TypeLiteral,
+  S extends StructWithRest.Objects,
   Records extends StructWithRest.Records
 > extends
   Bottom<
@@ -1892,7 +1892,7 @@ export interface StructWithRest<
  * @since 4.0.0
  */
 export function StructWithRest<
-  const S extends StructWithRest.TypeLiteral,
+  const S extends StructWithRest.Objects,
   const Records extends StructWithRest.Records
 >(
   schema: S,
@@ -6429,7 +6429,7 @@ export const defaultVisitorFormat: AST.Visitor<Formatter<any>> = {
   Undefined: defaultFormat,
   Void: () => () => "void",
   Never: (ast) => {
-    throw new globalThis.Error("cannot generate Pretty, no annotation found for never", { cause: ast })
+    throw new globalThis.Error("required `formatter` annotation", { cause: ast })
   },
   Unknown: defaultFormat,
   Any: defaultFormat,
@@ -6798,7 +6798,7 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
           const to = goJson(link.to)
           return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
         }
-        return requiredGoJsonAnnotation(ast)
+        throw new globalThis.Error("required `serializerJson` or `serializer` annotation", { cause: ast })
       }
       case "Void":
       case "Undefined":
@@ -6812,11 +6812,8 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "Arrays":
       case "Union":
       case "Suspend": {
-        if (AST.isObjects(ast)) {
-          if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
-            return forbidden(ast, "TypeLiteral property names must be strings")
-          }
-          // TODO: check for index signatures
+        if (AST.isObjects(ast) && ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
+          throw new globalThis.Error("Objects property names must be strings", { cause: ast })
         }
         return ast.go(goJson)
       }
@@ -6827,25 +6824,6 @@ const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
   const out = go(ast)
   return AST.isOptional(ast) ? AST.optionalKey(out) : out
 }))
-
-function requiredGoJsonAnnotation(ast: AST.AST): AST.AST {
-  return forbidden(
-    ast,
-    `required \`serializerJson\` or \`serializer\` annotation for ${ast._tag}`
-  )
-}
-
-function forbidden<A extends AST.AST>(ast: A, message: string): A {
-  return AST.replaceEncoding(ast, [
-    new AST.Link(
-      AST.never,
-      new Transformation.Transformation(
-        Getter.passthrough(),
-        Getter.forbidden(() => message)
-      )
-    )
-  ])
-}
 
 const goIso = memoize((ast: AST.AST): AST.AST => {
   function go(ast: AST.AST): AST.AST {
@@ -6887,7 +6865,7 @@ const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
           const to = goStringPojo(link.to)
           return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
         }
-        return requiredGoJsonAnnotation(ast)
+        throw new globalThis.Error("required `serializerJson` or `serializer` annotation", { cause: ast })
       }
       case "Null":
         return AST.replaceEncoding(ast, [nullStringPojoLink])
@@ -6905,10 +6883,8 @@ const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
       case "Arrays":
       case "Union":
       case "Suspend": {
-        if (AST.isObjects(ast)) {
-          if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
-            return forbidden(ast, "TypeLiteral property names must be strings")
-          }
+        if (AST.isObjects(ast) && ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
+          throw new globalThis.Error("Objects property names must be strings", { cause: ast })
         }
         return ast.go(goStringPojo)
       }
@@ -6997,7 +6973,7 @@ function stringPojoToXml(value: StringPojo, options: XmlEncoderOptions): string 
       return
     }
 
-    if (seen.has(node)) throw new globalThis.Error("Cycle detected while serializing to XML.")
+    if (seen.has(node)) throw new globalThis.Error("Cycle detected while serializing to XML.", { cause: node })
     seen.add(node)
     try {
       if (globalThis.Array.isArray(node)) {

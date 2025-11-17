@@ -1,10 +1,9 @@
 import { Cause, DateTime, Duration, Effect } from "effect"
-import { Option, Redacted, Result } from "effect/data"
+import { Option, Redacted } from "effect/data"
 import { Issue, Parser, Schema, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"
-import { deepStrictEqual } from "node:assert"
 import { describe, it } from "vitest"
-import { assertTrue, strictEqual } from "../utils/assert.ts"
+import { assertTrue, strictEqual, throws } from "../utils/assert.ts"
 
 const isDeno = "Deno" in globalThis
 
@@ -20,53 +19,41 @@ describe("Serializer generation", () => {
   describe("makeSerializerJson", () => {
     describe("typeCodec", () => {
       describe("Unsupported schemas", () => {
-        it("Declaration without defaultIsoSerializer annotation", async () => {
+        it("Declaration", () => {
           class A {
             readonly _tag = "A"
           }
           const schema = Schema.declare((u): u is A => u instanceof A)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
-
-          const encoding = asserts.encoding()
-          await encoding.fail(
-            new A(),
-            "required `serializerJson` or `serializer` annotation for Declaration"
+          throws(
+            () => Schema.makeSerializerJson(Schema.typeCodec(schema)),
+            "required `serializerJson` or `serializer` annotation"
           )
         })
 
-        it("Unknown", async () => {
+        it("Unknown", () => {
           const schema = Schema.Unknown
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
-
-          const encoding = asserts.encoding()
-          await encoding.fail(
-            "a",
-            "required `serializerJson` or `serializer` annotation for Unknown"
+          throws(
+            () => Schema.makeSerializerJson(Schema.typeCodec(schema)),
+            "required `serializerJson` or `serializer` annotation"
           )
         })
 
-        it("ObjectKeyword", async () => {
+        it("ObjectKeyword", () => {
           const schema = Schema.ObjectKeyword
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
-
-          const encoding = asserts.encoding()
-          await encoding.fail(
-            {},
-            "required `serializerJson` or `serializer` annotation for ObjectKeyword"
+          throws(
+            () => Schema.makeSerializerJson(Schema.typeCodec(schema)),
+            "required `serializerJson` or `serializer` annotation"
           )
         })
 
-        it("Struct with Symbol property name", async () => {
+        it("Struct with Symbol property name", () => {
           const a = Symbol.for("a")
           const schema = Schema.Struct({
             [a]: Schema.String
           })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
-
-          const encoding = asserts.encoding()
-          await encoding.fail(
-            { [a]: "b" },
-            "TypeLiteral property names must be strings"
+          throws(
+            () => Schema.makeSerializerJson(Schema.typeCodec(schema)),
+            "Objects property names must be strings"
           )
         })
       })
@@ -1230,53 +1217,41 @@ describe("Serializer generation", () => {
 
     describe("typeCodec", () => {
       describe("Unsupported schemas", () => {
-        it("Declaration without annotation", async () => {
+        it("Declaration", () => {
           class A {
             readonly _tag = "A"
           }
           const schema = Schema.declare((u): u is A => u instanceof A)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
-
-          const encoding = asserts.encoding()
-          await encoding.fail(
-            new A(),
-            "required `serializerJson` or `serializer` annotation for Declaration"
+          throws(
+            () => Schema.makeSerializerStringPojo(Schema.typeCodec(schema)),
+            "required `serializerJson` or `serializer` annotation"
           )
         })
 
-        it("Unknown", async () => {
+        it("Unknown", () => {
           const schema = Schema.Unknown
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
-
-          const encoding = asserts.encoding()
-          await encoding.fail(
-            "a",
-            "required `serializerJson` or `serializer` annotation for Unknown"
+          throws(
+            () => Schema.makeSerializerStringPojo(Schema.typeCodec(schema)),
+            "required `serializerJson` or `serializer` annotation"
           )
         })
 
-        it("ObjectKeyword", async () => {
+        it("ObjectKeyword", () => {
           const schema = Schema.ObjectKeyword
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
-
-          const encoding = asserts.encoding()
-          await encoding.fail(
-            {},
-            "required `serializerJson` or `serializer` annotation for ObjectKeyword"
+          throws(
+            () => Schema.makeSerializerStringPojo(Schema.typeCodec(schema)),
+            "required `serializerJson` or `serializer` annotation"
           )
         })
 
-        it("Struct with Symbol property name", async () => {
+        it("Struct with Symbol property name", () => {
           const a = Symbol.for("a")
           const schema = Schema.Struct({
             [a]: Schema.String
           })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
-
-          const encoding = asserts.encoding()
-          await encoding.fail(
-            { [a]: "b" },
-            "TypeLiteral property names must be strings"
+          throws(
+            () => Schema.makeSerializerStringPojo(Schema.typeCodec(schema)),
+            "Objects property names must be strings"
           )
         })
       })
@@ -2052,35 +2027,24 @@ describe("Serializer generation", () => {
       strictEqual(await Effect.runPromise(serializer(value)), expected)
     }
 
-    async function assertXmlFailure<T, E, RD>(schema: Schema.Codec<T, E, RD>, value: T, message: string) {
-      const serializer = Schema.makeEncoderXml(Schema.makeSerializerStringPojo(schema))
-      const r = await serializer(value).pipe(
-        Effect.mapError((err) => err.issue.toString()),
-        Effect.result,
-        Effect.runPromise
+    async function assertXmlFailure<T, E, RD>(schema: Schema.Codec<T, E, RD>, message: string) {
+      throws(
+        () => Schema.makeEncoderXml(Schema.makeSerializerStringPojo(schema)),
+        message
       )
-      deepStrictEqual(r, Result.fail(message))
     }
 
     describe("Unsupported schemas", () => {
       it("Unknown", async () => {
-        await assertXmlFailure(
-          Schema.Unknown,
-          "test",
-          "required `serializerJson` or `serializer` annotation for Unknown"
-        )
+        assertXmlFailure(Schema.Unknown, "required `serializerJson` or `serializer` annotation")
       })
 
-      it("Never", async () => {
-        await assertXmlFailure(Schema.Never, "test", `Expected never, got "test"`)
+      it("Never", () => {
+        assertXmlFailure(Schema.Never, "required `serializerJson` or `serializer` annotation")
       })
 
-      it("ObjectKeyword", async () => {
-        await assertXmlFailure(
-          Schema.ObjectKeyword,
-          {},
-          "required `serializerJson` or `serializer` annotation for ObjectKeyword"
-        )
+      it("ObjectKeyword", () => {
+        assertXmlFailure(Schema.ObjectKeyword, "required `serializerJson` or `serializer` annotation")
       })
     })
 

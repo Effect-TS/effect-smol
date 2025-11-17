@@ -225,9 +225,9 @@ export interface ParseOptions {
   readonly errors?: "first" | "all" | undefined
 
   /**
-   * When using a `TypeLiteral` to parse a value, by default any properties that
+   * When using a `Objects` to parse a value, by default any properties that
    * are not specified in the schema will be stripped out from the output. This
-   * is because the `TypeLiteral` is expecting a specific shape for the parsed
+   * is because the `Objects` is expecting a specific shape for the parsed
    * value, and any excess properties do not conform to that shape.
    *
    * However, you can use the `onExcessProperty` option (default value:
@@ -2061,9 +2061,6 @@ export function isFailure<A, E>(annotations?: Annotations.Filter) {
 
 /** @internal */
 export function isPattern(regex: RegExp, annotations?: Annotations.Filter) {
-  if (regex.flags !== "") {
-    throw new globalThis.Error("regex flags are not supported")
-  }
   const source = regex.source
   return makeFilter(
     (s: string) => regex.test(s),
@@ -2431,7 +2428,7 @@ const STRING_PATTERN = "[\\s\\S]*?"
  */
 const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 /**
- * signed integer only (no leading "+")
+ * signed integer only (no leading "+" because TypeScript doesn't support it)
  */
 const BIGINT_PATTERN = "-?\\d+"
 

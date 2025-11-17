@@ -26,7 +26,7 @@ describe("Arbitrary generation", () => {
     it("Declaration", () => {
       assertUnsupportedSchema(
         Schema.Struct({ a: Schema.instanceOf(globalThis.URL) }),
-        `Unsupported schema Declaration
+        `Unsupported AST Declaration
   at ["a"]`
       )
     })
@@ -34,7 +34,7 @@ describe("Arbitrary generation", () => {
     it("Never", () => {
       assertUnsupportedSchema(
         Schema.Struct({ a: Schema.Never }),
-        `Unsupported schema Never
+        `Unsupported AST Never
   at ["a"]`
       )
     })

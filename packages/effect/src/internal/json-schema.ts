@@ -5,6 +5,7 @@ import * as Inspectable from "../interfaces/Inspectable.ts"
 import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
 import type * as Schema from "../schema/Schema.ts"
+import { errorWithPath } from "./errors.ts"
 
 interface Options extends Schema.JsonSchemaOptions {
   readonly target: Annotations.JsonSchema.Target
@@ -172,7 +173,7 @@ function base(
         const out = options.onMissingJsonSchemaAnnotation(ast)
         if (out) return out
       }
-      throw error(`Unsupported schema ${ast._tag}`, path)
+      throw errorWithPath(`Unsupported AST ${ast._tag}`, path)
     }
 
     case "Never":
@@ -209,7 +210,7 @@ function base(
       if (typeof literal === "boolean") {
         return { type: "boolean", enum: [literal] }
       }
-      throw error(`Unsupported literal ${Inspectable.format(literal)}`, path)
+      throw errorWithPath(`Unsupported literal ${Inspectable.format(literal)}`, path)
     }
 
     case "Enum":
@@ -223,7 +224,7 @@ function base(
       // handle post rest elements
       // ---------------------------------------------
       if (ast.rest.length > 1) {
-        throw error(
+        throw errorWithPath(
           "Generating a JSON Schema for post-rest elements is not currently supported. You're welcome to contribute by submitting a Pull Request",
           path
         )
@@ -281,7 +282,7 @@ function base(
       for (const ps of ast.propertySignatures) {
         const name = ps.name as string
         if (Predicate.isSymbol(name)) {
-          throw error(`Unsupported property signature name ${Inspectable.format(name)}`, [...path, name])
+          throw errorWithPath(`Unsupported property signature name ${Inspectable.format(name)}`, [...path, name])
         } else {
           out.properties[name] = mergeOrAppendJsonSchemaAnnotations(
             go(ps.type, [...path, name], options, false, false),
@@ -331,16 +332,9 @@ function base(
       if (identifier !== undefined) {
         return go(ast.thunk(), path, options, true, false)
       }
-      throw error(`Missing identifier for ${ast._tag}`, path)
+      throw errorWithPath("Missing identifier in suspended schema", path)
     }
   }
-}
-
-function error(message: string, path: ReadonlyArray<PropertyKey>) {
-  if (path.length > 0) {
-    message += `\n  at ${Inspectable.formatPath(path)}`
-  }
-  return new Error(message)
 }
 
 function getMetaSchemaUri(target: Annotations.JsonSchema.Target) {
@@ -453,7 +447,7 @@ function getPattern(
     case "TemplateLiteral":
       return AST.getTemplateLiteralRegExp(ast).source
     default:
-      throw error(`Unsupported index signature parameter ${ast._tag}`, path)
+      throw errorWithPath("Unsupported index signature parameter", path)
   }
 }
 

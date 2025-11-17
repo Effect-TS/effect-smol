@@ -82,6 +82,17 @@ describe("AST", () => {
   })
 
   describe("collectSentinels", () => {
+    describe("Declaration", () => {
+      it("~sentinels", () => {
+        class A {
+          readonly _tag = "A"
+        }
+        const schema = Schema.instanceOf(A, { "~sentinels": [{ key: "_tag", literal: "A" }] })
+        const ast = schema.ast
+        deepStrictEqual(AST.collectSentinels(ast), [{ key: "_tag", literal: "A" }])
+      })
+    })
+
     describe("Struct", () => {
       it("required tag", () => {
         const schema = Schema.Struct({

@@ -147,7 +147,11 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
   readonly arbitrary?: Arbitrary.Override<T, TypeParameters> | undefined
   readonly equivalence?: Equivalence.Override<T, TypeParameters> | undefined
   readonly formatter?: Formatter.Override<T, TypeParameters> | undefined
-  /** @internal */
+  /**
+   * Used to collect sentinels from a Declaration AST.
+   *
+   * @internal
+   */
   readonly "~sentinels"?: ReadonlyArray<AST.Sentinel> | undefined
 }
 

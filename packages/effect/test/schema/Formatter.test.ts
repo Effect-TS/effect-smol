@@ -2,9 +2,13 @@ import { DateTime, Duration } from "effect"
 import { Option, Redacted, Result } from "effect/data"
 import { Schema } from "effect/schema"
 import { describe, it } from "vitest"
-import { strictEqual } from "../utils/assert.ts"
+import { strictEqual, throws } from "../utils/assert.ts"
 
-describe("Format generation", () => {
+describe("Formatter generation", () => {
+  it("Never", () => {
+    throws(() => Schema.makeFormatter(Schema.Never), "required `formatter` annotation")
+  })
+
   it("Any", () => {
     const format = Schema.makeFormatter(Schema.Any)
     strictEqual(format(1), "1")

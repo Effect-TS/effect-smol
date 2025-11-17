@@ -6,12 +6,12 @@ import * as Predicate from "../data/Predicate.ts"
 import * as Struct from "../data/Struct.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
 import { memoize } from "../Function.ts"
-import * as Inspectable from "../interfaces/Inspectable.ts"
 import * as Number from "../Number.ts"
 import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
 import type * as Schema from "../schema/Schema.ts"
 import type * as FastCheck from "../testing/FastCheck.ts"
+import { errorWithPath } from "./errors.ts"
 
 const arbitraryMemoMap = new WeakMap<AST.AST, LazyArbitraryWithContext<any>>()
 
@@ -144,13 +144,6 @@ export const memoized = memoize((ast: AST.AST): LazyArbitraryWithContext<any> =>
   return go(ast, [])
 })
 
-function error(message: string, path: ReadonlyArray<PropertyKey>) {
-  if (path.length > 0) {
-    message += `\n  at ${Inspectable.formatPath(path)}`
-  }
-  return new Error(message)
-}
-
 function go(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithContext<any> {
   // ---------------------------------------------
   // handle Override annotation
@@ -182,7 +175,7 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
   switch (ast._tag) {
     case "Never":
     case "Declaration":
-      throw error(`Unsupported schema ${ast._tag}`, path)
+      throw errorWithPath(`Unsupported AST ${ast._tag}`, path)
     case "Null":
       return (fc) => fc.constant(null)
     case "Void":
