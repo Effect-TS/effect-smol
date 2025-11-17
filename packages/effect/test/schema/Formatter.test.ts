@@ -498,11 +498,9 @@ describe("Formatter generation", () => {
   })
 
   it("should allow for custom compilers", () => {
-    const visitor = {
-      ...Schema.defaultVisitorFormat,
-      "Boolean": () => (b: boolean) => b ? "True" : "False"
-    }
-    const makeFormatter = Schema.makeFormatterVisit(visitor)
+    const makeFormatter = Schema.makeFormatterFactory({
+      onBoolean: () => (b: boolean) => b ? "True" : "False"
+    })
     strictEqual(makeFormatter(Schema.Boolean)(true), `True`)
     const schema = Schema.Tuple([Schema.String, Schema.Boolean])
     strictEqual(makeFormatter(schema)(["a", true]), `["a", True]`)

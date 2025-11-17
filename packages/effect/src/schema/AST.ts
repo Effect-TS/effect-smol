@@ -2497,62 +2497,6 @@ export const enumsToLiterals = memoize((ast: Enum): Union<Literal> => {
   )
 })
 
-/**
- * @category Visitor
- * @since 4.0.0
- */
-export type Visitor<A> = {
-  readonly onEnter?: ((ast: AST, visit: (ast: AST) => A) => Option.Option<A>) | undefined
-  readonly Declaration: (ast: Declaration, visit: (ast: AST) => A) => A
-  readonly Null: (ast: Null, visit: (ast: AST) => A) => A
-  readonly Undefined: (ast: Undefined, visit: (ast: AST) => A) => A
-  readonly Void: (ast: Void, visit: (ast: AST) => A) => A
-  readonly Never: (ast: Never, visit: (ast: AST) => A) => A
-  readonly Unknown: (ast: Unknown, visit: (ast: AST) => A) => A
-  readonly Any: (ast: Any, visit: (ast: AST) => A) => A
-  readonly String: (ast: String, visit: (ast: AST) => A) => A
-  readonly Number: (ast: Number, visit: (ast: AST) => A) => A
-  readonly Boolean: (ast: Boolean, visit: (ast: AST) => A) => A
-  readonly Symbol: (ast: Symbol, visit: (ast: AST) => A) => A
-  readonly BigInt: (ast: BigInt, visit: (ast: AST) => A) => A
-  readonly UniqueSymbol: (ast: UniqueSymbol, visit: (ast: AST) => A) => A
-  readonly ObjectKeyword: (ast: ObjectKeyword, visit: (ast: AST) => A) => A
-  readonly Enum: (ast: Enum, visit: (ast: AST) => A) => A
-  readonly Literal: (ast: Literal, visit: (ast: AST) => A) => A
-  readonly TemplateLiteral: (ast: TemplateLiteral, visit: (ast: AST) => A) => A
-  readonly Arrays: (ast: Arrays, visit: (ast: AST) => A) => A
-  readonly Objects: (ast: Objects, visit: (ast: AST) => A) => A
-  readonly Union: (ast: Union, visit: (ast: AST) => A, getCandidates: (ast: AST) => ReadonlyArray<AST>) => A
-  readonly Suspend: (ast: Suspend, visit: (ast: AST) => A) => A
-}
-
-/**
- * @category Visitor
- * @since 4.0.0
- */
-export function makeVisit<A>(visitor: Visitor<A>) {
-  return function visit(ast: AST): A {
-    // ---------------------------------------------
-    // handle hooks
-    // ---------------------------------------------
-    if (visitor.onEnter) {
-      const oa = visitor.onEnter(ast, visit)
-      if (Option.isSome(oa)) {
-        return oa.value
-      }
-    }
-    // ---------------------------------------------
-    // handle AST nodes
-    // ---------------------------------------------
-    switch (ast._tag) {
-      case "Union":
-        return visitor.Union(ast, visit, (t) => getCandidates(t, ast.types))
-      default:
-        return visitor[ast._tag](ast as any, visit)
-    }
-  }
-}
-
 const goIndexSignature = memoize(apply((ast: AST): AST => {
   switch (ast._tag) {
     case "Number":

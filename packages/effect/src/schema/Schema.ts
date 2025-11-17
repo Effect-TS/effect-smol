@@ -6402,156 +6402,214 @@ export function overrideFormatter<S extends Top>(formatter: () => Formatter<S["T
   }
 }
 
-const defaultFormat = () => format
+type FormatterOverride<A extends AST.AST> = (ast: A, visit: (ast: AST.AST) => Formatter<any>) => Formatter<any>
 
 /**
  * @category Formatter
  * @since 4.0.0
  */
-export const defaultVisitorFormat: AST.Visitor<Formatter<any>> = {
-  onEnter: (ast, visit) => {
+export function makeFormatterFactory(options: {
+  readonly onDeclaration?:
+    | FormatterOverride<AST.Declaration>
+    | undefined
+  readonly onNull?: FormatterOverride<AST.Null> | undefined
+  readonly onUndefined?: FormatterOverride<AST.Undefined> | undefined
+  readonly onVoid?: FormatterOverride<AST.Void> | undefined
+  readonly onNever?: FormatterOverride<AST.Never> | undefined
+  readonly onUnknown?: FormatterOverride<AST.Unknown> | undefined
+  readonly onAny?: FormatterOverride<AST.Any> | undefined
+  readonly onString?: FormatterOverride<AST.String> | undefined
+  readonly onNumber?: FormatterOverride<AST.Number> | undefined
+  readonly onBoolean?: FormatterOverride<AST.Boolean> | undefined
+  readonly onSymbol?: FormatterOverride<AST.Symbol> | undefined
+  readonly onBigInt?: FormatterOverride<AST.BigInt> | undefined
+  readonly onUniqueSymbol?: FormatterOverride<AST.UniqueSymbol> | undefined
+  readonly onObjectKeyword?: FormatterOverride<AST.ObjectKeyword> | undefined
+  readonly onEnum?: FormatterOverride<AST.Enum> | undefined
+  readonly onLiteral?: FormatterOverride<AST.Literal> | undefined
+  readonly onTemplateLiteral?: FormatterOverride<AST.TemplateLiteral> | undefined
+  readonly onArrays?: FormatterOverride<AST.Arrays> | undefined
+  readonly onObjects?: FormatterOverride<AST.Objects> | undefined
+  readonly onUnion?:
+    | ((
+      ast: AST.Union,
+      visit: (ast: AST.AST) => Formatter<any>,
+      getCandidates: (input: unknown) => ReadonlyArray<AST.AST>
+    ) => Formatter<any>)
+    | undefined
+  readonly onSuspend?: FormatterOverride<AST.Suspend> | undefined
+}): <T>(schema: Schema<T>) => Formatter<T> {
+  function visit(ast: AST.AST): (t: any) => string {
     // ---------------------------------------------
-    // handle annotations
+    // handle annotation
     // ---------------------------------------------
     const annotation = Annotations.resolve(ast)?.["formatter"] as
       | Annotations.Formatter.Override<any, ReadonlyArray<any>>
       | undefined
     if (annotation) {
-      if (AST.isDeclaration(ast)) {
-        return Option_.some(annotation(ast.typeParameters.map(visit)))
-      }
-      return Option_.some(annotation([]))
+      return annotation(AST.isDeclaration(ast) ? ast.typeParameters.map(visit) : [])
     }
-    return Option_.none()
-  },
-  Declaration: defaultFormat,
-  Null: defaultFormat,
-  Undefined: defaultFormat,
-  Void: () => () => "void",
-  Never: (ast) => {
-    throw new globalThis.Error("required `formatter` annotation", { cause: ast })
-  },
-  Unknown: defaultFormat,
-  Any: defaultFormat,
-  String: defaultFormat,
-  Number: defaultFormat,
-  Boolean: defaultFormat,
-  BigInt: defaultFormat,
-  Symbol: defaultFormat,
-  UniqueSymbol: defaultFormat,
-  ObjectKeyword: defaultFormat,
-  Enum: defaultFormat,
-  Literal: defaultFormat,
-  TemplateLiteral: defaultFormat,
-  Arrays: (ast, visit) => (t) => {
-    const elements = ast.elements.map(visit)
-    const rest = ast.rest.map(visit)
-    const out: Array<string> = []
-    let i = 0
-    // ---------------------------------------------
-    // handle elements
-    // ---------------------------------------------
-    for (; i < elements.length; i++) {
-      if (t.length < i + 1) {
-        if (AST.isOptional(ast.elements[i])) {
-          continue
-        }
-      } else {
-        out.push(elements[i](t[i]))
+    switch (ast._tag) {
+      case "Declaration": {
+        if (options.onDeclaration) return options.onDeclaration(ast, visit)
+        return format
       }
-    }
-    // ---------------------------------------------
-    // handle rest element
-    // ---------------------------------------------
-    if (rest.length > 0) {
-      const [head, ...tail] = rest
-      for (; i < t.length - tail.length; i++) {
-        out.push(head(t[i]))
-      }
-      // ---------------------------------------------
-      // handle post rest elements
-      // ---------------------------------------------
-      for (let j = 0; j < tail.length; j++) {
-        i += j
-        out.push(tail[j](t[i]))
-      }
-    }
-
-    return "[" + out.join(", ") + "]"
-  },
-  Objects: (ast, visit) => {
-    const propertySignatures = ast.propertySignatures.map((ps) => visit(ps.type))
-    const indexSignatures = ast.indexSignatures.map((is) => visit(is.type))
-    if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
-      return format
-    }
-    return (t) => {
-      const out: Array<string> = []
-      const visited = new Set<PropertyKey>()
-      // ---------------------------------------------
-      // handle property signatures
-      // ---------------------------------------------
-      for (let i = 0; i < propertySignatures.length; i++) {
-        const ps = ast.propertySignatures[i]
-        const name = ps.name
-        visited.add(name)
-        if (AST.isOptional(ps.type) && !Object.hasOwn(t, name)) {
-          continue
-        }
-        out.push(
-          `${formatPropertyKey(name)}: ${propertySignatures[i](t[name])}`
-        )
-      }
-      // ---------------------------------------------
-      // handle index signatures
-      // ---------------------------------------------
-      for (let i = 0; i < indexSignatures.length; i++) {
-        const keys = AST.getIndexSignatureKeys(t, ast.indexSignatures[i].parameter)
-        for (const key of keys) {
-          if (visited.has(key)) {
-            continue
+      case "Null":
+        if (options.onNull) return options.onNull(ast, visit)
+        return format
+      case "Undefined":
+        if (options.onUndefined) return options.onUndefined(ast, visit)
+        return format
+      case "Void":
+        if (options.onVoid) return options.onVoid(ast, visit)
+        return () => "void"
+      case "Never":
+        if (options.onNever) return options.onNever(ast, visit)
+        throw new globalThis.Error("required `formatter` annotation", { cause: ast })
+      case "Unknown":
+        if (options.onUnknown) return options.onUnknown(ast, visit)
+        return format
+      case "Any":
+        if (options.onAny) return options.onAny(ast, visit)
+        return format
+      case "String":
+        if (options.onString) return options.onString(ast, visit)
+        return format
+      case "Number":
+        if (options.onNumber) return options.onNumber(ast, visit)
+        return format
+      case "Boolean":
+        if (options.onBoolean) return options.onBoolean(ast, visit)
+        return format
+      case "BigInt":
+        if (options.onBigInt) return options.onBigInt(ast, visit)
+        return format
+      case "Symbol":
+        if (options.onSymbol) return options.onSymbol(ast, visit)
+        return format
+      case "Literal":
+        if (options.onLiteral) return options.onLiteral(ast, visit)
+        return format
+      case "UniqueSymbol":
+        if (options.onUniqueSymbol) return options.onUniqueSymbol(ast, visit)
+        return format
+      case "ObjectKeyword":
+        if (options.onObjectKeyword) return options.onObjectKeyword(ast, visit)
+        return format
+      case "Enum":
+        if (options.onEnum) return options.onEnum(ast, visit)
+        return format
+      case "TemplateLiteral":
+        if (options.onTemplateLiteral) return options.onTemplateLiteral(ast, visit)
+        return format
+      case "Arrays": {
+        if (options.onArrays) return options.onArrays(ast, visit)
+        const elements = ast.elements.map(visit)
+        const rest = ast.rest.map(visit)
+        return (t) => {
+          const out: Array<string> = []
+          let i = 0
+          // ---------------------------------------------
+          // handle elements
+          // ---------------------------------------------
+          for (; i < elements.length; i++) {
+            if (t.length < i + 1) {
+              if (AST.isOptional(ast.elements[i])) {
+                continue
+              }
+            } else {
+              out.push(elements[i](t[i]))
+            }
           }
-          visited.add(key)
-          out.push(`${formatPropertyKey(key)}: ${indexSignatures[i](t[key])}`)
+          // ---------------------------------------------
+          // handle rest element
+          // ---------------------------------------------
+          if (rest.length > 0) {
+            const [head, ...tail] = rest
+            for (; i < t.length - tail.length; i++) {
+              out.push(head(t[i]))
+            }
+            // ---------------------------------------------
+            // handle post rest elements
+            // ---------------------------------------------
+            for (let j = 0; j < tail.length; j++) {
+              i += j
+              out.push(tail[j](t[i]))
+            }
+          }
+
+          return "[" + out.join(", ") + "]"
         }
       }
+      case "Objects": {
+        if (options.onObjects) return options.onObjects(ast, visit)
+        const propertySignatures = ast.propertySignatures.map((ps) => visit(ps.type))
+        const indexSignatures = ast.indexSignatures.map((is) => visit(is.type))
+        if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
+          return format
+        }
+        return (t) => {
+          const out: Array<string> = []
+          const visited = new Set<PropertyKey>()
+          // ---------------------------------------------
+          // handle property signatures
+          // ---------------------------------------------
+          for (let i = 0; i < propertySignatures.length; i++) {
+            const ps = ast.propertySignatures[i]
+            const name = ps.name
+            visited.add(name)
+            if (AST.isOptional(ps.type) && !Object.hasOwn(t, name)) {
+              continue
+            }
+            out.push(`${formatPropertyKey(name)}: ${propertySignatures[i](t[name])}`)
+          }
+          // ---------------------------------------------
+          // handle index signatures
+          // ---------------------------------------------
+          for (let i = 0; i < indexSignatures.length; i++) {
+            const keys = AST.getIndexSignatureKeys(t, ast.indexSignatures[i].parameter)
+            for (const key of keys) {
+              if (visited.has(key)) {
+                continue
+              }
+              visited.add(key)
+              out.push(`${formatPropertyKey(key)}: ${indexSignatures[i](t[key])}`)
+            }
+          }
 
-      return out.length > 0 ? "{ " + out.join(", ") + " }" : "{}"
-    }
-  },
-  Union: (_, visit, getCandidates) => (t) => {
-    const candidates = getCandidates(t)
-    const refinements = candidates.map(Parser.refinement)
-    for (let i = 0; i < candidates.length; i++) {
-      const is = refinements[i]
-      if (is(t)) {
-        return visit(candidates[i])(t)
+          return out.length > 0 ? "{ " + out.join(", ") + " }" : "{}"
+        }
+      }
+      case "Union": {
+        const getCandidates = (t: any) => AST.getCandidates(t, ast.types)
+        if (options.onUnion) return options.onUnion(ast, visit, getCandidates)
+        return (t) => {
+          const candidates = getCandidates(t)
+          const refinements = candidates.map(Parser.refinement)
+          for (let i = 0; i < candidates.length; i++) {
+            const is = refinements[i]
+            if (is(t)) {
+              return visit(candidates[i])(t)
+            }
+          }
+          return format(t)
+        }
+      }
+      case "Suspend": {
+        if (options.onSuspend) return options.onSuspend(ast, visit)
+        const get = AST.memoizeThunk(() => visit(ast.thunk()))
+        return (t) => get()(t)
       }
     }
-    return format(t)
-  },
-  Suspend: (ast, visit) => {
-    const get = AST.memoizeThunk(() => visit(ast.thunk()))
-    return (t) => get()(t)
   }
+  return (schema) => visit(schema.ast)
 }
 
 /**
  * @category Formatter
  * @since 4.0.0
  */
-export function makeFormatterVisit(visitor: AST.Visitor<Formatter<any>>) {
-  const visit = memoize(AST.makeVisit<Formatter<any>>(visitor))
-  return <T>(schema: Schema<T>): Formatter<T> => {
-    return visit(schema.ast)
-  }
-}
-
-/**
- * @category Formatter
- * @since 4.0.0
- */
-export const makeFormatter = makeFormatterVisit(defaultVisitorFormat)
+export const makeFormatter = makeFormatterFactory({})
 
 // -----------------------------------------------------------------------------
 // Equivalence APIs
