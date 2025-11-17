@@ -6577,7 +6577,7 @@ export function overrideEquivalence<S extends Top>(equivalence: () => Equivalenc
  * @since 4.0.0
  */
 export function makeEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> {
-  return InternalEquivalence.go(schema.ast)
+  return InternalEquivalence.memoized(schema.ast)
 }
 
 // -----------------------------------------------------------------------------

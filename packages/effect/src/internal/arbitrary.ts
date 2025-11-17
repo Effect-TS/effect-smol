@@ -223,9 +223,9 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
         // ---------------------------------------------
         // handle elements
         // ---------------------------------------------
-        const elements: Array<FastCheck.Arbitrary<Option.Option<any>>> = ast.elements.map((ast, i) => {
-          const out = go(ast, [...path, i])(fc, reset)
-          if (!AST.isOptional(ast)) {
+        const elements: Array<FastCheck.Arbitrary<Option.Option<any>>> = ast.elements.map((e, i) => {
+          const out = go(e, [...path, i])(fc, reset)
+          if (!AST.isOptional(e)) {
             return out.map(Option.some)
           }
           return out.chain((a) => fc.boolean().map((b) => b ? Option.some(a) : Option.none()))
@@ -236,7 +236,7 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
         // ---------------------------------------------
         if (Array.isReadonlyArrayNonEmpty(ast.rest)) {
           const len = ast.elements.length
-          const [head, ...tail] = ast.rest.map((ast, i) => go(ast, [...path, len + i])(fc, reset))
+          const [head, ...tail] = ast.rest.map((r, i) => go(r, [...path, len + i])(fc, reset))
 
           const rest = array(fc, ast.elements.length === 0 ? ctx : reset, head)
           out = out.chain((as) => {

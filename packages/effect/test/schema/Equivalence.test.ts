@@ -2,7 +2,7 @@ import { DateTime, Duration } from "effect"
 import { Equivalence, Option, Redacted, Result } from "effect/data"
 import { Schema } from "effect/schema"
 import { describe, it } from "vitest"
-import { assertFalse, assertTrue } from "../utils/assert.ts"
+import { assertFalse, assertTrue, throws } from "../utils/assert.ts"
 
 const Modulo2 = Schema.Number.annotate({
   equivalence: (): Equivalence.Equivalence<number> => Equivalence.make((a, b) => a % 2 === b % 2)
@@ -13,6 +13,25 @@ const Modulo3 = Schema.Number.annotate({
 })
 
 describe("Equivalence generation", () => {
+  it("Never", () => {
+    throws(
+      () =>
+        Schema.makeEquivalence(Schema.Struct({
+          a: Schema.Never
+        })),
+      `Unsupported AST Never
+  at ["a"]`
+    )
+    throws(
+      () =>
+        Schema.makeEquivalence(Schema.Tuple([
+          Schema.Never
+        ])),
+      `Unsupported AST Never
+  at [0]`
+    )
+  })
+
   it("String", () => {
     const schema = Schema.String
     const equivalence = Schema.makeEquivalence(schema)

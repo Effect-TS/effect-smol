@@ -5,9 +5,14 @@ import * as Equal from "../interfaces/Equal.ts"
 import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
 import * as Parser from "../schema/Parser.ts"
+import { errorWithPath } from "./errors.ts"
 
 /** @internal */
-export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
+export const memoized = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
+  return go(ast, [])
+})
+
+function go(ast: AST.AST, path: ReadonlyArray<PropertyKey>): Equivalence.Equivalence<any> {
   // ---------------------------------------------
   // handle annotations
   // ---------------------------------------------
@@ -15,14 +20,11 @@ export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
     | Annotations.Equivalence.Override<any, ReadonlyArray<any>>
     | undefined
   if (annotation) {
-    if (AST.isDeclaration(ast)) {
-      return annotation(ast.typeParameters.map(go))
-    }
-    return annotation([])
+    return annotation(AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => go(tp, path)) : [])
   }
   switch (ast._tag) {
     case "Never":
-      throw new Error("cannot generate Equivalence, no annotation found for never", { cause: ast })
+      throw errorWithPath(`Unsupported AST ${ast._tag}`, path)
     case "Declaration":
     case "Null":
     case "Undefined":
@@ -41,8 +43,9 @@ export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
     case "TemplateLiteral":
       return Equal.equals
     case "Arrays": {
-      const elements = ast.elements.map(go)
-      const rest = ast.rest.map(go)
+      const elements = ast.elements.map((e, i) => go(e, [...path, i]))
+      const len = ast.elements.length
+      const rest = ast.rest.map((r, i) => go(r, [...path, len + i]))
       return Equivalence.make((a, b) => {
         if (!Array.isArray(a) || !Array.isArray(b)) {
           return false
@@ -87,8 +90,8 @@ export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
       if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
         return Equal.equals
       }
-      const propertySignatures = ast.propertySignatures.map((ps) => go(ps.type))
-      const indexSignatures = ast.indexSignatures.map((is) => go(is.type))
+      const propertySignatures = ast.propertySignatures.map((ps) => go(ps.type, [...path, ps.name]))
+      const indexSignatures = ast.indexSignatures.map((is) => go(is.type, path))
       return Equivalence.make((a, b) => {
         if (!Predicate.isObject(a) || !Predicate.isObject(b)) {
           return false
@@ -137,14 +140,14 @@ export const go = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
         for (let i = 0; i < candidates.length; i++) {
           const is = types[i]
           if (is(a) && is(b)) {
-            return go(candidates[i])(a, b)
+            return go(candidates[i], path)(a, b)
           }
         }
         return false
       })
     case "Suspend": {
-      const get = AST.memoizeThunk(() => go(ast.thunk()))
+      const get = AST.memoizeThunk(() => go(ast.thunk(), path))
       return Equivalence.make((a, b) => get()(a, b))
     }
   }
-})
+}
