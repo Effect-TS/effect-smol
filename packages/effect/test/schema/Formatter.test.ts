@@ -498,7 +498,7 @@ describe("Formatter generation", () => {
   })
 
   it("should allow for custom compilers", () => {
-    const makeFormatter = Schema.makeFormatterFactory({
+    const makeFormatter = Schema.makeFormatterCompiler({
       onBoolean: () => (b: boolean) => b ? "True" : "False"
     })
     strictEqual(makeFormatter(Schema.Boolean)(true), `True`)

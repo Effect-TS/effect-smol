@@ -6384,7 +6384,7 @@ export function makeArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["
 }
 
 // -----------------------------------------------------------------------------
-// Format APIs
+// Formatter APIs
 // -----------------------------------------------------------------------------
 
 /**
@@ -6408,7 +6408,7 @@ type FormatterOverride<A extends AST.AST> = (ast: A, visit: (ast: AST.AST) => Fo
  * @category Formatter
  * @since 4.0.0
  */
-export function makeFormatterFactory(options: {
+export function makeFormatterCompiler(options: {
   readonly onDeclaration?:
     | FormatterOverride<AST.Declaration>
     | undefined
@@ -6568,7 +6568,7 @@ export function makeFormatterFactory(options: {
  * @category Formatter
  * @since 4.0.0
  */
-export const makeFormatter = makeFormatterFactory({})
+export const makeFormatter = makeFormatterCompiler({})
 
 // -----------------------------------------------------------------------------
 // Equivalence APIs
