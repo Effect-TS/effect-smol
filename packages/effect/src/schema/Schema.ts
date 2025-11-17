@@ -6439,7 +6439,7 @@ export function makeFormatterFactory(options: {
     | undefined
   readonly onSuspend?: FormatterOverride<AST.Suspend> | undefined
 }): <T>(schema: Schema<T>) => Formatter<T> {
-  function visit(ast: AST.AST): (t: any) => string {
+  const visit = memoize((ast: AST.AST): (t: any) => string => {
     // ---------------------------------------------
     // handle annotation
     // ---------------------------------------------
@@ -6450,58 +6450,9 @@ export function makeFormatterFactory(options: {
       return annotation(AST.isDeclaration(ast) ? ast.typeParameters.map(visit) : [])
     }
     switch (ast._tag) {
-      case "Declaration": {
-        if (options.onDeclaration) return options.onDeclaration(ast, visit)
-        return format
-      }
-      case "Null":
-        if (options.onNull) return options.onNull(ast, visit)
-        return format
-      case "Undefined":
-        if (options.onUndefined) return options.onUndefined(ast, visit)
-        return format
-      case "Void":
-        if (options.onVoid) return options.onVoid(ast, visit)
-        return () => "void"
       case "Never":
         if (options.onNever) return options.onNever(ast, visit)
         throw new globalThis.Error("required `formatter` annotation", { cause: ast })
-      case "Unknown":
-        if (options.onUnknown) return options.onUnknown(ast, visit)
-        return format
-      case "Any":
-        if (options.onAny) return options.onAny(ast, visit)
-        return format
-      case "String":
-        if (options.onString) return options.onString(ast, visit)
-        return format
-      case "Number":
-        if (options.onNumber) return options.onNumber(ast, visit)
-        return format
-      case "Boolean":
-        if (options.onBoolean) return options.onBoolean(ast, visit)
-        return format
-      case "BigInt":
-        if (options.onBigInt) return options.onBigInt(ast, visit)
-        return format
-      case "Symbol":
-        if (options.onSymbol) return options.onSymbol(ast, visit)
-        return format
-      case "Literal":
-        if (options.onLiteral) return options.onLiteral(ast, visit)
-        return format
-      case "UniqueSymbol":
-        if (options.onUniqueSymbol) return options.onUniqueSymbol(ast, visit)
-        return format
-      case "ObjectKeyword":
-        if (options.onObjectKeyword) return options.onObjectKeyword(ast, visit)
-        return format
-      case "Enum":
-        if (options.onEnum) return options.onEnum(ast, visit)
-        return format
-      case "TemplateLiteral":
-        if (options.onTemplateLiteral) return options.onTemplateLiteral(ast, visit)
-        return format
       case "Arrays": {
         if (options.onArrays) return options.onArrays(ast, visit)
         const elements = ast.elements.map(visit)
@@ -6600,8 +6551,16 @@ export function makeFormatterFactory(options: {
         const get = AST.memoizeThunk(() => visit(ast.thunk()))
         return (t) => get()(t)
       }
+      case "Void":
+        if (options.onVoid) return options.onVoid(ast, visit)
+        return () => "void"
+      default: {
+        const handler: any = options[`on${ast._tag}`]
+        if (handler) return handler(ast, visit)
+        return format
+      }
     }
-  }
+  })
   return (schema) => visit(schema.ast)
 }
 
