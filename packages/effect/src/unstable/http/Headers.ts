@@ -8,7 +8,7 @@ import * as Redacted from "../../data/Redacted.ts"
 import { dual } from "../../Function.ts"
 import * as Equal from "../../interfaces/Equal.ts"
 import * as Hash from "../../interfaces/Hash.ts"
-import { type Redactable, symbolRedactable } from "../../interfaces/Inspectable.ts"
+import * as Inspectable from "../../interfaces/Inspectable.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -38,18 +38,21 @@ export const isHeaders = (u: unknown): u is Headers => Predicate.hasProperty(u, 
  * @since 4.0.0
  * @category models
  */
-export interface Headers extends Redactable {
+export interface Headers extends Inspectable.Redactable {
   readonly [TypeId]: TypeId
   readonly [key: string]: string
 }
 
-const Proto = Object.assign(Object.create(null), {
+const Proto = Object.assign(Object.create(null), Inspectable.BaseProto, {
   [TypeId]: TypeId,
-  [symbolRedactable](
+  [Inspectable.symbolRedactable](
     this: Headers,
     context: ServiceMap.ServiceMap<never>
   ): Record<string, string | Redacted.Redacted<string>> {
     return redact(this, ServiceMap.get(context, CurrentRedactedNames))
+  },
+  toJSON() {
+    return Inspectable.redact(this)
   },
   [Equal.symbol](this: Headers, that: Headers): boolean {
     return Equivalence(this, that)
