@@ -465,17 +465,16 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
   }
 
   /**
-   * Returns a 32-bit fraction in the range [0, 1].
-   */
-  function next32(): number {
-    return 0.5 + nextInt32() * 2.3283064365386963e-10 // 2^-32
-  }
-
-  /**
    * Returns a 53-bit fraction in the range [0, 1).
    */
   function nextDoubleUnsafe(): number {
-    return next32() + (next32() * 0x200000 | 0) * 1.1102230246251565e-16 // 2^-53
+    const hi = (nextInt32() >>> 0) & 0x1FFFFF // take top 21 bits
+    const lo = nextInt32() >>> 0 // full 32 bits
+
+    // 53-bit integer
+    const combined = hi * 4294967296 + lo
+
+    return combined / 9007199254740991 // [0, 1)
   }
 
   return { nextIntUnsafe, nextDoubleUnsafe }
