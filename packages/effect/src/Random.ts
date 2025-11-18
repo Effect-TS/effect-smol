@@ -51,145 +51,25 @@ import * as ServiceMap from "./ServiceMap.ts"
  * ```
  *
  * @since 4.0.0
- * @category Services
+ * @category Random Number Generators
  */
-export const Random = ServiceMap.Reference<Service>("effect/Random", {
-  defaultValue: () => new RandomImpl()
+export const Random = ServiceMap.Reference<{
+  nextIntUnsafe(): number
+  nextDoubleUnsafe(): number
+}>("effect/Random", {
+  defaultValue: () => ({
+    nextIntUnsafe() {
+      return Math.floor(Math.random() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) +
+        Number.MIN_SAFE_INTEGER
+    },
+    nextDoubleUnsafe() {
+      return Math.random()
+    }
+  })
 })
 
-/**
- * Represents a service for generating random numbers.
- *
- * @example
- * ```ts
- * import { Effect, Random } from "effect"
- *
- * const program = Effect.gen(function* () {
- *   const random = yield* Random.Random
- *
- *   const float = yield* random.next()
- *   const integer = yield* random.nextInt()
- *   const inRange = yield* random.nextIntBetween(1, 100)
- *   const uuid = yield* random.nextUUIDv4()
- *
- *   console.log("Float:", float)
- *   console.log("Integer:", integer)
- *   console.log("In range:", inRange)
- *   console.log("UUID:", uuid)
- * })
- * ```
- *
- * @since 4.0.0
- * @category Models
- */
-export interface Service {
-  /**
-   * Generates a random number between 0 (inclusive) and 1 (inclusive).
-   *
-   * NOTE: This method is unsafe because it directly relies on side-effecting
-   * code without being wrapped in an effect.
-   *
-   * @example
-   * ```ts
-   * import { Effect, Random } from "effect"
-   *
-   * const program = Effect.gen(function* () {
-   *   const random = yield* Random.Random
-   *   const value = random.nextUnsafe()
-   *   console.log("Random value:", value)
-   * })
-   * ```
-   */
-  readonly nextUnsafe: () => number
-
-  /**
-   * Generates a random number between 0 (inclusive) and 1 (inclusive).
-   *
-   * @example
-   * ```ts
-   * import { Effect, Random } from "effect"
-   *
-   * const program = Effect.gen(function* () {
-   *   const random = yield* Random.Random
-   *   const value = yield* random.next()
-   *   console.log("Random value:", value)
-   * })
-   * ```
-   */
-  readonly next: () => Effect.Effect<number>
-
-  /**
-   * Generates a random integer between `Number.MIN_SAFE_INTEGER` (inclusive)
-   * and `Number.MAX_SAFE_INTEGER` (inclusive).
-   *
-   * @example
-   * ```ts
-   * import { Effect, Random } from "effect"
-   *
-   * const program = Effect.gen(function* () {
-   *   const random = yield* Random.Random
-   *   const randomInt = yield* random.nextInt()
-   *   console.log("Random integer:", randomInt)
-   * })
-   * ```
-   */
-  readonly nextInt: () => Effect.Effect<number>
-
-  /**
-   * Generates a random number between `min` (inclusive) and `max` (inclusive).
-   *
-   * @example
-   * ```ts
-   * import { Effect, Random } from "effect"
-   *
-   * const program = Effect.gen(function* () {
-   *   const random = yield* Random.Random
-   *   const value = yield* random.nextBetween(10, 20)
-   * })
-   * ```
-   */
-  readonly nextBetween: (min: number, max: number) => Effect.Effect<number>
-
-  /**
-   * Generates a random number between `min` (inclusive) and `max` (inclusive).
-   *
-   * Set `options.halfOpen: true` to generate in the half-open range
-   * `[min, max)`.
-   *
-   * @example
-   * ```ts
-   * import { Effect, Random } from "effect"
-   *
-   * const program = Effect.gen(function* () {
-   *   const random = yield* Random.Random
-   *   const diceRoll1 = yield* random.nextIntBetween(1, 6)
-   *   const diceRoll2 = yield* random.nextIntBetween(1, 6, {
-   *     halfOpen: true
-   *   })
-   *   const diceRoll3 = yield* random.nextIntBetween(0, 10)
-   * })
-   * ```
-   */
-  readonly nextIntBetween: (min: number, max: number, options?: {
-    readonly halfOpen?: boolean
-  }) => Effect.Effect<number>
-
-  /**
-   * Generates a random UUID (v4) string.
-   *
-   * @example
-   * ```ts
-   * import { Effect, Random } from "effect"
-   *
-   * const program = Effect.gen(function* () {
-   *   const random = yield* Random.Random
-   *   const uuid = yield* random.nextUUIDv4()
-   *   console.log("UUID:", uuid)
-   * })
-   * ```
-   */
-  readonly nextUUIDv4: () => Effect.Effect<string>
-}
+const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effect<A> =>
+  Effect.withFiber((fiber) => Effect.succeed(f(ServiceMap.get(fiber.services, Random))))
 
 /**
  * Generates a random number between 0 (inclusive) and 1 (inclusive).
@@ -207,7 +87,7 @@ export interface Service {
  * @since 4.0.0
  * @category Random Number Generators
  */
-export const next = (): Effect.Effect<number> => Effect.flatMap(Effect.service(Random), (random) => random.next())
+export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe())
 
 /**
  * Generates a random integer between `Number.MIN_SAFE_INTEGER` (inclusive)
@@ -226,7 +106,7 @@ export const next = (): Effect.Effect<number> => Effect.flatMap(Effect.service(R
  * @since 4.0.0
  * @category Random Number Generators
  */
-export const nextInt = (): Effect.Effect<number> => Effect.flatMap(Effect.service(Random), (random) => random.nextInt())
+export const nextInt: Effect.Effect<number> = randomWith((r) => r.nextIntUnsafe())
 
 /**
  * Generates a random number between `min` (inclusive) and `max` (inclusive).
@@ -245,7 +125,7 @@ export const nextInt = (): Effect.Effect<number> => Effect.flatMap(Effect.servic
  * @category Random Number Generators
  */
 export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
-  Effect.flatMap(Effect.service(Random), (random) => random.nextBetween(min, max))
+  randomWith((r) => r.nextDoubleUnsafe() * (max - min) + min)
 
 /**
  * Generates a random number between `min` (inclusive) and `max` (inclusive).
@@ -271,8 +151,14 @@ export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
  */
 export const nextIntBetween = (min: number, max: number, options?: {
   readonly halfOpen?: boolean
-}): Effect.Effect<number> =>
-  Effect.flatMap(Effect.service(Random), (random) => random.nextIntBetween(min, max, options))
+}): Effect.Effect<number> => {
+  const extra = options?.halfOpen === true ? 0 : 1
+  return randomWith((r) => {
+    const minInt = Math.ceil(min)
+    const maxInt = Math.floor(max)
+    return Math.floor(r.nextDoubleUnsafe() * (maxInt - minInt + extra)) + minInt
+  })
+}
 
 /**
  * Generates a random UUID (v4) string.
@@ -290,68 +176,31 @@ export const nextIntBetween = (min: number, max: number, options?: {
  * @since 4.0.0
  * @category Random Number Generators
  */
-export const nextUUIDv4 = (): Effect.Effect<string> =>
-  Effect.flatMap(Effect.service(Random), (random) => random.nextUUIDv4())
+export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
+  // Generate 16 random bytes (128 bits) for UUID
+  const bytes: Array<number> = []
+  for (let i = 0; i < 16; i++) {
+    // Get unsigned byte [0, 255] from nextInt (signed 32-bit)
+    bytes.push((r.nextIntUnsafe() >>> 0) & 0xFF)
+  }
 
-class RandomImpl implements Service {
-  private readonly prng: {
-    readonly nextDouble: () => number
-    readonly nextInt: () => number
-  }
-  constructor(seed?: string | number) {
-    this.prng = ISAAC_CSPRNG(seed)
-  }
-  nextUnsafe(): number {
-    return this.prng.nextDouble()
-  }
-  next(): Effect.Effect<number> {
-    return Effect.sync(() => this.nextUnsafe())
-  }
-  nextInt(): Effect.Effect<number> {
-    return Effect.sync(() => this.prng.nextInt())
-  }
-  nextBetween(min: number, max: number): Effect.Effect<number> {
-    return Effect.sync(() => this.nextUnsafe() * (max - min) + min)
-  }
-  nextIntBetween(min: number, max: number, options?: {
-    readonly halfOpen?: boolean
-  }): Effect.Effect<number> {
-    return Effect.sync(() => {
-      const minInt = Math.ceil(min)
-      const maxInt = Math.floor(max)
-      return options?.halfOpen === true
-        ? Math.floor(this.nextUnsafe() * (maxInt - minInt)) + minInt
-        : Math.floor(this.nextUnsafe() * (maxInt - minInt + 1)) + minInt
-    })
-  }
-  nextUUIDv4(): Effect.Effect<string> {
-    return Effect.sync(() => {
-      // Generate 16 random bytes (128 bits) for UUID
-      const bytes: Array<number> = []
-      for (let i = 0; i < 16; i++) {
-        // Get unsigned byte [0, 255] from nextInt (signed 32-bit)
-        bytes.push((this.prng.nextInt() >>> 0) & 0xFF)
-      }
+  // Set version to 4 (bits 12-15 of time_hi_and_version)
+  bytes[6] = (bytes[6] & 0x0F) | 0x40
 
-      // Set version to 4 (bits 12-15 of time_hi_and_version)
-      bytes[6] = (bytes[6] & 0x0F) | 0x40
+  // Set variant to RFC 4122 (bits 6-7 of clock_seq_hi_and_reserved)
+  bytes[8] = (bytes[8] & 0x3F) | 0x80
 
-      // Set variant to RFC 4122 (bits 6-7 of clock_seq_hi_and_reserved)
-      bytes[8] = (bytes[8] & 0x3F) | 0x80
+  // Format as UUID string: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+  const hex = (n: number) => n.toString(16).padStart(2, "0")
 
-      // Format as UUID string: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-      const hex = (n: number) => n.toString(16).padStart(2, "0")
-
-      return [
-        bytes.slice(0, 4).map(hex).join(""),
-        bytes.slice(4, 6).map(hex).join(""),
-        bytes.slice(6, 8).map(hex).join(""),
-        bytes.slice(8, 10).map(hex).join(""),
-        bytes.slice(10, 16).map(hex).join("")
-      ].join("-")
-    })
-  }
-}
+  return [
+    bytes.slice(0, 4).map(hex).join(""),
+    bytes.slice(4, 6).map(hex).join(""),
+    bytes.slice(6, 8).map(hex).join(""),
+    bytes.slice(8, 10).map(hex).join(""),
+    bytes.slice(10, 16).map(hex).join("")
+  ].join("-")
+})
 
 /**
  * Seeds the pseudorandom number generator with the specified value.
@@ -387,7 +236,7 @@ export const withSeed: {
 } = dual(2, <A, E, R>(
   self: Effect.Effect<A, E, R>,
   seed: string | number
-) => Effect.provideService(self, Random, new RandomImpl(seed)))
+) => Effect.provideService(self, Random, ISAAC_CSPRNG(seed)))
 
 /*///////////////////////////////////////////////////////////////////////////////////////////////////
 This is a derivative work copyright (c) 2025 Effectful Technologies Inc, under MIT license.
@@ -603,7 +452,7 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
     return result[generation]
   }
 
-  function nextInt(): number {
+  function nextIntUnsafe(): number {
     // Get 32 bits (unsigned)
     const low = nextInt32() >>> 0 // [0, 2^32-1]
 
@@ -616,20 +465,19 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
   }
 
   /**
-   * Returns a 32-bit fraction in the range [0, 1].
-   */
-  function next32(): number {
-    return 0.5 + nextInt32() * 2.3283064365386963e-10 // 2^-32
-  }
-
-  /**
    * Returns a 53-bit fraction in the range [0, 1).
    */
-  function nextDouble(): number {
-    return next32() + (next32() * 0x200000 | 0) * 1.1102230246251565e-16 // 2^-53
+  function nextDoubleUnsafe(): number {
+    const hi = (nextInt32() >>> 0) & 0x1FFFFF // take top 21 bits
+    const lo = nextInt32() >>> 0 // full 32 bits
+
+    // 53-bit integer
+    const combined = hi * 4294967296 + lo
+
+    return combined / 9007199254740991 // [0, 1)
   }
 
-  return { nextInt, nextDouble }
+  return { nextIntUnsafe, nextDoubleUnsafe }
 }
 
 /**
