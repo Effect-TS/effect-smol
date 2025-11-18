@@ -8,15 +8,13 @@
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const random = yield* Random.Random
- *
- *   const randomFloat = yield* random.next()
+ *   const randomFloat = yield* Random.next
  *   console.log("Random float:", randomFloat)
  *
- *   const randomInt = yield* random.nextInt()
+ *   const randomInt = yield* Random.nextInt
  *   console.log("Random integer:", randomInt)
  *
- *   const diceRoll = yield* random.nextIntBetween(1, 6)
+ *   const diceRoll = yield* Random.nextIntBetween(1, 6)
  *   console.log("Dice roll:", diceRoll)
  * })
  * ```
@@ -36,12 +34,10 @@ import * as ServiceMap from "./ServiceMap.ts"
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const random = yield* Random.Random
- *
- *   const float = yield* random.next()
- *   const integer = yield* random.nextInt()
- *   const inRange = yield* random.nextIntBetween(1, 100)
- *   const uuid = yield* random.nextUUIDv4()
+ *   const float = yield* Random.next
+ *   const integer = yield* Random.nextInt
+ *   const inRange = yield* Random.nextIntBetween(1, 100)
+ *   const uuid = yield* Random.nextUUIDv4
  *
  *   console.log("Float:", float)
  *   console.log("Integer:", integer)
@@ -79,7 +75,7 @@ const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effec
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const randomDouble = yield* Random.next()
+ *   const randomDouble = yield* Random.next
  *   console.log("Random double:", randomDouble)
  * })
  * ```
@@ -98,7 +94,7 @@ export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe(
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const randomInt = yield* Random.nextInt()
+ *   const randomInt = yield* Random.nextInt
  *   console.log("Random integer:", randomInt)
  * })
  * ```
@@ -168,7 +164,7 @@ export const nextIntBetween = (min: number, max: number, options?: {
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const uuid = yield* Random.nextUUIDv4()
+ *   const uuid = yield* Random.nextUUIDv4
  *   console.log("UUID:", uuid)
  * })
  * ```
@@ -213,8 +209,8 @@ export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function* () {
- *   const value1 = yield* Random.next()
- *   const value2 = yield* Random.next()
+ *   const value1 = yield* Random.next
+ *   const value2 = yield* Random.next
  *   console.log(value1, value2)
  * })
  *
