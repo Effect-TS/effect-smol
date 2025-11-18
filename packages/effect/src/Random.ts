@@ -68,8 +68,8 @@ export const Random = ServiceMap.Reference<{
   })
 })
 
-const randomWith = <A, E, R>(f: (random: typeof Random["Service"]) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-  Effect.withFiber((fiber) => f(ServiceMap.get(fiber.services, Random)))
+const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effect<A> =>
+  Effect.withFiber((fiber) => Effect.succeed(f(ServiceMap.get(fiber.services, Random))))
 
 /**
  * Generates a random number between 0 (inclusive) and 1 (inclusive).
@@ -87,7 +87,7 @@ const randomWith = <A, E, R>(f: (random: typeof Random["Service"]) => Effect.Eff
  * @since 4.0.0
  * @category Random Number Generators
  */
-export const next: Effect.Effect<number> = randomWith((r) => Effect.succeed(r.nextDoubleUnsafe()))
+export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe())
 
 /**
  * Generates a random integer between `Number.MIN_SAFE_INTEGER` (inclusive)
@@ -106,7 +106,7 @@ export const next: Effect.Effect<number> = randomWith((r) => Effect.succeed(r.ne
  * @since 4.0.0
  * @category Random Number Generators
  */
-export const nextInt: Effect.Effect<number> = randomWith((r) => Effect.succeed(r.nextIntUnsafe()))
+export const nextInt: Effect.Effect<number> = randomWith((r) => r.nextIntUnsafe())
 
 /**
  * Generates a random number between `min` (inclusive) and `max` (inclusive).
@@ -125,7 +125,7 @@ export const nextInt: Effect.Effect<number> = randomWith((r) => Effect.succeed(r
  * @category Random Number Generators
  */
 export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
-  randomWith((r) => Effect.succeed(r.nextDoubleUnsafe() * (max - min) + min))
+  randomWith((r) => r.nextDoubleUnsafe() * (max - min) + min)
 
 /**
  * Generates a random number between `min` (inclusive) and `max` (inclusive).
@@ -156,7 +156,7 @@ export const nextIntBetween = (min: number, max: number, options?: {
   return randomWith((r) => {
     const minInt = Math.ceil(min)
     const maxInt = Math.floor(max)
-    return Effect.succeed(Math.floor(r.nextDoubleUnsafe() * (maxInt - minInt + extra)) + minInt)
+    return Math.floor(r.nextDoubleUnsafe() * (maxInt - minInt + extra)) + minInt
   })
 }
 
@@ -193,13 +193,13 @@ export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
   // Format as UUID string: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
   const hex = (n: number) => n.toString(16).padStart(2, "0")
 
-  return Effect.succeed([
+  return [
     bytes.slice(0, 4).map(hex).join(""),
     bytes.slice(4, 6).map(hex).join(""),
     bytes.slice(6, 8).map(hex).join(""),
     bytes.slice(8, 10).map(hex).join(""),
     bytes.slice(10, 16).map(hex).join("")
-  ].join("-"))
+  ].join("-")
 })
 
 /**
