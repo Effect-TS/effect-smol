@@ -49,6 +49,7 @@ import * as Cause from "../../Cause.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
+import * as Random from "../../Random.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 
 /**
@@ -162,8 +163,7 @@ const makeGenerator = ({
   return Effect.fnUntraced(function*() {
     const chars = new Array(size)
     for (let i = 0; i < size; i++) {
-      // TODO: replace this once `Random` is ported
-      const index = yield* Effect.sync(() => Math.random())
+      const index = yield* Random.next
       chars[i] = alphabet[(index * alphabetLength) | 0]
     }
     const identifier = chars.join("")

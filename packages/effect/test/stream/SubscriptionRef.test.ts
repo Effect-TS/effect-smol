@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit, Fiber, Number } from "effect"
+import { Effect, Exit, Fiber, Number, Random } from "effect"
 import { Array } from "effect/collections"
 import { Pull, Stream, SubscriptionRef } from "effect/stream"
 
@@ -78,10 +78,8 @@ describe("SubscriptionRef", () => {
 
 const makeConsumer = Effect.fnUntraced(
   function*(ref: SubscriptionRef.SubscriptionRef<number>) {
-    const n = randomInteger(0, 200)
+    const n = yield* Random.nextIntBetween(0, 200)
     const changes = SubscriptionRef.changes(ref)
     return yield* changes.pipe(Stream.take(n), Stream.runCollect)
   }
 )
-
-const randomInteger = (start: number, end: number) => Math.floor(Math.random() * (end - start)) + start
