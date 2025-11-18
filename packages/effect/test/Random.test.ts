@@ -6,7 +6,7 @@ describe("Random", () => {
   describe("next", () => {
     it.effect("generates a number between 0 and 1", () =>
       Effect.gen(function*() {
-        const value = yield* Random.next()
+        const value = yield* Random.next
 
         assert.isAtLeast(value, 0)
         assert.isAtMost(value, 1)
@@ -16,7 +16,7 @@ describe("Random", () => {
   describe("nextInt", () => {
     it.effect("generates a safe integer", () =>
       Effect.gen(function*() {
-        const value = yield* Random.nextInt()
+        const value = yield* Random.nextInt
 
         assert.isTrue(Number.isSafeInteger(value))
         assert.isAtLeast(value, Number.MIN_SAFE_INTEGER)
@@ -70,7 +70,7 @@ describe("Random", () => {
   describe("nextUUIDv4", () => {
     it.effect("generates valid UUID v4 format", () =>
       Effect.gen(function*() {
-        const uuid = yield* Random.nextUUIDv4()
+        const uuid = yield* Random.nextUUIDv4
 
         assert.isString(uuid)
         assert.match(uuid, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
@@ -78,8 +78,8 @@ describe("Random", () => {
 
     it.effect("generates unique UUIDs", () =>
       Effect.gen(function*() {
-        const uuid1 = yield* Random.nextUUIDv4()
-        const uuid2 = yield* Random.nextUUIDv4()
+        const uuid1 = yield* Random.nextUUIDv4
+        const uuid2 = yield* Random.nextUUIDv4
 
         assert.notStrictEqual(uuid1, uuid2)
       }))
@@ -87,8 +87,8 @@ describe("Random", () => {
     it.effect("generates deterministic UUIDs with same seed", () =>
       Effect.gen(function*() {
         const program = Effect.gen(function*() {
-          const uuid1 = yield* Random.nextUUIDv4()
-          const uuid2 = yield* Random.nextUUIDv4()
+          const uuid1 = yield* Random.nextUUIDv4
+          const uuid2 = yield* Random.nextUUIDv4
           return [uuid1, uuid2]
         })
 
@@ -106,9 +106,9 @@ describe("Random", () => {
     it.effect("produces deterministic sequence with same seed", () =>
       Effect.gen(function*() {
         const program = Effect.gen(function*() {
-          const v1 = yield* Random.next()
-          const v2 = yield* Random.nextInt()
-          const v3 = yield* Random.nextUUIDv4()
+          const v1 = yield* Random.next
+          const v2 = yield* Random.nextInt
+          const v3 = yield* Random.nextUUIDv4
           return [v1, v2, v3]
         })
 
@@ -121,8 +121,8 @@ describe("Random", () => {
     it.effect("produces different sequences with different seeds", () =>
       Effect.gen(function*() {
         const program = Effect.gen(function*() {
-          const v1 = yield* Random.next()
-          const v2 = yield* Random.nextInt()
+          const v1 = yield* Random.next
+          const v2 = yield* Random.nextInt
           return [v1, v2]
         })
 
@@ -135,8 +135,8 @@ describe("Random", () => {
     it.effect("works with numeric seeds", () =>
       Effect.gen(function*() {
         const program = Effect.gen(function*() {
-          const v1 = yield* Random.next()
-          const v2 = yield* Random.nextInt()
+          const v1 = yield* Random.next
+          const v2 = yield* Random.nextInt
           return [v1, v2]
         })
 
