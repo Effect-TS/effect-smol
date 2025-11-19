@@ -15,6 +15,11 @@ export * as AST from "./AST.ts"
 /**
  * @since 4.0.0
  */
+export * as FromJsonSchema from "./FromJsonSchema.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as Getter from "./Getter.ts"
 
 /**
