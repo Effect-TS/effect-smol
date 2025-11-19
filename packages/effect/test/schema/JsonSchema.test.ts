@@ -1561,7 +1561,32 @@ describe("JsonSchema generation", () => {
             schema: {
               "type": "number",
               "enum": [0],
-              ...jsonAnnotations
+              "title": "Apple",
+              "allOf": [
+                {
+                  "title": "title",
+                  "description": "description",
+                  "default": Fruits.Apple,
+                  "examples": [Fruits.Apple] as const
+                }
+              ]
+            }
+          }
+        )
+        assertDraft07(
+          schema.annotate({
+            "description": "description",
+            "default": Fruits.Apple,
+            "examples": [Fruits.Apple] as const
+          }),
+          {
+            schema: {
+              "type": "number",
+              "enum": [0],
+              "title": "Apple",
+              "description": "description",
+              "default": Fruits.Apple,
+              "examples": [Fruits.Apple] as const
             }
           }
         )
@@ -1922,13 +1947,13 @@ describe("JsonSchema generation", () => {
                 "description": "b-inner-description"
               },
               "c": {
-                "anyOf": [
+                "type": "string",
+                "description": "c-inner-description",
+                "allOf": [
                   {
-                    "description": "c-inner-description",
-                    "type": "string"
+                    "description": "c-outer-description"
                   }
-                ],
-                "description": "c-outer-description"
+                ]
               },
               "d": {
                 "type": "string",
@@ -2200,13 +2225,13 @@ describe("JsonSchema generation", () => {
                 "description": "b-inner-description"
               },
               {
-                "anyOf": [
+                "type": "string",
+                "description": "c-inner-description",
+                "allOf": [
                   {
-                    "description": "c-inner-description",
-                    "type": "string"
+                    "description": "c-outer-description"
                   }
-                ],
-                "description": "c-outer-description"
+                ]
               },
               {
                 "type": "string",
@@ -2308,14 +2333,14 @@ describe("JsonSchema generation", () => {
           }),
           {
             schema: {
-              "anyOf": [
+              "type": "string",
+              "description": "inner-description",
+              "title": "inner-title",
+              "allOf": [
                 {
-                  "type": "string",
-                  "description": "inner-description",
-                  "title": "inner-title"
+                  "description": "outer-description"
                 }
-              ],
-              "description": "outer-description"
+              ]
             }
           }
         )
@@ -3262,13 +3287,13 @@ describe("JsonSchema generation", () => {
                 "description": "b-inner-description"
               },
               {
-                "anyOf": [
+                "type": "string",
+                "description": "c-inner-description",
+                "allOf": [
                   {
-                    "description": "c-inner-description",
-                    "type": "string"
+                    "description": "c-outer-description"
                   }
-                ],
-                "description": "c-outer-description"
+                ]
               },
               {
                 "type": "string",
@@ -3560,13 +3585,13 @@ describe("JsonSchema generation", () => {
                 "description": "b-inner-description"
               },
               {
-                "anyOf": [
+                "type": "string",
+                "description": "c-inner-description",
+                "allOf": [
                   {
-                    "description": "c-inner-description",
-                    "type": "string"
+                    "description": "c-outer-description"
                   }
-                ],
-                "description": "c-outer-description"
+                ]
               },
               {
                 "type": "string",

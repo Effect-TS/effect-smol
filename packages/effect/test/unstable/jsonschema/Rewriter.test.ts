@@ -351,23 +351,15 @@ describe("Rewriter", () => {
                   "description": "description"
                 },
                 "l": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "description": "a value with a length of at least 1"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "description": "description"
+                  "type": ["string", "null"],
+                  "description": "a value with a length of at least 1 and description"
                 }
               },
               "required": ["a", "b", "c", "d", "e", "f", "g", "h", "i", "l"],
               "additionalProperties": false
             },
             traces: [
-              `removed property "minLength" at ["schema"]["properties"]["l"]["anyOf"][0]`,
+              `merged 1 fragment(s) at ["schema"]["properties"]["l"]`,
               `added required property "a" at ["schema"]`,
               `added required property "b" at ["schema"]`,
               `added required property "c" at ["schema"]`,

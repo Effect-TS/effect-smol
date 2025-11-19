@@ -109,7 +109,7 @@ function go(
         jsonSchema: getDefaultJsonSchema(),
         make: (ast) => go(ast, path, options, false, false)
       })
-      return overwriteJsonSchemaAnnotations(out, ast.annotations, options.generateDescriptions)
+      return mergeOrAppendJsonSchemaAnnotations(out, ast.annotations, options.generateDescriptions)
     }
   }
   // ---------------------------------------------
@@ -120,15 +120,16 @@ function go(
   }
   let out = base(ast, path, options, false)
   // ---------------------------------------------
+  // handle JSON Schema annotations
+  // ---------------------------------------------
+  out = mergeOrAppendJsonSchemaAnnotations(out, ast.annotations, options.generateDescriptions)
+  // ---------------------------------------------
   // handle checks
   // ---------------------------------------------
   if (ast.checks) {
     out = appendFragments(out, getFragments(ast.checks, options, out.type))
   }
-  // ---------------------------------------------
-  // handle JSON Schema annotations
-  // ---------------------------------------------
-  return overwriteJsonSchemaAnnotations(out, ast.annotations, options.generateDescriptions)
+  return out
 }
 
 function base(
@@ -160,7 +161,7 @@ function base(
         jsonSchema: getDefaultJsonSchema(),
         make: (ast) => go(ast, path, options, false, false)
       })
-      return overwriteJsonSchemaAnnotations(out, ast.annotations, options.generateDescriptions)
+      return mergeOrAppendJsonSchemaAnnotations(out, ast.annotations, options.generateDescriptions)
     }
   }
   switch (ast._tag) {
@@ -486,27 +487,6 @@ function unwrap(jsonSchema: Schema.JsonSchema.Schema): Schema.JsonSchema.Schema 
       return jsonSchema.allOf[0]
     }
   }
-}
-
-function overwriteJsonSchemaAnnotations(
-  jsonSchema: Schema.JsonSchema.Schema,
-  annotations: Annotations.Annotations | undefined,
-  generateDescriptions: boolean
-): Schema.JsonSchema.Schema {
-  const jsonSchemaAnnotations = getJsonSchemaAnnotations(annotations, generateDescriptions)
-  if (jsonSchemaAnnotations) {
-    if ("$ref" in jsonSchema) {
-      return { allOf: [jsonSchema, jsonSchemaAnnotations] }
-    } else {
-      const unwrapped = unwrap(jsonSchema)
-      if (unwrapped && !hasIntersection(unwrapped, jsonSchemaAnnotations)) {
-        return { ...unwrapped, ...jsonSchemaAnnotations }
-      } else {
-        return { ...jsonSchema, ...jsonSchemaAnnotations }
-      }
-    }
-  }
-  return unwrap(jsonSchema) ?? jsonSchema
 }
 
 function mergeOrAppendJsonSchemaAnnotations(
