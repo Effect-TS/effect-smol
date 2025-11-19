@@ -1,4 +1,3 @@
-import * as Arr from "../collections/Array.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Inspectable from "../interfaces/Inspectable.ts"
@@ -118,7 +117,7 @@ function go(
   if (ast.encoding) {
     return go(AST.encodedAST(ast), path, options, ignoreIdentifier, ignoreAnnotation)
   }
-  let out = base(ast, path, options, false)
+  let out = flattenArrayJsonSchema(base(ast, path, options, false))
   // ---------------------------------------------
   // handle JSON Schema annotations
   // ---------------------------------------------
@@ -127,9 +126,54 @@ function go(
   // handle checks
   // ---------------------------------------------
   if (ast.checks) {
-    out = appendFragments(out, getFragments(ast.checks, options, out.type))
+    function handleAnnotations(check: AST.Check<any>): void {
+      const annotations = getJsonSchemaAnnotations(check.annotations, options.generateDescriptions)
+      if (annotations) {
+        out = appendFragment(out, annotations)
+      }
+    }
+    function handleFilter(check: AST.Filter<any>): void {
+      const fragment = getConstraint(check, options.target, out.type)
+      if (fragment) {
+        out = appendFragment(
+          out,
+          mergeOrAppendJsonSchemaAnnotations(fragment, check.annotations, options.generateDescriptions)
+        )
+      } else {
+        handleAnnotations(check)
+      }
+    }
+    function handleFilterGroup(checks: AST.Checks): void {
+      for (const check of checks) {
+        switch (check._tag) {
+          case "Filter": {
+            handleFilter(check)
+            break
+          }
+          case "FilterGroup": {
+            handleFilterGroup(check.checks)
+            handleAnnotations(check)
+            break
+          }
+        }
+      }
+    }
+    handleFilterGroup(ast.checks)
   }
   return out
+}
+
+function flattenArrayJsonSchema(jsonSchema: Schema.JsonSchema.Schema): Schema.JsonSchema.Schema {
+  if (Object.keys(jsonSchema).length === 1) {
+    if (Array.isArray(jsonSchema.anyOf) && jsonSchema.anyOf.length === 1) {
+      return jsonSchema.anyOf[0]
+    } else if (Array.isArray(jsonSchema.oneOf) && jsonSchema.oneOf.length === 1) {
+      return jsonSchema.oneOf[0]
+    } else if (Array.isArray(jsonSchema.allOf) && jsonSchema.allOf.length === 1) {
+      return jsonSchema.allOf[0]
+    }
+  }
+  return jsonSchema
 }
 
 function base(
@@ -147,7 +191,7 @@ function base(
     if (annotation) {
       function getDefaultJsonSchema() {
         try {
-          return base(ast, path, options, true)
+          return flattenArrayJsonSchema(base(ast, path, options, true))
         } catch {
           return {}
         }
@@ -359,57 +403,6 @@ function getPointer(target: Annotations.JsonSchema.Target) {
   }
 }
 
-function getFragments(
-  checks: AST.Checks,
-  options: GoOptions,
-  type?: Schema.JsonSchema.Type
-): [Schema.JsonSchema.Fragment, ...Array<Schema.JsonSchema.Fragment>] | undefined {
-  const allOf: Array<Schema.JsonSchema.Fragment> = []
-  for (let i = 0; i < checks.length; i++) {
-    const fragment = getFragment(checks[i], options, type)
-    if (fragment) {
-      if (allOf.length === 0) {
-        allOf.push(fragment)
-      } else {
-        const last = allOf[allOf.length - 1]
-        if (hasIntersection(last, fragment)) {
-          allOf.push(fragment)
-        } else {
-          allOf[allOf.length - 1] = { ...last, ...fragment }
-        }
-      }
-    }
-  }
-  if (Arr.isArrayNonEmpty(allOf)) {
-    return allOf
-  }
-}
-
-function getFragment(
-  check: AST.Check<any>,
-  options: GoOptions,
-  type?: Schema.JsonSchema.Type
-): Schema.JsonSchema.Fragment | undefined {
-  switch (check._tag) {
-    case "Filter": {
-      const fragment = getConstraint(check, options.target, type)
-      if (fragment) {
-        return mergeOrAppendJsonSchemaAnnotations(fragment, check.annotations, options.generateDescriptions)
-      } else {
-        return getJsonSchemaAnnotations(check.annotations, options.generateDescriptions)
-      }
-    }
-    case "FilterGroup": {
-      const allOf = getFragments(check.checks, options, type)
-      if (allOf) {
-        return mergeOrAppendJsonSchemaAnnotations({ allOf }, check.annotations, options.generateDescriptions)
-      } else {
-        return getJsonSchemaAnnotations(check.annotations, options.generateDescriptions)
-      }
-    }
-  }
-}
-
 function getConstraint<T>(
   check: AST.Check<T>,
   target: Annotations.JsonSchema.Target,
@@ -477,25 +470,16 @@ function getJsonSchemaAnnotations(
   }
 }
 
-function unwrap(jsonSchema: Schema.JsonSchema.Schema): Schema.JsonSchema.Schema | undefined {
-  if (Object.keys(jsonSchema).length === 1) {
-    if (Array.isArray(jsonSchema.anyOf) && jsonSchema.anyOf.length === 1) {
-      return jsonSchema.anyOf[0]
-    } else if (Array.isArray(jsonSchema.oneOf) && jsonSchema.oneOf.length === 1) {
-      return jsonSchema.oneOf[0]
-    } else if (Array.isArray(jsonSchema.allOf) && jsonSchema.allOf.length === 1) {
-      return jsonSchema.allOf[0]
-    }
-  }
-}
-
 function mergeOrAppendJsonSchemaAnnotations(
   jsonSchema: Schema.JsonSchema.Schema,
   annotations: Annotations.Annotations | undefined,
   generateDescriptions: boolean
 ): Schema.JsonSchema.Schema {
   const fragment = getJsonSchemaAnnotations(annotations, generateDescriptions)
-  return appendFragments(jsonSchema, fragment ? [fragment] : undefined)
+  if (fragment) {
+    return appendFragment(jsonSchema, fragment)
+  }
+  return jsonSchema
 }
 
 function hasIntersection(
@@ -505,32 +489,23 @@ function hasIntersection(
   return Object.keys(jsonSchema).filter((key) => key !== "type").some((key) => Object.hasOwn(fragment, key))
 }
 
-function appendFragments(
+function appendFragment(
   jsonSchema: Schema.JsonSchema.Schema,
-  fragments:
-    | [Schema.JsonSchema.Fragment, ...Array<Schema.JsonSchema.Fragment>]
-    | undefined
+  fragment: Schema.JsonSchema.Fragment
 ): Schema.JsonSchema.Schema {
-  if (fragments) {
-    if ("$ref" in jsonSchema) {
-      return { allOf: [jsonSchema, ...fragments] }
-    } else {
-      jsonSchema = unwrap(jsonSchema) ?? jsonSchema
-      for (const fragment of fragments) {
-        if (hasIntersection(jsonSchema, fragment)) {
-          if (Array.isArray(jsonSchema.allOf)) {
-            jsonSchema = { ...jsonSchema, allOf: [...jsonSchema.allOf, fragment] }
-          } else {
-            jsonSchema = { ...jsonSchema, allOf: [fragment] }
-          }
-        } else {
-          jsonSchema = { ...jsonSchema, ...fragment }
-        }
+  if ("$ref" in jsonSchema) {
+    return { allOf: [jsonSchema, fragment] }
+  } else {
+    if (hasIntersection(jsonSchema, fragment)) {
+      if (Array.isArray(jsonSchema.allOf)) {
+        return { ...jsonSchema, allOf: [...jsonSchema.allOf, fragment] }
+      } else {
+        return { ...jsonSchema, allOf: [fragment] }
       }
-      return jsonSchema
+    } else {
+      return { ...jsonSchema, ...fragment }
     }
   }
-  return unwrap(jsonSchema) ?? jsonSchema
 }
 
 function getIdentifier(ast: AST.AST): string | undefined {

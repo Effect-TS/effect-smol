@@ -709,6 +709,20 @@ describe("JsonSchema generation", () => {
         )
       })
 
+      it("String & annotations & check & check", () => {
+        assertDraft07(
+          Schema.String.annotate({ description: "description1" }).check(Schema.isMinLength(2), Schema.isMaxLength(3)),
+          {
+            schema: {
+              "type": "string",
+              "description": "description1",
+              "minLength": 2,
+              "maxLength": 3
+            }
+          }
+        )
+      })
+
       it("String & check & check & annotations", () => {
         assertDraft07(
           Schema.String.check(Schema.isMinLength(2), Schema.isMaxLength(3)).annotate({
@@ -720,6 +734,75 @@ describe("JsonSchema generation", () => {
               "minLength": 2,
               "maxLength": 3,
               ...jsonAnnotations
+            }
+          }
+        )
+      })
+
+      it("String & annotations & check & check & annotations", () => {
+        assertDraft07(
+          Schema.String.annotate({ description: "description1" }).check(
+            Schema.isMinLength(2),
+            Schema.isMaxLength(3, { description: "description3" })
+          ),
+          {
+            schema: {
+              "type": "string",
+              "description": "description1",
+              "minLength": 2,
+              "allOf": [
+                {
+                  "maxLength": 3,
+                  "description": "description3"
+                }
+              ]
+            }
+          }
+        )
+      })
+
+      it("String & check & annotations & check & annotations", () => {
+        assertDraft07(
+          Schema.String.check(
+            Schema.isMinLength(2, { description: "description2" }),
+            Schema.isMaxLength(3, { description: "description3" })
+          ),
+          {
+            schema: {
+              "type": "string",
+              "minLength": 2,
+              "description": "description2",
+              "allOf": [
+                {
+                  "maxLength": 3,
+                  "description": "description3"
+                }
+              ]
+            }
+          }
+        )
+      })
+
+      it("String & annotations & check & annotations & check & annotations", () => {
+        assertDraft07(
+          Schema.String.annotate({ description: "description1" }).check(
+            Schema.isMinLength(2, { description: "description2" }),
+            Schema.isMaxLength(3, { description: "description3" })
+          ),
+          {
+            schema: {
+              "type": "string",
+              "description": "description1",
+              "allOf": [
+                {
+                  "minLength": 2,
+                  "description": "description2"
+                },
+                {
+                  "maxLength": 3,
+                  "description": "description3"
+                }
+              ]
             }
           }
         )
@@ -2580,6 +2663,35 @@ describe("JsonSchema generation", () => {
               "description": "description",
               "maximum": 4294967295,
               "minimum": 0
+            }
+          }
+        )
+        assertDraft07(
+          Schema.Number.check(Schema.isUint32({ description: "uint32 description" })),
+          {
+            schema: {
+              "type": "integer",
+              "description": "uint32 description",
+              "maximum": 4294967295,
+              "minimum": 0
+            }
+          }
+        )
+        assertDraft07(
+          Schema.Number.annotate({ description: "description" }).check(
+            Schema.isUint32({ description: "uint32 description" })
+          ),
+          {
+            schema: {
+              "type": "integer",
+              "description": "description",
+              "maximum": 4294967295,
+              "minimum": 0,
+              "allOf": [
+                {
+                  "description": "uint32 description"
+                }
+              ]
             }
           }
         )
