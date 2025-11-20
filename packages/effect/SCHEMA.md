@@ -412,71 +412,32 @@ console.log(serialized)
 
 Here the set is still an array, but each `Date` uses the custom number format, as requested by `DateFromEpochMillis`.
 
-## 🆕 String‑Pojo Serializer
+## 🆕 StringTree Serializer
 
-`Schema.toSerializerStringTree` lets you funnel many string‑based inputs—URL queries, form posts, CLI args—into any **Schema** without adding custom transformations.
-
-The process has two steps:
-
-1. **Format → tree**
-   A short helper converts the raw data into a structure whose leaves are all strings.
-
-   ```ts
-   type StringTree = string | undefined | { [key: string]: StringTree } | Array<StringTree>
-   ```
-
-2. **Tree → value**
-   A normal schema decodes that tree into your typed model.
-
-Write the schema using the types you actually need: `Schema.Number`, `Schema.Boolean`, `Schema.Date`, and so on.
-`Schema.toSerializerStringTree` will convert the string leaves to these types while decoding, so you do **not** have to insert helpers like `numberFromString` or `booleanFromString`.
-
-Below are two quick examples.
-
-**Example** (Decode `URLSearchParams`)
+Returns a schema that encodes to a `StringTree` and decodes from a `StringTree`:
 
 ```ts
-import { Schema } from "effect/schema"
-
-// 1. URL params ➜ StringTree
-function toStringTree(p: URLSearchParams): Schema.StringTree {
-  const out: Schema.StringTree = {}
-  for (const [key, value] of p.entries()) {
-    if (out[key] === undefined) {
-      out[key] = value
-    } else if (Array.isArray(out[key])) {
-      out[key].push(value)
-    } else {
-      out[key] = [out[key], value]
-    }
-  }
-  return out
-}
-
-// 2. schema
-const Query = Schema.Struct({
-  page: Schema.Finite,
-  q: Schema.optionalKey(Schema.Array(Schema.String))
-})
-
-const serializer = Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(Query))
-
-console.log(Schema.decodeSync(serializer)(toStringTree(new URLSearchParams("?page=1&q=foo"))))
-// => { page: 1, q: [ 'foo' ] }
-
-console.log(Schema.decodeSync(serializer)(toStringTree(new URLSearchParams("?page=2"))))
-// => { page: 2 }
-
-console.log(Schema.decodeSync(serializer)(toStringTree(new URLSearchParams("?page=1&q=foo&q=bar"))))
-// => { page: 1, q: [ 'foo', 'bar' ] }
-
-console.log(Schema.decodeSync(serializer)(toStringTree(new URLSearchParams("?page=1&q="))))
-// => { page: 1, q: [] }
+type StringTree = string | undefined | { [key: string]: StringTree } | Array<StringTree>
 ```
 
-### How it works
+A StringTree serializer turns any value described by a schema into a structure made only of:
 
-**Example** (Difference between the two serializers)
+- strings
+- `undefined`
+- plain objects containing other `StringTree` values
+- arrays of `StringTree` values
+
+This is useful when you need a representation that can be stored or transmitted in environments where only string-like values are accepted. For example:
+
+- submitting form fields,
+- storing data in systems that do not support rich types,
+- interoperating with APIs that expect everything as strings.
+
+When decoding, the serializer performs the reverse operation: it takes a `StringTree` and reconstructs the typed value defined by the schema.
+
+The main difference from `toSerializerJson` is that JSON keeps numbers, booleans, and nested objects in their original types (except for dates, which become strings). The StringTree serializer converts **every leaf value to a string**, preserving the original structure but not the original types.
+
+**Example** (Comparing JSON and StringTree serializers)
 
 ```ts
 import { Schema } from "effect/schema"
@@ -519,6 +480,50 @@ everything is a string
   createdAt: '2025-07-25T17:04:40.434Z'
 }
 */
+```
+
+**Note**. Schemas representing custom types are encoded as `undefined`:
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.instanceOf(URL),
+  b: Schema.String
+})
+
+const stringTree = Schema.toSerializerStringTree(schema)
+
+console.log(
+  Schema.encodeUnknownSync(stringTree)({
+    a: new URL("https://effect.website"),
+    b: "b"
+  })
+)
+// { a: undefined, b: 'b' }
+```
+
+## Loose StringTree Serializer
+
+The loose version behaves like the StringTree serializer, but it does **not** convert custom types to `undefined`. Instead, it keeps them as they are.
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.instanceOf(URL),
+  b: Schema.String
+})
+
+const stringTree = Schema.toSerializerStringTreeLoose(schema)
+
+console.log(
+  Schema.encodeUnknownSync(stringTree)({
+    a: new URL("https://effect.website"),
+    b: "b"
+  })
+)
+// { a: URL("https://effect.website"), b: 'b' }
 ```
 
 ## 🆕 XML Encoder
@@ -574,6 +579,8 @@ console.log(
 </root>
 */
 ```
+
+**Note**. Schemas representing custom types are encoded as `undefined`:
 
 ## Explicit JSON Serialization
 
@@ -4382,26 +4389,28 @@ console.log(String(Schema.encodeUnknownExit(schema)({ a: "a", b: { c: "bc", d: "
 
 ### Parsing FormData values
 
-You can use `Schema.toSerializerStringTree` to parse `FormData` values into your schema without having to specify a custom transformation.
+You can use `Schema.toSerializerStringTreeLoose` to parse `FormData` values into your schema without having to specify a custom transformation.
 
-**Example** (Parsing `FormData` values into your schema using `Schema.toSerializerStringTree`)
+**Example** (Parsing `FormData` values into your schema using `Schema.toSerializerStringTreeLoose`)
 
 ```ts
 import { Schema } from "effect/schema"
 
 const schema = Schema.fromFormData(
-  Schema.toSerializerStringTree(
+  Schema.toSerializerStringTreeLoose(
     Schema.Struct({
-      a: Schema.Int
+      a: Schema.Int,
+      b: Schema.instanceOf(Blob)
     })
   )
 )
 
 const formData = new FormData()
 formData.append("a", "1")
+formData.append("b", new Blob(["b"]))
 
 console.log(String(Schema.decodeUnknownExit(schema)(formData)))
-// Success({"a":1})
+// Success({"a":1,"b":File({Symbol(kHandle):Blob({}),Symbol(kLength):1,Symbol(kType):"",Symbol(state):FileState({"name":"blob","lastModified":1763657398386})})})
 ```
 
 ## Generating a JSON Schema from a Schema
