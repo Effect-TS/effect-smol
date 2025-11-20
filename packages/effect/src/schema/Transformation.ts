@@ -352,3 +352,19 @@ export const uint8ArrayFromString: Transformation<Uint8Array<ArrayBufferLike>, s
   Getter.decodeBase64(),
   Getter.encodeBase64()
 )
+
+/**
+ * @since 4.0.0
+ */
+export const fromJsonString = new Transformation<unknown, string>(
+  Getter.parseJson(),
+  Getter.stringifyJson()
+)
+
+/**
+ * @since 4.0.0
+ */
+export const fromFormData = new Transformation(
+  Getter.decodeFormData(),
+  Getter.encodeFormData()
+)

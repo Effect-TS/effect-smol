@@ -4376,6 +4376,47 @@ console.log(String(Schema.decodeUnknownExit(provided)(null)))
 // Success("b")
 ```
 
+## FormData Support
+
+`Schema.fromFormData` lets you decode and encode `FormData` values to and from your schema.
+
+**Example** (Decoding and encoding `FormData` values)
+
+```ts
+import { Exit } from "effect"
+import { Schema } from "effect/schema"
+
+const schema = Schema.fromFormData(
+  Schema.Struct({
+    a: Schema.NonEmptyString,
+    b: Schema.Struct({
+      c: Schema.String,
+      d: Schema.String
+    }),
+    e: Schema.Array(Schema.String)
+  })
+)
+
+const formData = new FormData()
+formData.append("a", "a")
+formData.append("b[c]", "bc")
+formData.append("b[d]", "bd")
+formData.append("e[0]", "e0")
+formData.append("e[1]", "e1")
+
+console.log(String(Schema.decodeUnknownExit(schema)(formData)))
+// Success({"a":"a","b":{"c":"bc","d":"bd"},"e":["e0","e1"]})
+
+console.log(
+  String(
+    Schema.encodeUnknownExit(schema)({ a: "a", b: { c: "bc", d: "bd" }, e: ["e0", "e1"] }).pipe(
+      Exit.map((form) => [...form])
+    )
+  )
+)
+// Success([["a","a"],["b[c]","bc"],["b[d]","bd"],["e[0]","e0"],["e[1]","e1"]])
+```
+
 ## Generating a JSON Schema from a Schema
 
 ### Basic Conversion (no annotations)

@@ -331,10 +331,7 @@ export function toUpperCase<E extends string>(): Getter<string, E> {
   return transform(Str.toUpperCase)
 }
 
-/**
- * @since 4.0.0
- */
-export interface ParseJsonOptions {
+type ParseJsonOptions = {
   readonly reviver?: Parameters<typeof JSON.parse>[1]
 }
 
@@ -353,7 +350,7 @@ export type JsonValue =
   | Array<JsonValue>
 
 /**
- * @category string
+ * @category Json
  * @since 4.0.0
  */
 export function parseJson<E extends string>(): Getter<JsonValue, E>
@@ -367,16 +364,13 @@ export function parseJson<E extends string>(options?: ParseJsonOptions | undefin
   )
 }
 
-/**
- * @since 4.0.0
- */
-export interface StringifyJsonOptions {
+type StringifyJsonOptions = {
   readonly replacer?: Parameters<typeof JSON.stringify>[1]
   readonly space?: Parameters<typeof JSON.stringify>[2]
 }
 
 /**
- * @category string
+ * @category Json
  * @since 4.0.0
  */
 export function stringifyJson(options?: StringifyJsonOptions): Getter<string, unknown> {
@@ -566,4 +560,132 @@ export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Gette
       ? Effect.succeed(DateTime.toUtc(dt))
       : Effect.fail(new Issue.InvalidValue(Option.some(input), { message: "Invalid DateTime input" }))
   })
+}
+
+type ParsedFormDataValue =
+  | string
+  | Blob
+  | ParsedFormData
+  | ReadonlyArray<ParsedFormDataValue>
+
+/**
+ * @category FormData
+ * @since 4.0.0
+ */
+export interface ParsedFormData {
+  readonly [key: string]: ParsedFormDataValue
+}
+
+/**
+ * @category FormData
+ * @since 4.0.0
+ */
+export function decodeFormData(): Getter<ParsedFormData, FormData> {
+  return transform(decodeFormDataFn)
+}
+
+function decodeFormDataFn(input: FormData): ParsedFormData {
+  const out: ParsedFormData = {}
+
+  input.forEach((value, key) => {
+    setFormDataValue(out, key, value)
+  })
+
+  return out
+}
+
+function keyToTokens(key: string): Array<string | number> {
+  // real empty key (from append("", value))
+  if (key === "") {
+    return [""]
+  }
+
+  const replaced = key.replace(/\[(.*?)\]/g, ".$1")
+  const parts = replaced.split(".")
+  // if key started with "[...]" we get ".foo" → ["", "foo"]; drop the synthetic first ""
+  const start = replaced.startsWith(".") ? 1 : 0
+
+  return parts
+    .slice(start)
+    .map((part) => (/^\d+$/.test(part) ? globalThis.Number(part) : part))
+}
+
+function setFormDataValue(out: ParsedFormData, key: string, value: FormDataEntryValue): void {
+  const tokens = keyToTokens(key)
+  let cur: any = out
+
+  tokens.forEach((token, i) => {
+    const isLast = i === tokens.length - 1
+
+    // We are inside an array and see "[]" (empty token) → append
+    if (Array.isArray(cur) && token === "") {
+      if (isLast) {
+        cur.push(value)
+        return
+      }
+
+      // key: "b[][something]" → push a new element and descend into it
+      const next = tokens[i + 1]
+      const shouldBeArray = typeof next === "number" || next === ""
+      const index = cur.length
+
+      if (cur[index] == null) {
+        cur[index] = shouldBeArray ? [] : {}
+      }
+
+      cur = cur[index]
+      return
+    }
+
+    if (isLast) {
+      cur[token] = value
+      return
+    }
+
+    const next = tokens[i + 1]
+    // if next is a number OR "" (from []), we are building an array
+    const shouldBeArray = typeof next === "number" || next === ""
+
+    if (cur[token] == null) {
+      cur[token] = shouldBeArray ? [] : {}
+    }
+
+    cur = cur[token]
+  })
+}
+
+/**
+ * @category FormData
+ * @since 4.0.0
+ */
+export function encodeFormData(): Getter<FormData, ParsedFormData> {
+  return transform(encodeFormDataFn)
+}
+
+function encodeFormDataFn(input: ParsedFormData): FormData {
+  const out = new FormData()
+
+  for (const [key, value] of Object.entries(input)) {
+    appendFormDataValue(out, key, value)
+  }
+
+  return out
+}
+
+function appendFormDataValue(formData: FormData, key: string, value: ParsedFormDataValue): void {
+  if (typeof value === "string") {
+    formData.append(key, value)
+  } else if (typeof Blob !== "undefined" && value instanceof Blob) {
+    formData.append(key, value)
+  } else if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      const nextKey = `${key}[${index}]`
+      appendFormDataValue(formData, nextKey, item)
+    })
+  } else if (typeof value === "object" && value !== null) {
+    for (const [subKey, subValue] of Object.entries(value)) {
+      const nextKey = `${key}[${subKey}]`
+      appendFormDataValue(formData, nextKey, subValue)
+    }
+  }
 }

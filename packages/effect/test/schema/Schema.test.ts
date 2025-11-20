@@ -3973,8 +3973,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("use case: create a JSON string serializer for an existing schema", async () => {
-      const struct = Schema.Struct({ b: Schema.Number })
-      const schema = Schema.fromJsonString(struct)
+      const schema = Schema.fromJsonString(Schema.Struct({ b: Schema.Number }))
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
@@ -4009,6 +4008,45 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         `Missing key
   at ["a"]["b"]`
       )
+    })
+  })
+
+  describe("fromFormData", () => {
+    it("string values", async () => {
+      const schema = Schema.fromFormData(Schema.Struct({
+        a: Schema.NonEmptyString,
+        b: Schema.Struct({
+          c: Schema.String,
+          d: Schema.String
+        }),
+        e: Schema.Array(Schema.String)
+      }))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const formData = new FormData()
+      formData.append("a", "a")
+      formData.append("b[c]", "bc")
+      formData.append("b[d]", "bd")
+      formData.append("e[0]", "e0")
+      formData.append("e[1]", "e1")
+
+      const decoded = { a: "a", b: { c: "bc", d: "bd" }, e: ["e0", "e1"] }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(formData, decoded)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(decoded, formData)
+
+      {
+        const formData = new FormData()
+        formData.append("a", "")
+        await decoding.fail(
+          formData,
+          `Expected a value with a length of at least 1, got ""
+  at ["a"]`
+        )
+      }
     })
   })
 

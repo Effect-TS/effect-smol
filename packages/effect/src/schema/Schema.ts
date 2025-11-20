@@ -5577,15 +5577,7 @@ export interface UnknownFromJsonString extends decodeTo<Unknown, String> {}
  */
 export const UnknownFromJsonString: UnknownFromJsonString = String.annotate({
   description: "a string that will be decoded as JSON"
-}).pipe(
-  decodeTo(
-    Unknown,
-    new Transformation.Transformation<unknown, string>(
-      Getter.parseJson(),
-      Getter.stringifyJson()
-    )
-  )
-)
+}).pipe(decodeTo(Unknown, Transformation.fromJsonString))
 
 /**
  * @since 4.0.0
@@ -5671,15 +5663,21 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
           }
       }
     }
-  }).pipe(
-    decodeTo(
-      schema,
-      new Transformation.Transformation<unknown, string>(
-        Getter.parseJson(),
-        Getter.stringifyJson()
-      )
-    )
-  )
+  }).pipe(decodeTo(schema, Transformation.fromJsonString))
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface fromFormData<S extends Top> extends decodeTo<S, instanceOf<FormData>> {}
+
+/**
+ * @since 4.0.0
+ */
+export function fromFormData<S extends Top & { readonly Encoded: Getter.ParsedFormData }>(
+  schema: S
+): fromFormData<S> {
+  return instanceOf(globalThis.FormData).pipe(decodeTo(schema, Transformation.fromFormData))
 }
 
 /**
