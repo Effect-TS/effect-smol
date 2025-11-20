@@ -4417,6 +4417,30 @@ console.log(
 // Success([["a","a"],["b[c]","bc"],["b[d]","bd"],["e[0]","e0"],["e[1]","e1"]])
 ```
 
+### Parsing FormData values
+
+You can use `Schema.makeSerializerStringPojo` to parse `FormData` values into your schema without having to specify a custom transformation.
+
+**Example** (Parsing `FormData` values into your schema using `Schema.makeSerializerStringPojo`)
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.fromFormData(
+  Schema.makeSerializerStringPojo(
+    Schema.Struct({
+      a: Schema.Int
+    })
+  )
+)
+
+const formData = new FormData()
+formData.append("a", "1")
+
+console.log(String(Schema.decodeUnknownExit(schema)(formData)))
+// Success({"a":1})
+```
+
 ## Generating a JSON Schema from a Schema
 
 ### Basic Conversion (no annotations)

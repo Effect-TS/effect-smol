@@ -5674,9 +5674,7 @@ export interface fromFormData<S extends Top> extends decodeTo<S, instanceOf<Form
 /**
  * @since 4.0.0
  */
-export function fromFormData<S extends Top & { readonly Encoded: Getter.ParsedFormData }>(
-  schema: S
-): fromFormData<S> {
+export function fromFormData<S extends Top>(schema: S): fromFormData<S> {
   return instanceOf(globalThis.FormData).pipe(decodeTo(schema, Transformation.fromFormData))
 }
 

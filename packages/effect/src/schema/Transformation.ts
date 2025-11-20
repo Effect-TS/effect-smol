@@ -364,7 +364,7 @@ export const fromJsonString = new Transformation<unknown, string>(
 /**
  * @since 4.0.0
  */
-export const fromFormData = new Transformation(
+export const fromFormData = new Transformation<unknown, FormData>(
   Getter.decodeFormData(),
   Getter.encodeFormData()
 )

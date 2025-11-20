@@ -594,6 +594,8 @@ function decodeFormDataFn(input: FormData): ParsedFormData {
   return out
 }
 
+const INDEX_REGEXP = /^\d+$/
+
 function keyToTokens(key: string): Array<string | number> {
   // real empty key (from append("", value))
   if (key === "") {
@@ -607,7 +609,7 @@ function keyToTokens(key: string): Array<string | number> {
 
   return parts
     .slice(start)
-    .map((part) => (/^\d+$/.test(part) ? globalThis.Number(part) : part))
+    .map((part) => (INDEX_REGEXP.test(part) ? globalThis.Number(part) : part))
 }
 
 function setFormDataValue(out: ParsedFormData, key: string, value: FormDataEntryValue): void {
@@ -658,21 +660,23 @@ function setFormDataValue(out: ParsedFormData, key: string, value: FormDataEntry
  * @category FormData
  * @since 4.0.0
  */
-export function encodeFormData(): Getter<FormData, ParsedFormData> {
+export function encodeFormData(): Getter<FormData, unknown> {
   return transform(encodeFormDataFn)
 }
 
-function encodeFormDataFn(input: ParsedFormData): FormData {
+function encodeFormDataFn(input: unknown): FormData {
   const out = new FormData()
 
-  for (const [key, value] of Object.entries(input)) {
-    appendFormDataValue(out, key, value)
+  if (typeof input === "object" && input !== null) {
+    for (const [key, value] of Object.entries(input)) {
+      appendFormDataValue(out, key, value)
+    }
   }
 
   return out
 }
 
-function appendFormDataValue(formData: FormData, key: string, value: ParsedFormDataValue): void {
+function appendFormDataValue(formData: FormData, key: string, value: unknown): void {
   if (typeof value === "string") {
     formData.append(key, value)
   } else if (typeof Blob !== "undefined" && value instanceof Blob) {
