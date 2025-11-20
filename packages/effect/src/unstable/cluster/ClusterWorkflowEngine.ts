@@ -348,7 +348,7 @@ export const make = Effect.gen(function*() {
 
     poll: Effect.fnUntraced(function*(workflow, executionId) {
       const entity = ensureEntity(workflow)
-      const exitSchema = Schema.makeSerializerJson(
+      const exitSchema = Schema.toSerializerJson(
         Rpc.exitSchema(entity.protocol.requests.get("run")!)
       )
       const reply = yield* requestReply({
@@ -528,7 +528,7 @@ const DeferredRpc = Rpc.make("deferred", {
   .annotate(ClusterSchema.Persisted, true)
   .annotate(ClusterSchema.Uninterruptible, true)
 
-const decodeDeferredWithExit = Schema.decodeSync(Schema.makeSerializerJson(Reply.WithExit.schema(DeferredRpc)))
+const decodeDeferredWithExit = Schema.decodeSync(Schema.toSerializerJson(Reply.WithExit.schema(DeferredRpc)))
 
 const ResumeRpc = Rpc.make("resume")
   .annotate(ClusterSchema.Persisted, true)

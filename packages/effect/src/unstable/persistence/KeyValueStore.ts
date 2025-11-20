@@ -449,7 +449,7 @@ export interface SchemaStore<S extends Schema.Top> {
  * @category SchemaStore
  */
 export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema: S): SchemaStore<S> => {
-  const serializer = Schema.makeSerializerJson(schema)
+  const serializer = Schema.toSerializerJson(schema)
   const jsonSchema = Schema.fromJsonString(serializer)
   const decode = Schema.decodeEffect(jsonSchema)
   const encode = Schema.encodeEffect(jsonSchema)

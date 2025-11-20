@@ -524,7 +524,7 @@ const AnyOrVoid = Schema.Union([Schema.Any, Schema.Void])
  * @category Result
  */
 export const ResultEncoded: Schema.Codec<ResultEncoded<any, any>> = Schema.encodedCodec(
-  Schema.makeSerializerJson(
+  Schema.toSerializerJson(
     Result({
       success: AnyOrVoid,
       error: AnyOrVoid

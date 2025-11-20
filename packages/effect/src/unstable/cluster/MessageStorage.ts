@@ -857,7 +857,7 @@ const EnvelopeWithReply: Schema.Struct<
     readonly lastSentReply: Schema.UndefinedOr<Schema.Codec<Reply.Encoded>>
   }
 > = Schema.Struct({
-  envelope: Schema.makeSerializerJson(Envelope.Partial),
+  envelope: Schema.toSerializerJson(Envelope.Partial),
   lastSentReply: Schema.UndefinedOr(Reply.Encoded)
 })
 

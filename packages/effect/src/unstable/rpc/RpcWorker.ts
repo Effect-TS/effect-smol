@@ -52,7 +52,7 @@ export const makeInitialMessage = <S extends Schema.Top, E, R2>(
   E | Schema.SchemaError,
   S["EncodingServices"] | R2
 > => {
-  const schemaJson = Schema.makeSerializerJson(schema)
+  const schemaJson = Schema.toSerializerJson(schema)
   return Effect.flatMap(effect, (value) => {
     const collector = Transferable.makeCollectorUnsafe()
     return Schema.encodeEffect(schemaJson)(value).pipe(
@@ -88,5 +88,5 @@ export const initialMessage = <S extends Schema.Top>(
   ProtocolTag.asEffect().pipe(
     Effect.flatMap((protocol) => protocol.initialMessage),
     Effect.flatMap((o) => o.asEffect()),
-    Effect.flatMap(Schema.decodeUnknownEffect(Schema.makeSerializerJson(schema)))
+    Effect.flatMap(Schema.decodeUnknownEffect(Schema.toSerializerJson(schema)))
   )

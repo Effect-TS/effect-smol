@@ -100,8 +100,8 @@ export const make = <
 }): Activity<Success, Error, Exclude<R, WorkflowInstance | WorkflowEngine | Scope>> => {
   const successSchema = options.success ?? (Schema.Void as any as Success)
   const errorSchema = options.error ?? (Schema.Never as any as Error)
-  const successSchemaJson = Schema.makeSerializerJson(successSchema)
-  const errorSchemaJson = Schema.makeSerializerJson(errorSchema)
+  const successSchemaJson = Schema.toSerializerJson(successSchema)
+  const errorSchemaJson = Schema.toSerializerJson(errorSchema)
   // eslint-disable-next-line prefer-const
   let execute!: Effect.Effect<Success["Type"], Error["Type"], any>
   const self: Activity<Success, Error, Exclude<R, WorkflowInstance | WorkflowEngine>> = {

@@ -211,7 +211,7 @@ export type Partial = typeof Partial.Type
 export const PartialJson: Schema.Codec<
   AckChunk | Interrupt | PartialRequest,
   Encoded
-> = Schema.makeSerializerJson(Partial) as any
+> = Schema.toSerializerJson(Partial) as any
 
 /**
  * @since 4.0.0

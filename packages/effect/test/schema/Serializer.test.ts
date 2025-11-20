@@ -16,7 +16,7 @@ const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
 ))
 
 describe("Serializer generation", () => {
-  describe("makeSerializerJson", () => {
+  describe("toSerializerJson", () => {
     describe("typeCodec", () => {
       describe("Unsupported schemas", () => {
         it("Declaration", () => {
@@ -25,7 +25,7 @@ describe("Serializer generation", () => {
           }
           const schema = Schema.declare((u): u is A => u instanceof A)
           throws(
-            () => Schema.makeSerializerJson(Schema.typeCodec(schema)),
+            () => Schema.toSerializerJson(Schema.typeCodec(schema)),
             "required `serializerJson` or `serializer` annotation"
           )
         })
@@ -33,7 +33,7 @@ describe("Serializer generation", () => {
         it("Unknown", () => {
           const schema = Schema.Unknown
           throws(
-            () => Schema.makeSerializerJson(Schema.typeCodec(schema)),
+            () => Schema.toSerializerJson(Schema.typeCodec(schema)),
             "required `serializerJson` or `serializer` annotation"
           )
         })
@@ -41,7 +41,7 @@ describe("Serializer generation", () => {
         it("ObjectKeyword", () => {
           const schema = Schema.ObjectKeyword
           throws(
-            () => Schema.makeSerializerJson(Schema.typeCodec(schema)),
+            () => Schema.toSerializerJson(Schema.typeCodec(schema)),
             "required `serializerJson` or `serializer` annotation"
           )
         })
@@ -52,7 +52,7 @@ describe("Serializer generation", () => {
             [a]: Schema.String
           })
           throws(
-            () => Schema.makeSerializerJson(Schema.typeCodec(schema)),
+            () => Schema.toSerializerJson(Schema.typeCodec(schema)),
             "Objects property names must be strings"
           )
         })
@@ -64,31 +64,31 @@ describe("Serializer generation", () => {
             a: Schema.String,
             b: Schema.Boolean
           })
-          const serializer = Schema.makeSerializerJson(schema)
+          const serializer = Schema.toSerializerJson(schema)
           strictEqual(serializer.ast, schema.ast)
         })
 
         it("Record", async () => {
           const schema = Schema.Record(Schema.String, Schema.Boolean)
-          const serializer = Schema.makeSerializerJson(schema)
+          const serializer = Schema.toSerializerJson(schema)
           strictEqual(serializer.ast, schema.ast)
         })
 
         it("Tuple", async () => {
           const schema = Schema.Tuple([Schema.String, Schema.Boolean])
-          const serializer = Schema.makeSerializerJson(schema)
+          const serializer = Schema.toSerializerJson(schema)
           strictEqual(serializer.ast, schema.ast)
         })
 
         it("Array", async () => {
           const schema = Schema.Array(Schema.String)
-          const serializer = Schema.makeSerializerJson(schema)
+          const serializer = Schema.toSerializerJson(schema)
           strictEqual(serializer.ast, schema.ast)
         })
 
         it("Union", async () => {
           const schema = Schema.Union([Schema.String, Schema.Boolean])
-          const serializer = Schema.makeSerializerJson(schema)
+          const serializer = Schema.toSerializerJson(schema)
           strictEqual(serializer.ast, schema.ast)
         })
       })
@@ -104,7 +104,7 @@ describe("Serializer generation", () => {
           }),
           b: Schema.Number
         })
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed({ a: new Date("2021-01-01"), b: 1 }, {
@@ -137,7 +137,7 @@ describe("Serializer generation", () => {
                 )
             }
           )
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(new MyError("a"), "a")
@@ -179,7 +179,7 @@ describe("Serializer generation", () => {
           }
 
           const schema = MyError.schema
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(new MyError({ message: "a", cause: "b" }), {
@@ -194,7 +194,7 @@ describe("Serializer generation", () => {
 
       it("Never", async () => {
         const schema = Schema.Never
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.fail({}, "Expected never, got {}")
@@ -202,7 +202,7 @@ describe("Serializer generation", () => {
 
       it("Any", async () => {
         const schema = Schema.Any
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(() => {})
@@ -213,7 +213,7 @@ describe("Serializer generation", () => {
 
       it("Undefined", async () => {
         const schema = Schema.Undefined
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(undefined, null)
@@ -221,7 +221,7 @@ describe("Serializer generation", () => {
 
       it("Void", async () => {
         const schema = Schema.Void
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(undefined, null)
@@ -229,7 +229,7 @@ describe("Serializer generation", () => {
 
       it("Null", async () => {
         const schema = Schema.Null
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(null)
@@ -237,7 +237,7 @@ describe("Serializer generation", () => {
 
       it("String", async () => {
         const schema = Schema.String
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed("a")
@@ -248,7 +248,7 @@ describe("Serializer generation", () => {
 
       it("Number", async () => {
         const schema = Schema.Number
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(1)
@@ -265,7 +265,7 @@ describe("Serializer generation", () => {
 
       it("Boolean", async () => {
         const schema = Schema.Boolean
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(true)
@@ -276,7 +276,7 @@ describe("Serializer generation", () => {
 
       it("Symbol", async () => {
         const schema = Schema.Symbol
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(Symbol.for("a"), "Symbol(a)")
@@ -295,7 +295,7 @@ describe("Serializer generation", () => {
 
       it("UniqueSymbol", async () => {
         const schema = Schema.UniqueSymbol(Symbol.for("a"))
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(Symbol.for("a"), "Symbol(a)")
@@ -306,7 +306,7 @@ describe("Serializer generation", () => {
 
       it("BigInt", async () => {
         const schema = Schema.BigInt
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(1n, "1")
@@ -317,7 +317,7 @@ describe("Serializer generation", () => {
 
       it("PropertyKey", async () => {
         const schema = Schema.PropertyKey
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed("a")
@@ -333,7 +333,7 @@ describe("Serializer generation", () => {
       describe("Literal", () => {
         it("string", async () => {
           const schema = Schema.Literal("a")
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed("a")
@@ -344,7 +344,7 @@ describe("Serializer generation", () => {
 
         it("number", async () => {
           const schema = Schema.Literal(1)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(1)
@@ -355,7 +355,7 @@ describe("Serializer generation", () => {
 
         it("boolean", async () => {
           const schema = Schema.Literal(true)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(true)
@@ -366,7 +366,7 @@ describe("Serializer generation", () => {
 
         it("bigint", async () => {
           const schema = Schema.Literal(1n)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(1n, "1")
@@ -378,7 +378,7 @@ describe("Serializer generation", () => {
 
       it("Literals", async () => {
         const schema = Schema.Literals(["a", 1, 2n, true])
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const decoding = asserts.decoding()
         await decoding.fail(
@@ -390,7 +390,7 @@ describe("Serializer generation", () => {
       describe("TemplateLiteral", () => {
         it("1n + string", async () => {
           const schema = Schema.TemplateLiteral([1n, Schema.String])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed("1a")
@@ -401,7 +401,7 @@ describe("Serializer generation", () => {
 
         it(`"a" + bigint`, async () => {
           const schema = Schema.TemplateLiteral(["a", Schema.BigInt])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed("a1")
@@ -417,7 +417,7 @@ describe("Serializer generation", () => {
           Banana
         }
         const schema = Schema.Enum(Fruits)
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(Fruits.Apple, 0)
@@ -433,7 +433,7 @@ describe("Serializer generation", () => {
           const schema = Schema.Struct({
             a: Schema.Date
           })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(
@@ -446,7 +446,7 @@ describe("Serializer generation", () => {
           const schema = Schema.Struct({
             a: Schema.UndefinedOr(Schema.Date)
           })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed({ a: new Date("2021-01-01") }, {
@@ -465,7 +465,7 @@ describe("Serializer generation", () => {
           const schema = Schema.Struct({
             a: Schema.NullOr(Schema.Date)
           })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed({ a: new Date("2021-01-01") }, {
@@ -484,7 +484,7 @@ describe("Serializer generation", () => {
           const schema = Schema.Struct({
             a: Schema.optionalKey(Schema.Date)
           })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed({ a: new Date("2021-01-01") }, {
@@ -503,7 +503,7 @@ describe("Serializer generation", () => {
           const schema = Schema.Struct({
             a: Schema.optional(Schema.Date)
           })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed({ a: new Date("2021-01-01") }, {
@@ -523,7 +523,7 @@ describe("Serializer generation", () => {
 
       it("Record(Symbol, Date)", async () => {
         const schema = Schema.Record(Schema.Symbol, Schema.Date)
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -541,7 +541,7 @@ describe("Serializer generation", () => {
       describe("Tuple", () => {
         it("Date", async () => {
           const schema = Schema.Tuple([Schema.Date])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(
@@ -558,7 +558,7 @@ describe("Serializer generation", () => {
 
         it("UndefinedOr(Date)", async () => {
           const schema = Schema.Tuple([Schema.UndefinedOr(Schema.Date)])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(
@@ -576,7 +576,7 @@ describe("Serializer generation", () => {
 
         it("NullOr(Date)", async () => {
           const schema = Schema.Tuple([Schema.NullOr(Schema.Date)])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed([new Date("2021-01-01")], [
@@ -593,7 +593,7 @@ describe("Serializer generation", () => {
 
         it("optionalKey(Date)", async () => {
           const schema = Schema.Tuple([Schema.optionalKey(Schema.Date)])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed([new Date("2021-01-01")], [
@@ -610,7 +610,7 @@ describe("Serializer generation", () => {
 
         it("optional(Date)", async () => {
           const schema = Schema.Tuple([Schema.optional(Schema.Date)])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed([new Date("2021-01-01")], [
@@ -630,7 +630,7 @@ describe("Serializer generation", () => {
 
       it("Array(Date)", async () => {
         const schema = Schema.Array(Schema.Date)
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -642,7 +642,7 @@ describe("Serializer generation", () => {
       describe("Union", () => {
         it("NullOr(String)", async () => {
           const schema = Schema.NullOr(Schema.String)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed("a")
@@ -655,7 +655,7 @@ describe("Serializer generation", () => {
 
         it("NullOr(Number)", async () => {
           const schema = Schema.NullOr(Schema.Number)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(1)
@@ -668,7 +668,7 @@ describe("Serializer generation", () => {
 
         it("Array(NullOr(Number))", async () => {
           const schema = Schema.Array(Schema.NullOr(Schema.Number))
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed([1, null])
@@ -679,7 +679,7 @@ describe("Serializer generation", () => {
 
         it("Union(Schema.Date, FiniteFromDate)", async () => {
           const schema = Schema.Union([Schema.Date, FiniteFromDate])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(
@@ -702,7 +702,7 @@ describe("Serializer generation", () => {
           a: Schema.FiniteFromString.check(Schema.isGreaterThan(0)),
           categories: Schema.Array(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
         })
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed({ a: 1, categories: [] }, {
@@ -734,7 +734,7 @@ describe("Serializer generation", () => {
 
       it("FiniteFromDate", async () => {
         const schema = FiniteFromDate
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(0)
@@ -744,7 +744,7 @@ describe("Serializer generation", () => {
         class A extends Schema.Class<A>("A")(Schema.Struct({
           a: FiniteFromDate
         })) {}
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(A)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(A)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new A({ a: 0 }), { a: 0 })
@@ -757,7 +757,7 @@ describe("Serializer generation", () => {
         class E extends Schema.ErrorClass<E>("E")({
           a: FiniteFromDate
         }) {}
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(E)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(E)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new E({ a: 0 }), { a: 0 })
@@ -768,7 +768,7 @@ describe("Serializer generation", () => {
 
       it("Date", async () => {
         const schema = Schema.Date
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -779,7 +779,7 @@ describe("Serializer generation", () => {
 
       it("Error", async () => {
         const schema = Schema.Error
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -816,7 +816,7 @@ describe("Serializer generation", () => {
 
       it("URL", async () => {
         const schema = Schema.URL
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -841,7 +841,7 @@ describe("Serializer generation", () => {
 
       it("Uint8Array", async () => {
         const schema = Schema.Uint8Array
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new Uint8Array([1, 2, 3]), "AQID")
@@ -856,7 +856,7 @@ describe("Serializer generation", () => {
 
       it("Duration", async () => {
         const schema = Schema.Duration
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(Duration.infinity, "Infinity")
@@ -872,7 +872,7 @@ describe("Serializer generation", () => {
 
       it("DateTimeUtc", async () => {
         const schema = Schema.DateTimeUtc
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -889,7 +889,7 @@ describe("Serializer generation", () => {
 
       it("Option(Date)", async () => {
         const schema = Schema.Option(Schema.Date)
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(Option.some(new Date("2021-01-01")), {
@@ -902,7 +902,7 @@ describe("Serializer generation", () => {
       describe("Redacted", () => {
         it("Redacted(Option(String))", async () => {
           const schema = Schema.Redacted(Schema.Option(Schema.String))
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.fail(
@@ -927,7 +927,7 @@ describe("Serializer generation", () => {
 
         it("encoding a Redacted with a label", async () => {
           const schema = Schema.Redacted(Schema.String, { label: "password" })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.fail(
@@ -939,7 +939,7 @@ describe("Serializer generation", () => {
 
         it("encoding a Redacted with a different label", async () => {
           const schema = Schema.Redacted(Schema.String)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.fail(
@@ -951,7 +951,7 @@ describe("Serializer generation", () => {
 
       it("ReadonlySet", async () => {
         const schema = Schema.ReadonlySet(Schema.Option(Schema.Date))
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new Set([Option.some(new Date("2021-01-01"))]), [{
@@ -968,7 +968,7 @@ describe("Serializer generation", () => {
 
       it("ReadonlyMap", async () => {
         const schema = Schema.ReadonlyMap(Schema.Option(Schema.Date), FiniteFromDate)
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -990,7 +990,7 @@ describe("Serializer generation", () => {
     describe("plain", () => {
       it("FiniteFromDate", async () => {
         const schema = FiniteFromDate
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(schema))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
 
         const encoding = asserts.encoding()
         await encoding.succeed(0, "1970-01-01T00:00:00.000Z")
@@ -1001,7 +1001,7 @@ describe("Serializer generation", () => {
           a: FiniteFromDate,
           b: FiniteFromDate
         })
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(schema))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -1012,7 +1012,7 @@ describe("Serializer generation", () => {
 
       it("Tuple(Schema.Date, Schema.Date)", async () => {
         const schema = Schema.Tuple([FiniteFromDate, FiniteFromDate])
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(schema))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -1025,7 +1025,7 @@ describe("Serializer generation", () => {
         class A extends Schema.Class<A>("A")(Schema.Struct({
           a: FiniteFromDate
         })) {}
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(A))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(A))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new A({ a: 0 }), { a: "1970-01-01T00:00:00.000Z" })
@@ -1038,7 +1038,7 @@ describe("Serializer generation", () => {
         class E extends Schema.ErrorClass<E>("E")({
           a: FiniteFromDate
         }) {}
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(E))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(E))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new E({ a: 0 }), { a: "1970-01-01T00:00:00.000Z" })
@@ -1053,7 +1053,7 @@ describe("Serializer generation", () => {
           Banana = "banana"
         }
         const schema = Schema.Enum(Fruits)
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(schema))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
 
         const encoding = asserts.encoding()
         await encoding.succeed(Fruits.Apple, 0)
@@ -1065,7 +1065,7 @@ describe("Serializer generation", () => {
 
       it("Option(Option(FiniteFromDate))", async () => {
         const schema = Schema.Option(Schema.Option(FiniteFromDate))
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(schema))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
 
         const encoding = asserts.encoding()
         await encoding.succeed(Option.some(Option.some(0)), {
@@ -1079,7 +1079,7 @@ describe("Serializer generation", () => {
 
       it("ReadonlyMap(Option(Symbol), Date)", async () => {
         const schema = Schema.ReadonlyMap(Schema.Option(Schema.Symbol), Schema.Date)
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(schema))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -1099,7 +1099,7 @@ describe("Serializer generation", () => {
 
       it("Defect", async () => {
         const schema = Schema.Defect
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(schema))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new Error("a"), { name: "Error", message: "a" })
@@ -1109,7 +1109,7 @@ describe("Serializer generation", () => {
 
       it("Cause(Option(Finite), Option(String))", async () => {
         const schema = Schema.Cause(Schema.Option(Schema.Finite), Schema.Option(Schema.String))
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(schema))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
 
         const encoding = asserts.encoding()
         await encoding.succeed(Cause.fail(Option.some(1)), [{
@@ -1132,7 +1132,7 @@ describe("Serializer generation", () => {
 
       it("DateTimeUtcFromValidDate", async () => {
         const schema = Schema.DateTimeUtcFromDate
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(schema))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -1168,7 +1168,7 @@ describe("Serializer generation", () => {
         leafHook: Issue.defaultLeafHook
       }).format(failure.error)
 
-      const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.StandardSchemaV1FailureResult))
+      const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.StandardSchemaV1FailureResult))
 
       const encoding = asserts.encoding()
       await encoding.succeed(failureResult, {
@@ -1190,11 +1190,11 @@ describe("Serializer generation", () => {
     })
   })
 
-  describe("makeSerializerStringPojo", () => {
+  describe("toSerializerStringTree", () => {
     describe("should return the same reference if nothing changed", () => {
       it("String", async () => {
         const schema = Schema.String
-        const serializer = Schema.makeSerializerStringPojo(schema)
+        const serializer = Schema.toSerializerStringTree(schema)
         strictEqual(serializer.ast, schema.ast)
       })
 
@@ -1202,7 +1202,7 @@ describe("Serializer generation", () => {
         const schema = Schema.Struct({
           a: Schema.String
         })
-        const serializer = Schema.makeSerializerStringPojo(schema)
+        const serializer = Schema.toSerializerStringTree(schema)
         strictEqual(serializer.ast, schema.ast)
       })
     })
@@ -1212,14 +1212,14 @@ describe("Serializer generation", () => {
         const schema = Schema.Struct({
           a: Schema.Finite
         })
-        const serializer = Schema.makeSerializerStringPojo(schema)
-        strictEqual(serializer.ast, Schema.makeSerializerStringPojo(serializer).ast)
+        const serializer = Schema.toSerializerStringTree(schema)
+        strictEqual(serializer.ast, Schema.toSerializerStringTree(serializer).ast)
       })
 
       it("Array", async () => {
         const schema = Schema.Array(Schema.Finite)
-        const serializer = Schema.makeSerializerStringPojo(schema)
-        strictEqual(serializer.ast, Schema.makeSerializerStringPojo(serializer).ast)
+        const serializer = Schema.toSerializerStringTree(schema)
+        strictEqual(serializer.ast, Schema.toSerializerStringTree(serializer).ast)
       })
     })
 
@@ -1231,7 +1231,7 @@ describe("Serializer generation", () => {
           }
           const schema = Schema.declare((u): u is A => u instanceof A)
           throws(
-            () => Schema.makeSerializerStringPojo(Schema.typeCodec(schema)),
+            () => Schema.toSerializerStringTree(Schema.typeCodec(schema)),
             "required `serializerJson` or `serializer` annotation"
           )
         })
@@ -1239,7 +1239,7 @@ describe("Serializer generation", () => {
         it("Unknown", () => {
           const schema = Schema.Unknown
           throws(
-            () => Schema.makeSerializerStringPojo(Schema.typeCodec(schema)),
+            () => Schema.toSerializerStringTree(Schema.typeCodec(schema)),
             "required `serializerJson` or `serializer` annotation"
           )
         })
@@ -1247,7 +1247,7 @@ describe("Serializer generation", () => {
         it("ObjectKeyword", () => {
           const schema = Schema.ObjectKeyword
           throws(
-            () => Schema.makeSerializerStringPojo(Schema.typeCodec(schema)),
+            () => Schema.toSerializerStringTree(Schema.typeCodec(schema)),
             "required `serializerJson` or `serializer` annotation"
           )
         })
@@ -1258,7 +1258,7 @@ describe("Serializer generation", () => {
             [a]: Schema.String
           })
           throws(
-            () => Schema.makeSerializerStringPojo(Schema.typeCodec(schema)),
+            () => Schema.toSerializerStringTree(Schema.typeCodec(schema)),
             "Objects property names must be strings"
           )
         })
@@ -1266,7 +1266,7 @@ describe("Serializer generation", () => {
 
       it("Never", async () => {
         const schema = Schema.Never
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.fail({}, "Expected never, got {}")
@@ -1274,7 +1274,7 @@ describe("Serializer generation", () => {
 
       it("Any", async () => {
         const schema = Schema.Any
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(() => {})
@@ -1285,7 +1285,7 @@ describe("Serializer generation", () => {
 
       it("Undefined", async () => {
         const schema = Schema.Undefined
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(undefined)
@@ -1296,7 +1296,7 @@ describe("Serializer generation", () => {
 
       it("Void", async () => {
         const schema = Schema.Void
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(undefined)
@@ -1307,7 +1307,7 @@ describe("Serializer generation", () => {
 
       it("Null", async () => {
         const schema = Schema.Null
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(null, undefined)
@@ -1318,7 +1318,7 @@ describe("Serializer generation", () => {
 
       it("String", async () => {
         const schema = Schema.String
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed("a")
@@ -1329,7 +1329,7 @@ describe("Serializer generation", () => {
 
       it("Number", async () => {
         const schema = Schema.Number
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(1, "1")
@@ -1347,7 +1347,7 @@ describe("Serializer generation", () => {
 
       it("Boolean", async () => {
         const schema = Schema.Boolean
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(true, "true")
@@ -1360,7 +1360,7 @@ describe("Serializer generation", () => {
 
       it("Symbol", async () => {
         const schema = Schema.Symbol
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(Symbol.for("a"), "Symbol(a)")
@@ -1380,7 +1380,7 @@ describe("Serializer generation", () => {
 
       it("UniqueSymbol", async () => {
         const schema = Schema.UniqueSymbol(Symbol.for("a"))
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(Symbol.for("a"), "Symbol(a)")
@@ -1392,7 +1392,7 @@ describe("Serializer generation", () => {
 
       it("BigInt", async () => {
         const schema = Schema.BigInt
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(1n, "1")
@@ -1404,7 +1404,7 @@ describe("Serializer generation", () => {
 
       it("PropertyKey", async () => {
         const schema = Schema.PropertyKey
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed("a", "a")
@@ -1420,7 +1420,7 @@ describe("Serializer generation", () => {
       describe("Literal", () => {
         it("string", async () => {
           const schema = Schema.Literal("a")
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed("a", "a")
@@ -1431,7 +1431,7 @@ describe("Serializer generation", () => {
 
         it("number", async () => {
           const schema = Schema.Literal(1)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(1, "1")
@@ -1442,7 +1442,7 @@ describe("Serializer generation", () => {
 
         it("boolean", async () => {
           const schema = Schema.Literal(true)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(true, "true")
@@ -1453,7 +1453,7 @@ describe("Serializer generation", () => {
 
         it("bigint", async () => {
           const schema = Schema.Literal(1n)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(1n, "1")
@@ -1465,7 +1465,7 @@ describe("Serializer generation", () => {
 
       it("Literals", async () => {
         const schema = Schema.Literals(["a", 1, 2n, true])
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const decoding = asserts.decoding()
         await decoding.fail(
@@ -1477,7 +1477,7 @@ describe("Serializer generation", () => {
       describe("TemplateLiteral", () => {
         it("1n + string", async () => {
           const schema = Schema.TemplateLiteral([1n, Schema.String])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed("1a")
@@ -1488,7 +1488,7 @@ describe("Serializer generation", () => {
 
         it(`"a" + bigint`, async () => {
           const schema = Schema.TemplateLiteral(["a", Schema.BigInt])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed("a1")
@@ -1504,7 +1504,7 @@ describe("Serializer generation", () => {
           Banana
         }
         const schema = Schema.Enum(Fruits)
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(Fruits.Apple, "0")
@@ -1520,7 +1520,7 @@ describe("Serializer generation", () => {
           const schema = Schema.Struct({
             a: Schema.Date
           })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed({ a: new Date("2021-01-01") }, {
@@ -1537,7 +1537,7 @@ describe("Serializer generation", () => {
           const schema = Schema.Struct({
             a: Schema.UndefinedOr(Schema.Date)
           })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed({ a: new Date("2021-01-01") }, {
@@ -1556,7 +1556,7 @@ describe("Serializer generation", () => {
           const schema = Schema.Struct({
             a: Schema.NullOr(Schema.Date)
           })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed({ a: new Date("2021-01-01") }, {
@@ -1575,7 +1575,7 @@ describe("Serializer generation", () => {
           const schema = Schema.Struct({
             a: Schema.optionalKey(Schema.Date)
           })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed({ a: new Date("2021-01-01") }, {
@@ -1594,7 +1594,7 @@ describe("Serializer generation", () => {
           const schema = Schema.Struct({
             a: Schema.optional(Schema.Date)
           })
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed({ a: new Date("2021-01-01") }, {
@@ -1614,7 +1614,7 @@ describe("Serializer generation", () => {
 
       it("Record(Symbol, Date)", async () => {
         const schema = Schema.Record(Schema.Symbol, Schema.Date)
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -1632,7 +1632,7 @@ describe("Serializer generation", () => {
       describe("Tuple", () => {
         it("Date", async () => {
           const schema = Schema.Tuple([Schema.Date])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(
@@ -1649,7 +1649,7 @@ describe("Serializer generation", () => {
 
         it("UndefinedOr(Date)", async () => {
           const schema = Schema.Tuple([Schema.UndefinedOr(Schema.Date)])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(
@@ -1667,7 +1667,7 @@ describe("Serializer generation", () => {
 
         it("NullOr(Date)", async () => {
           const schema = Schema.Tuple([Schema.NullOr(Schema.Date)])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed([new Date("2021-01-01")], [
@@ -1684,7 +1684,7 @@ describe("Serializer generation", () => {
 
         it("optionalKey(Date)", async () => {
           const schema = Schema.Tuple([Schema.optionalKey(Schema.Date)])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed([new Date("2021-01-01")], [
@@ -1701,7 +1701,7 @@ describe("Serializer generation", () => {
 
         it("optional(Date)", async () => {
           const schema = Schema.Tuple([Schema.optional(Schema.Date)])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed([new Date("2021-01-01")], [
@@ -1721,7 +1721,7 @@ describe("Serializer generation", () => {
 
       it("Array(Date)", async () => {
         const schema = Schema.Array(Schema.Date)
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -1733,7 +1733,7 @@ describe("Serializer generation", () => {
       describe("Union", () => {
         it("NullOr(Date)", async () => {
           const schema = Schema.NullOr(Schema.String)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed("a", "a")
@@ -1746,7 +1746,7 @@ describe("Serializer generation", () => {
 
         it("NullOr(Number)", async () => {
           const schema = Schema.NullOr(Schema.Number)
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(1, "1")
@@ -1759,7 +1759,7 @@ describe("Serializer generation", () => {
 
         it("Array(NullOr(Number))", async () => {
           const schema = Schema.Array(Schema.NullOr(Schema.Number))
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed([1, null], ["1", undefined])
@@ -1770,7 +1770,7 @@ describe("Serializer generation", () => {
 
         it("Union(Schema.Date, FiniteFromDate)", async () => {
           const schema = Schema.Union([Schema.Date, FiniteFromDate])
-          const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+          const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
           const encoding = asserts.encoding()
           await encoding.succeed(
@@ -1793,7 +1793,7 @@ describe("Serializer generation", () => {
           a: Schema.FiniteFromString.check(Schema.isGreaterThan(0)),
           categories: Schema.Array(Schema.suspend((): Schema.Codec<CategoryType, CategoryEncoded> => schema))
         })
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed({ a: 1, categories: [] }, {
@@ -1825,7 +1825,7 @@ describe("Serializer generation", () => {
 
       it("FiniteFromDate", async () => {
         const schema = FiniteFromDate
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(0, "0")
@@ -1835,7 +1835,7 @@ describe("Serializer generation", () => {
         class A extends Schema.Class<A>("A")(Schema.Struct({
           a: FiniteFromDate
         })) {}
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(A)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(A)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new A({ a: 0 }), { a: "0" })
@@ -1848,7 +1848,7 @@ describe("Serializer generation", () => {
         class E extends Schema.ErrorClass<E>("E")({
           a: FiniteFromDate
         }) {}
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(E)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(E)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new E({ a: 0 }), { a: "0" })
@@ -1859,7 +1859,7 @@ describe("Serializer generation", () => {
 
       it("Date", async () => {
         const schema = Schema.Date
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -1870,7 +1870,7 @@ describe("Serializer generation", () => {
 
       it("Error", async () => {
         const schema = Schema.Error
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -1907,7 +1907,7 @@ describe("Serializer generation", () => {
 
       it("URL", async () => {
         const schema = Schema.URL
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -1932,7 +1932,7 @@ describe("Serializer generation", () => {
 
       it("Option(Date)", async () => {
         const schema = Schema.Option(Schema.Date)
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(Option.some(new Date("2021-01-01")), {
@@ -1944,7 +1944,7 @@ describe("Serializer generation", () => {
 
       it("Redacted(Option(String))", async () => {
         const schema = Schema.Redacted(Schema.Option(Schema.String))
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.fail(
@@ -1969,7 +1969,7 @@ describe("Serializer generation", () => {
 
       it("ReadonlySet", async () => {
         const schema = Schema.ReadonlySet(Schema.Option(Schema.Date))
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new Set([Option.some(new Date("2021-01-01"))]), [{
@@ -1986,7 +1986,7 @@ describe("Serializer generation", () => {
 
       it("ReadonlyMap", async () => {
         const schema = Schema.ReadonlyMap(Schema.Option(Schema.Date), FiniteFromDate)
-        const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(Schema.typeCodec(schema)))
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(Schema.typeCodec(schema)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(
@@ -2006,20 +2006,20 @@ describe("Serializer generation", () => {
     })
   })
 
-  describe("makeSerializerEnsureArray", () => {
+  describe("toSerializerEnsureArray", () => {
     describe("should memoize the result", () => {
       it("Struct", async () => {
         const schema = Schema.Struct({
           a: Schema.Finite
         })
-        const serializer = Schema.makeSerializerEnsureArray(Schema.makeSerializerStringPojo(schema))
-        strictEqual(serializer.ast, Schema.makeSerializerEnsureArray(Schema.makeSerializerStringPojo(serializer)).ast)
+        const serializer = Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(schema))
+        strictEqual(serializer.ast, Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(serializer)).ast)
       })
 
       it("Array", async () => {
         const schema = Schema.Array(Schema.Finite)
-        const serializer = Schema.makeSerializerEnsureArray(Schema.makeSerializerStringPojo(schema))
-        strictEqual(serializer.ast, Schema.makeSerializerEnsureArray(Schema.makeSerializerStringPojo(serializer)).ast)
+        const serializer = Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(schema))
+        strictEqual(serializer.ast, Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(serializer)).ast)
       })
     })
 
@@ -2027,8 +2027,8 @@ describe("Serializer generation", () => {
       const schema = Schema.Struct({
         a: Schema.optionalKey(Schema.NonEmptyArray(Schema.String))
       })
-      const serializer = Schema.makeSerializerEnsureArray(Schema.makeSerializerStringPojo(schema))
-      const asserts = new TestSchema.Asserts(Schema.makeSerializerStringPojo(serializer))
+      const serializer = Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(schema))
+      const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(serializer))
 
       const decoding = asserts.decoding()
       await decoding.succeed({})
@@ -2039,12 +2039,12 @@ describe("Serializer generation", () => {
 
   describe("makeEncoderXml", () => {
     async function assertXml<T, E, RD>(schema: Schema.Codec<T, E, RD>, value: T, expected: string) {
-      const serializer = Schema.makeEncoderXml(Schema.makeSerializerStringPojo(schema))
+      const serializer = Schema.makeEncoderXml(Schema.toSerializerStringTree(schema))
       strictEqual(await Effect.runPromise(serializer(value)), expected)
     }
 
     async function assertXmlFailure<T, E, RD>(schema: Schema.Codec<T, E, RD>, value: T, message: string) {
-      const serializer = Schema.makeEncoderXml(Schema.makeSerializerStringPojo(schema))
+      const serializer = Schema.makeEncoderXml(Schema.toSerializerStringTree(schema))
       const r = await serializer(value).pipe(
         Effect.mapError((err) => err.issue.toString()),
         Effect.result,
@@ -2055,7 +2055,7 @@ describe("Serializer generation", () => {
 
     async function assertXmlError<T, E, RD>(schema: Schema.Codec<T, E, RD>, message: string) {
       throws(
-        () => Schema.makeEncoderXml(Schema.makeSerializerStringPojo(schema)),
+        () => Schema.makeEncoderXml(Schema.toSerializerStringTree(schema)),
         message
       )
     }
@@ -2181,7 +2181,7 @@ describe("Serializer generation", () => {
     })
 
     it("Array with custom item name", async () => {
-      const serializer = Schema.makeEncoderXml(Schema.makeSerializerStringPojo(Schema.Array(Schema.Number)), {
+      const serializer = Schema.makeEncoderXml(Schema.toSerializerStringTree(Schema.Array(Schema.Number)), {
         arrayItemName: "number"
       })
       strictEqual(
@@ -2385,7 +2385,7 @@ line2</root>`
     })
 
     it("XML Encoder Options - rootName", async () => {
-      const serializer = Schema.makeEncoderXml(Schema.makeSerializerStringPojo(Schema.String), {
+      const serializer = Schema.makeEncoderXml(Schema.toSerializerStringTree(Schema.String), {
         rootName: "custom"
       })
       strictEqual(await Effect.runPromise(serializer("test")), "<custom>test</custom>")
@@ -2393,7 +2393,7 @@ line2</root>`
 
     it("XML Encoder Options - pretty: false", async () => {
       const serializer = Schema.makeEncoderXml(
-        Schema.makeSerializerStringPojo(Schema.Struct({
+        Schema.toSerializerStringTree(Schema.Struct({
           a: Schema.Number,
           b: Schema.String
         })),
@@ -2406,7 +2406,7 @@ line2</root>`
 
     it("XML Encoder Options - custom indent", async () => {
       const serializer = Schema.makeEncoderXml(
-        Schema.makeSerializerStringPojo(Schema.Struct({
+        Schema.toSerializerStringTree(Schema.Struct({
           a: Schema.Number
         })),
         {
@@ -2423,7 +2423,7 @@ line2</root>`
 
     it("XML Encoder Options - sortKeys: false", async () => {
       const serializer = Schema.makeEncoderXml(
-        Schema.makeSerializerStringPojo(Schema.Struct({
+        Schema.toSerializerStringTree(Schema.Struct({
           z: Schema.Number,
           a: Schema.Number,
           m: Schema.Number
@@ -2446,7 +2446,7 @@ line2</root>`
       const obj: any = { name: "test" }
       obj.self = obj
 
-      const serializer = Schema.makeEncoderXml(Schema.makeSerializerStringPojo(Schema.Any))
+      const serializer = Schema.makeEncoderXml(Schema.toSerializerStringTree(Schema.Any))
       try {
         await Effect.runPromise(serializer(obj))
         throw new Error("Expected error")

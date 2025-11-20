@@ -12,7 +12,7 @@ import * as Layer from "./Layer.ts"
 import * as FileSystem from "./platform/FileSystem.ts"
 import * as Path_ from "./platform/Path.ts"
 import type { PlatformError } from "./platform/PlatformError.ts"
-import type { StringPojo } from "./schema/Schema.ts"
+import type { StringTree } from "./schema/Schema.ts"
 import type { Scope } from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as Str from "./String.ts"
@@ -232,22 +232,18 @@ export const layerAdd = <E = never, R = never>(
     })
   )
 
-// -----------------------------------------------------------------------------
-// fromStringPojo
-// -----------------------------------------------------------------------------
-
 /**
- * Create a ConfigProvider that reads values from a string-leaf POJO object.
+ * Create a ConfigProvider that reads values from a `StringTree`.
  *
  * @category ConfigProviders
  * @since 4.0.0
  */
-export function fromStringPojo(root: StringPojo): ConfigProvider {
+export function fromStringTree(root: StringTree): ConfigProvider {
   return make((path) => Effect.succeed(describeStat(resolvePath(root, path))))
 }
 
-function resolvePath(input: StringPojo, path: Path): StringPojo | undefined {
-  let out: StringPojo = input
+function resolvePath(input: StringTree, path: Path): StringTree | undefined {
+  let out: StringTree = input
 
   for (const seg of path) {
     if (typeof out === "string") return undefined
@@ -266,7 +262,7 @@ function resolvePath(input: StringPojo, path: Path): StringPojo | undefined {
   return out
 }
 
-function describeStat(value: StringPojo | undefined): Stat | undefined {
+function describeStat(value: StringTree | undefined): Stat | undefined {
   if (value === undefined) return undefined
   if (typeof value === "string") return leaf(value)
   if (Array.isArray(value)) return array(value.length)
@@ -284,20 +280,20 @@ function describeStat(value: StringPojo | undefined): Stat | undefined {
  * @since 4.0.0
  */
 export function fromJson(root: unknown): ConfigProvider {
-  return fromStringPojo(asStringPojo(root))
+  return fromStringTree(asStringTree(root))
 }
 
-function asStringPojo(u: unknown): StringPojo {
+function asStringTree(u: unknown): StringTree {
   if (u === null || u === undefined) return ""
   if (typeof u === "string") return u
   if (typeof u === "number") return String(u)
   if (typeof u === "boolean") return String(u)
-  if (Array.isArray(u)) return u.map(asStringPojo)
+  if (Array.isArray(u)) return u.map(asStringTree)
 
   if (Predicate.isObject(u)) {
-    const result: Record<string, StringPojo> = {}
+    const result: Record<string, StringTree> = {}
     for (const [key, value] of Object.entries(u)) {
-      result[key] = asStringPojo(value)
+      result[key] = asStringTree(value)
     }
     return result
   }

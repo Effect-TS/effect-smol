@@ -191,7 +191,7 @@ describe("ConfigProvider", () => {
   })
 
   describe("fromStringLeafJson", () => {
-    const provider = ConfigProvider.fromStringPojo({
+    const provider = ConfigProvider.fromStringTree({
       leaf: "value1",
       object: {
         key1: "value2",

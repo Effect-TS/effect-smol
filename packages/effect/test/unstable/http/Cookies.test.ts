@@ -19,9 +19,9 @@ describe("Cookies", () => {
       )
     })
 
-    it("defaultJsonSerializer", async () => {
+    it("serializerJson", async () => {
       const schema = Cookies.CookiesSchema
-      const asserts = new TestSchema.Asserts(Schema.makeSerializerJson(Schema.typeCodec(schema)))
+      const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.typeCodec(schema)))
 
       const encoding = asserts.encoding()
 

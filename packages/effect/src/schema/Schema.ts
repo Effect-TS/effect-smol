@@ -6751,16 +6751,14 @@ export function makeJsonSchemaOpenApi3_1<S extends Top>(schema: S, options?: Jso
 
 /**
  * For use cases like RPC or messaging systems, the JSON format only needs to
- * support round-trip encoding and decoding. The `Serializer.json` operator
+ * support round-trip encoding and decoding. The `toSerializerJson` operator
  * helps with this by taking a schema and returning a `Codec` that knows how to
  * serialize and deserialize the data using a JSON-compatible format.
  *
  * @category Serializer
  * @since 4.0.0
  */
-export function makeSerializerJson<T, E, RD, RE>(
-  codec: Codec<T, E, RD, RE>
-): Codec<T, unknown, RD, RE> {
+export function toSerializerJson<T, E, RD, RE>(codec: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
   return make(goJson(codec.ast))
 }
 
@@ -6768,7 +6766,7 @@ export function makeSerializerJson<T, E, RD, RE>(
  * @category Serializer
  * @since 4.0.0
  */
-export function makeSerializerIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
+export function toSerializerIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
   return make(goIso(AST.typeAST(schema.ast)))
 }
 
@@ -6776,25 +6774,21 @@ export function makeSerializerIso<S extends Top>(schema: S): Codec<S["Type"], S[
  * @category Serializer
  * @since 4.0.0
  */
-export type StringPojo = string | undefined | { [x: string]: StringPojo } | Array<StringPojo>
+export type StringTree = string | undefined | { [key: string]: StringTree } | Array<StringTree>
 
 /**
  * @category Serializer
  * @since 4.0.0
  */
-export function makeSerializerStringPojo<T, E, RD, RE>(
-  codec: Codec<T, E, RD, RE>
-): Codec<T, StringPojo, RD, RE> {
-  return make(goStringPojo(codec.ast))
+export function toSerializerStringTree<T, E, RD, RE>(codec: Codec<T, E, RD, RE>): Codec<T, StringTree, RD, RE> {
+  return make(goStringTree(codec.ast))
 }
 
 /**
  * @category Serializer
  * @since 4.0.0
  */
-export function makeSerializerEnsureArray<T, RD, RE>(
-  codec: Codec<T, StringPojo, RD, RE>
-): Codec<T, StringPojo, RD, RE> {
+export function toSerializerEnsureArray<T, E, RD, RE>(codec: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
   return make(goEnsureArray(codec.ast))
 }
 
@@ -6820,8 +6814,9 @@ export function makeEncoderXml<T, E, RD, RE>(
   options?: XmlEncoderOptions
 ) {
   const rootName = Annotations.resolveIdentifier(codec.ast) ?? Annotations.resolveTitle(codec.ast)
-  const serialize = encodeEffect(makeSerializerStringPojo(codec))
-  return (t: T) => serialize(t).pipe(Effect.map((pojo) => stringPojoToXml(pojo, { rootName, ...options })))
+  const serialize = encodeEffect(toSerializerStringTree(codec))
+  return (t: T): Effect.Effect<string, SchemaError, RE> =>
+    serialize(t).pipe(Effect.map((pojo) => stringTreeToXml(pojo, { rootName, ...options })))
 }
 
 const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
@@ -6890,7 +6885,7 @@ const goIso = memoize((ast: AST.AST): AST.AST => {
   return AST.isOptional(ast) ? AST.optionalKey(out) : out
 })
 
-const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
+const goStringTree = memoize(AST.apply((ast: AST.AST): AST.AST => {
   function go(ast: AST.AST): AST.AST {
     switch (ast._tag) {
       case "Unknown":
@@ -6899,22 +6894,22 @@ const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
         const getLink = ast.annotations?.serializerJson ?? ast.annotations?.serializer
         if (Predicate.isFunction(getLink)) {
           const tps = AST.isDeclaration(ast)
-            ? ast.typeParameters.map((tp) => make(goStringPojo(AST.encodedAST(tp))))
+            ? ast.typeParameters.map((tp) => make(goStringTree(AST.encodedAST(tp))))
             : []
           const link = getLink(tps)
-          const to = goStringPojo(link.to)
+          const to = goStringTree(link.to)
           return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
         }
         throw new globalThis.Error("required `serializerJson` or `serializer` annotation", { cause: ast })
       }
       case "Null":
-        return AST.replaceEncoding(ast, [nullStringPojoLink])
+        return AST.replaceEncoding(ast, [nullStringTreeLink])
       case "Boolean":
-        return AST.replaceEncoding(ast, [booleanStringPojoLink])
+        return AST.replaceEncoding(ast, [booleanStringTreeLink])
       case "Enum":
       case "Number":
       case "Literal":
-        return ast.goStringPojo()
+        return ast.goStringTree()
       case "BigInt":
       case "Symbol":
       case "UniqueSymbol":
@@ -6926,7 +6921,7 @@ const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
         if (AST.isObjects(ast) && ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
           throw new globalThis.Error("Objects property names must be strings", { cause: ast })
         }
-        return ast.go(goStringPojo)
+        return ast.go(goStringTree)
       }
     }
     return ast
@@ -6935,7 +6930,7 @@ const goStringPojo = memoize(AST.apply((ast: AST.AST): AST.AST => {
   return AST.isOptional(ast) ? AST.optionalKey(out) : out
 }))
 
-const nullStringPojoLink = new AST.Link(
+const nullStringTreeLink = new AST.Link(
   AST.undefined,
   new Transformation.Transformation(
     Getter.transform(() => null),
@@ -6943,7 +6938,7 @@ const nullStringPojoLink = new AST.Link(
   )
 )
 
-const booleanStringPojoLink = new AST.Link(
+const booleanStringTreeLink = new AST.Link(
   new AST.Union([new AST.Literal("true"), new AST.Literal("false")], "anyOf"),
   new Transformation.Transformation(
     Getter.transform((s) => s === "true"),
@@ -6979,8 +6974,7 @@ const goEnsureArray = memoize(AST.apply((ast: AST.AST): AST.AST => {
   return out
 }))
 
-// Convert a StringPojo to XML text.
-function stringPojoToXml(value: StringPojo, options: XmlEncoderOptions): string {
+function stringTreeToXml(value: StringTree, options: XmlEncoderOptions): string {
   const opts: { [P in keyof XmlEncoderOptions]-?: Exclude<XmlEncoderOptions[P], undefined> } = {
     rootName: options.rootName ?? "root",
     arrayItemName: options.arrayItemName ?? "item",
@@ -6989,7 +6983,7 @@ function stringPojoToXml(value: StringPojo, options: XmlEncoderOptions): string 
     sortKeys: options.sortKeys ?? true
   }
 
-  const seen = new Set<{ [x: string]: StringPojo } | Array<StringPojo>>()
+  const seen = new Set<{ [x: string]: StringTree } | Array<StringTree>>()
   const lines: Array<string> = []
   const push = (depth: number, text: string) => lines.push(opts.pretty ? opts.indent.repeat(depth) + text : text)
 
@@ -7000,7 +6994,7 @@ function stringPojoToXml(value: StringPojo, options: XmlEncoderOptions): string 
     return { safe, attrs }
   }
 
-  const render = (tagName: string, node: StringPojo, depth: number, originalNameForMeta?: string): void => {
+  const render = (tagName: string, node: StringTree, depth: number, originalNameForMeta?: string): void => {
     if (node === undefined) {
       const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
       push(depth, `<${safe}${attrs}/>`)
@@ -7072,7 +7066,7 @@ const parseTagName = (name: string): { safe: string; changed: boolean } => {
  * @since 4.0.0
  */
 export function makeIso<S extends Top>(schema: S): Optic_.Iso<S["Type"], S["Iso"]> {
-  const serializer = makeSerializerIso(schema)
+  const serializer = toSerializerIso(schema)
   return Optic_.makeIso(Parser.encodeSync(serializer), Parser.decodeSync(serializer))
 }
 
@@ -7174,7 +7168,7 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  * @since 4.0.0
  */
 export function makeDifferJsonPatch<T, E>(codec: Codec<T, E>): Differ<T, JsonPatch> {
-  const serializer = makeSerializerJson(codec)
+  const serializer = toSerializerJson(codec)
   const get = Parser.encodeSync(serializer)
   const set = Parser.decodeSync(serializer)
   return {

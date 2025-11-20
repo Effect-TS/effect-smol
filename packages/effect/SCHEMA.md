@@ -29,7 +29,7 @@ Ultimately, the intent is to eliminate the need for two separate paths like in v
 
 ### 3. Encoding / Decoding
 
-- **Default JSON codec generator**: `Schema.makeSerializerJson(schema)` does round‑trip‑safe network serialization (Maps → pairs, Options → arrays, Dates → ISO strings, etc.).
+- **Default JSON codec generator**: `Schema.toSerializerJson(schema)` does round‑trip‑safe network serialization (Maps → pairs, Options → arrays, Dates → ISO strings, etc.).
 - **Explicit helpers**: `Schema.UnknownFromJsonString`, `Schema.fromJsonString`.
 
 ### 4. Schema Algebra Goodies
@@ -314,7 +314,7 @@ This page starts with the network case, where you mainly need round-trip convers
 ### Transmitting Data Over the Network
 
 For RPC and messaging, it is enough that the JSON representation round-trips.
-`Schema.makeSerializerJson` takes a schema and returns a **new schema** that knows how to serialize to JSON and how to parse that JSON back.
+`Schema.toSerializerJson` takes a schema and returns a **new schema** that knows how to serialize to JSON and how to parse that JSON back.
 
 **Example** (Round-tripping a `ReadonlySet<Date>`)
 
@@ -325,7 +325,7 @@ import { Schema } from "effect/schema"
 const schema = Schema.ReadonlySet(Schema.Date)
 
 // Ask for a JSON-capable schema
-const serializer = Schema.makeSerializerJson(schema)
+const serializer = Schema.toSerializerJson(schema)
 
 // A sample value to send
 const data = new Set([new Date("2021-01-01"), new Date("2021-01-02")])
@@ -353,7 +353,7 @@ This schema chooses JSON formats based on its parts:
 
 `Schema` can encode and decode many values by default, including recursive structures.
 Some data types (for example `Schema.ReadonlyMap`, `Schema.Option`, `Schema.ReadonlySet`) are built using `SchemaAST.Declaration`.
-These types attach a **default JSON serializer** via an annotation so `Schema.makeSerializerJson` can discover how to encode them.
+These types attach a **default JSON serializer** via an annotation so `Schema.toSerializerJson` can discover how to encode them.
 
 Here is how the built-in `Schema.Date` sets its annotation:
 
@@ -375,11 +375,11 @@ const Date = Schema.instanceOf(globalThis.Date, {
 })
 ```
 
-The same idea applies to `Schema.ReadonlySet`. When you call `Schema.makeSerializerJson` on `Schema.ReadonlySet(Schema.Date)`, the library walks the schema tree and combines the `serializerJson` annotations it finds.
+The same idea applies to `Schema.ReadonlySet`. When you call `Schema.toSerializerJson` on `Schema.ReadonlySet(Schema.Date)`, the library walks the schema tree and combines the `serializerJson` annotations it finds.
 
 ### Custom JSON Formats
 
-`Schema.makeSerializerJson` respects **explicit encodings** you add to a schema. If you choose a custom representation, that choice takes priority.
+`Schema.toSerializerJson` respects **explicit encodings** you add to a schema. If you choose a custom representation, that choice takes priority.
 
 **Example** (`ReadonlySet<Date>` encoded as epoch milliseconds)
 
@@ -400,7 +400,7 @@ const DateFromEpochMillis = Schema.Date.pipe(
 const schema = Schema.ReadonlySet(DateFromEpochMillis)
 
 // Request a JSON-capable schema
-const serializer = Schema.makeSerializerJson(schema)
+const serializer = Schema.toSerializerJson(schema)
 
 const data = new Set([new Date("2021-01-01"), new Date("2021-01-02")])
 
@@ -414,7 +414,7 @@ Here the set is still an array, but each `Date` uses the custom number format, a
 
 ## 🆕 String‑Pojo Serializer
 
-`Schema.makeSerializerStringPojo` lets you funnel many string‑based inputs—URL queries, form posts, CLI args—into any **Schema** without adding custom transformations.
+`Schema.toSerializerStringTree` lets you funnel many string‑based inputs—URL queries, form posts, CLI args—into any **Schema** without adding custom transformations.
 
 The process has two steps:
 
@@ -422,14 +422,14 @@ The process has two steps:
    A short helper converts the raw data into a structure whose leaves are all strings.
 
    ```ts
-   type StringPojo = string | undefined | { [key: string]: StringPojo } | Array<StringPojo>
+   type StringTree = string | undefined | { [key: string]: StringTree } | Array<StringTree>
    ```
 
 2. **Tree → value**
    A normal schema decodes that tree into your typed model.
 
 Write the schema using the types you actually need: `Schema.Number`, `Schema.Boolean`, `Schema.Date`, and so on.
-`Schema.makeSerializerStringPojo` will convert the string leaves to these types while decoding, so you do **not** have to insert helpers like `numberFromString` or `booleanFromString`.
+`Schema.toSerializerStringTree` will convert the string leaves to these types while decoding, so you do **not** have to insert helpers like `numberFromString` or `booleanFromString`.
 
 Below are two quick examples.
 
@@ -438,9 +438,9 @@ Below are two quick examples.
 ```ts
 import { Schema } from "effect/schema"
 
-// 1. URL params ➜ StringPojo
-function toStringPojo(p: URLSearchParams): Schema.StringPojo {
-  const out: Schema.StringPojo = {}
+// 1. URL params ➜ StringTree
+function toStringTree(p: URLSearchParams): Schema.StringTree {
+  const out: Schema.StringTree = {}
   for (const [key, value] of p.entries()) {
     if (out[key] === undefined) {
       out[key] = value
@@ -459,49 +459,19 @@ const Query = Schema.Struct({
   q: Schema.optionalKey(Schema.Array(Schema.String))
 })
 
-const serializer = Schema.makeSerializerEnsureArray(Schema.makeSerializerStringPojo(Query))
+const serializer = Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(Query))
 
-console.log(Schema.decodeSync(serializer)(toStringPojo(new URLSearchParams("?page=1&q=foo"))))
+console.log(Schema.decodeSync(serializer)(toStringTree(new URLSearchParams("?page=1&q=foo"))))
 // => { page: 1, q: [ 'foo' ] }
 
-console.log(Schema.decodeSync(serializer)(toStringPojo(new URLSearchParams("?page=2"))))
+console.log(Schema.decodeSync(serializer)(toStringTree(new URLSearchParams("?page=2"))))
 // => { page: 2 }
 
-console.log(Schema.decodeSync(serializer)(toStringPojo(new URLSearchParams("?page=1&q=foo&q=bar"))))
+console.log(Schema.decodeSync(serializer)(toStringTree(new URLSearchParams("?page=1&q=foo&q=bar"))))
 // => { page: 1, q: [ 'foo', 'bar' ] }
 
-console.log(Schema.decodeSync(serializer)(toStringPojo(new URLSearchParams("?page=1&q="))))
+console.log(Schema.decodeSync(serializer)(toStringTree(new URLSearchParams("?page=1&q="))))
 // => { page: 1, q: [] }
-```
-
-**Example** (Decode `FormData`)
-
-```ts
-import * as Predicate from "effect/data/Predicate"
-import { Schema } from "effect/schema"
-
-// 1. FormData ➜ StringPojo
-const toStringPojo = (fd: FormData): Schema.StringPojo =>
-  // exclude File values
-  Object.fromEntries([...fd.entries()].filter((entry): entry is [string, string] => Predicate.isString(entry[1])))
-
-// 2. schema
-const User = Schema.Struct({
-  user: Schema.NonEmptyString,
-  pass: Schema.NonEmptyString,
-  age: Schema.Finite
-})
-
-const serializer = Schema.makeSerializerStringPojo(User)
-
-const fd = new FormData()
-fd.set("user", "alice")
-fd.set("pass", "secret")
-fd.set("age", "30")
-fd.set("age", "31")
-
-console.log(Schema.decodeSync(serializer)(toStringPojo(fd)))
-// => { user: "alice", pass: "secret", age: 30 }
 ```
 
 ### How it works
@@ -518,9 +488,9 @@ const schema = Schema.Struct({
   createdAt: Schema.Date
 })
 
-const json = Schema.makeSerializerJson(schema)
+const json = Schema.toSerializerJson(schema)
 
-const stringPojo = Schema.makeSerializerStringPojo(schema)
+const stringTree = Schema.toSerializerStringTree(schema)
 
 const value = {
   name: "John",
@@ -539,7 +509,7 @@ console.log(Schema.encodeSync(json)(value))
 }
 */
 
-console.log(Schema.encodeSync(stringPojo)(value))
+console.log(Schema.encodeSync(stringTree)(value))
 /*
 everything is a string
 {
@@ -2449,7 +2419,7 @@ class Person extends Schema.Opaque<Person>()(
   })
 ) {
   // Create a custom serializer using the class itself
-  static readonly serializer = Schema.makeSerializerJson(this)
+  static readonly serializer = Schema.toSerializerJson(this)
 }
 
 console.log(
@@ -4412,15 +4382,15 @@ console.log(String(Schema.encodeUnknownExit(schema)({ a: "a", b: { c: "bc", d: "
 
 ### Parsing FormData values
 
-You can use `Schema.makeSerializerStringPojo` to parse `FormData` values into your schema without having to specify a custom transformation.
+You can use `Schema.toSerializerStringTree` to parse `FormData` values into your schema without having to specify a custom transformation.
 
-**Example** (Parsing `FormData` values into your schema using `Schema.makeSerializerStringPojo`)
+**Example** (Parsing `FormData` values into your schema using `Schema.toSerializerStringTree`)
 
 ```ts
 import { Schema } from "effect/schema"
 
 const schema = Schema.fromFormData(
-  Schema.makeSerializerStringPojo(
+  Schema.toSerializerStringTree(
     Schema.Struct({
       a: Schema.Int
     })
@@ -5619,7 +5589,7 @@ if (r._tag === "Failure") {
   const failures = r.cause.failures
   if (failures[0]?._tag === "Fail") {
     const failureResult = Issue.makeStandardSchemaV1().format(failures[0].error)
-    const serializer = Schema.makeSerializerJson(Schema.StandardSchemaV1FailureResult)
+    const serializer = Schema.toSerializerJson(Schema.StandardSchemaV1FailureResult)
     console.dir(Schema.encodeSync(serializer)(failureResult), { depth: null })
   }
 }
@@ -5853,18 +5823,18 @@ import { Schema } from "effect/schema"
 
 function encodingJsonSchema<T, E, RD>(schema: Schema.Codec<T, E, RD, never>) {
   return Schema.asStandardSchemaV1(
-    Schema.flip(Schema.makeSerializerJson(schema)).annotate({
+    Schema.flip(Schema.toSerializerJson(schema)).annotate({
       direction: "encoding"
     })
   )
 }
 
 function decodingJsonSchema<T, E, RE>(schema: Schema.Codec<T, E, never, RE>) {
-  return Schema.asStandardSchemaV1(Schema.makeSerializerJson(schema))
+  return Schema.asStandardSchemaV1(Schema.toSerializerJson(schema))
 }
 
 function decodingStringSchema<T, E, RE>(schema: Schema.Codec<T, E, never, RE>) {
-  return Schema.asStandardSchemaV1(Schema.makeSerializerEnsureArray(Schema.makeSerializerStringPojo(schema)))
+  return Schema.asStandardSchemaV1(Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(schema)))
 }
 
 function mapJsonSchema(schema: Schema.Top) {

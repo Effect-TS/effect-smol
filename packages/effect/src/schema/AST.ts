@@ -571,7 +571,7 @@ export class Enum extends Base {
     )
   }
   /** @internal */
-  goStringPojo(): AST {
+  goStringTree(): AST {
     if (this.enums.some(([_, v]) => typeof v === "number")) {
       const coercions = Object.fromEntries(this.enums.map(([_, v]) => [globalThis.String(v), v]))
       return replaceEncoding(this, [
@@ -763,7 +763,7 @@ export class Literal extends Base {
     return typeof this.literal === "bigint" ? coerceLiteral(this) : this
   }
   /** @internal */
-  goStringPojo(): AST {
+  goStringTree(): AST {
     return typeof this.literal === "string" ? this : coerceLiteral(this)
   }
   /** @internal */
@@ -813,8 +813,8 @@ export class Number extends Base {
     return replaceEncoding(this, [numberJsonLink])
   }
   /** @internal */
-  goStringPojo(): AST {
-    return replaceEncoding(this, [numberStringPojoLink])
+  goStringTree(): AST {
+    return replaceEncoding(this, [numberStringTreeLink])
   }
   /** @internal */
   getExpected(): string {
@@ -2500,7 +2500,7 @@ export const enumsToLiterals = memoize((ast: Enum): Union<Literal> => {
 const goIndexSignature = memoize(apply((ast: AST): AST => {
   switch (ast._tag) {
     case "Number":
-      return ast.goStringPojo()
+      return ast.goStringTree()
     case "Union":
       return ast.go(goIndexSignature)
     default:
@@ -2517,7 +2517,7 @@ const goTemplateLiteral = memoize(apply((ast: AST): AST => {
       return ast.goJson()
     case "Number":
     case "Literal":
-      return ast.goStringPojo()
+      return ast.goStringTree()
     case "Arrays":
     case "Union":
       return ast.go(goTemplateLiteral)
@@ -2552,7 +2552,7 @@ export function isNumberString(annotations?: Annotations.Filter) {
   )
 }
 
-const numberStringPojoLink = new Link(
+const numberStringTreeLink = new Link(
   appendChecks(string, [isNumberString()]),
   Transformation.numberFromString
 )

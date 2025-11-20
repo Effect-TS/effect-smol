@@ -99,7 +99,7 @@ const makeSchemaPrimitive = <T, E>(
   tag: string,
   schema: Schema.Codec<T, E>
 ): Primitive<T> => {
-  const serializer = Schema.makeSerializerStringPojo(schema)
+  const serializer = Schema.toSerializerStringTree(schema)
   const decode = Schema.decodeUnknownEffect(serializer)
   return makePrimitive(tag, (value) => Effect.mapError(decode(value), (error) => error.message))
 }
