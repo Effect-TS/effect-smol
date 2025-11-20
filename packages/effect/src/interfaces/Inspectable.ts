@@ -309,15 +309,14 @@ export function format(
 
     if (typeof v === "bigint") return String(v) + "n"
 
-    if (v instanceof Set || v instanceof Map) {
-      if (seen.has(v)) return CIRCULAR
-      seen.add(v)
-      return `${v.constructor.name}(${go(Array.from(v), d)})`
-    }
-
     if (Predicate.isObject(v)) {
       if (seen.has(v)) return CIRCULAR
       seen.add(v)
+
+      if (Symbol.iterator in v) {
+        return `${v.constructor.name}(${go(Array.from(v as unknown as Iterable<unknown>), d)})`
+      }
+
       const keys = ownKeys(v)
       if (!gap || keys.length <= 1) {
         const body = `{${keys.map((k) => `${formatPropertyKey(k)}:${go((v as any)[k], d)}`).join(",")}}`

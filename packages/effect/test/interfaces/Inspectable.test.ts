@@ -131,6 +131,17 @@ describe("Inspectable", () => {
       strictEqual(format(new E({ a: "a" })), `E({"a":"a"})`)
     })
 
+    it("FormData", () => {
+      const formData = new FormData()
+      formData.append("a", "1")
+      strictEqual(format(formData), `FormData([["a","1"]])`)
+    })
+
+    it("Uint8Array", () => {
+      const uint8Array = new Uint8Array([1, 2, 3])
+      strictEqual(format(uint8Array), `Uint8Array([1,2,3])`)
+    })
+
     describe("whitespace", () => {
       it("object", () => {
         strictEqual(format({ a: 1 }, { space: 2 }), `{"a":1}`)
