@@ -4383,7 +4383,6 @@ console.log(String(Schema.decodeUnknownExit(provided)(null)))
 **Example** (Decoding and encoding `FormData` values)
 
 ```ts
-import { Exit } from "effect"
 import { Schema } from "effect/schema"
 
 const schema = Schema.fromFormData(
@@ -4407,14 +4406,8 @@ formData.append("e[1]", "e1")
 console.log(String(Schema.decodeUnknownExit(schema)(formData)))
 // Success({"a":"a","b":{"c":"bc","d":"bd"},"e":["e0","e1"]})
 
-console.log(
-  String(
-    Schema.encodeUnknownExit(schema)({ a: "a", b: { c: "bc", d: "bd" }, e: ["e0", "e1"] }).pipe(
-      Exit.map((form) => [...form])
-    )
-  )
-)
-// Success([["a","a"],["b[c]","bc"],["b[d]","bd"],["e[0]","e0"],["e[1]","e1"]])
+console.log(String(Schema.encodeUnknownExit(schema)({ a: "a", b: { c: "bc", d: "bd" }, e: ["e0", "e1"] })))
+// Success(FormData([["a","a"],["b[c]","bc"],["b[d]","bd"],["e[0]","e0"],["e[1]","e1"]]))
 ```
 
 ### Parsing FormData values
