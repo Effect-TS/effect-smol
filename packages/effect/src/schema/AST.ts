@@ -2115,10 +2115,6 @@ export function replaceEncoding<A extends AST>(ast: A, encoding: Encoding | unde
   })
 }
 
-function replaceLastLink(encoding: Encoding, link: Link): Encoding {
-  return Arr.append(encoding.slice(0, encoding.length - 1), link)
-}
-
 /** @internal */
 export function replaceContext<A extends AST>(ast: A, context: Context | undefined): A {
   if (ast.context === context) {
@@ -2144,32 +2140,27 @@ export function appendChecks<A extends AST>(ast: A, checks: Checks): A {
   return replaceChecks(ast, ast.checks ? [...ast.checks, ...checks] : checks)
 }
 
+function updateLastLink(encoding: Encoding, f: (ast: AST) => AST): Encoding {
+  const links = encoding
+  const last = links[links.length - 1]
+  const to = f(last.to)
+  if (to !== last.to) {
+    return Arr.append(encoding.slice(0, encoding.length - 1), new Link(to, last.transformation))
+  }
+  return encoding
+}
+
 /** @internal */
-export function apply(f: (ast: AST) => AST): (ast: AST) => AST {
+export function applyToEncoded(f: (ast: AST) => AST) {
   function out(ast: AST): AST {
-    if (ast.encoding) {
-      const links = ast.encoding
-      const last = links[links.length - 1]
-      const to = out(last.to)
-      return to === last.to ?
-        ast :
-        replaceEncoding(ast, replaceLastLink(links, new Link(to, last.transformation)))
-    }
-    return f(ast)
+    return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, out)) : f(ast)
   }
   return out
 }
 
-function applyEncoded<A extends AST>(ast: A, f: (ast: AST) => AST): A {
-  if (ast.encoding) {
-    const links = ast.encoding
-    const last = links[links.length - 1]
-    const to = f(last.to)
-    return to === last.to ?
-      ast :
-      replaceEncoding(ast, replaceLastLink(links, new Link(to, last.transformation)))
-  }
-  return ast
+/** @internal */
+export function applyToLastLink(f: (ast: AST) => AST) {
+  return <A extends AST>(ast: A): A => ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, f)) : ast
 }
 
 /** @internal */
@@ -2243,24 +2234,37 @@ export function annotateKey<A extends AST>(ast: A, annotations: Annotations.Key<
 }
 
 /** @internal */
+export const optionalKeyLastLink = applyToLastLink(optionalKey)
+
+/** @internal */
 export function optionalKey<A extends AST>(ast: A): A {
   const context = ast.context ?
-    new Context(true, ast.context.isMutable, ast.context.defaultValue, ast.context.annotations) :
+    ast.context.isOptional === false ?
+      new Context(true, ast.context.isMutable, ast.context.defaultValue, ast.context.annotations) :
+      ast.context :
     new Context(true, false)
-  return applyEncoded(replaceContext(ast, context), optionalKey)
+  return optionalKeyLastLink(replaceContext(ast, context))
 }
+
+const mutableKeyLastLink = applyToLastLink(mutableKey)
 
 /** @internal */
 export function mutableKey<A extends AST>(ast: A): A {
   const context = ast.context ?
-    new Context(ast.context.isOptional, true, ast.context.defaultValue, ast.context.annotations) :
+    ast.context.isMutable === false ?
+      new Context(ast.context.isOptional, true, ast.context.defaultValue, ast.context.annotations) :
+      ast.context :
     new Context(false, true)
-  return applyEncoded(replaceContext(ast, context), mutableKey)
+  return mutableKeyLastLink(replaceContext(ast, context))
 }
 
 /** @internal */
 export function withConstructorDefault<A extends AST>(
   ast: A,
+  /**
+   * The `input` parameters is `None` if the value is not present and
+   * `Some(undefined)` if the value is present but undefined
+   */
   defaultValue: (input: Option.Option<undefined>) => Option.Option<unknown> | Effect.Effect<Option.Option<unknown>>
 ): A {
   const transformation = new Transformation.Transformation(
@@ -2497,7 +2501,7 @@ export const enumsToLiterals = memoize((ast: Enum): Union<Literal> => {
   )
 })
 
-const goIndexSignature = memoize(apply((ast: AST): AST => {
+const goIndexSignature = memoize(applyToEncoded((ast: AST): AST => {
   switch (ast._tag) {
     case "Number":
       return ast.goStringTree()
@@ -2508,7 +2512,7 @@ const goIndexSignature = memoize(apply((ast: AST): AST => {
   }
 }))
 
-const goTemplateLiteral = memoize(apply((ast: AST): AST => {
+const goTemplateLiteral = memoize(applyToEncoded((ast: AST): AST => {
   switch (ast._tag) {
     case "String":
     case "TemplateLiteral":

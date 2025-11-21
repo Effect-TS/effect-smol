@@ -6750,16 +6750,11 @@ export function makeJsonSchemaOpenApi3_1<S extends Top>(schema: S, options?: Jso
 // -----------------------------------------------------------------------------
 
 /**
- * For use cases like RPC or messaging systems, the JSON format only needs to
- * support round-trip encoding and decoding. The `toSerializerJson` operator
- * helps with this by taking a schema and returning a `Codec` that knows how to
- * serialize and deserialize the data using a JSON-compatible format.
- *
  * @category Serializer
  * @since 4.0.0
  */
-export function toSerializerJson<T, E, RD, RE>(codec: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
-  return make(goJson(codec.ast))
+export function toSerializerJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
+  return make(goJson(schema.ast))
 }
 
 /**
@@ -6867,9 +6862,12 @@ function goJsonBase(ast: AST.AST): AST.AST {
   return ast
 }
 
-const goJson = memoize(AST.apply((ast: AST.AST): AST.AST => {
+const goJson = memoize(AST.applyToEncoded((ast: AST.AST): AST.AST => {
   const out = goJsonBase(ast)
-  return AST.isOptional(ast) ? AST.optionalKey(out) : out
+  if (out !== ast && AST.isOptional(ast)) {
+    return AST.optionalKeyLastLink(out)
+  }
+  return out
 }))
 
 const goIso = memoize((ast: AST.AST): AST.AST => {
@@ -6893,7 +6891,10 @@ const goIso = memoize((ast: AST.AST): AST.AST => {
     return ast
   }
   const out = go(ast)
-  return AST.isOptional(ast) ? AST.optionalKey(out) : out
+  if (out !== ast && AST.isOptional(ast)) {
+    return AST.optionalKeyLastLink(out)
+  }
+  return out
 })
 
 function goTree(
@@ -6942,14 +6943,20 @@ function goTree(
   return ast
 }
 
-const goStringTree = memoize(AST.apply((ast: AST.AST): AST.AST => {
+const goStringTree = memoize(AST.applyToEncoded((ast: AST.AST): AST.AST => {
   const out = goTree(ast, goStringTree, (ast) => AST.replaceEncoding(ast, [declarationStringTreeLink]))
-  return AST.isOptional(ast) ? AST.optionalKey(out) : out
+  if (out !== ast && AST.isOptional(ast)) {
+    return AST.optionalKeyLastLink(out)
+  }
+  return out
 }))
 
-const goStringTreeLoose = memoize(AST.apply((ast: AST.AST): AST.AST => {
+const goStringTreeLoose = memoize(AST.applyToEncoded((ast: AST.AST): AST.AST => {
   const out = goTree(ast, goStringTreeLoose, identity)
-  return AST.isOptional(ast) ? AST.optionalKey(out) : out
+  if (out !== ast && AST.isOptional(ast)) {
+    return AST.optionalKeyLastLink(out)
+  }
+  return out
 }))
 
 const declarationStringTreeLink = new AST.Link(
@@ -6978,7 +6985,7 @@ const booleanStringTreeLink = new AST.Link(
 
 const ENSURE_ARRAY_ANNOTATION_KEY = "~effect/schema/Serializer/ensureArray"
 
-const goEnsureArray = memoize(AST.apply((ast: AST.AST): AST.AST => {
+const goEnsureArray = memoize(AST.applyToEncoded((ast: AST.AST): AST.AST => {
   if (AST.isUnion(ast) && ast.annotations?.[ENSURE_ARRAY_ANNOTATION_KEY]) {
     return ast
   }
