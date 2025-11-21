@@ -201,4 +201,147 @@ describe("Getter", () => {
       await decoding(formData, object)
     })
   })
+
+  describe("decodeURLSearchParams / encodeURLSearchParams", () => {
+    const decoding = makeAsserts(Getter.decodeURLSearchParams())
+    const encoding = makeAsserts(Getter.encodeURLSearchParams())
+
+    it("should handle top level empty keys", async () => {
+      const urlSearchParams = new URLSearchParams("=value")
+      const object = { "": "value" }
+      await decoding(urlSearchParams, object)
+      await encoding(object, urlSearchParams)
+    })
+
+    it("decodes simple top-level keys", async () => {
+      const urlSearchParams = new URLSearchParams("a=1&b=two")
+      const object = {
+        a: "1",
+        b: "two"
+      }
+      await decoding(urlSearchParams, object)
+      await encoding(object, urlSearchParams)
+    })
+
+    it("decodes nested objects via bracket notation", async () => {
+      const urlSearchParams = new URLSearchParams("user[name]=John&user[email]=john@example.com")
+      const object = {
+        user: {
+          name: "John",
+          email: "john@example.com"
+        }
+      }
+      await decoding(urlSearchParams, object)
+      await encoding(object, urlSearchParams)
+    })
+
+    it("decodes nested objects via dot notation", async () => {
+      const urlSearchParams = new URLSearchParams("user.name=John&user.email=john@example.com")
+      const object = {
+        user: {
+          name: "John",
+          email: "john@example.com"
+        }
+      }
+      await decoding(urlSearchParams, object)
+    })
+
+    it("decodes mixed dot + bracket notation", async () => {
+      const urlSearchParams = new URLSearchParams("user.address[city]=Milan&user.address[zip]=20100")
+      const object = {
+        user: {
+          address: {
+            city: "Milan",
+            zip: "20100"
+          }
+        }
+      }
+      await decoding(urlSearchParams, object)
+    })
+
+    it("decodes arrays with numeric indices", async () => {
+      const urlSearchParams = new URLSearchParams("items[0]=item1&items[1]=item2")
+      const object = {
+        items: ["item1", "item2"]
+      }
+      await decoding(urlSearchParams, object)
+      await encoding(object, urlSearchParams)
+    })
+
+    it("decodes arrays with numeric indices and nested objects", async () => {
+      const urlSearchParams = new URLSearchParams(
+        "items[0][id]=a&items[0][name]=Item A&items[1][id]=b&items[1][name]=Item B"
+      )
+      const object = {
+        items: [
+          { id: "a", name: "Item A" },
+          { id: "b", name: "Item B" }
+        ]
+      }
+      await decoding(urlSearchParams, object)
+      await encoding(object, urlSearchParams)
+    })
+
+    it("decodes arrays with [] (append)", async () => {
+      const urlSearchParams = new URLSearchParams("tags[]=a&tags[]=b&tags[]=c")
+      const object = {
+        tags: ["a", "b", "c"]
+      }
+      await decoding(urlSearchParams, object)
+
+      {
+        const urlSearchParams = new URLSearchParams("tags[0]=a&tags[1]=b&tags[2]=c")
+        await encoding(object, urlSearchParams)
+      }
+    })
+
+    it("decodes arrays with [] and nested objects", async () => {
+      const urlSearchParams = new URLSearchParams("items[][id]=x&items[][id]=y")
+      const object = {
+        items: [{ id: "x" }, { id: "y" }]
+      }
+      await decoding(urlSearchParams, object)
+    })
+
+    it("decodes mixed indexed and append arrays under the same key", async () => {
+      const urlSearchParams = new URLSearchParams("items[0]=a&items[]=b&items[]=c")
+      const object = {
+        items: ["a", "b", "c"]
+      }
+      // Implementation detail: first write at index 0, then pushes at 1 and 2
+      await decoding(urlSearchParams, object)
+    })
+
+    it("decodes nested objects inside appended array elements", async () => {
+      const urlSearchParams = new URLSearchParams("users[][name]=John&users[][name]=Alice")
+      const object = {
+        users: [
+          { name: "John" },
+          { name: "Alice" }
+        ]
+      }
+      await decoding(urlSearchParams, object)
+    })
+
+    it("decodes complex mixed structure", async () => {
+      const urlSearchParams = new URLSearchParams(
+        "user[name]=John&user.address[city]=Milan&user.address[zip]=20100&orders[0][id]=o1&orders[0][total]=10&orders[1][id]=o2&orders[1][total]=20&tags[0]=a&tags[1]=b"
+      )
+      const object = {
+        user: {
+          name: "John",
+          address: {
+            city: "Milan",
+            zip: "20100"
+          }
+        },
+        orders: [
+          { id: "o1", total: "10" },
+          { id: "o2", total: "20" }
+        ],
+        tags: ["a", "b"]
+      }
+      await decoding(urlSearchParams, object)
+    })
+  })
 })

@@ -368,3 +368,11 @@ export const fromFormData = new Transformation<unknown, FormData>(
   Getter.decodeFormData(),
   Getter.encodeFormData()
 )
+
+/**
+ * @since 4.0.0
+ */
+export const fromURLSearchParams = new Transformation<unknown, URLSearchParams>(
+  Getter.decodeURLSearchParams(),
+  Getter.encodeURLSearchParams()
+)

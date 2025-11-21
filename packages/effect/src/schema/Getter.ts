@@ -591,6 +591,29 @@ export function encodeFormData(): Getter<FormData, unknown> {
   })
 }
 
+/**
+ * @category URLSearchParams
+ * @since 4.0.0
+ */
+export function decodeURLSearchParams(): Getter<TreeRecord<string>, URLSearchParams> {
+  return transform((input) => makeTreeRecord(Array.from(input.entries())))
+}
+
+const collectURLSearchParamsEntries = collectBracketPathEntries(Predicate.isString)
+
+/**
+ * @category URLSearchParams
+ * @since 4.0.0
+ */
+export function encodeURLSearchParams(): Getter<URLSearchParams, unknown> {
+  return transform((input) => {
+    if (typeof input === "object" && input !== null) {
+      return new URLSearchParams(collectURLSearchParamsEntries(input))
+    }
+    return new URLSearchParams()
+  })
+}
+
 // -----------------------------------------------------------------------------
 // Tree and TreeRecord
 // -----------------------------------------------------------------------------
