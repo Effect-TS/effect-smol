@@ -37,10 +37,10 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed(new URL("https://effect.website"), undefined)
+          await encoding.succeed(new URL("https://effect.website"), null)
 
           const decoding = asserts.decoding()
-          await decoding.fail("https://effect.website/", `Expected undefined, got "https://effect.website/"`)
+          await decoding.fail("https://effect.website/", `Expected null, got "https://effect.website/"`)
         })
 
         it("Unknown", async () => {
@@ -48,10 +48,10 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed("a", undefined)
+          await encoding.succeed("a", null)
 
           const decoding = asserts.decoding()
-          await decoding.fail("a", `Expected undefined, got "a"`)
+          await decoding.fail("a", `Expected null, got "a"`)
         })
 
         it("ObjectKeyword", async () => {
@@ -59,10 +59,10 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed({ a: "value" }, undefined)
+          await encoding.succeed({ a: "value" }, null)
 
           const decoding = asserts.decoding()
-          await decoding.fail({ a: "value" }, `Expected undefined, got {"a":"value"}`)
+          await decoding.fail({ a: "value" }, `Expected null, got {"a":"value"}`)
         })
       })
 

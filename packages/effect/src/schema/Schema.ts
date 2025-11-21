@@ -6838,7 +6838,7 @@ function serializerJsonBase(ast: AST.AST): AST.AST {
         const to = serializerJson(link.to)
         return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
       }
-      return AST.replaceEncoding(ast, [declarationToUndefined])
+      return AST.replaceEncoding(ast, [declarationToNull])
     }
     case "Undefined":
     case "Void":
@@ -6864,6 +6864,14 @@ function serializerJsonBase(ast: AST.AST): AST.AST {
   // `Schema.Any` is used as an escape hatch
   return ast
 }
+
+const declarationToNull = new AST.Link(
+  AST.null,
+  new Transformation.Transformation(
+    Getter.passthrough(),
+    Getter.transform(() => null)
+  )
+)
 
 const serializerJson = AST.serializer((ast) => {
   const out = serializerJsonBase(ast)
@@ -6901,7 +6909,7 @@ const serializerIso = memoize((ast: AST.AST): AST.AST => {
   return out
 })
 
-function goTree(
+function serializerTree(
   ast: AST.AST,
   recur: (ast: AST.AST) => AST.AST,
   onMissingAnnotation: (ast: AST.AST) => AST.AST
@@ -6946,14 +6954,6 @@ function goTree(
   return ast
 }
 
-const declarationToUndefined = new AST.Link(
-  AST.undefined,
-  new Transformation.Transformation(
-    Getter.passthrough(),
-    Getter.transform(() => undefined)
-  )
-)
-
 const nullToUndefined = new AST.Link(
   AST.undefined,
   new Transformation.Transformation(
@@ -6971,15 +6971,23 @@ const booleanToString = new AST.Link(
 )
 
 const serializerStringTree = AST.serializer((ast) => {
-  const out = goTree(ast, serializerStringTree, (ast) => AST.replaceEncoding(ast, [declarationToUndefined]))
+  const out = serializerTree(ast, serializerStringTree, (ast) => AST.replaceEncoding(ast, [declarationToUndefined]))
   if (out !== ast && AST.isOptional(ast)) {
     return AST.optionalKeyLastLink(out)
   }
   return out
 })
 
+const declarationToUndefined = new AST.Link(
+  AST.undefined,
+  new Transformation.Transformation(
+    Getter.passthrough(),
+    Getter.transform(() => undefined)
+  )
+)
+
 const serializerStringTreeLoose = AST.serializer((ast) => {
-  const out = goTree(ast, serializerStringTreeLoose, identity)
+  const out = serializerTree(ast, serializerStringTreeLoose, identity)
   if (out !== ast && AST.isOptional(ast)) {
     return AST.optionalKeyLastLink(out)
   }
