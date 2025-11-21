@@ -628,6 +628,32 @@ function bracketPathToTokens(bracketPath: string): Array<string | number> {
 }
 
 /**
+ * Makes a tree record from a list of bracket path entries.
+ *
+ * A bracket path is a string that describes how to navigate or build a nested
+ * tree structure made of objects and arrays.
+ *
+ * Supported syntax:
+ * - "foo"                     → object key "foo"
+ * - "foo[bar]"                → nested key "foo" → "bar"
+ * - "foo[0]"                  → array index 0
+ * - "foo[0][id]"              → mixed object/array nesting
+ * - "foo[]"                   → append to array "foo"
+ * - "foo[][id]"               → append a new element, then descend into "id"
+ * - ""                        → a real empty path key
+ *
+ * Parsing rules:
+ * - Each "[segment]" becomes a path segment.
+ * - Numeric segments become numbers (array indexes).
+ * - "[]" produces an empty-string segment "" which instructs array appends.
+ *
+ * Construction rules:
+ * - If the next segment is a number or "", create an array.
+ * - Otherwise, create an object.
+ * - When inside an array and the current token is "":
+ *   - last segment: push value
+ *   - not last: push a new element (array or object), then continue
+ *
  * @category Tree
  * @since 4.0.0
  */
