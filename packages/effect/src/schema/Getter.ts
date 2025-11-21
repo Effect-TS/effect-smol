@@ -694,36 +694,39 @@ export function makeTreeRecord<A>(
       if (Array.isArray(cur) && token === "") {
         if (isLast) {
           cur.push(value)
-          return
-        }
+        } else {
+          // bracket path: "foo[][bar]" => push a new element and descend into it
+          const next = tokens[i + 1]
+          const shouldBeArray = typeof next === "number" || next === ""
+          const index = cur.length
 
-        // bracket path: "foo[][bar]" => push a new element and descend into it
+          if (cur[index] === undefined) {
+            cur[index] = shouldBeArray ? [] : {}
+          }
+
+          cur = cur[index]
+        }
+      } else if (isLast) {
+        // If we're setting a value at a path that already exists
+        // convert it to an array to support multiple values for the same key
+        if (Array.isArray(cur[token])) {
+          cur[token].push(value)
+        } else if (Object.prototype.hasOwnProperty.call(cur, token)) {
+          cur[token] = [cur[token], value]
+        } else {
+          cur[token] = value
+        }
+      } else {
         const next = tokens[i + 1]
+        // if next is a number OR "" (from []), we are building an array
         const shouldBeArray = typeof next === "number" || next === ""
-        const index = cur.length
 
-        if (cur[index] == null) {
-          cur[index] = shouldBeArray ? [] : {}
+        if (cur[token] === undefined) {
+          cur[token] = shouldBeArray ? [] : {}
         }
 
-        cur = cur[index]
-        return
+        cur = cur[token]
       }
-
-      if (isLast) {
-        cur[token] = value
-        return
-      }
-
-      const next = tokens[i + 1]
-      // if next is a number OR "" (from []), we are building an array
-      const shouldBeArray = typeof next === "number" || next === ""
-
-      if (cur[token] == null) {
-        cur[token] = shouldBeArray ? [] : {}
-      }
-
-      cur = cur[token]
     })
   })
   return out
@@ -744,9 +747,17 @@ export function collectBracketPathEntries<A>(isLeaf: (value: unknown) => value i
       if (isLeaf(value)) {
         bracketPathEntries.push([key, value])
       } else if (Array.isArray(value)) {
-        value.forEach((v, i) => {
-          append(`${key}[${i}]`, v)
-        })
+        // If all values are leaves, encode as multiple entries with the same key
+        const allLeaves = value.every(isLeaf)
+        if (allLeaves) {
+          value.forEach((v) => {
+            bracketPathEntries.push([key, v])
+          })
+        } else {
+          value.forEach((v, i) => {
+            append(`${key}[${i}]`, v)
+          })
+        }
       } else if (typeof value === "object" && value !== null) {
         for (const [k, v] of Object.entries(value)) {
           append(`${key}[${k}]`, v)

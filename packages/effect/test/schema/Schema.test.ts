@@ -4011,43 +4011,85 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
-  describe("fromFormData", () => {
-    it("string values", async () => {
-      const schema = Schema.fromFormData(Schema.Struct({
-        a: Schema.NonEmptyString,
-        b: Schema.Struct({
-          c: Schema.String,
-          d: Schema.String
-        }),
-        e: Schema.Array(Schema.String)
-      }))
-      const asserts = new TestSchema.Asserts(schema)
+  it("fromFormData", async () => {
+    const schema = Schema.fromFormData(Schema.Struct({
+      a: Schema.NonEmptyString,
+      b: Schema.Struct({
+        c: Schema.String,
+        d: Schema.String
+      }),
+      e: Schema.Array(Schema.String)
+    }))
+    const asserts = new TestSchema.Asserts(schema)
 
+    const formData = new FormData()
+    formData.append("a", "a")
+    formData.append("b[c]", "bc")
+    formData.append("b[d]", "bd")
+    formData.append("e[0]", "e0")
+    formData.append("e[1]", "e1")
+
+    const decoded = { a: "a", b: { c: "bc", d: "bd" }, e: ["e0", "e1"] }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(formData, decoded)
+
+    const encoding = asserts.encoding()
+
+    {
       const formData = new FormData()
       formData.append("a", "a")
       formData.append("b[c]", "bc")
       formData.append("b[d]", "bd")
-      formData.append("e[0]", "e0")
-      formData.append("e[1]", "e1")
-
-      const decoded = { a: "a", b: { c: "bc", d: "bd" }, e: ["e0", "e1"] }
-
-      const decoding = asserts.decoding()
-      await decoding.succeed(formData, decoded)
-
-      const encoding = asserts.encoding()
+      formData.append("e", "e0")
+      formData.append("e", "e1")
       await encoding.succeed(decoded, formData)
+    }
 
-      {
-        const formData = new FormData()
-        formData.append("a", "")
-        await decoding.fail(
-          formData,
-          `Expected a value with a length of at least 1, got ""
+    {
+      const formData = new FormData()
+      formData.append("a", "")
+      await decoding.fail(
+        formData,
+        `Expected a value with a length of at least 1, got ""
   at ["a"]`
-        )
-      }
-    })
+      )
+    }
+  })
+
+  it("fromURLSearchParams", async () => {
+    const schema = Schema.fromURLSearchParams(Schema.Struct({
+      a: Schema.NonEmptyString,
+      b: Schema.Struct({
+        c: Schema.String,
+        d: Schema.String
+      }),
+      e: Schema.Array(Schema.String)
+    }))
+    const asserts = new TestSchema.Asserts(schema)
+
+    const urlSearchParams = new URLSearchParams("a=a&b[c]=bc&b[d]=bd&e=e0&e=e1")
+
+    const decoded = { a: "a", b: { c: "bc", d: "bd" }, e: ["e0", "e1"] }
+
+    const decoding = asserts.decoding()
+    await decoding.succeed(urlSearchParams, decoded)
+
+    const encoding = asserts.encoding()
+
+    {
+      const urlSearchParams = new URLSearchParams("a=a&b[c]=bc&b[d]=bd&e=e0&e=e1")
+      await encoding.succeed(decoded, urlSearchParams)
+    }
+
+    {
+      const urlSearchParams = new URLSearchParams("a=")
+      await decoding.fail(
+        urlSearchParams,
+        `Expected a value with a length of at least 1, got ""
+  at ["a"]`
+      )
+    }
   })
 
   it("Trim", async () => {

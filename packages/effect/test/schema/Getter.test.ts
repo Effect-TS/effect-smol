@@ -27,6 +27,17 @@ describe("Getter", () => {
     const decoding = makeAsserts(Getter.decodeFormData())
     const encoding = makeAsserts(Getter.encodeFormData())
 
+    it("should support multiple values for the same key", async () => {
+      const formData = new FormData()
+      formData.append("a", "1")
+      formData.append("a", "2")
+      const object = {
+        a: ["1", "2"]
+      }
+      await decoding(formData, object)
+      await encoding(object, formData)
+    })
+
     it("should handle top level empty keys", async () => {
       const formData = new FormData()
       formData.append("", "value")
@@ -97,7 +108,13 @@ describe("Getter", () => {
         items: ["item1", "item2"]
       }
       await decoding(formData, object)
-      await encoding(object, formData)
+
+      {
+        const formData = new FormData()
+        formData.append("items", "item1")
+        formData.append("items", "item2")
+        await encoding(object, formData)
+      }
     })
 
     it("decodes arrays with numeric indices and nested objects", async () => {
@@ -128,9 +145,9 @@ describe("Getter", () => {
 
       {
         const formData = new FormData()
-        formData.append("tags[0]", "a")
-        formData.append("tags[1]", "b")
-        formData.append("tags[2]", "c")
+        formData.append("tags", "a")
+        formData.append("tags", "b")
+        formData.append("tags", "c")
         await encoding(object, formData)
       }
     })
@@ -206,6 +223,15 @@ describe("Getter", () => {
     const decoding = makeAsserts(Getter.decodeURLSearchParams())
     const encoding = makeAsserts(Getter.encodeURLSearchParams())
 
+    it("should support multiple values for the same key", async () => {
+      const urlSearchParams = new URLSearchParams("a=1&a=2")
+      const object = {
+        a: ["1", "2"]
+      }
+      await decoding(urlSearchParams, object)
+      await encoding(object, urlSearchParams)
+    })
+
     it("should handle top level empty keys", async () => {
       const urlSearchParams = new URLSearchParams("=value")
       const object = { "": "value" }
@@ -265,7 +291,11 @@ describe("Getter", () => {
         items: ["item1", "item2"]
       }
       await decoding(urlSearchParams, object)
-      await encoding(object, urlSearchParams)
+
+      {
+        const urlSearchParams = new URLSearchParams("items=item1&items=item2")
+        await encoding(object, urlSearchParams)
+      }
     })
 
     it("decodes arrays with numeric indices and nested objects", async () => {
@@ -290,7 +320,7 @@ describe("Getter", () => {
       await decoding(urlSearchParams, object)
 
       {
-        const urlSearchParams = new URLSearchParams("tags[0]=a&tags[1]=b&tags[2]=c")
+        const urlSearchParams = new URLSearchParams("tags=a&tags=b&tags=c")
         await encoding(object, urlSearchParams)
       }
     })
