@@ -6769,7 +6769,7 @@ export function toSerializerIso<S extends Top>(schema: S): Codec<S["Type"], S["I
  * @category Serializer
  * @since 4.0.0
  */
-export type StringTree = string | undefined | { [key: string]: StringTree } | Array<StringTree>
+export type StringTree = Getter.Tree<string | undefined>
 
 /**
  * @category Serializer
@@ -6838,7 +6838,7 @@ function serializerJsonBase(ast: AST.AST): AST.AST {
         const to = serializerJson(link.to)
         return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
       }
-      return AST.replaceEncoding(ast, [declarationToNull])
+      return AST.replaceEncoding(ast, [unknownToNull])
     }
     case "Undefined":
     case "Void":
@@ -6848,7 +6848,7 @@ function serializerJsonBase(ast: AST.AST): AST.AST {
     case "BigInt":
       return ast.encodeToString()
     case "Literal":
-      return ast.encodeToJson()
+      return ast.encodeToStringOrNumberOrBoolean()
     case "Number":
       return ast.encodeToNumberOrNonFiniteLiterals()
     case "Objects":
@@ -6865,7 +6865,7 @@ function serializerJsonBase(ast: AST.AST): AST.AST {
   return ast
 }
 
-const declarationToNull = new AST.Link(
+const unknownToNull = new AST.Link(
   AST.null,
   new Transformation.Transformation(
     Getter.passthrough(),
@@ -6971,14 +6971,14 @@ const booleanToString = new AST.Link(
 )
 
 const serializerStringTree = AST.serializer((ast) => {
-  const out = serializerTree(ast, serializerStringTree, (ast) => AST.replaceEncoding(ast, [declarationToUndefined]))
+  const out = serializerTree(ast, serializerStringTree, (ast) => AST.replaceEncoding(ast, [unknownToUndefined]))
   if (out !== ast && AST.isOptional(ast)) {
     return AST.optionalKeyLastLink(out)
   }
   return out
 })
 
-const declarationToUndefined = new AST.Link(
+const unknownToUndefined = new AST.Link(
   AST.undefined,
   new Transformation.Transformation(
     Getter.passthrough(),
@@ -7044,7 +7044,7 @@ function stringTreeToXml(value: StringTree, options: XmlEncoderOptions): string 
     sortKeys: options.sortKeys ?? true
   }
 
-  const seen = new Set<{ [x: string]: StringTree } | Array<StringTree>>()
+  const seen = new Set<{ readonly [x: string]: StringTree } | ReadonlyArray<StringTree>>()
   const lines: Array<string> = []
   const push = (depth: number, text: string) => lines.push(opts.pretty ? opts.indent.repeat(depth) + text : text)
 
@@ -7071,6 +7071,7 @@ function stringTreeToXml(value: StringTree, options: XmlEncoderOptions): string 
     if (seen.has(node)) throw new globalThis.Error("Cycle detected while serializing to XML.", { cause: node })
     seen.add(node)
     try {
+      // this try / catch is necessary because if there are cycles, the encoder will throw an error
       if (globalThis.Array.isArray(node)) {
         const { attrs, safe: safeParent } = tagInfo(tagName, originalNameForMeta)
         if (node.length === 0) {
@@ -7081,8 +7082,9 @@ function stringTreeToXml(value: StringTree, options: XmlEncoderOptions): string 
           push(depth, `</${safeParent}>`)
         }
       } else {
+        const obj = node as { readonly [x: string]: StringTree }
         const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
-        const keys = Object.keys(node)
+        const keys = Object.keys(obj)
         if (opts.sortKeys) keys.sort()
         if (keys.length === 0) {
           push(depth, `<${safe}${attrs}/>`)
@@ -7091,7 +7093,7 @@ function stringTreeToXml(value: StringTree, options: XmlEncoderOptions): string 
         push(depth, `<${safe}${attrs}>`)
         for (const k of keys) {
           const { safe: childSafe } = parseTagName(k)
-          render(childSafe, node[k], depth + 1, k)
+          render(childSafe, obj[k], depth + 1, k)
         }
         push(depth, `</${safe}>`)
       }

@@ -741,7 +741,7 @@ export class Literal extends Base {
     return fromConst(this, this.literal)
   }
   /** @internal */
-  encodeToJson(): AST {
+  encodeToStringOrNumberOrBoolean(): AST {
     return typeof this.literal === "bigint" ? literalToString(this) : this
   }
   /** @internal */
