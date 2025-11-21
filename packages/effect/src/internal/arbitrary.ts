@@ -141,10 +141,10 @@ export function getFilters(checks: AST.Checks | undefined): Array<AST.Filter<any
 
 /** @internal */
 export const memoized = memoize((ast: AST.AST): LazyArbitraryWithContext<any> => {
-  return go(ast, [])
+  return recur(ast, [])
 })
 
-function go(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithContext<any> {
+function recur(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithContext<any> {
   // ---------------------------------------------
   // handle Override annotation
   // ---------------------------------------------
@@ -152,7 +152,7 @@ function go(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithCo
     | Annotations.Arbitrary.Override<any, ReadonlyArray<Schema.Top>>
     | undefined
   if (annotation) {
-    const typeParameters = AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => go(tp, path)) : []
+    const typeParameters = AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => recur(tp, path)) : []
     const filters = getFilters(ast.checks)
     const f = constraintContext(filters)
     return (fc, ctx) =>
@@ -165,7 +165,7 @@ function go(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithCo
   if (ast.checks) {
     const filters = getFilters(ast.checks)
     const f = constraintContext(filters)
-    const lawc = go(AST.replaceChecks(ast, undefined), path)
+    const lawc = recur(AST.replaceChecks(ast, undefined), path)
     return (fc, ctx) => applyChecks(ast, filters, lawc(fc, f(ctx)))
   }
   return base(ast, path)
@@ -214,7 +214,7 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
     case "ObjectKeyword":
       return (fc) => fc.oneof(fc.object(), fc.array(fc.anything()))
     case "Enum":
-      return go(AST.enumsToLiterals(ast), path)
+      return recur(AST.enumsToLiterals(ast), path)
     case "TemplateLiteral":
       return (fc) => fc.stringMatching(AST.getTemplateLiteralRegExp(ast))
     case "Arrays":
@@ -224,7 +224,7 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
         // handle elements
         // ---------------------------------------------
         const elements: Array<FastCheck.Arbitrary<Option.Option<any>>> = ast.elements.map((e, i) => {
-          const out = go(e, [...path, i])(fc, reset)
+          const out = recur(e, [...path, i])(fc, reset)
           if (!AST.isOptional(e)) {
             return out.map(Option.some)
           }
@@ -236,7 +236,7 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
         // ---------------------------------------------
         if (Array.isReadonlyArrayNonEmpty(ast.rest)) {
           const len = ast.elements.length
-          const [head, ...tail] = ast.rest.map((r, i) => go(r, [...path, len + i])(fc, reset))
+          const [head, ...tail] = ast.rest.map((r, i) => recur(r, [...path, len + i])(fc, reset))
 
           const rest = array(fc, ast.elements.length === 0 ? ctx : reset, head)
           out = out.chain((as) => {
@@ -273,14 +273,14 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
           if (!AST.isOptional(ps.type)) {
             requiredKeys.push(name)
           }
-          pss[name] = go(ps.type, [...path, name])(fc, reset)
+          pss[name] = recur(ps.type, [...path, name])(fc, reset)
         }
         let out = fc.record<any>(pss, { requiredKeys })
         // ---------------------------------------------
         // handle index signatures
         // ---------------------------------------------
         for (const is of ast.indexSignatures) {
-          const entry = fc.tuple(go(is.parameter, path)(fc, reset), go(is.type, path)(fc, reset))
+          const entry = fc.tuple(recur(is.parameter, path)(fc, reset), recur(is.type, path)(fc, reset))
           const entries = array(fc, ast.propertySignatures.length === 0 ? ctx : reset, entry)
           out = out.chain((o) => {
             return entries.map((entries) => {
@@ -294,13 +294,13 @@ function base(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWith
         return out
       }
     case "Union":
-      return (fc, ctx) => fc.oneof(...ast.types.map((ast) => go(ast, path)(fc, ctx)))
+      return (fc, ctx) => fc.oneof(...ast.types.map((ast) => recur(ast, path)(fc, ctx)))
     case "Suspend": {
       const memo = arbitraryMemoMap.get(ast)
 
       if (memo) return memo
 
-      const get = AST.memoizeThunk(() => go(ast.thunk(), path))
+      const get = AST.memoizeThunk(() => recur(ast.thunk(), path))
       const out: LazyArbitraryWithContext<any> = (fc, ctx) =>
         fc.constant(null).chain(() => get()(fc, { ...ctx, isSuspend: true }))
 

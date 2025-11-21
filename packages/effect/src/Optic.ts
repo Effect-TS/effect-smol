@@ -537,7 +537,7 @@ class PrismImpl<S, A> extends OptionalImpl<S, A> implements Prism<S, A> {
 }
 
 function make(node: Node): any {
-  const op = go(node)
+  const op = recur(node)
   switch (op._tag) {
     case "IsoNode":
       return new IsoImpl(node, op.get, op.set)
@@ -568,7 +568,7 @@ type Op = {
   readonly set: (a: unknown, s?: unknown) => any
 }
 
-const go = memoize((node: Node): Op => {
+const recur = memoize((node: Node): Op => {
   switch (node._tag) {
     case "IdentityNode":
       return { _tag: "IsoNode", get: identity, set: identity }
@@ -614,7 +614,7 @@ const go = memoize((node: Node): Op => {
         set: identity
       }
     case "CompositionNode": {
-      const ops = node.nodes.map(go)
+      const ops = node.nodes.map(recur)
       const _tag = ops.reduce<Op["_tag"]>((tag, op) => getCompositionTag(tag, op._tag), "IsoNode")
       return {
         _tag,

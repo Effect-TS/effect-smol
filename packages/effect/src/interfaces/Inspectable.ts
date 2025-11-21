@@ -273,12 +273,12 @@ export function format(
     }
   }
 
-  function go(v: unknown, d = 0): string {
+  function recur(v: unknown, d = 0): string {
     if (Array.isArray(v)) {
       if (seen.has(v)) return CIRCULAR
       seen.add(v)
-      if (!gap || v.length <= 1) return `[${v.map((x) => go(x, d)).join(",")}]`
-      const inner = v.map((x) => go(x, d + 1)).join(",\n" + ind(d + 1))
+      if (!gap || v.length <= 1) return `[${v.map((x) => recur(x, d)).join(",")}]`
+      const inner = v.map((x) => recur(x, d + 1)).join(",\n" + ind(d + 1))
       return `[\n${ind(d + 1)}${inner}\n${ind(d)}]`
     }
 
@@ -293,7 +293,7 @@ export function format(
     ) {
       const s = safeToString(v)
       if (v instanceof Error && v.cause) {
-        return `${s} (cause: ${go(v.cause, d)})`
+        return `${s} (cause: ${recur(v.cause, d)})`
       }
       return s
     }
@@ -314,16 +314,16 @@ export function format(
       seen.add(v)
 
       if (Symbol.iterator in v) {
-        return `${v.constructor.name}(${go(Array.from(v as unknown as Iterable<unknown>), d)})`
+        return `${v.constructor.name}(${recur(Array.from(v as unknown as Iterable<unknown>), d)})`
       }
 
       const keys = ownKeys(v)
       if (!gap || keys.length <= 1) {
-        const body = `{${keys.map((k) => `${formatPropertyKey(k)}:${go((v as any)[k], d)}`).join(",")}}`
+        const body = `{${keys.map((k) => `${formatPropertyKey(k)}:${recur((v as any)[k], d)}`).join(",")}}`
         return wrap(v, body)
       }
       const body = `{\n${
-        keys.map((k) => `${ind(d + 1)}${formatPropertyKey(k)}: ${go((v as any)[k], d + 1)}`).join(",\n")
+        keys.map((k) => `${ind(d + 1)}${formatPropertyKey(k)}: ${recur((v as any)[k], d + 1)}`).join(",\n")
       }\n${ind(d)}}`
       return wrap(v, body)
     }
@@ -331,7 +331,7 @@ export function format(
     return String(v)
   }
 
-  return go(input, 0)
+  return recur(input, 0)
 }
 
 /**

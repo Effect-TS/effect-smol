@@ -9,10 +9,10 @@ import { errorWithPath } from "./errors.ts"
 
 /** @internal */
 export const memoized = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
-  return go(ast, [])
+  return recur(ast, [])
 })
 
-function go(ast: AST.AST, path: ReadonlyArray<PropertyKey>): Equivalence.Equivalence<any> {
+function recur(ast: AST.AST, path: ReadonlyArray<PropertyKey>): Equivalence.Equivalence<any> {
   // ---------------------------------------------
   // handle annotations
   // ---------------------------------------------
@@ -20,7 +20,7 @@ function go(ast: AST.AST, path: ReadonlyArray<PropertyKey>): Equivalence.Equival
     | Annotations.Equivalence.Override<any, ReadonlyArray<any>>
     | undefined
   if (annotation) {
-    return annotation(AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => go(tp, path)) : [])
+    return annotation(AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => recur(tp, path)) : [])
   }
   switch (ast._tag) {
     case "Never":
@@ -43,9 +43,9 @@ function go(ast: AST.AST, path: ReadonlyArray<PropertyKey>): Equivalence.Equival
     case "TemplateLiteral":
       return Equal.equals
     case "Arrays": {
-      const elements = ast.elements.map((e, i) => go(e, [...path, i]))
+      const elements = ast.elements.map((e, i) => recur(e, [...path, i]))
       const len = ast.elements.length
-      const rest = ast.rest.map((r, i) => go(r, [...path, len + i]))
+      const rest = ast.rest.map((r, i) => recur(r, [...path, len + i]))
       return Equivalence.make((a, b) => {
         if (!Array.isArray(a) || !Array.isArray(b)) {
           return false
@@ -90,8 +90,8 @@ function go(ast: AST.AST, path: ReadonlyArray<PropertyKey>): Equivalence.Equival
       if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
         return Equal.equals
       }
-      const propertySignatures = ast.propertySignatures.map((ps) => go(ps.type, [...path, ps.name]))
-      const indexSignatures = ast.indexSignatures.map((is) => go(is.type, path))
+      const propertySignatures = ast.propertySignatures.map((ps) => recur(ps.type, [...path, ps.name]))
+      const indexSignatures = ast.indexSignatures.map((is) => recur(is.type, path))
       return Equivalence.make((a, b) => {
         if (!Predicate.isObject(a) || !Predicate.isObject(b)) {
           return false
@@ -140,13 +140,13 @@ function go(ast: AST.AST, path: ReadonlyArray<PropertyKey>): Equivalence.Equival
         for (let i = 0; i < candidates.length; i++) {
           const is = types[i]
           if (is(a) && is(b)) {
-            return go(candidates[i], path)(a, b)
+            return recur(candidates[i], path)(a, b)
           }
         }
         return false
       })
     case "Suspend": {
-      const get = AST.memoizeThunk(() => go(ast.thunk(), path))
+      const get = AST.memoizeThunk(() => recur(ast.thunk(), path))
       return Equivalence.make((a, b) => get()(a, b))
     }
   }

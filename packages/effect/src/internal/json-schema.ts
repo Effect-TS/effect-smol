@@ -19,7 +19,7 @@ export function make<S extends Schema.Top>(schema: S, options: Options): Schema.
   const generateDescriptions = options.generateDescriptions ?? false
   return {
     uri: getMetaSchemaUri(target),
-    schema: go(
+    schema: recur(
       schema.ast,
       [],
       {
@@ -47,7 +47,7 @@ function escapeJsonPointer(identifier: string) {
   return identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
 }
 
-function go(
+function recur(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
   options: GoOptions,
@@ -73,7 +73,7 @@ function go(
           return $ref
         } else {
           const existing = options.definitions[identifier]
-          const generated = go(ast, path, options, true, ignoreAnnotation)
+          const generated = recur(ast, path, options, true, ignoreAnnotation)
           // check for duplicated identifiers in different ASTs
           if (Equal.equals(existing, generated)) {
             return $ref
@@ -81,7 +81,7 @@ function go(
         }
       } else {
         options.definitions[identifier] = $ref
-        options.definitions[identifier] = go(ast, path, options, true, ignoreAnnotation)
+        options.definitions[identifier] = recur(ast, path, options, true, ignoreAnnotation)
         return $ref
       }
     }
@@ -94,19 +94,19 @@ function go(
     if (annotation) {
       function getDefaultJsonSchema() {
         try {
-          return go(ast, path, options, ignoreIdentifier, true)
+          return recur(ast, path, options, ignoreIdentifier, true)
         } catch {
           return {}
         }
       }
       const typeParameters = AST.isDeclaration(ast)
-        ? ast.typeParameters.map((tp) => go(tp, path, options, false, false))
+        ? ast.typeParameters.map((tp) => recur(tp, path, options, false, false))
         : []
       const out = annotation({
         typeParameters,
         target,
         jsonSchema: getDefaultJsonSchema(),
-        make: (ast) => go(ast, path, options, false, false)
+        make: (ast) => recur(ast, path, options, false, false)
       })
       return mergeOrAppendJsonSchemaAnnotations(out, ast.annotations, options.generateDescriptions)
     }
@@ -115,7 +115,7 @@ function go(
   // handle encoding
   // ---------------------------------------------
   if (ast.encoding) {
-    return go(AST.encodedAST(ast), path, options, ignoreIdentifier, ignoreAnnotation)
+    return recur(AST.encodedAST(ast), path, options, ignoreIdentifier, ignoreAnnotation)
   }
   let out = flattenArrayJsonSchema(base(ast, path, options, false))
   // ---------------------------------------------
@@ -197,13 +197,13 @@ function base(
         }
       }
       const typeParameters = AST.isDeclaration(ast)
-        ? ast.typeParameters.map((tp) => go(tp, path, options, false, false))
+        ? ast.typeParameters.map((tp) => recur(tp, path, options, false, false))
         : []
       const out = annotation({
         typeParameters,
         target,
         jsonSchema: getDefaultJsonSchema(),
-        make: (ast) => go(ast, path, options, false, false)
+        make: (ast) => recur(ast, path, options, false, false)
       })
       return mergeOrAppendJsonSchemaAnnotations(out, ast.annotations, options.generateDescriptions)
     }
@@ -259,7 +259,7 @@ function base(
     }
 
     case "Enum":
-      return go(AST.enumsToLiterals(ast), path, options, false, false)
+      return recur(AST.enumsToLiterals(ast), path, options, false, false)
 
     case "TemplateLiteral":
       return { type: "string", pattern: AST.getTemplateLiteralRegExp(ast).source }
@@ -280,7 +280,7 @@ function base(
       // ---------------------------------------------
       const items = ast.elements.map((e, i) =>
         mergeOrAppendJsonSchemaAnnotations(
-          go(e, [...path, i], options, false, false),
+          recur(e, [...path, i], options, false, false),
           e.context?.annotations,
           options.generateDescriptions
         )
@@ -293,7 +293,7 @@ function base(
       // handle rest element
       // ---------------------------------------------
       const additionalItems = ast.rest.length > 0
-        ? go(ast.rest[0], [...path, ast.elements.length], options, false, false)
+        ? recur(ast.rest[0], [...path, ast.elements.length], options, false, false)
         : false
       if (items.length === 0) {
         out.items = additionalItems
@@ -330,7 +330,7 @@ function base(
           throw errorWithPath(`Unsupported property signature name ${Inspectable.format(name)}`, [...path, name])
         } else {
           out.properties[name] = mergeOrAppendJsonSchemaAnnotations(
-            go(ps.type, [...path, name], options, false, false),
+            recur(ps.type, [...path, name], options, false, false),
             ps.type.context?.annotations,
             options.generateDescriptions
           )
@@ -345,7 +345,7 @@ function base(
       out.additionalProperties = options.additionalProperties
       const patternProperties: Record<string, object> = {}
       for (const is of ast.indexSignatures) {
-        const type = go(is.type, path, options, false, false)
+        const type = recur(is.type, path, options, false, false)
         const pattern = getPattern(is.parameter, path, options)
         if (pattern !== undefined) {
           patternProperties[pattern] = type
@@ -363,7 +363,7 @@ function base(
       const types: Array<Schema.JsonSchema.Schema> = []
       for (const type of ast.types) {
         if (!AST.isUndefined(type)) {
-          types.push(go(type, path, options, false, false))
+          types.push(recur(type, path, options, false, false))
         }
       }
       return types.length === 0
@@ -375,7 +375,7 @@ function base(
     case "Suspend": {
       const identifier = getIdentifier(ast)
       if (identifier !== undefined) {
-        return go(ast.thunk(), path, options, true, false)
+        return recur(ast.thunk(), path, options, true, false)
       }
       throw errorWithPath("Missing identifier in suspended schema", path)
     }
@@ -430,7 +430,7 @@ function getPattern(
 ): string | undefined {
   switch (ast._tag) {
     case "String": {
-      const jsonSchema = go(ast, path, options, false, false)
+      const jsonSchema = recur(ast, path, options, false, false)
       if (Object.hasOwn(jsonSchema, "pattern") && typeof jsonSchema.pattern === "string") {
         return jsonSchema.pattern
       }

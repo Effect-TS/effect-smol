@@ -15,28 +15,28 @@ import * as AST from "./AST.ts"
 import * as Issue from "./Issue.ts"
 import type * as Schema from "./Schema.ts"
 
-const goDefaults = memoize((ast: AST.AST): AST.AST => {
+const recurDefaults = memoize((ast: AST.AST): AST.AST => {
   switch (ast._tag) {
     case "Declaration": {
       const getLink = ast.annotations?.[AST.ClassTypeId]
       if (Predicate.isFunction(getLink)) {
         const link = getLink(ast.typeParameters)
-        const to = goDefaults(link.to)
+        const to = recurDefaults(link.to)
         return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
       }
       return ast
     }
     case "Objects":
     case "Arrays":
-      return ast.go((ast) => {
+      return ast.recur((ast) => {
         const defaultValue = ast.context?.defaultValue
         if (defaultValue) {
-          return AST.replaceEncoding(goDefaults(ast), defaultValue)
+          return AST.replaceEncoding(recurDefaults(ast), defaultValue)
         }
-        return goDefaults(ast)
+        return recurDefaults(ast)
       })
     case "Suspend":
-      return ast.go(goDefaults)
+      return ast.recur(recurDefaults)
     default:
       return ast
   }
@@ -47,7 +47,7 @@ const goDefaults = memoize((ast: AST.AST): AST.AST => {
  * @since 4.0.0
  */
 export function makeEffect<S extends Schema.Top>(schema: S) {
-  const ast = goDefaults(AST.typeAST(schema.ast))
+  const ast = recurDefaults(AST.typeAST(schema.ast))
   const parser = run<S["Type"], never>(ast)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): Effect.Effect<S["Type"], Issue.Issue> => {
     return parser(input, options?.parseOptions)
@@ -292,7 +292,7 @@ export const encodeSync: <S extends Schema.Top & { readonly EncodingServices: ne
 
 /** @internal */
 export function run<T, R>(ast: AST.AST) {
-  const parser = go(ast)
+  const parser = recur(ast)
   return (input: unknown, options?: AST.ParseOptions): Effect.Effect<T, Issue.Issue, R> =>
     Effect.flatMapEager(parser(Option.some(input), options ?? AST.defaultParseOptions), (oa) => {
       if (oa._tag === "None") {
@@ -339,12 +339,12 @@ export interface Parser {
   (input: Option.Option<unknown>, options: AST.ParseOptions): Effect.Effect<Option.Option<unknown>, Issue.Issue, any>
 }
 
-const go = memoize(
+const recur = memoize(
   (ast: AST.AST): Parser => {
     let parser: Parser
     if (!ast.context && !ast.encoding && !ast.checks) {
       return (ou, options) => {
-        parser ??= ast.parser(go)
+        parser ??= ast.getParser(recur)
         return parser(ou, Annotations.resolve(ast)?.["parseOptions"] ?? options)
       }
     }
@@ -360,7 +360,7 @@ const go = memoize(
         for (let i = len - 1; i >= 0; i--) {
           const link = links[i]
           const to = link.to
-          const parser = go(to)
+          const parser = recur(to)
           srou = srou ? Effect.flatMapEager(srou, (ou) => parser(ou, options)) : parser(ou, options)
           if (link.transformation._tag === "Transformation") {
             const getter = link.transformation.decode
@@ -372,7 +372,7 @@ const go = memoize(
         srou = Effect.mapErrorEager(srou!, (issue) => new Issue.Encoding(ast, ou, issue))
       }
 
-      parser ??= ast.parser(go)
+      parser ??= ast.getParser(recur)
       let sroa = srou ? Effect.flatMapEager(srou, (ou) => parser(ou, options)) : parser(ou, options)
 
       if (ast.checks) {

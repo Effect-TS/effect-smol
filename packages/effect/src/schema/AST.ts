@@ -345,20 +345,16 @@ export class Declaration extends Base {
     this.run = run
   }
   /** @internal */
-  parser(): Parser.Parser {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const ast = this
-    const run = ast.run(ast.typeParameters)
-    return function(oinput, options) {
-      if (Option.isNone(oinput)) {
-        return Effect.succeedNone
-      }
-      return Effect.mapEager(run(oinput.value, ast, options), Option.some)
+  getParser(): Parser.Parser {
+    const run = this.run(this.typeParameters)
+    return (oinput, options) => {
+      if (Option.isNone(oinput)) return Effect.succeedNone
+      return Effect.mapEager(run(oinput.value, this, options), Option.some)
     }
   }
   /** @internal */
-  go(go: (ast: AST) => AST) {
-    const tps = mapOrSame(this.typeParameters, go)
+  recur(recur: (ast: AST) => AST) {
+    const tps = mapOrSame(this.typeParameters, recur)
     return tps === this.typeParameters ?
       this :
       new Declaration(tps, this.run, this.annotations, this.checks, undefined, this.context)
@@ -379,7 +375,7 @@ export class Declaration extends Base {
 export class Null extends Base {
   readonly _tag = "Null"
   /** @internal */
-  parser() {
+  getParser() {
     return fromConst(this, null)
   }
   /** @internal */
@@ -403,18 +399,26 @@ export {
 export class Undefined extends Base {
   readonly _tag = "Undefined"
   /** @internal */
-  parser() {
+  getParser() {
     return fromConst(this, undefined)
   }
   /** @internal */
-  goJson(): AST {
-    return replaceEncoding(this, [undefinedJsonLink])
+  encodeToNull(): AST {
+    return replaceEncoding(this, [undefinedToNull])
   }
   /** @internal */
   getExpected(): string {
     return "undefined"
   }
 }
+
+const undefinedToNull = new Link(
+  null_,
+  new Transformation.Transformation(
+    Getter.transform(() => undefined),
+    Getter.transform(() => null)
+  )
+)
 
 const undefined_ = new Undefined()
 export {
@@ -424,14 +428,6 @@ export {
   undefined_ as undefined
 }
 
-const undefinedJsonLink = new Link(
-  null_,
-  new Transformation.Transformation(
-    Getter.transform(() => undefined),
-    Getter.transform(() => null)
-  )
-)
-
 /**
  * @category model
  * @since 4.0.0
@@ -439,12 +435,12 @@ const undefinedJsonLink = new Link(
 export class Void extends Base {
   readonly _tag = "Void"
   /** @internal */
-  parser() {
+  getParser() {
     return fromConst(this, undefined)
   }
   /** @internal */
-  goJson(): AST {
-    return replaceEncoding(this, [undefinedJsonLink])
+  encodeToNull(): AST {
+    return replaceEncoding(this, [undefinedToNull])
   }
   /** @internal */
   getExpected(): string {
@@ -467,7 +463,7 @@ export {
 export class Never extends Base {
   readonly _tag = "Never"
   /** @internal */
-  parser() {
+  getParser() {
     return fromRefinement(this, Predicate.isNever)
   }
   /** @internal */
@@ -488,7 +484,7 @@ export const never = new Never()
 export class Any extends Base {
   readonly _tag = "Any"
   /** @internal */
-  parser() {
+  getParser() {
     return fromRefinement(this, Predicate.isUnknown)
   }
   /** @internal */
@@ -509,7 +505,7 @@ export const any = new Any()
 export class Unknown extends Base {
   readonly _tag = "Unknown"
   /** @internal */
-  parser() {
+  getParser() {
     return fromRefinement(this, Predicate.isUnknown)
   }
   /** @internal */
@@ -530,7 +526,7 @@ export const unknown = new Unknown()
 export class ObjectKeyword extends Base {
   readonly _tag = "ObjectKeyword"
   /** @internal */
-  parser() {
+  getParser() {
     return fromRefinement(this, Predicate.isObjectKeyword)
   }
   /** @internal */
@@ -563,7 +559,7 @@ export class Enum extends Base {
     this.enums = enums
   }
   /** @internal */
-  parser() {
+  getParser() {
     const values = new Set<unknown>(this.enums.map(([, v]) => v))
     return fromRefinement(
       this,
@@ -571,7 +567,7 @@ export class Enum extends Base {
     )
   }
   /** @internal */
-  goStringTree(): AST {
+  encodeToString(): AST {
     if (this.enums.some(([_, v]) => typeof v === "number")) {
       const coercions = Object.fromEntries(this.enums.map(([_, v]) => [globalThis.String(v), v]))
       return replaceEncoding(this, [
@@ -646,8 +642,8 @@ export class TemplateLiteral extends Base {
     this.encodedParts = encodedParts
   }
   /** @internal */
-  parser(go: (ast: AST) => Parser.Parser): Parser.Parser {
-    const parser = go(this.asTemplateLiteralParser())
+  getParser(recur: (ast: AST) => Parser.Parser): Parser.Parser {
+    const parser = recur(this.asTemplateLiteralParser())
     return (oinput: Option.Option<unknown>, options: ParseOptions) =>
       Effect.mapBothEager(parser(oinput, options), {
         onSuccess: () => oinput,
@@ -660,7 +656,7 @@ export class TemplateLiteral extends Base {
   }
   /** @internal */
   asTemplateLiteralParser(): Arrays {
-    const tuple = goTemplateLiteral(new Arrays(false, this.parts, [])) as Arrays
+    const tuple = new Arrays(false, this.parts.map(templateLiteralPartFromString), [])
     const regex = getTemplateLiteralRegExp(this)
     return decodeTo(
       string,
@@ -700,31 +696,17 @@ export class UniqueSymbol extends Base {
     this.symbol = symbol
   }
   /** @internal */
-  parser() {
+  getParser() {
     return fromConst(this, this.symbol)
   }
   /** @internal */
-  goJson(): AST {
-    return replaceEncoding(this, [symbolJsonLink])
+  encodeToString(): AST {
+    return replaceEncoding(this, [symbolToString])
   }
   /** @internal */
   getExpected(): string {
     return globalThis.String(this.symbol)
   }
-}
-
-/** @internal */
-export function coerceLiteral(ast: Literal): Literal {
-  const s = globalThis.String(ast.literal)
-  return replaceEncoding(ast, [
-    new Link(
-      new Literal(s),
-      new Transformation.Transformation(
-        Getter.transform(() => ast.literal),
-        Getter.transform(() => s)
-      )
-    )
-  ])
 }
 
 /**
@@ -755,21 +737,34 @@ export class Literal extends Base {
     this.literal = literal
   }
   /** @internal */
-  parser() {
+  getParser() {
     return fromConst(this, this.literal)
   }
   /** @internal */
-  goJson(): AST {
-    return typeof this.literal === "bigint" ? coerceLiteral(this) : this
+  encodeToJson(): AST {
+    return typeof this.literal === "bigint" ? literalToString(this) : this
   }
   /** @internal */
-  goStringTree(): AST {
-    return typeof this.literal === "string" ? this : coerceLiteral(this)
+  encodeToString(): AST {
+    return typeof this.literal === "string" ? this : literalToString(this)
   }
   /** @internal */
   getExpected(): string {
     return typeof this.literal === "string" ? JSON.stringify(this.literal) : globalThis.String(this.literal)
   }
+}
+
+function literalToString(ast: Literal): Literal {
+  const literalAsString = globalThis.String(ast.literal)
+  return replaceEncoding(ast, [
+    new Link(
+      new Literal(literalAsString),
+      new Transformation.Transformation(
+        Getter.transform(() => ast.literal),
+        Getter.transform(() => literalAsString)
+      )
+    )
+  ])
 }
 
 /**
@@ -779,7 +774,7 @@ export class Literal extends Base {
 export class String extends Base {
   readonly _tag = "String"
   /** @internal */
-  parser() {
+  getParser() {
     return fromRefinement(this, Predicate.isString)
   }
   /** @internal */
@@ -805,16 +800,16 @@ export const string = new String()
 export class Number extends Base {
   readonly _tag = "Number"
   /** @internal */
-  parser() {
+  getParser() {
     return fromRefinement(this, Predicate.isNumber)
   }
   /** @internal */
-  goJson(): AST {
-    return replaceEncoding(this, [numberJsonLink])
+  encodeToNumberOrNonFiniteLiterals(): AST {
+    return replaceEncoding(this, [numberToNumberOrNonFiniteLiterals])
   }
   /** @internal */
-  goStringTree(): AST {
-    return replaceEncoding(this, [numberStringTreeLink])
+  encodeToString(): AST {
+    return replaceEncoding(this, [numberToString])
   }
   /** @internal */
   getExpected(): string {
@@ -834,7 +829,7 @@ export const number = new Number()
 export class Boolean extends Base {
   readonly _tag = "Boolean"
   /** @internal */
-  parser() {
+  getParser() {
     return fromRefinement(this, Predicate.isBoolean)
   }
   /** @internal */
@@ -855,12 +850,12 @@ export const boolean = new Boolean()
 export class Symbol extends Base {
   readonly _tag = "Symbol"
   /** @internal */
-  parser() {
+  getParser() {
     return fromRefinement(this, Predicate.isSymbol)
   }
   /** @internal */
-  goJson(): AST {
-    return replaceEncoding(this, [symbolJsonLink])
+  encodeToString(): AST {
+    return replaceEncoding(this, [symbolToString])
   }
   /** @internal */
   getExpected(): string {
@@ -880,12 +875,12 @@ export const symbol = new Symbol()
 export class BigInt extends Base {
   readonly _tag = "BigInt"
   /** @internal */
-  parser() {
+  getParser() {
     return fromRefinement(this, Predicate.isBigInt)
   }
   /** @internal */
-  goJson(): AST {
-    return replaceEncoding(this, [bigIntJsonLink])
+  encodeToString(): AST {
+    return replaceEncoding(this, [bigIntToString])
   }
   /** @internal */
   getExpected(): string {
@@ -936,14 +931,12 @@ export class Arrays extends Base {
     }
   }
   /** @internal */
-  parser(go: (ast: AST) => Parser.Parser): Parser.Parser {
+  getParser(recur: (ast: AST) => Parser.Parser): Parser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
-    const elements = ast.elements.map((ast) => ({
-      ast,
-      parser: go(ast)
-    }))
-    const elementCount = elements.length
+    const elements = ast.elements.map((ast) => ({ ast, parser: recur(ast) }))
+    const rest = ast.rest.map((ast) => ({ ast, parser: recur(ast) }))
+    const elementLen = elements.length
     return Effect.fnUntracedEager(function*(oinput, options) {
       if (oinput._tag === "None") {
         return oinput
@@ -963,7 +956,7 @@ export class Arrays extends Base {
       // ---------------------------------------------
       // handle elements
       // ---------------------------------------------
-      for (; i < elementCount; i++) {
+      for (; i < elementLen; i++) {
         const e = elements[i]
         const value = i < input.length ? Option.some(input[i]) : Option.none()
         const eff = e.parser(value, options)
@@ -997,11 +990,10 @@ export class Arrays extends Base {
       // ---------------------------------------------
       const len = input.length
       if (ast.rest.length > 0) {
-        const [head, ...tail] = ast.rest
-        const parser = go(head)
-        const keyAnnotations = head.context?.annotations
+        const [head, ...tail] = rest
+        const keyAnnotations = head.ast.context?.annotations
         for (; i < len - tail.length; i++) {
-          const eff = parser(Option.some(input[i]), options)
+          const eff = head.parser(Option.some(input[i]), options)
           const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
           if (exit._tag === "Failure") {
             const issueRest = Cause.filterError(exit.cause)
@@ -1034,9 +1026,9 @@ export class Arrays extends Base {
           if (len < i + 1) {
             continue
           } else {
-            const parser = go(tail[j])
-            const keyAnnotations = tail[j].context?.annotations
-            const eff = parser(Option.some(input[i]), options)
+            const tailj = tail[j]
+            const keyAnnotations = tailj.ast.context?.annotations
+            const eff = tailj.parser(Option.some(input[i]), options)
             const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
             if (exit._tag === "Failure") {
               const issueRest = Cause.filterError(exit.cause)
@@ -1067,7 +1059,7 @@ export class Arrays extends Base {
         // ---------------------------------------------
         // handle excess indexes
         // ---------------------------------------------
-        for (let i = ast.elements.length; i <= len - 1; i++) {
+        for (let i = elementLen; i <= len - 1; i++) {
           const issue = new Issue.Pointer([i], new Issue.UnexpectedKey(ast, input[i]))
           if (errorsAllOption) {
             if (issues) issues.push(issue)
@@ -1084,9 +1076,9 @@ export class Arrays extends Base {
     })
   }
   /** @internal */
-  go(go: (ast: AST) => AST) {
-    const elements = mapOrSame(this.elements, go)
-    const rest = mapOrSame(this.rest, go)
+  recur(recur: (ast: AST) => AST) {
+    const elements = mapOrSame(this.elements, recur)
+    const rest = mapOrSame(this.rest, recur)
     return elements === this.elements && rest === this.rest ?
       this :
       new Arrays(this.isMutable, elements, rest, this.annotations, this.checks, undefined, this.context)
@@ -1226,7 +1218,7 @@ export class Objects extends Base {
     }
   }
   /** @internal */
-  parser(go: (ast: AST) => Parser.Parser): Parser.Parser {
+  getParser(recur: (ast: AST) => Parser.Parser): Parser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     const expectedKeys: Array<PropertyKey> = []
@@ -1243,7 +1235,7 @@ export class Objects extends Base {
       expectedKeysSet.add(ps.name)
       properties.push({
         ps,
-        parser: go(ps.type),
+        parser: recur(ps.type),
         name: ps.name,
         type: ps.type
       })
@@ -1350,7 +1342,7 @@ export class Objects extends Base {
           const keys = getIndexSignatureKeys(input, is.parameter)
           for (let j = 0; j < keys.length; j++) {
             const key = keys[j]
-            const parserKey = go(goIndexSignature(is.parameter))
+            const parserKey = recur(indexSignatureParameterFromString(is.parameter))
             const effKey = parserKey(Option.some(key), options)
             const exitKey = (effectIsExit(effKey) ? effKey : yield* Effect.exit(effKey)) as Exit.Exit<
               Option.Option<PropertyKey>,
@@ -1373,7 +1365,7 @@ export class Objects extends Base {
             }
 
             const value: Option.Option<unknown> = Option.some(input[key])
-            const parserValue = go(is.type)
+            const parserValue = recur(is.type)
             const effValue = parserValue(value, options)
             const exitValue = effectIsExit(effValue) ? effValue : yield* Effect.exit(effValue)
             if (exitValue._tag === "Failure") {
@@ -1423,17 +1415,17 @@ export class Objects extends Base {
     })
   }
   private rebuild(
-    go: (ast: AST) => AST,
+    recur: (ast: AST) => AST,
     flipMerge: boolean
   ): Objects {
     const props = mapOrSame(this.propertySignatures, (ps) => {
-      const t = go(ps.type)
+      const t = recur(ps.type)
       return t === ps.type ? ps : new PropertySignature(ps.name, t)
     })
 
     const indexes = mapOrSame(this.indexSignatures, (is) => {
-      const p = go(is.parameter)
-      const t = go(is.type)
+      const p = recur(is.parameter)
+      const t = recur(is.type)
       const merge = flipMerge ? is.merge?.flip() : is.merge
       return p === is.parameter && t === is.type && merge === is.merge
         ? is
@@ -1445,12 +1437,12 @@ export class Objects extends Base {
       : new Objects(props, indexes, this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
-  flip(go: (ast: AST) => AST): AST {
-    return this.rebuild(go, true)
+  flip(recur: (ast: AST) => AST): AST {
+    return this.rebuild(recur, true)
   }
   /** @internal */
-  go(go: (ast: AST) => AST): AST {
-    return this.rebuild(go, false)
+  recur(recur: (ast: AST) => AST): AST {
+    return this.rebuild(recur, false)
   }
   /** @internal */
   getExpected(): string {
@@ -1727,7 +1719,7 @@ export class Union<A extends AST = AST> extends Base {
     this.mode = mode
   }
   /** @internal */
-  parser(go: (ast: AST) => Parser.Parser): Parser.Parser {
+  getParser(recur: (ast: AST) => Parser.Parser): Parser.Parser {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntracedEager(function*(oinput, options) {
@@ -1748,7 +1740,7 @@ export class Union<A extends AST = AST> extends Base {
       }
       for (let i = 0; i < candidates.length; i++) {
         const candidate = candidates[i]
-        const parser = go(candidate)
+        const parser = recur(candidate)
         const eff = parser(oinput, options)
         const exit = effectIsExit(eff) ? eff : yield* Effect.exit(eff)
         if (exit._tag === "Failure") {
@@ -1780,8 +1772,8 @@ export class Union<A extends AST = AST> extends Base {
     })
   }
   /** @internal */
-  go(go: (ast: AST) => AST) {
-    const types = mapOrSame(this.types, go)
+  recur(recur: (ast: AST) => AST) {
+    const types = mapOrSame(this.types, recur)
     return types === this.types ?
       this :
       new Union(types, this.mode, this.annotations, this.checks, undefined, this.context)
@@ -1820,6 +1812,17 @@ export class Union<A extends AST = AST> extends Base {
     return Array.from(new Set(expected)).join(" | ")
   }
 }
+
+const numberToNumberOrNonFiniteLiterals = new Link(
+  new Union(
+    [number, new Literal("Infinity"), new Literal("-Infinity"), new Literal("NaN")],
+    "anyOf"
+  ),
+  new Transformation.Transformation(
+    Getter.Number(),
+    Getter.transform((n) => globalThis.Number.isFinite(n) ? n : globalThis.String(n))
+  )
+)
 
 function formatIsMutable(isMutable: boolean | undefined): string {
   return isMutable ? "" : "readonly "
@@ -1862,14 +1865,12 @@ export class Suspend extends Base {
     this.thunk = memoizeThunk(thunk)
   }
   /** @internal */
-  parser(go: (ast: AST) => Parser.Parser): Parser.Parser {
-    return go(this.thunk())
+  getParser(recur: (ast: AST) => Parser.Parser): Parser.Parser {
+    return recur(this.thunk())
   }
   /** @internal */
-  go(go: (ast: AST) => AST) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const ast = this
-    return new Suspend(() => go(ast.thunk()), ast.annotations, ast.checks, undefined, ast.context)
+  recur(recur: (ast: AST) => AST) {
+    return new Suspend(() => recur(this.thunk()), this.annotations, this.checks, undefined, this.context)
   }
   /** @internal */
   getExpected(getExpected: (ast: AST) => string): string {
@@ -2151,11 +2152,11 @@ function updateLastLink(encoding: Encoding, f: (ast: AST) => AST): Encoding {
 }
 
 /** @internal */
-export function applyToEncoded(f: (ast: AST) => AST) {
+export function serializer(f: (ast: AST) => AST) {
   function out(ast: AST): AST {
     return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, out)) : f(ast)
   }
-  return out
+  return memoize(out)
 }
 
 /** @internal */
@@ -2361,7 +2362,7 @@ export const typeAST = memoize(<A extends AST>(ast: A): A => {
     return typeAST(replaceEncoding(ast, undefined))
   }
   const out: any = ast
-  return out.go?.(typeAST) ?? out
+  return out.recur?.(typeAST) ?? out
 })
 
 /**
@@ -2397,7 +2398,7 @@ export const flip = memoize((ast: AST): AST => {
     return flipEncoding(ast, ast.encoding)
   }
   const out: any = ast
-  return out.flip?.(flip) ?? out.go?.(flip) ?? out
+  return out.flip?.(flip) ?? out.recur?.(flip) ?? out
 })
 
 /** @internal */
@@ -2422,19 +2423,6 @@ function getTemplateLiteralSource(ast: TemplateLiteral, top: boolean): string {
 export const getTemplateLiteralRegExp = memoize((ast: TemplateLiteral): RegExp => {
   return new RegExp(`^${getTemplateLiteralSource(ast, true)}$`)
 })
-
-/**
- * any string, including newlines
- */
-const STRING_PATTERN = "[\\s\\S]*?"
-/**
- * floating point or integer, with optional exponent
- */
-const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
-/**
- * signed integer only (no leading "+" because TypeScript doesn't support it)
- */
-const BIGINT_PATTERN = "-?\\d+"
 
 function getTemplateLiteralASTPartPattern(part: TemplateLiteralPart): string {
   switch (part._tag) {
@@ -2501,44 +2489,41 @@ export const enumsToLiterals = memoize((ast: Enum): Union<Literal> => {
   )
 })
 
-const goIndexSignature = memoize(applyToEncoded((ast: AST): AST => {
+const indexSignatureParameterFromString = serializer((ast) => {
   switch (ast._tag) {
     case "Number":
-      return ast.goStringTree()
+      return ast.encodeToString()
     case "Union":
-      return ast.go(goIndexSignature)
+      return ast.recur(indexSignatureParameterFromString)
     default:
       return ast
   }
-}))
+})
 
-const goTemplateLiteral = memoize(applyToEncoded((ast: AST): AST => {
+const templateLiteralPartFromString = serializer((ast) => {
   switch (ast._tag) {
     case "String":
     case "TemplateLiteral":
       return ast
     case "BigInt":
-      return ast.goJson()
     case "Number":
     case "Literal":
-      return ast.goStringTree()
-    case "Arrays":
+      return ast.encodeToString()
     case "Union":
-      return ast.go(goTemplateLiteral)
+      return ast.recur(templateLiteralPartFromString)
+    default:
+      return ast
   }
-  throw new Error(`Unsupported template literal part tag: ${ast._tag}`)
-}))
+})
 
-const numberJsonLink = new Link(
-  new Union(
-    [number, new Literal("Infinity"), new Literal("-Infinity"), new Literal("NaN")],
-    "anyOf"
-  ),
-  new Transformation.Transformation(
-    Getter.Number(),
-    Getter.transform((n) => globalThis.Number.isFinite(n) ? n : globalThis.String(n))
-  )
-)
+/**
+ * any string, including newlines
+ */
+const STRING_PATTERN = "[\\s\\S]*?"
+/**
+ * floating point or integer, with optional exponent
+ */
+const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 
 const isNumberStringRegExp = new RegExp(`(?:${NUMBER_PATTERN}|Infinity|-Infinity|NaN)`)
 
@@ -2556,10 +2541,15 @@ export function isNumberString(annotations?: Annotations.Filter) {
   )
 }
 
-const numberStringTreeLink = new Link(
+const numberToString = new Link(
   appendChecks(string, [isNumberString()]),
   Transformation.numberFromString
 )
+
+/**
+ * signed integer only (no leading "+" because TypeScript doesn't support it)
+ */
+const BIGINT_PATTERN = "-?\\d+"
 
 const isBigIntStringRegExp = new RegExp(BIGINT_PATTERN)
 
@@ -2577,7 +2567,7 @@ export function isBigIntString(annotations?: Annotations.Filter) {
   )
 }
 
-const bigIntJsonLink = new Link(
+const bigIntToString = new Link(
   appendChecks(string, [isBigIntString()]),
   new Transformation.Transformation(
     Getter.transform(globalThis.BigInt),
@@ -2587,24 +2577,10 @@ const bigIntJsonLink = new Link(
 
 const isSymbolStringRegExp = /^Symbol\((.*)\)$/
 
-/** @internal */
-export function isSymbolString(annotations?: Annotations.Filter) {
-  return isPattern(
-    isSymbolStringRegExp,
-    Annotations.combine({
-      description: "a string representing a symbol",
-      meta: {
-        _tag: "isSymbolString",
-        regex: isSymbolStringRegExp
-      }
-    }, annotations)
-  )
-}
-
 /**
  * to distinguish between Symbol and String, we need to add a check to the string keyword
  */
-const symbolJsonLink = new Link(
+const symbolToString = new Link(
   appendChecks(string, [isSymbolString()]),
   new Transformation.Transformation(
     Getter.transform((description) => globalThis.Symbol.for(isSymbolStringRegExp.exec(description)![1])),
@@ -2624,6 +2600,20 @@ const symbolJsonLink = new Link(
     })
   )
 )
+
+/** @internal */
+export function isSymbolString(annotations?: Annotations.Filter) {
+  return isPattern(
+    isSymbolStringRegExp,
+    Annotations.combine({
+      description: "a string representing a symbol",
+      meta: {
+        _tag: "isSymbolString",
+        regex: isSymbolStringRegExp
+      }
+    }, annotations)
+  )
+}
 
 /** @internal */
 export function collectIssues<T>(
