@@ -5,10 +5,10 @@ import * as Predicate from "effect/data/Predicate"
 import { constTrue } from "effect/Function"
 import * as Array_ from "../../collections/Array.ts"
 import * as Combiner from "../../data/Combiner.ts"
+import { formatPath } from "../../data/Formatter.ts"
 import * as Record_ from "../../data/Record.ts"
 import * as Struct from "../../data/Struct.ts"
 import * as UndefinedOr from "../../data/UndefinedOr.ts"
-import * as Inspectable from "../../interfaces/Inspectable.ts"
 import type * as Schema from "../../schema/Schema.ts"
 
 /**
@@ -36,7 +36,7 @@ export interface Rewriter {
 }
 
 function change(path: Path, summary: string) {
-  return `${summary} at ${Inspectable.formatPath(path)}`
+  return `${summary} at ${formatPath(path)}`
 }
 
 function whitelistProperties(

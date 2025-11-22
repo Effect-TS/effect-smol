@@ -101,12 +101,12 @@
  */
 import type * as Cause from "./Cause.ts"
 import * as Array from "./collections/Array.ts"
+import * as Formatter from "./data/Formatter.ts"
 import * as Predicate from "./data/Predicate.ts"
 import type * as Duration from "./Duration.ts"
 import type * as Effect from "./Effect.ts"
 import type * as Fiber from "./Fiber.ts"
 import { dual } from "./Function.ts"
-import * as Inspectable from "./interfaces/Inspectable.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { isEffect, withFiber } from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
@@ -513,7 +513,7 @@ const format = (
 
   const messages = Array.ensure(message)
   for (let i = 0; i < messages.length; i++) {
-    out += append("message", Inspectable.format(messages[i], { space }))
+    out += append("message", Formatter.format(messages[i], { space }))
   }
 
   if (cause.failures.length > 0) {
@@ -528,7 +528,7 @@ const format = (
 
   const annotations = fiber.getRef(CurrentLogAnnotations)
   for (const [label, value] of Object.entries(annotations)) {
-    out += append(label, Inspectable.format(value, { space }))
+    out += append(label, Formatter.format(value, { space }))
   }
 
   return out
@@ -806,7 +806,7 @@ export const formatStructured: Logger<unknown, {
  * @since 4.0.0
  * @category constructors
  */
-export const formatJson = map(formatStructured, Inspectable.formatJson)
+export const formatJson = map(formatStructured, Formatter.formatJson)
 
 /**
  * Returns a new `Logger` which will aggregate logs output by the specified

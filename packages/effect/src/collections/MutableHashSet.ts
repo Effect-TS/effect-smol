@@ -25,8 +25,9 @@
  * @category data-structures
  */
 import * as MutableHashMap from "../collections/MutableHashMap.ts"
+import { format } from "../data/Formatter.ts"
 import * as Dual from "../Function.ts"
-import { format, type Inspectable, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
+import { type Inspectable, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 

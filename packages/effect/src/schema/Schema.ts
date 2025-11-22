@@ -10,6 +10,7 @@ import type * as Combiner from "../data/Combiner.ts"
 import * as Data from "../data/Data.ts"
 import type * as Equivalence from "../data/Equivalence.ts"
 import type { Formatter } from "../data/Formatter.ts"
+import { format, formatDate, formatPropertyKey } from "../data/Formatter.ts"
 import * as Option_ from "../data/Option.ts"
 import * as Order from "../data/Order.ts"
 import * as Predicate from "../data/Predicate.ts"
@@ -25,7 +26,6 @@ import * as Effect from "../Effect.ts"
 import * as Exit_ from "../Exit.ts"
 import { identity, memoize } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
-import { format, formatDate, formatPropertyKey } from "../interfaces/Inspectable.ts"
 import * as Pipeable from "../interfaces/Pipeable.ts"
 import * as InternalArbitrary from "../internal/arbitrary.ts"
 import * as core from "../internal/core.ts"
@@ -510,7 +510,7 @@ export function asStandardSchemaV1<
         const scheduler = new Scheduler.MixedScheduler()
         const fiber = Effect.runFork(
           Effect.match(decodeUnknownEffect(value, parseOptions), {
-            onFailure: formatter.format,
+            onFailure: formatter,
             onSuccess: (value): StandardSchemaV1.Result<S["Type"]> => ({ value })
           }),
           { scheduler }

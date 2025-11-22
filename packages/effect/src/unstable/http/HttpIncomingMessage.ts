@@ -3,7 +3,8 @@
  */
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
-import * as Inspectable from "../../interfaces/Inspectable.ts"
+import type * as Inspectable from "../../interfaces/Inspectable.ts"
+import { redact } from "../../interfaces/Redactable.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
@@ -116,7 +117,7 @@ export const inspect = <E>(self: HttpIncomingMessage<E>, that: object): object =
   }
   const obj: any = {
     ...that,
-    headers: Inspectable.redact(self.headers),
+    headers: redact(self.headers),
     remoteAddress: self.remoteAddress
   }
   if (body !== undefined) {

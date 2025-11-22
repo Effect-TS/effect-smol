@@ -1,10 +1,10 @@
 import { Option, Redacted } from "effect/data"
-import { format } from "effect/interfaces/Inspectable"
+import { format } from "effect/data/Formatter"
 import { Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"
 
-describe("Inspectable", () => {
+describe("Formatter", () => {
   describe("format", () => {
     it("null", () => {
       strictEqual(format(null), `null`)

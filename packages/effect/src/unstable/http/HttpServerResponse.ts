@@ -4,8 +4,9 @@
 import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
-import * as Inspectable from "../../interfaces/Inspectable.ts"
+import type * as Inspectable from "../../interfaces/Inspectable.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
+import { redact } from "../../interfaces/Redactable.ts"
 import { PipeInspectableProto } from "../../internal/core.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type { PlatformError } from "../../platform/PlatformError.ts"
@@ -750,7 +751,7 @@ const Proto: Omit<
       _id: "HttpServerResponse",
       status: this.status,
       statusText: this.statusText,
-      headers: Inspectable.redact(this.headers),
+      headers: redact(this.headers),
       cookies: this.cookies.toJSON(),
       body: this.body.toJSON()
     }

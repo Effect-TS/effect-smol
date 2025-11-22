@@ -5,11 +5,11 @@ import * as Ini from "ini"
 import * as Toml from "toml"
 import * as Yaml from "yaml"
 import * as Config from "../../Config.ts"
+import { format } from "../../data/Formatter.ts"
 import * as Redacted from "../../data/Redacted.ts"
 import type * as Struct from "../../data/Struct.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
-import { format } from "../../interfaces/Inspectable.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"
 import type { Formatter } from "../../schema/Issue.ts"
@@ -581,7 +581,7 @@ export const fileSchema = <A>(
       const content = yield* fileParse(options).parse(filePath)
       return yield* Effect.mapError(
         decode(content),
-        (error) => options?.errorFormatter?.format(error.issue) ?? error.toString()
+        (error) => options?.errorFormatter?.(error.issue) ?? error.toString()
       )
     })
   )

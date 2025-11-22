@@ -69,9 +69,10 @@
  *
  * @since 4.0.0
  */
+import { format } from "../../data/Formatter.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
-import * as Inspectable from "../../interfaces/Inspectable.ts"
+import { redact } from "../../interfaces/Redactable.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type * as HttpClientError from "../http/HttpClientError.ts"
 
@@ -219,7 +220,7 @@ export class HttpRequestError extends Schema.ErrorClass<HttpRequestError>(
       reason: error.reason,
       request: {
         hash: error.request.hash,
-        headers: Inspectable.redact(error.request.headers) as any,
+        headers: redact(error.request.headers) as any,
         method: error.request.method,
         url: error.request.url,
         urlParams: Array.from(error.request.urlParams)
@@ -391,16 +392,16 @@ export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
             reason: error.reason,
             request: {
               hash: error.request.hash,
-              headers: Inspectable.redact(error.request.headers) as any,
+              headers: redact(error.request.headers) as any,
               method: error.request.method,
               url: error.request.url,
               urlParams: Array.from(error.request.urlParams)
             },
             response: {
-              headers: Inspectable.redact(error.response.headers) as any,
+              headers: redact(error.response.headers) as any,
               status: error.response.status
             },
-            body: Inspectable.format(Inspectable.redact(body))
+            body: format(redact(body))
           })
         )
     )

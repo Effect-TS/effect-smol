@@ -2,9 +2,9 @@
  * @since 4.0.0
  */
 import type { StandardSchemaV1 } from "@standard-schema/spec"
+import { format, formatPath, type Formatter as FormatterI } from "../data/Formatter.ts"
 import * as Option from "../data/Option.ts"
 import { hasProperty } from "../data/Predicate.ts"
-import { format, formatPath } from "../interfaces/Inspectable.ts"
 import * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 
@@ -45,7 +45,7 @@ export type Issue =
 class Base {
   readonly [TypeId] = TypeId
   toString(this: Issue): string {
-    return defaultFormatter.format(this)
+    return defaultFormatter(this)
   }
 }
 
@@ -502,21 +502,21 @@ export function make(
 }
 
 /**
- * @category Model
+ * A `Formatter` for `Issue` objects.
+ *
+ * @category Formatter
  * @since 4.0.0
  */
-export interface Formatter<Out> {
-  readonly format: (issue: Issue) => Out
-}
+export interface Formatter<out Format> extends FormatterI<Issue, Format> {}
 
 /**
- * @category Model
+ * @category Formatter
  * @since 4.0.0
  */
 export type LeafHook = (issue: Leaf) => string
 
 /**
- * @category LeafHook
+ * @category Formatter
  * @since 4.0.0
  */
 export const defaultLeafHook: LeafHook = (issue): string => {
@@ -539,13 +539,13 @@ export const defaultLeafHook: LeafHook = (issue): string => {
 }
 
 /**
- * @category Model
+ * @category Formatter
  * @since 4.0.0
  */
 export type CheckHook = (issue: Filter) => string | undefined
 
 /**
- * @category CheckHook
+ * @category Formatter
  * @since 4.0.0
  */
 export const defaultCheckHook: CheckHook = (issue): string | undefined => {
@@ -560,11 +560,9 @@ export function makeFormatterStandardSchemaV1(options?: {
   readonly leafHook?: LeafHook | undefined
   readonly checkHook?: CheckHook | undefined
 }): Formatter<StandardSchemaV1.FailureResult> {
-  return {
-    format: (issue) => ({
-      issues: toDefaultIssues(issue, [], options?.leafHook ?? defaultLeafHook, options?.checkHook ?? defaultCheckHook)
-    })
-  }
+  return (issue) => ({
+    issues: toDefaultIssues(issue, [], options?.leafHook ?? defaultLeafHook, options?.checkHook ?? defaultCheckHook)
+  })
 }
 
 // A subtype of StandardSchemaV1.Issue
@@ -641,12 +639,10 @@ function formatCheck<T>(check: AST.Check<T>): string {
  * @since 4.0.0
  */
 export function makeFormatterDefault(): Formatter<string> {
-  return {
-    format: (issue) =>
-      toDefaultIssues(issue, [], defaultLeafHook, defaultCheckHook)
-        .map(formatDefaultIssue)
-        .join("\n")
-  }
+  return (issue) =>
+    toDefaultIssues(issue, [], defaultLeafHook, defaultCheckHook)
+      .map(formatDefaultIssue)
+      .join("\n")
 }
 
 /** @internal */

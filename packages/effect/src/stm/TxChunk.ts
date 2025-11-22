@@ -10,10 +10,11 @@
  * @since 4.0.0
  */
 import * as Chunk from "../collections/Chunk.ts"
+import { format } from "../data/Formatter.ts"
 import * as Effect from "../Effect.ts"
 import { dual } from "../Function.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
-import { format, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
+import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import * as TxRef from "../stm/TxRef.ts"

@@ -79,3 +79,8 @@ export * as Pipeable from "./Pipeable.ts"
  * @since 2.0.0
  */
 export * as PrimaryKey from "./PrimaryKey.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as Redactable from "./Redactable.ts"

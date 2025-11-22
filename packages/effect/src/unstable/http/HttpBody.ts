@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import * as Data from "../../data/Data.ts"
+import { format } from "../../data/Formatter.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
@@ -94,7 +95,7 @@ abstract class Proto implements HttpBody.Proto {
     return this.toJSON()
   }
   toString(): string {
-    return Inspectable.format(this, { ignoreToString: true })
+    return format(this, { ignoreToString: true })
   }
 }
 

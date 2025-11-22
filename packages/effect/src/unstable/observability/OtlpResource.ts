@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 import * as Config from "../../Config.ts"
+import { format } from "../../data/Formatter.ts"
 import * as Effect from "../../Effect.ts"
-import * as Inspectable from "../../interfaces/Inspectable.ts"
 import * as Schema from "../../schema/Schema.ts"
 
 /**
@@ -149,7 +149,7 @@ export const unknownToAttributeValue = (value: unknown): AnyValue => {
       }
     default:
       return {
-        stringValue: Inspectable.format(value)
+        stringValue: format(value)
       }
   }
 }

@@ -1,9 +1,9 @@
-import * as Inspectable from "../interfaces/Inspectable.ts"
+import { formatPath } from "../data/Formatter.ts"
 
 /** @internal */
 export function errorWithPath(message: string, path: ReadonlyArray<PropertyKey>) {
   if (path.length > 0) {
-    message += `\n  at ${Inspectable.formatPath(path)}`
+    message += `\n  at ${formatPath(path)}`
   }
   return new Error(message)
 }

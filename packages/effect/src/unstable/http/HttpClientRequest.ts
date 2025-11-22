@@ -8,6 +8,7 @@ import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import { redact } from "../../interfaces/Redactable.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
@@ -82,7 +83,7 @@ const Proto = {
       url: this.url,
       urlParams: this.urlParams,
       hash: this.hash,
-      headers: Inspectable.redact(this.headers),
+      headers: redact(this.headers),
       body: this.body.toJSON()
     }
   },

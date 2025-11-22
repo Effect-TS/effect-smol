@@ -1164,7 +1164,7 @@ describe("Serializers", () => {
 
       const failureResult = Issue.makeFormatterStandardSchemaV1({
         leafHook: Issue.defaultLeafHook
-      }).format(failure.error)
+      })(failure.error)
 
       const asserts = new TestSchema.Asserts(Schema.toSerializerJson(Schema.StandardSchemaV1FailureResult))
 

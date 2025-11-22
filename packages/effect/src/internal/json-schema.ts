@@ -1,6 +1,6 @@
+import { format } from "../data/Formatter.ts"
 import * as Predicate from "../data/Predicate.ts"
 import * as Equal from "../interfaces/Equal.ts"
-import * as Inspectable from "../interfaces/Inspectable.ts"
 import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
 import type * as Schema from "../schema/Schema.ts"
@@ -255,7 +255,7 @@ function base(
       if (typeof literal === "boolean") {
         return { type: "boolean", enum: [literal] }
       }
-      throw errorWithPath(`Unsupported literal ${Inspectable.format(literal)}`, path)
+      throw errorWithPath(`Unsupported literal ${format(literal)}`, path)
     }
 
     case "Enum":
@@ -327,7 +327,7 @@ function base(
       for (const ps of ast.propertySignatures) {
         const name = ps.name as string
         if (Predicate.isSymbol(name)) {
-          throw errorWithPath(`Unsupported property signature name ${Inspectable.format(name)}`, [...path, name])
+          throw errorWithPath(`Unsupported property signature name ${format(name)}`, [...path, name])
         } else {
           out.properties[name] = mergeOrAppendJsonSchemaAnnotations(
             recur(ps.type, [...path, name], options, false, false),
