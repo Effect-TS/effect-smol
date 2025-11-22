@@ -25,7 +25,7 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Inspectable/r
  * import { Redactable } from "effect/interfaces"
  * import { ServiceMap } from "effect"
  *
- * class SensitiveData implements Redactable {
+ * class SensitiveData implements Redactable.Redactable {
  *   constructor(private secret: string) {}
  *
  *   [Redactable.symbolRedactable](context: ServiceMap.ServiceMap<never>) {
@@ -87,12 +87,12 @@ export const isRedactable = (u: unknown): u is Redactable => hasProperty(u, symb
  *
  * @example
  * ```ts
- * import { Inspectable } from "effect/interfaces"
+ * import { Redactable } from "effect/interfaces"
  *
  * class CreditCard {
  *   constructor(private number: string) {}
  *
- *   [Inspectable.symbolRedactable]() {
+ *   [Redactable.symbolRedactable]() {
  *     return {
  *       number: this.number.slice(0, 4) + "****"
  *     }
@@ -100,11 +100,11 @@ export const isRedactable = (u: unknown): u is Redactable => hasProperty(u, symb
  * }
  *
  * const card = new CreditCard("1234567890123456")
- * console.log(Inspectable.redact(card)) // { number: "1234****" }
+ * console.log(Redactable.redact(card)) // { number: "1234****" }
  *
  * // Non-redactable values are returned unchanged
- * console.log(Inspectable.redact("normal string")) // "normal string"
- * console.log(Inspectable.redact({ id: 123 })) // { id: 123 }
+ * console.log(Redactable.redact("normal string")) // "normal string"
+ * console.log(Redactable.redact({ id: 123 })) // { id: 123 }
  * ```
  *
  * @since 4.0.0

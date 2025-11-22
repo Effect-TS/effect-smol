@@ -35,6 +35,7 @@ export * as Hash from "./Hash.ts"
  * @example
  * ```ts
  * import { Inspectable } from "effect/interfaces"
+ * import { format } from "effect/data/Formatter"
  *
  * class User extends Inspectable.Class {
  *   constructor(
@@ -55,7 +56,7 @@ export * as Hash from "./Hash.ts"
  *
  * const user = new User("Alice", "alice@example.com")
  * console.log(user.toString()) // Pretty printed JSON
- * console.log(Inspectable.format(user)) // Same as toString()
+ * console.log(format(user)) // Same as toString()
  * ```
  *
  * @since 2.0.0

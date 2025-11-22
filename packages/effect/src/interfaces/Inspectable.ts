@@ -11,6 +11,7 @@
  * @example
  * ```ts
  * import { Inspectable } from "effect/interfaces"
+ * import { format } from "effect/data/Formatter"
  *
  * class User extends Inspectable.Class {
  *   constructor(
@@ -31,7 +32,7 @@
  *
  * const user = new User("Alice", "alice@example.com")
  * console.log(user.toString()) // Pretty printed JSON
- * console.log(Inspectable.format(user)) // Same as toString()
+ * console.log(format(user)) // Same as toString()
  * ```
  *
  * @since 2.0.0
@@ -104,6 +105,7 @@ export type NodeInspectSymbol = typeof NodeInspectSymbol
  * @example
  * ```ts
  * import { Inspectable } from "effect/interfaces"
+ * import { format } from "effect/data/Formatter"
  *
  * class Result implements Inspectable.Inspectable {
  *   constructor(
@@ -112,7 +114,7 @@ export type NodeInspectSymbol = typeof NodeInspectSymbol
  *   ) {}
  *
  *   toString(): string {
- *     return Inspectable.format(this.toJSON())
+ *     return format(this.toJSON())
  *   }
  *
  *   toJSON() {

@@ -181,7 +181,7 @@ function safeToString(input: any): string {
  *
  * @example
  * ```ts
- * import { formatJson } from "effect/data/Formatter.ts"
+ * import { formatJson } from "effect/data/Formatter"
  *
  * // Normal object
  * const simple = { name: "Alice", age: 30 }
