@@ -330,13 +330,14 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
       function processParameters(schema: Schema.Schema<any> | undefined, i: OpenAPISpecParameter["in"]) {
         if (schema) {
           const jsonSchema = processAST(schema.ast) as any
+          const required = Array.isArray(jsonSchema.required) ? jsonSchema.required : []
           if ("properties" in jsonSchema) {
             Object.entries(jsonSchema.properties as Record<string, any>).forEach(([name, psJsonSchema]) => {
               op.parameters.push({
                 name,
                 in: i,
                 schema: psJsonSchema,
-                required: Array.isArray(jsonSchema.required) && jsonSchema.required.includes(name),
+                required: required.includes(name),
                 ...(psJsonSchema.description !== undefined ? { description: psJsonSchema.description } : undefined)
               })
             })
