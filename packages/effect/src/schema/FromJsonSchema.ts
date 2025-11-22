@@ -1,9 +1,8 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../collections/Array.ts"
-import * as Predicate from "../data/Predicate.ts"
-import { format } from "../interfaces/Inspectable.ts"
+import { format } from "../data/Formatter.ts"
+import { isObject } from "../data/Predicate.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
@@ -30,72 +29,73 @@ interface GoOptions {
 }
 
 function go(schema: unknown, options: GoOptions): string {
-  if (Predicate.isBoolean(schema)) {
+  if (typeof schema === "boolean") {
     return schema ? Unknown : Never
   }
-  if (Predicate.isObject(schema)) {
-    return checksAndAnnotations(schema, options)
+  if (isObject(schema)) {
+    return getAnnotationsAndChecks(schema, options)
   }
   return Unknown
 }
 
 function getAnnotations(schema: Record<string, unknown>): ReadonlyArray<string> {
   const annotations: Array<string> = []
-  if (Predicate.isString(schema.title)) {
+  if (typeof schema.title === "string") {
     annotations.push(`title: "${schema.title}"`)
   }
-  if (Predicate.isString(schema.description)) {
+  if (typeof schema.description === "string") {
     annotations.push(`description: "${schema.description}"`)
   }
-  if (Predicate.isString(schema.default)) {
+  if (schema.default !== undefined) {
     annotations.push(`default: ${format(schema.default)}`)
   }
-  if (Arr.isArray(schema.examples)) {
+  if (Array.isArray(schema.examples)) {
     annotations.push(`examples: [${schema.examples.map((example) => format(example)).join(", ")}]`)
   }
   return annotations
 }
 
 function getChecks(schema: Record<string, unknown>): Array<string> {
-  const checks: Array<string> = []
-  if (Predicate.isNumber(schema.minLength)) {
-    checks.push(`Schema.isMinLength(${schema.minLength})`)
+  const out: Array<string> = []
+  if (typeof schema.minLength === "number") {
+    out.push(`Schema.isMinLength(${schema.minLength})`)
   }
-  if (Predicate.isNumber(schema.maxLength)) {
-    checks.push(`Schema.isMaxLength(${schema.maxLength})`)
+  if (typeof schema.maxLength === "number") {
+    out.push(`Schema.isMaxLength(${schema.maxLength})`)
   }
-  if (Arr.isArray(schema.allOf)) {
+  if (Array.isArray(schema.allOf)) {
     for (const member of schema.allOf) {
-      if (Predicate.isObject(member)) {
-        const c = getChecks(member)
-        if (c.length > 0) {
+      if (isObject(member)) {
+        const checks = getChecks(member)
+        if (checks.length > 0) {
           const a = getAnnotations(member)
           if (a.length > 0) {
-            c[c.length - 1] = c[c.length - 1].substring(0, c[c.length - 1].length - 1) + `, { ${a.join(", ")} })`
+            checks[checks.length - 1] = checks[checks.length - 1].substring(0, checks[checks.length - 1].length - 1) +
+              `, { ${a.join(", ")} })`
           }
-          c.forEach((check) => checks.push(check))
+          checks.forEach((check) => out.push(check))
         }
       }
     }
   }
-  return checks
+  return out
 }
 
-function checksAndAnnotations(schema: Record<string, unknown>, options: GoOptions): string {
+function getAnnotationsAndChecks(schema: Record<string, unknown>, options: GoOptions): string {
   let out = base(schema, options)
-  const c = getChecks(schema)
-  const a = getAnnotations(schema)
-  if (a.length > 0) {
-    out += `.annotate({ ${a.join(", ")} })`
+  const check = getChecks(schema)
+  const annotations = getAnnotations(schema)
+  if (annotations.length > 0) {
+    out += `.annotate({ ${annotations.join(", ")} })`
   }
-  if (c.length > 0) {
-    out += `.check(${c.join(", ")})`
+  if (check.length > 0) {
+    out += `.check(${check.join(", ")})`
   }
   return out
 }
 
 function baseByType(type: unknown): string {
-  if (Predicate.isString(type)) {
+  if (typeof type === "string") {
     switch (type) {
       case "null":
         return "Schema.Null"
@@ -118,32 +118,43 @@ function baseByType(type: unknown): string {
 
 function base(schema: Record<string, unknown>, options: GoOptions): string {
   if ("type" in schema) {
-    if (Arr.isArray(schema.type)) {
+    if (Array.isArray(schema.type)) {
       return Union(schema.type.map(baseByType), "anyOf")
     }
     return baseByType(schema.type)
   }
-  if (Arr.isArray(schema.anyOf)) {
+  if (Array.isArray(schema.anyOf)) {
     if (schema.anyOf.length === 0) return Never
     return Union(schema.anyOf.map((schema) => go(schema, options)), "anyOf")
   }
-  if (Arr.isArray(schema.oneOf)) {
+  if (Array.isArray(schema.oneOf)) {
     if (schema.oneOf.length === 0) return Never
     return Union(schema.oneOf.map((schema) => go(schema, options)), "oneOf")
   }
-  if (Predicate.isObject(schema.not) && Object.keys(schema.not).length === 0) {
+  if (isObject(schema.not) && Object.keys(schema.not).length === 0) {
     return Never
   }
-  if (Predicate.isString(schema.$ref)) {
+  if (typeof schema.$ref === "string") {
     const identifier = getIdentifierFromRef(schema.$ref)
     if (identifier === undefined) {
       throw new Error(`Invalid $ref: ${schema.$ref}`)
     }
-    return go(options.definitions[identifier], options) + `.annotate({ identifier: "${identifier}" })`
+    const definition: Schema.JsonSchema.Schema | undefined = options.definitions[identifier]
+    if (definition === undefined) {
+      throw new Error(`Definition not found for $ref: ${schema.$ref}`)
+    }
+    return go(definition, options) + `.annotate({ identifier: "${identifier}" })`
   }
   return Unknown
 }
 
 function getIdentifierFromRef(ref: string): string | undefined {
-  return ref.split("/").pop()
+  const last = ref.split("/").pop()
+  if (last !== undefined) {
+    return unescapeJsonPointer(last)
+  }
+}
+
+function unescapeJsonPointer(identifier: string) {
+  return identifier.replace(/~0/ig, "~").replace(/~1/ig, "/")
 }

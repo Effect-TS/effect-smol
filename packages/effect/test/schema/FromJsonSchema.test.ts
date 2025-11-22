@@ -109,6 +109,22 @@ describe("FromJsonSchema", () => {
     )
   })
 
+  it("should handle escaped refs", () => {
+    assertOutput(
+      {
+        schema: {
+          "$ref": "#/definitions/ID~1a~0b"
+        },
+        definitions: {
+          "ID/a~b": {
+            "type": "string"
+          }
+        }
+      },
+      `Schema.String.annotate({ identifier: "ID/a~b" })`
+    )
+  })
+
   describe("roundtrips", () => {
     it("Never", () => {
       assertRoundtrip(Schema.Never)
