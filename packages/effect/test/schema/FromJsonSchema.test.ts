@@ -93,36 +93,107 @@ describe("FromJsonSchema", () => {
     )
   })
 
-  it("should handle refs", () => {
-    assertOutput(
-      {
-        schema: {
-          "$ref": "#/definitions/ID"
-        },
-        definitions: {
-          "ID": {
-            "type": "string"
+  describe("$ref", () => {
+    it("simple identifier", () => {
+      assertOutput(
+        {
+          schema: {
+            "$ref": "#/definitions/ID"
+          },
+          definitions: {
+            "ID": {
+              "type": "string"
+            }
           }
-        }
-      },
-      `Schema.String.annotate({ identifier: "ID" })`
-    )
+        },
+        `Schema.String.annotate({ identifier: "ID" })`
+      )
+    })
+
+    it("escaped identifier", () => {
+      assertOutput(
+        {
+          schema: {
+            "$ref": "#/definitions/ID~1a~0b"
+          },
+          definitions: {
+            "ID/a~b": {
+              "type": "string"
+            }
+          }
+        },
+        `Schema.String.annotate({ identifier: "ID/a~b" })`
+      )
+    })
+
+    describe("recursive", () => {
+      it.todo("top annotation", () => {
+        assertOutput(
+          {
+            schema: {
+              "$ref": "#/definitions/A"
+            },
+            definitions: {
+              "A": {
+                "type": "object",
+                "properties": {
+                  "a": {
+                    "type": "string"
+                  },
+                  "as": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/A" }
+                  }
+                },
+                "required": ["a", "as"],
+                "additionalProperties": false
+              }
+            }
+          },
+          `Schema.Struct({
+            a: Schema.String,
+            as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
+          }).annotate({ identifier: "A" })`
+        )
+      })
+    })
   })
 
-  it("should handle escaped refs", () => {
-    assertOutput(
-      {
+  describe("object", () => {
+    it("no properties", () => {
+      assertOutput({
         schema: {
-          "$ref": "#/definitions/ID~1a~0b"
-        },
-        definitions: {
-          "ID/a~b": {
-            "type": "string"
-          }
+          "type": "object"
         }
-      },
-      `Schema.String.annotate({ identifier: "ID/a~b" })`
-    )
+      }, "Schema.Record(Schema.String, Schema.Unknown)")
+    })
+
+    it("empty struct", () => {
+      assertOutput({
+        schema: {
+          "anyOf": [
+            { "type": "object" },
+            { "type": "array" }
+          ]
+        }
+      }, "Schema.Union([Schema.Record(Schema.String, Schema.Unknown), Schema.Array(Schema.Unknown)])")
+    })
+
+    it("properties", () => {
+      assertOutput(
+        {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": { "type": "string" },
+              "b": { "type": "number" }
+            },
+            "required": ["a"]
+          }
+        },
+        "Schema.Struct({ a: Schema.String, b: Schema.optionalKey(Schema.Number) })"
+      )
+    })
   })
 
   describe("roundtrips", () => {
@@ -201,13 +272,41 @@ describe("FromJsonSchema", () => {
       assertRoundtrip(Schema.Int)
     })
 
-    it.skip("Struct", () => {
-      assertRoundtrip(Schema.Struct({}))
+    describe("Struct", () => {
+      it.todo("empty", () => {
+        assertRoundtrip(Schema.Struct({}))
+      })
+
+      it("required field", () => {
+        assertRoundtrip(Schema.Struct({
+          a: Schema.String
+        }))
+      })
+
+      it("optionalKey field", () => {
+        assertRoundtrip(Schema.Struct({
+          a: Schema.optionalKey(Schema.String)
+        }))
+      })
+
+      it("optional field", () => {
+        assertRoundtrip(Schema.Struct({
+          a: Schema.optional(Schema.String)
+        }))
+      })
     })
 
     describe("Tuple", () => {
       it("empty", () => {
         assertRoundtrip(Schema.Tuple([]))
+      })
+
+      it.todo("required element", () => {
+        assertRoundtrip(Schema.Tuple([Schema.String]))
+      })
+
+      it.todo("optionalKey element", () => {
+        assertRoundtrip(Schema.Tuple([Schema.optionalKey(Schema.String)]))
       })
     })
 

@@ -14,11 +14,18 @@ export function make(schema: unknown, options?: {
   readonly definitions?: Schema.JsonSchema.Definitions | undefined
 }): string {
   const definitions = options?.definitions ?? {}
-  return go(schema, { definitions })
+  return recur(schema, { definitions })
 }
 
 const Never = "Schema.Never"
 const Unknown = "Schema.Unknown"
+const Null = "Schema.Null"
+const String = "Schema.String"
+const Number = "Schema.Number"
+const Int = "Schema.Int"
+const Boolean = "Schema.Boolean"
+const UnknownRecord = "Schema.Record(Schema.String, Schema.Unknown)"
+const UnknownArray = "Schema.Array(Schema.Unknown)"
 
 function Union(members: ReadonlyArray<string>, mode: "anyOf" | "oneOf"): string {
   return `Schema.Union([${members.join(", ")}]${mode === "oneOf" ? ", { mode: \"oneOf\" }" : ""})`
@@ -28,7 +35,7 @@ interface GoOptions {
   readonly definitions: Schema.JsonSchema.Definitions
 }
 
-function go(schema: unknown, options: GoOptions): string {
+function recur(schema: unknown, options: GoOptions): string {
   if (typeof schema === "boolean") {
     return schema ? Unknown : Never
   }
@@ -94,42 +101,97 @@ function getAnnotationsAndChecks(schema: Record<string, unknown>, options: GoOpt
   return out
 }
 
-function baseByType(type: unknown): string {
-  if (typeof type === "string") {
-    switch (type) {
-      case "null":
-        return "Schema.Null"
-      case "string":
-        return "Schema.String"
-      case "number":
-        return "Schema.Number"
-      case "integer":
-        return "Schema.Int"
-      case "boolean":
-        return "Schema.Boolean"
-      case "object":
-        return "Schema.Struct({})"
-      case "array":
+type Type = "null" | "string" | "number" | "integer" | "boolean" | "object" | "array"
+
+type WithType = {
+  readonly type: Type
+  [x: string]: unknown
+}
+
+function isWithType(schema: Record<string, unknown>): schema is WithType {
+  return schema.type === "null"
+    || schema.type === "string"
+    || schema.type === "number"
+    || schema.type === "integer"
+    || schema.type === "boolean"
+    || schema.type === "object"
+    || schema.type === "array"
+}
+
+function byType(type: Type): string {
+  switch (type) {
+    case "null":
+      return Null
+    case "string":
+      return String
+    case "number":
+      return Number
+    case "integer":
+      return Int
+    case "boolean":
+      return Boolean
+    case "object":
+      return UnknownRecord
+    case "array":
+      return UnknownArray
+  }
+}
+
+function byWithType(schema: WithType, options: GoOptions): string {
+  switch (schema.type) {
+    case "null":
+      return Null
+    case "string":
+      return String
+    case "number":
+      return Number
+    case "integer":
+      return Int
+    case "boolean":
+      return Boolean
+    case "object": {
+      if (!isObject(schema.properties)) {
+        return UnknownRecord
+      }
+      const required = Array.isArray(schema.required) ? schema.required : []
+      const properties = schema.properties
+      return `Schema.Struct({ ${
+        Object.entries(properties).map(([k, v]) => {
+          const value = recur(v, options)
+          if (required.includes(k)) {
+            return `${k}: ${value}`
+          } else {
+            return `${k}: Schema.optionalKey(${value})`
+          }
+        }).join(", ")
+      } })`
+    }
+    case "array": {
+      if (Object.keys(schema).length === 1) {
+        return UnknownArray
+      }
+      if (schema.items === false) {
         return "Schema.Tuple([])"
+      }
+      return "TODO"
     }
   }
-  return Unknown
 }
 
 function base(schema: Record<string, unknown>, options: GoOptions): string {
-  if ("type" in schema) {
-    if (Array.isArray(schema.type)) {
-      return Union(schema.type.map(baseByType), "anyOf")
-    }
-    return baseByType(schema.type)
+  if (Array.isArray(schema.type)) {
+    return Union(schema.type.map(byType), "anyOf")
+  }
+  if (isWithType(schema)) {
+    return byWithType(schema, options)
   }
   if (Array.isArray(schema.anyOf)) {
     if (schema.anyOf.length === 0) return Never
-    return Union(schema.anyOf.map((schema) => go(schema, options)), "anyOf")
+    return Union(schema.anyOf.map((schema) => recur(schema, options)), "anyOf")
   }
   if (Array.isArray(schema.oneOf)) {
     if (schema.oneOf.length === 0) return Never
-    return Union(schema.oneOf.map((schema) => go(schema, options)), "oneOf")
+    return Union(schema.oneOf.map((schema) => recur(schema, options)), "oneOf")
   }
   if (isObject(schema.not) && Object.keys(schema.not).length === 0) {
     return Never
@@ -143,7 +205,7 @@ function base(schema: Record<string, unknown>, options: GoOptions): string {
     if (definition === undefined) {
       throw new Error(`Definition not found for $ref: ${schema.$ref}`)
     }
-    return go(definition, options) + `.annotate({ identifier: "${identifier}" })`
+    return recur(definition, options) + `.annotate({ identifier: "${identifier}" })`
   }
   return Unknown
 }
