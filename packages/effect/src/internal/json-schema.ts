@@ -176,6 +176,10 @@ function flattenArrayJsonSchema(jsonSchema: Schema.JsonSchema.Schema): Schema.Js
   return jsonSchema
 }
 
+function isUnknownSchema(schema: unknown) {
+  return Predicate.isObject(schema) && Object.keys(schema).length === 0
+}
+
 function base(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
@@ -296,18 +300,24 @@ function base(
         ? recur(ast.rest[0], [...path, ast.elements.length], options, false, false)
         : false
       if (items.length === 0) {
-        out.items = additionalItems
+        if (!isUnknownSchema(additionalItems)) {
+          out.items = additionalItems
+        }
       } else {
         switch (target) {
           case "draft-07": {
             out.items = items
-            out.additionalItems = additionalItems
+            if (!isUnknownSchema(additionalItems)) {
+              out.additionalItems = additionalItems
+            }
             break
           }
           case "2020-12":
           case "oas3.1": {
             out.prefixItems = items
-            out.items = additionalItems
+            if (!isUnknownSchema(additionalItems)) {
+              out.items = additionalItems
+            }
             break
           }
         }
@@ -322,19 +332,19 @@ function base(
       // ---------------------------------------------
       // handle property signatures
       // ---------------------------------------------
-      out.properties = {}
-      out.required = []
       for (const ps of ast.propertySignatures) {
         const name = ps.name as string
         if (Predicate.isSymbol(name)) {
           throw errorWithPath(`Unsupported property signature name ${format(name)}`, [...path, name])
         } else {
+          out.properties ??= {}
           out.properties[name] = mergeOrAppendJsonSchemaAnnotations(
             recur(ps.type, [...path, name], options, false, false),
             ps.type.context?.annotations,
             options.generateDescriptions
           )
           if (!isOptional(ps.type)) {
+            out.required ??= []
             out.required.push(name)
           }
         }
@@ -355,6 +365,9 @@ function base(
       }
       if (Object.keys(patternProperties).length > 0) {
         out.patternProperties = patternProperties
+        delete out.additionalProperties
+      }
+      if (isUnknownSchema(out.additionalProperties)) {
         delete out.additionalProperties
       }
       return out

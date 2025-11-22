@@ -1937,7 +1937,6 @@ describe("JsonSchema generation", () => {
               "properties": {
                 "a": { "type": "string" }
               },
-              "required": [],
               "additionalProperties": false
             }
           }
@@ -2000,7 +1999,6 @@ describe("JsonSchema generation", () => {
                   }]
                 }
               },
-              "required": [],
               "additionalProperties": false
             }
           }
@@ -2046,7 +2044,6 @@ describe("JsonSchema generation", () => {
                 }]
               }
             },
-            "required": [],
             "additionalProperties": false
           }
         })
@@ -2054,14 +2051,21 @@ describe("JsonSchema generation", () => {
     })
 
     describe("Record", () => {
+      it("Record(String, Unknown)", () => {
+        assertDraft07(
+          Schema.Record(Schema.String, Schema.Unknown),
+          {
+            schema: { "type": "object" }
+          }
+        )
+      })
+
       it("Record(String, Number)", () => {
         assertDraft07(
           Schema.Record(Schema.String, Schema.Number),
           {
             schema: {
               "type": "object",
-              "properties": {},
-              "required": [],
               "additionalProperties": {
                 "type": "number"
               }
@@ -2073,8 +2077,6 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "object",
-              "properties": {},
-              "required": [],
               "additionalProperties": {
                 "type": "number"
               },
@@ -2090,8 +2092,6 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "object",
-              "properties": {},
-              "required": [],
               "patternProperties": {
                 "^(a)([\\s\\S]*?)$": {
                   "type": "number"
@@ -2332,7 +2332,16 @@ describe("JsonSchema generation", () => {
     })
 
     describe("Array", () => {
-      it("Array", () => {
+      it("Array(Unknown)", () => {
+        assertDraft07(
+          Schema.Array(Schema.Unknown),
+          {
+            schema: { "type": "array" }
+          }
+        )
+      })
+
+      it("Array(String)", () => {
         assertDraft07(
           Schema.Array(Schema.String),
           {

@@ -183,42 +183,46 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
       })
 
       // recursively rewrite properties
-      object.properties = Record_.map(
-        object.properties,
-        (value: Schema.JsonSchema.Schema, key: string) => recur(value, [...path, "properties", key])
-      )
+      if (object.properties !== undefined) {
+        object.properties = Record_.map(
+          object.properties,
+          (value: Schema.JsonSchema.Schema, key: string) => recur(value, [...path, "properties", key])
+        )
+
+        // all fields must be required
+        const keys = Object.keys(object.properties)
+        object.required = object.required !== undefined ? [...object.required] : []
+        if (object.required.length < keys.length) {
+          const required = new Set(object.required)
+          for (const key of keys) {
+            if (!required.has(key)) {
+              object.required.push(key)
+              const property = object.properties[key]
+              const type = property.type
+              if (typeof type === "string") {
+                property.type = [type, "null"] as any
+              } else {
+                if (Array.isArray(property.anyOf)) {
+                  object.properties[key] = {
+                    ...property,
+                    "anyOf": [...property.anyOf, { "type": "null" }]
+                  }
+                } else {
+                  object.properties[key] = { "anyOf": [property, { "type": "null" }] }
+                }
+              }
+              tracer.push(change(path, `added required property "${key}"`))
+            }
+          }
+        }
+      }
 
       // additionalProperties: false must always be set in objects
       if (object.additionalProperties !== false) {
         tracer.push(change(path, `set additionalProperties to false`))
         object.additionalProperties = false
       }
-      // all fields must be required
-      const keys = Object.keys(object.properties)
-      if (object.required.length < keys.length) {
-        object.required = object.required !== undefined ? [...object.required] : []
-        const required = new Set(object.required)
-        for (const key of keys) {
-          if (!required.has(key)) {
-            object.required.push(key)
-            const property = object.properties[key]
-            const type = property.type
-            if (typeof type === "string") {
-              property.type = [type, "null"] as any
-            } else {
-              if (Array.isArray(property.anyOf)) {
-                object.properties[key] = {
-                  ...property,
-                  "anyOf": [...property.anyOf, { "type": "null" }]
-                }
-              } else {
-                object.properties[key] = { "anyOf": [property, { "type": "null" }] }
-              }
-            }
-            tracer.push(change(path, `added required property "${key}"`))
-          }
-        }
-      }
+
       return object
     }
 
