@@ -2662,13 +2662,14 @@ export const catchDefect: {
  * @example
  * ```ts
  * import { Effect } from "effect"
+ * import { Filter } from "effect/data"
  *
  * // An effect that might fail with a number
  * const program = Effect.fail(42)
  *
  * // Recover only from specific error values
  * const recovered = Effect.catchFilter(program,
- *   (error) => error === 42,
+ *   (error) => error === 42 ? error : Filter.fail(error),
  *   (error) => Effect.succeed(`Recovered from error: ${error}`)
  * )
  * ```
@@ -2697,15 +2698,14 @@ export const catchFilter: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Console } from "effect"
+ * import { Cause, Console, Effect } from "effect"
  *
  * const httpRequest = Effect.fail("Network Error")
  *
  * // Only catch network-related failures
  * const program = Effect.catchCauseFilter(
  *   httpRequest,
- *   (cause) => Cause.hasFail(cause),
+ *   (cause) => Cause.filterFail(cause),
  *   (failure, cause) => Effect.gen(function* () {
  *     yield* Console.log(`Caught network error: ${Cause.squash(cause)}`)
  *     return "Fallback response"
@@ -2938,15 +2938,14 @@ export const tapCause: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Console } from "effect"
+ * import { Cause, Console, Effect } from "effect"
  *
  * const task = Effect.fail("Network timeout")
  *
  * // Only log causes that contain failures (not interrupts or defects)
  * const program = Effect.tapCauseFilter(
  *   task,
- *   (cause) => Cause.hasFail(cause),
+ *   (cause) => Cause.filterFail(cause),
  *   (_, cause) =>
  *     Console.log(`Logging failure cause: ${Cause.squash(cause)}`)
  * )

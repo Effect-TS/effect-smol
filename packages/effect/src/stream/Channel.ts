@@ -2787,20 +2787,22 @@ export const drain = <
  *
  * @example
  * ```ts
+ * import { Filter } from "effect/data"
  * import { Channel } from "effect/stream"
- * import { Effect } from "effect"
  *
  * // Create a channel with mixed numbers
  * const numbersChannel = Channel.fromIterable([1, 2, 3, 4, 5, 6, 7, 8])
  *
  * // Filter to keep only even numbers
- * const evenChannel = Channel.filter(numbersChannel, (n) => n % 2 === 0)
+ * const evenChannel = Channel.filter(numbersChannel, (n) =>
+ *   n % 2 === 0 ? n : Filter.fail(n)
+ * )
  * // Outputs: 2, 4, 6, 8
  *
  * // Filter with type refinement
  * const mixedChannel = Channel.fromIterable([1, "hello", 2, "world", 3])
  * const numbersOnlyChannel = Channel.filter(mixedChannel,
- *   (value): value is number => typeof value === "number"
+ *   (value) => typeof value === "number" ? value : Filter.fail(value)
  * )
  * // Outputs: 1, 2, 3 (all typed as numbers)
  * ```
@@ -2860,7 +2862,9 @@ export const filter: {
  * ]).pipe(Channel.filter(nonEmptyArrayFilter))
  *
  * // Filter arrays to keep only even numbers
- * const evenArraysChannel = Channel.filterArray(arrayChannel, (n) => n % 2 === 0)
+ * const evenArraysChannel = Channel.filterArray(arrayChannel, (n) =>
+ *   n % 2 === 0 ? n : Filter.fail(n)
+ * )
  * // Outputs: [2, 4], [6, 8, 10], [12, 14]
  * // Note: Only non-empty filtered arrays are emitted
  *
@@ -2868,7 +2872,9 @@ export const filter: {
  * const oddChannel = Channel.fromIterable([[1, 3, 5], [2, 4], [7, 9]]).pipe(
  *   Channel.filter(nonEmptyArrayFilter)
  * )
- * const filteredOddChannel = Channel.filterArray(oddChannel, (n) => n % 2 === 0)
+ * const filteredOddChannel = Channel.filterArray(oddChannel, (n) =>
+ *   n % 2 === 0 ? n : Filter.fail(n)
+ * )
  * // Outputs: [2, 4] (the arrays [1,3,5] and [7,9] are discarded)
  * ```
  *
