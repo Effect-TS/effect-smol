@@ -2564,15 +2564,14 @@ export const mapError: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Cause, Effect } from "effect"
  * import { Stream } from "effect/stream"
- * import { Cause } from "effect"
  *
  * const failingStream = Stream.fail("NetworkError")
  *
  * const recovered = Stream.catchCauseFilter(
  *   failingStream,
- *   Cause.hasFail,
+ *   (cause) => Cause.filterFail(cause),
  *   (error, cause) => Stream.make("Recovered from network error")
  * )
  * ```
