@@ -1298,6 +1298,17 @@ export * as ScopedRef from "./ScopedRef.ts"
  *
  * @since 4.0.0
  */
+export {
+  /**
+   * Layer-aware service constructor with automatic helpers.
+   *
+   * @since 4.0.0
+   */
+  Service
+} from "./Service.ts"
+/**
+ * @since 4.0.0
+ */
 export * as ServiceMap from "./ServiceMap.ts"
 
 /**
