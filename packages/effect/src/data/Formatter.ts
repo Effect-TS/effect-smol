@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import * as Predicate from "../data/Predicate.ts"
-import { redact } from "../interfaces/Redactable.ts"
+import { getRedacted, redact, symbolRedactable } from "../interfaces/Redactable.ts"
 
 /**
  * @category Model
@@ -14,6 +14,9 @@ export interface Formatter<in Value, out Format = string> {
 
 /**
  * Converts any JavaScript value into a human-readable string.
+ *
+ * For objects that don't have a `toString` method, it applies redaction to
+ * protect sensitive information.
  *
  * Unlike `JSON.stringify`, this formatter:
  * - Handles circular references (printed as `"[Circular]"`).
@@ -102,8 +105,10 @@ export function format(input: unknown, options?: {
       if (seen.has(v)) return CIRCULAR
       seen.add(v)
 
+      if (symbolRedactable in v) return format(getRedacted(v as any))
+
       if (Symbol.iterator in v) {
-        return `${v.constructor.name}(${recur(Array.from(v as unknown as Iterable<unknown>), d)})`
+        return `${v.constructor.name}(${recur(Array.from(v as any), d)})`
       }
 
       const keys = ownKeys(v)

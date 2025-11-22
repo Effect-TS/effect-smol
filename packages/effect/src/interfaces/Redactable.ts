@@ -39,7 +39,7 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Inspectable/r
  * ```
  *
  * @since 4.0.0
- * @category redactable
+ * @category Model
  */
 export interface Redactable {
   readonly [symbolRedactable]: (context: ServiceMap.ServiceMap<never>) => unknown
@@ -108,13 +108,17 @@ export const isRedactable = (u: unknown): u is Redactable => hasProperty(u, symb
  * ```
  *
  * @since 4.0.0
- * @category redactable
  */
-export const redact = (u: unknown): unknown => {
-  if (isRedactable(u)) {
-    return u[symbolRedactable]((globalThis as any)[currentFiberTypeId]?.services ?? emptyServiceMap)
-  }
+export function redact(u: unknown): unknown {
+  if (isRedactable(u)) return getRedacted(u)
   return u
+}
+
+/**
+ * @since 4.0.0
+ */
+export function getRedacted(redactable: Redactable): unknown {
+  return redactable[symbolRedactable]((globalThis as any)[currentFiberTypeId]?.services ?? emptyServiceMap)
 }
 
 /** @internal */
