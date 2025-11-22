@@ -336,7 +336,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
                 name,
                 in: i,
                 schema: psJsonSchema,
-                required: jsonSchema.required.includes(name),
+                required: Array.isArray(jsonSchema.required) && jsonSchema.required.includes(name),
                 ...(psJsonSchema.description !== undefined ? { description: psJsonSchema.description } : undefined)
               })
             })
