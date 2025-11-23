@@ -2634,6 +2634,109 @@ describe("JsonSchema generation", () => {
           }
         )
       })
+
+      it("mutually recursive schemas", () => {
+        interface Expression {
+          readonly type: "expression"
+          readonly value: number | Operation
+        }
+
+        interface Operation {
+          readonly type: "operation"
+          readonly operator: "+" | "-"
+          readonly left: Expression
+          readonly right: Expression
+        }
+
+        const Expression = Schema.Struct({
+          type: Schema.Literal("expression"),
+          value: Schema.Union([Schema.Finite, Schema.suspend((): Schema.Codec<Operation> => Operation)])
+        }).annotate({ identifier: "Expression" })
+
+        const Operation = Schema.Struct({
+          type: Schema.Literal("operation"),
+          operator: Schema.Literals(["+", "-"]),
+          left: Expression,
+          right: Expression
+        }).annotate({ identifier: "Operation" })
+
+        assertDraft07(
+          Operation,
+          {
+            schema: {
+              "$ref": "#/definitions/Operation"
+            },
+            definitions: {
+              "Operation": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "operation"
+                    ]
+                  },
+                  "operator": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "+"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "-"
+                        ]
+                      }
+                    ]
+                  },
+                  "left": {
+                    "$ref": "#/definitions/Expression"
+                  },
+                  "right": {
+                    "$ref": "#/definitions/Expression"
+                  }
+                },
+                "required": [
+                  "type",
+                  "operator",
+                  "left",
+                  "right"
+                ],
+                "additionalProperties": false
+              },
+              "Expression": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "expression"
+                    ]
+                  },
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "$ref": "#/definitions/Operation"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+      })
     })
 
     describe("checks", () => {

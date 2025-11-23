@@ -9,43 +9,47 @@ import type * as Schema from "./Schema.ts"
 /**
  * @since 4.0.0
  */
-export function make(schema: unknown, options?: {
-  readonly target: Annotations.JsonSchema.Target
-  readonly definitions?: Schema.JsonSchema.Definitions | undefined
-}): string {
-  const definitions = options?.definitions ?? {}
-  return recur(schema, { definitions })
+export type Output = {
+  readonly code: string
+  readonly type: string
 }
 
-const Never = "Schema.Never"
-const Unknown = "Schema.Unknown"
-const Null = "Schema.Null"
-const String = "Schema.String"
-const Number = "Schema.Number"
-const Int = "Schema.Int"
-const Boolean = "Schema.Boolean"
-const UnknownRecord = "Schema.Record(Schema.String, Schema.Unknown)"
-const UnknownArray = "Schema.Array(Schema.Unknown)"
+/**
+ * @since 4.0.0
+ */
+export function make(schema: unknown, options?: {
+  readonly target?: Annotations.JsonSchema.Target | undefined
+  readonly seen?: Set<string> | undefined
+  readonly getIdentifier?: ((identifier: string) => string) | undefined
+}): Output {
+  return recur(schema, {
+    target: options?.target ?? "draft-07",
+    seen: options?.seen ?? new Set(),
+    getIdentifier: options?.getIdentifier ?? getIdentifier
+  })
+}
 
-function Union(members: ReadonlyArray<string>, mode: "anyOf" | "oneOf"): string {
-  return `Schema.Union([${members.join(", ")}]${mode === "oneOf" ? ", { mode: \"oneOf\" }" : ""})`
+function getIdentifier(identifier: string): string {
+  return identifier.replace(/[/~]/g, "$")
 }
 
 interface GoOptions {
-  readonly definitions: Schema.JsonSchema.Definitions
+  readonly target: Annotations.JsonSchema.Target
+  readonly seen: Set<string>
+  readonly getIdentifier: (identifier: string) => string
 }
 
-function recur(schema: unknown, options: GoOptions): string {
+function recur(schema: unknown, options: GoOptions): Output {
   if (typeof schema === "boolean") {
     return schema ? Unknown : Never
   }
   if (isObject(schema)) {
-    return getAnnotationsAndChecks(schema, options)
+    return handleAnnotationsAndChecks(schema, options)
   }
   return Unknown
 }
 
-function getAnnotations(schema: Record<string, unknown>): ReadonlyArray<string> {
+function getAnnotations(schema: Schema.JsonSchema.Fragment): ReadonlyArray<string> {
   const annotations: Array<string> = []
   if (typeof schema.title === "string") {
     annotations.push(`title: "${schema.title}"`)
@@ -62,7 +66,7 @@ function getAnnotations(schema: Record<string, unknown>): ReadonlyArray<string> 
   return annotations
 }
 
-function getChecks(schema: Record<string, unknown>): Array<string> {
+function getChecks(schema: Schema.JsonSchema.Fragment): Array<string> {
   const out: Array<string> = []
   if (typeof schema.minLength === "number") {
     out.push(`Schema.isMinLength(${schema.minLength})`)
@@ -88,133 +92,206 @@ function getChecks(schema: Record<string, unknown>): Array<string> {
   return out
 }
 
-function getAnnotationsAndChecks(schema: Record<string, unknown>, options: GoOptions): string {
-  let out = base(schema, options)
+function appendCode(out: Output, code: string): Output {
+  return {
+    ...out,
+    code: out.code + code
+  }
+}
+
+function handleAnnotationsAndChecks(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output {
+  let out = handle(schema, options)
   const check = getChecks(schema)
   const annotations = getAnnotations(schema)
   if (annotations.length > 0) {
-    out += `.annotate({ ${annotations.join(", ")} })`
+    out = appendCode(out, `.annotate({ ${annotations.join(", ")} })`)
   }
   if (check.length > 0) {
-    out += `.check(${check.join(", ")})`
+    out = appendCode(out, `.check(${check.join(", ")})`)
   }
   return out
 }
 
-type Type = "null" | "string" | "number" | "integer" | "boolean" | "object" | "array"
-
-type WithType = {
-  readonly type: Type
-  [x: string]: unknown
+interface WithType extends Schema.JsonSchema.Fragment {
+  readonly type: Schema.JsonSchema.Type
 }
 
-function isWithType(schema: Record<string, unknown>): schema is WithType {
-  return schema.type === "null"
-    || schema.type === "string"
-    || schema.type === "number"
-    || schema.type === "integer"
-    || schema.type === "boolean"
-    || schema.type === "object"
-    || schema.type === "array"
+const types = ["null", "string", "number", "integer", "boolean", "object", "array"]
+
+function isWithType(schema: Schema.JsonSchema.Fragment): schema is WithType {
+  return typeof schema.type === "string" && types.includes(schema.type)
 }
 
-function byType(type: Type): string {
-  switch (type) {
-    case "null":
-      return Null
-    case "string":
-      return String
-    case "number":
-      return Number
-    case "integer":
-      return Int
-    case "boolean":
-      return Boolean
-    case "object":
-      return UnknownRecord
-    case "array":
-      return UnknownArray
-  }
+function handleType(type: Schema.JsonSchema.Type): Output {
+  return typeMap[type]
 }
 
-function byWithType(schema: WithType, options: GoOptions): string {
+function handleWithType(schema: WithType, options: GoOptions): Output {
   switch (schema.type) {
     case "null":
-      return Null
     case "string":
-      return String
     case "number":
-      return Number
     case "integer":
-      return Int
     case "boolean":
-      return Boolean
+      return typeMap[schema.type]
     case "object": {
-      if (!isObject(schema.properties)) {
+      if (Object.keys(schema).length === 1) {
         return UnknownRecord
       }
-      const required = Array.isArray(schema.required) ? schema.required : []
-      const properties = schema.properties
-      return `Schema.Struct({ ${
-        Object.entries(properties).map(([k, v]) => {
-          const value = recur(v, options)
-          if (required.includes(k)) {
-            return `${k}: ${value}`
-          } else {
-            return `${k}: Schema.optionalKey(${value})`
-          }
-        }).join(", ")
-      } })`
+      if (isObject(schema.properties)) {
+        const required = Array.isArray(schema.required) ? schema.required : []
+        return makeStruct(
+          Object.entries(schema.properties).map(([key, value]) => {
+            return { key, value: recur(value, options), isRequired: required.includes(key) }
+          })
+        )
+      }
+      return UnknownRecord
     }
     case "array": {
       if (Object.keys(schema).length === 1) {
         return UnknownArray
       }
-      if (schema.items === false) {
-        return "Schema.Tuple([])"
+      if (options.target === "draft-07") {
+        if (schema.items === false) {
+          return EmptyTuple
+        } else {
+          return makeArray(recur(schema.items, options))
+        }
       }
-      return "TODO"
+      return UnknownArray
     }
   }
 }
 
-function base(schema: Record<string, unknown>, options: GoOptions): string {
+function handle(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output {
   if (Array.isArray(schema.type)) {
-    return Union(schema.type.map(byType), "anyOf")
+    return makeUnion(schema.type.map(handleType), "anyOf")
   }
+
   if (isWithType(schema)) {
-    return byWithType(schema, options)
+    // TODO: and "allOf"
+    return handleWithType(schema, options)
   }
+
   if (Array.isArray(schema.anyOf)) {
     if (schema.anyOf.length === 0) return Never
-    return Union(schema.anyOf.map((schema) => recur(schema, options)), "anyOf")
+    if (isEmptyStruct(schema.anyOf)) return EmptyStruct
+    return makeUnion(schema.anyOf.map((schema) => recur(schema, options)), "anyOf")
   }
+
   if (Array.isArray(schema.oneOf)) {
     if (schema.oneOf.length === 0) return Never
-    return Union(schema.oneOf.map((schema) => recur(schema, options)), "oneOf")
+    if (isEmptyStruct(schema.oneOf)) return EmptyStruct
+    return makeUnion(schema.oneOf.map((schema) => recur(schema, options)), "oneOf")
   }
+
+  // TODO: and "allOf"
+
   if (isObject(schema.not) && Object.keys(schema.not).length === 0) {
     return Never
   }
+
   if (typeof schema.$ref === "string") {
-    const identifier = getIdentifierFromRef(schema.$ref)
-    if (identifier === undefined) {
-      throw new Error(`Invalid $ref: ${schema.$ref}`)
+    const last = schema.$ref.split("/").pop()
+    if (last !== undefined) {
+      const identifier = options.getIdentifier(unescapeJsonPointer(last))
+      const seen = options.seen.has(identifier)
+      if (seen) {
+        return {
+          code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
+          type: identifier
+        }
+      }
+      return {
+        code: identifier,
+        type: identifier
+      }
     }
-    const definition: Schema.JsonSchema.Schema | undefined = options.definitions[identifier]
-    if (definition === undefined) {
-      throw new Error(`Definition not found for $ref: ${schema.$ref}`)
-    }
-    return recur(definition, options) + `.annotate({ identifier: "${identifier}" })`
+    throw new Error(`Invalid $ref: ${schema.$ref}`)
   }
   return Unknown
 }
 
-function getIdentifierFromRef(ref: string): string | undefined {
-  const last = ref.split("/").pop()
-  if (last !== undefined) {
-    return unescapeJsonPointer(last)
+function makeUnion(members: ReadonlyArray<Output>, mode: "anyOf" | "oneOf"): Output {
+  return {
+    code: `Schema.Union([${members.map((m) => m.code).join(", ")}]${mode === "oneOf" ? `, { mode: "oneOf" }` : ""})`,
+    type: members.map((m) => m.type).join(" | ")
   }
+}
+
+function makeArray(item: Output): Output {
+  return {
+    code: `Schema.Array(${item.code})`,
+    type: `ReadonlyArray<${item.type}>`
+  }
+}
+
+function makeRecord(key: Output, value: Output): Output {
+  return {
+    code: `Schema.Record(${key.code}, ${value.code})`,
+    type: `Record<${key.type}, ${value.type}>`
+  }
+}
+
+function makeStruct(
+  properties: ReadonlyArray<{
+    readonly key: string
+    readonly value: Output
+    readonly isRequired: boolean
+  }>
+): Output {
+  return {
+    code: `Schema.Struct({ ${
+      properties.map((p) => `${p.key}: ${p.isRequired ? p.value.code : `Schema.optionalKey(${p.value.code})`}`).join(
+        ", "
+      )
+    } })`,
+    type: `{ ${properties.map((p) => `readonly ${p.key}${p.isRequired ? "" : "?"}: ${p.value.type}`).join(", ")} }`
+  }
+}
+
+const Never: Output = { code: "Schema.Never", type: "never" }
+const Unknown: Output = { code: "Schema.Unknown", type: "unknown" }
+const Null: Output = { code: "Schema.Null", type: "null" }
+const String: Output = { code: "Schema.String", type: "string" }
+const Number: Output = { code: "Schema.Number", type: "number" }
+const Int: Output = { code: "Schema.Int", type: "number" }
+const Boolean: Output = { code: "Schema.Boolean", type: "boolean" }
+const UnknownRecord: Output = makeRecord(String, Unknown)
+const UnknownArray: Output = makeArray(Unknown)
+const EmptyStruct: Output = { code: "Schema.Struct({})", type: "{}" }
+const EmptyTuple: Output = { code: "Schema.Tuple([])", type: "readonly []" }
+
+const typeMap = {
+  "null": Null,
+  "string": String,
+  "number": Number,
+  "integer": Int,
+  "boolean": Boolean,
+  "object": UnknownRecord,
+  "array": UnknownArray
+}
+
+function stripAnnotations(schema: Schema.JsonSchema.Fragment): Schema.JsonSchema.Fragment {
+  const out: Schema.JsonSchema.Fragment = { ...schema }
+  delete out.title
+  delete out.description
+  delete out.default
+  delete out.examples
+  return out
+}
+
+function isUnknownRecord(schema: Schema.JsonSchema.Fragment): boolean {
+  return schema.type === "object" && Object.keys(stripAnnotations(schema)).length === 1
+}
+
+function isUnknownArray(schema: Schema.JsonSchema.Fragment): boolean {
+  return schema.type === "array" && Object.keys(stripAnnotations(schema)).length === 1
+}
+
+function isEmptyStruct(schema: ReadonlyArray<Schema.JsonSchema.Fragment>): boolean {
+  return schema.length === 2 && isUnknownRecord(schema[0]) && isUnknownArray(schema[1])
 }
 
 function unescapeJsonPointer(identifier: string) {
