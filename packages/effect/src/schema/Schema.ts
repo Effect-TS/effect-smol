@@ -5074,7 +5074,8 @@ export function isPropertiesLength(length: number, annotations?: Annotations.Fil
  *
  * @since 4.0.0
  */
-export function isUnique<T>(equivalence: Equivalence.Equivalence<T>, annotations?: Annotations.Filter) {
+export function isUnique<T>(equivalence?: Equivalence.Equivalence<T>, annotations?: Annotations.Filter) {
+  equivalence = equivalence ?? Equal.equivalence()
   return makeFilter<ReadonlyArray<T>>(
     (input) => Arr.dedupeWith(input, equivalence).length === input.length,
     Annotations.combine({

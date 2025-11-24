@@ -71,22 +71,22 @@ function build(schema: unknown, options: GoOptions): Output {
 function applyAnnotations(out: Output, schema: Fragment): Output {
   const as = collectAnnotations(schema)
   if (as.length === 0) return out
-  return { ...out, code: `${out.code}.annotate({${as.join(",")}})` }
+  return { ...out, code: `${out.code}.annotate({ ${as.join(", ")} })` }
 }
 
 function collectAnnotations(schema: Fragment): ReadonlyArray<string> {
   const as: Array<string> = []
-  if (typeof schema.title === "string") as.push(`title:"${schema.title}"`)
-  if (typeof schema.description === "string") as.push(`description:"${schema.description}"`)
-  if (schema.default !== undefined) as.push(`default:${format(schema.default)}`)
-  if (Array.isArray(schema.examples)) as.push(`examples:[${schema.examples.map((e) => format(e)).join(",")}]`)
+  if (typeof schema.title === "string") as.push(`title: "${schema.title}"`)
+  if (typeof schema.description === "string") as.push(`description: "${schema.description}"`)
+  if (schema.default !== undefined) as.push(`default: ${format(schema.default)}`)
+  if (Array.isArray(schema.examples)) as.push(`examples: [${schema.examples.map((e) => format(e)).join(", ")}]`)
   return as
 }
 
 function applyChecks(out: Output, schema: Fragment, target: Target): Output {
   const cs = collectChecks(schema, target)
   if (cs.length === 0) return out
-  return { ...out, code: `${out.code}.check(${cs.join(",")})` }
+  return { ...out, code: `${out.code}.check(${cs.join(", ")})` }
 }
 
 function collectChecks(schema: Fragment, target: Target): Array<string> {
@@ -112,7 +112,7 @@ function collectChecks(schema: Fragment, target: Target): Array<string> {
     cs.push(`Schema.isMinLength(${schema.minItems})`)
   }
   if (typeof schema.maxItems === "number") cs.push(`Schema.isMaxLength(${schema.maxItems})`)
-  if (schema.uniqueItems === true) cs.push(`Schema.isUnique(Equal.equivalence())`)
+  if (schema.uniqueItems === true) cs.push(`Schema.isUnique()`)
 
   // Object checks
   if (typeof schema.minProperties === "number") cs.push(`Schema.isMinProperties(${schema.minProperties})`)
@@ -127,7 +127,7 @@ function collectChecks(schema: Fragment, target: Target): Array<string> {
           const annotations = collectAnnotations(member)
           if (annotations.length > 0) {
             checks[checks.length - 1] = checks[checks.length - 1].substring(0, checks[checks.length - 1].length - 1) +
-              `, { ${annotations.join(",")} })`
+              `, { ${annotations.join(", ")} })`
           }
           checks.forEach((check) => cs.push(check))
         }
@@ -222,7 +222,7 @@ function base(schema: Fragment, options: GoOptions): Output {
   }
 
   if (Array.isArray(schema.enum)) {
-    const type = schema.enum.map((e) => format(e)).join("|")
+    const type = schema.enum.map((e) => format(e)).join(" | ")
     switch (schema.enum.length) {
       case 0:
         return Never
@@ -233,7 +233,7 @@ function base(schema: Fragment, options: GoOptions): Output {
         }
       default:
         return {
-          code: `Schema.Literals([${schema.enum.map((e) => format(e)).join(",")}])`,
+          code: `Schema.Literals([${schema.enum.map((e) => format(e)).join(", ")}])`,
           type
         }
     }
@@ -265,7 +265,7 @@ function base(schema: Fragment, options: GoOptions): Output {
       const seen = options.seen.has(identifier)
       if (seen) {
         return {
-          code: `Schema.suspend(():Schema.Codec<${identifier}> => ${identifier})`,
+          code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
           type: identifier
         }
       }
@@ -334,27 +334,29 @@ function object(ps: ReadonlyArray<Property>, is: ReadonlyArray<IndexSignature>):
     const s = struct(ps)
     const i = is.map((i) => record(i.key, i.value))
     return {
-      code: `Schema.StructWithRest(${s.code},[${i.map((i) => i.code).join(",")}])`,
-      type: `{${removeParens(s.type)},${i.map((i) => removeParens(i.type)).join(",")}}`
+      code: `Schema.StructWithRest(${s.code}, [${i.map((i) => i.code).join(", ")}])`,
+      type: `{ ${removeParens(s.type)}, ${i.map((i) => removeParens(i.type)).join(", ")} }`
     }
   }
 }
 
 function removeParens(s: string): string {
-  return s.substring(1, s.length - 1)
+  return s.substring(2, s.length - 2)
 }
 
 function struct(ps: ReadonlyArray<Property>): Output {
   return {
-    code: `Schema.Struct({${ps.map((p) => `${p.key}:${optionalKeyRuntime(p.isRequired, p.value.code)}`).join(",")}})`,
-    type: `{${ps.map((p) => `readonly ${optionalKeyType(p.isRequired, p.key)}:${p.value.type}`).join(",")}}`
+    code: `Schema.Struct({ ${
+      ps.map((p) => `${p.key}: ${optionalKeyRuntime(p.isRequired, p.value.code)}`).join(", ")
+    } })`,
+    type: `{ ${ps.map((p) => `readonly ${optionalKeyType(p.isRequired, p.key)}: ${p.value.type}`).join(", ")} }`
   }
 }
 
 function record(key: Output, value: Output): Output {
   return {
-    code: `Schema.Record(${key.code},${value.code})`,
-    type: `{readonly[x:${key.type}]:${value.type}}`
+    code: `Schema.Record(${key.code}, ${value.code})`,
+    type: `{ readonly [x: ${key.type}]: ${value.type} }`
   }
 }
 
@@ -366,8 +368,8 @@ type Element = {
 function array(es: ReadonlyArray<Element>, item: Output | undefined): Output {
   if (item === undefined) {
     return {
-      code: `Schema.Tuple([${es.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(",")}])`,
-      type: `readonly[${es.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(",")}]`
+      code: `Schema.Tuple([${es.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(", ")}])`,
+      type: `readonly [${es.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(", ")}]`
     }
   } else if (es.length === 0) {
     return {
@@ -377,17 +379,19 @@ function array(es: ReadonlyArray<Element>, item: Output | undefined): Output {
   } else {
     return {
       code: `Schema.TupleWithRest(Schema.Tuple([${
-        es.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(",")
-      }]),[${item.code}])`,
-      type: `readonly[${es.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(",")},...Array<${item.type}>]`
+        es.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(", ")
+      }]), [${item.code}])`,
+      type: `readonly [${
+        es.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(", ")
+      }, ...Array<${item.type}>]`
     }
   }
 }
 
 function union(members: ReadonlyArray<Output>, mode: "anyOf" | "oneOf"): Output {
   return {
-    code: `Schema.Union([${members.map((m) => m.code).join(",")}]${mode === "oneOf" ? `,{mode:"oneOf"}` : ""})`,
-    type: members.map((m) => m.type).join("|")
+    code: `Schema.Union([${members.map((m) => m.code).join(", ")}]${mode === "oneOf" ? `, {mode:"oneOf"}` : ""})`,
+    type: members.map((m) => m.type).join(" | ")
   }
 }
 

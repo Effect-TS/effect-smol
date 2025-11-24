@@ -55,7 +55,7 @@ describe("FromJsonSchema", () => {
     it("type: undefined", () => {
       assertOutput({ schema: {} }, { code: "Schema.Unknown", type: "unknown" })
       assertOutput({ schema: { description: "lorem" } }, {
-        code: `Schema.Unknown.annotate({description:"lorem"})`,
+        code: `Schema.Unknown.annotate({ description: "lorem" })`,
         type: "unknown"
       })
     })
@@ -66,15 +66,15 @@ describe("FromJsonSchema", () => {
           schema: {
             "type": ["string", "number"]
           }
-        }, { code: "Schema.Union([Schema.String,Schema.Number])", type: "string|number" })
+        }, { code: "Schema.Union([Schema.String, Schema.Number])", type: "string | number" })
         assertOutput({
           schema: {
             "type": ["string", "number"],
             "description": "description"
           }
         }, {
-          code: `Schema.Union([Schema.String,Schema.Number]).annotate({description:"description"})`,
-          type: "string|number"
+          code: `Schema.Union([Schema.String, Schema.Number]).annotate({ description: "description" })`,
+          type: "string | number"
         })
       })
     })
@@ -101,14 +101,14 @@ describe("FromJsonSchema", () => {
 
       it("no properties", () => {
         assertOutput({ schema: { "type": "object" } }, {
-          code: "Schema.Record(Schema.String,Schema.Unknown)",
-          type: "{readonly[x:string]:unknown}"
+          code: "Schema.Record(Schema.String, Schema.Unknown)",
+          type: "{ readonly [x: string]: unknown }"
         })
         assertOutput(
           { schema: { "type": "object", "description": "lorem" } },
           {
-            code: `Schema.Record(Schema.String,Schema.Unknown).annotate({description:"lorem"})`,
-            type: "{readonly[x:string]:unknown}"
+            code: `Schema.Record(Schema.String, Schema.Unknown).annotate({ description: "lorem" })`,
+            type: "{ readonly [x: string]: unknown }"
           }
         )
       })
@@ -126,8 +126,8 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            code: "Schema.Struct({a:Schema.String,b:Schema.optionalKey(Schema.Number)})",
-            type: "{readonly a:string,readonly b?:number}"
+            code: "Schema.Struct({ a: Schema.String, b: Schema.optionalKey(Schema.Number) })",
+            type: "{ readonly a: string, readonly b?: number }"
           }
         )
       })
@@ -149,8 +149,9 @@ describe("FromJsonSchema", () => {
             }
           }
         }, {
-          code: "Schema.StructWithRest(Schema.Struct({a:Schema.String}),[Schema.Record(Schema.String,Schema.Number)])",
-          type: "{readonly a:string,readonly[x:string]:number}"
+          code:
+            "Schema.StructWithRest(Schema.Struct({ a: Schema.String }), [Schema.Record(Schema.String, Schema.Number)])",
+          type: "{ readonly a: string, readonly [x: string]: number }"
         })
       })
     })
@@ -166,7 +167,7 @@ describe("FromJsonSchema", () => {
             }
           }, {
             code: "Schema.Tuple([])",
-            type: "readonly[]"
+            type: "readonly []"
           })
         })
 
@@ -192,7 +193,7 @@ describe("FromJsonSchema", () => {
             }
           }, {
             code: "Schema.Tuple([])",
-            type: "readonly[]"
+            type: "readonly []"
           })
         })
 
@@ -204,8 +205,8 @@ describe("FromJsonSchema", () => {
               "items": [{ "type": "string" }, { "type": "number" }]
             }
           }, {
-            code: "Schema.Tuple([Schema.String,Schema.Number])",
-            type: "readonly[string,number]"
+            code: "Schema.Tuple([Schema.String, Schema.Number])",
+            type: "readonly [string, number]"
           })
         })
 
@@ -218,8 +219,8 @@ describe("FromJsonSchema", () => {
               "additionalItems": false
             }
           }, {
-            code: "Schema.Tuple([Schema.String,Schema.Number])",
-            type: "readonly[string,number]"
+            code: "Schema.Tuple([Schema.String, Schema.Number])",
+            type: "readonly [string, number]"
           })
         })
 
@@ -232,8 +233,8 @@ describe("FromJsonSchema", () => {
               "additionalItems": true
             }
           }, {
-            code: "Schema.TupleWithRest(Schema.Tuple([Schema.String,Schema.Number]),[Schema.Unknown])",
-            type: "readonly[string,number,...Array<unknown>]"
+            code: "Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.Unknown])",
+            type: "readonly [string, number, ...Array<unknown>]"
           })
         })
 
@@ -246,8 +247,8 @@ describe("FromJsonSchema", () => {
               "additionalItems": { "type": "boolean" }
             }
           }, {
-            code: "Schema.TupleWithRest(Schema.Tuple([Schema.String,Schema.Number]),[Schema.Boolean])",
-            type: "readonly[string,number,...Array<boolean>]"
+            code: "Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.Boolean])",
+            type: "readonly [string, number, ...Array<boolean>]"
           })
         })
 
@@ -264,7 +265,7 @@ describe("FromJsonSchema", () => {
             }
           }, {
             code: "Schema.Tuple([Schema.optionalKey(Schema.String)])",
-            type: "readonly[string?]"
+            type: "readonly [string?]"
           })
         })
       })
@@ -314,16 +315,16 @@ describe("FromJsonSchema", () => {
           "enum": ["a", "b"]
         }
       }, {
-        code: `Schema.Literals(["a","b"])`,
-        type: `"a"|"b"`
+        code: `Schema.Literals(["a", "b"])`,
+        type: `"a" | "b"`
       })
       assertOutput({
         schema: {
           "enum": ["a", 1]
         }
       }, {
-        code: `Schema.Literals(["a",1])`,
-        type: `"a"|1`
+        code: `Schema.Literals(["a", 1])`,
+        type: `"a" | 1`
       })
     })
 
@@ -440,7 +441,7 @@ describe("FromJsonSchema", () => {
           },
           target: "draft-07"
         }, {
-          code: "Schema.Array(Schema.String).check(Schema.isUnique(Equal.equivalence()))",
+          code: "Schema.Array(Schema.String).check(Schema.isUnique())",
           type: "ReadonlyArray<string>"
         })
       })
@@ -452,8 +453,8 @@ describe("FromJsonSchema", () => {
             "minProperties": 1
           }
         }, {
-          code: "Schema.Record(Schema.String,Schema.Unknown).check(Schema.isMinProperties(1))",
-          type: "{readonly[x:string]:unknown}"
+          code: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMinProperties(1))",
+          type: "{ readonly [x: string]: unknown }"
         })
       })
 
@@ -464,8 +465,8 @@ describe("FromJsonSchema", () => {
             "maxProperties": 10
           }
         }, {
-          code: "Schema.Record(Schema.String,Schema.Unknown).check(Schema.isMaxProperties(10))",
-          type: "{readonly[x:string]:unknown}"
+          code: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMaxProperties(10))",
+          type: "{ readonly [x: string]: unknown }"
         })
       })
 
@@ -478,7 +479,7 @@ describe("FromJsonSchema", () => {
             "pattern": "^[a-z]+$"
           }
         }, {
-          code: "Schema.String.check(Schema.isMinLength(1),Schema.isMaxLength(10),Schema.isPattern(/^[a-z]+$/))",
+          code: "Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10), Schema.isPattern(/^[a-z]+$/))",
           type: "string"
         })
       })
@@ -525,8 +526,8 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            code: `Schema.Struct({a:A})`,
-            type: "{readonly a:A}"
+            code: `Schema.Struct({ a: A })`,
+            type: "{ readonly a: A }"
           }
         )
       })
@@ -544,8 +545,8 @@ describe("FromJsonSchema", () => {
             seen: new Set(["A"])
           },
           {
-            code: `Schema.Struct({a:Schema.suspend(():Schema.Codec<A> => A)})`,
-            type: "{readonly a:A}"
+            code: `Schema.Struct({ a: Schema.suspend((): Schema.Codec<A> => A) })`,
+            type: "{ readonly a: A }"
           }
         )
       })
@@ -602,10 +603,10 @@ describe("FromJsonSchema", () => {
       strictEqual(
         code,
         `// Definitions
-type Operation = {readonly type:"operation",readonly operator:"+"|"-",readonly left:Expression,readonly right:Expression};
-const Operation = Schema.Struct({type:Schema.Literal("operation"),operator:Schema.Union([Schema.Literal("+"),Schema.Literal("-")]),left:Schema.suspend(():Schema.Codec<Expression> => Expression),right:Schema.suspend(():Schema.Codec<Expression> => Expression)});
-type Expression = {readonly type:"expression",readonly value:number|Operation};
-const Expression = Schema.Struct({type:Schema.Literal("expression"),value:Schema.Union([Schema.Number,Schema.suspend(():Schema.Codec<Operation> => Operation)])});
+type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
+const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) });
+type Expression = { readonly type: "expression", readonly value: number | Operation };
+const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) });
 // Schema
 const schema = Operation;
 `
@@ -736,7 +737,7 @@ const schema = Operation;
       assertRoundtrip({ schema: Schema.Record(Schema.String, Schema.String) })
     })
 
-    it.todo("StructWithRest", () => {
+    it("StructWithRest", () => {
       assertRoundtrip({
         schema: Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.String)])
       })
