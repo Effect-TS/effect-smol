@@ -68,21 +68,59 @@ function getAnnotations(schema: Schema.JsonSchema.Fragment): ReadonlyArray<strin
 
 function getChecks(schema: Schema.JsonSchema.Fragment): Array<string> {
   const out: Array<string> = []
+  // String checks
   if (typeof schema.minLength === "number") {
     out.push(`Schema.isMinLength(${schema.minLength})`)
   }
   if (typeof schema.maxLength === "number") {
     out.push(`Schema.isMaxLength(${schema.maxLength})`)
   }
+  if (typeof schema.pattern === "string") {
+    // Escape forward slashes to prevent them from terminating the regex literal delimiter
+    out.push(`Schema.isPattern(/${schema.pattern.replace(/\//g, "\\/")}/)`)
+  }
+  // Number checks
+  if (typeof schema.minimum === "number") {
+    out.push(`Schema.isGreaterThanOrEqualTo(${schema.minimum})`)
+  }
+  if (typeof schema.maximum === "number") {
+    out.push(`Schema.isLessThanOrEqualTo(${schema.maximum})`)
+  }
+  if (typeof schema.exclusiveMinimum === "number") {
+    out.push(`Schema.isGreaterThan(${schema.exclusiveMinimum})`)
+  }
+  if (typeof schema.exclusiveMaximum === "number") {
+    out.push(`Schema.isLessThan(${schema.exclusiveMaximum})`)
+  }
+  if (typeof schema.multipleOf === "number") {
+    out.push(`Schema.isMultipleOf(${schema.multipleOf})`)
+  }
+  // Array checks
+  if (typeof schema.minItems === "number") {
+    out.push(`Schema.isMinLength(${schema.minItems})`)
+  }
+  if (typeof schema.maxItems === "number") {
+    out.push(`Schema.isMaxLength(${schema.maxItems})`)
+  }
+  if (schema.uniqueItems === true) {
+    out.push(`Schema.isUnique(Equal.equivalence())`)
+  }
+  // Object checks
+  if (typeof schema.minProperties === "number") {
+    out.push(`Schema.isMinEntries(${schema.minProperties})`)
+  }
+  if (typeof schema.maxProperties === "number") {
+    out.push(`Schema.isMaxEntries(${schema.maxProperties})`)
+  }
   if (Array.isArray(schema.allOf)) {
     for (const member of schema.allOf) {
       if (isObject(member)) {
         const checks = getChecks(member)
         if (checks.length > 0) {
-          const a = getAnnotations(member)
-          if (a.length > 0) {
+          const annotations = getAnnotations(member)
+          if (annotations.length > 0) {
             checks[checks.length - 1] = checks[checks.length - 1].substring(0, checks[checks.length - 1].length - 1) +
-              `, { ${a.join(", ")} })`
+              `, { ${annotations.join(", ")} })`
           }
           checks.forEach((check) => out.push(check))
         }

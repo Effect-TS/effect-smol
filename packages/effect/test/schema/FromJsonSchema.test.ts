@@ -28,7 +28,7 @@ function assertOutput(
 }
 
 describe("FromJsonSchema", () => {
-  describe("Json Schema", () => {
+  describe("json schemas", () => {
     it("true", () => {
       assertOutput({ schema: true }, { code: "Schema.Unknown", type: "unknown" })
     })
@@ -138,6 +138,163 @@ describe("FromJsonSchema", () => {
               "items": { "type": "string" }
             }
           }, { code: "Schema.Array(Schema.String)", type: "ReadonlyArray<string>" })
+        })
+      })
+    })
+
+    describe("checks", () => {
+      it("minLength", () => {
+        assertOutput({
+          schema: {
+            "type": "string",
+            "minLength": 1
+          }
+        }, { code: "Schema.String.check(Schema.isMinLength(1))", type: "string" })
+      })
+
+      it("maxLength", () => {
+        assertOutput({
+          schema: {
+            "type": "string",
+            "maxLength": 10
+          }
+        }, { code: "Schema.String.check(Schema.isMaxLength(10))", type: "string" })
+      })
+
+      it("pattern", () => {
+        assertOutput({
+          schema: {
+            "type": "string",
+            "pattern": "^[a-z]+$"
+          }
+        }, { code: "Schema.String.check(Schema.isPattern(/^[a-z]+$/))", type: "string" })
+      })
+
+      it("pattern with forward slashes (escaping)", () => {
+        assertOutput({
+          schema: {
+            "type": "string",
+            "pattern": "^https?://[a-z]+$"
+          }
+        }, { code: "Schema.String.check(Schema.isPattern(/^https?:\\/\\/[a-z]+$/))", type: "string" })
+      })
+
+      it("minimum", () => {
+        assertOutput({
+          schema: {
+            "type": "number",
+            "minimum": 0
+          }
+        }, { code: "Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))", type: "number" })
+      })
+
+      it("maximum", () => {
+        assertOutput({
+          schema: {
+            "type": "number",
+            "maximum": 100
+          }
+        }, { code: "Schema.Number.check(Schema.isLessThanOrEqualTo(100))", type: "number" })
+      })
+
+      it("exclusiveMinimum", () => {
+        assertOutput({
+          schema: {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }, { code: "Schema.Number.check(Schema.isGreaterThan(0))", type: "number" })
+      })
+
+      it("exclusiveMaximum", () => {
+        assertOutput({
+          schema: {
+            "type": "number",
+            "exclusiveMaximum": 100
+          }
+        }, { code: "Schema.Number.check(Schema.isLessThan(100))", type: "number" })
+      })
+
+      it("multipleOf", () => {
+        assertOutput({
+          schema: {
+            "type": "number",
+            "multipleOf": 2
+          }
+        }, { code: "Schema.Number.check(Schema.isMultipleOf(2))", type: "number" })
+      })
+
+      it("minItems", () => {
+        assertOutput({
+          schema: {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          target: "draft-07"
+        }, { code: "Schema.Array(Schema.String).check(Schema.isMinLength(1))", type: "ReadonlyArray<string>" })
+      })
+
+      it("maxItems", () => {
+        assertOutput({
+          schema: {
+            "type": "array",
+            "items": { "type": "string" },
+            "maxItems": 10
+          },
+          target: "draft-07"
+        }, { code: "Schema.Array(Schema.String).check(Schema.isMaxLength(10))", type: "ReadonlyArray<string>" })
+      })
+
+      it("uniqueItems", () => {
+        assertOutput({
+          schema: {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+          },
+          target: "draft-07"
+        }, {
+          code: "Schema.Array(Schema.String).check(Schema.isUnique(Equal.equivalence()))",
+          type: "ReadonlyArray<string>"
+        })
+      })
+
+      it("minProperties", () => {
+        assertOutput({
+          schema: {
+            "type": "object",
+            "minProperties": 1
+          }
+        }, {
+          code: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMinEntries(1))",
+          type: "Record<string, unknown>"
+        })
+      })
+
+      it("maxProperties", () => {
+        assertOutput({
+          schema: {
+            "type": "object",
+            "maxProperties": 10
+          }
+        }, {
+          code: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMaxEntries(10))",
+          type: "Record<string, unknown>"
+        })
+      })
+
+      it("multiple checks", () => {
+        assertOutput({
+          schema: {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10,
+            "pattern": "^[a-z]+$"
+          }
+        }, {
+          code: "Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10), Schema.isPattern(/^[a-z]+$/))",
+          type: "string"
         })
       })
     })
