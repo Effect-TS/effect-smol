@@ -222,6 +222,13 @@ function handle(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output 
     return makeUnion(schema.type.map(handleType), "anyOf")
   }
 
+  if (schema.const !== undefined) {
+    return {
+      code: `Schema.Literal(${format(schema.const)})`,
+      type: format(schema.const)
+    }
+  }
+
   if (isWithType(schema)) {
     // TODO: and "allOf"
     return handleWithType(schema, options)

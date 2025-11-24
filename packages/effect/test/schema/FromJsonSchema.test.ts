@@ -299,6 +299,26 @@ describe("FromJsonSchema", () => {
       })
     })
 
+    it("const", () => {
+      assertOutput({
+        schema: {
+          "const": "a"
+        }
+      }, {
+        code: `Schema.Literal("a")`,
+        type: `"a"`
+      })
+      assertOutput({
+        schema: {
+          "type": "string",
+          "const": "a"
+        }
+      }, {
+        code: `Schema.Literal("a")`,
+        type: `"a"`
+      })
+    })
+
     describe("$ref", () => {
       it("unescaped identifier", () => {
         assertOutput(
