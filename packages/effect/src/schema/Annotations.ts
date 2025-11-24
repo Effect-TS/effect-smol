@@ -511,16 +511,16 @@ export interface MetaRegistry {
     readonly _tag: "isSize"
     readonly size: number
   }
-  readonly isMinEntries: {
-    readonly _tag: "isMinEntries"
-    readonly minEntries: number
+  readonly isMinProperties: {
+    readonly _tag: "isMinProperties"
+    readonly minProperties: number
   }
-  readonly isMaxEntries: {
-    readonly _tag: "isMaxEntries"
-    readonly maxEntries: number
+  readonly isMaxProperties: {
+    readonly _tag: "isMaxProperties"
+    readonly maxProperties: number
   }
-  readonly isEntriesLength: {
-    readonly _tag: "isEntriesLength"
+  readonly isPropertiesLength: {
+    readonly _tag: "isPropertiesLength"
     readonly length: number
   }
   readonly isUnique: {

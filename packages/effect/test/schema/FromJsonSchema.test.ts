@@ -267,7 +267,7 @@ describe("FromJsonSchema", () => {
             "minProperties": 1
           }
         }, {
-          code: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMinEntries(1))",
+          code: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMinProperties(1))",
           type: "Record<string, unknown>"
         })
       })
@@ -279,7 +279,7 @@ describe("FromJsonSchema", () => {
             "maxProperties": 10
           }
         }, {
-          code: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMaxEntries(10))",
+          code: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMaxProperties(10))",
           type: "Record<string, unknown>"
         })
       })

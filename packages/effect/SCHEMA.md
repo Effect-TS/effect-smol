@@ -1803,7 +1803,7 @@ Structural filters are different from regular filters in that they validate aspe
 
 - `isMinLength` or `isMaxLength` on arrays
 - `isMinSize` or `isMaxSize` on objects with a `size` property
-- `isMinEntries` or `isMaxEntries` on objects
+- `isMinProperties` or `isMaxProperties` on objects
 - any constraint that applies to the "shape" of a value rather than to its nested values
 
 These filters are evaluated separately from item-level filters and allow multiple issues to be reported when `{ errors: "all" }` is used.

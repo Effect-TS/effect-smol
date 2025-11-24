@@ -1217,34 +1217,6 @@ Expected a string including "c", got "ab"`
           `Expected a value with a length of at least 1, got ""`
         )
       })
-
-      it("isMinEntries", async () => {
-        const schema = Schema.Record(Schema.String, Schema.Finite).check(Schema.isMinEntries(1))
-        const asserts = new TestSchema.Asserts(schema)
-
-        const decodingAll = asserts.decoding({ parseOptions: { errors: "all" } })
-        await decodingAll.succeed({ a: 1, b: 2 })
-        await decodingAll.fail(
-          {},
-          `Expected an object with at least 1 entries, got {}`
-        )
-      })
-
-      it("isMaxEntries", async () => {
-        const schema = Schema.Record(Schema.String, Schema.Finite).check(Schema.isMaxEntries(2))
-        const asserts = new TestSchema.Asserts(schema)
-
-        const decodingAll = asserts.decoding({ parseOptions: { errors: "all" } })
-        await decodingAll.succeed({ a: 1, b: 2 })
-        await decodingAll.fail(
-          { a: 1, b: 2, c: 3 },
-          `Expected an object with at most 2 entries, got {"a":1,"b":2,"c":3}`
-        )
-        await decodingAll.fail(
-          { a: 1, b: 2, c: 3 },
-          `Expected an object with at most 2 entries, got {"a":1,"b":2,"c":3}`
-        )
-      })
     })
 
     describe("Number checks", () => {
@@ -1569,8 +1541,68 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
     })
 
     describe("Record checks", () => {
-      it("entries", async () => {
-        const schema = Schema.Record(Schema.String, Schema.Number).check(Schema.isEntriesLength(2))
+      it("isMinProperties", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Finite).check(Schema.isMinProperties(1))
+        const asserts = new TestSchema.Asserts(schema)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed({ a: 1, b: 2 })
+        await decoding.fail(
+          {},
+          `Expected an object with at least 1 properties, got {}`
+        )
+      })
+
+      it("isMaxProperties", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Finite).check(Schema.isMaxProperties(2))
+        const asserts = new TestSchema.Asserts(schema)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed({ a: 1, b: 2 })
+        await decoding.fail(
+          { a: 1, b: 2, c: 3 },
+          `Expected an object with at most 2 properties, got {"a":1,"b":2,"c":3}`
+        )
+        await decoding.fail(
+          { a: 1, b: 2, c: 3 },
+          `Expected an object with at most 2 properties, got {"a":1,"b":2,"c":3}`
+        )
+      })
+
+      it("isMinProperties with symbol keys", async () => {
+        const sym = Symbol("test")
+        const schema = Schema.Record(Schema.Union([Schema.String, Schema.Symbol]), Schema.Finite).check(
+          Schema.isMinProperties(2)
+        )
+        const asserts = new TestSchema.Asserts(schema)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed({ a: 1, [sym]: 2 })
+        await decoding.fail(
+          { [sym]: 1 },
+          `Expected an object with at least 2 properties, got {Symbol(test):1}`
+        )
+      })
+
+      it("isMaxProperties with symbol keys", async () => {
+        const sym1 = Symbol("test1")
+        const sym2 = Symbol("test2")
+        const sym3 = Symbol("test3")
+        const schema = Schema.Record(Schema.Union([Schema.String, Schema.Symbol]), Schema.Finite).check(
+          Schema.isMaxProperties(2)
+        )
+        const asserts = new TestSchema.Asserts(schema)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed({ [sym1]: 1, [sym2]: 2 })
+        await decoding.fail(
+          { [sym1]: 1, [sym2]: 2, [sym3]: 3 },
+          `Expected an object with at most 2 properties, got {Symbol(test1):1,Symbol(test2):2,Symbol(test3):3}`
+        )
+      })
+
+      it("isPropertiesLength", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Number).check(Schema.isPropertiesLength(2))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1578,11 +1610,32 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
         await decoding.succeed({ ["__proto__"]: 0, "": 0 })
         await decoding.fail(
           { a: 1 },
-          `Expected an object with exactly 2 entries, got {"a":1}`
+          `Expected an object with exactly 2 properties, got {"a":1}`
         )
         await decoding.fail(
           { a: 1, b: 2, c: 3 },
-          `Expected an object with exactly 2 entries, got {"a":1,"b":2,"c":3}`
+          `Expected an object with exactly 2 properties, got {"a":1,"b":2,"c":3}`
+        )
+      })
+
+      it("isPropertiesLength with symbol keys", async () => {
+        const sym1 = Symbol("test1")
+        const sym2 = Symbol("test2")
+        const schema = Schema.Record(Schema.Union([Schema.String, Schema.Symbol]), Schema.Number).check(
+          Schema.isPropertiesLength(2)
+        )
+        const asserts = new TestSchema.Asserts(schema)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed({ [sym1]: 1, [sym2]: 2 })
+        await decoding.succeed({ a: 1, [sym1]: 2 })
+        await decoding.fail(
+          { [sym1]: 1 },
+          `Expected an object with exactly 2 properties, got {Symbol(test1):1}`
+        )
+        await decoding.fail(
+          { [sym1]: 1, [sym2]: 2, a: 3 },
+          `Expected an object with exactly 2 properties, got {"a":3,Symbol(test1):1,Symbol(test2):2}`
         )
       })
     })
@@ -1610,8 +1663,8 @@ Expected a value with a length of at least 3, got ["a",""]
         )
       })
 
-      it("Record + isMaxEntries", async () => {
-        const schema = Schema.Record(Schema.String, Schema.Finite).check(Schema.isMaxEntries(2))
+      it("Record + isMaxProperties", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Finite).check(Schema.isMaxProperties(2))
         const asserts = new TestSchema.Asserts(schema)
 
         const decoding = asserts.decoding()
@@ -1624,7 +1677,7 @@ Expected a value with a length of at least 3, got ["a",""]
           { a: 1, b: NaN, c: 3 },
           `Expected a finite number, got NaN
   at ["b"]
-Expected an object with at most 2 entries, got {"a":1,"b":NaN,"c":3}`
+Expected an object with at most 2 properties, got {"a":1,"b":NaN,"c":3}`
         )
       })
 

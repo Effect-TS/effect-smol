@@ -4365,24 +4365,39 @@ export function isSize(size: number, annotations?: Annotations.Filter) {
 }
 
 /**
- * @category Entries checks
+ * Validates that an object contains at least the specified number of
+ * properties. This includes both string and symbol keys when counting
+ * properties.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `minProperties` constraint in JSON Schema.
+ *
+ * **fast-check**
+ *
+ * When generating test data with fast-check, this applies a `minLength`
+ * constraint to the array of entries that is generated before being converted
+ * to an object, ensuring the resulting object has at least the required number
+ * of properties.
+ *
+ * @category Object checks
  * @since 4.0.0
  */
-export function isMinEntries(minEntries: number, annotations?: Annotations.Filter) {
-  minEntries = Math.max(0, Math.floor(minEntries))
+export function isMinProperties(minProperties: number, annotations?: Annotations.Filter) {
+  minProperties = Math.max(0, Math.floor(minProperties))
   return makeFilter<object>(
-    (input) => Object.entries(input).length >= minEntries,
+    (input) => Reflect.ownKeys(input).length >= minProperties,
     Annotations.combine({
-      expected: `an object with at least ${minEntries} entries`,
-      jsonSchemaConstraint: () => ({ minProperties: minEntries }),
+      expected: `an object with at least ${minProperties} properties`,
+      jsonSchemaConstraint: () => ({ minProperties }),
       meta: {
-        _tag: "isMinEntries",
-        minEntries
+        _tag: "isMinProperties",
+        minProperties
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitraryConstraint: {
         array: {
-          minLength: minEntries
+          minLength: minProperties
         }
       }
     }, annotations)
@@ -4390,24 +4405,38 @@ export function isMinEntries(minEntries: number, annotations?: Annotations.Filte
 }
 
 /**
- * @category Entries checks
+ * Validates that an object contains at most the specified number of properties.
+ * This includes both string and symbol keys when counting properties.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `maxProperties` constraint in JSON Schema.
+ *
+ * **fast-check**
+ *
+ * When generating test data with fast-check, this applies a `maxLength`
+ * constraint to the array of entries that is generated before being converted
+ * to an object, ensuring the resulting object has at most the required number
+ * of properties.
+ *
+ * @category Object checks
  * @since 4.0.0
  */
-export function isMaxEntries(maxEntries: number, annotations?: Annotations.Filter) {
-  maxEntries = Math.max(0, Math.floor(maxEntries))
+export function isMaxProperties(maxProperties: number, annotations?: Annotations.Filter) {
+  maxProperties = Math.max(0, Math.floor(maxProperties))
   return makeFilter<object>(
-    (input) => Object.entries(input).length <= maxEntries,
+    (input) => Reflect.ownKeys(input).length <= maxProperties,
     Annotations.combine({
-      expected: `an object with at most ${maxEntries} entries`,
-      jsonSchemaConstraint: () => ({ maxProperties: maxEntries }),
+      expected: `an object with at most ${maxProperties} properties`,
+      jsonSchemaConstraint: () => ({ maxProperties }),
       meta: {
-        _tag: "isMaxEntries",
-        maxEntries
+        _tag: "isMaxProperties",
+        maxProperties
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitraryConstraint: {
         array: {
-          maxLength: maxEntries
+          maxLength: maxProperties
         }
       }
     }, annotations)
@@ -4415,18 +4444,33 @@ export function isMaxEntries(maxEntries: number, annotations?: Annotations.Filte
 }
 
 /**
- * @category Entries checks
+ * Validates that an object contains exactly the specified number of properties.
+ * This includes both string and symbol keys when counting properties.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to both `minProperties` and `maxProperties`
+ * constraints in JSON Schema, both set to the same value.
+ *
+ * **fast-check**
+ *
+ * When generating test data with fast-check, this applies both `minLength` and
+ * `maxLength` constraints to the array of entries that is generated before
+ * being converted to an object, ensuring the resulting object has exactly the
+ * required number of properties.
+ *
+ * @category Object checks
  * @since 4.0.0
  */
-export function isEntriesLength(length: number, annotations?: Annotations.Filter) {
+export function isPropertiesLength(length: number, annotations?: Annotations.Filter) {
   length = Math.max(0, Math.floor(length))
   return makeFilter<object>(
-    (input) => Object.entries(input).length === length,
+    (input) => Reflect.ownKeys(input).length === length,
     Annotations.combine({
-      expected: `an object with exactly ${length} entries`,
+      expected: `an object with exactly ${length} properties`,
       jsonSchemaConstraint: () => ({ minProperties: length, maxProperties: length }),
       meta: {
-        _tag: "isEntriesLength",
+        _tag: "isPropertiesLength",
         length
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,

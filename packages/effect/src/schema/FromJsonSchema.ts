@@ -107,10 +107,10 @@ function getChecks(schema: Schema.JsonSchema.Fragment): Array<string> {
   }
   // Object checks
   if (typeof schema.minProperties === "number") {
-    out.push(`Schema.isMinEntries(${schema.minProperties})`)
+    out.push(`Schema.isMinProperties(${schema.minProperties})`)
   }
   if (typeof schema.maxProperties === "number") {
-    out.push(`Schema.isMaxEntries(${schema.maxProperties})`)
+    out.push(`Schema.isMaxProperties(${schema.maxProperties})`)
   }
   if (Array.isArray(schema.allOf)) {
     for (const member of schema.allOf) {
