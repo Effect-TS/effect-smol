@@ -21,6 +21,9 @@ import { isObject } from "../data/Predicate.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
+type Target = Annotations.JsonSchema.Target
+type Fragment = Schema.JsonSchema.Fragment
+
 /**
  * @since 4.0.0
  */
@@ -33,11 +36,11 @@ export type Output = {
  * @since 4.0.0
  */
 export function make(schema: unknown, options?: {
-  readonly target?: Annotations.JsonSchema.Target | undefined
+  readonly target?: Target | undefined
   readonly seen?: ReadonlySet<string> | undefined
   readonly getIdentifier?: ((identifier: string) => string) | undefined
 }): Output {
-  return recur(schema, {
+  return build(schema, {
     target: options?.target ?? "draft-07",
     seen: options?.seen ?? new Set(),
     getIdentifier: options?.getIdentifier ?? getIdentifier
@@ -49,144 +52,105 @@ function getIdentifier(identifier: string): string {
 }
 
 interface GoOptions {
-  readonly target: Annotations.JsonSchema.Target
+  readonly target: Target
   readonly seen: ReadonlySet<string>
   readonly getIdentifier: (identifier: string) => string
 }
 
-function recur(schema: unknown, options: GoOptions): Output {
-  if (typeof schema === "boolean") {
-    return schema ? Unknown : Never
-  }
-  if (isObject(schema)) {
-    return handleAnnotationsAndChecks(schema, options)
-  }
-  return Unknown
+function build(schema: unknown, options: GoOptions): Output {
+  if (schema === false) return Never
+  if (schema === true) return Unknown
+  if (!isObject(schema)) return Unknown
+
+  let out = base(schema, options)
+  out = applyAnnotations(out, schema)
+  out = applyChecks(out, schema, options.target)
+  return out
 }
 
-function getAnnotations(schema: Schema.JsonSchema.Fragment): ReadonlyArray<string> {
-  const annotations: Array<string> = []
-  if (typeof schema.title === "string") {
-    annotations.push(`title: "${schema.title}"`)
-  }
-  if (typeof schema.description === "string") {
-    annotations.push(`description: "${schema.description}"`)
-  }
-  if (schema.default !== undefined) {
-    annotations.push(`default: ${format(schema.default)}`)
-  }
-  if (Array.isArray(schema.examples)) {
-    annotations.push(`examples: [${schema.examples.map((example) => format(example)).join(", ")}]`)
-  }
-  return annotations
+function applyAnnotations(out: Output, schema: Fragment): Output {
+  const as = collectAnnotations(schema)
+  if (as.length === 0) return out
+  return { ...out, code: `${out.code}.annotate({${as.join(",")}})` }
 }
 
-function isTupleWithMoreElementsThan(
-  schema: Schema.JsonSchema.Fragment,
-  minItems: number,
-  target: Annotations.JsonSchema.Target
-): boolean {
-  if (schema.type === "array") {
-    return getTupleElements(schema, target).length > minItems
-  }
-  return false
+function collectAnnotations(schema: Fragment): ReadonlyArray<string> {
+  const as: Array<string> = []
+  if (typeof schema.title === "string") as.push(`title:"${schema.title}"`)
+  if (typeof schema.description === "string") as.push(`description:"${schema.description}"`)
+  if (schema.default !== undefined) as.push(`default:${format(schema.default)}`)
+  if (Array.isArray(schema.examples)) as.push(`examples:[${schema.examples.map((e) => format(e)).join(",")}]`)
+  return as
 }
 
-function getChecks(schema: Schema.JsonSchema.Fragment, target: Annotations.JsonSchema.Target): Array<string> {
-  const out: Array<string> = []
+function applyChecks(out: Output, schema: Fragment, target: Target): Output {
+  const cs = collectChecks(schema, target)
+  if (cs.length === 0) return out
+  return { ...out, code: `${out.code}.check(${cs.join(",")})` }
+}
+
+function collectChecks(schema: Fragment, target: Target): Array<string> {
+  const cs: Array<string> = []
+
   // String checks
-  if (typeof schema.minLength === "number") {
-    out.push(`Schema.isMinLength(${schema.minLength})`)
-  }
-  if (typeof schema.maxLength === "number") {
-    out.push(`Schema.isMaxLength(${schema.maxLength})`)
-  }
-  if (typeof schema.pattern === "string") {
-    // Escape forward slashes to prevent them from terminating the regex literal delimiter
-    out.push(`Schema.isPattern(/${schema.pattern.replace(/\//g, "\\/")}/)`)
-  }
+  if (typeof schema.minLength === "number") cs.push(`Schema.isMinLength(${schema.minLength})`)
+  if (typeof schema.maxLength === "number") cs.push(`Schema.isMaxLength(${schema.maxLength})`)
+  // Escape forward slashes to prevent them from terminating the regex literal delimiter
+  if (typeof schema.pattern === "string") cs.push(`Schema.isPattern(/${schema.pattern.replace(/\//g, "\\/")}/)`)
+
   // Number checks
-  if (typeof schema.minimum === "number") {
-    out.push(`Schema.isGreaterThanOrEqualTo(${schema.minimum})`)
-  }
-  if (typeof schema.maximum === "number") {
-    out.push(`Schema.isLessThanOrEqualTo(${schema.maximum})`)
-  }
-  if (typeof schema.exclusiveMinimum === "number") {
-    out.push(`Schema.isGreaterThan(${schema.exclusiveMinimum})`)
-  }
-  if (typeof schema.exclusiveMaximum === "number") {
-    out.push(`Schema.isLessThan(${schema.exclusiveMaximum})`)
-  }
-  if (typeof schema.multipleOf === "number") {
-    out.push(`Schema.isMultipleOf(${schema.multipleOf})`)
-  }
+  if (typeof schema.minimum === "number") cs.push(`Schema.isGreaterThanOrEqualTo(${schema.minimum})`)
+  if (typeof schema.maximum === "number") cs.push(`Schema.isLessThanOrEqualTo(${schema.maximum})`)
+  if (typeof schema.exclusiveMinimum === "number") cs.push(`Schema.isGreaterThan(${schema.exclusiveMinimum})`)
+  if (typeof schema.exclusiveMaximum === "number") cs.push(`Schema.isLessThan(${schema.exclusiveMaximum})`)
+  if (typeof schema.multipleOf === "number") cs.push(`Schema.isMultipleOf(${schema.multipleOf})`)
+
   // Array checks
-  if (typeof schema.minItems === "number") {
+  if (typeof schema.minItems === "number" && !isTupleWithMoreElementsThan(schema, schema.minItems, target)) {
     // if `schema` is a tuple with more elements that `schema.minItems`
     // then this is already handled by element optionality
-    if (!isTupleWithMoreElementsThan(schema, schema.minItems, target)) {
-      out.push(`Schema.isMinLength(${schema.minItems})`)
-    }
+    cs.push(`Schema.isMinLength(${schema.minItems})`)
   }
-  if (typeof schema.maxItems === "number") {
-    out.push(`Schema.isMaxLength(${schema.maxItems})`)
-  }
-  if (schema.uniqueItems === true) {
-    out.push(`Schema.isUnique(Equal.equivalence())`)
-  }
+  if (typeof schema.maxItems === "number") cs.push(`Schema.isMaxLength(${schema.maxItems})`)
+  if (schema.uniqueItems === true) cs.push(`Schema.isUnique(Equal.equivalence())`)
+
   // Object checks
-  if (typeof schema.minProperties === "number") {
-    out.push(`Schema.isMinProperties(${schema.minProperties})`)
-  }
-  if (typeof schema.maxProperties === "number") {
-    out.push(`Schema.isMaxProperties(${schema.maxProperties})`)
-  }
+  if (typeof schema.minProperties === "number") cs.push(`Schema.isMinProperties(${schema.minProperties})`)
+  if (typeof schema.maxProperties === "number") cs.push(`Schema.isMaxProperties(${schema.maxProperties})`)
+
+  // `allOf` checks
   if (Array.isArray(schema.allOf)) {
     for (const member of schema.allOf) {
       if (isObject(member)) {
-        const checks = getChecks(member, target)
+        const checks = collectChecks(member, target)
         if (checks.length > 0) {
-          const annotations = getAnnotations(member)
+          const annotations = collectAnnotations(member)
           if (annotations.length > 0) {
             checks[checks.length - 1] = checks[checks.length - 1].substring(0, checks[checks.length - 1].length - 1) +
-              `, { ${annotations.join(", ")} })`
+              `, { ${annotations.join(",")} })`
           }
-          checks.forEach((check) => out.push(check))
+          checks.forEach((check) => cs.push(check))
         }
       }
     }
   }
-  return out
+  return cs
 }
 
-function appendCode(out: Output, code: string): Output {
-  return {
-    ...out,
-    code: out.code + code
+function isTupleWithMoreElementsThan(schema: Fragment, minItems: number, target: Target): boolean {
+  if (schema.type === "array") {
+    return collectElements(schema, target).length > minItems
   }
+  return false
 }
 
-function handleAnnotationsAndChecks(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output {
-  let out = base(schema, options)
-  const check = getChecks(schema, options.target)
-  const annotations = getAnnotations(schema)
-  if (annotations.length > 0) {
-    out = appendCode(out, `.annotate({ ${annotations.join(", ")} })`)
-  }
-  if (check.length > 0) {
-    out = appendCode(out, `.check(${check.join(", ")})`)
-  }
-  return out
-}
-
-interface HasType extends Schema.JsonSchema.Fragment {
+interface HasType extends Fragment {
   readonly type: Schema.JsonSchema.Type
 }
 
 const types = ["null", "string", "number", "integer", "boolean", "object", "array"]
 
-function hasType(schema: Schema.JsonSchema.Fragment): schema is HasType {
+function hasType(schema: Fragment): schema is HasType {
   return typeof schema.type === "string" && types.includes(schema.type)
 }
 
@@ -203,68 +167,51 @@ function handleHasType(schema: HasType, options: GoOptions): Output {
     case "boolean":
       return typeMap[schema.type]
     case "object": {
-      if (Object.keys(schema).length === 1) {
-        return UnknownRecord
-      }
-      if (isObject(schema.properties)) {
-        const required = Array.isArray(schema.required) ? schema.required : []
-        return makeStruct(
-          Object.entries(schema.properties).map(([key, value]) => {
-            return { key, value: recur(value, options), isRequired: required.includes(key) }
-          })
-        )
-      }
-      // TODO: handle StructAndRest
-      return UnknownRecord
+      const properties = collectProperties(schema, options)
+      const indexSignatures = collectIndexSignatures(schema, options)
+      return object(properties, indexSignatures)
     }
     case "array": {
       const minItems = typeof schema.minItems === "number" ? schema.minItems : Infinity
-      const elements = getTupleElements(schema, options.target)
-      switch (options.target) {
-        case "draft-07": {
-          const rest = isObject(schema.items)
-            ? schema.items
-            : isObject(schema.additionalItems)
-            ? schema.additionalItems
-            : undefined
-          return array(
-            elements.map((item, index) => ({ value: recur(item, options), isRequired: index < minItems })),
-            rest !== undefined ? recur(rest, options) : undefined
-          )
-        }
-        case "2020-12":
-        case "oas3.1": {
-          const rest = isObject(schema.items)
-            ? schema.items
-            : undefined
-          return array(
-            elements.map((item, index) => ({ value: recur(item, options), isRequired: index < minItems })),
-            rest !== undefined ? recur(rest, options) : undefined
-          )
-        }
-      }
+      const elements = collectElements(schema, options.target).map((item, index) => ({
+        value: build(item, options),
+        isRequired: index < minItems
+      }))
+      const rest = collectItem(schema, options.target)
+      return array(elements, rest !== undefined ? build(rest, options) : undefined)
     }
   }
 }
 
-function getTupleElements(
-  schema: Schema.JsonSchema.Fragment,
-  target: Annotations.JsonSchema.Target
-): ReadonlyArray<Schema.JsonSchema.Fragment> {
+function collectElements(schema: Fragment, target: Target): ReadonlyArray<Fragment> {
   switch (target) {
-    case "draft-07": {
+    case "draft-07":
       return Array.isArray(schema.items) ? schema.items : []
-    }
     case "2020-12":
-    case "oas3.1": {
+    case "oas3.1":
       return Array.isArray(schema.prefixItems) ? schema.prefixItems : []
-    }
   }
 }
 
-function base(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output {
+function collectItem(schema: Fragment, target: Target): Fragment | boolean | undefined {
+  switch (target) {
+    case "draft-07":
+      return isObject(schema.items)
+        ? schema.items
+        : isObject(schema.additionalItems) || schema.additionalItems === true
+        ? schema.additionalItems
+        : undefined
+    case "2020-12":
+    case "oas3.1":
+      return isObject(schema.items)
+        ? schema.items
+        : undefined
+  }
+}
+
+function base(schema: Fragment, options: GoOptions): Output {
   if (Array.isArray(schema.type)) {
-    return makeUnion(schema.type.map(handleType), "anyOf")
+    return union(schema.type.map(handleType), "anyOf")
   }
 
   if (schema.const !== undefined) {
@@ -275,7 +222,7 @@ function base(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output {
   }
 
   if (Array.isArray(schema.enum)) {
-    const type = schema.enum.map((e) => format(e)).join(" | ")
+    const type = schema.enum.map((e) => format(e)).join("|")
     switch (schema.enum.length) {
       case 0:
         return Never
@@ -286,7 +233,7 @@ function base(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output {
         }
       default:
         return {
-          code: `Schema.Literals([${schema.enum.map((e) => format(e)).join(", ")}])`,
+          code: `Schema.Literals([${schema.enum.map((e) => format(e)).join(",")}])`,
           type
         }
     }
@@ -295,13 +242,13 @@ function base(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output {
   if (Array.isArray(schema.anyOf)) {
     if (schema.anyOf.length === 0) return Never
     if (isEmptyStruct(schema.anyOf)) return EmptyStruct
-    return makeUnion(schema.anyOf.map((schema) => recur(schema, options)), "anyOf")
+    return union(schema.anyOf.map((schema) => build(schema, options)), "anyOf")
   }
 
   if (Array.isArray(schema.oneOf)) {
     if (schema.oneOf.length === 0) return Never
     if (isEmptyStruct(schema.oneOf)) return EmptyStruct
-    return makeUnion(schema.oneOf.map((schema) => recur(schema, options)), "oneOf")
+    return union(schema.oneOf.map((schema) => build(schema, options)), "oneOf")
   }
 
   // TODO: and "allOf"
@@ -318,7 +265,7 @@ function base(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output {
       const seen = options.seen.has(identifier)
       if (seen) {
         return {
-          code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
+          code: `Schema.suspend(():Schema.Codec<${identifier}> => ${identifier})`,
           type: identifier
         }
       }
@@ -337,23 +284,6 @@ function base(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output {
   return Unknown
 }
 
-function makeStruct(
-  properties: ReadonlyArray<{
-    readonly key: string
-    readonly value: Output
-    readonly isRequired: boolean
-  }>
-): Output {
-  return {
-    code: `Schema.Struct({ ${
-      properties.map((p) => `${p.key}: ${p.isRequired ? p.value.code : `Schema.optionalKey(${p.value.code})`}`).join(
-        ", "
-      )
-    } })`,
-    type: `{ ${properties.map((p) => `readonly ${p.key}${p.isRequired ? "" : "?"}: ${p.value.type}`).join(", ")} }`
-  }
-}
-
 function optionalKeyRuntime(isRequired: boolean, code: string): string {
   return isRequired ? code : `Schema.optionalKey(${code})`
 }
@@ -362,53 +292,84 @@ function optionalKeyType(isRequired: boolean, type: string): string {
   return isRequired ? type : `${type}?`
 }
 
-function object(
-  properties: ReadonlyArray<{
-    readonly key: string
-    readonly value: Output
-    readonly isRequired: boolean
-  }>,
-  indexSignatures: ReadonlyArray<{ readonly key: Output; readonly value: Output }>
-): Output {
-  if (indexSignatures.length === 0) {
+type Property = {
+  readonly key: string
+  readonly value: Output
+  readonly isRequired: boolean
+}
+
+function collectProperties(schema: Fragment, options: GoOptions): Array<Property> {
+  const raw = isObject(schema.properties) ? schema.properties : {}
+  const required = Array.isArray(schema.required) ? schema.required : []
+  return Object.entries(raw).map(([key, v]) => {
+    const value = build(v, options)
     return {
-      code: `Schema.Struct({ ${
-        properties.map((p) => `${p.key}: ${optionalKeyRuntime(p.isRequired, p.value.code)}`).join(
-          ", "
-        )
-      } })`,
-      type: `{ ${
-        properties.map((p) => `readonly ${optionalKeyType(p.isRequired, p.key)}: ${p.value.type}`).join(", ")
-      } }`
+      key,
+      value,
+      isRequired: required.includes(key)
     }
-  } else if (properties.length === 0) {
-    if (indexSignatures.length === 1) {
-      const { key, value } = indexSignatures[0]
-      return {
-        code: `Schema.Record(${key.code}, ${value.code})`,
-        type: `Record<${key.type}, ${value.type}>`
-      }
-    } else {
-      throw new Error("Not implemented: ObjectAndRest")
-    }
+  })
+}
+
+type IndexSignature = {
+  readonly key: Output
+  readonly value: Output
+}
+
+function collectIndexSignatures(schema: Fragment, options: GoOptions): Array<IndexSignature> {
+  if (schema.additionalProperties === true) return [{ key: String, value: Unknown }]
+  if (isObject(schema.additionalProperties)) {
+    return [{ key: String, value: build(schema.additionalProperties, options) }]
+  }
+  if (!schema.properties) return [{ key: String, value: Unknown }]
+  return []
+}
+
+function object(ps: ReadonlyArray<Property>, is: ReadonlyArray<IndexSignature>): Output {
+  if (is.length === 0) {
+    return struct(ps)
+  } else if (ps.length === 0 && is.length === 1) {
+    return record(is[0].key, is[0].value)
   } else {
-    throw new Error("Not implemented: ObjectAndRest")
+    const s = struct(ps)
+    const i = is.map((i) => record(i.key, i.value))
+    return {
+      code: `Schema.StructWithRest(${s.code},[${i.map((i) => i.code).join(",")}])`,
+      type: `{${removeParens(s.type)},${i.map((i) => removeParens(i.type)).join(",")}}`
+    }
   }
 }
 
-function array(
-  elements: ReadonlyArray<{
-    readonly value: Output
-    readonly isRequired: boolean
-  }>,
-  item: Output | undefined
-): Output {
+function removeParens(s: string): string {
+  return s.substring(1, s.length - 1)
+}
+
+function struct(ps: ReadonlyArray<Property>): Output {
+  return {
+    code: `Schema.Struct({${ps.map((p) => `${p.key}:${optionalKeyRuntime(p.isRequired, p.value.code)}`).join(",")}})`,
+    type: `{${ps.map((p) => `readonly ${optionalKeyType(p.isRequired, p.key)}:${p.value.type}`).join(",")}}`
+  }
+}
+
+function record(key: Output, value: Output): Output {
+  return {
+    code: `Schema.Record(${key.code},${value.code})`,
+    type: `{readonly[x:${key.type}]:${value.type}}`
+  }
+}
+
+type Element = {
+  readonly value: Output
+  readonly isRequired: boolean
+}
+
+function array(es: ReadonlyArray<Element>, item: Output | undefined): Output {
   if (item === undefined) {
     return {
-      code: `Schema.Tuple([${elements.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(", ")}])`,
-      type: `readonly [${elements.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(", ")}]`
+      code: `Schema.Tuple([${es.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(",")}])`,
+      type: `readonly[${es.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(",")}]`
     }
-  } else if (elements.length === 0) {
+  } else if (es.length === 0) {
     return {
       code: `Schema.Array(${item.code})`,
       type: `ReadonlyArray<${item.type}>`
@@ -416,19 +377,17 @@ function array(
   } else {
     return {
       code: `Schema.TupleWithRest(Schema.Tuple([${
-        elements.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(", ")
-      }]), [${item.code}])`,
-      type: `readonly [${
-        elements.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(", ")
-      }, ...Array<${item.type}>]`
+        es.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(",")
+      }]),[${item.code}])`,
+      type: `readonly[${es.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(",")},...Array<${item.type}>]`
     }
   }
 }
 
-function makeUnion(members: ReadonlyArray<Output>, mode: "anyOf" | "oneOf"): Output {
+function union(members: ReadonlyArray<Output>, mode: "anyOf" | "oneOf"): Output {
   return {
-    code: `Schema.Union([${members.map((m) => m.code).join(", ")}]${mode === "oneOf" ? `, { mode: "oneOf" }` : ""})`,
-    type: members.map((m) => m.type).join(" | ")
+    code: `Schema.Union([${members.map((m) => m.code).join(",")}]${mode === "oneOf" ? `,{mode:"oneOf"}` : ""})`,
+    type: members.map((m) => m.type).join("|")
   }
 }
 
@@ -453,8 +412,8 @@ const typeMap = {
   "array": UnknownArray
 }
 
-function stripAnnotations(schema: Schema.JsonSchema.Fragment): Schema.JsonSchema.Fragment {
-  const out: Schema.JsonSchema.Fragment = { ...schema }
+function stripAnnotations(schema: Fragment): Fragment {
+  const out: Fragment = { ...schema }
   delete out.title
   delete out.description
   delete out.default
@@ -462,15 +421,15 @@ function stripAnnotations(schema: Schema.JsonSchema.Fragment): Schema.JsonSchema
   return out
 }
 
-function isUnknownRecord(schema: Schema.JsonSchema.Fragment): boolean {
+function isUnknownRecord(schema: Fragment): boolean {
   return schema.type === "object" && Object.keys(stripAnnotations(schema)).length === 1
 }
 
-function isUnknownArray(schema: Schema.JsonSchema.Fragment): boolean {
+function isUnknownArray(schema: Fragment): boolean {
   return schema.type === "array" && Object.keys(stripAnnotations(schema)).length === 1
 }
 
-function isEmptyStruct(schema: ReadonlyArray<Schema.JsonSchema.Fragment>): boolean {
+function isEmptyStruct(schema: ReadonlyArray<Fragment>): boolean {
   return schema.length === 2 && isUnknownRecord(schema[0]) && isUnknownArray(schema[1])
 }
 
