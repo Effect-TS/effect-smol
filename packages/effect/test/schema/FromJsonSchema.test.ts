@@ -3,12 +3,27 @@ import { FromJsonSchema, Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
 
-function assertRoundtrip(schema: Schema.Top) {
-  const document = Schema.makeJsonSchemaDraft2020_12(schema)
-  const output = FromJsonSchema.make(document.schema)
+function getDocumentByTarget(target: Annotations.JsonSchema.Target, schema: Schema.Top) {
+  switch (target) {
+    case "draft-07":
+      return Schema.makeJsonSchemaDraft07(schema)
+    case "2020-12":
+    case "oas3.1":
+      return Schema.makeJsonSchemaDraft2020_12(schema)
+  }
+}
+
+function assertRoundtrip(input: {
+  readonly schema: Schema.Top
+  readonly seen?: Set<string> | undefined
+  readonly target?: Annotations.JsonSchema.Target | undefined
+}) {
+  const target = input.target ?? "draft-07"
+  const document = getDocumentByTarget(target, input.schema)
+  const output = FromJsonSchema.make(document.schema, { target, seen: input.seen })
   const fn = new Function("Schema", `return ${output.code}`)
   const generated = fn(Schema)
-  const codedocument = Schema.makeJsonSchemaDraft2020_12(generated)
+  const codedocument = getDocumentByTarget(target, generated)
   deepStrictEqual(codedocument, document)
   deepStrictEqual(FromJsonSchema.make(codedocument.schema), output)
 }
@@ -127,17 +142,94 @@ describe("FromJsonSchema", () => {
               "type": "array",
               "items": false
             }
-          }, { code: "Schema.Tuple([])", type: "readonly []" })
+          }, {
+            code: "Schema.Tuple([])",
+            type: "readonly []"
+          })
         })
 
-        it("items", () => {
+        it("items: schema", () => {
           assertOutput({
             target: "draft-07",
             schema: {
               "type": "array",
               "items": { "type": "string" }
             }
-          }, { code: "Schema.Array(Schema.String)", type: "ReadonlyArray<string>" })
+          }, {
+            code: "Schema.Array(Schema.String)",
+            type: "ReadonlyArray<string>"
+          })
+        })
+
+        it("items: empty array", () => {
+          assertOutput({
+            target: "draft-07",
+            schema: {
+              "type": "array",
+              "items": []
+            }
+          }, {
+            code: "Schema.Tuple([])",
+            type: "readonly []"
+          })
+        })
+
+        it("items: non empty array", () => {
+          assertOutput({
+            target: "draft-07",
+            schema: {
+              "type": "array",
+              "items": [{ "type": "string" }, { "type": "number" }]
+            }
+          }, {
+            code: "Schema.Tuple([Schema.String, Schema.Number])",
+            type: "readonly [string, number]"
+          })
+        })
+
+        it("items & additionalItems: false", () => {
+          assertOutput({
+            target: "draft-07",
+            schema: {
+              "type": "array",
+              "items": [{ "type": "string" }, { "type": "number" }],
+              "additionalItems": false
+            }
+          }, {
+            code: "Schema.Tuple([Schema.String, Schema.Number])",
+            type: "readonly [string, number]"
+          })
+        })
+
+        it("items & additionalItems: schema", () => {
+          assertOutput({
+            target: "draft-07",
+            schema: {
+              "type": "array",
+              "items": [{ "type": "string" }, { "type": "number" }],
+              "additionalItems": { "type": "boolean" }
+            }
+          }, {
+            code: "Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.Boolean])",
+            type: "readonly [string, number, ...Array<boolean>]"
+          })
+        })
+
+        it("optional items", () => {
+          assertOutput({
+            target: "draft-07",
+            schema: {
+              "type": "array",
+              "minItems": 0,
+              "items": [
+                { "type": "string" }
+              ],
+              "additionalItems": false
+            }
+          }, {
+            code: "Schema.Tuple([Schema.optionalKey(Schema.String)])",
+            type: "readonly [string?]"
+          })
         })
       })
     })
@@ -487,125 +579,161 @@ const schema = Operation;
 
   describe("roundtrips", () => {
     it("Never", () => {
-      assertRoundtrip(Schema.Never)
+      assertRoundtrip({ schema: Schema.Never })
     })
 
     it("Unknown", () => {
-      assertRoundtrip(Schema.Unknown)
+      assertRoundtrip({ schema: Schema.Unknown })
     })
 
     it("Null", () => {
-      assertRoundtrip(Schema.Null)
+      assertRoundtrip({ schema: Schema.Null })
     })
 
     describe("String", () => {
       it("basic", () => {
-        assertRoundtrip(Schema.String)
+        assertRoundtrip({ schema: Schema.String })
       })
 
       it("with annotations", () => {
-        assertRoundtrip(Schema.String.annotate({ title: "title", description: "description" }))
+        assertRoundtrip({ schema: Schema.String.annotate({ title: "title", description: "description" }) })
       })
 
       it("with check", () => {
-        assertRoundtrip(Schema.String.check(Schema.isMinLength(1)))
+        assertRoundtrip({ schema: Schema.String.check(Schema.isMinLength(1)) })
       })
 
       it("with check and annotations", () => {
-        assertRoundtrip(Schema.String.annotate({ description: "description" }).check(Schema.isMinLength(1)))
-        assertRoundtrip(Schema.String.check(Schema.isMinLength(1)).annotate({ description: "description" }))
-        assertRoundtrip(Schema.String.check(Schema.isMinLength(1, { description: "description" })))
+        assertRoundtrip({ schema: Schema.String.annotate({ description: "description" }).check(Schema.isMinLength(1)) })
+        assertRoundtrip({ schema: Schema.String.check(Schema.isMinLength(1)).annotate({ description: "description" }) })
+        assertRoundtrip({ schema: Schema.String.check(Schema.isMinLength(1, { description: "description" })) })
       })
 
       it("with checks", () => {
-        assertRoundtrip(Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10)))
+        assertRoundtrip({ schema: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10)) })
       })
 
       it("with checks and annotations", () => {
         assertRoundtrip(
-          Schema.String.annotate({ description: "description" }).check(Schema.isMinLength(1), Schema.isMaxLength(10))
+          {
+            schema: Schema.String.annotate({ description: "description" }).check(
+              Schema.isMinLength(1),
+              Schema.isMaxLength(10)
+            )
+          }
         )
         assertRoundtrip(
-          Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10)).annotate({ description: "description" })
+          {
+            schema: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10)).annotate({
+              description: "description"
+            })
+          }
         )
         assertRoundtrip(
-          Schema.String.check(Schema.isMinLength(1, { description: "description" }), Schema.isMaxLength(10))
+          { schema: Schema.String.check(Schema.isMinLength(1, { description: "description" }), Schema.isMaxLength(10)) }
         )
         assertRoundtrip(
-          Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10, { description: "description" }))
+          { schema: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10, { description: "description" })) }
         )
         assertRoundtrip(
-          Schema.String.annotate({ description: "description1" }).check(
-            Schema.isMinLength(1),
-            Schema.isMaxLength(10, { description: "description2" })
-          )
+          {
+            schema: Schema.String.annotate({ description: "description1" }).check(
+              Schema.isMinLength(1),
+              Schema.isMaxLength(10, { description: "description2" })
+            )
+          }
         )
         assertRoundtrip(
-          Schema.String.check(
-            Schema.isMinLength(1, { description: "description1" }),
-            Schema.isMaxLength(10, { description: "description2" })
-          )
+          {
+            schema: Schema.String.check(
+              Schema.isMinLength(1, { description: "description1" }),
+              Schema.isMaxLength(10, { description: "description2" })
+            )
+          }
         )
       })
     })
 
     it("Number", () => {
-      assertRoundtrip(Schema.Number)
+      assertRoundtrip({ schema: Schema.Number })
     })
 
     it("Boolean", () => {
-      assertRoundtrip(Schema.Boolean)
+      assertRoundtrip({ schema: Schema.Boolean })
     })
 
     it("Int", () => {
-      assertRoundtrip(Schema.Int)
+      assertRoundtrip({ schema: Schema.Int })
     })
 
     describe("Struct", () => {
       it("empty", () => {
-        assertRoundtrip(Schema.Struct({}))
+        assertRoundtrip({ schema: Schema.Struct({}) })
       })
 
       it("required field", () => {
-        assertRoundtrip(Schema.Struct({
-          a: Schema.String
-        }))
+        assertRoundtrip({
+          schema: Schema.Struct({
+            a: Schema.String
+          })
+        })
       })
 
       it("optionalKey field", () => {
-        assertRoundtrip(Schema.Struct({
-          a: Schema.optionalKey(Schema.String)
-        }))
+        assertRoundtrip({
+          schema: Schema.Struct({
+            a: Schema.optionalKey(Schema.String)
+          })
+        })
       })
 
       it("optional field", () => {
-        assertRoundtrip(Schema.Struct({
-          a: Schema.optional(Schema.String)
-        }))
+        assertRoundtrip({
+          schema: Schema.Struct({
+            a: Schema.optional(Schema.String)
+          })
+        })
       })
     })
 
+    it.todo("Record", () => {
+      assertRoundtrip({ schema: Schema.Record(Schema.String, Schema.String) })
+    })
+
     describe("Tuple", () => {
-      it("empty", () => {
-        assertRoundtrip(Schema.Tuple([]))
-      })
+      describe("target: draft-07", () => {
+        it("empty", () => {
+          assertRoundtrip({ schema: Schema.Tuple([]) })
+        })
 
-      it.todo("required element", () => {
-        assertRoundtrip(Schema.Tuple([Schema.String]))
-      })
+        it("required element", () => {
+          assertRoundtrip({ schema: Schema.Tuple([Schema.String]) })
+        })
 
-      it.todo("optionalKey element", () => {
-        assertRoundtrip(Schema.Tuple([Schema.optionalKey(Schema.String)]))
+        it("optionalKey element", () => {
+          assertRoundtrip({ schema: Schema.Tuple([Schema.optionalKey(Schema.String)]) })
+        })
+
+        it("elements & rest", () => {
+          assertRoundtrip({
+            schema: Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.Boolean])
+          })
+        })
       })
+    })
+
+    it("Array", () => {
+      assertRoundtrip({ schema: Schema.Array(Schema.String) })
+      assertRoundtrip({ schema: Schema.Array(Schema.String).check(Schema.isMinLength(1)) })
     })
 
     describe("Union", () => {
       it("empty", () => {
-        assertRoundtrip(Schema.Union([]))
+        assertRoundtrip({ schema: Schema.Union([]) })
       })
 
       it("String | Number", () => {
-        assertRoundtrip(Schema.Union([Schema.String, Schema.Number]))
+        assertRoundtrip({ schema: Schema.Union([Schema.String, Schema.Number]) })
       })
     })
   })

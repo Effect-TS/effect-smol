@@ -34,7 +34,7 @@ export type Output = {
  */
 export function make(schema: unknown, options?: {
   readonly target?: Annotations.JsonSchema.Target | undefined
-  readonly seen?: Set<string> | undefined
+  readonly seen?: ReadonlySet<string> | undefined
   readonly getIdentifier?: ((identifier: string) => string) | undefined
 }): Output {
   return recur(schema, {
@@ -50,7 +50,7 @@ function getIdentifier(identifier: string): string {
 
 interface GoOptions {
   readonly target: Annotations.JsonSchema.Target
-  readonly seen: Set<string>
+  readonly seen: ReadonlySet<string>
   readonly getIdentifier: (identifier: string) => string
 }
 
@@ -81,7 +81,18 @@ function getAnnotations(schema: Schema.JsonSchema.Fragment): ReadonlyArray<strin
   return annotations
 }
 
-function getChecks(schema: Schema.JsonSchema.Fragment): Array<string> {
+function isTupleWithMoreElementsThan(
+  schema: Schema.JsonSchema.Fragment,
+  minItems: number,
+  target: Annotations.JsonSchema.Target
+): boolean {
+  if (schema.type === "array") {
+    return getTupleElements(schema, target).length > minItems
+  }
+  return false
+}
+
+function getChecks(schema: Schema.JsonSchema.Fragment, target: Annotations.JsonSchema.Target): Array<string> {
   const out: Array<string> = []
   // String checks
   if (typeof schema.minLength === "number") {
@@ -112,7 +123,11 @@ function getChecks(schema: Schema.JsonSchema.Fragment): Array<string> {
   }
   // Array checks
   if (typeof schema.minItems === "number") {
-    out.push(`Schema.isMinLength(${schema.minItems})`)
+    // if `schema` is a tuple with more elements that `schema.minItems`
+    // then this is already handled by element optionality
+    if (!isTupleWithMoreElementsThan(schema, schema.minItems, target)) {
+      out.push(`Schema.isMinLength(${schema.minItems})`)
+    }
   }
   if (typeof schema.maxItems === "number") {
     out.push(`Schema.isMaxLength(${schema.maxItems})`)
@@ -130,7 +145,7 @@ function getChecks(schema: Schema.JsonSchema.Fragment): Array<string> {
   if (Array.isArray(schema.allOf)) {
     for (const member of schema.allOf) {
       if (isObject(member)) {
-        const checks = getChecks(member)
+        const checks = getChecks(member, target)
         if (checks.length > 0) {
           const annotations = getAnnotations(member)
           if (annotations.length > 0) {
@@ -153,8 +168,8 @@ function appendCode(out: Output, code: string): Output {
 }
 
 function handleAnnotationsAndChecks(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output {
-  let out = handle(schema, options)
-  const check = getChecks(schema)
+  let out = base(schema, options)
+  const check = getChecks(schema, options.target)
   const annotations = getAnnotations(schema)
   if (annotations.length > 0) {
     out = appendCode(out, `.annotate({ ${annotations.join(", ")} })`)
@@ -165,13 +180,13 @@ function handleAnnotationsAndChecks(schema: Schema.JsonSchema.Fragment, options:
   return out
 }
 
-interface WithType extends Schema.JsonSchema.Fragment {
+interface HasType extends Schema.JsonSchema.Fragment {
   readonly type: Schema.JsonSchema.Type
 }
 
 const types = ["null", "string", "number", "integer", "boolean", "object", "array"]
 
-function isWithType(schema: Schema.JsonSchema.Fragment): schema is WithType {
+function hasType(schema: Schema.JsonSchema.Fragment): schema is HasType {
   return typeof schema.type === "string" && types.includes(schema.type)
 }
 
@@ -179,7 +194,7 @@ function handleType(type: Schema.JsonSchema.Type): Output {
   return typeMap[type]
 }
 
-function handleWithType(schema: WithType, options: GoOptions): Output {
+function handleHasType(schema: HasType, options: GoOptions): Output {
   switch (schema.type) {
     case "null":
     case "string":
@@ -199,25 +214,55 @@ function handleWithType(schema: WithType, options: GoOptions): Output {
           })
         )
       }
+      // TODO: handle StructAndRest
       return UnknownRecord
     }
     case "array": {
-      if (Object.keys(schema).length === 1) {
-        return UnknownArray
-      }
-      if (options.target === "draft-07") {
-        if (schema.items === false) {
-          return EmptyTuple
-        } else {
-          return makeArray(recur(schema.items, options))
+      const minItems = typeof schema.minItems === "number" ? schema.minItems : Infinity
+      const elements = getTupleElements(schema, options.target)
+      switch (options.target) {
+        case "draft-07": {
+          const rest = isObject(schema.items)
+            ? schema.items
+            : isObject(schema.additionalItems)
+            ? schema.additionalItems
+            : undefined
+          return array(
+            elements.map((item, index) => ({ value: recur(item, options), isRequired: index < minItems })),
+            rest !== undefined ? recur(rest, options) : undefined
+          )
+        }
+        case "2020-12":
+        case "oas3.1": {
+          const rest = isObject(schema.items)
+            ? schema.items
+            : undefined
+          return array(
+            elements.map((item, index) => ({ value: recur(item, options), isRequired: index < minItems })),
+            rest !== undefined ? recur(rest, options) : undefined
+          )
         }
       }
-      return UnknownArray
     }
   }
 }
 
-function handle(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output {
+function getTupleElements(
+  schema: Schema.JsonSchema.Fragment,
+  target: Annotations.JsonSchema.Target
+): ReadonlyArray<Schema.JsonSchema.Fragment> {
+  switch (target) {
+    case "draft-07": {
+      return Array.isArray(schema.items) ? schema.items : []
+    }
+    case "2020-12":
+    case "oas3.1": {
+      return Array.isArray(schema.prefixItems) ? schema.prefixItems : []
+    }
+  }
+}
+
+function base(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output {
   if (Array.isArray(schema.type)) {
     return makeUnion(schema.type.map(handleType), "anyOf")
   }
@@ -247,11 +292,6 @@ function handle(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output 
     }
   }
 
-  if (isWithType(schema)) {
-    // TODO: and "allOf"
-    return handleWithType(schema, options)
-  }
-
   if (Array.isArray(schema.anyOf)) {
     if (schema.anyOf.length === 0) return Never
     if (isEmptyStruct(schema.anyOf)) return EmptyStruct
@@ -266,8 +306,9 @@ function handle(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output 
 
   // TODO: and "allOf"
 
-  if (isObject(schema.not) && Object.keys(schema.not).length === 0) {
-    return Never
+  if (hasType(schema)) {
+    // TODO: and "allOf"
+    return handleHasType(schema, options)
   }
 
   if (typeof schema.$ref === "string") {
@@ -288,28 +329,12 @@ function handle(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output 
     }
     throw new Error(`Invalid $ref: ${schema.$ref}`)
   }
+
+  if (isObject(schema.not) && Object.keys(schema.not).length === 0) {
+    return Never
+  }
+
   return Unknown
-}
-
-function makeUnion(members: ReadonlyArray<Output>, mode: "anyOf" | "oneOf"): Output {
-  return {
-    code: `Schema.Union([${members.map((m) => m.code).join(", ")}]${mode === "oneOf" ? `, { mode: "oneOf" }` : ""})`,
-    type: members.map((m) => m.type).join(" | ")
-  }
-}
-
-function makeArray(item: Output): Output {
-  return {
-    code: `Schema.Array(${item.code})`,
-    type: `ReadonlyArray<${item.type}>`
-  }
-}
-
-function makeRecord(key: Output, value: Output): Output {
-  return {
-    code: `Schema.Record(${key.code}, ${value.code})`,
-    type: `Record<${key.type}, ${value.type}>`
-  }
 }
 
 function makeStruct(
@@ -329,6 +354,84 @@ function makeStruct(
   }
 }
 
+function optionalKeyRuntime(isRequired: boolean, code: string): string {
+  return isRequired ? code : `Schema.optionalKey(${code})`
+}
+
+function optionalKeyType(isRequired: boolean, type: string): string {
+  return isRequired ? type : `${type}?`
+}
+
+function object(
+  properties: ReadonlyArray<{
+    readonly key: string
+    readonly value: Output
+    readonly isRequired: boolean
+  }>,
+  indexSignatures: ReadonlyArray<{ readonly key: Output; readonly value: Output }>
+): Output {
+  if (indexSignatures.length === 0) {
+    return {
+      code: `Schema.Struct({ ${
+        properties.map((p) => `${p.key}: ${optionalKeyRuntime(p.isRequired, p.value.code)}`).join(
+          ", "
+        )
+      } })`,
+      type: `{ ${
+        properties.map((p) => `readonly ${optionalKeyType(p.isRequired, p.key)}: ${p.value.type}`).join(", ")
+      } }`
+    }
+  } else if (properties.length === 0) {
+    if (indexSignatures.length === 1) {
+      const { key, value } = indexSignatures[0]
+      return {
+        code: `Schema.Record(${key.code}, ${value.code})`,
+        type: `Record<${key.type}, ${value.type}>`
+      }
+    } else {
+      throw new Error("Not implemented: ObjectAndRest")
+    }
+  } else {
+    throw new Error("Not implemented: ObjectAndRest")
+  }
+}
+
+function array(
+  elements: ReadonlyArray<{
+    readonly value: Output
+    readonly isRequired: boolean
+  }>,
+  item: Output | undefined
+): Output {
+  if (item === undefined) {
+    return {
+      code: `Schema.Tuple([${elements.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(", ")}])`,
+      type: `readonly [${elements.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(", ")}]`
+    }
+  } else if (elements.length === 0) {
+    return {
+      code: `Schema.Array(${item.code})`,
+      type: `ReadonlyArray<${item.type}>`
+    }
+  } else {
+    return {
+      code: `Schema.TupleWithRest(Schema.Tuple([${
+        elements.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(", ")
+      }]), [${item.code}])`,
+      type: `readonly [${
+        elements.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(", ")
+      }, ...Array<${item.type}>]`
+    }
+  }
+}
+
+function makeUnion(members: ReadonlyArray<Output>, mode: "anyOf" | "oneOf"): Output {
+  return {
+    code: `Schema.Union([${members.map((m) => m.code).join(", ")}]${mode === "oneOf" ? `, { mode: "oneOf" }` : ""})`,
+    type: members.map((m) => m.type).join(" | ")
+  }
+}
+
 const Never: Output = { code: "Schema.Never", type: "never" }
 const Unknown: Output = { code: "Schema.Unknown", type: "unknown" }
 const Null: Output = { code: "Schema.Null", type: "null" }
@@ -336,10 +439,9 @@ const String: Output = { code: "Schema.String", type: "string" }
 const Number: Output = { code: "Schema.Number", type: "number" }
 const Int: Output = { code: "Schema.Int", type: "number" }
 const Boolean: Output = { code: "Schema.Boolean", type: "boolean" }
-const UnknownRecord: Output = makeRecord(String, Unknown)
-const UnknownArray: Output = makeArray(Unknown)
+const UnknownRecord: Output = object([], [{ key: String, value: Unknown }])
+const UnknownArray: Output = array([], Unknown)
 const EmptyStruct: Output = { code: "Schema.Struct({})", type: "{}" }
-const EmptyTuple: Output = { code: "Schema.Tuple([])", type: "readonly []" }
 
 const typeMap = {
   "null": Null,
