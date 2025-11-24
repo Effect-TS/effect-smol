@@ -229,6 +229,24 @@ function handle(schema: Schema.JsonSchema.Fragment, options: GoOptions): Output 
     }
   }
 
+  if (Array.isArray(schema.enum)) {
+    const type = schema.enum.map((e) => format(e)).join(" | ")
+    switch (schema.enum.length) {
+      case 0:
+        return Never
+      case 1:
+        return {
+          code: `Schema.Literal(${format(schema.enum[0])})`,
+          type
+        }
+      default:
+        return {
+          code: `Schema.Literals([${schema.enum.map((e) => format(e)).join(", ")}])`,
+          type
+        }
+    }
+  }
+
   if (isWithType(schema)) {
     // TODO: and "allOf"
     return handleWithType(schema, options)
