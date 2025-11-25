@@ -41,6 +41,12 @@ type FlagSpec = {
   readonly index: Map<string, FlagParam>
 }
 
+type FlagBag = {
+  readonly add: (name: string, raw: string | undefined) => void
+  readonly merge: (from: FlagMap | MutableFlagMap) => void
+  readonly snapshot: () => FlagMap
+}
+
 type CommandContext<Name extends string, Input, E, R> = {
   readonly command: Command<Name, Input, E, R>
   readonly commandPath: ReadonlyArray<string>
@@ -94,6 +100,15 @@ const makeFlagSpec = (params: ReadonlyArray<FlagParam>): FlagSpec => ({
   params,
   index: buildFlagIndex(params)
 })
+
+const makeFlagBag = (params: ReadonlyArray<FlagParam>): FlagBag => {
+  const map = makeFlagMap(params)
+  return {
+    add: (name, raw) => appendFlagValue(map, name, raw),
+    merge: (from) => mergeIntoFlagMap(map, from),
+    snapshot: () => toReadonlyFlagMap(map)
+  }
+}
 
 /* ====================================================================== */
 /* Flag bag & values                                                       */
@@ -276,34 +291,22 @@ type SubcommandResult = {
 type LevelResult = LeafResult | SubcommandResult
 
 interface ParseState {
-  readonly flags: MutableFlagMap
+  readonly flags: FlagBag
   readonly arguments: Array<string>
   readonly errors: Array<CliError.CliError>
   seenFirstValue: boolean
 }
 
 const makeParseState = (flagSpec: FlagSpec): ParseState => ({
-  flags: makeFlagMap(flagSpec.params),
+  flags: makeFlagBag(flagSpec.params),
   arguments: [],
   errors: [],
   seenFirstValue: false
 })
 
-const recordFlagValue = (
-  state: ParseState,
-  name: string,
-  raw: string | undefined
-): void => {
-  appendFlagValue(state.flags, name, raw)
-}
-
-const mergeFlagValues = (state: ParseState, from: FlagMap | MutableFlagMap): void => {
-  mergeIntoFlagMap(state.flags, from)
-}
-
 const toLeafResult = (state: ParseState): LeafResult => ({
   _tag: "Leaf",
-  flags: toReadonlyFlagMap(state.flags),
+  flags: state.flags.snapshot(),
   arguments: state.arguments,
   errors: state.errors
 })
@@ -329,7 +332,7 @@ const scanCommandLevel = <Name extends string, Input, E, R>(
       if (err) state.errors.push(err)
       return
     }
-    recordFlagValue(state, spec.name, readFlagValue(cursor, t, spec))
+    state.flags.add(spec.name, readFlagValue(cursor, t, spec))
   }
 
   const handleFirstValue = (value: string): SubcommandResult | undefined => {
@@ -337,10 +340,10 @@ const scanCommandLevel = <Name extends string, Input, E, R>(
     if (sub) {
       // Allow parent flags to appear after the subcommand name (npm-style)
       const tail = collectFlagValues(cursor.rest(), flagSpec)
-      mergeFlagValues(state, tail.flagMap)
+      state.flags.merge(tail.flagMap)
       return {
         _tag: "Sub",
-        flags: toReadonlyFlagMap(state.flags),
+        flags: state.flags.snapshot(),
         leadingArguments: [],
         sub,
         childTokens: tail.remainder,
