@@ -36,10 +36,15 @@ type FlagParam = Param.Single<typeof Param.Flag, unknown>
 type FlagMap = Record<string, ReadonlyArray<string>>
 type MutableFlagMap = Record<string, Array<string>>
 
+type FlagSpec = {
+  readonly params: ReadonlyArray<FlagParam>
+  readonly index: Map<string, FlagParam>
+}
+
 type CommandContext<Name extends string, Input, E, R> = {
   readonly command: Command<Name, Input, E, R>
   readonly commandPath: ReadonlyArray<string>
-  readonly flagParams: ReadonlyArray<FlagParam>
+  readonly flagSpec: FlagSpec
 }
 
 /* ====================================================================== */
@@ -84,6 +89,11 @@ const buildFlagIndex = (
 const buildSubcommandIndex = (
   subcommands: ReadonlyArray<Command<string, unknown, unknown, unknown>>
 ): Map<string, Command<string, unknown, unknown, unknown>> => new Map(subcommands.map((sub) => [sub.name, sub]))
+
+const makeFlagSpec = (params: ReadonlyArray<FlagParam>): FlagSpec => ({
+  params,
+  index: buildFlagIndex(params)
+})
 
 /* ====================================================================== */
 /* Flag bag & values                                                       */
@@ -178,13 +188,14 @@ const builtInFlagParams: ReadonlyArray<FlagParam> = [
   ...Param.extractSingleParams(dynamicCompletionsFlag)
 ]
 
+const builtInFlagSpec = makeFlagSpec(builtInFlagParams)
+
 /** Collect only the provided flags; leave everything else untouched as remainder. */
 const collectFlagValues = (
   tokens: ReadonlyArray<Token>,
-  flags: ReadonlyArray<FlagParam>
+  spec: FlagSpec
 ): { flagMap: FlagMap; remainder: ReadonlyArray<Token> } => {
-  const lookup = buildFlagIndex(flags)
-  const flagMap = makeFlagMap(flags)
+  const flagMap = makeFlagMap(spec.params)
   const remainder: Array<Token> = []
   const cursor = makeCursor(tokens)
 
@@ -193,13 +204,13 @@ const collectFlagValues = (
       remainder.push(t)
       continue
     }
-    const spec = lookup.get(flagName(t))
-    if (!spec) {
+    const param = spec.index.get(flagName(t))
+    if (!param) {
       // Not one of the target flags → don't consume a following value
       remainder.push(t)
       continue
     }
-    appendFlagValue(flagMap, spec.name, readFlagValue(cursor, t, spec))
+    appendFlagValue(flagMap, param.name, readFlagValue(cursor, t, param))
   }
 
   return { flagMap: toReadonlyFlagMap(flagMap), remainder }
@@ -225,7 +236,7 @@ export const extractBuiltInOptions = (
   FileSystem | Path
 > =>
   Effect.gen(function*() {
-    const { flagMap, remainder } = collectFlagValues(tokens, builtInFlagParams)
+    const { flagMap, remainder } = collectFlagValues(tokens, builtInFlagSpec)
     const emptyArgs: Param.ParsedArgs = { flags: flagMap, arguments: [] }
     const [, help] = yield* helpFlag.parse(emptyArgs)
     const [, logLevel] = yield* logLevelFlag.parse(emptyArgs)
@@ -271,8 +282,8 @@ interface ParseState {
   seenFirstValue: boolean
 }
 
-const makeParseState = (flags: ReadonlyArray<FlagParam>): ParseState => ({
-  flags: makeFlagMap(flags),
+const makeParseState = (flagSpec: FlagSpec): ParseState => ({
+  flags: makeFlagMap(flagSpec.params),
   arguments: [],
   errors: [],
   seenFirstValue: false
@@ -304,17 +315,17 @@ const scanCommandLevel = <Name extends string, Input, E, R>(
   tokens: ReadonlyArray<Token>,
   context: CommandContext<Name, Input, E, R>
 ): LevelResult => {
-  const { command, commandPath, flagParams } = context
-  const index = buildFlagIndex(flagParams)
+  const { command, commandPath, flagSpec } = context
+  const { index } = flagSpec
   const subIndex = buildSubcommandIndex(command.subcommands)
-  const state = makeParseState(flagParams)
+  const state = makeParseState(flagSpec)
   const expectsArgs = command.config.arguments.length > 0
   const cursor = makeCursor(tokens)
 
   const handleFlag = (t: Extract<Token, { _tag: "LongOption" | "ShortOption" }>) => {
     const spec = index.get(flagName(t))
     if (!spec) {
-      const err = unrecognizedFlagError(t, flagParams, commandPath)
+      const err = unrecognizedFlagError(t, flagSpec.params, commandPath)
       if (err) state.errors.push(err)
       return
     }
@@ -325,7 +336,7 @@ const scanCommandLevel = <Name extends string, Input, E, R>(
     const sub = subIndex.get(value)
     if (sub) {
       // Allow parent flags to appear after the subcommand name (npm-style)
-      const tail = collectFlagValues(cursor.rest(), flagParams)
+      const tail = collectFlagValues(cursor.rest(), flagSpec)
       mergeFlagValues(state, tail.flagMap)
       return {
         _tag: "Sub",
@@ -380,11 +391,12 @@ export const parseArgs = <Name extends string, Input, E, R>(
     // Flags available at this level (ignore arguments)
     const singles = command.config.flags.flatMap(Param.extractSingleParams)
     const flagParams = singles.filter(isFlagParam)
+    const flagSpec = makeFlagSpec(flagParams)
 
     const result = scanCommandLevel(tokens, {
       command,
       commandPath: newCommandPath,
-      flagParams
+      flagSpec
     })
 
     if (result._tag === "Leaf") {
