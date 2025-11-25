@@ -39,3 +39,78 @@ This file records the intended parsing semantics with a short usage example and 
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should allow direct accessing parent config in subcommands"
 
 If you add or change semantics, update this file and reference the exact test that proves the behavior.
+
+## Semantics Landscape (popular CLIs vs Effect)
+
+Below each semantic you’ll find: a short description, a usage example, how major CLI libraries handle it (and whether it’s configurable), and where Effect currently lands (with suggestions if any).
+
+### Parent flags after a subcommand name (npm-style globals)
+- **What**: Whether options defined on the parent command can appear *after* the subcommand token.
+- **Example**: `tool install --pkg cowsay --global`
+- **Commander / yargs / clap**: Allowed by default; commander/clap can tighten with options.
+- **Click / argparse / docopt**: Not allowed; options must be before the command they belong to.
+- **Cobra**: Persistent flags are available to children; placement is typically before subcommand, but not strictly enforced.
+- **Effect (current)**: Allowed (permissive). Backed by test: “should accept parent flags before or after a subcommand (npm-style)”.
+- **Suggestion**: Keep permissive default; document clearly (done). If a future app needs strictness, add an opt-in validator rather than changing defaults.
+
+### Options after operands (relaxed POSIX Guideline 9)
+- **What**: Whether flags can appear after or between positional arguments.
+- **Example**: `tool copy src dest --recursive` or `tool copy --recursive src dest --force`
+- **Commander / yargs / clap**: Allowed by default; clap can be configured to prefer subcommand precedence.
+- **Click / argparse / docopt**: Disallow; options must precede positionals for that command.
+- **Cobra**: Generally allows mixed order; `--` ends options.
+- **Effect (current)**: Allowed. Test: “should support options before, after, or between operands (relaxed POSIX Syntax Guideline No. 9)”.
+- **Suggestion**: Keep permissive; no change.
+
+### Subcommand selection: only the first value may open a subcommand
+- **What**: Whether only the first non-option token can be treated as a subcommand name.
+- **Example**: `tool install pkg1 pkg2` → `install` is subcommand; `pkg1 pkg2` are operands.
+- **Commander / yargs / clap / Click / argparse / docopt / Cobra**: Yes, subcommand chosen at first value (unless special external-subcommand features are enabled).
+- **Effect (current)**: Yes. Covered implicitly by subcommand tests.
+- **Suggestion**: Keep; this is the least surprising and matches most ecosystems.
+
+### End-of-options marker `--`
+- **What**: Tokens after `--` are treated purely as operands.
+- **Example**: `tool -- child --value x` → operands `child --value x`.
+- **Commander / yargs / clap / Click / argparse / docopt / Cobra**: Supported.
+- **Effect (current)**: Supported. Test: “should treat tokens after -- as operands (no subcommand or flags)”.
+- **Suggestion**: Keep; already locked in by test.
+
+### Boolean flags defaulting to true when present; optional explicit literal
+- **What**: Supplying `--flag` implies true; explicit `--flag false` (or 0/no/off) is accepted.
+- **Example**: `tool --verbose deploy` and `tool --verbose false deploy`.
+- **Commander / yargs / clap**: Yes; boolean options coerce common literals.
+- **Click / argparse / docopt**: Typically `--flag/--no-flag` pairs; some accept explicit literals with `type=bool` in argparse.
+- **Effect (current)**: Yes. Test: “should handle boolean flags before subcommands”.
+- **Suggestion**: Keep; no change.
+
+### Unknown subcommands/options suggestions
+- **What**: Whether unrecognized tokens produce Levenshtein suggestions.
+- **Example**: `tool cpy` → suggest `copy`; `tool --debugs` → suggest `--debug`.
+- **Commander / yargs / clap**: Suggestions configurable (clap has built-in `color`/`suggestions`); commander can display “Did you mean”.
+- **Click / argparse / docopt / Cobra**: Usually fail with an error; some wrappers add suggestions.
+- **Effect (current)**: Suggestions enabled; tests cover unknown subcommands and options (short/long).
+- **Suggestion**: Keep; already aligned with “friendly” CLIs.
+
+### Parent context accessible in subcommands
+- **What**: Ability for subcommand handlers to read the parsed config of their parent.
+- **Example**: `tool --global install --pkg cowsay` → subcommand reads `global`.
+- **Commander / yargs / clap / Cobra**: Supported via shared options or persistent flags; Click/argparse require manual plumbing.
+- **Effect (current)**: Supported; test “should allow direct accessing parent config in subcommands”.
+- **Suggestion**: Keep; this is a strength of our design.
+
+### Repeated key=value flags merging
+- **What**: Multiple `--env KEY=VAL` occurrences merge into a single map.
+- **Example**: `tool --env foo=bar --env cool=dude` → `{foo: "bar", cool: "dude"}`.
+- **Commander / yargs / clap**: Arrays/maps supported via custom options; behavior differs unless configured.
+- **Effect (current)**: Merge; test “should merge repeated key=value flags into a single record”.
+- **Suggestion**: Keep; predictable and convenient.
+
+### Required or mutually exclusive flag sets (validation, not parsing)
+- **What**: Constraints like “must provide either --token or --user/--pass”, or “--json and --color cannot both be set”.
+- **Commander / yargs / clap**: Provide APIs for required/conflicts; Click supports required options and `mutually_exclusive` via groups; argparse has mutually exclusive groups.
+- **Effect (current)**: Not enforced at parser level. Would live in a validation layer if needed.
+- **Suggestion**: Stay out of parsing; add optional validators in configuration if/when a product needs it.
+
+## Opinionated default
+Effect should remain on the permissive, npm/commander-style side: flexible option placement, parent flags usable before or after subcommands, strict `--` handling, and single-shot subcommand selection on the first value. This keeps UX friendly for modern CLIs while remaining predictable via documented rules and tests.
