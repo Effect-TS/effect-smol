@@ -569,6 +569,115 @@ describe("Command", () => {
         assert.deepStrictEqual(captured, [["child", "--value", "x"]])
       }).pipe(Effect.provide(TestLayer)))
 
+    it.effect("should coerce boolean flags to false when given falsey literals", () =>
+      Effect.gen(function*() {
+        const captured: Array<boolean> = []
+
+        const cmd = Command.make("tool", {
+          verbose: Flag.boolean("verbose")
+        }, (config) => Effect.sync(() => captured.push(config.verbose)))
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        yield* runCmd(["--verbose", "false"])
+        yield* runCmd(["--verbose", "0"])
+
+        assert.deepStrictEqual(captured, [false, false])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should fail when a required flag value is missing", () =>
+      Effect.gen(function*() {
+        let invoked = false
+
+        const cmd = Command.make("tool", {
+          pkg: Flag.string("pkg")
+        }, () =>
+          Effect.sync(() => {
+            invoked = true
+          }))
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        yield* runCmd(["--pkg"])
+
+        assert.isFalse(invoked)
+        const stderr = yield* TestConsole.errorLines
+        assert.isAbove(stderr.length, 0)
+        assert.isTrue(stderr.join("\n").includes("--pkg"))
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should parse combined short flags including one that expects a value", () =>
+      Effect.gen(function*() {
+        const captured: Array<{ all: boolean; verbose: boolean; pkg: string }> = []
+
+        const cmd = Command.make("tool", {
+          all: Flag.boolean("all").pipe(Flag.withAlias("a")),
+          verbose: Flag.boolean("verbose").pipe(Flag.withAlias("v")),
+          pkg: Flag.string("pkg").pipe(Flag.withAlias("p"))
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config)
+          }))
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        yield* runCmd(["-avp", "cowsay"])
+
+        assert.deepStrictEqual(captured, [{ all: true, verbose: true, pkg: "cowsay" }])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should honor -- while still applying parent flags", () =>
+      Effect.gen(function*() {
+        const captured: Array<{ global: boolean; rest: ReadonlyArray<string> }> = []
+
+        const root = Command.make("tool", {
+          global: Flag.boolean("global"),
+          rest: Argument.string("rest").pipe(Argument.variadic())
+        }, (config) => Effect.sync(() => captured.push({ global: config.global, rest: config.rest })))
+
+        const child = Command.make("child", {
+          value: Flag.string("value")
+        })
+
+        const cli = root.pipe(Command.withSubcommands(child))
+        const runCli = Command.runWith(cli, { version: "1.0.0" })
+
+        yield* runCli(["--global", "--", "child", "--value", "x"])
+
+        assert.deepStrictEqual(captured, [{ global: true, rest: ["child", "--value", "x"] }])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should report unknown flag even when subcommand is unknown", () =>
+      Effect.gen(function*() {
+        const root = Command.make("root", {})
+        const known = Command.make("known", {})
+        const cli = root.pipe(Command.withSubcommands(known))
+        const runCli = Command.runWith(cli, { version: "1.0.0" })
+
+        yield* runCli(["--unknown", "bogus"])
+
+        const stderr = yield* TestConsole.errorLines
+        const text = stderr.join("\n")
+        assert.isTrue(text.includes("Unrecognized flag: --unknown"))
+        // Parser may also surface the unknown subcommand; ensure at least one error is emitted.
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should keep variadic argument order when options are interleaved", () =>
+      Effect.gen(function*() {
+        const captured: Array<{ files: ReadonlyArray<string>; verbose: boolean }> = []
+
+        const cmd = Command.make("copy", {
+          verbose: Flag.boolean("verbose"),
+          files: Argument.string("file").pipe(Argument.variadic())
+        }, (config) => Effect.sync(() => captured.push({ files: config.files, verbose: config.verbose })))
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        yield* runCmd(["--verbose", "a.txt", "b.txt", "--verbose", "c.txt"])
+
+        assert.deepStrictEqual(captured, [{ files: ["a.txt", "b.txt", "c.txt"], verbose: true }])
+      }).pipe(Effect.provide(TestLayer)))
+
     it.effect("should support options before, after, or between operands (relaxed POSIX Syntax Guideline No. 9)", () =>
       Effect.gen(function*() {
         // Test both orderings work: POSIX (options before operands) and modern (mixed)
