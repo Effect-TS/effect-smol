@@ -1,3 +1,18 @@
+/**
+ * Parsing pipeline for CLI commands
+ * --------------------------------
+ * 1. `lexer` turns argv into tokens.
+ * 2. `extractBuiltInOptions` peels off built-ins (help/version/completions).
+ * 3. `parseArgs` recursively scans one command level at a time:
+ *    - collect this level's flags
+ *    - detect an optional subcommand (only the first value can open one)
+ *    - forward any remaining tokens to the child
+ *
+ * Invariants
+ * - Parent flags may appear before or after the subcommand name (npm-style).
+ * - Only the very first Value token may be interpreted as a subcommand name.
+ * - Errors accumulate; no exceptions are thrown from the parser.
+ */
 import * as Option from "../../../data/Option.ts"
 import * as Effect from "../../../Effect.ts"
 import type { LogLevel } from "../../../LogLevel.ts"
@@ -51,6 +66,10 @@ const buildFlagIndex = (
   }
   return lookup
 }
+
+const buildSubcommandIndex = (
+  subcommands: ReadonlyArray<Command<string, unknown, unknown, unknown>>
+): Map<string, Command<string, unknown, unknown, unknown>> => new Map(subcommands.map((sub) => [sub.name, sub]))
 
 const isFlagToken = (t: Token): t is Extract<Token, { _tag: "LongOption" | "ShortOption" }> =>
   t._tag === "LongOption" || t._tag === "ShortOption"
@@ -270,6 +289,7 @@ const scanCommandLevel = <Name extends string, Input, E, R>(
   commandPath: ReadonlyArray<string>
 ): LevelResult => {
   const index = buildFlagIndex(flags)
+  const subIndex = buildSubcommandIndex(command.subcommands)
   const state = makeParseState(flags)
   const expectsArgs = command.config.arguments.length > 0
   const cursor = makeCursor(tokens)
@@ -285,7 +305,7 @@ const scanCommandLevel = <Name extends string, Input, E, R>(
   }
 
   const handleFirstValue = (value: string): SubcommandResult | undefined => {
-    const sub = command.subcommands.find((s) => s.name === value)
+    const sub = subIndex.get(value)
     if (sub) {
       // Allow parent flags to appear after the subcommand name (npm-style)
       const tail = collectFlagValues(cursor.rest(), flags)
@@ -300,7 +320,7 @@ const scanCommandLevel = <Name extends string, Input, E, R>(
       }
     }
 
-    if (!expectsArgs && command.subcommands.length > 0) {
+    if (!expectsArgs && subIndex.size > 0) {
       const suggestions = suggest(value, command.subcommands.map((s) => s.name))
       state.errors.push(new CliError.UnknownSubcommand({ subcommand: value, parent: commandPath, suggestions }))
     }
