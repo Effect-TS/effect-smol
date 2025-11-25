@@ -20,12 +20,12 @@ function assertRoundtrip(input: {
 }) {
   const target = input.target ?? "draft-07"
   const document = getDocumentByTarget(target, input.schema)
-  const output = FromJsonSchema.make(document.schema, { target, recursives: input.suspended })
+  const output = FromJsonSchema.generate(document.schema, { target, recursives: input.suspended })
   const fn = new Function("Schema", `return ${output.code}`)
   const generated = fn(Schema)
   const codedocument = getDocumentByTarget(target, generated)
   deepStrictEqual(codedocument, document)
-  deepStrictEqual(FromJsonSchema.make(codedocument.schema), output)
+  deepStrictEqual(FromJsonSchema.generate(codedocument.schema), output)
 }
 
 function assertOutput(
@@ -37,16 +37,20 @@ function assertOutput(
   expected: {
     readonly code: string
     readonly type: string
+  },
+  options?: {
+    readonly makeIdentifier: (ref: string) => string
   }
 ) {
-  const code = FromJsonSchema.make(input.schema, {
-    recursives: input.recursives
+  const code = FromJsonSchema.generate(input.schema, {
+    recursives: input.recursives,
+    makeIdentifier: options?.makeIdentifier
   })
   deepStrictEqual(code, expected)
 }
 
 describe("FromJsonSchema", () => {
-  describe("json schemas", () => {
+  describe("generate", () => {
     it("true", () => {
       assertOutput({ schema: true }, { code: "Schema.Unknown", type: "unknown" })
     })
@@ -511,9 +515,21 @@ describe("FromJsonSchema", () => {
             }
           },
           {
+            code: "ID/a~b",
+            type: "ID/a~b"
+          }
+        )
+        assertOutput(
+          {
+            schema: {
+              "$ref": "#/definitions/ID~1a~0b"
+            }
+          },
+          {
             code: "ID$a$b",
             type: "ID$a$b"
-          }
+          },
+          { makeIdentifier: (ref) => ref.replace(/[/~]/g, "$") }
         )
       })
 
@@ -553,117 +569,6 @@ describe("FromJsonSchema", () => {
           }
         )
       })
-    })
-  })
-
-  describe("generate", () => {
-    function generate(
-      schema: Schema.JsonSchema.Schema,
-      definitions: Schema.JsonSchema.Definitions,
-      recursives: ReadonlySet<string>
-    ) {
-      const output = FromJsonSchema.make(schema)
-      const ds = Object.entries(definitions).map((
-        [name, schema]
-      ) => [name, FromJsonSchema.make(schema, { recursives })] as const)
-
-      const name = "schema"
-      let s = ""
-
-      s += "// Definitions\n"
-      ds.forEach(([name, { code, type }]) => {
-        s += `type ${name} = ${type};\n`
-        s += `const ${name} = ${code};\n\n`
-      })
-
-      s += "// Schema\n"
-      s += `const ${name} = ${output.code};`
-      return s
-    }
-
-    it("mutually recursive", () => {
-      interface Expression {
-        readonly type: "expression"
-        readonly value: number | Operation
-      }
-
-      interface Operation {
-        readonly type: "operation"
-        readonly operator: "+" | "-"
-        readonly left: Expression
-        readonly right: Expression
-      }
-
-      const Expression = Schema.Struct({
-        type: Schema.Literal("expression"),
-        value: Schema.Union([Schema.Finite, Schema.suspend((): Schema.Codec<Operation> => Operation)])
-      }).annotate({ identifier: "Expression" })
-
-      const Operation = Schema.Struct({
-        type: Schema.Literal("operation"),
-        operator: Schema.Literals(["+", "-"]),
-        left: Expression,
-        right: Expression
-      }).annotate({ identifier: "Operation" })
-
-      const recursives = new Set(["Expression", "Operation"])
-
-      {
-        const document = Schema.makeJsonSchemaDraft07(Operation)
-        strictEqual(
-          generate(document.schema, document.definitions, recursives),
-          `// Definitions
-type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
-const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) });
-
-type Expression = { readonly type: "expression", readonly value: number | Operation };
-const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) });
-
-// Schema
-const schema = Operation;`
-        )
-      }
-      {
-        const document = Schema.makeJsonSchemaDraft07(Expression)
-        strictEqual(
-          generate(document.schema, document.definitions, recursives),
-          `// Definitions
-type Expression = { readonly type: "expression", readonly value: number | Operation };
-const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) });
-
-type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
-const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) });
-
-// Schema
-const schema = Expression;`
-        )
-      }
-    })
-
-    it.todo("topological sort", () => {
-      const schema = Schema.Struct({
-        a: Schema.Struct({
-          b: Schema.Struct({
-            c: Schema.String.annotate({ identifier: "C" })
-          }).annotate({ identifier: "B" })
-        }).annotate({ identifier: "A" })
-      })
-      const document = Schema.makeJsonSchemaDraft07(schema)
-      strictEqual(
-        generate(document.schema, document.definitions, new Set()),
-        `// Definitions
-type C = string;
-const C = Schema.String;
-
-type B = { readonly c: C };
-const B = Schema.Struct({ c: C });
-
-type A = { readonly b: B };
-const A = Schema.Struct({ b: B });
-
-// Schema
-const schema = Schema.Struct({ a: A });`
-      )
     })
   })
 
@@ -840,6 +745,423 @@ const schema = Schema.Struct({ a: A });`
       it("String | Number", () => {
         assertRoundtrip({ schema: Schema.Union([Schema.String, Schema.Number]) })
       })
+    })
+  })
+
+  describe("topologicalSort", () => {
+    function assertTopologicalSort(
+      definitions: Schema.JsonSchema.Definitions,
+      expected: FromJsonSchema.TopologicalSort
+    ) {
+      const result = FromJsonSchema.topologicalSort(definitions)
+      deepStrictEqual(result, expected)
+    }
+
+    it("empty definitions", () => {
+      assertTopologicalSort(
+        {},
+        { nonRecursives: [], recursives: {} }
+      )
+    })
+
+    it("single definition with no dependencies", () => {
+      assertTopologicalSort(
+        {
+          A: { type: "string" }
+        },
+        {
+          nonRecursives: [
+            ["A", { type: "string" }]
+          ],
+          recursives: {}
+        }
+      )
+    })
+
+    it("multiple independent definitions", () => {
+      assertTopologicalSort({
+        A: { type: "string" },
+        B: { type: "number" },
+        C: { type: "boolean" }
+      }, {
+        nonRecursives: [
+          ["A", { type: "string" }],
+          ["B", { type: "number" }],
+          ["C", { type: "boolean" }]
+        ],
+        recursives: {}
+      })
+    })
+
+    it("linear dependencies (A -> B -> C)", () => {
+      assertTopologicalSort({
+        A: { type: "string" },
+        B: { $ref: "#/definitions/A" },
+        C: { $ref: "#/definitions/B" }
+      }, {
+        nonRecursives: [
+          ["A", { type: "string" }],
+          ["B", { $ref: "#/definitions/A" }],
+          ["C", { $ref: "#/definitions/B" }]
+        ],
+        recursives: {}
+      })
+    })
+
+    it("branching dependencies (A -> B, A -> C)", () => {
+      assertTopologicalSort({
+        A: { type: "string" },
+        B: { $ref: "#/definitions/A" },
+        C: { $ref: "#/definitions/A" }
+      }, {
+        nonRecursives: [
+          ["A", { type: "string" }],
+          ["B", { $ref: "#/definitions/A" }],
+          ["C", { $ref: "#/definitions/A" }]
+        ],
+        recursives: {}
+      })
+    })
+
+    it("complex dependencies (A -> B -> C, A -> D)", () => {
+      assertTopologicalSort({
+        A: { type: "string" },
+        B: { $ref: "#/definitions/A" },
+        C: { $ref: "#/definitions/B" },
+        D: { $ref: "#/definitions/A" }
+      }, {
+        nonRecursives: [
+          ["A", { type: "string" }],
+          ["B", { $ref: "#/definitions/A" }],
+          ["D", { $ref: "#/definitions/A" }],
+          ["C", { $ref: "#/definitions/B" }]
+        ],
+        recursives: {}
+      })
+    })
+
+    it("self-referential definition (A -> A)", () => {
+      assertTopologicalSort({
+        A: { $ref: "#/definitions/A" }
+      }, {
+        nonRecursives: [],
+        recursives: {
+          A: { $ref: "#/definitions/A" }
+        }
+      })
+    })
+
+    it("mutual recursion (A -> B -> A)", () => {
+      assertTopologicalSort({
+        A: { $ref: "#/definitions/B" },
+        B: { $ref: "#/definitions/A" }
+      }, {
+        nonRecursives: [],
+        recursives: {
+          A: { $ref: "#/definitions/B" },
+          B: { $ref: "#/definitions/A" }
+        }
+      })
+    })
+
+    it("complex cycle (A -> B -> C -> A)", () => {
+      assertTopologicalSort({
+        A: { $ref: "#/definitions/B" },
+        B: { $ref: "#/definitions/C" },
+        C: { $ref: "#/definitions/A" }
+      }, {
+        nonRecursives: [],
+        recursives: {
+          A: { $ref: "#/definitions/B" },
+          B: { $ref: "#/definitions/C" },
+          C: { $ref: "#/definitions/A" }
+        }
+      })
+    })
+
+    it("mixed recursive and non-recursive definitions", () => {
+      assertTopologicalSort({
+        A: { type: "string" },
+        B: { $ref: "#/definitions/A" },
+        C: { $ref: "#/definitions/C" },
+        D: { $ref: "#/definitions/E" },
+        E: { $ref: "#/definitions/D" }
+      }, {
+        nonRecursives: [
+          ["A", { type: "string" }],
+          ["B", { $ref: "#/definitions/A" }]
+        ],
+        recursives: {
+          C: { $ref: "#/definitions/C" },
+          D: { $ref: "#/definitions/E" },
+          E: { $ref: "#/definitions/D" }
+        }
+      })
+    })
+
+    it("nested $ref in object properties", () => {
+      assertTopologicalSort({
+        A: { type: "string" },
+        B: {
+          type: "object",
+          properties: {
+            value: { $ref: "#/definitions/A" }
+          }
+        }
+      }, {
+        nonRecursives: [
+          ["A", { type: "string" }],
+          ["B", { type: "object", properties: { value: { $ref: "#/definitions/A" } } }]
+        ],
+        recursives: {}
+      })
+    })
+
+    it("nested $ref in array items", () => {
+      assertTopologicalSort({
+        A: { type: "string" },
+        B: {
+          type: "array",
+          items: { $ref: "#/definitions/A" }
+        }
+      }, {
+        nonRecursives: [
+          ["A", { type: "string" }],
+          ["B", { type: "array", items: { $ref: "#/definitions/A" } }]
+        ],
+        recursives: {}
+      })
+    })
+
+    it("nested $ref in anyOf", () => {
+      assertTopologicalSort({
+        A: { type: "string" },
+        B: {
+          anyOf: [
+            { $ref: "#/definitions/A" },
+            { type: "number" }
+          ]
+        }
+      }, {
+        nonRecursives: [
+          ["A", { type: "string" }],
+          ["B", { anyOf: [{ $ref: "#/definitions/A" }, { type: "number" }] }]
+        ],
+        recursives: {}
+      })
+    })
+
+    it("external $ref (not in definitions) should be ignored", () => {
+      assertTopologicalSort({
+        A: { $ref: "#/definitions/External" },
+        B: { $ref: "#/definitions/A" }
+      }, {
+        nonRecursives: [
+          ["A", { $ref: "#/definitions/External" }],
+          ["B", { $ref: "#/definitions/A" }]
+        ],
+        recursives: {}
+      })
+    })
+
+    it("deeply nested $ref in complex structure", () => {
+      assertTopologicalSort({
+        A: { type: "string" },
+        B: {
+          type: "object",
+          properties: {
+            items: {
+              type: "array",
+              items: {
+                anyOf: [
+                  { $ref: "#/definitions/A" },
+                  {
+                    type: "object",
+                    properties: {
+                      nested: { $ref: "#/definitions/A" }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }, {
+        nonRecursives: [
+          ["A", { type: "string" }],
+          ["B", {
+            type: "object",
+            properties: {
+              items: {
+                type: "array",
+                items: {
+                  anyOf: [{ $ref: "#/definitions/A" }, {
+                    type: "object",
+                    properties: { nested: { $ref: "#/definitions/A" } }
+                  }]
+                }
+              }
+            }
+          }]
+        ],
+        recursives: {}
+      })
+    })
+
+    it("multiple cycles with independent definitions", () => {
+      assertTopologicalSort({
+        Independent: { type: "string" },
+        A: { $ref: "#/definitions/B" },
+        B: { $ref: "#/definitions/A" },
+        C: { $ref: "#/definitions/D" },
+        D: { $ref: "#/definitions/C" }
+      }, {
+        nonRecursives: [
+          ["Independent", { type: "string" }]
+        ],
+        recursives: {
+          A: { $ref: "#/definitions/B" },
+          B: { $ref: "#/definitions/A" },
+          C: { $ref: "#/definitions/D" },
+          D: { $ref: "#/definitions/C" }
+        }
+      })
+    })
+
+    it("definition depending on recursive definition", () => {
+      assertTopologicalSort({
+        A: { $ref: "#/definitions/A" },
+        B: { $ref: "#/definitions/A" }
+      }, {
+        nonRecursives: [
+          ["B", { $ref: "#/definitions/A" }]
+        ],
+        recursives: {
+          A: { $ref: "#/definitions/A" }
+        }
+      })
+    })
+
+    it("escaped $ref", () => {
+      assertTopologicalSort({
+        A: { $ref: "#/definitions/~01A" }
+      }, {
+        nonRecursives: [
+          ["A", { $ref: "#/definitions/~01A" }]
+        ],
+        recursives: {}
+      })
+    })
+  })
+
+  describe("generateDefinitions", () => {
+    function generate(
+      definitions: Schema.JsonSchema.Definitions,
+      options?: {
+        readonly makeIdentifier: (ref: string) => string
+      }
+    ) {
+      return (schema: Schema.JsonSchema.Schema) => {
+        const deps = FromJsonSchema.generateDefinitions(definitions, options)
+        const output = FromJsonSchema.generate(schema, {
+          makeIdentifier: options?.makeIdentifier
+        })
+        const name = "schema"
+        let s = ""
+
+        s += "// Definitions\n"
+        deps.forEach(([name, { code, type }]) => {
+          s += `type ${name} = ${type};\n`
+          s += `const ${name} = ${code};\n\n`
+        })
+
+        s += "// Schema\n"
+        s += `const ${name} = ${output.code};`
+        return s
+      }
+    }
+
+    it("mutually recursive", () => {
+      interface Expression {
+        readonly type: "expression"
+        readonly value: number | Operation
+      }
+
+      interface Operation {
+        readonly type: "operation"
+        readonly operator: "+" | "-"
+        readonly left: Expression
+        readonly right: Expression
+      }
+
+      const Expression = Schema.Struct({
+        type: Schema.Literal("expression"),
+        value: Schema.Union([Schema.Finite, Schema.suspend((): Schema.Codec<Operation> => Operation)])
+      }).annotate({ identifier: "Expression" })
+
+      const Operation = Schema.Struct({
+        type: Schema.Literal("operation"),
+        operator: Schema.Literals(["+", "-"]),
+        left: Expression,
+        right: Expression
+      }).annotate({ identifier: "Operation" })
+
+      {
+        const document = Schema.makeJsonSchemaDraft07(Operation)
+        strictEqual(
+          generate(document.definitions)(document.schema),
+          `// Definitions
+type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
+const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) });
+
+type Expression = { readonly type: "expression", readonly value: number | Operation };
+const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) });
+
+// Schema
+const schema = Operation;`
+        )
+      }
+      {
+        const document = Schema.makeJsonSchemaDraft07(Expression)
+        strictEqual(
+          generate(document.definitions)(document.schema),
+          `// Definitions
+type Expression = { readonly type: "expression", readonly value: number | Operation };
+const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) });
+
+type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
+const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) });
+
+// Schema
+const schema = Expression;`
+        )
+      }
+    })
+
+    it("nested identifiers", () => {
+      const schema = Schema.Struct({
+        a: Schema.Struct({
+          b: Schema.Struct({
+            c: Schema.String.annotate({ identifier: "C" })
+          }).annotate({ identifier: "B" })
+        }).annotate({ identifier: "A" })
+      })
+      const document = Schema.makeJsonSchemaDraft07(schema)
+      strictEqual(
+        generate(document.definitions)(document.schema),
+        `// Definitions
+type C = string;
+const C = Schema.String;
+
+type B = { readonly c: C };
+const B = Schema.Struct({ c: C });
+
+type A = { readonly b: B };
+const A = Schema.Struct({ b: B });
+
+// Schema
+const schema = Schema.Struct({ a: A });`
+      )
     })
   })
 })

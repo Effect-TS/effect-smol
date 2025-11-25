@@ -18,6 +18,7 @@
  */
 import { format } from "../data/Formatter.ts"
 import { isObject } from "../data/Predicate.ts"
+import { identity } from "../Function.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
@@ -35,28 +36,24 @@ export type Output = {
 /**
  * @since 4.0.0
  */
-export function make(schema: unknown, options?: {
+export function generate(schema: unknown, options?: {
   readonly target?: Target | undefined
   readonly recursives?: ReadonlySet<string> | undefined
-  readonly getIdentifier?: ((identifier: string) => string) | undefined
+  readonly makeIdentifier?: ((ref: string) => string) | undefined
 }): Output {
   return build(schema, {
     target: options?.target ?? "draft-07",
     recursives: options?.recursives ?? emptySet,
-    getIdentifier: options?.getIdentifier ?? getIdentifier
+    makeIdentifier: options?.makeIdentifier ?? identity
   })
 }
 
 const emptySet: ReadonlySet<string> = new Set()
 
-function getIdentifier(identifier: string): string {
-  return identifier.replace(/[/~]/g, "$")
-}
-
 interface GoOptions {
   readonly target: Target
   readonly recursives: ReadonlySet<string>
-  readonly getIdentifier: (identifier: string) => string
+  readonly makeIdentifier: (ref: string) => string
 }
 
 function build(schema: unknown, options: GoOptions): Output {
@@ -258,9 +255,9 @@ function base(schema: Fragment, options: GoOptions): Output {
   }
 
   if (typeof schema.$ref === "string") {
-    const last = schema.$ref.split("/").pop()
-    if (last !== undefined) {
-      const identifier = options.getIdentifier(unescapeJsonPointer(last))
+    const $ref = extractIdentifier(schema.$ref)
+    if ($ref !== undefined) {
+      const identifier = options.makeIdentifier($ref)
       if (options.recursives.has(identifier)) {
         return {
           code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
@@ -280,6 +277,13 @@ function base(schema: Fragment, options: GoOptions): Output {
   }
 
   return Unknown
+}
+
+function extractIdentifier($ref: string): string | undefined {
+  const last = $ref.split("/").pop()
+  if (last !== undefined) {
+    return unescapeJsonPointer(last)
+  }
 }
 
 function optionalRuntime(isRequired: boolean, code: string): string {
@@ -453,4 +457,191 @@ function isEmptyStruct(schema: ReadonlyArray<Fragment>): boolean {
 
 function unescapeJsonPointer(pointer: string): string {
   return pointer.replace(/~0/ig, "~").replace(/~1/ig, "/")
+}
+
+/**
+ * The topological sort of the definitions.
+ */
+export type TopologicalSort = {
+  /**
+   * The definitions that are not recursive.
+   * The definitions that depends on other definitions are placed after the definitions they depend on
+   */
+  readonly nonRecursives: ReadonlyArray<readonly [identifier: string, schema: Schema.JsonSchema.Schema]>
+  /**
+   * The recursive definitions (with no particular order).
+   */
+  readonly recursives: { readonly [identifier: string]: Schema.JsonSchema.Schema }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function topologicalSort(definitions: Schema.JsonSchema.Definitions): TopologicalSort {
+  // Extract all $ref references from a schema recursively
+  function extractIdentifiers(value: unknown, visited: Set<unknown>): Set<string> {
+    const refs = new Set<string>()
+    if (visited.has(value)) return refs
+    visited.add(value)
+
+    if (isObject(value)) {
+      // Check if this object has a $ref property
+      if (typeof value.$ref === "string") {
+        const $ref = extractIdentifier(value.$ref)
+        if ($ref !== undefined) {
+          refs.add($ref)
+        }
+      }
+
+      // Recursively check all values in the object
+      for (const v of Object.values(value)) {
+        for (const ref of extractIdentifiers(v, visited)) {
+          refs.add(ref)
+        }
+      }
+    } else if (Array.isArray(value)) {
+      // Recursively check all elements in the array
+      for (const item of value) {
+        for (const ref of extractIdentifiers(item, visited)) {
+          refs.add(ref)
+        }
+      }
+    }
+
+    return refs
+  }
+
+  // Build dependency graph: identifier -> set of identifiers it depends on
+  const dependencies = new Map<string, Set<string>>()
+  const identifiers = Object.keys(definitions)
+
+  for (const identifier of identifiers) {
+    const schema = definitions[identifier]
+    const refs = extractIdentifiers(schema, new Set())
+    // Only include refs that are in the definitions map
+    const validRefs = new Set<string>()
+    for (const ref of refs) {
+      if (identifiers.includes(ref)) {
+        validRefs.add(ref)
+      }
+    }
+    dependencies.set(identifier, validRefs)
+  }
+
+  // Detect cycles (recursive schemas) using DFS with path tracking
+  // Only mark nodes that are actually part of a cycle, not nodes that depend on cycles
+  const recursive = new Set<string>()
+  const visiting = new Set<string>()
+  const visited = new Set<string>()
+
+  function detectCycle(identifier: string, path: Array<string>): void {
+    if (visiting.has(identifier)) {
+      // Found a cycle - mark all nodes in the cycle
+      const cycleStart = path.indexOf(identifier)
+      for (let i = cycleStart; i < path.length; i++) {
+        recursive.add(path[i])
+      }
+      recursive.add(identifier)
+      return
+    }
+    if (visited.has(identifier)) {
+      return
+    }
+
+    visiting.add(identifier)
+    path.push(identifier)
+    const deps = dependencies.get(identifier) ?? new Set()
+    for (const dep of deps) {
+      detectCycle(dep, path)
+    }
+    path.pop()
+    visiting.delete(identifier)
+    visited.add(identifier)
+  }
+
+  for (const identifier of identifiers) {
+    if (!visited.has(identifier)) {
+      detectCycle(identifier, [])
+    }
+  }
+
+  // Topologically sort non-recursive schemas using Kahn's algorithm
+  const nonRecursives: Array<readonly [identifier: string, schema: Schema.JsonSchema.Schema]> = []
+  const inDegree = new Map<string, number>()
+  const graph = new Map<string, Set<string>>() // identifier -> set of identifiers that depend on it
+
+  // Initialize in-degree and reverse graph
+  for (const identifier of identifiers) {
+    if (!recursive.has(identifier)) {
+      inDegree.set(identifier, 0)
+      graph.set(identifier, new Set())
+    }
+  }
+
+  // Build reverse graph and calculate in-degrees
+  for (const [identifier, deps] of dependencies.entries()) {
+    if (!recursive.has(identifier)) {
+      for (const dep of deps) {
+        if (!recursive.has(dep)) {
+          const currentInDegree = inDegree.get(identifier) ?? 0
+          inDegree.set(identifier, currentInDegree + 1)
+          const dependents = graph.get(dep) ?? new Set()
+          dependents.add(identifier)
+          graph.set(dep, dependents)
+        }
+      }
+    }
+  }
+
+  // Find all nodes with in-degree 0
+  const queue: Array<string> = []
+  for (const [identifier, degree] of inDegree.entries()) {
+    if (degree === 0) {
+      queue.push(identifier)
+    }
+  }
+
+  // Process queue
+  while (queue.length > 0) {
+    const identifier = queue.shift()!
+    nonRecursives.push([identifier, definitions[identifier]])
+
+    const dependents = graph.get(identifier) ?? new Set()
+    for (const dependent of dependents) {
+      const currentInDegree = inDegree.get(dependent) ?? 0
+      const newInDegree = currentInDegree - 1
+      inDegree.set(dependent, newInDegree)
+      if (newInDegree === 0) {
+        queue.push(dependent)
+      }
+    }
+  }
+
+  // Build recursives object
+  const recursives: { [identifier: string]: Schema.JsonSchema.Schema } = {}
+  for (const identifier of recursive) {
+    recursives[identifier] = definitions[identifier]
+  }
+
+  return {
+    nonRecursives,
+    recursives
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function generateDefinitions(definitions: Schema.JsonSchema.Definitions, options?: {
+  readonly makeIdentifier: (ref: string) => string
+}): Array<readonly [string, Output]> {
+  const ts = topologicalSort(definitions)
+  const recursives = new Set(Object.keys(ts.recursives))
+  return ts.nonRecursives.concat(Object.entries(ts.recursives)).map(([name, schema]) => [
+    name,
+    generate(schema, {
+      recursives,
+      makeIdentifier: options?.makeIdentifier
+    })
+  ])
 }
