@@ -18,7 +18,6 @@
  */
 import { format } from "../data/Formatter.ts"
 import { isObject } from "../data/Predicate.ts"
-import * as Reducer from "../data/Reducer.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
@@ -31,15 +30,7 @@ type Fragment = Schema.JsonSchema.Fragment
 export type Output = {
   readonly code: string
   readonly type: string
-  readonly dependencies: ReadonlySet<string>
 }
-
-const emptySet: ReadonlySet<string> = new Set()
-
-const DependenciesReducer: Reducer.Reducer<ReadonlySet<string>> = Reducer.make<ReadonlySet<string>>(
-  (self, that) => new Set([...self, ...that]),
-  emptySet
-)
 
 /**
  * @since 4.0.0
@@ -55,6 +46,8 @@ export function make(schema: unknown, options?: {
     getIdentifier: options?.getIdentifier ?? getIdentifier
   })
 }
+
+const emptySet: ReadonlySet<string> = new Set()
 
 function getIdentifier(identifier: string): string {
   return identifier.replace(/[/~]/g, "$")
@@ -226,8 +219,7 @@ function base(schema: Fragment, options: GoOptions): Output {
   if (schema.const !== undefined) {
     return {
       code: `Schema.Literal(${format(schema.const)})`,
-      type: format(schema.const),
-      dependencies: emptySet
+      type: format(schema.const)
     }
   }
 
@@ -239,14 +231,12 @@ function base(schema: Fragment, options: GoOptions): Output {
       case 1:
         return {
           code: `Schema.Literal(${format(schema.enum[0])})`,
-          type,
-          dependencies: emptySet
+          type
         }
       default:
         return {
           code: `Schema.Literals([${schema.enum.map((e) => format(e)).join(", ")}])`,
-          type,
-          dependencies: emptySet
+          type
         }
     }
   }
@@ -271,18 +261,15 @@ function base(schema: Fragment, options: GoOptions): Output {
     const last = schema.$ref.split("/").pop()
     if (last !== undefined) {
       const identifier = options.getIdentifier(unescapeJsonPointer(last))
-      const dependencies = new Set([identifier])
       if (options.recursives.has(identifier)) {
         return {
           code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
-          type: identifier,
-          dependencies
+          type: identifier
         }
       }
       return {
         code: identifier,
-        type: identifier,
-        dependencies
+        type: identifier
       }
     }
     throw new Error(`Invalid $ref: ${schema.$ref}`)
@@ -344,11 +331,7 @@ function object(ps: ReadonlyArray<Property>, iss: ReadonlyArray<IndexSignature>)
   } else {
     return {
       code: `Schema.StructWithRest(${structRuntime(ps)}, [${iss.map(indexSignatureRuntime).join(", ")}])`,
-      type: `{ ${propertiesType(ps)}, ${iss.map(indexSignatureType).join(", ")} }`,
-      dependencies: DependenciesReducer.combineAll([
-        ...ps.map((p) => p.value.dependencies),
-        ...iss.map((is) => DependenciesReducer.combine(is.key.dependencies, is.value.dependencies))
-      ])
+      type: `{ ${propertiesType(ps)}, ${iss.map(indexSignatureType).join(", ")} }`
     }
   }
 }
@@ -356,8 +339,7 @@ function object(ps: ReadonlyArray<Property>, iss: ReadonlyArray<IndexSignature>)
 function struct(ps: ReadonlyArray<Property>): Output {
   return {
     code: structRuntime(ps),
-    type: `{ ${propertiesType(ps)} }`,
-    dependencies: DependenciesReducer.combineAll(ps.map((p) => p.value.dependencies))
+    type: `{ ${propertiesType(ps)} }`
   }
 }
 
@@ -372,8 +354,7 @@ function propertiesType(ps: ReadonlyArray<Property>): string {
 function record(is: IndexSignature): Output {
   return {
     code: indexSignatureRuntime(is),
-    type: `{ ${indexSignatureType(is)} }`,
-    dependencies: DependenciesReducer.combine(is.key.dependencies, is.value.dependencies)
+    type: `{ ${indexSignatureType(is)} }`
   }
 }
 
@@ -394,20 +375,17 @@ function array(es: ReadonlyArray<Element>, item: Output | undefined): Output {
   if (item === undefined) {
     return {
       code: tupleRuntime(es),
-      type: `readonly [${elementsType(es)}]`,
-      dependencies: DependenciesReducer.combineAll(es.map((e) => e.value.dependencies))
+      type: `readonly [${elementsType(es)}]`
     }
   } else if (es.length === 0) {
     return {
       code: `Schema.Array(${item.code})`,
-      type: `ReadonlyArray<${item.type}>`,
-      dependencies: item.dependencies
+      type: `ReadonlyArray<${item.type}>`
     }
   } else {
     return {
       code: `Schema.TupleWithRest(${tupleRuntime(es)}, [${item.code}])`,
-      type: `readonly [${elementsType(es)}, ...Array<${item.type}>]`,
-      dependencies: DependenciesReducer.combineAll([...es.map((e) => e.value.dependencies), item.dependencies])
+      type: `readonly [${elementsType(es)}, ...Array<${item.type}>]`
     }
   }
 }
@@ -423,13 +401,12 @@ function elementsType(es: ReadonlyArray<Element>): string {
 function union(members: ReadonlyArray<Output>, mode: "anyOf" | "oneOf"): Output {
   return {
     code: `Schema.Union([${members.map((m) => m.code).join(", ")}]${mode === "oneOf" ? `, {mode:"oneOf"}` : ""})`,
-    type: members.map((m) => m.type).join(" | "),
-    dependencies: DependenciesReducer.combineAll(members.map((m) => m.dependencies))
+    type: members.map((m) => m.type).join(" | ")
   }
 }
 
 function primitive(code: string, type: string): Output {
-  return { code, type, dependencies: emptySet }
+  return { code, type }
 }
 
 const Never: Output = primitive("Schema.Never", "never")

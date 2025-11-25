@@ -37,15 +37,11 @@ function assertOutput(
   expected: {
     readonly code: string
     readonly type: string
-    readonly dependencies?: ReadonlySet<string>
   }
 ) {
   const code = FromJsonSchema.make(input.schema, {
     recursives: input.recursives
   })
-  if (expected.dependencies === undefined) {
-    expected = { ...expected, dependencies: new Set() }
-  }
   deepStrictEqual(code, expected)
 }
 
@@ -502,8 +498,7 @@ describe("FromJsonSchema", () => {
           },
           {
             code: "ID",
-            type: "ID",
-            dependencies: new Set(["ID"])
+            type: "ID"
           }
         )
       })
@@ -517,8 +512,7 @@ describe("FromJsonSchema", () => {
           },
           {
             code: "ID$a$b",
-            type: "ID$a$b",
-            dependencies: new Set(["ID$a$b"])
+            type: "ID$a$b"
           }
         )
       })
@@ -536,8 +530,7 @@ describe("FromJsonSchema", () => {
           },
           {
             code: `Schema.Struct({ a: A })`,
-            type: "{ readonly a: A }",
-            dependencies: new Set(["A"])
+            type: "{ readonly a: A }"
           }
         )
       })
@@ -556,8 +549,7 @@ describe("FromJsonSchema", () => {
           },
           {
             code: `Schema.Struct({ a: Schema.suspend((): Schema.Codec<A> => A) })`,
-            type: "{ readonly a: A }",
-            dependencies: new Set(["A"])
+            type: "{ readonly a: A }"
           }
         )
       })
