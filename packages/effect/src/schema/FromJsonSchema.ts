@@ -46,12 +46,12 @@ const DependenciesReducer: Reducer.Reducer<ReadonlySet<string>> = Reducer.make<R
  */
 export function make(schema: unknown, options?: {
   readonly target?: Target | undefined
-  readonly refs?: ReadonlySet<string> | undefined
+  readonly recursives?: ReadonlySet<string> | undefined
   readonly getIdentifier?: ((identifier: string) => string) | undefined
 }): Output {
   return build(schema, {
     target: options?.target ?? "draft-07",
-    refs: options?.refs ?? emptySet,
+    recursives: options?.recursives ?? emptySet,
     getIdentifier: options?.getIdentifier ?? getIdentifier
   })
 }
@@ -62,7 +62,7 @@ function getIdentifier(identifier: string): string {
 
 interface GoOptions {
   readonly target: Target
-  readonly refs: ReadonlySet<string>
+  readonly recursives: ReadonlySet<string>
   readonly getIdentifier: (identifier: string) => string
 }
 
@@ -271,9 +271,8 @@ function base(schema: Fragment, options: GoOptions): Output {
     const last = schema.$ref.split("/").pop()
     if (last !== undefined) {
       const identifier = options.getIdentifier(unescapeJsonPointer(last))
-      const isRef = options.refs.has(identifier)
       const dependencies = new Set([identifier])
-      if (isRef) {
+      if (options.recursives.has(identifier)) {
         return {
           code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
           type: identifier,

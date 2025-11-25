@@ -15,12 +15,12 @@ function getDocumentByTarget(target: Annotations.JsonSchema.Target, schema: Sche
 
 function assertRoundtrip(input: {
   readonly schema: Schema.Top
-  readonly refs?: ReadonlySet<string> | undefined
+  readonly suspended?: ReadonlySet<string> | undefined
   readonly target?: Annotations.JsonSchema.Target | undefined
 }) {
   const target = input.target ?? "draft-07"
   const document = getDocumentByTarget(target, input.schema)
-  const output = FromJsonSchema.make(document.schema, { target, refs: input.refs })
+  const output = FromJsonSchema.make(document.schema, { target, recursives: input.suspended })
   const fn = new Function("Schema", `return ${output.code}`)
   const generated = fn(Schema)
   const codedocument = getDocumentByTarget(target, generated)
@@ -31,7 +31,7 @@ function assertRoundtrip(input: {
 function assertOutput(
   input: {
     readonly schema: Record<string, unknown> | boolean
-    readonly refs?: ReadonlySet<string> | undefined
+    readonly recursives?: ReadonlySet<string> | undefined
     readonly target?: Annotations.JsonSchema.Target | undefined
   },
   expected: {
@@ -41,7 +41,7 @@ function assertOutput(
   }
 ) {
   const code = FromJsonSchema.make(input.schema, {
-    refs: input.refs
+    recursives: input.recursives
   })
   if (expected.dependencies === undefined) {
     expected = { ...expected, dependencies: new Set() }
@@ -552,7 +552,7 @@ describe("FromJsonSchema", () => {
               },
               "required": ["a"]
             },
-            refs: new Set(["A"])
+            recursives: new Set(["A"])
           },
           {
             code: `Schema.Struct({ a: Schema.suspend((): Schema.Codec<A> => A) })`,
@@ -565,18 +565,21 @@ describe("FromJsonSchema", () => {
   })
 
   describe("generate", () => {
-    function generate(doc: Schema.JsonSchema.Document) {
-      const refs = new Set(Object.keys(doc.definitions))
-      const output = FromJsonSchema.make(doc.schema)
-      const definitions = Object.entries(doc.definitions).map((
+    function generate(
+      schema: Schema.JsonSchema.Schema,
+      definitions: Schema.JsonSchema.Definitions,
+      recursives: ReadonlySet<string>
+    ) {
+      const output = FromJsonSchema.make(schema)
+      const ds = Object.entries(definitions).map((
         [name, schema]
-      ) => [name, FromJsonSchema.make(schema, { refs })] as const)
+      ) => [name, FromJsonSchema.make(schema, { recursives })] as const)
 
       const name = "schema"
       let s = ""
 
       s += "// Definitions\n"
-      definitions.forEach(([name, { code, type }]) => {
+      ds.forEach(([name, { code, type }]) => {
         s += `type ${name} = ${type};\n`
         s += `const ${name} = ${code};\n\n`
       })
@@ -610,9 +613,14 @@ describe("FromJsonSchema", () => {
         left: Expression,
         right: Expression
       }).annotate({ identifier: "Operation" })
-      strictEqual(
-        generate(Schema.makeJsonSchemaDraft07(Operation)),
-        `// Definitions
+
+      const recursives = new Set(["Expression", "Operation"])
+
+      {
+        const document = Schema.makeJsonSchemaDraft07(Operation)
+        strictEqual(
+          generate(document.schema, document.definitions, recursives),
+          `// Definitions
 type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
 const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) });
 
@@ -621,10 +629,13 @@ const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Sc
 
 // Schema
 const schema = Operation;`
-      )
-      strictEqual(
-        generate(Schema.makeJsonSchemaDraft07(Expression)),
-        `// Definitions
+        )
+      }
+      {
+        const document = Schema.makeJsonSchemaDraft07(Expression)
+        strictEqual(
+          generate(document.schema, document.definitions, recursives),
+          `// Definitions
 type Expression = { readonly type: "expression", readonly value: number | Operation };
 const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) });
 
@@ -633,6 +644,33 @@ const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: S
 
 // Schema
 const schema = Expression;`
+        )
+      }
+    })
+
+    it.todo("topological sort", () => {
+      const schema = Schema.Struct({
+        a: Schema.Struct({
+          b: Schema.Struct({
+            c: Schema.String.annotate({ identifier: "C" })
+          }).annotate({ identifier: "B" })
+        }).annotate({ identifier: "A" })
+      })
+      const document = Schema.makeJsonSchemaDraft07(schema)
+      strictEqual(
+        generate(document.schema, document.definitions, new Set()),
+        `// Definitions
+type C = string;
+const C = Schema.String;
+
+type B = { readonly c: C };
+const B = Schema.Struct({ c: C });
+
+type A = { readonly b: B };
+const A = Schema.Struct({ b: B });
+
+// Schema
+const schema = Schema.Struct({ a: A });`
       )
     })
   })
