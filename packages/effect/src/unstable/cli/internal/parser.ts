@@ -209,15 +209,15 @@ export const extractBuiltInOptions = (
 /* One-level scan                                                         */
 /* ====================================================================== */
 
-type LevelLeaf = {
-  readonly type: "leaf"
+type LeafResult = {
+  readonly _tag: "Leaf"
   readonly flags: FlagMap
   readonly arguments: ReadonlyArray<string>
   readonly errors: ReadonlyArray<CliError.CliError>
 }
 
-type LevelSubcommand = {
-  readonly type: "sub"
+type SubcommandResult = {
+  readonly _tag: "Sub"
   readonly flags: FlagMap
   readonly leadingArguments: ReadonlyArray<string>
   readonly sub: Command<string, unknown, unknown, unknown>
@@ -225,7 +225,40 @@ type LevelSubcommand = {
   readonly errors: ReadonlyArray<CliError.CliError>
 }
 
-type LevelResult = LevelLeaf | LevelSubcommand
+type LevelResult = LeafResult | SubcommandResult
+
+interface ParseState {
+  readonly flags: MutableFlagMap
+  readonly arguments: Array<string>
+  readonly errors: Array<CliError.CliError>
+  seenFirstValue: boolean
+}
+
+const makeParseState = (flags: ReadonlyArray<FlagParam>): ParseState => ({
+  flags: makeFlagMap(flags),
+  arguments: [],
+  errors: [],
+  seenFirstValue: false
+})
+
+const recordFlagValue = (
+  state: ParseState,
+  name: string,
+  raw: string | undefined
+): void => {
+  appendFlagValue(state.flags, name, raw)
+}
+
+const mergeFlagValues = (state: ParseState, from: FlagMap | MutableFlagMap): void => {
+  mergeIntoFlagMap(state.flags, from)
+}
+
+const toLeafResult = (state: ParseState): LeafResult => ({
+  _tag: "Leaf",
+  flags: toReadonlyFlagMap(state.flags),
+  arguments: state.arguments,
+  errors: state.errors
+})
 
 const isFlagParam = <A>(s: Param.Single<Param.ParamKind, A>): s is Param.Single<typeof Param.Flag, A> =>
   s.kind === "flag"
@@ -237,59 +270,60 @@ const scanCommandLevel = <Name extends string, Input, E, R>(
   commandPath: ReadonlyArray<string>
 ): LevelResult => {
   const index = buildFlagIndex(flags)
-  const bag = makeFlagMap(flags)
-  const operands: Array<string> = []
-  const errors: Array<CliError.CliError> = []
-  let seenFirstValue = false
+  const state = makeParseState(flags)
   const expectsArgs = command.config.arguments.length > 0
-
   const cursor = makeCursor(tokens)
+
+  const handleFlag = (t: Extract<Token, { _tag: "LongOption" | "ShortOption" }>) => {
+    const spec = index.get(flagName(t))
+    if (!spec) {
+      const err = unrecognizedFlagError(t, flags, commandPath)
+      if (err) state.errors.push(err)
+      return
+    }
+    recordFlagValue(state, spec.name, readFlagValue(cursor, t, spec))
+  }
+
+  const handleFirstValue = (value: string): SubcommandResult | undefined => {
+    const sub = command.subcommands.find((s) => s.name === value)
+    if (sub) {
+      // Allow parent flags to appear after the subcommand name (npm-style)
+      const tail = collectFlagValues(cursor.rest(), flags)
+      mergeFlagValues(state, tail.flagMap)
+      return {
+        _tag: "Sub",
+        flags: toReadonlyFlagMap(state.flags),
+        leadingArguments: [],
+        sub,
+        childTokens: tail.remainder,
+        errors: state.errors
+      }
+    }
+
+    if (!expectsArgs && command.subcommands.length > 0) {
+      const suggestions = suggest(value, command.subcommands.map((s) => s.name))
+      state.errors.push(new CliError.UnknownSubcommand({ subcommand: value, parent: commandPath, suggestions }))
+    }
+    return undefined
+  }
 
   for (let t = cursor.take(); t; t = cursor.take()) {
     if (isFlagToken(t)) {
-      const spec = index.get(flagName(t))
-      if (!spec) {
-        const err = unrecognizedFlagError(t, flags, commandPath)
-        if (err) errors.push(err)
-        // Do not consume a following value; it may be a subcommand or operand
-        continue
-      }
-      appendFlagValue(bag, spec.name, readFlagValue(cursor, t, spec))
+      handleFlag(t)
       continue
     }
 
-    // Value → only the FIRST value may be a subcommand boundary; others are arguments
     if (t._tag === "Value") {
-      if (!seenFirstValue) {
-        seenFirstValue = true
-        const sub = command.subcommands.find((s) => s.name === t.value)
-        if (sub) {
-          // Allow parent flags to appear after the subcommand name (npm-style)
-          const tail = collectFlagValues(cursor.rest(), flags)
-          mergeIntoFlagMap(bag, tail.flagMap)
-          return {
-            type: "sub",
-            flags: toReadonlyFlagMap(bag),
-            leadingArguments: [],
-            sub,
-            childTokens: tail.remainder,
-            errors
-          }
-        } else {
-          if (!expectsArgs && command.subcommands.length > 0) {
-            const suggestions = suggest(t.value, command.subcommands.map((s) => s.name))
-            errors.push(new CliError.UnknownSubcommand({ subcommand: t.value, parent: commandPath, suggestions }))
-          }
-        }
+      if (!state.seenFirstValue) {
+        state.seenFirstValue = true
+        const sub = handleFirstValue(t.value)
+        if (sub) return sub
       }
-      operands.push(t.value)
+      state.arguments.push(t.value)
     }
   }
 
-  // Unknown subcommand validation handled inline on first value; remaining checks
-  // are deferred to argument parsing.
-
-  return { type: "leaf", flags: toReadonlyFlagMap(bag), arguments: operands, errors }
+  return toLeafResult(state)
 }
 
 /* ====================================================================== */
@@ -312,7 +346,7 @@ export const parseArgs = <Name extends string, Input, E, R>(
 
     const result = scanCommandLevel(tokens, command, flags, newCommandPath)
 
-    if (result.type === "leaf") {
+    if (result._tag === "Leaf") {
       return {
         flags: result.flags,
         arguments: [...result.arguments, ...afterEndOfOptions],
@@ -320,7 +354,6 @@ export const parseArgs = <Name extends string, Input, E, R>(
       }
     }
 
-    // Subcommand recursion
     const subLex: LexResult = { tokens: result.childTokens, trailingOperands: [] }
     const subParsed = yield* parseArgs(
       subLex,
@@ -328,7 +361,7 @@ export const parseArgs = <Name extends string, Input, E, R>(
       newCommandPath
     )
 
-    const allErrors = [...result.errors, ...(subParsed.errors || [])]
+    const allErrors = [...result.errors, ...(subParsed.errors ?? [])]
     return {
       flags: result.flags,
       arguments: [...result.leadingArguments, ...afterEndOfOptions],
