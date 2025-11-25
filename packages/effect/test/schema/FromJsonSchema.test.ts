@@ -15,12 +15,11 @@ function getDocumentByTarget(target: Annotations.JsonSchema.Target, schema: Sche
 
 function assertRoundtrip(input: {
   readonly schema: Schema.Top
-  readonly suspended?: ReadonlySet<string> | undefined
   readonly target?: Annotations.JsonSchema.Target | undefined
 }) {
   const target = input.target ?? "draft-07"
   const document = getDocumentByTarget(target, input.schema)
-  const output = FromJsonSchema.generate(document.schema, { target, recursives: input.suspended })
+  const output = FromJsonSchema.generate(document.schema, { target })
   const fn = new Function("Schema", `return ${output.code}`)
   const generated = fn(Schema)
   const codedocument = getDocumentByTarget(target, generated)
@@ -31,21 +30,14 @@ function assertRoundtrip(input: {
 function assertOutput(
   input: {
     readonly schema: Record<string, unknown> | boolean
-    readonly recursives?: ReadonlySet<string> | undefined
-    readonly target?: Annotations.JsonSchema.Target | undefined
+    readonly options?: FromJsonSchema.Options | undefined
   },
   expected: {
     readonly code: string
     readonly type: string
-  },
-  options?: {
-    readonly makeIdentifier: (ref: string) => string
   }
 ) {
-  const code = FromJsonSchema.generate(input.schema, {
-    recursives: input.recursives,
-    makeIdentifier: options?.makeIdentifier
-  })
+  const code = FromJsonSchema.generate(input.schema, input.options)
   deepStrictEqual(code, expected)
 }
 
@@ -167,7 +159,6 @@ describe("FromJsonSchema", () => {
       describe("target: draft-07", () => {
         it("items: false", () => {
           assertOutput({
-            target: "draft-07",
             schema: {
               "type": "array",
               "items": false
@@ -180,7 +171,6 @@ describe("FromJsonSchema", () => {
 
         it("items: schema", () => {
           assertOutput({
-            target: "draft-07",
             schema: {
               "type": "array",
               "items": { "type": "string" }
@@ -193,7 +183,6 @@ describe("FromJsonSchema", () => {
 
         it("items: empty array", () => {
           assertOutput({
-            target: "draft-07",
             schema: {
               "type": "array",
               "items": []
@@ -206,7 +195,6 @@ describe("FromJsonSchema", () => {
 
         it("items: non empty array", () => {
           assertOutput({
-            target: "draft-07",
             schema: {
               "type": "array",
               "items": [{ "type": "string" }, { "type": "number" }]
@@ -219,7 +207,6 @@ describe("FromJsonSchema", () => {
 
         it("items & additionalItems: false", () => {
           assertOutput({
-            target: "draft-07",
             schema: {
               "type": "array",
               "items": [{ "type": "string" }, { "type": "number" }],
@@ -233,7 +220,6 @@ describe("FromJsonSchema", () => {
 
         it("items & additionalItems: true", () => {
           assertOutput({
-            target: "draft-07",
             schema: {
               "type": "array",
               "items": [{ "type": "string" }, { "type": "number" }],
@@ -247,7 +233,6 @@ describe("FromJsonSchema", () => {
 
         it("items & additionalItems: schema", () => {
           assertOutput({
-            target: "draft-07",
             schema: {
               "type": "array",
               "items": [{ "type": "string" }, { "type": "number" }],
@@ -261,7 +246,6 @@ describe("FromJsonSchema", () => {
 
         it("optional items", () => {
           assertOutput({
-            target: "draft-07",
             schema: {
               "type": "array",
               "minItems": 0,
@@ -423,8 +407,7 @@ describe("FromJsonSchema", () => {
             "type": "array",
             "items": { "type": "string" },
             "minItems": 1
-          },
-          target: "draft-07"
+          }
         }, { code: "Schema.Array(Schema.String).check(Schema.isMinLength(1))", type: "ReadonlyArray<string>" })
       })
 
@@ -434,8 +417,7 @@ describe("FromJsonSchema", () => {
             "type": "array",
             "items": { "type": "string" },
             "maxItems": 10
-          },
-          target: "draft-07"
+          }
         }, { code: "Schema.Array(Schema.String).check(Schema.isMaxLength(10))", type: "ReadonlyArray<string>" })
       })
 
@@ -445,8 +427,7 @@ describe("FromJsonSchema", () => {
             "type": "array",
             "items": { "type": "string" },
             "uniqueItems": true
-          },
-          target: "draft-07"
+          }
         }, {
           code: "Schema.Array(Schema.String).check(Schema.isUnique())",
           type: "ReadonlyArray<string>"
@@ -523,13 +504,18 @@ describe("FromJsonSchema", () => {
           {
             schema: {
               "$ref": "#/definitions/ID~1a~0b"
+            },
+            options: {
+              resolver: (identifier) => {
+                const id = identifier.replace(/[/~]/g, "$")
+                return ({ code: id, type: id })
+              }
             }
           },
           {
             code: "ID$a$b",
             type: "ID$a$b"
-          },
-          { makeIdentifier: (ref) => ref.replace(/[/~]/g, "$") }
+          }
         )
       })
 
@@ -561,7 +547,12 @@ describe("FromJsonSchema", () => {
               },
               "required": ["a"]
             },
-            recursives: new Set(["A"])
+            options: {
+              resolver: (identifier) => ({
+                code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
+                type: identifier
+              })
+            }
           },
           {
             code: `Schema.Struct({ a: Schema.suspend((): Schema.Codec<A> => A) })`,
@@ -771,7 +762,7 @@ describe("FromJsonSchema", () => {
         },
         {
           nonRecursives: [
-            ["A", { type: "string" }]
+            { identifier: "A", schema: { type: "string" } }
           ],
           recursives: {}
         }
@@ -785,9 +776,9 @@ describe("FromJsonSchema", () => {
         C: { type: "boolean" }
       }, {
         nonRecursives: [
-          ["A", { type: "string" }],
-          ["B", { type: "number" }],
-          ["C", { type: "boolean" }]
+          { identifier: "A", schema: { type: "string" } },
+          { identifier: "B", schema: { type: "number" } },
+          { identifier: "C", schema: { type: "boolean" } }
         ],
         recursives: {}
       })
@@ -800,9 +791,9 @@ describe("FromJsonSchema", () => {
         C: { $ref: "#/definitions/B" }
       }, {
         nonRecursives: [
-          ["A", { type: "string" }],
-          ["B", { $ref: "#/definitions/A" }],
-          ["C", { $ref: "#/definitions/B" }]
+          { identifier: "A", schema: { type: "string" } },
+          { identifier: "B", schema: { $ref: "#/definitions/A" } },
+          { identifier: "C", schema: { $ref: "#/definitions/B" } }
         ],
         recursives: {}
       })
@@ -815,9 +806,9 @@ describe("FromJsonSchema", () => {
         C: { $ref: "#/definitions/A" }
       }, {
         nonRecursives: [
-          ["A", { type: "string" }],
-          ["B", { $ref: "#/definitions/A" }],
-          ["C", { $ref: "#/definitions/A" }]
+          { identifier: "A", schema: { type: "string" } },
+          { identifier: "B", schema: { $ref: "#/definitions/A" } },
+          { identifier: "C", schema: { $ref: "#/definitions/A" } }
         ],
         recursives: {}
       })
@@ -831,10 +822,10 @@ describe("FromJsonSchema", () => {
         D: { $ref: "#/definitions/A" }
       }, {
         nonRecursives: [
-          ["A", { type: "string" }],
-          ["B", { $ref: "#/definitions/A" }],
-          ["D", { $ref: "#/definitions/A" }],
-          ["C", { $ref: "#/definitions/B" }]
+          { identifier: "A", schema: { type: "string" } },
+          { identifier: "B", schema: { $ref: "#/definitions/A" } },
+          { identifier: "D", schema: { $ref: "#/definitions/A" } },
+          { identifier: "C", schema: { $ref: "#/definitions/B" } }
         ],
         recursives: {}
       })
@@ -888,8 +879,8 @@ describe("FromJsonSchema", () => {
         E: { $ref: "#/definitions/D" }
       }, {
         nonRecursives: [
-          ["A", { type: "string" }],
-          ["B", { $ref: "#/definitions/A" }]
+          { identifier: "A", schema: { type: "string" } },
+          { identifier: "B", schema: { $ref: "#/definitions/A" } }
         ],
         recursives: {
           C: { $ref: "#/definitions/C" },
@@ -910,8 +901,8 @@ describe("FromJsonSchema", () => {
         }
       }, {
         nonRecursives: [
-          ["A", { type: "string" }],
-          ["B", { type: "object", properties: { value: { $ref: "#/definitions/A" } } }]
+          { identifier: "A", schema: { type: "string" } },
+          { identifier: "B", schema: { type: "object", properties: { value: { $ref: "#/definitions/A" } } } }
         ],
         recursives: {}
       })
@@ -926,8 +917,8 @@ describe("FromJsonSchema", () => {
         }
       }, {
         nonRecursives: [
-          ["A", { type: "string" }],
-          ["B", { type: "array", items: { $ref: "#/definitions/A" } }]
+          { identifier: "A", schema: { type: "string" } },
+          { identifier: "B", schema: { type: "array", items: { $ref: "#/definitions/A" } } }
         ],
         recursives: {}
       })
@@ -944,8 +935,8 @@ describe("FromJsonSchema", () => {
         }
       }, {
         nonRecursives: [
-          ["A", { type: "string" }],
-          ["B", { anyOf: [{ $ref: "#/definitions/A" }, { type: "number" }] }]
+          { identifier: "A", schema: { type: "string" } },
+          { identifier: "B", schema: { anyOf: [{ $ref: "#/definitions/A" }, { type: "number" }] } }
         ],
         recursives: {}
       })
@@ -957,8 +948,8 @@ describe("FromJsonSchema", () => {
         B: { $ref: "#/definitions/A" }
       }, {
         nonRecursives: [
-          ["A", { $ref: "#/definitions/External" }],
-          ["B", { $ref: "#/definitions/A" }]
+          { identifier: "A", schema: { $ref: "#/definitions/External" } },
+          { identifier: "B", schema: { $ref: "#/definitions/A" } }
         ],
         recursives: {}
       })
@@ -988,21 +979,24 @@ describe("FromJsonSchema", () => {
         }
       }, {
         nonRecursives: [
-          ["A", { type: "string" }],
-          ["B", {
-            type: "object",
-            properties: {
-              items: {
-                type: "array",
+          { identifier: "A", schema: { type: "string" } },
+          {
+            identifier: "B",
+            schema: {
+              type: "object",
+              properties: {
                 items: {
-                  anyOf: [{ $ref: "#/definitions/A" }, {
-                    type: "object",
-                    properties: { nested: { $ref: "#/definitions/A" } }
-                  }]
+                  type: "array",
+                  items: {
+                    anyOf: [{ $ref: "#/definitions/A" }, {
+                      type: "object",
+                      properties: { nested: { $ref: "#/definitions/A" } }
+                    }]
+                  }
                 }
               }
             }
-          }]
+          }
         ],
         recursives: {}
       })
@@ -1017,7 +1011,7 @@ describe("FromJsonSchema", () => {
         D: { $ref: "#/definitions/C" }
       }, {
         nonRecursives: [
-          ["Independent", { type: "string" }]
+          { identifier: "Independent", schema: { type: "string" } }
         ],
         recursives: {
           A: { $ref: "#/definitions/B" },
@@ -1034,7 +1028,7 @@ describe("FromJsonSchema", () => {
         B: { $ref: "#/definitions/A" }
       }, {
         nonRecursives: [
-          ["B", { $ref: "#/definitions/A" }]
+          { identifier: "B", schema: { $ref: "#/definitions/A" } }
         ],
         recursives: {
           A: { $ref: "#/definitions/A" }
@@ -1047,7 +1041,7 @@ describe("FromJsonSchema", () => {
         A: { $ref: "#/definitions/~01A" }
       }, {
         nonRecursives: [
-          ["A", { $ref: "#/definitions/~01A" }]
+          { identifier: "A", schema: { $ref: "#/definitions/~01A" } }
         ],
         recursives: {}
       })
@@ -1057,28 +1051,21 @@ describe("FromJsonSchema", () => {
   describe("generateDefinitions", () => {
     function generate(
       definitions: Schema.JsonSchema.Definitions,
-      options?: {
-        readonly makeIdentifier: (ref: string) => string
-      }
+      schemas: ReadonlyArray<Schema.JsonSchema.Schema>
     ) {
-      return (schema: Schema.JsonSchema.Schema) => {
-        const deps = FromJsonSchema.generateDefinitions(definitions, options)
-        const output = FromJsonSchema.generate(schema, {
-          makeIdentifier: options?.makeIdentifier
-        })
-        const name = "schema"
-        let s = ""
+      const genDependencies = FromJsonSchema.generateDefinitions(definitions)
+      const genSchemas = schemas.map((schema) => FromJsonSchema.generate(schema))
+      let s = ""
 
-        s += "// Definitions\n"
-        deps.forEach(([name, { code, type }]) => {
-          s += `type ${name} = ${type};\n`
-          s += `const ${name} = ${code};\n\n`
-        })
+      s += "// Definitions\n"
+      genDependencies.forEach(({ identifier, schema }) => {
+        s += `type ${identifier} = ${schema.type};\n`
+        s += `const ${identifier} = ${schema.code};\n\n`
+      })
 
-        s += "// Schema\n"
-        s += `const ${name} = ${output.code};`
-        return s
-      }
+      s += "// Schemas\n"
+      s += genSchemas.map(({ code }, i) => `const schema${i + 1} = ${code};`).join("\n")
+      return s
     }
 
     it("mutually recursive", () => {
@@ -1109,7 +1096,7 @@ describe("FromJsonSchema", () => {
       {
         const document = Schema.makeJsonSchemaDraft07(Operation)
         strictEqual(
-          generate(document.definitions)(document.schema),
+          generate(document.definitions, [document.schema]),
           `// Definitions
 type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
 const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ identifier: "Operation" });
@@ -1117,14 +1104,14 @@ const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: S
 type Expression = { readonly type: "expression", readonly value: number | Operation };
 const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ identifier: "Expression" });
 
-// Schema
-const schema = Operation;`
+// Schemas
+const schema1 = Operation;`
         )
       }
       {
         const document = Schema.makeJsonSchemaDraft07(Expression)
         strictEqual(
-          generate(document.definitions)(document.schema),
+          generate(document.definitions, [document.schema]),
           `// Definitions
 type Expression = { readonly type: "expression", readonly value: number | Operation };
 const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ identifier: "Expression" });
@@ -1132,8 +1119,8 @@ const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Sc
 type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
 const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ identifier: "Operation" });
 
-// Schema
-const schema = Expression;`
+// Schemas
+const schema1 = Expression;`
         )
       }
     })
@@ -1148,7 +1135,7 @@ const schema = Expression;`
       })
       const document = Schema.makeJsonSchemaDraft07(schema)
       strictEqual(
-        generate(document.definitions)(document.schema),
+        generate(document.definitions, [document.schema]),
         `// Definitions
 type C = string;
 const C = Schema.String.annotate({ identifier: "C" });
@@ -1159,8 +1146,8 @@ const B = Schema.Struct({ c: C }).annotate({ identifier: "B" });
 type A = { readonly b: B };
 const A = Schema.Struct({ b: B }).annotate({ identifier: "A" });
 
-// Schema
-const schema = Schema.Struct({ a: A });`
+// Schemas
+const schema1 = Schema.Struct({ a: A });`
       )
     })
   })

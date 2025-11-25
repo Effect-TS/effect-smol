@@ -5533,39 +5533,40 @@ const C = Schema.Struct({
 // Generate the JSON Schema for each schema
 
 const definitions = {}
-const jsonSchemas = {
-  A: Schema.makeJsonSchemaDraft07(A, { definitions }).schema,
-  B: Schema.makeJsonSchemaDraft07(B, { definitions }).schema,
-  C: Schema.makeJsonSchemaDraft07(C, { definitions }).schema
-}
+const jsonSchemas = [A, B, C].map((schema) => Schema.makeJsonSchemaDraft07(schema, { definitions }).schema)
 
 // Generate the code
 
-const definitionsOutputs = FromJsonSchema.generateDefinitions(definitions)
-const schemas = {
-  A: FromJsonSchema.generate(jsonSchemas.A),
-  B: FromJsonSchema.generate(jsonSchemas.B),
-  C: FromJsonSchema.generate(jsonSchemas.C)
+function generate(definitions: Schema.JsonSchema.Definitions, schemas: ReadonlyArray<Schema.JsonSchema.Schema>) {
+  const genDependencies = FromJsonSchema.generateDefinitions(definitions)
+  const identifiers = new Set()
+  const genSchemas = schemas.map((schema) => FromJsonSchema.generate(schema))
+  let s = ""
+
+  s += "// Definitions\n"
+  genDependencies.forEach(({ identifier, schema }) => {
+    identifiers.add(identifier)
+    s += `export type ${identifier} = ${schema.type};\n`
+    s += `export const ${identifier} = ${schema.code};\n\n`
+  })
+
+  s += "// Schemas\n"
+  s += genSchemas
+    .filter(({ code }) => !identifiers.has(code))
+    .map(({ code }, i) => `export const schema${i + 1} = ${code};`)
+    .join("\n")
+  return s
 }
 
-const code = `// Definitions
-${definitionsOutputs.map(([name, output]) => `const ${name} = ${output.code};`).join("\n")}
-
-// Schemas
-${Object.entries(schemas)
-  .filter(([name, output]) => name !== output.code)
-  .map(([name, output]) => `const ${name} = ${output.code};`)
-  .join("\n")}
-`
-console.log(code)
+console.log(generate(definitions, jsonSchemas))
 /*
 // Definitions
-const B = Schema.Struct({ b: Schema.Struct({ a: Schema.Struct({ value: Schema.String }) }) });
+export type B = { readonly b: { readonly a: { readonly value: string } } };
+export const B = Schema.Struct({ b: Schema.Struct({ a: Schema.Struct({ value: Schema.String }) }) }).annotate({ identifier: "B" });
 
 // Schemas
-const A = Schema.Struct({ value: Schema.String });
-const C = Schema.Struct({ c: Schema.Tuple([B, Schema.Number]) });
-
+export const schema1 = Schema.Struct({ value: Schema.String });
+export const schema2 = Schema.Struct({ c: Schema.Tuple([B, Schema.Number]) });
 */
 ```
 

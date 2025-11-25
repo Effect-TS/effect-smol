@@ -18,7 +18,6 @@
  */
 import { format } from "../data/Formatter.ts"
 import { isObject } from "../data/Predicate.ts"
-import { identity } from "../Function.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
@@ -36,24 +35,26 @@ export type Output = {
 /**
  * @since 4.0.0
  */
-export function generate(schema: unknown, options?: {
+export type Options = {
+  readonly resolver?: ((identifier: string) => Output) | undefined
   readonly target?: Target | undefined
-  readonly recursives?: ReadonlySet<string> | undefined
-  readonly makeIdentifier?: ((ref: string) => string) | undefined
-}): Output {
+}
+
+const defaultResolver = (identifier: string) => ({ code: identifier, type: identifier })
+
+/**
+ * @since 4.0.0
+ */
+export function generate(schema: unknown, options?: Options): Output {
   return build(schema, {
-    target: options?.target ?? "draft-07",
-    recursives: options?.recursives ?? emptySet,
-    makeIdentifier: options?.makeIdentifier ?? identity
+    resolver: options?.resolver ?? defaultResolver,
+    target: options?.target ?? "draft-07"
   })
 }
 
-const emptySet: ReadonlySet<string> = new Set()
-
 interface GoOptions {
+  readonly resolver: (identifier: string) => Output
   readonly target: Target
-  readonly recursives: ReadonlySet<string>
-  readonly makeIdentifier: (ref: string) => string
 }
 
 function build(schema: unknown, options: GoOptions): Output {
@@ -255,19 +256,26 @@ function base(schema: Fragment, options: GoOptions): Output {
   }
 
   if (typeof schema.$ref === "string") {
-    const $ref = extractIdentifier(schema.$ref)
-    if ($ref !== undefined) {
-      const identifier = options.makeIdentifier($ref)
-      if (options.recursives.has(identifier)) {
-        return {
-          code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
-          type: identifier
-        }
-      }
-      return {
-        code: identifier,
-        type: identifier
-      }
+    const identifier = extractIdentifier(schema.$ref)
+    if (identifier !== undefined) {
+      return options.resolver(identifier)
+      // const identifier = options.makeIdentifier($ref)
+      // if (options.recursives.has(identifier)) {
+      //   return {
+      //     code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
+      //     type: identifier
+      //   }
+      // }
+      // if (options.externs.has(identifier)) {
+      //   return {
+      //     code: identifier,
+      //     type: `typeof ${identifier}["Encoded"]`
+      //   }
+      // }
+      // return {
+      //   code: identifier,
+      //   type: identifier
+      // }
     }
     throw new Error(`Invalid $ref: ${schema.$ref}`)
   }
@@ -461,17 +469,23 @@ function unescapeJsonPointer(pointer: string): string {
 
 /**
  * The topological sort of the definitions.
+ * @since 4.0.0
  */
 export type TopologicalSort = {
   /**
    * The definitions that are not recursive.
    * The definitions that depends on other definitions are placed after the definitions they depend on
    */
-  readonly nonRecursives: ReadonlyArray<readonly [identifier: string, schema: Schema.JsonSchema.Schema]>
+  readonly nonRecursives: ReadonlyArray<{
+    readonly identifier: string
+    readonly schema: Schema.JsonSchema.Schema
+  }>
   /**
    * The recursive definitions (with no particular order).
    */
-  readonly recursives: { readonly [identifier: string]: Schema.JsonSchema.Schema }
+  readonly recursives: {
+    readonly [identifier: string]: Schema.JsonSchema.Schema
+  }
 }
 
 /**
@@ -566,7 +580,10 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
   }
 
   // Topologically sort non-recursive schemas using Kahn's algorithm
-  const nonRecursives: Array<readonly [identifier: string, schema: Schema.JsonSchema.Schema]> = []
+  const nonRecursives: Array<{
+    readonly identifier: string
+    readonly schema: Schema.JsonSchema.Schema
+  }> = []
   const inDegree = new Map<string, number>()
   const graph = new Map<string, Set<string>>() // identifier -> set of identifiers that depend on it
 
@@ -604,7 +621,7 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
   // Process queue
   while (queue.length > 0) {
     const identifier = queue.shift()!
-    nonRecursives.push([identifier, definitions[identifier]])
+    nonRecursives.push({ identifier, schema: definitions[identifier] })
 
     const dependents = graph.get(identifier) ?? new Set()
     for (const dependent of dependents) {
@@ -633,15 +650,36 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
  * @since 4.0.0
  */
 export function generateDefinitions(definitions: Schema.JsonSchema.Definitions, options?: {
-  readonly makeIdentifier: (ref: string) => string
-}): Array<readonly [string, Output]> {
+  readonly target?: Target | undefined
+}): Array<{
+  readonly identifier: string
+  readonly schema: Output
+}> {
   const ts = topologicalSort(definitions)
   const recursives = new Set(Object.keys(ts.recursives))
-  return ts.nonRecursives.concat(Object.entries(ts.recursives)).map(([name, schema]) => {
-    const output = generate(schema, {
-      recursives,
-      makeIdentifier: options?.makeIdentifier
-    })
-    return [name, { code: output.code + `.annotate({ identifier: "${name}" })`, type: output.type }]
+  const resolver = (identifier: string) => {
+    if (recursives.has(identifier)) {
+      return {
+        code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
+        type: identifier
+      }
+    }
+    return defaultResolver(identifier)
+  }
+  const opts = {
+    target: options?.target,
+    resolver
+  }
+  return ts.nonRecursives.concat(
+    Object.entries(ts.recursives).map(([identifier, schema]) => ({ identifier, schema }))
+  ).map(({ identifier, schema }) => {
+    const output = generate(schema, opts)
+    return {
+      identifier,
+      schema: {
+        code: output.code + `.annotate({ identifier: "${identifier}" })`,
+        type: output.type
+      }
+    }
   })
 }
