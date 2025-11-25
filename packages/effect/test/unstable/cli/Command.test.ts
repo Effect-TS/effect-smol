@@ -3,7 +3,7 @@ import { Effect, Layer } from "effect"
 import { Option } from "effect/data"
 import { FileSystem, Path } from "effect/platform"
 import { TestConsole } from "effect/testing"
-import { Command, Flag, HelpFormatter } from "effect/unstable/cli"
+import { Argument, Command, Flag, HelpFormatter } from "effect/unstable/cli"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"
 import * as MockTerminal from "./services/MockTerminal.ts"
 import * as TestActions from "./services/TestActions.ts"
@@ -539,6 +539,34 @@ describe("Command", () => {
           "deploy: parent.verbose=true",
           "deploy: target-version=1.0.0"
         ])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should treat tokens after -- as operands (no subcommand or flags)", () =>
+      Effect.gen(function*() {
+        const captured: Array<ReadonlyArray<string>> = []
+        let childInvoked = false
+
+        const root = Command.make("tool", {
+          rest: Argument.string("rest").pipe(Argument.variadic())
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config.rest)
+          }))
+
+        const child = Command.make("child", {
+          value: Flag.string("value")
+        }, () =>
+          Effect.sync(() => {
+            childInvoked = true
+          }))
+
+        const cli = root.pipe(Command.withSubcommands(child))
+        const runCli = Command.runWith(cli, { version: "1.0.0" })
+
+        yield* runCli(["--", "child", "--value", "x"])
+
+        assert.isFalse(childInvoked)
+        assert.deepStrictEqual(captured, [["child", "--value", "x"]])
       }).pipe(Effect.provide(TestLayer)))
 
     it.effect("should support options before, after, or between operands (relaxed POSIX Syntax Guideline No. 9)", () =>
