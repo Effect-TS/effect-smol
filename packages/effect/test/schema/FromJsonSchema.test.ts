@@ -1112,10 +1112,10 @@ describe("FromJsonSchema", () => {
           generate(document.definitions)(document.schema),
           `// Definitions
 type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
-const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) });
+const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ identifier: "Operation" });
 
 type Expression = { readonly type: "expression", readonly value: number | Operation };
-const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) });
+const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ identifier: "Expression" });
 
 // Schema
 const schema = Operation;`
@@ -1127,10 +1127,10 @@ const schema = Operation;`
           generate(document.definitions)(document.schema),
           `// Definitions
 type Expression = { readonly type: "expression", readonly value: number | Operation };
-const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) });
+const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ identifier: "Expression" });
 
 type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
-const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) });
+const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ identifier: "Operation" });
 
 // Schema
 const schema = Expression;`
@@ -1151,13 +1151,13 @@ const schema = Expression;`
         generate(document.definitions)(document.schema),
         `// Definitions
 type C = string;
-const C = Schema.String;
+const C = Schema.String.annotate({ identifier: "C" });
 
 type B = { readonly c: C };
-const B = Schema.Struct({ c: C });
+const B = Schema.Struct({ c: C }).annotate({ identifier: "B" });
 
 type A = { readonly b: B };
-const A = Schema.Struct({ b: B });
+const A = Schema.Struct({ b: B }).annotate({ identifier: "A" });
 
 // Schema
 const schema = Schema.Struct({ a: A });`

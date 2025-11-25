@@ -637,11 +637,11 @@ export function generateDefinitions(definitions: Schema.JsonSchema.Definitions, 
 }): Array<readonly [string, Output]> {
   const ts = topologicalSort(definitions)
   const recursives = new Set(Object.keys(ts.recursives))
-  return ts.nonRecursives.concat(Object.entries(ts.recursives)).map(([name, schema]) => [
-    name,
-    generate(schema, {
+  return ts.nonRecursives.concat(Object.entries(ts.recursives)).map(([name, schema]) => {
+    const output = generate(schema, {
       recursives,
       makeIdentifier: options?.makeIdentifier
     })
-  ])
+    return [name, { code: output.code + `.annotate({ identifier: "${name}" })`, type: output.type }]
+  })
 }

@@ -5509,6 +5509,66 @@ Output:
 */
 ```
 
+## Generating a Schema from a JSON Schema
+
+```ts
+import { FromJsonSchema, Schema } from "effect/schema"
+
+// A few schemas that reference each other
+
+const A = Schema.Struct({
+  value: Schema.String
+})
+
+const B = Schema.Struct({
+  b: Schema.Struct({
+    a: A
+  })
+}).annotate({ identifier: "B" })
+
+const C = Schema.Struct({
+  c: Schema.Tuple([B, Schema.Number])
+})
+
+// Generate the JSON Schema for each schema
+
+const definitions = {}
+const jsonSchemas = {
+  A: Schema.makeJsonSchemaDraft07(A, { definitions }).schema,
+  B: Schema.makeJsonSchemaDraft07(B, { definitions }).schema,
+  C: Schema.makeJsonSchemaDraft07(C, { definitions }).schema
+}
+
+// Generate the code
+
+const definitionsOutputs = FromJsonSchema.generateDefinitions(definitions)
+const schemas = {
+  A: FromJsonSchema.generate(jsonSchemas.A),
+  B: FromJsonSchema.generate(jsonSchemas.B),
+  C: FromJsonSchema.generate(jsonSchemas.C)
+}
+
+const code = `// Definitions
+${definitionsOutputs.map(([name, output]) => `const ${name} = ${output.code};`).join("\n")}
+
+// Schemas
+${Object.entries(schemas)
+  .filter(([name, output]) => name !== output.code)
+  .map(([name, output]) => `const ${name} = ${output.code};`)
+  .join("\n")}
+`
+console.log(code)
+/*
+// Definitions
+const B = Schema.Struct({ b: Schema.Struct({ a: Schema.Struct({ value: Schema.String }) }) });
+
+// Schemas
+const A = Schema.Struct({ value: Schema.String });
+const C = Schema.Struct({ c: Schema.Tuple([B, Schema.Number]) });
+
+*/
+```
+
 ## Generating an Arbitrary from a Schema
 
 ### Basic Conversion
