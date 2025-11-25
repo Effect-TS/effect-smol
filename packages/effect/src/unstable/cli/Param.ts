@@ -231,6 +231,15 @@ export const isSingle = <const Kind extends ParamKind, A>(
 ): param is Single<Kind, A> => Predicate.isTagged(param, "Single")
 
 /**
+ * Type guard to check if a Single param is a flag (not an argument).
+ *
+ * @internal
+ */
+export const isFlagParam = <A>(
+  single: Single<ParamKind, A>
+): single is Single<typeof Flag, A> => single.kind === "flag"
+
+/**
  * @since 4.0.0
  * @category constructors
  */

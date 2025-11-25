@@ -23,6 +23,7 @@ import {
   handleCompletionRequest,
   isCompletionRequest
 } from "./internal/completions/dynamic/index.ts"
+import { type ConfigInternal, isConfigInternal, parseConfig, reconstructTree } from "./internal/config.ts"
 import * as Lexer from "./internal/lexer.ts"
 import * as Parser from "./internal/parser.ts"
 import * as Param from "./Param.ts"
@@ -30,7 +31,6 @@ import * as Primitive from "./Primitive.ts"
 import * as Prompt from "./Prompt.ts"
 
 const TypeId = "~effect/cli/Command" as const
-const ParsedConfigTypeId = "~effect/cli/Command/ParsedConfig" as const
 
 /**
  * Represents a CLI command with its configuration, handler, and metadata.
@@ -101,10 +101,10 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
   readonly subcommands: ReadonlyArray<Command<any, any, any, any>>
 
   /**
-   * The configuration object that will be used to parse command-line flags
-   * and positional arguments for the command.
+   * The processed internal representation of the command's configuration.
+   * Contains flags, arguments, and the tree structure for reconstruction.
    */
-  readonly config: ParsedConfig
+  readonly config: Command.Config.Internal
 
   /**
    * A service which can be used to extract this command's positional arguments
@@ -126,6 +126,148 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
     input: Input,
     commandPath: ReadonlyArray<string>
   ) => Effect.Effect<void, E | CliError.CliError, R | Environment>
+}
+
+/**
+ * @since 4.0.0
+ */
+export declare namespace Command {
+  /**
+   * Configuration object for defining command flags, arguments, and nested structures.
+   *
+   * Command.Config allows you to specify:
+   * - Individual flags and arguments using Param types
+   * - Nested configuration objects for organization
+   * - Arrays of parameters for repeated elements
+   *
+   * @example
+   * ```ts
+   * import { Command, Flag, Argument } from "effect/unstable/cli"
+   *
+   * // Simple flat configuration
+   * const simpleConfig: Command.Config = {
+   *   name: Flag.string("name"),
+   *   age: Flag.integer("age"),
+   *   file: Argument.string("file")
+   * }
+   *
+   * // Nested configuration for organization
+   * const nestedConfig: Command.Config = {
+   *   user: {
+   *     name: Flag.string("name"),
+   *     email: Flag.string("email")
+   *   },
+   *   server: {
+   *     host: Flag.string("host"),
+   *     port: Flag.integer("port")
+   *   }
+   * }
+   * ```
+   *
+   * @since 4.0.0
+   * @category models
+   */
+  export interface Config {
+    readonly [key: string]:
+      | Param.Param<Param.ParamKind, any>
+      | ReadonlyArray<Param.Param<Param.ParamKind, any> | Config>
+      | Config
+  }
+
+  export namespace Config {
+    /**
+     * The processed internal representation of a Command.Config declaration.
+     *
+     * Created by parsing the user's config. Separates parameters by type
+     * while preserving the original nested structure via the tree.
+     *
+     * @example
+     * ```ts
+     * import { Command, Flag, Argument } from "effect/unstable/cli"
+     *
+     * const cmd = Command.make("deploy", {
+     *   verbose: Flag.boolean("verbose"),
+     *   server: {
+     *     host: Flag.string("host"),
+     *     port: Flag.integer("port")
+     *   },
+     *   files: Argument.string("files").pipe(Argument.variadic)
+     * })
+     *
+     * // Access the internal representation:
+     * // cmd.config.arguments  -> [filesParam]
+     * // cmd.config.flags      -> [verboseParam, hostParam, portParam]
+     * // cmd.config.tree       -> preserves nested structure for reconstruction
+     * ```
+     *
+     * @since 4.0.0
+     * @category models
+     */
+    export type Internal = ConfigInternal
+
+    export namespace Internal {
+      /**
+       * Maps declaration keys to their node representations.
+       * Preserves the shape of the user's config object.
+       */
+      export type Tree = ConfigInternal.Tree
+
+      /**
+       * A node in the config tree.
+       *
+       * - Param: References a parameter by index in orderedParams
+       * - Array: Contains child nodes for tuple/array declarations
+       * - Nested: Contains a subtree for nested config objects
+       */
+      export type Node = ConfigInternal.Node
+    }
+
+    /**
+     * Infers the TypeScript type from a Command.Config structure.
+     *
+     * This type utility extracts the final configuration type that handlers will receive,
+     * preserving the nested structure while converting Param types to their values.
+     *
+     * @example
+     * ```ts
+     * import { Command, Flag, Argument } from "effect/unstable/cli"
+     *
+     * const config = {
+     *   name: Flag.string("name"),
+     *   server: {
+     *     host: Flag.string("host"),
+     *     port: Flag.integer("port")
+     *   }
+     * } as const
+     *
+     * type Result = Command.Config.Infer<typeof config>
+     * // {
+     * //   readonly name: string
+     * //   readonly server: {
+     * //     readonly host: string
+     * //     readonly port: number
+     * //   }
+     * // }
+     * ```
+     *
+     * @since 4.0.0
+     * @category models
+     */
+    export type Infer<A extends Config> = Simplify<
+      { readonly [Key in keyof A]: InferValue<A[Key]> }
+    >
+
+    /**
+     * Helper type utility for recursively inferring types from Config values.
+     *
+     * @since 4.0.0
+     * @category models
+     */
+    export type InferValue<A> = A extends ReadonlyArray<any> ? { readonly [Key in keyof A]: InferValue<A[Key]> }
+      : A extends Param.Param<infer _Kind, infer _Value> ? _Value
+      : A extends Config ? Infer<A>
+      : never
+  }
 }
 
 /**
@@ -227,293 +369,6 @@ export interface RawInput {
   }
 }
 
-/**
- * Configuration object for defining command flags, arguments, and nested structures.
- *
- * CommandConfig allows you to specify:
- * - Individual flags and arguments using Param types
- * - Nested configuration objects for organization
- * - Arrays of parameters for repeated elements
- *
- * @example
- * ```ts
- * import { Command, Flag, Argument } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
- *
- * // Simple flat configuration
- * const simpleConfig = {
- *   name: Flag.string("name"),
- *   age: Flag.integer("age"),
- *   file: Argument.string("file")
- * }
- *
- * // Nested configuration for organization
- * const nestedConfig = {
- *   user: {
- *     name: Flag.string("name"),
- *     email: Flag.string("email")
- *   },
- *   server: {
- *     host: Flag.string("host"),
- *     port: Flag.integer("port")
- *   },
- *   files: Argument.string("files").pipe(Argument.variadic)
- * }
- *
- * // Use in command creation
- * const command = Command.make("deploy", nestedConfig, (config) =>
- *   Effect.gen(function*() {
- *     // config.user.name, config.server.host, etc. are all type-safe
- *     yield* Console.log(`Deploying for ${config.user.name} to ${config.server.host}:${config.server.port}`)
- *   })
- * )
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export interface CommandConfig {
-  readonly [key: string]:
-    | Param.Param<Param.ParamKind, any>
-    | ReadonlyArray<Param.Param<Param.ParamKind, any> | CommandConfig>
-    | CommandConfig
-}
-
-/**
- * Infers the TypeScript type from a CommandConfig structure.
- *
- * This type utility extracts the final configuration type that handlers will receive,
- * preserving the nested structure while converting Param types to their values.
- *
- * @example
- * ```ts
- * import { Command, Flag, Argument } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
- *
- * // Define a configuration structure
- * const config = {
- *   name: Flag.string("name"),
- *   server: {
- *     host: Flag.string("host"),
- *     port: Flag.integer("port")
- *   },
- *   files: Argument.string("files").pipe(Argument.variadic)
- * } as const
- *
- * // InferConfig extracts the final type
- * type ConfigType = Command.InferConfig<typeof config>
- * // Result: {
- * //   readonly name: string
- * //   readonly server: {
- * //     readonly host: string
- * //     readonly port: number
- * //   }
- * //   readonly files: ReadonlyArray<string>
- * // }
- *
- * const command = Command.make("deploy", config, (config: ConfigType) =>
- *   Effect.gen(function*() {
- *     // config is fully typed with the inferred structure
- *     yield* Console.log(`Deploying to ${config.server.host}:${config.server.port}`)
- *   })
- * )
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export type InferConfig<A extends CommandConfig> = Simplify<
-  { readonly [Key in keyof A]: InferConfigValue<A[Key]> }
->
-
-/**
- * Helper type utility for recursively inferring types from CommandConfig values.
- *
- * This type handles the different kinds of values that can appear in a CommandConfig:
- * - Arrays of params/configs are recursively processed
- * - Param types are extracted to their value types
- * - Nested CommandConfig objects are recursively inferred
- *
- * @example
- * ```ts
- * import { Command, Flag, Argument } from "effect/unstable/cli"
- *
- * // Single param extraction
- * type StringFlag = Command.InferConfigValue<typeof Flag.string>
- * // Result: string
- *
- * // Array param extraction
- * type StringArgs = readonly string[]
- * // Result: ReadonlyArray<string>
- *
- * // Nested config extraction
- * type NestedConfig = Command.InferConfigValue<{
- *   host: typeof Flag.string
- *   port: typeof Flag.integer
- * }>
- * // Result: { readonly host: string; readonly port: number }
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export type InferConfigValue<A> = A extends ReadonlyArray<any> ? { readonly [Key in keyof A]: InferConfigValue<A[Key]> }
-  : A extends Param.Param<infer _Kind, infer _Value> ? _Value
-  : A extends CommandConfig ? InferConfig<A>
-  : never
-
-/**
- * Internal tree structure that represents the blueprint for reconstructing parsed configuration.
- *
- * ConfigTree is used internally during command parsing to maintain the structure
- * of nested configuration objects while allowing for flat parameter parsing.
- *
- * @example
- * ```ts
- * import { Command } from "effect/unstable/cli"
- *
- * // Internal structure for config like:
- * // { name: Flag.string("name"), db: { host: Flag.string("host") } }
- * //
- * // Becomes ConfigTree:
- * // {
- * //   name: { _tag: "Param", index: 0 },
- * //   db: {
- * //     _tag: "ParsedConfig",
- * //     tree: { host: { _tag: "Param", index: 1 } }
- * //   }
- * // }
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export interface ConfigTree {
-  [key: string]: ConfigNode
-}
-
-/**
- * Individual node in the configuration tree, representing different types of configuration elements.
- *
- * ConfigNode can be:
- * - Param: References a specific parameter by index in the flat parsed array
- * - Array: Contains multiple child nodes for array parameters
- * - ParsedConfig: Contains a nested configuration tree
- *
- * @example
- * ```ts
- * import { Command } from "effect/unstable/cli"
- *
- * // Different node types:
- *
- * // Param node (references parsed value at index)
- * const paramNode: Command.ConfigNode = {
- *   _tag: "Param",
- *   index: 0
- * }
- *
- * // Array node (contains multiple child nodes)
- * const arrayNode: Command.ConfigNode = {
- *   _tag: "Array",
- *   children: [
- *     { _tag: "Param", index: 1 },
- *     { _tag: "Param", index: 2 }
- *   ]
- * }
- *
- * // ParsedConfig node (contains nested structure)
- * const configNode: Command.ConfigNode = {
- *   _tag: "ParsedConfig",
- *   tree: {
- *     host: { _tag: "Param", index: 3 },
- *     port: { _tag: "Param", index: 4 }
- *   }
- * }
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export type ConfigNode = {
-  readonly _tag: "Param"
-  readonly index: number
-} | {
-  readonly _tag: "Array"
-  readonly children: ReadonlyArray<ConfigNode>
-} | {
-  readonly _tag: "ParsedConfig"
-  readonly tree: ConfigTree
-}
-
-/**
- * Parsed and flattened configuration structure created from a CommandConfig.
- *
- * ParsedConfig separates parameters by type and maintains both the original
- * nested structure (via tree) and the flattened parameter list for parsing.
- *
- * @example
- * ```ts
- * import { Command, Flag, Argument } from "effect/unstable/cli"
- *
- * // Example of what parseConfig produces for:
- * const config = {
- *   name: Flag.string("name"),
- *   db: {
- *     host: Flag.string("host"),
- *     port: Flag.integer("port")
- *   },
- *   files: Argument.string("files").pipe(Argument.variadic)
- * }
- *
- * // Results in ParsedConfig structure with:
- * // - flags: All flags extracted and flattened
- * // - arguments: All arguments extracted and flattened
- * // - orderedParams: All params in declaration order
- * // - tree: Blueprint preserving original nested structure
- * //
- * // Tree structure example:
- * // {
- * //   name: { _tag: "Param", index: 0 },
- * //   db: {
- * //     _tag: "ParsedConfig",
- * //     tree: {
- * //       host: { _tag: "Param", index: 1 },
- * //       port: { _tag: "Param", index: 2 }
- * //     }
- * //   },
- * //   files: { _tag: "Param", index: 3 }
- * // }
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export interface ParsedConfig {
-  readonly [ParsedConfigTypeId]: typeof ParsedConfigTypeId
-  /**
-   * The parsed command-line positional arguments.
-   */
-  readonly arguments: ReadonlyArray<Param.Param<any, Param.ParamKind>>
-  /**
-   * The parsed command-line flags.
-   */
-  readonly flags: ReadonlyArray<Param.Param<any, Param.ParamKind>>
-  /**
-   * Represents parsed parameters in the exact order in which they were declared.
-   */
-  readonly orderedParams: ReadonlyArray<Param.Param<any, Param.ParamKind>>
-  /**
-   * The parsed configuration tree.
-   */
-  readonly tree: ConfigTree
-}
-
-/**
- * @since 4.0.0
- * @category guards
- */
-export const isParsedConfig = (u: unknown): u is ParsedConfig => Predicate.hasProperty(u, ParsedConfigTypeId)
-
 const Proto = {
   ...YieldableProto,
   pipe() {
@@ -594,24 +449,24 @@ const Proto = {
 export const make: {
   <Name extends string>(name: Name): Command<Name, {}, never, never>
 
-  <Name extends string, const Config extends CommandConfig>(
+  <Name extends string, const Config extends Command.Config>(
     name: Name,
     config: Config
-  ): Command<Name, InferConfig<Config>, never, never>
+  ): Command<Name, Command.Config.Infer<Config>, never, never>
 
-  <Name extends string, const Config extends CommandConfig, R, E>(
+  <Name extends string, const Config extends Command.Config, R, E>(
     name: Name,
     config: Config,
-    handler: (config: InferConfig<Config>) => Effect.Effect<void, E, R>
-  ): Command<Name, InferConfig<Config>, E, R>
+    handler: (config: Command.Config.Infer<Config>) => Effect.Effect<void, E, R>
+  ): Command<Name, Command.Config.Infer<Config>, E, R>
 } = ((
   name: string,
-  config?: CommandConfig,
+  config?: Command.Config,
   handler?: (config: unknown) => Effect.Effect<void, unknown, unknown>
 ) =>
   makeCommand({
     name,
-    config: config ?? {} as CommandConfig,
+    config: config ?? {} as Command.Config,
     ...(Predicate.isNotUndefined(handler) ? { handle: handler } : {})
   })) as any
 
@@ -1325,143 +1180,12 @@ export const runWith = <const Name extends string, Input, E, R>(
   )
 
 // =============================================================================
-// Command Config
-// =============================================================================
-
-/**
- * Transforms a nested command configuration into a flat structure for parsing.
- *
- * This function walks through the entire config tree and:
- * 1. Extracts all Params into a single flat array (for command-line parsing)
- * 2. Creates a "blueprint" tree that remembers the original structure
- * 3. Assigns each Param an index to link parsed values back to their position
- *
- * The separation allows us to:
- * - Parse all options using existing flat parsing logic
- * - Reconstruct the original nested structure afterward
- *
- * @example
- * Input: { name: Param.string("name"), db: { host: Param.string("host") } }
- * Output: {
- *   options: [Param.string("name"), Param.string("host")],
- *   tree: { name: {_tag: "Param", index: 0}, db: {_tag: "ParsedConfig", tree: {host: {_tag: "Param", index: 1}}} }
- * }
- */
-const parseConfig = (config: CommandConfig): ParsedConfig => {
-  const orderedParams: Array<Param.Any> = []
-  const flags: Array<Param.AnyFlag> = []
-  const args: Array<Param.AnyArgument> = []
-
-  // Recursively walk the config structure, building the blueprint tree
-  function parse(config: CommandConfig) {
-    const tree: ConfigTree = {}
-    for (const key in config) {
-      tree[key] = parseValue(config[key])
-    }
-    return tree
-  }
-
-  // Process each value in the config, extracting Params and preserving structure
-  function parseValue(
-    value:
-      | Param.Any
-      | ReadonlyArray<Param.Any | CommandConfig>
-      | CommandConfig
-  ): ConfigNode {
-    if (Array.isArray(value)) {
-      // Array of options/configs - preserve array structure
-      return {
-        _tag: "Array",
-        children: (value as Array<any>).map((value) => parseValue(value))
-      }
-    } else if (Param.isParam(value)) {
-      // Found a Param - add to appropriate array based on kind and record its index
-      const index = orderedParams.length
-      orderedParams.push(value)
-
-      if (value.kind === "argument") {
-        args.push(value as Param.AnyArgument)
-      } else {
-        flags.push(value as Param.AnyFlag)
-      }
-
-      return {
-        _tag: "Param",
-        index
-      }
-    } else {
-      // Nested config object - recursively process
-      return {
-        _tag: "ParsedConfig",
-        tree: parse(value as any)
-      }
-    }
-  }
-
-  return {
-    [ParsedConfigTypeId]: ParsedConfigTypeId,
-    flags,
-    arguments: args,
-    orderedParams,
-    tree: parse(config)
-  }
-}
-
-/**
- * Reconstructs the original nested structure using parsed values and the blueprint tree.
- *
- * This is the inverse operation of parseConfig:
- * 1. Takes the flat array of parsed option values
- * 2. Uses the blueprint tree to determine where each value belongs
- * 3. Rebuilds the original nested object structure
- *
- * The blueprint tree acts as a "map" showing how to reassemble the flat data
- * back into the user's expected nested configuration shape.
- *
- * @param tree - The blueprint tree created by parseConfig
- * @param results - Flat array of parsed values (in the same order as the options array)
- * @returns The reconstructed nested configuration object
- *
- * @example
- * Input tree: { name: {_tag: "Param", index: 0}, db: {_tag: "ParsedConfig", tree: {host: {_tag: "Param", index: 1}}} }
- * Input results: ["myapp", "localhost"]
- * Output: { name: "myapp", db: { host: "localhost" } }
- */
-const reconstructConfigTree = (
-  tree: ConfigTree,
-  results: ReadonlyArray<any>
-): Record<string, any> => {
-  const output: Record<string, any> = {}
-
-  // Walk through each key in the blueprint tree
-  for (const key in tree) {
-    output[key] = nodeValue(tree[key])
-  }
-
-  return output
-
-  // Convert a blueprint node back to its corresponding value
-  function nodeValue(node: ConfigNode): any {
-    if (node._tag === "Param") {
-      // Param reference - look up the parsed value by index
-      return results[node.index]
-    } else if (node._tag === "Array") {
-      // Array structure - recursively process each child
-      return node.children.map((node) => nodeValue(node))
-    } else {
-      // Nested object - recursively reconstruct the subtree
-      return reconstructConfigTree(node.tree, results)
-    }
-  }
-}
-
-// =============================================================================
 // Utilities
 // =============================================================================
 
 const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly name: Name
-  readonly config: CommandConfig | ParsedConfig
+  readonly config: Command.Config | ConfigInternal
   readonly service?: ServiceMap.Service<ParentCommand<Name>, Input> | undefined
   readonly description?: string | undefined
   readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
@@ -1472,7 +1196,7 @@ const makeCommand = <const Name extends string, Input, E, R>(options: {
 }): Command<Name, Input, E, R> => {
   const service = options.service ?? ServiceMap.Service<ParentCommand<Name>, Input>(`${TypeId}/${options.name}`)
 
-  const config = isParsedConfig(options.config) ? options.config : parseConfig(options.config)
+  const config = isConfigInternal(options.config) ? options.config : parseConfig(options.config)
 
   const handle = (
     input: Input,
@@ -1485,7 +1209,7 @@ const makeCommand = <const Name extends string, Input, E, R>(options: {
   const parse = options.parse ?? Effect.fnUntraced(function*(input: RawInput) {
     const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
     const values = yield* parseParams(parsedArgs, config.orderedParams)
-    return reconstructConfigTree(config.tree, values) as Input
+    return reconstructTree(config.tree, values) as Input
   })
 
   return Object.assign(Object.create(Proto), {

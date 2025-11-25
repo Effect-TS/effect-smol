@@ -1,17 +1,28 @@
 /**
- * Parsing pipeline for CLI commands
- * --------------------------------
- * 1. `lexer` turns argv into tokens.
- * 2. `extractBuiltInOptions` peels off built-ins (help/version/completions).
- * 3. `parseArgs` recursively scans one command level at a time:
- *    - collect this level's flags
- *    - detect an optional subcommand (only the first value can open one)
- *    - forward any remaining tokens to the child
+ * Parsing Pipeline for CLI Commands
+ * ==================================
  *
- * Invariants
- * - Parent flags may appear before or after the subcommand name (npm-style).
- * - Only the very first Value token may be interpreted as a subcommand name.
- * - Errors accumulate; no exceptions are thrown from the parser.
+ * The parser transforms raw argv tokens into structured command input through
+ * three main phases:
+ *
+ * 1. **Lexer** (external): Converts argv strings into typed tokens
+ *    - LongOption: --name or --name=value
+ *    - ShortOption: -n or -n=value (also handles -abc as three flags)
+ *    - Value: positional arguments
+ *
+ * 2. **Built-in Extraction**: Peels off built-in flags (help/version/completions)
+ *    before command-specific parsing begins.
+ *
+ * 3. **Command Parsing**: Recursively processes command levels:
+ *    - Collects flags defined at this level
+ *    - Detects subcommand from first value token
+ *    - Forwards remaining tokens to child command
+ *
+ * Key Behaviors
+ * -------------
+ * - Parent flags may appear before OR after the subcommand name (npm-style)
+ * - Only the first Value token can open a subcommand
+ * - Errors accumulate rather than throwing exceptions
  */
 import * as Option from "../../../data/Option.ts"
 import * as Effect from "../../../Effect.ts"
@@ -26,216 +37,17 @@ import { suggest } from "./auto-suggest.ts"
 import { completionsFlag, dynamicCompletionsFlag, helpFlag, logLevelFlag, versionFlag } from "./builtInFlags.ts"
 import { type LexResult, type Token } from "./lexer.ts"
 
+/* ========================================================================== */
+/* Public API                                                                 */
+/* ========================================================================== */
+
 /** @internal */
 export const getCommandPath = (parsedInput: RawInput): ReadonlyArray<string> =>
   parsedInput.subcommand
     ? [parsedInput.subcommand.name, ...getCommandPath(parsedInput.subcommand.parsedInput)]
     : []
 
-type FlagParam = Param.Single<typeof Param.Flag, unknown>
-type FlagMap = Record<string, ReadonlyArray<string>>
-type MutableFlagMap = Record<string, Array<string>>
-
-type FlagSpec = {
-  readonly params: ReadonlyArray<FlagParam>
-  readonly index: Map<string, FlagParam>
-}
-
-type FlagBag = {
-  readonly add: (name: string, raw: string | undefined) => void
-  readonly merge: (from: FlagMap | MutableFlagMap) => void
-  readonly snapshot: () => FlagMap
-}
-
-type CommandContext<Name extends string, Input, E, R> = {
-  readonly command: Command<Name, Input, E, R>
-  readonly commandPath: ReadonlyArray<string>
-  readonly flagSpec: FlagSpec
-}
-
-/* ====================================================================== */
-/* Cursor (token navigation)                                               */
-/* ====================================================================== */
-
-interface TokenCursor {
-  readonly peek: () => Token | undefined
-  readonly take: () => Token | undefined
-  readonly rest: () => ReadonlyArray<Token>
-}
-
-const makeCursor = (tokens: ReadonlyArray<Token>): TokenCursor => {
-  let i = 0
-  return {
-    peek: () => tokens[i],
-    take: () => tokens[i++],
-    rest: () => tokens.slice(i)
-  }
-}
-
-/* ====================================================================== */
-/* Flag tables                                                             */
-/* ====================================================================== */
-
-/** Map canonicalized names/aliases → Single<A> (O(1) lookup). */
-const buildFlagIndex = (
-  singles: ReadonlyArray<Param.Single<typeof Param.Flag, unknown>>
-): Map<string, Param.Single<typeof Param.Flag, unknown>> => {
-  const lookup = new Map<string, Param.Single<typeof Param.Flag, unknown>>()
-  for (const single of singles) {
-    if (lookup.has(single.name)) throw new Error(`Duplicate option name: ${single.name}`)
-    lookup.set(single.name, single)
-    for (const alias of single.aliases) {
-      if (lookup.has(alias)) throw new Error(`Duplicate option/alias: ${alias}`)
-      lookup.set(alias, single)
-    }
-  }
-  return lookup
-}
-
-const buildSubcommandIndex = (
-  subcommands: ReadonlyArray<Command<string, unknown, unknown, unknown>>
-): Map<string, Command<string, unknown, unknown, unknown>> => new Map(subcommands.map((sub) => [sub.name, sub]))
-
-const makeFlagSpec = (params: ReadonlyArray<FlagParam>): FlagSpec => ({
-  params,
-  index: buildFlagIndex(params)
-})
-
-const makeFlagBag = (params: ReadonlyArray<FlagParam>): FlagBag => {
-  const map = makeFlagMap(params)
-  return {
-    add: (name, raw) => appendFlagValue(map, name, raw),
-    merge: (from) => mergeIntoFlagMap(map, from),
-    snapshot: () => toReadonlyFlagMap(map)
-  }
-}
-
-/* ====================================================================== */
-/* Flag bag & values                                                       */
-/* ====================================================================== */
-
-const isFlagToken = (t: Token): t is Extract<Token, { _tag: "LongOption" | "ShortOption" }> =>
-  t._tag === "LongOption" || t._tag === "ShortOption"
-
-const flagName = (t: Extract<Token, { _tag: "LongOption" | "ShortOption" }>) =>
-  t._tag === "LongOption" ? t.name : t.flag
-
-/** true/false/1/0/yes/no/on/off – if the next token is a boolean literal, return it. */
-const peekBooleanLiteral = (next: Token | undefined): string | undefined =>
-  next?._tag === "Value" && (isTrueValue(next.value) || isFalseValue(next.value)) ? next.value : undefined
-
-const makeFlagMap = (params: ReadonlyArray<FlagParam>): MutableFlagMap =>
-  Object.fromEntries(params.map((p) => [p.name, [] as Array<string>])) as MutableFlagMap
-
-const appendFlagValue = (bag: MutableFlagMap, name: string, raw: string | undefined): void => {
-  if (raw !== undefined) bag[name].push(raw)
-}
-
-const mergeIntoFlagMap = (into: MutableFlagMap, from: FlagMap | MutableFlagMap): void => {
-  for (const k in from) {
-    const src = from[k]
-    if (src && src.length) {
-      for (let i = 0; i < src.length; i++) {
-        into[k].push(src[i])
-      }
-    }
-  }
-}
-
-const toReadonlyFlagMap = (map: MutableFlagMap): FlagMap => map
-
-/**
- * Consume a recognized flag's value from the cursor:
- * - Inline:   --flag=value / -f=value
- * - Boolean:  implicit "true" or explicit next literal
- * - Other:    consume the next Value token if present
- */
-const readFlagValue = (
-  cursor: TokenCursor,
-  tok: Extract<Token, { _tag: "LongOption" | "ShortOption" }>,
-  spec: FlagParam
-): string | undefined => {
-  if (tok.value !== undefined) return tok.value
-  if (spec.primitiveType._tag === "Boolean") {
-    const explicit = peekBooleanLiteral(cursor.peek())
-    if (explicit !== undefined) cursor.take() // consume the literal
-    return explicit ?? "true"
-  }
-  const next = cursor.peek()
-  if (next && next._tag === "Value") {
-    cursor.take()
-    return next.value
-  }
-  return undefined
-}
-
-const unrecognizedFlagError = (
-  token: Token,
-  singles: ReadonlyArray<FlagParam>,
-  commandPath?: ReadonlyArray<string>
-): CliError.UnrecognizedOption | undefined => {
-  if (!isFlagToken(token)) return undefined
-  const printable = token._tag === "LongOption" ? `--${token.name}` : `-${token.flag}`
-  const valid: Array<string> = []
-  for (const s of singles) {
-    valid.push(s.name)
-    for (const alias of s.aliases) {
-      valid.push(alias)
-    }
-  }
-  const suggestions = suggest(flagName(token), valid).map((n) => (n.length === 1 ? `-${n}` : `--${n}`))
-  return new CliError.UnrecognizedOption({
-    option: printable,
-    suggestions,
-    ...(commandPath && { command: commandPath })
-  })
-}
-
-/* ====================================================================== */
-/* Built-ins peeling – uses the same primitives                           */
-/* ====================================================================== */
-
-const builtInFlagParams: ReadonlyArray<FlagParam> = [
-  ...Param.extractSingleParams(logLevelFlag),
-  ...Param.extractSingleParams(helpFlag),
-  ...Param.extractSingleParams(versionFlag),
-  ...Param.extractSingleParams(completionsFlag),
-  ...Param.extractSingleParams(dynamicCompletionsFlag)
-]
-
-const builtInFlagSpec = makeFlagSpec(builtInFlagParams)
-
-/** Collect only the provided flags; leave everything else untouched as remainder. */
-const collectFlagValues = (
-  tokens: ReadonlyArray<Token>,
-  spec: FlagSpec
-): { flagMap: FlagMap; remainder: ReadonlyArray<Token> } => {
-  const flagMap = makeFlagMap(spec.params)
-  const remainder: Array<Token> = []
-  const cursor = makeCursor(tokens)
-
-  for (let t = cursor.take(); t; t = cursor.take()) {
-    if (!isFlagToken(t)) {
-      remainder.push(t)
-      continue
-    }
-    const param = spec.index.get(flagName(t))
-    if (!param) {
-      // Not one of the target flags → don't consume a following value
-      remainder.push(t)
-      continue
-    }
-    appendFlagValue(flagMap, param.name, readFlagValue(cursor, t, param))
-  }
-
-  return { flagMap: toReadonlyFlagMap(flagMap), remainder }
-}
-
-/**
- * Extract built-in flags using the same machinery.
- *
- * @internal
- */
+/** @internal */
 export const extractBuiltInOptions = (
   tokens: ReadonlyArray<Token>
 ): Effect.Effect<
@@ -251,7 +63,7 @@ export const extractBuiltInOptions = (
   FileSystem | Path
 > =>
   Effect.gen(function*() {
-    const { flagMap, remainder } = collectFlagValues(tokens, builtInFlagSpec)
+    const { flagMap, remainder } = consumeKnownFlags(tokens, builtInFlagRegistry)
     const emptyArgs: Param.ParsedArgs = { flags: flagMap, arguments: [] }
     const [, help] = yield* helpFlag.parse(emptyArgs)
     const [, logLevel] = yield* logLevelFlag.parse(emptyArgs)
@@ -268,119 +80,6 @@ export const extractBuiltInOptions = (
     }
   })
 
-/* ====================================================================== */
-/* One-level scan                                                         */
-/* ====================================================================== */
-
-type LeafResult = {
-  readonly _tag: "Leaf"
-  readonly flags: FlagMap
-  readonly arguments: ReadonlyArray<string>
-  readonly errors: ReadonlyArray<CliError.CliError>
-}
-
-type SubcommandResult = {
-  readonly _tag: "Sub"
-  readonly flags: FlagMap
-  readonly leadingArguments: ReadonlyArray<string>
-  readonly sub: Command<string, unknown, unknown, unknown>
-  readonly childTokens: ReadonlyArray<Token>
-  readonly errors: ReadonlyArray<CliError.CliError>
-}
-
-type LevelResult = LeafResult | SubcommandResult
-
-interface ParseState {
-  readonly flags: FlagBag
-  readonly arguments: Array<string>
-  readonly errors: Array<CliError.CliError>
-  seenFirstValue: boolean
-}
-
-const makeParseState = (flagSpec: FlagSpec): ParseState => ({
-  flags: makeFlagBag(flagSpec.params),
-  arguments: [],
-  errors: [],
-  seenFirstValue: false
-})
-
-const toLeafResult = (state: ParseState): LeafResult => ({
-  _tag: "Leaf",
-  flags: state.flags.snapshot(),
-  arguments: state.arguments,
-  errors: state.errors
-})
-
-const isFlagParam = <A>(s: Param.Single<Param.ParamKind, A>): s is Param.Single<typeof Param.Flag, A> =>
-  s.kind === "flag"
-
-const scanCommandLevel = <Name extends string, Input, E, R>(
-  tokens: ReadonlyArray<Token>,
-  context: CommandContext<Name, Input, E, R>
-): LevelResult => {
-  const { command, commandPath, flagSpec } = context
-  const { index } = flagSpec
-  const subIndex = buildSubcommandIndex(command.subcommands)
-  const state = makeParseState(flagSpec)
-  const expectsArgs = command.config.arguments.length > 0
-  const cursor = makeCursor(tokens)
-
-  const handleFlag = (t: Extract<Token, { _tag: "LongOption" | "ShortOption" }>) => {
-    const spec = index.get(flagName(t))
-    if (!spec) {
-      const err = unrecognizedFlagError(t, flagSpec.params, commandPath)
-      if (err) state.errors.push(err)
-      return
-    }
-    state.flags.add(spec.name, readFlagValue(cursor, t, spec))
-  }
-
-  const handleFirstValue = (value: string): SubcommandResult | undefined => {
-    const sub = subIndex.get(value)
-    if (sub) {
-      // Allow parent flags to appear after the subcommand name (npm-style)
-      const tail = collectFlagValues(cursor.rest(), flagSpec)
-      state.flags.merge(tail.flagMap)
-      return {
-        _tag: "Sub",
-        flags: state.flags.snapshot(),
-        leadingArguments: [],
-        sub,
-        childTokens: tail.remainder,
-        errors: state.errors
-      }
-    }
-
-    if (!expectsArgs && subIndex.size > 0) {
-      const suggestions = suggest(value, command.subcommands.map((s) => s.name))
-      state.errors.push(new CliError.UnknownSubcommand({ subcommand: value, parent: commandPath, suggestions }))
-    }
-    return undefined
-  }
-
-  for (let t = cursor.take(); t; t = cursor.take()) {
-    if (isFlagToken(t)) {
-      handleFlag(t)
-      continue
-    }
-
-    if (t._tag === "Value") {
-      if (!state.seenFirstValue) {
-        state.seenFirstValue = true
-        const sub = handleFirstValue(t.value)
-        if (sub) return sub
-      }
-      state.arguments.push(t.value)
-    }
-  }
-
-  return toLeafResult(state)
-}
-
-/* ====================================================================== */
-/* Public API                                                             */
-/* ====================================================================== */
-
 /** @internal */
 export const parseArgs = <Name extends string, Input, E, R>(
   lexResult: LexResult,
@@ -391,16 +90,17 @@ export const parseArgs = <Name extends string, Input, E, R>(
     const { tokens, trailingOperands: afterEndOfOptions } = lexResult
     const newCommandPath = [...commandPath, command.name]
 
-    // Flags available at this level (ignore arguments)
     const singles = command.config.flags.flatMap(Param.extractSingleParams)
-    const flagParams = singles.filter(isFlagParam)
-    const flagSpec = makeFlagSpec(flagParams)
+    const flagParams = singles.filter(Param.isFlagParam)
+    const flagRegistry = createFlagRegistry(flagParams)
 
-    const result = scanCommandLevel(tokens, {
+    const context: CommandContext<Name, Input, E, R> = {
       command,
       commandPath: newCommandPath,
-      flagSpec
-    })
+      flagRegistry
+    }
+
+    const result = scanCommandLevel(tokens, context)
 
     if (result._tag === "Leaf") {
       return {
@@ -420,8 +120,496 @@ export const parseArgs = <Name extends string, Input, E, R>(
     const allErrors = [...result.errors, ...(subParsed.errors ?? [])]
     return {
       flags: result.flags,
-      arguments: [...result.leadingArguments, ...afterEndOfOptions],
+      arguments: afterEndOfOptions,
       subcommand: { name: result.sub.name, parsedInput: subParsed },
       ...(allErrors.length > 0 && { errors: allErrors })
     }
   })
+
+/* ========================================================================== */
+/* Types                                                                      */
+/* ========================================================================== */
+
+type FlagParam = Param.Single<typeof Param.Flag, unknown>
+
+/**
+ * Mutable map of flag names to their collected string values.
+ * Used internally during parsing; converted to readonly at boundaries.
+ */
+type FlagMap = Record<string, Array<string>>
+
+/**
+ * Registry of known flags for a command level.
+ * Enables O(1) lookup of flag definitions by name or alias.
+ */
+type FlagRegistry = {
+  /** All flag params declared at this command level */
+  readonly params: ReadonlyArray<FlagParam>
+  /** Maps canonical names and aliases → flag param */
+  readonly index: Map<string, FlagParam>
+}
+
+/**
+ * Mutable accumulator for collecting flag values during parsing.
+ * Provides methods to add values and merge results from sub-scans.
+ */
+type FlagAccumulator = {
+  /** Record a value for a flag. No-op if raw is undefined (for boolean flags). */
+  readonly add: (name: string, raw: string | undefined) => void
+  /** Merge values from another flag map into this accumulator */
+  readonly merge: (from: FlagMap) => void
+  /** Return immutable snapshot of accumulated values */
+  readonly snapshot: () => Readonly<FlagMap>
+}
+
+/**
+ * Context for parsing a command level.
+ * Generics flow through to avoid runtime casts.
+ */
+type CommandContext<Name extends string, Input, E, R> = {
+  readonly command: Command<Name, Input, E, R>
+  readonly commandPath: ReadonlyArray<string>
+  readonly flagRegistry: FlagRegistry
+}
+
+/**
+ * Parsing mode during command-level scanning.
+ * Determines how value tokens are interpreted.
+ */
+type ParseMode =
+  | { readonly _tag: "AwaitingFirstValue" }
+  | { readonly _tag: "CollectingArguments" }
+
+/**
+ * Mutable state accumulated during command-level parsing.
+ */
+type ParseState = {
+  readonly flags: FlagAccumulator
+  readonly arguments: Array<string>
+  readonly errors: Array<CliError.CliError>
+  mode: ParseMode
+}
+
+/**
+ * Result when first value token is processed.
+ */
+type FirstValueResult =
+  | { readonly _tag: "Subcommand"; readonly result: SubcommandResult }
+  | { readonly _tag: "Argument" }
+
+/**
+ * Terminal result: command level has no subcommand.
+ */
+type LeafResult = {
+  readonly _tag: "Leaf"
+  readonly flags: Readonly<FlagMap>
+  readonly arguments: ReadonlyArray<string>
+  readonly errors: ReadonlyArray<CliError.CliError>
+}
+
+/**
+ * Continuation result: subcommand detected, child parsing needed.
+ */
+type SubcommandResult = {
+  readonly _tag: "Sub"
+  readonly flags: Readonly<FlagMap>
+  readonly sub: Command<string, unknown, unknown, unknown>
+  readonly childTokens: ReadonlyArray<Token>
+  readonly errors: ReadonlyArray<CliError.CliError>
+}
+
+type LevelResult = LeafResult | SubcommandResult
+
+/* ========================================================================== */
+/* Token Cursor                                                               */
+/* ========================================================================== */
+
+/**
+ * Stateful cursor for navigating a token stream.
+ * Provides peek/take semantics for single-pass parsing.
+ */
+interface TokenCursor {
+  /** View next token without consuming */
+  readonly peek: () => Token | undefined
+  /** Consume and return next token */
+  readonly take: () => Token | undefined
+  /** Get all remaining tokens (does not consume) */
+  readonly rest: () => ReadonlyArray<Token>
+}
+
+const makeCursor = (tokens: ReadonlyArray<Token>): TokenCursor => {
+  let i = 0
+  return {
+    peek: () => tokens[i],
+    take: () => tokens[i++],
+    rest: () => tokens.slice(i)
+  }
+}
+
+/* ========================================================================== */
+/* Flag Registry                                                              */
+/* ========================================================================== */
+
+/**
+ * Creates a registry for O(1) flag lookup by name or alias.
+ * @throws Error if duplicate names or aliases are detected
+ */
+const createFlagRegistry = (params: ReadonlyArray<FlagParam>): FlagRegistry => {
+  const index = new Map<string, FlagParam>()
+
+  for (const param of params) {
+    if (index.has(param.name)) {
+      throw new Error(`Duplicate flag name: ${param.name}`)
+    }
+    index.set(param.name, param)
+
+    for (const alias of param.aliases) {
+      if (index.has(alias)) {
+        throw new Error(`Duplicate flag/alias: ${alias}`)
+      }
+      index.set(alias, param)
+    }
+  }
+
+  return { params, index }
+}
+
+const buildSubcommandIndex = (
+  subcommands: ReadonlyArray<Command<string, unknown, unknown, unknown>>
+): Map<string, Command<string, unknown, unknown, unknown>> => new Map(subcommands.map((sub) => [sub.name, sub]))
+
+/* ========================================================================== */
+/* Flag Accumulator                                                           */
+/* ========================================================================== */
+
+/** Creates an empty flag map with all known flag names initialized to []. */
+const createEmptyFlagMap = (params: ReadonlyArray<FlagParam>): FlagMap =>
+  Object.fromEntries(params.map((p) => [p.name, []]))
+
+/**
+ * Creates a mutable accumulator for collecting flag values.
+ * Pre-initializes empty arrays for all known flags.
+ */
+const createFlagAccumulator = (params: ReadonlyArray<FlagParam>): FlagAccumulator => {
+  const map = createEmptyFlagMap(params)
+
+  return {
+    add: (name, raw) => {
+      if (raw !== undefined) map[name].push(raw)
+    },
+    merge: (from) => {
+      for (const key in from) {
+        const values = from[key]
+        if (values?.length) {
+          for (let i = 0; i < values.length; i++) {
+            map[key].push(values[i])
+          }
+        }
+      }
+    },
+    snapshot: () => map
+  }
+}
+
+/* ========================================================================== */
+/* Token Classification                                                       */
+/* ========================================================================== */
+
+type FlagToken = Extract<Token, { _tag: "LongOption" | "ShortOption" }>
+
+const isFlagToken = (t: Token): t is FlagToken => t._tag === "LongOption" || t._tag === "ShortOption"
+
+const getFlagName = (t: FlagToken): string => t._tag === "LongOption" ? t.name : t.flag
+
+/**
+ * Checks if a token is a boolean literal value.
+ * Recognizes: true/false, yes/no, on/off, 1/0
+ */
+const asBooleanLiteral = (token: Token | undefined): string | undefined =>
+  token?._tag === "Value" && (isTrueValue(token.value) || isFalseValue(token.value))
+    ? token.value
+    : undefined
+
+/* ========================================================================== */
+/* Flag Value Consumption                                                     */
+/* ========================================================================== */
+
+/**
+ * Reads a flag's value from the token stream.
+ *
+ * Value resolution order:
+ * 1. Inline value: --flag=value or -f=value
+ * 2. Boolean special case: implicit "true" or explicit boolean literal
+ * 3. Next token: consume following Value token if present
+ */
+const consumeFlagValue = (
+  cursor: TokenCursor,
+  token: FlagToken,
+  spec: FlagParam
+): string | undefined => {
+  // Inline value has highest priority
+  if (token.value !== undefined) {
+    return token.value
+  }
+
+  // Boolean flags: check for explicit literal or default to "true"
+  if (spec.primitiveType._tag === "Boolean") {
+    const literal = asBooleanLiteral(cursor.peek())
+    if (literal !== undefined) cursor.take()
+    return literal ?? "true"
+  }
+
+  // Non-boolean: try to consume next Value token
+  const next = cursor.peek()
+  if (next?._tag === "Value") {
+    cursor.take()
+    return next.value
+  }
+
+  return undefined
+}
+
+/**
+ * Consumes known flags from a token stream.
+ * Unrecognized tokens are passed through to remainder.
+ * Used for both built-in extraction and npm-style parent flag collection.
+ */
+const consumeKnownFlags = (
+  tokens: ReadonlyArray<Token>,
+  registry: FlagRegistry
+): { flagMap: FlagMap; remainder: ReadonlyArray<Token> } => {
+  const flagMap = createEmptyFlagMap(registry.params)
+  const remainder: Array<Token> = []
+  const cursor = makeCursor(tokens)
+
+  for (let t = cursor.take(); t; t = cursor.take()) {
+    if (!isFlagToken(t)) {
+      remainder.push(t)
+      continue
+    }
+
+    const param = registry.index.get(getFlagName(t))
+    if (!param) {
+      remainder.push(t)
+      continue
+    }
+
+    const value = consumeFlagValue(cursor, t, param)
+    if (value !== undefined) {
+      flagMap[param.name].push(value)
+    }
+  }
+
+  return { flagMap, remainder }
+}
+
+/* ========================================================================== */
+/* Built-in Flags                                                             */
+/* ========================================================================== */
+
+const builtInFlagParams: ReadonlyArray<FlagParam> = [
+  ...Param.extractSingleParams(logLevelFlag),
+  ...Param.extractSingleParams(helpFlag),
+  ...Param.extractSingleParams(versionFlag),
+  ...Param.extractSingleParams(completionsFlag),
+  ...Param.extractSingleParams(dynamicCompletionsFlag)
+]
+
+const builtInFlagRegistry = createFlagRegistry(builtInFlagParams)
+
+/* ========================================================================== */
+/* Error Creation                                                             */
+/* ========================================================================== */
+
+const createUnrecognizedFlagError = (
+  token: FlagToken,
+  params: ReadonlyArray<FlagParam>,
+  commandPath: ReadonlyArray<string>
+): CliError.UnrecognizedOption => {
+  const printable = token._tag === "LongOption" ? `--${token.name}` : `-${token.flag}`
+  const validNames: Array<string> = []
+
+  for (const p of params) {
+    validNames.push(p.name)
+    for (const alias of p.aliases) {
+      validNames.push(alias)
+    }
+  }
+
+  const suggestions = suggest(getFlagName(token), validNames)
+    .map((n) => (n.length === 1 ? `-${n}` : `--${n}`))
+
+  return new CliError.UnrecognizedOption({
+    option: printable,
+    suggestions,
+    command: commandPath
+  })
+}
+
+/* ========================================================================== */
+/* Parse State                                                                */
+/* ========================================================================== */
+
+const createParseState = (registry: FlagRegistry): ParseState => ({
+  flags: createFlagAccumulator(registry.params),
+  arguments: [],
+  errors: [],
+  mode: { _tag: "AwaitingFirstValue" }
+})
+
+const toLeafResult = (state: ParseState): LeafResult => ({
+  _tag: "Leaf",
+  flags: state.flags.snapshot(),
+  arguments: state.arguments,
+  errors: state.errors
+})
+
+/* ========================================================================== */
+/* First Value Resolution                                                     */
+/* ========================================================================== */
+
+/**
+ * Determines how to handle the first value token.
+ *
+ * If it matches a known subcommand:
+ * - Collect any parent flags from remaining tokens (npm-style)
+ * - Return SubcommandResult with child tokens
+ *
+ * Otherwise:
+ * - Return Argument to treat it as a positional argument
+ * - Report error if command expects subcommand but got unknown value
+ */
+const resolveFirstValue = <Name extends string, Input, E, R>(
+  value: string,
+  cursor: TokenCursor,
+  context: CommandContext<Name, Input, E, R>,
+  state: ParseState
+): FirstValueResult => {
+  const { command, commandPath, flagRegistry } = context
+  const subIndex = buildSubcommandIndex(command.subcommands)
+  const sub = subIndex.get(value)
+
+  if (sub) {
+    // npm-style: parent flags can appear after subcommand name
+    const tail = consumeKnownFlags(cursor.rest(), flagRegistry)
+    state.flags.merge(tail.flagMap)
+
+    return {
+      _tag: "Subcommand",
+      result: {
+        _tag: "Sub",
+        flags: state.flags.snapshot(),
+        sub,
+        childTokens: tail.remainder,
+        errors: state.errors
+      }
+    }
+  }
+
+  // Not a subcommand. Check if this looks like a typo.
+  const expectsArgs = command.config.arguments.length > 0
+  if (!expectsArgs && subIndex.size > 0) {
+    const suggestions = suggest(value, command.subcommands.map((s) => s.name))
+    state.errors.push(
+      new CliError.UnknownSubcommand({
+        subcommand: value,
+        parent: commandPath,
+        suggestions
+      })
+    )
+  }
+
+  return { _tag: "Argument" }
+}
+
+/* ========================================================================== */
+/* Token Processing                                                           */
+/* ========================================================================== */
+
+/**
+ * Processes a flag token: looks up in registry, consumes value, records it.
+ * Reports unrecognized flags as errors.
+ */
+const processFlag = <Name extends string, Input, E, R>(
+  token: FlagToken,
+  cursor: TokenCursor,
+  context: CommandContext<Name, Input, E, R>,
+  state: ParseState
+): void => {
+  const { commandPath, flagRegistry } = context
+  const name = getFlagName(token)
+  const spec = flagRegistry.index.get(name)
+
+  if (!spec) {
+    state.errors.push(createUnrecognizedFlagError(token, flagRegistry.params, commandPath))
+    return
+  }
+
+  state.flags.add(spec.name, consumeFlagValue(cursor, token, spec))
+}
+
+/**
+ * Processes a value token based on current parsing mode.
+ *
+ * In AwaitingFirstValue mode:
+ * - Check if value is a subcommand
+ * - If so, return SubcommandResult to exit scanning
+ * - If not, switch to CollectingArguments mode
+ *
+ * In CollectingArguments mode:
+ * - Simply add value to arguments list
+ */
+const processValue = <Name extends string, Input, E, R>(
+  value: string,
+  cursor: TokenCursor,
+  context: CommandContext<Name, Input, E, R>,
+  state: ParseState
+): SubcommandResult | undefined => {
+  if (state.mode._tag === "AwaitingFirstValue") {
+    const result = resolveFirstValue(value, cursor, context, state)
+
+    if (result._tag === "Subcommand") {
+      return result.result
+    }
+
+    state.mode = { _tag: "CollectingArguments" }
+  }
+
+  state.arguments.push(value)
+  return undefined
+}
+
+/* ========================================================================== */
+/* Command Level Scanning                                                     */
+/* ========================================================================== */
+
+/**
+ * Scans a single command level, processing all tokens.
+ *
+ * For each token:
+ * - Flags: Look up, consume value, record in accumulator
+ * - Values: Check for subcommand (first value only), then collect as arguments
+ *
+ * Returns LeafResult if no subcommand detected, SubcommandResult otherwise.
+ */
+const scanCommandLevel = <Name extends string, Input, E, R>(
+  tokens: ReadonlyArray<Token>,
+  context: CommandContext<Name, Input, E, R>
+): LevelResult => {
+  const cursor = makeCursor(tokens)
+  const state = createParseState(context.flagRegistry)
+
+  for (let token = cursor.take(); token; token = cursor.take()) {
+    if (isFlagToken(token)) {
+      processFlag(token, cursor, context, state)
+      continue
+    }
+
+    if (token._tag === "Value") {
+      const subResult = processValue(token.value, cursor, context, state)
+      if (subResult) return subResult
+    }
+  }
+
+  return toLeafResult(state)
+}
