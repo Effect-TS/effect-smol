@@ -18,6 +18,7 @@
  */
 import { format } from "../data/Formatter.ts"
 import { isObject } from "../data/Predicate.ts"
+import * as Reducer from "../data/Reducer.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
@@ -30,7 +31,15 @@ type Fragment = Schema.JsonSchema.Fragment
 export type Output = {
   readonly code: string
   readonly type: string
+  readonly dependencies: ReadonlySet<string>
 }
+
+const emptySet: ReadonlySet<string> = new Set()
+
+const DependenciesReducer: Reducer.Reducer<ReadonlySet<string>> = Reducer.make<ReadonlySet<string>>(
+  (self, that) => new Set([...self, ...that]),
+  emptySet
+)
 
 /**
  * @since 4.0.0
@@ -42,7 +51,7 @@ export function make(schema: unknown, options?: {
 }): Output {
   return build(schema, {
     target: options?.target ?? "draft-07",
-    seen: options?.seen ?? new Set(),
+    seen: options?.seen ?? emptySet,
     getIdentifier: options?.getIdentifier ?? getIdentifier
   })
 }
@@ -155,7 +164,7 @@ function hasType(schema: Fragment): schema is HasType {
 }
 
 function handleType(type: Schema.JsonSchema.Type): Output {
-  return typeMap[type]
+  return primitives[type]
 }
 
 function handleHasType(schema: HasType, options: GoOptions): Output {
@@ -165,7 +174,7 @@ function handleHasType(schema: HasType, options: GoOptions): Output {
     case "number":
     case "integer":
     case "boolean":
-      return typeMap[schema.type]
+      return primitives[schema.type]
     case "object": {
       const properties = collectProperties(schema, options)
       const indexSignatures = collectIndexSignatures(schema, options)
@@ -217,7 +226,8 @@ function base(schema: Fragment, options: GoOptions): Output {
   if (schema.const !== undefined) {
     return {
       code: `Schema.Literal(${format(schema.const)})`,
-      type: format(schema.const)
+      type: format(schema.const),
+      dependencies: emptySet
     }
   }
 
@@ -229,12 +239,14 @@ function base(schema: Fragment, options: GoOptions): Output {
       case 1:
         return {
           code: `Schema.Literal(${format(schema.enum[0])})`,
-          type
+          type,
+          dependencies: emptySet
         }
       default:
         return {
           code: `Schema.Literals([${schema.enum.map((e) => format(e)).join(", ")}])`,
-          type
+          type,
+          dependencies: emptySet
         }
     }
   }
@@ -251,10 +263,7 @@ function base(schema: Fragment, options: GoOptions): Output {
     return union(schema.oneOf.map((schema) => build(schema, options)), "oneOf")
   }
 
-  // TODO: and "allOf"
-
   if (hasType(schema)) {
-    // TODO: and "allOf"
     return handleHasType(schema, options)
   }
 
@@ -266,12 +275,14 @@ function base(schema: Fragment, options: GoOptions): Output {
       if (seen) {
         return {
           code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
-          type: identifier
+          type: identifier,
+          dependencies: new Set([identifier])
         }
       }
       return {
         code: identifier,
-        type: identifier
+        type: identifier,
+        dependencies: new Set([identifier])
       }
     }
     throw new Error(`Invalid $ref: ${schema.$ref}`)
@@ -335,13 +346,19 @@ function object(ps: ReadonlyArray<Property>, is: ReadonlyArray<IndexSignature>):
     const i = is.map((i) => record(i.key, i.value))
     return {
       code: `Schema.StructWithRest(${s.code}, [${i.map((i) => i.code).join(", ")}])`,
-      type: `{ ${removeParens(s.type)}, ${i.map((i) => removeParens(i.type)).join(", ")} }`
+      type: `{ ${stripBraces(s.type)}, ${i.map((i) => stripBraces(i.type)).join(", ")} }`,
+      dependencies: DependenciesReducer.combineAll([
+        ...ps.map((p) => p.value.dependencies),
+        ...i.map((i) => i.dependencies)
+      ])
     }
   }
 }
 
-function removeParens(s: string): string {
-  return s.substring(2, s.length - 2)
+// Strip the outer `{` and `}` braces along with any surrounding whitespace
+function stripBraces(s: string): string {
+  const match = s.trim().match(/^\{\s*(.*?)\s*\}$/)
+  return match ? match[1] : s
 }
 
 function struct(ps: ReadonlyArray<Property>): Output {
@@ -349,14 +366,16 @@ function struct(ps: ReadonlyArray<Property>): Output {
     code: `Schema.Struct({ ${
       ps.map((p) => `${p.key}: ${optionalKeyRuntime(p.isRequired, p.value.code)}`).join(", ")
     } })`,
-    type: `{ ${ps.map((p) => `readonly ${optionalKeyType(p.isRequired, p.key)}: ${p.value.type}`).join(", ")} }`
+    type: `{ ${ps.map((p) => `readonly ${optionalKeyType(p.isRequired, p.key)}: ${p.value.type}`).join(", ")} }`,
+    dependencies: DependenciesReducer.combineAll(ps.map((p) => p.value.dependencies))
   }
 }
 
 function record(key: Output, value: Output): Output {
   return {
     code: `Schema.Record(${key.code}, ${value.code})`,
-    type: `{ readonly [x: ${key.type}]: ${value.type} }`
+    type: `{ readonly [x: ${key.type}]: ${value.type} }`,
+    dependencies: DependenciesReducer.combine(key.dependencies, value.dependencies)
   }
 }
 
@@ -369,12 +388,14 @@ function array(es: ReadonlyArray<Element>, item: Output | undefined): Output {
   if (item === undefined) {
     return {
       code: `Schema.Tuple([${es.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(", ")}])`,
-      type: `readonly [${es.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(", ")}]`
+      type: `readonly [${es.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(", ")}]`,
+      dependencies: DependenciesReducer.combineAll(es.map((e) => e.value.dependencies))
     }
   } else if (es.length === 0) {
     return {
       code: `Schema.Array(${item.code})`,
-      type: `ReadonlyArray<${item.type}>`
+      type: `ReadonlyArray<${item.type}>`,
+      dependencies: item.dependencies
     }
   } else {
     return {
@@ -383,7 +404,8 @@ function array(es: ReadonlyArray<Element>, item: Output | undefined): Output {
       }]), [${item.code}])`,
       type: `readonly [${
         es.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(", ")
-      }, ...Array<${item.type}>]`
+      }, ...Array<${item.type}>]`,
+      dependencies: DependenciesReducer.combineAll([...es.map((e) => e.value.dependencies), item.dependencies])
     }
   }
 }
@@ -391,22 +413,27 @@ function array(es: ReadonlyArray<Element>, item: Output | undefined): Output {
 function union(members: ReadonlyArray<Output>, mode: "anyOf" | "oneOf"): Output {
   return {
     code: `Schema.Union([${members.map((m) => m.code).join(", ")}]${mode === "oneOf" ? `, {mode:"oneOf"}` : ""})`,
-    type: members.map((m) => m.type).join(" | ")
+    type: members.map((m) => m.type).join(" | "),
+    dependencies: DependenciesReducer.combineAll(members.map((m) => m.dependencies))
   }
 }
 
-const Never: Output = { code: "Schema.Never", type: "never" }
-const Unknown: Output = { code: "Schema.Unknown", type: "unknown" }
-const Null: Output = { code: "Schema.Null", type: "null" }
-const String: Output = { code: "Schema.String", type: "string" }
-const Number: Output = { code: "Schema.Number", type: "number" }
-const Int: Output = { code: "Schema.Int", type: "number" }
-const Boolean: Output = { code: "Schema.Boolean", type: "boolean" }
+function primitive(code: string, type: string): Output {
+  return { code, type, dependencies: emptySet }
+}
+
+const Never: Output = primitive("Schema.Never", "never")
+const Unknown: Output = primitive("Schema.Unknown", "unknown")
+const Null: Output = primitive("Schema.Null", "null")
+const String: Output = primitive("Schema.String", "string")
+const Number: Output = primitive("Schema.Number", "number")
+const Int: Output = primitive("Schema.Int", "number")
+const Boolean: Output = primitive("Schema.Boolean", "boolean")
 const UnknownRecord: Output = object([], [{ key: String, value: Unknown }])
 const UnknownArray: Output = array([], Unknown)
-const EmptyStruct: Output = { code: "Schema.Struct({})", type: "{}" }
+const EmptyStruct: Output = primitive("Schema.Struct({})", "{}")
 
-const typeMap = {
+const primitives = {
   "null": Null,
   "string": String,
   "number": Number,
@@ -437,6 +464,6 @@ function isEmptyStruct(schema: ReadonlyArray<Fragment>): boolean {
   return schema.length === 2 && isUnknownRecord(schema[0]) && isUnknownArray(schema[1])
 }
 
-function unescapeJsonPointer(identifier: string) {
-  return identifier.replace(/~0/ig, "~").replace(/~1/ig, "/")
+function unescapeJsonPointer(pointer: string): string {
+  return pointer.replace(/~0/ig, "~").replace(/~1/ig, "/")
 }
