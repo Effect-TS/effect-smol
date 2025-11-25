@@ -46,12 +46,12 @@ const DependenciesReducer: Reducer.Reducer<ReadonlySet<string>> = Reducer.make<R
  */
 export function make(schema: unknown, options?: {
   readonly target?: Target | undefined
-  readonly seen?: ReadonlySet<string> | undefined
+  readonly refs?: ReadonlySet<string> | undefined
   readonly getIdentifier?: ((identifier: string) => string) | undefined
 }): Output {
   return build(schema, {
     target: options?.target ?? "draft-07",
-    seen: options?.seen ?? emptySet,
+    refs: options?.refs ?? emptySet,
     getIdentifier: options?.getIdentifier ?? getIdentifier
   })
 }
@@ -62,7 +62,7 @@ function getIdentifier(identifier: string): string {
 
 interface GoOptions {
   readonly target: Target
-  readonly seen: ReadonlySet<string>
+  readonly refs: ReadonlySet<string>
   readonly getIdentifier: (identifier: string) => string
 }
 
@@ -271,18 +271,19 @@ function base(schema: Fragment, options: GoOptions): Output {
     const last = schema.$ref.split("/").pop()
     if (last !== undefined) {
       const identifier = options.getIdentifier(unescapeJsonPointer(last))
-      const seen = options.seen.has(identifier)
-      if (seen) {
+      const isRef = options.refs.has(identifier)
+      const dependencies = new Set([identifier])
+      if (isRef) {
         return {
           code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
           type: identifier,
-          dependencies: new Set([identifier])
+          dependencies
         }
       }
       return {
         code: identifier,
         type: identifier,
-        dependencies: new Set([identifier])
+        dependencies
       }
     }
     throw new Error(`Invalid $ref: ${schema.$ref}`)
@@ -295,11 +296,11 @@ function base(schema: Fragment, options: GoOptions): Output {
   return Unknown
 }
 
-function optionalKeyRuntime(isRequired: boolean, code: string): string {
+function optionalRuntime(isRequired: boolean, code: string): string {
   return isRequired ? code : `Schema.optionalKey(${code})`
 }
 
-function optionalKeyType(isRequired: boolean, type: string): string {
+function optionalType(isRequired: boolean, type: string): string {
   return isRequired ? type : `${type}?`
 }
 
@@ -336,47 +337,53 @@ function collectIndexSignatures(schema: Fragment, options: GoOptions): Array<Ind
   return []
 }
 
-function object(ps: ReadonlyArray<Property>, is: ReadonlyArray<IndexSignature>): Output {
-  if (is.length === 0) {
+function object(ps: ReadonlyArray<Property>, iss: ReadonlyArray<IndexSignature>): Output {
+  if (iss.length === 0) {
     return struct(ps)
-  } else if (ps.length === 0 && is.length === 1) {
-    return record(is[0].key, is[0].value)
+  } else if (ps.length === 0 && iss.length === 1) {
+    return record(iss[0])
   } else {
-    const s = struct(ps)
-    const i = is.map((i) => record(i.key, i.value))
     return {
-      code: `Schema.StructWithRest(${s.code}, [${i.map((i) => i.code).join(", ")}])`,
-      type: `{ ${stripBraces(s.type)}, ${i.map((i) => stripBraces(i.type)).join(", ")} }`,
+      code: `Schema.StructWithRest(${structRuntime(ps)}, [${iss.map(indexSignatureRuntime).join(", ")}])`,
+      type: `{ ${propertiesType(ps)}, ${iss.map(indexSignatureType).join(", ")} }`,
       dependencies: DependenciesReducer.combineAll([
         ...ps.map((p) => p.value.dependencies),
-        ...i.map((i) => i.dependencies)
+        ...iss.map((is) => DependenciesReducer.combine(is.key.dependencies, is.value.dependencies))
       ])
     }
   }
 }
 
-// Strip the outer `{` and `}` braces along with any surrounding whitespace
-function stripBraces(s: string): string {
-  const match = s.trim().match(/^\{\s*(.*?)\s*\}$/)
-  return match ? match[1] : s
-}
-
 function struct(ps: ReadonlyArray<Property>): Output {
   return {
-    code: `Schema.Struct({ ${
-      ps.map((p) => `${p.key}: ${optionalKeyRuntime(p.isRequired, p.value.code)}`).join(", ")
-    } })`,
-    type: `{ ${ps.map((p) => `readonly ${optionalKeyType(p.isRequired, p.key)}: ${p.value.type}`).join(", ")} }`,
+    code: structRuntime(ps),
+    type: `{ ${propertiesType(ps)} }`,
     dependencies: DependenciesReducer.combineAll(ps.map((p) => p.value.dependencies))
   }
 }
 
-function record(key: Output, value: Output): Output {
+function structRuntime(ps: ReadonlyArray<Property>): string {
+  return `Schema.Struct({ ${ps.map((p) => `${p.key}: ${optionalRuntime(p.isRequired, p.value.code)}`).join(", ")} })`
+}
+
+function propertiesType(ps: ReadonlyArray<Property>): string {
+  return ps.map((p) => `readonly ${optionalType(p.isRequired, p.key)}: ${p.value.type}`).join(", ")
+}
+
+function record(is: IndexSignature): Output {
   return {
-    code: `Schema.Record(${key.code}, ${value.code})`,
-    type: `{ readonly [x: ${key.type}]: ${value.type} }`,
-    dependencies: DependenciesReducer.combine(key.dependencies, value.dependencies)
+    code: indexSignatureRuntime(is),
+    type: `{ ${indexSignatureType(is)} }`,
+    dependencies: DependenciesReducer.combine(is.key.dependencies, is.value.dependencies)
   }
+}
+
+function indexSignatureRuntime(is: IndexSignature) {
+  return `Schema.Record(${is.key.code}, ${is.value.code})`
+}
+
+function indexSignatureType(is: IndexSignature) {
+  return `readonly [x: ${is.key.type}]: ${is.value.type}`
 }
 
 type Element = {
@@ -387,8 +394,8 @@ type Element = {
 function array(es: ReadonlyArray<Element>, item: Output | undefined): Output {
   if (item === undefined) {
     return {
-      code: `Schema.Tuple([${es.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(", ")}])`,
-      type: `readonly [${es.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(", ")}]`,
+      code: tupleRuntime(es),
+      type: `readonly [${elementsType(es)}]`,
       dependencies: DependenciesReducer.combineAll(es.map((e) => e.value.dependencies))
     }
   } else if (es.length === 0) {
@@ -399,15 +406,19 @@ function array(es: ReadonlyArray<Element>, item: Output | undefined): Output {
     }
   } else {
     return {
-      code: `Schema.TupleWithRest(Schema.Tuple([${
-        es.map((e) => optionalKeyRuntime(e.isRequired, e.value.code)).join(", ")
-      }]), [${item.code}])`,
-      type: `readonly [${
-        es.map((e) => optionalKeyType(e.isRequired, e.value.type)).join(", ")
-      }, ...Array<${item.type}>]`,
+      code: `Schema.TupleWithRest(${tupleRuntime(es)}, [${item.code}])`,
+      type: `readonly [${elementsType(es)}, ...Array<${item.type}>]`,
       dependencies: DependenciesReducer.combineAll([...es.map((e) => e.value.dependencies), item.dependencies])
     }
   }
+}
+
+function tupleRuntime(es: ReadonlyArray<Element>): string {
+  return `Schema.Tuple([${es.map((e) => optionalRuntime(e.isRequired, e.value.code)).join(", ")}])`
+}
+
+function elementsType(es: ReadonlyArray<Element>): string {
+  return `${es.map((e) => optionalType(e.isRequired, e.value.type)).join(", ")}`
 }
 
 function union(members: ReadonlyArray<Output>, mode: "anyOf" | "oneOf"): Output {

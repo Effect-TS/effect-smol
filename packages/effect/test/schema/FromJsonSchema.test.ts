@@ -15,12 +15,12 @@ function getDocumentByTarget(target: Annotations.JsonSchema.Target, schema: Sche
 
 function assertRoundtrip(input: {
   readonly schema: Schema.Top
-  readonly seen?: Set<string> | undefined
+  readonly refs?: ReadonlySet<string> | undefined
   readonly target?: Annotations.JsonSchema.Target | undefined
 }) {
   const target = input.target ?? "draft-07"
   const document = getDocumentByTarget(target, input.schema)
-  const output = FromJsonSchema.make(document.schema, { target, seen: input.seen })
+  const output = FromJsonSchema.make(document.schema, { target, refs: input.refs })
   const fn = new Function("Schema", `return ${output.code}`)
   const generated = fn(Schema)
   const codedocument = getDocumentByTarget(target, generated)
@@ -31,7 +31,7 @@ function assertRoundtrip(input: {
 function assertOutput(
   input: {
     readonly schema: Record<string, unknown> | boolean
-    readonly seen?: Set<string> | undefined
+    readonly refs?: ReadonlySet<string> | undefined
     readonly target?: Annotations.JsonSchema.Target | undefined
   },
   expected: {
@@ -41,7 +41,7 @@ function assertOutput(
   }
 ) {
   const code = FromJsonSchema.make(input.schema, {
-    seen: input.seen
+    refs: input.refs
   })
   if (expected.dependencies === undefined) {
     expected = { ...expected, dependencies: new Set() }
@@ -552,7 +552,7 @@ describe("FromJsonSchema", () => {
               },
               "required": ["a"]
             },
-            seen: new Set(["A"])
+            refs: new Set(["A"])
           },
           {
             code: `Schema.Struct({ a: Schema.suspend((): Schema.Codec<A> => A) })`,
@@ -566,11 +566,11 @@ describe("FromJsonSchema", () => {
 
   describe("generate", () => {
     function generate(doc: Schema.JsonSchema.Document) {
-      const seen = new Set(Object.keys(doc.definitions))
-      const schema = FromJsonSchema.make(doc.schema)
+      const refs = new Set(Object.keys(doc.definitions))
+      const output = FromJsonSchema.make(doc.schema)
       const definitions = Object.entries(doc.definitions).map((
         [name, schema]
-      ) => [name, FromJsonSchema.make(schema, { seen })] as const)
+      ) => [name, FromJsonSchema.make(schema, { refs })] as const)
 
       const name = "schema"
       let s = ""
@@ -582,7 +582,7 @@ describe("FromJsonSchema", () => {
       })
 
       s += "// Schema\n"
-      s += `const ${name} = ${schema.code};\n`
+      s += `const ${name} = ${output.code};\n`
       return s
     }
 
@@ -610,9 +610,8 @@ describe("FromJsonSchema", () => {
         left: Expression,
         right: Expression
       }).annotate({ identifier: "Operation" })
-      const code = generate(Schema.makeJsonSchemaDraft2020_12(Operation))
       strictEqual(
-        code,
+        generate(Schema.makeJsonSchemaDraft07(Operation)),
         `// Definitions
 type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
 const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) });
