@@ -36,6 +36,16 @@ type FlagParam = Param.Single<typeof Param.Flag, unknown>
 type FlagMap = Record<string, ReadonlyArray<string>>
 type MutableFlagMap = Record<string, Array<string>>
 
+type CommandContext<Name extends string, Input, E, R> = {
+  readonly command: Command<Name, Input, E, R>
+  readonly commandPath: ReadonlyArray<string>
+  readonly flagParams: ReadonlyArray<FlagParam>
+}
+
+/* ====================================================================== */
+/* Cursor (token navigation)                                               */
+/* ====================================================================== */
+
 interface TokenCursor {
   readonly peek: () => Token | undefined
   readonly take: () => Token | undefined
@@ -50,6 +60,10 @@ const makeCursor = (tokens: ReadonlyArray<Token>): TokenCursor => {
     rest: () => tokens.slice(i)
   }
 }
+
+/* ====================================================================== */
+/* Flag tables                                                             */
+/* ====================================================================== */
 
 /** Map canonicalized names/aliases → Single<A> (O(1) lookup). */
 const buildFlagIndex = (
@@ -70,6 +84,10 @@ const buildFlagIndex = (
 const buildSubcommandIndex = (
   subcommands: ReadonlyArray<Command<string, unknown, unknown, unknown>>
 ): Map<string, Command<string, unknown, unknown, unknown>> => new Map(subcommands.map((sub) => [sub.name, sub]))
+
+/* ====================================================================== */
+/* Flag bag & values                                                       */
+/* ====================================================================== */
 
 const isFlagToken = (t: Token): t is Extract<Token, { _tag: "LongOption" | "ShortOption" }> =>
   t._tag === "LongOption" || t._tag === "ShortOption"
@@ -284,20 +302,19 @@ const isFlagParam = <A>(s: Param.Single<Param.ParamKind, A>): s is Param.Single<
 
 const scanCommandLevel = <Name extends string, Input, E, R>(
   tokens: ReadonlyArray<Token>,
-  command: Command<Name, Input, E, R>,
-  flags: ReadonlyArray<FlagParam>,
-  commandPath: ReadonlyArray<string>
+  context: CommandContext<Name, Input, E, R>
 ): LevelResult => {
-  const index = buildFlagIndex(flags)
+  const { command, commandPath, flagParams } = context
+  const index = buildFlagIndex(flagParams)
   const subIndex = buildSubcommandIndex(command.subcommands)
-  const state = makeParseState(flags)
+  const state = makeParseState(flagParams)
   const expectsArgs = command.config.arguments.length > 0
   const cursor = makeCursor(tokens)
 
   const handleFlag = (t: Extract<Token, { _tag: "LongOption" | "ShortOption" }>) => {
     const spec = index.get(flagName(t))
     if (!spec) {
-      const err = unrecognizedFlagError(t, flags, commandPath)
+      const err = unrecognizedFlagError(t, flagParams, commandPath)
       if (err) state.errors.push(err)
       return
     }
@@ -308,7 +325,7 @@ const scanCommandLevel = <Name extends string, Input, E, R>(
     const sub = subIndex.get(value)
     if (sub) {
       // Allow parent flags to appear after the subcommand name (npm-style)
-      const tail = collectFlagValues(cursor.rest(), flags)
+      const tail = collectFlagValues(cursor.rest(), flagParams)
       mergeFlagValues(state, tail.flagMap)
       return {
         _tag: "Sub",
@@ -362,9 +379,13 @@ export const parseArgs = <Name extends string, Input, E, R>(
 
     // Flags available at this level (ignore arguments)
     const singles = command.config.flags.flatMap(Param.extractSingleParams)
-    const flags = singles.filter(isFlagParam)
+    const flagParams = singles.filter(isFlagParam)
 
-    const result = scanCommandLevel(tokens, command, flags, newCommandPath)
+    const result = scanCommandLevel(tokens, {
+      command,
+      commandPath: newCommandPath,
+      flagParams
+    })
 
     if (result._tag === "Leaf") {
       return {
