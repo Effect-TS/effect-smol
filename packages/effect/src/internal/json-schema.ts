@@ -1,6 +1,5 @@
 import { format } from "../data/Formatter.ts"
 import * as Predicate from "../data/Predicate.ts"
-import * as Equal from "../interfaces/Equal.ts"
 import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
 import type * as Schema from "../schema/Schema.ts"
@@ -47,6 +46,8 @@ function escapeJsonPointer(identifier: string) {
   return identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
 }
 
+const encodedMap = new WeakMap<AST.AST, string>()
+
 function recur(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
@@ -58,28 +59,21 @@ function recur(
   // ---------------------------------------------
   // handle identifier annotation
   // ---------------------------------------------
-  if (
-    !ignoreIdentifier && (
-      options.referenceStrategy === "keep"
-      || options.referenceStrategy === "skip-top-level" && path.length > 0
-      || AST.isSuspend(ast)
-    )
-  ) {
+  const shouldHandleIdentifier = !ignoreIdentifier && (
+    (options.referenceStrategy === "keep" || (options.referenceStrategy === "skip-top-level" && path.length > 0))
+    || AST.isSuspend(ast)
+  )
+  if (shouldHandleIdentifier) {
     const identifier = getIdentifier(ast)
     if (identifier !== undefined) {
       const $ref = { $ref: getPointer(target) + escapeJsonPointer(identifier) }
+      const encoded = AST.encodedAST(ast)
       if (Object.hasOwn(options.definitions, identifier)) {
-        if (AST.isSuspend(ast)) {
+        if (AST.isSuspend(ast) || encodedMap.get(encoded) === identifier) {
           return $ref
-        } else {
-          const existing = options.definitions[identifier]
-          const generated = recur(ast, path, options, true, ignoreAnnotation)
-          // check for duplicated identifiers in different ASTs
-          if (Equal.equals(existing, generated)) {
-            return $ref
-          }
         }
       } else {
+        encodedMap.set(encoded, identifier)
         options.definitions[identifier] = $ref
         options.definitions[identifier] = recur(ast, path, options, true, ignoreAnnotation)
         return $ref

@@ -1906,12 +1906,8 @@ describe("JsonSchema generation", () => {
                   ]
                 },
                 "id3_2": {
-                  "allOf": [
-                    { "$ref": "#/definitions/id3" },
-                    {
-                      "description": "id3_2-key"
-                    }
-                  ]
+                  "type": "string",
+                  "description": "id3_2-key"
                 }
               },
               "required": ["a", "b", "c", "d", "id1", "id2", "id3_1", "id3_2"],
@@ -2186,12 +2182,8 @@ describe("JsonSchema generation", () => {
                   ]
                 },
                 {
-                  "allOf": [
-                    { "$ref": "#/definitions/id3" },
-                    {
-                      "description": "id3_2-key"
-                    }
-                  ]
+                  "type": "string",
+                  "description": "id3_2-key"
                 }
               ],
               "additionalItems": false
@@ -2730,6 +2722,82 @@ describe("JsonSchema generation", () => {
                 "required": [
                   "type",
                   "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+        assertDraft07(
+          Expression,
+          {
+            schema: {
+              "$ref": "#/definitions/Expression"
+            },
+            definitions: {
+              "Expression": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "expression"
+                    ]
+                  },
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "$ref": "#/definitions/Operation"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              "Operation": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "operation"
+                    ]
+                  },
+                  "operator": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "+"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "-"
+                        ]
+                      }
+                    ]
+                  },
+                  "left": {
+                    "$ref": "#/definitions/Expression"
+                  },
+                  "right": {
+                    "$ref": "#/definitions/Expression"
+                  }
+                },
+                "required": [
+                  "type",
+                  "operator",
+                  "left",
+                  "right"
                 ],
                 "additionalProperties": false
               }
@@ -3389,12 +3457,8 @@ describe("JsonSchema generation", () => {
                   ]
                 },
                 {
-                  "allOf": [
-                    { "$ref": "#/$defs/id3" },
-                    {
-                      "description": "id3_2-key"
-                    }
-                  ]
+                  "type": "string",
+                  "description": "id3_2-key"
                 }
               ],
               "items": false
@@ -3687,12 +3751,8 @@ describe("JsonSchema generation", () => {
                   ]
                 },
                 {
-                  "allOf": [
-                    { "$ref": "#/components/schemas/id3" },
-                    {
-                      "description": "id3_2-key"
-                    }
-                  ]
+                  "type": "string",
+                  "description": "id3_2-key"
                 }
               ],
               "items": false

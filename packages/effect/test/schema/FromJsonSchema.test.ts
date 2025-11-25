@@ -578,11 +578,11 @@ describe("FromJsonSchema", () => {
       s += "// Definitions\n"
       definitions.forEach(([name, { code, type }]) => {
         s += `type ${name} = ${type};\n`
-        s += `const ${name} = ${code};\n`
+        s += `const ${name} = ${code};\n\n`
       })
 
       s += "// Schema\n"
-      s += `const ${name} = ${output.code};\n`
+      s += `const ${name} = ${output.code};`
       return s
     }
 
@@ -615,11 +615,24 @@ describe("FromJsonSchema", () => {
         `// Definitions
 type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
 const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) });
+
 type Expression = { readonly type: "expression", readonly value: number | Operation };
 const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) });
+
 // Schema
-const schema = Operation;
-`
+const schema = Operation;`
+      )
+      strictEqual(
+        generate(Schema.makeJsonSchemaDraft07(Expression)),
+        `// Definitions
+type Expression = { readonly type: "expression", readonly value: number | Operation };
+const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) });
+
+type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
+const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) });
+
+// Schema
+const schema = Expression;`
       )
     })
   })
