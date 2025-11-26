@@ -65,6 +65,15 @@ interface CompletionItem {
   readonly description?: string
 }
 
+const findMatchingFlag = (
+  token: string,
+  flags: ReadonlyArray<SingleFlagMeta>
+): SingleFlagMeta | undefined =>
+  flags.find((flag) =>
+    token === `--${flag.name}` ||
+    flag.aliases.some((a) => token === (a.length === 1 ? `-${a}` : `--${a}`))
+  )
+
 const formatAlias = (alias: string): string => {
   if (alias.startsWith("-")) {
     return alias
@@ -183,7 +192,7 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
   }
 
   // Find the current command context by walking through the words
-  let currentCmd: Command<any, any, any, any> = rootCmd as any
+  let currentCmd: Command.Any = rootCmd
   let wordIndex = 1 // Skip executable name
 
   // Walk through words to find the current command context
@@ -202,23 +211,20 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
       }
 
       const singles = getSingles(toImpl(currentCmd).config.flags)
-      const matchingOption = singles.find((s) =>
-        optionToken === `--${s.name}` ||
-        s.aliases.some((a) => optionToken === (a.length === 1 ? `-${a}` : `--${a}`))
-      )
+      const matchingFlag = findMatchingFlag(optionToken, singles)
 
       wordIndex++ // Move past the option
 
       if (
-        matchingOption && optionRequiresValue(matchingOption) && !hasInlineValue && wordIndex < context.currentIndex
+        matchingFlag && optionRequiresValue(matchingFlag) && !hasInlineValue && wordIndex < context.currentIndex
       ) {
         wordIndex++ // Skip the option value
       }
     } else {
       // Check if it's a subcommand
-      const subCmd = currentCmd.subcommands.find((c: any) => c.name === word)
+      const subCmd = currentCmd.subcommands.find((c) => c.name === word)
       if (subCmd) {
-        currentCmd = subCmd as any
+        currentCmd = subCmd
         wordIndex++
       } else {
         // Unknown word in command path - return empty completions
@@ -235,13 +241,10 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
   const equalIndex = currentWord.indexOf("=")
   if (currentWord.startsWith("-") && equalIndex !== -1) {
     const optionToken = currentWord.slice(0, equalIndex)
-    const matchingOption = singles.find((s) =>
-      optionToken === `--${s.name}` ||
-      s.aliases.some((a) => optionToken === (a.length === 1 ? `-${a}` : `--${a}`))
-    )
+    const matchingFlag = findMatchingFlag(optionToken, singles)
 
-    if (matchingOption && optionRequiresValue(matchingOption)) {
-      const candidateKind = matchingOption.typeName ?? (matchingOption.primitiveTag === "Path" ? "path" : undefined)
+    if (matchingFlag && optionRequiresValue(matchingFlag)) {
+      const candidateKind = matchingFlag.typeName ?? (matchingFlag.primitiveTag === "Path" ? "path" : undefined)
       const fileKind = candidateKind === "directory" || candidateKind === "file" || candidateKind === "either" ||
           candidateKind === "path"
         ? candidateKind
@@ -268,13 +271,10 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
       if (prevWord && prevWord.startsWith("-")) {
         const prevEqIndex = prevWord.indexOf("=")
         const prevToken = prevEqIndex === -1 ? prevWord : prevWord.slice(0, prevEqIndex)
-        const matchingOption = singles.find((s) =>
-          prevToken === `--${s.name}` ||
-          s.aliases.some((a) => prevToken === (a.length === 1 ? `-${a}` : `--${a}`))
-        )
+        const matchingFlag = findMatchingFlag(prevToken, singles)
 
-        if (matchingOption && optionRequiresValue(matchingOption)) {
-          const candidateKind = matchingOption.typeName ?? (matchingOption.primitiveTag === "Path" ? "path" : undefined)
+        if (matchingFlag && optionRequiresValue(matchingFlag)) {
+          const candidateKind = matchingFlag.typeName ?? (matchingFlag.primitiveTag === "Path" ? "path" : undefined)
           const fileKind = candidateKind === "directory" || candidateKind === "file" || candidateKind === "either" ||
               candidateKind === "path"
             ? candidateKind

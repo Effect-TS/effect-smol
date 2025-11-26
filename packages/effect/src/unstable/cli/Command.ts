@@ -27,9 +27,6 @@ import * as Parser from "./internal/parser.ts"
 import type * as Param from "./Param.ts"
 import * as Prompt from "./Prompt.ts"
 
-// Re-export toImpl for internal modules
-export { toImpl } from "./internal/command.ts"
-
 /* ========================================================================== */
 /* Public Types                                                               */
 /* ========================================================================== */
@@ -196,6 +193,14 @@ export declare namespace Command {
       : A extends Config ? Infer<A>
       : never
   }
+
+  /**
+   * Represents any Command regardless of its type parameters.
+   *
+   * @since 4.0.0
+   * @category models
+   */
+  export type Any = Command<string, any, any, any>
 }
 
 /**

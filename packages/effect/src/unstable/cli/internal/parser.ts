@@ -129,7 +129,7 @@ export const parseArgs = <Name extends string, Input, E, R>(
 /* Types                                                                      */
 /* ========================================================================== */
 
-type FlagParam = Param.Single<typeof Param.Flag, unknown>
+type FlagParam = Param.Single<typeof Param.flagKind, unknown>
 
 /**
  * Mutable map of flag names to their collected string values.
