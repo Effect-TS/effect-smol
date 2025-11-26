@@ -1,57 +1,18 @@
-import type { Command } from "../../Command.ts"
-import { generateBashCompletions } from "./bash.ts"
-import { generateFishCompletions } from "./fish.ts"
-import type { Shell } from "./types.ts"
-import { generateZshCompletions } from "./zsh/index.ts"
+/**
+ * Dynamic completion system.
+ *
+ * Generates lightweight shell shims that call the CLI binary at runtime
+ * to get completions. This approach is simpler to maintain and always
+ * stays in sync with the actual parser.
+ */
 
-/** @internal */
-export const generateCompletions = <Name extends string, I, E, R>(
-  rootCmd: Command<Name, I, E, R>,
-  executableName: string,
-  shell: Shell
-): string => {
-  /*
-   * TODO(completions)
-   * - Add a `completion` subcommand with `show|install|uninstall <shell>` UX; keep `--completions` as hidden alias
-   * - Include descriptions for flags/subcommands (zsh `_arguments[...]`, fish `--description`)
-   * - Support positional argument completions (type hints, choices)
-   * - Auto-complete `choice` values and add dynamic `withCompletions(ctx)` hooks
-   * - Consider dynamic completion mode (`__complete`) that consults real parser
-   * - Unify parent/child flag visibility policy across shells
-   * - Add PowerShell support if needed
-   */
-  switch (shell) {
-    case "bash":
-      return generateBashCompletions(rootCmd, executableName)
-    case "fish":
-      return generateFishCompletions(rootCmd, executableName)
-    case "zsh":
-      return generateZshCompletions(rootCmd, executableName)
-  }
-}
-
-// Export the individual generators for testing/advanced usage
-export {
-  /** @internal */
-  generateBashCompletions
-} from "./bash.ts"
-
-export {
-  /** @internal */
-  generateFishCompletions
-} from "./fish.ts"
-
-export {
-  /** @internal */
-  generateZshCompletions
-} from "./zsh/index.ts"
-
-// Export dynamic completion functions
 export {
   /** @internal */
   generateDynamicBashCompletion,
   /** @internal */
   generateDynamicCompletion,
+  /** @internal */
+  generateDynamicFishCompletion,
   /** @internal */
   generateDynamicZshCompletion,
   /** @internal */
@@ -61,11 +22,4 @@ export {
 } from "./dynamic/index.ts"
 
 /** @internal */
-export type {
-  /** @internal */
-  CommandRow,
-  /** @internal */
-  Shell,
-  /** @internal */
-  SingleFlagMeta
-} from "./types.ts"
+export type { Shell, SingleFlagMeta } from "./types.ts"
