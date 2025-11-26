@@ -79,9 +79,9 @@ export const extractBuiltInOptions = (
   })
 
 /** @internal */
-export const parseArgs = <Name extends string, Input, E, R>(
+export const parseArgs = (
   lexResult: LexResult,
-  command: Command<Name, Input, E, R>,
+  command: Command.Any,
   commandPath: ReadonlyArray<string> = []
 ): Effect.Effect<ParsedTokens, CliError.CliError, FileSystem | Path> =>
   Effect.gen(function*() {
@@ -93,7 +93,7 @@ export const parseArgs = <Name extends string, Input, E, R>(
     const flagParams = singles.filter(Param.isFlagParam)
     const flagRegistry = createFlagRegistry(flagParams)
 
-    const context: CommandContext<Name, Input, E, R> = {
+    const context: CommandContext = {
       command,
       commandPath: newCommandPath,
       flagRegistry
@@ -112,7 +112,7 @@ export const parseArgs = <Name extends string, Input, E, R>(
     const subLex: LexResult = { tokens: result.childTokens, trailingOperands: [] }
     const subParsed = yield* parseArgs(
       subLex,
-      result.sub as unknown as Command<Name, Input, E, R>,
+      result.sub,
       newCommandPath
     )
 
@@ -163,10 +163,9 @@ type FlagAccumulator = {
 
 /**
  * Context for parsing a command level.
- * Generics flow through to avoid runtime casts.
  */
-type CommandContext<Name extends string, Input, E, R> = {
-  readonly command: Command<Name, Input, E, R>
+type CommandContext = {
+  readonly command: Command.Any
   readonly commandPath: ReadonlyArray<string>
   readonly flagRegistry: FlagRegistry
 }
@@ -477,10 +476,10 @@ const toLeafResult = (state: ParseState): LeafResult => ({
  * - Return Argument to treat it as a positional argument
  * - Report error if command expects subcommand but got unknown value
  */
-const resolveFirstValue = <Name extends string, Input, E, R>(
+const resolveFirstValue = (
   value: string,
   cursor: TokenCursor,
-  context: CommandContext<Name, Input, E, R>,
+  context: CommandContext,
   state: ParseState
 ): FirstValueResult => {
   const { command, commandPath, flagRegistry } = context
@@ -528,10 +527,10 @@ const resolveFirstValue = <Name extends string, Input, E, R>(
  * Processes a flag token: looks up in registry, consumes value, records it.
  * Reports unrecognized flags as errors.
  */
-const processFlag = <Name extends string, Input, E, R>(
+const processFlag = (
   token: FlagToken,
   cursor: TokenCursor,
-  context: CommandContext<Name, Input, E, R>,
+  context: CommandContext,
   state: ParseState
 ): void => {
   const { commandPath, flagRegistry } = context
@@ -557,10 +556,10 @@ const processFlag = <Name extends string, Input, E, R>(
  * In CollectingArguments mode:
  * - Simply add value to arguments list
  */
-const processValue = <Name extends string, Input, E, R>(
+const processValue = (
   value: string,
   cursor: TokenCursor,
-  context: CommandContext<Name, Input, E, R>,
+  context: CommandContext,
   state: ParseState
 ): SubcommandResult | undefined => {
   if (state.mode._tag === "AwaitingFirstValue") {
@@ -590,9 +589,9 @@ const processValue = <Name extends string, Input, E, R>(
  *
  * Returns LeafResult if no subcommand detected, SubcommandResult otherwise.
  */
-const scanCommandLevel = <Name extends string, Input, E, R>(
+const scanCommandLevel = (
   tokens: ReadonlyArray<Token>,
-  context: CommandContext<Name, Input, E, R>
+  context: CommandContext
 ): LevelResult => {
   const cursor = makeCursor(tokens)
   const state = createParseState(context.flagRegistry)
