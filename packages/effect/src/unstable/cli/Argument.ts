@@ -3,8 +3,9 @@
  */
 import type * as Option from "../../data/Option.ts"
 import type * as Redacted from "../../data/Redacted.ts"
+import type * as Result from "../../data/Result.ts"
 import type * as Effect from "../../Effect.ts"
-import { dual } from "../../Function.ts"
+import { dual, type LazyArg } from "../../Function.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Path from "../../platform/Path.ts"
 import type * as Schema from "../../schema/Schema.ts"
@@ -15,6 +16,11 @@ import type * as Primitive from "./Primitive.ts"
 
 /**
  * Represents a positional command-line argument.
+ *
+ * Note: `boolean` is intentionally omitted from Argument constructors.
+ * Positional boolean arguments are ambiguous in CLI design since there's
+ * no flag name to negate (e.g., `--no-verbose`). Use Flag.boolean instead,
+ * or use Argument.choice with explicit "true"/"false" strings if needed.
  *
  * @since 4.0.0
  * @category models
@@ -180,7 +186,7 @@ export const redacted = (name: string): Argument<Redacted.Redacted<string>> => P
  * @since 4.0.0
  * @category constructors
  */
-export const fileText = (name: string): Argument<string> => Param.fileString(Param.Argument, name)
+export const fileText = (name: string): Argument<string> => Param.fileText(Param.Argument, name)
 
 /**
  * Creates a positional argument that reads and validates file content using a schema.
@@ -498,3 +504,143 @@ export const withSchema: {
   <A, B>(schema: Schema.Codec<B, A>): (self: Argument<A>) => Argument<B>
   <A, B>(self: Argument<A>, schema: Schema.Codec<B, A>): Argument<B>
 } = dual(2, <A, B>(self: Argument<A>, schema: Schema.Codec<B, A>) => Param.withSchema(self, schema))
+
+/**
+ * Creates a positional choice argument with custom value mapping.
+ *
+ * @example
+ * ```ts
+ * import { Argument } from "effect/unstable/cli"
+ *
+ * const logLevel = Argument.choiceWithValue("level", [
+ *   ["debug", 0],
+ *   ["info", 1],
+ *   ["warn", 2],
+ *   ["error", 3]
+ * ])
+ * ```
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const choiceWithValue = <const Choices extends ReadonlyArray<readonly [string, any]>>(
+  name: string,
+  choices: Choices
+): Argument<Choices[number][1]> => Param.choiceWithValue(Param.Argument, name, choices)
+
+/**
+ * Sets a custom display name for the argument type in help documentation.
+ *
+ * @example
+ * ```ts
+ * import { Argument } from "effect/unstable/cli"
+ *
+ * const port = Argument.integer("port").pipe(
+ *   Argument.withPseudoName("PORT")
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const withPseudoName: {
+  <A>(pseudoName: string): (self: Argument<A>) => Argument<A>
+  <A>(self: Argument<A>, pseudoName: string): Argument<A>
+} = dual(2, <A>(self: Argument<A>, pseudoName: string) => Param.withPseudoName(self, pseudoName))
+
+/**
+ * Filters parsed values, failing with a custom error message if the predicate returns false.
+ *
+ * @example
+ * ```ts
+ * import { Argument } from "effect/unstable/cli"
+ *
+ * const positiveInt = Argument.integer("count").pipe(
+ *   Argument.filter(
+ *     n => n > 0,
+ *     n => `Expected positive integer, got ${n}`
+ *   )
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const filter: {
+  <A>(predicate: (a: A) => boolean, onFalse: (a: A) => string): (self: Argument<A>) => Argument<A>
+  <A>(self: Argument<A>, predicate: (a: A) => boolean, onFalse: (a: A) => string): Argument<A>
+} = dual(3, <A>(
+  self: Argument<A>,
+  predicate: (a: A) => boolean,
+  onFalse: (a: A) => string
+) => Param.filter(self, predicate, onFalse))
+
+/**
+ * Filters and transforms parsed values, failing with a custom error message
+ * if the filter function returns None.
+ *
+ * @example
+ * ```ts
+ * import { Option } from "effect/data"
+ * import { Argument } from "effect/unstable/cli"
+ *
+ * const positiveInt = Argument.integer("count").pipe(
+ *   Argument.filterMap(
+ *     (n) => n > 0 ? Option.some(n) : Option.none(),
+ *     (n) => `Expected positive integer, got ${n}`
+ *   )
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const filterMap: {
+  <A, B>(f: (a: A) => Option.Option<B>, onNone: (a: A) => string): (self: Argument<A>) => Argument<B>
+  <A, B>(self: Argument<A>, f: (a: A) => Option.Option<B>, onNone: (a: A) => string): Argument<B>
+} = dual(3, <A, B>(
+  self: Argument<A>,
+  f: (a: A) => Option.Option<B>,
+  onNone: (a: A) => string
+) => Param.filterMap(self, f, onNone))
+
+/**
+ * Provides a fallback argument to use if this argument fails to parse.
+ *
+ * @example
+ * ```ts
+ * import { Argument } from "effect/unstable/cli"
+ *
+ * const value = Argument.integer("value").pipe(
+ *   Argument.orElse(() => Argument.string("value"))
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const orElse: {
+  <B>(that: LazyArg<Argument<B>>): <A>(self: Argument<A>) => Argument<A | B>
+  <A, B>(self: Argument<A>, that: LazyArg<Argument<B>>): Argument<A | B>
+} = dual(2, <A, B>(self: Argument<A>, that: LazyArg<Argument<B>>) => Param.orElse(self, that))
+
+/**
+ * Provides a fallback argument, wrapping results in Result to distinguish which succeeded.
+ *
+ * @example
+ * ```ts
+ * import { Argument } from "effect/unstable/cli"
+ *
+ * const source = Argument.file("source").pipe(
+ *   Argument.orElseResult(() => Argument.string("url"))
+ * )
+ * // Returns Result<string, string>
+ * ```
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const orElseResult: {
+  <B>(that: LazyArg<Argument<B>>): <A>(self: Argument<A>) => Argument<Result.Result<A, B>>
+  <A, B>(self: Argument<A>, that: LazyArg<Argument<B>>): Argument<Result.Result<A, B>>
+} = dual(2, <A, B>(self: Argument<A>, that: LazyArg<Argument<B>>) => Param.orElseResult(self, that))

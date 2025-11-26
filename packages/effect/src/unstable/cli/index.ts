@@ -35,11 +35,6 @@ export * as CliOutput from "./CliOutput.ts"
 /**
  * @since 4.0.0
  */
-export * as Param from "./Param.ts"
-
-/**
- * @since 4.0.0
- */
 export * as Primitive from "./Primitive.ts"
 
 /**
