@@ -79,7 +79,7 @@ export const Flag: "flag" = flagKind
  * @since 4.0.0
  * @category models
  */
-export type Any = Param<ParamKind, any>
+export type Any = Param<ParamKind, unknown>
 
 /**
  * Represents any positional argument parameter.
@@ -87,7 +87,7 @@ export type Any = Param<ParamKind, any>
  * @since 4.0.0
  * @category models
  */
-export type AnyArgument = Param<typeof Argument, any>
+export type AnyArgument = Param<typeof Argument, unknown>
 
 /**
  * Represents any flag parameter.
@@ -95,7 +95,7 @@ export type AnyArgument = Param<typeof Argument, any>
  * @since 4.0.0
  * @category models
  */
-export type AnyFlag = Param<typeof Flag, any>
+export type AnyFlag = Param<typeof Flag, unknown>
 
 /**
  * @since 4.0.0

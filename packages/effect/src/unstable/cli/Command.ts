@@ -97,7 +97,7 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
   /**
    * The subcommands available under this command.
    */
-  readonly subcommands: ReadonlyArray<Command<any, any, any, any>>
+  readonly subcommands: ReadonlyArray<Command.Any>
 }
 
 /**
@@ -200,7 +200,7 @@ export declare namespace Command {
    * @since 4.0.0
    * @category models
    */
-  export type Any = Command<string, any, any, any>
+  export type Any = Command<string, unknown, unknown, unknown>
 }
 
 /**
