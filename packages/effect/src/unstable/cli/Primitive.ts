@@ -94,6 +94,9 @@ export const isTrueValue = Schema.is(Config.TrueValues)
 /** @internal */
 export const isFalseValue = Schema.is(Config.FalseValues)
 
+/** @internal */
+export const isBoolean = (p: Primitive<unknown>): p is Primitive<boolean> => p._tag === "Boolean"
+
 const makePrimitive = <A>(
   tag: string,
   parse: (

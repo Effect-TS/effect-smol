@@ -7,7 +7,7 @@ import type { Command } from "../../../Command.ts"
 import { toImpl } from "../../command.ts"
 import { getSingles } from "../shared.ts"
 import { optionRequiresValue } from "../types.ts"
-import type { SingleFlagMeta } from "../types.ts"
+import type { FlagDescriptor } from "../types.ts"
 
 interface CompletionContext {
   readonly words: ReadonlyArray<string>
@@ -65,10 +65,10 @@ interface CompletionItem {
   readonly description?: string
 }
 
-const findMatchingFlag = (
+const lookupFlag = (
   token: string,
-  flags: ReadonlyArray<SingleFlagMeta>
-): SingleFlagMeta | undefined =>
+  flags: ReadonlyArray<FlagDescriptor>
+): FlagDescriptor | undefined =>
   flags.find((flag) =>
     token === `--${flag.name}` ||
     flag.aliases.some((a) => token === (a.length === 1 ? `-${a}` : `--${a}`))
@@ -81,7 +81,7 @@ const formatAlias = (alias: string): string => {
   return alias.length === 1 ? `-${alias}` : `--${alias}`
 }
 
-const getTypeLabel = (flag: SingleFlagMeta): string | undefined => {
+const getTypeLabel = (flag: FlagDescriptor): string | undefined => {
   if (flag.typeName) {
     switch (flag.typeName) {
       case "directory":
@@ -112,7 +112,7 @@ const getTypeLabel = (flag: SingleFlagMeta): string | undefined => {
   }
 }
 
-const buildFlagDescription = (flag: SingleFlagMeta): string => {
+const buildFlagDescription = (flag: FlagDescriptor): string => {
   const parts: Array<string> = []
   const aliasParts = flag.aliases
     .map(formatAlias)
@@ -136,7 +136,7 @@ const buildFlagDescription = (flag: SingleFlagMeta): string => {
 
 const addFlagCandidates = (
   addItem: (item: CompletionItem) => void,
-  flag: SingleFlagMeta,
+  flag: FlagDescriptor,
   query: string,
   includeAliases: boolean
 ) => {
@@ -211,7 +211,7 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
       }
 
       const singles = getSingles(toImpl(currentCmd).config.flags)
-      const matchingFlag = findMatchingFlag(optionToken, singles)
+      const matchingFlag = lookupFlag(optionToken, singles)
 
       wordIndex++ // Move past the option
 
@@ -241,7 +241,7 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
   const equalIndex = currentWord.indexOf("=")
   if (currentWord.startsWith("-") && equalIndex !== -1) {
     const optionToken = currentWord.slice(0, equalIndex)
-    const matchingFlag = findMatchingFlag(optionToken, singles)
+    const matchingFlag = lookupFlag(optionToken, singles)
 
     if (matchingFlag && optionRequiresValue(matchingFlag)) {
       const candidateKind = matchingFlag.typeName ?? (matchingFlag.primitiveTag === "Path" ? "path" : undefined)
@@ -271,7 +271,7 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
       if (prevWord && prevWord.startsWith("-")) {
         const prevEqIndex = prevWord.indexOf("=")
         const prevToken = prevEqIndex === -1 ? prevWord : prevWord.slice(0, prevEqIndex)
-        const matchingFlag = findMatchingFlag(prevToken, singles)
+        const matchingFlag = lookupFlag(prevToken, singles)
 
         if (matchingFlag && optionRequiresValue(matchingFlag)) {
           const candidateKind = matchingFlag.typeName ?? (matchingFlag.primitiveTag === "Path" ? "path" : undefined)

@@ -1,8 +1,8 @@
 import * as Param from "../../Param.ts"
-import type { SingleFlagMeta } from "./types.ts"
+import type { FlagDescriptor } from "./types.ts"
 
 /** @internal */
-export const getSingles = (flags: ReadonlyArray<Param.Any>): ReadonlyArray<SingleFlagMeta> =>
+export const getSingles = (flags: ReadonlyArray<Param.Any>): ReadonlyArray<FlagDescriptor> =>
   flags
     .flatMap(Param.extractSingleParams)
     .filter((s) => s.kind === "flag")
