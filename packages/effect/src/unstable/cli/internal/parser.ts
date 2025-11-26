@@ -250,20 +250,22 @@ const makeCursor = (tokens: ReadonlyArray<Token>): TokenCursor => {
 
 /**
  * Creates a registry for O(1) flag lookup by name or alias.
- * @throws Error if duplicate names or aliases are detected
+ * @throws Error if duplicate names or aliases are detected (developer error)
  */
 const createFlagRegistry = (params: ReadonlyArray<FlagParam>): FlagRegistry => {
   const index = new Map<string, FlagParam>()
 
   for (const param of params) {
     if (index.has(param.name)) {
-      throw new Error(`Duplicate flag name: ${param.name}`)
+      throw new Error(`Duplicate flag name "${param.name}" in command definition`)
     }
     index.set(param.name, param)
 
     for (const alias of param.aliases) {
       if (index.has(alias)) {
-        throw new Error(`Duplicate flag/alias: ${alias}`)
+        throw new Error(
+          `Duplicate flag/alias "${alias}" in command definition (conflicts with "${index.get(alias)!.name}")`
+        )
       }
       index.set(alias, param)
     }

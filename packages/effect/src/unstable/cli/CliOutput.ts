@@ -151,6 +151,29 @@ export interface Formatter {
    * @since 4.0.0
    */
   readonly formatVersion: (name: string, version: string) => string
+
+  /**
+   * Formats multiple CLI errors for display, grouping by error type.
+   *
+   * @example
+   * ```ts
+   * import { CliOutput, CliError } from "effect/unstable/cli"
+   *
+   * const formatter = CliOutput.defaultFormatter({ colors: false })
+   *
+   * const errors = [
+   *   new CliError.UnrecognizedOption({ option: "--foo", suggestions: ["--force"] }),
+   *   new CliError.UnrecognizedOption({ option: "--bar", suggestions: [] }),
+   *   new CliError.MissingOption({ option: "--required" })
+   * ]
+   *
+   * const output = formatter.formatErrors(errors)
+   * // Groups errors by type and displays all at once
+   * ```
+   *
+   * @since 4.0.0
+   */
+  readonly formatErrors: (errors: ReadonlyArray<CliError.CliError>) => string
 }
 
 /**
@@ -294,14 +317,41 @@ export const defaultFormatter = (options?: { colors?: boolean }): Formatter => {
       magenta: (text: string): string => text
     }
 
+  const reset = useColor ? "\x1b[0m" : ""
+  const red = useColor ? "\x1b[31m" : ""
+  const bold = useColor ? "\x1b[1m" : ""
+
   return {
     formatHelpDoc: (doc: HelpDoc): string => formatHelpDocImpl(doc, colors),
     formatCliError: (error): string => error.message,
     formatError: (error): string => {
-      const reset = useColor ? "\x1b[0m" : ""
-      const red = useColor ? "\x1b[31m" : ""
-      const bold = useColor ? "\x1b[1m" : ""
       return `\n${bold}${red}ERROR${reset}\n  ${error.message}${reset}`
+    },
+    formatErrors: (errors): string => {
+      if (errors.length === 0) return ""
+      if (errors.length === 1) {
+        return `\n${bold}${red}ERROR${reset}\n  ${errors[0].message}${reset}`
+      }
+
+      // Group errors by _tag
+      const grouped = new Map<string, Array<CliError.CliError>>()
+      for (const error of errors) {
+        const tag = (error as any)._tag ?? "Error"
+        const group = grouped.get(tag) ?? []
+        group.push(error)
+        grouped.set(tag, group)
+      }
+
+      const sections: Array<string> = []
+      sections.push(`\n${bold}${red}ERRORS${reset}`)
+
+      for (const [, group] of grouped) {
+        for (const error of group) {
+          sections.push(`  ${error.message}${reset}`)
+        }
+      }
+
+      return sections.join("\n")
     },
     formatVersion: (name: string, version: string): string =>
       `${colors.bold(name)} ${colors.dim("v")}${colors.bold(version)}`
