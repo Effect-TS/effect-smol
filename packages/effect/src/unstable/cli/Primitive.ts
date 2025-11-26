@@ -636,13 +636,6 @@ export const keyValuePair: Primitive<Record<string, string>> = makePrimitive(
 )
 
 /**
- * @deprecated Use `keyValuePair` instead.
- * @since 4.0.0
- * @category constructors
- */
-export const keyValueMap: Primitive<Record<string, string>> = keyValuePair
-
-/**
  * A sentinel primitive that always fails to parse a value.
  *
  * Used for flags that don't accept values.

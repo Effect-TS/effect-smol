@@ -428,22 +428,6 @@ export const mapTryCatch: {
 ) => Param.mapTryCatch(self, f, onError))
 
 /**
- * Creates a variadic argument that accepts multiple values (same as variadic).
- *
- * @example
- * ```ts
- * import { Argument } from "effect/unstable/cli"
- *
- * const files = Argument.string("files").pipe(Argument.repeated)
- * ```
- *
- * @since 4.0.0
- * @category combinators
- * @deprecated Use `variadic` instead. `repeated` is equivalent to `variadic` with no options.
- */
-export const repeated = <A>(arg: Argument<A>): Argument<ReadonlyArray<A>> => Param.repeated(arg)
-
-/**
  * Creates a variadic argument that requires at least n values.
  *
  * @example
@@ -567,13 +551,6 @@ export const withMetavar: {
   <A>(metavar: string): (self: Argument<A>) => Argument<A>
   <A>(self: Argument<A>, metavar: string): Argument<A>
 } = dual(2, <A>(self: Argument<A>, metavar: string) => Param.withMetavar(self, metavar))
-
-/**
- * @deprecated Use `withMetavar` instead.
- * @since 4.0.0
- * @category metadata
- */
-export const withPseudoName = withMetavar
 
 /**
  * Filters parsed values, failing with a custom error message if the predicate returns false.

@@ -60,20 +60,6 @@ export const argumentKind: "argument" = "argument" as const
 export const flagKind: "flag" = "flag" as const
 
 /**
- * @deprecated Use `argumentKind` instead.
- * @since 4.0.0
- * @category constants
- */
-export const Argument: "argument" = argumentKind
-
-/**
- * @deprecated Use `flagKind` instead.
- * @since 4.0.0
- * @category constants
- */
-export const Flag: "flag" = flagKind
-
-/**
  * Represents any parameter.
  *
  * @since 4.0.0
@@ -87,7 +73,7 @@ export type Any = Param<ParamKind, unknown>
  * @since 4.0.0
  * @category models
  */
-export type AnyArgument = Param<typeof Argument, unknown>
+export type AnyArgument = Param<typeof argumentKind, unknown>
 
 /**
  * Represents any flag parameter.
@@ -95,7 +81,7 @@ export type AnyArgument = Param<typeof Argument, unknown>
  * @since 4.0.0
  * @category models
  */
-export type AnyFlag = Param<typeof Flag, unknown>
+export type AnyFlag = Param<typeof flagKind, unknown>
 
 /**
  * @since 4.0.0
@@ -258,7 +244,7 @@ export const isSingle = <const Kind extends ParamKind, A>(
  */
 export const isFlagParam = <A>(
   single: Single<ParamKind, A>
-): single is Single<typeof Flag, A> => single.kind === "flag"
+): single is Single<typeof flagKind, A> => single.kind === "flag"
 
 /**
  * @since 4.0.0
@@ -273,7 +259,7 @@ export const makeSingle = <const Kind extends ParamKind, A>(params: {
   readonly aliases?: ReadonlyArray<string> | undefined
 }): Single<Kind, A> => {
   const parse: Parse<A> = (args) =>
-    params.kind === Argument
+    params.kind === argumentKind
       ? parsePositional(params.name, params.primitiveType, args)
       : parseFlag(params.name, params.primitiveType, args)
   return Object.assign(Object.create(Proto), {
@@ -773,13 +759,6 @@ export const keyValuePair = <Kind extends ParamKind>(
   )
 
 /**
- * @deprecated Use `keyValuePair` instead.
- * @since 4.0.0
- * @category constructors
- */
-export const keyValueMap = keyValuePair
-
-/**
  * Creates an empty sentinel parameter that always fails to parse.
  *
  * This is useful for creating placeholder parameters or for combinators.
@@ -1215,34 +1194,6 @@ export const between: {
 })
 
 /**
- * Wraps an option to allow it to be specified multiple times without limit.
- *
- * This combinator transforms an option to accept any number of occurrences
- * on the command line, returning an array of all provided values.
- *
- * @example
- * ```ts
- * // @internal - this module is not exported publicly
- *
- * // Allow unlimited file inputs
- * const files = Param.string(Param.flagKind, "file").pipe(
- *   Param.repeated,
- *   Param.withAlias("-f")
- * )
- *
- * // Parse: --file a.txt --file b.txt --file c.txt --file d.txt
- * // Result: ["a.txt", "b.txt", "c.txt", "d.txt"]
- * ```
- *
- * @since 4.0.0
- * @category combinators
- * @deprecated Use `variadic` instead. `repeated` is equivalent to `variadic` with no options.
- */
-export const repeated = <Kind extends ParamKind, A>(
-  self: Param<Kind, A>
-): Param<Kind, ReadonlyArray<A>> => variadic(self)
-
-/**
  * Wraps an option to allow it to be specified at most `max` times.
  *
  * This combinator transforms an option to accept between 0 and `max`
@@ -1425,13 +1376,6 @@ export const withMetavar: {
       ...single,
       typeName: metavar
     })))
-
-/**
- * @deprecated Use `withMetavar` instead.
- * @since 4.0.0
- * @category metadata
- */
-export const withPseudoName = withMetavar
 
 /**
  * Validates parsed values against a Schema, providing detailed error messages.
