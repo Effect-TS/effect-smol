@@ -1918,7 +1918,7 @@ export const setSystem: {
  *
  * @example
  * ```ts
- * import { Prompt } from "@effect/ai"
+ * import { Prompt } from "effect/unstable/ai"
  *
  * const systemPrompt = Prompt.make([{
  *   role: "system",
@@ -1967,7 +1967,7 @@ export const prependSystem: {
  *
  * @example
  * ```ts
- * import { Prompt } from "@effect/ai"
+ * import { Prompt } from "effect/unstable/ai"
  *
  * const systemPrompt = Prompt.make([{
  *   role: "system",
