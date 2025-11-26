@@ -361,36 +361,15 @@ export const prompt = <Name extends string, A, E, R>(
  * import { Command, Flag } from "effect/unstable/cli"
  * import { Effect, Console } from "effect"
  *
- * // First define subcommands
- * const clone = Command.make("clone", {
- *   repository: Flag.string("repository")
- * }, (config) =>
- *   Effect.gen(function*() {
- *     yield* Console.log(`Cloning ${config.repository}`)
- *   })
- * )
+ * // Command without initial handler
+ * const greet = Command.make("greet", {
+ *   name: Flag.string("name")
+ * })
  *
- * const add = Command.make("add", {
- *   files: Flag.string("files")
- * }, (config) =>
- *   Effect.gen(function*() {
- *     yield* Console.log(`Adding ${config.files}`)
- *   })
- * )
- *
- * // Create main command with subcommands and handler
- * const git = Command.make("git", {
- *   verbose: Flag.boolean("verbose")
- * }).pipe(
- *   Command.withSubcommands([clone, add]),
+ * // Add handler later
+ * const greetWithHandler = greet.pipe(
  *   Command.withHandler((config) =>
- *     Effect.gen(function*() {
- *       // Now config has the subcommand field
- *       yield* Console.log(`Git verbose: ${config.verbose}`)
- *       if (config.subcommand) {
- *         yield* Console.log(`Executed subcommand: ${config.subcommand.name}`)
- *       }
- *     })
+ *     Console.log(`Hello, ${config.name}!`)
  *   )
  * )
  * ```
@@ -762,6 +741,8 @@ export const run: {
     readonly version: string
   }
 ) => {
+  // TODO: process.argv is a Node.js global. For browser/edge runtime support,
+  // consider accepting an optional args parameter or using a platform service.
   const input = process.argv.slice(2)
   return runWith(command, config)(input)
 }
