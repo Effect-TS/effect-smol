@@ -40,7 +40,7 @@ describe("Command errors", () => {
       })
 
       try {
-        parent.pipe(Command.withSubcommands(child))
+        parent.pipe(Command.withSubcommands([child]))
         assert.fail("expected DuplicateOption to be thrown")
       } catch (error) {
         assert.instanceOf(error, CliError.DuplicateOption)

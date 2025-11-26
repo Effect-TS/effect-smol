@@ -350,7 +350,7 @@ describe("Command", () => {
 
         // Combine parent and child
         const combined = parent.pipe(
-          Command.withSubcommands(child)
+          Command.withSubcommands([child])
         )
 
         const runCommand = Command.runWith(combined, {
@@ -390,7 +390,7 @@ describe("Command", () => {
             messages.push(`install: global=${parentConfig.global}, pkg=${config.pkg}`)
           }))
 
-        const npm = root.pipe(Command.withSubcommands(install))
+        const npm = root.pipe(Command.withSubcommands([install]))
 
         const runNpm = Command.runWith(npm, { version: "1.0.0" })
 
@@ -423,7 +423,7 @@ describe("Command", () => {
             messages.push(`install: global=${parentConfig.global}, pkg=${config.pkg}`)
           }))
 
-        const npm = root.pipe(Command.withSubcommands(install))
+        const npm = root.pipe(Command.withSubcommands([install]))
 
         const runNpm = Command.runWith(npm, { version: "1.0.0" })
 
@@ -471,11 +471,11 @@ describe("Command", () => {
 
         // Build the nested command structure
         const serviceWithDeploy = service.pipe(
-          Command.withSubcommands(deploy)
+          Command.withSubcommands([deploy])
         )
 
         const appWithService = root.pipe(
-          Command.withSubcommands(serviceWithDeploy)
+          Command.withSubcommands([serviceWithDeploy])
         )
 
         const runCommand = Command.runWith(appWithService, { version: "1.0.0" })
@@ -522,7 +522,7 @@ describe("Command", () => {
 
         // Combine commands
         const combined = parent.pipe(
-          Command.withSubcommands(deploy)
+          Command.withSubcommands([deploy])
         )
 
         const runCommand = Command.runWith(combined, { version: "1.0.0" })
@@ -560,7 +560,7 @@ describe("Command", () => {
             childInvoked = true
           }))
 
-        const cli = root.pipe(Command.withSubcommands(child))
+        const cli = root.pipe(Command.withSubcommands([child]))
         const runCli = Command.runWith(cli, { version: "1.0.0" })
 
         yield* runCli(["--", "child", "--value", "x"])
@@ -639,7 +639,7 @@ describe("Command", () => {
           value: Flag.string("value")
         })
 
-        const cli = root.pipe(Command.withSubcommands(child))
+        const cli = root.pipe(Command.withSubcommands([child]))
         const runCli = Command.runWith(cli, { version: "1.0.0" })
 
         yield* runCli(["--global", "--", "child", "--value", "x"])
@@ -651,7 +651,7 @@ describe("Command", () => {
       Effect.gen(function*() {
         const root = Command.make("root", {})
         const known = Command.make("known", {})
-        const cli = root.pipe(Command.withSubcommands(known))
+        const cli = root.pipe(Command.withSubcommands([known]))
         const runCli = Command.runWith(cli, { version: "1.0.0" })
 
         yield* runCli(["--unknown", "bogus"])
