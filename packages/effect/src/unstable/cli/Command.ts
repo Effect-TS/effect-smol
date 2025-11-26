@@ -551,25 +551,12 @@ export const withSubcommands: {
   })
 })
 
-// Errors across a tuple (preferred), falling back to array element type
-type ExtractSubcommandErrors<T extends ReadonlyArray<unknown>> = T extends readonly [] ? never
-  : T extends readonly [infer H, ...infer R] ? Error<H> | ExtractSubcommandErrors<R>
-  : T extends ReadonlyArray<infer C> ? Error<C>
-  : never
-
-type ContextOf<C> = C extends Command<any, any, any, infer R> ? R : never
-
-type ExtractSubcommandContext<T extends ReadonlyArray<unknown>> = T extends readonly [] ? never
-  : T extends readonly [infer H, ...infer R] ? ContextOf<H> | ExtractSubcommandContext<R>
-  : T extends ReadonlyArray<infer C> ? ContextOf<C>
-  : never
-
-type InputOf<C> = C extends Command<infer N, infer I, any, any> ? { readonly name: N; readonly result: I } : never
-
-type ExtractSubcommandInputs<T extends ReadonlyArray<unknown>> = T extends readonly [] ? never
-  : T extends readonly [infer H, ...infer R] ? InputOf<H> | ExtractSubcommandInputs<R>
-  : T extends ReadonlyArray<infer C> ? InputOf<C>
-  : never
+// Type extractors for subcommand arrays - T[number] gives union of all elements
+type ExtractSubcommandErrors<T extends ReadonlyArray<Command<any, any, any, any>>> = Error<T[number]>
+type ExtractSubcommandContext<T extends ReadonlyArray<Command<any, any, any, any>>> = T[number] extends
+  Command<any, any, any, infer R> ? R : never
+type ExtractSubcommandInputs<T extends ReadonlyArray<Command<any, any, any, any>>> = T[number] extends
+  Command<infer N, infer I, any, any> ? { readonly name: N; readonly result: I } : never
 
 /**
  * Sets the description for a command.
