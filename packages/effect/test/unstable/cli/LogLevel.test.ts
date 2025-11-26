@@ -144,7 +144,7 @@ describe("LogLevel", () => {
           yield* Effect.logError("error from child")
         }))
 
-      const combined = parentCommand.pipe(Command.withSubcommands(childCommand))
+      const combined = parentCommand.pipe(Command.withSubcommands([childCommand]))
       const runCommand = Command.runWith(combined, { version: "1.0.0" })
 
       yield* runCommand(["--log-level", "info", "child"]).pipe(Effect.provide(TestLayer))

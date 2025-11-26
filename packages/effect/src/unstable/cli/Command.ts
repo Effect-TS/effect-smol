@@ -442,19 +442,56 @@ export const withHandler: {
  *   })
  * )
  *
+ * // Data-last (pipeable)
  * const git = Command.make("git", {}, () => Effect.void).pipe(
- *   Command.withSubcommands(clone, add)
+ *   Command.withSubcommands([clone, add])
+ * )
+ *
+ * // Data-first
+ * const git2 = Command.withSubcommands(
+ *   Command.make("git", {}, () => Effect.void),
+ *   [clone, add]
  * )
  * ```
  *
  * @since 4.0.0
  * @category combinators
  */
-export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<any, any, any, any>>>(
-  ...subcommands: Subcommands
-) =>
-<Name extends string, Input, E, R>(
-  self: Command<Name, Input, E, R>
+export const withSubcommands: {
+  <const Subcommands extends ReadonlyArray<Command<any, any, any, any>>>(
+    subcommands: Subcommands
+  ): <Name extends string, Input, E, R>(
+    self: Command<Name, Input, E, R>
+  ) => Command<
+    Name,
+    Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined },
+    ExtractSubcommandErrors<Subcommands>,
+    R | Exclude<ExtractSubcommandContext<Subcommands>, ParentCommand<Name>>
+  >
+  <
+    Name extends string,
+    Input,
+    E,
+    R,
+    const Subcommands extends ReadonlyArray<Command<any, any, any, any>>
+  >(
+    self: Command<Name, Input, E, R>,
+    subcommands: Subcommands
+  ): Command<
+    Name,
+    Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined },
+    ExtractSubcommandErrors<Subcommands>,
+    R | Exclude<ExtractSubcommandContext<Subcommands>, ParentCommand<Name>>
+  >
+} = dual(2, <
+  Name extends string,
+  Input,
+  E,
+  R,
+  const Subcommands extends ReadonlyArray<Command<any, any, any, any>>
+>(
+  self: Command<Name, Input, E, R>,
+  subcommands: Subcommands
 ): Command<
   Name,
   Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined },
@@ -509,7 +546,7 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
   })
 
   return makeCommand({ ...selfImpl, subcommands, parse, handle } as any)
-}
+})
 
 // Errors across a tuple (preferred), falling back to array element type
 type ExtractSubcommandErrors<T extends ReadonlyArray<unknown>> = T extends readonly [] ? never
@@ -715,6 +752,20 @@ export const provideEffectDiscard: {
 /* Execution                                                                  */
 /* ========================================================================== */
 
+const showHelp = <Name extends string, Input, E, R>(
+  command: Command<Name, Input, E, R>,
+  commandPath: ReadonlyArray<string>,
+  error?: CliError.CliError
+): Effect.Effect<void, never, Environment> =>
+  Effect.gen(function*() {
+    const helpRenderer = yield* HelpFormatter.HelpRenderer
+    const helpDoc = getHelpForCommandPath(command, commandPath)
+    yield* Console.log(helpRenderer.formatHelpDoc(helpDoc))
+    if (error) {
+      yield* Console.error(helpRenderer.formatError(error))
+    }
+  })
+
 /**
  * Runs a command with the provided input arguments.
  *
@@ -843,35 +894,15 @@ export const runWith = <const Name extends string, Input, E, R>(
 
       // If there are parsing errors and no help was requested, format and display the error
       if (parsedArgs.errors && parsedArgs.errors.length > 0) {
-        const error = parsedArgs.errors[0]
-        const helpRenderer = yield* HelpFormatter.HelpRenderer
         const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
-        const helpDoc = getHelpForCommandPath(command, commandPath)
-
-        // Show the full help first (to stdout with normal colors)
-        const helpText = helpRenderer.formatHelpDoc(helpDoc)
-        yield* Console.log(helpText)
-
-        // Then show the error in a clearly marked ERROR section (to stderr)
-        yield* Console.error(helpRenderer.formatError(error))
-
+        yield* showHelp(command, commandPath, parsedArgs.errors[0])
         return
       }
 
       const parseResult = yield* Effect.result(commandImpl.parse(parsedArgs))
       if (parseResult._tag === "Failure") {
-        const error = parseResult.failure
-        const helpRenderer = yield* HelpFormatter.HelpRenderer
         const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
-        const helpDoc = getHelpForCommandPath(command, commandPath)
-
-        // Show the full help first (to stdout with normal colors)
-        const helpText = helpRenderer.formatHelpDoc(helpDoc)
-        yield* Console.log(helpText)
-
-        // Then show the error in a clearly marked ERROR section (to stderr)
-        yield* Console.error(helpRenderer.formatError(error as CliError.CliError))
-
+        yield* showHelp(command, commandPath, parseResult.failure)
         return
       }
       const parsed = parseResult.success
@@ -894,15 +925,7 @@ export const runWith = <const Name extends string, Input, E, R>(
 
       yield* normalized
     },
-    Effect.catchTags({
-      ShowHelp: (error: CliError.ShowHelp) =>
-        Effect.gen(function*() {
-          const helpDoc = getHelpForCommandPath(command, error.commandPath)
-          const helpRenderer = yield* HelpFormatter.HelpRenderer
-          const helpText = helpRenderer.formatHelpDoc(helpDoc)
-          yield* Console.log(helpText)
-        })
-    }),
+    Effect.catchTag("ShowHelp", (error: CliError.ShowHelp) => showHelp(command, error.commandPath)),
     // Preserve prior public behavior: surface original handler errors
     Effect.catchTag("UserError", (error: CliError.UserError) => Effect.fail(error.cause as E | CliError.CliError))
   )

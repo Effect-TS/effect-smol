@@ -113,21 +113,21 @@ describe("Dynamic Completion Handler", () => {
         dryRun: Flag.boolean("dry-run")
       }).pipe(
         Command.withDescription("Deploy the application"),
-        Command.withSubcommands(
+        Command.withSubcommands([
           Command.make("staging", {
             force: Flag.boolean("force")
           }, () => Effect.void),
           Command.make("production", {
             confirm: Flag.boolean("confirm")
           }, () => Effect.void)
-        )
+        ])
       )
 
       return Command.make("myapp", {
         verbose: Flag.boolean("verbose").pipe(Flag.withAlias("v")),
         config: Flag.file("config").pipe(Flag.withAlias("c"))
       }).pipe(
-        Command.withSubcommands(build, deploy)
+        Command.withSubcommands([build, deploy])
       )
     }
 
@@ -470,10 +470,10 @@ describe("Dynamic Completion Handler", () => {
     it.effect("should output completions to console", () =>
       Effect.gen(function*() {
         const cmd = Command.make("test", {}).pipe(
-          Command.withSubcommands(
+          Command.withSubcommands([
             Command.make("sub1", {}, () => Effect.void),
             Command.make("sub2", {}, () => Effect.void)
-          )
+          ])
         )
 
         const originalEnv = { ...process.env }

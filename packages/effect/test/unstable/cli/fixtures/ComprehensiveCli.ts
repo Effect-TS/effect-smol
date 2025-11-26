@@ -60,7 +60,7 @@ const usersCreate = Command.make("create", {
 
 const users = Command.make("users").pipe(
   Command.withDescription("User management commands"),
-  Command.withSubcommands(usersList, usersCreate)
+  Command.withSubcommands([usersList, usersCreate])
 )
 
 const configSet = Command.make("set", {
@@ -110,7 +110,7 @@ const config = Command.make("config", {
   )
 }).pipe(
   Command.withDescription("Manage application configuration"),
-  Command.withSubcommands(configSet, configGet)
+  Command.withSubcommands([configSet, configGet])
 )
 
 const admin = Command.make("admin", {
@@ -120,7 +120,7 @@ const admin = Command.make("admin", {
   )
 }).pipe(
   Command.withDescription("Administrative commands"),
-  Command.withSubcommands(users, config)
+  Command.withSubcommands([users, config])
 )
 
 // File operations commands
@@ -281,7 +281,7 @@ const git = Command.make("git", {
     verbose: config.verbose
   })).pipe(
     Command.withDescription("Git version control"),
-    Command.withSubcommands(gitClone, gitAdd, gitStatus)
+    Command.withSubcommands([gitClone, gitAdd, gitStatus])
   )
 
 // Commands for testing error handling
@@ -352,7 +352,7 @@ const app = Command.make("app", {
     env: config.env
   })).pipe(
     Command.withDescription("Application management"),
-    Command.withSubcommands(deployCommand)
+    Command.withSubcommands([deployCommand])
   )
 
 // Service command for nested context sharing tests
@@ -365,7 +365,7 @@ const serviceCommand = Command.make("service", {
     name: config.name
   })).pipe(
     Command.withDescription("Service management"),
-    Command.withSubcommands(deployCommand)
+    Command.withSubcommands([deployCommand])
   )
 
 const appWithService = Command.make("app-nested", {
@@ -377,7 +377,7 @@ const appWithService = Command.make("app-nested", {
     env: config.env
   })).pipe(
     Command.withDescription("Application with nested services"),
-    Command.withSubcommands(serviceCommand)
+    Command.withSubcommands([serviceCommand])
   )
 
 // Main command with global options
@@ -403,7 +403,7 @@ export const ComprehensiveCli = Command.make("mycli", {
     quiet: config.quiet
   })).pipe(
     Command.withDescription("A comprehensive CLI tool demonstrating all features"),
-    Command.withSubcommands(admin, copy, move, remove, build, git, testRequired, testFailing, app, appWithService)
+    Command.withSubcommands([admin, copy, move, remove, build, git, testRequired, testFailing, app, appWithService])
   )
 
 export const run = Command.runWith(ComprehensiveCli, {
