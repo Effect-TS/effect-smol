@@ -28,7 +28,7 @@ import {
   handleCompletionRequest,
   isCompletionRequest
 } from "./internal/completions/index.ts"
-import { type ConfigInternal, parseConfig } from "./internal/config.ts"
+import { parseConfig } from "./internal/config.ts"
 import * as Lexer from "./internal/lexer.ts"
 import * as Parser from "./internal/parser.ts"
 import type * as Param from "./Param.ts"
@@ -115,14 +115,6 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
  */
 export declare namespace Command {
   /**
-   * Internal implementation interface with all the machinery.
-   * For use by internal modules that need access to config, parse, handle, etc.
-   *
-   * @internal
-   */
-  export type Internal<Name extends string, Input, E, R> = CommandInternal<Name, Input, E, R>
-
-  /**
    * Configuration object for defining command flags, arguments, and nested structures.
    *
    * Command.Config allows you to specify:
@@ -165,34 +157,6 @@ export declare namespace Command {
   }
 
   export namespace Config {
-    /**
-     * The processed internal representation of a Command.Config declaration.
-     *
-     * Created by parsing the user's config. Separates parameters by type
-     * while preserving the original nested structure via the tree.
-     *
-     * @since 4.0.0
-     * @category models
-     */
-    export type Internal = ConfigInternal
-
-    export namespace Internal {
-      /**
-       * Maps declaration keys to their node representations.
-       * Preserves the shape of the user's config object.
-       */
-      export type Tree = ConfigInternal.Tree
-
-      /**
-       * A node in the config tree.
-       *
-       * - Param: References a parameter by index in orderedParams
-       * - Array: Contains child nodes for tuple/array declarations
-       * - Nested: Contains a subtree for nested config objects
-       */
-      export type Node = ConfigInternal.Node
-    }
-
     /**
      * Infers the TypeScript type from a Command.Config structure.
      *
@@ -503,7 +467,7 @@ export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<
   type NewInput = Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined }
 
   // Build a stable name → subcommand index to avoid repeated linear scans
-  const subcommandIndex = new Map<string, Command.Internal<string, any, any, any>>()
+  const subcommandIndex = new Map<string, CommandInternal<string, any, any, any>>()
   for (const s of subcommands) {
     subcommandIndex.set(s.name, toImpl(s))
   }
