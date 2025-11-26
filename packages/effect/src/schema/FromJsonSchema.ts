@@ -18,6 +18,7 @@
  */
 import { format } from "../data/Formatter.ts"
 import { isObject } from "../data/Predicate.ts"
+import * as Reducer from "../data/Reducer.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
@@ -27,37 +28,59 @@ type Fragment = Schema.JsonSchema.Fragment
 /**
  * @since 4.0.0
  */
-export type Output = {
-  readonly code: string
+export type Generation = {
+  readonly runtime: string
   readonly type: string
+  readonly imports: ReadonlySet<string>
 }
+
+const emptySet: ReadonlySet<string> = new Set()
+
+const ReadonlySetReducer: Reducer.Reducer<ReadonlySet<string>> = Reducer.make<ReadonlySet<string>>(
+  (self, that) => new Set([...self, ...that]),
+  emptySet
+)
 
 /**
  * @since 4.0.0
  */
-export type Options = {
-  readonly resolver?: ((identifier: string) => Output) | undefined
+export type GenerationOptions = {
+  readonly resolver?: ((identifier: string) => Generation) | undefined
   readonly target?: Target | undefined
 }
 
-const defaultResolver = (identifier: string) => ({ code: identifier, type: identifier })
+/**
+ * @since 4.0.0
+ */
+export const resolvers = {
+  identity: (identifier: string) => ({
+    runtime: identifier,
+    type: identifier,
+    imports: emptySet
+  }),
+  suspend: (identifier: string) => ({
+    runtime: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
+    type: identifier,
+    imports: emptySet
+  })
+}
 
 /**
  * @since 4.0.0
  */
-export function generate(schema: unknown, options?: Options): Output {
+export function generate(schema: unknown, options?: GenerationOptions): Generation {
   return build(schema, {
-    resolver: options?.resolver ?? defaultResolver,
+    resolver: options?.resolver ?? resolvers.identity,
     target: options?.target ?? "draft-07"
   })
 }
 
 interface GoOptions {
-  readonly resolver: (identifier: string) => Output
+  readonly resolver: (identifier: string) => Generation
   readonly target: Target
 }
 
-function build(schema: unknown, options: GoOptions): Output {
+function build(schema: unknown, options: GoOptions): Generation {
   if (schema === false) return Never
   if (schema === true) return Unknown
   if (!isObject(schema)) return Unknown
@@ -68,10 +91,10 @@ function build(schema: unknown, options: GoOptions): Output {
   return out
 }
 
-function applyAnnotations(out: Output, schema: Fragment): Output {
+function applyAnnotations(out: Generation, schema: Fragment): Generation {
   const as = collectAnnotations(schema)
   if (as.length === 0) return out
-  return { ...out, code: `${out.code}.annotate({ ${as.join(", ")} })` }
+  return { ...out, runtime: `${out.runtime}.annotate({ ${as.join(", ")} })` }
 }
 
 function collectAnnotations(schema: Fragment): ReadonlyArray<string> {
@@ -83,10 +106,10 @@ function collectAnnotations(schema: Fragment): ReadonlyArray<string> {
   return as
 }
 
-function applyChecks(out: Output, schema: Fragment, target: Target): Output {
+function applyChecks(out: Generation, schema: Fragment, target: Target): Generation {
   const cs = collectChecks(schema, target)
   if (cs.length === 0) return out
-  return { ...out, code: `${out.code}.check(${cs.join(", ")})` }
+  return { ...out, runtime: `${out.runtime}.check(${cs.join(", ")})` }
 }
 
 function collectChecks(schema: Fragment, target: Target): Array<string> {
@@ -154,11 +177,11 @@ function hasType(schema: Fragment): schema is HasType {
   return typeof schema.type === "string" && types.includes(schema.type)
 }
 
-function handleType(type: Schema.JsonSchema.Type): Output {
+function handleType(type: Schema.JsonSchema.Type): Generation {
   return primitives[type]
 }
 
-function handleHasType(schema: HasType, options: GoOptions): Output {
+function handleHasType(schema: HasType, options: GoOptions): Generation {
   switch (schema.type) {
     case "null":
     case "string":
@@ -209,32 +232,36 @@ function collectItem(schema: Fragment, target: Target): Fragment | boolean | und
   }
 }
 
-function base(schema: Fragment, options: GoOptions): Output {
+function base(schema: Fragment, options: GoOptions): Generation {
   if (Array.isArray(schema.type)) {
     return union(schema.type.map(handleType), "anyOf")
   }
 
   if (schema.const !== undefined) {
     return {
-      code: `Schema.Literal(${format(schema.const)})`,
-      type: format(schema.const)
+      runtime: `Schema.Literal(${format(schema.const)})`,
+      type: format(schema.const),
+      imports: emptySet
     }
   }
 
   if (Array.isArray(schema.enum)) {
-    const type = schema.enum.map((e) => format(e)).join(" | ")
+    const enums = schema.enum.map((e) => format(e))
+    const type = enums.join(" | ")
     switch (schema.enum.length) {
       case 0:
         return Never
       case 1:
         return {
-          code: `Schema.Literal(${format(schema.enum[0])})`,
-          type
+          runtime: `Schema.Literal(${enums})`,
+          type,
+          imports: emptySet
         }
       default:
         return {
-          code: `Schema.Literals([${schema.enum.map((e) => format(e)).join(", ")}])`,
-          type
+          runtime: `Schema.Literals([${enums.join(", ")}])`,
+          type,
+          imports: emptySet
         }
     }
   }
@@ -259,23 +286,6 @@ function base(schema: Fragment, options: GoOptions): Output {
     const identifier = extractIdentifier(schema.$ref)
     if (identifier !== undefined) {
       return options.resolver(identifier)
-      // const identifier = options.makeIdentifier($ref)
-      // if (options.recursives.has(identifier)) {
-      //   return {
-      //     code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
-      //     type: identifier
-      //   }
-      // }
-      // if (options.externs.has(identifier)) {
-      //   return {
-      //     code: identifier,
-      //     type: `typeof ${identifier}["Encoded"]`
-      //   }
-      // }
-      // return {
-      //   code: identifier,
-      //   type: identifier
-      // }
     }
     throw new Error(`Invalid $ref: ${schema.$ref}`)
   }
@@ -304,7 +314,7 @@ function optionalType(isRequired: boolean, type: string): string {
 
 type Property = {
   readonly key: string
-  readonly value: Output
+  readonly value: Generation
   readonly isRequired: boolean
 }
 
@@ -322,8 +332,8 @@ function collectProperties(schema: Fragment, options: GoOptions): Array<Property
 }
 
 type IndexSignature = {
-  readonly key: Output
-  readonly value: Output
+  readonly key: Generation
+  readonly value: Generation
 }
 
 function collectIndexSignatures(schema: Fragment, options: GoOptions): Array<IndexSignature> {
@@ -335,102 +345,123 @@ function collectIndexSignatures(schema: Fragment, options: GoOptions): Array<Ind
   return []
 }
 
-function object(ps: ReadonlyArray<Property>, iss: ReadonlyArray<IndexSignature>): Output {
+function object(ps: ReadonlyArray<Property>, iss: ReadonlyArray<IndexSignature>): Generation {
   if (iss.length === 0) {
     return struct(ps)
   } else if (ps.length === 0 && iss.length === 1) {
     return record(iss[0])
   } else {
     return {
-      code: `Schema.StructWithRest(${structRuntime(ps)}, [${iss.map(indexSignatureRuntime).join(", ")}])`,
-      type: `{ ${propertiesType(ps)}, ${iss.map(indexSignatureType).join(", ")} }`
+      runtime: `Schema.StructWithRest(Schema.Struct({ ${propertiesRuntime(ps)} }), [${
+        iss.map(indexSignatureRuntime).join(", ")
+      }])`,
+      type: `{ ${propertiesType(ps)}, ${iss.map(indexSignatureType).join(", ")} }`,
+      imports: ReadonlySetReducer.combineAll([propertiesImports(ps), ...iss.map(indexSignatureImports)])
     }
   }
 }
 
-function struct(ps: ReadonlyArray<Property>): Output {
+function struct(ps: ReadonlyArray<Property>): Generation {
   return {
-    code: structRuntime(ps),
-    type: `{ ${propertiesType(ps)} }`
+    runtime: `Schema.Struct({ ${propertiesRuntime(ps)} })`,
+    type: `{ ${propertiesType(ps)} }`,
+    imports: propertiesImports(ps)
   }
 }
 
-function structRuntime(ps: ReadonlyArray<Property>): string {
-  return `Schema.Struct({ ${ps.map((p) => `${p.key}: ${optionalRuntime(p.isRequired, p.value.code)}`).join(", ")} })`
+function propertiesRuntime(ps: ReadonlyArray<Property>): string {
+  return ps.map((p) => `${p.key}: ${optionalRuntime(p.isRequired, p.value.runtime)}`).join(", ")
 }
 
 function propertiesType(ps: ReadonlyArray<Property>): string {
   return ps.map((p) => `readonly ${optionalType(p.isRequired, p.key)}: ${p.value.type}`).join(", ")
 }
 
-function record(is: IndexSignature): Output {
+function propertiesImports(ps: ReadonlyArray<Property>): ReadonlySet<string> {
+  return ReadonlySetReducer.combineAll(ps.map((p) => p.value.imports))
+}
+
+function record(is: IndexSignature): Generation {
   return {
-    code: indexSignatureRuntime(is),
-    type: `{ ${indexSignatureType(is)} }`
+    runtime: indexSignatureRuntime(is),
+    type: `{ ${indexSignatureType(is)} }`,
+    imports: indexSignatureImports(is)
   }
 }
 
 function indexSignatureRuntime(is: IndexSignature) {
-  return `Schema.Record(${is.key.code}, ${is.value.code})`
+  return `Schema.Record(${is.key.runtime}, ${is.value.runtime})`
 }
 
 function indexSignatureType(is: IndexSignature) {
   return `readonly [x: ${is.key.type}]: ${is.value.type}`
 }
 
+function indexSignatureImports(is: IndexSignature): ReadonlySet<string> {
+  return ReadonlySetReducer.combine(is.key.imports, is.value.imports)
+}
+
 type Element = {
-  readonly value: Output
+  readonly value: Generation
   readonly isRequired: boolean
 }
 
-function array(es: ReadonlyArray<Element>, item: Output | undefined): Output {
+function array(es: ReadonlyArray<Element>, item: Generation | undefined): Generation {
   if (item === undefined) {
     return {
-      code: tupleRuntime(es),
-      type: `readonly [${elementsType(es)}]`
+      runtime: `Schema.Tuple([${elementsRuntime(es)}])`,
+      type: `readonly [${elementsType(es)}]`,
+      imports: elementsImports(es)
     }
   } else if (es.length === 0) {
     return {
-      code: `Schema.Array(${item.code})`,
-      type: `ReadonlyArray<${item.type}>`
+      runtime: `Schema.Array(${item.runtime})`,
+      type: `ReadonlyArray<${item.type}>`,
+      imports: item.imports
     }
   } else {
     return {
-      code: `Schema.TupleWithRest(${tupleRuntime(es)}, [${item.code}])`,
-      type: `readonly [${elementsType(es)}, ...Array<${item.type}>]`
+      runtime: `Schema.TupleWithRest(Schema.Tuple([${elementsRuntime(es)}]), [${item.runtime}])`,
+      type: `readonly [${elementsType(es)}, ...Array<${item.type}>]`,
+      imports: ReadonlySetReducer.combine(elementsImports(es), item.imports)
     }
   }
 }
 
-function tupleRuntime(es: ReadonlyArray<Element>): string {
-  return `Schema.Tuple([${es.map((e) => optionalRuntime(e.isRequired, e.value.code)).join(", ")}])`
+function elementsRuntime(es: ReadonlyArray<Element>): string {
+  return es.map((e) => optionalRuntime(e.isRequired, e.value.runtime)).join(", ")
 }
 
 function elementsType(es: ReadonlyArray<Element>): string {
   return `${es.map((e) => optionalType(e.isRequired, e.value.type)).join(", ")}`
 }
 
-function union(members: ReadonlyArray<Output>, mode: "anyOf" | "oneOf"): Output {
+function elementsImports(es: ReadonlyArray<Element>): ReadonlySet<string> {
+  return ReadonlySetReducer.combineAll(es.map((e) => e.value.imports))
+}
+
+function union(members: ReadonlyArray<Generation>, mode: "anyOf" | "oneOf"): Generation {
   return {
-    code: `Schema.Union([${members.map((m) => m.code).join(", ")}]${mode === "oneOf" ? `, {mode:"oneOf"}` : ""})`,
-    type: members.map((m) => m.type).join(" | ")
+    runtime: `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${mode === "oneOf" ? `, {mode:"oneOf"}` : ""})`,
+    type: members.map((m) => m.type).join(" | "),
+    imports: ReadonlySetReducer.combineAll(members.map((m) => m.imports))
   }
 }
 
-function primitive(code: string, type: string): Output {
-  return { code, type }
+function primitive(code: string, type: string): Generation {
+  return { runtime: code, type, imports: emptySet }
 }
 
-const Never: Output = primitive("Schema.Never", "never")
-const Unknown: Output = primitive("Schema.Unknown", "unknown")
-const Null: Output = primitive("Schema.Null", "null")
-const String: Output = primitive("Schema.String", "string")
-const Number: Output = primitive("Schema.Number", "number")
-const Int: Output = primitive("Schema.Int", "number")
-const Boolean: Output = primitive("Schema.Boolean", "boolean")
-const UnknownRecord: Output = object([], [{ key: String, value: Unknown }])
-const UnknownArray: Output = array([], Unknown)
-const EmptyStruct: Output = primitive("Schema.Struct({})", "{}")
+const Never: Generation = primitive("Schema.Never", "never")
+const Unknown: Generation = primitive("Schema.Unknown", "unknown")
+const Null: Generation = primitive("Schema.Null", "null")
+const String: Generation = primitive("Schema.String", "string")
+const Number: Generation = primitive("Schema.Number", "number")
+const Int: Generation = primitive("Schema.Int", "number")
+const Boolean: Generation = primitive("Schema.Boolean", "boolean")
+const UnknownRecord: Generation = object([], [{ key: String, value: Unknown }])
+const UnknownArray: Generation = array([], Unknown)
+const EmptyStruct: Generation = primitive("Schema.Struct({})", "{}")
 
 const primitives = {
   "null": Null,
@@ -463,7 +494,10 @@ function isEmptyStruct(schema: ReadonlyArray<Fragment>): boolean {
   return schema.length === 2 && isUnknownRecord(schema[0]) && isUnknownArray(schema[1])
 }
 
-function unescapeJsonPointer(pointer: string): string {
+/**
+ * @since 4.0.0
+ */
+export function unescapeJsonPointer(pointer: string): string {
   return pointer.replace(/~0/ig, "~").replace(/~1/ig, "/")
 }
 
@@ -649,24 +683,26 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
 /**
  * @since 4.0.0
  */
+export type DefinitionGeneration = {
+  readonly identifier: string
+  readonly generation: Generation
+}
+
+/**
+ * @since 4.0.0
+ */
 export function generateDefinitions(definitions: Schema.JsonSchema.Definitions, options?: {
   readonly target?: Target | undefined
-}): Array<{
-  readonly identifier: string
-  readonly schema: Output
-}> {
+}): Array<DefinitionGeneration> {
   const ts = topologicalSort(definitions)
   const recursives = new Set(Object.keys(ts.recursives))
   const resolver = (identifier: string) => {
     if (recursives.has(identifier)) {
-      return {
-        code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
-        type: identifier
-      }
+      return resolvers.suspend(identifier)
     }
-    return defaultResolver(identifier)
+    return resolvers.identity(identifier)
   }
-  const opts = {
+  const opts: GenerationOptions = {
     target: options?.target,
     resolver
   }
@@ -676,9 +712,10 @@ export function generateDefinitions(definitions: Schema.JsonSchema.Definitions, 
     const output = generate(schema, opts)
     return {
       identifier,
-      schema: {
-        code: output.code + `.annotate({ identifier: "${identifier}" })`,
-        type: output.type
+      generation: {
+        runtime: output.runtime + `.annotate({ identifier: "${identifier}" })`,
+        type: output.type,
+        imports: output.imports
       }
     }
   })

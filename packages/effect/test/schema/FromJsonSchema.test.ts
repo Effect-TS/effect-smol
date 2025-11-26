@@ -20,7 +20,7 @@ function assertRoundtrip(input: {
   const target = input.target ?? "draft-07"
   const document = getDocumentByTarget(target, input.schema)
   const output = FromJsonSchema.generate(document.schema, { target })
-  const fn = new Function("Schema", `return ${output.code}`)
+  const fn = new Function("Schema", `return ${output.runtime}`)
   const generated = fn(Schema)
   const codedocument = getDocumentByTarget(target, generated)
   deepStrictEqual(codedocument, document)
@@ -30,31 +30,131 @@ function assertRoundtrip(input: {
 function assertOutput(
   input: {
     readonly schema: Record<string, unknown> | boolean
-    readonly options?: FromJsonSchema.Options | undefined
+    readonly options?: FromJsonSchema.GenerationOptions | undefined
   },
   expected: {
-    readonly code: string
+    readonly runtime: string
     readonly type: string
+    readonly imports?: ReadonlySet<string>
   }
 ) {
-  const code = FromJsonSchema.generate(input.schema, input.options)
-  deepStrictEqual(code, expected)
+  const generation = FromJsonSchema.generate(input.schema, input.options)
+  deepStrictEqual(generation, { imports: new Set(), ...expected })
 }
 
 describe("FromJsonSchema", () => {
   describe("generate", () => {
+    describe("options", () => {
+      describe("resolver", () => {
+        it("identity", () => {
+          assertOutput(
+            {
+              schema: {
+                "$ref": "#/definitions/ID~1a~0b"
+              },
+              options: {
+                resolver: FromJsonSchema.resolvers.identity
+              }
+            },
+            {
+              runtime: "ID/a~b",
+              type: "ID/a~b"
+            }
+          )
+        })
+
+        it("suspend", () => {
+          assertOutput(
+            {
+              schema: {
+                "$ref": "#/definitions/ID"
+              },
+              options: {
+                resolver: FromJsonSchema.resolvers.suspend
+              }
+            },
+            {
+              runtime: "Schema.suspend((): Schema.Codec<ID> => ID)",
+              type: "ID"
+            }
+          )
+        })
+
+        it("escape", () => {
+          assertOutput(
+            {
+              schema: {
+                "$ref": "#/definitions/ID~1a~0b"
+              },
+              options: {
+                resolver: (identifier) => {
+                  const id = identifier.replace(/[/~]/g, "$")
+                  return { runtime: id, type: id, imports: new Set() }
+                }
+              }
+            },
+            {
+              runtime: "ID$a$b",
+              type: "ID$a$b"
+            }
+          )
+        })
+      })
+    })
+
+    describe("imports", () => {
+      it("custom resolver", () => {
+        const GETTER_IMPORT = `import * as Getter from "effect/schema/Getter"`
+        const HTTP_API_ERROR_IMPORT = `import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`
+        assertOutput(
+          {
+            schema: {
+              "type": "object",
+              "properties": {
+                "a": { "type": "string" },
+                "b": { "$ref": "#/definitions/effect~1HttpApiSchemaError" },
+                "c": { "$ref": "#/definitions/ID" }
+              },
+              "required": ["a", "b", "c"]
+            },
+            options: {
+              resolver: (identifier) => {
+                if (identifier === "effect/HttpApiSchemaError") {
+                  return {
+                    runtime: "HttpApiSchemaError",
+                    type: `typeof HttpApiSchemaError["Encoded"]`,
+                    imports: new Set([HTTP_API_ERROR_IMPORT])
+                  }
+                }
+                return {
+                  runtime: identifier,
+                  type: identifier,
+                  imports: new Set([GETTER_IMPORT])
+                }
+              }
+            }
+          },
+          {
+            runtime: "Schema.Struct({ a: Schema.String, b: HttpApiSchemaError, c: ID })",
+            type: `{ readonly a: string, readonly b: typeof HttpApiSchemaError["Encoded"], readonly c: ID }`,
+            imports: new Set([HTTP_API_ERROR_IMPORT, GETTER_IMPORT])
+          }
+        )
+      })
+    })
+
     it("true", () => {
-      assertOutput({ schema: true }, { code: "Schema.Unknown", type: "unknown" })
+      assertOutput({ schema: true }, { runtime: "Schema.Unknown", type: "unknown" })
     })
 
     it("false", () => {
-      assertOutput({ schema: false }, { code: "Schema.Never", type: "never" })
+      assertOutput({ schema: false }, { runtime: "Schema.Never", type: "never" })
     })
 
     it("type: undefined", () => {
-      assertOutput({ schema: {} }, { code: "Schema.Unknown", type: "unknown" })
+      assertOutput({ schema: {} }, { runtime: "Schema.Unknown", type: "unknown" })
       assertOutput({ schema: { description: "lorem" } }, {
-        code: `Schema.Unknown.annotate({ description: "lorem" })`,
+        runtime: `Schema.Unknown.annotate({ description: "lorem" })`,
         type: "unknown"
       })
     })
@@ -65,14 +165,14 @@ describe("FromJsonSchema", () => {
           schema: {
             "type": ["string", "number"]
           }
-        }, { code: "Schema.Union([Schema.String, Schema.Number])", type: "string | number" })
+        }, { runtime: "Schema.Union([Schema.String, Schema.Number])", type: "string | number" })
         assertOutput({
           schema: {
             "type": ["string", "number"],
             "description": "description"
           }
         }, {
-          code: `Schema.Union([Schema.String, Schema.Number]).annotate({ description: "description" })`,
+          runtime: `Schema.Union([Schema.String, Schema.Number]).annotate({ description: "description" })`,
           type: "string | number"
         })
       })
@@ -87,7 +187,7 @@ describe("FromJsonSchema", () => {
               { "type": "array" }
             ]
           }
-        }, { code: "Schema.Struct({})", type: "{}" })
+        }, { runtime: "Schema.Struct({})", type: "{}" })
         assertOutput({
           schema: {
             "oneOf": [
@@ -95,18 +195,18 @@ describe("FromJsonSchema", () => {
               { "type": "array" }
             ]
           }
-        }, { code: "Schema.Struct({})", type: "{}" })
+        }, { runtime: "Schema.Struct({})", type: "{}" })
       })
 
       it("no properties", () => {
         assertOutput({ schema: { "type": "object" } }, {
-          code: "Schema.Record(Schema.String, Schema.Unknown)",
+          runtime: "Schema.Record(Schema.String, Schema.Unknown)",
           type: "{ readonly [x: string]: unknown }"
         })
         assertOutput(
           { schema: { "type": "object", "description": "lorem" } },
           {
-            code: `Schema.Record(Schema.String, Schema.Unknown).annotate({ description: "lorem" })`,
+            runtime: `Schema.Record(Schema.String, Schema.Unknown).annotate({ description: "lorem" })`,
             type: "{ readonly [x: string]: unknown }"
           }
         )
@@ -125,7 +225,7 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            code: "Schema.Struct({ a: Schema.String, b: Schema.optionalKey(Schema.Number) })",
+            runtime: "Schema.Struct({ a: Schema.String, b: Schema.optionalKey(Schema.Number) })",
             type: "{ readonly a: string, readonly b?: number }"
           }
         )
@@ -148,7 +248,7 @@ describe("FromJsonSchema", () => {
             }
           }
         }, {
-          code:
+          runtime:
             "Schema.StructWithRest(Schema.Struct({ a: Schema.String }), [Schema.Record(Schema.String, Schema.Number)])",
           type: "{ readonly a: string, readonly [x: string]: number }"
         })
@@ -164,7 +264,7 @@ describe("FromJsonSchema", () => {
               "items": false
             }
           }, {
-            code: "Schema.Tuple([])",
+            runtime: "Schema.Tuple([])",
             type: "readonly []"
           })
         })
@@ -176,7 +276,7 @@ describe("FromJsonSchema", () => {
               "items": { "type": "string" }
             }
           }, {
-            code: "Schema.Array(Schema.String)",
+            runtime: "Schema.Array(Schema.String)",
             type: "ReadonlyArray<string>"
           })
         })
@@ -188,7 +288,7 @@ describe("FromJsonSchema", () => {
               "items": []
             }
           }, {
-            code: "Schema.Tuple([])",
+            runtime: "Schema.Tuple([])",
             type: "readonly []"
           })
         })
@@ -200,7 +300,7 @@ describe("FromJsonSchema", () => {
               "items": [{ "type": "string" }, { "type": "number" }]
             }
           }, {
-            code: "Schema.Tuple([Schema.String, Schema.Number])",
+            runtime: "Schema.Tuple([Schema.String, Schema.Number])",
             type: "readonly [string, number]"
           })
         })
@@ -213,7 +313,7 @@ describe("FromJsonSchema", () => {
               "additionalItems": false
             }
           }, {
-            code: "Schema.Tuple([Schema.String, Schema.Number])",
+            runtime: "Schema.Tuple([Schema.String, Schema.Number])",
             type: "readonly [string, number]"
           })
         })
@@ -226,7 +326,7 @@ describe("FromJsonSchema", () => {
               "additionalItems": true
             }
           }, {
-            code: "Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.Unknown])",
+            runtime: "Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.Unknown])",
             type: "readonly [string, number, ...Array<unknown>]"
           })
         })
@@ -239,7 +339,7 @@ describe("FromJsonSchema", () => {
               "additionalItems": { "type": "boolean" }
             }
           }, {
-            code: "Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.Boolean])",
+            runtime: "Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.Boolean])",
             type: "readonly [string, number, ...Array<boolean>]"
           })
         })
@@ -255,7 +355,7 @@ describe("FromJsonSchema", () => {
               "additionalItems": false
             }
           }, {
-            code: "Schema.Tuple([Schema.optionalKey(Schema.String)])",
+            runtime: "Schema.Tuple([Schema.optionalKey(Schema.String)])",
             type: "readonly [string?]"
           })
         })
@@ -268,7 +368,7 @@ describe("FromJsonSchema", () => {
           "const": "a"
         }
       }, {
-        code: `Schema.Literal("a")`,
+        runtime: `Schema.Literal("a")`,
         type: `"a"`
       })
       assertOutput({
@@ -277,7 +377,7 @@ describe("FromJsonSchema", () => {
           "const": "a"
         }
       }, {
-        code: `Schema.Literal("a")`,
+        runtime: `Schema.Literal("a")`,
         type: `"a"`
       })
     })
@@ -288,7 +388,7 @@ describe("FromJsonSchema", () => {
           "enum": ["a"]
         }
       }, {
-        code: `Schema.Literal("a")`,
+        runtime: `Schema.Literal("a")`,
         type: `"a"`
       })
       assertOutput({
@@ -297,7 +397,7 @@ describe("FromJsonSchema", () => {
           "enum": ["a"]
         }
       }, {
-        code: `Schema.Literal("a")`,
+        runtime: `Schema.Literal("a")`,
         type: `"a"`
       })
       assertOutput({
@@ -306,7 +406,7 @@ describe("FromJsonSchema", () => {
           "enum": ["a", "b"]
         }
       }, {
-        code: `Schema.Literals(["a", "b"])`,
+        runtime: `Schema.Literals(["a", "b"])`,
         type: `"a" | "b"`
       })
       assertOutput({
@@ -314,7 +414,7 @@ describe("FromJsonSchema", () => {
           "enum": ["a", 1]
         }
       }, {
-        code: `Schema.Literals(["a", 1])`,
+        runtime: `Schema.Literals(["a", 1])`,
         type: `"a" | 1`
       })
     })
@@ -326,7 +426,7 @@ describe("FromJsonSchema", () => {
             "type": "string",
             "minLength": 1
           }
-        }, { code: "Schema.String.check(Schema.isMinLength(1))", type: "string" })
+        }, { runtime: "Schema.String.check(Schema.isMinLength(1))", type: "string" })
       })
 
       it("maxLength", () => {
@@ -335,7 +435,7 @@ describe("FromJsonSchema", () => {
             "type": "string",
             "maxLength": 10
           }
-        }, { code: "Schema.String.check(Schema.isMaxLength(10))", type: "string" })
+        }, { runtime: "Schema.String.check(Schema.isMaxLength(10))", type: "string" })
       })
 
       it("pattern", () => {
@@ -344,7 +444,7 @@ describe("FromJsonSchema", () => {
             "type": "string",
             "pattern": "^[a-z]+$"
           }
-        }, { code: "Schema.String.check(Schema.isPattern(/^[a-z]+$/))", type: "string" })
+        }, { runtime: "Schema.String.check(Schema.isPattern(/^[a-z]+$/))", type: "string" })
       })
 
       it("pattern with forward slashes (escaping)", () => {
@@ -353,7 +453,7 @@ describe("FromJsonSchema", () => {
             "type": "string",
             "pattern": "^https?://[a-z]+$"
           }
-        }, { code: "Schema.String.check(Schema.isPattern(/^https?:\\/\\/[a-z]+$/))", type: "string" })
+        }, { runtime: "Schema.String.check(Schema.isPattern(/^https?:\\/\\/[a-z]+$/))", type: "string" })
       })
 
       it("minimum", () => {
@@ -362,7 +462,7 @@ describe("FromJsonSchema", () => {
             "type": "number",
             "minimum": 0
           }
-        }, { code: "Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))", type: "number" })
+        }, { runtime: "Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))", type: "number" })
       })
 
       it("maximum", () => {
@@ -371,7 +471,7 @@ describe("FromJsonSchema", () => {
             "type": "number",
             "maximum": 100
           }
-        }, { code: "Schema.Number.check(Schema.isLessThanOrEqualTo(100))", type: "number" })
+        }, { runtime: "Schema.Number.check(Schema.isLessThanOrEqualTo(100))", type: "number" })
       })
 
       it("exclusiveMinimum", () => {
@@ -380,7 +480,7 @@ describe("FromJsonSchema", () => {
             "type": "number",
             "exclusiveMinimum": 0
           }
-        }, { code: "Schema.Number.check(Schema.isGreaterThan(0))", type: "number" })
+        }, { runtime: "Schema.Number.check(Schema.isGreaterThan(0))", type: "number" })
       })
 
       it("exclusiveMaximum", () => {
@@ -389,7 +489,7 @@ describe("FromJsonSchema", () => {
             "type": "number",
             "exclusiveMaximum": 100
           }
-        }, { code: "Schema.Number.check(Schema.isLessThan(100))", type: "number" })
+        }, { runtime: "Schema.Number.check(Schema.isLessThan(100))", type: "number" })
       })
 
       it("multipleOf", () => {
@@ -398,7 +498,7 @@ describe("FromJsonSchema", () => {
             "type": "number",
             "multipleOf": 2
           }
-        }, { code: "Schema.Number.check(Schema.isMultipleOf(2))", type: "number" })
+        }, { runtime: "Schema.Number.check(Schema.isMultipleOf(2))", type: "number" })
       })
 
       it("minItems", () => {
@@ -408,7 +508,7 @@ describe("FromJsonSchema", () => {
             "items": { "type": "string" },
             "minItems": 1
           }
-        }, { code: "Schema.Array(Schema.String).check(Schema.isMinLength(1))", type: "ReadonlyArray<string>" })
+        }, { runtime: "Schema.Array(Schema.String).check(Schema.isMinLength(1))", type: "ReadonlyArray<string>" })
       })
 
       it("maxItems", () => {
@@ -418,7 +518,7 @@ describe("FromJsonSchema", () => {
             "items": { "type": "string" },
             "maxItems": 10
           }
-        }, { code: "Schema.Array(Schema.String).check(Schema.isMaxLength(10))", type: "ReadonlyArray<string>" })
+        }, { runtime: "Schema.Array(Schema.String).check(Schema.isMaxLength(10))", type: "ReadonlyArray<string>" })
       })
 
       it("uniqueItems", () => {
@@ -429,7 +529,7 @@ describe("FromJsonSchema", () => {
             "uniqueItems": true
           }
         }, {
-          code: "Schema.Array(Schema.String).check(Schema.isUnique())",
+          runtime: "Schema.Array(Schema.String).check(Schema.isUnique())",
           type: "ReadonlyArray<string>"
         })
       })
@@ -441,7 +541,7 @@ describe("FromJsonSchema", () => {
             "minProperties": 1
           }
         }, {
-          code: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMinProperties(1))",
+          runtime: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMinProperties(1))",
           type: "{ readonly [x: string]: unknown }"
         })
       })
@@ -453,7 +553,7 @@ describe("FromJsonSchema", () => {
             "maxProperties": 10
           }
         }, {
-          code: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMaxProperties(10))",
+          runtime: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMaxProperties(10))",
           type: "{ readonly [x: string]: unknown }"
         })
       })
@@ -467,28 +567,14 @@ describe("FromJsonSchema", () => {
             "pattern": "^[a-z]+$"
           }
         }, {
-          code: "Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10), Schema.isPattern(/^[a-z]+$/))",
+          runtime: "Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10), Schema.isPattern(/^[a-z]+$/))",
           type: "string"
         })
       })
     })
 
     describe("$ref", () => {
-      it("unescaped identifier", () => {
-        assertOutput(
-          {
-            schema: {
-              "$ref": "#/definitions/ID"
-            }
-          },
-          {
-            code: "ID",
-            type: "ID"
-          }
-        )
-      })
-
-      it("escaped identifier", () => {
+      it("top level $ref", () => {
         assertOutput(
           {
             schema: {
@@ -496,25 +582,8 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            code: "ID/a~b",
+            runtime: "ID/a~b",
             type: "ID/a~b"
-          }
-        )
-        assertOutput(
-          {
-            schema: {
-              "$ref": "#/definitions/ID~1a~0b"
-            },
-            options: {
-              resolver: (identifier) => {
-                const id = identifier.replace(/[/~]/g, "$")
-                return ({ code: id, type: id })
-              }
-            }
-          },
-          {
-            code: "ID$a$b",
-            type: "ID$a$b"
           }
         )
       })
@@ -531,31 +600,7 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            code: `Schema.Struct({ a: A })`,
-            type: "{ readonly a: A }"
-          }
-        )
-      })
-
-      it("recursive $ref", () => {
-        assertOutput(
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": { "$ref": "#/definitions/A" }
-              },
-              "required": ["a"]
-            },
-            options: {
-              resolver: (identifier) => ({
-                code: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
-                type: identifier
-              })
-            }
-          },
-          {
-            code: `Schema.Struct({ a: Schema.suspend((): Schema.Codec<A> => A) })`,
+            runtime: `Schema.Struct({ a: A })`,
             type: "{ readonly a: A }"
           }
         )
@@ -1058,13 +1103,13 @@ describe("FromJsonSchema", () => {
       let s = ""
 
       s += "// Definitions\n"
-      genDependencies.forEach(({ identifier, schema }) => {
+      genDependencies.forEach(({ generation: schema, identifier }) => {
         s += `type ${identifier} = ${schema.type};\n`
-        s += `const ${identifier} = ${schema.code};\n\n`
+        s += `const ${identifier} = ${schema.runtime};\n\n`
       })
 
       s += "// Schemas\n"
-      s += genSchemas.map(({ code }, i) => `const schema${i + 1} = ${code};`).join("\n")
+      s += genSchemas.map(({ runtime: code }, i) => `const schema${i + 1} = ${code};`).join("\n")
       return s
     }
 

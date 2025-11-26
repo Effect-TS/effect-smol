@@ -5511,64 +5511,257 @@ Output:
 
 ## Generating a Schema from a JSON Schema
 
+**Example** (Basic object schema generation)
+
 ```ts
-import { FromJsonSchema, Schema } from "effect/schema"
+import { FromJsonSchema } from "effect/schema"
 
-// A few schemas that reference each other
+// a simple JSON Schema definition
+const jsonSchema = {
+  type: "object",
+  properties: {
+    a: { type: "string" },
+    b: { type: "integer" }
+  },
+  required: ["a", "b"],
+  additionalProperties: false
+} as const
 
-const A = Schema.Struct({
-  value: Schema.String
-})
-
-const B = Schema.Struct({
-  b: Schema.Struct({
-    a: A
-  })
-}).annotate({ identifier: "B" })
-
-const C = Schema.Struct({
-  c: Schema.Tuple([B, Schema.Number])
-})
-
-// Generate the JSON Schema for each schema
-
-const definitions = {}
-const jsonSchemas = [A, B, C].map((schema) => Schema.makeJsonSchemaDraft07(schema, { definitions }).schema)
-
-// Generate the code
-
-function generate(definitions: Schema.JsonSchema.Definitions, schemas: ReadonlyArray<Schema.JsonSchema.Schema>) {
-  const genDependencies = FromJsonSchema.generateDefinitions(definitions)
-  const identifiers = new Set()
-  const genSchemas = schemas.map((schema) => FromJsonSchema.generate(schema))
-  let s = ""
-
-  s += "// Definitions\n"
-  genDependencies.forEach(({ identifier, schema }) => {
-    identifiers.add(identifier)
-    s += `export type ${identifier} = ${schema.type};\n`
-    s += `export const ${identifier} = ${schema.code};\n\n`
-  })
-
-  s += "// Schemas\n"
-  s += genSchemas
-    .filter(({ code }) => !identifiers.has(code))
-    .map(({ code }, i) => `export const schema${i + 1} = ${code};`)
-    .join("\n")
-  return s
-}
-
-console.log(generate(definitions, jsonSchemas))
+console.log(FromJsonSchema.generate(jsonSchema))
 /*
-// Definitions
-export type B = { readonly b: { readonly a: { readonly value: string } } };
-export const B = Schema.Struct({ b: Schema.Struct({ a: Schema.Struct({ value: Schema.String }) }) }).annotate({ identifier: "B" });
-
-// Schemas
-export const schema1 = Schema.Struct({ value: Schema.String });
-export const schema2 = Schema.Struct({ c: Schema.Tuple([B, Schema.Number]) });
+{
+  runtime: 'Schema.Struct({ a: Schema.String, b: Schema.Int })',
+  type: '{ readonly a: string, readonly b: number }',
+  imports: Set(0) {}
+}
 */
 ```
+
+**Example** (Using definitions referenced with `$ref`)
+
+```ts
+import { FromJsonSchema } from "effect/schema"
+
+const jsonSchema = {
+  type: "object",
+  properties: {
+    a: { type: "string" },
+    b: { $ref: "#/definitions/B" }
+  },
+  required: ["a", "b"],
+  additionalProperties: false,
+  definitions: {
+    B: { type: "integer" }
+  }
+} as const
+
+console.log(FromJsonSchema.generate(jsonSchema))
+/*
+{
+  runtime: 'Schema.Struct({ a: Schema.String, b: B })',
+  type: '{ readonly a: string, readonly b: B }',
+  imports: Set(0) {}
+}
+*/
+```
+
+As shown above, the generated code depends on the referenced definitions.
+You can generate definitions and the main schema separately.
+
+**Example** (Generating only the definitions)
+
+```ts
+import { FromJsonSchema } from "effect/schema"
+
+const jsonSchema = {
+  type: "object",
+  properties: {
+    a: { type: "string" },
+    b: { $ref: "#/definitions/B" }
+  },
+  required: ["a", "b"],
+  additionalProperties: false,
+  definitions: {
+    B: { type: "integer" }
+  }
+} as const
+
+console.log(FromJsonSchema.generateDefinitions(jsonSchema.definitions))
+/*
+[
+  {
+    identifier: 'B',
+    generation: {
+      runtime: 'Schema.Int.annotate({ identifier: "B" })',
+      type: 'number',
+      imports: Set(0) {}
+    }
+  }
+]
+*/
+```
+
+You can then combine all generated parts into a single file.
+
+**Example** (Producing a file that includes definitions and the main schema)
+
+```ts
+import { FromJsonSchema } from "effect/schema"
+
+// base JSON Schema
+const jsonSchema = {
+  type: "object",
+  properties: {
+    a: { type: "string" },
+    b: { $ref: "#/definitions/B" }
+  },
+  required: ["a", "b"],
+  additionalProperties: false,
+  definitions: {
+    B: { type: "integer" }
+  }
+} as const
+
+const schema = FromJsonSchema.generate(jsonSchema)
+const definitions = FromJsonSchema.generateDefinitions(jsonSchema.definitions)
+
+// collect all definitions plus the entry schema
+const all: ReadonlyArray<FromJsonSchema.DefinitionGeneration> = [
+  ...definitions,
+  { identifier: "MySchema", generation: schema }
+]
+
+// build a code string containing all definitions
+const code = `import { Schema } from "effect/schema"
+
+${all.map((gen) => `const ${gen.identifier} = ${gen.generation.runtime};`).join("\n")}`
+
+console.log(code)
+/*
+import { Schema } from "effect/schema"
+
+const B = Schema.Int.annotate({ identifier: "B" });
+const MySchema = Schema.Struct({ a: Schema.String, b: B });
+*/
+```
+
+### Options
+
+#### target
+
+The `target` option specifies which JSON Schema version is being used.
+
+**Example** (Generating a tuple schema using `prefixItems`)
+
+```ts
+import { FromJsonSchema } from "effect/schema"
+
+// an array defined with prefixItems from JSON Schema 2020-12
+const jsonSchema = {
+  type: "array",
+  prefixItems: [{ type: "string" }, { type: "number" }],
+  items: false
+} as const
+
+// specify the JSON Schema version
+const schema = FromJsonSchema.generate(jsonSchema, { target: "2020-12" })
+
+console.log(schema)
+/*
+{
+  runtime: 'Schema.Tuple([Schema.String, Schema.Number])',
+  type: 'readonly [string, number]',
+  imports: Set(0) {}
+}
+*/
+```
+
+#### resolver
+
+A resolver lets you control how `$ref` identifiers are mapped to imports and identifiers inside the generated code.
+
+**Example** (Default resolver behavior)
+
+```ts
+import { FromJsonSchema } from "effect/schema"
+
+// reference to a schema defined under components/schemas
+const jsonSchema = {
+  type: "object",
+  properties: {
+    a: { type: "string" },
+    b: {
+      // a reference to import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"
+      $ref: "#/components/schemas/effect~1HttpApiSchemaError"
+    }
+  },
+  required: ["a", "b"],
+  additionalProperties: false
+} as const
+
+const schema = FromJsonSchema.generate(jsonSchema, {
+  target: "oas3.1"
+})
+
+console.log(schema)
+/*
+{
+  runtime: 'Schema.Struct({ a: Schema.String, b: effect/HttpApiSchemaError })',
+  type: '{ readonly a: string, readonly b: effect/HttpApiSchemaError }',
+  imports: Set(0) {}
+}
+*/
+```
+
+By default, the identifier is interpreted as `"effect/HttpApiSchemaError"`.
+You can override this by providing a custom resolver.
+
+**Example** (Customizing how `$ref` identifiers resolve)
+
+```ts
+import { FromJsonSchema } from "effect/schema"
+
+const jsonSchema = {
+  type: "object",
+  properties: {
+    a: { type: "string" },
+    b: {
+      $ref: "#/components/schemas/effect~1HttpApiSchemaError"
+    }
+  },
+  required: ["a", "b"],
+  additionalProperties: false
+} as const
+
+const schema = FromJsonSchema.generate(jsonSchema, {
+  target: "oas3.1",
+  resolver: (identifier) => {
+    if (identifier === "effect/HttpApiSchemaError") {
+      // map identifier to a direct import, with both runtime and type info
+      return {
+        runtime: "HttpApiSchemaError",
+        type: `typeof HttpApiSchemaError["Encoded"]`,
+        imports: new Set([`import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`])
+      }
+    }
+    // fallback to the default resolver
+    return FromJsonSchema.resolvers.identity(identifier)
+  }
+})
+
+console.log(schema)
+/*
+{
+  runtime: 'Schema.Struct({ a: Schema.String, b: HttpApiSchemaError })',
+  type: '{ readonly a: string, readonly b: typeof HttpApiSchemaError["Encoded"] }',
+  imports: Set(1) {
+    'import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"'
+  }
+}
+*/
+```
+
+This approach helps when you want full control over how a referenced schema is imported and represented in the generated code.
 
 ## Generating an Arbitrary from a Schema
 
