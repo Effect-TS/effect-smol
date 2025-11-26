@@ -221,7 +221,38 @@ export type Error<C> = C extends Command<
   never
 
 /**
- * Service context for a specific command, providing access to command input through Effect's service system.
+ * Service context for a specific command, enabling subcommands to access their parent's parsed configuration.
+ *
+ * When a subcommand handler needs access to flags or arguments from a parent command,
+ * it can yield the parent command directly to retrieve its config. This is powered by
+ * Effect's service system - each command automatically creates a service that provides
+ * its parsed input to child commands.
+ *
+ * @example
+ * ```ts
+ * import { Command, Flag } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
+ *
+ * const parent = Command.make("app", {
+ *   verbose: Flag.boolean("verbose"),
+ *   config: Flag.string("config")
+ * })
+ *
+ * const child = Command.make("deploy", {
+ *   target: Flag.string("target")
+ * }, (config) =>
+ *   Effect.gen(function*() {
+ *     // Access parent's config by yielding the parent command
+ *     const parentConfig = yield* parent
+ *     yield* Console.log(`Verbose: ${parentConfig.verbose}`)
+ *     yield* Console.log(`Config: ${parentConfig.config}`)
+ *     yield* Console.log(`Target: ${config.target}`)
+ *   })
+ * )
+ *
+ * const app = parent.pipe(Command.withSubcommands([child]))
+ * // Usage: app --verbose --config prod.json deploy --target staging
+ * ```
  *
  * @since 4.0.0
  * @category models
@@ -330,6 +361,24 @@ export const make: {
 }) as any
 
 /**
+ * Creates a command that prompts the user for input using an interactive prompt.
+ *
+ * This is useful for commands that need to gather information interactively,
+ * such as wizards or setup flows. The prompt runs before the handler and its
+ * result is passed to the handler function.
+ *
+ * @example
+ * ```ts
+ * import { Command, Prompt } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
+ *
+ * const setup = Command.prompt(
+ *   "setup",
+ *   Prompt.text({ message: "Enter your name:" }),
+ *   (name) => Console.log(`Hello, ${name}!`)
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
@@ -395,37 +444,35 @@ export const withHandler: {
 /**
  * Adds subcommands to a command, creating a hierarchical command structure.
  *
+ * Subcommands can access their parent's parsed configuration by yielding the parent
+ * command within their handler. This enables patterns like global flags that affect
+ * all subcommands.
+ *
  * @example
  * ```ts
  * import { Command, Flag } from "effect/unstable/cli"
  * import { Effect, Console } from "effect"
  *
+ * // Parent command with global flags
+ * const git = Command.make("git", {
+ *   verbose: Flag.boolean("verbose")
+ * })
+ *
+ * // Subcommand that accesses parent config
  * const clone = Command.make("clone", {
- *   repository: Flag.string("repository")
+ *   repository: Flag.string("repo")
  * }, (config) =>
  *   Effect.gen(function*() {
+ *     const parent = yield* git  // Access parent's parsed config
+ *     if (parent.verbose) {
+ *       yield* Console.log("Verbose mode enabled")
+ *     }
  *     yield* Console.log(`Cloning ${config.repository}`)
  *   })
  * )
  *
- * const add = Command.make("add", {
- *   files: Flag.string("files")
- * }, (config) =>
- *   Effect.gen(function*() {
- *     yield* Console.log(`Adding ${config.files}`)
- *   })
- * )
- *
- * // Data-last (pipeable)
- * const git = Command.make("git", {}, () => Effect.void).pipe(
- *   Command.withSubcommands([clone, add])
- * )
- *
- * // Data-first
- * const git2 = Command.withSubcommands(
- *   Command.make("git", {}, () => Effect.void),
- *   [clone, add]
- * )
+ * const app = git.pipe(Command.withSubcommands([clone]))
+ * // Usage: git --verbose clone --repo github.com/foo/bar
  * ```
  *
  * @since 4.0.0
@@ -582,6 +629,29 @@ const mapHandler = <Name extends string, Input, E, R, E2, R2>(
 /**
  * Provides the handler of a command with the services produced by a layer
  * that optionally depends on the command-line input to be created.
+ *
+ * @example
+ * ```ts
+ * import { Command, Flag } from "effect/unstable/cli"
+ * import { Effect, Layer } from "effect"
+ * import { FileSystem } from "effect/platform"
+ *
+ * const deploy = Command.make("deploy", {
+ *   env: Flag.string("env")
+ * }, (config) =>
+ *   Effect.gen(function*() {
+ *     const fs = yield* FileSystem.FileSystem
+ *     // Use fs...
+ *   })
+ * ).pipe(
+ *   // Provide FileSystem based on the --env flag
+ *   Command.provide((config) =>
+ *     config.env === "local"
+ *       ? FileSystem.layerNoop({})
+ *       : FileSystem.layer
+ *   )
+ * )
+ * ```
  *
  * @since 4.0.0
  * @category providing services
