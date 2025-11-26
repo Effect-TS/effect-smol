@@ -910,26 +910,18 @@ export const runWith = <const Name extends string, Input, E, R>(
       }
       const parsed = parseResult.success
 
-      // Create the execution program
+      // Create and run the execution program
       const program = commandImpl.handle(parsed, [command.name])
-
-      // Apply log level if provided via built-ins
-      const finalProgram = logLevel !== undefined
+      const withLogLevel = logLevel !== undefined
         ? Effect.provideService(program, References.MinimumLogLevel, logLevel)
         : program
 
-      // Normalize non-CLI errors into CliError.UserError so downstream catchTags
-      // can rely on CLI-tagged errors only.
-      const normalized = finalProgram.pipe(
-        Effect.catch((err) =>
-          CliError.isCliError(err) ? Effect.fail(err) : Effect.fail(new CliError.UserError({ cause: err }))
-        )
-      )
-
-      yield* normalized
+      yield* withLogLevel
     },
-    Effect.catchTag("ShowHelp", (error: CliError.ShowHelp) => showHelp(command, error.commandPath)),
-    // Preserve prior public behavior: surface original handler errors
-    Effect.catchTag("UserError", (error: CliError.UserError) => Effect.fail(error.cause as E | CliError.CliError))
+    Effect.catch((error) =>
+      error instanceof CliError.ShowHelp
+        ? showHelp(command, error.commandPath)
+        : Effect.fail(error)
+    )
   )
 }
