@@ -8,6 +8,7 @@
     "declarationMap": false,
     "composite": false,
     "incremental": false,
+    "types": ["node"],
     "plugins": [
       {
         "name": "@effect/language-service",

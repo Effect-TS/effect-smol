@@ -10,6 +10,11 @@ export * as Mime from "./Mime.ts"
 /**
  * @since 1.0.0
  */
+export * as NodeChildProcessExecutor from "./NodeChildProcessExecutor.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as NodeClusterHttp from "./NodeClusterHttp.ts"
 
 /**

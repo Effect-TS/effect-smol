@@ -3,7 +3,7 @@
  */
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as KeyValueStore from "./KeyValueStore.ts"
 
@@ -13,7 +13,7 @@ export * as KeyValueStore from "./KeyValueStore.ts"
 export * as Persistable from "./Persistable.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as PersistedCache from "./PersistedCache.ts"
 
@@ -33,6 +33,6 @@ export * as Persistence from "./Persistence.ts"
 export * as RateLimiter from "./RateLimiter.ts"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 export * as Redis from "./Redis.ts"

@@ -21,3 +21,4 @@ jsdoc-stats.md
 
 # scratchpad files
 scratchpad/**/*.ts 
+scratchpad/**/*.md
