@@ -107,7 +107,7 @@ describe("Command", () => {
         const captured: Array<Record<string, string>> = []
 
         const command = Command.make("env", {
-          env: Flag.keyValueMap("env")
+          env: Flag.keyValuePair("env")
         }, (config) =>
           Effect.sync(() => {
             captured.push(config.env)
@@ -132,7 +132,7 @@ describe("Command", () => {
         const captured: Array<Record<string, unknown>> = []
 
         const command = Command.make("env", {
-          env: Flag.keyValueMap("env"),
+          env: Flag.keyValuePair("env"),
           verbose: Flag.boolean("verbose"),
           profile: Flag.string("profile")
         }, (config) =>
@@ -168,7 +168,7 @@ describe("Command", () => {
         let invoked = false
 
         const command = Command.make("env", {
-          env: Flag.keyValueMap("env")
+          env: Flag.keyValuePair("env")
         }, () =>
           Effect.sync(() => {
             invoked = true

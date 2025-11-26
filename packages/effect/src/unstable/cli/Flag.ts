@@ -340,13 +340,6 @@ export const fileSchema = <A>(
 export const keyValuePair = (name: string): Flag<Record<string, string>> => Param.keyValuePair(Param.flagKind, name)
 
 /**
- * @deprecated Use `keyValuePair` instead.
- * @since 4.0.0
- * @category constructors
- */
-export const keyValueMap = keyValuePair
-
-/**
  * Creates an empty sentinel flag that always fails to parse.
  * This is useful for creating placeholder flags or for combinators.
  *
@@ -451,13 +444,6 @@ export const withMetavar: {
   <A>(metavar: string): (self: Flag<A>) => Flag<A>
   <A>(self: Flag<A>, metavar: string): Flag<A>
 } = dual(2, <A>(self: Flag<A>, metavar: string) => Param.withMetavar(self, metavar))
-
-/**
- * @deprecated Use `withMetavar` instead.
- * @since 4.0.0
- * @category metadata
- */
-export const withPseudoName = withMetavar
 
 /**
  * Makes a flag optional, returning an Option type that can be None if not provided.
@@ -610,28 +596,6 @@ export const mapTryCatch: {
   f: (a: A) => B,
   onError: (error: unknown) => string
 ) => Param.mapTryCatch(self, f, onError))
-
-/**
- * Allows a flag to be specified multiple times, collecting all values into an array.
- *
- * @example
- * ```ts
- * import { Flag } from "effect/unstable/cli"
- *
- * const includeFlag = Flag.repeated(Flag.file("include"))
- * // Usage: --include file1.ts --include file2.ts --include file3.ts
- * // Result: ["file1.ts", "file2.ts", "file3.ts"]
- *
- * const verbosityFlag = Flag.repeated(Flag.boolean("verbose"))
- * // Usage: --verbose --verbose --verbose
- * // Result: [true, true, true]
- * ```
- *
- * @deprecated Use `Flag.atLeast(flag, 0)` or `Flag.between(flag, min, max)` instead.
- * @since 4.0.0
- * @category repetition
- */
-export const repeated = <A>(flag: Flag<A>): Flag<ReadonlyArray<A>> => Param.repeated(flag)
 
 /**
  * Requires a flag to be specified at least a minimum number of times.

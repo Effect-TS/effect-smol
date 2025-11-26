@@ -158,7 +158,7 @@ describe("Command arguments", () => {
       let result: { readonly files: ReadonlyArray<string> } | undefined
 
       const testCommand = Command.make("test", {
-        files: Argument.string("files").pipe(Argument.repeated)
+        files: Argument.string("files").pipe(Argument.variadic)
       }, (config) =>
         Effect.sync(() => {
           result = config
@@ -309,11 +309,11 @@ describe("Command arguments", () => {
       assert.strictEqual(result.value.value, "abc")
     }).pipe(Effect.provide(TestLayer)))
 
-  it("should handle withPseudoName combinator", () =>
+  it("should handle withMetavar combinator", () =>
     Effect.gen(function*() {
       const testCommand = Command.make("test", {
         file: Argument.string("file").pipe(
-          Argument.withPseudoName("FILE_PATH")
+          Argument.withMetavar("FILE_PATH")
         )
       }, () => Effect.void)
 
