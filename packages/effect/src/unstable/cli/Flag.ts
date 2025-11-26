@@ -13,13 +13,21 @@ import type * as CliError from "./CliError.ts"
 import * as Param from "./Param.ts"
 import type * as Primitive from "./Primitive.ts"
 
+// -------------------------------------------------------------------------------------
+// models
+// -------------------------------------------------------------------------------------
+
 /**
  * Represents a command-line flag.
  *
  * @since 4.0.0
  * @category models
  */
-export interface Flag<A> extends Param.Param<typeof Param.Flag, A> {}
+export interface Flag<A> extends Param.Param<typeof Param.flagKind, A> {}
+
+// -------------------------------------------------------------------------------------
+// constructors
+// -------------------------------------------------------------------------------------
 
 /**
  * Creates a string flag that accepts text input.
@@ -35,7 +43,7 @@ export interface Flag<A> extends Param.Param<typeof Param.Flag, A> {}
  * @since 4.0.0
  * @category constructors
  */
-export const string = (name: string): Flag<string> => Param.string(Param.Flag, name)
+export const string = (name: string): Flag<string> => Param.string(Param.flagKind, name)
 
 /**
  * Creates a boolean flag that can be enabled or disabled.
@@ -51,7 +59,7 @@ export const string = (name: string): Flag<string> => Param.string(Param.Flag, n
  * @since 4.0.0
  * @category constructors
  */
-export const boolean = (name: string): Flag<boolean> => Param.boolean(Param.Flag, name)
+export const boolean = (name: string): Flag<boolean> => Param.boolean(Param.flagKind, name)
 
 /**
  * Creates an integer flag that accepts whole number input.
@@ -67,7 +75,7 @@ export const boolean = (name: string): Flag<boolean> => Param.boolean(Param.Flag
  * @since 4.0.0
  * @category constructors
  */
-export const integer = (name: string): Flag<number> => Param.integer(Param.Flag, name)
+export const integer = (name: string): Flag<number> => Param.integer(Param.flagKind, name)
 
 /**
  * Creates a float flag that accepts decimal number input.
@@ -83,7 +91,7 @@ export const integer = (name: string): Flag<number> => Param.integer(Param.Flag,
  * @since 4.0.0
  * @category constructors
  */
-export const float = (name: string): Flag<number> => Param.float(Param.Flag, name)
+export const float = (name: string): Flag<number> => Param.float(Param.flagKind, name)
 
 /**
  * Creates a date flag that accepts date input in ISO format.
@@ -99,7 +107,7 @@ export const float = (name: string): Flag<number> => Param.float(Param.Flag, nam
  * @since 4.0.0
  * @category constructors
  */
-export const date = (name: string): Flag<Date> => Param.date(Param.Flag, name)
+export const date = (name: string): Flag<Date> => Param.date(Param.flagKind, name)
 
 /**
  * Constructs option parameters that represent a choice between several inputs.
@@ -126,7 +134,7 @@ export const date = (name: string): Flag<Date> => Param.date(Param.Flag, name)
 export const choiceWithValue = <const Choice extends ReadonlyArray<readonly [string, any]>>(
   name: string,
   choices: Choice
-): Flag<Choice[number][1]> => Param.choiceWithValue(Param.Flag, name, choices)
+): Flag<Choice[number][1]> => Param.choiceWithValue(Param.flagKind, name, choices)
 
 /**
  * Simpler variant of `choiceWithValue` which maps each string to itself.
@@ -137,7 +145,7 @@ export const choiceWithValue = <const Choice extends ReadonlyArray<readonly [str
 export const choice = <const Choices extends ReadonlyArray<string>>(
   name: string,
   choices: Choices
-): Flag<Choices[number]> => Param.choice(Param.Flag, name, choices)
+): Flag<Choices[number]> => Param.choice(Param.flagKind, name, choices)
 
 /**
  * Creates a path flag that accepts file system path input with validation options.
@@ -169,7 +177,7 @@ export const path = (name: string, options?: {
   readonly pathType?: "file" | "directory" | "either" | undefined
   readonly mustExist?: boolean | undefined
   readonly typeName?: string | undefined
-}): Flag<string> => Param.path(Param.Flag, name, options)
+}): Flag<string> => Param.path(Param.flagKind, name, options)
 
 /**
  * Creates a file path flag that accepts file paths with optional existence validation.
@@ -192,7 +200,7 @@ export const path = (name: string, options?: {
  */
 export const file = (name: string, options?: {
   readonly mustExist?: boolean | undefined
-}): Flag<string> => Param.file(Param.Flag, name, options)
+}): Flag<string> => Param.file(Param.flagKind, name, options)
 
 /**
  * Creates a directory path flag that accepts directory paths with optional existence validation.
@@ -215,7 +223,7 @@ export const file = (name: string, options?: {
  */
 export const directory = (name: string, options?: {
   readonly mustExist?: boolean | undefined
-}): Flag<string> => Param.directory(Param.Flag, name, options)
+}): Flag<string> => Param.directory(Param.flagKind, name, options)
 
 /**
  * Creates a redacted flag that securely handles sensitive string input.
@@ -241,7 +249,7 @@ export const directory = (name: string, options?: {
  * @since 4.0.0
  * @category constructors
  */
-export const redacted = (name: string): Flag<Redacted.Redacted<string>> => Param.redacted(Param.Flag, name)
+export const redacted = (name: string): Flag<Redacted.Redacted<string>> => Param.redacted(Param.flagKind, name)
 
 /**
  * Creates a flag that reads and returns file content as a string.
@@ -257,7 +265,7 @@ export const redacted = (name: string): Flag<Redacted.Redacted<string>> => Param
  * @since 4.0.0
  * @category constructors
  */
-export const fileText = (name: string): Flag<string> => Param.fileText(Param.Flag, name)
+export const fileText = (name: string): Flag<string> => Param.fileText(Param.flagKind, name)
 
 /**
  * Creates a flag that reads and parses the content of the specified file.
@@ -283,7 +291,7 @@ export const fileText = (name: string): Flag<string> => Param.fileText(Param.Fla
 export const fileParse = (
   name: string,
   options?: Primitive.FileParseOptions | undefined
-): Flag<unknown> => Param.fileParse(Param.Flag, name, options)
+): Flag<unknown> => Param.fileParse(Param.flagKind, name, options)
 
 /**
  * Creates a flag that reads and validates file content using the specified
@@ -309,24 +317,34 @@ export const fileSchema = <A>(
   name: string,
   schema: Schema.Codec<A, string>,
   options?: Primitive.FileSchemaOptions | undefined
-): Flag<A> => Param.fileSchema(Param.Flag, name, schema, options)
+): Flag<A> => Param.fileSchema(Param.flagKind, name, schema, options)
 
 /**
  * Creates a flag that parses key=value pairs.
  * Useful for options that accept configuration values.
  *
+ * Note: Requires at least one key=value pair. Multiple pairs are merged
+ * into a single record.
+ *
  * @example
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
- * const env = Flag.keyValueMap("env")
- * // --env FOO=bar will parse to { FOO: "bar" }
+ * const env = Flag.keyValuePair("env")
+ * // --env FOO=bar --env BAZ=qux will parse to { FOO: "bar", BAZ: "qux" }
  * ```
  *
  * @since 4.0.0
  * @category constructors
  */
-export const keyValueMap = (name: string): Flag<Record<string, string>> => Param.keyValueMap(Param.Flag, name)
+export const keyValuePair = (name: string): Flag<Record<string, string>> => Param.keyValuePair(Param.flagKind, name)
+
+/**
+ * @deprecated Use `keyValuePair` instead.
+ * @since 4.0.0
+ * @category constructors
+ */
+export const keyValueMap = keyValuePair
 
 /**
  * Creates an empty sentinel flag that always fails to parse.
@@ -343,7 +361,11 @@ export const keyValueMap = (name: string): Flag<Record<string, string>> => Param
  * @since 4.0.0
  * @category constructors
  */
-export const none: Flag<never> = Param.none(Param.Flag)
+export const none: Flag<never> = Param.none(Param.flagKind)
+
+// -------------------------------------------------------------------------------------
+// combinators
+// -------------------------------------------------------------------------------------
 
 /**
  * Adds an alias to a flag, allowing it to be referenced by multiple names.
@@ -396,32 +418,46 @@ export const withDescription: {
   <A>(self: Flag<A>, description: string): Flag<A>
 } = dual(2, <A>(self: Flag<A>, description: string) => Param.withDescription(self, description))
 
+// -------------------------------------------------------------------------------------
+// metadata
+// -------------------------------------------------------------------------------------
+
 /**
- * Adds a pseudo name to a flag for help documentation display.
+ * Sets a custom metavar (placeholder name) for the flag in help documentation.
+ *
+ * The metavar is displayed in usage text to indicate what value the user should provide.
+ * For example, `--output FILE` shows `FILE` as the metavar.
  *
  * @example
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
  * const databaseFlag = Flag.string("database-url").pipe(
- *   Flag.withPseudoName("URL"),
+ *   Flag.withMetavar("URL"),
  *   Flag.withDescription("Database connection URL")
  * )
  * // In help: --database-url URL
  *
  * const timeoutFlag = Flag.integer("timeout").pipe(
- *   Flag.withPseudoName("SECONDS")
+ *   Flag.withMetavar("SECONDS")
  * )
  * // In help: --timeout SECONDS
  * ```
  *
  * @since 4.0.0
- * @category help documentation
+ * @category metadata
  */
-export const withPseudoName: {
-  <A>(pseudoName: string): (self: Flag<A>) => Flag<A>
-  <A>(self: Flag<A>, pseudoName: string): Flag<A>
-} = dual(2, <A>(self: Flag<A>, pseudoName: string) => Param.withPseudoName(self, pseudoName))
+export const withMetavar: {
+  <A>(metavar: string): (self: Flag<A>) => Flag<A>
+  <A>(self: Flag<A>, metavar: string): Flag<A>
+} = dual(2, <A>(self: Flag<A>, metavar: string) => Param.withMetavar(self, metavar))
+
+/**
+ * @deprecated Use `withMetavar` instead.
+ * @since 4.0.0
+ * @category metadata
+ */
+export const withPseudoName = withMetavar
 
 /**
  * Makes a flag optional, returning an Option type that can be None if not provided.
@@ -591,6 +627,7 @@ export const mapTryCatch: {
  * // Result: [true, true, true]
  * ```
  *
+ * @deprecated Use `Flag.atLeast(flag, 0)` or `Flag.between(flag, min, max)` instead.
  * @since 4.0.0
  * @category repetition
  */

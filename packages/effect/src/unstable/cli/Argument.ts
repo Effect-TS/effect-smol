@@ -14,6 +14,10 @@ import type { Environment } from "./Command.ts"
 import * as Param from "./Param.ts"
 import type * as Primitive from "./Primitive.ts"
 
+// -------------------------------------------------------------------------------------
+// models
+// -------------------------------------------------------------------------------------
+
 /**
  * Represents a positional command-line argument.
  *
@@ -25,7 +29,11 @@ import type * as Primitive from "./Primitive.ts"
  * @since 4.0.0
  * @category models
  */
-export interface Argument<A> extends Param.Param<typeof Param.Argument, A> {}
+export interface Argument<A> extends Param.Param<typeof Param.argumentKind, A> {}
+
+// -------------------------------------------------------------------------------------
+// constructors
+// -------------------------------------------------------------------------------------
 
 /**
  * Creates a positional string argument.
@@ -40,7 +48,7 @@ export interface Argument<A> extends Param.Param<typeof Param.Argument, A> {}
  * @since 4.0.0
  * @category constructors
  */
-export const string = (name: string): Argument<string> => Param.string(Param.Argument, name)
+export const string = (name: string): Argument<string> => Param.string(Param.argumentKind, name)
 
 /**
  * Creates a positional integer argument.
@@ -55,7 +63,7 @@ export const string = (name: string): Argument<string> => Param.string(Param.Arg
  * @since 4.0.0
  * @category constructors
  */
-export const integer = (name: string): Argument<number> => Param.integer(Param.Argument, name)
+export const integer = (name: string): Argument<number> => Param.integer(Param.argumentKind, name)
 
 /**
  * Creates a positional file path argument.
@@ -73,7 +81,7 @@ export const integer = (name: string): Argument<number> => Param.integer(Param.A
  */
 export const file = (name: string, options?: {
   readonly mustExist?: boolean | undefined
-}): Argument<string> => Param.file(Param.Argument, name, options)
+}): Argument<string> => Param.file(Param.argumentKind, name, options)
 
 /**
  * Creates a positional directory path argument.
@@ -90,7 +98,7 @@ export const file = (name: string, options?: {
  */
 export const directory = (name: string, options?: {
   readonly mustExist?: boolean | undefined
-}): Argument<string> => Param.directory(Param.Argument, name, options)
+}): Argument<string> => Param.directory(Param.argumentKind, name, options)
 
 /**
  * Creates a positional float argument.
@@ -105,7 +113,7 @@ export const directory = (name: string, options?: {
  * @since 4.0.0
  * @category constructors
  */
-export const float = (name: string): Argument<number> => Param.float(Param.Argument, name)
+export const float = (name: string): Argument<number> => Param.float(Param.argumentKind, name)
 
 /**
  * Creates a positional date argument.
@@ -120,7 +128,7 @@ export const float = (name: string): Argument<number> => Param.float(Param.Argum
  * @since 4.0.0
  * @category constructors
  */
-export const date = (name: string): Argument<Date> => Param.date(Param.Argument, name)
+export const date = (name: string): Argument<Date> => Param.date(Param.argumentKind, name)
 
 /**
  * Creates a positional choice argument.
@@ -138,7 +146,7 @@ export const date = (name: string): Argument<Date> => Param.date(Param.Argument,
 export const choice = <const Choices extends ReadonlyArray<string>>(
   name: string,
   choices: Choices
-): Argument<Choices[number]> => Param.choice(Param.Argument, name, choices)
+): Argument<Choices[number]> => Param.choice(Param.argumentKind, name, choices)
 
 /**
  * Creates a positional path argument.
@@ -156,7 +164,7 @@ export const choice = <const Choices extends ReadonlyArray<string>>(
 export const path = (name: string, options?: {
   pathType?: "file" | "directory" | "either"
   mustExist?: boolean
-}): Argument<string> => Param.path(Param.Argument, name, options)
+}): Argument<string> => Param.path(Param.argumentKind, name, options)
 
 /**
  * Creates a positional redacted argument that obscures its value.
@@ -171,7 +179,7 @@ export const path = (name: string, options?: {
  * @since 4.0.0
  * @category constructors
  */
-export const redacted = (name: string): Argument<Redacted.Redacted<string>> => Param.redacted(Param.Argument, name)
+export const redacted = (name: string): Argument<Redacted.Redacted<string>> => Param.redacted(Param.argumentKind, name)
 
 /**
  * Creates a positional argument that reads file content as a string.
@@ -186,7 +194,7 @@ export const redacted = (name: string): Argument<Redacted.Redacted<string>> => P
  * @since 4.0.0
  * @category constructors
  */
-export const fileText = (name: string): Argument<string> => Param.fileText(Param.Argument, name)
+export const fileText = (name: string): Argument<string> => Param.fileText(Param.argumentKind, name)
 
 /**
  * Creates a positional argument that reads and validates file content using a schema.
@@ -204,7 +212,7 @@ export const fileText = (name: string): Argument<string> => Param.fileText(Param
 export const fileParse = (
   name: string,
   options?: Primitive.FileParseOptions | undefined
-): Argument<unknown> => Param.fileParse(Param.Argument, name, options)
+): Argument<unknown> => Param.fileParse(Param.argumentKind, name, options)
 
 /**
  * Creates a positional argument that reads and validates file content using a schema.
@@ -231,7 +239,7 @@ export const fileSchema = <A>(
   name: string,
   schema: Schema.Codec<A, string>,
   options?: Primitive.FileSchemaOptions | undefined
-): Argument<A> => Param.fileSchema(Param.Argument, name, schema, options)
+): Argument<A> => Param.fileSchema(Param.argumentKind, name, schema, options)
 
 /**
  * Creates an empty sentinel argument that always fails to parse.
@@ -247,7 +255,11 @@ export const fileSchema = <A>(
  * @since 4.0.0
  * @category constructors
  */
-export const none: Argument<never> = Param.none(Param.Argument)
+export const none: Argument<never> = Param.none(Param.argumentKind)
+
+// -------------------------------------------------------------------------------------
+// combinators
+// -------------------------------------------------------------------------------------
 
 /**
  * Makes a positional argument optional.
@@ -427,6 +439,7 @@ export const mapTryCatch: {
  *
  * @since 4.0.0
  * @category combinators
+ * @deprecated Use `variadic` instead. `repeated` is equivalent to `variadic` with no options.
  */
 export const repeated = <A>(arg: Argument<A>): Argument<ReadonlyArray<A>> => Param.repeated(arg)
 
@@ -526,27 +539,41 @@ export const withSchema: {
 export const choiceWithValue = <const Choices extends ReadonlyArray<readonly [string, any]>>(
   name: string,
   choices: Choices
-): Argument<Choices[number][1]> => Param.choiceWithValue(Param.Argument, name, choices)
+): Argument<Choices[number][1]> => Param.choiceWithValue(Param.argumentKind, name, choices)
+
+// -------------------------------------------------------------------------------------
+// metadata
+// -------------------------------------------------------------------------------------
 
 /**
- * Sets a custom display name for the argument type in help documentation.
+ * Sets a custom metavar (placeholder name) for the argument in help documentation.
+ *
+ * The metavar is displayed in usage text to indicate what value the user should provide.
+ * For example, `<FILE>` shows `FILE` as the metavar.
  *
  * @example
  * ```ts
  * import { Argument } from "effect/unstable/cli"
  *
  * const port = Argument.integer("port").pipe(
- *   Argument.withPseudoName("PORT")
+ *   Argument.withMetavar("PORT")
  * )
  * ```
  *
  * @since 4.0.0
- * @category combinators
+ * @category metadata
  */
-export const withPseudoName: {
-  <A>(pseudoName: string): (self: Argument<A>) => Argument<A>
-  <A>(self: Argument<A>, pseudoName: string): Argument<A>
-} = dual(2, <A>(self: Argument<A>, pseudoName: string) => Param.withPseudoName(self, pseudoName))
+export const withMetavar: {
+  <A>(metavar: string): (self: Argument<A>) => Argument<A>
+  <A>(self: Argument<A>, metavar: string): Argument<A>
+} = dual(2, <A>(self: Argument<A>, metavar: string) => Param.withMetavar(self, metavar))
+
+/**
+ * @deprecated Use `withMetavar` instead.
+ * @since 4.0.0
+ * @category metadata
+ */
+export const withPseudoName = withMetavar
 
 /**
  * Filters parsed values, failing with a custom error message if the predicate returns false.

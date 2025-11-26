@@ -250,7 +250,7 @@ export const getHelpForCommandPath = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   commandPath: ReadonlyArray<string>
 ): HelpDoc => {
-  let currentCommand: Command<string, unknown, unknown, unknown> = command as any
+  let currentCommand: Command.Any = command
 
   // Navigate through the command path to find the target command
   for (let i = 1; i < commandPath.length; i++) {
