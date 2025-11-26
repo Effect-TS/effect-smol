@@ -37,7 +37,11 @@ export type Generation = {
 const emptySet: ReadonlySet<string> = new Set()
 
 const ReadonlySetReducer: Reducer.Reducer<ReadonlySet<string>> = Reducer.make<ReadonlySet<string>>(
-  (self, that) => new Set([...self, ...that]),
+  (self, that) => {
+    if (self.size === 0) return that
+    if (that.size === 0) return self
+    return new Set([...self, ...that])
+  },
   emptySet
 )
 
@@ -501,11 +505,7 @@ export function unescapeJsonPointer(pointer: string): string {
   return pointer.replace(/~0/ig, "~").replace(/~1/ig, "/")
 }
 
-/**
- * The topological sort of the definitions.
- * @since 4.0.0
- */
-export type TopologicalSort = {
+type TopologicalSort = {
   /**
    * The definitions that are not recursive.
    * The definitions that depends on other definitions are placed after the definitions they depend on
@@ -522,168 +522,131 @@ export type TopologicalSort = {
   }
 }
 
-/**
- * @since 4.0.0
- */
+/** @internal */
 export function topologicalSort(definitions: Schema.JsonSchema.Definitions): TopologicalSort {
-  // Extract all $ref references from a schema recursively
-  function extractIdentifiers(value: unknown, visited: Set<unknown>): Set<string> {
+  const identifiers = Object.keys(definitions)
+  const identifierSet = new Set(identifiers)
+
+  const collectRefs = (root: unknown): Set<string> => {
     const refs = new Set<string>()
-    if (visited.has(value)) return refs
-    visited.add(value)
+    const visited = new WeakSet<object>()
+    const stack: Array<unknown> = [root]
 
-    if (isObject(value)) {
-      // Check if this object has a $ref property
+    while (stack.length > 0) {
+      const value = stack.pop()
+
+      if (Array.isArray(value)) {
+        for (const item of value) stack.push(item)
+        continue
+      }
+
+      if (!isObject(value)) continue
+      if (visited.has(value)) continue
+      visited.add(value)
+
       if (typeof value.$ref === "string") {
-        const $ref = extractIdentifier(value.$ref)
-        if ($ref !== undefined) {
-          refs.add($ref)
+        const id = extractIdentifier(value.$ref)
+        if (id !== undefined && identifierSet.has(id)) {
+          refs.add(id)
         }
       }
 
-      // Recursively check all values in the object
       for (const v of Object.values(value)) {
-        for (const ref of extractIdentifiers(v, visited)) {
-          refs.add(ref)
-        }
-      }
-    } else if (Array.isArray(value)) {
-      // Recursively check all elements in the array
-      for (const item of value) {
-        for (const ref of extractIdentifiers(item, visited)) {
-          refs.add(ref)
-        }
+        stack.push(v)
       }
     }
 
     return refs
   }
 
-  // Build dependency graph: identifier -> set of identifiers it depends on
-  const dependencies = new Map<string, Set<string>>()
-  const identifiers = Object.keys(definitions)
+  // identifier -> internal identifiers it depends on
+  const dependencies = new Map<string, Set<string>>(
+    identifiers.map((id) => [id, collectRefs(definitions[id])])
+  )
 
-  for (const identifier of identifiers) {
-    const schema = definitions[identifier]
-    const refs = extractIdentifiers(schema, new Set())
-    // Only include refs that are in the definitions map
-    const validRefs = new Set<string>()
-    for (const ref of refs) {
-      if (identifiers.includes(ref)) {
-        validRefs.add(ref)
-      }
-    }
-    dependencies.set(identifier, validRefs)
-  }
-
-  // Detect cycles (recursive schemas) using DFS with path tracking
-  // Only mark nodes that are actually part of a cycle, not nodes that depend on cycles
+  // Mark only nodes that are part of cycles
   const recursive = new Set<string>()
-  const visiting = new Set<string>()
-  const visited = new Set<string>()
+  const state = new Map<string, 0 | 1 | 2>() // 0 = new, 1 = visiting, 2 = done
+  const stack: Array<string> = []
+  const indexInStack = new Map<string, number>()
 
-  function detectCycle(identifier: string, path: Array<string>): void {
-    if (visiting.has(identifier)) {
-      // Found a cycle - mark all nodes in the cycle
-      const cycleStart = path.indexOf(identifier)
-      for (let i = cycleStart; i < path.length; i++) {
-        recursive.add(path[i])
-      }
-      recursive.add(identifier)
-      return
-    }
-    if (visited.has(identifier)) {
-      return
-    }
-
-    visiting.add(identifier)
-    path.push(identifier)
-    const deps = dependencies.get(identifier) ?? new Set()
-    for (const dep of deps) {
-      detectCycle(dep, path)
-    }
-    path.pop()
-    visiting.delete(identifier)
-    visited.add(identifier)
-  }
-
-  for (const identifier of identifiers) {
-    if (!visited.has(identifier)) {
-      detectCycle(identifier, [])
-    }
-  }
-
-  // Topologically sort non-recursive schemas using Kahn's algorithm
-  const nonRecursives: Array<{
-    readonly identifier: string
-    readonly schema: Schema.JsonSchema.Schema
-  }> = []
-  const inDegree = new Map<string, number>()
-  const graph = new Map<string, Set<string>>() // identifier -> set of identifiers that depend on it
-
-  // Initialize in-degree and reverse graph
-  for (const identifier of identifiers) {
-    if (!recursive.has(identifier)) {
-      inDegree.set(identifier, 0)
-      graph.set(identifier, new Set())
-    }
-  }
-
-  // Build reverse graph and calculate in-degrees
-  for (const [identifier, deps] of dependencies.entries()) {
-    if (!recursive.has(identifier)) {
-      for (const dep of deps) {
-        if (!recursive.has(dep)) {
-          const currentInDegree = inDegree.get(identifier) ?? 0
-          inDegree.set(identifier, currentInDegree + 1)
-          const dependents = graph.get(dep) ?? new Set()
-          dependents.add(identifier)
-          graph.set(dep, dependents)
+  const dfs = (id: string): void => {
+    const s = state.get(id) ?? 0
+    if (s === 1) {
+      const start = indexInStack.get(id)
+      if (start !== undefined) {
+        for (let i = start; i < stack.length; i++) {
+          recursive.add(stack[i])
         }
       }
+      return
+    }
+    if (s === 2) return
+
+    state.set(id, 1)
+    indexInStack.set(id, stack.length)
+    stack.push(id)
+
+    for (const dep of dependencies.get(id) ?? []) {
+      dfs(dep)
+    }
+
+    stack.pop()
+    indexInStack.delete(id)
+    state.set(id, 2)
+  }
+
+  for (const id of identifiers) dfs(id)
+
+  // Topologically sort the non-recursive nodes (ignoring edges to recursive nodes)
+  const inDegree = new Map<string, number>()
+  const dependents = new Map<string, Set<string>>() // dep -> nodes that depend on it
+
+  for (const id of identifiers) {
+    if (!recursive.has(id)) {
+      inDegree.set(id, 0)
+      dependents.set(id, new Set())
     }
   }
 
-  // Find all nodes with in-degree 0
+  for (const [id, deps] of dependencies) {
+    if (recursive.has(id)) continue
+    for (const dep of deps) {
+      if (recursive.has(dep)) continue
+      inDegree.set(id, (inDegree.get(id) ?? 0) + 1)
+      dependents.get(dep)?.add(id)
+    }
+  }
+
   const queue: Array<string> = []
-  for (const [identifier, degree] of inDegree.entries()) {
-    if (degree === 0) {
-      queue.push(identifier)
+  for (const [id, deg] of inDegree) {
+    if (deg === 0) queue.push(id)
+  }
+
+  const nonRecursives: Array<{ readonly identifier: string; readonly schema: Schema.JsonSchema.Schema }> = []
+  for (let i = 0; i < queue.length; i++) {
+    const id = queue[i]
+    nonRecursives.push({ identifier: id, schema: definitions[id] })
+
+    for (const next of dependents.get(id) ?? []) {
+      const deg = (inDegree.get(next) ?? 0) - 1
+      inDegree.set(next, deg)
+      if (deg === 0) queue.push(next)
     }
   }
 
-  // Process queue
-  while (queue.length > 0) {
-    const identifier = queue.shift()!
-    nonRecursives.push({ identifier, schema: definitions[identifier] })
-
-    const dependents = graph.get(identifier) ?? new Set()
-    for (const dependent of dependents) {
-      const currentInDegree = inDegree.get(dependent) ?? 0
-      const newInDegree = currentInDegree - 1
-      inDegree.set(dependent, newInDegree)
-      if (newInDegree === 0) {
-        queue.push(dependent)
-      }
-    }
+  const recursives: Record<string, Schema.JsonSchema.Schema> = {}
+  for (const id of recursive) {
+    recursives[id] = definitions[id]
   }
 
-  // Build recursives object
-  const recursives: { [identifier: string]: Schema.JsonSchema.Schema } = {}
-  for (const identifier of recursive) {
-    recursives[identifier] = definitions[identifier]
-  }
-
-  return {
-    nonRecursives,
-    recursives
-  }
+  return { nonRecursives, recursives }
 }
 
 /**
  * @since 4.0.0
  */
-export type DefinitionGeneration = {
+export type GenerationDefinition = {
   readonly identifier: string
   readonly generation: Generation
 }
@@ -693,7 +656,7 @@ export type DefinitionGeneration = {
  */
 export function generateDefinitions(definitions: Schema.JsonSchema.Definitions, options?: {
   readonly target?: Target | undefined
-}): Array<DefinitionGeneration> {
+}): Array<GenerationDefinition> {
   const ts = topologicalSort(definitions)
   const recursives = new Set(Object.keys(ts.recursives))
   const resolver = (identifier: string) => {

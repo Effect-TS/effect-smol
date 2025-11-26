@@ -785,9 +785,19 @@ describe("FromJsonSchema", () => {
   })
 
   describe("topologicalSort", () => {
+    type TopologicalSort = {
+      readonly nonRecursives: ReadonlyArray<{
+        readonly identifier: string
+        readonly schema: Schema.JsonSchema.Schema
+      }>
+      readonly recursives: {
+        readonly [identifier: string]: Schema.JsonSchema.Schema
+      }
+    }
+
     function assertTopologicalSort(
       definitions: Schema.JsonSchema.Definitions,
-      expected: FromJsonSchema.TopologicalSort
+      expected: TopologicalSort
     ) {
       const result = FromJsonSchema.topologicalSort(definitions)
       deepStrictEqual(result, expected)

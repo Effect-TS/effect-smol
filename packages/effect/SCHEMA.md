@@ -5626,7 +5626,7 @@ const schema = FromJsonSchema.generate(jsonSchema)
 const definitions = FromJsonSchema.generateDefinitions(jsonSchema.definitions)
 
 // collect all definitions plus the entry schema
-const all: ReadonlyArray<FromJsonSchema.DefinitionGeneration> = [
+const all: ReadonlyArray<FromJsonSchema.GenerationDefinition> = [
   ...definitions,
   { identifier: "MySchema", generation: schema }
 ]
