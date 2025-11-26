@@ -14,7 +14,7 @@ import * as References from "../../References.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
 import type { Simplify } from "../../types/Types.ts"
 import * as CliError from "./CliError.ts"
-import * as HelpFormatter from "./HelpFormatter.ts"
+import * as CliOutput from "./CliOutput.ts"
 import { checkForDuplicateFlags, getHelpForCommandPath, makeCommand, toImpl, type TypeId } from "./internal/command.ts"
 import {
   generateDynamicCompletion,
@@ -82,7 +82,7 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
     Command<Name, Input, E, R>,
     Input,
     never,
-    ParentCommand<Name>
+    CommandContext<Name>
   >
 {
   readonly [TypeId]: typeof TypeId
@@ -226,25 +226,24 @@ export type Error<C> = C extends Command<
  * @since 4.0.0
  * @category models
  */
-export interface ParentCommand<Name extends string> {
+export interface CommandContext<Name extends string> {
   readonly _: unique symbol
   readonly name: Name
 }
 
 /**
- * Represents the raw input parsed from the command-line which is provided to
- * the `Command.parse` method.
+ * Represents the parsed tokens from command-line input before validation.
  *
  * @since 4.0.0
  * @category models
  */
-export interface RawInput {
+export interface ParsedTokens {
   readonly flags: Record<string, ReadonlyArray<string>>
   readonly arguments: ReadonlyArray<string>
   readonly errors?: ReadonlyArray<CliError.CliError>
   readonly subcommand?: {
     readonly name: string
-    readonly parsedInput: RawInput
+    readonly parsedInput: ParsedTokens
   }
 }
 
@@ -460,9 +459,9 @@ export const withSubcommands: {
     self: Command<Name, Input, E, R>
   ) => Command<
     Name,
-    Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined },
-    ExtractSubcommandErrors<Subcommands>,
-    R | Exclude<ExtractSubcommandContext<Subcommands>, ParentCommand<Name>>
+    Input,
+    E | ExtractSubcommandErrors<Subcommands>,
+    R | Exclude<ExtractSubcommandContext<Subcommands>, CommandContext<Name>>
   >
   <
     Name extends string,
@@ -475,9 +474,9 @@ export const withSubcommands: {
     subcommands: Subcommands
   ): Command<
     Name,
-    Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined },
-    ExtractSubcommandErrors<Subcommands>,
-    R | Exclude<ExtractSubcommandContext<Subcommands>, ParentCommand<Name>>
+    Input,
+    E | ExtractSubcommandErrors<Subcommands>,
+    R | Exclude<ExtractSubcommandContext<Subcommands>, CommandContext<Name>>
   >
 } = dual(2, <
   Name extends string,
@@ -490,61 +489,55 @@ export const withSubcommands: {
   subcommands: Subcommands
 ): Command<
   Name,
-  Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined },
-  ExtractSubcommandErrors<Subcommands>,
-  R | Exclude<ExtractSubcommandContext<Subcommands>, ParentCommand<Name>>
+  Input,
+  E | ExtractSubcommandErrors<Subcommands>,
+  R | Exclude<ExtractSubcommandContext<Subcommands>, CommandContext<Name>>
 > => {
   checkForDuplicateFlags(self, subcommands)
 
   const impl = toImpl(self)
   const byName = new Map(subcommands.map((s) => [s.name, toImpl(s)] as const))
 
-  // Type aliases for the widened command signature
-  type Subcommand = ExtractSubcommandInputs<Subcommands>
-  type NewInput = Input & { readonly subcommand: Subcommand | undefined }
+  // Internal type for routing - not exposed in public type
+  type SubcommandInfo = { readonly name: string; readonly result: unknown }
+  type InternalInput = Input & { readonly _subcommand?: SubcommandInfo }
 
-  // Extend parent parsing with subcommand resolution
-  // Cast needed: TS can't prove { ...parent, subcommand } satisfies NewInput
-  const parse: (raw: RawInput) => Effect.Effect<NewInput, CliError.CliError, Environment> = Effect.fnUntraced(
-    function*(raw: RawInput) {
-      const parent = yield* impl.parse(raw)
+  const parse = Effect.fnUntraced(function*(raw: ParsedTokens) {
+    const parent = yield* impl.parse(raw)
 
-      if (!raw.subcommand) {
-        return { ...parent, subcommand: undefined } as NewInput
-      }
-
-      const sub = byName.get(raw.subcommand.name)
-      if (!sub) {
-        return { ...parent, subcommand: undefined } as NewInput
-      }
-
-      const result = yield* sub.parse(raw.subcommand.parsedInput)
-      return { ...parent, subcommand: { name: sub.name, result } } as NewInput
+    if (!raw.subcommand) {
+      return parent
     }
-  )
 
-  // Route execution to subcommand handler or parent handler
-  const handle = Effect.fnUntraced(function*(input: NewInput, path: ReadonlyArray<string>) {
-    if (input.subcommand) {
-      const child = byName.get(input.subcommand.name)
+    const sub = byName.get(raw.subcommand.name)
+    if (!sub) {
+      return parent
+    }
+
+    const result = yield* sub.parse(raw.subcommand.parsedInput)
+    // Attach subcommand info internally for routing
+    return Object.assign({}, parent, { _subcommand: { name: sub.name, result } }) as InternalInput
+  })
+
+  const handle = Effect.fnUntraced(function*(input: Input, path: ReadonlyArray<string>) {
+    const internal = input as InternalInput
+    if (internal._subcommand) {
+      const child = byName.get(internal._subcommand.name)
       if (!child) {
         return yield* new CliError.ShowHelp({ commandPath: path })
       }
       return yield* child
-        .handle(input.subcommand.result, [...path, child.name])
+        .handle(internal._subcommand.result, [...path, child.name])
         .pipe(Effect.provideService(impl.service, input))
     }
-    return yield* impl.handle(input as Input, path)
+    return yield* impl.handle(input, path)
   })
-
-  // Service identity preserved; type widens from Input to NewInput
-  type NewService = ServiceMap.Service<ParentCommand<Name>, NewInput>
 
   return makeCommand({
     name: impl.name,
     config: impl.config,
     description: impl.description,
-    service: impl.service as NewService,
+    service: impl.service,
     subcommands,
     parse,
     handle
@@ -555,8 +548,6 @@ export const withSubcommands: {
 type ExtractSubcommandErrors<T extends ReadonlyArray<Command<any, any, any, any>>> = Error<T[number]>
 type ExtractSubcommandContext<T extends ReadonlyArray<Command<any, any, any, any>>> = T[number] extends
   Command<any, any, any, infer R> ? R : never
-type ExtractSubcommandInputs<T extends ReadonlyArray<Command<any, any, any, any>>> = T[number] extends
-  Command<infer N, infer I, any, any> ? { readonly name: N; readonly result: I } : never
 
 /**
  * Sets the description for a command.
@@ -725,11 +716,11 @@ const showHelp = <Name extends string, Input, E, R>(
   error?: CliError.CliError
 ): Effect.Effect<void, never, Environment> =>
   Effect.gen(function*() {
-    const helpRenderer = yield* HelpFormatter.HelpRenderer
+    const formatter = yield* CliOutput.Formatter
     const helpDoc = getHelpForCommandPath(command, commandPath)
-    yield* Console.log(helpRenderer.formatHelpDoc(helpDoc))
+    yield* Console.log(formatter.formatHelpDoc(helpDoc))
     if (error) {
-      yield* Console.error(helpRenderer.formatError(error))
+      yield* Console.error(formatter.formatError(error))
     }
   })
 
@@ -835,19 +826,19 @@ export const runWith = <const Name extends string, Input, E, R>(
       const { completions, help, logLevel, remainder, version } = yield* Parser.extractBuiltInOptions(tokens)
       const parsedArgs = yield* Parser.parseArgs({ tokens: remainder, trailingOperands }, command)
       const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)] as const
-      const helpRenderer = yield* HelpFormatter.HelpRenderer
+      const formatter = yield* CliOutput.Formatter
 
       // Handle built-in flags (early exits)
       if (help) {
-        yield* Console.log(helpRenderer.formatHelpDoc(getHelpForCommandPath(command, commandPath)))
+        yield* Console.log(formatter.formatHelpDoc(getHelpForCommandPath(command, commandPath)))
         return
       }
       if (completions !== undefined) {
         yield* Console.log(generateDynamicCompletion(command, command.name, completions))
         return
       }
-      if (version && command.subcommands.length === 0) {
-        yield* Console.log(helpRenderer.formatVersion(command.name, config.version))
+      if (version) {
+        yield* Console.log(formatter.formatVersion(command.name, config.version))
         return
       }
 

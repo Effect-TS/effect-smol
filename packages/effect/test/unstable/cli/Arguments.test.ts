@@ -2,7 +2,7 @@ import { assert, describe, expect, it } from "@effect/vitest"
 import { Effect, Layer, Ref } from "effect"
 import { FileSystem, Path, PlatformError } from "effect/platform"
 import { TestConsole } from "effect/testing"
-import { Argument, Command, Flag, HelpFormatter } from "effect/unstable/cli"
+import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
 import * as MockTerminal from "./services/MockTerminal.ts"
 
 const ConsoleLayer = TestConsole.layer
@@ -27,8 +27,8 @@ const FileSystemLayer = FileSystem.layerNoop({
 })
 const PathLayer = Path.layer
 const TerminalLayer = MockTerminal.layer
-const HelpFormatterLayer = HelpFormatter.layer(
-  HelpFormatter.defaultHelpRenderer({
+const CliOutputLayer = CliOutput.layer(
+  CliOutput.defaultFormatter({
     colors: false
   })
 )
@@ -38,7 +38,7 @@ const TestLayer = Layer.mergeAll(
   FileSystemLayer,
   PathLayer,
   TerminalLayer,
-  HelpFormatterLayer
+  CliOutputLayer
 )
 
 describe("Command arguments", () => {

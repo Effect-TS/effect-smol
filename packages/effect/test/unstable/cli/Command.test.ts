@@ -3,7 +3,7 @@ import { Effect, Layer } from "effect"
 import { Option } from "effect/data"
 import { FileSystem, Path } from "effect/platform"
 import { TestConsole } from "effect/testing"
-import { Argument, Command, Flag, HelpFormatter } from "effect/unstable/cli"
+import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"
 import * as MockTerminal from "./services/MockTerminal.ts"
 import * as TestActions from "./services/TestActions.ts"
@@ -13,8 +13,8 @@ const ConsoleLayer = TestConsole.layer
 const FileSystemLayer = FileSystem.layerNoop({})
 const PathLayer = Path.layer
 const TerminalLayer = MockTerminal.layer
-const HelpFormatterLayer = HelpFormatter.layer(
-  HelpFormatter.defaultHelpRenderer({
+const CliOutputLayer = CliOutput.layer(
+  CliOutput.defaultFormatter({
     colors: false
   })
 )
@@ -25,7 +25,7 @@ const TestLayer = Layer.mergeAll(
   FileSystemLayer,
   PathLayer,
   TerminalLayer,
-  HelpFormatterLayer
+  CliOutputLayer
 )
 
 describe("Command", () => {
@@ -789,6 +789,30 @@ describe("Command", () => {
               -c
               -q"
         `)
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should print version and exit even with subcommands (global precedence)", () =>
+      Effect.gen(function*() {
+        // --version should work on a command with subcommands
+        yield* Cli.run(["--version"])
+
+        const output = yield* TestConsole.logLines
+        const outputText = output.join("\n")
+        expect(outputText).toContain("1.0.0")
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should print version and exit when --version appears before subcommand", () =>
+      Effect.gen(function*() {
+        // --version should take precedence over subcommand
+        yield* Cli.run(["--version", "copy", "src.txt", "dest.txt"])
+
+        const output = yield* TestConsole.logLines
+        const outputText = output.join("\n")
+        expect(outputText).toContain("1.0.0")
+
+        // Subcommand should NOT have run
+        const actions = yield* TestActions.getActions
+        assert.strictEqual(actions.length, 0)
       }).pipe(Effect.provide(TestLayer)))
   })
 })

@@ -8,42 +8,42 @@ import type * as CliError from "./CliError.ts"
 import type { HelpDoc } from "./HelpDoc.ts"
 
 /**
- * Service interface for rendering help documentation into formatted text.
- * This allows customization of help output formatting, including color support.
+ * Service interface for formatting CLI output including help, errors, and version info.
+ * This allows customization of output formatting, including color support.
  *
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { HelpFormatter } from "effect/unstable/cli"
+ * import { CliOutput } from "effect/unstable/cli"
  *
- * // Create a custom renderer implementation
- * const customRenderer: HelpFormatter.HelpRenderer = {
+ * // Create a custom formatter implementation
+ * const customFormatter: CliOutput.Formatter = {
  *   formatHelpDoc: (doc) => `Custom Help: ${doc.usage}`,
  *   formatCliError: (error) => `Error: ${error.message}`,
  *   formatError: (error) => `[ERROR] ${error.message}`,
  *   formatVersion: (name, version) => `${name} (${version})`
  * }
  *
- * // Use the custom renderer in a program
+ * // Use the custom formatter in a program
  * const program = Effect.gen(function*() {
- *   const renderer = yield* HelpFormatter.HelpRenderer
- *   const helpText = renderer.formatVersion("myapp", "1.0.0")
+ *   const formatter = yield* CliOutput.Formatter
+ *   const helpText = formatter.formatVersion("myapp", "1.0.0")
  *   console.log(helpText)
  * }).pipe(
- *   Effect.provide(HelpFormatter.layer(customRenderer))
+ *   Effect.provide(CliOutput.layer(customFormatter))
  * )
  * ```
  *
  * @since 4.0.0
  * @category models
  */
-export interface HelpRenderer {
+export interface Formatter {
   /**
    * Formats a HelpDoc structure into a readable string format.
    *
    * @example
    * ```ts
-   * import { HelpFormatter, HelpDoc } from "effect/unstable/cli"
+   * import { CliOutput, HelpDoc } from "effect/unstable/cli"
    *
    * const helpDoc: HelpDoc = {
    *   usage: "myapp [options] <file>",
@@ -68,8 +68,8 @@ export interface HelpRenderer {
    *   ]
    * }
    *
-   * const renderer = HelpFormatter.defaultHelpRenderer()
-   * const helpText = renderer.formatHelpDoc(helpDoc)
+   * const formatter = CliOutput.defaultFormatter()
+   * const helpText = formatter.formatHelpDoc(helpDoc)
    * console.log(helpText)
    * // Outputs formatted help with sections: DESCRIPTION, USAGE, ARGUMENTS, FLAGS
    * ```
@@ -83,16 +83,16 @@ export interface HelpRenderer {
    *
    * @example
    * ```ts
-   * import { HelpFormatter, CliError } from "effect/unstable/cli"
+   * import { CliOutput, CliError } from "effect/unstable/cli"
    * import * as Data from "effect/Data"
    *
    * class InvalidOption extends Data.TaggedError("InvalidOption")<{
    *   readonly message: string
    * }> {}
    *
-   * const renderer = HelpFormatter.defaultHelpRenderer()
+   * const formatter = CliOutput.defaultFormatter()
    * const error = new InvalidOption({ message: "Unknown flag '--invalid'" })
-   * const errorMessage = renderer.formatCliError(error)
+   * const errorMessage = formatter.formatCliError(error)
    * console.log(errorMessage) // "Unknown flag '--invalid'"
    * ```
    *
@@ -105,22 +105,22 @@ export interface HelpRenderer {
    *
    * @example
    * ```ts
-   * import { HelpFormatter, CliError } from "effect/unstable/cli"
+   * import { CliOutput, CliError } from "effect/unstable/cli"
    * import * as Data from "effect/Data"
    *
    * class ValidationError extends Data.TaggedError("ValidationError")<{
    *   readonly message: string
    * }> {}
    *
-   * const colorRenderer = HelpFormatter.defaultHelpRenderer({ colors: true })
-   * const noColorRenderer = HelpFormatter.defaultHelpRenderer({ colors: false })
+   * const colorFormatter = CliOutput.defaultFormatter({ colors: true })
+   * const noColorFormatter = CliOutput.defaultFormatter({ colors: false })
    *
    * const error = new ValidationError({ message: "Value must be positive" })
    *
-   * const coloredError = colorRenderer.formatError(error)
+   * const coloredError = colorFormatter.formatError(error)
    * console.log(coloredError) // "\n\x1b[1m\x1b[31mERROR\x1b[0m\n  Value must be positive\x1b[0m"
    *
-   * const plainError = noColorRenderer.formatError(error)
+   * const plainError = noColorFormatter.formatError(error)
    * console.log(plainError) // "\nERROR\n  Value must be positive"
    * ```
    *
@@ -133,18 +133,18 @@ export interface HelpRenderer {
    *
    * @example
    * ```ts
-   * import { HelpFormatter } from "effect/unstable/cli"
+   * import { CliOutput } from "effect/unstable/cli"
    *
-   * const colorRenderer = HelpFormatter.defaultHelpRenderer({ colors: true })
-   * const noColorRenderer = HelpFormatter.defaultHelpRenderer({ colors: false })
+   * const colorFormatter = CliOutput.defaultFormatter({ colors: true })
+   * const noColorFormatter = CliOutput.defaultFormatter({ colors: false })
    *
    * const appName = "my-awesome-tool"
    * const version = "1.2.3"
    *
-   * const coloredVersion = colorRenderer.formatVersion(appName, version)
+   * const coloredVersion = colorFormatter.formatVersion(appName, version)
    * console.log(coloredVersion) // "\x1b[1mmy-awesome-tool\x1b[0m \x1b[2mv\x1b[0m\x1b[1m1.2.3\x1b[0m"
    *
-   * const plainVersion = noColorRenderer.formatVersion(appName, version)
+   * const plainVersion = noColorFormatter.formatVersion(appName, version)
    * console.log(plainVersion) // "my-awesome-tool v1.2.3"
    * ```
    *
@@ -154,93 +154,93 @@ export interface HelpRenderer {
 }
 
 /**
- * Service reference for the help renderer. Provides a default implementation
+ * Service reference for the CLI output formatter. Provides a default implementation
  * that can be overridden for custom formatting or testing.
  *
  * @example
  * ```ts
- * import { HelpFormatter } from "effect/unstable/cli"
+ * import { CliOutput } from "effect/unstable/cli"
  * import * as Effect from "effect/Effect"
  *
- * // Access the help renderer service
+ * // Access the formatter service
  * const program = Effect.gen(function* () {
- *   const renderer = yield* HelpFormatter.HelpRenderer
+ *   const formatter = yield* CliOutput.Formatter
  *
  *   // Format version information
- *   const versionText = renderer.formatVersion("my-cli", "2.1.0")
+ *   const versionText = formatter.formatVersion("my-cli", "2.1.0")
  *   console.log(versionText) // "my-cli v2.1.0" (with colors if supported)
  *
  *   return versionText
  * })
  *
- * // Run with default renderer
+ * // Run with default formatter
  * const result = Effect.runSync(program)
  * ```
  *
  * @since 4.0.0
  * @category services
  */
-export const HelpRenderer: ServiceMap.Reference<HelpRenderer> = ServiceMap.Reference(
-  "effect/cli/HelpRenderer",
-  { defaultValue: () => defaultHelpRenderer() }
+export const Formatter: ServiceMap.Reference<Formatter> = ServiceMap.Reference(
+  "effect/cli/CliOutput",
+  { defaultValue: () => defaultFormatter() }
 )
 
 /**
- * Creates a Layer that provides a custom HelpRenderer implementation.
+ * Creates a Layer that provides a custom Formatter implementation.
  *
  * @example
  * ```ts
- * import { HelpFormatter } from "effect/unstable/cli"
+ * import { CliOutput } from "effect/unstable/cli"
  * import * as Effect from "effect/Effect"
  * import * as Console from "effect/Console"
  *
- * // Create a custom renderer without colors
- * const noColorRenderer = HelpFormatter.defaultHelpRenderer({ colors: false })
- * const NoColorLayer = HelpFormatter.layer(noColorRenderer)
+ * // Create a custom formatter without colors
+ * const noColorFormatter = CliOutput.defaultFormatter({ colors: false })
+ * const NoColorLayer = CliOutput.layer(noColorFormatter)
  *
- * // Create a program that uses the custom help renderer
+ * // Create a program that uses the custom formatter
  * const program = Effect.gen(function* () {
- *   const renderer = yield* HelpFormatter.HelpRenderer
- *   const versionText = renderer.formatVersion("my-cli", "1.0.0")
- *   yield* Console.log(`Using custom renderer: ${versionText}`)
+ *   const formatter = yield* CliOutput.Formatter
+ *   const versionText = formatter.formatVersion("my-cli", "1.0.0")
+ *   yield* Console.log(`Using custom formatter: ${versionText}`)
  * }).pipe(
  *   Effect.provide(NoColorLayer)
  * )
  *
- * // You can also create completely custom renderers
- * const jsonRenderer: HelpFormatter.HelpRenderer = {
+ * // You can also create completely custom formatters
+ * const jsonFormatter: CliOutput.Formatter = {
  *   formatHelpDoc: (doc) => JSON.stringify(doc, null, 2),
  *   formatCliError: (error) => JSON.stringify({ error: error.message }),
  *   formatError: (error) => JSON.stringify({ type: "error", message: error.message }),
  *   formatVersion: (name, version) => JSON.stringify({ name, version })
  * }
- * const JsonLayer = HelpFormatter.layer(jsonRenderer)
+ * const JsonLayer = CliOutput.layer(jsonFormatter)
  * ```
  *
  * @since 4.0.0
  * @category layers
  */
-export const layer = (renderer: HelpRenderer): Layer.Layer<never> => Layer.succeed(HelpRenderer)(renderer)
+export const layer = (formatter: Formatter): Layer.Layer<never> => Layer.succeed(Formatter)(formatter)
 
 /**
- * Creates a default help renderer with configurable options.
+ * Creates a default formatter with configurable options.
  *
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { CliError, HelpFormatter } from "effect/unstable/cli"
+ * import { CliError, CliOutput } from "effect/unstable/cli"
  *
- * // Create a renderer without colors for tests or CI environments
- * const noColorRenderer = HelpFormatter.defaultHelpRenderer({ colors: false })
+ * // Create a formatter without colors for tests or CI environments
+ * const noColorFormatter = CliOutput.defaultFormatter({ colors: false })
  *
- * // Create a renderer with colors forced on
- * const colorRenderer = HelpFormatter.defaultHelpRenderer({ colors: true })
+ * // Create a formatter with colors forced on
+ * const colorFormatter = CliOutput.defaultFormatter({ colors: true })
  *
  * // Auto-detect colors based on terminal support (default behavior)
- * const autoRenderer = HelpFormatter.defaultHelpRenderer()
+ * const autoFormatter = CliOutput.defaultFormatter()
  *
  * const program = Effect.gen(function*() {
- *   const renderer = colorRenderer
+ *   const formatter = colorFormatter
  *
  *   // Format an error with proper styling
  *   const error = new CliError.InvalidValue({
@@ -248,11 +248,11 @@ export const layer = (renderer: HelpRenderer): Layer.Layer<never> => Layer.succe
  *     value: "bar",
  *     expected: "baz"
  *   })
- *   const errorText = renderer.formatError(error)
+ *   const errorText = formatter.formatError(error)
  *   console.log(errorText)
  *
  *   // Format version information
- *   const versionText = renderer.formatVersion("my-tool", "1.2.3")
+ *   const versionText = formatter.formatVersion("my-tool", "1.2.3")
  *   console.log(versionText)
  * })
  * ```
@@ -260,7 +260,7 @@ export const layer = (renderer: HelpRenderer): Layer.Layer<never> => Layer.succe
  * @since 4.0.0
  * @category constructors
  */
-export const defaultHelpRenderer = (options?: { colors?: boolean }): HelpRenderer => {
+export const defaultFormatter = (options?: { colors?: boolean }): Formatter => {
   const globalProcess = (globalThis as any).process
   const hasProcess = typeof globalProcess === "object" && globalProcess !== null
 

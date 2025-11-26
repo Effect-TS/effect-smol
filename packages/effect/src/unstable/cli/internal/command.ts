@@ -20,7 +20,7 @@ import { type ConfigInternal, reconstructTree } from "./config.ts"
 /* Types                                                                      */
 /* ========================================================================== */
 
-import type { Command, Environment, ParentCommand, RawInput } from "../Command.ts"
+import type { Command, CommandContext, Environment, ParsedTokens } from "../Command.ts"
 
 /**
  * Internal implementation interface with all the machinery.
@@ -28,8 +28,8 @@ import type { Command, Environment, ParentCommand, RawInput } from "../Command.t
  */
 export interface CommandInternal<Name extends string, Input, E, R> extends Command<Name, Input, E, R> {
   readonly config: ConfigInternal
-  readonly service: ServiceMap.Service<ParentCommand<Name>, Input>
-  readonly parse: (input: RawInput) => Effect.Effect<Input, CliError.CliError, Environment>
+  readonly service: ServiceMap.Service<CommandContext<Name>, Input>
+  readonly parse: (input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>
   readonly handle: (
     input: Input,
     commandPath: ReadonlyArray<string>
@@ -79,15 +79,15 @@ export const Proto = {
 export const makeCommand = <const Name extends string, Input, E, R>(options: {
   readonly name: Name
   readonly config: ConfigInternal
-  readonly service?: ServiceMap.Service<ParentCommand<Name>, Input> | undefined
+  readonly service?: ServiceMap.Service<CommandContext<Name>, Input> | undefined
   readonly description?: string | undefined
   readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
-  readonly parse?: ((input: RawInput) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
+  readonly parse?: ((input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
   readonly handle?:
     | ((input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E, R | Environment>)
     | undefined
 }): Command<Name, Input, E, R> => {
-  const service = options.service ?? ServiceMap.Service<ParentCommand<Name>, Input>(`${TypeId}/${options.name}`)
+  const service = options.service ?? ServiceMap.Service<CommandContext<Name>, Input>(`${TypeId}/${options.name}`)
   const config = options.config
 
   const handle = (
@@ -98,7 +98,7 @@ export const makeCommand = <const Name extends string, Input, E, R>(options: {
       ? options.handle(input, commandPath)
       : Effect.fail(new CliError.ShowHelp({ commandPath }))
 
-  const parse = options.parse ?? Effect.fnUntraced(function*(input: RawInput) {
+  const parse = options.parse ?? Effect.fnUntraced(function*(input: ParsedTokens) {
     const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
     const values = yield* parseParams(parsedArgs, config.orderedParams)
     return reconstructTree(config.tree, values) as Input

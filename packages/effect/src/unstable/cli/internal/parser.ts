@@ -30,7 +30,7 @@ import type { LogLevel } from "../../../LogLevel.ts"
 import type { FileSystem } from "../../../platform/FileSystem.ts"
 import type { Path } from "../../../platform/Path.ts"
 import * as CliError from "../CliError.ts"
-import type { Command, RawInput } from "../Command.ts"
+import type { Command, ParsedTokens } from "../Command.ts"
 import * as Param from "../Param.ts"
 import { isFalseValue, isTrueValue } from "../Primitive.ts"
 import { suggest } from "./auto-suggest.ts"
@@ -43,7 +43,7 @@ import { type LexResult, type Token } from "./lexer.ts"
 /* ========================================================================== */
 
 /** @internal */
-export const getCommandPath = (parsedInput: RawInput): ReadonlyArray<string> =>
+export const getCommandPath = (parsedInput: ParsedTokens): ReadonlyArray<string> =>
   parsedInput.subcommand
     ? [parsedInput.subcommand.name, ...getCommandPath(parsedInput.subcommand.parsedInput)]
     : []
@@ -83,7 +83,7 @@ export const parseArgs = <Name extends string, Input, E, R>(
   lexResult: LexResult,
   command: Command<Name, Input, E, R>,
   commandPath: ReadonlyArray<string> = []
-): Effect.Effect<RawInput, CliError.CliError, FileSystem | Path> =>
+): Effect.Effect<ParsedTokens, CliError.CliError, FileSystem | Path> =>
   Effect.gen(function*() {
     const { tokens, trailingOperands: afterEndOfOptions } = lexResult
     const newCommandPath = [...commandPath, command.name]
