@@ -62,6 +62,7 @@ export const versionFlag: Flag.Flag<boolean> = Flag
 
 /**
  * Built-in --completions option to print shell completion scripts.
+ * Generates a dynamic completion shim that calls the CLI at runtime.
  * Accepts one of: bash | zsh | fish | sh (alias of bash).
  *
  * @since 4.0.0
@@ -73,21 +74,5 @@ export const completionsFlag: Flag.Flag<Option.Option<"bash" | "zsh" | "fish">> 
     Flag.optional,
     // Map "sh" to "bash" while preserving Option-ness
     Flag.map((v) => Option.map(v, (s) => (s === "sh" ? "bash" : s))),
-    Flag.withDescription("Print static shell completion script for the given shell")
-  )
-
-/**
- * Built-in --dynamic-completions option to print dynamic shell completion scripts.
- * Accepts one of: bash | zsh | fish | sh (alias of bash).
- *
- * @since 4.0.0
- * @internal
- */
-export const dynamicCompletionsFlag: Flag.Flag<Option.Option<"bash" | "zsh" | "fish">> = Flag
-  .choice("dynamic-completions", ["bash", "zsh", "fish", "sh"] as const)
-  .pipe(
-    Flag.optional,
-    // Map "sh" to "bash" while preserving Option-ness
-    Flag.map((v) => Option.map(v, (s) => (s === "sh" ? "bash" : s))),
-    Flag.withDescription("Print dynamic shell completion script for the given shell")
+    Flag.withDescription("Print shell completion script for the given shell")
   )

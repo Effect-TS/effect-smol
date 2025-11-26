@@ -1,6 +1,5 @@
-import type { Command } from "../../Command.ts"
 import * as Param from "../../Param.ts"
-import type { CommandRow, SingleFlagMeta } from "./types.ts"
+import type { SingleFlagMeta } from "./types.ts"
 
 /** @internal */
 export const getSingles = (flags: ReadonlyArray<Param.Any>): ReadonlyArray<SingleFlagMeta> =>
@@ -18,24 +17,3 @@ export const getSingles = (flags: ReadonlyArray<Param.Any>): ReadonlyArray<Singl
 
       return typeof description === "string" ? { ...base, description } : base
     })
-
-/** @internal */
-export const flattenCommand = <Name extends string, I, E, R>(
-  cmd: Command<Name, I, E, R>,
-  parents: Array<string> = []
-): Array<CommandRow<any, any, any, any>> => {
-  const here = [...parents, cmd.name]
-  const rows = [{ trail: here, cmd }]
-  for (const c of cmd.subcommands) {
-    const nested = flattenCommand(c as Command<any, any, any, any>, here)
-    for (const row of nested) rows.push(row)
-  }
-  return rows
-}
-
-/** @internal */
-export const idFromTrail = (trail: Array<string>): string => trail.map((p) => p.replace(/-/g, "_")).join("_")
-
-/** @internal */
-export const handlerName = (trail: Array<string>, executableName: string): string =>
-  `_${executableName}_${idFromTrail(trail)}_handler`

@@ -34,7 +34,8 @@ import type { Command, RawInput } from "../Command.ts"
 import * as Param from "../Param.ts"
 import { isFalseValue, isTrueValue } from "../Primitive.ts"
 import { suggest } from "./auto-suggest.ts"
-import { completionsFlag, dynamicCompletionsFlag, helpFlag, logLevelFlag, versionFlag } from "./builtInFlags.ts"
+import { completionsFlag, helpFlag, logLevelFlag, versionFlag } from "./builtInFlags.ts"
+import { toImpl } from "./command.ts"
 import { type LexResult, type Token } from "./lexer.ts"
 
 /* ========================================================================== */
@@ -56,7 +57,6 @@ export const extractBuiltInOptions = (
     logLevel: LogLevel | undefined
     version: boolean
     completions: "bash" | "zsh" | "fish" | undefined
-    dynamicCompletions: "bash" | "zsh" | "fish" | undefined
     remainder: ReadonlyArray<Token>
   },
   CliError.CliError,
@@ -69,13 +69,11 @@ export const extractBuiltInOptions = (
     const [, logLevel] = yield* logLevelFlag.parse(emptyArgs)
     const [, version] = yield* versionFlag.parse(emptyArgs)
     const [, completions] = yield* completionsFlag.parse(emptyArgs)
-    const [, dynamicCompletions] = yield* dynamicCompletionsFlag.parse(emptyArgs)
     return {
       help,
       logLevel: Option.getOrUndefined(logLevel),
       version,
       completions: Option.getOrUndefined(completions),
-      dynamicCompletions: Option.getOrUndefined(dynamicCompletions),
       remainder
     }
   })
@@ -90,7 +88,8 @@ export const parseArgs = <Name extends string, Input, E, R>(
     const { tokens, trailingOperands: afterEndOfOptions } = lexResult
     const newCommandPath = [...commandPath, command.name]
 
-    const singles = command.config.flags.flatMap(Param.extractSingleParams)
+    const commandImpl = toImpl(command)
+    const singles = commandImpl.config.flags.flatMap(Param.extractSingleParams)
     const flagParams = singles.filter(Param.isFlagParam)
     const flagRegistry = createFlagRegistry(flagParams)
 
@@ -411,8 +410,7 @@ const builtInFlagParams: ReadonlyArray<FlagParam> = [
   ...Param.extractSingleParams(logLevelFlag),
   ...Param.extractSingleParams(helpFlag),
   ...Param.extractSingleParams(versionFlag),
-  ...Param.extractSingleParams(completionsFlag),
-  ...Param.extractSingleParams(dynamicCompletionsFlag)
+  ...Param.extractSingleParams(completionsFlag)
 ]
 
 const builtInFlagRegistry = createFlagRegistry(builtInFlagParams)
@@ -507,7 +505,7 @@ const resolveFirstValue = <Name extends string, Input, E, R>(
   }
 
   // Not a subcommand. Check if this looks like a typo.
-  const expectsArgs = command.config.arguments.length > 0
+  const expectsArgs = toImpl(command).config.arguments.length > 0
   if (!expectsArgs && subIndex.size > 0) {
     const suggestions = suggest(value, command.subcommands.map((s) => s.name))
     state.errors.push(
