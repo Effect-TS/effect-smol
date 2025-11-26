@@ -494,7 +494,7 @@ export const platformFigures = Effect.map(
  * @since 4.0.0
  * @category utility types
  */
-export type Any = Prompt<any>
+export type Any = Prompt<unknown>
 
 /**
  * @since 4.0.0
