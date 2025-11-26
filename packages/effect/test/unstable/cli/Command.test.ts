@@ -341,8 +341,8 @@ describe("Command", () => {
         // Create subcommand that accesses parent context
         const child = Command.make("child", { action: Flag.string("action") }, (config) =>
           Effect.gen(function*() {
-            // Access parent config via the auto-generated tag
-            const parentConfig = yield* parent.service
+            // Access parent config by yielding the parent command
+            const parentConfig = yield* parent
             messages.push(`child: parent.verbose=${parentConfig.verbose}`)
             messages.push(`child: parent.config=${parentConfig.config}`)
             messages.push(`child: action=${config.action}`)
@@ -386,7 +386,7 @@ describe("Command", () => {
           pkg: Flag.string("pkg")
         }, (config) =>
           Effect.gen(function*() {
-            const parentConfig = yield* root.service
+            const parentConfig = yield* root
             messages.push(`install: global=${parentConfig.global}, pkg=${config.pkg}`)
           }))
 
@@ -452,7 +452,7 @@ describe("Command", () => {
           name: Flag.string("name")
         }, (config) =>
           Effect.gen(function*() {
-            const rootConfig = yield* root.service
+            const rootConfig = yield* root
             messages.push(`service: root.env=${rootConfig.env}`)
             messages.push(`service: name=${config.name}`)
           }))
@@ -462,8 +462,8 @@ describe("Command", () => {
           targetVersion: Flag.string("target-version")
         }, (config) =>
           Effect.gen(function*() {
-            const rootConfig = yield* root.service
-            const serviceConfig = yield* service.service
+            const rootConfig = yield* root
+            const serviceConfig = yield* service
             messages.push(`deploy: root.env=${rootConfig.env}`)
             messages.push(`deploy: service.name=${serviceConfig.name}`)
             messages.push(`deploy: target-version=${config.targetVersion}`)
@@ -515,7 +515,7 @@ describe("Command", () => {
           targetVersion: Flag.string("target-version")
         }, (config) =>
           Effect.gen(function*() {
-            const parentConfig = yield* parent.service
+            const parentConfig = yield* parent
             messages.push(`deploy: parent.verbose=${parentConfig.verbose}`)
             messages.push(`deploy: target-version=${config.targetVersion}`)
           }))

@@ -2,6 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
 import { FileSystem, Path } from "effect/platform"
 import { CliError, Command, Flag } from "effect/unstable/cli"
+import { toImpl } from "effect/unstable/cli/Command"
 import * as Lexer from "effect/unstable/cli/internal/lexer"
 import * as Parser from "effect/unstable/cli/internal/parser"
 import * as MockTerminal from "./services/MockTerminal.ts"
@@ -25,7 +26,7 @@ describe("Command errors", () => {
         })
 
         const parsedInput = yield* Parser.parseArgs(Lexer.lex([]), command)
-        const error = yield* Effect.flip(command.parse(parsedInput))
+        const error = yield* Effect.flip(toImpl(command).parse(parsedInput))
         assert.instanceOf(error, CliError.MissingOption)
         assert.strictEqual(error.option, "value")
       }).pipe(Effect.provide(TestLayer)))
