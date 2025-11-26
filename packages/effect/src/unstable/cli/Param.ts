@@ -116,15 +116,9 @@ export declare namespace Param {
    * @category models
    */
   export interface Variance<out A> extends Pipeable {
-    readonly [TypeId]: VarianceStruct<A>
-  }
-
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export interface VarianceStruct<out A> {
-    readonly _A: Covariant<A>
+    readonly [TypeId]: {
+      readonly _A: Covariant<A>
+    }
   }
 }
 

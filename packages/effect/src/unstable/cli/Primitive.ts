@@ -70,15 +70,9 @@ export declare namespace Primitive {
    * @category models
    */
   export interface Variance<out A> {
-    readonly [TypeId]: VarianceStruct<A>
-  }
-
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export interface VarianceStruct<out A> {
-    readonly _A: Covariant<A>
+    readonly [TypeId]: {
+      readonly _A: Covariant<A>
+    }
   }
 }
 
