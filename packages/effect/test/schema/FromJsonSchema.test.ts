@@ -151,7 +151,7 @@ describe("FromJsonSchema", () => {
       assertOutput({ schema: false }, { runtime: "Schema.Never", type: "never" })
     })
 
-    it("type: undefined", () => {
+    it("{}", () => {
       assertOutput({ schema: {} }, { runtime: "Schema.Unknown", type: "unknown" })
       assertOutput({ schema: { description: "lorem" } }, {
         runtime: `Schema.Unknown.annotate({ description: "lorem" })`,
@@ -178,24 +178,38 @@ describe("FromJsonSchema", () => {
       })
     })
 
+    describe("type: null", () => {
+      it("base", () => {
+        assertOutput({ schema: { "type": "null" } }, { runtime: "Schema.Null", type: "null" })
+      })
+    })
+
+    describe("type: string", () => {
+      it("base", () => {
+        assertOutput({ schema: { "type": "string" } }, { runtime: "Schema.String", type: "string" })
+      })
+    })
+
+    describe("type: number", () => {
+      it("base", () => {
+        assertOutput({ schema: { "type": "number" } }, { runtime: "Schema.Number", type: "number" })
+      })
+    })
+
+    describe("type: boolean", () => {
+      it("base", () => {
+        assertOutput({ schema: { "type": "boolean" } }, { runtime: "Schema.Boolean", type: "boolean" })
+      })
+    })
+
     describe("type: object", () => {
-      it("empty struct", () => {
+      it("base", () => {
         assertOutput({
-          schema: {
-            "anyOf": [
-              { "type": "object" },
-              { "type": "array" }
-            ]
-          }
-        }, { runtime: "Schema.Struct({})", type: "{}" })
-        assertOutput({
-          schema: {
-            "oneOf": [
-              { "type": "object" },
-              { "type": "array" }
-            ]
-          }
-        }, { runtime: "Schema.Struct({})", type: "{}" })
+          schema: { "type": "object" }
+        }, {
+          runtime: "Schema.Record(Schema.String, Schema.Unknown)",
+          type: "{ readonly [x: string]: unknown }"
+        })
       })
 
       it("no properties", () => {
@@ -257,15 +271,27 @@ describe("FromJsonSchema", () => {
 
     describe("type: array", () => {
       describe("target: draft-07", () => {
-        it("items: false", () => {
+        it("base", () => {
           assertOutput({
-            schema: {
-              "type": "array",
-              "items": false
-            }
+            schema: { "type": "array" }
+          }, {
+            runtime: "Schema.Array(Schema.Unknown)",
+            type: "ReadonlyArray<unknown>"
+          })
+        })
+
+        it("items: boolean", () => {
+          assertOutput({
+            schema: { "type": "array", "items": false }
           }, {
             runtime: "Schema.Tuple([])",
             type: "readonly []"
+          })
+          assertOutput({
+            schema: { "type": "array", "items": true }
+          }, {
+            runtime: "Schema.Array(Schema.Unknown)",
+            type: "ReadonlyArray<unknown>"
           })
         })
 
@@ -305,7 +331,34 @@ describe("FromJsonSchema", () => {
           })
         })
 
-        it("items & additionalItems: false", () => {
+        it("additionalItems: boolean", () => {
+          assertOutput({
+            schema: { "type": "array", "additionalItems": false }
+          }, {
+            runtime: "Schema.Tuple([])",
+            type: "readonly []"
+          })
+          assertOutput({
+            schema: { "type": "array", "additionalItems": true }
+          }, {
+            runtime: "Schema.Array(Schema.Unknown)",
+            type: "ReadonlyArray<unknown>"
+          })
+        })
+
+        it("additionalItems: schema", () => {
+          assertOutput({
+            schema: {
+              "type": "array",
+              "additionalItems": { "type": "string" }
+            }
+          }, {
+            runtime: "Schema.Array(Schema.String)",
+            type: "ReadonlyArray<string>"
+          })
+        })
+
+        it("items & additionalItems: boolean", () => {
           assertOutput({
             schema: {
               "type": "array",
@@ -316,9 +369,6 @@ describe("FromJsonSchema", () => {
             runtime: "Schema.Tuple([Schema.String, Schema.Number])",
             type: "readonly [string, number]"
           })
-        })
-
-        it("items & additionalItems: true", () => {
           assertOutput({
             schema: {
               "type": "array",
@@ -698,10 +748,6 @@ describe("FromJsonSchema", () => {
     })
 
     describe("Struct", () => {
-      it("empty", () => {
-        assertRoundtrip({ schema: Schema.Struct({}) })
-      })
-
       it("required field", () => {
         assertRoundtrip({
           schema: Schema.Struct({

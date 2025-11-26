@@ -166,7 +166,8 @@ function collectChecks(schema: Fragment, target: Target): Array<string> {
 
 function isTupleWithMoreElementsThan(schema: Fragment, minItems: number, target: Target): boolean {
   if (schema.type === "array") {
-    return collectElements(schema, target).length > minItems
+    const elements = collectElements(schema, target)
+    if (elements !== undefined) return elements.length > minItems
   }
   return false
 }
@@ -200,37 +201,40 @@ function handleHasType(schema: HasType, options: GoOptions): Generation {
     }
     case "array": {
       const minItems = typeof schema.minItems === "number" ? schema.minItems : Infinity
-      const elements = collectElements(schema, options.target).map((item, index) => ({
+      const elements = collectElements(schema, options.target)?.map((item, index): Element => ({
         value: build(item, options),
         isRequired: index < minItems
       }))
-      const rest = collectItem(schema, options.target)
-      return array(elements, rest !== undefined ? build(rest, options) : undefined)
+      const rest = collectRest(schema, options.target)
+      return array(
+        elements !== undefined ? elements : rest === false ? [] : undefined,
+        rest !== undefined && rest !== false ? build(rest, options) : undefined
+      )
     }
   }
 }
 
-function collectElements(schema: Fragment, target: Target): ReadonlyArray<Fragment> {
+function collectElements(schema: Fragment, target: Target): ReadonlyArray<Fragment> | undefined {
   switch (target) {
     case "draft-07":
-      return Array.isArray(schema.items) ? schema.items : []
+      return Array.isArray(schema.items) ? schema.items : undefined
     case "2020-12":
     case "oas3.1":
-      return Array.isArray(schema.prefixItems) ? schema.prefixItems : []
+      return Array.isArray(schema.prefixItems) ? schema.prefixItems : undefined
   }
 }
 
-function collectItem(schema: Fragment, target: Target): Fragment | boolean | undefined {
+function collectRest(schema: Fragment, target: Target): Fragment | boolean | undefined {
   switch (target) {
     case "draft-07":
-      return isObject(schema.items)
+      return isObject(schema.items) || (typeof schema.items === "boolean")
         ? schema.items
-        : isObject(schema.additionalItems) || schema.additionalItems === true
+        : isObject(schema.additionalItems) || (typeof schema.additionalItems === "boolean")
         ? schema.additionalItems
         : undefined
     case "2020-12":
     case "oas3.1":
-      return isObject(schema.items)
+      return isObject(schema.items) || (typeof schema.items === "boolean")
         ? schema.items
         : undefined
   }
@@ -271,14 +275,10 @@ function base(schema: Fragment, options: GoOptions): Generation {
   }
 
   if (Array.isArray(schema.anyOf)) {
-    if (schema.anyOf.length === 0) return Never
-    if (isEmptyStruct(schema.anyOf)) return EmptyStruct
     return union(schema.anyOf.map((schema) => build(schema, options)), "anyOf")
   }
 
   if (Array.isArray(schema.oneOf)) {
-    if (schema.oneOf.length === 0) return Never
-    if (isEmptyStruct(schema.oneOf)) return EmptyStruct
     return union(schema.oneOf.map((schema) => build(schema, options)), "oneOf")
   }
 
@@ -351,9 +351,17 @@ function collectIndexSignatures(schema: Fragment, options: GoOptions): Array<Ind
 
 function object(ps: ReadonlyArray<Property>, iss: ReadonlyArray<IndexSignature>): Generation {
   if (iss.length === 0) {
-    return struct(ps)
+    return {
+      runtime: `Schema.Struct({ ${propertiesRuntime(ps)} })`,
+      type: `{ ${propertiesType(ps)} }`,
+      imports: propertiesImports(ps)
+    }
   } else if (ps.length === 0 && iss.length === 1) {
-    return record(iss[0])
+    return {
+      runtime: indexSignatureRuntime(iss[0]),
+      type: `{ ${indexSignatureType(iss[0])} }`,
+      imports: indexSignatureImports(iss[0])
+    }
   } else {
     return {
       runtime: `Schema.StructWithRest(Schema.Struct({ ${propertiesRuntime(ps)} }), [${
@@ -362,14 +370,6 @@ function object(ps: ReadonlyArray<Property>, iss: ReadonlyArray<IndexSignature>)
       type: `{ ${propertiesType(ps)}, ${iss.map(indexSignatureType).join(", ")} }`,
       imports: ReadonlySetReducer.combineAll([propertiesImports(ps), ...iss.map(indexSignatureImports)])
     }
-  }
-}
-
-function struct(ps: ReadonlyArray<Property>): Generation {
-  return {
-    runtime: `Schema.Struct({ ${propertiesRuntime(ps)} })`,
-    type: `{ ${propertiesType(ps)} }`,
-    imports: propertiesImports(ps)
   }
 }
 
@@ -383,14 +383,6 @@ function propertiesType(ps: ReadonlyArray<Property>): string {
 
 function propertiesImports(ps: ReadonlyArray<Property>): ReadonlySet<string> {
   return ReadonlySetReducer.combineAll(ps.map((p) => p.value.imports))
-}
-
-function record(is: IndexSignature): Generation {
-  return {
-    runtime: indexSignatureRuntime(is),
-    type: `{ ${indexSignatureType(is)} }`,
-    imports: indexSignatureImports(is)
-  }
 }
 
 function indexSignatureRuntime(is: IndexSignature) {
@@ -410,24 +402,30 @@ type Element = {
   readonly isRequired: boolean
 }
 
-function array(es: ReadonlyArray<Element>, item: Generation | undefined): Generation {
-  if (item === undefined) {
-    return {
-      runtime: `Schema.Tuple([${elementsRuntime(es)}])`,
-      type: `readonly [${elementsType(es)}]`,
-      imports: elementsImports(es)
-    }
-  } else if (es.length === 0) {
-    return {
-      runtime: `Schema.Array(${item.runtime})`,
-      type: `ReadonlyArray<${item.type}>`,
-      imports: item.imports
+function array(es: ReadonlyArray<Element> | undefined, rest: Generation | undefined): Generation {
+  if (es === undefined) {
+    if (rest === undefined) {
+      return UnknownArray
+    } else {
+      return {
+        runtime: `Schema.Array(${rest.runtime})`,
+        type: `ReadonlyArray<${rest.type}>`,
+        imports: rest.imports
+      }
     }
   } else {
-    return {
-      runtime: `Schema.TupleWithRest(Schema.Tuple([${elementsRuntime(es)}]), [${item.runtime}])`,
-      type: `readonly [${elementsType(es)}, ...Array<${item.type}>]`,
-      imports: ReadonlySetReducer.combine(elementsImports(es), item.imports)
+    if (rest === undefined) {
+      return {
+        runtime: `Schema.Tuple([${elementsRuntime(es)}])`,
+        type: `readonly [${elementsType(es)}]`,
+        imports: elementsImports(es)
+      }
+    } else {
+      return {
+        runtime: `Schema.TupleWithRest(Schema.Tuple([${elementsRuntime(es)}]), [${rest.runtime}])`,
+        type: `readonly [${elementsType(es)}, ...Array<${rest.type}>]`,
+        imports: ReadonlySetReducer.combine(elementsImports(es), rest.imports)
+      }
     }
   }
 }
@@ -464,8 +462,7 @@ const Number: Generation = primitive("Schema.Number", "number")
 const Int: Generation = primitive("Schema.Int", "number")
 const Boolean: Generation = primitive("Schema.Boolean", "boolean")
 const UnknownRecord: Generation = object([], [{ key: String, value: Unknown }])
-const UnknownArray: Generation = array([], Unknown)
-const EmptyStruct: Generation = primitive("Schema.Struct({})", "{}")
+const UnknownArray: Generation = array(undefined, Unknown)
 
 const primitives = {
   "null": Null,
@@ -475,27 +472,6 @@ const primitives = {
   "boolean": Boolean,
   "object": UnknownRecord,
   "array": UnknownArray
-}
-
-function stripAnnotations(schema: Fragment): Fragment {
-  const out: Fragment = { ...schema }
-  delete out.title
-  delete out.description
-  delete out.default
-  delete out.examples
-  return out
-}
-
-function isUnknownRecord(schema: Fragment): boolean {
-  return schema.type === "object" && Object.keys(stripAnnotations(schema)).length === 1
-}
-
-function isUnknownArray(schema: Fragment): boolean {
-  return schema.type === "array" && Object.keys(stripAnnotations(schema)).length === 1
-}
-
-function isEmptyStruct(schema: ReadonlyArray<Fragment>): boolean {
-  return schema.length === 2 && isUnknownRecord(schema[0]) && isUnknownArray(schema[1])
 }
 
 /**
