@@ -15,14 +15,7 @@ import type * as ServiceMap from "../../ServiceMap.ts"
 import type { Simplify } from "../../types/Types.ts"
 import * as CliError from "./CliError.ts"
 import * as HelpFormatter from "./HelpFormatter.ts"
-import {
-  checkForDuplicateFlags,
-  type CommandInternal,
-  getHelpForCommandPath,
-  makeCommand,
-  toImpl,
-  type TypeId
-} from "./internal/command.ts"
+import { checkForDuplicateFlags, getHelpForCommandPath, makeCommand, toImpl, type TypeId } from "./internal/command.ts"
 import {
   generateDynamicCompletion,
   handleCompletionRequest,
@@ -341,6 +334,9 @@ export const make: {
  * @since 4.0.0
  * @category constructors
  */
+// TODO: Input type is `A` but parse returns `{}`. The actual `A` comes from
+// running the prompt inside the handler. This is a semantic mismatch that
+// would break if subcommands tried to access parent config.
 export const prompt = <Name extends string, A, E, R>(
   name: Name,
   promptDef: Prompt.Prompt<A>,
@@ -500,52 +496,59 @@ export const withSubcommands: {
 > => {
   checkForDuplicateFlags(self, subcommands)
 
-  const selfImpl = toImpl(self)
-  type NewInput = Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined }
+  const impl = toImpl(self)
+  const byName = new Map(subcommands.map((s) => [s.name, toImpl(s)] as const))
 
-  // Build a stable name → subcommand index to avoid repeated linear scans
-  const subcommandIndex = new Map<string, CommandInternal<string, any, any, any>>()
-  for (const s of subcommands) {
-    subcommandIndex.set(s.name, toImpl(s))
-  }
+  // Type aliases for the widened command signature
+  type Subcommand = ExtractSubcommandInputs<Subcommands>
+  type NewInput = Input & { readonly subcommand: Subcommand | undefined }
 
-  const parse: (input: RawInput) => Effect.Effect<NewInput, CliError.CliError, Environment> = Effect.fnUntraced(
-    function*(input: RawInput) {
-      const parentResult = yield* selfImpl.parse(input)
+  // Extend parent parsing with subcommand resolution
+  // Cast needed: TS can't prove { ...parent, subcommand } satisfies NewInput
+  const parse: (raw: RawInput) => Effect.Effect<NewInput, CliError.CliError, Environment> = Effect.fnUntraced(
+    function*(raw: RawInput) {
+      const parent = yield* impl.parse(raw)
 
-      const subRef = input.subcommand
-      if (!subRef) {
-        return { ...parentResult, subcommand: undefined }
+      if (!raw.subcommand) {
+        return { ...parent, subcommand: undefined } as NewInput
       }
 
-      const sub = subcommandIndex.get(subRef.name)
-
-      // Parser guarantees valid subcommand names, but guard defensively
+      const sub = byName.get(raw.subcommand.name)
       if (!sub) {
-        return { ...parentResult, subcommand: undefined }
+        return { ...parent, subcommand: undefined } as NewInput
       }
 
-      const subResult = yield* sub.parse(subRef.parsedInput)
-      const subcommand = { name: sub.name, result: subResult } as ExtractSubcommandInputs<Subcommands>
-      return { ...parentResult, subcommand }
+      const result = yield* sub.parse(raw.subcommand.parsedInput)
+      return { ...parent, subcommand: { name: sub.name, result } } as NewInput
     }
   )
 
-  const handle = Effect.fnUntraced(function*(input: NewInput, commandPath: ReadonlyArray<string>) {
-    const selected = input.subcommand
-    if (selected !== undefined) {
-      const child = subcommandIndex.get(selected.name)
+  // Route execution to subcommand handler or parent handler
+  const handle = Effect.fnUntraced(function*(input: NewInput, path: ReadonlyArray<string>) {
+    if (input.subcommand) {
+      const child = byName.get(input.subcommand.name)
       if (!child) {
-        return yield* new CliError.ShowHelp({ commandPath })
+        return yield* new CliError.ShowHelp({ commandPath: path })
       }
       return yield* child
-        .handle(selected.result, [...commandPath, child.name])
-        .pipe(Effect.provideService(selfImpl.service, input))
+        .handle(input.subcommand.result, [...path, child.name])
+        .pipe(Effect.provideService(impl.service, input))
     }
-    return yield* selfImpl.handle(input, commandPath)
+    return yield* impl.handle(input as Input, path)
   })
 
-  return makeCommand({ ...selfImpl, subcommands, parse, handle } as any)
+  // Service identity preserved; type widens from Input to NewInput
+  type NewService = ServiceMap.Service<ParentCommand<Name>, NewInput>
+
+  return makeCommand({
+    name: impl.name,
+    config: impl.config,
+    description: impl.description,
+    service: impl.service as NewService,
+    subcommands,
+    parse,
+    handle
+  })
 })
 
 // Errors across a tuple (preferred), falling back to array element type
@@ -674,7 +677,7 @@ export const provideSync: {
         selfImpl.handle(input, commandPath),
         service,
         typeof implementation === "function"
-          ? (implementation as any)(input)
+          ? (implementation as (input: Input) => S)(input)
           : implementation
       )
   })
