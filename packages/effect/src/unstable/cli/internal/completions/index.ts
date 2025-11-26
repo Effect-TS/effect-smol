@@ -22,4 +22,4 @@ export {
 } from "./dynamic/index.ts"
 
 /** @internal */
-export type { Shell, SingleFlagMeta } from "./types.ts"
+export type { Shell, FlagDescriptor } from "./types.ts"

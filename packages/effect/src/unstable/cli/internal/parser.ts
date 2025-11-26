@@ -32,7 +32,7 @@ import type { Path } from "../../../platform/Path.ts"
 import * as CliError from "../CliError.ts"
 import type { Command, ParsedTokens } from "../Command.ts"
 import * as Param from "../Param.ts"
-import { isFalseValue, isTrueValue } from "../Primitive.ts"
+import * as Primitive from "../Primitive.ts"
 import { suggest } from "./auto-suggest.ts"
 import { completionsFlag, helpFlag, logLevelFlag, versionFlag } from "./builtInFlags.ts"
 import { toImpl } from "./command.ts"
@@ -326,7 +326,7 @@ const getFlagName = (t: FlagToken): string => t._tag === "LongOption" ? t.name :
  * Recognizes: true/false, yes/no, on/off, 1/0
  */
 const asBooleanLiteral = (token: Token | undefined): string | undefined =>
-  token?._tag === "Value" && (isTrueValue(token.value) || isFalseValue(token.value))
+  token?._tag === "Value" && (Primitive.isTrueValue(token.value) || Primitive.isFalseValue(token.value))
     ? token.value
     : undefined
 
@@ -353,7 +353,7 @@ const consumeFlagValue = (
   }
 
   // Boolean flags: check for explicit literal or default to "true"
-  if (spec.primitiveType._tag === "Boolean") {
+  if (Primitive.isBoolean(spec.primitiveType)) {
     const literal = asBooleanLiteral(cursor.peek())
     if (literal !== undefined) cursor.take()
     return literal ?? "true"

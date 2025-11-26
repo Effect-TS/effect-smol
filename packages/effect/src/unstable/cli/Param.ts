@@ -281,7 +281,7 @@ export const makeSingle = <const Kind extends ParamKind, A>(params: {
   const parse: Parse<A> = (args) =>
     params.kind === Argument
       ? parsePositional(params.name, params.primitiveType, args)
-      : parseOption(params.name, params.primitiveType, args)
+      : parseFlag(params.name, params.primitiveType, args)
   return Object.assign(Object.create(Proto), {
     _tag: "Single",
     ...params,
@@ -1589,7 +1589,7 @@ const parsePositional: <A>(
   return [args.arguments.slice(1), value] as const
 })
 
-const parseOption: <A>(
+const parseFlag: <A>(
   name: string,
   primitiveType: Primitive.Primitive<A>,
   args: ParsedArgs
@@ -1602,7 +1602,7 @@ const parseOption: <A>(
 
   if (providedValues === undefined || providedValues.length === 0) {
     // Option not provided (empty array due to initialization)
-    if (primitiveType._tag === "Boolean") {
+    if (Primitive.isBoolean(primitiveType)) {
       // Boolean params default to false when not present
       return [args.arguments, false as any] as const
     } else {

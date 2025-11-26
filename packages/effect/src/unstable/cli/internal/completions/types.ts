@@ -2,7 +2,7 @@
 export type Shell = "bash" | "zsh" | "fish"
 
 /** @internal */
-export interface SingleFlagMeta {
+export interface FlagDescriptor {
   readonly name: string
   readonly aliases: ReadonlyArray<string>
   readonly primitiveTag: string
@@ -11,4 +11,4 @@ export interface SingleFlagMeta {
 }
 
 /** @internal */
-export const optionRequiresValue = (s: SingleFlagMeta): boolean => s.primitiveTag !== "Boolean"
+export const optionRequiresValue = (s: FlagDescriptor): boolean => s.primitiveTag !== "Boolean"
