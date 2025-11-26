@@ -219,6 +219,15 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
   >
 }
 
+/*
+ * A utility type which can be used to extract the tools from a toolkit with
+ * handlers.
+ *
+ * @since 1.0.0
+ * @category Utility Types
+ */
+export type WithHandlerTools<T> = T extends WithHandler<infer Tools> ? Tools : never
+
 const Proto = {
   ...YieldableProto,
   ...PipeInspectableProto,

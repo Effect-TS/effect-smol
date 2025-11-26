@@ -1918,7 +1918,7 @@ export const setSystem: {
  *
  * @example
  * ```ts
- * import { Prompt } from "effect/unstable/ai"
+ * import { Prompt } from "@effect/ai"
  *
  * const systemPrompt = Prompt.make([{
  *   role: "system",
@@ -1927,33 +1927,35 @@ export const setSystem: {
  *
  * const userPrompt = Prompt.make("Hello, world!")
  *
- * const prompt = Prompt.concat(systemPrompt, userPrompt)
+ * const prompt = Prompt.merge(systemPrompt, userPrompt)
  *
  * const replaced = Prompt.prependSystem(
  *   prompt,
  *   "You are a helpful assistant. "
  * )
+ * // result content: "You are a helpful assistant. You are an expert in programming."
  * ```
  *
- * @since 4.0.0
- * @category combinators
+ * @since 1.0.0
+ * @category Combinators
  */
 export const prependSystem: {
   (content: string): (self: Prompt) => Prompt
   (self: Prompt, content: string): Prompt
 } = dual(2, (self: Prompt, content: string): Prompt => {
-  const messages: Array<Message> = []
+  let system: SystemMessage | undefined = undefined
   for (const message of self.content) {
     if (message.role === "system") {
-      const system = makeMessage("system", {
+      system = makeMessage("system", {
         content: content + message.content
       })
-      messages.push(system)
-    } else {
-      messages.push(message)
+      break
     }
   }
-  return makePrompt(messages)
+  if (Predicate.isUndefined(system)) {
+    system = makeMessage("system", { content })
+  }
+  return makePrompt([system, ...self.content])
 })
 
 /**
@@ -1965,40 +1967,42 @@ export const prependSystem: {
  *
  * @example
  * ```ts
- * import { Prompt } from "effect/unstable/ai"
+ * import { Prompt } from "@effect/ai"
  *
  * const systemPrompt = Prompt.make([{
  *   role: "system",
- *   content: "You are a helpful assistant."
+ *   content: "You are an expert in programming."
  * }])
  *
  * const userPrompt = Prompt.make("Hello, world!")
  *
- * const prompt = Prompt.concat(systemPrompt, userPrompt)
+ * const prompt = Prompt.merge(systemPrompt, userPrompt)
  *
  * const replaced = Prompt.appendSystem(
  *   prompt,
- *   " You are an expert in programming."
+ *   " You are a helpful assistant."
  * )
+ * // result content: "You are an expert in programming. You are a helpful assistant."
  * ```
  *
- * @since 4.0.0
- * @category combinators
+ * @since 1.0.0
+ * @category Combinators
  */
 export const appendSystem: {
   (content: string): (self: Prompt) => Prompt
   (self: Prompt, content: string): Prompt
 } = dual(2, (self: Prompt, content: string): Prompt => {
-  const messages: Array<Message> = []
+  let system: SystemMessage | undefined = undefined
   for (const message of self.content) {
     if (message.role === "system") {
-      const system = makeMessage("system", {
+      system = makeMessage("system", {
         content: message.content + content
       })
-      messages.push(system)
-    } else {
-      messages.push(message)
+      break
     }
   }
-  return makePrompt(messages)
+  if (Predicate.isUndefined(system)) {
+    system = makeMessage("system", { content })
+  }
+  return makePrompt([system, ...self.content])
 })
