@@ -219,7 +219,7 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
   >
 }
 
-/*
+/**
  * A utility type which can be used to extract the tools from a toolkit with
  * handlers.
  *
