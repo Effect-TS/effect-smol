@@ -250,14 +250,14 @@ export const redacted = (name: string): Flag<Redacted.Redacted<string>> => Param
  * ```ts
  * import { Flag } from "effect/unstable/cli"
  *
- * const config = Flag.fileString("config-file")
+ * const config = Flag.fileText("config-file")
  * // --config-file ./app.json will read the file content
  * ```
  *
  * @since 4.0.0
  * @category constructors
  */
-export const fileString = (name: string): Flag<string> => Param.fileString(Param.Flag, name)
+export const fileText = (name: string): Flag<string> => Param.fileText(Param.Flag, name)
 
 /**
  * Creates a flag that reads and parses the content of the specified file.
@@ -343,7 +343,7 @@ export const keyValueMap = (name: string): Flag<Record<string, string>> => Param
  * @since 4.0.0
  * @category constructors
  */
-export const none: Flag<never> = Param.none("flag")
+export const none: Flag<never> = Param.none(Param.Flag)
 
 /**
  * Adds an alias to a flag, allowing it to be referenced by multiple names.
@@ -364,7 +364,7 @@ export const none: Flag<never> = Param.none("flag")
  * )
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category aliasing
  */
 export const withAlias: {
@@ -388,7 +388,7 @@ export const withAlias: {
  * )
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category help documentation
  */
 export const withDescription: {
@@ -415,7 +415,7 @@ export const withDescription: {
  * // In help: --timeout SECONDS
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category help documentation
  */
 export const withPseudoName: {
@@ -447,7 +447,7 @@ export const withPseudoName: {
  * })
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category optionality
  */
 export const optional = <A>(param: Flag<A>): Flag<Option.Option<A>> => Param.optional(param)
@@ -470,7 +470,7 @@ export const optional = <A>(param: Flag<A>): Flag<Option.Option<A>> => Param.opt
  * // If --host is not provided, defaults to "localhost"
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category optionality
  */
 export const withDefault: {
@@ -496,7 +496,7 @@ export const withDefault: {
  * )
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category mapping
  */
 export const map: {
@@ -523,7 +523,7 @@ export const map: {
  * )
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category mapping
  */
 export const mapEffect: {
@@ -563,7 +563,7 @@ export const mapEffect: {
  * )
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category mapping
  */
 export const mapTryCatch: {
@@ -591,7 +591,7 @@ export const mapTryCatch: {
  * // Result: [true, true, true]
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category repetition
  */
 export const repeated = <A>(flag: Flag<A>): Flag<ReadonlyArray<A>> => Param.repeated(flag)
@@ -613,7 +613,7 @@ export const repeated = <A>(flag: Flag<A>): Flag<ReadonlyArray<A>> => Param.repe
  * // Requires at least 1 tag
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category repetition
  */
 export const atLeast: {
@@ -638,7 +638,7 @@ export const atLeast: {
  * // Allows at most 1 debug flag
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category repetition
  */
 export const atMost: {
@@ -663,7 +663,7 @@ export const atMost: {
  * // Allows 0-5 exclude patterns
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category repetition
  */
 export const between: {
@@ -696,7 +696,7 @@ export const between: {
  * )
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category filtering
  */
 export const filterMap: {
@@ -732,7 +732,7 @@ export const filterMap: {
  * )
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category filtering
  */
 export const filter: {
@@ -764,7 +764,7 @@ export const filter: {
  * )
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category alternatives
  */
 export const orElse: {
@@ -800,7 +800,7 @@ export const orElse: {
  * })
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category alternatives
  */
 export const orElseResult: {
@@ -841,7 +841,7 @@ export const orElseResult: {
  * )
  * ```
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category schemas
  */
 export const withSchema: {
