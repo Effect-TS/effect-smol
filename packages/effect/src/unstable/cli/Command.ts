@@ -383,7 +383,7 @@ export const prompt = <Name extends string, A, E, R>(
  * const git = Command.make("git", {
  *   verbose: Flag.boolean("verbose")
  * }).pipe(
- *   Command.withSubcommands(clone, add),
+ *   Command.withSubcommands([clone, add]),
  *   Command.withHandler((config) =>
  *     Effect.gen(function*() {
  *       // Now config has the subcommand field
@@ -600,6 +600,15 @@ export const withDescription: {
 /* Providing Services                                                         */
 /* ========================================================================== */
 
+// Internal helper: transforms a command's handler while preserving other properties
+const mapHandler = <Name extends string, Input, E, R, E2, R2>(
+  self: Command<Name, Input, E, R>,
+  f: (handler: Effect.Effect<void, E | CliError.CliError, R | Environment>, input: Input) => Effect.Effect<void, E2, R2>
+) => {
+  const impl = toImpl(self)
+  return makeCommand({ ...impl, handle: (input, path) => f(impl.handle(input, path), input) })
+}
+
 /**
  * Provides the handler of a command with the services produced by a layer
  * that optionally depends on the command-line input to be created.
@@ -620,17 +629,7 @@ export const provide: {
 } = dual(2, <const Name extends string, Input, E, R, LA, LE, LR>(
   self: Command<Name, Input, E, R>,
   layer: Layer.Layer<LA, LE, LR> | ((input: Input) => Layer.Layer<LA, LE, LR>)
-) => {
-  const selfImpl = toImpl(self)
-  return makeCommand({
-    ...selfImpl,
-    handle: (input, commandPath) =>
-      Effect.provide(
-        selfImpl.handle(input, commandPath),
-        typeof layer === "function" ? layer(input) : layer
-      )
-  })
-})
+) => mapHandler(self, (handler, input) => Effect.provide(handler, typeof layer === "function" ? layer(input) : layer)))
 
 /**
  * Provides the handler of a command with the implementation of a service that
@@ -655,20 +654,13 @@ export const provideSync: {
   self: Command<Name, Input, E, R>,
   service: ServiceMap.Service<I, S>,
   implementation: S | ((input: Input) => S)
-) => {
-  const selfImpl = toImpl(self)
-  return makeCommand({
-    ...selfImpl,
-    handle: (input, commandPath) =>
-      Effect.provideService(
-        selfImpl.handle(input, commandPath),
-        service,
-        typeof implementation === "function"
-          ? (implementation as (input: Input) => S)(input)
-          : implementation
-      )
-  })
-})
+) =>
+  mapHandler(self, (handler, input) =>
+    Effect.provideService(
+      handler,
+      service,
+      typeof implementation === "function" ? (implementation as (input: Input) => S)(input) : implementation
+    )))
 
 /**
  * Provides the handler of a command with the service produced by an effect
@@ -693,18 +685,12 @@ export const provideEffect: {
   self: Command<Name, Input, E, R>,
   service: ServiceMap.Service<I, S>,
   effect: Effect.Effect<S, E2, R2> | ((input: Input) => Effect.Effect<S, E2, R2>)
-) => {
-  const selfImpl = toImpl(self)
-  return makeCommand({
-    ...selfImpl,
-    handle: (input, commandPath) =>
-      Effect.provideServiceEffect(
-        selfImpl.handle(input, commandPath),
-        service,
-        typeof effect === "function" ? effect(input) : effect
-      )
-  })
-})
+) =>
+  mapHandler(
+    self,
+    (handler, input) =>
+      Effect.provideServiceEffect(handler, service, typeof effect === "function" ? effect(input) : effect)
+  ))
 
 /**
  * Allows for execution of an effect, which optionally depends on command-line
@@ -726,17 +712,8 @@ export const provideEffectDiscard: {
 } = dual(2, <const Name extends string, Input, E, R, _, E2, R2>(
   self: Command<Name, Input, E, R>,
   effect: Effect.Effect<_, E2, R2> | ((input: Input) => Effect.Effect<_, E2, R2>)
-) => {
-  const selfImpl = toImpl(self)
-  return makeCommand({
-    ...selfImpl,
-    handle: (input, commandPath) =>
-      Effect.andThen(
-        typeof effect === "function" ? effect(input) : effect,
-        selfImpl.handle(input, commandPath)
-      )
-  })
-})
+) =>
+  mapHandler(self, (handler, input) => Effect.andThen(typeof effect === "function" ? effect(input) : effect, handler)))
 
 /* ========================================================================== */
 /* Execution                                                                  */
@@ -846,8 +823,7 @@ export const runWith = <const Name extends string, Input, E, R>(
 ): (input: ReadonlyArray<string>) => Effect.Effect<void, E | CliError.CliError, R | Environment> => {
   const commandImpl = toImpl(command)
   return Effect.fnUntraced(
-    function*(input: ReadonlyArray<string>) {
-      const args = input
+    function*(args: ReadonlyArray<string>) {
       // Check for dynamic completion request early (before normal parsing)
       if (isCompletionRequest(args)) {
         handleCompletionRequest(command)
@@ -859,10 +835,10 @@ export const runWith = <const Name extends string, Input, E, R>(
       const { completions, help, logLevel, remainder, version } = yield* Parser.extractBuiltInOptions(tokens)
       const parsedArgs = yield* Parser.parseArgs({ tokens: remainder, trailingOperands }, command)
       const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)] as const
+      const helpRenderer = yield* HelpFormatter.HelpRenderer
 
       // Handle built-in flags (early exits)
       if (help) {
-        const helpRenderer = yield* HelpFormatter.HelpRenderer
         yield* Console.log(helpRenderer.formatHelpDoc(getHelpForCommandPath(command, commandPath)))
         return
       }
@@ -871,7 +847,6 @@ export const runWith = <const Name extends string, Input, E, R>(
         return
       }
       if (version && command.subcommands.length === 0) {
-        const helpRenderer = yield* HelpFormatter.HelpRenderer
         yield* Console.log(helpRenderer.formatVersion(command.name, config.version))
         return
       }
