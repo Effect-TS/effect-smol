@@ -34,9 +34,13 @@ This file records the intended parsing semantics with a short usage example and 
   Example: `tool env --env foo=bar --env cool=dude` → `{ foo: "bar", cool: "dude" }`  
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should merge repeated key=value flags into a single record"
 
-- **Parent context is accessible inside subcommands**  
-  Example: `tool --global install --pkg cowsay` → subcommand can read `global` from parent context  
+- **Parent context is accessible inside subcommands**
+  Example: `tool --global install --pkg cowsay` → subcommand can read `global` from parent context
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should allow direct accessing parent config in subcommands"
+
+- **Built-in flags (`--version`, `--help`) take global precedence**
+  Example: `tool --version copy src dest` → prints version and exits; subcommand is not run
+  Tests: `packages/effect/test/unstable/cli/Command.test.ts` – "should print version and exit even with subcommands (global precedence)" and "should print version and exit when --version appears before subcommand"
 
 If you add or change semantics, update this file and reference the exact test that proves the behavior.
 
@@ -107,10 +111,19 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 - **Suggestion**: Keep; predictable and convenient.
 
 ### Required or mutually exclusive flag sets (validation, not parsing)
-- **What**: Constraints like “must provide either --token or --user/--pass”, or “--json and --color cannot both be set”.
+- **What**: Constraints like "must provide either --token or --user/--pass", or "--json and --color cannot both be set".
 - **Commander / yargs / clap**: Provide APIs for required/conflicts; Click supports required options and `mutually_exclusive` via groups; argparse has mutually exclusive groups.
 - **Effect (current)**: Not enforced at parser level. Would live in a validation layer if needed.
 - **Suggestion**: Stay out of parsing; add optional validators in configuration if/when a product needs it.
+
+### Built-in flags (`--version`, `--help`) global precedence
+- **What**: Whether `--version` and `--help` take precedence over subcommands and other arguments.
+- **Example**: `tool --version install pkg` or `tool install --version pkg`
+- **git / cargo (clap) / npm**: `--version` anywhere prints version and exits. Subcommand is ignored.
+- **gh (Cobra)**: `--version` only works alone on root command. `gh --version pr` errors.
+- **docker / bun**: Subcommand runs; `--version` on root is ignored if subcommand follows.
+- **Effect (current)**: Global precedence (git/npm style). `--version` prints version and exits regardless of subcommands or position.
+- **Suggestion**: Keep; this is the most user-friendly behavior. Users expect `--version` to work anywhere.
 
 ## Opinionated default
 Effect should remain on the permissive, npm/commander-style side: flexible option placement, parent flags usable before or after subcommands, strict `--` handling, and single-shot subcommand selection on the first value. This keeps UX friendly for modern CLIs while remaining predictable via documented rules and tests.

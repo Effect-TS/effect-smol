@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Effect, Layer, Logger } from "effect"
 import { FileSystem, Path } from "effect/platform"
-import { Command, Flag, HelpFormatter } from "effect/unstable/cli"
+import { CliOutput, Command, Flag } from "effect/unstable/cli"
 import * as MockTerminal from "./services/MockTerminal.ts"
 
 // Create a test logger that captures log messages
@@ -31,8 +31,8 @@ const makeTestLogger = () => {
 const FileSystemLayer = FileSystem.layerNoop({})
 const PathLayer = Path.layer
 const TerminalLayer = MockTerminal.layer
-const HelpFormatterLayer = HelpFormatter.layer(
-  HelpFormatter.defaultHelpRenderer({
+const CliOutputLayer = CliOutput.layer(
+  CliOutput.defaultFormatter({
     colors: false
   })
 )
@@ -42,7 +42,7 @@ const makeTestLayer = (testLogger: Logger.Logger<unknown, void>) =>
     FileSystemLayer,
     PathLayer,
     TerminalLayer,
-    HelpFormatterLayer,
+    CliOutputLayer,
     Logger.layer([testLogger])
   )
 
