@@ -767,14 +767,14 @@ export const provideEffectDiscard: {
 const showHelp = <Name extends string, Input, E, R>(
   command: Command<Name, Input, E, R>,
   commandPath: ReadonlyArray<string>,
-  error?: CliError.CliError
+  errors?: ReadonlyArray<CliError.CliError>
 ): Effect.Effect<void, never, Environment> =>
   Effect.gen(function*() {
     const formatter = yield* CliOutput.Formatter
     const helpDoc = getHelpForCommandPath(command, commandPath)
     yield* Console.log(formatter.formatHelpDoc(helpDoc))
-    if (error) {
-      yield* Console.error(formatter.formatError(error))
+    if (errors && errors.length > 0) {
+      yield* Console.error(formatter.formatErrors(errors))
     }
   })
 
@@ -900,11 +900,11 @@ export const runWith = <const Name extends string, Input, E, R>(
 
       // Handle parsing errors
       if (parsedArgs.errors && parsedArgs.errors.length > 0) {
-        return yield* showHelp(command, commandPath, parsedArgs.errors[0])
+        return yield* showHelp(command, commandPath, parsedArgs.errors)
       }
       const parseResult = yield* Effect.result(commandImpl.parse(parsedArgs))
       if (parseResult._tag === "Failure") {
-        return yield* showHelp(command, commandPath, parseResult.failure)
+        return yield* showHelp(command, commandPath, [parseResult.failure])
       }
       const parsed = parseResult.success
 
