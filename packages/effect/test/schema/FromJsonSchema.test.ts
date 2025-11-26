@@ -19,15 +19,15 @@ function assertRoundtrip(input: {
 }) {
   const target = input.target ?? "draft-07"
   const document = getDocumentByTarget(target, input.schema)
-  const output = FromJsonSchema.generate(document.schema, { target })
+  const output = FromJsonSchema.generateOld(document.schema, { target })
   const fn = new Function("Schema", `return ${output.runtime}`)
   const generated = fn(Schema)
   const codedocument = getDocumentByTarget(target, generated)
   deepStrictEqual(codedocument, document)
-  deepStrictEqual(FromJsonSchema.generate(codedocument.schema), output)
+  deepStrictEqual(FromJsonSchema.generateOld(codedocument.schema), output)
 }
 
-function assertOutput(
+function assertGeneration(
   input: {
     readonly schema: Record<string, unknown> | boolean
     readonly options?: FromJsonSchema.GenerationOptions | undefined
@@ -42,12 +42,27 @@ function assertOutput(
   deepStrictEqual(generation, { imports: new Set(), ...expected })
 }
 
+function assertGenerationOld(
+  input: {
+    readonly schema: Record<string, unknown> | boolean
+    readonly options?: FromJsonSchema.GenerationOptions | undefined
+  },
+  expected: {
+    readonly runtime: string
+    readonly type: string
+    readonly imports?: ReadonlySet<string>
+  }
+) {
+  const generation = FromJsonSchema.generateOld(input.schema, input.options)
+  deepStrictEqual(generation, { imports: new Set(), ...expected })
+}
+
 describe("FromJsonSchema", () => {
   describe("generate", () => {
     describe("options", () => {
       describe("resolver", () => {
         it("identity", () => {
-          assertOutput(
+          assertGenerationOld(
             {
               schema: {
                 "$ref": "#/definitions/ID~1a~0b"
@@ -64,7 +79,7 @@ describe("FromJsonSchema", () => {
         })
 
         it("suspend", () => {
-          assertOutput(
+          assertGenerationOld(
             {
               schema: {
                 "$ref": "#/definitions/ID"
@@ -81,7 +96,7 @@ describe("FromJsonSchema", () => {
         })
 
         it("escape", () => {
-          assertOutput(
+          assertGenerationOld(
             {
               schema: {
                 "$ref": "#/definitions/ID~1a~0b"
@@ -106,7 +121,7 @@ describe("FromJsonSchema", () => {
       it("custom resolver", () => {
         const GETTER_IMPORT = `import * as Getter from "effect/schema/Getter"`
         const HTTP_API_ERROR_IMPORT = `import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`
-        assertOutput(
+        assertGenerationOld(
           {
             schema: {
               "type": "object",
@@ -144,16 +159,16 @@ describe("FromJsonSchema", () => {
     })
 
     it("true", () => {
-      assertOutput({ schema: true }, { runtime: "Schema.Unknown", type: "unknown" })
+      assertGenerationOld({ schema: true }, { runtime: "Schema.Unknown", type: "unknown" })
     })
 
     it("false", () => {
-      assertOutput({ schema: false }, { runtime: "Schema.Never", type: "never" })
+      assertGenerationOld({ schema: false }, { runtime: "Schema.Never", type: "never" })
     })
 
     it("{}", () => {
-      assertOutput({ schema: {} }, { runtime: "Schema.Unknown", type: "unknown" })
-      assertOutput({ schema: { description: "lorem" } }, {
+      assertGenerationOld({ schema: {} }, { runtime: "Schema.Unknown", type: "unknown" })
+      assertGenerationOld({ schema: { description: "lorem" } }, {
         runtime: `Schema.Unknown.annotate({ description: "lorem" })`,
         type: "unknown"
       })
@@ -161,12 +176,12 @@ describe("FromJsonSchema", () => {
 
     describe("type as array", () => {
       it("string | number", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": ["string", "number"]
           }
         }, { runtime: "Schema.Union([Schema.String, Schema.Number])", type: "string | number" })
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": ["string", "number"],
             "description": "description"
@@ -180,31 +195,31 @@ describe("FromJsonSchema", () => {
 
     describe("type: null", () => {
       it("base", () => {
-        assertOutput({ schema: { "type": "null" } }, { runtime: "Schema.Null", type: "null" })
+        assertGenerationOld({ schema: { "type": "null" } }, { runtime: "Schema.Null", type: "null" })
       })
     })
 
     describe("type: string", () => {
       it("base", () => {
-        assertOutput({ schema: { "type": "string" } }, { runtime: "Schema.String", type: "string" })
+        assertGenerationOld({ schema: { "type": "string" } }, { runtime: "Schema.String", type: "string" })
       })
     })
 
     describe("type: number", () => {
       it("base", () => {
-        assertOutput({ schema: { "type": "number" } }, { runtime: "Schema.Number", type: "number" })
+        assertGenerationOld({ schema: { "type": "number" } }, { runtime: "Schema.Number", type: "number" })
       })
     })
 
     describe("type: boolean", () => {
       it("base", () => {
-        assertOutput({ schema: { "type": "boolean" } }, { runtime: "Schema.Boolean", type: "boolean" })
+        assertGenerationOld({ schema: { "type": "boolean" } }, { runtime: "Schema.Boolean", type: "boolean" })
       })
     })
 
     describe("type: object", () => {
       it("base", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: { "type": "object" }
         }, {
           runtime: "Schema.Record(Schema.String, Schema.Unknown)",
@@ -213,11 +228,11 @@ describe("FromJsonSchema", () => {
       })
 
       it("no properties", () => {
-        assertOutput({ schema: { "type": "object" } }, {
+        assertGenerationOld({ schema: { "type": "object" } }, {
           runtime: "Schema.Record(Schema.String, Schema.Unknown)",
           type: "{ readonly [x: string]: unknown }"
         })
-        assertOutput(
+        assertGenerationOld(
           { schema: { "type": "object", "description": "lorem" } },
           {
             runtime: `Schema.Record(Schema.String, Schema.Unknown).annotate({ description: "lorem" })`,
@@ -227,7 +242,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("properties", () => {
-        assertOutput(
+        assertGenerationOld(
           {
             schema: {
               "type": "object",
@@ -246,7 +261,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("properties & additionalProperties", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "object",
             "properties": {
@@ -272,7 +287,7 @@ describe("FromJsonSchema", () => {
     describe("type: array", () => {
       describe("target: draft-07", () => {
         it("base", () => {
-          assertOutput({
+          assertGenerationOld({
             schema: { "type": "array" }
           }, {
             runtime: "Schema.Array(Schema.Unknown)",
@@ -281,13 +296,13 @@ describe("FromJsonSchema", () => {
         })
 
         it("items: boolean", () => {
-          assertOutput({
+          assertGenerationOld({
             schema: { "type": "array", "items": false }
           }, {
             runtime: "Schema.Tuple([])",
             type: "readonly []"
           })
-          assertOutput({
+          assertGenerationOld({
             schema: { "type": "array", "items": true }
           }, {
             runtime: "Schema.Array(Schema.Unknown)",
@@ -296,7 +311,7 @@ describe("FromJsonSchema", () => {
         })
 
         it("items: schema", () => {
-          assertOutput({
+          assertGenerationOld({
             schema: {
               "type": "array",
               "items": { "type": "string" }
@@ -308,7 +323,7 @@ describe("FromJsonSchema", () => {
         })
 
         it("items: empty array", () => {
-          assertOutput({
+          assertGenerationOld({
             schema: {
               "type": "array",
               "items": []
@@ -320,7 +335,7 @@ describe("FromJsonSchema", () => {
         })
 
         it("items: non empty array", () => {
-          assertOutput({
+          assertGenerationOld({
             schema: {
               "type": "array",
               "items": [{ "type": "string" }, { "type": "number" }]
@@ -332,13 +347,13 @@ describe("FromJsonSchema", () => {
         })
 
         it("additionalItems: boolean", () => {
-          assertOutput({
+          assertGenerationOld({
             schema: { "type": "array", "additionalItems": false }
           }, {
             runtime: "Schema.Tuple([])",
             type: "readonly []"
           })
-          assertOutput({
+          assertGenerationOld({
             schema: { "type": "array", "additionalItems": true }
           }, {
             runtime: "Schema.Array(Schema.Unknown)",
@@ -347,7 +362,7 @@ describe("FromJsonSchema", () => {
         })
 
         it("additionalItems: schema", () => {
-          assertOutput({
+          assertGenerationOld({
             schema: {
               "type": "array",
               "additionalItems": { "type": "string" }
@@ -359,7 +374,7 @@ describe("FromJsonSchema", () => {
         })
 
         it("items & additionalItems: boolean", () => {
-          assertOutput({
+          assertGenerationOld({
             schema: {
               "type": "array",
               "items": [{ "type": "string" }, { "type": "number" }],
@@ -369,7 +384,7 @@ describe("FromJsonSchema", () => {
             runtime: "Schema.Tuple([Schema.String, Schema.Number])",
             type: "readonly [string, number]"
           })
-          assertOutput({
+          assertGenerationOld({
             schema: {
               "type": "array",
               "items": [{ "type": "string" }, { "type": "number" }],
@@ -382,7 +397,7 @@ describe("FromJsonSchema", () => {
         })
 
         it("items & additionalItems: schema", () => {
-          assertOutput({
+          assertGenerationOld({
             schema: {
               "type": "array",
               "items": [{ "type": "string" }, { "type": "number" }],
@@ -395,7 +410,7 @@ describe("FromJsonSchema", () => {
         })
 
         it("optional items", () => {
-          assertOutput({
+          assertGenerationOld({
             schema: {
               "type": "array",
               "minItems": 0,
@@ -413,7 +428,7 @@ describe("FromJsonSchema", () => {
     })
 
     it("const", () => {
-      assertOutput({
+      assertGenerationOld({
         schema: {
           "const": "a"
         }
@@ -421,7 +436,7 @@ describe("FromJsonSchema", () => {
         runtime: `Schema.Literal("a")`,
         type: `"a"`
       })
-      assertOutput({
+      assertGenerationOld({
         schema: {
           "type": "string",
           "const": "a"
@@ -433,7 +448,7 @@ describe("FromJsonSchema", () => {
     })
 
     it("enum", () => {
-      assertOutput({
+      assertGenerationOld({
         schema: {
           "enum": ["a"]
         }
@@ -441,7 +456,7 @@ describe("FromJsonSchema", () => {
         runtime: `Schema.Literal("a")`,
         type: `"a"`
       })
-      assertOutput({
+      assertGenerationOld({
         schema: {
           "type": "string",
           "enum": ["a"]
@@ -450,7 +465,7 @@ describe("FromJsonSchema", () => {
         runtime: `Schema.Literal("a")`,
         type: `"a"`
       })
-      assertOutput({
+      assertGenerationOld({
         schema: {
           "type": "string",
           "enum": ["a", "b"]
@@ -459,7 +474,7 @@ describe("FromJsonSchema", () => {
         runtime: `Schema.Literals(["a", "b"])`,
         type: `"a" | "b"`
       })
-      assertOutput({
+      assertGenerationOld({
         schema: {
           "enum": ["a", 1]
         }
@@ -471,7 +486,7 @@ describe("FromJsonSchema", () => {
 
     describe("checks", () => {
       it("minLength", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "string",
             "minLength": 1
@@ -480,7 +495,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("maxLength", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "string",
             "maxLength": 10
@@ -489,7 +504,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("pattern", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "string",
             "pattern": "^[a-z]+$"
@@ -498,7 +513,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("pattern with forward slashes (escaping)", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "string",
             "pattern": "^https?://[a-z]+$"
@@ -507,7 +522,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("minimum", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "number",
             "minimum": 0
@@ -516,7 +531,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("maximum", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "number",
             "maximum": 100
@@ -525,7 +540,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("exclusiveMinimum", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "number",
             "exclusiveMinimum": 0
@@ -534,7 +549,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("exclusiveMaximum", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "number",
             "exclusiveMaximum": 100
@@ -543,7 +558,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("multipleOf", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "number",
             "multipleOf": 2
@@ -552,7 +567,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("minItems", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "array",
             "items": { "type": "string" },
@@ -562,7 +577,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("maxItems", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "array",
             "items": { "type": "string" },
@@ -572,7 +587,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("uniqueItems", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "array",
             "items": { "type": "string" },
@@ -585,7 +600,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("minProperties", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "object",
             "minProperties": 1
@@ -597,7 +612,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("maxProperties", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "object",
             "maxProperties": 10
@@ -609,7 +624,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("multiple checks", () => {
-        assertOutput({
+        assertGenerationOld({
           schema: {
             "type": "string",
             "minLength": 1,
@@ -625,7 +640,7 @@ describe("FromJsonSchema", () => {
 
     describe("$ref", () => {
       it("top level $ref", () => {
-        assertOutput(
+        assertGenerationOld(
           {
             schema: {
               "$ref": "#/definitions/ID~1a~0b"
@@ -639,7 +654,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("inner $ref", () => {
-        assertOutput(
+        assertGenerationOld(
           {
             schema: {
               "type": "object",
@@ -1155,7 +1170,7 @@ describe("FromJsonSchema", () => {
       schemas: ReadonlyArray<Schema.JsonSchema.Schema>
     ) {
       const genDependencies = FromJsonSchema.generateDefinitions(definitions)
-      const genSchemas = schemas.map((schema) => FromJsonSchema.generate(schema))
+      const genSchemas = schemas.map((schema) => FromJsonSchema.generateOld(schema))
       let s = ""
 
       s += "// Definitions\n"
@@ -1249,6 +1264,179 @@ const A = Schema.Struct({ b: B }).annotate({ identifier: "A" });
 
 // Schemas
 const schema1 = Schema.Struct({ a: A });`
+      )
+    })
+  })
+
+  describe("generate2", () => {
+    it("true", () => {
+      assertGeneration(
+        { schema: true },
+        { runtime: "Schema.Unknown", type: "unknown" }
+      )
+    })
+
+    it("false", () => {
+      assertGeneration(
+        { schema: false },
+        { runtime: "Schema.Never", type: "never" }
+      )
+    })
+
+    it("{}", () => {
+      assertGeneration(
+        { schema: {} },
+        { runtime: "Schema.Unknown", type: "unknown" }
+      )
+    })
+
+    it("const", () => {
+      assertGeneration(
+        { schema: { "const": "lorem" } },
+        { runtime: `Schema.Literal("lorem")`, type: "\"lorem\"" }
+      )
+    })
+
+    it("enum", () => {
+      assertGeneration(
+        { schema: { "enum": ["lorem", "ipsum"] } },
+        { runtime: `Schema.Literals(["lorem", "ipsum"])`, type: `"lorem" | "ipsum"` }
+      )
+    })
+
+    it("type: null", () => {
+      assertGeneration(
+        { schema: { "type": "null" } },
+        { runtime: "Schema.Null", type: "null" }
+      )
+      assertGeneration(
+        { schema: { "type": "null", "description": "lorem" } },
+        { runtime: `Schema.Null.annotate({ description: "lorem" })`, type: "null" }
+      )
+    })
+
+    it("type: string", () => {
+      assertGeneration(
+        { schema: { "type": "string" } },
+        { runtime: "Schema.String", type: "string" }
+      )
+      assertGeneration(
+        { schema: { "type": "string", "description": "lorem" } },
+        { runtime: `Schema.String.annotate({ description: "lorem" })`, type: "string" }
+      )
+      assertGeneration(
+        { schema: { "type": "string", "minLength": 1 } },
+        { runtime: `Schema.String.check(Schema.isMinLength(1))`, type: "string" }
+      )
+      assertGeneration(
+        { schema: { "type": "string", "minLength": 1, "maxLength": 10 } },
+        { runtime: `Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10))`, type: "string" }
+      )
+      assertGeneration(
+        { schema: { "type": "string", "allOf": [{ "minLength": 1 }] } },
+        { runtime: `Schema.String.check(Schema.isMinLength(1))`, type: "string" }
+      )
+      assertGeneration(
+        { schema: { "type": "string", "description": "lorem", "allOf": [{ "minLength": 1 }] } },
+        { runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "lorem" })`, type: "string" }
+      )
+      assertGeneration(
+        { schema: { "type": "string", "description": "lorem", "allOf": [{ "minLength": 1, "description": "ipsum" }] } },
+        { runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "ipsum" })`, type: "string" }
+      )
+    })
+
+    it("type: number", () => {
+      assertGeneration(
+        { schema: { "type": "number" } },
+        { runtime: "Schema.Number", type: "number" }
+      )
+      assertGeneration(
+        { schema: { "type": "number", "description": "lorem" } },
+        { runtime: `Schema.Number.annotate({ description: "lorem" })`, type: "number" }
+      )
+      assertGeneration(
+        { schema: { "type": "number", "minimum": 0 } },
+        { runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))`, type: "number" }
+      )
+      assertGeneration(
+        { schema: { "type": "number", "minimum": 1, "maximum": 10 } },
+        {
+          runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(10))`,
+          type: "number"
+        }
+      )
+      assertGeneration(
+        { schema: { "type": "number", "allOf": [{ "type": "integer" }] } },
+        { runtime: "Schema.Int", type: "number" }
+      )
+      assertGeneration(
+        { schema: { "type": "number", "allOf": [{ "minimum": 1 }] } },
+        { runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1))`, type: "number" }
+      )
+      assertGeneration(
+        { schema: { "type": "number", "description": "lorem", "allOf": [{ "minimum": 1 }] } },
+        {
+          runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ description: "lorem" })`,
+          type: "number"
+        }
+      )
+      assertGeneration(
+        { schema: { "type": "number", "description": "lorem", "allOf": [{ "minimum": 1, "description": "ipsum" }] } },
+        {
+          runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ description: "ipsum" })`,
+          type: "number"
+        }
+      )
+    })
+
+    it("type: integer", () => {
+      assertGeneration(
+        { schema: { "type": "integer" } },
+        { runtime: "Schema.Int", type: "number" }
+      )
+    })
+
+    it("type: boolean", () => {
+      assertGeneration(
+        { schema: { "type": "boolean" } },
+        { runtime: "Schema.Boolean", type: "boolean" }
+      )
+      assertGeneration(
+        { schema: { "type": "boolean", "description": "lorem" } },
+        { runtime: `Schema.Boolean.annotate({ description: "lorem" })`, type: "boolean" }
+      )
+    })
+
+    it("type: array", () => {
+      assertGeneration(
+        { schema: { "type": "array" } },
+        { runtime: "Schema.Array(Schema.Unknown)", type: "ReadonlyArray<unknown>" }
+      )
+    })
+
+    it("type: object", () => {
+      assertGeneration(
+        { schema: { "type": "object" } },
+        { runtime: "Schema.Record(Schema.String, Schema.Unknown)", type: "{ readonly [x: string]: unknown }" }
+      )
+      assertGeneration(
+        { schema: { "type": "object", "properties": { "a": { "type": "string" } }, "required": ["a"] } },
+        { runtime: "Schema.Struct({ a: Schema.String })", type: "{ readonly a: string }" }
+      )
+    })
+
+    it("Union", () => {
+      assertGeneration(
+        { schema: { "anyOf": [{ "type": "string" }, { "type": "number" }] } },
+        { runtime: "Schema.Union([Schema.String, Schema.Number])", type: "string | number" }
+      )
+    })
+
+    it("reference", () => {
+      assertGeneration(
+        { schema: { "$ref": "#/definitions/A" } },
+        { runtime: "A", type: "A" }
       )
     })
   })

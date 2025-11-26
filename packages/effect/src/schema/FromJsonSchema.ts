@@ -19,10 +19,10 @@
 import { format } from "../data/Formatter.ts"
 import { isObject } from "../data/Predicate.ts"
 import * as Reducer from "../data/Reducer.ts"
-import type * as Annotations from "./Annotations.ts"
+import type * as Anno from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
-type Target = Annotations.JsonSchema.Target
+type Target = Anno.JsonSchema.Target
 type Fragment = Schema.JsonSchema.Fragment
 
 /**
@@ -72,36 +72,36 @@ export const resolvers = {
 /**
  * @since 4.0.0
  */
-export function generate(schema: unknown, options?: GenerationOptions): Generation {
+export function generateOld(schema: unknown, options?: GenerationOptions): Generation {
   return build(schema, {
     resolver: options?.resolver ?? resolvers.identity,
     target: options?.target ?? "draft-07"
   })
 }
 
-interface GoOptions {
+interface RecurOptions {
   readonly resolver: (identifier: string) => Generation
   readonly target: Target
 }
 
-function build(schema: unknown, options: GoOptions): Generation {
-  if (schema === false) return Never
-  if (schema === true) return Unknown
-  if (!isObject(schema)) return Unknown
+function build(schema: unknown, options: RecurOptions): Generation {
+  if (schema === false) return NeverGen
+  if (schema === true) return UnknownGen
+  if (!isObject(schema)) return UnknownGen
 
   let out = base(schema, options)
   out = applyAnnotations(out, schema)
-  out = applyChecks(out, schema, options.target)
+  out = applyChecks(out, schema, options)
   return out
 }
 
 function applyAnnotations(out: Generation, schema: Fragment): Generation {
-  const as = collectAnnotations(schema)
+  const as = collectAnnotationsOld(schema)
   if (as.length === 0) return out
   return { ...out, runtime: `${out.runtime}.annotate({ ${as.join(", ")} })` }
 }
 
-function collectAnnotations(schema: Fragment): ReadonlyArray<string> {
+function collectAnnotationsOld(schema: Fragment): ReadonlyArray<string> {
   const as: Array<string> = []
   if (typeof schema.title === "string") as.push(`title: "${schema.title}"`)
   if (typeof schema.description === "string") as.push(`description: "${schema.description}"`)
@@ -110,13 +110,13 @@ function collectAnnotations(schema: Fragment): ReadonlyArray<string> {
   return as
 }
 
-function applyChecks(out: Generation, schema: Fragment, target: Target): Generation {
-  const cs = collectChecks(schema, target)
+function applyChecks(out: Generation, schema: Fragment, options: RecurOptions): Generation {
+  const cs = collectChecksOld(schema, options)
   if (cs.length === 0) return out
   return { ...out, runtime: `${out.runtime}.check(${cs.join(", ")})` }
 }
 
-function collectChecks(schema: Fragment, target: Target): Array<string> {
+function collectChecksOld(schema: Fragment, options: RecurOptions): Array<string> {
   const cs: Array<string> = []
 
   // String checks
@@ -133,7 +133,7 @@ function collectChecks(schema: Fragment, target: Target): Array<string> {
   if (typeof schema.multipleOf === "number") cs.push(`Schema.isMultipleOf(${schema.multipleOf})`)
 
   // Array checks
-  if (typeof schema.minItems === "number" && !isTupleWithMoreElementsThan(schema, schema.minItems, target)) {
+  if (typeof schema.minItems === "number" && !isTupleWithMoreElementsThan(schema, schema.minItems, options)) {
     // if `schema` is a tuple with more elements that `schema.minItems`
     // then this is already handled by element optionality
     cs.push(`Schema.isMinLength(${schema.minItems})`)
@@ -149,9 +149,9 @@ function collectChecks(schema: Fragment, target: Target): Array<string> {
   if (Array.isArray(schema.allOf)) {
     for (const member of schema.allOf) {
       if (isObject(member)) {
-        const checks = collectChecks(member, target)
+        const checks = collectChecksOld(member, options)
         if (checks.length > 0) {
-          const annotations = collectAnnotations(member)
+          const annotations = collectAnnotationsOld(member)
           if (annotations.length > 0) {
             checks[checks.length - 1] = checks[checks.length - 1].substring(0, checks[checks.length - 1].length - 1) +
               `, { ${annotations.join(", ")} })`
@@ -164,9 +164,9 @@ function collectChecks(schema: Fragment, target: Target): Array<string> {
   return cs
 }
 
-function isTupleWithMoreElementsThan(schema: Fragment, minItems: number, target: Target): boolean {
+function isTupleWithMoreElementsThan(schema: Fragment, minItems: number, options: RecurOptions): boolean {
   if (schema.type === "array") {
-    const elements = collectElements(schema, target)
+    const elements = collectElements(schema, options)
     if (elements !== undefined) return elements.length > minItems
   }
   return false
@@ -182,11 +182,11 @@ function hasType(schema: Fragment): schema is HasType {
   return typeof schema.type === "string" && types.includes(schema.type)
 }
 
-function handleType(type: Schema.JsonSchema.Type): Generation {
+function handleTypeOld(type: Schema.JsonSchema.Type): Generation {
   return primitives[type]
 }
 
-function handleHasType(schema: HasType, options: GoOptions): Generation {
+function handleHasType(schema: HasType, options: RecurOptions): Generation {
   switch (schema.type) {
     case "null":
     case "string":
@@ -195,17 +195,17 @@ function handleHasType(schema: HasType, options: GoOptions): Generation {
     case "boolean":
       return primitives[schema.type]
     case "object": {
-      const properties = collectProperties(schema, options)
-      const indexSignatures = collectIndexSignatures(schema, options)
+      const properties = collectPropertiesOld(schema, options)
+      const indexSignatures = collectIndexSignaturesOld(schema, options)
       return object(properties, indexSignatures)
     }
     case "array": {
       const minItems = typeof schema.minItems === "number" ? schema.minItems : Infinity
-      const elements = collectElements(schema, options.target)?.map((item, index): Element => ({
+      const elements = collectElements(schema, options)?.map((item, index): ElementGen => ({
         value: build(item, options),
         isRequired: index < minItems
       }))
-      const rest = collectRest(schema, options.target)
+      const rest = collectRest(schema, options)
       return array(
         elements !== undefined ? elements : rest === false ? [] : undefined,
         rest !== undefined && rest !== false ? build(rest, options) : undefined
@@ -214,8 +214,8 @@ function handleHasType(schema: HasType, options: GoOptions): Generation {
   }
 }
 
-function collectElements(schema: Fragment, target: Target): ReadonlyArray<Fragment> | undefined {
-  switch (target) {
+function collectElements(schema: Fragment, options: RecurOptions): ReadonlyArray<unknown> | undefined {
+  switch (options.target) {
     case "draft-07":
       return Array.isArray(schema.items) ? schema.items : undefined
     case "2020-12":
@@ -224,8 +224,8 @@ function collectElements(schema: Fragment, target: Target): ReadonlyArray<Fragme
   }
 }
 
-function collectRest(schema: Fragment, target: Target): Fragment | boolean | undefined {
-  switch (target) {
+function collectRest(schema: Fragment, options: RecurOptions): Fragment | boolean | undefined {
+  switch (options.target) {
     case "draft-07":
       return isObject(schema.items) || (typeof schema.items === "boolean")
         ? schema.items
@@ -240,9 +240,9 @@ function collectRest(schema: Fragment, target: Target): Fragment | boolean | und
   }
 }
 
-function base(schema: Fragment, options: GoOptions): Generation {
+function base(schema: Fragment, options: RecurOptions): Generation {
   if (Array.isArray(schema.type)) {
-    return union(schema.type.map(handleType), "anyOf")
+    return union(schema.type.map(handleTypeOld), "anyOf")
   }
 
   if (schema.const !== undefined) {
@@ -258,7 +258,7 @@ function base(schema: Fragment, options: GoOptions): Generation {
     const type = enums.join(" | ")
     switch (schema.enum.length) {
       case 0:
-        return Never
+        return NeverGen
       case 1:
         return {
           runtime: `Schema.Literal(${enums})`,
@@ -295,10 +295,10 @@ function base(schema: Fragment, options: GoOptions): Generation {
   }
 
   if (isObject(schema.not) && Object.keys(schema.not).length === 0) {
-    return Never
+    return NeverGen
   }
 
-  return Unknown
+  return UnknownGen
 }
 
 function extractIdentifier($ref: string): string | undefined {
@@ -316,13 +316,7 @@ function optionalType(isRequired: boolean, type: string): string {
   return isRequired ? type : `${type}?`
 }
 
-type Property = {
-  readonly key: string
-  readonly value: Generation
-  readonly isRequired: boolean
-}
-
-function collectProperties(schema: Fragment, options: GoOptions): Array<Property> {
+function collectPropertiesOld(schema: Fragment, options: RecurOptions): Array<PropertyGen> {
   const raw = isObject(schema.properties) ? schema.properties : {}
   const required = Array.isArray(schema.required) ? schema.required : []
   return Object.entries(raw).map(([key, v]) => {
@@ -335,77 +329,48 @@ function collectProperties(schema: Fragment, options: GoOptions): Array<Property
   })
 }
 
-type IndexSignature = {
-  readonly key: Generation
-  readonly value: Generation
-}
-
-function collectIndexSignatures(schema: Fragment, options: GoOptions): Array<IndexSignature> {
-  if (schema.additionalProperties === true) return [{ key: String, value: Unknown }]
+function collectIndexSignaturesOld(schema: Fragment, options: RecurOptions): Array<IndexSignatureGen> {
+  if (schema.additionalProperties === true) return [{ key: StringGen, value: UnknownGen }]
   if (isObject(schema.additionalProperties)) {
-    return [{ key: String, value: build(schema.additionalProperties, options) }]
+    return [{ key: StringGen, value: build(schema.additionalProperties, options) }]
   }
-  if (!schema.properties) return [{ key: String, value: Unknown }]
+  if (!schema.properties) return [{ key: StringGen, value: UnknownGen }]
   return []
 }
 
-function object(ps: ReadonlyArray<Property>, iss: ReadonlyArray<IndexSignature>): Generation {
-  if (iss.length === 0) {
-    return {
-      runtime: `Schema.Struct({ ${propertiesRuntime(ps)} })`,
-      type: `{ ${propertiesType(ps)} }`,
-      imports: propertiesImports(ps)
-    }
-  } else if (ps.length === 0 && iss.length === 1) {
-    return {
-      runtime: indexSignatureRuntime(iss[0]),
-      type: `{ ${indexSignatureType(iss[0])} }`,
-      imports: indexSignatureImports(iss[0])
-    }
-  } else {
-    return {
-      runtime: `Schema.StructWithRest(Schema.Struct({ ${propertiesRuntime(ps)} }), [${
-        iss.map(indexSignatureRuntime).join(", ")
-      }])`,
-      type: `{ ${propertiesType(ps)}, ${iss.map(indexSignatureType).join(", ")} }`,
-      imports: ReadonlySetReducer.combineAll([propertiesImports(ps), ...iss.map(indexSignatureImports)])
-    }
-  }
-}
-
-function propertiesRuntime(ps: ReadonlyArray<Property>): string {
+function propertiesRuntime(ps: ReadonlyArray<PropertyGen>): string {
   return ps.map((p) => `${p.key}: ${optionalRuntime(p.isRequired, p.value.runtime)}`).join(", ")
 }
 
-function propertiesType(ps: ReadonlyArray<Property>): string {
+function propertiesType(ps: ReadonlyArray<PropertyGen>): string {
   return ps.map((p) => `readonly ${optionalType(p.isRequired, p.key)}: ${p.value.type}`).join(", ")
 }
 
-function propertiesImports(ps: ReadonlyArray<Property>): ReadonlySet<string> {
+function propertiesImports(ps: ReadonlyArray<PropertyGen>): ReadonlySet<string> {
   return ReadonlySetReducer.combineAll(ps.map((p) => p.value.imports))
 }
 
-function indexSignatureRuntime(is: IndexSignature) {
+function indexSignatureRuntime(is: IndexSignatureGen) {
   return `Schema.Record(${is.key.runtime}, ${is.value.runtime})`
 }
 
-function indexSignatureType(is: IndexSignature) {
+function indexSignatureType(is: IndexSignatureGen) {
   return `readonly [x: ${is.key.type}]: ${is.value.type}`
 }
 
-function indexSignatureImports(is: IndexSignature): ReadonlySet<string> {
+function indexSignatureImports(is: IndexSignatureGen): ReadonlySet<string> {
   return ReadonlySetReducer.combine(is.key.imports, is.value.imports)
 }
 
-type Element = {
+type ElementGen = {
   readonly value: Generation
   readonly isRequired: boolean
 }
 
-function array(es: ReadonlyArray<Element> | undefined, rest: Generation | undefined): Generation {
+function array(es: ReadonlyArray<ElementGen> | undefined, rest: Generation | undefined): Generation {
   if (es === undefined) {
     if (rest === undefined) {
-      return UnknownArray
+      return UnknownArrayGen
     } else {
       return {
         runtime: `Schema.Array(${rest.runtime})`,
@@ -430,15 +395,15 @@ function array(es: ReadonlyArray<Element> | undefined, rest: Generation | undefi
   }
 }
 
-function elementsRuntime(es: ReadonlyArray<Element>): string {
+function elementsRuntime(es: ReadonlyArray<ElementGen>): string {
   return es.map((e) => optionalRuntime(e.isRequired, e.value.runtime)).join(", ")
 }
 
-function elementsType(es: ReadonlyArray<Element>): string {
+function elementsType(es: ReadonlyArray<ElementGen>): string {
   return `${es.map((e) => optionalType(e.isRequired, e.value.type)).join(", ")}`
 }
 
-function elementsImports(es: ReadonlyArray<Element>): ReadonlySet<string> {
+function elementsImports(es: ReadonlyArray<ElementGen>): ReadonlySet<string> {
   return ReadonlySetReducer.combineAll(es.map((e) => e.value.imports))
 }
 
@@ -454,24 +419,24 @@ function primitive(code: string, type: string): Generation {
   return { runtime: code, type, imports: emptySet }
 }
 
-const Never: Generation = primitive("Schema.Never", "never")
-const Unknown: Generation = primitive("Schema.Unknown", "unknown")
-const Null: Generation = primitive("Schema.Null", "null")
-const String: Generation = primitive("Schema.String", "string")
-const Number: Generation = primitive("Schema.Number", "number")
-const Int: Generation = primitive("Schema.Int", "number")
-const Boolean: Generation = primitive("Schema.Boolean", "boolean")
-const UnknownRecord: Generation = object([], [{ key: String, value: Unknown }])
-const UnknownArray: Generation = array(undefined, Unknown)
+const NeverGen: Generation = primitive("Schema.Never", "never")
+const UnknownGen: Generation = primitive("Schema.Unknown", "unknown")
+const NullGen: Generation = primitive("Schema.Null", "null")
+const StringGen: Generation = primitive("Schema.String", "string")
+const NumberGen: Generation = primitive("Schema.Number", "number")
+const IntGen: Generation = primitive("Schema.Int", "number")
+const BooleanGen: Generation = primitive("Schema.Boolean", "boolean")
+const UnknownRecordGen: Generation = object([], [{ key: StringGen, value: UnknownGen }])
+const UnknownArrayGen: Generation = array(undefined, UnknownGen)
 
 const primitives = {
-  "null": Null,
-  "string": String,
-  "number": Number,
-  "integer": Int,
-  "boolean": Boolean,
-  "object": UnknownRecord,
-  "array": UnknownArray
+  "null": NullGen,
+  "string": StringGen,
+  "number": NumberGen,
+  "integer": IntGen,
+  "boolean": BooleanGen,
+  "object": UnknownRecordGen,
+  "array": UnknownArrayGen
 }
 
 /**
@@ -648,7 +613,7 @@ export function generateDefinitions(definitions: Schema.JsonSchema.Definitions, 
   return ts.nonRecursives.concat(
     Object.entries(ts.recursives).map(([identifier, schema]) => ({ identifier, schema }))
   ).map(({ identifier, schema }) => {
-    const output = generate(schema, opts)
+    const output = generateOld(schema, opts)
     return {
       identifier,
       generation: {
@@ -658,4 +623,831 @@ export function generateDefinitions(definitions: Schema.JsonSchema.Definitions, 
       }
     }
   })
+}
+
+type Annotations = {
+  readonly description?: string | undefined
+  readonly title?: string | undefined
+  readonly examples?: ReadonlyArray<unknown> | undefined
+  readonly default?: unknown | undefined
+}
+
+type AST =
+  | Unknown
+  | Never
+  | Not
+  | Null
+  | String
+  | Number
+  | Boolean
+  | Const
+  | Enum
+  | Arrays
+  | Objects
+  | Union
+  | Reference
+
+type Check =
+  | StringCheck
+  | NumberCheck
+  | ArraysCheck
+  | ObjectsCheck
+
+class Unknown {
+  readonly _tag = "Unknown"
+  readonly checks: ReadonlyArray<Check>
+  readonly annotations: Annotations
+  constructor(checks: ReadonlyArray<Check>, annotations: Annotations = {}) {
+    this.checks = checks
+    this.annotations = annotations
+  }
+  annotate(annotations: Annotations): Unknown {
+    return new Unknown(this.checks, { ...this.annotations, ...annotations })
+  }
+  check(f: Fragment): AST {
+    let checks: Array<Check> = []
+    checks = checks.concat(String.check(f))
+    checks = checks.concat(Number.check(f))
+    checks = checks.concat(Arrays.check(f))
+    checks = checks.concat(Objects.check(f))
+    return new Unknown([...this.checks, ...checks], this.annotations)
+  }
+  combine(that: AST): AST {
+    return that
+  }
+  toGeneration(): Generation {
+    return {
+      runtime: "Schema.Unknown" + getAnnotations(this),
+      type: "unknown",
+      imports: emptySet
+    }
+  }
+}
+
+class Never {
+  readonly _tag = "Never"
+  readonly annotations: Annotations
+  constructor(annotations: Annotations = {}) {
+    this.annotations = annotations
+  }
+  annotate(annotations: Annotations): Never {
+    return new Never({ ...this.annotations, ...annotations })
+  }
+  check(_: Fragment): AST {
+    return this
+  }
+  combine(_: AST): AST {
+    return new Never()
+  }
+  toGeneration(): Generation {
+    return {
+      runtime: "Schema.Never" + getAnnotations(this),
+      type: "never",
+      imports: emptySet
+    }
+  }
+}
+
+class Not {
+  readonly _tag = "Not"
+  readonly ast: AST
+  readonly annotations: Annotations
+  constructor(ast: AST, annotations: Annotations = {}) {
+    this.ast = ast
+    this.annotations = annotations
+  }
+  annotate(annotations: Annotations): Not {
+    return new Not(this.ast, { ...this.annotations, ...annotations })
+  }
+  check(_: Fragment): AST {
+    return this
+  }
+  combine(_: AST): AST {
+    return new Never()
+  }
+  toGeneration(): Generation {
+    return new Never(this.annotations).toGeneration()
+  }
+}
+
+class Null {
+  readonly _tag = "Null"
+  readonly annotations: Annotations
+  constructor(annotations: Annotations = {}) {
+    this.annotations = annotations
+  }
+  annotate(annotations: Annotations): Null {
+    return new Null({ ...this.annotations, ...annotations })
+  }
+  check(_: Fragment): AST {
+    return this
+  }
+  combine(_: AST): AST {
+    return new Never()
+  }
+  toGeneration(): Generation {
+    return {
+      runtime: "Schema.Null" + getAnnotations(this),
+      type: "null",
+      imports: emptySet
+    }
+  }
+}
+
+type StringCheck =
+  | { readonly _tag: "minLength"; readonly value: number }
+  | { readonly _tag: "maxLength"; readonly value: number }
+  | { readonly _tag: "pattern"; readonly value: string }
+
+function isStringCheck(check: Check): check is StringCheck {
+  return check._tag === "minLength" || check._tag === "maxLength" || check._tag === "pattern"
+}
+
+class String {
+  static check(f: Fragment): Array<StringCheck> {
+    const cs: Array<StringCheck> = []
+    if (typeof f.minLength === "number") cs.push({ _tag: "minLength", value: f.minLength })
+    if (typeof f.maxLength === "number") cs.push({ _tag: "maxLength", value: f.maxLength })
+    // Escape forward slashes to prevent them from terminating the regex literal delimiter
+    if (typeof f.pattern === "string") cs.push({ _tag: "pattern", value: f.pattern.replace(/\//g, "\\/") })
+    return cs
+  }
+  readonly _tag = "String"
+  readonly checks: ReadonlyArray<StringCheck>
+  readonly annotations: Annotations
+  constructor(checks: ReadonlyArray<StringCheck>, annotations: Annotations = {}) {
+    this.checks = checks
+    this.annotations = annotations
+  }
+  annotate(annotations: Annotations): String {
+    return new String(this.checks, { ...this.annotations, ...annotations })
+  }
+  check(f: Fragment): AST {
+    return new String([...this.checks, ...String.check(f)], this.annotations)
+  }
+  getCheck(check: StringCheck): string {
+    switch (check._tag) {
+      case "minLength":
+        return `Schema.isMinLength(${check.value})`
+      case "maxLength":
+        return `Schema.isMaxLength(${check.value})`
+      case "pattern":
+        return `Schema.isPattern(/${check.value}/)`
+    }
+  }
+  getChecks(): string {
+    return this.checks.length > 0 ? `.check(${this.checks.map((c) => this.getCheck(c)).join(", ")})` : ""
+  }
+  combine(that: AST): AST {
+    switch (that._tag) {
+      case "String":
+        return new String([...this.checks, ...that.checks], {
+          ...this.annotations,
+          ...that.annotations
+        })
+      case "Unknown": {
+        return new String([...this.checks, ...that.checks.filter(isStringCheck)], {
+          ...this.annotations,
+          ...that.annotations
+        })
+      }
+      default:
+        return new Never()
+    }
+  }
+  toGeneration(): Generation {
+    return {
+      runtime: "Schema.String" + this.getChecks() + getAnnotations(this),
+      type: "string",
+      imports: emptySet
+    }
+  }
+}
+
+function getAnnotations(ast: AST): string {
+  if (ast.annotations === undefined || Object.keys(ast.annotations).length === 0) return ""
+  return `.annotate({ ${
+    Object.entries(ast.annotations).map(([key, value]) => `${key}: ${format(value)}`).join(", ")
+  } })`
+}
+
+type NumberCheck =
+  | { readonly _tag: "greaterThanOrEqualTo"; readonly value: number }
+  | { readonly _tag: "lessThanOrEqualTo"; readonly value: number }
+  | { readonly _tag: "greaterThan"; readonly value: number }
+  | { readonly _tag: "lessThan"; readonly value: number }
+  | { readonly _tag: "multipleOf"; readonly value: number }
+
+function isNumberCheck(check: Check): check is NumberCheck {
+  return check._tag === "greaterThanOrEqualTo" || check._tag === "lessThanOrEqualTo" || check._tag === "greaterThan" ||
+    check._tag === "lessThan" || check._tag === "multipleOf"
+}
+
+class Number {
+  static check(f: Fragment): Array<NumberCheck> {
+    const cs: Array<NumberCheck> = []
+    if (typeof f.minimum === "number") cs.push({ _tag: "greaterThanOrEqualTo", value: f.minimum })
+    if (typeof f.maximum === "number") cs.push({ _tag: "lessThanOrEqualTo", value: f.maximum })
+    if (typeof f.exclusiveMinimum === "number") cs.push({ _tag: "greaterThan", value: f.exclusiveMinimum })
+    if (typeof f.exclusiveMaximum === "number") cs.push({ _tag: "lessThan", value: f.exclusiveMaximum })
+    if (typeof f.multipleOf === "number") cs.push({ _tag: "multipleOf", value: f.multipleOf })
+    return cs
+  }
+  readonly _tag = "Number"
+  readonly isInteger: boolean
+  readonly checks: ReadonlyArray<NumberCheck>
+  readonly annotations: Annotations
+  constructor(
+    isInteger: boolean,
+    checks: ReadonlyArray<NumberCheck>,
+    annotations: Annotations = {}
+  ) {
+    this.isInteger = isInteger
+    this.checks = checks
+    this.annotations = annotations
+  }
+  annotate(annotations: Annotations): Number {
+    return new Number(this.isInteger, this.checks, { ...this.annotations, ...annotations })
+  }
+  check(f: Fragment): AST {
+    return new Number(this.isInteger, [...this.checks, ...Number.check(f)], this.annotations)
+  }
+  getCheck(check: NumberCheck): string {
+    switch (check._tag) {
+      case "greaterThanOrEqualTo":
+        return `Schema.isGreaterThanOrEqualTo(${check.value})`
+      case "lessThanOrEqualTo":
+        return `Schema.isLessThanOrEqualTo(${check.value})`
+      case "greaterThan":
+        return `Schema.isGreaterThan(${check.value})`
+      case "lessThan":
+        return `Schema.isLessThan(${check.value})`
+      case "multipleOf":
+        return `Schema.isMultipleOf(${check.value})`
+    }
+  }
+  getChecks(): string {
+    return this.checks.length > 0 ? `.check(${this.checks.map((c) => this.getCheck(c)).join(", ")})` : ""
+  }
+  combine(that: AST): AST {
+    switch (that._tag) {
+      case "Number":
+        return new Number(this.isInteger || that.isInteger, [...this.checks, ...that.checks], {
+          ...this.annotations,
+          ...that.annotations
+        })
+      case "Unknown": {
+        return new Number(this.isInteger, [...this.checks, ...that.checks.filter(isNumberCheck)], {
+          ...this.annotations,
+          ...that.annotations
+        })
+      }
+      default:
+        return new Never()
+    }
+  }
+  toGeneration(): Generation {
+    return {
+      runtime: (this.isInteger ? "Schema.Int" : "Schema.Number") + this.getChecks() + getAnnotations(this),
+      type: "number",
+      imports: emptySet
+    }
+  }
+}
+
+class Boolean {
+  readonly _tag = "Boolean"
+  readonly annotations: Annotations
+  constructor(annotations: Annotations = {}) {
+    this.annotations = annotations
+  }
+  annotate(annotations: Annotations): Boolean {
+    return new Boolean({ ...this.annotations, ...annotations })
+  }
+  check(_: Fragment): AST {
+    return this
+  }
+  combine(_: AST): AST {
+    return new Never()
+  }
+  toGeneration(): Generation {
+    return { runtime: "Schema.Boolean" + getAnnotations(this), type: "boolean", imports: emptySet }
+  }
+}
+
+class Const {
+  readonly _tag = "Const"
+  readonly value: unknown
+  readonly annotations: Annotations
+  constructor(value: unknown, annotations: Annotations = {}) {
+    this.annotations = annotations
+    this.value = value
+  }
+  annotate(annotations: Annotations): Const {
+    return new Const(this.value, { ...this.annotations, ...annotations })
+  }
+  check(_: Fragment): AST {
+    return this
+  }
+  combine(_: AST): AST {
+    return new Never()
+  }
+  toGeneration(): Generation {
+    return { runtime: `Schema.Literal(${format(this.value)})`, type: format(this.value), imports: emptySet }
+  }
+}
+
+class Enum {
+  readonly _tag = "Enum"
+  readonly values: ReadonlyArray<unknown>
+  readonly annotations: Annotations
+  constructor(values: ReadonlyArray<unknown>, annotations: Annotations = {}) {
+    this.annotations = annotations
+    this.values = values
+  }
+  annotate(annotations: Annotations): Enum {
+    return new Enum(this.values, { ...this.annotations, ...annotations })
+  }
+  check(_: Fragment): AST {
+    return this
+  }
+  combine(_: AST): AST {
+    return new Never()
+  }
+  toGeneration(): Generation {
+    const values = this.values.map((v) => format(v))
+    if (values.length === 1) {
+      return {
+        runtime: `Schema.Literal(${values[0]})`,
+        type: values[0],
+        imports: emptySet
+      }
+    } else {
+      return {
+        runtime: `Schema.Literals([${values.join(", ")}])`,
+        type: values.join(" | "),
+        imports: emptySet
+      }
+    }
+  }
+}
+
+type ArraysCheck =
+  | { readonly _tag: "minItems"; readonly value: number }
+  | { readonly _tag: "maxItems"; readonly value: number }
+  | { readonly _tag: "uniqueItems" }
+
+function isArraysCheck(check: Check): check is ArraysCheck {
+  return check._tag === "minItems" || check._tag === "maxItems" || check._tag === "uniqueItems"
+}
+
+class Element {
+  readonly isOptional: boolean
+  readonly ast: AST
+  constructor(isOptional: boolean, ast: AST) {
+    this.isOptional = isOptional
+    this.ast = ast
+  }
+  annotate(annotations: Annotations): Element {
+    return new Element(this.isOptional, this.ast.annotate(annotations))
+  }
+}
+
+class Arrays {
+  static check(f: Fragment): Array<ArraysCheck> {
+    const cs: Array<ArraysCheck> = []
+    if (typeof f.minItems === "number") cs.push({ _tag: "minItems", value: f.minItems })
+    if (typeof f.maxItems === "number") cs.push({ _tag: "maxItems", value: f.maxItems })
+    if (f.uniqueItems === true) cs.push({ _tag: "uniqueItems" })
+    return cs
+  }
+  readonly _tag = "Arrays"
+  readonly elements: ReadonlyArray<Element>
+  readonly rest: AST | undefined
+  readonly checks: ReadonlyArray<ArraysCheck>
+  readonly annotations: Annotations
+  constructor(
+    elements: ReadonlyArray<Element>,
+    rest: AST | undefined,
+    checks: ReadonlyArray<ArraysCheck>,
+    annotations: Annotations = {}
+  ) {
+    this.elements = elements
+    this.rest = rest
+    this.checks = checks
+    this.annotations = annotations
+  }
+  annotate(annotations: Annotations): Arrays {
+    return new Arrays(this.elements, this.rest, this.checks, { ...this.annotations, ...annotations })
+  }
+  check(schema: Fragment): AST {
+    return new Arrays(this.elements, this.rest, [...this.checks, ...Arrays.check(schema)], this.annotations)
+  }
+  getCheck(check: ArraysCheck): string {
+    switch (check._tag) {
+      case "minItems":
+        return `Schema.isMinLength(${check.value})`
+      case "maxItems":
+        return `Schema.isMaxLength(${check.value})`
+      case "uniqueItems":
+        return `Schema.isUnique()`
+    }
+  }
+  getChecks(): string {
+    return this.checks.length > 0 ? `.check(${this.checks.map((c) => this.getCheck(c)).join(", ")})` : ""
+  }
+  combine(that: AST): AST {
+    switch (that._tag) {
+      case "Arrays":
+      case "Unknown": {
+        return new Arrays(this.elements, this.rest, [...this.checks, ...that.checks].filter(isArraysCheck), {
+          ...this.annotations,
+          ...that.annotations
+        })
+      }
+      default:
+        return new Never()
+    }
+  }
+  toGeneration(): Generation {
+    const es = this.elements.map((e) => e.ast.toGeneration())
+    const rest = this.rest?.toGeneration()
+    if (es.length === 0) {
+      if (rest === undefined) {
+        return {
+          runtime: `Schema.Tuple([])` + this.getChecks() + getAnnotations(this),
+          type: `readonly []`,
+          imports: emptySet
+        }
+      } else {
+        return {
+          runtime: `Schema.Array(${rest.runtime})` + this.getChecks() + getAnnotations(this),
+          type: `ReadonlyArray<${rest.type}>`,
+          imports: rest.imports
+        }
+      }
+    } else {
+      if (rest === undefined) {
+        return {
+          runtime: `Schema.Tuple([${es.map((e) => e.runtime).join(", ")}])` + this.getChecks() + getAnnotations(this),
+          type: `readonly [${es.map((e) => e.type).join(", ")}]`,
+          imports: ReadonlySetReducer.combineAll(es.map((e) => e.imports))
+        }
+      } else {
+        return {
+          runtime: `Schema.TupleWithRest(Schema.Tuple([${es.map((e) => e.runtime).join(", ")}]), [${rest.runtime}])` +
+            this.getChecks() + getAnnotations(this),
+          type: `readonly [${es.map((e) => e.type).join(", ")}, ...Array<${rest.type}>]`,
+          imports: ReadonlySetReducer.combineAll([...es.map((e) => e.imports), rest.imports])
+        }
+      }
+    }
+  }
+}
+
+type ObjectsCheck =
+  | { readonly _tag: "minProperties"; readonly value: number }
+  | { readonly _tag: "maxProperties"; readonly value: number }
+
+function isObjectsCheck(check: Check): check is ObjectsCheck {
+  return check._tag === "minProperties" || check._tag === "maxProperties"
+}
+
+class Property {
+  readonly isOptional: boolean
+  readonly key: string
+  readonly value: AST
+  constructor(isOptional: boolean, key: string, value: AST) {
+    this.isOptional = isOptional
+    this.key = key
+    this.value = value
+  }
+}
+
+class IndexSignature {
+  readonly key: AST
+  readonly value: AST
+  constructor(key: AST, value: AST) {
+    this.key = key
+    this.value = value
+  }
+}
+
+class Objects {
+  static check(f: Fragment): Array<ObjectsCheck> {
+    const cs: Array<ObjectsCheck> = []
+    if (typeof f.minProperties === "number") cs.push({ _tag: "minProperties", value: f.minProperties })
+    if (typeof f.maxProperties === "number") cs.push({ _tag: "maxProperties", value: f.maxProperties })
+    return cs
+  }
+  readonly _tag = "Objects"
+  readonly properties: ReadonlyArray<Property>
+  readonly indexSignatures: ReadonlyArray<IndexSignature>
+  readonly checks: ReadonlyArray<ObjectsCheck>
+  readonly annotations: Annotations
+  constructor(
+    properties: ReadonlyArray<Property>,
+    indexSignatures: ReadonlyArray<IndexSignature>,
+    checks: ReadonlyArray<ObjectsCheck>,
+    annotations: Annotations = {}
+  ) {
+    this.properties = properties
+    this.indexSignatures = indexSignatures
+    this.checks = checks
+    this.annotations = annotations
+  }
+  annotate(annotations: Annotations): Objects {
+    return new Objects(this.properties, this.indexSignatures, this.checks, { ...this.annotations, ...annotations })
+  }
+  check(schema: Fragment): AST {
+    return new Objects(
+      this.properties,
+      this.indexSignatures,
+      [...this.checks, ...Objects.check(schema)],
+      this.annotations
+    )
+  }
+  getCheck(check: ObjectsCheck): string {
+    switch (check._tag) {
+      case "minProperties":
+        return `Schema.isMinProperties(${check.value})`
+      case "maxProperties":
+        return `Schema.isMaxProperties(${check.value})`
+    }
+  }
+  getChecks(): string {
+    return this.checks.length > 0 ? `.check(${this.checks.map((c) => this.getCheck(c)).join(", ")})` : ""
+  }
+  combine(that: AST): AST {
+    switch (that._tag) {
+      case "Objects":
+      case "Unknown": {
+        return new Objects(
+          this.properties,
+          this.indexSignatures,
+          [...this.checks, ...that.checks].filter(isObjectsCheck),
+          {
+            ...this.annotations,
+            ...that.annotations
+          }
+        )
+      }
+      default:
+        return new Never()
+    }
+  }
+  toGeneration(): Generation {
+    const ps = this.properties.map((p) => {
+      const value = p.value.toGeneration()
+      return {
+        key: p.key,
+        value,
+        isRequired: !p.isOptional
+      }
+    })
+    const iss = this.indexSignatures.map((is) => {
+      const key = is.key.toGeneration()
+      const value = is.value.toGeneration()
+      return {
+        key,
+        value
+      }
+    })
+    if (iss.length === 0) {
+      return {
+        runtime: `Schema.Struct({ ${propertiesRuntime(ps)} })` + this.getChecks() + getAnnotations(this),
+        type: `{ ${propertiesType(ps)} }`,
+        imports: propertiesImports(ps)
+      }
+    } else if (ps.length === 0 && iss.length === 1) {
+      return {
+        runtime: indexSignatureRuntime(iss[0]) + this.getChecks() + getAnnotations(this),
+        type: `{ ${indexSignatureType(iss[0])} }`,
+        imports: indexSignatureImports(iss[0])
+      }
+    } else {
+      return {
+        runtime:
+          `Schema.StructWithRest(Schema.Struct({ ${propertiesRuntime(ps)} }), [${
+            iss.map(indexSignatureRuntime).join(", ")
+          }])` + this.getChecks() + getAnnotations(this),
+        type: `{ ${propertiesType(ps)}, ${iss.map(indexSignatureType).join(", ")} }`,
+        imports: ReadonlySetReducer.combineAll([propertiesImports(ps), ...iss.map(indexSignatureImports)])
+      }
+    }
+  }
+}
+
+type PropertyGen = {
+  readonly key: string
+  readonly value: Generation
+  readonly isRequired: boolean
+}
+
+type IndexSignatureGen = {
+  readonly key: Generation
+  readonly value: Generation
+}
+
+function object(ps: ReadonlyArray<PropertyGen>, iss: ReadonlyArray<IndexSignatureGen>): Generation {
+  if (iss.length === 0) {
+    return {
+      runtime: `Schema.Struct({ ${propertiesRuntime(ps)} })`,
+      type: `{ ${propertiesType(ps)} }`,
+      imports: propertiesImports(ps)
+    }
+  } else if (ps.length === 0 && iss.length === 1) {
+    return {
+      runtime: indexSignatureRuntime(iss[0]),
+      type: `{ ${indexSignatureType(iss[0])} }`,
+      imports: indexSignatureImports(iss[0])
+    }
+  } else {
+    return {
+      runtime: `Schema.StructWithRest(Schema.Struct({ ${propertiesRuntime(ps)} }), [${
+        iss.map(indexSignatureRuntime).join(", ")
+      }])`,
+      type: `{ ${propertiesType(ps)}, ${iss.map(indexSignatureType).join(", ")} }`,
+      imports: ReadonlySetReducer.combineAll([propertiesImports(ps), ...iss.map(indexSignatureImports)])
+    }
+  }
+}
+
+class Union {
+  readonly _tag = "Union"
+  readonly members: ReadonlyArray<AST>
+  readonly mode: "anyOf" | "oneOf"
+  readonly annotations: Annotations
+  constructor(members: ReadonlyArray<AST>, mode: "anyOf" | "oneOf", annotations: Annotations = {}) {
+    this.members = members
+    this.mode = mode
+    this.annotations = annotations
+  }
+  annotate(annotations: Annotations): Union {
+    return new Union(this.members, this.mode, { ...this.annotations, ...annotations })
+  }
+  check(_: Fragment): AST {
+    return this
+  }
+  combine(_: AST): AST {
+    return new Never()
+  }
+  toGeneration(): Generation {
+    const members = this.members.map((m) => m.toGeneration())
+    return {
+      runtime: `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${
+        this.mode === "oneOf" ? `, {mode:"oneOf"}` : ""
+      }${getAnnotations(this)})`,
+      type: members.map((m) => m.type).join(" | "),
+      imports: ReadonlySetReducer.combineAll(members.map((m) => m.imports))
+    }
+  }
+}
+
+class Reference {
+  readonly _tag = "Reference"
+  readonly toGeneration: () => Generation
+  readonly annotations: Annotations
+  constructor(toGeneration: () => Generation, annotations: Annotations = {}) {
+    this.toGeneration = toGeneration
+    this.annotations = annotations
+  }
+  annotate(annotations: Annotations): Reference {
+    return new Reference(this.toGeneration, { ...this.annotations, ...annotations })
+  }
+  check(_: Fragment): AST {
+    return this
+  }
+  combine(_: AST): AST {
+    return new Never()
+  }
+}
+
+/** @internal */
+export function generate(schema: unknown, options?: GenerationOptions): Generation {
+  return parse(schema, {
+    resolver: options?.resolver ?? resolvers.identity,
+    target: options?.target ?? "draft-07"
+  }).toGeneration()
+}
+
+function parse(schema: unknown, options: RecurOptions): AST {
+  if (schema === false) return new Never()
+  if (schema === true) return new Unknown([])
+  if (isObject(schema)) {
+    let ast = parseFragment(schema, options)
+    const annotations = collectAnnotations(schema)
+    if (annotations) ast = ast.annotate(annotations)
+    ast = ast.check(schema)
+    if (Array.isArray(schema.allOf)) {
+      return [ast, ...schema.allOf.map((m) => parse(m, options))].reduce((acc, curr) => acc.combine(curr), ast)
+    }
+    return ast
+  }
+  return new Unknown([])
+}
+
+function parseFragment(schema: Fragment, options: RecurOptions): AST {
+  if (Array.isArray(schema.anyOf)) {
+    return new Union(schema.anyOf.map((m) => parse(m, options)), "anyOf")
+  }
+  if (Array.isArray(schema.oneOf)) {
+    return new Union(schema.oneOf.map((m) => parse(m, options)), "oneOf")
+  }
+
+  if (Array.isArray(schema.type)) {
+    return new Union(schema.type.filter(isType).map((type) => handleType(type, {}, options)), "anyOf")
+  }
+
+  if (schema.const !== undefined) {
+    return new Const(schema.const)
+  }
+
+  if (Array.isArray(schema.enum)) {
+    return new Enum(schema.enum)
+  }
+
+  if (isType(schema.type)) {
+    return handleType(schema.type, schema, options)
+  }
+
+  if (typeof schema.$ref === "string") {
+    const identifier = extractIdentifier(schema.$ref)
+    if (identifier !== undefined) {
+      return new Reference(() => options.resolver(identifier))
+    }
+    throw new Error(`Invalid $ref: ${schema.$ref}`)
+  }
+
+  if (isObject(schema.not)) {
+    return new Not(parse(schema.not, options))
+  }
+
+  return new Unknown([])
+}
+
+function isType(type: unknown): type is Schema.JsonSchema.Type {
+  return typeof type === "string" && types.includes(type)
+}
+
+function handleType(type: Schema.JsonSchema.Type, schema: Fragment, options: RecurOptions): AST {
+  switch (type) {
+    case "null":
+      return new Null()
+    case "string":
+      return new String([])
+    case "number":
+      return new Number(false, [])
+    case "integer":
+      return new Number(true, [])
+    case "boolean":
+      return new Boolean()
+    case "object": {
+      return new Objects(
+        collectProperties(schema, options),
+        collectIndexSignatures(schema, options),
+        []
+      )
+    }
+    case "array": {
+      const minItems = typeof schema.minItems === "number" ? schema.minItems : Infinity
+      const elements = collectElements(schema, options)?.map((item, index): Element =>
+        new Element(!(index < minItems), parse(item, options))
+      )
+      const rest = collectRest(schema, options)
+
+      return new Arrays(
+        elements ?? [],
+        rest !== undefined ? parse(rest, options) : elements === undefined ? new Unknown([]) : undefined,
+        []
+      )
+    }
+  }
+}
+
+function collectProperties(schema: Fragment, options: RecurOptions): Array<Property> {
+  const raw = isObject(schema.properties) ? schema.properties : {}
+  const required = Array.isArray(schema.required) ? schema.required : []
+  return Object.entries(raw).map(([key, v]) => new Property(!required.includes(key), key, parse(v, options)))
+}
+
+function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<IndexSignature> {
+  if (schema.additionalProperties === true) return [new IndexSignature(new String([]), new Unknown([]))]
+  if (isObject(schema.additionalProperties)) {
+    return [new IndexSignature(new String([]), parse(schema.additionalProperties, options))]
+  }
+  if (!schema.properties) return [new IndexSignature(new String([]), new Unknown([]))]
+  return []
+}
+
+function collectAnnotations(schema: Fragment): Annotations | undefined {
+  const as: { -readonly [K in keyof Annotations]?: Annotations[K] } = {}
+
+  if (typeof schema.title === "string") as.title = schema.title
+  if (typeof schema.description === "string") as.description = schema.description
+  if (schema.default !== undefined) as.default = schema.default
+  if (Array.isArray(schema.examples)) as.examples = schema.examples
+
+  if (Object.keys(as).length === 0) return undefined
+  return as
 }
