@@ -867,46 +867,35 @@ export const runWith = <const Name extends string, Input, E, R>(
         return
       }
 
-      // Parse command arguments (built-ins are extracted automatically)
+      // Lex and extract built-in flags
       const { tokens, trailingOperands } = Lexer.lex(args)
-      const {
-        completions,
-        help,
-        logLevel,
-        remainder,
-        version
-      } = yield* Parser.extractBuiltInOptions(tokens)
+      const { completions, help, logLevel, remainder, version } = yield* Parser.extractBuiltInOptions(tokens)
       const parsedArgs = yield* Parser.parseArgs({ tokens: remainder, trailingOperands }, command)
-      const helpRenderer = yield* HelpFormatter.HelpRenderer
+      const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)] as const
 
+      // Handle built-in flags (early exits)
       if (help) {
-        const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
-        const helpDoc = getHelpForCommandPath(command, commandPath)
-        const helpText = helpRenderer.formatHelpDoc(helpDoc)
-        yield* Console.log(helpText)
+        const helpRenderer = yield* HelpFormatter.HelpRenderer
+        yield* Console.log(helpRenderer.formatHelpDoc(getHelpForCommandPath(command, commandPath)))
         return
-      } else if (completions !== undefined) {
-        const script = generateDynamicCompletion(command, command.name, completions)
-        yield* Console.log(script)
+      }
+      if (completions !== undefined) {
+        yield* Console.log(generateDynamicCompletion(command, command.name, completions))
         return
-      } else if (version && command.subcommands.length === 0) {
-        const versionText = helpRenderer.formatVersion(command.name, config.version)
-        yield* Console.log(versionText)
+      }
+      if (version && command.subcommands.length === 0) {
+        const helpRenderer = yield* HelpFormatter.HelpRenderer
+        yield* Console.log(helpRenderer.formatVersion(command.name, config.version))
         return
       }
 
-      // If there are parsing errors and no help was requested, format and display the error
+      // Handle parsing errors
       if (parsedArgs.errors && parsedArgs.errors.length > 0) {
-        const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
-        yield* showHelp(command, commandPath, parsedArgs.errors[0])
-        return
+        return yield* showHelp(command, commandPath, parsedArgs.errors[0])
       }
-
       const parseResult = yield* Effect.result(commandImpl.parse(parsedArgs))
       if (parseResult._tag === "Failure") {
-        const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
-        yield* showHelp(command, commandPath, parseResult.failure)
-        return
+        return yield* showHelp(command, commandPath, parseResult.failure)
       }
       const parsed = parseResult.success
 
