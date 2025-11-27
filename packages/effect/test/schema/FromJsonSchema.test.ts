@@ -1291,7 +1291,10 @@ const schema1 = Schema.Struct({ a: A });`
       )
       assertGeneration(
         { schema: { "type": "string", "description": "lorem", "allOf": [{ "minLength": 1, "description": "ipsum" }] } },
-        { runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "ipsum" })`, type: "string" }
+        {
+          runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "lorem and ipsum" })`,
+          type: "string"
+        }
       )
     })
 
@@ -1333,7 +1336,7 @@ const schema1 = Schema.Struct({ a: A });`
       assertGeneration(
         { schema: { "type": "number", "description": "lorem", "allOf": [{ "minimum": 1, "description": "ipsum" }] } },
         {
-          runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ description: "ipsum" })`,
+          runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ description: "lorem and ipsum" })`,
           type: "number"
         }
       )

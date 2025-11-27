@@ -16,9 +16,13 @@
  *
  * @since 4.0.0
  */
+import * as Arr from "../collections/Array.ts"
+import * as Combiner from "../data/Combiner.ts"
 import { format } from "../data/Formatter.ts"
-import { isObject } from "../data/Predicate.ts"
+import { isObject, isUndefined } from "../data/Predicate.ts"
 import * as Reducer from "../data/Reducer.ts"
+import * as Struct from "../data/Struct.ts"
+import * as UndefinedOr from "../data/UndefinedOr.ts"
 import type * as Anno from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
@@ -266,7 +270,7 @@ export function generateDefinitions(
     return {
       identifier,
       generation: {
-        runtime: output.runtime + `.annotate({ identifier: "${identifier}" })`,
+        runtime: output.runtime + `.annotate({ identifier: ${format(identifier)} })`,
         type: output.type,
         imports: output.imports
       }
@@ -280,6 +284,17 @@ type Annotations = {
   readonly examples?: ReadonlyArray<unknown> | undefined
   readonly default?: unknown | undefined
 }
+
+const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => `${a} and ${b}`))
+
+const annotationsCombiner: Combiner.Combiner<any> = Struct.getCombiner({
+  description: join,
+  title: join,
+  default: UndefinedOr.getReducer(Combiner.last()),
+  examples: UndefinedOr.getReducer(Arr.getReducerConcat())
+}, {
+  omitKeyWhen: isUndefined
+})
 
 type AST =
   | Unknown
@@ -311,7 +326,7 @@ class Unknown {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Unknown {
-    return new Unknown(this.checks, { ...this.annotations, ...annotations })
+    return new Unknown(this.checks, annotationsCombiner.combine(this.annotations, annotations))
   }
   check(f: Fragment): AST {
     let checks: Array<Check> = []
@@ -340,7 +355,7 @@ class Never {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Never {
-    return new Never({ ...this.annotations, ...annotations })
+    return new Never(annotationsCombiner.combine(this.annotations, annotations))
   }
   check(_: Fragment): AST {
     return this
@@ -366,7 +381,7 @@ class Not {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Not {
-    return new Not(this.ast, { ...this.annotations, ...annotations })
+    return new Not(this.ast, annotationsCombiner.combine(this.annotations, annotations))
   }
   check(_: Fragment): AST {
     return this
@@ -386,7 +401,7 @@ class Null {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Null {
-    return new Null({ ...this.annotations, ...annotations })
+    return new Null(annotationsCombiner.combine(this.annotations, annotations))
   }
   check(_: Fragment): AST {
     return this
@@ -429,7 +444,7 @@ class String {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): String {
-    return new String(this.checks, { ...this.annotations, ...annotations })
+    return new String(this.checks, annotationsCombiner.combine(this.annotations, annotations))
   }
   check(f: Fragment): AST {
     return new String([...this.checks, ...String.check(f)], this.annotations)
@@ -450,15 +465,15 @@ class String {
   combine(that: AST): AST {
     switch (that._tag) {
       case "String":
-        return new String([...this.checks, ...that.checks], {
-          ...this.annotations,
-          ...that.annotations
-        })
+        return new String(
+          [...this.checks, ...that.checks],
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
       case "Unknown": {
-        return new String([...this.checks, ...that.checks.filter(isStringCheck)], {
-          ...this.annotations,
-          ...that.annotations
-        })
+        return new String(
+          [...this.checks, ...that.checks.filter(isStringCheck)],
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
       }
       default:
         return new Never()
@@ -516,7 +531,7 @@ class Number {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Number {
-    return new Number(this.isInteger, this.checks, { ...this.annotations, ...annotations })
+    return new Number(this.isInteger, this.checks, annotationsCombiner.combine(this.annotations, annotations))
   }
   check(f: Fragment): AST {
     return new Number(this.isInteger, [...this.checks, ...Number.check(f)], this.annotations)
@@ -541,15 +556,17 @@ class Number {
   combine(that: AST): AST {
     switch (that._tag) {
       case "Number":
-        return new Number(this.isInteger || that.isInteger, [...this.checks, ...that.checks], {
-          ...this.annotations,
-          ...that.annotations
-        })
+        return new Number(
+          this.isInteger || that.isInteger,
+          [...this.checks, ...that.checks],
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
       case "Unknown": {
-        return new Number(this.isInteger, [...this.checks, ...that.checks.filter(isNumberCheck)], {
-          ...this.annotations,
-          ...that.annotations
-        })
+        return new Number(
+          this.isInteger,
+          [...this.checks, ...that.checks.filter(isNumberCheck)],
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
       }
       default:
         return new Never()
@@ -571,7 +588,7 @@ class Boolean {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Boolean {
-    return new Boolean({ ...this.annotations, ...annotations })
+    return new Boolean(annotationsCombiner.combine(this.annotations, annotations))
   }
   check(_: Fragment): AST {
     return this
@@ -593,7 +610,7 @@ class Const {
     this.value = value
   }
   annotate(annotations: Annotations): Const {
-    return new Const(this.value, { ...this.annotations, ...annotations })
+    return new Const(this.value, annotationsCombiner.combine(this.annotations, annotations))
   }
   check(_: Fragment): AST {
     return this
@@ -615,7 +632,7 @@ class Enum {
     this.values = values
   }
   annotate(annotations: Annotations): Enum {
-    return new Enum(this.values, { ...this.annotations, ...annotations })
+    return new Enum(this.values, annotationsCombiner.combine(this.annotations, annotations))
   }
   check(_: Fragment): AST {
     return this
@@ -694,7 +711,7 @@ class Arrays {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Arrays {
-    return new Arrays(this.elements, this.rest, this.checks, { ...this.annotations, ...annotations })
+    return new Arrays(this.elements, this.rest, this.checks, annotationsCombiner.combine(this.annotations, annotations))
   }
   check(schema: Fragment): AST {
     return new Arrays(this.elements, this.rest, [...this.checks, ...Arrays.check(schema)], this.annotations)
@@ -716,10 +733,12 @@ class Arrays {
     switch (that._tag) {
       case "Arrays":
       case "Unknown": {
-        return new Arrays(this.elements, this.rest, [...this.checks, ...that.checks].filter(isArraysCheck), {
-          ...this.annotations,
-          ...that.annotations
-        })
+        return new Arrays(
+          this.elements,
+          this.rest,
+          [...this.checks, ...that.checks].filter(isArraysCheck),
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
       }
       default:
         return new Never()
@@ -841,7 +860,12 @@ class Objects {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Objects {
-    return new Objects(this.properties, this.indexSignatures, this.checks, { ...this.annotations, ...annotations })
+    return new Objects(
+      this.properties,
+      this.indexSignatures,
+      this.checks,
+      annotationsCombiner.combine(this.annotations, annotations)
+    )
   }
   check(schema: Fragment): AST {
     return new Objects(
@@ -870,10 +894,7 @@ class Objects {
           this.properties,
           this.indexSignatures,
           [...this.checks, ...that.checks].filter(isObjectsCheck),
-          {
-            ...this.annotations,
-            ...that.annotations
-          }
+          annotationsCombiner.combine(this.annotations, that.annotations)
         )
       }
       default:
@@ -968,7 +989,7 @@ class Union {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Union {
-    return new Union(this.members, this.mode, { ...this.annotations, ...annotations })
+    return new Union(this.members, this.mode, annotationsCombiner.combine(this.annotations, annotations))
   }
   check(_: Fragment): AST {
     return this
@@ -998,7 +1019,7 @@ class Reference {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Reference {
-    return new Reference(this.identifier, { ...this.annotations, ...annotations })
+    return new Reference(this.identifier, annotationsCombiner.combine(this.annotations, annotations))
   }
   check(_: Fragment): AST {
     return this
@@ -1024,7 +1045,7 @@ function parse(schema: unknown, options: RecurOptions): AST {
     if (annotations) ast = ast.annotate(annotations)
     ast = ast.check(schema)
     if (Array.isArray(schema.allOf)) {
-      return [ast, ...schema.allOf.map((m) => parse(m, options))].reduce((acc, curr) => acc.combine(curr), ast)
+      return schema.allOf.map((m) => parse(m, options)).reduce((acc, curr) => acc.combine(curr), ast)
     }
     return ast
   }
