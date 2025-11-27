@@ -735,15 +735,30 @@ class Arrays {
   }
   combine(that: AST): AST {
     switch (that._tag) {
-      case "Arrays":
       case "Unknown": {
         return new Arrays(
           this.elements,
           this.rest,
-          [...this.checks, ...that.checks].filter(isArraysCheck),
+          [...this.checks, ...that.checks.filter(isArraysCheck)],
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       }
+      case "Arrays": {
+        if (this.elements.length > 0 && that.elements.length > 0) {
+          return new Never()
+        }
+        return new Arrays(
+          this.elements.concat(that.elements),
+          this.rest === undefined ? that.rest : that.rest === undefined ? this.rest : this.rest.combine(that.rest),
+          [...this.checks, ...that.checks],
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
+      }
+      case "Union":
+        return new Union(
+          that.members.map((m) => this.combine(m)),
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
       default:
         return new Never()
     }
@@ -892,15 +907,25 @@ class Objects {
   }
   combine(that: AST): AST {
     switch (that._tag) {
-      case "Objects":
-      case "Unknown": {
+      case "Unknown":
         return new Objects(
           this.properties,
           this.indexSignatures,
-          [...this.checks, ...that.checks].filter(isObjectsCheck),
+          [...this.checks, ...that.checks.filter(isObjectsCheck)],
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
-      }
+      case "Objects":
+        return new Objects(
+          this.properties.concat(that.properties),
+          this.indexSignatures.concat(that.indexSignatures),
+          [...this.checks, ...that.checks],
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
+      case "Union":
+        return new Union(
+          that.members.map((m) => this.combine(m)),
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
       default:
         return new Never()
     }
@@ -998,15 +1023,37 @@ class Union {
   check(_: Fragment): AST {
     return this
   }
-  combine(_: AST): AST {
-    return new Never()
+  combine(that: AST): AST {
+    switch (that._tag) {
+      case "Unknown":
+        return new Union(
+          this.members,
+          this.mode,
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
+      case "Arrays":
+      case "Objects":
+        return new Union(
+          this.members.map((m) => m.combine(that)),
+          this.mode,
+          this.annotations
+        )
+      case "Union":
+        return new Union(
+          this.members.concat(that.members),
+          this.mode === "oneOf" && that.mode === "oneOf" ? "oneOf" : "anyOf",
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
+      default:
+        return new Never()
+    }
   }
   toGeneration(resolver: Resolver): Generation {
     const members = this.members.map((m) => m.toGeneration(resolver))
     return {
       runtime:
         `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${
-          this.mode === "oneOf" ? `, {mode:"oneOf"}` : ""
+          this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""
         })` + getAnnotations(this),
       type: members.map((m) => m.type).join(" | "),
       imports: ReadonlySetReducer.combineAll(members.map((m) => m.imports))
