@@ -18,7 +18,7 @@
  */
 import * as Arr from "../collections/Array.ts"
 import * as Combiner from "../data/Combiner.ts"
-import { format } from "../data/Formatter.ts"
+import { format, formatPropertyKey } from "../data/Formatter.ts"
 import { isObject, isUndefined } from "../data/Predicate.ts"
 import * as Reducer from "../data/Reducer.ts"
 import * as Struct from "../data/Struct.ts"
@@ -982,8 +982,8 @@ class Objects {
 
 function renderProperties(ps: ReadonlyArray<PropertyGen>) {
   return {
-    runtime: ps.map((p) => `${p.key}: ${optionalRuntime(p.isOptional, p.value.runtime)}`).join(", "),
-    type: ps.map((p) => `readonly ${optionalType(p.isOptional, p.key)}: ${p.value.type}`).join(", "),
+    runtime: ps.map((p) => `${formatPropertyKey(p.key)}: ${optionalRuntime(p.isOptional, p.value.runtime)}`).join(", "),
+    type: ps.map((p) => `readonly ${optionalType(p.isOptional, formatPropertyKey(p.key))}: ${p.value.type}`).join(", "),
     imports: ReadonlySetReducer.combineAll(ps.map((p) => p.value.imports))
   }
 }

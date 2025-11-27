@@ -135,8 +135,8 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            runtime: "Schema.Struct({ a: Schema.String, b: HttpApiSchemaError, c: ID })",
-            type: `{ readonly a: string, readonly b: typeof HttpApiSchemaError["Encoded"], readonly c: ID }`,
+            runtime: `Schema.Struct({ "a": Schema.String, "b": HttpApiSchemaError, "c": ID })`,
+            type: `{ readonly "a": string, readonly "b": typeof HttpApiSchemaError["Encoded"], readonly "c": ID }`,
             imports: new Set([HTTP_API_ERROR_IMPORT, GETTER_IMPORT])
           }
         )
@@ -488,14 +488,18 @@ describe("FromJsonSchema", () => {
       it("required properties", () => {
         assertGeneration(
           { schema: { "type": "object", "properties": { "a": { "type": "string" } }, "required": ["a"] } },
-          { runtime: "Schema.Struct({ a: Schema.String })", type: "{ readonly a: string }" }
+          { runtime: `Schema.Struct({ "a": Schema.String })`, type: `{ readonly "a": string }` }
+        )
+        assertGeneration(
+          { schema: { "type": "object", "properties": { "a-b": { "type": "string" } }, "required": ["a-b"] } },
+          { runtime: `Schema.Struct({ "a-b": Schema.String })`, type: `{ readonly "a-b": string }` }
         )
       })
 
       it("optional properties", () => {
         assertGeneration(
           { schema: { "type": "object", "properties": { "a": { "type": "string" } } } },
-          { runtime: "Schema.Struct({ a: Schema.optionalKey(Schema.String) })", type: "{ readonly a?: string }" }
+          { runtime: `Schema.Struct({ "a": Schema.optionalKey(Schema.String) })`, type: `{ readonly "a"?: string }` }
         )
       })
     })
@@ -644,8 +648,8 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            runtime: `Schema.Struct({ a: Schema.String, b: Schema.String })`,
-            type: "{ readonly a: string, readonly b: string }"
+            runtime: `Schema.Struct({ "a": Schema.String, "b": Schema.String })`,
+            type: `{ readonly "a": string, readonly "b": string }`
           }
         )
         assertGeneration(
@@ -661,8 +665,8 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            runtime: `Schema.Struct({ a: Schema.String, b: Schema.optionalKey(Schema.String) })`,
-            type: "{ readonly a: string, readonly b?: string }"
+            runtime: `Schema.Struct({ "a": Schema.String, "b": Schema.optionalKey(Schema.String) })`,
+            type: `{ readonly "a": string, readonly "b"?: string }`
           }
         )
       })
@@ -682,8 +686,8 @@ describe("FromJsonSchema", () => {
           },
           {
             runtime:
-              `Schema.StructWithRest(Schema.Struct({ a: Schema.String }), [Schema.Record(Schema.String, Schema.String)])`,
-            type: "{ readonly a: string, readonly [x: string]: string }"
+              `Schema.StructWithRest(Schema.Struct({ "a": Schema.String }), [Schema.Record(Schema.String, Schema.String)])`,
+            type: `{ readonly "a": string, readonly [x: string]: string }`
           }
         )
       })
@@ -703,8 +707,8 @@ describe("FromJsonSchema", () => {
           },
           {
             runtime:
-              `Schema.StructWithRest(Schema.Struct({ a: Schema.String }), [Schema.Record(Schema.String, Schema.String)])`,
-            type: "{ readonly a: string, readonly [x: string]: string }"
+              `Schema.StructWithRest(Schema.Struct({ "a": Schema.String }), [Schema.Record(Schema.String, Schema.String)])`,
+            type: `{ readonly "a": string, readonly [x: string]: string }`
           }
         )
       })
@@ -735,8 +739,8 @@ describe("FromJsonSchema", () => {
           },
           {
             runtime:
-              `Schema.Union([Schema.Struct({ a: Schema.String, b: Schema.String }), Schema.Struct({ a: Schema.String, c: Schema.optionalKey(Schema.String) })])`,
-            type: "{ readonly a: string, readonly b: string } | { readonly a: string, readonly c?: string }"
+              `Schema.Union([Schema.Struct({ "a": Schema.String, "b": Schema.String }), Schema.Struct({ "a": Schema.String, "c": Schema.optionalKey(Schema.String) })])`,
+            type: `{ readonly "a": string, readonly "b": string } | { readonly "a": string, readonly "c"?: string }`
           }
         )
       })
@@ -765,8 +769,8 @@ describe("FromJsonSchema", () => {
           },
           {
             runtime:
-              `Schema.Union([Schema.Struct({ b: Schema.String, a: Schema.String }), Schema.Struct({ c: Schema.optionalKey(Schema.String), a: Schema.String })])`,
-            type: "{ readonly b: string, readonly a: string } | { readonly c?: string, readonly a: string }"
+              `Schema.Union([Schema.Struct({ "b": Schema.String, "a": Schema.String }), Schema.Struct({ "c": Schema.optionalKey(Schema.String), "a": Schema.String })])`,
+            type: `{ readonly "b": string, readonly "a": string } | { readonly "c"?: string, readonly "a": string }`
           }
         )
       })
@@ -1357,11 +1361,11 @@ describe("FromJsonSchema", () => {
         strictEqual(
           generate(document.definitions, [document.schema]),
           `// Definitions
-type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
-const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ identifier: "Operation" });
+type Operation = { readonly "type": "operation", readonly "operator": "+" | "-", readonly "left": Expression, readonly "right": Expression };
+const Operation = Schema.Struct({ "type": Schema.Literal("operation"), "operator": Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), "left": Schema.suspend((): Schema.Codec<Expression> => Expression), "right": Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ identifier: "Operation" });
 
-type Expression = { readonly type: "expression", readonly value: number | Operation };
-const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ identifier: "Expression" });
+type Expression = { readonly "type": "expression", readonly "value": number | Operation };
+const Expression = Schema.Struct({ "type": Schema.Literal("expression"), "value": Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ identifier: "Expression" });
 
 // Schemas
 const schema1 = Operation;`
@@ -1372,11 +1376,11 @@ const schema1 = Operation;`
         strictEqual(
           generate(document.definitions, [document.schema]),
           `// Definitions
-type Expression = { readonly type: "expression", readonly value: number | Operation };
-const Expression = Schema.Struct({ type: Schema.Literal("expression"), value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ identifier: "Expression" });
+type Expression = { readonly "type": "expression", readonly "value": number | Operation };
+const Expression = Schema.Struct({ "type": Schema.Literal("expression"), "value": Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ identifier: "Expression" });
 
-type Operation = { readonly type: "operation", readonly operator: "+" | "-", readonly left: Expression, readonly right: Expression };
-const Operation = Schema.Struct({ type: Schema.Literal("operation"), operator: Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), left: Schema.suspend((): Schema.Codec<Expression> => Expression), right: Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ identifier: "Operation" });
+type Operation = { readonly "type": "operation", readonly "operator": "+" | "-", readonly "left": Expression, readonly "right": Expression };
+const Operation = Schema.Struct({ "type": Schema.Literal("operation"), "operator": Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), "left": Schema.suspend((): Schema.Codec<Expression> => Expression), "right": Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ identifier: "Operation" });
 
 // Schemas
 const schema1 = Expression;`
@@ -1399,14 +1403,14 @@ const schema1 = Expression;`
 type C = string;
 const C = Schema.String.annotate({ identifier: "C" });
 
-type B = { readonly c: C };
-const B = Schema.Struct({ c: C }).annotate({ identifier: "B" });
+type B = { readonly "c": C };
+const B = Schema.Struct({ "c": C }).annotate({ identifier: "B" });
 
-type A = { readonly b: B };
-const A = Schema.Struct({ b: B }).annotate({ identifier: "A" });
+type A = { readonly "b": B };
+const A = Schema.Struct({ "b": B }).annotate({ identifier: "A" });
 
 // Schemas
-const schema1 = Schema.Struct({ a: A });`
+const schema1 = Schema.Struct({ "a": A });`
       )
     })
   })
