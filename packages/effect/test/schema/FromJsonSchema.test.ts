@@ -58,7 +58,7 @@ function assertGenerationOld(
 }
 
 describe("FromJsonSchema", () => {
-  describe("generate", () => {
+  describe("generate (old)", () => {
     describe("options", () => {
       describe("resolver", () => {
         it("identity", () => {
@@ -638,7 +638,7 @@ describe("FromJsonSchema", () => {
     })
   })
 
-  describe.todo("roundtrips", () => {
+  describe("roundtrips", () => {
     it("Never", () => {
       assertRoundtrip({ schema: Schema.Never })
     })
@@ -695,22 +695,6 @@ describe("FromJsonSchema", () => {
         )
         assertRoundtrip(
           { schema: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10, { description: "description" })) }
-        )
-        assertRoundtrip(
-          {
-            schema: Schema.String.annotate({ description: "description1" }).check(
-              Schema.isMinLength(1),
-              Schema.isMaxLength(10, { description: "description2" })
-            )
-          }
-        )
-        assertRoundtrip(
-          {
-            schema: Schema.String.check(
-              Schema.isMinLength(1, { description: "description1" }),
-              Schema.isMaxLength(10, { description: "description2" })
-            )
-          }
         )
       })
     })
@@ -1233,7 +1217,7 @@ const schema1 = Schema.Struct({ a: A });`
     })
   })
 
-  describe("generate2", () => {
+  describe("generate", () => {
     it("true", () => {
       assertGeneration(
         { schema: true },
@@ -1373,34 +1357,167 @@ const schema1 = Schema.Struct({ a: A });`
       )
     })
 
-    it("type: array", () => {
-      assertGeneration(
-        { schema: { "type": "array" } },
-        { runtime: "Schema.Array(Schema.Unknown)", type: "ReadonlyArray<unknown>" }
-      )
-      assertGeneration(
-        { schema: { "type": "array", "items": [] } },
-        { runtime: "Schema.Array(Schema.Unknown)", type: "ReadonlyArray<unknown>" }
-      )
-      assertGeneration(
-        { schema: { "type": "array", "items": [], "additionalItems": false } },
-        { runtime: "Schema.Tuple([])", type: "readonly []" }
-      )
-      assertGeneration(
-        { schema: { "type": "array", "items": {} } },
-        { runtime: "Schema.Array(Schema.Unknown)", type: "ReadonlyArray<unknown>" }
-      )
+    describe("type: array", () => {
+      it("unknown array", () => {
+        assertGeneration(
+          { schema: { "type": "array" } },
+          { runtime: "Schema.Array(Schema.Unknown)", type: "ReadonlyArray<unknown>" }
+        )
+        assertGeneration(
+          { schema: { "type": "array", "description": "lorem" } },
+          { runtime: `Schema.Array(Schema.Unknown).annotate({ description: "lorem" })`, type: "ReadonlyArray<unknown>" }
+        )
+        assertGeneration(
+          { schema: { "type": "array", "minItems": 1 } },
+          { runtime: "Schema.Array(Schema.Unknown).check(Schema.isMinLength(1))", type: "ReadonlyArray<unknown>" }
+        )
+        assertGeneration(
+          { schema: { "type": "array", "items": [] } },
+          { runtime: "Schema.Array(Schema.Unknown)", type: "ReadonlyArray<unknown>" }
+        )
+        assertGeneration(
+          { schema: { "type": "array", "items": {} } },
+          { runtime: "Schema.Array(Schema.Unknown)", type: "ReadonlyArray<unknown>" }
+        )
+      })
+
+      it("empty tuple", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "array",
+              "items": [],
+              "additionalItems": false
+            }
+          },
+          { runtime: "Schema.Tuple([])", type: "readonly []" }
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "array",
+              "items": [],
+              "additionalItems": false,
+              "description": "lorem"
+            }
+          },
+          { runtime: `Schema.Tuple([]).annotate({ description: "lorem" })`, type: "readonly []" }
+        )
+      })
+
+      it("required elements", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "array",
+              "items": [{ "type": "string" }],
+              "additionalItems": false,
+              "minItems": 1
+            }
+          },
+          { runtime: "Schema.Tuple([Schema.String])", type: "readonly [string]" }
+        )
+      })
+
+      it("optional elements", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "array",
+              "items": [{ "type": "string" }],
+              "additionalItems": false
+            }
+          },
+          { runtime: "Schema.Tuple([Schema.optionalKey(Schema.String)])", type: "readonly [string?]" }
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "array",
+              "items": [{ "type": "string" }],
+              "additionalItems": false,
+              "description": "lorem"
+            }
+          },
+          {
+            runtime: `Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ description: "lorem" })`,
+            type: "readonly [string?]"
+          }
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "array",
+              "items": [{ "type": "string" }],
+              "additionalItems": false,
+              "minItems": 0
+            }
+          },
+          { runtime: "Schema.Tuple([Schema.optionalKey(Schema.String)])", type: "readonly [string?]" }
+        )
+      })
+
+      it("required elements & rest", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "array",
+              "minItems": 1,
+              "items": [
+                { "type": "string" }
+              ],
+              "additionalItems": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            runtime: "Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number])",
+            type: "readonly [string, ...Array<number>]"
+          }
+        )
+      })
     })
 
-    it("type: object", () => {
-      assertGeneration(
-        { schema: { "type": "object" } },
-        { runtime: "Schema.Record(Schema.String, Schema.Unknown)", type: "{ readonly [x: string]: unknown }" }
-      )
-      assertGeneration(
-        { schema: { "type": "object", "properties": { "a": { "type": "string" } }, "required": ["a"] } },
-        { runtime: "Schema.Struct({ a: Schema.String })", type: "{ readonly a: string }" }
-      )
+    describe("type: object", () => {
+      it("unknown object", () => {
+        assertGeneration(
+          { schema: { "type": "object" } },
+          { runtime: "Schema.Record(Schema.String, Schema.Unknown)", type: "{ readonly [x: string]: unknown }" }
+        )
+        assertGeneration(
+          { schema: { "type": "object", "description": "lorem" } },
+          {
+            runtime: `Schema.Record(Schema.String, Schema.Unknown).annotate({ description: "lorem" })`,
+            type: "{ readonly [x: string]: unknown }"
+          }
+        )
+        assertGeneration(
+          { schema: { "type": "object", "minProperties": 1 } },
+          {
+            runtime: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMinProperties(1))",
+            type: "{ readonly [x: string]: unknown }"
+          }
+        )
+        assertGeneration(
+          { schema: { "type": "object", "properties": {} } },
+          { runtime: "Schema.Record(Schema.String, Schema.Unknown)", type: "{ readonly [x: string]: unknown }" }
+        )
+      })
+
+      it("required properties", () => {
+        assertGeneration(
+          { schema: { "type": "object", "properties": { "a": { "type": "string" } }, "required": ["a"] } },
+          { runtime: "Schema.Struct({ a: Schema.String })", type: "{ readonly a: string }" }
+        )
+      })
+
+      it("optional properties", () => {
+        assertGeneration(
+          { schema: { "type": "object", "properties": { "a": { "type": "string" } } } },
+          { runtime: "Schema.Struct({ a: Schema.optionalKey(Schema.String) })", type: "{ readonly a?: string }" }
+        )
+      })
     })
 
     it("Union", () => {

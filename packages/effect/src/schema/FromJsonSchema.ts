@@ -74,135 +74,7 @@ interface RecurOptions {
   readonly target: Target
 }
 
-function build(schema: unknown, options: RecurOptions): Generation {
-  if (schema === false) return NeverGen
-  if (schema === true) return UnknownGen
-  if (!isObject(schema)) return UnknownGen
-
-  let out = base(schema, options)
-  out = applyAnnotations(out, schema)
-  out = applyChecks(out, schema, options)
-  return out
-}
-
-function applyAnnotations(out: Generation, schema: Fragment): Generation {
-  const as = collectAnnotationsOld(schema)
-  if (as.length === 0) return out
-  return { ...out, runtime: `${out.runtime}.annotate({ ${as.join(", ")} })` }
-}
-
-function collectAnnotationsOld(schema: Fragment): ReadonlyArray<string> {
-  const as: Array<string> = []
-  if (typeof schema.title === "string") as.push(`title: "${schema.title}"`)
-  if (typeof schema.description === "string") as.push(`description: "${schema.description}"`)
-  if (schema.default !== undefined) as.push(`default: ${format(schema.default)}`)
-  if (Array.isArray(schema.examples)) as.push(`examples: [${schema.examples.map((e) => format(e)).join(", ")}]`)
-  return as
-}
-
-function applyChecks(out: Generation, schema: Fragment, options: RecurOptions): Generation {
-  const cs = collectChecksOld(schema, options)
-  if (cs.length === 0) return out
-  return { ...out, runtime: `${out.runtime}.check(${cs.join(", ")})` }
-}
-
-function collectChecksOld(schema: Fragment, options: RecurOptions): Array<string> {
-  const cs: Array<string> = []
-
-  // String checks
-  if (typeof schema.minLength === "number") cs.push(`Schema.isMinLength(${schema.minLength})`)
-  if (typeof schema.maxLength === "number") cs.push(`Schema.isMaxLength(${schema.maxLength})`)
-  // Escape forward slashes to prevent them from terminating the regex literal delimiter
-  if (typeof schema.pattern === "string") cs.push(`Schema.isPattern(/${schema.pattern.replace(/\//g, "\\/")}/)`)
-
-  // Number checks
-  if (typeof schema.minimum === "number") cs.push(`Schema.isGreaterThanOrEqualTo(${schema.minimum})`)
-  if (typeof schema.maximum === "number") cs.push(`Schema.isLessThanOrEqualTo(${schema.maximum})`)
-  if (typeof schema.exclusiveMinimum === "number") cs.push(`Schema.isGreaterThan(${schema.exclusiveMinimum})`)
-  if (typeof schema.exclusiveMaximum === "number") cs.push(`Schema.isLessThan(${schema.exclusiveMaximum})`)
-  if (typeof schema.multipleOf === "number") cs.push(`Schema.isMultipleOf(${schema.multipleOf})`)
-
-  // Array checks
-  if (typeof schema.minItems === "number" && !isTupleWithMoreElementsThan(schema, schema.minItems, options)) {
-    // if `schema` is a tuple with more elements that `schema.minItems`
-    // then this is already handled by element optionality
-    cs.push(`Schema.isMinLength(${schema.minItems})`)
-  }
-  if (typeof schema.maxItems === "number") cs.push(`Schema.isMaxLength(${schema.maxItems})`)
-  if (schema.uniqueItems === true) cs.push(`Schema.isUnique()`)
-
-  // Object checks
-  if (typeof schema.minProperties === "number") cs.push(`Schema.isMinProperties(${schema.minProperties})`)
-  if (typeof schema.maxProperties === "number") cs.push(`Schema.isMaxProperties(${schema.maxProperties})`)
-
-  // `allOf` checks
-  if (Array.isArray(schema.allOf)) {
-    for (const member of schema.allOf) {
-      if (isObject(member)) {
-        const checks = collectChecksOld(member, options)
-        if (checks.length > 0) {
-          const annotations = collectAnnotationsOld(member)
-          if (annotations.length > 0) {
-            checks[checks.length - 1] = checks[checks.length - 1].substring(0, checks[checks.length - 1].length - 1) +
-              `, { ${annotations.join(", ")} })`
-          }
-          checks.forEach((check) => cs.push(check))
-        }
-      }
-    }
-  }
-  return cs
-}
-
-function isTupleWithMoreElementsThan(schema: Fragment, minItems: number, options: RecurOptions): boolean {
-  if (schema.type === "array") {
-    const elements = collectElements(schema, options)
-    if (elements !== undefined) return elements.length > minItems
-  }
-  return false
-}
-
-interface HasType extends Fragment {
-  readonly type: Schema.JsonSchema.Type
-}
-
 const types = ["null", "string", "number", "integer", "boolean", "object", "array"]
-
-function hasType(schema: Fragment): schema is HasType {
-  return typeof schema.type === "string" && types.includes(schema.type)
-}
-
-function handleTypeOld(type: Schema.JsonSchema.Type): Generation {
-  return primitives[type]
-}
-
-function handleHasType(schema: HasType, options: RecurOptions): Generation {
-  switch (schema.type) {
-    case "null":
-    case "string":
-    case "number":
-    case "integer":
-    case "boolean":
-      return primitives[schema.type]
-    case "object": {
-      const properties = collectPropertiesOld(schema, options)
-      const indexSignatures = collectIndexSignaturesOld(schema, options)
-      return object(properties, indexSignatures)
-    }
-    case "array": {
-      const minItems = typeof schema.minItems === "number" ? schema.minItems : Infinity
-      const elements = collectElements(schema, options)?.map((item, index): ElementGen => ({
-        value: build(item, options),
-        isOptional: index >= minItems
-      }))
-      const rest = collectRest(schema, options)
-      return array(
-        elements !== undefined ? elements : rest === false ? [] : undefined,
-        rest !== undefined && rest !== false ? build(rest, options) : undefined
-      )
-    }
-  }
-}
 
 function collectElements(schema: Fragment, options: RecurOptions): ReadonlyArray<unknown> | undefined {
   switch (options.target) {
@@ -230,67 +102,6 @@ function collectRest(schema: Fragment, options: RecurOptions): Fragment | boolea
   }
 }
 
-function base(schema: Fragment, options: RecurOptions): Generation {
-  if (Array.isArray(schema.type)) {
-    return union(schema.type.map(handleTypeOld), "anyOf")
-  }
-
-  if (schema.const !== undefined) {
-    return {
-      runtime: `Schema.Literal(${format(schema.const)})`,
-      type: format(schema.const),
-      imports: emptySet
-    }
-  }
-
-  if (Array.isArray(schema.enum)) {
-    const enums = schema.enum.map((e) => format(e))
-    const type = enums.join(" | ")
-    switch (schema.enum.length) {
-      case 0:
-        return NeverGen
-      case 1:
-        return {
-          runtime: `Schema.Literal(${enums})`,
-          type,
-          imports: emptySet
-        }
-      default:
-        return {
-          runtime: `Schema.Literals([${enums.join(", ")}])`,
-          type,
-          imports: emptySet
-        }
-    }
-  }
-
-  if (Array.isArray(schema.anyOf)) {
-    return union(schema.anyOf.map((schema) => build(schema, options)), "anyOf")
-  }
-
-  if (Array.isArray(schema.oneOf)) {
-    return union(schema.oneOf.map((schema) => build(schema, options)), "oneOf")
-  }
-
-  if (hasType(schema)) {
-    return handleHasType(schema, options)
-  }
-
-  if (typeof schema.$ref === "string") {
-    const identifier = extractIdentifier(schema.$ref)
-    if (identifier !== undefined) {
-      return options.resolver(identifier)
-    }
-    throw new Error(`Invalid $ref: ${schema.$ref}`)
-  }
-
-  if (isObject(schema.not) && Object.keys(schema.not).length === 0) {
-    return NeverGen
-  }
-
-  return UnknownGen
-}
-
 function extractIdentifier($ref: string): string | undefined {
   const last = $ref.split("/").pop()
   if (last !== undefined) {
@@ -306,91 +117,9 @@ function optionalType(isRequired: boolean, type: string): string {
   return isRequired ? type : `${type}?`
 }
 
-function collectPropertiesOld(schema: Fragment, options: RecurOptions): Array<PropertyGen> {
-  const raw = isObject(schema.properties) ? schema.properties : {}
-  const required = Array.isArray(schema.required) ? schema.required : []
-  return Object.entries(raw).map(([key, v]) => {
-    const value = build(v, options)
-    return {
-      key,
-      value,
-      isRequired: required.includes(key)
-    }
-  })
-}
-
-function collectIndexSignaturesOld(schema: Fragment, options: RecurOptions): Array<IndexSignatureGen> {
-  if (schema.additionalProperties === true) return [{ key: StringGen, value: UnknownGen }]
-  if (isObject(schema.additionalProperties)) {
-    return [{ key: StringGen, value: build(schema.additionalProperties, options) }]
-  }
-  if (!schema.properties) return [{ key: StringGen, value: UnknownGen }]
-  return []
-}
-
 type ElementGen = {
   readonly value: Generation
   readonly isOptional: boolean
-}
-
-function array(es: ReadonlyArray<ElementGen> | undefined, rest: Generation | undefined): Generation {
-  if (es === undefined) {
-    if (rest === undefined) {
-      return UnknownArrayGen
-    } else {
-      return {
-        runtime: `Schema.Array(${rest.runtime})`,
-        type: `ReadonlyArray<${rest.type}>`,
-        imports: rest.imports
-      }
-    }
-  } else {
-    if (rest === undefined) {
-      return {
-        runtime: `Schema.Tuple([${elementsRuntime(es)}])`,
-        type: `readonly [${elementsType(es)}]`,
-        imports: elementsImports(es)
-      }
-    } else {
-      return {
-        runtime: `Schema.TupleWithRest(Schema.Tuple([${elementsRuntime(es)}]), [${rest.runtime}])`,
-        type: `readonly [${elementsType(es)}, ...Array<${rest.type}>]`,
-        imports: ReadonlySetReducer.combine(elementsImports(es), rest.imports)
-      }
-    }
-  }
-}
-
-function union(members: ReadonlyArray<Generation>, mode: "anyOf" | "oneOf"): Generation {
-  return {
-    runtime: `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${mode === "oneOf" ? `, {mode:"oneOf"}` : ""})`,
-    type: members.map((m) => m.type).join(" | "),
-    imports: ReadonlySetReducer.combineAll(members.map((m) => m.imports))
-  }
-}
-
-function primitive(code: string, type: string): Generation {
-  return { runtime: code, type, imports: emptySet }
-}
-
-const NeverGen: Generation = primitive("Schema.Never", "never")
-const UnknownGen: Generation = primitive("Schema.Unknown", "unknown")
-const NullGen: Generation = primitive("Schema.Null", "null")
-const StringGen: Generation = primitive("Schema.String", "string")
-const NumberGen: Generation = primitive("Schema.Number", "number")
-const IntGen: Generation = primitive("Schema.Int", "number")
-const BooleanGen: Generation = primitive("Schema.Boolean", "boolean")
-const UnknownRecordGen: Generation = object([], [{ key: StringGen, value: UnknownGen }])
-const UnknownArrayGen: Generation = array(undefined, UnknownGen)
-
-const primitives = {
-  "null": NullGen,
-  "string": StringGen,
-  "number": NumberGen,
-  "integer": IntGen,
-  "boolean": BooleanGen,
-  "object": UnknownRecordGen,
-  "array": UnknownArrayGen
 }
 
 /**
@@ -988,7 +717,14 @@ class Arrays {
   ) {
     this.elements = elements
     this.rest = rest
-    this.checks = checks
+    const i = elements.findIndex((e) => e.isOptional)
+    const len = i !== -1 ? i : elements.length
+    this.checks = checks.filter((c) => {
+      if (c._tag === "minItems") {
+        return c.value > len
+      }
+      return true
+    })
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Arrays {
@@ -1043,7 +779,7 @@ class Arrays {
     } else {
       if (rest === undefined) {
         return {
-          runtime: `Schema.Tuple([${elementsRuntime(es)}])`,
+          runtime: `Schema.Tuple([${elementsRuntime(es)}])` + this.getChecks() + getAnnotations(this),
           type: `readonly [${elementsType(es)}]`,
           imports: elementsImports(es)
         }
@@ -1239,30 +975,6 @@ type IndexSignatureGen = {
   readonly value: Generation
 }
 
-function object(ps: ReadonlyArray<PropertyGen>, iss: ReadonlyArray<IndexSignatureGen>): Generation {
-  if (iss.length === 0) {
-    return {
-      runtime: `Schema.Struct({ ${propertiesRuntime(ps)} })`,
-      type: `{ ${propertiesType(ps)} }`,
-      imports: propertiesImports(ps)
-    }
-  } else if (ps.length === 0 && iss.length === 1) {
-    return {
-      runtime: indexSignatureRuntime(iss[0]),
-      type: `{ ${indexSignatureType(iss[0])} }`,
-      imports: indexSignatureImports(iss[0])
-    }
-  } else {
-    return {
-      runtime: `Schema.StructWithRest(Schema.Struct({ ${propertiesRuntime(ps)} }), [${
-        iss.map(indexSignatureRuntime).join(", ")
-      }])`,
-      type: `{ ${propertiesType(ps)}, ${iss.map(indexSignatureType).join(", ")} }`,
-      imports: ReadonlySetReducer.combineAll([propertiesImports(ps), ...iss.map(indexSignatureImports)])
-    }
-  }
-}
-
 class Union {
   readonly _tag = "Union"
   readonly members: ReadonlyArray<AST>
@@ -1394,11 +1106,9 @@ function handleType(type: Schema.JsonSchema.Type, schema: Fragment, options: Rec
     case "boolean":
       return new Boolean()
     case "object": {
-      return new Objects(
-        collectProperties(schema, options),
-        collectIndexSignatures(schema, options),
-        []
-      )
+      const properties = collectProperties(schema, options)
+      const indexSignatures = collectIndexSignatures(schema, options)
+      return new Objects(properties, indexSignatures, [])
     }
     case "array": {
       const minItems = typeof schema.minItems === "number" ? schema.minItems : 0
@@ -1417,17 +1127,25 @@ function handleType(type: Schema.JsonSchema.Type, schema: Fragment, options: Rec
 }
 
 function collectProperties(schema: Fragment, options: RecurOptions): Array<Property> {
-  const raw = isObject(schema.properties) ? schema.properties : {}
-  const required = Array.isArray(schema.required) ? schema.required : []
-  return Object.entries(raw).map(([key, v]) => new Property(!required.includes(key), key, parse(v, options)))
+  if (isObject(schema.properties)) {
+    const required = Array.isArray(schema.required) ? schema.required : []
+    return Object.entries(schema.properties).map(([key, v]) =>
+      new Property(!required.includes(key), key, parse(v, options))
+    )
+  }
+  return []
 }
 
 function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<IndexSignature> {
-  if (schema.additionalProperties === true) return [new IndexSignature(new String([]), new Unknown([]))]
+  if (schema.additionalProperties === true) {
+    return [new IndexSignature(new String([]), new Unknown([]))]
+  }
   if (isObject(schema.additionalProperties)) {
     return [new IndexSignature(new String([]), parse(schema.additionalProperties, options))]
   }
-  if (!schema.properties) return [new IndexSignature(new String([]), new Unknown([]))]
+  if (schema.properties === undefined || (isObject(schema.properties) && Object.keys(schema.properties).length === 0)) {
+    return [new IndexSignature(new String([]), new Unknown([]))]
+  }
   return []
 }
 
