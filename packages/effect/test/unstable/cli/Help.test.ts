@@ -187,3 +187,258 @@ describe("Command help output", () => {
       `)
     }).pipe(Effect.provide(TestLayer)))
 })
+
+describe("Command --help-full output", () => {
+  it.effect("root command full help shows entire tree", () =>
+    Effect.gen(function*() {
+      const helpText = yield* runCommand(["--help-full"])
+
+      expect(helpText).toMatchInlineSnapshot(`
+        "mycli - A comprehensive CLI tool demonstrating all features
+
+        Tree:
+          mycli
+          ├─■ admin
+          │   ├─■ users
+          │   │   ├─■ list
+          │   │   └─■ create
+          │   └─■ config
+          │       ├─■ set
+          │       └─■ get
+          ├─■ copy
+          ├─■ move
+          ├─■ remove
+          ├─■ build
+          ├─■ git
+          │   ├─■ clone
+          │   ├─■ add
+          │   └─■ status
+          ├─■ test-required
+          ├─■ test-failing
+          ├─■ app
+          │   └─■ deploy
+          └─■ app-nested
+              └─■ service
+                  └─■ deploy
+
+        Commands
+        --------
+
+        mycli
+          A comprehensive CLI tool demonstrating all features
+          Flags:
+            -d, --debug          [boolean]  Enable debug logging
+            -c, --config         [file] (required)  Path to configuration file
+            -q, --quiet          [boolean]  Suppress non-error output
+
+        mycli admin
+          Administrative commands
+          Flags:
+            --sudo               [boolean]  Run with elevated privileges
+
+        mycli admin users
+          User management commands
+
+        mycli admin users list
+          List all users in the system
+          Flags:
+            --format             [string] (required)  Output format (json, table, csv)
+            --active             [boolean]  Show only active users
+            -v, --verbose        [boolean]  Show detailed information
+
+        mycli admin users create <username> [email]
+          Create a new user account
+          Arguments:
+            <username>           [string]  Username for the new user
+            [email]              [string] (optional)  Email address (optional)
+          Flags:
+            --role               [string] (required)  User role (admin, user, guest)
+            -n, --notify         [boolean]  Send notification email
+
+        mycli admin config
+          Manage application configuration
+          Flags:
+            -p, --profile        [string] (required)  Configuration profile to use
+
+        mycli admin config set <key=value...>
+          Set configuration values
+          Arguments:
+            <key=value...>       [string]  Configuration key-value pairs
+          Flags:
+            -f, --config-file    [file] (required)  Write to specific config file
+
+        mycli admin config get <key>
+          Get configuration value
+          Arguments:
+            <key>                [string]  Configuration key to retrieve
+          Flags:
+            --source             [string] (required)  Configuration source (local, global, system)
+
+        mycli copy <source> <destination>
+          Copy files or directories
+          Arguments:
+            <source>             [file]  Source file or directory
+            <destination>        [file]  Destination path
+          Flags:
+            -r, --recursive      [boolean]  Copy directories recursively
+            -f, --force          [boolean]  Overwrite existing files
+            --buffer-size        [integer] (required)  Buffer size in KB
+
+        mycli move <paths...>
+          Move or rename files
+          Arguments:
+            <paths...>           [string]  Source path(s) and destination
+          Flags:
+            -i, --interactive    [boolean]  Prompt before overwrite
+
+        mycli remove <files...>
+          Remove files or directories
+          Arguments:
+            <files...>           [string]  Files to remove
+          Flags:
+            -r, --recursive      [boolean]  Remove directories and contents
+            -f, --force          [boolean]  Force removal without prompts
+            -v, --verbose        [boolean]  Explain what is being done
+
+        mycli build
+          Build the project
+          Flags:
+            -o, --output         [string] (required)  Output directory
+            -v, --verbose        [boolean]  Enable verbose output
+            -f, --config-file    [string] (required)  Configuration file path
+
+        mycli git
+          Git version control
+          Flags:
+            --verbose            [boolean]  Enable verbose output
+
+        mycli git clone <repository>
+          Clone a repository
+          Arguments:
+            <repository>         [string]  Repository URL or path
+          Flags:
+            --branch             [string] (required)  Branch to clone
+
+        mycli git add <files>
+          Add files to staging
+          Arguments:
+            <files>              [string]  Files to add
+          Flags:
+            --update             [boolean]  Update tracked files
+
+        mycli git status
+          Show repository status
+          Flags:
+            --short              [boolean]  Show short format
+
+        mycli test-required
+          Test command with required option
+          Flags:
+            --required           [string] (required)  A required option for testing
+
+        mycli test-failing
+          Test command that always fails
+          Flags:
+            --input              [string] (required)  Input that will cause handler to fail
+
+        mycli app
+          Application management
+          Flags:
+            --env                [string] (required)  Environment setting
+
+        mycli app deploy <service> <environment>
+          Deploy a service
+          Arguments:
+            <service>            [string]  Service to deploy
+            <environment>        [string]  Target environment
+          Flags:
+            --db-host            [string] (required)  Database host
+            --db-port            [integer] (required)  Database port
+            --dry-run            [boolean]  Perform a dry run
+
+        mycli app-nested
+          Application with nested services
+          Flags:
+            --env                [string] (required)  Environment setting
+
+        mycli app-nested service
+          Service management
+          Flags:
+            --name               [string] (required)  Service name
+
+        mycli app-nested service deploy <service> <environment>
+          Deploy a service
+          Arguments:
+            <service>            [string]  Service to deploy
+            <environment>        [string]  Target environment
+          Flags:
+            --db-host            [string] (required)  Database host
+            --db-port            [integer] (required)  Database port
+            --dry-run            [boolean]  Perform a dry run"
+      `)
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("subcommand full help shows subtree only", () =>
+    Effect.gen(function*() {
+      const helpText = yield* runCommand(["admin", "--help-full"])
+
+      expect(helpText).toMatchInlineSnapshot(`
+        "admin - Administrative commands
+
+        Tree:
+          admin
+          ├─■ users
+          │   ├─■ list
+          │   └─■ create
+          └─■ config
+              ├─■ set
+              └─■ get
+
+        Commands
+        --------
+
+        admin
+          Administrative commands
+          Flags:
+            --sudo               [boolean]  Run with elevated privileges
+
+        admin users
+          User management commands
+
+        admin users list
+          List all users in the system
+          Flags:
+            --format             [string] (required)  Output format (json, table, csv)
+            --active             [boolean]  Show only active users
+            -v, --verbose        [boolean]  Show detailed information
+
+        admin users create <username> [email]
+          Create a new user account
+          Arguments:
+            <username>           [string]  Username for the new user
+            [email]              [string] (optional)  Email address (optional)
+          Flags:
+            --role               [string] (required)  User role (admin, user, guest)
+            -n, --notify         [boolean]  Send notification email
+
+        admin config
+          Manage application configuration
+          Flags:
+            -p, --profile        [string] (required)  Configuration profile to use
+
+        admin config set <key=value...>
+          Set configuration values
+          Arguments:
+            <key=value...>       [string]  Configuration key-value pairs
+          Flags:
+            -f, --config-file    [file] (required)  Write to specific config file
+
+        admin config get <key>
+          Get configuration value
+          Arguments:
+            <key>                [string]  Configuration key to retrieve
+          Flags:
+            --source             [string] (required)  Configuration source (local, global, system)"
+      `)
+    }).pipe(Effect.provide(TestLayer)))
+})
