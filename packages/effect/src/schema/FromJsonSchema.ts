@@ -1032,7 +1032,12 @@ class Reference {
     return new Never()
   }
   toGeneration(resolver: Resolver): Generation {
-    return resolver(this.identifier)
+    const generation = resolver(this.identifier)
+    return {
+      runtime: generation.runtime + getAnnotations(this),
+      type: generation.type,
+      imports: generation.imports
+    }
   }
 }
 

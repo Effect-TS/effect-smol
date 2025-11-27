@@ -249,6 +249,14 @@ describe("FromJsonSchema", () => {
         { runtime: `Schema.String.check(Schema.isMinLength(1))`, type: "string" }
       )
       assertGeneration(
+        { schema: { "type": "string", "maxLength": 10 } },
+        { runtime: `Schema.String.check(Schema.isMaxLength(10))`, type: "string" }
+      )
+      assertGeneration(
+        { schema: { "type": "string", "pattern": "a" } },
+        { runtime: `Schema.String.check(Schema.isPattern(/a/))`, type: "string" }
+      )
+      assertGeneration(
         { schema: { "type": "string", "minLength": 1, "maxLength": 10 } },
         { runtime: `Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10))`, type: "string" }
       )
@@ -281,6 +289,22 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         { schema: { "type": "number", "minimum": 0 } },
         { runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))`, type: "number" }
+      )
+      assertGeneration(
+        { schema: { "type": "number", "maximum": 10 } },
+        { runtime: `Schema.Number.check(Schema.isLessThanOrEqualTo(10))`, type: "number" }
+      )
+      assertGeneration(
+        { schema: { "type": "number", "exclusiveMinimum": 0 } },
+        { runtime: `Schema.Number.check(Schema.isGreaterThan(0))`, type: "number" }
+      )
+      assertGeneration(
+        { schema: { "type": "number", "exclusiveMaximum": 10 } },
+        { runtime: `Schema.Number.check(Schema.isLessThan(10))`, type: "number" }
+      )
+      assertGeneration(
+        { schema: { "type": "number", "multipleOf": 10 } },
+        { runtime: `Schema.Number.check(Schema.isMultipleOf(10))`, type: "number" }
       )
       assertGeneration(
         { schema: { "type": "number", "minimum": 1, "maximum": 10 } },
@@ -344,6 +368,14 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           { schema: { "type": "array", "minItems": 1 } },
           { runtime: "Schema.Array(Schema.Unknown).check(Schema.isMinLength(1))", type: "ReadonlyArray<unknown>" }
+        )
+        assertGeneration(
+          { schema: { "type": "array", "maxItems": 10 } },
+          { runtime: "Schema.Array(Schema.Unknown).check(Schema.isMaxLength(10))", type: "ReadonlyArray<unknown>" }
+        )
+        assertGeneration(
+          { schema: { "type": "array", "uniqueItems": true } },
+          { runtime: "Schema.Array(Schema.Unknown).check(Schema.isUnique())", type: "ReadonlyArray<unknown>" }
         )
         assertGeneration(
           { schema: { "type": "array", "items": [] } },
@@ -474,6 +506,13 @@ describe("FromJsonSchema", () => {
           }
         )
         assertGeneration(
+          { schema: { "type": "object", "maxProperties": 10 } },
+          {
+            runtime: "Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMaxProperties(10))",
+            type: "{ readonly [x: string]: unknown }"
+          }
+        )
+        assertGeneration(
           { schema: { "type": "object", "properties": {} } },
           { runtime: "Schema.Record(Schema.String, Schema.Unknown)", type: "{ readonly [x: string]: unknown }" }
         )
@@ -495,16 +534,36 @@ describe("FromJsonSchema", () => {
     })
 
     it("Union", () => {
-      assertGeneration(
-        { schema: { "anyOf": [{ "type": "string" }, { "type": "number" }] } },
-        { runtime: "Schema.Union([Schema.String, Schema.Number])", type: "string | number" }
-      )
+      describe("anyOf", () => {
+        assertGeneration(
+          { schema: { "anyOf": [{ "type": "string" }, { "type": "number" }] } },
+          { runtime: "Schema.Union([Schema.String, Schema.Number])", type: "string | number" }
+        )
+        assertGeneration(
+          { schema: { "anyOf": [{ "type": "string" }, { "type": "number" }], "description": "lorem" } },
+          {
+            runtime: `Schema.Union([Schema.String, Schema.Number]).annotate({ description: "lorem" })`,
+            type: "string | number"
+          }
+        )
+      })
+
+      describe("oneOf", () => {
+        assertGeneration(
+          { schema: { "oneOf": [{ "type": "string" }, { "type": "number" }] } },
+          { runtime: "Schema.Union([Schema.String, Schema.Number], { mode: 'oneOf' })", type: "string | number" }
+        )
+      })
     })
 
     it("reference", () => {
       assertGeneration(
         { schema: { "$ref": "#/definitions/A" } },
         { runtime: "A", type: "A" }
+      )
+      assertGeneration(
+        { schema: { "$ref": "#/definitions/A", "description": "lorem" } },
+        { runtime: `A.annotate({ description: "lorem" })`, type: "A" }
       )
     })
   })
