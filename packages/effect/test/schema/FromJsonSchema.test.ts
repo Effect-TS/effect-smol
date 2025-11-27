@@ -150,7 +150,7 @@ describe("FromJsonSchema", () => {
       )
       assertGeneration(
         { schema: { "format": "email" } },
-        { runtime: `Schema.Unknown.annotate({ format: "email" })`, type: "unknown" }
+        { runtime: `Schema.String.annotate({ format: "email" })`, type: "string" }
       )
     })
 
@@ -610,18 +610,42 @@ describe("FromJsonSchema", () => {
     })
 
     describe("allOf", () => {
-      it("string & unknown", () => {
+      it("string & untyped", () => {
         assertGeneration(
-          { schema: { "type": "string", "allOf": [{ "minLength": 1 }] } },
+          {
+            schema: {
+              "type": "string",
+              "allOf": [{ "description": "lorem" }]
+            }
+          },
+          { runtime: `Schema.String.annotate({ description: "lorem" })`, type: "string" }
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "allOf": [{ "minLength": 1 }]
+            }
+          },
           { runtime: `Schema.String.check(Schema.isMinLength(1))`, type: "string" }
         )
         assertGeneration(
-          { schema: { "type": "string", "description": "lorem", "allOf": [{ "minLength": 1 }] } },
+          {
+            schema: {
+              "type": "string",
+              "description": "lorem",
+              "allOf": [{ "minLength": 1 }]
+            }
+          },
           { runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "lorem" })`, type: "string" }
         )
         assertGeneration(
           {
-            schema: { "type": "string", "description": "lorem", "allOf": [{ "minLength": 1, "description": "ipsum" }] }
+            schema: {
+              "type": "string",
+              "description": "lorem",
+              "allOf": [{ "minLength": 1, "description": "ipsum" }]
+            }
           },
           {
             runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "lorem, ipsum" })`,
@@ -630,7 +654,11 @@ describe("FromJsonSchema", () => {
         )
         assertGeneration(
           {
-            schema: { "type": "string", "description": " ", "allOf": [{ "minLength": 1, "description": "ipsum" }] }
+            schema: {
+              "type": "string",
+              "description": " ",
+              "allOf": [{ "minLength": 1, "description": "ipsum" }]
+            }
           },
           {
             runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "ipsum" })`,
@@ -639,7 +667,11 @@ describe("FromJsonSchema", () => {
         )
         assertGeneration(
           {
-            schema: { "type": "string", "description": "lorem", "allOf": [{ "minLength": 1, "description": " " }] }
+            schema: {
+              "type": "string",
+              "description": "lorem",
+              "allOf": [{ "minLength": 1, "description": " " }]
+            }
           },
           {
             runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "lorem" })`,
@@ -650,29 +682,67 @@ describe("FromJsonSchema", () => {
 
       it("string & string", () => {
         assertGeneration(
-          { schema: { "type": "string", "minLength": 1, "allOf": [{ "type": "string", "maxLength": 10 }] } },
+          {
+            schema: {
+              "type": "string",
+              "minLength": 1,
+              "allOf": [{ "type": "string", "maxLength": 10 }]
+            }
+          },
           { runtime: `Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10))`, type: "string" }
         )
         assertGeneration(
-          { schema: { "type": "string", "minLength": 1, "allOf": [{ "type": "string", "minLength": 2 }] } },
+          {
+            schema: {
+              "type": "string",
+              "minLength": 1,
+              "allOf": [{ "type": "string", "minLength": 2 }]
+            }
+          },
           { runtime: `Schema.String.check(Schema.isMinLength(1), Schema.isMinLength(2))`, type: "string" }
         )
       })
 
-      it("number & unknown", () => {
+      it("number & untyped", () => {
         assertGeneration(
-          { schema: { "type": "number", "allOf": [{ "minimum": 1 }] } },
+          {
+            schema: {
+              "type": "number",
+              "allOf": [{ "description": "lorem" }]
+            }
+          },
+          { runtime: `Schema.Number.annotate({ description: "lorem" })`, type: "number" }
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "number",
+              "allOf": [{ "minimum": 1 }]
+            }
+          },
           { runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1))`, type: "number" }
         )
         assertGeneration(
-          { schema: { "type": "number", "description": "lorem", "allOf": [{ "minimum": 1 }] } },
+          {
+            schema: {
+              "type": "number",
+              "description": "lorem",
+              "allOf": [{ "minimum": 1 }]
+            }
+          },
           {
             runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ description: "lorem" })`,
             type: "number"
           }
         )
         assertGeneration(
-          { schema: { "type": "number", "description": "lorem", "allOf": [{ "minimum": 1, "description": "ipsum" }] } },
+          {
+            schema: {
+              "type": "number",
+              "description": "lorem",
+              "allOf": [{ "minimum": 1, "description": "ipsum" }]
+            }
+          },
           {
             runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ description: "lorem, ipsum" })`,
             type: "number"
@@ -682,24 +752,56 @@ describe("FromJsonSchema", () => {
 
       it("number & integer", () => {
         assertGeneration(
-          { schema: { "type": "number", "allOf": [{ "type": "integer" }] } },
+          {
+            schema: {
+              "type": "number",
+              "allOf": [{ "type": "integer" }]
+            }
+          },
           { runtime: "Schema.Int", type: "number" }
         )
       })
 
       it("number & number", () => {
         assertGeneration(
-          { schema: { "type": "number", "minimum": 1, "allOf": [{ "type": "number", "maximum": 10 }] } },
+          {
+            schema: {
+              "type": "number",
+              "minimum": 1,
+              "allOf": [{ "type": "number", "maximum": 10 }]
+            }
+          },
           {
             runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(10))`,
             type: "number"
           }
         )
         assertGeneration(
-          { schema: { "type": "number", "minimum": 1, "allOf": [{ "type": "number", "minimum": 2 }] } },
+          {
+            schema: {
+              "type": "number",
+              "minimum": 1,
+              "allOf": [{ "type": "number", "minimum": 2 }]
+            }
+          },
           {
             runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1), Schema.isGreaterThanOrEqualTo(2))`,
             type: "number"
+          }
+        )
+      })
+
+      it("object & untyped", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "object",
+              "allOf": [{ "description": "lorem" }]
+            }
+          },
+          {
+            runtime: `Schema.Record(Schema.String, Schema.Unknown).annotate({ description: "lorem" })`,
+            type: "{ readonly [x: string]: unknown }"
           }
         )
       })
@@ -900,7 +1002,7 @@ describe("FromJsonSchema", () => {
         )
       })
 
-      it("array & unknown", () => {
+      it("array & untyped", () => {
         assertGeneration(
           {
             schema: {

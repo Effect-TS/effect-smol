@@ -319,30 +319,17 @@ type AST =
   | Union
   | Reference
 
-type Check =
-  | StringCheck
-  | NumberCheck
-  | ArraysCheck
-  | ObjectsCheck
-
 class Unknown {
   readonly _tag = "Unknown"
-  readonly checks: ReadonlyArray<Check>
   readonly annotations: Annotations
-  constructor(checks: ReadonlyArray<Check>, annotations: Annotations = {}) {
-    this.checks = checks
+  constructor(annotations: Annotations = {}) {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Unknown {
-    return new Unknown(this.checks, annotationsCombiner.combine(this.annotations, annotations))
+    return new Unknown(annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(f: Fragment): AST {
-    let checks: Array<Check> = []
-    checks = checks.concat(String.check(f))
-    checks = checks.concat(Number.check(f))
-    checks = checks.concat(Arrays.check(f))
-    checks = checks.concat(Objects.check(f))
-    return new Unknown([...this.checks, ...checks], this.annotations)
+  check(_: Fragment): AST {
+    return this
   }
   combine(that: AST): AST {
     return that
@@ -431,10 +418,6 @@ type StringCheck =
   | { readonly _tag: "maxLength"; readonly value: number }
   | { readonly _tag: "pattern"; readonly value: string }
 
-function isStringCheck(check: Check): check is StringCheck {
-  return check._tag === "minLength" || check._tag === "maxLength" || check._tag === "pattern"
-}
-
 function makePatternCheck(pattern: string): StringCheck {
   return { _tag: "pattern", value: pattern.replace(/\//g, "\\/") }
 }
@@ -480,12 +463,11 @@ class String {
           [...this.checks, ...that.checks],
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
-      case "Unknown": {
+      case "Unknown":
         return new String(
-          [...this.checks, ...that.checks.filter(isStringCheck)],
+          this.checks,
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
-      }
       default:
         return new Never()
     }
@@ -516,11 +498,6 @@ type NumberCheck =
   | { readonly _tag: "greaterThan"; readonly value: number }
   | { readonly _tag: "lessThan"; readonly value: number }
   | { readonly _tag: "multipleOf"; readonly value: number }
-
-function isNumberCheck(check: Check): check is NumberCheck {
-  return check._tag === "greaterThanOrEqualTo" || check._tag === "lessThanOrEqualTo" || check._tag === "greaterThan" ||
-    check._tag === "lessThan" || check._tag === "multipleOf"
-}
 
 class Number {
   static check(f: Fragment): Array<NumberCheck> {
@@ -575,13 +552,12 @@ class Number {
           [...this.checks, ...that.checks],
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
-      case "Unknown": {
+      case "Unknown":
         return new Number(
           this.isInteger,
-          [...this.checks, ...that.checks.filter(isNumberCheck)],
+          this.checks,
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
-      }
       default:
         return new Never()
     }
@@ -681,10 +657,6 @@ type ArraysCheck =
   | { readonly _tag: "maxItems"; readonly value: number }
   | { readonly _tag: "uniqueItems" }
 
-function isArraysCheck(check: Check): check is ArraysCheck {
-  return check._tag === "minItems" || check._tag === "maxItems" || check._tag === "uniqueItems"
-}
-
 class Element {
   readonly isOptional: boolean
   readonly ast: AST
@@ -748,14 +720,13 @@ class Arrays {
   }
   combine(that: AST): AST {
     switch (that._tag) {
-      case "Unknown": {
+      case "Unknown":
         return new Arrays(
           this.elements,
           this.rest,
-          [...this.checks, ...that.checks.filter(isArraysCheck)],
+          this.checks,
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
-      }
       case "Arrays": {
         if (this.elements.length > 0 && that.elements.length > 0) {
           return new Never()
@@ -843,10 +814,6 @@ type ObjectsCheck =
   | { readonly _tag: "minProperties"; readonly value: number }
   | { readonly _tag: "maxProperties"; readonly value: number }
 
-function isObjectsCheck(check: Check): check is ObjectsCheck {
-  return check._tag === "minProperties" || check._tag === "maxProperties"
-}
-
 class Property {
   readonly isOptional: boolean
   readonly key: string
@@ -922,7 +889,7 @@ class Objects {
         return new Objects(
           this.properties,
           this.indexSignatures,
-          [...this.checks, ...that.checks.filter(isObjectsCheck)],
+          this.checks,
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       case "Objects":
@@ -1112,7 +1079,7 @@ interface RecurOptions {
 
 function parse(schema: unknown, options: RecurOptions): AST {
   if (schema === false) return new Never()
-  if (schema === true) return new Unknown([])
+  if (schema === true) return new Unknown()
   if (isObject(schema)) {
     let ast = parseFragment(schema, options)
     const annotations = collectAnnotations(schema)
@@ -1123,7 +1090,7 @@ function parse(schema: unknown, options: RecurOptions): AST {
     }
     return ast
   }
-  return new Unknown([])
+  return new Unknown()
 }
 
 function parseFragment(schema: Fragment, options: RecurOptions): AST {
@@ -1146,6 +1113,8 @@ function parseFragment(schema: Fragment, options: RecurOptions): AST {
     return new Enum(schema.enum)
   }
 
+  schema = normalize(schema)
+
   if (isType(schema.type)) {
     return handleType(schema.type, schema, options)
   }
@@ -1162,7 +1131,39 @@ function parseFragment(schema: Fragment, options: RecurOptions): AST {
     return new Not(parse(schema.not, options))
   }
 
-  return new Unknown([])
+  return new Unknown()
+}
+
+const stringKeys = ["minLength", "maxLength", "pattern", "format"]
+const numberKeys = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"]
+const objectKeys = [
+  "properties",
+  "required",
+  "additionalProperties",
+  "patternProperties",
+  "propertyNames",
+  "minProperties",
+  "maxProperties"
+]
+const arrayKeys = ["items", "prefixItems", "additionalItems", "minItems", "maxItems", "uniqueItems"]
+
+// adds a "type": Type to the schema if it is not present
+function normalize(schema: Fragment): Fragment {
+  if (schema.type === undefined) {
+    if (stringKeys.some((key) => schema[key] !== undefined)) {
+      return { ...schema, type: "string" }
+    }
+    if (numberKeys.some((key) => schema[key] !== undefined)) {
+      return { ...schema, type: "number" }
+    }
+    if (objectKeys.some((key) => schema[key] !== undefined)) {
+      return { ...schema, type: "object" }
+    }
+    if (arrayKeys.some((key) => schema[key] !== undefined)) {
+      return { ...schema, type: "array" }
+    }
+  }
+  return schema
 }
 
 const types = ["null", "string", "number", "integer", "boolean", "object", "array"]
@@ -1197,7 +1198,7 @@ function handleType(type: Schema.JsonSchema.Type, schema: Fragment, options: Rec
 
       return new Arrays(
         elements ?? [],
-        rest !== undefined ? rest === false ? undefined : parse(rest, options) : new Unknown([]),
+        rest !== undefined ? rest === false ? undefined : parse(rest, options) : new Unknown(),
         []
       )
     }
@@ -1229,11 +1230,11 @@ function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<
   }
 
   if (isObject(schema.propertyNames)) {
-    out.push(new IndexSignature(parse({ "type": "string", ...schema.propertyNames }, options), new Unknown([])))
+    out.push(new IndexSignature(parse(schema.propertyNames, options), new Unknown()))
   }
 
   if (schema.additionalProperties === true) {
-    out.push(new IndexSignature(new String([]), new Unknown([])))
+    out.push(new IndexSignature(new String([]), new Unknown()))
     return out
   }
 
@@ -1253,7 +1254,7 @@ function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<
   }
 
   if (hasNoProps && out.length === 0) {
-    out.push(new IndexSignature(new String([]), new Unknown([])))
+    out.push(new IndexSignature(new String([]), new Unknown()))
   }
 
   return out
