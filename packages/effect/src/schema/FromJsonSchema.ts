@@ -435,13 +435,17 @@ function isStringCheck(check: Check): check is StringCheck {
   return check._tag === "minLength" || check._tag === "maxLength" || check._tag === "pattern"
 }
 
+function makePatternCheck(pattern: string): StringCheck {
+  return { _tag: "pattern", value: pattern.replace(/\//g, "\\/") }
+}
+
 class String {
   static check(f: Fragment): Array<StringCheck> {
     const cs: Array<StringCheck> = []
     if (typeof f.minLength === "number") cs.push({ _tag: "minLength", value: f.minLength })
     if (typeof f.maxLength === "number") cs.push({ _tag: "maxLength", value: f.maxLength })
     // Escape forward slashes to prevent them from terminating the regex literal delimiter
-    if (typeof f.pattern === "string") cs.push({ _tag: "pattern", value: f.pattern.replace(/\//g, "\\/") })
+    if (typeof f.pattern === "string") cs.push(makePatternCheck(f.pattern))
     return cs
   }
   readonly _tag = "String"
@@ -976,7 +980,7 @@ class Objects {
     // 3) Properties + index signatures -> StructWithRest
     return {
       runtime: `Schema.StructWithRest(Schema.Struct({ ${p.runtime} }), [${i.runtime}])` + suffix,
-      type: `{ ${p.type}, ${i.type} }`,
+      type: ps.length === 0 ? `{ ${i.type} }` : `{ ${p.type}, ${i.type} }`,
       imports: ReadonlySetReducer.combineAll([p.imports, i.imports])
     }
   }
@@ -1211,24 +1215,48 @@ function collectProperties(schema: Fragment, options: RecurOptions): Array<Prope
 }
 
 function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<IndexSignature> {
+  const out: Array<IndexSignature> = []
+
+  // patternProperties -> one Record per pattern (key is a String schema with a pattern check)
+  if (isObject(schema.patternProperties)) {
+    for (const [pattern, value] of Object.entries(schema.patternProperties)) {
+      out.push(
+        new IndexSignature(
+          new String([makePatternCheck(pattern)]),
+          parse(value, options)
+        )
+      )
+    }
+  }
+
+  // additionalProperties
   if (schema.additionalProperties === true) {
-    return [new IndexSignature(new String([]), new Unknown([]))]
+    out.push(new IndexSignature(new String([]), new Unknown([])))
+    return out
   }
 
   if (isObject(schema.additionalProperties)) {
-    return [new IndexSignature(new String([]), parse(schema.additionalProperties, options))]
+    out.push(new IndexSignature(new String([]), parse(schema.additionalProperties, options)))
+    return out
   }
 
   const hasNoProps = schema.properties === undefined ||
     (isObject(schema.properties) && Object.keys(schema.properties).length === 0)
 
-  if (hasNoProps && schema.additionalProperties === false) {
-    return [new IndexSignature(new String([]), new Never())]
+  if (schema.additionalProperties === false) {
+    // preserve existing "empty object" behavior: `{}` + additionalProperties:false => Record(string, never)
+    if (hasNoProps && out.length === 0) {
+      out.push(new IndexSignature(new String([]), new Never()))
+    }
+    return out
   }
 
-  return hasNoProps
-    ? [new IndexSignature(new String([]), new Unknown([]))]
-    : []
+  // preserve existing "unknown object" behavior only when there are no patternProperties
+  if (hasNoProps && out.length === 0) {
+    out.push(new IndexSignature(new String([]), new Unknown([])))
+  }
+
+  return out
 }
 
 function collectElements(schema: Fragment, options: RecurOptions): ReadonlyArray<unknown> | undefined {

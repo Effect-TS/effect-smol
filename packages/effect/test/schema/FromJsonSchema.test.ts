@@ -154,6 +154,56 @@ describe("FromJsonSchema", () => {
       )
     })
 
+    it("patternProperties", () => {
+      assertGeneration(
+        {
+          schema: {
+            "type": "object",
+            "patternProperties": {}
+          }
+        },
+        {
+          runtime: `Schema.Record(Schema.String, Schema.Unknown)`,
+          type: `{ readonly [x: string]: unknown }`
+        }
+      )
+      assertGeneration(
+        {
+          schema: {
+            "type": "object",
+            "patternProperties": { "^x-": { "type": "string" } }
+          }
+        },
+        {
+          runtime: `Schema.Record(Schema.String.check(Schema.isPattern(/^x-/)), Schema.String)`,
+          type: `{ readonly [x: string]: string }`
+        }
+      )
+      assertGeneration(
+        {
+          schema: {
+            "type": "object",
+            "patternProperties": { "^x-": { "type": "string" }, "^y-": { "type": "number" } }
+          }
+        },
+        {
+          runtime:
+            `Schema.StructWithRest(Schema.Struct({  }), [Schema.Record(Schema.String.check(Schema.isPattern(/^x-/)), Schema.String), Schema.Record(Schema.String.check(Schema.isPattern(/^y-/)), Schema.Number)])`,
+          type: `{ readonly [x: string]: string, readonly [x: string]: number }`
+        }
+      )
+    })
+
+    it.todo("propertyNames", () => {
+      assertGeneration(
+        { schema: { "type": "object", "propertyNames": { "pattern": "^[A-Z]" } } },
+        {
+          runtime: `Schema.Record(Schema.String, Schema.Unknown).annotate({ propertyNames: { pattern: "^[A-Z]" } })`,
+          type: `{ readonly [x: string]: unknown }`
+        }
+      )
+    })
+
     it("true", () => {
       assertGeneration(
         { schema: true },
