@@ -189,6 +189,10 @@ describe("Duration", () => {
     deepStrictEqual(Duration.divide(Duration.nanos(1n), 0), undefined)
     deepStrictEqual(Duration.divide(Duration.nanos(1n), -0), undefined)
 
+    // divide by negative
+    deepStrictEqual(Duration.divide(Duration.minutes(1), -1), Duration.zero)
+    deepStrictEqual(Duration.divide(Duration.nanos(1n), -1), undefined)
+
     // bad by
     deepStrictEqual(Duration.divide(Duration.minutes(1), NaN), undefined)
     deepStrictEqual(Duration.divide(Duration.nanos(1n), NaN), undefined)
