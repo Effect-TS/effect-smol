@@ -1543,4 +1543,68 @@ describe("Effect", () => {
         }))
     })
   })
+
+  describe("error channel vs defect channel", () => {
+    it.effect("Effect.try (to be renamed Effect.sync) callback form puts errors in defect channel", () =>
+      Effect.gen(function*() {
+        const program = Effect.try(() => {
+          throw new Error("sync error")
+        })
+
+        const exit = yield* Effect.exit(program)
+
+        assert.isTrue(Exit.isFailure(exit))
+        if (exit._tag === "Failure") {
+          assert.isTrue(Cause.hasDie(exit.cause))
+          const defect = Cause.filterDefect(exit.cause)
+          assert.strictEqual((defect as Error).message, "sync error")
+        }
+      }))
+
+    it.effect("Effect.try (to be renamed Effect.sync) object form without catch puts errors in error channel with UnknownError", () =>
+      Effect.gen(function*() {
+        const program = Effect.try({
+          try: () => {
+            throw new Error("sync error")
+          }
+        })
+
+        const exit = yield* Effect.exit(program)
+
+        assert.isTrue(Exit.isFailure(exit))
+        if (exit._tag === "Failure") {
+          assert.isTrue(Cause.hasFail(exit.cause))
+          const fail = Cause.filterError(exit.cause)
+          assert.strictEqual((fail as Error).message, "An error occurred in Effect.sync")
+        }
+      }))
+
+    it.effect("Effect.promise callback form puts rejections in defect channel", () =>
+      Effect.gen(function*() {
+        const program = Effect.promise(() => Promise.reject(new Error("async error")))
+
+        const exit = yield* Effect.exit(program)
+
+        assert.isTrue(Exit.isFailure(exit))
+        if (exit._tag === "Failure") {
+          assert.isTrue(Cause.hasDie(exit.cause))
+          const defect = Cause.filterDefect(exit.cause)
+          assert.strictEqual((defect as Error).message, "async error")
+        }
+      }))
+
+    it.effect("Effect.promise object form without catch puts rejections in error channel with UnknownError", () =>
+      Effect.gen(function*() {
+        const program = Effect.promise({ try: () => Promise.reject(new Error("async error")) })
+
+        const exit = yield* Effect.exit(program)
+
+        assert.isTrue(Exit.isFailure(exit))
+        if (exit._tag === "Failure") {
+          assert.isTrue(Cause.hasFail(exit.cause))
+          const fail = Cause.filterError(exit.cause)
+          assert.strictEqual((fail as Error).message, "An error occurred in Effect.promise")
+        }
+      }))
+  })
 })
