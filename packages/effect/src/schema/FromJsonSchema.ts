@@ -34,29 +34,32 @@ export type Generation = {
   readonly imports: ReadonlySet<string>
 }
 
-const emptySet: ReadonlySet<string> = new Set()
-
-const ReadonlySetReducer: Reducer.Reducer<ReadonlySet<string>> = Reducer.make<ReadonlySet<string>>(
-  (self, that) => {
-    if (self.size === 0) return that
-    if (that.size === 0) return self
-    return new Set([...self, ...that])
-  },
-  emptySet
-)
-
 /**
  * @since 4.0.0
  */
-export type GenerationOptions = {
-  readonly resolver?: ((identifier: string) => Generation) | undefined
+export type GenerateOptions = {
+  readonly resolver?: Resolver | undefined
   readonly target?: Target | undefined
 }
 
 /**
  * @since 4.0.0
  */
-export const resolvers = {
+export type Resolver = (identifier: string) => Generation
+
+/**
+ * @since 4.0.0
+ */
+export function generate(schema: unknown, options?: GenerateOptions): Generation {
+  return parse(schema, {
+    target: options?.target ?? "draft-07"
+  }).toGeneration(options?.resolver ?? resolvers.identity)
+}
+
+/**
+ * @since 4.0.0
+ */
+export const resolvers: Record<"identity" | "suspend", Resolver> = {
   identity: (identifier: string) => ({
     runtime: identifier,
     type: identifier,
@@ -69,65 +72,16 @@ export const resolvers = {
   })
 }
 
-interface RecurOptions {
-  readonly resolver: (identifier: string) => Generation
-  readonly target: Target
-}
+const emptySet: ReadonlySet<string> = new Set()
 
-const types = ["null", "string", "number", "integer", "boolean", "object", "array"]
-
-function collectElements(schema: Fragment, options: RecurOptions): ReadonlyArray<unknown> | undefined {
-  switch (options.target) {
-    case "draft-07":
-      return Array.isArray(schema.items) ? schema.items : undefined
-    case "2020-12":
-    case "oas3.1":
-      return Array.isArray(schema.prefixItems) ? schema.prefixItems : undefined
-  }
-}
-
-function collectRest(schema: Fragment, options: RecurOptions): Fragment | boolean | undefined {
-  switch (options.target) {
-    case "draft-07":
-      return isObject(schema.items) || (typeof schema.items === "boolean")
-        ? schema.items
-        : isObject(schema.additionalItems) || (typeof schema.additionalItems === "boolean")
-        ? schema.additionalItems
-        : undefined
-    case "2020-12":
-    case "oas3.1":
-      return isObject(schema.items) || (typeof schema.items === "boolean")
-        ? schema.items
-        : undefined
-  }
-}
-
-function extractIdentifier($ref: string): string | undefined {
-  const last = $ref.split("/").pop()
-  if (last !== undefined) {
-    return unescapeJsonPointer(last)
-  }
-}
-
-function optionalRuntime(isOptional: boolean, code: string): string {
-  return isOptional ? `Schema.optionalKey(${code})` : code
-}
-
-function optionalType(isRequired: boolean, type: string): string {
-  return isRequired ? type : `${type}?`
-}
-
-type ElementGen = {
-  readonly value: Generation
-  readonly isOptional: boolean
-}
-
-/**
- * @since 4.0.0
- */
-export function unescapeJsonPointer(pointer: string): string {
-  return pointer.replace(/~0/ig, "~").replace(/~1/ig, "/")
-}
+const ReadonlySetReducer: Reducer.Reducer<ReadonlySet<string>> = Reducer.make<ReadonlySet<string>>(
+  (self, that) => {
+    if (self.size === 0) return that
+    if (that.size === 0) return self
+    return new Set([...self, ...that])
+  },
+  emptySet
+)
 
 type TopologicalSort = {
   /**
@@ -267,10 +221,21 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
   return { nonRecursives, recursives }
 }
 
+function extractIdentifier($ref: string): string | undefined {
+  const last = $ref.split("/").pop()
+  if (last !== undefined) {
+    return unescapeJsonPointer(last)
+  }
+}
+
+function unescapeJsonPointer(pointer: string): string {
+  return pointer.replace(/~0/ig, "~").replace(/~1/ig, "/")
+}
+
 /**
  * @since 4.0.0
  */
-export type GenerationDefinition = {
+export type DefinitionGeneration = {
   readonly identifier: string
   readonly generation: Generation
 }
@@ -278,19 +243,20 @@ export type GenerationDefinition = {
 /**
  * @since 4.0.0
  */
-export function generateDefinitions(definitions: Schema.JsonSchema.Definitions, options?: {
-  readonly target?: Target | undefined
-}): Array<GenerationDefinition> {
+export function generateDefinitions(
+  definitions: Schema.JsonSchema.Definitions,
+  options?: GenerateOptions
+): Array<DefinitionGeneration> {
   const ts = topologicalSort(definitions)
   const recursives = new Set(Object.keys(ts.recursives))
-  const resolver = (identifier: string) => {
+  const resolver: Resolver = (identifier) => {
     if (recursives.has(identifier)) {
       return resolvers.suspend(identifier)
     }
     return resolvers.identity(identifier)
   }
-  const opts: GenerationOptions = {
-    target: options?.target,
+  const opts: GenerateOptions = {
+    ...options,
     resolver
   }
   return ts.nonRecursives.concat(
@@ -358,7 +324,7 @@ class Unknown {
   combine(that: AST): AST {
     return that
   }
-  toGeneration(): Generation {
+  toGeneration(_: Resolver): Generation {
     return {
       runtime: "Schema.Unknown" + getAnnotations(this),
       type: "unknown",
@@ -382,7 +348,7 @@ class Never {
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(): Generation {
+  toGeneration(_: Resolver): Generation {
     return {
       runtime: "Schema.Never" + getAnnotations(this),
       type: "never",
@@ -408,8 +374,8 @@ class Not {
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(): Generation {
-    return new Never(this.annotations).toGeneration()
+  toGeneration(resolver: Resolver): Generation {
+    return new Never(this.annotations).toGeneration(resolver)
   }
 }
 
@@ -428,7 +394,7 @@ class Null {
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(): Generation {
+  toGeneration(_: Resolver): Generation {
     return {
       runtime: "Schema.Null" + getAnnotations(this),
       type: "null",
@@ -498,7 +464,7 @@ class String {
         return new Never()
     }
   }
-  toGeneration(): Generation {
+  toGeneration(_: Resolver): Generation {
     return {
       runtime: "Schema.String" + this.getChecks() + getAnnotations(this),
       type: "string",
@@ -589,7 +555,7 @@ class Number {
         return new Never()
     }
   }
-  toGeneration(): Generation {
+  toGeneration(_: Resolver): Generation {
     return {
       runtime: (this.isInteger ? "Schema.Int" : "Schema.Number") + this.getChecks() + getAnnotations(this),
       type: "number",
@@ -613,7 +579,7 @@ class Boolean {
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(): Generation {
+  toGeneration(_: Resolver): Generation {
     return { runtime: "Schema.Boolean" + getAnnotations(this), type: "boolean", imports: emptySet }
   }
 }
@@ -635,7 +601,7 @@ class Const {
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(): Generation {
+  toGeneration(_: Resolver): Generation {
     return { runtime: `Schema.Literal(${format(this.value)})`, type: format(this.value), imports: emptySet }
   }
 }
@@ -657,7 +623,7 @@ class Enum {
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(): Generation {
+  toGeneration(_: Resolver): Generation {
     const values = this.values.map((v) => format(v))
     if (values.length === 1) {
       return {
@@ -759,9 +725,12 @@ class Arrays {
         return new Never()
     }
   }
-  toGeneration(): Generation {
-    const es = this.elements.map((e) => ({ value: e.ast.toGeneration(), isOptional: e.isOptional }))
-    const rest = this.rest?.toGeneration()
+  toGeneration(resolver: Resolver): Generation {
+    const es = this.elements.map((e): ElementIR => ({
+      value: e.ast.toGeneration(resolver),
+      isOptional: e.isOptional
+    }))
+    const rest = this.rest?.toGeneration(resolver)
     if (es.length === 0) {
       if (rest === undefined) {
         return {
@@ -795,15 +764,28 @@ class Arrays {
   }
 }
 
-function elementsRuntime(es: ReadonlyArray<ElementGen>): string {
+type ElementIR = {
+  readonly value: Generation
+  readonly isOptional: boolean
+}
+
+function elementsRuntime(es: ReadonlyArray<ElementIR>): string {
   return es.map((e) => optionalRuntime(e.isOptional, e.value.runtime)).join(", ")
 }
 
-function elementsType(es: ReadonlyArray<ElementGen>): string {
+function elementsType(es: ReadonlyArray<ElementIR>): string {
   return `${es.map((e) => optionalType(!e.isOptional, e.value.type)).join(", ")}`
 }
 
-function elementsImports(es: ReadonlyArray<ElementGen>): ReadonlySet<string> {
+function optionalRuntime(isOptional: boolean, code: string): string {
+  return isOptional ? `Schema.optionalKey(${code})` : code
+}
+
+function optionalType(isRequired: boolean, type: string): string {
+  return isRequired ? type : `${type}?`
+}
+
+function elementsImports(es: ReadonlyArray<ElementIR>): ReadonlySet<string> {
   return ReadonlySetReducer.combineAll(es.map((e) => e.value.imports))
 }
 
@@ -898,9 +880,9 @@ class Objects {
         return new Never()
     }
   }
-  toGeneration(): Generation {
+  toGeneration(resolver: Resolver): Generation {
     const ps = this.properties.map((p) => {
-      const value = p.value.toGeneration()
+      const value = p.value.toGeneration(resolver)
       return {
         key: p.key,
         value,
@@ -908,8 +890,8 @@ class Objects {
       }
     })
     const iss = this.indexSignatures.map((is) => {
-      const key = is.key.toGeneration()
-      const value = is.value.toGeneration()
+      const key = is.key.toGeneration(resolver)
+      const value = is.value.toGeneration(resolver)
       return {
         key,
         value
@@ -994,8 +976,8 @@ class Union {
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(): Generation {
-    const members = this.members.map((m) => m.toGeneration())
+  toGeneration(resolver: Resolver): Generation {
+    const members = this.members.map((m) => m.toGeneration(resolver))
     return {
       runtime:
         `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${
@@ -1009,14 +991,14 @@ class Union {
 
 class Reference {
   readonly _tag = "Reference"
-  readonly toGeneration: () => Generation
+  readonly identifier: string
   readonly annotations: Annotations
-  constructor(toGeneration: () => Generation, annotations: Annotations = {}) {
-    this.toGeneration = toGeneration
+  constructor(identifier: string, annotations: Annotations = {}) {
+    this.identifier = identifier
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Reference {
-    return new Reference(this.toGeneration, { ...this.annotations, ...annotations })
+    return new Reference(this.identifier, { ...this.annotations, ...annotations })
   }
   check(_: Fragment): AST {
     return this
@@ -1024,14 +1006,13 @@ class Reference {
   combine(_: AST): AST {
     return new Never()
   }
+  toGeneration(resolver: Resolver): Generation {
+    return resolver(this.identifier)
+  }
 }
 
-/** @internal */
-export function generate(schema: unknown, options?: GenerationOptions): Generation {
-  return parse(schema, {
-    resolver: options?.resolver ?? resolvers.identity,
-    target: options?.target ?? "draft-07"
-  }).toGeneration()
+interface RecurOptions {
+  readonly target: Target
 }
 
 function parse(schema: unknown, options: RecurOptions): AST {
@@ -1077,7 +1058,7 @@ function parseFragment(schema: Fragment, options: RecurOptions): AST {
   if (typeof schema.$ref === "string") {
     const identifier = extractIdentifier(schema.$ref)
     if (identifier !== undefined) {
-      return new Reference(() => options.resolver(identifier))
+      return new Reference(identifier)
     }
     throw new Error(`Invalid $ref: ${schema.$ref}`)
   }
@@ -1088,6 +1069,8 @@ function parseFragment(schema: Fragment, options: RecurOptions): AST {
 
   return new Unknown([])
 }
+
+const types = ["null", "string", "number", "integer", "boolean", "object", "array"]
 
 function isType(type: unknown): type is Schema.JsonSchema.Type {
   return typeof type === "string" && types.includes(type)
@@ -1147,6 +1130,32 @@ function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<
     return [new IndexSignature(new String([]), new Unknown([]))]
   }
   return []
+}
+
+function collectElements(schema: Fragment, options: RecurOptions): ReadonlyArray<unknown> | undefined {
+  switch (options.target) {
+    case "draft-07":
+      return Array.isArray(schema.items) ? schema.items : undefined
+    case "2020-12":
+    case "oas3.1":
+      return Array.isArray(schema.prefixItems) ? schema.prefixItems : undefined
+  }
+}
+
+function collectRest(schema: Fragment, options: RecurOptions): Fragment | boolean | undefined {
+  switch (options.target) {
+    case "draft-07":
+      return isObject(schema.items) || (typeof schema.items === "boolean")
+        ? schema.items
+        : isObject(schema.additionalItems) || (typeof schema.additionalItems === "boolean")
+        ? schema.additionalItems
+        : undefined
+    case "2020-12":
+    case "oas3.1":
+      return isObject(schema.items) || (typeof schema.items === "boolean")
+        ? schema.items
+        : undefined
+  }
 }
 
 function collectAnnotations(schema: Fragment): Annotations | undefined {

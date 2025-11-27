@@ -5626,7 +5626,7 @@ const schema = FromJsonSchema.generate(jsonSchema)
 const definitions = FromJsonSchema.generateDefinitions(jsonSchema.definitions)
 
 // collect all definitions plus the entry schema
-const all: ReadonlyArray<FromJsonSchema.GenerationDefinition> = [
+const all: ReadonlyArray<FromJsonSchema.DefinitionGeneration> = [
   ...definitions,
   { identifier: "MySchema", generation: schema }
 ]
@@ -5660,6 +5660,7 @@ import { FromJsonSchema } from "effect/schema"
 const jsonSchema = {
   type: "array",
   prefixItems: [{ type: "string" }, { type: "number" }],
+  minItems: 2,
   items: false
 } as const
 
@@ -5735,7 +5736,7 @@ const jsonSchema = {
 
 const schema = FromJsonSchema.generate(jsonSchema, {
   target: "oas3.1",
-  resolver: (identifier) => {
+  resolver: (identifier, next) => {
     if (identifier === "effect/HttpApiSchemaError") {
       // map identifier to a direct import, with both runtime and type info
       return {
@@ -5744,8 +5745,8 @@ const schema = FromJsonSchema.generate(jsonSchema, {
         imports: new Set([`import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`])
       }
     }
-    // fallback to the default resolver
-    return FromJsonSchema.resolvers.identity(identifier)
+    // fallback to the next resolver
+    return next(identifier)
   }
 })
 

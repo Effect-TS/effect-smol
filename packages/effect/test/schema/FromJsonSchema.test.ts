@@ -30,7 +30,7 @@ function assertRoundtrip(input: {
 function assertGeneration(
   input: {
     readonly schema: Record<string, unknown> | boolean
-    readonly options?: FromJsonSchema.GenerationOptions | undefined
+    readonly options?: FromJsonSchema.GenerateOptions | undefined
   },
   expected: {
     readonly runtime: string
@@ -45,7 +45,7 @@ function assertGeneration(
 function assertGenerationOld(
   input: {
     readonly schema: Record<string, unknown> | boolean
-    readonly options?: FromJsonSchema.GenerationOptions | undefined
+    readonly options?: FromJsonSchema.GenerateOptions | undefined
   },
   expected: {
     readonly runtime: string
