@@ -283,9 +283,13 @@ function base(
           options.generateDescriptions
         )
       )
+      out.minItems = ast.elements.length
       const minItems = ast.elements.findIndex(isOptional)
       if (minItems !== -1) {
         out.minItems = minItems
+      }
+      if (out.minItems === 0) {
+        delete out.minItems
       }
       // ---------------------------------------------
       // handle rest element

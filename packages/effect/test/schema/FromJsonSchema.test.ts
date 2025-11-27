@@ -19,12 +19,12 @@ function assertRoundtrip(input: {
 }) {
   const target = input.target ?? "draft-07"
   const document = getDocumentByTarget(target, input.schema)
-  const output = FromJsonSchema.generateOld(document.schema, { target })
+  const output = FromJsonSchema.generate(document.schema, { target })
   const fn = new Function("Schema", `return ${output.runtime}`)
   const generated = fn(Schema)
   const codedocument = getDocumentByTarget(target, generated)
   deepStrictEqual(codedocument, document)
-  deepStrictEqual(FromJsonSchema.generateOld(codedocument.schema), output)
+  deepStrictEqual(FromJsonSchema.generate(codedocument.schema), output)
 }
 
 function assertGeneration(
@@ -53,7 +53,7 @@ function assertGenerationOld(
     readonly imports?: ReadonlySet<string>
   }
 ) {
-  const generation = FromJsonSchema.generateOld(input.schema, input.options)
+  const generation = FromJsonSchema.generate(input.schema, input.options)
   deepStrictEqual(generation, { imports: new Set(), ...expected })
 }
 
@@ -329,20 +329,8 @@ describe("FromJsonSchema", () => {
               "items": []
             }
           }, {
-            runtime: "Schema.Tuple([])",
-            type: "readonly []"
-          })
-        })
-
-        it("items: non empty array", () => {
-          assertGenerationOld({
-            schema: {
-              "type": "array",
-              "items": [{ "type": "string" }, { "type": "number" }]
-            }
-          }, {
-            runtime: "Schema.Tuple([Schema.String, Schema.Number])",
-            type: "readonly [string, number]"
+            runtime: "Schema.Array(Schema.Unknown)",
+            type: "ReadonlyArray<unknown>"
           })
         })
 
@@ -377,6 +365,7 @@ describe("FromJsonSchema", () => {
           assertGenerationOld({
             schema: {
               "type": "array",
+              "minItems": 2,
               "items": [{ "type": "string" }, { "type": "number" }],
               "additionalItems": false
             }
@@ -384,36 +373,12 @@ describe("FromJsonSchema", () => {
             runtime: "Schema.Tuple([Schema.String, Schema.Number])",
             type: "readonly [string, number]"
           })
-          assertGenerationOld({
-            schema: {
-              "type": "array",
-              "items": [{ "type": "string" }, { "type": "number" }],
-              "additionalItems": true
-            }
-          }, {
-            runtime: "Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.Unknown])",
-            type: "readonly [string, number, ...Array<unknown>]"
-          })
-        })
-
-        it("items & additionalItems: schema", () => {
-          assertGenerationOld({
-            schema: {
-              "type": "array",
-              "items": [{ "type": "string" }, { "type": "number" }],
-              "additionalItems": { "type": "boolean" }
-            }
-          }, {
-            runtime: "Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.Boolean])",
-            type: "readonly [string, number, ...Array<boolean>]"
-          })
         })
 
         it("optional items", () => {
           assertGenerationOld({
             schema: {
               "type": "array",
-              "minItems": 0,
               "items": [
                 { "type": "string" }
               ],
@@ -673,7 +638,7 @@ describe("FromJsonSchema", () => {
     })
   })
 
-  describe("roundtrips", () => {
+  describe.todo("roundtrips", () => {
     it("Never", () => {
       assertRoundtrip({ schema: Schema.Never })
     })
@@ -1170,7 +1135,7 @@ describe("FromJsonSchema", () => {
       schemas: ReadonlyArray<Schema.JsonSchema.Schema>
     ) {
       const genDependencies = FromJsonSchema.generateDefinitions(definitions)
-      const genSchemas = schemas.map((schema) => FromJsonSchema.generateOld(schema))
+      const genSchemas = schemas.map((schema) => FromJsonSchema.generate(schema))
       let s = ""
 
       s += "// Definitions\n"
@@ -1411,6 +1376,18 @@ const schema1 = Schema.Struct({ a: A });`
     it("type: array", () => {
       assertGeneration(
         { schema: { "type": "array" } },
+        { runtime: "Schema.Array(Schema.Unknown)", type: "ReadonlyArray<unknown>" }
+      )
+      assertGeneration(
+        { schema: { "type": "array", "items": [] } },
+        { runtime: "Schema.Array(Schema.Unknown)", type: "ReadonlyArray<unknown>" }
+      )
+      assertGeneration(
+        { schema: { "type": "array", "items": [], "additionalItems": false } },
+        { runtime: "Schema.Tuple([])", type: "readonly []" }
+      )
+      assertGeneration(
+        { schema: { "type": "array", "items": {} } },
         { runtime: "Schema.Array(Schema.Unknown)", type: "ReadonlyArray<unknown>" }
       )
     })

@@ -680,6 +680,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
+            `removed property "minItems" at ["schema"]["properties"]["a"]`,
             `removed property "minLength" at ["schema"]["properties"]["a"]["prefixItems"][0]`
           ]
         }

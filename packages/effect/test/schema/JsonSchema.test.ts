@@ -2145,6 +2145,7 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "array",
+              "minItems": 8,
               "items": [
                 {
                   "type": "string"
@@ -2208,7 +2209,6 @@ describe("JsonSchema generation", () => {
               "items": [
                 { "type": "string" }
               ],
-              "minItems": 0,
               "additionalItems": false
             }
           }
@@ -2223,10 +2223,9 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "array",
+              "minItems": 1,
               "items": [
-                {
-                  "type": "string"
-                }
+                { "type": "string" }
               ],
               "additionalItems": false
             }
@@ -2270,7 +2269,6 @@ describe("JsonSchema generation", () => {
                   }]
                 }
               ],
-              "minItems": 0,
               "additionalItems": false
             }
           }
@@ -2316,7 +2314,6 @@ describe("JsonSchema generation", () => {
                 }]
               }
             ],
-            "minItems": 0,
             "additionalItems": false
           }
         })
@@ -3073,8 +3070,10 @@ describe("JsonSchema generation", () => {
                 "additionalItems": {
                   "type": "string"
                 },
-                "minItems": 2,
-                "maxItems": 2
+                "minItems": 1,
+                "allOf": [
+                  { "minItems": 2, "maxItems": 2 }
+                ]
               }
             }
           )
@@ -3121,7 +3120,10 @@ describe("JsonSchema generation", () => {
                 "additionalItems": {
                   "type": "string"
                 },
-                "minItems": 2
+                "minItems": 1,
+                "allOf": [
+                  { "minItems": 2 }
+                ]
               }
             }
           )
@@ -3162,13 +3164,14 @@ describe("JsonSchema generation", () => {
             {
               schema: {
                 "type": "array",
+                "minItems": 1,
+                "maxItems": 2,
                 "items": [{
                   "type": "string"
                 }],
                 "additionalItems": {
                   "type": "string"
-                },
-                "maxItems": 2
+                }
               }
             }
           )
@@ -3420,6 +3423,7 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "array",
+              "minItems": 8,
               "prefixItems": [
                 {
                   "type": "string"
@@ -3483,7 +3487,6 @@ describe("JsonSchema generation", () => {
               "prefixItems": [
                 { "type": "string" }
               ],
-              "minItems": 0,
               "items": false
             }
           }
@@ -3498,6 +3501,7 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "array",
+              "minItems": 1,
               "prefixItems": [
                 {
                   "type": "string"
@@ -3545,7 +3549,6 @@ describe("JsonSchema generation", () => {
                   }]
                 }
               ],
-              "minItems": 0,
               "items": false
             }
           }
@@ -3591,7 +3594,6 @@ describe("JsonSchema generation", () => {
                 }]
               }
             ],
-            "minItems": 0,
             "items": false
           }
         })
@@ -3714,6 +3716,7 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "array",
+              "minItems": 8,
               "prefixItems": [
                 {
                   "type": "string"
@@ -3777,7 +3780,6 @@ describe("JsonSchema generation", () => {
               "prefixItems": [
                 { "type": "string" }
               ],
-              "minItems": 0,
               "items": false
             }
           }
@@ -3792,6 +3794,7 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "array",
+              "minItems": 1,
               "prefixItems": [
                 {
                   "type": "string"
@@ -3839,7 +3842,6 @@ describe("JsonSchema generation", () => {
                   }]
                 }
               ],
-              "minItems": 0,
               "items": false
             }
           }
@@ -3885,7 +3887,6 @@ describe("JsonSchema generation", () => {
                 }]
               }
             ],
-            "minItems": 0,
             "items": false
           }
         })

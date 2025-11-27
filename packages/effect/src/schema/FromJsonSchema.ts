@@ -69,16 +69,6 @@ export const resolvers = {
   })
 }
 
-/**
- * @since 4.0.0
- */
-export function generateOld(schema: unknown, options?: GenerationOptions): Generation {
-  return build(schema, {
-    resolver: options?.resolver ?? resolvers.identity,
-    target: options?.target ?? "draft-07"
-  })
-}
-
 interface RecurOptions {
   readonly resolver: (identifier: string) => Generation
   readonly target: Target
@@ -203,7 +193,7 @@ function handleHasType(schema: HasType, options: RecurOptions): Generation {
       const minItems = typeof schema.minItems === "number" ? schema.minItems : Infinity
       const elements = collectElements(schema, options)?.map((item, index): ElementGen => ({
         value: build(item, options),
-        isRequired: index < minItems
+        isOptional: index >= minItems
       }))
       const rest = collectRest(schema, options)
       return array(
@@ -308,8 +298,8 @@ function extractIdentifier($ref: string): string | undefined {
   }
 }
 
-function optionalRuntime(isRequired: boolean, code: string): string {
-  return isRequired ? code : `Schema.optionalKey(${code})`
+function optionalRuntime(isOptional: boolean, code: string): string {
+  return isOptional ? `Schema.optionalKey(${code})` : code
 }
 
 function optionalType(isRequired: boolean, type: string): string {
@@ -338,33 +328,9 @@ function collectIndexSignaturesOld(schema: Fragment, options: RecurOptions): Arr
   return []
 }
 
-function propertiesRuntime(ps: ReadonlyArray<PropertyGen>): string {
-  return ps.map((p) => `${p.key}: ${optionalRuntime(p.isRequired, p.value.runtime)}`).join(", ")
-}
-
-function propertiesType(ps: ReadonlyArray<PropertyGen>): string {
-  return ps.map((p) => `readonly ${optionalType(p.isRequired, p.key)}: ${p.value.type}`).join(", ")
-}
-
-function propertiesImports(ps: ReadonlyArray<PropertyGen>): ReadonlySet<string> {
-  return ReadonlySetReducer.combineAll(ps.map((p) => p.value.imports))
-}
-
-function indexSignatureRuntime(is: IndexSignatureGen) {
-  return `Schema.Record(${is.key.runtime}, ${is.value.runtime})`
-}
-
-function indexSignatureType(is: IndexSignatureGen) {
-  return `readonly [x: ${is.key.type}]: ${is.value.type}`
-}
-
-function indexSignatureImports(is: IndexSignatureGen): ReadonlySet<string> {
-  return ReadonlySetReducer.combine(is.key.imports, is.value.imports)
-}
-
 type ElementGen = {
   readonly value: Generation
-  readonly isRequired: boolean
+  readonly isOptional: boolean
 }
 
 function array(es: ReadonlyArray<ElementGen> | undefined, rest: Generation | undefined): Generation {
@@ -393,18 +359,6 @@ function array(es: ReadonlyArray<ElementGen> | undefined, rest: Generation | und
       }
     }
   }
-}
-
-function elementsRuntime(es: ReadonlyArray<ElementGen>): string {
-  return es.map((e) => optionalRuntime(e.isRequired, e.value.runtime)).join(", ")
-}
-
-function elementsType(es: ReadonlyArray<ElementGen>): string {
-  return `${es.map((e) => optionalType(e.isRequired, e.value.type)).join(", ")}`
-}
-
-function elementsImports(es: ReadonlyArray<ElementGen>): ReadonlySet<string> {
-  return ReadonlySetReducer.combineAll(es.map((e) => e.value.imports))
 }
 
 function union(members: ReadonlyArray<Generation>, mode: "anyOf" | "oneOf"): Generation {
@@ -613,7 +567,7 @@ export function generateDefinitions(definitions: Schema.JsonSchema.Definitions, 
   return ts.nonRecursives.concat(
     Object.entries(ts.recursives).map(([identifier, schema]) => ({ identifier, schema }))
   ).map(({ identifier, schema }) => {
-    const output = generateOld(schema, opts)
+    const output = generate(schema, opts)
     return {
       identifier,
       generation: {
@@ -1070,7 +1024,7 @@ class Arrays {
     }
   }
   toGeneration(): Generation {
-    const es = this.elements.map((e) => e.ast.toGeneration())
+    const es = this.elements.map((e) => ({ value: e.ast.toGeneration(), isOptional: e.isOptional }))
     const rest = this.rest?.toGeneration()
     if (es.length === 0) {
       if (rest === undefined) {
@@ -1089,20 +1043,32 @@ class Arrays {
     } else {
       if (rest === undefined) {
         return {
-          runtime: `Schema.Tuple([${es.map((e) => e.runtime).join(", ")}])` + this.getChecks() + getAnnotations(this),
-          type: `readonly [${es.map((e) => e.type).join(", ")}]`,
-          imports: ReadonlySetReducer.combineAll(es.map((e) => e.imports))
+          runtime: `Schema.Tuple([${elementsRuntime(es)}])`,
+          type: `readonly [${elementsType(es)}]`,
+          imports: elementsImports(es)
         }
       } else {
         return {
-          runtime: `Schema.TupleWithRest(Schema.Tuple([${es.map((e) => e.runtime).join(", ")}]), [${rest.runtime}])` +
+          runtime: `Schema.TupleWithRest(Schema.Tuple([${elementsRuntime(es)}]), [${rest.runtime}])` +
             this.getChecks() + getAnnotations(this),
-          type: `readonly [${es.map((e) => e.type).join(", ")}, ...Array<${rest.type}>]`,
-          imports: ReadonlySetReducer.combineAll([...es.map((e) => e.imports), rest.imports])
+          type: `readonly [${elementsType(es)}, ...Array<${rest.type}>]`,
+          imports: ReadonlySetReducer.combine(elementsImports(es), rest.imports)
         }
       }
     }
   }
+}
+
+function elementsRuntime(es: ReadonlyArray<ElementGen>): string {
+  return es.map((e) => optionalRuntime(e.isOptional, e.value.runtime)).join(", ")
+}
+
+function elementsType(es: ReadonlyArray<ElementGen>): string {
+  return `${es.map((e) => optionalType(!e.isOptional, e.value.type)).join(", ")}`
+}
+
+function elementsImports(es: ReadonlyArray<ElementGen>): ReadonlySet<string> {
+  return ReadonlySetReducer.combineAll(es.map((e) => e.value.imports))
 }
 
 type ObjectsCheck =
@@ -1238,6 +1204,30 @@ class Objects {
   }
 }
 
+function propertiesRuntime(ps: ReadonlyArray<PropertyGen>): string {
+  return ps.map((p) => `${p.key}: ${optionalRuntime(!p.isRequired, p.value.runtime)}`).join(", ")
+}
+
+function propertiesType(ps: ReadonlyArray<PropertyGen>): string {
+  return ps.map((p) => `readonly ${optionalType(p.isRequired, p.key)}: ${p.value.type}`).join(", ")
+}
+
+function propertiesImports(ps: ReadonlyArray<PropertyGen>): ReadonlySet<string> {
+  return ReadonlySetReducer.combineAll(ps.map((p) => p.value.imports))
+}
+
+function indexSignatureRuntime(is: IndexSignatureGen) {
+  return `Schema.Record(${is.key.runtime}, ${is.value.runtime})`
+}
+
+function indexSignatureType(is: IndexSignatureGen) {
+  return `readonly [x: ${is.key.type}]: ${is.value.type}`
+}
+
+function indexSignatureImports(is: IndexSignatureGen): ReadonlySet<string> {
+  return ReadonlySetReducer.combine(is.key.imports, is.value.imports)
+}
+
 type PropertyGen = {
   readonly key: string
   readonly value: Generation
@@ -1295,9 +1285,10 @@ class Union {
   toGeneration(): Generation {
     const members = this.members.map((m) => m.toGeneration())
     return {
-      runtime: `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${
-        this.mode === "oneOf" ? `, {mode:"oneOf"}` : ""
-      }${getAnnotations(this)})`,
+      runtime:
+        `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${
+          this.mode === "oneOf" ? `, {mode:"oneOf"}` : ""
+        })` + getAnnotations(this),
       type: members.map((m) => m.type).join(" | "),
       imports: ReadonlySetReducer.combineAll(members.map((m) => m.imports))
     }
@@ -1410,15 +1401,15 @@ function handleType(type: Schema.JsonSchema.Type, schema: Fragment, options: Rec
       )
     }
     case "array": {
-      const minItems = typeof schema.minItems === "number" ? schema.minItems : Infinity
+      const minItems = typeof schema.minItems === "number" ? schema.minItems : 0
       const elements = collectElements(schema, options)?.map((item, index): Element =>
-        new Element(!(index < minItems), parse(item, options))
+        new Element(index + 1 > minItems, parse(item, options))
       )
       const rest = collectRest(schema, options)
 
       return new Arrays(
         elements ?? [],
-        rest !== undefined ? parse(rest, options) : elements === undefined ? new Unknown([]) : undefined,
+        rest !== undefined ? rest === false ? undefined : parse(rest, options) : new Unknown([]),
         []
       )
     }
