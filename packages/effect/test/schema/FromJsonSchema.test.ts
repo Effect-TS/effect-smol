@@ -479,6 +479,10 @@ describe("FromJsonSchema", () => {
           { schema: { "type": "object", "properties": {} } },
           { runtime: "Schema.Record(Schema.String, Schema.Unknown)", type: "{ readonly [x: string]: unknown }" }
         )
+        assertGeneration(
+          { schema: { "type": "object", "properties": {}, "additionalProperties": false } },
+          { runtime: "Schema.Record(Schema.String, Schema.Never)", type: "{ readonly [x: string]: never }" }
+        )
       })
 
       it("required properties", () => {
@@ -545,7 +549,25 @@ describe("FromJsonSchema", () => {
             schema: { "type": "string", "description": "lorem", "allOf": [{ "minLength": 1, "description": "ipsum" }] }
           },
           {
-            runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "lorem and ipsum" })`,
+            runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "lorem, ipsum" })`,
+            type: "string"
+          }
+        )
+        assertGeneration(
+          {
+            schema: { "type": "string", "description": " ", "allOf": [{ "minLength": 1, "description": "ipsum" }] }
+          },
+          {
+            runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "ipsum" })`,
+            type: "string"
+          }
+        )
+        assertGeneration(
+          {
+            schema: { "type": "string", "description": "lorem", "allOf": [{ "minLength": 1, "description": " " }] }
+          },
+          {
+            runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "lorem" })`,
             type: "string"
           }
         )
@@ -577,8 +599,7 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           { schema: { "type": "number", "description": "lorem", "allOf": [{ "minimum": 1, "description": "ipsum" }] } },
           {
-            runtime:
-              `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ description: "lorem and ipsum" })`,
+            runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ description: "lorem, ipsum" })`,
             type: "number"
           }
         )

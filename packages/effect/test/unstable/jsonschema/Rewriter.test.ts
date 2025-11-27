@@ -352,7 +352,7 @@ describe("Rewriter", () => {
                 },
                 "l": {
                   "type": ["string", "null"],
-                  "description": "a value with a length of at least 1 and description"
+                  "description": "a value with a length of at least 1, description"
                 }
               },
               "required": ["a", "b", "c", "d", "e", "f", "g", "h", "i", "l"],
@@ -503,7 +503,7 @@ describe("Rewriter", () => {
                       "anyOf": [
                         {
                           "type": "integer",
-                          "description": "an integer and a value greater than 0"
+                          "description": "an integer, a value greater than 0"
                         },
                         {
                           "type": "boolean",
@@ -553,7 +553,7 @@ describe("Rewriter", () => {
                       "anyOf": [
                         {
                           "type": "integer",
-                          "description": "an integer and a value greater than 0"
+                          "description": "an integer, a value greater than 0"
                         },
                         {
                           "type": "boolean",
@@ -641,7 +641,7 @@ describe("Rewriter", () => {
             "properties": {
               "a": {
                 "type": "string",
-                "description": "description isMinLength(1) and a value with a length of at most 4"
+                "description": "description isMinLength(1), a value with a length of at most 4"
               }
             },
             "required": ["a"],

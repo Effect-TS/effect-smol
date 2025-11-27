@@ -285,7 +285,13 @@ type Annotations = {
   readonly default?: unknown | undefined
 }
 
-const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => `${a} and ${b}`))
+const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
+  a = a.trim()
+  b = b.trim()
+  if (a === "") return b
+  if (b === "") return a
+  return `${a}, ${b}`
+}))
 
 const annotationsCombiner: Combiner.Combiner<any> = Struct.getCombiner({
   description: join,
@@ -449,18 +455,17 @@ class String {
   check(f: Fragment): AST {
     return new String([...this.checks, ...String.check(f)], this.annotations)
   }
-  getCheck(check: StringCheck): string {
-    switch (check._tag) {
-      case "minLength":
-        return `Schema.isMinLength(${check.value})`
-      case "maxLength":
-        return `Schema.isMaxLength(${check.value})`
-      case "pattern":
-        return `Schema.isPattern(/${check.value}/)`
-    }
-  }
   getChecks(): string {
-    return this.checks.length > 0 ? `.check(${this.checks.map((c) => this.getCheck(c)).join(", ")})` : ""
+    return renderChecks(this.checks, (c) => {
+      switch (c._tag) {
+        case "minLength":
+          return `Schema.isMinLength(${c.value})`
+        case "maxLength":
+          return `Schema.isMaxLength(${c.value})`
+        case "pattern":
+          return `Schema.isPattern(/${c.value}/)`
+      }
+    })
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -486,6 +491,10 @@ class String {
       imports: emptySet
     }
   }
+}
+
+function renderChecks<A>(checks: ReadonlyArray<A>, f: (a: A) => string): string {
+  return checks.length === 0 ? "" : `.check(${checks.map(f).join(", ")})`
 }
 
 function getAnnotations(ast: AST): string {
@@ -536,22 +545,21 @@ class Number {
   check(f: Fragment): AST {
     return new Number(this.isInteger, [...this.checks, ...Number.check(f)], this.annotations)
   }
-  getCheck(check: NumberCheck): string {
-    switch (check._tag) {
-      case "greaterThanOrEqualTo":
-        return `Schema.isGreaterThanOrEqualTo(${check.value})`
-      case "lessThanOrEqualTo":
-        return `Schema.isLessThanOrEqualTo(${check.value})`
-      case "greaterThan":
-        return `Schema.isGreaterThan(${check.value})`
-      case "lessThan":
-        return `Schema.isLessThan(${check.value})`
-      case "multipleOf":
-        return `Schema.isMultipleOf(${check.value})`
-    }
-  }
   getChecks(): string {
-    return this.checks.length > 0 ? `.check(${this.checks.map((c) => this.getCheck(c)).join(", ")})` : ""
+    return renderChecks(this.checks, (c) => {
+      switch (c._tag) {
+        case "greaterThanOrEqualTo":
+          return `Schema.isGreaterThanOrEqualTo(${c.value})`
+        case "lessThanOrEqualTo":
+          return `Schema.isLessThanOrEqualTo(${c.value})`
+        case "greaterThan":
+          return `Schema.isGreaterThan(${c.value})`
+        case "lessThan":
+          return `Schema.isLessThan(${c.value})`
+        case "multipleOf":
+          return `Schema.isMultipleOf(${c.value})`
+      }
+    })
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -720,18 +728,17 @@ class Arrays {
   check(schema: Fragment): AST {
     return new Arrays(this.elements, this.rest, [...this.checks, ...Arrays.check(schema)], this.annotations)
   }
-  getCheck(check: ArraysCheck): string {
-    switch (check._tag) {
-      case "minItems":
-        return `Schema.isMinLength(${check.value})`
-      case "maxItems":
-        return `Schema.isMaxLength(${check.value})`
-      case "uniqueItems":
-        return `Schema.isUnique()`
-    }
-  }
   getChecks(): string {
-    return this.checks.length > 0 ? `.check(${this.checks.map((c) => this.getCheck(c)).join(", ")})` : ""
+    return renderChecks(this.checks, (c) => {
+      switch (c._tag) {
+        case "minItems":
+          return `Schema.isMinLength(${c.value})`
+        case "maxItems":
+          return `Schema.isMaxLength(${c.value})`
+        case "uniqueItems":
+          return `Schema.isUnique()`
+      }
+    })
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -769,35 +776,38 @@ class Arrays {
       isOptional: e.isOptional
     }))
     const rest = this.rest?.toGeneration(resolver)
-    if (es.length === 0) {
-      if (rest === undefined) {
-        return {
-          runtime: `Schema.Tuple([])` + this.getChecks() + getAnnotations(this),
-          type: `readonly []`,
-          imports: emptySet
-        }
-      } else {
-        return {
-          runtime: `Schema.Array(${rest.runtime})` + this.getChecks() + getAnnotations(this),
-          type: `ReadonlyArray<${rest.type}>`,
-          imports: rest.imports
-        }
+    const el = renderElements(es)
+
+    const suffix = this.getChecks() + getAnnotations(this)
+
+    if (es.length === 0 && rest === undefined) {
+      return {
+        runtime: `Schema.Tuple([])` + suffix,
+        type: `readonly []`,
+        imports: emptySet
       }
-    } else {
-      if (rest === undefined) {
-        return {
-          runtime: `Schema.Tuple([${elementsRuntime(es)}])` + this.getChecks() + getAnnotations(this),
-          type: `readonly [${elementsType(es)}]`,
-          imports: elementsImports(es)
-        }
-      } else {
-        return {
-          runtime: `Schema.TupleWithRest(Schema.Tuple([${elementsRuntime(es)}]), [${rest.runtime}])` +
-            this.getChecks() + getAnnotations(this),
-          type: `readonly [${elementsType(es)}, ...Array<${rest.type}>]`,
-          imports: ReadonlySetReducer.combine(elementsImports(es), rest.imports)
-        }
+    }
+
+    if (es.length === 0 && rest !== undefined) {
+      return {
+        runtime: `Schema.Array(${rest.runtime})` + suffix,
+        type: `ReadonlyArray<${rest.type}>`,
+        imports: rest.imports
       }
+    }
+
+    if (rest === undefined) {
+      return {
+        runtime: `Schema.Tuple([${el.runtime}])` + suffix,
+        type: `readonly [${el.type}]`,
+        imports: el.imports
+      }
+    }
+
+    return {
+      runtime: `Schema.TupleWithRest(Schema.Tuple([${el.runtime}]), [${rest.runtime}])` + suffix,
+      type: `readonly [${el.type}, ...Array<${rest.type}>]`,
+      imports: ReadonlySetReducer.combine(el.imports, rest.imports)
     }
   }
 }
@@ -807,24 +817,20 @@ type ElementIR = {
   readonly isOptional: boolean
 }
 
-function elementsRuntime(es: ReadonlyArray<ElementIR>): string {
-  return es.map((e) => optionalRuntime(e.isOptional, e.value.runtime)).join(", ")
-}
-
-function elementsType(es: ReadonlyArray<ElementIR>): string {
-  return `${es.map((e) => optionalType(!e.isOptional, e.value.type)).join(", ")}`
+function renderElements(es: ReadonlyArray<ElementIR>) {
+  return {
+    runtime: es.map((e) => optionalRuntime(e.isOptional, e.value.runtime)).join(", "),
+    type: es.map((e) => optionalType(e.isOptional, e.value.type)).join(", "),
+    imports: ReadonlySetReducer.combineAll(es.map((e) => e.value.imports))
+  }
 }
 
 function optionalRuntime(isOptional: boolean, code: string): string {
   return isOptional ? `Schema.optionalKey(${code})` : code
 }
 
-function optionalType(isRequired: boolean, type: string): string {
-  return isRequired ? type : `${type}?`
-}
-
-function elementsImports(es: ReadonlyArray<ElementIR>): ReadonlySet<string> {
-  return ReadonlySetReducer.combineAll(es.map((e) => e.value.imports))
+function optionalType(isOptional: boolean, type: string): string {
+  return isOptional ? `${type}?` : type
 }
 
 type ObjectsCheck =
@@ -894,16 +900,15 @@ class Objects {
       this.annotations
     )
   }
-  getCheck(check: ObjectsCheck): string {
-    switch (check._tag) {
-      case "minProperties":
-        return `Schema.isMinProperties(${check.value})`
-      case "maxProperties":
-        return `Schema.isMaxProperties(${check.value})`
-    }
-  }
   getChecks(): string {
-    return this.checks.length > 0 ? `.check(${this.checks.map((c) => this.getCheck(c)).join(", ")})` : ""
+    return renderChecks(this.checks, (c) => {
+      switch (c._tag) {
+        case "minProperties":
+          return `Schema.isMinProperties(${c.value})`
+        case "maxProperties":
+          return `Schema.isMaxProperties(${c.value})`
+      }
+    })
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -931,57 +936,64 @@ class Objects {
     }
   }
   toGeneration(resolver: Resolver): Generation {
-    const ps = this.properties.map((p) => {
-      const value = p.value.toGeneration(resolver)
-      return {
-        key: p.key,
-        value,
-        isRequired: !p.isOptional
-      }
-    })
-    const iss = this.indexSignatures.map((is) => {
-      const key = is.key.toGeneration(resolver)
-      const value = is.value.toGeneration(resolver)
-      return {
-        key,
-        value
-      }
-    })
+    const ps: ReadonlyArray<PropertyGen> = this.properties.map((p) => ({
+      key: p.key,
+      value: p.value.toGeneration(resolver),
+      isOptional: p.isOptional
+    }))
+
+    const iss: ReadonlyArray<IndexSignatureGen> = this.indexSignatures.map((is) => ({
+      key: is.key.toGeneration(resolver),
+      value: is.value.toGeneration(resolver)
+    }))
+
+    const p = renderProperties(ps)
+    const i = renderIndexSignatures(iss)
+
+    const suffix = this.getChecks() + getAnnotations(this)
+
+    // 1) Only properties -> Struct
     if (iss.length === 0) {
       return {
-        runtime: `Schema.Struct({ ${propertiesRuntime(ps)} })` + this.getChecks() + getAnnotations(this),
-        type: `{ ${propertiesType(ps)} }`,
-        imports: propertiesImports(ps)
+        runtime: `Schema.Struct({ ${p.runtime} })` + suffix,
+        type: `{ ${p.type} }`,
+        imports: p.imports
       }
-    } else if (ps.length === 0 && iss.length === 1) {
+    }
+
+    // 2) Only one index signature and no properties -> Record
+    if (ps.length === 0 && iss.length === 1) {
+      const one = iss[0]
       return {
-        runtime: indexSignatureRuntime(iss[0]) + this.getChecks() + getAnnotations(this),
-        type: `{ ${indexSignatureType(iss[0])} }`,
-        imports: indexSignatureImports(iss[0])
+        runtime: indexSignatureRuntime(one) + suffix,
+        type: `{ ${indexSignatureType(one)} }`,
+        imports: indexSignatureImports(one)
       }
-    } else {
-      return {
-        runtime:
-          `Schema.StructWithRest(Schema.Struct({ ${propertiesRuntime(ps)} }), [${
-            iss.map(indexSignatureRuntime).join(", ")
-          }])` + this.getChecks() + getAnnotations(this),
-        type: `{ ${propertiesType(ps)}, ${iss.map(indexSignatureType).join(", ")} }`,
-        imports: ReadonlySetReducer.combineAll([propertiesImports(ps), ...iss.map(indexSignatureImports)])
-      }
+    }
+
+    // 3) Properties + index signatures -> StructWithRest
+    return {
+      runtime: `Schema.StructWithRest(Schema.Struct({ ${p.runtime} }), [${i.runtime}])` + suffix,
+      type: `{ ${p.type}, ${i.type} }`,
+      imports: ReadonlySetReducer.combineAll([p.imports, i.imports])
     }
   }
 }
 
-function propertiesRuntime(ps: ReadonlyArray<PropertyGen>): string {
-  return ps.map((p) => `${p.key}: ${optionalRuntime(!p.isRequired, p.value.runtime)}`).join(", ")
+function renderProperties(ps: ReadonlyArray<PropertyGen>) {
+  return {
+    runtime: ps.map((p) => `${p.key}: ${optionalRuntime(p.isOptional, p.value.runtime)}`).join(", "),
+    type: ps.map((p) => `readonly ${optionalType(p.isOptional, p.key)}: ${p.value.type}`).join(", "),
+    imports: ReadonlySetReducer.combineAll(ps.map((p) => p.value.imports))
+  }
 }
 
-function propertiesType(ps: ReadonlyArray<PropertyGen>): string {
-  return ps.map((p) => `readonly ${optionalType(p.isRequired, p.key)}: ${p.value.type}`).join(", ")
-}
-
-function propertiesImports(ps: ReadonlyArray<PropertyGen>): ReadonlySet<string> {
-  return ReadonlySetReducer.combineAll(ps.map((p) => p.value.imports))
+function renderIndexSignatures(iss: ReadonlyArray<IndexSignatureGen>) {
+  return {
+    runtime: iss.map(indexSignatureRuntime).join(", "),
+    type: iss.map(indexSignatureType).join(", "),
+    imports: ReadonlySetReducer.combineAll(iss.map(indexSignatureImports))
+  }
 }
 
 function indexSignatureRuntime(is: IndexSignatureGen) {
@@ -999,7 +1011,7 @@ function indexSignatureImports(is: IndexSignatureGen): ReadonlySet<string> {
 type PropertyGen = {
   readonly key: string
   readonly value: Generation
-  readonly isRequired: boolean
+  readonly isOptional: boolean
 }
 
 type IndexSignatureGen = {
@@ -1200,13 +1212,21 @@ function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<
   if (schema.additionalProperties === true) {
     return [new IndexSignature(new String([]), new Unknown([]))]
   }
+
   if (isObject(schema.additionalProperties)) {
     return [new IndexSignature(new String([]), parse(schema.additionalProperties, options))]
   }
-  if (schema.properties === undefined || (isObject(schema.properties) && Object.keys(schema.properties).length === 0)) {
-    return [new IndexSignature(new String([]), new Unknown([]))]
+
+  const hasNoProps = schema.properties === undefined ||
+    (isObject(schema.properties) && Object.keys(schema.properties).length === 0)
+
+  if (hasNoProps && schema.additionalProperties === false) {
+    return [new IndexSignature(new String([]), new Never())]
   }
-  return []
+
+  return hasNoProps
+    ? [new IndexSignature(new String([]), new Unknown([]))]
+    : []
 }
 
 function collectElements(schema: Fragment, options: RecurOptions): ReadonlyArray<unknown> | undefined {

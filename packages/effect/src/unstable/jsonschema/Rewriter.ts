@@ -57,7 +57,13 @@ function whitelistProperties(
   return out
 }
 
-const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => `${a} and ${b}`))
+const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
+  a = a.trim()
+  b = b.trim()
+  if (a === "") return b
+  if (b === "") return a
+  return `${a}, ${b}`
+}))
 
 const propertiesCombiner: Combiner.Combiner<any> = Struct.getCombiner({
   type: UndefinedOr.getReducer(Combiner.first<string>()),
