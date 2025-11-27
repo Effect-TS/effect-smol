@@ -619,7 +619,11 @@ class Const {
     return new Never()
   }
   toGeneration(_: Resolver): Generation {
-    return { runtime: `Schema.Literal(${format(this.value)})`, type: format(this.value), imports: emptySet }
+    return {
+      runtime: `Schema.Literal(${format(this.value)})` + getAnnotations(this),
+      type: format(this.value),
+      imports: emptySet
+    }
   }
 }
 
@@ -644,13 +648,13 @@ class Enum {
     const values = this.values.map((v) => format(v))
     if (values.length === 1) {
       return {
-        runtime: `Schema.Literal(${values[0]})`,
+        runtime: `Schema.Literal(${values[0]})` + getAnnotations(this),
         type: values[0],
         imports: emptySet
       }
     } else {
       return {
-        runtime: `Schema.Literals([${values.join(", ")}])`,
+        runtime: `Schema.Literals([${values.join(", ")}])` + getAnnotations(this),
         type: values.join(" | "),
         imports: emptySet
       }
