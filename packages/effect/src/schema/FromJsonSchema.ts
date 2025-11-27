@@ -1217,7 +1217,6 @@ function collectProperties(schema: Fragment, options: RecurOptions): Array<Prope
 function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<IndexSignature> {
   const out: Array<IndexSignature> = []
 
-  // patternProperties -> one Record per pattern (key is a String schema with a pattern check)
   if (isObject(schema.patternProperties)) {
     for (const [pattern, value] of Object.entries(schema.patternProperties)) {
       out.push(
@@ -1229,7 +1228,10 @@ function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<
     }
   }
 
-  // additionalProperties
+  if (isObject(schema.propertyNames)) {
+    out.push(new IndexSignature(parse({ "type": "string", ...schema.propertyNames }, options), new Unknown([])))
+  }
+
   if (schema.additionalProperties === true) {
     out.push(new IndexSignature(new String([]), new Unknown([])))
     return out
@@ -1244,14 +1246,12 @@ function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<
     (isObject(schema.properties) && Object.keys(schema.properties).length === 0)
 
   if (schema.additionalProperties === false) {
-    // preserve existing "empty object" behavior: `{}` + additionalProperties:false => Record(string, never)
     if (hasNoProps && out.length === 0) {
       out.push(new IndexSignature(new String([]), new Never()))
     }
     return out
   }
 
-  // preserve existing "unknown object" behavior only when there are no patternProperties
   if (hasNoProps && out.length === 0) {
     out.push(new IndexSignature(new String([]), new Unknown([])))
   }

@@ -171,7 +171,9 @@ describe("FromJsonSchema", () => {
         {
           schema: {
             "type": "object",
-            "patternProperties": { "^x-": { "type": "string" } }
+            "patternProperties": {
+              "^x-": { "type": "string" }
+            }
           }
         },
         {
@@ -183,7 +185,10 @@ describe("FromJsonSchema", () => {
         {
           schema: {
             "type": "object",
-            "patternProperties": { "^x-": { "type": "string" }, "^y-": { "type": "number" } }
+            "patternProperties": {
+              "^x-": { "type": "string" },
+              "^y-": { "type": "number" }
+            }
           }
         },
         {
@@ -194,11 +199,16 @@ describe("FromJsonSchema", () => {
       )
     })
 
-    it.todo("propertyNames", () => {
+    it("propertyNames", () => {
       assertGeneration(
-        { schema: { "type": "object", "propertyNames": { "pattern": "^[A-Z]" } } },
         {
-          runtime: `Schema.Record(Schema.String, Schema.Unknown).annotate({ propertyNames: { pattern: "^[A-Z]" } })`,
+          schema: {
+            "type": "object",
+            "propertyNames": { "pattern": "^[A-Z]" }
+          }
+        },
+        {
+          runtime: `Schema.Record(Schema.String.check(Schema.isPattern(/^[A-Z]/)), Schema.Unknown)`,
           type: `{ readonly [x: string]: unknown }`
         }
       )
