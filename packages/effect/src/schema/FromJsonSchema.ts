@@ -283,6 +283,7 @@ type Annotations = {
   readonly title?: string | undefined
   readonly examples?: ReadonlyArray<unknown> | undefined
   readonly default?: unknown | undefined
+  readonly format?: string | undefined
 }
 
 const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
@@ -297,7 +298,8 @@ const annotationsCombiner: Combiner.Combiner<any> = Struct.getCombiner({
   description: join,
   title: join,
   default: UndefinedOr.getReducer(Combiner.last()),
-  examples: UndefinedOr.getReducer(Arr.getReducerConcat())
+  examples: UndefinedOr.getReducer(Arr.getReducerConcat()),
+  format: Combiner.last<string>()
 }, {
   omitKeyWhen: isUndefined
 })
@@ -347,7 +349,7 @@ class Unknown {
   }
   toGeneration(_: Resolver): Generation {
     return {
-      runtime: "Schema.Unknown" + getAnnotations(this),
+      runtime: "Schema.Unknown" + renderAnnotations(this),
       type: "unknown",
       imports: emptySet
     }
@@ -371,7 +373,7 @@ class Never {
   }
   toGeneration(_: Resolver): Generation {
     return {
-      runtime: "Schema.Never" + getAnnotations(this),
+      runtime: "Schema.Never" + renderAnnotations(this),
       type: "never",
       imports: emptySet
     }
@@ -417,7 +419,7 @@ class Null {
   }
   toGeneration(_: Resolver): Generation {
     return {
-      runtime: "Schema.Null" + getAnnotations(this),
+      runtime: "Schema.Null" + renderAnnotations(this),
       type: "null",
       imports: emptySet
     }
@@ -486,7 +488,7 @@ class String {
   }
   toGeneration(_: Resolver): Generation {
     return {
-      runtime: "Schema.String" + this.getChecks() + getAnnotations(this),
+      runtime: "Schema.String" + this.getChecks() + renderAnnotations(this),
       type: "string",
       imports: emptySet
     }
@@ -497,8 +499,8 @@ function renderChecks<A>(checks: ReadonlyArray<A>, f: (a: A) => string): string 
   return checks.length === 0 ? "" : `.check(${checks.map(f).join(", ")})`
 }
 
-function getAnnotations(ast: AST): string {
-  if (ast.annotations === undefined || Object.keys(ast.annotations).length === 0) return ""
+function renderAnnotations(ast: AST): string {
+  if (Object.keys(ast.annotations).length === 0) return ""
   return `.annotate({ ${
     Object.entries(ast.annotations).map(([key, value]) => `${key}: ${format(value)}`).join(", ")
   } })`
@@ -582,7 +584,7 @@ class Number {
   }
   toGeneration(_: Resolver): Generation {
     return {
-      runtime: (this.isInteger ? "Schema.Int" : "Schema.Number") + this.getChecks() + getAnnotations(this),
+      runtime: (this.isInteger ? "Schema.Int" : "Schema.Number") + this.getChecks() + renderAnnotations(this),
       type: "number",
       imports: emptySet
     }
@@ -605,7 +607,7 @@ class Boolean {
     return new Never()
   }
   toGeneration(_: Resolver): Generation {
-    return { runtime: "Schema.Boolean" + getAnnotations(this), type: "boolean", imports: emptySet }
+    return { runtime: "Schema.Boolean" + renderAnnotations(this), type: "boolean", imports: emptySet }
   }
 }
 
@@ -628,7 +630,7 @@ class Const {
   }
   toGeneration(_: Resolver): Generation {
     return {
-      runtime: `Schema.Literal(${format(this.value)})` + getAnnotations(this),
+      runtime: `Schema.Literal(${format(this.value)})` + renderAnnotations(this),
       type: format(this.value),
       imports: emptySet
     }
@@ -656,13 +658,13 @@ class Enum {
     const values = this.values.map((v) => format(v))
     if (values.length === 1) {
       return {
-        runtime: `Schema.Literal(${values[0]})` + getAnnotations(this),
+        runtime: `Schema.Literal(${values[0]})` + renderAnnotations(this),
         type: values[0],
         imports: emptySet
       }
     } else {
       return {
-        runtime: `Schema.Literals([${values.join(", ")}])` + getAnnotations(this),
+        runtime: `Schema.Literals([${values.join(", ")}])` + renderAnnotations(this),
         type: values.join(" | "),
         imports: emptySet
       }
@@ -778,7 +780,7 @@ class Arrays {
     const rest = this.rest?.toGeneration(resolver)
     const el = renderElements(es)
 
-    const suffix = this.getChecks() + getAnnotations(this)
+    const suffix = this.getChecks() + renderAnnotations(this)
 
     if (es.length === 0 && rest === undefined) {
       return {
@@ -950,7 +952,7 @@ class Objects {
     const p = renderProperties(ps)
     const i = renderIndexSignatures(iss)
 
-    const suffix = this.getChecks() + getAnnotations(this)
+    const suffix = this.getChecks() + renderAnnotations(this)
 
     // 1) Only properties -> Struct
     if (iss.length === 0) {
@@ -1066,7 +1068,7 @@ class Union {
       runtime:
         `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${
           this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""
-        })` + getAnnotations(this),
+        })` + renderAnnotations(this),
       type: members.map((m) => m.type).join(" | "),
       imports: ReadonlySetReducer.combineAll(members.map((m) => m.imports))
     }
@@ -1093,7 +1095,7 @@ class Reference {
   toGeneration(resolver: Resolver): Generation {
     const generation = resolver(this.identifier)
     return {
-      runtime: generation.runtime + getAnnotations(this),
+      runtime: generation.runtime + renderAnnotations(this),
       type: generation.type,
       imports: generation.imports
     }
@@ -1262,6 +1264,7 @@ function collectAnnotations(schema: Fragment): Annotations | undefined {
   if (typeof schema.description === "string") as.description = schema.description
   if (schema.default !== undefined) as.default = schema.default
   if (Array.isArray(schema.examples)) as.examples = schema.examples
+  if (typeof schema.format === "string") as.format = schema.format
 
   if (Object.keys(as).length === 0) return undefined
   return as

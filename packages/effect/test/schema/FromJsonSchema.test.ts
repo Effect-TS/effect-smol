@@ -143,6 +143,17 @@ describe("FromJsonSchema", () => {
       })
     })
 
+    it("format", () => {
+      assertGeneration(
+        { schema: { "type": "string", "format": "email" } },
+        { runtime: `Schema.String.annotate({ format: "email" })`, type: "string" }
+      )
+      assertGeneration(
+        { schema: { "format": "email" } },
+        { runtime: `Schema.Unknown.annotate({ format: "email" })`, type: "unknown" }
+      )
+    })
+
     it("true", () => {
       assertGeneration(
         { schema: true },
