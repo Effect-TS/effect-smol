@@ -5530,8 +5530,13 @@ const jsonSchema = {
 console.log(FromJsonSchema.generate(jsonSchema))
 /*
 {
-  runtime: 'Schema.Struct({ a: Schema.String, b: Schema.Int })',
-  type: '{ readonly a: string, readonly b: number }',
+  runtime: 'Schema.Struct({ "a": Schema.String, "b": Schema.Int })',
+  types: {
+    Type: '{ readonly "a": string, readonly "b": number }',
+    Encoded: '{ readonly "a": string, readonly "b": number }',
+    DecodingServices: 'never',
+    EncodingServices: 'never'
+  },
   imports: Set(0) {}
 }
 */
@@ -5558,8 +5563,13 @@ const jsonSchema = {
 console.log(FromJsonSchema.generate(jsonSchema))
 /*
 {
-  runtime: 'Schema.Struct({ a: Schema.String, b: B })',
-  type: '{ readonly a: string, readonly b: B }',
+  runtime: 'Schema.Struct({ "a": Schema.String, "b": B })',
+  types: {
+    Type: '{ readonly "a": string, readonly "b": B }',
+    Encoded: '{ readonly "a": string, readonly "b": B }',
+    DecodingServices: 'never',
+    EncodingServices: 'never'
+  },
   imports: Set(0) {}
 }
 */
@@ -5586,14 +5596,19 @@ const jsonSchema = {
   }
 } as const
 
-console.log(FromJsonSchema.generateDefinitions(jsonSchema.definitions))
+console.dir(FromJsonSchema.generateDefinitions(jsonSchema.definitions), { depth: null })
 /*
 [
   {
     identifier: 'B',
     generation: {
-      runtime: 'Schema.Int.annotate({ identifier: "B" })',
-      type: 'number',
+      runtime: 'Schema.Int.annotate({ "identifier": "B" })',
+      types: {
+        Type: 'number',
+        Encoded: 'number',
+        DecodingServices: 'never',
+        EncodingServices: 'never'
+      },
       imports: Set(0) {}
     }
   }
@@ -5671,7 +5686,12 @@ console.log(schema)
 /*
 {
   runtime: 'Schema.Tuple([Schema.String, Schema.Number])',
-  type: 'readonly [string, number]',
+  types: {
+    Type: 'readonly [string, number]',
+    Encoded: 'readonly [string, number]',
+    DecodingServices: 'never',
+    EncodingServices: 'never'
+  },
   imports: Set(0) {}
 }
 */
@@ -5707,8 +5727,13 @@ const schema = FromJsonSchema.generate(jsonSchema, {
 console.log(schema)
 /*
 {
-  runtime: 'Schema.Struct({ a: Schema.String, b: effect/HttpApiSchemaError })',
-  type: '{ readonly a: string, readonly b: effect/HttpApiSchemaError }',
+  runtime: 'Schema.Struct({ "a": Schema.String, "b": effect/HttpApiSchemaError })',
+  types: {
+    Type: '{ readonly "a": string, readonly "b": effect/HttpApiSchemaError }',
+    Encoded: '{ readonly "a": string, readonly "b": effect/HttpApiSchemaError }',
+    DecodingServices: 'never',
+    EncodingServices: 'never'
+  },
   imports: Set(0) {}
 }
 */
@@ -5728,33 +5753,39 @@ const jsonSchema = {
     a: { type: "string" },
     b: {
       $ref: "#/components/schemas/effect~1HttpApiSchemaError"
-    }
+    },
+    c: { $ref: "#/components/schemas/C" }
   },
-  required: ["a", "b"],
+  required: ["a", "b", "c"],
   additionalProperties: false
 } as const
 
 const schema = FromJsonSchema.generate(jsonSchema, {
   target: "oas3.1",
-  resolver: (identifier, next) => {
+  resolver: (identifier) => {
     if (identifier === "effect/HttpApiSchemaError") {
       // map identifier to a direct import, with both runtime and type info
-      return {
-        runtime: "HttpApiSchemaError",
-        type: `typeof HttpApiSchemaError["Encoded"]`,
-        imports: new Set([`import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`])
-      }
+      return FromJsonSchema.makeGeneration(
+        "HttpApiSchemaError",
+        FromJsonSchema.makeTypes("typeof HttpApiSchemaError['Type']", "typeof HttpApiSchemaError['Encoded']"),
+        new Set([`import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`])
+      )
     }
-    // fallback to the next resolver
-    return next(identifier)
+    // fallback to the identity resolver
+    return FromJsonSchema.resolvers.identity(identifier)
   }
 })
 
 console.log(schema)
 /*
 {
-  runtime: 'Schema.Struct({ a: Schema.String, b: HttpApiSchemaError })',
-  type: '{ readonly a: string, readonly b: typeof HttpApiSchemaError["Encoded"] }',
+  runtime: 'Schema.Struct({ "a": Schema.String, "b": HttpApiSchemaError, "c": C })',
+  types: {
+    Type: `{ readonly "a": string, readonly "b": typeof HttpApiSchemaError['Type'], readonly "c": C }`,
+    Encoded: `{ readonly "a": string, readonly "b": typeof HttpApiSchemaError['Encoded'], readonly "c": C }`,
+    DecodingServices: 'never',
+    EncodingServices: 'never'
+  },
   imports: Set(1) {
     'import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"'
   }

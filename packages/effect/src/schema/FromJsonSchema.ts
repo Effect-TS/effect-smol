@@ -32,10 +32,39 @@ type Fragment = Schema.JsonSchema.Fragment
 /**
  * @since 4.0.0
  */
+export type Types = {
+  readonly Type: string
+  readonly Encoded: string
+  readonly DecodingServices: string
+  readonly EncodingServices: string
+}
+
+/**
+ * @since 4.0.0
+ */
+export function makeTypes(
+  Type: string,
+  Encoded: string = Type,
+  DecodingServices: string = "never",
+  EncodingServices: string = "never"
+): Types {
+  return { Type, Encoded, DecodingServices, EncodingServices }
+}
+
+/**
+ * @since 4.0.0
+ */
 export type Generation = {
   readonly runtime: string
-  readonly type: string
+  readonly types: Types
   readonly imports: ReadonlySet<string>
+}
+
+/**
+ * @since 4.0.0
+ */
+export function makeGeneration(runtime: string, types: Types, imports: ReadonlySet<string> = emptySet): Generation {
+  return { runtime, types, imports }
 }
 
 /**
@@ -64,16 +93,20 @@ export function generate(schema: unknown, options?: GenerateOptions): Generation
  * @since 4.0.0
  */
 export const resolvers: Record<"identity" | "suspend", Resolver> = {
-  identity: (identifier: string) => ({
-    runtime: identifier,
-    type: identifier,
-    imports: emptySet
-  }),
-  suspend: (identifier: string) => ({
-    runtime: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
-    type: identifier,
-    imports: emptySet
-  })
+  identity: (identifier: string) => {
+    return {
+      runtime: identifier,
+      types: makeTypes(identifier),
+      imports: emptySet
+    }
+  },
+  suspend: (identifier: string) => {
+    return {
+      runtime: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
+      types: makeTypes(identifier),
+      imports: emptySet
+    }
+  }
 }
 
 const emptySet: ReadonlySet<string> = new Set()
@@ -270,8 +303,8 @@ export function generateDefinitions(
     return {
       identifier,
       generation: {
-        runtime: output.runtime + `.annotate({ identifier: ${format(identifier)} })`,
-        type: output.type,
+        runtime: output.runtime + `.annotate({ "identifier": ${format(identifier)} })`,
+        types: output.types,
         imports: output.imports
       }
     }
@@ -286,7 +319,7 @@ type Annotations = {
   readonly format?: string | undefined
 }
 
-const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
+const joinReducer = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
   a = a.trim()
   b = b.trim()
   if (a === "") return b
@@ -295,8 +328,8 @@ const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
 }))
 
 const annotationsCombiner: Combiner.Combiner<any> = Struct.getCombiner({
-  description: join,
-  title: join,
+  description: joinReducer,
+  title: joinReducer,
   default: UndefinedOr.getReducer(Combiner.last()),
   examples: UndefinedOr.getReducer(Arr.getReducerConcat()),
   format: Combiner.last<string>()
@@ -337,7 +370,7 @@ class Unknown {
   toGeneration(_: Resolver): Generation {
     return {
       runtime: "Schema.Unknown" + renderAnnotations(this),
-      type: "unknown",
+      types: makeTypes("unknown"),
       imports: emptySet
     }
   }
@@ -361,7 +394,7 @@ class Never {
   toGeneration(_: Resolver): Generation {
     return {
       runtime: "Schema.Never" + renderAnnotations(this),
-      type: "never",
+      types: makeTypes("never"),
       imports: emptySet
     }
   }
@@ -407,7 +440,7 @@ class Null {
   toGeneration(_: Resolver): Generation {
     return {
       runtime: "Schema.Null" + renderAnnotations(this),
-      type: "null",
+      types: makeTypes("null"),
       imports: emptySet
     }
   }
@@ -486,13 +519,18 @@ class String {
       const contentSchema = this.contentSchema.toGeneration(resolver)
       return {
         runtime: `Schema.fromJsonString(${contentSchema.runtime})` + suffix,
-        type: "string",
+        types: makeTypes(
+          contentSchema.types.Type,
+          "string",
+          contentSchema.types.DecodingServices,
+          contentSchema.types.EncodingServices
+        ),
         imports: emptySet
       }
     }
     return {
       runtime: "Schema.String" + suffix,
-      type: "string",
+      types: makeTypes("string"),
       imports: emptySet
     }
   }
@@ -583,7 +621,7 @@ class Number {
   toGeneration(_: Resolver): Generation {
     return {
       runtime: (this.isInteger ? "Schema.Int" : "Schema.Number") + this.renderChecks() + renderAnnotations(this),
-      type: "number",
+      types: makeTypes("number"),
       imports: emptySet
     }
   }
@@ -605,7 +643,11 @@ class Boolean {
     return new Never()
   }
   toGeneration(_: Resolver): Generation {
-    return { runtime: "Schema.Boolean" + renderAnnotations(this), type: "boolean", imports: emptySet }
+    return {
+      runtime: "Schema.Boolean" + renderAnnotations(this),
+      types: makeTypes("boolean"),
+      imports: emptySet
+    }
   }
 }
 
@@ -629,7 +671,7 @@ class Const {
   toGeneration(_: Resolver): Generation {
     return {
       runtime: `Schema.Literal(${format(this.value)})` + renderAnnotations(this),
-      type: format(this.value),
+      types: makeTypes(format(this.value)),
       imports: emptySet
     }
   }
@@ -657,13 +699,13 @@ class Enum {
     if (values.length === 1) {
       return {
         runtime: `Schema.Literal(${values[0]})` + renderAnnotations(this),
-        type: values[0],
+        types: makeTypes(values[0]),
         imports: emptySet
       }
     } else {
       return {
         runtime: `Schema.Literals([${values.join(", ")}])` + renderAnnotations(this),
-        type: values.join(" | "),
+        types: makeTypes(values.join(" | ")),
         imports: emptySet
       }
     }
@@ -778,7 +820,7 @@ class Arrays {
     if (es.length === 0 && rest === undefined) {
       return {
         runtime: `Schema.Tuple([])` + suffix,
-        type: `readonly []`,
+        types: makeTypes("readonly []"),
         imports: emptySet
       }
     }
@@ -786,7 +828,12 @@ class Arrays {
     if (es.length === 0 && rest !== undefined) {
       return {
         runtime: `Schema.Array(${rest.runtime})` + suffix,
-        type: `ReadonlyArray<${rest.type}>`,
+        types: makeTypes(
+          `ReadonlyArray<${rest.types.Type}>`,
+          `ReadonlyArray<${rest.types.Encoded}>`,
+          rest.types.DecodingServices,
+          rest.types.EncodingServices
+        ),
         imports: rest.imports
       }
     }
@@ -794,14 +841,24 @@ class Arrays {
     if (rest === undefined) {
       return {
         runtime: `Schema.Tuple([${el.runtime}])` + suffix,
-        type: `readonly [${el.type}]`,
+        types: makeTypes(
+          `readonly [${el.types.Type}]`,
+          `readonly [${el.types.Encoded}]`,
+          el.types.DecodingServices,
+          el.types.EncodingServices
+        ),
         imports: el.imports
       }
     }
 
     return {
       runtime: `Schema.TupleWithRest(Schema.Tuple([${el.runtime}]), [${rest.runtime}])` + suffix,
-      type: `readonly [${el.type}, ...Array<${rest.type}>]`,
+      types: makeTypes(
+        `readonly [${el.types.Type}, ...Array<${rest.types.Type}>]`,
+        `readonly [${el.types.Encoded}, ...Array<${rest.types.Encoded}>]`,
+        joinUnique([el.types.DecodingServices, rest.types.DecodingServices]),
+        joinUnique([el.types.EncodingServices, rest.types.EncodingServices])
+      ),
       imports: ReadonlySetReducer.combine(el.imports, rest.imports)
     }
   }
@@ -812,12 +869,27 @@ type ElementIR = {
   readonly isOptional: boolean
 }
 
-function renderElements(es: ReadonlyArray<ElementIR>) {
+function renderElements(es: ReadonlyArray<ElementIR>): Generation {
   return {
     runtime: es.map((e) => optionalRuntime(e.isOptional, e.value.runtime)).join(", "),
-    type: es.map((e) => optionalType(e.isOptional, e.value.type)).join(", "),
+    types: makeTypes(
+      join(es.map((e) => optionalType(e.isOptional, e.value.types.Type))),
+      join(es.map((e) => optionalType(e.isOptional, e.value.types.Encoded))),
+      joinUnique(es.map((e) => e.value.types.DecodingServices)),
+      joinUnique(es.map((e) => e.value.types.EncodingServices))
+    ),
     imports: ReadonlySetReducer.combineAll(es.map((e) => e.value.imports))
   }
+}
+
+function join(values: ReadonlyArray<string>): string {
+  return values.join(", ")
+}
+
+function joinUnique(values: ReadonlyArray<string>): string {
+  const types = values.filter((v) => v !== "never")
+  if (types.length === 0) return "never"
+  return [...new Set(types)].join(" | ")
 }
 
 function optionalRuntime(isOptional: boolean, code: string): string {
@@ -947,52 +1019,84 @@ class Objects {
     if (iss.length === 0) {
       return {
         runtime: `Schema.Struct({ ${p.runtime} })` + suffix,
-        type: `{ ${p.type} }`,
+        types: makeTypes(
+          `{ ${p.types.Type} }`,
+          `{ ${p.types.Encoded} }`,
+          p.types.DecodingServices,
+          p.types.EncodingServices
+        ),
         imports: p.imports
       }
     }
 
     // 2) Only one index signature and no properties -> Record
     if (ps.length === 0 && iss.length === 1) {
-      const one = iss[0]
+      const is = iss[0]
       return {
-        runtime: indexSignatureRuntime(one) + suffix,
-        type: `{ ${indexSignatureType(one)} }`,
-        imports: indexSignatureImports(one)
+        runtime: indexSignatureRuntime(is) + suffix,
+        types: makeTypes(
+          `{ ${`readonly [x: ${is.key.types.Type}]: ${is.value.types.Type}`} }`,
+          `{ ${`readonly [x: ${is.key.types.Encoded}]: ${is.value.types.Encoded}`} }`,
+          joinUnique([is.key.types.DecodingServices, is.value.types.DecodingServices]),
+          joinUnique([is.key.types.EncodingServices, is.value.types.EncodingServices])
+        ),
+        imports: indexSignatureImports(is)
       }
     }
 
     // 3) Properties + index signatures -> StructWithRest
     return {
       runtime: `Schema.StructWithRest(Schema.Struct({ ${p.runtime} }), [${i.runtime}])` + suffix,
-      type: ps.length === 0 ? `{ ${i.type} }` : `{ ${p.type}, ${i.type} }`,
+      types: ps.length === 0
+        ? makeTypes(
+          `{ ${i.types.Type} }`,
+          `{ ${i.types.Encoded} }`,
+          i.types.DecodingServices,
+          i.types.EncodingServices
+        )
+        : makeTypes(
+          `{ ${p.types.Type}, ${i.types.Type} }`,
+          `{ ${p.types.Encoded}, ${i.types.Encoded} }`,
+          joinUnique([p.types.DecodingServices, i.types.DecodingServices]),
+          joinUnique([p.types.EncodingServices, i.types.EncodingServices])
+        ),
       imports: ReadonlySetReducer.combineAll([p.imports, i.imports])
     }
   }
 }
 
-function renderProperties(ps: ReadonlyArray<PropertyGen>) {
+function renderProperties(ps: ReadonlyArray<PropertyGen>): Generation {
   return {
     runtime: ps.map((p) => `${formatPropertyKey(p.key)}: ${optionalRuntime(p.isOptional, p.value.runtime)}`).join(", "),
-    type: ps.map((p) => `readonly ${optionalType(p.isOptional, formatPropertyKey(p.key))}: ${p.value.type}`).join(", "),
+    types: makeTypes(
+      join(ps.map((p) => `readonly ${optionalType(p.isOptional, formatPropertyKey(p.key))}: ${p.value.types.Type}`)),
+      join(ps.map((p) => `readonly ${optionalType(p.isOptional, formatPropertyKey(p.key))}: ${p.value.types.Encoded}`)),
+      joinUnique(ps.map((p) => p.value.types.DecodingServices)),
+      joinUnique(ps.map((p) => p.value.types.EncodingServices))
+    ),
     imports: ReadonlySetReducer.combineAll(ps.map((p) => p.value.imports))
   }
 }
 
-function renderIndexSignatures(iss: ReadonlyArray<IndexSignatureGen>) {
+function renderIndexSignatures(iss: ReadonlyArray<IndexSignatureGen>): Generation {
   return {
     runtime: iss.map(indexSignatureRuntime).join(", "),
-    type: iss.map(indexSignatureType).join(", "),
+    types: makeTypes(
+      join(iss.map((is) => `readonly [x: ${is.key.types.Type}]: ${is.value.types.Type}`)),
+      join(iss.map((is) => `readonly [x: ${is.key.types.Encoded}]: ${is.value.types.Encoded}`)),
+      joinUnique(
+        iss.map((is) => is.key.types.DecodingServices).concat(iss.map((is) => is.value.types.DecodingServices))
+      ),
+      joinUnique(
+        iss.map((is) => is.key.types.EncodingServices).concat(iss.map((is) => is.value.types.EncodingServices))
+      )
+    ),
     imports: ReadonlySetReducer.combineAll(iss.map(indexSignatureImports))
   }
 }
 
 function indexSignatureRuntime(is: IndexSignatureGen) {
   return `Schema.Record(${is.key.runtime}, ${is.value.runtime})`
-}
-
-function indexSignatureType(is: IndexSignatureGen) {
-  return `readonly [x: ${is.key.type}]: ${is.value.type}`
 }
 
 function indexSignatureImports(is: IndexSignatureGen): ReadonlySet<string> {
@@ -1058,7 +1162,12 @@ class Union {
         `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${
           this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""
         })` + renderAnnotations(this),
-      type: members.map((m) => m.type).join(" | "),
+      types: makeTypes(
+        members.map((m) => m.types.Type).join(" | "),
+        members.map((m) => m.types.Encoded).join(" | "),
+        joinUnique(members.map((m) => m.types.DecodingServices)),
+        joinUnique(members.map((m) => m.types.EncodingServices))
+      ),
       imports: ReadonlySetReducer.combineAll(members.map((m) => m.imports))
     }
   }
@@ -1085,7 +1194,7 @@ class Reference {
     const generation = resolver(this.identifier)
     return {
       runtime: generation.runtime + renderAnnotations(this),
-      type: generation.type,
+      types: generation.types,
       imports: generation.imports
     }
   }
