@@ -71,57 +71,21 @@ describe("FromJsonSchema", () => {
         )
       })
 
-      describe("resolver", () => {
-        it("identity", () => {
-          assertGeneration(
-            {
-              schema: {
-                "$ref": "#/definitions/ID"
-              },
-              options: {
-                resolver: FromJsonSchema.resolvers.identity
-              }
+      it("resolver", () => {
+        assertGeneration(
+          {
+            schema: {
+              "$ref": "#/definitions/ID~1a~0b"
             },
-            FromJsonSchema.makeGeneration(
-              "ID",
-              FromJsonSchema.makeTypes("ID")
-            )
-          )
-        })
-
-        it("suspend", () => {
-          assertGeneration(
-            {
-              schema: {
-                "$ref": "#/definitions/ID"
-              },
-              options: {
-                resolver: FromJsonSchema.resolvers.suspend
+            options: {
+              resolver: (identifier) => {
+                const id = identifier.replace(/[/~]/g, "$")
+                return FromJsonSchema.makeGeneration(id, FromJsonSchema.makeTypes(id))
               }
-            },
-            FromJsonSchema.makeGeneration(
-              "Schema.suspend((): Schema.Codec<ID> => ID)",
-              FromJsonSchema.makeTypes("ID")
-            )
-          )
-        })
-
-        it("escape", () => {
-          assertGeneration(
-            {
-              schema: {
-                "$ref": "#/definitions/ID~1a~0b"
-              },
-              options: {
-                resolver: (identifier) => {
-                  const id = identifier.replace(/[/~]/g, "$")
-                  return FromJsonSchema.makeGeneration(id, FromJsonSchema.makeTypes(id))
-                }
-              }
-            },
-            FromJsonSchema.makeGeneration("ID$a$b", FromJsonSchema.makeTypes("ID$a$b"))
-          )
-        })
+            }
+          },
+          FromJsonSchema.makeGeneration("ID$a$b", FromJsonSchema.makeTypes("ID$a$b"))
+        )
       })
 
       it("jsDocs: true", () => {
@@ -2064,46 +2028,268 @@ const schema1 = Schema.Struct({ "a": A });`
     })
   })
 
-  it.todo("OpenApi", () => {
-    const options: FromJsonSchema.GenerateOptions = {
-      source: "oas3.1",
-      resolver: (identifier) => {
-        if (identifier === "effect/HttpApiSchemaError") {
-          // map identifier to a direct import, with both runtime and type info
-          return FromJsonSchema.makeGeneration(
-            "HttpApiSchemaError",
-            FromJsonSchema.makeTypes("typeof HttpApiSchemaError['Type']", "typeof HttpApiSchemaError['Encoded']"),
-            undefined,
-            new Set([`import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`])
-          )
+  describe("gen", () => {
+    it("recursion & external reference", () => {
+      const generation = gen(
+        "draft-07",
+        [
+          {
+            identifier: "A",
+            schema: {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "$ref": "#/definitions/B"
+                }
+              },
+              "required": ["a"]
+            }
+          }
+        ],
+        {
+          "B": {
+            "type": "object",
+            "properties": {
+              "b": {
+                "$ref": "#/definitions/B"
+              },
+              "c": {
+                "$ref": "#/definitions/C-id"
+              }
+            },
+            "required": ["b", "c"]
+          }
+        },
+        {
+          "C-id": {
+            name: "C",
+            imports: `import { C } from "my-lib"`
+          }
         }
-        // fallback to the identity resolver
-        return FromJsonSchema.resolvers.identity(identifier)
-      }
-    }
-    const schemas = collectSchemas(OpenApiFixture).map(([identifier, schema]) => ({
-      identifier,
-      generation: FromJsonSchema.generate(schema, options)
-    }))
-    const definitions = FromJsonSchema.generateDefinitions(OpenApiFixture.components.schemas as any, options)
-    const imports = definitions.flatMap((d) => [...d.generation.imports]).join("\n")
-    const code = `import { Schema } from "effect/schema"
-// Imports
-${imports}
+      )
+      deepStrictEqual(
+        generation,
+        {
+          definitions: [
+            {
+              identifier: "B",
+              generation: FromJsonSchema.makeGeneration(
+                `Schema.Struct({ "b": Schema.suspend((): Schema.Codec<B, BEncoded> => B), "c": C }).annotate({ "identifier": "B" })`,
+                FromJsonSchema.makeTypes(
+                  `{ readonly "b": B, readonly "c": typeof C["Type"] }`,
+                  `{ readonly "b": BEncoded, readonly "c": typeof C["Encoded"] }`,
+                  `typeof C["DecodingServices"]`,
+                  `typeof C["EncodingServices"]`
+                ),
+                undefined,
+                new Set([`import { C } from "my-lib"`])
+              )
+            }
+          ],
+          schemas: [{
+            identifier: "A",
+            generation: FromJsonSchema.makeGeneration(
+              `Schema.Struct({ "a": B })`,
+              FromJsonSchema.makeTypes(`{ readonly "a": B }`, `{ readonly "a": BEncoded }`)
+            )
+          }],
+          imports: new Set([`import * as Schema from "effect/schema/Schema"`, `import { C } from "my-lib"`])
+        }
+      )
+      const code = genToCode(generation)
+      // console.log(code)
+
+      strictEqual(
+        code,
+        `// Imports
+import * as Schema from "effect/schema/Schema"
+import { C } from "my-lib"
 
 // Definitions
-${definitions.map((d) => `const ${d.identifier} = ${d.generation.runtime};`).join("\n")}
+export type B = { readonly "b": B, readonly "c": typeof C["Type"] };
+export type BEncoded = { readonly "b": BEncoded, readonly "c": typeof C["Encoded"] };
+export const B = Schema.Struct({ "b": Schema.suspend((): Schema.Codec<B, BEncoded> => B), "c": C }).annotate({ "identifier": "B" });
+
 
 // Schemas
-${schemas.map((s) => `const ${s.identifier} = ${s.generation.runtime};`).join("\n")}`
+export const A = Schema.Struct({ "a": B });`
+      )
+    })
 
-    // console.log(code)
-    strictEqual(
-      code,
-      ``
-    )
+    it("OpenApi", () => {
+      const source = "oas3.1"
+      const inputSchemas = collectSchemas(OpenApiFixture).map(([identifier, schema]) => ({
+        identifier,
+        schema
+      }))
+      const inputDefinitions = OpenApiFixture.components.schemas as Schema.JsonSchema.Definitions
+      const externs: Record<string, { readonly name: string; readonly imports: string }> = {
+        "effect/HttpApiSchemaError": {
+          name: "HttpApiSchemaError",
+          imports: `import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`
+        }
+      }
+
+      const generation = gen(source, inputSchemas, inputDefinitions, externs)
+      const code = genToCode(generation)
+      // console.log(code)
+
+      strictEqual(
+        code,
+        `// Imports
+import * as Schema from "effect/schema/Schema"
+import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"
+
+// Definitions
+export type ComponentsSchema = { readonly "contentType": string, readonly "length": number };
+export type ComponentsSchemaEncoded = ComponentsSchema;
+export const ComponentsSchema = Schema.Struct({ "contentType": Schema.String, "length": Schema.Int }).annotate({ "identifier": "ComponentsSchema" });
+
+export type Group = { readonly "id": number, readonly "name": string };
+export type GroupEncoded = Group;
+export const Group = Schema.Struct({ "id": Schema.Int, "name": Schema.String }).annotate({ "identifier": "Group" });
+
+export type PersistedFile = string;
+export type PersistedFileEncoded = PersistedFile;
+export const PersistedFile = Schema.String.annotate({ "format": "binary" }).annotate({ "identifier": "PersistedFile" });
+
+export type User = { readonly "id": number, readonly "uuid"?: string, readonly "name": string, readonly "createdAt": string };
+export type UserEncoded = User;
+export const User = Schema.Struct({ "id": Schema.Int, "uuid": Schema.optionalKey(Schema.String), "name": Schema.String, "createdAt": Schema.String.annotate({ "description": "a string that will be decoded as a DateTime.Utc" }) }).annotate({ "identifier": "User" });
+
+export type UserError = { readonly "_tag": "UserError" };
+export type UserErrorEncoded = UserError;
+export const UserError = Schema.Struct({ "_tag": Schema.Literal("UserError") }).annotate({ "identifier": "UserError" });
+
+export type NoStatusError = { readonly "_tag": "NoStatusError" };
+export type NoStatusErrorEncoded = NoStatusError;
+export const NoStatusError = Schema.Struct({ "_tag": Schema.Literal("NoStatusError") }).annotate({ "identifier": "NoStatusError" });
+
+
+// Schemas
+export const GroupsIdGetParameterId = Schema.String.annotate({ "description": "a string that will be decoded as a finite number" });
+export const GroupsIdGetResponse_200ApplicationJson = Group;
+export const GroupsIdGetResponse_400ApplicationJson = HttpApiSchemaError;
+export const GroupsPostRequestBodyApplicationJson = Schema.Struct({ "name": Schema.String });
+export const GroupsPostRequestBodyApplicationXWwwFormUrlencoded = Schema.Struct({ "foo": Schema.String });
+export const GroupsPostRequestBodyMultipartFormData = Schema.Struct({ "name": Schema.String });
+export const GroupsPostResponse_200ApplicationJson = Group;
+export const GroupsPostResponse_400ApplicationJson = HttpApiSchemaError;
+export const GroupsHandleIdPostParameterId = Schema.String.annotate({ "description": "a string that will be decoded as a finite number" });
+export const GroupsHandleIdPostRequestBodyApplicationJson = Schema.Struct({ "name": Schema.String });
+export const GroupsHandleIdPostResponse_200ApplicationJson = Schema.Struct({ "id": Schema.Number, "name": Schema.String });
+export const GroupsHandleIdPostResponse_400ApplicationJson = HttpApiSchemaError;
+export const GroupsHandlerawIdPostParameterId = Schema.String.annotate({ "description": "a string that will be decoded as a finite number" });
+export const GroupsHandlerawIdPostRequestBodyApplicationJson = Schema.Struct({ "name": Schema.String });
+export const GroupsHandlerawIdPostResponse_200ApplicationJson = Schema.Struct({ "id": Schema.Number, "name": Schema.String });
+export const GroupsHandlerawIdPostResponse_400ApplicationJson = HttpApiSchemaError;
+export const UsersIdGetParameterId = Schema.String.annotate({ "description": "a string that will be decoded as a finite number" });
+export const UsersIdGetResponse_200ApplicationJson = User;
+export const UsersIdGetResponse_400ApplicationJson = Schema.Union([HttpApiSchemaError, UserError]);
+export const UsersPostParameterId = Schema.String.annotate({ "description": "a string that will be decoded as a finite number" });
+export const UsersPostRequestBodyApplicationJson = Schema.Struct({ "uuid": Schema.optionalKey(Schema.String), "name": Schema.String });
+export const UsersPostResponse_200ApplicationJson = User;
+export const UsersPostResponse_400ApplicationJson = Schema.Union([HttpApiSchemaError, UserError]);
+export const UsersGetParameterPage = Schema.String.annotate({ "description": "a string that will be decoded as a finite number" });
+export const UsersGetParameterQuery = Schema.String.annotate({ "description": "search query" });
+export const UsersGetResponse_200ApplicationJson = Schema.Array(User);
+export const UsersGetResponse_400ApplicationJson = HttpApiSchemaError;
+export const UsersGetResponse_500ApplicationJson = NoStatusError;
+export const UsersUpload_0PostParameter_0 = Schema.String;
+export const UsersUpload_0PostRequestBodyMultipartFormData = Schema.Struct({ "file": PersistedFile });
+export const UsersUpload_0PostResponse_200ApplicationJson = Schema.Struct({ "contentType": Schema.String, "length": Schema.Int });
+export const UsersUpload_0PostResponse_400ApplicationJson = HttpApiSchemaError;
+export const UsersUploadstreamPostRequestBodyMultipartFormData = Schema.Struct({ "file": PersistedFile });
+export const UsersUploadstreamPostResponse_200ApplicationJson = Schema.Struct({ "contentType": Schema.String, "length": Schema.Int });
+export const UsersUploadstreamPostResponse_400ApplicationJson = HttpApiSchemaError;
+export const HealthzGetResponse_400ApplicationJson = HttpApiSchemaError;`
+      )
+    })
   })
 })
+
+function genToCode(generation: Generation): string {
+  return `// Imports
+${[...generation.imports].join("\n")}
+
+// Definitions
+${
+    generation.definitions.map((d) => {
+      let out = `export type ${d.identifier} = ${d.generation.types.Type};\n`
+      if (d.generation.types.Encoded !== d.generation.types.Type) {
+        out += `export type ${d.identifier}Encoded = ${d.generation.types.Encoded};\n`
+      } else {
+        out += `export type ${d.identifier}Encoded = ${d.identifier};\n`
+      }
+      out += `export const ${d.identifier} = ${d.generation.runtime};\n`
+      return out
+    }).join("\n")
+  }
+
+// Schemas
+${generation.schemas.map((s) => `export const ${s.identifier} = ${s.generation.runtime};`).join("\n")}`
+}
+
+type Generation = {
+  definitions: Array<FromJsonSchema.DefinitionGeneration>
+  imports: Set<string>
+  schemas: Array<{
+    identifier: string
+    generation: FromJsonSchema.Generation
+  }>
+}
+
+function gen(
+  source: FromJsonSchema.Source,
+  schemas: ReadonlyArray<{ readonly identifier: string; readonly schema: Schema.JsonSchema.Schema }>,
+  definitions: Schema.JsonSchema.Definitions,
+  externs: Record<string, { readonly name: string; readonly imports: string }> = {}
+) {
+  const options: FromJsonSchema.GenerateOptions = {
+    source,
+    resolver: (identifier) => {
+      if (identifier in externs) {
+        const name = externs[identifier].name
+        return FromJsonSchema.makeGeneration(
+          name,
+          FromJsonSchema.makeTypes(
+            `typeof ${name}["Type"]`,
+            `typeof ${name}["Encoded"]`,
+            `typeof ${name}["DecodingServices"]`,
+            `typeof ${name}["EncodingServices"]`
+          ),
+          undefined,
+          new Set([externs[identifier].imports])
+        )
+      }
+      return FromJsonSchema.makeGeneration(
+        identifier,
+        FromJsonSchema.makeTypes(
+          identifier,
+          `${identifier}Encoded`
+        )
+      )
+    }
+  }
+  const generatedSchemas = schemas.map(({ identifier, schema }) => ({
+    identifier,
+    generation: FromJsonSchema.generate(schema, options)
+  }))
+  const allDefinitions = FromJsonSchema.generateDefinitions(definitions, options)
+  const actualDefinitions: Array<FromJsonSchema.DefinitionGeneration> = []
+  const imports = new Set<string>([`import * as Schema from "effect/schema/Schema"`])
+  for (const d of allDefinitions) {
+    for (const i of d.generation.imports) {
+      imports.add(i)
+    }
+    if (!(d.identifier in externs)) {
+      actualDefinitions.push(d)
+    } else {
+      imports.add(externs[d.identifier].imports)
+    }
+  }
+  return { definitions: actualDefinitions, imports, schemas: generatedSchemas }
+}
 
 function toIdentifier(parts: Array<string>): string {
   const result: Array<string> = []

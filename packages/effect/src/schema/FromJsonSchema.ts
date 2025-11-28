@@ -27,7 +27,11 @@ import { type Mutable } from "../types/Types.ts"
 import type * as Anno from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
-type Source = Anno.JsonSchema.Target
+/**
+ * @since 4.0.0
+ */
+export type Source = Anno.JsonSchema.Target
+
 type Fragment = Schema.JsonSchema.Fragment
 
 /**
@@ -99,7 +103,7 @@ export type Resolver = (identifier: string) => Generation
  */
 export function generate(schema: unknown, options?: GenerateOptions): Generation {
   const recurOptions: RecurOptions = {
-    resolver: options?.resolver ?? resolvers.identity,
+    resolver: options?.resolver ?? identityResolver,
     source: options?.source ?? "draft-07",
     jsDocs: options?.jsDocs ?? false
   }
@@ -143,26 +147,8 @@ function renderAnnotations(ast: AST): string {
   return `.annotate({ ${entries.map(([key, value]) => `${formatPropertyKey(key)}: ${format(value)}`).join(", ")} })`
 }
 
-/**
- * @since 4.0.0
- */
-export const resolvers: Record<"identity" | "suspend", Resolver> = {
-  identity: (identifier: string) => {
-    return {
-      runtime: identifier,
-      types: makeTypes(identifier),
-      description: undefined,
-      imports: emptySet
-    }
-  },
-  suspend: (identifier: string) => {
-    return {
-      runtime: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
-      types: makeTypes(identifier),
-      description: undefined,
-      imports: emptySet
-    }
-  }
+const identityResolver: Resolver = (identifier: string) => {
+  return makeGeneration(identifier, makeTypes(identifier))
 }
 
 const emptySet: ReadonlySet<string> = new Set()
@@ -342,15 +328,23 @@ export function generateDefinitions(
 ): Array<DefinitionGeneration> {
   const ts = topologicalSort(definitions)
   const recursives = new Set(Object.keys(ts.recursives))
-  const resolver: Resolver = (identifier) => {
-    if (recursives.has(identifier)) {
-      return resolvers.suspend(identifier)
-    }
-    return resolvers.identity(identifier)
-  }
+  const resolver = options?.resolver ?? identityResolver
   const opts: GenerateOptions = {
     ...options,
-    resolver
+    resolver: (identifier) => {
+      const out = resolver(identifier)
+      if (recursives.has(identifier)) {
+        const services = [out.types.Type, out.types.Encoded, out.types.DecodingServices, out.types.EncodingServices]
+        if (services[3] === "never") services.pop()
+        if (services[2] === "never") services.pop()
+        if (services[1] === services[0]) services.pop()
+        return makeGeneration(
+          `Schema.suspend((): Schema.Codec<${services.join(", ")}> => ${identifier})`,
+          out.types
+        )
+      }
+      return out
+    }
   }
   return ts.nonRecursives.concat(
     Object.entries(ts.recursives).map(([identifier, schema]) => ({ identifier, schema }))
@@ -358,12 +352,12 @@ export function generateDefinitions(
     const output = generate(schema, opts)
     return {
       identifier,
-      generation: {
-        runtime: output.runtime + `.annotate({ "identifier": ${format(identifier)} })`,
-        types: output.types,
-        description: output.description,
-        imports: output.imports
-      }
+      generation: makeGeneration(
+        output.runtime + `.annotate({ "identifier": ${format(identifier)} })`,
+        output.types,
+        output.description,
+        output.imports
+      )
     }
   })
 }
