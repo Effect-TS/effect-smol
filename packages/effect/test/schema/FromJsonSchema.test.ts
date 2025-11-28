@@ -1,10 +1,11 @@
 import type { Annotations } from "effect/schema"
 import { FromJsonSchema, Schema } from "effect/schema"
 import { describe, it } from "vitest"
+import OpenApiFixture from "../../../platform-node/test/fixtures/openapi.json" with { type: "json" }
 import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
 
-function getDocumentByTarget(target: Annotations.JsonSchema.Target, schema: Schema.Top) {
-  switch (target) {
+function getDocumentBySource(source: Annotations.JsonSchema.Target, schema: Schema.Top) {
+  switch (source) {
     case "draft-07":
       return Schema.makeJsonSchemaDraft07(schema)
     case "2020-12":
@@ -15,14 +16,14 @@ function getDocumentByTarget(target: Annotations.JsonSchema.Target, schema: Sche
 
 function assertRoundtrip(input: {
   readonly schema: Schema.Top
-  readonly target?: Annotations.JsonSchema.Target | undefined
+  readonly source?: Annotations.JsonSchema.Target | undefined
 }) {
-  const target = input.target ?? "draft-07"
-  const document = getDocumentByTarget(target, input.schema)
-  const output = FromJsonSchema.generate(document.schema, { target })
+  const source = input.source ?? "draft-07"
+  const document = getDocumentBySource(source, input.schema)
+  const output = FromJsonSchema.generate(document.schema, { source })
   const fn = new Function("Schema", `return ${output.runtime}`)
   const generated = fn(Schema)
-  const codedocument = getDocumentByTarget(target, generated)
+  const codedocument = getDocumentBySource(source, generated)
   deepStrictEqual(codedocument, document)
   deepStrictEqual(FromJsonSchema.generate(codedocument.schema), output)
 }
@@ -1969,4 +1970,139 @@ const schema1 = Schema.Struct({ "a": A });`
       )
     })
   })
+
+  it.todo("OpenApi", () => {
+    const options: FromJsonSchema.GenerateOptions = {
+      source: "oas3.1",
+      resolver: (identifier) => {
+        if (identifier === "effect/HttpApiSchemaError") {
+          // map identifier to a direct import, with both runtime and type info
+          return FromJsonSchema.makeGeneration(
+            "HttpApiSchemaError",
+            FromJsonSchema.makeTypes("typeof HttpApiSchemaError['Type']", "typeof HttpApiSchemaError['Encoded']"),
+            new Set([`import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`])
+          )
+        }
+        // fallback to the identity resolver
+        return FromJsonSchema.resolvers.identity(identifier)
+      }
+    }
+    const schemas = collectSchemas(OpenApiFixture).map(([identifier, schema]) => ({
+      identifier,
+      generation: FromJsonSchema.generate(schema, options)
+    }))
+    const definitions = FromJsonSchema.generateDefinitions(OpenApiFixture.components.schemas as any, options)
+    const imports = definitions.flatMap((d) => [...d.generation.imports]).join("\n")
+    const code = `import { Schema } from "effect/schema"
+// Imports
+${imports}
+
+// Definitions
+${definitions.map((d) => `const ${d.identifier} = ${d.generation.runtime};`).join("\n")}
+
+// Schemas
+${schemas.map((s) => `const ${s.identifier} = ${s.generation.runtime};`).join("\n")}`
+
+    // console.log(code)
+    strictEqual(
+      code,
+      ``
+    )
+  })
 })
+
+function toIdentifier(parts: Array<string>): string {
+  const result: Array<string> = []
+  for (const part of parts) {
+    if (part.length === 0) continue
+    // Replace invalid characters and convert to camelCase
+    const cleaned = part
+      .replace(/[^a-zA-Z0-9_$]/g, "")
+      .replace(/^(\d)/, "_$1") // Prefix numbers with underscore
+    if (cleaned.length > 0) {
+      result.push(cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase())
+    }
+  }
+  return result.join("")
+}
+
+function pathToIdentifier(path: string): string {
+  const parts = path.split("/").filter((p) => p.length > 0)
+  const processed: Array<string> = []
+  for (const part of parts) {
+    if (part.startsWith("{") && part.endsWith("}")) {
+      // Extract parameter name from {param} or {0}
+      const paramName = part.slice(1, -1)
+      processed.push(toIdentifier([paramName]))
+    } else {
+      processed.push(toIdentifier([part]))
+    }
+  }
+  return processed.join("")
+}
+
+function collectSchemas(spec: any): Array<[identifier: string, schema: Schema.JsonSchema.Schema]> {
+  const schemas: Array<[identifier: string, Schema.JsonSchema.Schema]> = []
+
+  for (const [path, pathItem] of Object.entries(spec.paths || {})) {
+    const pathId = pathToIdentifier(path)
+
+    for (const [method, operation] of Object.entries(pathItem as any)) {
+      if (
+        typeof operation !== "object" ||
+        operation === null ||
+        !["get", "post", "put", "delete", "patch", "head", "options", "trace"].includes(method)
+      ) {
+        continue
+      }
+
+      const methodId = method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()
+      const op = operation as any
+
+      // Collect parameter schemas
+      if (Array.isArray(op.parameters)) {
+        for (const param of op.parameters) {
+          if (param.schema) {
+            const paramName = param.name || "param"
+            const paramId = toIdentifier([paramName])
+            const identifier = `${pathId}${methodId}Parameter${paramId}`
+            schemas.push([identifier, param.schema])
+          }
+        }
+      }
+
+      // Collect request body schemas
+      if (op.requestBody?.content) {
+        for (const [contentType, content] of Object.entries(op.requestBody.content)) {
+          if ((content as any).schema) {
+            const contentTypeId = toIdentifier(
+              contentType.split(/[/+]/).flatMap((p) => p.split("-"))
+            )
+            const identifier = `${pathId}${methodId}RequestBody${contentTypeId}`
+            schemas.push([identifier, (content as any).schema])
+          }
+        }
+      }
+
+      // Collect response schemas
+      if (op.responses) {
+        for (const [statusCode, response] of Object.entries(op.responses)) {
+          if (typeof response === "object" && response !== null && (response as any).content) {
+            for (const [contentType, content] of Object.entries((response as any).content)) {
+              if ((content as any).schema) {
+                const statusId = toIdentifier([statusCode])
+                const contentTypeId = toIdentifier(
+                  contentType.split(/[/+]/).flatMap((p) => p.split("-"))
+                )
+                const identifier = `${pathId}${methodId}Response${statusId}${contentTypeId}`
+                schemas.push([identifier, (content as any).schema])
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return schemas
+}

@@ -5662,9 +5662,9 @@ const MySchema = Schema.Struct({ a: Schema.String, b: B });
 
 ### Options
 
-#### target
+#### source
 
-The `target` option specifies which JSON Schema version is being used.
+The `source` option specifies which JSON Schema version is being used.
 
 **Example** (Generating a tuple schema using `prefixItems`)
 
@@ -5680,7 +5680,7 @@ const jsonSchema = {
 } as const
 
 // specify the JSON Schema version
-const schema = FromJsonSchema.generate(jsonSchema, { target: "2020-12" })
+const schema = FromJsonSchema.generate(jsonSchema, { source: "2020-12" })
 
 console.log(schema)
 /*
@@ -5721,7 +5721,7 @@ const jsonSchema = {
 } as const
 
 const schema = FromJsonSchema.generate(jsonSchema, {
-  target: "oas3.1"
+  source: "oas3.1"
 })
 
 console.log(schema)
@@ -5761,7 +5761,7 @@ const jsonSchema = {
 } as const
 
 const schema = FromJsonSchema.generate(jsonSchema, {
-  target: "oas3.1",
+  source: "oas3.1",
   resolver: (identifier) => {
     if (identifier === "effect/HttpApiSchemaError") {
       // map identifier to a direct import, with both runtime and type info

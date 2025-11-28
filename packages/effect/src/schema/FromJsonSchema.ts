@@ -27,7 +27,7 @@ import { type Mutable } from "../types/Types.ts"
 import type * as Anno from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
-type Target = Anno.JsonSchema.Target
+type Source = Anno.JsonSchema.Target
 type Fragment = Schema.JsonSchema.Fragment
 
 /**
@@ -73,7 +73,7 @@ export function makeGeneration(runtime: string, types: Types, imports: ReadonlyS
  */
 export type GenerateOptions = {
   readonly resolver?: Resolver | undefined
-  readonly target?: Target | undefined
+  readonly source?: Source | undefined
 }
 
 /**
@@ -86,7 +86,7 @@ export type Resolver = (identifier: string) => Generation
  */
 export function generate(schema: unknown, options?: GenerateOptions): Generation {
   return parse(schema, {
-    target: options?.target ?? "draft-07"
+    source: options?.source ?? "draft-07"
   }).toGeneration(options?.resolver ?? resolvers.identity)
 }
 
@@ -1210,7 +1210,7 @@ class Reference {
 }
 
 interface RecurOptions {
-  readonly target: Target
+  readonly source: Source
 }
 
 function parse(schema: unknown, options: RecurOptions): AST {
@@ -1401,7 +1401,7 @@ function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<
 }
 
 function collectElements(schema: Fragment, options: RecurOptions): ReadonlyArray<unknown> | undefined {
-  switch (options.target) {
+  switch (options.source) {
     case "draft-07":
       return Array.isArray(schema.items) ? schema.items : undefined
     case "2020-12":
@@ -1411,7 +1411,7 @@ function collectElements(schema: Fragment, options: RecurOptions): ReadonlyArray
 }
 
 function collectRest(schema: Fragment, options: RecurOptions): Fragment | boolean | undefined {
-  switch (options.target) {
+  switch (options.source) {
     case "draft-07":
       return isObject(schema.items) || (typeof schema.items === "boolean")
         ? schema.items
