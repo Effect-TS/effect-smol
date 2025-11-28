@@ -58,14 +58,20 @@ export function makeTypes(
 export type Generation = {
   readonly runtime: string
   readonly types: Types
+  readonly description: string | undefined
   readonly imports: ReadonlySet<string>
 }
 
 /**
  * @since 4.0.0
  */
-export function makeGeneration(runtime: string, types: Types, imports: ReadonlySet<string> = emptySet): Generation {
-  return { runtime, types, imports }
+export function makeGeneration(
+  runtime: string,
+  types: Types,
+  description?: string,
+  imports: ReadonlySet<string> = emptySet
+): Generation {
+  return { runtime, types, description, imports }
 }
 
 /**
@@ -74,6 +80,13 @@ export function makeGeneration(runtime: string, types: Types, imports: ReadonlyS
 export type GenerateOptions = {
   readonly resolver?: Resolver | undefined
   readonly source?: Source | undefined
+  readonly jsDocs?: boolean | undefined
+}
+
+interface RecurOptions {
+  readonly resolver: Resolver
+  readonly source: Source
+  readonly jsDocs: boolean
 }
 
 /**
@@ -85,9 +98,49 @@ export type Resolver = (identifier: string) => Generation
  * @since 4.0.0
  */
 export function generate(schema: unknown, options?: GenerateOptions): Generation {
-  return parse(schema, {
-    source: options?.source ?? "draft-07"
-  }).toGeneration(options?.resolver ?? resolvers.identity)
+  const recurOptions: RecurOptions = {
+    resolver: options?.resolver ?? resolvers.identity,
+    source: options?.source ?? "draft-07",
+    jsDocs: options?.jsDocs ?? false
+  }
+  return toGeneration(parse(schema, recurOptions), recurOptions)
+}
+
+/**
+ * @since 4.0.0
+ */
+export function asJsDocs(description: string | undefined): string {
+  if (description === undefined) {
+    return ""
+  }
+  return `\n/** ${description} */\n`
+}
+
+function renderJsDocs(description: string | undefined, options: RecurOptions): string {
+  if (!options.jsDocs) {
+    return ""
+  }
+  return asJsDocs(description)
+}
+
+function toGeneration(ast: AST, options: RecurOptions): Generation {
+  const out = ast.toGeneration(options)
+  const checks = ast.renderChecks()
+  const annotations = renderAnnotations(ast)
+  return {
+    runtime: out.runtime + checks + annotations,
+    types: out.types,
+    description: out.description,
+    imports: out.imports
+  }
+}
+
+function renderAnnotations(ast: AST): string {
+  const entries = Object.entries(ast.annotations)
+
+  if (entries.length === 0) return ""
+
+  return `.annotate({ ${entries.map(([key, value]) => `${formatPropertyKey(key)}: ${format(value)}`).join(", ")} })`
 }
 
 /**
@@ -98,6 +151,7 @@ export const resolvers: Record<"identity" | "suspend", Resolver> = {
     return {
       runtime: identifier,
       types: makeTypes(identifier),
+      description: undefined,
       imports: emptySet
     }
   },
@@ -105,6 +159,7 @@ export const resolvers: Record<"identity" | "suspend", Resolver> = {
     return {
       runtime: `Schema.suspend((): Schema.Codec<${identifier}> => ${identifier})`,
       types: makeTypes(identifier),
+      description: undefined,
       imports: emptySet
     }
   }
@@ -306,6 +361,7 @@ export function generateDefinitions(
       generation: {
         runtime: output.runtime + `.annotate({ "identifier": ${format(identifier)} })`,
         types: output.types,
+        description: output.description,
         imports: output.imports
       }
     }
@@ -365,13 +421,17 @@ class Unknown {
   parseChecks(_: Fragment): AST {
     return this
   }
+  renderChecks(): string {
+    return ""
+  }
   combine(that: AST): AST {
     return that
   }
-  toGeneration(_: Resolver): Generation {
+  toGeneration(_: RecurOptions): Generation {
     return {
-      runtime: "Schema.Unknown" + renderAnnotations(this),
+      runtime: "Schema.Unknown",
       types: makeTypes("unknown"),
+      description: this.annotations.description,
       imports: emptySet
     }
   }
@@ -389,13 +449,17 @@ class Never {
   parseChecks(_: Fragment): AST {
     return this
   }
+  renderChecks(): string {
+    return ""
+  }
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(_: Resolver): Generation {
+  toGeneration(_: RecurOptions): Generation {
     return {
-      runtime: "Schema.Never" + renderAnnotations(this),
+      runtime: "Schema.Never",
       types: makeTypes("never"),
+      description: this.annotations.description,
       imports: emptySet
     }
   }
@@ -415,11 +479,14 @@ class Not {
   parseChecks(_: Fragment): AST {
     return this
   }
+  renderChecks(): string {
+    return ""
+  }
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(resolver: Resolver): Generation {
-    return new Never(this.annotations).toGeneration(resolver)
+  toGeneration(options: RecurOptions): Generation {
+    return toGeneration(new Never(this.annotations), options)
   }
 }
 
@@ -435,13 +502,17 @@ class Null {
   parseChecks(_: Fragment): AST {
     return this
   }
+  renderChecks(): string {
+    return ""
+  }
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(_: Resolver): Generation {
+  toGeneration(_: RecurOptions): Generation {
     return {
-      runtime: "Schema.Null" + renderAnnotations(this),
+      runtime: "Schema.Null",
       types: makeTypes("null"),
+      description: this.annotations.description,
       imports: emptySet
     }
   }
@@ -481,7 +552,7 @@ class String {
     return new String([...this.checks, ...String.parseChecks(f)], this.contentSchema, this.annotations)
   }
   renderChecks(): string {
-    return renderChecks(this.checks, (c) => {
+    return renderChecksWith(this.checks, (c) => {
       switch (c._tag) {
         case "minLength":
           return `Schema.isMinLength(${c.value})`
@@ -514,39 +585,32 @@ class String {
         return new Never()
     }
   }
-  toGeneration(resolver: Resolver): Generation {
-    const suffix = this.renderChecks() + renderAnnotations(this)
+  toGeneration(options: RecurOptions): Generation {
     if (this.contentSchema !== undefined) {
-      const contentSchema = this.contentSchema.toGeneration(resolver)
+      const contentSchema = toGeneration(this.contentSchema, options)
       return {
-        runtime: `Schema.fromJsonString(${contentSchema.runtime})` + suffix,
+        runtime: `Schema.fromJsonString(${contentSchema.runtime})`,
         types: makeTypes(
           contentSchema.types.Type,
           "string",
           contentSchema.types.DecodingServices,
           contentSchema.types.EncodingServices
         ),
+        description: this.annotations.description,
         imports: emptySet
       }
     }
     return {
-      runtime: "Schema.String" + suffix,
+      runtime: "Schema.String",
       types: makeTypes("string"),
+      description: this.annotations.description,
       imports: emptySet
     }
   }
 }
 
-function renderChecks<A>(checks: ReadonlyArray<A>, f: (a: A) => string): string {
+function renderChecksWith<A>(checks: ReadonlyArray<A>, f: (a: A) => string): string {
   return checks.length === 0 ? "" : `.check(${checks.map(f).join(", ")})`
-}
-
-function renderAnnotations(ast: AST): string {
-  const entries = Object.entries(ast.annotations)
-
-  if (entries.length === 0) return ""
-
-  return `.annotate({ ${entries.map(([key, value]) => `${formatPropertyKey(key)}: ${format(value)}`).join(", ")} })`
 }
 
 type NumberCheck =
@@ -586,7 +650,7 @@ class Number {
     return new Number(this.isInteger, [...this.checks, ...Number.parseChecks(f)], this.annotations)
   }
   renderChecks(): string {
-    return renderChecks(this.checks, (c) => {
+    return renderChecksWith(this.checks, (c) => {
       switch (c._tag) {
         case "greaterThanOrEqualTo":
           return `Schema.isGreaterThanOrEqualTo(${c.value})`
@@ -619,10 +683,11 @@ class Number {
         return new Never()
     }
   }
-  toGeneration(_: Resolver): Generation {
+  toGeneration(_: RecurOptions): Generation {
     return {
-      runtime: (this.isInteger ? "Schema.Int" : "Schema.Number") + this.renderChecks() + renderAnnotations(this),
+      runtime: this.isInteger ? "Schema.Int" : "Schema.Number",
       types: makeTypes("number"),
+      description: this.annotations.description,
       imports: emptySet
     }
   }
@@ -640,13 +705,17 @@ class Boolean {
   parseChecks(_: Fragment): AST {
     return this
   }
+  renderChecks(): string {
+    return ""
+  }
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(_: Resolver): Generation {
+  toGeneration(_: RecurOptions): Generation {
     return {
-      runtime: "Schema.Boolean" + renderAnnotations(this),
+      runtime: "Schema.Boolean",
       types: makeTypes("boolean"),
+      description: this.annotations.description,
       imports: emptySet
     }
   }
@@ -666,13 +735,17 @@ class Const {
   parseChecks(_: Fragment): AST {
     return this
   }
+  renderChecks(): string {
+    return ""
+  }
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(_: Resolver): Generation {
+  toGeneration(_: RecurOptions): Generation {
     return {
-      runtime: `Schema.Literal(${format(this.value)})` + renderAnnotations(this),
+      runtime: `Schema.Literal(${format(this.value)})`,
       types: makeTypes(format(this.value)),
+      description: this.annotations.description,
       imports: emptySet
     }
   }
@@ -692,21 +765,26 @@ class Enum {
   parseChecks(_: Fragment): AST {
     return this
   }
+  renderChecks(): string {
+    return ""
+  }
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(_: Resolver): Generation {
+  toGeneration(_: RecurOptions): Generation {
     const values = this.values.map((v) => format(v))
     if (values.length === 1) {
       return {
-        runtime: `Schema.Literal(${values[0]})` + renderAnnotations(this),
+        runtime: `Schema.Literal(${values[0]})`,
         types: makeTypes(values[0]),
+        description: this.annotations.description,
         imports: emptySet
       }
     } else {
       return {
-        runtime: `Schema.Literals([${values.join(", ")}])` + renderAnnotations(this),
+        runtime: `Schema.Literals([${values.join(", ")}])`,
         types: makeTypes(values.join(" | ")),
+        description: this.annotations.description,
         imports: emptySet
       }
     }
@@ -755,7 +833,7 @@ class Arrays {
     const len = i !== -1 ? i : elements.length
     this.checks = checks.filter((c) => {
       if (c._tag === "minItems") {
-        return c.value > len
+        return c.value > len && rest !== undefined
       }
       return true
     })
@@ -768,7 +846,7 @@ class Arrays {
     return new Arrays(this.elements, this.rest, [...this.checks, ...Arrays.parseChecks(schema)], this.annotations)
   }
   renderChecks(): string {
-    return renderChecks(this.checks, (c) => {
+    return renderChecksWith(this.checks, (c) => {
       switch (c._tag) {
         case "minItems":
           return `Schema.isMinLength(${c.value})`
@@ -808,58 +886,60 @@ class Arrays {
         return new Never()
     }
   }
-  toGeneration(resolver: Resolver): Generation {
+  toGeneration(options: RecurOptions): Generation {
     const es = this.elements.map((e): ElementIR => ({
-      value: e.ast.toGeneration(resolver),
+      value: toGeneration(e.ast, options),
       isOptional: e.isOptional
     }))
-    const rest = this.rest?.toGeneration(resolver)
+    const rest = this.rest !== undefined ? toGeneration(this.rest, options) : undefined
     const el = renderElements(es)
-
-    const suffix = this.renderChecks() + renderAnnotations(this)
 
     if (es.length === 0 && rest === undefined) {
       return {
-        runtime: `Schema.Tuple([])` + suffix,
+        runtime: `Schema.Tuple([])`,
         types: makeTypes("readonly []"),
+        description: this.annotations.description,
         imports: emptySet
       }
     }
 
     if (es.length === 0 && rest !== undefined) {
       return {
-        runtime: `Schema.Array(${rest.runtime})` + suffix,
+        runtime: `Schema.Array(${rest.runtime})`,
         types: makeTypes(
           `ReadonlyArray<${rest.types.Type}>`,
           `ReadonlyArray<${rest.types.Encoded}>`,
           rest.types.DecodingServices,
           rest.types.EncodingServices
         ),
+        description: this.annotations.description,
         imports: rest.imports
       }
     }
 
     if (rest === undefined) {
       return {
-        runtime: `Schema.Tuple([${el.runtime}])` + suffix,
+        runtime: `Schema.Tuple([${el.runtime}])`,
         types: makeTypes(
           `readonly [${el.types.Type}]`,
           `readonly [${el.types.Encoded}]`,
           el.types.DecodingServices,
           el.types.EncodingServices
         ),
+        description: this.annotations.description,
         imports: el.imports
       }
     }
 
     return {
-      runtime: `Schema.TupleWithRest(Schema.Tuple([${el.runtime}]), [${rest.runtime}])` + suffix,
+      runtime: `Schema.TupleWithRest(Schema.Tuple([${el.runtime}]), [${rest.runtime}])`,
       types: makeTypes(
         `readonly [${el.types.Type}, ...Array<${rest.types.Type}>]`,
         `readonly [${el.types.Encoded}, ...Array<${rest.types.Encoded}>]`,
         joinServices([el.types.DecodingServices, rest.types.DecodingServices]),
         joinServices([el.types.EncodingServices, rest.types.EncodingServices])
       ),
+      description: this.annotations.description,
       imports: ReadonlySetReducer.combine(el.imports, rest.imports)
     }
   }
@@ -879,11 +959,12 @@ function renderElements(es: ReadonlyArray<ElementIR>): Generation {
       joinServices(es.map((e) => e.value.types.DecodingServices)),
       joinServices(es.map((e) => e.value.types.EncodingServices))
     ),
+    description: undefined,
     imports: ReadonlySetReducer.combineAll(es.map((e) => e.value.imports))
   }
 }
 
-function join<A>(values: ReadonlyArray<A>, f: (a: A) => string): string {
+function join<A>(values: ReadonlyArray<A>, f: (a: A, i: number) => string): string {
   return values.map(f).join(", ")
 }
 
@@ -965,7 +1046,7 @@ class Objects {
     )
   }
   renderChecks(): string {
-    return renderChecks(this.checks, (c) => {
+    return renderChecksWith(this.checks, (c) => {
       switch (c._tag) {
         case "minProperties":
           return `Schema.isMinProperties(${c.value})`
@@ -999,33 +1080,33 @@ class Objects {
         return new Never()
     }
   }
-  toGeneration(resolver: Resolver): Generation {
+  toGeneration(options: RecurOptions): Generation {
     const ps: ReadonlyArray<PropertyGen> = this.properties.map((p) => ({
       key: p.key,
-      value: p.value.toGeneration(resolver),
-      isOptional: p.isOptional
+      value: toGeneration(p.value, options),
+      isOptional: p.isOptional,
+      description: p.value.annotations.description
     }))
 
     const iss: ReadonlyArray<IndexSignatureGen> = this.indexSignatures.map((is) => ({
-      key: is.key.toGeneration(resolver),
-      value: is.value.toGeneration(resolver)
+      key: toGeneration(is.key, options),
+      value: toGeneration(is.value, options)
     }))
 
-    const p = renderProperties(ps)
+    const p = renderProperties(ps, options)
     const i = renderIndexSignatures(iss)
-
-    const suffix = this.renderChecks() + renderAnnotations(this)
 
     // 1) Only properties -> Struct
     if (iss.length === 0) {
       return {
-        runtime: `Schema.Struct({ ${p.runtime} })` + suffix,
+        runtime: `Schema.Struct({ ${p.runtime} })`,
         types: makeTypes(
           `{ ${p.types.Type} }`,
           `{ ${p.types.Encoded} }`,
           p.types.DecodingServices,
           p.types.EncodingServices
         ),
+        description: this.annotations.description,
         imports: p.imports
       }
     }
@@ -1034,20 +1115,21 @@ class Objects {
     if (ps.length === 0 && iss.length === 1) {
       const is = iss[0]
       return {
-        runtime: indexSignatureRuntime(is) + suffix,
+        runtime: indexSignatureRuntime(is),
         types: makeTypes(
           `{ ${renderIndexSignature(is.key.types.Type, is.value.types.Type)} }`,
           `{ ${renderIndexSignature(is.key.types.Encoded, is.value.types.Encoded)} }`,
           joinServices([is.key.types.DecodingServices, is.value.types.DecodingServices]),
           joinServices([is.key.types.EncodingServices, is.value.types.EncodingServices])
         ),
+        description: this.annotations.description,
         imports: indexSignatureImports(is)
       }
     }
 
     // 3) Properties + index signatures -> StructWithRest
     return {
-      runtime: `Schema.StructWithRest(Schema.Struct({ ${p.runtime} }), [${i.runtime}])` + suffix,
+      runtime: `Schema.StructWithRest(Schema.Struct({ ${p.runtime} }), [${i.runtime}])`,
       types: ps.length === 0
         ? makeTypes(
           `{ ${i.types.Type} }`,
@@ -1061,20 +1143,25 @@ class Objects {
           joinServices([p.types.DecodingServices, i.types.DecodingServices]),
           joinServices([p.types.EncodingServices, i.types.EncodingServices])
         ),
+      description: this.annotations.description,
       imports: ReadonlySetReducer.combineAll([p.imports, i.imports])
     }
   }
 }
 
-function renderProperties(ps: ReadonlyArray<PropertyGen>): Generation {
+function renderProperties(ps: ReadonlyArray<PropertyGen>, options: RecurOptions): Generation {
+  const descriptions = ps.map((p) => renderJsDocs(p.value.description, options))
   return {
-    runtime: ps.map((p) => `${formatPropertyKey(p.key)}: ${optionalRuntime(p.isOptional, p.value.runtime)}`).join(", "),
+    runtime: ps.map((p) => `${formatPropertyKey(p.key)}: ${optionalRuntime(p.isOptional, p.value.runtime)}`).join(
+      ", "
+    ),
     types: makeTypes(
-      join(ps, (p) => renderProperty(p.isOptional, p.key, p.value.types.Type)),
-      join(ps, (p) => renderProperty(p.isOptional, p.key, p.value.types.Encoded)),
+      join(ps, (p, i) => descriptions[i] + renderProperty(p.isOptional, p.key, p.value.types.Type)),
+      join(ps, (p, i) => descriptions[i] + renderProperty(p.isOptional, p.key, p.value.types.Encoded)),
       joinServices(ps.map((p) => p.value.types.DecodingServices)),
       joinServices(ps.map((p) => p.value.types.EncodingServices))
     ),
+    description: undefined,
     imports: ReadonlySetReducer.combineAll(ps.map((p) => p.value.imports))
   }
 }
@@ -1096,6 +1183,7 @@ function renderIndexSignatures(iss: ReadonlyArray<IndexSignatureGen>): Generatio
         iss.map((is) => is.key.types.EncodingServices).concat(iss.map((is) => is.value.types.EncodingServices))
       )
     ),
+    description: undefined,
     imports: ReadonlySetReducer.combineAll(iss.map(indexSignatureImports))
   }
 }
@@ -1116,6 +1204,7 @@ type PropertyGen = {
   readonly key: string
   readonly value: Generation
   readonly isOptional: boolean
+  readonly description: string | undefined
 }
 
 type IndexSignatureGen = {
@@ -1138,6 +1227,9 @@ class Union {
   }
   parseChecks(_: Fragment): AST {
     return this
+  }
+  renderChecks(): string {
+    return ""
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -1164,19 +1256,19 @@ class Union {
         return new Never()
     }
   }
-  toGeneration(resolver: Resolver): Generation {
-    const members = this.members.map((m) => m.toGeneration(resolver))
+  toGeneration(options: RecurOptions): Generation {
+    const members = this.members.map((m) => toGeneration(m, options))
     return {
-      runtime:
-        `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${
-          this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""
-        })` + renderAnnotations(this),
+      runtime: `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${
+        this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""
+      })`,
       types: makeTypes(
         members.map((m) => m.types.Type).join(" | "),
         members.map((m) => m.types.Encoded).join(" | "),
         joinServices(members.map((m) => m.types.DecodingServices)),
         joinServices(members.map((m) => m.types.EncodingServices))
       ),
+      description: this.annotations.description,
       imports: ReadonlySetReducer.combineAll(members.map((m) => m.imports))
     }
   }
@@ -1196,21 +1288,21 @@ class Reference {
   parseChecks(_: Fragment): AST {
     return this
   }
+  renderChecks(): string {
+    return ""
+  }
   combine(_: AST): AST {
     return new Never()
   }
-  toGeneration(resolver: Resolver): Generation {
-    const generation = resolver(this.identifier)
+  toGeneration(options: RecurOptions): Generation {
+    const generation = options.resolver(this.identifier)
     return {
-      runtime: generation.runtime + renderAnnotations(this),
+      runtime: generation.runtime,
       types: generation.types,
+      description: this.annotations.description,
       imports: generation.imports
     }
   }
-}
-
-interface RecurOptions {
-  readonly source: Source
 }
 
 function parse(schema: unknown, options: RecurOptions): AST {
