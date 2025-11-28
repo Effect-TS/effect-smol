@@ -856,8 +856,8 @@ class Arrays {
       types: makeTypes(
         `readonly [${el.types.Type}, ...Array<${rest.types.Type}>]`,
         `readonly [${el.types.Encoded}, ...Array<${rest.types.Encoded}>]`,
-        joinUnique([el.types.DecodingServices, rest.types.DecodingServices]),
-        joinUnique([el.types.EncodingServices, rest.types.EncodingServices])
+        joinServices([el.types.DecodingServices, rest.types.DecodingServices]),
+        joinServices([el.types.EncodingServices, rest.types.EncodingServices])
       ),
       imports: ReadonlySetReducer.combine(el.imports, rest.imports)
     }
@@ -873,30 +873,30 @@ function renderElements(es: ReadonlyArray<ElementIR>): Generation {
   return {
     runtime: es.map((e) => optionalRuntime(e.isOptional, e.value.runtime)).join(", "),
     types: makeTypes(
-      join(es.map((e) => optionalType(e.isOptional, e.value.types.Type))),
-      join(es.map((e) => optionalType(e.isOptional, e.value.types.Encoded))),
-      joinUnique(es.map((e) => e.value.types.DecodingServices)),
-      joinUnique(es.map((e) => e.value.types.EncodingServices))
+      join(es, (e) => addQuestionMark(e.isOptional, e.value.types.Type)),
+      join(es, (e) => addQuestionMark(e.isOptional, e.value.types.Encoded)),
+      joinServices(es.map((e) => e.value.types.DecodingServices)),
+      joinServices(es.map((e) => e.value.types.EncodingServices))
     ),
     imports: ReadonlySetReducer.combineAll(es.map((e) => e.value.imports))
   }
 }
 
-function join(values: ReadonlyArray<string>): string {
-  return values.join(", ")
+function join<A>(values: ReadonlyArray<A>, f: (a: A) => string): string {
+  return values.map(f).join(", ")
 }
 
-function joinUnique(values: ReadonlyArray<string>): string {
-  const types = values.filter((v) => v !== "never")
-  if (types.length === 0) return "never"
-  return [...new Set(types)].join(" | ")
+function joinServices(services: ReadonlyArray<string>): string {
+  const ss = services.filter((s) => s !== "never")
+  if (ss.length === 0) return "never"
+  return [...new Set(ss)].join(" | ")
 }
 
 function optionalRuntime(isOptional: boolean, code: string): string {
   return isOptional ? `Schema.optionalKey(${code})` : code
 }
 
-function optionalType(isOptional: boolean, type: string): string {
+function addQuestionMark(isOptional: boolean, type: string): string {
   return isOptional ? `${type}?` : type
 }
 
@@ -1035,10 +1035,10 @@ class Objects {
       return {
         runtime: indexSignatureRuntime(is) + suffix,
         types: makeTypes(
-          `{ ${`readonly [x: ${is.key.types.Type}]: ${is.value.types.Type}`} }`,
-          `{ ${`readonly [x: ${is.key.types.Encoded}]: ${is.value.types.Encoded}`} }`,
-          joinUnique([is.key.types.DecodingServices, is.value.types.DecodingServices]),
-          joinUnique([is.key.types.EncodingServices, is.value.types.EncodingServices])
+          `{ ${renderIndexSignature(is.key.types.Type, is.value.types.Type)} }`,
+          `{ ${renderIndexSignature(is.key.types.Encoded, is.value.types.Encoded)} }`,
+          joinServices([is.key.types.DecodingServices, is.value.types.DecodingServices]),
+          joinServices([is.key.types.EncodingServices, is.value.types.EncodingServices])
         ),
         imports: indexSignatureImports(is)
       }
@@ -1057,8 +1057,8 @@ class Objects {
         : makeTypes(
           `{ ${p.types.Type}, ${i.types.Type} }`,
           `{ ${p.types.Encoded}, ${i.types.Encoded} }`,
-          joinUnique([p.types.DecodingServices, i.types.DecodingServices]),
-          joinUnique([p.types.EncodingServices, i.types.EncodingServices])
+          joinServices([p.types.DecodingServices, i.types.DecodingServices]),
+          joinServices([p.types.EncodingServices, i.types.EncodingServices])
         ),
       imports: ReadonlySetReducer.combineAll([p.imports, i.imports])
     }
@@ -1069,30 +1069,38 @@ function renderProperties(ps: ReadonlyArray<PropertyGen>): Generation {
   return {
     runtime: ps.map((p) => `${formatPropertyKey(p.key)}: ${optionalRuntime(p.isOptional, p.value.runtime)}`).join(", "),
     types: makeTypes(
-      join(ps.map((p) => `readonly ${optionalType(p.isOptional, formatPropertyKey(p.key))}: ${p.value.types.Type}`)),
-      join(ps.map((p) => `readonly ${optionalType(p.isOptional, formatPropertyKey(p.key))}: ${p.value.types.Encoded}`)),
-      joinUnique(ps.map((p) => p.value.types.DecodingServices)),
-      joinUnique(ps.map((p) => p.value.types.EncodingServices))
+      join(ps, (p) => renderProperty(p.isOptional, p.key, p.value.types.Type)),
+      join(ps, (p) => renderProperty(p.isOptional, p.key, p.value.types.Encoded)),
+      joinServices(ps.map((p) => p.value.types.DecodingServices)),
+      joinServices(ps.map((p) => p.value.types.EncodingServices))
     ),
     imports: ReadonlySetReducer.combineAll(ps.map((p) => p.value.imports))
   }
+}
+
+function renderProperty(isOptional: boolean, key: string, value: string): string {
+  return `readonly ${addQuestionMark(isOptional, formatPropertyKey(key))}: ${value}`
 }
 
 function renderIndexSignatures(iss: ReadonlyArray<IndexSignatureGen>): Generation {
   return {
     runtime: iss.map(indexSignatureRuntime).join(", "),
     types: makeTypes(
-      join(iss.map((is) => `readonly [x: ${is.key.types.Type}]: ${is.value.types.Type}`)),
-      join(iss.map((is) => `readonly [x: ${is.key.types.Encoded}]: ${is.value.types.Encoded}`)),
-      joinUnique(
+      join(iss, (is) => renderIndexSignature(is.key.types.Type, is.value.types.Type)),
+      join(iss, (is) => renderIndexSignature(is.key.types.Encoded, is.value.types.Encoded)),
+      joinServices(
         iss.map((is) => is.key.types.DecodingServices).concat(iss.map((is) => is.value.types.DecodingServices))
       ),
-      joinUnique(
+      joinServices(
         iss.map((is) => is.key.types.EncodingServices).concat(iss.map((is) => is.value.types.EncodingServices))
       )
     ),
     imports: ReadonlySetReducer.combineAll(iss.map(indexSignatureImports))
   }
+}
+
+function renderIndexSignature(key: string, value: string): string {
+  return `readonly [x: ${key}]: ${value}`
 }
 
 function indexSignatureRuntime(is: IndexSignatureGen) {
@@ -1165,8 +1173,8 @@ class Union {
       types: makeTypes(
         members.map((m) => m.types.Type).join(" | "),
         members.map((m) => m.types.Encoded).join(" | "),
-        joinUnique(members.map((m) => m.types.DecodingServices)),
-        joinUnique(members.map((m) => m.types.EncodingServices))
+        joinServices(members.map((m) => m.types.DecodingServices)),
+        joinServices(members.map((m) => m.types.EncodingServices))
       ),
       imports: ReadonlySetReducer.combineAll(members.map((m) => m.imports))
     }
