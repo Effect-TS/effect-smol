@@ -328,7 +328,7 @@ class Unknown {
   annotate(annotations: Annotations): Unknown {
     return new Unknown(annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(_: Fragment): AST {
+  parseChecks(_: Fragment): AST {
     return this
   }
   combine(that: AST): AST {
@@ -352,7 +352,7 @@ class Never {
   annotate(annotations: Annotations): Never {
     return new Never(annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(_: Fragment): AST {
+  parseChecks(_: Fragment): AST {
     return this
   }
   combine(_: AST): AST {
@@ -378,7 +378,7 @@ class Not {
   annotate(annotations: Annotations): Not {
     return new Not(this.ast, annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(_: Fragment): AST {
+  parseChecks(_: Fragment): AST {
     return this
   }
   combine(_: AST): AST {
@@ -398,7 +398,7 @@ class Null {
   annotate(annotations: Annotations): Null {
     return new Null(annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(_: Fragment): AST {
+  parseChecks(_: Fragment): AST {
     return this
   }
   combine(_: AST): AST {
@@ -423,7 +423,7 @@ function makePatternCheck(pattern: string): StringCheck {
 }
 
 class String {
-  static check(f: Fragment): Array<StringCheck> {
+  static parseChecks(f: Fragment): Array<StringCheck> {
     const cs: Array<StringCheck> = []
     if (typeof f.minLength === "number") cs.push({ _tag: "minLength", value: f.minLength })
     if (typeof f.maxLength === "number") cs.push({ _tag: "maxLength", value: f.maxLength })
@@ -433,18 +433,20 @@ class String {
   }
   readonly _tag = "String"
   readonly checks: ReadonlyArray<StringCheck>
+  readonly contentSchema: AST | undefined
   readonly annotations: Annotations
-  constructor(checks: ReadonlyArray<StringCheck>, annotations: Annotations = {}) {
+  constructor(checks: ReadonlyArray<StringCheck>, contentSchema: AST | undefined, annotations: Annotations = {}) {
     this.checks = checks
+    this.contentSchema = contentSchema
     this.annotations = annotations
   }
   annotate(annotations: Annotations): String {
-    return new String(this.checks, annotationsCombiner.combine(this.annotations, annotations))
+    return new String(this.checks, this.contentSchema, annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(f: Fragment): AST {
-    return new String([...this.checks, ...String.check(f)], this.annotations)
+  parseChecks(f: Fragment): AST {
+    return new String([...this.checks, ...String.parseChecks(f)], this.contentSchema, this.annotations)
   }
-  getChecks(): string {
+  renderChecks(): string {
     return renderChecks(this.checks, (c) => {
       switch (c._tag) {
         case "minLength":
@@ -461,20 +463,35 @@ class String {
       case "String":
         return new String(
           [...this.checks, ...that.checks],
+          this.contentSchema === undefined
+            ? that.contentSchema
+            : that.contentSchema === undefined
+            ? this.contentSchema
+            : this.contentSchema.combine(that.contentSchema),
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       case "Unknown":
         return new String(
           this.checks,
+          this.contentSchema,
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       default:
         return new Never()
     }
   }
-  toGeneration(_: Resolver): Generation {
+  toGeneration(resolver: Resolver): Generation {
+    const suffix = this.renderChecks() + renderAnnotations(this)
+    if (this.contentSchema !== undefined) {
+      const contentSchema = this.contentSchema.toGeneration(resolver)
+      return {
+        runtime: `Schema.fromJsonString(${contentSchema.runtime})` + suffix,
+        type: "string",
+        imports: emptySet
+      }
+    }
     return {
-      runtime: "Schema.String" + this.getChecks() + renderAnnotations(this),
+      runtime: "Schema.String" + suffix,
       type: "string",
       imports: emptySet
     }
@@ -486,10 +503,11 @@ function renderChecks<A>(checks: ReadonlyArray<A>, f: (a: A) => string): string 
 }
 
 function renderAnnotations(ast: AST): string {
-  if (Object.keys(ast.annotations).length === 0) return ""
-  return `.annotate({ ${
-    Object.entries(ast.annotations).map(([key, value]) => `${key}: ${format(value)}`).join(", ")
-  } })`
+  const entries = Object.entries(ast.annotations)
+
+  if (entries.length === 0) return ""
+
+  return `.annotate({ ${entries.map(([key, value]) => `${formatPropertyKey(key)}: ${format(value)}`).join(", ")} })`
 }
 
 type NumberCheck =
@@ -500,7 +518,7 @@ type NumberCheck =
   | { readonly _tag: "multipleOf"; readonly value: number }
 
 class Number {
-  static check(f: Fragment): Array<NumberCheck> {
+  static parseChecks(f: Fragment): Array<NumberCheck> {
     const cs: Array<NumberCheck> = []
     if (typeof f.minimum === "number") cs.push({ _tag: "greaterThanOrEqualTo", value: f.minimum })
     if (typeof f.maximum === "number") cs.push({ _tag: "lessThanOrEqualTo", value: f.maximum })
@@ -525,10 +543,10 @@ class Number {
   annotate(annotations: Annotations): Number {
     return new Number(this.isInteger, this.checks, annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(f: Fragment): AST {
-    return new Number(this.isInteger, [...this.checks, ...Number.check(f)], this.annotations)
+  parseChecks(f: Fragment): AST {
+    return new Number(this.isInteger, [...this.checks, ...Number.parseChecks(f)], this.annotations)
   }
-  getChecks(): string {
+  renderChecks(): string {
     return renderChecks(this.checks, (c) => {
       switch (c._tag) {
         case "greaterThanOrEqualTo":
@@ -564,7 +582,7 @@ class Number {
   }
   toGeneration(_: Resolver): Generation {
     return {
-      runtime: (this.isInteger ? "Schema.Int" : "Schema.Number") + this.getChecks() + renderAnnotations(this),
+      runtime: (this.isInteger ? "Schema.Int" : "Schema.Number") + this.renderChecks() + renderAnnotations(this),
       type: "number",
       imports: emptySet
     }
@@ -580,7 +598,7 @@ class Boolean {
   annotate(annotations: Annotations): Boolean {
     return new Boolean(annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(_: Fragment): AST {
+  parseChecks(_: Fragment): AST {
     return this
   }
   combine(_: AST): AST {
@@ -602,7 +620,7 @@ class Const {
   annotate(annotations: Annotations): Const {
     return new Const(this.value, annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(_: Fragment): AST {
+  parseChecks(_: Fragment): AST {
     return this
   }
   combine(_: AST): AST {
@@ -628,7 +646,7 @@ class Enum {
   annotate(annotations: Annotations): Enum {
     return new Enum(this.values, annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(_: Fragment): AST {
+  parseChecks(_: Fragment): AST {
     return this
   }
   combine(_: AST): AST {
@@ -670,7 +688,7 @@ class Element {
 }
 
 class Arrays {
-  static check(f: Fragment): Array<ArraysCheck> {
+  static parseChecks(f: Fragment): Array<ArraysCheck> {
     const cs: Array<ArraysCheck> = []
     if (typeof f.minItems === "number") cs.push({ _tag: "minItems", value: f.minItems })
     if (typeof f.maxItems === "number") cs.push({ _tag: "maxItems", value: f.maxItems })
@@ -703,10 +721,10 @@ class Arrays {
   annotate(annotations: Annotations): Arrays {
     return new Arrays(this.elements, this.rest, this.checks, annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(schema: Fragment): AST {
-    return new Arrays(this.elements, this.rest, [...this.checks, ...Arrays.check(schema)], this.annotations)
+  parseChecks(schema: Fragment): AST {
+    return new Arrays(this.elements, this.rest, [...this.checks, ...Arrays.parseChecks(schema)], this.annotations)
   }
-  getChecks(): string {
+  renderChecks(): string {
     return renderChecks(this.checks, (c) => {
       switch (c._tag) {
         case "minItems":
@@ -755,7 +773,7 @@ class Arrays {
     const rest = this.rest?.toGeneration(resolver)
     const el = renderElements(es)
 
-    const suffix = this.getChecks() + renderAnnotations(this)
+    const suffix = this.renderChecks() + renderAnnotations(this)
 
     if (es.length === 0 && rest === undefined) {
       return {
@@ -835,7 +853,7 @@ class IndexSignature {
 }
 
 class Objects {
-  static check(f: Fragment): Array<ObjectsCheck> {
+  static parseChecks(f: Fragment): Array<ObjectsCheck> {
     const cs: Array<ObjectsCheck> = []
     if (typeof f.minProperties === "number") cs.push({ _tag: "minProperties", value: f.minProperties })
     if (typeof f.maxProperties === "number") cs.push({ _tag: "maxProperties", value: f.maxProperties })
@@ -865,15 +883,15 @@ class Objects {
       annotationsCombiner.combine(this.annotations, annotations)
     )
   }
-  check(schema: Fragment): AST {
+  parseChecks(f: Fragment): AST {
     return new Objects(
       this.properties,
       this.indexSignatures,
-      [...this.checks, ...Objects.check(schema)],
+      [...this.checks, ...Objects.parseChecks(f)],
       this.annotations
     )
   }
-  getChecks(): string {
+  renderChecks(): string {
     return renderChecks(this.checks, (c) => {
       switch (c._tag) {
         case "minProperties":
@@ -923,7 +941,7 @@ class Objects {
     const p = renderProperties(ps)
     const i = renderIndexSignatures(iss)
 
-    const suffix = this.getChecks() + renderAnnotations(this)
+    const suffix = this.renderChecks() + renderAnnotations(this)
 
     // 1) Only properties -> Struct
     if (iss.length === 0) {
@@ -1005,7 +1023,7 @@ class Union {
   annotate(annotations: Annotations): Union {
     return new Union(this.members, this.mode, annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(_: Fragment): AST {
+  parseChecks(_: Fragment): AST {
     return this
   }
   combine(that: AST): AST {
@@ -1057,7 +1075,7 @@ class Reference {
   annotate(annotations: Annotations): Reference {
     return new Reference(this.identifier, annotationsCombiner.combine(this.annotations, annotations))
   }
-  check(_: Fragment): AST {
+  parseChecks(_: Fragment): AST {
     return this
   }
   combine(_: AST): AST {
@@ -1084,7 +1102,7 @@ function parse(schema: unknown, options: RecurOptions): AST {
     let ast = parseFragment(schema, options)
     const annotations = collectAnnotations(schema)
     if (annotations) ast = ast.annotate(annotations)
-    ast = ast.check(schema)
+    ast = ast.parseChecks(schema)
     if (Array.isArray(schema.allOf)) {
       return schema.allOf.map((m) => parse(m, options)).reduce((acc, curr) => acc.combine(curr), ast)
     }
@@ -1134,7 +1152,7 @@ function parseFragment(schema: Fragment, options: RecurOptions): AST {
   return new Unknown()
 }
 
-const stringKeys = ["minLength", "maxLength", "pattern", "format"]
+const stringKeys = ["minLength", "maxLength", "pattern", "format", "contentMediaType", "contentSchema"]
 const numberKeys = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"]
 const objectKeys = [
   "properties",
@@ -1177,7 +1195,7 @@ function handleType(type: Schema.JsonSchema.Type, schema: Fragment, options: Rec
     case "null":
       return new Null()
     case "string":
-      return new String([])
+      return new String([], undefined)
     case "number":
       return new Number(false, [])
     case "integer":
@@ -1222,7 +1240,7 @@ function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<
     for (const [pattern, value] of Object.entries(schema.patternProperties)) {
       out.push(
         new IndexSignature(
-          new String([makePatternCheck(pattern)]),
+          new String([makePatternCheck(pattern)], undefined),
           parse(value, options)
         )
       )
@@ -1234,12 +1252,12 @@ function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<
   }
 
   if (schema.additionalProperties === true) {
-    out.push(new IndexSignature(new String([]), new Unknown()))
+    out.push(new IndexSignature(new String([], undefined), new Unknown()))
     return out
   }
 
   if (isObject(schema.additionalProperties)) {
-    out.push(new IndexSignature(new String([]), parse(schema.additionalProperties, options)))
+    out.push(new IndexSignature(new String([], undefined), parse(schema.additionalProperties, options)))
     return out
   }
 
@@ -1248,13 +1266,13 @@ function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<
 
   if (schema.additionalProperties === false) {
     if (hasNoProps && out.length === 0) {
-      out.push(new IndexSignature(new String([]), new Never()))
+      out.push(new IndexSignature(new String([], undefined), new Never()))
     }
     return out
   }
 
   if (hasNoProps && out.length === 0) {
-    out.push(new IndexSignature(new String([]), new Unknown()))
+    out.push(new IndexSignature(new String([], undefined), new Unknown()))
   }
 
   return out

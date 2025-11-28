@@ -146,11 +146,11 @@ describe("FromJsonSchema", () => {
     it("format", () => {
       assertGeneration(
         { schema: { "type": "string", "format": "email" } },
-        { runtime: `Schema.String.annotate({ format: "email" })`, type: "string" }
+        { runtime: `Schema.String.annotate({ "format": "email" })`, type: "string" }
       )
       assertGeneration(
         { schema: { "format": "email" } },
-        { runtime: `Schema.String.annotate({ format: "email" })`, type: "string" }
+        { runtime: `Schema.String.annotate({ "format": "email" })`, type: "string" }
       )
     })
 
@@ -214,6 +214,25 @@ describe("FromJsonSchema", () => {
       )
     })
 
+    it.todo("contentSchema", () => {
+      assertGeneration(
+        {
+          schema: {
+            "type": "string",
+            "contentMediaType": "application/json",
+            "contentSchema": {
+              "type": "number"
+            },
+            "description": "a string that will be decoded as JSON"
+          }
+        },
+        {
+          runtime: `Schema.fromJsonString(Schema.Number)`,
+          type: "string"
+        }
+      )
+    })
+
     it("true", () => {
       assertGeneration(
         { schema: true },
@@ -235,7 +254,7 @@ describe("FromJsonSchema", () => {
       )
       assertGeneration(
         { schema: { description: "lorem" } },
-        { runtime: `Schema.Unknown.annotate({ description: "lorem" })`, type: "unknown" }
+        { runtime: `Schema.Unknown.annotate({ "description": "lorem" })`, type: "unknown" }
       )
     })
 
@@ -246,7 +265,7 @@ describe("FromJsonSchema", () => {
       )
       assertGeneration(
         { schema: { "const": "a", "description": "lorem" } },
-        { runtime: `Schema.Literal("a").annotate({ description: "lorem" })`, type: `"a"` }
+        { runtime: `Schema.Literal("a").annotate({ "description": "lorem" })`, type: `"a"` }
       )
       assertGeneration(
         { schema: { "type": "string", "const": "a" } },
@@ -265,11 +284,11 @@ describe("FromJsonSchema", () => {
       )
       assertGeneration(
         { schema: { "enum": ["a", "b"], "description": "lorem" } },
-        { runtime: `Schema.Literals(["a", "b"]).annotate({ description: "lorem" })`, type: `"a" | "b"` }
+        { runtime: `Schema.Literals(["a", "b"]).annotate({ "description": "lorem" })`, type: `"a" | "b"` }
       )
       assertGeneration(
         { schema: { "type": "string", "enum": ["a", "b"], "description": "lorem" } },
-        { runtime: `Schema.Literals(["a", "b"]).annotate({ description: "lorem" })`, type: `"a" | "b"` }
+        { runtime: `Schema.Literals(["a", "b"]).annotate({ "description": "lorem" })`, type: `"a" | "b"` }
       )
     })
 
@@ -282,7 +301,7 @@ describe("FromJsonSchema", () => {
         assertGeneration({
           schema: { "type": ["string", "number"], "description": "lorem" }
         }, {
-          runtime: `Schema.Union([Schema.String, Schema.Number]).annotate({ description: "lorem" })`,
+          runtime: `Schema.Union([Schema.String, Schema.Number]).annotate({ "description": "lorem" })`,
           type: "string | number"
         })
       })
@@ -302,7 +321,7 @@ describe("FromJsonSchema", () => {
       )
       assertGeneration(
         { schema: { "type": "null", "description": "lorem" } },
-        { runtime: `Schema.Null.annotate({ description: "lorem" })`, type: "null" }
+        { runtime: `Schema.Null.annotate({ "description": "lorem" })`, type: "null" }
       )
     })
 
@@ -313,7 +332,7 @@ describe("FromJsonSchema", () => {
       )
       assertGeneration(
         { schema: { "type": "string", "description": "lorem" } },
-        { runtime: `Schema.String.annotate({ description: "lorem" })`, type: "string" }
+        { runtime: `Schema.String.annotate({ "description": "lorem" })`, type: "string" }
       )
       assertGeneration(
         { schema: { "type": "string", "minLength": 1 } },
@@ -340,7 +359,7 @@ describe("FromJsonSchema", () => {
       )
       assertGeneration(
         { schema: { "type": "number", "description": "lorem" } },
-        { runtime: `Schema.Number.annotate({ description: "lorem" })`, type: "number" }
+        { runtime: `Schema.Number.annotate({ "description": "lorem" })`, type: "number" }
       )
       assertGeneration(
         { schema: { "type": "number", "minimum": 0 } },
@@ -385,7 +404,7 @@ describe("FromJsonSchema", () => {
       )
       assertGeneration(
         { schema: { "type": "boolean", "description": "lorem" } },
-        { runtime: `Schema.Boolean.annotate({ description: "lorem" })`, type: "boolean" }
+        { runtime: `Schema.Boolean.annotate({ "description": "lorem" })`, type: "boolean" }
       )
     })
 
@@ -397,7 +416,10 @@ describe("FromJsonSchema", () => {
         )
         assertGeneration(
           { schema: { "type": "array", "description": "lorem" } },
-          { runtime: `Schema.Array(Schema.Unknown).annotate({ description: "lorem" })`, type: "ReadonlyArray<unknown>" }
+          {
+            runtime: `Schema.Array(Schema.Unknown).annotate({ "description": "lorem" })`,
+            type: "ReadonlyArray<unknown>"
+          }
         )
         assertGeneration(
           { schema: { "type": "array", "minItems": 1 } },
@@ -441,7 +463,7 @@ describe("FromJsonSchema", () => {
               "description": "lorem"
             }
           },
-          { runtime: `Schema.Tuple([]).annotate({ description: "lorem" })`, type: "readonly []" }
+          { runtime: `Schema.Tuple([]).annotate({ "description": "lorem" })`, type: "readonly []" }
         )
       })
 
@@ -480,7 +502,7 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            runtime: `Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ description: "lorem" })`,
+            runtime: `Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ "description": "lorem" })`,
             type: "readonly [string?]"
           }
         )
@@ -528,7 +550,7 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           { schema: { "type": "object", "description": "lorem" } },
           {
-            runtime: `Schema.Record(Schema.String, Schema.Unknown).annotate({ description: "lorem" })`,
+            runtime: `Schema.Record(Schema.String, Schema.Unknown).annotate({ "description": "lorem" })`,
             type: "{ readonly [x: string]: unknown }"
           }
         )
@@ -605,7 +627,7 @@ describe("FromJsonSchema", () => {
       )
       assertGeneration(
         { schema: { "$ref": "#/definitions/A", "description": "lorem" } },
-        { runtime: `A.annotate({ description: "lorem" })`, type: "A" }
+        { runtime: `A.annotate({ "description": "lorem" })`, type: "A" }
       )
     })
 
@@ -618,7 +640,7 @@ describe("FromJsonSchema", () => {
               "allOf": [{ "description": "lorem" }]
             }
           },
-          { runtime: `Schema.String.annotate({ description: "lorem" })`, type: "string" }
+          { runtime: `Schema.String.annotate({ "description": "lorem" })`, type: "string" }
         )
         assertGeneration(
           {
@@ -637,7 +659,7 @@ describe("FromJsonSchema", () => {
               "allOf": [{ "minLength": 1 }]
             }
           },
-          { runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "lorem" })`, type: "string" }
+          { runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ "description": "lorem" })`, type: "string" }
         )
         assertGeneration(
           {
@@ -648,7 +670,7 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "lorem, ipsum" })`,
+            runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ "description": "lorem, ipsum" })`,
             type: "string"
           }
         )
@@ -661,7 +683,7 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "ipsum" })`,
+            runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ "description": "ipsum" })`,
             type: "string"
           }
         )
@@ -674,7 +696,7 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ description: "lorem" })`,
+            runtime: `Schema.String.check(Schema.isMinLength(1)).annotate({ "description": "lorem" })`,
             type: "string"
           }
         )
@@ -711,7 +733,7 @@ describe("FromJsonSchema", () => {
               "allOf": [{ "description": "lorem" }]
             }
           },
-          { runtime: `Schema.Number.annotate({ description: "lorem" })`, type: "number" }
+          { runtime: `Schema.Number.annotate({ "description": "lorem" })`, type: "number" }
         )
         assertGeneration(
           {
@@ -731,7 +753,7 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ description: "lorem" })`,
+            runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ "description": "lorem" })`,
             type: "number"
           }
         )
@@ -744,7 +766,8 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            runtime: `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ description: "lorem, ipsum" })`,
+            runtime:
+              `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ "description": "lorem, ipsum" })`,
             type: "number"
           }
         )
@@ -800,7 +823,7 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            runtime: `Schema.Record(Schema.String, Schema.Unknown).annotate({ description: "lorem" })`,
+            runtime: `Schema.Record(Schema.String, Schema.Unknown).annotate({ "description": "lorem" })`,
             type: "{ readonly [x: string]: unknown }"
           }
         )
@@ -1011,7 +1034,7 @@ describe("FromJsonSchema", () => {
             }
           },
           {
-            runtime: `Schema.Array(Schema.Unknown).annotate({ description: "lorem" })`,
+            runtime: `Schema.Array(Schema.Unknown).annotate({ "description": "lorem" })`,
             type: "ReadonlyArray<unknown>"
           }
         )
