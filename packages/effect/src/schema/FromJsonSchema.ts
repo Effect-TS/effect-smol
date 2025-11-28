@@ -23,6 +23,7 @@ import { isObject, isUndefined } from "../data/Predicate.ts"
 import * as Reducer from "../data/Reducer.ts"
 import * as Struct from "../data/Struct.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
+import { type Mutable } from "../types/Types.ts"
 import type * as Anno from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
@@ -1217,7 +1218,7 @@ function parse(schema: unknown, options: RecurOptions): AST {
   if (schema === true) return new Unknown()
   if (isObject(schema)) {
     let ast = parseFragment(schema, options)
-    const annotations = collectAnnotations(schema)
+    const annotations = collectAnnotations(schema, ast)
     if (annotations) ast = ast.annotate(annotations)
     ast = ast.parseChecks(schema)
     if (Array.isArray(schema.allOf)) {
@@ -1311,8 +1312,12 @@ function handleType(type: Schema.JsonSchema.Type, schema: Fragment, options: Rec
   switch (type) {
     case "null":
       return new Null()
-    case "string":
+    case "string": {
+      if (schema.contentMediaType !== undefined && schema.contentMediaType === "application/json") {
+        return new String([], parse(schema.contentSchema, options))
+      }
       return new String([], undefined)
+    }
     case "number":
       return new Number(false, [])
     case "integer":
@@ -1421,11 +1426,18 @@ function collectRest(schema: Fragment, options: RecurOptions): Fragment | boolea
   }
 }
 
-function collectAnnotations(schema: Fragment): Annotations | undefined {
-  const as: { -readonly [K in keyof Annotations]?: Annotations[K] } = {}
+function collectAnnotations(schema: Fragment, ast: AST): Annotations | undefined {
+  const as: Mutable<Annotations> = {}
 
   if (typeof schema.title === "string") as.title = schema.title
-  if (typeof schema.description === "string") as.description = schema.description
+  if (typeof schema.description === "string") {
+    if (
+      ast._tag !== "String" || ast.contentSchema === undefined ||
+      schema.description !== "a string that will be decoded as JSON"
+    ) {
+      as.description = schema.description
+    }
+  }
   if (schema.default !== undefined) as.default = schema.default
   if (Array.isArray(schema.examples)) as.examples = schema.examples
   if (typeof schema.format === "string") as.format = schema.format

@@ -47,6 +47,20 @@ function assertGeneration(
 
 describe("FromJsonSchema", () => {
   describe("generate", () => {
+    const options: FromJsonSchema.GenerateOptions = {
+      resolver: (identifier) => {
+        return FromJsonSchema.makeGeneration(
+          identifier,
+          FromJsonSchema.makeTypes(
+            `T${identifier}`,
+            `E${identifier}`,
+            `DS${identifier}`,
+            `ES${identifier}`
+          )
+        )
+      }
+    }
+
     describe("options", () => {
       describe("resolver", () => {
         it("identity", () => {
@@ -225,7 +239,21 @@ describe("FromJsonSchema", () => {
       )
     })
 
-    it.todo("contentSchema", () => {
+    it("contentSchema", () => {
+      assertGeneration(
+        {
+          schema: {
+            "type": "string",
+            "contentSchema": {
+              "type": "number"
+            }
+          }
+        },
+        FromJsonSchema.makeGeneration(
+          `Schema.String`,
+          FromJsonSchema.makeTypes("string")
+        )
+      )
       assertGeneration(
         {
           schema: {
@@ -239,7 +267,24 @@ describe("FromJsonSchema", () => {
         },
         FromJsonSchema.makeGeneration(
           `Schema.fromJsonString(Schema.Number)`,
-          FromJsonSchema.makeTypes("string")
+          FromJsonSchema.makeTypes("number", "string", "never", "never")
+        )
+      )
+      assertGeneration(
+        {
+          schema: {
+            "type": "string",
+            "contentMediaType": "application/json",
+            "contentSchema": {
+              "$ref": "#/definitions/A"
+            },
+            "description": "a string that will be decoded as JSON"
+          },
+          options
+        },
+        FromJsonSchema.makeGeneration(
+          `Schema.fromJsonString(A)`,
+          FromJsonSchema.makeTypes("TA", "string", "DSA", "ESA")
         )
       )
     })
@@ -737,19 +782,6 @@ describe("FromJsonSchema", () => {
     })
 
     it("reference", () => {
-      const options: FromJsonSchema.GenerateOptions = {
-        resolver: (identifier) => {
-          return FromJsonSchema.makeGeneration(
-            identifier,
-            FromJsonSchema.makeTypes(
-              `T${identifier}`,
-              `E${identifier}`,
-              `DS${identifier}`,
-              `ES${identifier}`
-            )
-          )
-        }
-      }
       assertGeneration(
         {
           schema: {
