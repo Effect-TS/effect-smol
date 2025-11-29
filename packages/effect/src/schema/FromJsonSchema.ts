@@ -142,7 +142,7 @@ export function generate(schema: unknown, options?: GenerateOptions): Generation
   const extractJsDocs = options?.extractJsDocs ?? false
   const recurOptions: RecurOptions = {
     resolver: options?.resolver ?? identityResolver,
-    source: options?.source ?? "draft-07",
+    source: options?.source ?? "draft-2020-12",
     extractJsDocs: extractJsDocs === true ? defaultExtractJsDocs : extractJsDocs === false ? undefined : extractJsDocs
   }
   return toGeneration(parse(schema, recurOptions), recurOptions)

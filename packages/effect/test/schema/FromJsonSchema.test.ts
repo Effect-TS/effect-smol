@@ -1,30 +1,20 @@
 import { FromJsonSchema, Schema } from "effect/schema"
 import { describe, it } from "vitest"
-// import OpenApiFixture from "../../../platform-node/test/fixtures/openapi.json" with { type: "json" }
+import OpenApiFixture from "../../../platform-node/test/fixtures/openapi.json" with { type: "json" }
 import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
-
-function getDocumentBySource(source: Schema.JsonSchema.Target, schema: Schema.Top) {
-  switch (source) {
-    case "draft-07":
-      return Schema.makeJsonSchemaDraft07(schema)
-    case "draft-2020-12":
-    case "openapi-3.1":
-      return Schema.makeJsonSchemaDraft2020_12(schema)
-  }
-}
 
 function assertRoundtrip(input: {
   readonly schema: Schema.Top
   readonly source?: Schema.JsonSchema.Target | undefined
 }) {
   const source = input.source ?? "draft-07"
-  const document = getDocumentBySource(source, input.schema)
+  const document = Schema.makeJsonSchema(input.schema, { target: source })
   const output = FromJsonSchema.generate(document.schema, { source })
   const fn = new Function("Schema", `return ${output.runtime}`)
   const generated = fn(Schema)
-  const codedocument = getDocumentBySource(source, generated)
+  const codedocument = Schema.makeJsonSchema(generated, { target: source })
   deepStrictEqual(codedocument, document)
-  deepStrictEqual(FromJsonSchema.generate(codedocument.schema), output)
+  deepStrictEqual(FromJsonSchema.generate(codedocument.schema, { source }), output)
 }
 
 function assertGeneration(
@@ -39,7 +29,7 @@ function assertGeneration(
     readonly importDeclarations?: ReadonlySet<string>
   }
 ) {
-  const generation = FromJsonSchema.generate(input.schema, input.options)
+  const generation = FromJsonSchema.generate(input.schema, { source: "draft-07", ...input.options })
   deepStrictEqual(generation, {
     importDeclarations: new Set<string>(),
     annotations: undefined,
@@ -1999,7 +1989,7 @@ describe("FromJsonSchema", () => {
       }).annotate({ identifier: "Operation" })
 
       {
-        const document = Schema.makeJsonSchemaDraft07(Operation)
+        const document = Schema.makeJsonSchema(Operation)
         strictEqual(
           generate(document.definitions, [document.schema]),
           `// Definitions
@@ -2014,7 +2004,7 @@ const schema1 = Operation;`
         )
       }
       {
-        const document = Schema.makeJsonSchemaDraft07(Expression)
+        const document = Schema.makeJsonSchema(Expression)
         strictEqual(
           generate(document.definitions, [document.schema]),
           `// Definitions
@@ -2038,7 +2028,7 @@ const schema1 = Expression;`
           }).annotate({ identifier: "B" })
         }).annotate({ identifier: "A" })
       })
-      const document = Schema.makeJsonSchemaDraft07(schema)
+      const document = Schema.makeJsonSchema(schema)
       strictEqual(
         generate(document.definitions, [document.schema]),
         `// Definitions
@@ -2145,10 +2135,10 @@ export const A = Schema.Struct({ "a": B });`
       )
     })
 
-    it.skip("OpenApi", () => {
+    it("OpenApi", () => {
       const source = "openapi-3.1"
-      const inputSchemas: Array<IdentifierSchema> = collectSchemas({}) // collectSchemas(OpenApiFixture)
-      const inputDefinitions = {} // OpenApiFixture.components.schemas as Schema.JsonSchema.Definitions
+      const inputSchemas: Array<IdentifierSchema> = collectSchemas(OpenApiFixture)
+      const inputDefinitions = OpenApiFixture.components.schemas as Schema.JsonSchema.Definitions
       const externs: Record<string, { readonly namespace: string; readonly importDeclaration: string }> = {
         "effect/HttpApiSchemaError": {
           namespace: "HttpApiSchemaError",

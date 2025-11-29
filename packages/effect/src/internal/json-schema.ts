@@ -5,17 +5,16 @@ import * as AST from "../schema/AST.ts"
 import type * as Schema from "../schema/Schema.ts"
 import { errorWithPath } from "./errors.ts"
 
-interface Options extends Schema.JsonSchemaOptions {
-  readonly target: Schema.JsonSchema.Target
-}
-
 /** @internal */
-export function make<S extends Schema.Top>(schema: S, options: Options): Schema.JsonSchema.Document {
-  const definitions = options.definitions ?? {}
-  const target = options.target
-  const additionalProperties = options.additionalProperties ?? false
-  const referenceStrategy = options.referenceStrategy ?? "keep"
-  const generateDescriptions = options.generateDescriptions ?? false
+export function make<S extends Schema.Top>(
+  schema: S,
+  options?: Schema.MakeJsonSchemaOptions
+): Schema.JsonSchema.Document {
+  const definitions = options?.definitions ?? {}
+  const target = options?.target ?? "draft-2020-12"
+  const additionalProperties = options?.additionalProperties ?? false
+  const referenceStrategy = options?.referenceStrategy ?? "keep"
+  const generateDescriptions = options?.generateDescriptions ?? false
   return {
     uri: getMetaSchemaUri(target),
     schema: recur(
@@ -26,7 +25,7 @@ export function make<S extends Schema.Top>(schema: S, options: Options): Schema.
         definitions,
         referenceStrategy,
         additionalProperties,
-        onMissingJsonSchemaAnnotation: options.onMissingJsonSchemaAnnotation,
+        onMissingJsonSchemaAnnotation: options?.onMissingJsonSchemaAnnotation,
         generateDescriptions
       },
       false,
@@ -36,7 +35,8 @@ export function make<S extends Schema.Top>(schema: S, options: Options): Schema.
   }
 }
 
-interface GoOptions extends Options {
+interface RecurOptions extends Schema.MakeJsonSchemaOptions {
+  readonly target: Schema.JsonSchema.Target
   readonly additionalProperties: true | false | Schema.JsonSchema
   readonly definitions: Record<string, Schema.JsonSchema>
   readonly generateDescriptions: boolean
@@ -51,7 +51,7 @@ const encodedMap = new WeakMap<AST.AST, string>()
 function recur(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
-  options: GoOptions,
+  options: RecurOptions,
   ignoreIdentifier: boolean,
   ignoreAnnotation: boolean
 ): Schema.JsonSchema {
@@ -177,7 +177,7 @@ function isUnknownSchema(schema: unknown) {
 function base(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
-  options: GoOptions,
+  options: RecurOptions,
   ignoreAnnotation: boolean
 ): Schema.JsonSchema {
   const target = options.target
@@ -437,7 +437,7 @@ function isOptional(ast: AST.AST): boolean {
 function getPattern(
   ast: AST.AST,
   path: ReadonlyArray<PropertyKey>,
-  options: GoOptions
+  options: RecurOptions
 ): string | undefined {
   switch (ast._tag) {
     case "String": {

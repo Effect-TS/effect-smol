@@ -5039,7 +5039,7 @@ import { Schema } from "effect/schema"
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
 // Generate a draft-07 JSON Schema
-const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
+const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5072,7 +5072,7 @@ import { Schema } from "effect/schema"
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
 // Generate a draft-2020-12 JSON Schema
-const jsonSchema = Schema.makeJsonSchemaDraft2020_12(schema)
+const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-2020-12" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5107,7 +5107,7 @@ const schema = Schema.Struct({
   a: Schema.BigInt
 })
 
-Schema.makeJsonSchemaDraft07(schema)
+Schema.makeJsonSchema(schema, { target: "draft-07" })
 /*
 throws:
 Error: Unsupported schema BigInt
@@ -5136,7 +5136,7 @@ const schema = Schema.NonEmptyString.annotate({
   examples: ["alice", "bob"]
 })
 
-const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
+const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5174,7 +5174,7 @@ const schema = Schema.NonEmptyString.annotate({
   examples: ["alice", "", "bob"] // the empty string is invalid
 })
 
-const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
+const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5207,7 +5207,7 @@ const schema = Schema.Struct({
   a: Schema.UndefinedOr(Schema.Number) // 'a' may be undefined
 })
 
-const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
+const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5236,7 +5236,7 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.Tuple([Schema.UndefinedOr(Schema.Number)]) // first element may be undefined
 
-const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
+const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5267,7 +5267,7 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.instanceOf(URL)
 
-Schema.makeJsonSchemaDraft07(schema)
+Schema.makeJsonSchema(schema, { target: "draft-07" })
 // Error: Unsupported schema Declaration
 ```
 
@@ -5282,7 +5282,7 @@ const schema = Schema.instanceOf(URL, {
   })
 })
 
-const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
+const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5310,7 +5310,7 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.String.check(Schema.isMinLength(1))
 
-const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
+const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5336,7 +5336,7 @@ const schema = Schema.String.check(
   Schema.isMaxLength(2, { description: "description2" })
 )
 
-const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
+const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5400,7 +5400,7 @@ Output:
 
 ### The fromJsonString combinator
 
-With `fromJsonString` on `draft-2020-12` or `openApi3.1`, the generated schema uses `contentSchema` to embed the JSON Schema of the decoded value.
+With `fromJsonString` on `draft-2020-12` or `openapi-3.1`, the generated schema uses `contentSchema` to embed the JSON Schema of the decoded value.
 
 **Example** (Embedding `contentSchema` for JSON string content)
 
@@ -5446,7 +5446,7 @@ Output:
 
 Sometimes you need to adapt a schema to a different target format. For example, you might convert a JSON Schema to the subset supported by OpenAI (https://platform.openai.com/docs/guides/structured-outputs/supported-schemas?type-restrictions=string-restrictions#supported-schemas).
 
-Note: the more context that an LLM has, the more "correct" the structured output will be, so it's advised to pass the `generateDescriptions: true` option to `makeJsonSchemaDraft2020_12`.
+Note: the more context that an LLM has, the more "correct" the structured output will be, so it's advised to pass the `generateDescriptions: true` option to `makeJsonSchema*` APIs.
 
 **Example** (Convert to an OpenAI-compatible schema)
 
@@ -5721,7 +5721,7 @@ const jsonSchema = {
 } as const
 
 const schema = FromJsonSchema.generate(jsonSchema, {
-  source: "oas3.1"
+  source: "openapi-3.1"
 })
 
 console.log(schema)
@@ -5761,7 +5761,7 @@ const jsonSchema = {
 } as const
 
 const schema = FromJsonSchema.generate(jsonSchema, {
-  source: "oas3.1",
+  source: "openapi-3.1",
   resolver: (identifier) => {
     if (identifier === "effect/HttpApiSchemaError") {
       // map identifier to a direct import, with both runtime and type info

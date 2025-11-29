@@ -231,7 +231,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   }
 
   function processAST(ast: AST.AST): object {
-    const { definitions, schema } = Schema.makeJsonSchemaOpenApi3_1(Schema.make(ast), {
+    const { definitions, schema } = Schema.makeJsonSchema(Schema.make(ast), {
       additionalProperties: options?.additionalProperties,
       referenceStrategy: "keep"
     })

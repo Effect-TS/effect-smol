@@ -7453,7 +7453,13 @@ export function makeEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T
 /**
  * @since 4.0.0
  */
-export interface JsonSchemaOptions {
+export interface MakeJsonSchemaOptions {
+  /**
+   * The target of the JSON Schema.
+   *
+   * Defaults to `"draft-2020-12"`.
+   */
+  readonly target?: JsonSchema.Target
   /**
    * A record of definitions which are included in the schema.
    *
@@ -7529,42 +7535,15 @@ export declare namespace JsonSchema {
 }
 
 /**
- * Returns a JSON Schema Draft 07 result.
+ * Returns a `draft-2020-12` JSON Schema.
+ *
+ * You can use the `options` parameter to return a different target JSON Schema.
  *
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeJsonSchemaDraft07<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchema.Document {
-  return InternalJsonSchema.make(schema, {
-    ...options,
-    target: "draft-07"
-  })
-}
-
-/**
- * Returns a JSON Schema 2020-12 result.
- *
- * @category JsonSchema
- * @since 4.0.0
- */
-export function makeJsonSchemaDraft2020_12<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchema.Document {
-  return InternalJsonSchema.make(schema, {
-    ...options,
-    target: "draft-2020-12"
-  })
-}
-
-/**
- * Returns a JSON Schema OpenAPI 3.1 result.
- *
- * @category JsonSchema
- * @since 4.0.0
- */
-export function makeJsonSchemaOpenApi3_1<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchema.Document {
-  return InternalJsonSchema.make(schema, {
-    ...options,
-    target: "openapi-3.1"
-  })
+export function makeJsonSchema<S extends Top>(schema: S, options?: MakeJsonSchemaOptions): JsonSchema.Document {
+  return InternalJsonSchema.make(schema, options)
 }
 
 // -----------------------------------------------------------------------------

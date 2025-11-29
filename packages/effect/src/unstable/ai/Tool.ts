@@ -1118,7 +1118,7 @@ export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): Schema
       additionalProperties: false
     }
   }
-  const document = Schema.makeJsonSchemaDraft2020_12(schema, {
+  const document = Schema.makeJsonSchema(schema, {
     referenceStrategy: "skip"
   })
   if (Object.keys(document.definitions).length > 0) {
