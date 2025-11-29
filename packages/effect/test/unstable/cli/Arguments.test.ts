@@ -1,5 +1,6 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Effect, Layer, Option, Ref, Result } from "effect"
+import { Effect, Layer, Ref } from "effect"
+import { Option, Result } from "effect/data"
 import { FileSystem, Path, PlatformError } from "effect/platform"
 import { TestConsole } from "effect/testing"
 import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
@@ -158,10 +159,10 @@ describe("Command arguments", () => {
       let result: { readonly files: ReadonlyArray<string> } | undefined
 
       const testCommand = Command.make("test", {
-        files: Argument.string("files").pipe(Argument.variadic)
-      }, (config) =>
+        files: Argument.variadic(Argument.string("files"))
+      }, (parsedConfig) =>
         Effect.sync(() => {
-          result = config
+          result = parsedConfig
         }))
 
       yield* Command.runWith(testCommand, { version: "1.0.0" })([

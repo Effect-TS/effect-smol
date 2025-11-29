@@ -114,17 +114,18 @@ export declare namespace Command {
    *
    * @example
    * ```ts
-   * import { Command, Flag, Argument } from "effect/unstable/cli"
+   * import type * as CliCommand from "effect/unstable/cli/Command"
+   * import { Argument, Flag } from "effect/unstable/cli"
    *
    * // Simple flat configuration
-   * const simpleConfig: Command.Config = {
+   * const simpleConfig: CliCommand.Command.Config = {
    *   name: Flag.string("name"),
    *   age: Flag.integer("age"),
    *   file: Argument.string("file")
    * }
    *
    * // Nested configuration for organization
-   * const nestedConfig: Command.Config = {
+   * const nestedConfig: CliCommand.Command.Config = {
    *   user: {
    *     name: Flag.string("name"),
    *     email: Flag.string("email")
@@ -146,6 +147,12 @@ export declare namespace Command {
       | Config
   }
 
+  /**
+   * Utilities for working with command configurations.
+   *
+   * @since 4.0.0
+   * @category models
+   */
   export namespace Config {
     /**
      * Infers the TypeScript type from a Command.Config structure.
@@ -155,7 +162,8 @@ export declare namespace Command {
      *
      * @example
      * ```ts
-     * import { Command, Flag, Argument } from "effect/unstable/cli"
+     * import type * as CliCommand from "effect/unstable/cli/Command"
+     * import { Argument, Flag } from "effect/unstable/cli"
      *
      * const config = {
      *   name: Flag.string("name"),
@@ -165,7 +173,7 @@ export declare namespace Command {
      *   }
      * } as const
      *
-     * type Result = Command.Config.Infer<typeof config>
+     * type Result = CliCommand.Command.Config.Infer<typeof config>
      * // {
      * //   readonly name: string
      * //   readonly server: {
@@ -639,7 +647,7 @@ const mapHandler = <Name extends string, Input, E, R, E2, R2>(
  * ```ts
  * import { Command, Flag } from "effect/unstable/cli"
  * import { Effect, Layer } from "effect"
- * import { FileSystem } from "effect/platform"
+ * import { FileSystem, PlatformError } from "effect/platform"
  *
  * const deploy = Command.make("deploy", {
  *   env: Flag.string("env")
@@ -653,7 +661,13 @@ const mapHandler = <Name extends string, Input, E, R, E2, R2>(
  *   Command.provide((config) =>
  *     config.env === "local"
  *       ? FileSystem.layerNoop({})
- *       : FileSystem.layer
+ *       : FileSystem.layerNoop({
+ *           access: () =>
+ *             Effect.fail(new PlatformError.BadArgument({
+ *               module: "FileSystem",
+ *               method: "access"
+ *             }))
+ *         })
  *   )
  * )
  * ```
