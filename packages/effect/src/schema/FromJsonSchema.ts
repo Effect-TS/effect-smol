@@ -63,7 +63,7 @@ export type Generation = {
   readonly runtime: string
   readonly types: Types
   readonly description: string | undefined
-  readonly imports: ReadonlySet<string>
+  readonly importDeclarations: ReadonlySet<string>
 }
 
 /**
@@ -73,9 +73,29 @@ export function makeGeneration(
   runtime: string,
   types: Types,
   description?: string,
-  imports: ReadonlySet<string> = emptySet
+  importDeclarations: ReadonlySet<string> = emptySet
 ): Generation {
-  return { runtime, types, description, imports }
+  return { runtime, types, description, importDeclarations }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function makeGenerationExtern(
+  namespace: string,
+  importDeclaration: string
+): Generation {
+  return makeGeneration(
+    namespace,
+    makeTypes(
+      `typeof ${namespace}["Type"]`,
+      `typeof ${namespace}["Encoded"]`,
+      `typeof ${namespace}["DecodingServices"]`,
+      `typeof ${namespace}["EncodingServices"]`
+    ),
+    undefined,
+    new Set([importDeclaration])
+  )
 }
 
 /**
@@ -135,7 +155,7 @@ function toGeneration(ast: AST, options: RecurOptions): Generation {
     runtime: out.runtime + checks + annotations,
     types: out.types,
     description: out.description,
-    imports: out.imports
+    importDeclarations: out.importDeclarations
   }
 }
 
@@ -356,7 +376,7 @@ export function generateDefinitions(
         output.runtime + `.annotate({ "identifier": ${format(identifier)} })`,
         output.types,
         output.description,
-        output.imports
+        output.importDeclarations
       )
     }
   })
@@ -426,7 +446,7 @@ class Unknown {
       runtime: "Schema.Unknown",
       types: makeTypes("unknown"),
       description: this.annotations.description,
-      imports: emptySet
+      importDeclarations: emptySet
     }
   }
 }
@@ -454,7 +474,7 @@ class Never {
       runtime: "Schema.Never",
       types: makeTypes("never"),
       description: this.annotations.description,
-      imports: emptySet
+      importDeclarations: emptySet
     }
   }
 }
@@ -507,7 +527,7 @@ class Null {
       runtime: "Schema.Null",
       types: makeTypes("null"),
       description: this.annotations.description,
-      imports: emptySet
+      importDeclarations: emptySet
     }
   }
 }
@@ -591,14 +611,14 @@ class String {
           contentSchema.types.EncodingServices
         ),
         description: this.annotations.description,
-        imports: emptySet
+        importDeclarations: emptySet
       }
     }
     return {
       runtime: "Schema.String",
       types: makeTypes("string"),
       description: this.annotations.description,
-      imports: emptySet
+      importDeclarations: emptySet
     }
   }
 }
@@ -682,7 +702,7 @@ class Number {
       runtime: this.isInteger ? "Schema.Int" : "Schema.Number",
       types: makeTypes("number"),
       description: this.annotations.description,
-      imports: emptySet
+      importDeclarations: emptySet
     }
   }
 }
@@ -710,7 +730,7 @@ class Boolean {
       runtime: "Schema.Boolean",
       types: makeTypes("boolean"),
       description: this.annotations.description,
-      imports: emptySet
+      importDeclarations: emptySet
     }
   }
 }
@@ -740,7 +760,7 @@ class Const {
       runtime: `Schema.Literal(${format(this.value)})`,
       types: makeTypes(format(this.value)),
       description: this.annotations.description,
-      imports: emptySet
+      importDeclarations: emptySet
     }
   }
 }
@@ -772,14 +792,14 @@ class Enum {
         runtime: `Schema.Literal(${values[0]})`,
         types: makeTypes(values[0]),
         description: this.annotations.description,
-        imports: emptySet
+        importDeclarations: emptySet
       }
     } else {
       return {
         runtime: `Schema.Literals([${values.join(", ")}])`,
         types: makeTypes(values.join(" | ")),
         description: this.annotations.description,
-        imports: emptySet
+        importDeclarations: emptySet
       }
     }
   }
@@ -893,7 +913,7 @@ class Arrays {
         runtime: `Schema.Tuple([])`,
         types: makeTypes("readonly []"),
         description: this.annotations.description,
-        imports: emptySet
+        importDeclarations: emptySet
       }
     }
 
@@ -907,7 +927,7 @@ class Arrays {
           rest.types.EncodingServices
         ),
         description: this.annotations.description,
-        imports: rest.imports
+        importDeclarations: rest.importDeclarations
       }
     }
 
@@ -921,7 +941,7 @@ class Arrays {
           el.types.EncodingServices
         ),
         description: this.annotations.description,
-        imports: el.imports
+        importDeclarations: el.importDeclarations
       }
     }
 
@@ -934,7 +954,7 @@ class Arrays {
         joinServices([el.types.EncodingServices, rest.types.EncodingServices])
       ),
       description: this.annotations.description,
-      imports: ReadonlySetReducer.combine(el.imports, rest.imports)
+      importDeclarations: ReadonlySetReducer.combine(el.importDeclarations, rest.importDeclarations)
     }
   }
 }
@@ -954,7 +974,7 @@ function renderElements(es: ReadonlyArray<ElementIR>): Generation {
       joinServices(es.map((e) => e.value.types.EncodingServices))
     ),
     description: undefined,
-    imports: ReadonlySetReducer.combineAll(es.map((e) => e.value.imports))
+    importDeclarations: ReadonlySetReducer.combineAll(es.map((e) => e.value.importDeclarations))
   }
 }
 
@@ -1101,7 +1121,7 @@ class Objects {
           p.types.EncodingServices
         ),
         description: this.annotations.description,
-        imports: p.imports
+        importDeclarations: p.importDeclarations
       }
     }
 
@@ -1117,7 +1137,7 @@ class Objects {
           joinServices([is.key.types.EncodingServices, is.value.types.EncodingServices])
         ),
         description: this.annotations.description,
-        imports: indexSignatureImports(is)
+        importDeclarations: indexSignatureImports(is)
       }
     }
 
@@ -1138,7 +1158,7 @@ class Objects {
           joinServices([p.types.EncodingServices, i.types.EncodingServices])
         ),
       description: this.annotations.description,
-      imports: ReadonlySetReducer.combineAll([p.imports, i.imports])
+      importDeclarations: ReadonlySetReducer.combineAll([p.importDeclarations, i.importDeclarations])
     }
   }
 }
@@ -1156,7 +1176,7 @@ function renderProperties(ps: ReadonlyArray<PropertyGen>, options: RecurOptions)
       joinServices(ps.map((p) => p.value.types.EncodingServices))
     ),
     description: undefined,
-    imports: ReadonlySetReducer.combineAll(ps.map((p) => p.value.imports))
+    importDeclarations: ReadonlySetReducer.combineAll(ps.map((p) => p.value.importDeclarations))
   }
 }
 
@@ -1178,7 +1198,7 @@ function renderIndexSignatures(iss: ReadonlyArray<IndexSignatureGen>): Generatio
       )
     ),
     description: undefined,
-    imports: ReadonlySetReducer.combineAll(iss.map(indexSignatureImports))
+    importDeclarations: ReadonlySetReducer.combineAll(iss.map(indexSignatureImports))
   }
 }
 
@@ -1191,7 +1211,7 @@ function indexSignatureRuntime(is: IndexSignatureGen) {
 }
 
 function indexSignatureImports(is: IndexSignatureGen): ReadonlySet<string> {
-  return ReadonlySetReducer.combine(is.key.imports, is.value.imports)
+  return ReadonlySetReducer.combine(is.key.importDeclarations, is.value.importDeclarations)
 }
 
 type PropertyGen = {
@@ -1263,7 +1283,7 @@ class Union {
         joinServices(members.map((m) => m.types.EncodingServices))
       ),
       description: this.annotations.description,
-      imports: ReadonlySetReducer.combineAll(members.map((m) => m.imports))
+      importDeclarations: ReadonlySetReducer.combineAll(members.map((m) => m.importDeclarations))
     }
   }
 }
@@ -1294,7 +1314,7 @@ class Reference {
       runtime: generation.runtime,
       types: generation.types,
       description: this.annotations.description,
-      imports: generation.imports
+      importDeclarations: generation.importDeclarations
     }
   }
 }

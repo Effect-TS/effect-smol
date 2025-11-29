@@ -37,12 +37,12 @@ function assertGeneration(
     readonly runtime: string
     readonly types: FromJsonSchema.Types
     readonly description?: string | undefined
-    readonly imports?: ReadonlySet<string>
+    readonly importDeclarations?: ReadonlySet<string>
   }
 ) {
   const generation = FromJsonSchema.generate(input.schema, input.options)
   deepStrictEqual(generation, {
-    imports: new Set(),
+    importDeclarations: new Set(),
     description: undefined,
     ...expected
   })
@@ -2030,7 +2030,7 @@ const schema1 = Schema.Struct({ "a": A });`
 
   describe("gen", () => {
     it("recursion & external reference", () => {
-      const generation = gen(
+      const generation = generated(
         "draft-07",
         [
           {
@@ -2062,15 +2062,15 @@ const schema1 = Schema.Struct({ "a": A });`
         },
         {
           "C-id": {
-            name: "C",
-            imports: `import { C } from "my-lib"`
+            namespace: "C",
+            importDeclaration: `import { C } from "my-lib"`
           }
         }
       )
       deepStrictEqual(
         generation,
         {
-          definitions: [
+          generatedDefinitionsWithoutExterns: [
             {
               identifier: "B",
               generation: FromJsonSchema.makeGeneration(
@@ -2086,7 +2086,7 @@ const schema1 = Schema.Struct({ "a": A });`
               )
             }
           ],
-          schemas: [{
+          generatedSchemas: [{
             identifier: "A",
             generation: FromJsonSchema.makeGeneration(
               `Schema.Struct({ "a": B })`,
@@ -2096,7 +2096,7 @@ const schema1 = Schema.Struct({ "a": A });`
           imports: new Set([`import * as Schema from "effect/schema/Schema"`, `import { C } from "my-lib"`])
         }
       )
-      const code = genToCode(generation)
+      const code = generatedToCode(generation)
       // console.log(code)
 
       strictEqual(
@@ -2123,15 +2123,15 @@ export const A = Schema.Struct({ "a": B });`
         schema
       }))
       const inputDefinitions = OpenApiFixture.components.schemas as Schema.JsonSchema.Definitions
-      const externs: Record<string, { readonly name: string; readonly imports: string }> = {
+      const externs: Record<string, { readonly namespace: string; readonly importDeclaration: string }> = {
         "effect/HttpApiSchemaError": {
-          name: "HttpApiSchemaError",
-          imports: `import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`
+          namespace: "HttpApiSchemaError",
+          importDeclaration: `import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`
         }
       }
 
-      const generation = gen(source, inputSchemas, inputDefinitions, externs)
-      const code = genToCode(generation)
+      const generation = generated(source, inputSchemas, inputDefinitions, externs)
+      const code = generatedToCode(generation)
       // console.log(code)
 
       strictEqual(
@@ -2208,13 +2208,13 @@ export const HealthzGetResponse_400ApplicationJson = HttpApiSchemaError;`
   })
 })
 
-function genToCode(generation: Generation): string {
+function generatedToCode(generation: Generated): string {
   return `// Imports
 ${[...generation.imports].join("\n")}
 
 // Definitions
 ${
-    generation.definitions.map((d) => {
+    generation.generatedDefinitionsWithoutExterns.map((d) => {
       let out = `export type ${d.identifier} = ${d.generation.types.Type};\n`
       if (d.generation.types.Encoded !== d.generation.types.Type) {
         out += `export type ${d.identifier}Encoded = ${d.generation.types.Encoded};\n`
@@ -2227,47 +2227,39 @@ ${
   }
 
 // Schemas
-${generation.schemas.map((s) => `export const ${s.identifier} = ${s.generation.runtime};`).join("\n")}`
+${generation.generatedSchemas.map((s) => `export const ${s.identifier} = ${s.generation.runtime};`).join("\n")}`
 }
 
-type Generation = {
-  definitions: Array<FromJsonSchema.DefinitionGeneration>
+type Generated = {
+  generatedDefinitionsWithoutExterns: Array<FromJsonSchema.DefinitionGeneration>
   imports: Set<string>
-  schemas: Array<{
+  generatedSchemas: Array<{
     identifier: string
     generation: FromJsonSchema.Generation
   }>
 }
 
-function gen(
+function generated(
   source: FromJsonSchema.Source,
   schemas: ReadonlyArray<{ readonly identifier: string; readonly schema: Schema.JsonSchema.Schema }>,
   definitions: Schema.JsonSchema.Definitions,
-  externs: Record<string, { readonly name: string; readonly imports: string }> = {}
+  externs: Record<string, {
+    readonly namespace: string
+    readonly importDeclaration: string
+  }> = {}
 ) {
   const options: FromJsonSchema.GenerateOptions = {
     source,
     resolver: (identifier) => {
       if (identifier in externs) {
-        const name = externs[identifier].name
-        return FromJsonSchema.makeGeneration(
-          name,
-          FromJsonSchema.makeTypes(
-            `typeof ${name}["Type"]`,
-            `typeof ${name}["Encoded"]`,
-            `typeof ${name}["DecodingServices"]`,
-            `typeof ${name}["EncodingServices"]`
-          ),
-          undefined,
-          new Set([externs[identifier].imports])
+        return FromJsonSchema.makeGenerationExtern(
+          externs[identifier].namespace,
+          externs[identifier].importDeclaration
         )
       }
       return FromJsonSchema.makeGeneration(
         identifier,
-        FromJsonSchema.makeTypes(
-          identifier,
-          `${identifier}Encoded`
-        )
+        FromJsonSchema.makeTypes(identifier, `${identifier}Encoded`)
       )
     }
   }
@@ -2275,20 +2267,20 @@ function gen(
     identifier,
     generation: FromJsonSchema.generate(schema, options)
   }))
-  const allDefinitions = FromJsonSchema.generateDefinitions(definitions, options)
-  const actualDefinitions: Array<FromJsonSchema.DefinitionGeneration> = []
+  const generatedDefinitions = FromJsonSchema.generateDefinitions(definitions, options)
+  const generatedDefinitionsWithoutExterns: Array<FromJsonSchema.DefinitionGeneration> = []
   const imports = new Set<string>([`import * as Schema from "effect/schema/Schema"`])
-  for (const d of allDefinitions) {
-    for (const i of d.generation.imports) {
+  for (const d of generatedDefinitions) {
+    for (const i of d.generation.importDeclarations) {
       imports.add(i)
     }
     if (!(d.identifier in externs)) {
-      actualDefinitions.push(d)
+      generatedDefinitionsWithoutExterns.push(d)
     } else {
-      imports.add(externs[d.identifier].imports)
+      imports.add(externs[d.identifier].importDeclaration)
     }
   }
-  return { definitions: actualDefinitions, imports, schemas: generatedSchemas }
+  return { imports, generatedDefinitionsWithoutExterns, generatedSchemas }
 }
 
 function toIdentifier(parts: Array<string>): string {
