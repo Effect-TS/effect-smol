@@ -21,7 +21,8 @@ import type { HelpDoc } from "./HelpDoc.ts"
  *   formatHelpDoc: (doc) => `Custom Help: ${doc.usage}`,
  *   formatCliError: (error) => `Error: ${error.message}`,
  *   formatError: (error) => `[ERROR] ${error.message}`,
- *   formatVersion: (name, version) => `${name} (${version})`
+ *   formatVersion: (name, version) => `${name} (${version})`,
+ *   formatErrors: (errors) => errors.map((error) => error.message).join("\\n")
  * }
  *
  * // Use the custom formatter in a program
@@ -235,7 +236,8 @@ export const Formatter: ServiceMap.Reference<Formatter> = ServiceMap.Reference(
  *   formatHelpDoc: (doc) => JSON.stringify(doc, null, 2),
  *   formatCliError: (error) => JSON.stringify({ error: error.message }),
  *   formatError: (error) => JSON.stringify({ type: "error", message: error.message }),
- *   formatVersion: (name, version) => JSON.stringify({ name, version })
+ *   formatVersion: (name, version) => JSON.stringify({ name, version }),
+ *   formatErrors: (errors) => JSON.stringify(errors.map((error) => error.message))
  * }
  * const JsonLayer = CliOutput.layer(jsonFormatter)
  * ```
