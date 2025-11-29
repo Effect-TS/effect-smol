@@ -6290,7 +6290,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {}
  * const original = Schema.Struct({ a: Schema.String })
  * const schema = Schema.fromJsonString(original)
  *
- * const jsonSchema = Schema.makeJsonSchemaDraft2020_12(schema)
+ * const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-2020-12" })
  *
  * console.log(JSON.stringify(jsonSchema, null, 2))
  * // Output:
