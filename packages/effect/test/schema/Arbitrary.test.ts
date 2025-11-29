@@ -454,27 +454,27 @@ describe("Arbitrary generation", () => {
       verifyGeneration(Schema.Array(Schema.String).pipe(Schema.check(Schema.isLength(2))))
     })
 
-    it("isMinEntries(2)", () => {
+    it("isMinProperties(2)", () => {
       verifyGeneration(
-        Schema.Record(Schema.String, Schema.Number).check(Schema.isMinEntries(2))
+        Schema.Record(Schema.String, Schema.Number).check(Schema.isMinProperties(2))
       )
     })
 
-    it("isMaxEntries(2)", () => {
+    it("isMaxProperties(2)", () => {
       verifyGeneration(
-        Schema.Record(Schema.String, Schema.Number).check(Schema.isMaxEntries(2))
+        Schema.Record(Schema.String, Schema.Number).check(Schema.isMaxProperties(2))
       )
     })
 
-    it("isMinEntries(2) & isMaxEntries(4)", () => {
+    it("isMinProperties(2) & isMaxProperties(4)", () => {
       verifyGeneration(
-        Schema.Record(Schema.String, Schema.Number).check(Schema.isMinEntries(2), Schema.isMaxEntries(4))
+        Schema.Record(Schema.String, Schema.Number).check(Schema.isMinProperties(2), Schema.isMaxProperties(4))
       )
     })
 
-    it("isEntriesLength(2)", () => {
+    it("isPropertiesLength(2)", () => {
       verifyGeneration(
-        Schema.Record(Schema.String, Schema.Number).check(Schema.isEntriesLength(2))
+        Schema.Record(Schema.String, Schema.Number).check(Schema.isPropertiesLength(2))
       )
     })
 
