@@ -20,7 +20,11 @@ function assertRoundtrip(input: {
 function assertGeneration(
   input: {
     readonly schema: Record<string, unknown> | boolean
-    readonly options?: FromJsonSchema.GenerateOptions | undefined
+    readonly options?: {
+      readonly source?: FromJsonSchema.Source | undefined
+      readonly resolver?: FromJsonSchema.Resolver | undefined
+      readonly extractJsDocs?: boolean | ((annotations: FromJsonSchema.Annotations) => string) | undefined
+    } | undefined
   },
   expected: {
     readonly runtime: string
@@ -29,7 +33,8 @@ function assertGeneration(
     readonly importDeclarations?: ReadonlySet<string>
   }
 ) {
-  const generation = FromJsonSchema.generate(input.schema, { source: "draft-07", ...input.options })
+  const source = input.options?.source ?? "draft-07"
+  const generation = FromJsonSchema.generate(input.schema, { ...input.options, source })
   deepStrictEqual(generation, {
     importDeclarations: new Set<string>(),
     annotations: undefined,
@@ -78,7 +83,7 @@ describe("FromJsonSchema", () => {
       })
 
       it("extractJsDocs: true", () => {
-        const options: FromJsonSchema.GenerateOptions = { extractJsDocs: true }
+        const options: FromJsonSchema.GenerateOptions = { source: "draft-07", extractJsDocs: true }
         assertGeneration(
           {
             schema: {
@@ -102,6 +107,7 @@ describe("FromJsonSchema", () => {
 
       it("extractJsDocs: function", () => {
         const options: FromJsonSchema.GenerateOptions = {
+          source: "draft-07",
           extractJsDocs: (annotations) => {
             const description = annotations.description ?? annotations.title
             if (description === undefined) return ""
@@ -290,6 +296,7 @@ describe("FromJsonSchema", () => {
       )
 
       const options: FromJsonSchema.GenerateOptions = {
+        source: "draft-07",
         resolver: (identifier) => {
           return FromJsonSchema.makeGeneration(
             identifier,
@@ -835,6 +842,7 @@ describe("FromJsonSchema", () => {
 
     it("reference", () => {
       const options: FromJsonSchema.GenerateOptions = {
+        source: "draft-07",
         resolver: (identifier) => {
           return FromJsonSchema.makeGeneration(
             identifier,
@@ -1948,8 +1956,8 @@ describe("FromJsonSchema", () => {
       definitions: Schema.JsonSchema.Definitions,
       schemas: ReadonlyArray<Schema.JsonSchema>
     ) {
-      const genDependencies = FromJsonSchema.generateDefinitions(definitions)
-      const genSchemas = schemas.map((schema) => FromJsonSchema.generate(schema))
+      const genDependencies = FromJsonSchema.generateDefinitions(definitions, { source: "draft-07" })
+      const genSchemas = schemas.map((schema) => FromJsonSchema.generate(schema, { source: "draft-07" }))
       let s = ""
 
       s += "// Definitions\n"

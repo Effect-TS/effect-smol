@@ -110,8 +110,8 @@ export function makeGenerationExtern(
  * @since 4.0.0
  */
 export type GenerateOptions = {
+  readonly source: Source
   readonly resolver?: Resolver | undefined
-  readonly source?: Source | undefined
   /**
    * A function that is called to extract the JavaScript documentation from the
    * annotations.
@@ -125,8 +125,8 @@ export type GenerateOptions = {
 }
 
 interface RecurOptions {
-  readonly resolver: Resolver
   readonly source: Source
+  readonly resolver: Resolver
   readonly extractJsDocs: ((annotations: Annotations) => string) | undefined
 }
 
@@ -138,11 +138,11 @@ export type Resolver = (identifier: string) => Generation
 /**
  * @since 4.0.0
  */
-export function generate(schema: unknown, options?: GenerateOptions): Generation {
-  const extractJsDocs = options?.extractJsDocs ?? false
+export function generate(schema: unknown, options: GenerateOptions): Generation {
+  const extractJsDocs = options.extractJsDocs ?? false
   const recurOptions: RecurOptions = {
-    resolver: options?.resolver ?? identityResolver,
-    source: options?.source ?? "draft-2020-12",
+    source: options.source,
+    resolver: options.resolver ?? identityResolver,
     extractJsDocs: extractJsDocs === true ? defaultExtractJsDocs : extractJsDocs === false ? undefined : extractJsDocs
   }
   return toGeneration(parse(schema, recurOptions), recurOptions)
@@ -355,11 +355,11 @@ export type DefinitionGeneration = {
  */
 export function generateDefinitions(
   definitions: Schema.JsonSchema.Definitions,
-  options?: GenerateOptions
+  options: GenerateOptions
 ): Array<DefinitionGeneration> {
   const ts = topologicalSort(definitions)
   const recursives = new Set(Object.keys(ts.recursives))
-  const resolver = options?.resolver ?? identityResolver
+  const resolver = options.resolver ?? identityResolver
   const opts: GenerateOptions = {
     ...options,
     resolver: (identifier) => {

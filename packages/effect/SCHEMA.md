@@ -5527,7 +5527,7 @@ const jsonSchema = {
   additionalProperties: false
 } as const
 
-console.log(FromJsonSchema.generate(jsonSchema))
+console.log(FromJsonSchema.generate(jsonSchema, { source: "draft-07" }))
 /*
 {
   runtime: 'Schema.Struct({ "a": Schema.String, "b": Schema.Int })',
@@ -5560,7 +5560,7 @@ const jsonSchema = {
   }
 } as const
 
-console.log(FromJsonSchema.generate(jsonSchema))
+console.log(FromJsonSchema.generate(jsonSchema, { source: "draft-07" }))
 /*
 {
   runtime: 'Schema.Struct({ "a": Schema.String, "b": B })',
@@ -5596,7 +5596,7 @@ const jsonSchema = {
   }
 } as const
 
-console.dir(FromJsonSchema.generateDefinitions(jsonSchema.definitions), { depth: null })
+console.dir(FromJsonSchema.generateDefinitions(jsonSchema.definitions, { source: "draft-07" }), { depth: null })
 /*
 [
   {
@@ -5637,8 +5637,8 @@ const jsonSchema = {
   }
 } as const
 
-const schema = FromJsonSchema.generate(jsonSchema)
-const definitions = FromJsonSchema.generateDefinitions(jsonSchema.definitions)
+const schema = FromJsonSchema.generate(jsonSchema, { source: "draft-07" })
+const definitions = FromJsonSchema.generateDefinitions(jsonSchema.definitions, { source: "draft-07" })
 
 // collect all definitions plus the entry schema
 const all: ReadonlyArray<FromJsonSchema.DefinitionGeneration> = [
@@ -5680,7 +5680,7 @@ const jsonSchema = {
 } as const
 
 // specify the JSON Schema version
-const schema = FromJsonSchema.generate(jsonSchema, { source: "2020-12" })
+const schema = FromJsonSchema.generate(jsonSchema, { source: "draft-2020-12" })
 
 console.log(schema)
 /*
@@ -5768,11 +5768,12 @@ const schema = FromJsonSchema.generate(jsonSchema, {
       return FromJsonSchema.makeGeneration(
         "HttpApiSchemaError",
         FromJsonSchema.makeTypes("typeof HttpApiSchemaError['Type']", "typeof HttpApiSchemaError['Encoded']"),
+        undefined,
         new Set([`import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`])
       )
     }
     // fallback to the identity resolver
-    return FromJsonSchema.resolvers.identity(identifier)
+    return FromJsonSchema.makeGeneration(identifier, FromJsonSchema.makeTypes(identifier))
   }
 })
 

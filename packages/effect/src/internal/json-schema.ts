@@ -8,13 +8,13 @@ import { errorWithPath } from "./errors.ts"
 /** @internal */
 export function make<S extends Schema.Top>(
   schema: S,
-  options?: Schema.MakeJsonSchemaOptions
+  options: Schema.MakeJsonSchemaOptions
 ): Schema.JsonSchema.Document {
-  const definitions = options?.definitions ?? {}
-  const target = options?.target ?? "draft-2020-12"
-  const additionalProperties = options?.additionalProperties ?? false
-  const referenceStrategy = options?.referenceStrategy ?? "keep"
-  const generateDescriptions = options?.generateDescriptions ?? false
+  const target = options.target
+  const definitions = options.definitions ?? {}
+  const additionalProperties = options.additionalProperties ?? false
+  const referenceStrategy = options.referenceStrategy ?? "keep"
+  const generateDescriptions = options.generateDescriptions ?? false
   return {
     uri: getMetaSchemaUri(target),
     schema: recur(
@@ -25,7 +25,7 @@ export function make<S extends Schema.Top>(
         definitions,
         referenceStrategy,
         additionalProperties,
-        onMissingJsonSchemaAnnotation: options?.onMissingJsonSchemaAnnotation,
+        onMissingJsonSchemaAnnotation: options.onMissingJsonSchemaAnnotation,
         generateDescriptions
       },
       false,
