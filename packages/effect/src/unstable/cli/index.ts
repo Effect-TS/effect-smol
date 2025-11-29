@@ -30,12 +30,7 @@ export * as HelpDoc from "./HelpDoc.ts"
 /**
  * @since 4.0.0
  */
-export * as HelpFormatter from "./HelpFormatter.ts"
-
-/**
- * @since 4.0.0
- */
-export * as Param from "./Param.ts"
+export * as CliOutput from "./CliOutput.ts"
 
 /**
  * @since 4.0.0

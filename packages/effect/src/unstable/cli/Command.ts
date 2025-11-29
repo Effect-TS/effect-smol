@@ -5,32 +5,31 @@ import * as Console from "../../Console.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
-import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
-import { YieldableProto } from "../../internal/core.ts"
+import type { Pipeable } from "../../interfaces/Pipeable.ts"
 import type * as Layer from "../../Layer.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Path from "../../platform/Path.ts"
 import type * as Terminal from "../../platform/Terminal.ts"
 import * as References from "../../References.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
+import type * as ServiceMap from "../../ServiceMap.ts"
 import type { Simplify } from "../../types/Types.ts"
 import * as CliError from "./CliError.ts"
-import type { ArgDoc, FlagDoc, HelpDoc, SubcommandDoc } from "./HelpDoc.ts"
-import * as HelpFormatter from "./HelpFormatter.ts"
-import { generateBashCompletions, generateFishCompletions, generateZshCompletions } from "./internal/completions.ts"
+import * as CliOutput from "./CliOutput.ts"
+import { checkForDuplicateFlags, getHelpForCommandPath, makeCommand, toImpl, type TypeId } from "./internal/command.ts"
 import {
   generateDynamicCompletion,
   handleCompletionRequest,
   isCompletionRequest
-} from "./internal/completions/dynamic/index.ts"
+} from "./internal/completions/index.ts"
+import { parseConfig } from "./internal/config.ts"
 import * as Lexer from "./internal/lexer.ts"
 import * as Parser from "./internal/parser.ts"
-import * as Param from "./Param.ts"
-import * as Primitive from "./Primitive.ts"
+import type * as Param from "./Param.ts"
 import * as Prompt from "./Prompt.ts"
 
-const TypeId = "~effect/cli/Command" as const
-const ParsedConfigTypeId = "~effect/cli/Command/ParsedConfig" as const
+/* ========================================================================== */
+/* Public Types                                                               */
+/* ========================================================================== */
 
 /**
  * Represents a CLI command with its configuration, handler, and metadata.
@@ -80,7 +79,7 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
     Command<Name, Input, E, R>,
     Input,
     never,
-    ParentCommand<Name>
+    CommandContext<Name>
   >
 {
   readonly [TypeId]: typeof TypeId
@@ -98,61 +97,122 @@ export interface Command<Name extends string, Input, E = never, R = never> exten
   /**
    * The subcommands available under this command.
    */
-  readonly subcommands: ReadonlyArray<Command<any, any, any, any>>
+  readonly subcommands: ReadonlyArray<Command.Any>
+}
+
+/**
+ * @since 4.0.0
+ */
+export declare namespace Command {
+  /**
+   * Configuration object for defining command flags, arguments, and nested structures.
+   *
+   * Command.Config allows you to specify:
+   * - Individual flags and arguments using Param types
+   * - Nested configuration objects for organization
+   * - Arrays of parameters for repeated elements
+   *
+   * @example
+   * ```ts
+   * import type * as CliCommand from "effect/unstable/cli/Command"
+   * import { Argument, Flag } from "effect/unstable/cli"
+   *
+   * // Simple flat configuration
+   * const simpleConfig: CliCommand.Command.Config = {
+   *   name: Flag.string("name"),
+   *   age: Flag.integer("age"),
+   *   file: Argument.string("file")
+   * }
+   *
+   * // Nested configuration for organization
+   * const nestedConfig: CliCommand.Command.Config = {
+   *   user: {
+   *     name: Flag.string("name"),
+   *     email: Flag.string("email")
+   *   },
+   *   server: {
+   *     host: Flag.string("host"),
+   *     port: Flag.integer("port")
+   *   }
+   * }
+   * ```
+   *
+   * @since 4.0.0
+   * @category models
+   */
+  export interface Config {
+    readonly [key: string]:
+      | Param.Param<Param.ParamKind, any>
+      | ReadonlyArray<Param.Param<Param.ParamKind, any> | Config>
+      | Config
+  }
 
   /**
-   * The configuration object that will be used to parse command-line flags
-   * and positional arguments for the command.
+   * Utilities for working with command configurations.
+   *
+   * @since 4.0.0
+   * @category models
    */
-  readonly config: ParsedConfig
+  export namespace Config {
+    /**
+     * Infers the TypeScript type from a Command.Config structure.
+     *
+     * This type utility extracts the final configuration type that handlers will receive,
+     * preserving the nested structure while converting Param types to their values.
+     *
+     * @example
+     * ```ts
+     * import type * as CliCommand from "effect/unstable/cli/Command"
+     * import { Argument, Flag } from "effect/unstable/cli"
+     *
+     * const config = {
+     *   name: Flag.string("name"),
+     *   server: {
+     *     host: Flag.string("host"),
+     *     port: Flag.integer("port")
+     *   }
+     * } as const
+     *
+     * type Result = CliCommand.Command.Config.Infer<typeof config>
+     * // {
+     * //   readonly name: string
+     * //   readonly server: {
+     * //     readonly host: string
+     * //     readonly port: number
+     * //   }
+     * // }
+     * ```
+     *
+     * @since 4.0.0
+     * @category models
+     */
+    export type Infer<A extends Config> = Simplify<
+      { readonly [Key in keyof A]: InferValue<A[Key]> }
+    >
+
+    /**
+     * Helper type utility for recursively inferring types from Config values.
+     *
+     * @since 4.0.0
+     * @category models
+     */
+    export type InferValue<A> = A extends ReadonlyArray<any> ? { readonly [Key in keyof A]: InferValue<A[Key]> }
+      : A extends Param.Param<infer _Kind, infer _Value> ? _Value
+      : A extends Config ? Infer<A>
+      : never
+  }
 
   /**
-   * A service which can be used to extract this command's positional arguments
-   * and flags in subcommand handlers.
+   * Represents any Command regardless of its type parameters.
+   *
+   * @since 4.0.0
+   * @category models
    */
-  readonly service: ServiceMap.Service<ParentCommand<Name>, Input>
-
-  /**
-   * The method which will be invoked to parse the command-line input for the
-   * command.
-   */
-  readonly parse: (input: RawInput) => Effect.Effect<Input, CliError.CliError, Environment>
-
-  /**
-   * The method which will be invoked with the command-line input and path to
-   * execute the logic associated with the command.
-   */
-  readonly handle: (
-    input: Input,
-    commandPath: ReadonlyArray<string>
-  ) => Effect.Effect<void, E | CliError.CliError, R | Environment>
+  export type Any = Command<string, unknown, unknown, unknown>
 }
 
 /**
  * The environment required by CLI commands, including file system and path operations.
- *
- * This type represents the services that CLI commands may need access to,
- * particularly for file operations and path manipulations.
- *
- * @example
- * ```ts
- * import { Command } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
- * import { FileSystem, Path } from "effect/platform"
- *
- * // Commands that need file system access require Environment
- * const readConfig = Command.make("read-config", {}, () =>
- *   Effect.gen(function*() {
- *     const fs = yield* FileSystem.FileSystem
- *     const path = yield* Path.Path
- *     const configPath = path.join(process.cwd(), "config.json")
- *     const content = yield* fs.readFileString(configPath)
- *     yield* Console.log(content)
- *   })
- * )
- *
- * // Environment is provided automatically by Command.run
- * ```
  *
  * @since 4.0.0
  * @category utility types
@@ -174,355 +234,66 @@ export type Error<C> = C extends Command<
   never
 
 /**
- * Service context for a specific command, providing access to command input through Effect's service system.
+ * Service context for a specific command, enabling subcommands to access their parent's parsed configuration.
  *
- * Context allows commands and subcommands to access their parsed configuration
- * through Effect's dependency injection system.
+ * When a subcommand handler needs access to flags or arguments from a parent command,
+ * it can yield the parent command directly to retrieve its config. This is powered by
+ * Effect's service system - each command automatically creates a service that provides
+ * its parsed input to child commands.
  *
  * @example
  * ```ts
- * import { Console, Effect } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
  *
- * const parentCommand = Command.make("parent", {
- *   verbose: Flag.boolean("verbose")
+ * const parent = Command.make("app", {
+ *   verbose: Flag.boolean("verbose"),
+ *   config: Flag.string("config")
  * })
  *
- * const childCommand = Command.make("child", {}, () =>
+ * const child = Command.make("deploy", {
+ *   target: Flag.string("target")
+ * }, (config) =>
  *   Effect.gen(function*() {
- *     // Access parent command's context within subcommand
- *     const parentConfig = yield* parentCommand
- *     if (parentConfig.verbose) {
- *       yield* Console.log("Verbose mode enabled from parent")
- *     }
- *   }))
- *
- * const app = parentCommand.pipe(
- *   Command.withSubcommands(childCommand)
+ *     // Access parent's config by yielding the parent command
+ *     const parentConfig = yield* parent
+ *     yield* Console.log(`Verbose: ${parentConfig.verbose}`)
+ *     yield* Console.log(`Config: ${parentConfig.config}`)
+ *     yield* Console.log(`Target: ${config.target}`)
+ *   })
  * )
+ *
+ * const app = parent.pipe(Command.withSubcommands([child]))
+ * // Usage: app --verbose --config prod.json deploy --target staging
  * ```
  *
  * @since 4.0.0
  * @category models
  */
-export interface ParentCommand<Name extends string> {
+export interface CommandContext<Name extends string> {
   readonly _: unique symbol
   readonly name: Name
 }
 
 /**
- * Represents the raw input parsed from the command-line which is provided to
- * the `Command.parse` method.
+ * Represents the parsed tokens from command-line input before validation.
  *
  * @since 4.0.0
  * @category models
  */
-export interface RawInput {
+export interface ParsedTokens {
   readonly flags: Record<string, ReadonlyArray<string>>
   readonly arguments: ReadonlyArray<string>
   readonly errors?: ReadonlyArray<CliError.CliError>
   readonly subcommand?: {
     readonly name: string
-    readonly parsedInput: RawInput
+    readonly parsedInput: ParsedTokens
   }
 }
 
-/**
- * Configuration object for defining command flags, arguments, and nested structures.
- *
- * CommandConfig allows you to specify:
- * - Individual flags and arguments using Param types
- * - Nested configuration objects for organization
- * - Arrays of parameters for repeated elements
- *
- * @example
- * ```ts
- * import { Command, Flag, Argument } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
- *
- * // Simple flat configuration
- * const simpleConfig = {
- *   name: Flag.string("name"),
- *   age: Flag.integer("age"),
- *   file: Argument.string("file")
- * }
- *
- * // Nested configuration for organization
- * const nestedConfig = {
- *   user: {
- *     name: Flag.string("name"),
- *     email: Flag.string("email")
- *   },
- *   server: {
- *     host: Flag.string("host"),
- *     port: Flag.integer("port")
- *   },
- *   files: Argument.string("files").pipe(Argument.variadic)
- * }
- *
- * // Use in command creation
- * const command = Command.make("deploy", nestedConfig, (config) =>
- *   Effect.gen(function*() {
- *     // config.user.name, config.server.host, etc. are all type-safe
- *     yield* Console.log(`Deploying for ${config.user.name} to ${config.server.host}:${config.server.port}`)
- *   })
- * )
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export interface CommandConfig {
-  readonly [key: string]:
-    | Param.Param<Param.ParamKind, any>
-    | ReadonlyArray<Param.Param<Param.ParamKind, any> | CommandConfig>
-    | CommandConfig
-}
-
-/**
- * Infers the TypeScript type from a CommandConfig structure.
- *
- * This type utility extracts the final configuration type that handlers will receive,
- * preserving the nested structure while converting Param types to their values.
- *
- * @example
- * ```ts
- * import { Command, Flag, Argument } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
- *
- * // Define a configuration structure
- * const config = {
- *   name: Flag.string("name"),
- *   server: {
- *     host: Flag.string("host"),
- *     port: Flag.integer("port")
- *   },
- *   files: Argument.string("files").pipe(Argument.variadic)
- * } as const
- *
- * // InferConfig extracts the final type
- * type ConfigType = Command.InferConfig<typeof config>
- * // Result: {
- * //   readonly name: string
- * //   readonly server: {
- * //     readonly host: string
- * //     readonly port: number
- * //   }
- * //   readonly files: ReadonlyArray<string>
- * // }
- *
- * const command = Command.make("deploy", config, (config: ConfigType) =>
- *   Effect.gen(function*() {
- *     // config is fully typed with the inferred structure
- *     yield* Console.log(`Deploying to ${config.server.host}:${config.server.port}`)
- *   })
- * )
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export type InferConfig<A extends CommandConfig> = Simplify<
-  { readonly [Key in keyof A]: InferConfigValue<A[Key]> }
->
-
-/**
- * Helper type utility for recursively inferring types from CommandConfig values.
- *
- * This type handles the different kinds of values that can appear in a CommandConfig:
- * - Arrays of params/configs are recursively processed
- * - Param types are extracted to their value types
- * - Nested CommandConfig objects are recursively inferred
- *
- * @example
- * ```ts
- * import { Command, Flag, Argument } from "effect/unstable/cli"
- *
- * // Single param extraction
- * type StringFlag = Command.InferConfigValue<typeof Flag.string>
- * // Result: string
- *
- * // Array param extraction
- * type StringArgs = readonly string[]
- * // Result: ReadonlyArray<string>
- *
- * // Nested config extraction
- * type NestedConfig = Command.InferConfigValue<{
- *   host: typeof Flag.string
- *   port: typeof Flag.integer
- * }>
- * // Result: { readonly host: string; readonly port: number }
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export type InferConfigValue<A> = A extends ReadonlyArray<any> ? { readonly [Key in keyof A]: InferConfigValue<A[Key]> }
-  : A extends Param.Param<infer _Kind, infer _Value> ? _Value
-  : A extends CommandConfig ? InferConfig<A>
-  : never
-
-/**
- * Internal tree structure that represents the blueprint for reconstructing parsed configuration.
- *
- * ConfigTree is used internally during command parsing to maintain the structure
- * of nested configuration objects while allowing for flat parameter parsing.
- *
- * @example
- * ```ts
- * import { Command } from "effect/unstable/cli"
- *
- * // Internal structure for config like:
- * // { name: Flag.string("name"), db: { host: Flag.string("host") } }
- * //
- * // Becomes ConfigTree:
- * // {
- * //   name: { _tag: "Param", index: 0 },
- * //   db: {
- * //     _tag: "ParsedConfig",
- * //     tree: { host: { _tag: "Param", index: 1 } }
- * //   }
- * // }
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export interface ConfigTree {
-  [key: string]: ConfigNode
-}
-
-/**
- * Individual node in the configuration tree, representing different types of configuration elements.
- *
- * ConfigNode can be:
- * - Param: References a specific parameter by index in the flat parsed array
- * - Array: Contains multiple child nodes for array parameters
- * - ParsedConfig: Contains a nested configuration tree
- *
- * @example
- * ```ts
- * import { Command } from "effect/unstable/cli"
- *
- * // Different node types:
- *
- * // Param node (references parsed value at index)
- * const paramNode: Command.ConfigNode = {
- *   _tag: "Param",
- *   index: 0
- * }
- *
- * // Array node (contains multiple child nodes)
- * const arrayNode: Command.ConfigNode = {
- *   _tag: "Array",
- *   children: [
- *     { _tag: "Param", index: 1 },
- *     { _tag: "Param", index: 2 }
- *   ]
- * }
- *
- * // ParsedConfig node (contains nested structure)
- * const configNode: Command.ConfigNode = {
- *   _tag: "ParsedConfig",
- *   tree: {
- *     host: { _tag: "Param", index: 3 },
- *     port: { _tag: "Param", index: 4 }
- *   }
- * }
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export type ConfigNode = {
-  readonly _tag: "Param"
-  readonly index: number
-} | {
-  readonly _tag: "Array"
-  readonly children: ReadonlyArray<ConfigNode>
-} | {
-  readonly _tag: "ParsedConfig"
-  readonly tree: ConfigTree
-}
-
-/**
- * Parsed and flattened configuration structure created from a CommandConfig.
- *
- * ParsedConfig separates parameters by type and maintains both the original
- * nested structure (via tree) and the flattened parameter list for parsing.
- *
- * @example
- * ```ts
- * import { Command, Flag, Argument } from "effect/unstable/cli"
- *
- * // Example of what parseConfig produces for:
- * const config = {
- *   name: Flag.string("name"),
- *   db: {
- *     host: Flag.string("host"),
- *     port: Flag.integer("port")
- *   },
- *   files: Argument.string("files").pipe(Argument.variadic)
- * }
- *
- * // Results in ParsedConfig structure with:
- * // - flags: All flags extracted and flattened
- * // - arguments: All arguments extracted and flattened
- * // - orderedParams: All params in declaration order
- * // - tree: Blueprint preserving original nested structure
- * //
- * // Tree structure example:
- * // {
- * //   name: { _tag: "Param", index: 0 },
- * //   db: {
- * //     _tag: "ParsedConfig",
- * //     tree: {
- * //       host: { _tag: "Param", index: 1 },
- * //       port: { _tag: "Param", index: 2 }
- * //     }
- * //   },
- * //   files: { _tag: "Param", index: 3 }
- * // }
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export interface ParsedConfig {
-  readonly [ParsedConfigTypeId]: typeof ParsedConfigTypeId
-  /**
-   * The parsed command-line positional arguments.
-   */
-  readonly arguments: ReadonlyArray<Param.Param<any, Param.ParamKind>>
-  /**
-   * The parsed command-line flags.
-   */
-  readonly flags: ReadonlyArray<Param.Param<any, Param.ParamKind>>
-  /**
-   * Represents parsed parameters in the exact order in which they were declared.
-   */
-  readonly orderedParams: ReadonlyArray<Param.Param<any, Param.ParamKind>>
-  /**
-   * The parsed configuration tree.
-   */
-  readonly tree: ConfigTree
-}
-
-/**
- * @since 4.0.0
- * @category guards
- */
-export const isParsedConfig = (u: unknown): u is ParsedConfig => Predicate.hasProperty(u, ParsedConfigTypeId)
-
-const Proto = {
-  ...YieldableProto,
-  pipe() {
-    return pipeArguments(this, arguments)
-  },
-  asEffect(this: Command<any, any, any, any>) {
-    return this.service.asEffect()
-  }
-}
+/* ========================================================================== */
+/* Constructors                                                               */
+/* ========================================================================== */
 
 /**
  * Creates a Command from a name, optional config, optional handler function, and optional description.
@@ -571,21 +342,6 @@ const Proto = {
  *     yield* Console.log("Deployment completed successfully")
  *   })
  * )
- *
- * // Command with complex file operations
- * const backup = Command.make("backup", {
- *   source: Argument.string("source"),
- *   destination: Flag.string("dest").pipe(Flag.withDescription("Backup destination")),
- *   compress: Flag.boolean("compress").pipe(Flag.withDefault(false))
- * }, (config) =>
- *   Effect.gen(function*() {
- *     yield* Console.log(`Backing up ${config.source} to ${config.destination}`)
- *     if (config.compress) {
- *       yield* Console.log("Compression enabled")
- *     }
- *     // File operations would go here
- *   })
- * )
  * ```
  *
  * @since 4.0.0
@@ -594,42 +350,70 @@ const Proto = {
 export const make: {
   <Name extends string>(name: Name): Command<Name, {}, never, never>
 
-  <Name extends string, const Config extends CommandConfig>(
+  <Name extends string, const Config extends Command.Config>(
     name: Name,
     config: Config
-  ): Command<Name, InferConfig<Config>, never, never>
+  ): Command<Name, Command.Config.Infer<Config>, never, never>
 
-  <Name extends string, const Config extends CommandConfig, R, E>(
+  <Name extends string, const Config extends Command.Config, R, E>(
     name: Name,
     config: Config,
-    handler: (config: InferConfig<Config>) => Effect.Effect<void, E, R>
-  ): Command<Name, InferConfig<Config>, E, R>
+    handler: (config: Command.Config.Infer<Config>) => Effect.Effect<void, E, R>
+  ): Command<Name, Command.Config.Infer<Config>, E, R>
 } = ((
   name: string,
-  config?: CommandConfig,
+  config?: Command.Config,
   handler?: (config: unknown) => Effect.Effect<void, unknown, unknown>
-) =>
-  makeCommand({
+) => {
+  const parsedConfig = parseConfig(config ?? {})
+  return makeCommand({
     name,
-    config: config ?? {} as CommandConfig,
+    config: parsedConfig,
     ...(Predicate.isNotUndefined(handler) ? { handle: handler } : {})
-  })) as any
+  })
+}) as any
 
 /**
+ * Creates a command that prompts the user for input using an interactive prompt.
+ *
+ * This is useful for commands that need to gather information interactively,
+ * such as wizards or setup flows. The prompt runs before the handler and its
+ * result is passed to the handler function.
+ *
+ * @example
+ * ```ts
+ * import { Command, Prompt } from "effect/unstable/cli"
+ * import { Effect, Console } from "effect"
+ *
+ * const setup = Command.prompt(
+ *   "setup",
+ *   Prompt.text({ message: "Enter your name:" }),
+ *   (name) => Console.log(`Hello, ${name}!`)
+ * )
+ * ```
+ *
  * @since 4.0.0
  * @category constructors
  */
+// TODO: Input type is `A` but parse returns `{}`. The actual `A` comes from
+// running the prompt inside the handler. This is a semantic mismatch that
+// would break if subcommands tried to access parent config.
 export const prompt = <Name extends string, A, E, R>(
   name: Name,
-  prompt: Prompt.Prompt<A>,
+  promptDef: Prompt.Prompt<A>,
   handler: (value: A) => Effect.Effect<void, E, R>
 ): Command<Name, A, E | Terminal.QuitError, R> => {
+  const parsedConfig = parseConfig({})
   return makeCommand({
     name,
-    config: {},
-    handle: () => Effect.flatMap(Prompt.run(prompt), (value) => handler(value))
+    config: parsedConfig,
+    handle: () => Effect.flatMap(Prompt.run(promptDef), (value) => handler(value))
   })
 }
+
+/* ========================================================================== */
+/* Combinators                                                                */
+/* ========================================================================== */
 
 /**
  * Adds or replaces the handler for a command.
@@ -639,36 +423,15 @@ export const prompt = <Name extends string, A, E, R>(
  * import { Command, Flag } from "effect/unstable/cli"
  * import { Effect, Console } from "effect"
  *
- * // First define subcommands
- * const clone = Command.make("clone", {
- *   repository: Flag.string("repository")
- * }, (config) =>
- *   Effect.gen(function*() {
- *     yield* Console.log(`Cloning ${config.repository}`)
- *   })
- * )
+ * // Command without initial handler
+ * const greet = Command.make("greet", {
+ *   name: Flag.string("name")
+ * })
  *
- * const add = Command.make("add", {
- *   files: Flag.string("files")
- * }, (config) =>
- *   Effect.gen(function*() {
- *     yield* Console.log(`Adding ${config.files}`)
- *   })
- * )
- *
- * // Create main command with subcommands and handler
- * const git = Command.make("git", {
- *   verbose: Flag.boolean("verbose")
- * }).pipe(
- *   Command.withSubcommands(clone, add),
+ * // Add handler later
+ * const greetWithHandler = greet.pipe(
  *   Command.withHandler((config) =>
- *     Effect.gen(function*() {
- *       // Now config has the subcommand field
- *       yield* Console.log(`Git verbose: ${config.verbose}`)
- *       if (config.subcommand) {
- *         yield* Console.log(`Executed subcommand: ${config.subcommand.name}`)
- *       }
- *     })
+ *     Console.log(`Hello, ${config.name}!`)
  *   )
  * )
  * ```
@@ -689,119 +452,141 @@ export const withHandler: {
 } = dual(2, <Name extends string, A, XR, XE, R, E>(
   self: Command<Name, A, XE, XR>,
   handler: (value: A) => Effect.Effect<void, E, R>
-): Command<Name, A, E, R> => makeCommand({ ...self, handle: handler }))
+): Command<Name, A, E, R> => makeCommand({ ...toImpl(self), handle: handler }))
 
 /**
  * Adds subcommands to a command, creating a hierarchical command structure.
+ *
+ * Subcommands can access their parent's parsed configuration by yielding the parent
+ * command within their handler. This enables patterns like global flags that affect
+ * all subcommands.
  *
  * @example
  * ```ts
  * import { Command, Flag } from "effect/unstable/cli"
  * import { Effect, Console } from "effect"
  *
+ * // Parent command with global flags
+ * const git = Command.make("git", {
+ *   verbose: Flag.boolean("verbose")
+ * })
+ *
+ * // Subcommand that accesses parent config
  * const clone = Command.make("clone", {
- *   repository: Flag.string("repository")
+ *   repository: Flag.string("repo")
  * }, (config) =>
  *   Effect.gen(function*() {
+ *     const parent = yield* git  // Access parent's parsed config
+ *     if (parent.verbose) {
+ *       yield* Console.log("Verbose mode enabled")
+ *     }
  *     yield* Console.log(`Cloning ${config.repository}`)
  *   })
  * )
  *
- * const add = Command.make("add", {
- *   files: Flag.string("files")
- * }, (config) =>
- *   Effect.gen(function*() {
- *     yield* Console.log(`Adding ${config.files}`)
- *   })
- * )
- *
- * const git = Command.make("git", {}, () => Effect.void).pipe(
- *   Command.withSubcommands(clone, add)
- * )
+ * const app = git.pipe(Command.withSubcommands([clone]))
+ * // Usage: git --verbose clone --repo github.com/foo/bar
  * ```
  *
  * @since 4.0.0
  * @category combinators
  */
-export const withSubcommands = <const Subcommands extends ReadonlyArray<Command<any, any, any, any>>>(
-  ...subcommands: Subcommands
-) =>
-<Name extends string, Input, E, R>(
-  self: Command<Name, Input, E, R>
+export const withSubcommands: {
+  <const Subcommands extends ReadonlyArray<Command<any, any, any, any>>>(
+    subcommands: Subcommands
+  ): <Name extends string, Input, E, R>(
+    self: Command<Name, Input, E, R>
+  ) => Command<
+    Name,
+    Input,
+    E | ExtractSubcommandErrors<Subcommands>,
+    R | Exclude<ExtractSubcommandContext<Subcommands>, CommandContext<Name>>
+  >
+  <
+    Name extends string,
+    Input,
+    E,
+    R,
+    const Subcommands extends ReadonlyArray<Command<any, any, any, any>>
+  >(
+    self: Command<Name, Input, E, R>,
+    subcommands: Subcommands
+  ): Command<
+    Name,
+    Input,
+    E | ExtractSubcommandErrors<Subcommands>,
+    R | Exclude<ExtractSubcommandContext<Subcommands>, CommandContext<Name>>
+  >
+} = dual(2, <
+  Name extends string,
+  Input,
+  E,
+  R,
+  const Subcommands extends ReadonlyArray<Command<any, any, any, any>>
+>(
+  self: Command<Name, Input, E, R>,
+  subcommands: Subcommands
 ): Command<
   Name,
-  Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined },
-  ExtractSubcommandErrors<Subcommands>,
-  R | Exclude<ExtractSubcommandContext<Subcommands>, ParentCommand<Name>>
+  Input,
+  E | ExtractSubcommandErrors<Subcommands>,
+  R | Exclude<ExtractSubcommandContext<Subcommands>, CommandContext<Name>>
 > => {
   checkForDuplicateFlags(self, subcommands)
 
-  type NewInput = Input & { readonly subcommand: ExtractSubcommandInputs<Subcommands> | undefined }
+  const impl = toImpl(self)
+  const byName = new Map(subcommands.map((s) => [s.name, toImpl(s)] as const))
 
-  // Build a stable name → subcommand index to avoid repeated linear scans
-  const subcommandIndex = new Map<string, Command<string, any, any, any>>()
-  for (const s of subcommands) {
-    subcommandIndex.set(s.name, s)
-  }
+  // Internal type for routing - not exposed in public type
+  type SubcommandInfo = { readonly name: string; readonly result: unknown }
+  type InternalInput = Input & { readonly _subcommand?: SubcommandInfo }
 
-  const parse: (input: RawInput) => Effect.Effect<NewInput, CliError.CliError, Environment> = Effect.fnUntraced(
-    function*(input: RawInput) {
-      const parentResult = yield* self.parse(input)
+  const parse = Effect.fnUntraced(function*(raw: ParsedTokens) {
+    const parent = yield* impl.parse(raw)
 
-      const subRef = input.subcommand
-      if (!subRef) {
-        return { ...parentResult, subcommand: undefined }
-      }
-
-      const sub = subcommandIndex.get(subRef.name)
-
-      // Parser guarantees valid subcommand names, but guard defensively
-      if (!sub) {
-        return { ...parentResult, subcommand: undefined }
-      }
-
-      const subResult = yield* sub.parse(subRef.parsedInput)
-      const subcommand = { name: sub.name, result: subResult } as ExtractSubcommandInputs<Subcommands>
-      return { ...parentResult, subcommand }
+    if (!raw.subcommand) {
+      return parent
     }
-  )
 
-  const handle = Effect.fnUntraced(function*(input: NewInput, commandPath: ReadonlyArray<string>) {
-    const selected = input.subcommand
-    if (selected !== undefined) {
-      const child = subcommandIndex.get(selected.name)
-      if (!child) {
-        return yield* new CliError.ShowHelp({ commandPath })
-      }
-      return yield* child
-        .handle(selected.result, [...commandPath, child.name])
-        .pipe(Effect.provideService(self.service, input))
+    const sub = byName.get(raw.subcommand.name)
+    if (!sub) {
+      return parent
     }
-    return yield* self.handle(input, commandPath)
+
+    const result = yield* sub.parse(raw.subcommand.parsedInput)
+    // Attach subcommand info internally for routing
+    return Object.assign({}, parent, { _subcommand: { name: sub.name, result } }) as InternalInput
   })
 
-  return makeCommand({ ...self, subcommands, parse, handle } as any)
-}
+  const handle = Effect.fnUntraced(function*(input: Input, path: ReadonlyArray<string>) {
+    const internal = input as InternalInput
+    if (internal._subcommand) {
+      const child = byName.get(internal._subcommand.name)
+      if (!child) {
+        return yield* new CliError.ShowHelp({ commandPath: path })
+      }
+      return yield* child
+        .handle(internal._subcommand.result, [...path, child.name])
+        .pipe(Effect.provideService(impl.service, input))
+    }
+    return yield* impl.handle(input, path)
+  })
 
-// Errors across a tuple (preferred), falling back to array element type
-type ExtractSubcommandErrors<T extends ReadonlyArray<unknown>> = T extends readonly [] ? never
-  : T extends readonly [infer H, ...infer R] ? Error<H> | ExtractSubcommandErrors<R>
-  : T extends ReadonlyArray<infer C> ? Error<C>
-  : never
+  return makeCommand({
+    name: impl.name,
+    config: impl.config,
+    description: impl.description,
+    service: impl.service,
+    subcommands,
+    parse,
+    handle
+  })
+})
 
-type ContextOf<C> = C extends Command<any, any, any, infer R> ? R : never
-
-type ExtractSubcommandContext<T extends ReadonlyArray<unknown>> = T extends readonly [] ? never
-  : T extends readonly [infer H, ...infer R] ? ContextOf<H> | ExtractSubcommandContext<R>
-  : T extends ReadonlyArray<infer C> ? ContextOf<C>
-  : never
-
-type InputOf<C> = C extends Command<infer N, infer I, any, any> ? { readonly name: N; readonly result: I } : never
-
-type ExtractSubcommandInputs<T extends ReadonlyArray<unknown>> = T extends readonly [] ? never
-  : T extends readonly [infer H, ...infer R] ? InputOf<H> | ExtractSubcommandInputs<R>
-  : T extends ReadonlyArray<infer C> ? InputOf<C>
-  : never
+// Type extractors for subcommand arrays - T[number] gives union of all elements
+type ExtractSubcommandErrors<T extends ReadonlyArray<Command<any, any, any, any>>> = Error<T[number]>
+type ExtractSubcommandContext<T extends ReadonlyArray<Command<any, any, any, any>>> = T[number] extends
+  Command<any, any, any, infer R> ? R : never
 
 /**
  * Sets the description for a command.
@@ -839,145 +624,53 @@ export const withDescription: {
 } = dual(2, <const Name extends string, Input, E, R>(
   self: Command<Name, Input, E, R>,
   description: string
-) => makeCommand({ ...self, description }))
+) => makeCommand({ ...toImpl(self), description }))
 
-/**
- * Generates a HelpDoc structure from a Command.
- *
- * This structured data can be formatted for display using HelpFormatter.
- * getHelpDoc extracts all relevant information from a command including its
- * description, usage pattern, flags, arguments, and subcommands to create
- * comprehensive help documentation.
- *
- * @example
- * ```ts
- * import { Command, Flag, Argument, HelpFormatter } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
- *
- * // Create a complex command
- * const deploy = Command.make("deploy", {
- *   environment: Flag.string("env").pipe(Flag.withDescription("Target environment")),
- *   force: Flag.boolean("force").pipe(Flag.withDescription("Force deployment")),
- *   files: Argument.string("files").pipe(Argument.variadic, Argument.withDescription("Files to deploy"))
- * }, (config) =>
- *   Effect.gen(function*() {
- *     yield* Console.log(`Deploying to ${config.environment}`)
- *   })
- * ).pipe(
- *   Command.withDescription("Deploy application to specified environment")
- * )
- *
- * // Generate help documentation
- * const helpDoc = Command.getHelpDoc(deploy)
- * // Result contains:
- * // {
- * //   description: "Deploy application to specified environment",
- * //   usage: "deploy [flags] <files...>", //   flags: [ //     { name: "env", aliases: ["--env"], type: "string", description: "Target environment", required: true },
- * //     { name: "force", aliases: ["--force"], type: "boolean", description: "Force deployment", required: false }
- * //   ],
- * //   args: [
- * //     { name: "files", type: "string", description: "Files to deploy", required: true, variadic: true }
- * //   ]
- * // }
- *
- * // Format and display help
- * const program = Effect.gen(function*() {
- *   const helpRenderer = yield* HelpFormatter.HelpRenderer
- *   const helpText = helpRenderer.formatHelpDoc(helpDoc)
- *   yield* Console.log(helpText)
- * })
- *
- * // For subcommand help with command path
- * const git = Command.make("git", {
- *   verbose: Flag.boolean("verbose")
- * }).pipe(
- *   Command.withSubcommands(deploy)
- * )
- * const subcommandHelp = Command.getHelpDoc(deploy, ["git", "deploy"])
- * // Usage will show: "git deploy [flags] <files...>"
- * ```
- *
- * @since 4.0.0
- * @category help
- */
-export const getHelpDoc = <Name extends string, Input>(
-  command: Command<Name, Input, unknown, unknown>,
-  commandPath?: ReadonlyArray<string>
-): HelpDoc => {
-  const args: Array<ArgDoc> = []
-  const flags: Array<FlagDoc> = []
+/* ========================================================================== */
+/* Providing Services                                                         */
+/* ========================================================================== */
 
-  // Extract positional arguments
-  for (const arg of command.config.arguments) {
-    const singles = Param.extractSingleParams(arg)
-    const metadata = Param.getParamMetadata(arg)
-
-    for (const single of singles) {
-      args.push({
-        name: single.name,
-        type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
-        description: single.description,
-        required: !metadata.isOptional,
-        variadic: metadata.isVariadic
-      })
-    }
-  }
-
-  // Build usage string with positional arguments
-  let usage: string
-  if (commandPath && commandPath.length > 0) {
-    // Use the full command path if provided
-    usage = commandPath.join(" ")
-  } else {
-    // Fall back to just the command name
-    usage = command.name
-  }
-
-  if (command.subcommands.length > 0) {
-    usage += " <subcommand>"
-  }
-  usage += " [flags]"
-
-  // Add positional arguments to usage
-  for (const arg of args) {
-    const argName = arg.variadic ? `<${arg.name}...>` : `<${arg.name}>`
-    usage += ` ${arg.required ? argName : `[${argName}]`}`
-  }
-
-  // Extract flags from options
-  for (const option of command.config.flags) {
-    const singles = Param.extractSingleParams(option)
-    for (const single of singles) {
-      const formattedAliases = single.aliases.map((alias) => alias.length === 1 ? `-${alias}` : `--${alias}`)
-
-      flags.push({
-        name: single.name,
-        aliases: formattedAliases,
-        type: single.typeName ?? Primitive.getTypeName(single.primitiveType),
-        description: single.description,
-        required: single.primitiveType._tag !== "Boolean"
-      })
-    }
-  }
-
-  // Extract subcommand info
-  const subcommandDocs: Array<SubcommandDoc> = command.subcommands.map((sub) => ({
-    name: sub.name,
-    description: sub.description ?? ""
-  }))
-
-  return {
-    description: command.description ?? "",
-    usage,
-    flags,
-    ...(args.length > 0 && { args }),
-    ...(subcommandDocs.length > 0 && { subcommands: subcommandDocs })
-  }
+// Internal helper: transforms a command's handler while preserving other properties
+const mapHandler = <Name extends string, Input, E, R, E2, R2>(
+  self: Command<Name, Input, E, R>,
+  f: (handler: Effect.Effect<void, E | CliError.CliError, R | Environment>, input: Input) => Effect.Effect<void, E2, R2>
+) => {
+  const impl = toImpl(self)
+  return makeCommand({ ...impl, handle: (input, path) => f(impl.handle(input, path), input) })
 }
 
 /**
  * Provides the handler of a command with the services produced by a layer
  * that optionally depends on the command-line input to be created.
+ *
+ * @example
+ * ```ts
+ * import { Command, Flag } from "effect/unstable/cli"
+ * import { Effect, Layer } from "effect"
+ * import { FileSystem, PlatformError } from "effect/platform"
+ *
+ * const deploy = Command.make("deploy", {
+ *   env: Flag.string("env")
+ * }, (config) =>
+ *   Effect.gen(function*() {
+ *     const fs = yield* FileSystem.FileSystem
+ *     // Use fs...
+ *   })
+ * ).pipe(
+ *   // Provide FileSystem based on the --env flag
+ *   Command.provide((config) =>
+ *     config.env === "local"
+ *       ? FileSystem.layerNoop({})
+ *       : FileSystem.layerNoop({
+ *           access: () =>
+ *             Effect.fail(new PlatformError.BadArgument({
+ *               module: "FileSystem",
+ *               method: "access"
+ *             }))
+ *         })
+ *   )
+ * )
+ * ```
  *
  * @since 4.0.0
  * @category providing services
@@ -995,15 +688,7 @@ export const provide: {
 } = dual(2, <const Name extends string, Input, E, R, LA, LE, LR>(
   self: Command<Name, Input, E, R>,
   layer: Layer.Layer<LA, LE, LR> | ((input: Input) => Layer.Layer<LA, LE, LR>)
-) =>
-  makeCommand({
-    ...self,
-    handle: (input, commandPath) =>
-      Effect.provide(
-        self.handle(input, commandPath),
-        typeof layer === "function" ? layer(input) : layer
-      )
-  }))
+) => mapHandler(self, (handler, input) => Effect.provide(handler, typeof layer === "function" ? layer(input) : layer)))
 
 /**
  * Provides the handler of a command with the implementation of a service that
@@ -1029,17 +714,12 @@ export const provideSync: {
   service: ServiceMap.Service<I, S>,
   implementation: S | ((input: Input) => S)
 ) =>
-  makeCommand({
-    ...self,
-    handle: (input, commandPath) =>
-      Effect.provideService(
-        self.handle(input, commandPath),
-        service,
-        typeof implementation === "function"
-          ? (implementation as any)(input)
-          : implementation
-      )
-  }))
+  mapHandler(self, (handler, input) =>
+    Effect.provideService(
+      handler,
+      service,
+      typeof implementation === "function" ? (implementation as (input: Input) => S)(input) : implementation
+    )))
 
 /**
  * Provides the handler of a command with the service produced by an effect
@@ -1065,15 +745,11 @@ export const provideEffect: {
   service: ServiceMap.Service<I, S>,
   effect: Effect.Effect<S, E2, R2> | ((input: Input) => Effect.Effect<S, E2, R2>)
 ) =>
-  makeCommand({
-    ...self,
-    handle: (input, commandPath) =>
-      Effect.provideServiceEffect(
-        self.handle(input, commandPath),
-        service,
-        typeof effect === "function" ? effect(input) : effect
-      )
-  }))
+  mapHandler(
+    self,
+    (handler, input) =>
+      Effect.provideServiceEffect(handler, service, typeof effect === "function" ? effect(input) : effect)
+  ))
 
 /**
  * Allows for execution of an effect, which optionally depends on command-line
@@ -1096,14 +772,25 @@ export const provideEffectDiscard: {
   self: Command<Name, Input, E, R>,
   effect: Effect.Effect<_, E2, R2> | ((input: Input) => Effect.Effect<_, E2, R2>)
 ) =>
-  makeCommand({
-    ...self,
-    handle: (input, commandPath) =>
-      Effect.andThen(
-        typeof effect === "function" ? effect(input) : effect,
-        self.handle(input, commandPath)
-      )
-  }))
+  mapHandler(self, (handler, input) => Effect.andThen(typeof effect === "function" ? effect(input) : effect, handler)))
+
+/* ========================================================================== */
+/* Execution                                                                  */
+/* ========================================================================== */
+
+const showHelp = <Name extends string, Input, E, R>(
+  command: Command<Name, Input, E, R>,
+  commandPath: ReadonlyArray<string>,
+  errors?: ReadonlyArray<CliError.CliError>
+): Effect.Effect<void, never, Environment> =>
+  Effect.gen(function*() {
+    const formatter = yield* CliOutput.Formatter
+    const helpDoc = getHelpForCommandPath(command, commandPath)
+    yield* Console.log(formatter.formatHelpDoc(helpDoc))
+    if (errors && errors.length > 0) {
+      yield* Console.error(formatter.formatErrors(errors))
+    }
+  })
 
 /**
  * Runs a command with the provided input arguments.
@@ -1143,6 +830,8 @@ export const run: {
     readonly version: string
   }
 ) => {
+  // TODO: process.argv is a Node.js global. For browser/edge runtime support,
+  // consider accepting an optional args parameter or using a platform service.
   const input = process.argv.slice(2)
   return runWith(command, config)(input)
 }
@@ -1151,8 +840,7 @@ export const run: {
  * Runs a command with explicitly provided arguments instead of using process.argv.
  *
  * This function is useful for testing CLI applications or when you want to
- * programmatically execute commands with specific arguments. It provides the
- * same functionality as `run` but with explicit control over the input arguments.
+ * programmatically execute commands with specific arguments.
  *
  * @example
  * ```ts
@@ -1183,24 +871,6 @@ export const run: {
  *   // Test version display
  *   yield* runCommand(["--version"])
  * })
- *
- * // Use with different environments
- * const deploy = Command.make("deploy", {
- *   env: Flag.string("env"),
- *   config: Argument.string("config")
- * }, (config) =>
- *   Effect.gen(function*() {
- *     yield* Console.log(`Deploying to ${config.env} with config ${config.config}`)
- *   })
- * )
- *
- * const deployProgram = Effect.gen(function*() {
- *   const runDeploy = Command.runWith(deploy, { version: "2.0.0" })
- *
- *   // Programmatically run with different configurations
- *   yield* runDeploy(["--env", "staging", "staging.json"])
- *   yield* runDeploy(["--env", "production", "prod.json"])
- * })
  * ```
  *
  * @since 4.0.0
@@ -1211,374 +881,59 @@ export const runWith = <const Name extends string, Input, E, R>(
   config: {
     readonly version: string
   }
-): (input: ReadonlyArray<string>) => Effect.Effect<void, E | CliError.CliError, R | Environment> =>
-  Effect.fnUntraced(
-    function*(input: ReadonlyArray<string>) {
-      const args = input
+): (input: ReadonlyArray<string>) => Effect.Effect<void, E | CliError.CliError, R | Environment> => {
+  const commandImpl = toImpl(command)
+  return Effect.fnUntraced(
+    function*(args: ReadonlyArray<string>) {
       // Check for dynamic completion request early (before normal parsing)
       if (isCompletionRequest(args)) {
         handleCompletionRequest(command)
         return
       }
 
-      // Parse command arguments (built-ins are extracted automatically)
+      // Lex and extract built-in flags
       const { tokens, trailingOperands } = Lexer.lex(args)
-      const {
-        completions,
-        dynamicCompletions,
-        help,
-        logLevel,
-        remainder,
-        version
-      } = yield* Parser.extractBuiltInOptions(tokens)
+      const { completions, help, logLevel, remainder, version } = yield* Parser.extractBuiltInOptions(tokens)
       const parsedArgs = yield* Parser.parseArgs({ tokens: remainder, trailingOperands }, command)
-      const helpRenderer = yield* HelpFormatter.HelpRenderer
+      const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)] as const
+      const formatter = yield* CliOutput.Formatter
 
+      // Handle built-in flags (early exits)
       if (help) {
-        const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
-        const helpDoc = getHelpForCommandPath(command, commandPath)
-        const helpText = helpRenderer.formatHelpDoc(helpDoc)
-        yield* Console.log(helpText)
+        yield* Console.log(formatter.formatHelpDoc(getHelpForCommandPath(command, commandPath)))
         return
-      } else if (completions !== undefined) {
-        const script = completions === "bash"
-          ? generateBashCompletions(command, command.name)
-          : completions === "fish"
-          ? generateFishCompletions(command, command.name)
-          : generateZshCompletions(command, command.name)
-        yield* Console.log(script)
+      }
+      if (completions !== undefined) {
+        yield* Console.log(generateDynamicCompletion(command, command.name, completions))
         return
-      } else if (dynamicCompletions !== undefined) {
-        const script = generateDynamicCompletion(command, command.name, dynamicCompletions)
-        yield* Console.log(script)
-        return
-      } else if (version && command.subcommands.length === 0) {
-        const versionText = helpRenderer.formatVersion(command.name, config.version)
-        yield* Console.log(versionText)
+      }
+      if (version) {
+        yield* Console.log(formatter.formatVersion(command.name, config.version))
         return
       }
 
-      // If there are parsing errors and no help was requested, format and display the error
+      // Handle parsing errors
       if (parsedArgs.errors && parsedArgs.errors.length > 0) {
-        const error = parsedArgs.errors[0]
-        const helpRenderer = yield* HelpFormatter.HelpRenderer
-        const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
-        const helpDoc = getHelpForCommandPath(command, commandPath)
-
-        // Show the full help first (to stdout with normal colors)
-        const helpText = helpRenderer.formatHelpDoc(helpDoc)
-        yield* Console.log(helpText)
-
-        // Then show the error in a clearly marked ERROR section (to stderr)
-        yield* Console.error(helpRenderer.formatError(error))
-
-        return
+        return yield* showHelp(command, commandPath, parsedArgs.errors)
       }
-
-      const parseResult = yield* Effect.result(command.parse(parsedArgs))
+      const parseResult = yield* Effect.result(commandImpl.parse(parsedArgs))
       if (parseResult._tag === "Failure") {
-        const error = parseResult.failure
-        const helpRenderer = yield* HelpFormatter.HelpRenderer
-        const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
-        const helpDoc = getHelpForCommandPath(command, commandPath)
-
-        // Show the full help first (to stdout with normal colors)
-        const helpText = helpRenderer.formatHelpDoc(helpDoc)
-        yield* Console.log(helpText)
-
-        // Then show the error in a clearly marked ERROR section (to stderr)
-        yield* Console.error(helpRenderer.formatError(error))
-
-        return
+        return yield* showHelp(command, commandPath, [parseResult.failure])
       }
       const parsed = parseResult.success
 
-      // Create the execution program
-      const program = command.handle(parsed, [command.name])
-
-      // Apply log level if provided via built-ins
-      const finalProgram = logLevel !== undefined
+      // Create and run the execution program
+      const program = commandImpl.handle(parsed, [command.name])
+      const withLogLevel = logLevel !== undefined
         ? Effect.provideService(program, References.MinimumLogLevel, logLevel)
         : program
 
-      // Normalize non-CLI errors into CliError.UserError so downstream catchTags
-      // can rely on CLI-tagged errors only.
-      const normalized = finalProgram.pipe(
-        Effect.catch((err) =>
-          CliError.isCliError(err) ? Effect.fail(err) : Effect.fail(new CliError.UserError({ cause: err }))
-        )
-      )
-
-      yield* normalized
+      yield* withLogLevel
     },
-    Effect.catchTags({
-      ShowHelp: (error: CliError.ShowHelp) =>
-        Effect.gen(function*() {
-          const helpDoc = getHelpForCommandPath(command, error.commandPath)
-          const helpRenderer = yield* HelpFormatter.HelpRenderer
-          const helpText = helpRenderer.formatHelpDoc(helpDoc)
-          yield* Console.log(helpText)
-        })
-    }),
-    // Preserve prior public behavior: surface original handler errors
-    Effect.catchTag("UserError", (error: CliError.UserError) => Effect.fail(error.cause as any))
+    Effect.catch((error) =>
+      error instanceof CliError.ShowHelp
+        ? showHelp(command, error.commandPath)
+        : Effect.fail(error)
+    )
   )
-
-// =============================================================================
-// Command Config
-// =============================================================================
-
-/**
- * Transforms a nested command configuration into a flat structure for parsing.
- *
- * This function walks through the entire config tree and:
- * 1. Extracts all Params into a single flat array (for command-line parsing)
- * 2. Creates a "blueprint" tree that remembers the original structure
- * 3. Assigns each Param an index to link parsed values back to their position
- *
- * The separation allows us to:
- * - Parse all options using existing flat parsing logic
- * - Reconstruct the original nested structure afterward
- *
- * @example
- * Input: { name: Param.string("name"), db: { host: Param.string("host") } }
- * Output: {
- *   options: [Param.string("name"), Param.string("host")],
- *   tree: { name: {_tag: "Param", index: 0}, db: {_tag: "ParsedConfig", tree: {host: {_tag: "Param", index: 1}}} }
- * }
- */
-const parseConfig = (config: CommandConfig): ParsedConfig => {
-  const orderedParams: Array<Param.Any> = []
-  const flags: Array<Param.AnyFlag> = []
-  const args: Array<Param.AnyArgument> = []
-
-  // Recursively walk the config structure, building the blueprint tree
-  function parse(config: CommandConfig) {
-    const tree: ConfigTree = {}
-    for (const key in config) {
-      tree[key] = parseValue(config[key])
-    }
-    return tree
-  }
-
-  // Process each value in the config, extracting Params and preserving structure
-  function parseValue(
-    value:
-      | Param.Any
-      | ReadonlyArray<Param.Any | CommandConfig>
-      | CommandConfig
-  ): ConfigNode {
-    if (Array.isArray(value)) {
-      // Array of options/configs - preserve array structure
-      return {
-        _tag: "Array",
-        children: (value as Array<any>).map((value) => parseValue(value))
-      }
-    } else if (Param.isParam(value)) {
-      // Found a Param - add to appropriate array based on kind and record its index
-      const index = orderedParams.length
-      orderedParams.push(value)
-
-      if (value.kind === "argument") {
-        args.push(value as Param.AnyArgument)
-      } else {
-        flags.push(value as Param.AnyFlag)
-      }
-
-      return {
-        _tag: "Param",
-        index
-      }
-    } else {
-      // Nested config object - recursively process
-      return {
-        _tag: "ParsedConfig",
-        tree: parse(value as any)
-      }
-    }
-  }
-
-  return {
-    [ParsedConfigTypeId]: ParsedConfigTypeId,
-    flags,
-    arguments: args,
-    orderedParams,
-    tree: parse(config)
-  }
-}
-
-/**
- * Reconstructs the original nested structure using parsed values and the blueprint tree.
- *
- * This is the inverse operation of parseConfig:
- * 1. Takes the flat array of parsed option values
- * 2. Uses the blueprint tree to determine where each value belongs
- * 3. Rebuilds the original nested object structure
- *
- * The blueprint tree acts as a "map" showing how to reassemble the flat data
- * back into the user's expected nested configuration shape.
- *
- * @param tree - The blueprint tree created by parseConfig
- * @param results - Flat array of parsed values (in the same order as the options array)
- * @returns The reconstructed nested configuration object
- *
- * @example
- * Input tree: { name: {_tag: "Param", index: 0}, db: {_tag: "ParsedConfig", tree: {host: {_tag: "Param", index: 1}}} }
- * Input results: ["myapp", "localhost"]
- * Output: { name: "myapp", db: { host: "localhost" } }
- */
-const reconstructConfigTree = (
-  tree: ConfigTree,
-  results: ReadonlyArray<any>
-): Record<string, any> => {
-  const output: Record<string, any> = {}
-
-  // Walk through each key in the blueprint tree
-  for (const key in tree) {
-    output[key] = nodeValue(tree[key])
-  }
-
-  return output
-
-  // Convert a blueprint node back to its corresponding value
-  function nodeValue(node: ConfigNode): any {
-    if (node._tag === "Param") {
-      // Param reference - look up the parsed value by index
-      return results[node.index]
-    } else if (node._tag === "Array") {
-      // Array structure - recursively process each child
-      return node.children.map((node) => nodeValue(node))
-    } else {
-      // Nested object - recursively reconstruct the subtree
-      return reconstructConfigTree(node.tree, results)
-    }
-  }
-}
-
-// =============================================================================
-// Utilities
-// =============================================================================
-
-const makeCommand = <const Name extends string, Input, E, R>(options: {
-  readonly name: Name
-  readonly config: CommandConfig | ParsedConfig
-  readonly service?: ServiceMap.Service<ParentCommand<Name>, Input> | undefined
-  readonly description?: string | undefined
-  readonly subcommands?: ReadonlyArray<Command<any, unknown, unknown, unknown>> | undefined
-  readonly parse?: ((input: RawInput) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
-  readonly handle?:
-    | ((input: Input, commandPath: ReadonlyArray<string>) => Effect.Effect<void, E, R | Environment>)
-    | undefined
-}): Command<Name, Input, E, R> => {
-  const service = options.service ?? ServiceMap.Service<ParentCommand<Name>, Input>(`${TypeId}/${options.name}`)
-
-  const config = isParsedConfig(options.config) ? options.config : parseConfig(options.config)
-
-  const handle = (
-    input: Input,
-    commandPath: ReadonlyArray<string>
-  ): Effect.Effect<void, CliError.CliError | E, R | Environment> =>
-    Predicate.isNotUndefined(options.handle)
-      ? options.handle(input, commandPath)
-      : Effect.fail(new CliError.ShowHelp({ commandPath }))
-
-  const parse = options.parse ?? Effect.fnUntraced(function*(input: RawInput) {
-    const parsedArgs: Param.ParsedArgs = { flags: input.flags, arguments: input.arguments }
-    const values = yield* parseParams(parsedArgs, config.orderedParams)
-    return reconstructConfigTree(config.tree, values) as Input
-  })
-
-  return Object.assign(Object.create(Proto), {
-    name: options.name,
-    subcommands: options.subcommands ?? [],
-    config,
-    service,
-    parse,
-    handle,
-    ...(Predicate.isNotUndefined(options.description)
-      ? { description: options.description }
-      : {})
-  })
-}
-
-/**
- * Parses param values from parsed command arguments into their typed
- * representations.
- */
-const parseParams: (parsedArgs: Param.ParsedArgs, params: ReadonlyArray<Param.Any>) => Effect.Effect<
-  ReadonlyArray<unknown>,
-  CliError.CliError,
-  Environment
-> = Effect.fnUntraced(function*(parsedArgs, params) {
-  const results: Array<unknown> = []
-  let currentArguments = parsedArgs.arguments
-
-  for (const option of params) {
-    const [remainingArguments, parsed] = yield* option.parse({
-      flags: parsedArgs.flags,
-      arguments: currentArguments
-    })
-    results.push(parsed)
-    currentArguments = remainingArguments
-  }
-
-  return results
-})
-
-/**
- * Checks for duplicate flag names between parent and child commands.
- */
-const checkForDuplicateFlags = <Name extends string, Input>(
-  parent: Command<Name, Input, unknown, unknown>,
-  subcommands: ReadonlyArray<Command<any, unknown, unknown, unknown>>
-): void => {
-  const parentOptionNames = new Set<string>()
-
-  const extractNames = (options: ReadonlyArray<Param.Any>): void => {
-    for (const option of options) {
-      const singles = Param.extractSingleParams(option)
-      for (const single of singles) {
-        parentOptionNames.add(single.name)
-      }
-    }
-  }
-
-  extractNames(parent.config.flags)
-
-  for (const subcommand of subcommands) {
-    for (const option of subcommand.config.flags) {
-      const singles = Param.extractSingleParams(option)
-      for (const single of singles) {
-        if (parentOptionNames.has(single.name)) {
-          throw new CliError.DuplicateOption({
-            option: single.name,
-            parentCommand: parent.name,
-            childCommand: subcommand.name
-          })
-        }
-      }
-    }
-  }
-}
-
-/**
- * Helper function to get help documentation for a specific command path.
- * Navigates through the command hierarchy to find the right command.
- */
-const getHelpForCommandPath = <Name extends string, Input, E, R>(
-  command: Command<Name, Input, E, R>,
-  commandPath: ReadonlyArray<string>
-): HelpDoc => {
-  let currentCommand: Command<string, unknown, unknown, unknown> = command as any
-
-  // Navigate through the command path to find the target command
-  for (let i = 1; i < commandPath.length; i++) {
-    const subcommandName = commandPath[i]
-    const subcommand = currentCommand.subcommands.find((sub) => sub.name === subcommandName)
-    if (subcommand) {
-      currentCommand = subcommand
-    }
-  }
-
-  return getHelpDoc(currentCommand, commandPath)
 }

@@ -1,4 +1,14 @@
 /**
+ * Primitive types for CLI parameter parsing.
+ *
+ * Primitives handle the low-level parsing of string input into typed values.
+ * Most users should use the higher-level `Argument` and `Flag` modules instead.
+ *
+ * This module is primarily useful for:
+ * - Creating custom primitive types
+ * - Understanding how CLI parsing works internally
+ * - Advanced customization of parsing behavior
+ *
  * @since 4.0.0
  */
 import * as Ini from "ini"
@@ -60,15 +70,9 @@ export declare namespace Primitive {
    * @category models
    */
   export interface Variance<out A> {
-    readonly [TypeId]: VarianceStruct<A>
-  }
-
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export interface VarianceStruct<out A> {
-    readonly _A: Covariant<A>
+    readonly [TypeId]: {
+      readonly _A: Covariant<A>
+    }
   }
 }
 
@@ -83,6 +87,9 @@ export const isTrueValue = Schema.is(Config.TrueValues)
 
 /** @internal */
 export const isFalseValue = Schema.is(Config.FalseValues)
+
+/** @internal */
+export const isBoolean = (p: Primitive<unknown>): p is Primitive<boolean> => p._tag === "Boolean"
 
 const makePrimitive = <A>(
   tag: string,
@@ -418,7 +425,7 @@ export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
  * import { Effect } from "effect"
  *
  * const readConfigFile = Effect.gen(function* () {
- *   const content = yield* Primitive.fileString.parse("./config.json")
+ *   const content = yield* Primitive.fileText.parse("./config.json")
  *   console.log(content) // File contents as string
  *
  *   const parsed = JSON.parse(content)
@@ -429,8 +436,8 @@ export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
  * @since 4.0.0
  * @category constructors
  */
-export const fileString: Primitive<string> = makePrimitive(
-  "FileString",
+export const fileText: Primitive<string> = makePrimitive(
+  "FileText",
   Effect.fnUntraced(function*(filePath) {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
@@ -484,7 +491,6 @@ export type FileParseOptions = {
 const fileParsers: Record<string, (content: string) => unknown> = {
   ini: (content: string) => Ini.parse(content),
   json: (content: string) => JSON.parse(content),
-  tml: (content: string) => Toml.parse(content),
   toml: (content: string) => Toml.parse(content),
   yml: (content: string) => Yaml.parse(content),
   yaml: (content: string) => Yaml.parse(content)
@@ -519,7 +525,7 @@ export const fileParse = (options?: FileParseOptions): Primitive<unknown> => {
       if (parser === undefined) {
         return yield* Effect.fail(`Unsupported file format: ${fileFormat}`)
       }
-      const content = yield* fileString.parse(filePath)
+      const content = yield* fileText.parse(filePath)
       return yield* Effect.try({
         try: () => parser(content),
         catch: (error) => `Failed to parse '.${fileFormat}' file content: ${error}`
@@ -588,7 +594,7 @@ export const fileSchema = <A>(
 }
 
 /**
- * Parses `key=value` pairs into a record object.
+ * Parses a single `key=value` pair into a record object.
  *
  * @example
  * ```ts
@@ -596,13 +602,13 @@ export const fileSchema = <A>(
  * import { Effect } from "effect"
  *
  * const parseKeyValue = Effect.gen(function* () {
- *   const result1 = yield* Primitive.keyValueMap.parse("name=john")
+ *   const result1 = yield* Primitive.keyValuePair.parse("name=john")
  *   console.log(result1) // { name: "john" }
  *
- *   const result2 = yield* Primitive.keyValueMap.parse("port=3000")
+ *   const result2 = yield* Primitive.keyValuePair.parse("port=3000")
  *   console.log(result2) // { port: "3000" }
  *
- *   const result3 = yield* Primitive.keyValueMap.parse("debug=true")
+ *   const result3 = yield* Primitive.keyValuePair.parse("debug=true")
  *   console.log(result3) // { debug: "true" }
  * })
  * ```
@@ -610,8 +616,8 @@ export const fileSchema = <A>(
  * @since 4.0.0
  * @category constructors
  */
-export const keyValueMap: Primitive<Record<string, string>> = makePrimitive(
-  "KeyValueMap",
+export const keyValuePair: Primitive<Record<string, string>> = makePrimitive(
+  "KeyValuePair",
   Effect.fnUntraced(function*(value) {
     const parts = value.split("=")
     if (parts.length !== 2) {
@@ -665,7 +671,7 @@ export const none: Primitive<never> = makePrimitive("None", () => Effect.fail("T
  * console.log(Primitive.getTypeName(Primitive.integer)) // "integer"
  * console.log(Primitive.getTypeName(Primitive.boolean)) // "boolean"
  * console.log(Primitive.getTypeName(Primitive.date)) // "date"
- * console.log(Primitive.getTypeName(Primitive.keyValueMap)) // "key=value"
+ * console.log(Primitive.getTypeName(Primitive.keyValuePair)) // "key=value"
  *
  * const logLevelChoice = Primitive.choice([
  *   ["debug", "debug"],
@@ -695,11 +701,13 @@ export const getTypeName = <A>(primitive: Primitive<A>): string => {
       return "choice"
     case "Redacted":
       return "string"
-    case "FileString":
+    case "FileText":
+      return "file"
+    case "FileParse":
       return "file"
     case "FileSchema":
       return "file"
-    case "KeyValueMap":
+    case "KeyValuePair":
       return "key=value"
     case "None":
       return "none"
