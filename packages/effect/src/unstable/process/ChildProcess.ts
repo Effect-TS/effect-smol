@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Duration from "../../Duration.ts"
@@ -8,10 +9,12 @@ import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import * as Schema from "../../schema/Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Sink from "../../stream/Sink.ts"
 import type * as Stream from "../../stream/Stream.ts"
+import { isTemplateString, parseTemplates } from "./internal/template.ts"
 
 const TypeId = "~effect/process/ChildProcess"
 
@@ -163,6 +166,16 @@ export class StdioError extends Data.TaggedError("StdioError")<{
   readonly fd: "stdin" | "stdout" | "stderr"
   readonly cause: unknown
 }> {}
+
+/**
+ * Error related to parsing command arguments.
+ *
+ * @since 4.0.0
+ * @category errors
+ */
+export class ParseArgumentsError extends Schema.ErrorClass(
+  "effect/unstable/process/ChildProcess/ParseArgumentsError"
+)({ message: Schema.String }) {}
 
 /**
  * Union of all child process error types.
@@ -520,3 +533,47 @@ export const spawn = (
     const executor = yield* ChildProcessExecutor
     return yield* executor.spawn(process)
   })
+
+// =============================================================================
+// Executor
+// =============================================================================
+
+export type TemplateExpressionItem =
+  | string
+  | number
+
+export type TemplateExpression = TemplateExpressionItem | ReadonlyArray<TemplateExpressionItem>
+
+export interface Executor {
+  execute(cmd: string, args: ReadonlyArray<string>): void
+  execute(strings: TemplateStringsArray, ...args: ReadonlyArray<TemplateExpression>): void
+}
+
+declare const executor: Executor
+
+const _ = executor.execute`foo ${1}`
+
+export const make = Effect.fnUntraced(
+  function*() {
+    const execute: {
+      (cmd: TemplateStringsArray, ...args: ReadonlyArray<TemplateExpression>): void
+      (cmd: string, ...args: ReadonlyArray<string>): void
+    } = Effect.fnUntraced(function*(cmd: unknown, ...args: ReadonlyArray<any>) {
+      const parsedArgs = yield* parseArguments(cmd, args)
+    })
+  }
+)
+
+const parseArguments: (cmd: unknown, ...args: ReadonlyArray<any>) => Effect.Effect<
+  Arr.NonEmptyReadonlyArray<string>,
+  ParseArgumentsError
+> = Effect.fnUntraced(
+  function*(cmd, ...args: ReadonlyArray<any>) {
+    if (isTemplateString(cmd)) {
+      return yield* parseTemplates(cmd, args).pipe(
+        Effect.mapError((message) => new ParseArgumentsError({ message }))
+      )
+    }
+    return Arr.prepend(args, cmd)
+  }
+)

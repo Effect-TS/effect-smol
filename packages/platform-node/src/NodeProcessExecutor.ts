@@ -6,7 +6,7 @@ import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
 import type * as Scope from "effect/Scope"
-import type * as Sink from "effect/stream/Sink"
+import * as Sink from "effect/stream/Sink"
 import * as Stream from "effect/stream/Stream"
 import * as ChildProcess from "effect/unstable/process/ChildProcess"
 import * as CP from "node:child_process"
@@ -34,7 +34,7 @@ const normalizeStdio = (options: ChildProcess.ChildProcessOptions): NormalizedSt
 
   // Normalize stdin
   let stdin: NodeStdioValue = "pipe"
-  let inputStream: Stream.Stream<Uint8Array, never, never> | undefined
+  let inputStream: Stream.Stream<Uint8Array, never, never> = Stream.empty
 
   if (stdio.stdin !== undefined) {
     const value = stdio.stdin
@@ -49,7 +49,7 @@ const normalizeStdio = (options: ChildProcess.ChildProcessOptions): NormalizedSt
 
   // Normalize stdout
   let stdout: NodeStdioValue = "pipe"
-  let outputSink: Sink.Sink<void, Uint8Array, never, never, never> | undefined
+  let outputSink: Sink.Sink<void, Uint8Array, never, never, never> = Sink.succeed(void 0)
 
   if (stdio.stdout !== undefined) {
     const value = stdio.stdout
@@ -64,7 +64,7 @@ const normalizeStdio = (options: ChildProcess.ChildProcessOptions): NormalizedSt
 
   // Normalize stderr
   let stderr: NodeStdioValue = "pipe"
-  let errorSink: Sink.Sink<void, Uint8Array, never, never, never> | undefined
+  let errorSink: Sink.Sink<void, Uint8Array, never, never, never> = Sink.succeed(void 0)
 
   if (stdio.stderr !== undefined) {
     const value = stdio.stderr
@@ -104,7 +104,12 @@ const makeExecutor = (): ChildProcess.ChildProcessExecutor => ({
       // Build spawn options
       const spawnOptions: CP.SpawnOptions = {
         cwd: process.options.cwd,
-        env: process.options.env ? { ...process.env, ...process.options.env } : process.env,
+        env: process.options.env
+          ? {
+            ...globalThis.process.env,
+            ...process.options.env
+          }
+          : globalThis.process.env,
         shell: process.options.shell ?? false,
         windowsHide: process.options.windowsHide,
         uid: process.options.uid,
@@ -230,7 +235,7 @@ const makeExecutor = (): ChildProcess.ChildProcessExecutor => ({
         all: undefined, // TODO: Implement interleaved output if needed
         duration
       }
-    }).pipe(Effect.scoped),
+    }),
 
   spawn: (process: ChildProcess.ChildProcess) =>
     Effect.gen(function*() {
@@ -317,7 +322,7 @@ const makeExecutor = (): ChildProcess.ChildProcessExecutor => ({
         exitCode,
         kill
       }
-    }).pipe(Effect.scoped)
+    })
 })
 
 // ═══════════════════════════════════════════════════════════════
