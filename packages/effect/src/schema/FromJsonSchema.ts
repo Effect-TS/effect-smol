@@ -59,10 +59,21 @@ export function makeTypes(
 /**
  * @since 4.0.0
  */
+export type Annotations = {
+  readonly description?: string | undefined
+  readonly title?: string | undefined
+  readonly examples?: ReadonlyArray<unknown> | undefined
+  readonly default?: unknown | undefined
+  readonly format?: string | undefined
+}
+
+/**
+ * @since 4.0.0
+ */
 export type Generation = {
   readonly runtime: string
   readonly types: Types
-  readonly description: string | undefined
+  readonly annotations: Annotations
   readonly importDeclarations: ReadonlySet<string>
 }
 
@@ -72,10 +83,10 @@ export type Generation = {
 export function makeGeneration(
   runtime: string,
   types: Types,
-  description?: string,
+  annotations: Annotations = {},
   importDeclarations: ReadonlySet<string> = emptySet
 ): Generation {
-  return { runtime, types, description, importDeclarations }
+  return { runtime, types, annotations, importDeclarations }
 }
 
 /**
@@ -93,7 +104,7 @@ export function makeGenerationExtern(
       `typeof ${namespace}["DecodingServices"]`,
       `typeof ${namespace}["EncodingServices"]`
     ),
-    undefined,
+    {},
     new Set([importDeclaration])
   )
 }
@@ -104,13 +115,22 @@ export function makeGenerationExtern(
 export type GenerateOptions = {
   readonly resolver?: Resolver | undefined
   readonly source?: Source | undefined
-  readonly jsDocs?: boolean | undefined
+  /**
+   * A function that is called to extract the JavaScript documentation from the
+   * annotations.
+   *
+   * By default the jsDocs are not extracted. You can set it to `true` to
+   * extract the jsDocs from the annotations with the default implementation.
+   * You can also set it to a function that will be called to extract the jsDocs
+   * from the annotations.
+   */
+  readonly extractJsDocs?: boolean | ((annotations: Annotations) => string) | undefined
 }
 
 interface RecurOptions {
   readonly resolver: Resolver
   readonly source: Source
-  readonly jsDocs: boolean
+  readonly extractJsDocs: ((annotations: Annotations) => string) | undefined
 }
 
 /**
@@ -122,29 +142,23 @@ export type Resolver = (identifier: string) => Generation
  * @since 4.0.0
  */
 export function generate(schema: unknown, options?: GenerateOptions): Generation {
+  const extractJsDocs = options?.extractJsDocs ?? false
   const recurOptions: RecurOptions = {
     resolver: options?.resolver ?? identityResolver,
     source: options?.source ?? "draft-07",
-    jsDocs: options?.jsDocs ?? false
+    extractJsDocs: extractJsDocs === true ? defaultExtractJsDocs : extractJsDocs === false ? undefined : extractJsDocs
   }
   return toGeneration(parse(schema, recurOptions), recurOptions)
 }
 
-/**
- * @since 4.0.0
- */
-export function asJsDocs(description: string | undefined): string {
-  if (description === undefined) {
-    return ""
-  }
-  return `\n/** ${description} */\n`
+function defaultExtractJsDocs(annotations: Annotations): string {
+  if (annotations.description === undefined) return ""
+  return `\n/** ${annotations.description} */\n`
 }
 
-function renderJsDocs(description: string | undefined, options: RecurOptions): string {
-  if (!options.jsDocs) {
-    return ""
-  }
-  return asJsDocs(description)
+function renderJsDocs(annotations: Annotations, options: RecurOptions): string {
+  if (!options.extractJsDocs) return ""
+  return options.extractJsDocs(annotations)
 }
 
 function toGeneration(ast: AST, options: RecurOptions): Generation {
@@ -154,7 +168,7 @@ function toGeneration(ast: AST, options: RecurOptions): Generation {
   return {
     runtime: out.runtime + checks + annotations,
     types: out.types,
-    description: out.description,
+    annotations: out.annotations,
     importDeclarations: out.importDeclarations
   }
 }
@@ -375,19 +389,11 @@ export function generateDefinitions(
       generation: makeGeneration(
         output.runtime + `.annotate({ "identifier": ${format(identifier)} })`,
         output.types,
-        output.description,
+        output.annotations,
         output.importDeclarations
       )
     }
   })
-}
-
-type Annotations = {
-  readonly description?: string | undefined
-  readonly title?: string | undefined
-  readonly examples?: ReadonlyArray<unknown> | undefined
-  readonly default?: unknown | undefined
-  readonly format?: string | undefined
 }
 
 const joinReducer = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
@@ -445,7 +451,7 @@ class Unknown {
     return {
       runtime: "Schema.Unknown",
       types: makeTypes("unknown"),
-      description: this.annotations.description,
+      annotations: this.annotations,
       importDeclarations: emptySet
     }
   }
@@ -473,7 +479,7 @@ class Never {
     return {
       runtime: "Schema.Never",
       types: makeTypes("never"),
-      description: this.annotations.description,
+      annotations: this.annotations,
       importDeclarations: emptySet
     }
   }
@@ -526,7 +532,7 @@ class Null {
     return {
       runtime: "Schema.Null",
       types: makeTypes("null"),
-      description: this.annotations.description,
+      annotations: this.annotations,
       importDeclarations: emptySet
     }
   }
@@ -610,14 +616,14 @@ class String {
           contentSchema.types.DecodingServices,
           contentSchema.types.EncodingServices
         ),
-        description: this.annotations.description,
+        annotations: this.annotations,
         importDeclarations: emptySet
       }
     }
     return {
       runtime: "Schema.String",
       types: makeTypes("string"),
-      description: this.annotations.description,
+      annotations: this.annotations,
       importDeclarations: emptySet
     }
   }
@@ -701,7 +707,7 @@ class Number {
     return {
       runtime: this.isInteger ? "Schema.Int" : "Schema.Number",
       types: makeTypes("number"),
-      description: this.annotations.description,
+      annotations: this.annotations,
       importDeclarations: emptySet
     }
   }
@@ -729,7 +735,7 @@ class Boolean {
     return {
       runtime: "Schema.Boolean",
       types: makeTypes("boolean"),
-      description: this.annotations.description,
+      annotations: this.annotations,
       importDeclarations: emptySet
     }
   }
@@ -759,7 +765,7 @@ class Const {
     return {
       runtime: `Schema.Literal(${format(this.value)})`,
       types: makeTypes(format(this.value)),
-      description: this.annotations.description,
+      annotations: this.annotations,
       importDeclarations: emptySet
     }
   }
@@ -791,14 +797,14 @@ class Enum {
       return {
         runtime: `Schema.Literal(${values[0]})`,
         types: makeTypes(values[0]),
-        description: this.annotations.description,
+        annotations: this.annotations,
         importDeclarations: emptySet
       }
     } else {
       return {
         runtime: `Schema.Literals([${values.join(", ")}])`,
         types: makeTypes(values.join(" | ")),
-        description: this.annotations.description,
+        annotations: this.annotations,
         importDeclarations: emptySet
       }
     }
@@ -912,7 +918,7 @@ class Arrays {
       return {
         runtime: `Schema.Tuple([])`,
         types: makeTypes("readonly []"),
-        description: this.annotations.description,
+        annotations: this.annotations,
         importDeclarations: emptySet
       }
     }
@@ -926,7 +932,7 @@ class Arrays {
           rest.types.DecodingServices,
           rest.types.EncodingServices
         ),
-        description: this.annotations.description,
+        annotations: this.annotations,
         importDeclarations: rest.importDeclarations
       }
     }
@@ -940,7 +946,7 @@ class Arrays {
           el.types.DecodingServices,
           el.types.EncodingServices
         ),
-        description: this.annotations.description,
+        annotations: this.annotations,
         importDeclarations: el.importDeclarations
       }
     }
@@ -953,7 +959,7 @@ class Arrays {
         joinServices([el.types.DecodingServices, rest.types.DecodingServices]),
         joinServices([el.types.EncodingServices, rest.types.EncodingServices])
       ),
-      description: this.annotations.description,
+      annotations: this.annotations,
       importDeclarations: ReadonlySetReducer.combine(el.importDeclarations, rest.importDeclarations)
     }
   }
@@ -973,7 +979,7 @@ function renderElements(es: ReadonlyArray<ElementIR>): Generation {
       joinServices(es.map((e) => e.value.types.DecodingServices)),
       joinServices(es.map((e) => e.value.types.EncodingServices))
     ),
-    description: undefined,
+    annotations: {},
     importDeclarations: ReadonlySetReducer.combineAll(es.map((e) => e.value.importDeclarations))
   }
 }
@@ -1099,7 +1105,7 @@ class Objects {
       key: p.key,
       value: toGeneration(p.value, options),
       isOptional: p.isOptional,
-      description: p.value.annotations.description
+      annotations: p.value.annotations
     }))
 
     const iss: ReadonlyArray<IndexSignatureGen> = this.indexSignatures.map((is) => ({
@@ -1120,7 +1126,7 @@ class Objects {
           p.types.DecodingServices,
           p.types.EncodingServices
         ),
-        description: this.annotations.description,
+        annotations: this.annotations,
         importDeclarations: p.importDeclarations
       }
     }
@@ -1136,7 +1142,7 @@ class Objects {
           joinServices([is.key.types.DecodingServices, is.value.types.DecodingServices]),
           joinServices([is.key.types.EncodingServices, is.value.types.EncodingServices])
         ),
-        description: this.annotations.description,
+        annotations: this.annotations,
         importDeclarations: indexSignatureImports(is)
       }
     }
@@ -1157,14 +1163,14 @@ class Objects {
           joinServices([p.types.DecodingServices, i.types.DecodingServices]),
           joinServices([p.types.EncodingServices, i.types.EncodingServices])
         ),
-      description: this.annotations.description,
+      annotations: this.annotations,
       importDeclarations: ReadonlySetReducer.combineAll([p.importDeclarations, i.importDeclarations])
     }
   }
 }
 
 function renderProperties(ps: ReadonlyArray<PropertyGen>, options: RecurOptions): Generation {
-  const descriptions = ps.map((p) => renderJsDocs(p.value.description, options))
+  const descriptions = ps.map((p) => renderJsDocs(p.value.annotations, options))
   return {
     runtime: ps.map((p) => `${formatPropertyKey(p.key)}: ${optionalRuntime(p.isOptional, p.value.runtime)}`).join(
       ", "
@@ -1175,7 +1181,7 @@ function renderProperties(ps: ReadonlyArray<PropertyGen>, options: RecurOptions)
       joinServices(ps.map((p) => p.value.types.DecodingServices)),
       joinServices(ps.map((p) => p.value.types.EncodingServices))
     ),
-    description: undefined,
+    annotations: {},
     importDeclarations: ReadonlySetReducer.combineAll(ps.map((p) => p.value.importDeclarations))
   }
 }
@@ -1197,7 +1203,7 @@ function renderIndexSignatures(iss: ReadonlyArray<IndexSignatureGen>): Generatio
         iss.map((is) => is.key.types.EncodingServices).concat(iss.map((is) => is.value.types.EncodingServices))
       )
     ),
-    description: undefined,
+    annotations: {},
     importDeclarations: ReadonlySetReducer.combineAll(iss.map(indexSignatureImports))
   }
 }
@@ -1218,7 +1224,7 @@ type PropertyGen = {
   readonly key: string
   readonly value: Generation
   readonly isOptional: boolean
-  readonly description: string | undefined
+  readonly annotations: Annotations | undefined
 }
 
 type IndexSignatureGen = {
@@ -1282,7 +1288,7 @@ class Union {
         joinServices(members.map((m) => m.types.DecodingServices)),
         joinServices(members.map((m) => m.types.EncodingServices))
       ),
-      description: this.annotations.description,
+      annotations: this.annotations,
       importDeclarations: ReadonlySetReducer.combineAll(members.map((m) => m.importDeclarations))
     }
   }
@@ -1313,7 +1319,7 @@ class Reference {
     return {
       runtime: generation.runtime,
       types: generation.types,
-      description: this.annotations.description,
+      annotations: this.annotations,
       importDeclarations: generation.importDeclarations
     }
   }
