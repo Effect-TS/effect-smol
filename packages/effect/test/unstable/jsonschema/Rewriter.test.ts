@@ -21,6 +21,7 @@ function assertJsonSchema(
   }
   const document = rewriter(
     Schema.makeJsonSchema(schema, {
+      target: "draft-2020-12",
       generateDescriptions: true,
       referenceStrategy: "skip-top-level",
       ...options
@@ -270,6 +271,7 @@ describe("Rewriter", () => {
             ]
           },
           {
+            target: "draft-07",
             additionalProperties: true
           }
         )

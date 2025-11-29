@@ -1989,7 +1989,7 @@ describe("FromJsonSchema", () => {
       }).annotate({ identifier: "Operation" })
 
       {
-        const document = Schema.makeJsonSchema(Operation)
+        const document = Schema.makeJsonSchema(Operation, { target: "draft-07" })
         strictEqual(
           generate(document.definitions, [document.schema]),
           `// Definitions
@@ -2004,7 +2004,7 @@ const schema1 = Operation;`
         )
       }
       {
-        const document = Schema.makeJsonSchema(Expression)
+        const document = Schema.makeJsonSchema(Expression, { target: "draft-07" })
         strictEqual(
           generate(document.definitions, [document.schema]),
           `// Definitions
@@ -2028,7 +2028,7 @@ const schema1 = Expression;`
           }).annotate({ identifier: "B" })
         }).annotate({ identifier: "A" })
       })
-      const document = Schema.makeJsonSchema(schema)
+      const document = Schema.makeJsonSchema(schema, { target: "draft-07" })
       strictEqual(
         generate(document.definitions, [document.schema]),
         `// Definitions

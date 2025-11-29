@@ -19,7 +19,7 @@ const ajvDraft07 = new Ajv.default(baseAjvOptions)
 const ajvDraft2020_12 = new Ajv2020.default(baseAjvOptions)
 
 function assertUnsupportedSchema(schema: Schema.Top, message: string, options?: Schema.MakeJsonSchemaOptions) {
-  throws(() => Schema.makeJsonSchema(schema, options), message)
+  throws(() => Schema.makeJsonSchema(schema, { target: "draft-07", ...options }), message)
 }
 
 function assertDraft07<S extends Schema.Top>(
@@ -40,7 +40,7 @@ export function assertDraft2020_12<S extends Schema.Top>(
   expected: { schema: object; definitions?: Record<string, object> },
   options?: Schema.MakeJsonSchemaOptions
 ) {
-  const document = Schema.makeJsonSchema(schema, options)
+  const document = Schema.makeJsonSchema(schema, { target: "draft-2020-12", ...options })
   strictEqual(document.uri, "https://json-schema.org/draft/2020-12/schema")
   deepStrictEqual(document.schema, expected.schema)
   deepStrictEqual(document.definitions, expected.definitions ?? {})
@@ -172,6 +172,7 @@ describe("JsonSchema generation", () => {
             schema: {}
           },
           {
+            target: "draft-07",
             onMissingJsonSchemaAnnotation: () => ({})
           }
         )
@@ -182,6 +183,7 @@ describe("JsonSchema generation", () => {
           Schema.Date,
           `Unsupported AST Declaration`,
           {
+            target: "draft-07",
             onMissingJsonSchemaAnnotation: () => undefined
           }
         )
@@ -264,6 +266,7 @@ describe("JsonSchema generation", () => {
           }
         },
         {
+          target: "draft-07",
           onMissingJsonSchemaAnnotation: () => ({ "$comment": "comment" })
         }
       )
@@ -288,6 +291,7 @@ describe("JsonSchema generation", () => {
           }
         },
         {
+          target: "draft-07",
           onMissingJsonSchemaAnnotation: () => ({ "$comment": "comment" })
         }
       )
@@ -3957,6 +3961,7 @@ describe("JsonSchema generation", () => {
               }
             },
             {
+              target: "draft-07",
               referenceStrategy: "skip",
               definitions
             }
@@ -4001,6 +4006,7 @@ describe("JsonSchema generation", () => {
               "additionalProperties": false
             }
           }, {
+            target: "draft-07",
             referenceStrategy: "skip"
           })
         })
@@ -4047,6 +4053,7 @@ describe("JsonSchema generation", () => {
                 }
               }
             }, {
+              target: "draft-07",
               referenceStrategy: "skip"
             })
           })
@@ -4092,6 +4099,7 @@ describe("JsonSchema generation", () => {
                 }
               }
             }, {
+              target: "draft-07",
               referenceStrategy: "skip"
             })
           })
@@ -4140,6 +4148,7 @@ describe("JsonSchema generation", () => {
                 }
               },
               {
+                target: "draft-07",
                 referenceStrategy: "skip"
               }
             )
@@ -4164,6 +4173,7 @@ describe("JsonSchema generation", () => {
             "additionalProperties": false
           }
         }, {
+          target: "draft-07",
           additionalProperties: false
         })
       })
@@ -4183,6 +4193,7 @@ describe("JsonSchema generation", () => {
             "additionalProperties": true
           }
         }, {
+          target: "draft-07",
           additionalProperties: true
         })
       })
@@ -4202,6 +4213,7 @@ describe("JsonSchema generation", () => {
             "additionalProperties": { "type": "string" }
           }
         }, {
+          target: "draft-07",
           additionalProperties: { "type": "string" }
         })
       })

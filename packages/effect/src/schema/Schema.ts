@@ -7459,7 +7459,7 @@ export interface MakeJsonSchemaOptions {
    *
    * Defaults to `"draft-2020-12"`.
    */
-  readonly target?: JsonSchema.Target
+  readonly target: JsonSchema.Target
   /**
    * A record of definitions which are included in the schema.
    *
@@ -7542,7 +7542,7 @@ export declare namespace JsonSchema {
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeJsonSchema<S extends Top>(schema: S, options?: MakeJsonSchemaOptions): JsonSchema.Document {
+export function makeJsonSchema<S extends Top>(schema: S, options: MakeJsonSchemaOptions): JsonSchema.Document {
   return InternalJsonSchema.make(schema, options)
 }
 

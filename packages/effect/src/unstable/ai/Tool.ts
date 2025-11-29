@@ -1119,6 +1119,7 @@ export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): Schema
     }
   }
   const document = Schema.makeJsonSchema(schema, {
+    target: "draft-2020-12",
     referenceStrategy: "skip"
   })
   if (Object.keys(document.definitions).length > 0) {
