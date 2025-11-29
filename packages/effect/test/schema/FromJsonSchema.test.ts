@@ -1,22 +1,21 @@
-import type { Annotations } from "effect/schema"
 import { FromJsonSchema, Schema } from "effect/schema"
 import { describe, it } from "vitest"
 // import OpenApiFixture from "../../../platform-node/test/fixtures/openapi.json" with { type: "json" }
 import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
 
-function getDocumentBySource(source: Annotations.JsonSchema.Target, schema: Schema.Top) {
+function getDocumentBySource(source: Schema.JsonSchema.Target, schema: Schema.Top) {
   switch (source) {
     case "draft-07":
       return Schema.makeJsonSchemaDraft07(schema)
-    case "2020-12":
-    case "oas3.1":
+    case "draft-2020-12":
+    case "openapi-3.1":
       return Schema.makeJsonSchemaDraft2020_12(schema)
   }
 }
 
 function assertRoundtrip(input: {
   readonly schema: Schema.Top
-  readonly source?: Annotations.JsonSchema.Target | undefined
+  readonly source?: Schema.JsonSchema.Target | undefined
 }) {
   const source = input.source ?? "draft-07"
   const document = getDocumentBySource(source, input.schema)
@@ -61,7 +60,7 @@ describe("FromJsonSchema", () => {
               "minItems": 1
             },
             options: {
-              source: "2020-12"
+              source: "draft-2020-12"
             }
           },
           FromJsonSchema.makeGeneration(
@@ -1639,10 +1638,10 @@ describe("FromJsonSchema", () => {
     type TopologicalSort = {
       readonly nonRecursives: ReadonlyArray<{
         readonly identifier: string
-        readonly schema: Schema.JsonSchema.Schema
+        readonly schema: Schema.JsonSchema
       }>
       readonly recursives: {
-        readonly [identifier: string]: Schema.JsonSchema.Schema
+        readonly [identifier: string]: Schema.JsonSchema
       }
     }
 
@@ -1957,7 +1956,7 @@ describe("FromJsonSchema", () => {
   describe("generateDefinitions", () => {
     function generate(
       definitions: Schema.JsonSchema.Definitions,
-      schemas: ReadonlyArray<Schema.JsonSchema.Schema>
+      schemas: ReadonlyArray<Schema.JsonSchema>
     ) {
       const genDependencies = FromJsonSchema.generateDefinitions(definitions)
       const genSchemas = schemas.map((schema) => FromJsonSchema.generate(schema))
@@ -2147,7 +2146,7 @@ export const A = Schema.Struct({ "a": B });`
     })
 
     it.skip("OpenApi", () => {
-      const source = "oas3.1"
+      const source = "openapi-3.1"
       const inputSchemas: Array<IdentifierSchema> = collectSchemas({}) // collectSchemas(OpenApiFixture)
       const inputDefinitions = {} // OpenApiFixture.components.schemas as Schema.JsonSchema.Definitions
       const externs: Record<string, { readonly namespace: string; readonly importDeclaration: string }> = {
@@ -2268,7 +2267,7 @@ type Generated = {
 
 function generated(
   source: FromJsonSchema.Source,
-  schemas: ReadonlyArray<{ readonly identifier: string; readonly schema: Schema.JsonSchema.Schema }>,
+  schemas: ReadonlyArray<{ readonly identifier: string; readonly schema: Schema.JsonSchema }>,
   definitions: Schema.JsonSchema.Definitions,
   externs: Record<string, {
     readonly namespace: string
@@ -2342,7 +2341,7 @@ function pathToIdentifier(path: string): string {
 
 type IdentifierSchema = {
   readonly identifier: string
-  readonly schema: Schema.JsonSchema.Schema
+  readonly schema: Schema.JsonSchema
 }
 
 function collectSchemas(spec: any): Array<IdentifierSchema> {

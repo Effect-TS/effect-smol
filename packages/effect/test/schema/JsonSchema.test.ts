@@ -191,7 +191,7 @@ describe("JsonSchema generation", () => {
 
   describe("Override annotation", () => {
     it("typeParameters", () => {
-      function getOptionJsonSchema(value: Schema.JsonSchema.Schema): Schema.JsonSchema.Schema {
+      function getOptionJsonSchema(value: Schema.JsonSchema): Schema.JsonSchema {
         return {
           "title": "Option",
           "oneOf": [

@@ -7,8 +7,8 @@ function assertJsonSchema(
   rewriter: Rewriter.Rewriter,
   schema: Schema.Top,
   expected: {
-    readonly schema: Schema.JsonSchema.Schema
-    readonly definitions?: Record<string, Schema.JsonSchema.Schema> | undefined
+    readonly schema: Schema.JsonSchema
+    readonly definitions?: Record<string, Schema.JsonSchema> | undefined
     readonly traces?: Array<string> | undefined
   },
   options?: Schema.JsonSchemaOptions

@@ -6,7 +6,7 @@ import type * as Schema from "../schema/Schema.ts"
 import { errorWithPath } from "./errors.ts"
 
 interface Options extends Schema.JsonSchemaOptions {
-  readonly target: Annotations.JsonSchema.Target
+  readonly target: Schema.JsonSchema.Target
 }
 
 /** @internal */
@@ -37,8 +37,8 @@ export function make<S extends Schema.Top>(schema: S, options: Options): Schema.
 }
 
 interface GoOptions extends Options {
-  readonly additionalProperties: true | false | Schema.JsonSchema.Schema
-  readonly definitions: Record<string, Schema.JsonSchema.Schema>
+  readonly additionalProperties: true | false | Schema.JsonSchema
+  readonly definitions: Record<string, Schema.JsonSchema>
   readonly generateDescriptions: boolean
 }
 
@@ -54,7 +54,7 @@ function recur(
   options: GoOptions,
   ignoreIdentifier: boolean,
   ignoreAnnotation: boolean
-): Schema.JsonSchema.Schema {
+): Schema.JsonSchema {
   const target = options.target
   // ---------------------------------------------
   // handle identifier annotation
@@ -127,7 +127,7 @@ function recur(
       }
     }
     function handleFilter(check: AST.Filter<any>): void {
-      const fragment = getConstraint(check, options.target, out.type)
+      const fragment = getConstraint(check, options.target, out.type as Schema.JsonSchema.Type)
       if (fragment) {
         out = appendFragment(
           out,
@@ -157,7 +157,7 @@ function recur(
   return out
 }
 
-function flattenArrayJsonSchema(jsonSchema: Schema.JsonSchema.Schema): Schema.JsonSchema.Schema {
+function flattenArrayJsonSchema(jsonSchema: Schema.JsonSchema): Schema.JsonSchema {
   if (Object.keys(jsonSchema).length === 1) {
     if (Array.isArray(jsonSchema.anyOf) && jsonSchema.anyOf.length === 1) {
       return jsonSchema.anyOf[0]
@@ -179,7 +179,7 @@ function base(
   path: ReadonlyArray<PropertyKey>,
   options: GoOptions,
   ignoreAnnotation: boolean
-): Schema.JsonSchema.Schema {
+): Schema.JsonSchema {
   const target = options.target
   // ---------------------------------------------
   // handle Override annotation
@@ -310,8 +310,8 @@ function base(
             }
             break
           }
-          case "2020-12":
-          case "oas3.1": {
+          case "draft-2020-12":
+          case "openapi-3.1": {
             out.prefixItems = items
             if (!isUnknownSchema(additionalItems)) {
               out.items = additionalItems
@@ -371,7 +371,7 @@ function base(
       return out
     }
     case "Union": {
-      const types: Array<Schema.JsonSchema.Schema> = []
+      const types: Array<Schema.JsonSchema> = []
       for (const type of ast.types) {
         if (!AST.isUndefined(type)) {
           types.push(recur(type, path, options, false, false))
@@ -393,32 +393,32 @@ function base(
   }
 }
 
-function getMetaSchemaUri(target: Annotations.JsonSchema.Target) {
+function getMetaSchemaUri(target: Schema.JsonSchema.Target) {
   switch (target) {
     case "draft-07":
       return "http://json-schema.org/draft-07/schema"
-    case "2020-12":
-    case "oas3.1":
+    case "draft-2020-12":
+    case "openapi-3.1":
       return "https://json-schema.org/draft/2020-12/schema"
   }
 }
 
-function getPointer(target: Annotations.JsonSchema.Target) {
+function getPointer(target: Schema.JsonSchema.Target) {
   switch (target) {
     case "draft-07":
       return "#/definitions/"
-    case "2020-12":
+    case "draft-2020-12":
       return "#/$defs/"
-    case "oas3.1":
+    case "openapi-3.1":
       return "#/components/schemas/"
   }
 }
 
 function getConstraint<T>(
   check: AST.Check<T>,
-  target: Annotations.JsonSchema.Target,
+  target: Schema.JsonSchema.Target,
   type?: Schema.JsonSchema.Type
-): Schema.JsonSchema.Fragment | undefined {
+): Schema.JsonSchema | undefined {
   const annotation = check.annotations?.jsonSchemaConstraint as Annotations.JsonSchema.Constraint | undefined
   if (annotation) return annotation({ target, type })
 }
@@ -459,9 +459,9 @@ function getPattern(
 function getJsonSchemaAnnotations(
   annotations: Annotations.Annotations | undefined,
   generateDescriptions: boolean
-): Schema.JsonSchema.Fragment | undefined {
+): Schema.JsonSchema | undefined {
   if (annotations) {
-    const out: Schema.JsonSchema.Fragment = {}
+    const out: Schema.JsonSchema = {}
     if (typeof annotations.title === "string") {
       out.title = annotations.title
     }
@@ -482,10 +482,10 @@ function getJsonSchemaAnnotations(
 }
 
 function mergeOrAppendJsonSchemaAnnotations(
-  jsonSchema: Schema.JsonSchema.Schema,
+  jsonSchema: Schema.JsonSchema,
   annotations: Annotations.Annotations | undefined,
   generateDescriptions: boolean
-): Schema.JsonSchema.Schema {
+): Schema.JsonSchema {
   const fragment = getJsonSchemaAnnotations(annotations, generateDescriptions)
   if (fragment) {
     return appendFragment(jsonSchema, fragment)
@@ -494,16 +494,16 @@ function mergeOrAppendJsonSchemaAnnotations(
 }
 
 function hasIntersection(
-  jsonSchema: Schema.JsonSchema.Schema,
-  fragment: Schema.JsonSchema.Fragment
+  jsonSchema: Schema.JsonSchema,
+  fragment: Schema.JsonSchema
 ): boolean {
   return Object.keys(jsonSchema).filter((key) => key !== "type").some((key) => Object.hasOwn(fragment, key))
 }
 
 function appendFragment(
-  jsonSchema: Schema.JsonSchema.Schema,
-  fragment: Schema.JsonSchema.Fragment
-): Schema.JsonSchema.Schema {
+  jsonSchema: Schema.JsonSchema,
+  fragment: Schema.JsonSchema
+): Schema.JsonSchema {
   if ("$ref" in jsonSchema) {
     return { allOf: [jsonSchema, fragment] }
   } else {

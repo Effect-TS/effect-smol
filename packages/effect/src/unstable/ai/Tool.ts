@@ -1100,14 +1100,14 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * @since 4.0.0
  * @category utilities
  */
-export const getJsonSchema = <Tool extends Any>(tool: Tool): Schema.JsonSchema.Schema =>
+export const getJsonSchema = <Tool extends Any>(tool: Tool): Schema.JsonSchema =>
   getJsonSchemaFromSchema(tool.parametersSchema)
 
 /**
  * @since 4.0.0
  * @category utilities
  */
-export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): Schema.JsonSchema.Schema => {
+export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): Schema.JsonSchema => {
   // TODO: replace this with a rewriter
   const props = AST.isObjects(schema.ast) ? schema.ast.propertySignatures : []
   if (props.length === 0) {

@@ -24,15 +24,12 @@ import * as Reducer from "../data/Reducer.ts"
 import * as Struct from "../data/Struct.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
 import { type Mutable } from "../types/Types.ts"
-import type * as Anno from "./Annotations.ts"
 import type * as Schema from "./Schema.ts"
 
 /**
  * @since 4.0.0
  */
-export type Source = Anno.JsonSchema.Target
-
-type Fragment = Schema.JsonSchema.Fragment
+export type Source = Schema.JsonSchema.Target
 
 /**
  * @since 4.0.0
@@ -203,13 +200,13 @@ type TopologicalSort = {
    */
   readonly nonRecursives: ReadonlyArray<{
     readonly identifier: string
-    readonly schema: Schema.JsonSchema.Schema
+    readonly schema: Schema.JsonSchema
   }>
   /**
    * The recursive definitions (with no particular order).
    */
   readonly recursives: {
-    readonly [identifier: string]: Schema.JsonSchema.Schema
+    readonly [identifier: string]: Schema.JsonSchema
   }
 }
 
@@ -314,7 +311,7 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
     if (deg === 0) queue.push(id)
   }
 
-  const nonRecursives: Array<{ readonly identifier: string; readonly schema: Schema.JsonSchema.Schema }> = []
+  const nonRecursives: Array<{ readonly identifier: string; readonly schema: Schema.JsonSchema }> = []
   for (let i = 0; i < queue.length; i++) {
     const id = queue[i]
     nonRecursives.push({ identifier: id, schema: definitions[id] })
@@ -326,7 +323,7 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
     }
   }
 
-  const recursives: Record<string, Schema.JsonSchema.Schema> = {}
+  const recursives: Record<string, Schema.JsonSchema> = {}
   for (const id of recursive) {
     recursives[id] = definitions[id]
   }
@@ -438,7 +435,7 @@ class Unknown {
   annotate(annotations: Annotations): Unknown {
     return new Unknown(annotationsCombiner.combine(this.annotations, annotations))
   }
-  parseChecks(_: Fragment): AST {
+  parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
   renderChecks(): string {
@@ -466,7 +463,7 @@ class Never {
   annotate(annotations: Annotations): Never {
     return new Never(annotationsCombiner.combine(this.annotations, annotations))
   }
-  parseChecks(_: Fragment): AST {
+  parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
   renderChecks(): string {
@@ -496,7 +493,7 @@ class Not {
   annotate(annotations: Annotations): Not {
     return new Not(this.ast, annotationsCombiner.combine(this.annotations, annotations))
   }
-  parseChecks(_: Fragment): AST {
+  parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
   renderChecks(): string {
@@ -519,7 +516,7 @@ class Null {
   annotate(annotations: Annotations): Null {
     return new Null(annotationsCombiner.combine(this.annotations, annotations))
   }
-  parseChecks(_: Fragment): AST {
+  parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
   renderChecks(): string {
@@ -548,7 +545,7 @@ function makePatternCheck(pattern: string): StringCheck {
 }
 
 class String {
-  static parseChecks(f: Fragment): Array<StringCheck> {
+  static parseChecks(f: Schema.JsonSchema): Array<StringCheck> {
     const cs: Array<StringCheck> = []
     if (typeof f.minLength === "number") cs.push({ _tag: "minLength", value: f.minLength })
     if (typeof f.maxLength === "number") cs.push({ _tag: "maxLength", value: f.maxLength })
@@ -568,7 +565,7 @@ class String {
   annotate(annotations: Annotations): String {
     return new String(this.checks, this.contentSchema, annotationsCombiner.combine(this.annotations, annotations))
   }
-  parseChecks(f: Fragment): AST {
+  parseChecks(f: Schema.JsonSchema): AST {
     return new String([...this.checks, ...String.parseChecks(f)], this.contentSchema, this.annotations)
   }
   renderChecks(): string {
@@ -641,7 +638,7 @@ type NumberCheck =
   | { readonly _tag: "multipleOf"; readonly value: number }
 
 class Number {
-  static parseChecks(f: Fragment): Array<NumberCheck> {
+  static parseChecks(f: Schema.JsonSchema): Array<NumberCheck> {
     const cs: Array<NumberCheck> = []
     if (typeof f.minimum === "number") cs.push({ _tag: "greaterThanOrEqualTo", value: f.minimum })
     if (typeof f.maximum === "number") cs.push({ _tag: "lessThanOrEqualTo", value: f.maximum })
@@ -666,7 +663,7 @@ class Number {
   annotate(annotations: Annotations): Number {
     return new Number(this.isInteger, this.checks, annotationsCombiner.combine(this.annotations, annotations))
   }
-  parseChecks(f: Fragment): AST {
+  parseChecks(f: Schema.JsonSchema): AST {
     return new Number(this.isInteger, [...this.checks, ...Number.parseChecks(f)], this.annotations)
   }
   renderChecks(): string {
@@ -722,7 +719,7 @@ class Boolean {
   annotate(annotations: Annotations): Boolean {
     return new Boolean(annotationsCombiner.combine(this.annotations, annotations))
   }
-  parseChecks(_: Fragment): AST {
+  parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
   renderChecks(): string {
@@ -752,7 +749,7 @@ class Const {
   annotate(annotations: Annotations): Const {
     return new Const(this.value, annotationsCombiner.combine(this.annotations, annotations))
   }
-  parseChecks(_: Fragment): AST {
+  parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
   renderChecks(): string {
@@ -782,7 +779,7 @@ class Enum {
   annotate(annotations: Annotations): Enum {
     return new Enum(this.values, annotationsCombiner.combine(this.annotations, annotations))
   }
-  parseChecks(_: Fragment): AST {
+  parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
   renderChecks(): string {
@@ -829,7 +826,7 @@ class Element {
 }
 
 class Arrays {
-  static parseChecks(f: Fragment): Array<ArraysCheck> {
+  static parseChecks(f: Schema.JsonSchema): Array<ArraysCheck> {
     const cs: Array<ArraysCheck> = []
     if (typeof f.minItems === "number") cs.push({ _tag: "minItems", value: f.minItems })
     if (typeof f.maxItems === "number") cs.push({ _tag: "maxItems", value: f.maxItems })
@@ -862,7 +859,7 @@ class Arrays {
   annotate(annotations: Annotations): Arrays {
     return new Arrays(this.elements, this.rest, this.checks, annotationsCombiner.combine(this.annotations, annotations))
   }
-  parseChecks(schema: Fragment): AST {
+  parseChecks(schema: Schema.JsonSchema): AST {
     return new Arrays(this.elements, this.rest, [...this.checks, ...Arrays.parseChecks(schema)], this.annotations)
   }
   renderChecks(): string {
@@ -1027,7 +1024,7 @@ class IndexSignature {
 }
 
 class Objects {
-  static parseChecks(f: Fragment): Array<ObjectsCheck> {
+  static parseChecks(f: Schema.JsonSchema): Array<ObjectsCheck> {
     const cs: Array<ObjectsCheck> = []
     if (typeof f.minProperties === "number") cs.push({ _tag: "minProperties", value: f.minProperties })
     if (typeof f.maxProperties === "number") cs.push({ _tag: "maxProperties", value: f.maxProperties })
@@ -1057,7 +1054,7 @@ class Objects {
       annotationsCombiner.combine(this.annotations, annotations)
     )
   }
-  parseChecks(f: Fragment): AST {
+  parseChecks(f: Schema.JsonSchema): AST {
     return new Objects(
       this.properties,
       this.indexSignatures,
@@ -1245,7 +1242,7 @@ class Union {
   annotate(annotations: Annotations): Union {
     return new Union(this.members, this.mode, annotationsCombiner.combine(this.annotations, annotations))
   }
-  parseChecks(_: Fragment): AST {
+  parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
   renderChecks(): string {
@@ -1305,7 +1302,7 @@ class Reference {
   annotate(annotations: Annotations): Reference {
     return new Reference(this.identifier, annotationsCombiner.combine(this.annotations, annotations))
   }
-  parseChecks(_: Fragment): AST {
+  parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
   renderChecks(): string {
@@ -1341,7 +1338,7 @@ function parse(schema: unknown, options: RecurOptions): AST {
   return new Unknown()
 }
 
-function parseFragment(schema: Fragment, options: RecurOptions): AST {
+function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   if (Array.isArray(schema.anyOf)) {
     return new Union(schema.anyOf.map((m) => parse(m, options)), "anyOf")
   }
@@ -1396,7 +1393,7 @@ const objectKeys = [
 const arrayKeys = ["items", "prefixItems", "additionalItems", "minItems", "maxItems", "uniqueItems"]
 
 // adds a "type": Type to the schema if it is not present
-function normalize(schema: Fragment): Fragment {
+function normalize(schema: Schema.JsonSchema): Schema.JsonSchema {
   if (schema.type === undefined) {
     if (stringKeys.some((key) => schema[key] !== undefined)) {
       return { ...schema, type: "string" }
@@ -1420,7 +1417,7 @@ function isType(type: unknown): type is Schema.JsonSchema.Type {
   return typeof type === "string" && types.includes(type)
 }
 
-function handleType(type: Schema.JsonSchema.Type, schema: Fragment, options: RecurOptions): AST {
+function handleType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, options: RecurOptions): AST {
   switch (type) {
     case "null":
       return new Null()
@@ -1457,7 +1454,7 @@ function handleType(type: Schema.JsonSchema.Type, schema: Fragment, options: Rec
   }
 }
 
-function collectProperties(schema: Fragment, options: RecurOptions): Array<Property> {
+function collectProperties(schema: Schema.JsonSchema, options: RecurOptions): Array<Property> {
   if (isObject(schema.properties)) {
     const required = Array.isArray(schema.required) ? schema.required : []
     return Object.entries(schema.properties).map(([key, v]) =>
@@ -1467,7 +1464,7 @@ function collectProperties(schema: Fragment, options: RecurOptions): Array<Prope
   return []
 }
 
-function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<IndexSignature> {
+function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions): Array<IndexSignature> {
   const out: Array<IndexSignature> = []
 
   if (isObject(schema.patternProperties)) {
@@ -1512,17 +1509,17 @@ function collectIndexSignatures(schema: Fragment, options: RecurOptions): Array<
   return out
 }
 
-function collectElements(schema: Fragment, options: RecurOptions): ReadonlyArray<unknown> | undefined {
+function collectElements(schema: Schema.JsonSchema, options: RecurOptions): ReadonlyArray<unknown> | undefined {
   switch (options.source) {
     case "draft-07":
       return Array.isArray(schema.items) ? schema.items : undefined
-    case "2020-12":
-    case "oas3.1":
+    case "draft-2020-12":
+    case "openapi-3.1":
       return Array.isArray(schema.prefixItems) ? schema.prefixItems : undefined
   }
 }
 
-function collectRest(schema: Fragment, options: RecurOptions): Fragment | boolean | undefined {
+function collectRest(schema: Schema.JsonSchema, options: RecurOptions): Schema.JsonSchema | boolean | undefined {
   switch (options.source) {
     case "draft-07":
       return isObject(schema.items) || (typeof schema.items === "boolean")
@@ -1530,15 +1527,15 @@ function collectRest(schema: Fragment, options: RecurOptions): Fragment | boolea
         : isObject(schema.additionalItems) || (typeof schema.additionalItems === "boolean")
         ? schema.additionalItems
         : undefined
-    case "2020-12":
-    case "oas3.1":
+    case "draft-2020-12":
+    case "openapi-3.1":
       return isObject(schema.items) || (typeof schema.items === "boolean")
         ? schema.items
         : undefined
   }
 }
 
-function collectAnnotations(schema: Fragment, ast: AST): Annotations | undefined {
+function collectAnnotations(schema: Schema.JsonSchema, ast: AST): Annotations | undefined {
   const as: Mutable<Annotations> = {}
 
   if (typeof schema.title === "string") as.title = schema.title

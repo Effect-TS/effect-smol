@@ -207,7 +207,7 @@ function processAnnotation<Services, S, I>(
 export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
   options?: {
-    readonly additionalProperties?: true | false | Schema.JsonSchema.Schema | undefined
+    readonly additionalProperties?: true | false | Schema.JsonSchema | undefined
   } | undefined
 ): OpenAPISpec => {
   const cached = apiCache.get(api)

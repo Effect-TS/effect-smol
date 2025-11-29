@@ -4328,7 +4328,7 @@ export function isInt32(annotations?: Annotations.Filter) {
     Annotations.combine({
       expected: "a 32-bit integer",
       jsonSchemaConstraint: (ctx) =>
-        ctx.target === "oas3.1" ?
+        ctx.target === "openapi-3.1" ?
           { format: "int32" } :
           undefined,
       meta: {
@@ -4364,7 +4364,7 @@ export function isUint32(annotations?: Annotations.Filter) {
     Annotations.combine({
       expected: "a 32-bit unsigned integer",
       jsonSchemaConstraint: (ctx) =>
-        ctx.target === "oas3.1" ?
+        ctx.target === "openapi-3.1" ?
           { format: "uint32" } :
           undefined,
       meta: {
@@ -6324,8 +6324,8 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
           return {
             "type": "string"
           }
-        case "2020-12":
-        case "oas3.1":
+        case "draft-2020-12":
+        case "openapi-3.1":
           return {
             "type": "string",
             "contentMediaType": "application/json",
@@ -7459,7 +7459,7 @@ export interface JsonSchemaOptions {
    *
    * Defaults to the empty object `{}`.
    */
-  readonly definitions?: Record<string, JsonSchema.Schema> | undefined
+  readonly definitions?: Record<string, JsonSchema> | undefined
   /**
    * Controls how additional properties are handled while resolving the JSON
    * schema.
@@ -7469,7 +7469,7 @@ export interface JsonSchemaOptions {
    * - `true`: Allow additional properties
    * - `JsonSchema`: Use the provided JSON Schema for additional properties
    */
-  readonly additionalProperties?: true | false | JsonSchema.Schema | undefined
+  readonly additionalProperties?: true | false | JsonSchema | undefined
   /**
    * Controls how references are handled while resolving the JSON schema.
    *
@@ -7483,12 +7483,19 @@ export interface JsonSchemaOptions {
    * A function that is called when a JSON Schema annotation is missing. This
    * will be the default result instead of throwing an error.
    */
-  readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => JsonSchema.Schema | undefined) | undefined
+  readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => JsonSchema | undefined) | undefined
   /**
    * Controls whether to generate descriptions for checks (if the user has not
    * provided them) based on the `expected` annotation of the check.
    */
   readonly generateDescriptions?: boolean | undefined
+}
+
+/**
+ * @since 4.0.0
+ */
+export type JsonSchema = {
+  [x: string]: unknown
 }
 
 /**
@@ -7499,33 +7506,24 @@ export declare namespace JsonSchema {
   /**
    * @since 4.0.0
    */
+  export type Target = "draft-07" | "draft-2020-12" | "openapi-3.1"
+
+  /**
+   * @since 4.0.0
+   */
   export type Type = "string" | "number" | "boolean" | "array" | "object" | "null" | "integer"
 
   /**
    * @since 4.0.0
    */
-  export type Fragment = {
-    [x: string]: unknown
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface Schema extends Fragment {
-    type?: Type
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface Definitions extends Record<string, Schema> {}
+  export interface Definitions extends Record<string, JsonSchema> {}
 
   /**
    * @since 4.0.0
    */
   export interface Document {
     readonly uri: string
-    readonly schema: Schema
+    readonly schema: JsonSchema
     readonly definitions: Definitions
   }
 }
@@ -7552,7 +7550,7 @@ export function makeJsonSchemaDraft07<S extends Top>(schema: S, options?: JsonSc
 export function makeJsonSchemaDraft2020_12<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchema.Document {
   return InternalJsonSchema.make(schema, {
     ...options,
-    target: "2020-12"
+    target: "draft-2020-12"
   })
 }
 
@@ -7565,7 +7563,7 @@ export function makeJsonSchemaDraft2020_12<S extends Top>(schema: S, options?: J
 export function makeJsonSchemaOpenApi3_1<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchema.Document {
   return InternalJsonSchema.make(schema, {
     ...options,
-    target: "oas3.1"
+    target: "openapi-3.1"
   })
 }
 
