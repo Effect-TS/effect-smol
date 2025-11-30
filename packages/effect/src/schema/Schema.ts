@@ -526,6 +526,7 @@ export function asStandardSchemaV1<
   }
   if ("~standard" in self) {
     const out = self as any
+    if ("validate" in out["~standard"]) return out
     Object.assign(out["~standard"], { validate })
     return out
   } else {
@@ -586,6 +587,7 @@ export function asStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSche
   }
   if ("~standard" in self) {
     const out = self as any
+    if ("jsonSchema" in out["~standard"]) return out
     Object.assign(out["~standard"], { jsonSchema })
     return out
   } else {
