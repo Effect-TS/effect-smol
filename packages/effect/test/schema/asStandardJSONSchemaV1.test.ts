@@ -1,9 +1,9 @@
-import { deepStrictEqual } from "@effect/vitest/utils"
+import { assertTrue, deepStrictEqual } from "@effect/vitest/utils"
 import { Schema } from "effect/schema"
 import type { StandardJSONSchemaV1 } from "effect/schema/StandardSchema"
 import { describe, it } from "vitest"
 
-function standardConvertToJSONSchema(
+function standardConvertToJSONSchemaInput(
   schema: StandardJSONSchemaV1
 ): Record<string, unknown> {
   return schema["~standard"].jsonSchema.input({
@@ -11,19 +11,50 @@ function standardConvertToJSONSchema(
   })
 }
 
+function standardConvertToJSONSchemaOutput(
+  schema: StandardJSONSchemaV1
+): Record<string, unknown> {
+  return schema["~standard"].jsonSchema.output({
+    target: "draft-07"
+  })
+}
+
 describe("asStandardJSONSchemaV1", () => {
-  it("a schema without identifiers", () => {
+  it("should return a schema", () => {
+    const schema = Schema.FiniteFromString
+    const standardSchema = Schema.asStandardJSONSchemaV1(schema)
+    assertTrue(Schema.isSchema(standardSchema))
+  })
+
+  it("should support both standards", () => {
     const schema = Schema.String
-    const standardJSONSchema = Schema.asStandardJSONSchemaV1(schema)
-    deepStrictEqual(standardConvertToJSONSchema(standardJSONSchema), {
+    const standardJSONSchema = Schema.asStandardSchemaV1(Schema.asStandardJSONSchemaV1(schema))
+    deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
       "type": "string"
+    })
+  })
+
+  it("should return the input JSON Schema", () => {
+    const schema = Schema.FiniteFromString
+    const standardJSONSchema = Schema.asStandardJSONSchemaV1(schema)
+    deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
+      "type": "string",
+      "description": "a string that will be decoded as a finite number"
+    })
+  })
+
+  it("should return the output JSON Schema", () => {
+    const schema = Schema.FiniteFromString
+    const standardJSONSchema = Schema.asStandardJSONSchemaV1(schema)
+    deepStrictEqual(standardConvertToJSONSchemaOutput(standardJSONSchema), {
+      "type": "number"
     })
   })
 
   it("a schema with identifier", () => {
     const schema = Schema.String.annotate({ identifier: "ID" })
     const standardJSONSchema = Schema.asStandardJSONSchemaV1(schema)
-    deepStrictEqual(standardConvertToJSONSchema(standardJSONSchema), {
+    deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
       "$ref": "#/definitions/ID",
       "definitions": {
         "ID": {
@@ -43,7 +74,7 @@ describe("asStandardJSONSchemaV1", () => {
       as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
     }).annotate({ identifier: "A" })
     const standardJSONSchema = Schema.asStandardJSONSchemaV1(schema)
-    deepStrictEqual(standardConvertToJSONSchema(standardJSONSchema), {
+    deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
       "$ref": "#/definitions/A",
       "definitions": {
         "A": {

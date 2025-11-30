@@ -504,33 +504,39 @@ export function asStandardSchemaV1<
   ) => Effect.Effect<S["Type"], Issue.Issue>
   const parseOptions: AST.ParseOptions = { errors: "all", ...options?.parseOptions }
   const formatter = Issue.makeFormatterStandardSchemaV1(options)
-  const standard: StandardSchemaV1<S["Encoded"], S["Type"]> = {
-    "~standard": {
-      version: 1,
-      vendor: "effect",
-      validate(value) {
-        const scheduler = new Scheduler.MixedScheduler()
-        const fiber = Effect.runFork(
-          Effect.match(decodeUnknownEffect(value, parseOptions), {
-            onFailure: formatter,
-            onSuccess: (value): StandardSchemaV1.Result<S["Type"]> => ({ value })
-          }),
-          { scheduler }
-        )
-        scheduler.flush()
-        const exit = fiber.pollUnsafe()
-        if (exit) {
-          return makeStandardResult(exit)
-        }
-        return new Promise((resolve) => {
-          fiber.addObserver((exit) => {
-            resolve(makeStandardResult(exit))
-          })
-        })
-      }
+  const validate: StandardSchemaV1<S["Encoded"], S["Type"]>["~standard"]["validate"] = (value: unknown) => {
+    const scheduler = new Scheduler.MixedScheduler()
+    const fiber = Effect.runFork(
+      Effect.match(decodeUnknownEffect(value, parseOptions), {
+        onFailure: formatter,
+        onSuccess: (value): StandardSchemaV1.Result<S["Type"]> => ({ value })
+      }),
+      { scheduler }
+    )
+    scheduler.flush()
+    const exit = fiber.pollUnsafe()
+    if (exit) {
+      return makeStandardResult(exit)
     }
+    return new Promise((resolve) => {
+      fiber.addObserver((exit) => {
+        resolve(makeStandardResult(exit))
+      })
+    })
   }
-  return Object.assign(self, standard)
+  if ("~standard" in self) {
+    const out = self as any
+    Object.assign(out["~standard"], { validate })
+    return out
+  } else {
+    return Object.assign(self, {
+      "~standard": {
+        version: 1,
+        vendor: "effect",
+        validate
+      } as const
+    })
+  }
 }
 
 const targets = ["draft-07", "draft-2020-12", "openapi-3.1"]
@@ -561,25 +567,36 @@ function makeStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Target
 }
 
 /**
+ * Experimental support for converting a schema to a Standard JSON Schema V1.
+ *
+ * https://github.com/standard-schema/standard-schema/pull/134
+ *
  * @category Standard Schema
  * @since 4.0.0
+ * @experimental
  */
 export function asStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSchemaV1<S["Encoded"], S["Type"]> & S {
-  const standard: StandardJSONSchemaV1<S["Encoded"], S["Type"]> = {
-    "~standard": {
-      version: 1,
-      vendor: "effect",
-      jsonSchema: {
-        input(options) {
-          return makeStandardJSONSchemaV1(self, options.target)
-        },
-        output(options) {
-          return makeStandardJSONSchemaV1(typeCodec(self), options.target)
-        }
-      }
+  const jsonSchema: StandardJSONSchemaV1.Props<S["Encoded"], S["Type"]>["jsonSchema"] = {
+    input(options) {
+      return makeStandardJSONSchemaV1(self, options.target)
+    },
+    output(options) {
+      return makeStandardJSONSchemaV1(typeCodec(self), options.target)
     }
   }
-  return Object.assign(self, standard)
+  if ("~standard" in self) {
+    const out = self as any
+    Object.assign(out["~standard"], { jsonSchema })
+    return out
+  } else {
+    return Object.assign(self, {
+      "~standard": {
+        version: 1,
+        vendor: "effect",
+        jsonSchema
+      } as const
+    })
+  }
 }
 
 /**
