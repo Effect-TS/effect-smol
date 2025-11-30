@@ -28,8 +28,8 @@ describe("asStandardJSONSchemaV1", () => {
 
   it("should support both standards", () => {
     const schema = Schema.String
-    const standardJSONSchema = Schema.asStandardSchemaV1(Schema.asStandardJSONSchemaV1(schema))
-    deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
+    const both = Schema.asStandardSchemaV1(Schema.asStandardJSONSchemaV1(schema))
+    deepStrictEqual(standardConvertToJSONSchemaInput(both), {
       "type": "string"
     })
   })

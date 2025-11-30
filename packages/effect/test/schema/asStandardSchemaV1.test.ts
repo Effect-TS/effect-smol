@@ -112,8 +112,8 @@ describe("asStandardSchemaV1", () => {
 
   it("should support both standards", () => {
     const schema = Schema.String
-    const standardSchema = Schema.asStandardJSONSchemaV1(Schema.asStandardSchemaV1(schema))
-    expectSyncSuccess(standardSchema, "a", "a")
+    const both = Schema.asStandardJSONSchemaV1(Schema.asStandardSchemaV1(schema))
+    expectSyncSuccess(both, "a", "a")
   })
 
   it("sync decoding", () => {
