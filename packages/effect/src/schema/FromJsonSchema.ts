@@ -68,9 +68,13 @@ export type Annotations = {
  * @since 4.0.0
  */
 export type Generation = {
+  /** The runtime code to generate the schema (e.g. `Schema.Struct({ "a": Schema.String })`) */
   readonly runtime: string
+  /** The `Type`, `Encoded`, `DecodingServices`, and `EncodingServices` types related to the generated schema */
   readonly types: Types
+  /** The JSON Schema annotations found on the JSON Schema (e.g. `{ "description": "a description", "examples": [{ "a": "foo" }] }`) */
   readonly annotations: Annotations
+  /** The import declarations needed to generate the schema */
   readonly importDeclarations: ReadonlySet<string>
 }
 
@@ -346,7 +350,9 @@ function unescapeJsonPointer(pointer: string): string {
  * @since 4.0.0
  */
 export type DefinitionGeneration = {
+  /** The identifier of the definition */
   readonly identifier: string
+  /** The generation of the definition */
   readonly generation: Generation
 }
 
