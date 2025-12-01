@@ -971,8 +971,9 @@ export const promise: <A>(
 export const tryPromise: <A, E = Cause.UnknownError>(
   options:
     | { readonly try: (signal: AbortSignal) => PromiseLike<A>; readonly catch: (error: unknown) => E }
+    | { readonly try: (signal: AbortSignal) => PromiseLike<A> }
     | ((signal: AbortSignal) => PromiseLike<A>)
-) => Effect<A, E> = internal.tryPromise
+) => Effect<A, E> = internal.promise
 
 /**
  * Creates an `Effect` that always succeeds with a given value.
