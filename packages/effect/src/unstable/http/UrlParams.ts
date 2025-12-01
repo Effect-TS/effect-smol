@@ -257,12 +257,17 @@ export const setAll: {
   (input: Input): (self: UrlParams) => UrlParams
   (self: UrlParams, input: Input): UrlParams
 } = dual(2, (self: UrlParams, input: Input): UrlParams => {
-  const toSet = fromInput(input)
-  const keys = toSet.params.map(([k]) => k)
-  return make(Arr.appendAll(
-    Arr.filter(self.params, ([k]) => keys.includes(k)),
-    toSet.params
-  ))
+  const out = fromInput(input)
+  const params = out.params as Array<readonly [string, string]>
+  const keys = new Set()
+  for (let i = 0; i < params.length; i++) {
+    keys.add(params[i][0])
+  }
+  for (let i = 0; i < self.params.length; i++) {
+    if (keys.has(self.params[i][0])) continue
+    params.push(self.params[i])
+  }
+  return out
 })
 
 /**

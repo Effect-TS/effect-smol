@@ -62,16 +62,21 @@ export const toHandled = <E, R, EH, RH>(
       const fiber = Fiber.getCurrent()!
       const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
       const handler = fiber.getRef(PreResponseHandlers)
+      const cont = cause.failures.length === 0 ? Effect.succeed(response) : Effect.failCause(cause)
       if (handler === undefined) {
         ;(request as any)[handledSymbol] = true
-        return Effect.flatMapEager(handleResponse(request, response), () => Effect.failCause(cause))
+        return Effect.flatMapEager(
+          handleResponse(request, response),
+          () => cont
+        )
       }
+
       return Effect.flatMapEager(
         Effect.flatMapEager(handler(request, response), (response) => {
           ;(request as any)[handledSymbol] = true
           return handleResponse(request, response)
         }),
-        () => Effect.failCause(cause)
+        () => cont
       )
     })
 

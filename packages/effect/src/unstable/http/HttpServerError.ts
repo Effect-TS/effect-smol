@@ -126,28 +126,39 @@ export const clientAbortFiberId = -499
 export const causeResponse = <E>(
   cause: Cause.Cause<E>
 ): Effect.Effect<readonly [Response.HttpServerResponse, Cause.Cause<E>]> => {
+  let response: Response.HttpServerResponse | undefined
   let effect = succeedInternalServerError
   const failures: Array<Cause.Failure<E>> = []
+  let interrupt: Cause.Interrupt | undefined
   for (let i = 0; i < cause.failures.length; i++) {
     const f = cause.failures[i]
     switch (f._tag) {
       case "Fail": {
         effect = Respondable.toResponseOrElse(f.error, internalServerError)
-        failures[0] = f
+        failures.push(f)
         break
       }
       case "Die": {
-        effect = Respondable.toResponseOrElseDefect(f.defect, internalServerError)
-        failures[0] = f
+        if (Response.isHttpServerResponse(f.defect)) {
+          response = f.defect
+        } else {
+          effect = Respondable.toResponseOrElseDefect(f.defect, internalServerError)
+          failures.push(f)
+        }
         break
       }
       case "Interrupt": {
         if (failures.length > 0) break
         effect = f.fiberId === clientAbortFiberId ? clientAbortError : serverAbortError
-        failures[0] = f
+        interrupt = f
         break
       }
     }
+  }
+  if (response) {
+    return Effect.succeed([response, Cause.fromFailures(failures)] as const)
+  } else if (interrupt && failures.length === 0) {
+    failures.push(interrupt)
   }
   return Effect.mapEager(effect, (response) => {
     failures.push(Cause.failureDie(response))
