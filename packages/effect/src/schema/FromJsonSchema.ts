@@ -93,7 +93,7 @@ export function makeGeneration(
 /**
  * @since 4.0.0
  */
-export function makeGenerationIdentity(identifier: string): Generation {
+export function makeGenerationIdentifier(identifier: string): Generation {
   return makeGeneration(identifier, makeTypes(identifier))
 }
 
@@ -118,9 +118,19 @@ export function makeGenerationExtern(
 }
 
 /**
+ * `ref` is a `/`-separated string that represents a JSON Pointer.
+ *
+ * Examples:
+ * - `"#/definitions/A"` -> `"A"`
+ * - `"#/definitions/A/definitions/B"` -> `"A/definitions/B"`
+ * - `"#/$defs/A"` -> `"A"`
+ * - `"#/$defs/A/$defs/B"` -> `"A/$defs/B"`
+ * - `"#/components/schemas/A"` -> `"A"`
+ * - `"#/components/schemas/A/$defs/B"` -> `"A/$defs/B"`
+ *
  * @since 4.0.0
  */
-export type Resolver = (identifier: string) => Generation
+export type Resolver = (ref: string) => Generation
 
 /**
  * @since 4.0.0
@@ -172,8 +182,8 @@ export function generate(schema: Schema.JsonSchema | boolean, options: GenerateO
   return toGeneration(parse(schema, recurOptions), recurOptions)
 }
 
-const defaultResolver: Resolver = (identifier: string) => {
-  return makeGeneration(identifier, makeTypes(identifier))
+const defaultResolver: Resolver = (ref: string) => {
+  return makeGeneration(ref, makeTypes(ref))
 }
 
 function defaultExtractJsDocs(annotations: Annotations): string {
@@ -223,14 +233,14 @@ type TopologicalSort = {
    * The definitions that depends on other definitions are placed after the definitions they depend on
    */
   readonly nonRecursives: ReadonlyArray<{
-    readonly identifier: string
+    readonly ref: string
     readonly schema: Schema.JsonSchema
   }>
   /**
    * The recursive definitions (with no particular order).
    */
   readonly recursives: {
-    readonly [identifier: string]: Schema.JsonSchema
+    readonly [ref: string]: Schema.JsonSchema
   }
 }
 
@@ -335,12 +345,12 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
     if (deg === 0) queue.push(id)
   }
 
-  const nonRecursives: Array<{ readonly identifier: string; readonly schema: Schema.JsonSchema }> = []
+  const nonRecursives: Array<{ readonly ref: string; readonly schema: Schema.JsonSchema }> = []
   for (let i = 0; i < queue.length; i++) {
-    const id = queue[i]
-    nonRecursives.push({ identifier: id, schema: definitions[id] })
+    const ref = queue[i]
+    nonRecursives.push({ ref, schema: definitions[ref] })
 
-    for (const next of dependents.get(id) ?? []) {
+    for (const next of dependents.get(ref) ?? []) {
       const deg = (inDegree.get(next) ?? 0) - 1
       inDegree.set(next, deg)
       if (deg === 0) queue.push(next)
@@ -348,8 +358,8 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
   }
 
   const recursives: Record<string, Schema.JsonSchema> = {}
-  for (const id of recursive) {
-    recursives[id] = definitions[id]
+  for (const ref of recursive) {
+    recursives[ref] = definitions[ref]
   }
 
   return { nonRecursives, recursives }
@@ -367,13 +377,21 @@ function unescapeJsonPointerPart(part: string): string {
  * @since 4.0.0
  */
 export type DefinitionGeneration = {
-  /** The identifier of the definition */
-  readonly identifier: string
+  /** The ref of the definition */
+  readonly ref: string
   /** The generation of the definition */
   readonly generation: Generation
 }
 
 /**
+ * Returns an array of DefinitionGeneration values for the given definitions.
+ * The definitions are sorted in topological order, so a definition is emitted after the definitions it depends on.
+ *
+ * The definitions must be passed depending on the source:
+ * - draft-07: the `.definitions` property of the schema.
+ * - draft-2020-12: the `$defs` property of the schema.
+ * - openapi-3.1: the `components.schemas` property of the specification.
+ *
  * @since 4.0.0
  */
 export function generateDefinitions(
@@ -385,15 +403,15 @@ export function generateDefinitions(
   const resolver = options.resolver ?? defaultResolver
   const opts: GenerateOptions = {
     ...options,
-    resolver: (identifier) => {
-      const out = resolver(identifier)
-      if (recursives.has(identifier)) {
+    resolver: (ref) => {
+      const out = resolver(ref)
+      if (recursives.has(ref)) {
         const services = [out.types.Type, out.types.Encoded, out.types.DecodingServices, out.types.EncodingServices]
         if (services[3] === "never") services.pop()
         if (services[2] === "never") services.pop()
         if (services[1] === services[0]) services.pop()
         return makeGeneration(
-          `Schema.suspend((): Schema.Codec<${services.join(", ")}> => ${identifier})`,
+          `Schema.suspend((): Schema.Codec<${services.join(", ")}> => ${ref})`,
           out.types
         )
       }
@@ -401,13 +419,13 @@ export function generateDefinitions(
     }
   }
   return ts.nonRecursives.concat(
-    Object.entries(ts.recursives).map(([identifier, schema]) => ({ identifier, schema }))
-  ).map(({ identifier, schema }) => {
+    Object.entries(ts.recursives).map(([ref, schema]) => ({ ref, schema }))
+  ).map(({ ref, schema }) => {
     const output = generate(schema, opts)
     return {
-      identifier,
+      ref,
       generation: makeGeneration(
-        output.runtime + `.annotate({ "identifier": ${format(identifier)} })`,
+        output.runtime + `.annotate({ "identifier": ${format(ref)} })`,
         output.types,
         output.annotations,
         output.importDeclarations
@@ -1324,14 +1342,14 @@ class Union {
 
 class Reference {
   readonly _tag = "Reference"
-  readonly identifier: string
+  readonly ref: string
   readonly annotations: Annotations
-  constructor(identifier: string, annotations: Annotations = {}) {
-    this.identifier = identifier
+  constructor(ref: string, annotations: Annotations = {}) {
+    this.ref = ref
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Reference {
-    return new Reference(this.identifier, annotationsCombiner.combine(this.annotations, annotations))
+    return new Reference(this.ref, annotationsCombiner.combine(this.annotations, annotations))
   }
   parseChecks(_: Schema.JsonSchema): AST {
     return this
@@ -1343,7 +1361,7 @@ class Reference {
     return new Never()
   }
   toGeneration(options: RecurOptions): Generation {
-    const generation = options.resolver(this.identifier)
+    const generation = options.resolver(this.ref)
     return {
       runtime: generation.runtime,
       types: generation.types,
@@ -1413,18 +1431,21 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
         }
       }
 
-      const identifier = parts[parts.length - 1]
-      if (
-        options.inlineRefs &&
-        (identifier in options.definitions) &&
-        !options.refStack.has(schema.$ref)
-      ) {
-        const nextStack = new Set(options.refStack)
-        nextStack.add(schema.$ref)
-        return parse(options.definitions[identifier], { ...options, refStack: nextStack })
+      const ref = getRef(parts, options.source)
+      if (Arr.isArrayNonEmpty(ref)) {
+        const definition = extractDefinition(options.definitions, ref)
+        if (
+          options.inlineRefs &&
+          definition !== undefined &&
+          !options.refStack.has(schema.$ref)
+        ) {
+          const nextStack = new Set(options.refStack)
+          nextStack.add(schema.$ref)
+          return parse(definition, { ...options, refStack: nextStack })
+        }
       }
 
-      return new Reference(identifier)
+      return new Reference(ref.join("/"))
     } else {
       throw new Error(`Invalid $ref: ${schema.$ref}`)
     }
@@ -1435,6 +1456,16 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   }
 
   return new Unknown()
+}
+
+function getRef(parts: readonly [string, ...Array<string>], source: Source): Array<string> {
+  switch (source) {
+    case "draft-07":
+    case "draft-2020-12":
+      return parts.slice(1)
+    case "openapi-3.1":
+      return parts.slice(2)
+  }
 }
 
 function extractDefinition(

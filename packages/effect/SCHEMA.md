@@ -6019,7 +6019,7 @@ const schema = FromJsonSchema.generate(jsonSchema, {
     }
 
     // Fallback: keep the original identifier.
-    return FromJsonSchema.makeGenerationIdentity(identifier)
+    return FromJsonSchema.makeGenerationIdentifier(identifier)
   }
 })
 

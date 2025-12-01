@@ -72,9 +72,9 @@ describe("FromJsonSchema", () => {
               "$ref": "#/definitions/ID~1a~0b"
             },
             options: {
-              resolver: (identifier) => {
-                const id = identifier.replace(/[/~]/g, "$")
-                return FromJsonSchema.makeGeneration(id, FromJsonSchema.makeTypes(id))
+              resolver: (ref) => {
+                const identifier = ref.replace(/[/~]/g, "$")
+                return FromJsonSchema.makeGenerationIdentifier(identifier)
               }
             }
           },
@@ -150,7 +150,8 @@ describe("FromJsonSchema", () => {
             "required": ["a", "b", "c"]
           },
           options: {
-            resolver: (identifier) => {
+            resolver: (ref) => {
+              const identifier = ref.replace(/[/~]/g, "$")
               switch (identifier) {
                 case "B":
                   return FromJsonSchema.makeGeneration(
@@ -170,7 +171,7 @@ describe("FromJsonSchema", () => {
                     new Set([C_IMPORT])
                   )
                 default:
-                  return FromJsonSchema.makeGenerationIdentity(identifier)
+                  return FromJsonSchema.makeGenerationIdentifier(identifier)
               }
             }
           }
@@ -299,7 +300,8 @@ describe("FromJsonSchema", () => {
 
       const options: FromJsonSchema.GenerateOptions = {
         source: "draft-07",
-        resolver: (identifier) => {
+        resolver: (ref) => {
+          const identifier = ref.replace(/[/~]/g, "$")
           return FromJsonSchema.makeGeneration(
             identifier,
             FromJsonSchema.makeTypes(
@@ -845,7 +847,8 @@ describe("FromJsonSchema", () => {
     it("$ref", () => {
       const options: FromJsonSchema.GenerateOptions = {
         source: "draft-07",
-        resolver: (identifier) => {
+        resolver: (ref) => {
+          const identifier = ref.replace(/[/~]/g, "$")
           return FromJsonSchema.makeGeneration(
             identifier,
             FromJsonSchema.makeTypes(
@@ -1105,6 +1108,69 @@ describe("FromJsonSchema", () => {
         FromJsonSchema.makeGeneration(
           `Schema.Struct({ "a": A })`,
           FromJsonSchema.makeTypes(`{ readonly "a": A }`)
+        )
+      )
+      // nested inline definitions
+      assertGeneration(
+        {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": { "$ref": "#/definitions/B/definitions/C" }
+            },
+            "required": ["a"],
+            "definitions": {
+              "B": {
+                "type": "object",
+                "properties": {
+                  "b": { "type": "string" }
+                },
+                "required": ["b"],
+                "definitions": {
+                  "C": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        FromJsonSchema.makeGeneration(
+          `Schema.Struct({ "a": Schema.String })`,
+          FromJsonSchema.makeTypes(`{ readonly "a": string }`)
+        )
+      )
+      assertGeneration(
+        {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": { "$ref": "#/definitions/B/definitions/C/properties/b" }
+            },
+            "required": ["a"],
+            "definitions": {
+              "B": {
+                "type": "object",
+                "properties": {
+                  "b": { "type": "string" }
+                },
+                "required": ["b"],
+                "definitions": {
+                  "C": {
+                    "type": "object",
+                    "properties": {
+                      "b": { "type": "string" }
+                    },
+                    "required": ["b"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        FromJsonSchema.makeGeneration(
+          `Schema.Struct({ "a": Schema.String })`,
+          FromJsonSchema.makeTypes(`{ readonly "a": string }`)
         )
       )
     })
@@ -1691,12 +1757,9 @@ describe("FromJsonSchema", () => {
                 "B": {
                   "type": "object",
                   "properties": {
-                    "b": { "$ref": "#/definitions/C" }
+                    "b": { "type": "string" }
                   },
                   "required": ["b"]
-                },
-                "C": {
-                  "type": "string"
                 }
               }
             }
@@ -1723,9 +1786,12 @@ describe("FromJsonSchema", () => {
                 "B": {
                   "type": "object",
                   "properties": {
-                    "b": { "type": "string" }
+                    "b": { "$ref": "#/definitions/C" }
                   },
                   "required": ["b"]
+                },
+                "C": {
+                  "type": "string"
                 }
               }
             }
@@ -1733,6 +1799,44 @@ describe("FromJsonSchema", () => {
           FromJsonSchema.makeGeneration(
             `Schema.Struct({ "a": Schema.String, "b": Schema.String })`,
             FromJsonSchema.makeTypes(`{ readonly "a": string, readonly "b": string }`)
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "object",
+              "properties": {
+                "a": { "type": "string" }
+              },
+              "required": ["a"],
+              "allOf": [
+                { "$ref": "#/definitions/B/definitions/C" }
+              ]
+            },
+            options: {
+              definitions: {
+                "B": {
+                  "type": "object",
+                  "properties": {
+                    "b": { "type": "string" }
+                  },
+                  "required": ["b"],
+                  "definitions": {
+                    "C": {
+                      "type": "object",
+                      "properties": {
+                        "c": { "type": "string" }
+                      },
+                      "required": ["c"]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Struct({ "a": Schema.String, "c": Schema.String })`,
+            FromJsonSchema.makeTypes(`{ readonly "a": string, readonly "c": string }`)
           )
         )
       })
@@ -1745,13 +1849,13 @@ describe("FromJsonSchema", () => {
       schemas: ReadonlyArray<Schema.JsonSchema>
     ) {
       const genDependencies = FromJsonSchema.generateDefinitions(definitions, { source: "draft-07" })
-      const genSchemas = schemas.map((schema) => FromJsonSchema.generate(schema, { source: "draft-07" }))
+      const genSchemas = schemas.map((schema) => FromJsonSchema.generate(schema, { source: "draft-07", definitions }))
       let s = ""
 
       s += "// Definitions\n"
-      genDependencies.forEach(({ generation: schema, identifier }) => {
-        s += `type ${identifier} = ${schema.types.Type};\n`
-        s += `const ${identifier} = ${schema.runtime};\n\n`
+      genDependencies.forEach(({ generation: schema, ref }) => {
+        s += `type ${ref} = ${schema.types.Type};\n`
+        s += `const ${ref} = ${schema.runtime};\n\n`
       })
 
       s += "// Schemas\n"
@@ -1925,11 +2029,11 @@ const schema1 = Schema.Struct({ "a": A });`
   describe("topologicalSort", () => {
     type TopologicalSort = {
       readonly nonRecursives: ReadonlyArray<{
-        readonly identifier: string
+        readonly ref: string
         readonly schema: Schema.JsonSchema
       }>
       readonly recursives: {
-        readonly [identifier: string]: Schema.JsonSchema
+        readonly [ref: string]: Schema.JsonSchema
       }
     }
 
@@ -1955,7 +2059,7 @@ const schema1 = Schema.Struct({ "a": A });`
         },
         {
           nonRecursives: [
-            { identifier: "A", schema: { type: "string" } }
+            { ref: "A", schema: { type: "string" } }
           ],
           recursives: {}
         }
@@ -1969,9 +2073,9 @@ const schema1 = Schema.Struct({ "a": A });`
         C: { type: "boolean" }
       }, {
         nonRecursives: [
-          { identifier: "A", schema: { type: "string" } },
-          { identifier: "B", schema: { type: "number" } },
-          { identifier: "C", schema: { type: "boolean" } }
+          { ref: "A", schema: { type: "string" } },
+          { ref: "B", schema: { type: "number" } },
+          { ref: "C", schema: { type: "boolean" } }
         ],
         recursives: {}
       })
@@ -1984,9 +2088,9 @@ const schema1 = Schema.Struct({ "a": A });`
         C: { $ref: "#/definitions/B" }
       }, {
         nonRecursives: [
-          { identifier: "A", schema: { type: "string" } },
-          { identifier: "B", schema: { $ref: "#/definitions/A" } },
-          { identifier: "C", schema: { $ref: "#/definitions/B" } }
+          { ref: "A", schema: { type: "string" } },
+          { ref: "B", schema: { $ref: "#/definitions/A" } },
+          { ref: "C", schema: { $ref: "#/definitions/B" } }
         ],
         recursives: {}
       })
@@ -1999,9 +2103,9 @@ const schema1 = Schema.Struct({ "a": A });`
         C: { $ref: "#/definitions/A" }
       }, {
         nonRecursives: [
-          { identifier: "A", schema: { type: "string" } },
-          { identifier: "B", schema: { $ref: "#/definitions/A" } },
-          { identifier: "C", schema: { $ref: "#/definitions/A" } }
+          { ref: "A", schema: { type: "string" } },
+          { ref: "B", schema: { $ref: "#/definitions/A" } },
+          { ref: "C", schema: { $ref: "#/definitions/A" } }
         ],
         recursives: {}
       })
@@ -2015,10 +2119,10 @@ const schema1 = Schema.Struct({ "a": A });`
         D: { $ref: "#/definitions/A" }
       }, {
         nonRecursives: [
-          { identifier: "A", schema: { type: "string" } },
-          { identifier: "B", schema: { $ref: "#/definitions/A" } },
-          { identifier: "D", schema: { $ref: "#/definitions/A" } },
-          { identifier: "C", schema: { $ref: "#/definitions/B" } }
+          { ref: "A", schema: { type: "string" } },
+          { ref: "B", schema: { $ref: "#/definitions/A" } },
+          { ref: "D", schema: { $ref: "#/definitions/A" } },
+          { ref: "C", schema: { $ref: "#/definitions/B" } }
         ],
         recursives: {}
       })
@@ -2072,8 +2176,8 @@ const schema1 = Schema.Struct({ "a": A });`
         E: { $ref: "#/definitions/D" }
       }, {
         nonRecursives: [
-          { identifier: "A", schema: { type: "string" } },
-          { identifier: "B", schema: { $ref: "#/definitions/A" } }
+          { ref: "A", schema: { type: "string" } },
+          { ref: "B", schema: { $ref: "#/definitions/A" } }
         ],
         recursives: {
           C: { $ref: "#/definitions/C" },
@@ -2094,8 +2198,8 @@ const schema1 = Schema.Struct({ "a": A });`
         }
       }, {
         nonRecursives: [
-          { identifier: "A", schema: { type: "string" } },
-          { identifier: "B", schema: { type: "object", properties: { value: { $ref: "#/definitions/A" } } } }
+          { ref: "A", schema: { type: "string" } },
+          { ref: "B", schema: { type: "object", properties: { value: { $ref: "#/definitions/A" } } } }
         ],
         recursives: {}
       })
@@ -2110,8 +2214,8 @@ const schema1 = Schema.Struct({ "a": A });`
         }
       }, {
         nonRecursives: [
-          { identifier: "A", schema: { type: "string" } },
-          { identifier: "B", schema: { type: "array", items: { $ref: "#/definitions/A" } } }
+          { ref: "A", schema: { type: "string" } },
+          { ref: "B", schema: { type: "array", items: { $ref: "#/definitions/A" } } }
         ],
         recursives: {}
       })
@@ -2128,8 +2232,8 @@ const schema1 = Schema.Struct({ "a": A });`
         }
       }, {
         nonRecursives: [
-          { identifier: "A", schema: { type: "string" } },
-          { identifier: "B", schema: { anyOf: [{ $ref: "#/definitions/A" }, { type: "number" }] } }
+          { ref: "A", schema: { type: "string" } },
+          { ref: "B", schema: { anyOf: [{ $ref: "#/definitions/A" }, { type: "number" }] } }
         ],
         recursives: {}
       })
@@ -2141,8 +2245,8 @@ const schema1 = Schema.Struct({ "a": A });`
         B: { $ref: "#/definitions/A" }
       }, {
         nonRecursives: [
-          { identifier: "A", schema: { $ref: "#/definitions/External" } },
-          { identifier: "B", schema: { $ref: "#/definitions/A" } }
+          { ref: "A", schema: { $ref: "#/definitions/External" } },
+          { ref: "B", schema: { $ref: "#/definitions/A" } }
         ],
         recursives: {}
       })
@@ -2172,9 +2276,9 @@ const schema1 = Schema.Struct({ "a": A });`
         }
       }, {
         nonRecursives: [
-          { identifier: "A", schema: { type: "string" } },
+          { ref: "A", schema: { type: "string" } },
           {
-            identifier: "B",
+            ref: "B",
             schema: {
               type: "object",
               properties: {
@@ -2204,7 +2308,7 @@ const schema1 = Schema.Struct({ "a": A });`
         D: { $ref: "#/definitions/C" }
       }, {
         nonRecursives: [
-          { identifier: "Independent", schema: { type: "string" } }
+          { ref: "Independent", schema: { type: "string" } }
         ],
         recursives: {
           A: { $ref: "#/definitions/B" },
@@ -2221,7 +2325,7 @@ const schema1 = Schema.Struct({ "a": A });`
         B: { $ref: "#/definitions/A" }
       }, {
         nonRecursives: [
-          { identifier: "B", schema: { $ref: "#/definitions/A" } }
+          { ref: "B", schema: { $ref: "#/definitions/A" } }
         ],
         recursives: {
           A: { $ref: "#/definitions/A" }
@@ -2234,14 +2338,14 @@ const schema1 = Schema.Struct({ "a": A });`
         A: { $ref: "#/definitions/~01A" }
       }, {
         nonRecursives: [
-          { identifier: "A", schema: { $ref: "#/definitions/~01A" } }
+          { ref: "A", schema: { $ref: "#/definitions/~01A" } }
         ],
         recursives: {}
       })
     })
   })
 
-  describe("gen", () => {
+  describe("generateCode", () => {
     it("recursion & external reference", () => {
       const generation = generateCode(
         "draft-07",
@@ -2285,7 +2389,7 @@ const schema1 = Schema.Struct({ "a": A });`
         {
           definitionGenerations: [
             {
-              identifier: "B",
+              ref: "B",
               generation: FromJsonSchema.makeGeneration(
                 `Schema.Struct({ "b": Schema.suspend((): Schema.Codec<B, BEncoded> => B), "c": C }).annotate({ "identifier": "B" })`,
                 FromJsonSchema.makeTypes(
@@ -2329,6 +2433,48 @@ export const A = Schema.Struct({ "a": B });`
       )
     })
   })
+
+  it("open api", () => {
+    const generation = generateCode(
+      "openapi-3.1",
+      [
+        {
+          identifier: "A",
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": {
+                "$ref": "#/components/schemas/B"
+              }
+            },
+            "required": ["a"]
+          }
+        }
+      ],
+      {
+        "B": {
+          "type": "string"
+        }
+      }
+    )
+    const code = toCode(generation)
+    // console.log(code)
+
+    strictEqual(
+      code,
+      `// Imports
+import * as Schema from "effect/schema/Schema"
+
+// Definitions
+export type B = string;
+export type BEncoded = B;
+export const B = Schema.String.annotate({ "identifier": "B" });
+
+
+// Schemas
+export const A = Schema.Struct({ "a": B });`
+    )
+  })
 })
 
 type CodeGeneration = {
@@ -2354,16 +2500,16 @@ function generateCode(
 ): CodeGeneration {
   const options: FromJsonSchema.GenerateOptions = {
     source,
-    resolver: (identifier) => {
-      if (identifier in externs) {
+    resolver: (ref) => {
+      if (ref in externs) {
         return FromJsonSchema.makeGenerationExtern(
-          externs[identifier].namespace,
-          externs[identifier].importDeclaration
+          externs[ref].namespace,
+          externs[ref].importDeclaration
         )
       }
       return FromJsonSchema.makeGeneration(
-        identifier,
-        FromJsonSchema.makeTypes(identifier, `${identifier}Encoded`)
+        ref,
+        FromJsonSchema.makeTypes(ref, `${ref}Encoded`)
       )
     },
     definitions
@@ -2379,10 +2525,10 @@ function generateCode(
     for (const i of d.generation.importDeclarations) {
       importDeclarations.add(i)
     }
-    if (!(d.identifier in externs)) {
+    if (!(d.ref in externs)) {
       definitionGenerations.push(d)
     } else {
-      importDeclarations.add(externs[d.identifier].importDeclaration)
+      importDeclarations.add(externs[d.ref].importDeclaration)
     }
   }
   return { importDeclarations, definitionGenerations, schemaGenerations }
@@ -2395,13 +2541,14 @@ ${[...generation.importDeclarations].join("\n")}
 // Definitions
 ${
     generation.definitionGenerations.map((d) => {
-      let out = `export type ${d.identifier} = ${d.generation.types.Type};\n`
+      const identifier = d.ref.replace(/[/~]/g, "$")
+      let out = `export type ${identifier} = ${d.generation.types.Type};\n`
       if (d.generation.types.Encoded !== d.generation.types.Type) {
-        out += `export type ${d.identifier}Encoded = ${d.generation.types.Encoded};\n`
+        out += `export type ${identifier}Encoded = ${d.generation.types.Encoded};\n`
       } else {
-        out += `export type ${d.identifier}Encoded = ${d.identifier};\n`
+        out += `export type ${identifier}Encoded = ${identifier};\n`
       }
-      out += `export const ${d.identifier} = ${d.generation.runtime};\n`
+      out += `export const ${identifier} = ${d.generation.runtime};\n`
       return out
     }).join("\n")
   }
