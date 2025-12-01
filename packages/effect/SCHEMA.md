@@ -5628,11 +5628,61 @@ readonly "b": number }
 
 `extractJsDocs` can also be a function. If you pass a function, the generator calls it with the extracted annotations so you can decide what becomes documentation.
 
-#### Working with `definitions`
+#### Working with `allOf` arrays
 
-JSON Schema `definitions` are supported.
+`allOf` is supported. When an `allOf` member is a `$ref`, the generator needs access to the referenced schemas so it can inline them and merge them. Pass the `definitions` option when your `allOf` contains references.
 
-**Example** (Resolve a `$ref` from `definitions`)
+**Example** (Inlining a `$ref` inside `allOf`)
+
+```ts
+import { FromJsonSchema } from "effect/schema"
+
+const jsonSchema = {
+  type: "object",
+  properties: {
+    a: { type: "string" }
+  },
+  required: ["a"],
+  // Merge this schema with the referenced definition below.
+  allOf: [{ $ref: "#/definitions/B" }]
+}
+
+const generation = FromJsonSchema.generate(jsonSchema, {
+  source: "draft-07",
+  // Provide the definitions so `$ref` entries inside `allOf` can be resolved
+  // and merged into the final schema.
+  definitions: {
+    B: {
+      type: "object",
+      properties: {
+        b: { type: "string" }
+      },
+      required: ["b"]
+    }
+  }
+})
+
+console.log(generation)
+/*
+{
+  runtime: 'Schema.Struct({ "a": Schema.String, "b": Schema.String })',
+  types: {
+    Type: '{ readonly "a": string, readonly "b": string }',
+    Encoded: '{ readonly "a": string, readonly "b": string }',
+    DecodingServices: 'never',
+    EncodingServices: 'never'
+  },
+  annotations: {},
+  importDeclarations: Set(0) {}
+}
+*/
+```
+
+#### Working with definitions / components
+
+JSON Schema definitions / components are supported.
+
+**Example** (Resolve a `$ref` from definitions)
 
 ```ts
 import { FromJsonSchema } from "effect/schema"
@@ -5969,7 +6019,7 @@ const schema = FromJsonSchema.generate(jsonSchema, {
     }
 
     // Fallback: keep the original identifier.
-    return FromJsonSchema.makeGeneration(identifier, FromJsonSchema.makeTypes(identifier))
+    return FromJsonSchema.makeGenerationIdentity(identifier)
   }
 })
 

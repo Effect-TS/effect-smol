@@ -93,6 +93,13 @@ export function makeGeneration(
 /**
  * @since 4.0.0
  */
+export function makeGenerationIdentity(identifier: string): Generation {
+  return makeGeneration(identifier, makeTypes(identifier))
+}
+
+/**
+ * @since 4.0.0
+ */
 export function makeGenerationExtern(
   namespace: string,
   importDeclaration: string
@@ -113,9 +120,19 @@ export function makeGenerationExtern(
 /**
  * @since 4.0.0
  */
+export type Resolver = (identifier: string) => Generation
+
+/**
+ * @since 4.0.0
+ */
 export type GenerateOptions = {
   readonly source: Source
   readonly resolver?: Resolver | undefined
+  /**
+   * This becomes required if the schema contains references in an `allOf` array
+   * because references must be resolved in order to merge the schemas.
+   */
+  readonly definitions?: Schema.JsonSchema.Definitions | undefined
   /**
    * A function that is called to extract the JavaScript documentation from the
    * annotations.
@@ -132,12 +149,10 @@ interface RecurOptions {
   readonly source: Source
   readonly resolver: Resolver
   readonly extractJsDocs: ((annotations: Annotations) => string) | undefined
+  readonly definitions: Schema.JsonSchema.Definitions
+  readonly inlineLocalRefs: boolean
+  readonly refStack: ReadonlySet<string>
 }
-
-/**
- * @since 4.0.0
- */
-export type Resolver = (identifier: string) => Generation
 
 /**
  * @since 4.0.0
@@ -146,10 +161,34 @@ export function generate(schema: unknown, options: GenerateOptions): Generation 
   const extractJsDocs = options.extractJsDocs ?? false
   const recurOptions: RecurOptions = {
     source: options.source,
-    resolver: options.resolver ?? identityResolver,
-    extractJsDocs: extractJsDocs === true ? defaultExtractJsDocs : extractJsDocs === false ? undefined : extractJsDocs
+    resolver: options.resolver ?? defaultResolver,
+    extractJsDocs: extractJsDocs === true ? defaultExtractJsDocs : extractJsDocs === false ? undefined : extractJsDocs,
+    definitions: getRecurOptionsDefinitions(schema, options),
+    inlineLocalRefs: false,
+    refStack: emptySet
   }
   return toGeneration(parse(schema, recurOptions), recurOptions)
+}
+
+function getDefinitionNamespace(source: Source): string {
+  switch (source) {
+    case "draft-07":
+      return "definitions"
+    case "draft-2020-12":
+    case "openapi-3.1":
+      return "$defs"
+  }
+}
+
+function getRecurOptionsDefinitions(schema: unknown, options: GenerateOptions): Schema.JsonSchema.Definitions {
+  const definitionNamespace = getDefinitionNamespace(options.source)
+  const inlineDefinitions = isObject(schema) && schema[definitionNamespace] ? schema[definitionNamespace] : {}
+  const externalDefinitions = options.definitions ?? {}
+  return { ...inlineDefinitions, ...externalDefinitions }
+}
+
+const defaultResolver: Resolver = (identifier: string) => {
+  return makeGeneration(identifier, makeTypes(identifier))
 }
 
 function defaultExtractJsDocs(annotations: Annotations): string {
@@ -180,10 +219,6 @@ function renderAnnotations(ast: AST): string {
   if (entries.length === 0) return ""
 
   return `.annotate({ ${entries.map(([key, value]) => `${formatPropertyKey(key)}: ${format(value)}`).join(", ")} })`
-}
-
-const identityResolver: Resolver = (identifier: string) => {
-  return makeGeneration(identifier, makeTypes(identifier))
 }
 
 const emptySet: ReadonlySet<string> = new Set()
@@ -365,7 +400,7 @@ export function generateDefinitions(
 ): Array<DefinitionGeneration> {
   const ts = topologicalSort(definitions)
   const recursives = new Set(Object.keys(ts.recursives))
-  const resolver = options.resolver ?? identityResolver
+  const resolver = options.resolver ?? defaultResolver
   const opts: GenerateOptions = {
     ...options,
     resolver: (identifier) => {
@@ -586,7 +621,7 @@ class String {
       }
     })
   }
-  combine(that: AST): AST {
+  combine(that: AST, options: RecurOptions): AST {
     switch (that._tag) {
       case "String":
         return new String(
@@ -595,7 +630,7 @@ class String {
             ? that.contentSchema
             : that.contentSchema === undefined
             ? this.contentSchema
-            : this.contentSchema.combine(that.contentSchema),
+            : this.contentSchema.combine(that.contentSchema, options),
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       case "Unknown":
@@ -880,7 +915,7 @@ class Arrays {
       }
     })
   }
-  combine(that: AST): AST {
+  combine(that: AST, options: RecurOptions): AST {
     switch (that._tag) {
       case "Unknown":
         return new Arrays(
@@ -895,14 +930,18 @@ class Arrays {
         }
         return new Arrays(
           this.elements.concat(that.elements),
-          this.rest === undefined ? that.rest : that.rest === undefined ? this.rest : this.rest.combine(that.rest),
+          this.rest === undefined
+            ? that.rest
+            : that.rest === undefined
+            ? this.rest
+            : this.rest.combine(that.rest, options),
           [...this.checks, ...that.checks],
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       }
       case "Union":
         return new Union(
-          that.members.map((m) => this.combine(m)),
+          that.members.map((m) => this.combine(m, options)),
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       default:
@@ -1078,7 +1117,7 @@ class Objects {
       }
     })
   }
-  combine(that: AST): AST {
+  combine(that: AST, options: RecurOptions): AST {
     switch (that._tag) {
       case "Unknown":
         return new Objects(
@@ -1096,9 +1135,13 @@ class Objects {
         )
       case "Union":
         return new Union(
-          that.members.map((m) => this.combine(m)),
+          that.members.map((m) => this.combine(m, options)),
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
+      case "Reference": {
+        // TODO
+        return new Never()
+      }
       default:
         return new Never()
     }
@@ -1254,7 +1297,7 @@ class Union {
   renderChecks(): string {
     return ""
   }
-  combine(that: AST): AST {
+  combine(that: AST, options: RecurOptions): AST {
     switch (that._tag) {
       case "Unknown":
         return new Union(
@@ -1265,7 +1308,7 @@ class Union {
       case "Arrays":
       case "Objects":
         return new Union(
-          this.members.map((m) => m.combine(that)),
+          this.members.map((m) => m.combine(that, options)),
           this.mode,
           this.annotations
         )
@@ -1337,7 +1380,12 @@ function parse(schema: unknown, options: RecurOptions): AST {
     if (annotations) ast = ast.annotate(annotations)
     ast = ast.parseChecks(schema)
     if (Array.isArray(schema.allOf)) {
-      return schema.allOf.map((m) => parse(m, options)).reduce((acc, curr) => acc.combine(curr), ast)
+      // inline local refs only while parsing members of `allOf`
+      const allOfOptions: RecurOptions = { ...options, inlineLocalRefs: true }
+      return schema.allOf.map((m) => parse(m, allOfOptions)).reduce(
+        (acc, curr) => acc.combine(curr, allOfOptions),
+        ast
+      )
     }
     return ast
   }
@@ -1372,10 +1420,19 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
 
   if (typeof schema.$ref === "string") {
     const identifier = extractIdentifier(schema.$ref)
-    if (identifier !== undefined) {
-      return new Reference(identifier)
+    if (identifier === undefined) throw new Error(`Invalid $ref: ${schema.$ref}`)
+
+    if (
+      options.inlineLocalRefs &&
+      (identifier in options.definitions) &&
+      !options.refStack.has(identifier)
+    ) {
+      const nextStack = new Set(options.refStack)
+      nextStack.add(identifier)
+      return parse(options.definitions[identifier], { ...options, refStack: nextStack })
     }
-    throw new Error(`Invalid $ref: ${schema.$ref}`)
+
+    return new Reference(identifier)
   }
 
   if (isObject(schema.not)) {

@@ -24,6 +24,7 @@ function assertGeneration(
       readonly source?: FromJsonSchema.Source | undefined
       readonly resolver?: FromJsonSchema.Resolver | undefined
       readonly extractJsDocs?: boolean | ((annotations: FromJsonSchema.Annotations) => string) | undefined
+      readonly definitions?: Schema.JsonSchema.Definitions | undefined
     } | undefined
   },
   expected: {
@@ -1547,6 +1548,127 @@ describe("FromJsonSchema", () => {
           FromJsonSchema.makeGeneration(
             `Schema.Union([Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.String]), Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number])])`,
             FromJsonSchema.makeTypes("readonly [string, ...Array<string>] | readonly [string, ...Array<number>]")
+          )
+        )
+      })
+
+      it("object & reference", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "object",
+              "properties": {
+                "a": { "type": "string" }
+              },
+              "required": ["a"],
+              "allOf": [
+                { "$ref": "#/definitions/B" }
+              ],
+              "definitions": {
+                "B": {
+                  "type": "object",
+                  "properties": {
+                    "b": { "type": "string" }
+                  },
+                  "required": ["b"]
+                }
+              }
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Struct({ "a": Schema.String, "b": Schema.String })`,
+            FromJsonSchema.makeTypes(`{ readonly "a": string, readonly "b": string }`)
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "object",
+              "properties": {
+                "a": { "type": "string" }
+              },
+              "required": ["a"],
+              "allOf": [
+                { "$ref": "#/definitions/B" }
+              ],
+              "definitions": {
+                "B": {
+                  "type": "object",
+                  "properties": {
+                    "b": { "$ref": "#/definitions/C" }
+                  },
+                  "required": ["b"]
+                },
+                "C": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Struct({ "a": Schema.String, "b": Schema.String })`,
+            FromJsonSchema.makeTypes(`{ readonly "a": string, readonly "b": string }`)
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "object",
+              "properties": {
+                "a": { "type": "string" }
+              },
+              "required": ["a"],
+              "allOf": [
+                { "$ref": "#/definitions/B" }
+              ]
+            },
+            options: {
+              definitions: {
+                "B": {
+                  "type": "object",
+                  "properties": {
+                    "b": { "$ref": "#/definitions/C" }
+                  },
+                  "required": ["b"]
+                },
+                "C": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Struct({ "a": Schema.String, "b": Schema.String })`,
+            FromJsonSchema.makeTypes(`{ readonly "a": string, readonly "b": string }`)
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "object",
+              "properties": {
+                "a": { "type": "string" }
+              },
+              "required": ["a"],
+              "allOf": [
+                { "$ref": "#/definitions/B" }
+              ]
+            },
+            options: {
+              definitions: {
+                "B": {
+                  "type": "object",
+                  "properties": {
+                    "b": { "type": "string" }
+                  },
+                  "required": ["b"]
+                }
+              }
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Struct({ "a": Schema.String, "b": Schema.String })`,
+            FromJsonSchema.makeTypes(`{ readonly "a": string, readonly "b": string }`)
           )
         )
       })
