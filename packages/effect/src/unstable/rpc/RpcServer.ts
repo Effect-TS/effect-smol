@@ -418,7 +418,7 @@ export const make: <Rpcs extends Rpc.Any>(
 ) => Effect.Effect<
   never,
   never,
-  Protocol | Rpc.ToHandler<Rpcs> | Rpc.Middleware<Rpcs>
+  Protocol | Rpc.ToHandler<Rpcs> | Rpc.Middleware<Rpcs> | Rpc.ServicesServer<Rpcs>
 > = Effect.fnUntraced(function*<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options?: {
@@ -670,6 +670,7 @@ export const layer = <Rpcs extends Rpc.Any>(
   | Protocol
   | Rpc.ToHandler<Rpcs>
   | Rpc.Middleware<Rpcs>
+  | Rpc.ServicesServer<Rpcs>
 > => Layer.effectDiscard(Effect.fork(make(group, options)))
 
 /**
@@ -696,6 +697,7 @@ export const layerHttp = <Rpcs extends Rpc.Any>(options: {
   | HttpRouter.HttpRouter
   | Rpc.ToHandler<Rpcs>
   | Rpc.Middleware<Rpcs>
+  | Rpc.ServicesServer<Rpcs>
 > =>
   layer(options.group, options).pipe(
     Layer.provide(
@@ -899,6 +901,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
 
     const requestIds: Array<RequestId> = []
 
+    // @effect-diagnostics-next-line tryCatchInEffectGen:off
     try {
       const decoded = parser.decode(data) as ReadonlyArray<FromClientEncoded>
       for (let i = 0; i < decoded.length; i++) {
@@ -1023,6 +1026,7 @@ export const toHttpEffect: <Rpcs extends Rpc.Any>(
   | RpcSerialization.RpcSerialization
   | Rpc.ToHandler<Rpcs>
   | Rpc.Middleware<Rpcs>
+  | Rpc.ServicesServer<Rpcs>
 > = Effect.fnUntraced(function*<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options?: {
@@ -1036,6 +1040,7 @@ export const toHttpEffect: <Rpcs extends Rpc.Any>(
     Effect.provideService(Protocol, protocol),
     Effect.fork
   )
+  // @effect-diagnostics-next-line returnEffectInGen:off
   return httpEffect
 })
 
@@ -1057,6 +1062,7 @@ export const toHttpEffectWebsocket: <Rpcs extends Rpc.Any>(
   | RpcSerialization.RpcSerialization
   | Rpc.ToHandler<Rpcs>
   | Rpc.Middleware<Rpcs>
+  | Rpc.ServicesServer<Rpcs>
 > = Effect.fnUntraced(function*<Rpcs extends Rpc.Any>(
   group: RpcGroup.RpcGroup<Rpcs>,
   options?: {
@@ -1070,6 +1076,7 @@ export const toHttpEffectWebsocket: <Rpcs extends Rpc.Any>(
     Effect.provideService(Protocol, protocol),
     Effect.fork
   )
+  // @effect-diagnostics-next-line returnEffectInGen:off
   return httpEffect
 })
 

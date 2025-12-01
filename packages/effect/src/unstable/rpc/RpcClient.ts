@@ -937,6 +937,7 @@ export const layerProtocolHttp = (options: {
  */
 export const makeProtocolSocket = (options?: {
   readonly retryTransientErrors?: boolean | undefined
+  readonly retryPolicy?: Schedule.Schedule<any, Socket.SocketError> | undefined
 }): Effect.Effect<
   Protocol["Service"],
   never,
@@ -1017,7 +1018,7 @@ export const makeProtocolSocket = (options?: {
           error: currentError
         })
       }),
-      Effect.retry(Schedule.spaced(1000)),
+      Effect.retry(options?.retryPolicy ?? defaultRetryPolicy),
       Effect.annotateLogs({
         module: "RpcClient",
         method: "makeProtocolSocket"
@@ -1038,6 +1039,10 @@ export const makeProtocolSocket = (options?: {
       supportsTransferables: false
     }
   }))
+
+const defaultRetryPolicy = Schedule.exponential(500, 1.5).pipe(
+  Schedule.either(Schedule.spaced(5000))
+)
 
 const makePinger = Effect.fnUntraced(function*<A, E, R>(writePing: Effect.Effect<A, E, R>) {
   let recievedPong = true
