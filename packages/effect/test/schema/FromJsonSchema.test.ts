@@ -1,6 +1,5 @@
 import { FromJsonSchema, Schema } from "effect/schema"
 import { describe, it } from "vitest"
-import OpenApiFixture from "../../../platform-node/test/fixtures/openapi.json" with { type: "json" }
 import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
 
 function assertRoundtrip(input: {
@@ -46,7 +45,7 @@ function assertGeneration(
 describe("FromJsonSchema", () => {
   describe("generate", () => {
     describe("options", () => {
-      it("source", () => {
+      it(`source: "draft-2020-12"`, () => {
         assertGeneration(
           {
             schema: {
@@ -136,54 +135,56 @@ describe("FromJsonSchema", () => {
       })
     })
 
-    describe("imports", () => {
-      it("custom resolver", () => {
-        const HTTP_API_ERROR_IMPORT = `import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`
-        const ANOTHER_LIB_IMPORT = `import * as Getter from "my-library"`
-        assertGeneration(
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": { "type": "string" },
-                "b": { "$ref": "#/definitions/effect~1HttpApiSchemaError" },
-                "c": { "$ref": "#/definitions/ID" }
-              },
-              "required": ["a", "b", "c"]
+    it("importDeclarations", () => {
+      const B_IMPORT = `import { B } from "my-library"`
+      const C_IMPORT = `import * as C from "my-library"`
+      assertGeneration(
+        {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": { "type": "string" },
+              "b": { "$ref": "#/definitions/B" },
+              "c": { "$ref": "#/definitions/C" }
             },
-            options: {
-              resolver: (identifier) => {
-                if (identifier === "effect/HttpApiSchemaError") {
+            "required": ["a", "b", "c"]
+          },
+          options: {
+            resolver: (identifier) => {
+              switch (identifier) {
+                case "B":
                   return FromJsonSchema.makeGeneration(
-                    "HttpApiSchemaError",
+                    "B",
                     FromJsonSchema.makeTypes(
-                      `typeof HttpApiSchemaError["Type"]`,
-                      `typeof HttpApiSchemaError["Encoded"]`
+                      `typeof B["Type"]`,
+                      `typeof B["Encoded"]`
                     ),
                     undefined,
-                    new Set([HTTP_API_ERROR_IMPORT])
+                    new Set([B_IMPORT])
                   )
-                }
-                return FromJsonSchema.makeGeneration(
-                  identifier,
-                  FromJsonSchema.makeTypes(identifier),
-                  undefined,
-                  new Set([ANOTHER_LIB_IMPORT])
-                )
+                case "C":
+                  return FromJsonSchema.makeGeneration(
+                    identifier,
+                    FromJsonSchema.makeTypes(identifier),
+                    undefined,
+                    new Set([C_IMPORT])
+                  )
+                default:
+                  return FromJsonSchema.makeGenerationIdentity(identifier)
               }
             }
-          },
-          FromJsonSchema.makeGeneration(
-            `Schema.Struct({ "a": Schema.String, "b": HttpApiSchemaError, "c": ID })`,
-            FromJsonSchema.makeTypes(
-              `{ readonly "a": string, readonly "b": typeof HttpApiSchemaError["Type"], readonly "c": ID }`,
-              `{ readonly "a": string, readonly "b": typeof HttpApiSchemaError["Encoded"], readonly "c": ID }`
-            ),
-            undefined,
-            new Set([HTTP_API_ERROR_IMPORT, ANOTHER_LIB_IMPORT])
-          )
+          }
+        },
+        FromJsonSchema.makeGeneration(
+          `Schema.Struct({ "a": Schema.String, "b": B, "c": C })`,
+          FromJsonSchema.makeTypes(
+            `{ readonly "a": string, readonly "b": typeof B["Type"], readonly "c": C }`,
+            `{ readonly "a": string, readonly "b": typeof B["Encoded"], readonly "c": C }`
+          ),
+          undefined,
+          new Set([B_IMPORT, C_IMPORT])
         )
-      })
+      )
     })
 
     it("format", () => {
@@ -841,7 +842,7 @@ describe("FromJsonSchema", () => {
       })
     })
 
-    it("reference", () => {
+    it("$ref", () => {
       const options: FromJsonSchema.GenerateOptions = {
         source: "draft-07",
         resolver: (identifier) => {
@@ -1041,6 +1042,69 @@ describe("FromJsonSchema", () => {
         FromJsonSchema.makeGeneration(
           `Schema.Union([A, B])`,
           FromJsonSchema.makeTypes("TA | TB", "EA | EB", "DSA | DSB", "ESA | ESB")
+        )
+      )
+    })
+
+    it("should inline local definitions", () => {
+      assertGeneration(
+        {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": { "$ref": "#/definitions/A" }
+            },
+            "required": ["a"],
+            "definitions": {
+              "A": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        FromJsonSchema.makeGeneration(
+          `Schema.Struct({ "a": Schema.String })`,
+          FromJsonSchema.makeTypes(`{ readonly "a": string }`)
+        )
+      )
+      assertGeneration(
+        {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": { "$ref": "#/definitions/A" }
+            },
+            "required": ["a"],
+            "definitions": {
+              "A": { "$ref": "#/definitions/B" },
+              "B": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        FromJsonSchema.makeGeneration(
+          `Schema.Struct({ "a": Schema.String })`,
+          FromJsonSchema.makeTypes(`{ readonly "a": string }`)
+        )
+      )
+      // prevent stack overflow
+      assertGeneration(
+        {
+          schema: {
+            "type": "object",
+            "properties": {
+              "a": { "$ref": "#/definitions/A" }
+            },
+            "required": ["a"],
+            "definitions": {
+              "A": { "$ref": "#/definitions/A" }
+            }
+          }
+        },
+        FromJsonSchema.makeGeneration(
+          `Schema.Struct({ "a": A })`,
+          FromJsonSchema.makeTypes(`{ readonly "a": A }`)
         )
       )
     })
@@ -1552,7 +1616,7 @@ describe("FromJsonSchema", () => {
         )
       })
 
-      it("object & reference", () => {
+      it("object & $ref", () => {
         assertGeneration(
           {
             schema: {
@@ -1672,6 +1736,110 @@ describe("FromJsonSchema", () => {
           )
         )
       })
+    })
+  })
+
+  describe("generateDefinitions", () => {
+    function generate(
+      definitions: Schema.JsonSchema.Definitions,
+      schemas: ReadonlyArray<Schema.JsonSchema>
+    ) {
+      const genDependencies = FromJsonSchema.generateDefinitions(definitions, { source: "draft-07" })
+      const genSchemas = schemas.map((schema) => FromJsonSchema.generate(schema, { source: "draft-07" }))
+      let s = ""
+
+      s += "// Definitions\n"
+      genDependencies.forEach(({ generation: schema, identifier }) => {
+        s += `type ${identifier} = ${schema.types.Type};\n`
+        s += `const ${identifier} = ${schema.runtime};\n\n`
+      })
+
+      s += "// Schemas\n"
+      s += genSchemas.map(({ runtime: code }, i) => `const schema${i + 1} = ${code};`).join("\n")
+      return s
+    }
+
+    it("mutually recursive", () => {
+      interface Expression {
+        readonly type: "expression"
+        readonly value: number | Operation
+      }
+
+      interface Operation {
+        readonly type: "operation"
+        readonly operator: "+" | "-"
+        readonly left: Expression
+        readonly right: Expression
+      }
+
+      const Expression = Schema.Struct({
+        type: Schema.Literal("expression"),
+        value: Schema.Union([Schema.Finite, Schema.suspend((): Schema.Codec<Operation> => Operation)])
+      }).annotate({ identifier: "Expression" })
+
+      const Operation = Schema.Struct({
+        type: Schema.Literal("operation"),
+        operator: Schema.Literals(["+", "-"]),
+        left: Expression,
+        right: Expression
+      }).annotate({ identifier: "Operation" })
+
+      {
+        const document = Schema.makeJsonSchema(Operation, { target: "draft-07" })
+        strictEqual(
+          generate(document.definitions, [document.schema]),
+          `// Definitions
+type Operation = { readonly "type": "operation", readonly "operator": "+" | "-", readonly "left": Expression, readonly "right": Expression };
+const Operation = Schema.Struct({ "type": Schema.Literal("operation"), "operator": Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), "left": Schema.suspend((): Schema.Codec<Expression> => Expression), "right": Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ "identifier": "Operation" });
+
+type Expression = { readonly "type": "expression", readonly "value": number | Operation };
+const Expression = Schema.Struct({ "type": Schema.Literal("expression"), "value": Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ "identifier": "Expression" });
+
+// Schemas
+const schema1 = Operation;`
+        )
+      }
+      {
+        const document = Schema.makeJsonSchema(Expression, { target: "draft-07" })
+        strictEqual(
+          generate(document.definitions, [document.schema]),
+          `// Definitions
+type Expression = { readonly "type": "expression", readonly "value": number | Operation };
+const Expression = Schema.Struct({ "type": Schema.Literal("expression"), "value": Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ "identifier": "Expression" });
+
+type Operation = { readonly "type": "operation", readonly "operator": "+" | "-", readonly "left": Expression, readonly "right": Expression };
+const Operation = Schema.Struct({ "type": Schema.Literal("operation"), "operator": Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), "left": Schema.suspend((): Schema.Codec<Expression> => Expression), "right": Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ "identifier": "Operation" });
+
+// Schemas
+const schema1 = Expression;`
+        )
+      }
+    })
+
+    it("nested identifiers", () => {
+      const schema = Schema.Struct({
+        a: Schema.Struct({
+          b: Schema.Struct({
+            c: Schema.String.annotate({ identifier: "C" })
+          }).annotate({ identifier: "B" })
+        }).annotate({ identifier: "A" })
+      })
+      const document = Schema.makeJsonSchema(schema, { target: "draft-07" })
+      strictEqual(
+        generate(document.definitions, [document.schema]),
+        `// Definitions
+type C = string;
+const C = Schema.String.annotate({ "identifier": "C" });
+
+type B = { readonly "c": C };
+const B = Schema.Struct({ "c": C }).annotate({ "identifier": "B" });
+
+type A = { readonly "b": B };
+const A = Schema.Struct({ "b": B }).annotate({ "identifier": "A" });
+
+// Schemas
+const schema1 = Schema.Struct({ "a": A });`
+      )
     })
   })
 
@@ -2073,113 +2241,9 @@ describe("FromJsonSchema", () => {
     })
   })
 
-  describe("generateDefinitions", () => {
-    function generate(
-      definitions: Schema.JsonSchema.Definitions,
-      schemas: ReadonlyArray<Schema.JsonSchema>
-    ) {
-      const genDependencies = FromJsonSchema.generateDefinitions(definitions, { source: "draft-07" })
-      const genSchemas = schemas.map((schema) => FromJsonSchema.generate(schema, { source: "draft-07" }))
-      let s = ""
-
-      s += "// Definitions\n"
-      genDependencies.forEach(({ generation: schema, identifier }) => {
-        s += `type ${identifier} = ${schema.types.Type};\n`
-        s += `const ${identifier} = ${schema.runtime};\n\n`
-      })
-
-      s += "// Schemas\n"
-      s += genSchemas.map(({ runtime: code }, i) => `const schema${i + 1} = ${code};`).join("\n")
-      return s
-    }
-
-    it("mutually recursive", () => {
-      interface Expression {
-        readonly type: "expression"
-        readonly value: number | Operation
-      }
-
-      interface Operation {
-        readonly type: "operation"
-        readonly operator: "+" | "-"
-        readonly left: Expression
-        readonly right: Expression
-      }
-
-      const Expression = Schema.Struct({
-        type: Schema.Literal("expression"),
-        value: Schema.Union([Schema.Finite, Schema.suspend((): Schema.Codec<Operation> => Operation)])
-      }).annotate({ identifier: "Expression" })
-
-      const Operation = Schema.Struct({
-        type: Schema.Literal("operation"),
-        operator: Schema.Literals(["+", "-"]),
-        left: Expression,
-        right: Expression
-      }).annotate({ identifier: "Operation" })
-
-      {
-        const document = Schema.makeJsonSchema(Operation, { target: "draft-07" })
-        strictEqual(
-          generate(document.definitions, [document.schema]),
-          `// Definitions
-type Operation = { readonly "type": "operation", readonly "operator": "+" | "-", readonly "left": Expression, readonly "right": Expression };
-const Operation = Schema.Struct({ "type": Schema.Literal("operation"), "operator": Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), "left": Schema.suspend((): Schema.Codec<Expression> => Expression), "right": Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ "identifier": "Operation" });
-
-type Expression = { readonly "type": "expression", readonly "value": number | Operation };
-const Expression = Schema.Struct({ "type": Schema.Literal("expression"), "value": Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ "identifier": "Expression" });
-
-// Schemas
-const schema1 = Operation;`
-        )
-      }
-      {
-        const document = Schema.makeJsonSchema(Expression, { target: "draft-07" })
-        strictEqual(
-          generate(document.definitions, [document.schema]),
-          `// Definitions
-type Expression = { readonly "type": "expression", readonly "value": number | Operation };
-const Expression = Schema.Struct({ "type": Schema.Literal("expression"), "value": Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ "identifier": "Expression" });
-
-type Operation = { readonly "type": "operation", readonly "operator": "+" | "-", readonly "left": Expression, readonly "right": Expression };
-const Operation = Schema.Struct({ "type": Schema.Literal("operation"), "operator": Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), "left": Schema.suspend((): Schema.Codec<Expression> => Expression), "right": Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ "identifier": "Operation" });
-
-// Schemas
-const schema1 = Expression;`
-        )
-      }
-    })
-
-    it("nested identifiers", () => {
-      const schema = Schema.Struct({
-        a: Schema.Struct({
-          b: Schema.Struct({
-            c: Schema.String.annotate({ identifier: "C" })
-          }).annotate({ identifier: "B" })
-        }).annotate({ identifier: "A" })
-      })
-      const document = Schema.makeJsonSchema(schema, { target: "draft-07" })
-      strictEqual(
-        generate(document.definitions, [document.schema]),
-        `// Definitions
-type C = string;
-const C = Schema.String.annotate({ "identifier": "C" });
-
-type B = { readonly "c": C };
-const B = Schema.Struct({ "c": C }).annotate({ "identifier": "B" });
-
-type A = { readonly "b": B };
-const A = Schema.Struct({ "b": B }).annotate({ "identifier": "A" });
-
-// Schemas
-const schema1 = Schema.Struct({ "a": A });`
-      )
-    })
-  })
-
   describe("gen", () => {
     it("recursion & external reference", () => {
-      const generation = generated(
+      const generation = generateCode(
         "draft-07",
         [
           {
@@ -2219,7 +2283,7 @@ const schema1 = Schema.Struct({ "a": A });`
       deepStrictEqual(
         generation,
         {
-          generatedDefinitionsWithoutExterns: [
+          definitionGenerations: [
             {
               identifier: "B",
               generation: FromJsonSchema.makeGeneration(
@@ -2235,17 +2299,17 @@ const schema1 = Schema.Struct({ "a": A });`
               )
             }
           ],
-          generatedSchemas: [{
+          schemaGenerations: [{
             identifier: "A",
             generation: FromJsonSchema.makeGeneration(
               `Schema.Struct({ "a": B })`,
               FromJsonSchema.makeTypes(`{ readonly "a": B }`, `{ readonly "a": BEncoded }`)
             )
           }],
-          imports: new Set([`import * as Schema from "effect/schema/Schema"`, `import { C } from "my-lib"`])
+          importDeclarations: new Set([`import * as Schema from "effect/schema/Schema"`, `import { C } from "my-lib"`])
         }
       )
-      const code = generatedToCode(generation)
+      const code = toCode(generation)
       // console.log(code)
 
       strictEqual(
@@ -2264,136 +2328,30 @@ export const B = Schema.Struct({ "b": Schema.suspend((): Schema.Codec<B, BEncode
 export const A = Schema.Struct({ "a": B });`
       )
     })
-
-    it("OpenApi", () => {
-      const source = "openapi-3.1"
-      const inputSchemas: Array<IdentifierSchema> = collectSchemas(OpenApiFixture)
-      const inputDefinitions = OpenApiFixture.components.schemas as Schema.JsonSchema.Definitions
-      const externs: Record<string, { readonly namespace: string; readonly importDeclaration: string }> = {
-        "effect/HttpApiSchemaError": {
-          namespace: "HttpApiSchemaError",
-          importDeclaration: `import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"`
-        }
-      }
-
-      const generation = generated(source, inputSchemas, inputDefinitions, externs)
-      const code = generatedToCode(generation)
-      // console.log(code)
-
-      strictEqual(
-        code,
-        `// Imports
-import * as Schema from "effect/schema/Schema"
-import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"
-
-// Definitions
-export type ComponentsSchema = { readonly "contentType": string, readonly "length": number };
-export type ComponentsSchemaEncoded = ComponentsSchema;
-export const ComponentsSchema = Schema.Struct({ "contentType": Schema.String, "length": Schema.Int }).annotate({ "identifier": "ComponentsSchema" });
-
-export type Group = { readonly "id": number, readonly "name": string };
-export type GroupEncoded = Group;
-export const Group = Schema.Struct({ "id": Schema.Int, "name": Schema.String }).annotate({ "identifier": "Group" });
-
-export type PersistedFile = string;
-export type PersistedFileEncoded = PersistedFile;
-export const PersistedFile = Schema.String.annotate({ "format": "binary" }).annotate({ "identifier": "PersistedFile" });
-
-export type User = { readonly "id": number, readonly "uuid"?: string, readonly "name": string, readonly "createdAt": string };
-export type UserEncoded = User;
-export const User = Schema.Struct({ "id": Schema.Int, "uuid": Schema.optionalKey(Schema.String), "name": Schema.String, "createdAt": Schema.String.annotate({ "description": "a string that will be decoded as a DateTime.Utc" }) }).annotate({ "identifier": "User" });
-
-export type UserError = { readonly "_tag": "UserError" };
-export type UserErrorEncoded = UserError;
-export const UserError = Schema.Struct({ "_tag": Schema.Literal("UserError") }).annotate({ "identifier": "UserError" });
-
-export type NoStatusError = { readonly "_tag": "NoStatusError" };
-export type NoStatusErrorEncoded = NoStatusError;
-export const NoStatusError = Schema.Struct({ "_tag": Schema.Literal("NoStatusError") }).annotate({ "identifier": "NoStatusError" });
-
-
-// Schemas
-export const GroupsIdGetParameterId = Schema.String.annotate({ "description": "a string that will be decoded as a finite number" });
-export const GroupsIdGetResponse_200ApplicationJson = Group;
-export const GroupsIdGetResponse_400ApplicationJson = HttpApiSchemaError;
-export const GroupsPostRequestBodyApplicationJson = Schema.Struct({ "name": Schema.String });
-export const GroupsPostRequestBodyApplicationXWwwFormUrlencoded = Schema.Struct({ "foo": Schema.String });
-export const GroupsPostRequestBodyMultipartFormData = Schema.Struct({ "name": Schema.String });
-export const GroupsPostResponse_200ApplicationJson = Group;
-export const GroupsPostResponse_400ApplicationJson = HttpApiSchemaError;
-export const GroupsHandleIdPostParameterId = Schema.String.annotate({ "description": "a string that will be decoded as a finite number" });
-export const GroupsHandleIdPostRequestBodyApplicationJson = Schema.Struct({ "name": Schema.String });
-export const GroupsHandleIdPostResponse_200ApplicationJson = Schema.Struct({ "id": Schema.Number, "name": Schema.String });
-export const GroupsHandleIdPostResponse_400ApplicationJson = HttpApiSchemaError;
-export const GroupsHandlerawIdPostParameterId = Schema.String.annotate({ "description": "a string that will be decoded as a finite number" });
-export const GroupsHandlerawIdPostRequestBodyApplicationJson = Schema.Struct({ "name": Schema.String });
-export const GroupsHandlerawIdPostResponse_200ApplicationJson = Schema.Struct({ "id": Schema.Number, "name": Schema.String });
-export const GroupsHandlerawIdPostResponse_400ApplicationJson = HttpApiSchemaError;
-export const UsersIdGetParameterId = Schema.String.annotate({ "description": "a string that will be decoded as a finite number" });
-export const UsersIdGetResponse_200ApplicationJson = User;
-export const UsersIdGetResponse_400ApplicationJson = Schema.Union([HttpApiSchemaError, UserError]);
-export const UsersPostParameterId = Schema.String.annotate({ "description": "a string that will be decoded as a finite number" });
-export const UsersPostRequestBodyApplicationJson = Schema.Struct({ "uuid": Schema.optionalKey(Schema.String), "name": Schema.String });
-export const UsersPostResponse_200ApplicationJson = User;
-export const UsersPostResponse_400ApplicationJson = Schema.Union([HttpApiSchemaError, UserError]);
-export const UsersGetParameterPage = Schema.String.annotate({ "description": "a string that will be decoded as a finite number" });
-export const UsersGetParameterQuery = Schema.String.annotate({ "description": "search query" });
-export const UsersGetResponse_200ApplicationJson = Schema.Array(User);
-export const UsersGetResponse_400ApplicationJson = HttpApiSchemaError;
-export const UsersGetResponse_500ApplicationJson = NoStatusError;
-export const UsersUpload_0PostParameter_0 = Schema.String;
-export const UsersUpload_0PostRequestBodyMultipartFormData = Schema.Struct({ "file": PersistedFile });
-export const UsersUpload_0PostResponse_200ApplicationJson = Schema.Struct({ "contentType": Schema.String, "length": Schema.Int });
-export const UsersUpload_0PostResponse_400ApplicationJson = HttpApiSchemaError;
-export const UsersUploadstreamPostRequestBodyMultipartFormData = Schema.Struct({ "file": PersistedFile });
-export const UsersUploadstreamPostResponse_200ApplicationJson = Schema.Struct({ "contentType": Schema.String, "length": Schema.Int });
-export const UsersUploadstreamPostResponse_400ApplicationJson = HttpApiSchemaError;
-export const HealthzGetResponse_400ApplicationJson = HttpApiSchemaError;`
-      )
-    })
   })
 })
 
-function generatedToCode(generation: Generated): string {
-  return `// Imports
-${[...generation.imports].join("\n")}
-
-// Definitions
-${
-    generation.generatedDefinitionsWithoutExterns.map((d) => {
-      let out = `export type ${d.identifier} = ${d.generation.types.Type};\n`
-      if (d.generation.types.Encoded !== d.generation.types.Type) {
-        out += `export type ${d.identifier}Encoded = ${d.generation.types.Encoded};\n`
-      } else {
-        out += `export type ${d.identifier}Encoded = ${d.identifier};\n`
-      }
-      out += `export const ${d.identifier} = ${d.generation.runtime};\n`
-      return out
-    }).join("\n")
-  }
-
-// Schemas
-${generation.generatedSchemas.map((s) => `export const ${s.identifier} = ${s.generation.runtime};`).join("\n")}`
-}
-
-type Generated = {
-  generatedDefinitionsWithoutExterns: Array<FromJsonSchema.DefinitionGeneration>
-  imports: Set<string>
-  generatedSchemas: Array<{
+type CodeGeneration = {
+  schemaGenerations: Array<{
     identifier: string
     generation: FromJsonSchema.Generation
   }>
+  definitionGenerations: Array<FromJsonSchema.DefinitionGeneration>
+  importDeclarations: Set<string>
 }
 
-function generated(
+function generateCode(
   source: FromJsonSchema.Source,
-  schemas: ReadonlyArray<{ readonly identifier: string; readonly schema: Schema.JsonSchema }>,
+  schemas: ReadonlyArray<{
+    readonly identifier: string
+    readonly schema: Schema.JsonSchema
+  }>,
   definitions: Schema.JsonSchema.Definitions,
   externs: Record<string, {
     readonly namespace: string
     readonly importDeclaration: string
   }> = {}
-) {
+): CodeGeneration {
   const options: FromJsonSchema.GenerateOptions = {
     source,
     resolver: (identifier) => {
@@ -2407,125 +2365,47 @@ function generated(
         identifier,
         FromJsonSchema.makeTypes(identifier, `${identifier}Encoded`)
       )
-    }
+    },
+    definitions
   }
-  const generatedSchemas = schemas.map(({ identifier, schema }) => ({
+  const schemaGenerations = schemas.map(({ identifier, schema }) => ({
     identifier,
     generation: FromJsonSchema.generate(schema, options)
   }))
   const generatedDefinitions = FromJsonSchema.generateDefinitions(definitions, options)
-  const generatedDefinitionsWithoutExterns: Array<FromJsonSchema.DefinitionGeneration> = []
-  const imports = new Set<string>([`import * as Schema from "effect/schema/Schema"`])
+  const definitionGenerations: Array<FromJsonSchema.DefinitionGeneration> = []
+  const importDeclarations = new Set<string>([`import * as Schema from "effect/schema/Schema"`])
   for (const d of generatedDefinitions) {
     for (const i of d.generation.importDeclarations) {
-      imports.add(i)
+      importDeclarations.add(i)
     }
     if (!(d.identifier in externs)) {
-      generatedDefinitionsWithoutExterns.push(d)
+      definitionGenerations.push(d)
     } else {
-      imports.add(externs[d.identifier].importDeclaration)
+      importDeclarations.add(externs[d.identifier].importDeclaration)
     }
   }
-  return { imports, generatedDefinitionsWithoutExterns, generatedSchemas }
+  return { importDeclarations, definitionGenerations, schemaGenerations }
 }
 
-function toIdentifier(parts: Array<string>): string {
-  const result: Array<string> = []
-  for (const part of parts) {
-    if (part.length === 0) continue
-    // Replace invalid characters and convert to camelCase
-    const cleaned = part
-      .replace(/[^a-zA-Z0-9_$]/g, "")
-      .replace(/^(\d)/, "_$1") // Prefix numbers with underscore
-    if (cleaned.length > 0) {
-      result.push(cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase())
-    }
-  }
-  return result.join("")
-}
+function toCode(generation: CodeGeneration): string {
+  return `// Imports
+${[...generation.importDeclarations].join("\n")}
 
-function pathToIdentifier(path: string): string {
-  const parts = path.split("/").filter((p) => p.length > 0)
-  const processed: Array<string> = []
-  for (const part of parts) {
-    if (part.startsWith("{") && part.endsWith("}")) {
-      // Extract parameter name from {param} or {0}
-      const paramName = part.slice(1, -1)
-      processed.push(toIdentifier([paramName]))
-    } else {
-      processed.push(toIdentifier([part]))
-    }
-  }
-  return processed.join("")
-}
-
-type IdentifierSchema = {
-  readonly identifier: string
-  readonly schema: Schema.JsonSchema
-}
-
-function collectSchemas(spec: any): Array<IdentifierSchema> {
-  const schemas: Array<IdentifierSchema> = []
-
-  for (const [path, pathItem] of Object.entries(spec.paths || {})) {
-    const pathId = pathToIdentifier(path)
-
-    for (const [method, operation] of Object.entries(pathItem as any)) {
-      if (
-        typeof operation !== "object" ||
-        operation === null ||
-        !["get", "post", "put", "delete", "patch", "head", "options", "trace"].includes(method)
-      ) {
-        continue
+// Definitions
+${
+    generation.definitionGenerations.map((d) => {
+      let out = `export type ${d.identifier} = ${d.generation.types.Type};\n`
+      if (d.generation.types.Encoded !== d.generation.types.Type) {
+        out += `export type ${d.identifier}Encoded = ${d.generation.types.Encoded};\n`
+      } else {
+        out += `export type ${d.identifier}Encoded = ${d.identifier};\n`
       }
-
-      const methodId = method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()
-      const op = operation as any
-
-      // Collect parameter schemas
-      if (Array.isArray(op.parameters)) {
-        for (const param of op.parameters) {
-          if (param.schema) {
-            const paramName = param.name || "param"
-            const paramId = toIdentifier([paramName])
-            const identifier = `${pathId}${methodId}Parameter${paramId}`
-            schemas.push({ identifier, schema: param.schema })
-          }
-        }
-      }
-
-      // Collect request body schemas
-      if (op.requestBody?.content) {
-        for (const [contentType, content] of Object.entries(op.requestBody.content)) {
-          if ((content as any).schema) {
-            const contentTypeId = toIdentifier(
-              contentType.split(/[/+]/).flatMap((p) => p.split("-"))
-            )
-            const identifier = `${pathId}${methodId}RequestBody${contentTypeId}`
-            schemas.push({ identifier, schema: (content as any).schema })
-          }
-        }
-      }
-
-      // Collect response schemas
-      if (op.responses) {
-        for (const [statusCode, response] of Object.entries(op.responses)) {
-          if (typeof response === "object" && response !== null && (response as any).content) {
-            for (const [contentType, content] of Object.entries((response as any).content)) {
-              if ((content as any).schema) {
-                const statusId = toIdentifier([statusCode])
-                const contentTypeId = toIdentifier(
-                  contentType.split(/[/+]/).flatMap((p) => p.split("-"))
-                )
-                const identifier = `${pathId}${methodId}Response${statusId}${contentTypeId}`
-                schemas.push({ identifier, schema: (content as any).schema })
-              }
-            }
-          }
-        }
-      }
-    }
+      out += `export const ${d.identifier} = ${d.generation.runtime};\n`
+      return out
+    }).join("\n")
   }
 
-  return schemas
+// Schemas
+${generation.schemaGenerations.map((s) => `export const ${s.identifier} = ${s.generation.runtime};`).join("\n")}`
 }

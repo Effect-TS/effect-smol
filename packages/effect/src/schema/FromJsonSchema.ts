@@ -147,44 +147,29 @@ export type GenerateOptions = {
 
 interface RecurOptions {
   readonly source: Source
+  readonly root: Schema.JsonSchema | undefined
   readonly resolver: Resolver
   readonly extractJsDocs: ((annotations: Annotations) => string) | undefined
   readonly definitions: Schema.JsonSchema.Definitions
-  readonly inlineLocalRefs: boolean
+  readonly inlineRefs: boolean
   readonly refStack: ReadonlySet<string>
 }
 
 /**
  * @since 4.0.0
  */
-export function generate(schema: unknown, options: GenerateOptions): Generation {
+export function generate(schema: Schema.JsonSchema | boolean, options: GenerateOptions): Generation {
   const extractJsDocs = options.extractJsDocs ?? false
   const recurOptions: RecurOptions = {
     source: options.source,
+    root: isObject(schema) ? schema : undefined,
     resolver: options.resolver ?? defaultResolver,
     extractJsDocs: extractJsDocs === true ? defaultExtractJsDocs : extractJsDocs === false ? undefined : extractJsDocs,
-    definitions: getRecurOptionsDefinitions(schema, options),
-    inlineLocalRefs: false,
+    definitions: options.definitions ?? {},
+    inlineRefs: false,
     refStack: emptySet
   }
   return toGeneration(parse(schema, recurOptions), recurOptions)
-}
-
-function getDefinitionNamespace(source: Source): string {
-  switch (source) {
-    case "draft-07":
-      return "definitions"
-    case "draft-2020-12":
-    case "openapi-3.1":
-      return "$defs"
-  }
-}
-
-function getRecurOptionsDefinitions(schema: unknown, options: GenerateOptions): Schema.JsonSchema.Definitions {
-  const definitionNamespace = getDefinitionNamespace(options.source)
-  const inlineDefinitions = isObject(schema) && schema[definitionNamespace] ? schema[definitionNamespace] : {}
-  const externalDefinitions = options.definitions ?? {}
-  return { ...inlineDefinitions, ...externalDefinitions }
 }
 
 const defaultResolver: Resolver = (identifier: string) => {
@@ -272,7 +257,7 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
       visited.add(value)
 
       if (typeof value.$ref === "string") {
-        const id = extractIdentifier(value.$ref)
+        const id = getPointerParts(value.$ref).pop()
         if (id !== undefined && identifierSet.has(id)) {
           refs.add(id)
         }
@@ -370,15 +355,12 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
   return { nonRecursives, recursives }
 }
 
-function extractIdentifier($ref: string): string | undefined {
-  const last = $ref.split("/").pop()
-  if (last !== undefined) {
-    return unescapeJsonPointer(last)
-  }
+function getPointerParts($ref: string): Array<string> {
+  return $ref.slice(2).split("/").map(unescapeJsonPointerPart)
 }
 
-function unescapeJsonPointer(pointer: string): string {
-  return pointer.replace(/~0/ig, "~").replace(/~1/ig, "/")
+function unescapeJsonPointerPart(part: string): string {
+  return part.replace(/~0/ig, "~").replace(/~1/ig, "/")
 }
 
 /**
@@ -1381,7 +1363,7 @@ function parse(schema: unknown, options: RecurOptions): AST {
     ast = ast.parseChecks(schema)
     if (Array.isArray(schema.allOf)) {
       // inline local refs only while parsing members of `allOf`
-      const allOfOptions: RecurOptions = { ...options, inlineLocalRefs: true }
+      const allOfOptions: RecurOptions = { ...options, inlineRefs: true }
       return schema.allOf.map((m) => parse(m, allOfOptions)).reduce(
         (acc, curr) => acc.combine(curr, allOfOptions),
         ast
@@ -1419,20 +1401,33 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   }
 
   if (typeof schema.$ref === "string") {
-    const identifier = extractIdentifier(schema.$ref)
-    if (identifier === undefined) throw new Error(`Invalid $ref: ${schema.$ref}`)
+    const parts = getPointerParts(schema.$ref)
+    if (Arr.isArrayNonEmpty(parts)) {
+      // handle local definitions
+      if (options.root !== undefined) {
+        const definition = extractDefinition(options.root, parts)
+        if (definition !== undefined && !options.refStack.has(schema.$ref)) {
+          const nextStack = new Set(options.refStack)
+          nextStack.add(schema.$ref)
+          return parse(definition, { ...options, refStack: nextStack })
+        }
+      }
 
-    if (
-      options.inlineLocalRefs &&
-      (identifier in options.definitions) &&
-      !options.refStack.has(identifier)
-    ) {
-      const nextStack = new Set(options.refStack)
-      nextStack.add(identifier)
-      return parse(options.definitions[identifier], { ...options, refStack: nextStack })
+      const identifier = parts[parts.length - 1]
+      if (
+        options.inlineRefs &&
+        (identifier in options.definitions) &&
+        !options.refStack.has(schema.$ref)
+      ) {
+        const nextStack = new Set(options.refStack)
+        nextStack.add(schema.$ref)
+        return parse(options.definitions[identifier], { ...options, refStack: nextStack })
+      }
+
+      return new Reference(identifier)
+    } else {
+      throw new Error(`Invalid $ref: ${schema.$ref}`)
     }
-
-    return new Reference(identifier)
   }
 
   if (isObject(schema.not)) {
@@ -1440,6 +1435,21 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   }
 
   return new Unknown()
+}
+
+function extractDefinition(
+  root: Schema.JsonSchema,
+  parts: readonly [string, ...Array<string>]
+): Schema.JsonSchema | undefined {
+  let current = root
+  for (const part of parts) {
+    if (isObject(current[part])) {
+      current = current[part]
+    } else {
+      return undefined
+    }
+  }
+  return current
 }
 
 const stringKeys = ["minLength", "maxLength", "pattern", "format", "contentMediaType", "contentSchema"]
