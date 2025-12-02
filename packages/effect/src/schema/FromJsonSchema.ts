@@ -1604,6 +1604,10 @@ function collectProperties(schema: Schema.JsonSchema, options: RecurOptions): Ar
 }
 
 function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions): Array<IndexSignature> {
+  if (isObject(schema.propertyNames)) {
+    return [new IndexSignature(parse(schema.propertyNames, options), new Unknown())]
+  }
+
   const out: Array<IndexSignature> = []
 
   if (isObject(schema.patternProperties)) {
@@ -1617,30 +1621,15 @@ function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions
     }
   }
 
-  if (isObject(schema.propertyNames)) {
-    out.push(new IndexSignature(parse(schema.propertyNames, options), new Unknown()))
-  } else if (schema.additionalProperties === true || schema.additionalProperties === undefined) {
-    out.push(new IndexSignature(new String([], undefined), new Unknown()))
-    return out
-  }
-
-  if (isObject(schema.additionalProperties)) {
-    out.push(new IndexSignature(new String([], undefined), parse(schema.additionalProperties, options)))
-    return out
-  }
-
   const hasNoProps = schema.properties === undefined ||
     (isObject(schema.properties) && Object.keys(schema.properties).length === 0)
 
-  if (schema.additionalProperties === false) {
-    if (hasNoProps && out.length === 0) {
-      out.push(new IndexSignature(new String([], undefined), new Never()))
-    }
-    return out
-  }
-
-  if (hasNoProps && out.length === 0) {
+  if (schema.additionalProperties === true || schema.additionalProperties === undefined) {
     out.push(new IndexSignature(new String([], undefined), new Unknown()))
+  } else if (isObject(schema.additionalProperties)) {
+    out.push(new IndexSignature(new String([], undefined), parse(schema.additionalProperties, options)))
+  } else if (schema.additionalProperties === false && hasNoProps && out.length === 0) {
+    out.push(new IndexSignature(new String([], undefined), new Never()))
   }
 
   return out
