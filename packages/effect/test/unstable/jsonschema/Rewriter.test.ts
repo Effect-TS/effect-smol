@@ -7,11 +7,11 @@ function assertJsonSchema(
   rewriter: Rewriter.Rewriter,
   schema: Schema.Top,
   expected: {
-    readonly schema: Schema.JsonSchema.Schema
-    readonly definitions?: Record<string, Schema.JsonSchema.Schema> | undefined
+    readonly schema: Schema.JsonSchema
+    readonly definitions?: Record<string, Schema.JsonSchema> | undefined
     readonly traces?: Array<string> | undefined
   },
-  options?: Schema.JsonSchemaOptions
+  options?: Schema.MakeJsonSchemaOptions
 ) {
   const traces: Array<string> = []
   const tracer: Rewriter.Tracer = {
@@ -20,7 +20,8 @@ function assertJsonSchema(
     }
   }
   const document = rewriter(
-    Schema.makeJsonSchemaDraft2020_12(schema, {
+    Schema.makeJsonSchema(schema, {
+      target: "draft-2020-12",
       generateDescriptions: true,
       referenceStrategy: "skip-top-level",
       ...options
@@ -270,6 +271,7 @@ describe("Rewriter", () => {
             ]
           },
           {
+            target: "draft-07",
             additionalProperties: true
           }
         )
@@ -352,7 +354,7 @@ describe("Rewriter", () => {
                 },
                 "l": {
                   "type": ["string", "null"],
-                  "description": "a value with a length of at least 1 and description"
+                  "description": "a value with a length of at least 1, description"
                 }
               },
               "required": ["a", "b", "c", "d", "e", "f", "g", "h", "i", "l"],
@@ -503,7 +505,7 @@ describe("Rewriter", () => {
                       "anyOf": [
                         {
                           "type": "integer",
-                          "description": "an integer and a value greater than 0"
+                          "description": "an integer, a value greater than 0"
                         },
                         {
                           "type": "boolean",
@@ -553,7 +555,7 @@ describe("Rewriter", () => {
                       "anyOf": [
                         {
                           "type": "integer",
-                          "description": "an integer and a value greater than 0"
+                          "description": "an integer, a value greater than 0"
                         },
                         {
                           "type": "boolean",
@@ -641,7 +643,7 @@ describe("Rewriter", () => {
             "properties": {
               "a": {
                 "type": "string",
-                "description": "description isMinLength(1) and a value with a length of at most 4"
+                "description": "description isMinLength(1), a value with a length of at most 4"
               }
             },
             "required": ["a"],
@@ -680,6 +682,7 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
+            `removed property "minItems" at ["schema"]["properties"]["a"]`,
             `removed property "minLength" at ["schema"]["properties"]["a"]["prefixItems"][0]`
           ]
         }

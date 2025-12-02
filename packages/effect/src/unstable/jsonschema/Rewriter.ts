@@ -40,7 +40,7 @@ function change(path: Path, summary: string) {
 }
 
 function whitelistProperties(
-  schema: Schema.JsonSchema.Schema,
+  schema: Schema.JsonSchema,
   path: Path,
   tracer: Tracer,
   whitelist: Record<string, (value: unknown) => boolean>
@@ -57,7 +57,13 @@ function whitelistProperties(
   return out
 }
 
-const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => `${a} and ${b}`))
+const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
+  a = a.trim()
+  b = b.trim()
+  if (a === "") return b
+  if (b === "") return a
+  return `${a}, ${b}`
+}))
 
 const propertiesCombiner: Combiner.Combiner<any> = Struct.getCombiner({
   type: UndefinedOr.getReducer(Combiner.first<string>()),
@@ -69,7 +75,7 @@ const propertiesCombiner: Combiner.Combiner<any> = Struct.getCombiner({
   omitKeyWhen: Predicate.isUndefined
 })
 
-function getDefaultSchema(schema: Schema.JsonSchema.Schema): Schema.JsonSchema.Schema {
+function getDefaultSchema(schema: Schema.JsonSchema): Schema.JsonSchema {
   const out: any = {
     "type": "object",
     "properties": {},
@@ -96,7 +102,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
     examples: constTrue
   }
 
-  function recur(schema: Schema.JsonSchema.Schema, path: Path): Schema.JsonSchema.Schema {
+  function recur(schema: Schema.JsonSchema, path: Path): Schema.JsonSchema {
     // root must be an object
     if (path.length === 1 && path[0] === "schema" && schema.type !== "object") {
       tracer.push(change(path, `root must be an object, returning default schema`))
@@ -110,7 +116,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
         ...jsonSchemaAnnotations
       })
       // recursively rewrite members
-      const anyOf = out.anyOf.map((value: Schema.JsonSchema.Schema, i: number) => recur(value, [...path, "anyOf", i]))
+      const anyOf = out.anyOf.map((value: Schema.JsonSchema, i: number) => recur(value, [...path, "anyOf", i]))
       out.anyOf = anyOf
       return out
     }
@@ -122,7 +128,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
         ...jsonSchemaAnnotations
       })
       // recursively rewrite members
-      const anyOf = out.oneOf.map((value: Schema.JsonSchema.Schema, i: number) => recur(value, [...path, "oneOf", i]))
+      const anyOf = out.oneOf.map((value: Schema.JsonSchema, i: number) => recur(value, [...path, "oneOf", i]))
       out.anyOf = anyOf
       delete out.oneOf
       tracer.push(change(path, `rewrote oneOf to anyOf`))
@@ -161,7 +167,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
       })
       // recursively rewrite prefixItems
       if (array.prefixItems) {
-        array.prefixItems = array.prefixItems.map((value: Schema.JsonSchema.Schema, i: number) =>
+        array.prefixItems = array.prefixItems.map((value: Schema.JsonSchema, i: number) =>
           recur(value, [...path, "prefixItems", i])
         )
       }
@@ -183,42 +189,46 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
       })
 
       // recursively rewrite properties
-      object.properties = Record_.map(
-        object.properties,
-        (value: Schema.JsonSchema.Schema, key: string) => recur(value, [...path, "properties", key])
-      )
+      if (object.properties !== undefined) {
+        object.properties = Record_.map(
+          object.properties,
+          (value: Schema.JsonSchema, key: string) => recur(value, [...path, "properties", key])
+        )
+
+        // all fields must be required
+        const keys = Object.keys(object.properties)
+        object.required = object.required !== undefined ? [...object.required] : []
+        if (object.required.length < keys.length) {
+          const required = new Set(object.required)
+          for (const key of keys) {
+            if (!required.has(key)) {
+              object.required.push(key)
+              const property = object.properties[key]
+              const type = property.type
+              if (typeof type === "string") {
+                property.type = [type, "null"] as any
+              } else {
+                if (Array.isArray(property.anyOf)) {
+                  object.properties[key] = {
+                    ...property,
+                    "anyOf": [...property.anyOf, { "type": "null" }]
+                  }
+                } else {
+                  object.properties[key] = { "anyOf": [property, { "type": "null" }] }
+                }
+              }
+              tracer.push(change(path, `added required property "${key}"`))
+            }
+          }
+        }
+      }
 
       // additionalProperties: false must always be set in objects
       if (object.additionalProperties !== false) {
         tracer.push(change(path, `set additionalProperties to false`))
         object.additionalProperties = false
       }
-      // all fields must be required
-      const keys = Object.keys(object.properties)
-      if (object.required.length < keys.length) {
-        object.required = object.required !== undefined ? [...object.required] : []
-        const required = new Set(object.required)
-        for (const key of keys) {
-          if (!required.has(key)) {
-            object.required.push(key)
-            const property = object.properties[key]
-            const type = property.type
-            if (typeof type === "string") {
-              property.type = [type, "null"] as any
-            } else {
-              if (Array.isArray(property.anyOf)) {
-                object.properties[key] = {
-                  ...property,
-                  "anyOf": [...property.anyOf, { "type": "null" }]
-                }
-              } else {
-                object.properties[key] = { "anyOf": [property, { "type": "null" }] }
-              }
-            }
-            tracer.push(change(path, `added required property "${key}"`))
-          }
-        }
-      }
+
       return object
     }
 

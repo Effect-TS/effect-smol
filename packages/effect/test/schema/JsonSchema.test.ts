@@ -18,16 +18,16 @@ const baseAjvOptions: AjvOptions = {
 const ajvDraft07 = new Ajv.default(baseAjvOptions)
 const ajvDraft2020_12 = new Ajv2020.default(baseAjvOptions)
 
-function assertUnsupportedSchema(schema: Schema.Top, message: string, options?: Schema.JsonSchemaOptions) {
-  throws(() => Schema.makeJsonSchemaDraft07(schema, options), message)
+function assertUnsupportedSchema(schema: Schema.Top, message: string, options?: Schema.MakeJsonSchemaOptions) {
+  throws(() => Schema.makeJsonSchema(schema, { target: "draft-07", ...options }), message)
 }
 
 function assertDraft07<S extends Schema.Top>(
   schema: S,
   expected: { schema: object; definitions?: Record<string, object> },
-  options?: Schema.JsonSchemaOptions
+  options?: Schema.MakeJsonSchemaOptions
 ) {
-  const document = Schema.makeJsonSchemaDraft07(schema, options)
+  const document = Schema.makeJsonSchema(schema, { target: "draft-07", ...options })
   strictEqual(document.uri, "http://json-schema.org/draft-07/schema")
   deepStrictEqual(document.schema, expected.schema)
   deepStrictEqual(document.definitions, expected.definitions ?? {})
@@ -38,9 +38,9 @@ function assertDraft07<S extends Schema.Top>(
 export function assertDraft2020_12<S extends Schema.Top>(
   schema: S,
   expected: { schema: object; definitions?: Record<string, object> },
-  options?: Schema.JsonSchemaOptions
+  options?: Schema.MakeJsonSchemaOptions
 ) {
-  const document = Schema.makeJsonSchemaDraft2020_12(schema, options)
+  const document = Schema.makeJsonSchema(schema, { target: "draft-2020-12", ...options })
   strictEqual(document.uri, "https://json-schema.org/draft/2020-12/schema")
   deepStrictEqual(document.schema, expected.schema)
   deepStrictEqual(document.definitions, expected.definitions ?? {})
@@ -51,9 +51,9 @@ export function assertDraft2020_12<S extends Schema.Top>(
 export function assertOpenApi3_1<S extends Schema.Top>(
   schema: S,
   expected: { schema: object; definitions?: Record<string, object> },
-  options?: Schema.JsonSchemaOptions
+  options?: Schema.MakeJsonSchemaOptions
 ) {
-  const document = Schema.makeJsonSchemaOpenApi3_1(schema, options)
+  const document = Schema.makeJsonSchema(schema, { target: "openapi-3.1", ...options })
   strictEqual(document.uri, "https://json-schema.org/draft/2020-12/schema")
   deepStrictEqual(document.schema, expected.schema)
   deepStrictEqual(document.definitions, expected.definitions ?? {})
@@ -172,6 +172,7 @@ describe("JsonSchema generation", () => {
             schema: {}
           },
           {
+            target: "draft-07",
             onMissingJsonSchemaAnnotation: () => ({})
           }
         )
@@ -182,6 +183,7 @@ describe("JsonSchema generation", () => {
           Schema.Date,
           `Unsupported AST Declaration`,
           {
+            target: "draft-07",
             onMissingJsonSchemaAnnotation: () => undefined
           }
         )
@@ -191,7 +193,7 @@ describe("JsonSchema generation", () => {
 
   describe("Override annotation", () => {
     it("typeParameters", () => {
-      function getOptionJsonSchema(value: Schema.JsonSchema.Schema): Schema.JsonSchema.Schema {
+      function getOptionJsonSchema(value: Schema.JsonSchema): Schema.JsonSchema {
         return {
           "title": "Option",
           "oneOf": [
@@ -264,6 +266,7 @@ describe("JsonSchema generation", () => {
           }
         },
         {
+          target: "draft-07",
           onMissingJsonSchemaAnnotation: () => ({ "$comment": "comment" })
         }
       )
@@ -288,6 +291,7 @@ describe("JsonSchema generation", () => {
           }
         },
         {
+          target: "draft-07",
           onMissingJsonSchemaAnnotation: () => ({ "$comment": "comment" })
         }
       )
@@ -1906,12 +1910,8 @@ describe("JsonSchema generation", () => {
                   ]
                 },
                 "id3_2": {
-                  "allOf": [
-                    { "$ref": "#/definitions/id3" },
-                    {
-                      "description": "id3_2-key"
-                    }
-                  ]
+                  "type": "string",
+                  "description": "id3_2-key"
                 }
               },
               "required": ["a", "b", "c", "d", "id1", "id2", "id3_1", "id3_2"],
@@ -1937,7 +1937,6 @@ describe("JsonSchema generation", () => {
               "properties": {
                 "a": { "type": "string" }
               },
-              "required": [],
               "additionalProperties": false
             }
           }
@@ -2000,7 +1999,6 @@ describe("JsonSchema generation", () => {
                   }]
                 }
               },
-              "required": [],
               "additionalProperties": false
             }
           }
@@ -2046,7 +2044,6 @@ describe("JsonSchema generation", () => {
                 }]
               }
             },
-            "required": [],
             "additionalProperties": false
           }
         })
@@ -2054,14 +2051,21 @@ describe("JsonSchema generation", () => {
     })
 
     describe("Record", () => {
+      it("Record(String, Unknown)", () => {
+        assertDraft07(
+          Schema.Record(Schema.String, Schema.Unknown),
+          {
+            schema: { "type": "object" }
+          }
+        )
+      })
+
       it("Record(String, Number)", () => {
         assertDraft07(
           Schema.Record(Schema.String, Schema.Number),
           {
             schema: {
               "type": "object",
-              "properties": {},
-              "required": [],
               "additionalProperties": {
                 "type": "number"
               }
@@ -2073,8 +2077,6 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "object",
-              "properties": {},
-              "required": [],
               "additionalProperties": {
                 "type": "number"
               },
@@ -2090,8 +2092,6 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "object",
-              "properties": {},
-              "required": [],
               "patternProperties": {
                 "^(a)([\\s\\S]*?)$": {
                   "type": "number"
@@ -2149,6 +2149,7 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "array",
+              "minItems": 8,
               "items": [
                 {
                   "type": "string"
@@ -2186,12 +2187,8 @@ describe("JsonSchema generation", () => {
                   ]
                 },
                 {
-                  "allOf": [
-                    { "$ref": "#/definitions/id3" },
-                    {
-                      "description": "id3_2-key"
-                    }
-                  ]
+                  "type": "string",
+                  "description": "id3_2-key"
                 }
               ],
               "additionalItems": false
@@ -2216,7 +2213,6 @@ describe("JsonSchema generation", () => {
               "items": [
                 { "type": "string" }
               ],
-              "minItems": 0,
               "additionalItems": false
             }
           }
@@ -2231,10 +2227,9 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "array",
+              "minItems": 1,
               "items": [
-                {
-                  "type": "string"
-                }
+                { "type": "string" }
               ],
               "additionalItems": false
             }
@@ -2278,7 +2273,6 @@ describe("JsonSchema generation", () => {
                   }]
                 }
               ],
-              "minItems": 0,
               "additionalItems": false
             }
           }
@@ -2324,7 +2318,6 @@ describe("JsonSchema generation", () => {
                 }]
               }
             ],
-            "minItems": 0,
             "additionalItems": false
           }
         })
@@ -2332,7 +2325,16 @@ describe("JsonSchema generation", () => {
     })
 
     describe("Array", () => {
-      it("Array", () => {
+      it("Array(Unknown)", () => {
+        assertDraft07(
+          Schema.Array(Schema.Unknown),
+          {
+            schema: { "type": "array" }
+          }
+        )
+      })
+
+      it("Array(String)", () => {
         assertDraft07(
           Schema.Array(Schema.String),
           {
@@ -2625,6 +2627,185 @@ describe("JsonSchema generation", () => {
           }
         )
       })
+
+      it("mutually recursive schemas", () => {
+        interface Expression {
+          readonly type: "expression"
+          readonly value: number | Operation
+        }
+
+        interface Operation {
+          readonly type: "operation"
+          readonly operator: "+" | "-"
+          readonly left: Expression
+          readonly right: Expression
+        }
+
+        const Expression = Schema.Struct({
+          type: Schema.Literal("expression"),
+          value: Schema.Union([Schema.Finite, Schema.suspend((): Schema.Codec<Operation> => Operation)])
+        }).annotate({ identifier: "Expression" })
+
+        const Operation = Schema.Struct({
+          type: Schema.Literal("operation"),
+          operator: Schema.Literals(["+", "-"]),
+          left: Expression,
+          right: Expression
+        }).annotate({ identifier: "Operation" })
+
+        assertDraft07(
+          Operation,
+          {
+            schema: {
+              "$ref": "#/definitions/Operation"
+            },
+            definitions: {
+              "Operation": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "operation"
+                    ]
+                  },
+                  "operator": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "+"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "-"
+                        ]
+                      }
+                    ]
+                  },
+                  "left": {
+                    "$ref": "#/definitions/Expression"
+                  },
+                  "right": {
+                    "$ref": "#/definitions/Expression"
+                  }
+                },
+                "required": [
+                  "type",
+                  "operator",
+                  "left",
+                  "right"
+                ],
+                "additionalProperties": false
+              },
+              "Expression": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "expression"
+                    ]
+                  },
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "$ref": "#/definitions/Operation"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+        assertDraft07(
+          Expression,
+          {
+            schema: {
+              "$ref": "#/definitions/Expression"
+            },
+            definitions: {
+              "Expression": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "expression"
+                    ]
+                  },
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "$ref": "#/definitions/Operation"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              "Operation": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "operation"
+                    ]
+                  },
+                  "operator": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "+"
+                        ]
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "-"
+                        ]
+                      }
+                    ]
+                  },
+                  "left": {
+                    "$ref": "#/definitions/Expression"
+                  },
+                  "right": {
+                    "$ref": "#/definitions/Expression"
+                  }
+                },
+                "required": [
+                  "type",
+                  "operator",
+                  "left",
+                  "right"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+      })
     })
 
     describe("checks", () => {
@@ -2893,8 +3074,10 @@ describe("JsonSchema generation", () => {
                 "additionalItems": {
                   "type": "string"
                 },
-                "minItems": 2,
-                "maxItems": 2
+                "minItems": 1,
+                "allOf": [
+                  { "minItems": 2, "maxItems": 2 }
+                ]
               }
             }
           )
@@ -2941,7 +3124,10 @@ describe("JsonSchema generation", () => {
                 "additionalItems": {
                   "type": "string"
                 },
-                "minItems": 2
+                "minItems": 1,
+                "allOf": [
+                  { "minItems": 2 }
+                ]
               }
             }
           )
@@ -2982,13 +3168,14 @@ describe("JsonSchema generation", () => {
             {
               schema: {
                 "type": "array",
+                "minItems": 1,
+                "maxItems": 2,
                 "items": [{
                   "type": "string"
                 }],
                 "additionalItems": {
                   "type": "string"
-                },
-                "maxItems": 2
+                }
               }
             }
           )
@@ -3240,6 +3427,7 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "array",
+              "minItems": 8,
               "prefixItems": [
                 {
                   "type": "string"
@@ -3277,12 +3465,8 @@ describe("JsonSchema generation", () => {
                   ]
                 },
                 {
-                  "allOf": [
-                    { "$ref": "#/$defs/id3" },
-                    {
-                      "description": "id3_2-key"
-                    }
-                  ]
+                  "type": "string",
+                  "description": "id3_2-key"
                 }
               ],
               "items": false
@@ -3307,7 +3491,6 @@ describe("JsonSchema generation", () => {
               "prefixItems": [
                 { "type": "string" }
               ],
-              "minItems": 0,
               "items": false
             }
           }
@@ -3322,6 +3505,7 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "array",
+              "minItems": 1,
               "prefixItems": [
                 {
                   "type": "string"
@@ -3369,7 +3553,6 @@ describe("JsonSchema generation", () => {
                   }]
                 }
               ],
-              "minItems": 0,
               "items": false
             }
           }
@@ -3415,7 +3598,6 @@ describe("JsonSchema generation", () => {
                 }]
               }
             ],
-            "minItems": 0,
             "items": false
           }
         })
@@ -3538,6 +3720,7 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "array",
+              "minItems": 8,
               "prefixItems": [
                 {
                   "type": "string"
@@ -3575,12 +3758,8 @@ describe("JsonSchema generation", () => {
                   ]
                 },
                 {
-                  "allOf": [
-                    { "$ref": "#/components/schemas/id3" },
-                    {
-                      "description": "id3_2-key"
-                    }
-                  ]
+                  "type": "string",
+                  "description": "id3_2-key"
                 }
               ],
               "items": false
@@ -3605,7 +3784,6 @@ describe("JsonSchema generation", () => {
               "prefixItems": [
                 { "type": "string" }
               ],
-              "minItems": 0,
               "items": false
             }
           }
@@ -3620,6 +3798,7 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "array",
+              "minItems": 1,
               "prefixItems": [
                 {
                   "type": "string"
@@ -3667,7 +3846,6 @@ describe("JsonSchema generation", () => {
                   }]
                 }
               ],
-              "minItems": 0,
               "items": false
             }
           }
@@ -3713,7 +3891,6 @@ describe("JsonSchema generation", () => {
                 }]
               }
             ],
-            "minItems": 0,
             "items": false
           }
         })
@@ -3784,6 +3961,7 @@ describe("JsonSchema generation", () => {
               }
             },
             {
+              target: "draft-07",
               referenceStrategy: "skip",
               definitions
             }
@@ -3828,6 +4006,7 @@ describe("JsonSchema generation", () => {
               "additionalProperties": false
             }
           }, {
+            target: "draft-07",
             referenceStrategy: "skip"
           })
         })
@@ -3874,6 +4053,7 @@ describe("JsonSchema generation", () => {
                 }
               }
             }, {
+              target: "draft-07",
               referenceStrategy: "skip"
             })
           })
@@ -3919,6 +4099,7 @@ describe("JsonSchema generation", () => {
                 }
               }
             }, {
+              target: "draft-07",
               referenceStrategy: "skip"
             })
           })
@@ -3967,6 +4148,7 @@ describe("JsonSchema generation", () => {
                 }
               },
               {
+                target: "draft-07",
                 referenceStrategy: "skip"
               }
             )
@@ -3991,6 +4173,7 @@ describe("JsonSchema generation", () => {
             "additionalProperties": false
           }
         }, {
+          target: "draft-07",
           additionalProperties: false
         })
       })
@@ -4010,6 +4193,7 @@ describe("JsonSchema generation", () => {
             "additionalProperties": true
           }
         }, {
+          target: "draft-07",
           additionalProperties: true
         })
       })
@@ -4029,6 +4213,7 @@ describe("JsonSchema generation", () => {
             "additionalProperties": { "type": "string" }
           }
         }, {
+          target: "draft-07",
           additionalProperties: { "type": "string" }
         })
       })

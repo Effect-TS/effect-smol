@@ -1,7 +1,7 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
   "extends": "../../../tsconfig.base.jsonc",
-  "include": ["test", "dtslint", "benchmark"],
+  "include": ["test/**/*.ts"],
   "references": [{ "path": "tsconfig.src.json" }],
   "compilerOptions": {
     "tsBuildInfoFile": ".tsbuildinfo/test.tsbuildinfo",
@@ -10,8 +10,8 @@
     "erasableSyntaxOnly": false,
     "baseUrl": ".",
     "paths": {
-      "effect": ["src/index.ts"],
-      "effect/*": ["src/*/index.ts", "src/*.ts"]
+      "@effect/openapi-generator": ["src/index.ts"],
+      "@effect/openapi-generator/*": ["src/*/index.ts", "src/*.ts"]
     },
     "types": ["node"],
     "plugins": [

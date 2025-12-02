@@ -43,6 +43,7 @@ import * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
 import * as Parser from "./Parser.ts"
+import type { StandardJSONSchemaV1 } from "./StandardSchema.ts"
 import * as Transformation from "./Transformation.ts"
 
 /**
@@ -484,6 +485,7 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  * console.log(invalidResult) // { issues: [{ path: ["name"], message: "..." }, { path: ["age"], message: "..." }] }
  * ```
  *
+ * @category Standard Schema
  * @since 4.0.0
  */
 export function asStandardSchemaV1<
@@ -502,33 +504,101 @@ export function asStandardSchemaV1<
   ) => Effect.Effect<S["Type"], Issue.Issue>
   const parseOptions: AST.ParseOptions = { errors: "all", ...options?.parseOptions }
   const formatter = Issue.makeFormatterStandardSchemaV1(options)
-  const standard: StandardSchemaV1<S["Encoded"], S["Type"]> = {
-    "~standard": {
-      version: 1,
-      vendor: "effect",
-      validate(value) {
-        const scheduler = new Scheduler.MixedScheduler()
-        const fiber = Effect.runFork(
-          Effect.match(decodeUnknownEffect(value, parseOptions), {
-            onFailure: formatter,
-            onSuccess: (value): StandardSchemaV1.Result<S["Type"]> => ({ value })
-          }),
-          { scheduler }
-        )
-        scheduler.flush()
-        const exit = fiber.pollUnsafe()
-        if (exit) {
-          return makeStandardResult(exit)
-        }
-        return new Promise((resolve) => {
-          fiber.addObserver((exit) => {
-            resolve(makeStandardResult(exit))
-          })
-        })
-      }
+  const validate: StandardSchemaV1<S["Encoded"], S["Type"]>["~standard"]["validate"] = (value: unknown) => {
+    const scheduler = new Scheduler.MixedScheduler()
+    const fiber = Effect.runFork(
+      Effect.match(decodeUnknownEffect(value, parseOptions), {
+        onFailure: formatter,
+        onSuccess: (value): StandardSchemaV1.Result<S["Type"]> => ({ value })
+      }),
+      { scheduler }
+    )
+    scheduler.flush()
+    const exit = fiber.pollUnsafe()
+    if (exit) {
+      return makeStandardResult(exit)
+    }
+    return new Promise((resolve) => {
+      fiber.addObserver((exit) => {
+        resolve(makeStandardResult(exit))
+      })
+    })
+  }
+  if ("~standard" in self) {
+    const out = self as any
+    if ("validate" in out["~standard"]) return out
+    Object.assign(out["~standard"], { validate })
+    return out
+  } else {
+    return Object.assign(self, {
+      "~standard": {
+        version: 1,
+        vendor: "effect",
+        validate
+      } as const
+    })
+  }
+}
+
+const targets = ["draft-07", "draft-2020-12", "openapi-3.1"]
+
+function isTarget(target: StandardJSONSchemaV1.Target): target is JsonSchema.Target {
+  return targets.includes(target)
+}
+
+function getDefinitionsNamespace(target: JsonSchema.Target): string {
+  switch (target) {
+    case "draft-07":
+      return "definitions"
+    case "draft-2020-12":
+    case "openapi-3.1":
+      return "$defs"
+  }
+}
+
+function makeStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Target): JsonSchema {
+  if (isTarget(target)) {
+    const { definitions, schema } = makeJsonSchema(self, { target })
+    if (Object.keys(definitions).length > 0) {
+      schema[getDefinitionsNamespace(target)] = definitions
+    }
+    return schema
+  }
+  throw new globalThis.Error(`Unsupported target: ${target}`)
+}
+
+/**
+ * Experimental support for converting a schema to a Standard JSON Schema V1.
+ *
+ * https://github.com/standard-schema/standard-schema/pull/134
+ *
+ * @category Standard Schema
+ * @since 4.0.0
+ * @experimental
+ */
+export function asStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSchemaV1<S["Encoded"], S["Type"]> & S {
+  const jsonSchema: StandardJSONSchemaV1.Props<S["Encoded"], S["Type"]>["jsonSchema"] = {
+    input(options) {
+      return makeStandardJSONSchemaV1(self, options.target)
+    },
+    output(options) {
+      return makeStandardJSONSchemaV1(typeCodec(self), options.target)
     }
   }
-  return Object.assign(self, standard)
+  if ("~standard" in self) {
+    const out = self as any
+    if ("jsonSchema" in out["~standard"]) return out
+    Object.assign(out["~standard"], { jsonSchema })
+    return out
+  } else {
+    return Object.assign(self, {
+      "~standard": {
+        version: 1,
+        vendor: "effect",
+        jsonSchema
+      } as const
+    })
+  }
 }
 
 /**
@@ -3306,6 +3376,18 @@ export function makeFilterGroup<T>(
 const TRIMMED_PATTERN = "^\\S[\\s\\S]*\\S$|^\\S$|^$"
 
 /**
+ * Validates that a string has no leading or trailing whitespace.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that
+ * matches strings without leading or trailing whitespace.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings match the trimmed pattern.
+ *
  * @category String checks
  * @since 4.0.0
  */
@@ -3328,24 +3410,71 @@ export function isTrimmed(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a string matches the specified regular expression pattern.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `pattern` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings match the specified regex pattern.
+ *
  * @category String checks
  * @since 4.0.0
  */
 export const isPattern: (regex: RegExp, annotations?: Annotations.Filter) => AST.Filter<string> = AST.isPattern
 
 /**
+ * Validates that a string represents a valid number (can be parsed as a number).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * strings representing numbers.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings match the number string pattern.
+ *
  * @category String checks
  * @since 4.0.0
  */
 export const isNumberString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isNumberString
 
 /**
+ * Validates that a string represents a valid BigInt (can be parsed as a BigInt).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * strings representing BigInt values.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings match the BigInt string pattern.
+ *
  * @category String checks
  * @since 4.0.0
  */
 export const isBigIntString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isBigIntString
 
 /**
+ * Validates that a string represents a valid Symbol (can be parsed as a Symbol).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * strings representing Symbol values.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings match the Symbol string pattern.
+ *
  * @category String checks
  * @since 4.0.0
  */
@@ -3366,9 +3495,18 @@ const getUUIDRegex = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): RegExp => {
 }
 
 /**
- * Universally Unique Identifier (UUID)
+ * Validates that a string is a valid Universally Unique Identifier (UUID).
+ * Optionally specify a version (1-8) to validate against a specific UUID version.
  *
- * To specify a particular UUID version, pass the version number as an argument.
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * UUID format, and includes a `format: "uuid"` annotation.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings match the UUID pattern.
  *
  * @category String checks
  * @since 4.0.0
@@ -3385,6 +3523,19 @@ export function isUUID(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
 }
 
 /**
+ * Validates that a string is a valid ULID (Universally Unique Lexicographically
+ * Sortable Identifier).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * the ULID format.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings match the ULID pattern.
+ *
  * @category String checks
  * @since 4.0.0
  */
@@ -3402,6 +3553,18 @@ export function isULID(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a string is valid Base64 encoded data.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * Base64 format.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings match the Base64 pattern.
+ *
  * @category String checks
  * @since 4.0.0
  */
@@ -3420,6 +3583,19 @@ export function isBase64(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a string is valid Base64URL encoded data (Base64 with URL-safe
+ * characters).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * Base64URL format.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings match the Base64URL pattern.
+ *
  * @category String checks
  * @since 4.0.0
  */
@@ -3438,6 +3614,18 @@ export function isBase64Url(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a string starts with the specified prefix.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * strings starting with the specified prefix.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings start with the required prefix.
+ *
  * @category String checks
  * @since 4.0.0
  */
@@ -3462,6 +3650,18 @@ export function isStartsWith(startsWith: string, annotations?: Annotations.Filte
 }
 
 /**
+ * Validates that a string ends with the specified suffix.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * strings ending with the specified suffix.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings end with the required suffix.
+ *
  * @category String checks
  * @since 4.0.0
  */
@@ -3486,6 +3686,18 @@ export function isEndsWith(endsWith: string, annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a string contains the specified substring.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * strings containing the specified substring.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings contain the required substring.
+ *
  * @category String checks
  * @since 4.0.0
  */
@@ -3512,6 +3724,18 @@ export function isIncludes(includes: string, annotations?: Annotations.Filter) {
 const UPPERCASED_PATTERN = "^[^a-z]*$"
 
 /**
+ * Validates that a string contains only uppercase characters.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * strings with only uppercase characters.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings contain only uppercase characters.
+ *
  * @category String checks
  * @since 4.0.0
  */
@@ -3536,6 +3760,18 @@ export function isUppercased(annotations?: Annotations.Filter) {
 const LOWERCASED_PATTERN = "^[^A-Z]*$"
 
 /**
+ * Validates that a string contains only lowercase characters.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * strings with only lowercase characters.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings contain only lowercase characters.
+ *
  * @category String checks
  * @since 4.0.0
  */
@@ -3560,7 +3796,17 @@ export function isLowercased(annotations?: Annotations.Filter) {
 const CAPITALIZED_PATTERN = "^[^a-z]?.*$"
 
 /**
- * Verifies that a string is capitalized.
+ * Validates that a string has its first character in uppercase.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * strings with the first character in uppercase.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings have the first character in uppercase.
  *
  * @category String checks
  * @since 4.0.0
@@ -3586,7 +3832,17 @@ export function isCapitalized(annotations?: Annotations.Filter) {
 const UNCAPITALIZED_PATTERN = "^[^A-Z]?.*$"
 
 /**
- * Verifies that a string is uncapitalized.
+ * Validates that a string has its first character in lowercase.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to a `pattern` constraint in JSON Schema that matches
+ * strings with the first character in lowercase.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `patterns`
+ * constraint to ensure generated strings have the first character in lowercase.
  *
  * @category String checks
  * @since 4.0.0
@@ -3610,6 +3866,18 @@ export function isUncapitalized(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a number is finite (not `Infinity`, `-Infinity`, or `NaN`).
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, but ensures the
+ * number is valid and finite.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies `noDefaultInfinity`
+ * and `noNaN` constraints to ensure generated numbers are finite.
+ *
  * @category Number checks
  * @since 4.0.0
  */
@@ -3789,6 +4057,18 @@ export function deriveIsMultipleOf<T>(options: {
 }
 
 /**
+ * Validates that a number is greater than the specified value (exclusive).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `exclusiveMinimum` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `min` constraint
+ * with `minExcluded: true` to ensure generated numbers are greater than the
+ * specified value.
+ *
  * @category Number checks
  * @since 4.0.0
  */
@@ -3810,6 +4090,18 @@ export const isGreaterThan = deriveIsGreaterThan({
 })
 
 /**
+ * Validates that a number is greater than or equal to the specified value
+ * (inclusive).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `minimum` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `min` constraint
+ * to ensure generated numbers are greater than or equal to the specified value.
+ *
  * @category Number checks
  * @since 4.0.0
  */
@@ -3830,6 +4122,18 @@ export const isGreaterThanOrEqualTo = deriveIsGreaterThanOrEqualTo({
 })
 
 /**
+ * Validates that a number is less than the specified value (exclusive).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `exclusiveMaximum` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `max` constraint
+ * with `maxExcluded: true` to ensure generated numbers are less than the
+ * specified value.
+ *
  * @category Number checks
  * @since 4.0.0
  */
@@ -3851,6 +4155,18 @@ export const isLessThan = deriveIsLessThan({
 })
 
 /**
+ * Validates that a number is less than or equal to the specified value
+ * (inclusive).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `maximum` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `max` constraint
+ * to ensure generated numbers are less than or equal to the specified value.
+ *
  * @category Number checks
  * @since 4.0.0
  */
@@ -3871,6 +4187,20 @@ export const isLessThanOrEqualTo = deriveIsLessThanOrEqualTo({
 })
 
 /**
+ * Validates that a number is within a specified range. The range boundaries can
+ * be inclusive or exclusive based on the provided options.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to `minimum`/`maximum` or `exclusiveMinimum`/`exclusiveMaximum`
+ * constraints in JSON Schema, depending on the options provided.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies `min` and `max`
+ * constraints with optional `minExcluded` and `maxExcluded` flags to ensure
+ * generated numbers fall within the specified range.
+ *
  * @category Number checks
  * @since 4.0.0
  */
@@ -3909,6 +4239,17 @@ export const isBetween = deriveIsBetween({
 })
 
 /**
+ * Validates that a number is positive (greater than zero).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `exclusiveMinimum: 0` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `min` constraint
+ * with `minExcluded: true` set to 0 to ensure generated numbers are positive.
+ *
  * @category Number checks
  * @since 4.0.0
  */
@@ -3917,6 +4258,17 @@ export function isPositive(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a number is negative (less than zero).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `exclusiveMaximum: 0` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `max` constraint
+ * with `maxExcluded: true` set to 0 to ensure generated numbers are negative.
+ *
  * @category Number checks
  * @since 4.0.0
  */
@@ -3925,6 +4277,17 @@ export function isNegative(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a number is non-negative (greater than or equal to zero).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `minimum: 0` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `min` constraint
+ * set to 0 to ensure generated numbers are non-negative.
+ *
  * @category Number checks
  * @since 4.0.0
  */
@@ -3933,6 +4296,17 @@ export function isNonNegative(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a number is non-positive (less than or equal to zero).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `maximum: 0` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `max` constraint
+ * set to 0 to ensure generated numbers are non-positive.
+ *
  * @category Number checks
  * @since 4.0.0
  */
@@ -3941,6 +4315,17 @@ export function isNonPositive(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a number is a multiple of the specified divisor.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `multipleOf` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies constraints to ensure
+ * generated numbers are multiples of the specified divisor.
+ *
  * @category Number checks
  * @since 4.0.0
  */
@@ -3954,7 +4339,17 @@ export const isMultipleOf = deriveIsMultipleOf({
 })
 
 /**
- * Restricts to safe integer range
+ * Validates that a number is a safe integer (within the safe integer range
+ * that can be exactly represented in JavaScript).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `type: "integer"` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies an `isInteger: true`
+ * constraint to ensure generated numbers are integers.
  *
  * @category Integer checks
  * @since 4.0.0
@@ -3978,6 +4373,19 @@ export function isInt(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a number is a 32-bit signed integer (range: -2,147,483,648 to
+ * 2,147,483,647).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `format: "int32"` constraint in OpenAPI 3.1,
+ * or `minimum`/`maximum` constraints in other JSON Schema targets.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies integer and range
+ * constraints to ensure generated numbers are 32-bit signed integers.
+ *
  * @category Integer checks
  * @since 4.0.0
  */
@@ -3990,7 +4398,7 @@ export function isInt32(annotations?: Annotations.Filter) {
     Annotations.combine({
       expected: "a 32-bit integer",
       jsonSchemaConstraint: (ctx) =>
-        ctx.target === "oas3.1" ?
+        ctx.target === "openapi-3.1" ?
           { format: "int32" } :
           undefined,
       meta: {
@@ -4001,6 +4409,19 @@ export function isInt32(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a number is a 32-bit unsigned integer (range: 0 to
+ * 4,294,967,295).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `format: "uint32"` constraint in OpenAPI 3.1,
+ * or `minimum`/`maximum` constraints in other JSON Schema targets.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies integer and range
+ * constraints to ensure generated numbers are 32-bit unsigned integers.
+ *
  * @category Integer checks
  * @since 4.0.0
  */
@@ -4013,7 +4434,7 @@ export function isUint32(annotations?: Annotations.Filter) {
     Annotations.combine({
       expected: "a 32-bit unsigned integer",
       jsonSchemaConstraint: (ctx) =>
-        ctx.target === "oas3.1" ?
+        ctx.target === "openapi-3.1" ?
           { format: "uint32" } :
           undefined,
       meta: {
@@ -4024,6 +4445,19 @@ export function isUint32(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a Date object represents a valid date (not an invalid date
+ * like `new Date("invalid")`).
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as JSON Schema
+ * validates date strings, not Date objects.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `noInvalidDate`
+ * constraint to ensure generated Date objects are valid.
+ *
  * @category Date checks
  * @since 4.0.0
  */
@@ -4045,6 +4479,20 @@ export function isValidDate(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a Date is greater than or equal to the specified date
+ * (inclusive).
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as JSON Schema
+ * validates date strings, not Date objects.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `min` constraint
+ * to ensure generated Date objects are greater than or equal to the specified
+ * date.
+ *
  * @category Date checks
  * @since 4.0.0
  */
@@ -4064,6 +4512,20 @@ export const isGreaterThanOrEqualToDate = deriveIsGreaterThanOrEqualTo({
 })
 
 /**
+ * Validates that a Date is less than or equal to the specified date
+ * (inclusive).
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as JSON Schema
+ * validates date strings, not Date objects.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `max` constraint
+ * to ensure generated Date objects are less than or equal to the specified
+ * date.
+ *
  * @category Date checks
  * @since 4.0.0
  */
@@ -4083,6 +4545,19 @@ export const isLessThanOrEqualToDate = deriveIsLessThanOrEqualTo({
 })
 
 /**
+ * Validates that a Date is within a specified range. The range boundaries can
+ * be inclusive or exclusive based on the provided options.
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as JSON Schema
+ * validates date strings, not Date objects.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies `min` and `max`
+ * constraints to ensure generated Date objects fall within the specified range.
+ *
  * @category Date checks
  * @since 4.0.0
  */
@@ -4103,6 +4578,21 @@ export const isBetweenDate = deriveIsBetween({
 })
 
 /**
+ * Validates that a BigInt is greater than or equal to the specified value
+ * (inclusive).
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as JSON Schema
+ * does not natively support BigInt. It would need to be represented as a
+ * string with validation.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `min` constraint
+ * to ensure generated BigInt values are greater than or equal to the specified
+ * value.
+ *
  * @category BigInt checks
  * @since 4.0.0
  */
@@ -4122,6 +4612,21 @@ export const isGreaterThanOrEqualToBigInt = deriveIsGreaterThanOrEqualTo({
 })
 
 /**
+ * Validates that a BigInt is less than or equal to the specified value
+ * (inclusive).
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as JSON Schema
+ * does not natively support BigInt. It would need to be represented as a
+ * string with validation.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `max` constraint
+ * to ensure generated BigInt values are less than or equal to the specified
+ * value.
+ *
  * @category BigInt checks
  * @since 4.0.0
  */
@@ -4141,6 +4646,21 @@ export const isLessThanOrEqualToBigInt = deriveIsLessThanOrEqualTo({
 })
 
 /**
+ * Validates that a BigInt is within a specified range. The range boundaries can
+ * be inclusive or exclusive based on the provided options.
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as JSON Schema
+ * does not natively support BigInt. It would need to be represented as a
+ * string with validation.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies `min` and `max`
+ * constraints to ensure generated BigInt values fall within the specified
+ * range.
+ *
  * @category BigInt checks
  * @since 4.0.0
  */
@@ -4161,6 +4681,19 @@ export const isBetweenBigInt = deriveIsBetween({
 })
 
 /**
+ * Validates that a BigInt is non-negative (greater than or equal to zero).
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as JSON Schema
+ * does not natively support BigInt. It would need to be represented as a
+ * string with validation.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `min` constraint
+ * set to 0n to ensure generated BigInt values are non-negative.
+ *
  * @category BigInt checks
  * @since 4.0.0
  */
@@ -4169,6 +4702,19 @@ export function isNonNegativeBigInt(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a BigInt is non-positive (less than or equal to zero).
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as JSON Schema
+ * does not natively support BigInt. It would need to be represented as a
+ * string with validation.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `max` constraint
+ * set to 0n to ensure generated BigInt values are non-positive.
+ *
  * @category BigInt checks
  * @since 4.0.0
  */
@@ -4177,6 +4723,20 @@ export function isNonPositiveBigInt(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a value has at least the specified length. Works with strings
+ * and arrays.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `minLength` constraint for strings or the
+ * `minItems` constraint for arrays in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `minLength`
+ * constraint to ensure generated strings or arrays have at least the required
+ * length.
+ *
  * @category Length checks
  * @since 4.0.0
  */
@@ -4212,6 +4772,19 @@ export function isMinLength(minLength: number, annotations?: Annotations.Filter)
 }
 
 /**
+ * Validates that a value has at least one element. Works with strings and arrays.
+ * This is equivalent to `isMinLength(1)`.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `minLength: 1` constraint for strings or the
+ * `minItems: 1` constraint for arrays in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `minLength: 1`
+ * constraint to ensure generated strings or arrays are non-empty.
+ *
  * @category Length checks
  * @since 4.0.0
  */
@@ -4220,6 +4793,20 @@ export function isNonEmpty(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a value has at most the specified length. Works with strings
+ * and arrays.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `maxLength` constraint for strings or the
+ * `maxItems` constraint for arrays in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `maxLength`
+ * constraint to ensure generated strings or arrays have at most the required
+ * length.
+ *
  * @category Length checks
  * @since 4.0.0
  */
@@ -4255,6 +4842,21 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
 }
 
 /**
+ * Validates that a value has exactly the specified length. Works with strings
+ * and arrays.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to both `minLength`/`maxLength` constraints for strings
+ * or `minItems`/`maxItems` constraints for arrays in JSON Schema, both set to
+ * the same value.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies both `minLength` and
+ * `maxLength` constraints set to the same value to ensure generated strings or
+ * arrays have exactly the required length.
+ *
  * @category Length checks
  * @since 4.0.0
  */
@@ -4292,6 +4894,20 @@ export function isLength(length: number, annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a value has at least the specified size. Works with values
+ * that have a `size` property, such as objects with a `size` property.
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as it applies to
+ * values with a `size` property rather than standard JSON Schema types.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `minLength`
+ * constraint to the array representation to ensure generated values have at
+ * least the required size.
+ *
  * @category Size checks
  * @since 4.0.0
  */
@@ -4316,6 +4932,20 @@ export function isMinSize(minSize: number, annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a value has at most the specified size. Works with values
+ * that have a `size` property, such as objects with a `size` property.
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as it applies to
+ * values with a `size` property rather than standard JSON Schema types.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `maxLength`
+ * constraint to the array representation to ensure generated values have at
+ * most the required size.
+ *
  * @category Size checks
  * @since 4.0.0
  */
@@ -4340,6 +4970,20 @@ export function isMaxSize(maxSize: number, annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a value has exactly the specified size. Works with values
+ * that have a `size` property, such as objects with a `size` property.
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as it applies to
+ * values with a `size` property rather than standard JSON Schema types.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies both `minLength` and
+ * `maxLength` constraints set to the same value to ensure generated values have
+ * exactly the required size.
+ *
  * @category Size checks
  * @since 4.0.0
  */
@@ -4365,24 +5009,39 @@ export function isSize(size: number, annotations?: Annotations.Filter) {
 }
 
 /**
- * @category Entries checks
+ * Validates that an object contains at least the specified number of
+ * properties. This includes both string and symbol keys when counting
+ * properties.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `minProperties` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `minLength`
+ * constraint to the array of entries that is generated before being converted
+ * to an object, ensuring the resulting object has at least the required number
+ * of properties.
+ *
+ * @category Object checks
  * @since 4.0.0
  */
-export function isMinEntries(minEntries: number, annotations?: Annotations.Filter) {
-  minEntries = Math.max(0, Math.floor(minEntries))
+export function isMinProperties(minProperties: number, annotations?: Annotations.Filter) {
+  minProperties = Math.max(0, Math.floor(minProperties))
   return makeFilter<object>(
-    (input) => Object.entries(input).length >= minEntries,
+    (input) => Reflect.ownKeys(input).length >= minProperties,
     Annotations.combine({
-      expected: `an object with at least ${minEntries} entries`,
-      jsonSchemaConstraint: () => ({ minProperties: minEntries }),
+      expected: `an object with at least ${minProperties} properties`,
+      jsonSchemaConstraint: () => ({ minProperties }),
       meta: {
-        _tag: "isMinEntries",
-        minEntries
+        _tag: "isMinProperties",
+        minProperties
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitraryConstraint: {
         array: {
-          minLength: minEntries
+          minLength: minProperties
         }
       }
     }, annotations)
@@ -4390,24 +5049,38 @@ export function isMinEntries(minEntries: number, annotations?: Annotations.Filte
 }
 
 /**
- * @category Entries checks
+ * Validates that an object contains at most the specified number of properties.
+ * This includes both string and symbol keys when counting properties.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `maxProperties` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `maxLength`
+ * constraint to the array of entries that is generated before being converted
+ * to an object, ensuring the resulting object has at most the required number
+ * of properties.
+ *
+ * @category Object checks
  * @since 4.0.0
  */
-export function isMaxEntries(maxEntries: number, annotations?: Annotations.Filter) {
-  maxEntries = Math.max(0, Math.floor(maxEntries))
+export function isMaxProperties(maxProperties: number, annotations?: Annotations.Filter) {
+  maxProperties = Math.max(0, Math.floor(maxProperties))
   return makeFilter<object>(
-    (input) => Object.entries(input).length <= maxEntries,
+    (input) => Reflect.ownKeys(input).length <= maxProperties,
     Annotations.combine({
-      expected: `an object with at most ${maxEntries} entries`,
-      jsonSchemaConstraint: () => ({ maxProperties: maxEntries }),
+      expected: `an object with at most ${maxProperties} properties`,
+      jsonSchemaConstraint: () => ({ maxProperties }),
       meta: {
-        _tag: "isMaxEntries",
-        maxEntries
+        _tag: "isMaxProperties",
+        maxProperties
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
       arbitraryConstraint: {
         array: {
-          maxLength: maxEntries
+          maxLength: maxProperties
         }
       }
     }, annotations)
@@ -4415,18 +5088,33 @@ export function isMaxEntries(maxEntries: number, annotations?: Annotations.Filte
 }
 
 /**
- * @category Entries checks
+ * Validates that an object contains exactly the specified number of properties.
+ * This includes both string and symbol keys when counting properties.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to both `minProperties` and `maxProperties`
+ * constraints in JSON Schema, both set to the same value.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies both `minLength` and
+ * `maxLength` constraints to the array of entries that is generated before
+ * being converted to an object, ensuring the resulting object has exactly the
+ * required number of properties.
+ *
+ * @category Object checks
  * @since 4.0.0
  */
-export function isEntriesLength(length: number, annotations?: Annotations.Filter) {
+export function isPropertiesLength(length: number, annotations?: Annotations.Filter) {
   length = Math.max(0, Math.floor(length))
   return makeFilter<object>(
-    (input) => Object.entries(input).length === length,
+    (input) => Reflect.ownKeys(input).length === length,
     Annotations.combine({
-      expected: `an object with exactly ${length} entries`,
+      expected: `an object with exactly ${length} properties`,
       jsonSchemaConstraint: () => ({ minProperties: length, maxProperties: length }),
       meta: {
-        _tag: "isEntriesLength",
+        _tag: "isPropertiesLength",
         length
       },
       [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
@@ -4441,9 +5129,23 @@ export function isEntriesLength(length: number, annotations?: Annotations.Filter
 }
 
 /**
+ * Validates that all items in an array are unique according to the provided
+ * equivalence function.
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `uniqueItems: true` constraint in JSON Schema.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this applies a `comparator`
+ * constraint using the provided equivalence function to ensure generated arrays
+ * contain only unique items.
+ *
  * @since 4.0.0
  */
-export function isUnique<T>(equivalence: Equivalence.Equivalence<T>, annotations?: Annotations.Filter) {
+export function isUnique<T>(equivalence?: Equivalence.Equivalence<T>, annotations?: Annotations.Filter) {
+  equivalence = equivalence ?? Equal.equivalence()
   return makeFilter<ReadonlyArray<T>>(
     (input) => Arr.dedupeWith(input, equivalence).length === input.length,
     Annotations.combine({
@@ -4463,12 +5165,37 @@ export function isUnique<T>(equivalence: Equivalence.Equivalence<T>, annotations
 }
 
 /**
+ * Validates that a value is not `undefined`.
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, as JSON Schema does
+ * not distinguish `undefined` (it's not part of JSON). It can be represented
+ * by excluding `undefined` from a union type in TypeScript.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this ensures generated values are
+ * not `undefined`.
+ *
  * @since 4.0.0
  */
 export const isNotUndefined: <A>(annotations?: Annotations.Filter) => AST.Refinement<Exclude<A, undefined>, A> =
   AST.isNotUndefined
 
 /**
+ * Validates that a value is not `null`.
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, but can be
+ * represented by excluding `null` from a union type.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this ensures generated values
+ * are not `null`.
+ *
  * @since 4.0.0
  */
 export function isNotNull<A>(annotations?: Annotations.Filter) {
@@ -4479,6 +5206,19 @@ export function isNotNull<A>(annotations?: Annotations.Filter) {
 }
 
 /**
+ * Validates that a value is neither `null` nor `undefined`.
+ *
+ * **JSON Schema**
+ *
+ * This check does not have a direct JSON Schema equivalent, but can be
+ * represented by excluding `null` from a union type. Note that JSON Schema
+ * does not distinguish `undefined` as it's not part of JSON.
+ *
+ * **Arbitrary**
+ *
+ * When generating test data with fast-check, this ensures generated values
+ * are neither `null` nor `undefined`.
+ *
  * @since 4.0.0
  */
 export function isNotNullish<A>(annotations?: Annotations.Filter) {
@@ -5620,7 +6360,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {}
  * const original = Schema.Struct({ a: Schema.String })
  * const schema = Schema.fromJsonString(original)
  *
- * const jsonSchema = Schema.makeJsonSchemaDraft2020_12(schema)
+ * const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-2020-12" })
  *
  * console.log(JSON.stringify(jsonSchema, null, 2))
  * // Output:
@@ -5654,8 +6394,8 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
           return {
             "type": "string"
           }
-        case "2020-12":
-        case "oas3.1":
+        case "draft-2020-12":
+        case "openapi-3.1":
           return {
             "type": "string",
             "contentMediaType": "application/json",
@@ -6783,13 +7523,17 @@ export function makeEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T
 /**
  * @since 4.0.0
  */
-export interface JsonSchemaOptions {
+export interface MakeJsonSchemaOptions {
+  /**
+   * The target of the JSON Schema.
+   */
+  readonly target: JsonSchema.Target
   /**
    * A record of definitions which are included in the schema.
    *
    * Defaults to the empty object `{}`.
    */
-  readonly definitions?: Record<string, JsonSchema.Schema> | undefined
+  readonly definitions?: Record<string, JsonSchema> | undefined
   /**
    * Controls how additional properties are handled while resolving the JSON
    * schema.
@@ -6799,7 +7543,7 @@ export interface JsonSchemaOptions {
    * - `true`: Allow additional properties
    * - `JsonSchema`: Use the provided JSON Schema for additional properties
    */
-  readonly additionalProperties?: true | false | JsonSchema.Schema | undefined
+  readonly additionalProperties?: true | false | JsonSchema | undefined
   /**
    * Controls how references are handled while resolving the JSON schema.
    *
@@ -6813,12 +7557,19 @@ export interface JsonSchemaOptions {
    * A function that is called when a JSON Schema annotation is missing. This
    * will be the default result instead of throwing an error.
    */
-  readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => JsonSchema.Schema | undefined) | undefined
+  readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => JsonSchema | undefined) | undefined
   /**
    * Controls whether to generate descriptions for checks (if the user has not
    * provided them) based on the `expected` annotation of the check.
    */
   readonly generateDescriptions?: boolean | undefined
+}
+
+/**
+ * @since 4.0.0
+ */
+export type JsonSchema = {
+  [x: string]: unknown
 }
 
 /**
@@ -6829,74 +7580,38 @@ export declare namespace JsonSchema {
   /**
    * @since 4.0.0
    */
+  export type Target = "draft-07" | "draft-2020-12" | "openapi-3.1"
+
+  /**
+   * @since 4.0.0
+   */
   export type Type = "string" | "number" | "boolean" | "array" | "object" | "null" | "integer"
 
   /**
    * @since 4.0.0
    */
-  export type Fragment = {
-    [x: string]: unknown
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface Schema extends Fragment {
-    type?: Type
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export interface Definitions extends Record<string, Schema> {}
+  export interface Definitions extends Record<string, JsonSchema> {}
 
   /**
    * @since 4.0.0
    */
   export interface Document {
     readonly uri: string
-    readonly schema: Schema
+    readonly schema: JsonSchema
     readonly definitions: Definitions
   }
 }
 
 /**
- * Returns a JSON Schema Draft 07 result.
+ * Returns a JSON Schema.
+ *
+ * You can use the `options` parameter to return a different target JSON Schema.
  *
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeJsonSchemaDraft07<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchema.Document {
-  return InternalJsonSchema.make(schema, {
-    ...options,
-    target: "draft-07"
-  })
-}
-
-/**
- * Returns a JSON Schema 2020-12 result.
- *
- * @category JsonSchema
- * @since 4.0.0
- */
-export function makeJsonSchemaDraft2020_12<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchema.Document {
-  return InternalJsonSchema.make(schema, {
-    ...options,
-    target: "2020-12"
-  })
-}
-
-/**
- * Returns a JSON Schema OpenAPI 3.1 result.
- *
- * @category JsonSchema
- * @since 4.0.0
- */
-export function makeJsonSchemaOpenApi3_1<S extends Top>(schema: S, options?: JsonSchemaOptions): JsonSchema.Document {
-  return InternalJsonSchema.make(schema, {
-    ...options,
-    target: "oas3.1"
-  })
+export function makeJsonSchema<S extends Top>(schema: S, options: MakeJsonSchemaOptions): JsonSchema.Document {
+  return InternalJsonSchema.make(schema, options)
 }
 
 // -----------------------------------------------------------------------------

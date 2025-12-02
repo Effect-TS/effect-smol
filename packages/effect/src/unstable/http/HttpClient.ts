@@ -252,11 +252,7 @@ export const transformResponse: {
   ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
 ): HttpClient.With<E1, R1> => makeWith((request) => f(self.postprocess(request)), self.preprocess))
 
-/**
- * @since 4.0.0
- * @category error handling
- */
-export const catchAll: {
+const catch_: {
   <E, E2, R2>(
     f: (e: E) => Effect.Effect<HttpClientResponse.HttpClientResponse, E2, R2>
   ): <R>(self: HttpClient.With<E, R>) => HttpClient.With<E2, R2 | R>
@@ -271,6 +267,14 @@ export const catchAll: {
     f: (e: E) => Effect.Effect<HttpClientResponse.HttpClientResponse, E2, R2>
   ): HttpClient.With<E2, R | R2> => transformResponse(self, Effect.catch(f))
 )
+
+export {
+  /**
+   * @since 4.0.0
+   * @category error handling
+   */
+  catch_ as catch
+}
 
 /**
  * @since 4.0.0

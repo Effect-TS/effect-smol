@@ -207,7 +207,7 @@ function processAnnotation<Services, S, I>(
 export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
   options?: {
-    readonly additionalProperties?: true | false | Schema.JsonSchema.Schema | undefined
+    readonly additionalProperties?: true | false | Schema.JsonSchema | undefined
   } | undefined
 ): OpenAPISpec => {
   const cached = apiCache.get(api)
@@ -231,7 +231,8 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   }
 
   function processAST(ast: AST.AST): object {
-    const { definitions, schema } = Schema.makeJsonSchemaOpenApi3_1(Schema.make(ast), {
+    const { definitions, schema } = Schema.makeJsonSchema(Schema.make(ast), {
+      target: "openapi-3.1",
       additionalProperties: options?.additionalProperties,
       referenceStrategy: "keep"
     })
@@ -330,13 +331,14 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
       function processParameters(schema: Schema.Schema<any> | undefined, i: OpenAPISpecParameter["in"]) {
         if (schema) {
           const jsonSchema = processAST(schema.ast) as any
+          const required = Array.isArray(jsonSchema.required) ? jsonSchema.required : []
           if ("properties" in jsonSchema) {
             Object.entries(jsonSchema.properties as Record<string, any>).forEach(([name, psJsonSchema]) => {
               op.parameters.push({
                 name,
                 in: i,
                 schema: psJsonSchema,
-                required: jsonSchema.required.includes(name),
+                required: required.includes(name),
                 ...(psJsonSchema.description !== undefined ? { description: psJsonSchema.description } : undefined)
               })
             })
