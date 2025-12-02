@@ -967,14 +967,25 @@ describe("FromJsonSchema", () => {
           )
         )
         assertGeneration(
-          { schema: { "type": "object", "properties": {} } },
+          {
+            schema: {
+              "type": "object",
+              "properties": {}
+            }
+          },
           FromJsonSchema.makeGeneration(
             "Schema.Record(Schema.String, Schema.Unknown)",
             FromJsonSchema.makeTypes("{ readonly [x: string]: unknown }")
           )
         )
         assertGeneration(
-          { schema: { "type": "object", "properties": {}, "additionalProperties": false } },
+          {
+            schema: {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
           FromJsonSchema.makeGeneration(
             "Schema.Record(Schema.String, Schema.Never)",
             FromJsonSchema.makeTypes("{ readonly [x: string]: never }")
@@ -1621,6 +1632,20 @@ describe("FromJsonSchema", () => {
           },
           FromJsonSchema.makeGeneration(
             `Schema.Record(Schema.String, Schema.Unknown).annotate({ "description": "lorem" })`,
+            FromJsonSchema.makeTypes("{ readonly [x: string]: unknown }"),
+            { description: "lorem" }
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "object",
+              "minProperties": 1,
+              "allOf": [{ "description": "lorem" }]
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMinProperties(1)).annotate({ "description": "lorem" })`,
             FromJsonSchema.makeTypes("{ readonly [x: string]: unknown }"),
             { description: "lorem" }
           )

@@ -199,7 +199,7 @@ function renderJsDocs(annotations: Annotations, options: RecurOptions): string {
 function toGeneration(ast: AST, options: RecurOptions): Generation {
   const out = ast.toGeneration(options)
   const checks = ast.renderChecks()
-  const annotations = renderAnnotations(ast)
+  const annotations = renderAnnotations(out.annotations)
   return {
     runtime: out.runtime + checks + annotations,
     types: out.types,
@@ -208,8 +208,8 @@ function toGeneration(ast: AST, options: RecurOptions): Generation {
   }
 }
 
-function renderAnnotations(ast: AST): string {
-  const entries = Object.entries(ast.annotations)
+function renderAnnotations(annotations: Annotations): string {
+  const entries = Object.entries(annotations)
 
   if (entries.length === 0) return ""
 
@@ -550,7 +550,7 @@ class Not {
     return new Never()
   }
   toGeneration(options: RecurOptions): Generation {
-    return toGeneration(new Never(this.annotations), options)
+    return new Never(this.annotations).toGeneration(options)
   }
 }
 
@@ -1098,16 +1098,19 @@ class Objects {
   readonly _tag = "Objects"
   readonly properties: ReadonlyArray<Property>
   readonly indexSignatures: ReadonlyArray<IndexSignature>
+  readonly additionalProperties: boolean
   readonly checks: ReadonlyArray<ObjectsCheck>
   readonly annotations: Annotations
   constructor(
     properties: ReadonlyArray<Property>,
     indexSignatures: ReadonlyArray<IndexSignature>,
+    additionalProperties: boolean,
     checks: ReadonlyArray<ObjectsCheck>,
     annotations: Annotations = {}
   ) {
     this.properties = properties
     this.indexSignatures = indexSignatures
+    this.additionalProperties = additionalProperties
     this.checks = checks
     this.annotations = annotations
   }
@@ -1115,6 +1118,7 @@ class Objects {
     return new Objects(
       this.properties,
       this.indexSignatures,
+      this.additionalProperties,
       this.checks,
       annotationsCombiner.combine(this.annotations, annotations)
     )
@@ -1123,6 +1127,7 @@ class Objects {
     return new Objects(
       this.properties,
       this.indexSignatures,
+      this.additionalProperties,
       [...this.checks, ...Objects.parseChecks(f)],
       this.annotations
     )
@@ -1143,6 +1148,7 @@ class Objects {
         return new Objects(
           this.properties,
           this.indexSignatures,
+          this.additionalProperties,
           this.checks,
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
@@ -1150,6 +1156,7 @@ class Objects {
         return new Objects(
           this.properties.concat(that.properties),
           this.indexSignatures.concat(that.indexSignatures),
+          this.additionalProperties && that.additionalProperties,
           [...this.checks, ...that.checks],
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
@@ -1164,6 +1171,26 @@ class Objects {
     }
   }
   toGeneration(options: RecurOptions): Generation {
+    if (this.properties.length === 0 && this.indexSignatures.length === 0) {
+      if (this.additionalProperties === false) {
+        return new Objects(
+          [],
+          [new IndexSignature(new String([], undefined), new Never())],
+          false,
+          this.checks,
+          this.annotations
+        ).toGeneration(options)
+      } else {
+        return new Objects(
+          [],
+          [new IndexSignature(new String([], undefined), new Unknown())],
+          false,
+          this.checks,
+          this.annotations
+        ).toGeneration(options)
+      }
+    }
+
     const ps: ReadonlyArray<PropertyGen> = this.properties.map((p) => ({
       key: p.key,
       value: toGeneration(p.value, options),
@@ -1575,17 +1602,18 @@ function handleType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, opt
     case "object": {
       const properties = collectProperties(schema, options)
       const indexSignatures = collectIndexSignatures(schema, options)
-      return new Objects(properties, indexSignatures, [])
+      const additionalProperties = schema.additionalProperties === false ? false : true
+      return new Objects(properties, indexSignatures, additionalProperties, [])
     }
     case "array": {
       const minItems = typeof schema.minItems === "number" ? schema.minItems : 0
-      const elements = collectElements(schema, options)?.map((item, index): Element =>
+      const elements = collectElements(schema, options).map((item, index): Element =>
         new Element(index + 1 > minItems, parse(item, options))
       )
       const rest = collectRest(schema, options)
 
       return new Arrays(
-        elements ?? [],
+        elements,
         rest !== undefined ? rest === false ? undefined : parse(rest, options) : new Unknown(),
         []
       )
@@ -1604,11 +1632,11 @@ function collectProperties(schema: Schema.JsonSchema, options: RecurOptions): Ar
 }
 
 function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions): Array<IndexSignature> {
-  if (isObject(schema.propertyNames)) {
-    return [new IndexSignature(parse(schema.propertyNames, options), new Unknown())]
-  }
-
   const out: Array<IndexSignature> = []
+
+  if (isObject(schema.propertyNames)) {
+    out.push(new IndexSignature(parse(schema.propertyNames, options), new Unknown()))
+  }
 
   if (isObject(schema.patternProperties)) {
     for (const [pattern, value] of Object.entries(schema.patternProperties)) {
@@ -1621,30 +1649,23 @@ function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions
     }
   }
 
-  const hasNoProps = schema.properties === undefined ||
-    (isObject(schema.properties) && Object.keys(schema.properties).length === 0)
-
-  if (schema.additionalProperties === true || schema.additionalProperties === undefined) {
-    out.push(new IndexSignature(new String([], undefined), new Unknown()))
-  } else if (isObject(schema.additionalProperties)) {
+  if (isObject(schema.additionalProperties)) {
     out.push(new IndexSignature(new String([], undefined), parse(schema.additionalProperties, options)))
-  } else if (schema.additionalProperties === false && hasNoProps && out.length === 0) {
-    out.push(new IndexSignature(new String([], undefined), new Never()))
   }
 
   return out
 }
 
-function collectElements(schema: Schema.JsonSchema, options: RecurOptions): ReadonlyArray<unknown> | undefined {
+function collectElements(schema: Schema.JsonSchema, options: RecurOptions): ReadonlyArray<unknown> {
   switch (options.source) {
     case "draft-07":
-      return Array.isArray(schema.items) ? schema.items : undefined
+      return Array.isArray(schema.items) ? schema.items : []
     case "draft-2020-12":
     case "openapi-3.1":
-      return Array.isArray(schema.prefixItems) ? schema.prefixItems : undefined
+      return Array.isArray(schema.prefixItems) ? schema.prefixItems : []
     case "openapi-3.0":
       // no tuples in OpenAPI 3.0 spec, keep undefined
-      return undefined
+      return []
   }
 }
 
