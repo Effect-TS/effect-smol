@@ -179,7 +179,7 @@ export function generate(schema: Schema.JsonSchema | boolean, options: GenerateO
     inlineRefs: false,
     refStack: emptySet
   }
-  return toGeneration(parse(schema, recurOptions), recurOptions)
+  return parse(schema, recurOptions).toGeneration(recurOptions)
 }
 
 const defaultResolver: Resolver = (ref: string) => {
@@ -194,18 +194,6 @@ function defaultExtractJsDocs(annotations: Annotations): string {
 function renderJsDocs(annotations: Annotations, options: RecurOptions): string {
   if (!options.extractJsDocs) return ""
   return options.extractJsDocs(annotations)
-}
-
-function toGeneration(ast: AST, options: RecurOptions): Generation {
-  const out = ast.toGeneration(options)
-  const checks = ast.renderChecks()
-  const annotations = renderAnnotations(out.annotations)
-  return {
-    runtime: out.runtime + checks + annotations,
-    types: out.types,
-    annotations: out.annotations,
-    importDeclarations: out.importDeclarations
-  }
 }
 
 function renderAnnotations(annotations: Annotations): string {
@@ -485,15 +473,13 @@ class Unknown {
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  renderChecks(): string {
-    return ""
-  }
   combine(that: AST): AST {
     return that
   }
   toGeneration(_: RecurOptions): Generation {
+    const suffix = renderAnnotations(this.annotations)
     return {
-      runtime: "Schema.Unknown",
+      runtime: "Schema.Unknown" + suffix,
       types: makeTypes("unknown"),
       annotations: this.annotations,
       importDeclarations: emptySet
@@ -513,15 +499,13 @@ class Never {
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  renderChecks(): string {
-    return ""
-  }
   combine(_: AST): AST {
     return new Never()
   }
   toGeneration(_: RecurOptions): Generation {
+    const suffix = renderAnnotations(this.annotations)
     return {
-      runtime: "Schema.Never",
+      runtime: "Schema.Never" + suffix,
       types: makeTypes("never"),
       annotations: this.annotations,
       importDeclarations: emptySet
@@ -543,9 +527,6 @@ class Not {
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  renderChecks(): string {
-    return ""
-  }
   combine(_: AST): AST {
     return new Never()
   }
@@ -566,15 +547,13 @@ class Null {
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  renderChecks(): string {
-    return ""
-  }
   combine(_: AST): AST {
     return new Never()
   }
   toGeneration(_: RecurOptions): Generation {
+    const suffix = renderAnnotations(this.annotations)
     return {
-      runtime: "Schema.Null",
+      runtime: "Schema.Null" + suffix,
       types: makeTypes("null"),
       annotations: this.annotations,
       importDeclarations: emptySet
@@ -650,10 +629,11 @@ class String {
     }
   }
   toGeneration(options: RecurOptions): Generation {
+    const suffix = this.renderChecks() + renderAnnotations(this.annotations)
     if (this.contentSchema !== undefined) {
-      const contentSchema = toGeneration(this.contentSchema, options)
+      const contentSchema = this.contentSchema.toGeneration(options)
       return {
-        runtime: `Schema.fromJsonString(${contentSchema.runtime})`,
+        runtime: `Schema.fromJsonString(${contentSchema.runtime + suffix})`,
         types: makeTypes(
           contentSchema.types.Type,
           "string",
@@ -665,7 +645,7 @@ class String {
       }
     }
     return {
-      runtime: "Schema.String",
+      runtime: "Schema.String" + suffix,
       types: makeTypes("string"),
       annotations: this.annotations,
       importDeclarations: emptySet
@@ -761,8 +741,9 @@ class Number {
     }
   }
   toGeneration(_: RecurOptions): Generation {
+    const suffix = this.renderChecks() + renderAnnotations(this.annotations)
     return {
-      runtime: this.isInteger ? "Schema.Int" : "Schema.Number",
+      runtime: (this.isInteger ? "Schema.Int" : "Schema.Number") + suffix,
       types: makeTypes("number"),
       annotations: this.annotations,
       importDeclarations: emptySet
@@ -782,15 +763,13 @@ class Boolean {
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  renderChecks(): string {
-    return ""
-  }
   combine(_: AST): AST {
     return new Never()
   }
   toGeneration(_: RecurOptions): Generation {
+    const suffix = renderAnnotations(this.annotations)
     return {
-      runtime: "Schema.Boolean",
+      runtime: "Schema.Boolean" + suffix,
       types: makeTypes("boolean"),
       annotations: this.annotations,
       importDeclarations: emptySet
@@ -812,15 +791,13 @@ class Const {
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  renderChecks(): string {
-    return ""
-  }
   combine(_: AST): AST {
     return new Never()
   }
   toGeneration(_: RecurOptions): Generation {
+    const suffix = renderAnnotations(this.annotations)
     return {
-      runtime: `Schema.Literal(${format(this.value)})`,
+      runtime: `Schema.Literal(${format(this.value)})` + suffix,
       types: makeTypes(format(this.value)),
       annotations: this.annotations,
       importDeclarations: emptySet
@@ -842,24 +819,22 @@ class Enum {
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  renderChecks(): string {
-    return ""
-  }
   combine(_: AST): AST {
     return new Never()
   }
   toGeneration(_: RecurOptions): Generation {
     const values = this.values.map((v) => format(v))
+    const suffix = renderAnnotations(this.annotations)
     if (values.length === 1) {
       return {
-        runtime: `Schema.Literal(${values[0]})`,
+        runtime: `Schema.Literal(${values[0]})` + suffix,
         types: makeTypes(values[0]),
         annotations: this.annotations,
         importDeclarations: emptySet
       }
     } else {
       return {
-        runtime: `Schema.Literals([${values.join(", ")}])`,
+        runtime: `Schema.Literals([${values.join(", ")}])` + suffix,
         types: makeTypes(values.join(" | ")),
         annotations: this.annotations,
         importDeclarations: emptySet
@@ -970,15 +945,17 @@ class Arrays {
   }
   toGeneration(options: RecurOptions): Generation {
     const es = this.elements.map((e): ElementIR => ({
-      value: toGeneration(e.ast, options),
+      value: e.ast.toGeneration(options),
       isOptional: e.isOptional
     }))
-    const rest = this.rest !== undefined ? toGeneration(this.rest, options) : undefined
+    const rest = this.rest !== undefined ? this.rest.toGeneration(options) : undefined
     const el = renderElements(es)
+
+    const suffix = this.renderChecks() + renderAnnotations(this.annotations)
 
     if (es.length === 0 && rest === undefined) {
       return {
-        runtime: `Schema.Tuple([])`,
+        runtime: `Schema.Tuple([])` + suffix,
         types: makeTypes("readonly []"),
         annotations: this.annotations,
         importDeclarations: emptySet
@@ -987,7 +964,7 @@ class Arrays {
 
     if (es.length === 0 && rest !== undefined) {
       return {
-        runtime: `Schema.Array(${rest.runtime})`,
+        runtime: `Schema.Array(${rest.runtime})` + suffix,
         types: makeTypes(
           `ReadonlyArray<${rest.types.Type}>`,
           `ReadonlyArray<${rest.types.Encoded}>`,
@@ -1001,7 +978,7 @@ class Arrays {
 
     if (rest === undefined) {
       return {
-        runtime: `Schema.Tuple([${el.runtime}])`,
+        runtime: `Schema.Tuple([${el.runtime}])` + suffix,
         types: makeTypes(
           `readonly [${el.types.Type}]`,
           `readonly [${el.types.Encoded}]`,
@@ -1014,7 +991,7 @@ class Arrays {
     }
 
     return {
-      runtime: `Schema.TupleWithRest(Schema.Tuple([${el.runtime}]), [${rest.runtime}])`,
+      runtime: `Schema.TupleWithRest(Schema.Tuple([${el.runtime}]), [${rest.runtime}])` + suffix,
       types: makeTypes(
         `readonly [${el.types.Type}, ...Array<${rest.types.Type}>]`,
         `readonly [${el.types.Encoded}, ...Array<${rest.types.Encoded}>]`,
@@ -1193,23 +1170,25 @@ class Objects {
 
     const ps: ReadonlyArray<PropertyGen> = this.properties.map((p) => ({
       key: p.key,
-      value: toGeneration(p.value, options),
+      value: p.value.toGeneration(options),
       isOptional: p.isOptional,
       annotations: p.value.annotations
     }))
 
     const iss: ReadonlyArray<IndexSignatureGen> = this.indexSignatures.map((is) => ({
-      key: toGeneration(is.key, options),
-      value: toGeneration(is.value, options)
+      key: is.key.toGeneration(options),
+      value: is.value.toGeneration(options)
     }))
 
     const p = renderProperties(ps, options)
     const i = renderIndexSignatures(iss)
 
+    const suffix = this.renderChecks() + renderAnnotations(this.annotations)
+
     // 1) Only properties -> Struct
     if (iss.length === 0) {
       return {
-        runtime: `Schema.Struct({ ${p.runtime} })`,
+        runtime: `Schema.Struct({ ${p.runtime} })` + suffix,
         types: makeTypes(
           `{ ${p.types.Type} }`,
           `{ ${p.types.Encoded} }`,
@@ -1225,7 +1204,7 @@ class Objects {
     if (ps.length === 0 && iss.length === 1) {
       const is = iss[0]
       return {
-        runtime: indexSignatureRuntime(is),
+        runtime: indexSignatureRuntime(is) + suffix,
         types: makeTypes(
           `{ ${renderIndexSignature(is.key.types.Type, is.value.types.Type)} }`,
           `{ ${renderIndexSignature(is.key.types.Encoded, is.value.types.Encoded)} }`,
@@ -1239,7 +1218,7 @@ class Objects {
 
     // 3) Properties + index signatures -> StructWithRest
     return {
-      runtime: `Schema.StructWithRest(Schema.Struct({ ${p.runtime} }), [${i.runtime}])`,
+      runtime: `Schema.StructWithRest(Schema.Struct({ ${p.runtime} }), [${i.runtime}])` + suffix,
       types: ps.length === 0
         ? makeTypes(
           `{ ${i.types.Type} }`,
@@ -1338,9 +1317,6 @@ class Union {
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  renderChecks(): string {
-    return ""
-  }
   combine(that: AST, options: RecurOptions): AST {
     switch (that._tag) {
       case "Unknown":
@@ -1367,13 +1343,14 @@ class Union {
     }
   }
   toGeneration(options: RecurOptions): Generation {
-    const members = this.members.map((m) => toGeneration(m, options))
+    const members = this.members.map((m) => m.toGeneration(options))
     const runtime = this.members.length === 2 && this.members[1]._tag === "Null" &&
         Object.keys(this.members[1].annotations).length === 0 ?
       `Schema.NullOr(${members[0].runtime})` :
       `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""})`
+    const suffix = renderAnnotations(this.annotations)
     return {
-      runtime,
+      runtime: runtime + suffix,
       types: makeTypes(
         members.map((m) => m.types.Type).join(" | "),
         members.map((m) => m.types.Encoded).join(" | "),
@@ -1400,19 +1377,17 @@ class Reference {
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  renderChecks(): string {
-    return ""
-  }
   combine(_: AST): AST {
     return new Never()
   }
   toGeneration(options: RecurOptions): Generation {
-    const generation = options.resolver(this.ref)
+    const out = options.resolver(this.ref)
+    const suffix = renderAnnotations(this.annotations)
     return {
-      runtime: generation.runtime,
-      types: generation.types,
-      annotations: this.annotations,
-      importDeclarations: generation.importDeclarations
+      runtime: out.runtime + suffix,
+      types: out.types,
+      annotations: annotationsCombiner.combine(this.annotations, out.annotations),
+      importDeclarations: out.importDeclarations
     }
   }
 }
