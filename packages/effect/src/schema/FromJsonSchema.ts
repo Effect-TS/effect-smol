@@ -29,7 +29,7 @@ import type * as Schema from "./Schema.ts"
 /**
  * @since 4.0.0
  */
-export type Source = Schema.JsonSchema.Target
+export type Source = Schema.JsonSchema.Target | "openapi-3.0"
 
 /**
  * @since 4.0.0
@@ -267,9 +267,9 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
       visited.add(value)
 
       if (typeof value.$ref === "string") {
-        const id = getPointerParts(value.$ref).pop()
-        if (id !== undefined && identifierSet.has(id)) {
-          refs.add(id)
+        const last = getRefParts(value.$ref).pop()
+        if (last !== undefined && identifierSet.has(last)) {
+          refs.add(last)
         }
       }
 
@@ -365,7 +365,7 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
   return { nonRecursives, recursives }
 }
 
-function getPointerParts($ref: string): Array<string> {
+function getRefParts($ref: string): Array<string> {
   return $ref.slice(2).split("/").map(unescapeJsonPointerPart)
 }
 
@@ -384,24 +384,30 @@ export type DefinitionGeneration = {
 }
 
 /**
+ * @since 4.0.0
+ */
+export type GenerateDefinitionsOptions = Omit<GenerateOptions, "definitions">
+
+/**
  * Returns an array of DefinitionGeneration values for the given definitions.
  * The definitions are sorted in topological order, so a definition is emitted after the definitions it depends on.
  *
  * The definitions must be passed depending on the source:
  * - draft-07: the `.definitions` property of the schema.
  * - draft-2020-12: the `$defs` property of the schema.
+ * - openapi-3.0: the `components.schemas` property of the specification.
  * - openapi-3.1: the `components.schemas` property of the specification.
  *
  * @since 4.0.0
  */
 export function generateDefinitions(
   definitions: Schema.JsonSchema.Definitions,
-  options: GenerateOptions
+  options: GenerateDefinitionsOptions
 ): Array<DefinitionGeneration> {
   const ts = topologicalSort(definitions)
   const recursives = new Set(Object.keys(ts.recursives))
   const resolver = options.resolver ?? defaultResolver
-  const opts: GenerateOptions = {
+  const opts: GenerateDefinitionsOptions = {
     ...options,
     resolver: (ref) => {
       const out = resolver(ref)
@@ -442,7 +448,7 @@ const joinReducer = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
   return `${a}, ${b}`
 }))
 
-const annotationsCombiner: Combiner.Combiner<any> = Struct.getCombiner({
+const annotationsCombiner: Combiner.Combiner<Annotations> = Struct.getCombiner({
   description: joinReducer,
   title: joinReducer,
   default: UndefinedOr.getReducer(Combiner.last()),
@@ -450,7 +456,7 @@ const annotationsCombiner: Combiner.Combiner<any> = Struct.getCombiner({
   format: Combiner.last<string>()
 }, {
   omitKeyWhen: isUndefined
-})
+}) as any
 
 type AST =
   | Unknown
@@ -681,10 +687,23 @@ type NumberCheck =
 class Number {
   static parseChecks(f: Schema.JsonSchema): Array<NumberCheck> {
     const cs: Array<NumberCheck> = []
-    if (typeof f.minimum === "number") cs.push({ _tag: "greaterThanOrEqualTo", value: f.minimum })
-    if (typeof f.maximum === "number") cs.push({ _tag: "lessThanOrEqualTo", value: f.maximum })
-    if (typeof f.exclusiveMinimum === "number") cs.push({ _tag: "greaterThan", value: f.exclusiveMinimum })
-    if (typeof f.exclusiveMaximum === "number") cs.push({ _tag: "lessThan", value: f.exclusiveMaximum })
+
+    if (typeof f.exclusiveMinimum === "number") {
+      cs.push({ _tag: "greaterThan", value: f.exclusiveMinimum })
+    } else if (f.exclusiveMinimum === true && typeof f.minimum === "number") {
+      cs.push({ _tag: "greaterThan", value: f.minimum })
+    } else if (typeof f.minimum === "number") {
+      cs.push({ _tag: "greaterThanOrEqualTo", value: f.minimum })
+    }
+
+    if (typeof f.exclusiveMaximum === "number") {
+      cs.push({ _tag: "lessThan", value: f.exclusiveMaximum })
+    } else if (f.exclusiveMaximum === true && typeof f.maximum === "number") {
+      cs.push({ _tag: "lessThan", value: f.maximum })
+    } else if (typeof f.maximum === "number") {
+      cs.push({ _tag: "lessThanOrEqualTo", value: f.maximum })
+    }
+
     if (typeof f.multipleOf === "number") cs.push({ _tag: "multipleOf", value: f.multipleOf })
     return cs
   }
@@ -942,6 +961,7 @@ class Arrays {
       case "Union":
         return new Union(
           that.members.map((m) => this.combine(m, options)),
+          that.mode,
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       default:
@@ -1136,12 +1156,9 @@ class Objects {
       case "Union":
         return new Union(
           that.members.map((m) => this.combine(m, options)),
+          that.mode,
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
-      case "Reference": {
-        // TODO
-        return new Never()
-      }
       default:
         return new Never()
     }
@@ -1324,10 +1341,12 @@ class Union {
   }
   toGeneration(options: RecurOptions): Generation {
     const members = this.members.map((m) => toGeneration(m, options))
+    const runtime = this.members.length === 2 && this.members[1]._tag === "Null" &&
+        Object.keys(this.members[1].annotations).length === 0 ?
+      `Schema.NullOr(${members[0].runtime})` :
+      `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""})`
     return {
-      runtime: `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${
-        this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""
-      })`,
+      runtime,
       types: makeTypes(
         members.map((m) => m.types.Type).join(" | "),
         members.map((m) => m.types.Encoded).join(" | "),
@@ -1374,22 +1393,37 @@ class Reference {
 function parse(schema: unknown, options: RecurOptions): AST {
   if (schema === false) return new Never()
   if (schema === true) return new Unknown()
-  if (isObject(schema)) {
-    let ast = parseFragment(schema, options)
-    const annotations = collectAnnotations(schema, ast)
-    if (annotations) ast = ast.annotate(annotations)
-    ast = ast.parseChecks(schema)
-    if (Array.isArray(schema.allOf)) {
-      // inline local refs only while parsing members of `allOf`
-      const allOfOptions: RecurOptions = { ...options, inlineRefs: true }
-      return schema.allOf.map((m) => parse(m, allOfOptions)).reduce(
-        (acc, curr) => acc.combine(curr, allOfOptions),
-        ast
-      )
-    }
-    return ast
+  if (!isObject(schema)) return new Unknown()
+
+  let ast = parseFragment(schema, options)
+
+  const annotations = collectAnnotations(schema, ast)
+  if (annotations) ast = ast.annotate(annotations)
+
+  ast = ast.parseChecks(schema)
+
+  if (Array.isArray(schema.allOf)) {
+    // inline local refs only while parsing members of `allOf`
+    const allOfOptions: RecurOptions = { ...options, inlineRefs: true }
+    return schema.allOf.map((m) => parse(m, allOfOptions)).reduce(
+      (acc, curr) => acc.combine(curr, allOfOptions),
+      ast
+    )
   }
-  return new Unknown()
+
+  if (isNullable(schema, options)) {
+    ast = NullOr(ast)
+  }
+
+  return ast
+}
+
+function isNullable(schema: Schema.JsonSchema, options: RecurOptions): boolean {
+  return options.source === "openapi-3.0" && isType(schema.type) && schema.nullable === true
+}
+
+function NullOr(ast: AST): AST {
+  return new Union([ast, new Null()], "anyOf")
 }
 
 function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
@@ -1419,10 +1453,10 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   }
 
   if (typeof schema.$ref === "string") {
-    const parts = getPointerParts(schema.$ref)
+    const parts = getRefParts(schema.$ref)
     if (Arr.isArrayNonEmpty(parts)) {
       // handle local definitions
-      if (options.root !== undefined) {
+      if (options.root !== undefined && (parts[0] === "definitions" || parts[0] === "$defs")) {
         const definition = extractDefinition(options.root, parts)
         if (definition !== undefined && !options.refStack.has(schema.$ref)) {
           const nextStack = new Set(options.refStack)
@@ -1463,6 +1497,7 @@ function getRef(parts: readonly [string, ...Array<string>], source: Source): Arr
     case "draft-07":
     case "draft-2020-12":
       return parts.slice(1)
+    case "openapi-3.0":
     case "openapi-3.1":
       return parts.slice(2)
   }
@@ -1620,22 +1655,32 @@ function collectElements(schema: Schema.JsonSchema, options: RecurOptions): Read
     case "draft-2020-12":
     case "openapi-3.1":
       return Array.isArray(schema.prefixItems) ? schema.prefixItems : undefined
+    case "openapi-3.0":
+      // no tuples in OpenAPI 3.0 spec, keep undefined
+      return undefined
   }
+}
+
+function isJsonSchema(candidate: unknown): candidate is Schema.JsonSchema | boolean {
+  return isObject(candidate) || (typeof candidate === "boolean")
 }
 
 function collectRest(schema: Schema.JsonSchema, options: RecurOptions): Schema.JsonSchema | boolean | undefined {
   switch (options.source) {
     case "draft-07":
-      return isObject(schema.items) || (typeof schema.items === "boolean")
+      return isJsonSchema(schema.items)
         ? schema.items
-        : isObject(schema.additionalItems) || (typeof schema.additionalItems === "boolean")
+        : isJsonSchema(schema.additionalItems)
         ? schema.additionalItems
         : undefined
     case "draft-2020-12":
     case "openapi-3.1":
-      return isObject(schema.items) || (typeof schema.items === "boolean")
+      return isJsonSchema(schema.items)
         ? schema.items
         : undefined
+    case "openapi-3.0":
+      // `items` must be an object in OpenAPI 3.0 spec
+      return isObject(schema.items) ? schema.items : undefined
   }
 }
 
@@ -1652,7 +1697,12 @@ function collectAnnotations(schema: Schema.JsonSchema, ast: AST): Annotations | 
     }
   }
   if (schema.default !== undefined) as.default = schema.default
-  if (Array.isArray(schema.examples)) as.examples = schema.examples
+  if (Array.isArray(schema.examples)) {
+    as.examples = schema.examples
+  } else if (schema.example !== undefined) {
+    // OpenAPI 3.0 uses `example` (singular). Only use it if defined
+    as.examples = [schema.example]
+  }
   if (typeof schema.format === "string") as.format = schema.format
 
   if (Object.keys(as).length === 0) return undefined

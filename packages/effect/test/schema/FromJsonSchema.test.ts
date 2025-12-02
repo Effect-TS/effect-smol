@@ -44,8 +44,8 @@ function assertGeneration(
 
 describe("FromJsonSchema", () => {
   describe("generate", () => {
-    describe("options", () => {
-      it(`source: "draft-2020-12"`, () => {
+    describe("draft-2020-12", () => {
+      it("should support prefixItems", () => {
         assertGeneration(
           {
             schema: {
@@ -64,7 +64,197 @@ describe("FromJsonSchema", () => {
           )
         )
       })
+    })
 
+    describe("openapi-3.1", () => {
+      it("should support prefixItems", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "array",
+              "prefixItems": [{ "type": "string" }],
+              "items": false,
+              "minItems": 1
+            },
+            options: {
+              source: "openapi-3.1"
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            "Schema.Tuple([Schema.String])",
+            FromJsonSchema.makeTypes("readonly [string]")
+          )
+        )
+      })
+    })
+
+    describe("openapi-3.0", () => {
+      it("should support example (singular)", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "example": "lorem"
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.String.annotate({ "examples": ["lorem"] })`,
+            FromJsonSchema.makeTypes("string"),
+            { examples: ["lorem"] }
+          )
+        )
+      })
+
+      it("should support exclusiveMinimum as boolean", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "number",
+              "minimum": 0
+            },
+            options: {
+              source: "openapi-3.0"
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            "Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))",
+            FromJsonSchema.makeTypes("number")
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": false
+            },
+            options: {
+              source: "openapi-3.0"
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            "Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))",
+            FromJsonSchema.makeTypes("number")
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            options: {
+              source: "openapi-3.0"
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            "Schema.Number.check(Schema.isGreaterThan(0))",
+            FromJsonSchema.makeTypes("number")
+          )
+        )
+      })
+
+      it("should support exclusiveMaximum as boolean", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "number",
+              "maximum": 10
+            },
+            options: {
+              source: "openapi-3.0"
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            "Schema.Number.check(Schema.isLessThanOrEqualTo(10))",
+            FromJsonSchema.makeTypes("number")
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "number",
+              "maximum": 10,
+              "exclusiveMaximum": false
+            },
+            options: {
+              source: "openapi-3.0"
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            "Schema.Number.check(Schema.isLessThanOrEqualTo(10))",
+            FromJsonSchema.makeTypes("number")
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "number",
+              "maximum": 10,
+              "exclusiveMaximum": true
+            },
+            options: {
+              source: "openapi-3.0"
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            "Schema.Number.check(Schema.isLessThan(10))",
+            FromJsonSchema.makeTypes("number")
+          )
+        )
+      })
+
+      it("should support nullable", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "nullable": true
+            },
+            options: {
+              source: "openapi-3.0"
+            }
+          },
+          FromJsonSchema.makeGeneration("Schema.NullOr(Schema.String)", FromJsonSchema.makeTypes("string | null"))
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "nullable": true,
+              "description": "lorem"
+            },
+            options: {
+              source: "openapi-3.0"
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.NullOr(Schema.String.annotate({ "description": "lorem" }))`,
+            FromJsonSchema.makeTypes("string | null")
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "allOf": [
+                { "minLength": 1, "nullable": true }
+              ]
+            },
+            options: {
+              source: "openapi-3.0"
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            "Schema.String.check(Schema.isMinLength(1))",
+            FromJsonSchema.makeTypes("string")
+          )
+        )
+      })
+    })
+
+    describe("options", () => {
       it("resolver", () => {
         assertGeneration(
           {
@@ -432,7 +622,7 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           { schema: { "type": ["string", "null"] } },
           FromJsonSchema.makeGeneration(
-            "Schema.Union([Schema.String, Schema.Null])",
+            "Schema.NullOr(Schema.String)",
             FromJsonSchema.makeTypes("string | null")
           )
         )
