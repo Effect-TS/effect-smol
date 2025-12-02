@@ -1619,9 +1619,7 @@ function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions
 
   if (isObject(schema.propertyNames)) {
     out.push(new IndexSignature(parse(schema.propertyNames, options), new Unknown()))
-  }
-
-  if (schema.additionalProperties === true) {
+  } else if (schema.additionalProperties === true || schema.additionalProperties === undefined) {
     out.push(new IndexSignature(new String([], undefined), new Unknown()))
     return out
   }

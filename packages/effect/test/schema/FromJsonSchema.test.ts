@@ -283,7 +283,8 @@ describe("FromJsonSchema", () => {
                 "b": { "type": "string", "description": "desc-b" }
               },
               "required": ["a", "b"],
-              "description": "desc-o"
+              "description": "desc-o",
+              "additionalProperties": false
             },
             options
           },
@@ -312,7 +313,8 @@ describe("FromJsonSchema", () => {
                 "a": { "type": "string" },
                 "b": { "type": "string", "title": "desc-b" }
               },
-              "required": ["a", "b"]
+              "required": ["a", "b"],
+              "additionalProperties": false
             },
             options
           },
@@ -337,7 +339,8 @@ describe("FromJsonSchema", () => {
               "b": { "$ref": "#/definitions/B" },
               "c": { "$ref": "#/definitions/C" }
             },
-            "required": ["a", "b", "c"]
+            "required": ["a", "b", "c"],
+            "additionalProperties": false
           },
           options: {
             resolver: (ref) => {
@@ -416,7 +419,8 @@ describe("FromJsonSchema", () => {
             "type": "object",
             "patternProperties": {
               "^x-": { "type": "string" }
-            }
+            },
+            "additionalProperties": false
           }
         },
         FromJsonSchema.makeGeneration(
@@ -431,7 +435,8 @@ describe("FromJsonSchema", () => {
             "patternProperties": {
               "^x-": { "type": "string" },
               "^y-": { "type": "number" }
-            }
+            },
+            "additionalProperties": false
           }
         },
         FromJsonSchema.makeGeneration(
@@ -979,14 +984,28 @@ describe("FromJsonSchema", () => {
 
       it("required properties", () => {
         assertGeneration(
-          { schema: { "type": "object", "properties": { "a": { "type": "string" } }, "required": ["a"] } },
+          {
+            schema: {
+              "type": "object",
+              "properties": { "a": { "type": "string" } },
+              "required": ["a"],
+              "additionalProperties": false
+            }
+          },
           FromJsonSchema.makeGeneration(
             `Schema.Struct({ "a": Schema.String })`,
             FromJsonSchema.makeTypes(`{ readonly "a": string }`)
           )
         )
         assertGeneration(
-          { schema: { "type": "object", "properties": { "a-b": { "type": "string" } }, "required": ["a-b"] } },
+          {
+            schema: {
+              "type": "object",
+              "properties": { "a-b": { "type": "string" } },
+              "required": ["a-b"],
+              "additionalProperties": false
+            }
+          },
           FromJsonSchema.makeGeneration(
             `Schema.Struct({ "a-b": Schema.String })`,
             FromJsonSchema.makeTypes(`{ readonly "a-b": string }`)
@@ -996,7 +1015,13 @@ describe("FromJsonSchema", () => {
 
       it("optional properties", () => {
         assertGeneration(
-          { schema: { "type": "object", "properties": { "a": { "type": "string" } } } },
+          {
+            schema: {
+              "type": "object",
+              "properties": { "a": { "type": "string" } },
+              "additionalProperties": false
+            }
+          },
           FromJsonSchema.makeGeneration(
             `Schema.Struct({ "a": Schema.optionalKey(Schema.String) })`,
             FromJsonSchema.makeTypes(`{ readonly "a"?: string }`)
@@ -1248,6 +1273,7 @@ describe("FromJsonSchema", () => {
               "a": { "$ref": "#/definitions/A" }
             },
             "required": ["a"],
+            "additionalProperties": false,
             "definitions": {
               "A": {
                 "type": "string"
@@ -1268,6 +1294,7 @@ describe("FromJsonSchema", () => {
               "a": { "$ref": "#/definitions/A" }
             },
             "required": ["a"],
+            "additionalProperties": false,
             "definitions": {
               "A": { "$ref": "#/definitions/B" },
               "B": {
@@ -1290,6 +1317,7 @@ describe("FromJsonSchema", () => {
               "a": { "$ref": "#/definitions/A" }
             },
             "required": ["a"],
+            "additionalProperties": false,
             "definitions": {
               "A": { "$ref": "#/definitions/A" }
             }
@@ -1309,6 +1337,7 @@ describe("FromJsonSchema", () => {
               "a": { "$ref": "#/definitions/B/definitions/C" }
             },
             "required": ["a"],
+            "additionalProperties": false,
             "definitions": {
               "B": {
                 "type": "object",
@@ -1338,6 +1367,7 @@ describe("FromJsonSchema", () => {
               "a": { "$ref": "#/definitions/B/definitions/C/properties/b" }
             },
             "required": ["a"],
+            "additionalProperties": false,
             "definitions": {
               "B": {
                 "type": "object",
@@ -1345,13 +1375,15 @@ describe("FromJsonSchema", () => {
                   "b": { "type": "string" }
                 },
                 "required": ["b"],
+                "additionalProperties": false,
                 "definitions": {
                   "C": {
                     "type": "object",
                     "properties": {
                       "b": { "type": "string" }
                     },
-                    "required": ["b"]
+                    "required": ["b"],
+                    "additionalProperties": false
                   }
                 }
               }
@@ -1602,10 +1634,12 @@ describe("FromJsonSchema", () => {
               "type": "object",
               "properties": { "a": { "type": "string" } },
               "required": ["a"],
+              "additionalProperties": false,
               "allOf": [{
                 "type": "object",
                 "properties": { "b": { "type": "string" } },
-                "required": ["b"]
+                "required": ["b"],
+                "additionalProperties": false
               }]
             }
           },
@@ -1620,9 +1654,11 @@ describe("FromJsonSchema", () => {
               "type": "object",
               "properties": { "a": { "type": "string" } },
               "required": ["a"],
+              "additionalProperties": false,
               "allOf": [{
                 "type": "object",
-                "properties": { "b": { "type": "string" } }
+                "properties": { "b": { "type": "string" } },
+                "additionalProperties": false
               }]
             }
           },
@@ -1640,6 +1676,7 @@ describe("FromJsonSchema", () => {
               "type": "object",
               "properties": { "a": { "type": "string" } },
               "required": ["a"],
+              "additionalProperties": false,
               "allOf": [{
                 "type": "object",
                 "additionalProperties": { "type": "string" }
@@ -1662,7 +1699,8 @@ describe("FromJsonSchema", () => {
               "allOf": [{
                 "type": "object",
                 "properties": { "a": { "type": "string" } },
-                "required": ["a"]
+                "required": ["a"],
+                "additionalProperties": false
               }]
             }
           },
@@ -1680,17 +1718,20 @@ describe("FromJsonSchema", () => {
               "type": "object",
               "properties": { "a": { "type": "string" } },
               "required": ["a"],
+              "additionalProperties": false,
               "allOf": [
                 {
                   "anyOf": [
                     {
                       "type": "object",
                       "properties": { "b": { "type": "string" } },
-                      "required": ["b"]
+                      "required": ["b"],
+                      "additionalProperties": false
                     },
                     {
                       "type": "object",
-                      "properties": { "c": { "type": "string" } }
+                      "properties": { "c": { "type": "string" } },
+                      "additionalProperties": false
                     }
                   ]
                 }
@@ -1714,17 +1755,20 @@ describe("FromJsonSchema", () => {
                 {
                   "type": "object",
                   "properties": { "b": { "type": "string" } },
-                  "required": ["b"]
+                  "required": ["b"],
+                  "additionalProperties": false
                 },
                 {
                   "type": "object",
-                  "properties": { "c": { "type": "string" } }
+                  "properties": { "c": { "type": "string" } },
+                  "additionalProperties": false
                 }
               ],
               "allOf": [{
                 "type": "object",
                 "properties": { "a": { "type": "string" } },
-                "required": ["a"]
+                "required": ["a"],
+                "additionalProperties": false
               }]
             }
           },
@@ -1881,6 +1925,7 @@ describe("FromJsonSchema", () => {
                 "a": { "type": "string" }
               },
               "required": ["a"],
+              "additionalProperties": false,
               "allOf": [
                 { "$ref": "#/definitions/B" }
               ],
@@ -1890,7 +1935,8 @@ describe("FromJsonSchema", () => {
                   "properties": {
                     "b": { "type": "string" }
                   },
-                  "required": ["b"]
+                  "required": ["b"],
+                  "additionalProperties": false
                 }
               }
             }
@@ -1908,6 +1954,7 @@ describe("FromJsonSchema", () => {
                 "a": { "type": "string" }
               },
               "required": ["a"],
+              "additionalProperties": false,
               "allOf": [
                 { "$ref": "#/definitions/B" }
               ],
@@ -1917,7 +1964,8 @@ describe("FromJsonSchema", () => {
                   "properties": {
                     "b": { "$ref": "#/definitions/C" }
                   },
-                  "required": ["b"]
+                  "required": ["b"],
+                  "additionalProperties": false
                 },
                 "C": {
                   "type": "string"
@@ -1938,6 +1986,7 @@ describe("FromJsonSchema", () => {
                 "a": { "type": "string" }
               },
               "required": ["a"],
+              "additionalProperties": false,
               "allOf": [
                 { "$ref": "#/definitions/B" }
               ]
@@ -1949,7 +1998,8 @@ describe("FromJsonSchema", () => {
                   "properties": {
                     "b": { "type": "string" }
                   },
-                  "required": ["b"]
+                  "required": ["b"],
+                  "additionalProperties": false
                 }
               }
             }
@@ -1967,6 +2017,7 @@ describe("FromJsonSchema", () => {
                 "a": { "type": "string" }
               },
               "required": ["a"],
+              "additionalProperties": false,
               "allOf": [
                 { "$ref": "#/definitions/B" }
               ]
@@ -1978,7 +2029,8 @@ describe("FromJsonSchema", () => {
                   "properties": {
                     "b": { "$ref": "#/definitions/C" }
                   },
-                  "required": ["b"]
+                  "required": ["b"],
+                  "additionalProperties": false
                 },
                 "C": {
                   "type": "string"
@@ -1999,6 +2051,7 @@ describe("FromJsonSchema", () => {
                 "a": { "type": "string" }
               },
               "required": ["a"],
+              "additionalProperties": false,
               "allOf": [
                 { "$ref": "#/definitions/B/definitions/C" }
               ]
@@ -2017,7 +2070,8 @@ describe("FromJsonSchema", () => {
                       "properties": {
                         "c": { "type": "string" }
                       },
-                      "required": ["c"]
+                      "required": ["c"],
+                      "additionalProperties": false
                     }
                   }
                 }
@@ -2549,7 +2603,8 @@ const schema1 = Schema.Struct({ "a": A });`
                   "$ref": "#/definitions/B"
                 }
               },
-              "required": ["a"]
+              "required": ["a"],
+              "additionalProperties": false
             }
           }
         ],
@@ -2564,7 +2619,8 @@ const schema1 = Schema.Struct({ "a": A });`
                 "$ref": "#/definitions/C-id"
               }
             },
-            "required": ["b", "c"]
+            "required": ["b", "c"],
+            "additionalProperties": false
           }
         },
         {
@@ -2637,7 +2693,8 @@ export const A = Schema.Struct({ "a": B });`
                 "$ref": "#/components/schemas/B"
               }
             },
-            "required": ["a"]
+            "required": ["a"],
+            "additionalProperties": false
           }
         }
       ],
