@@ -94,7 +94,7 @@ ${clientErrorSource(name)}`
     operations: ReadonlyArray<ParsedOperation>
   ) =>
     `export const make = (
-  httpClient: HttpClient.HttpClient, 
+  httpClient: HttpClient.HttpClient,
   options: {
     readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
   } = {}
@@ -264,7 +264,7 @@ ${clientErrorSource(name)}`
     operations: ReadonlyArray<ParsedOperation>
   ) =>
     `export const make = (
-  httpClient: HttpClient.HttpClient, 
+  httpClient: HttpClient.HttpClient,
   options: {
     readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
   } = {}

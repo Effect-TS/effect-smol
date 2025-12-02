@@ -1,0 +1,103 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`OpenApiGenerator > get operation 1`] = `
+"import * as Data from "effect/data/Data"
+import * as Effect from "effect/Effect"
+import type { SchemaError } from "effect/schema/Schema"
+import * as S from "effect/schema/Schema"
+import type * as HttpClient from "effect/unstable/http/HttpClient"
+import * as HttpClientError from "effect/unstable/http/HttpClientError"
+import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
+
+
+export class GetUser200 extends S.Opaque<GetUser200>()(S.Struct({
+  "id": S.String,
+  "name": S.String
+})) {}
+
+export const make = (
+  httpClient: HttpClient.HttpClient,
+  options: {
+    readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
+  } = {}
+): TestClient => {
+  const unexpectedStatus = (response: HttpClientResponse.HttpClientResponse) =>
+    Effect.flatMap(
+      Effect.orElseSucceed(response.json, () => "Unexpected status code"),
+      (description) =>
+        Effect.fail(
+          new HttpClientError.ResponseError({
+            request: response.request,
+            response,
+            reason: "StatusCode",
+            description: typeof description === "string" ? description : JSON.stringify(description),
+          }),
+        ),
+    )
+  const withResponse: <A, E>(
+    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
+  ) => (
+    request: HttpClientRequest.HttpClientRequest,
+  ) => Effect.Effect<any, any> = options.transformClient
+    ? (f) => (request) =>
+        Effect.flatMap(
+          Effect.flatMap(options.transformClient!(httpClient), (client) =>
+            client.execute(request),
+          ),
+          f,
+        )
+    : (f) => (request) => Effect.flatMap(httpClient.execute(request), f)
+  const decodeSuccess =
+    <Schema extends S.Top>(schema: Schema) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      HttpClientResponse.schemaBodyJson(schema)(response)
+  const decodeError =
+    <const Tag extends string, Schema extends S.Top>(tag: Tag, schema: Schema) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      Effect.flatMap(
+        HttpClientResponse.schemaBodyJson(schema)(response),
+        (cause) => Effect.fail(TestClientError(tag, cause, response)),
+      )
+  return {
+    httpClient,
+    "getUser": (id) => HttpClientRequest.get(\`/users/\${id}\`).pipe(
+    withResponse(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(GetUser200),
+      orElse: unexpectedStatus
+    }))
+  )
+  }
+}
+
+export interface TestClient {
+  readonly httpClient: HttpClient.HttpClient
+  readonly "getUser": (id: string) => Effect.Effect<typeof GetUser200.Type, HttpClientError.HttpClientError | SchemaError>
+}
+
+export interface TestClientError<Tag extends string, E> {
+  readonly _tag: Tag
+  readonly request: HttpClientRequest.HttpClientRequest
+  readonly response: HttpClientResponse.HttpClientResponse
+  readonly cause: E
+}
+
+class TestClientErrorImpl extends Data.Error<{
+  _tag: string
+  cause: any
+  request: HttpClientRequest.HttpClientRequest
+  response: HttpClientResponse.HttpClientResponse
+}> {}
+
+export const TestClientError = <Tag extends string, E>(
+  tag: Tag,
+  cause: E,
+  response: HttpClientResponse.HttpClientResponse,
+): TestClientError<Tag, E> =>
+  new TestClientErrorImpl({
+    _tag: tag,
+    cause,
+    response,
+    request: response.request,
+  }) as any"
+`;

@@ -217,7 +217,7 @@ export const makeTransformerSchema = Effect.sync(() => {
       }
       if ("pattern" in schema) {
         modifiers.push(
-          `${importName}.isRegex(new RegExp(${JSON.stringify(schema.pattern)}))`
+          `${importName}.isPattern(new RegExp(${JSON.stringify(schema.pattern)}))`
         )
       }
       return `${importName}.String${addChecks(modifiers)}`
