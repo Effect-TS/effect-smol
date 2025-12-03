@@ -587,6 +587,22 @@ describe("FromJsonSchema", () => {
         { schema: { "type": "string", "const": "a" } },
         FromJsonSchema.makeGeneration(`Schema.Literal("a")`, FromJsonSchema.makeTypes(`"a"`))
       )
+      assertGeneration(
+        { schema: { "const": null } },
+        FromJsonSchema.makeGeneration(`Schema.Null`, FromJsonSchema.makeTypes(`null`))
+      )
+      assertGeneration(
+        { schema: { "const": null, "description": "lorem" } },
+        FromJsonSchema.makeGeneration(
+          `Schema.Null.annotate({ "description": "lorem" })`,
+          FromJsonSchema.makeTypes(`null`),
+          { description: "lorem" }
+        )
+      )
+      assertGeneration(
+        { schema: { "const": {} } },
+        FromJsonSchema.makeGeneration(`Schema.Never`, FromJsonSchema.makeTypes(`never`))
+      )
     })
 
     it("enum", () => {

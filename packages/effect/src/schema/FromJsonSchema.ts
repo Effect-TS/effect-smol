@@ -788,9 +788,9 @@ class Boolean {
 
 class Const {
   readonly _tag = "Const"
-  readonly value: unknown
+  readonly value: AST.LiteralValue
   readonly annotations: Annotations
-  constructor(value: unknown, annotations: Annotations = {}) {
+  constructor(value: AST.LiteralValue, annotations: Annotations = {}) {
     this.annotations = annotations
     this.value = value
   }
@@ -1443,7 +1443,7 @@ function parse(schema: unknown, options: RecurOptions): AST {
 }
 
 function isNullable(schema: Schema.JsonSchema, options: RecurOptions): boolean {
-  return options.source === "openapi-3.0" && isType(schema.type) && schema.nullable === true
+  return schema.nullable === true && options.source === "openapi-3.0" && isType(schema.type)
 }
 
 function NullOr(ast: AST): AST {
@@ -1463,7 +1463,9 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   }
 
   if (schema.const !== undefined) {
-    return new Const(schema.const)
+    if (isLiteralValue(schema.const)) return new Const(schema.const)
+    if (schema.const === null) return new Null()
+    return new Never()
   }
 
   if (Array.isArray(schema.enum)) {
