@@ -1191,10 +1191,14 @@ class Objects {
         )
       case "Objects": {
         const properties: Array<Property> = []
+        const thatPropertiesMap: Record<string, Property> = {}
+        for (const p of that.properties) {
+          thatPropertiesMap[p.key] = p
+        }
         const keys = new Set<string>()
         for (const p of this.properties) {
           keys.add(p.key)
-          const thatp = that.properties.find((pp) => pp.key === p.key)
+          const thatp = thatPropertiesMap[p.key]
           if (thatp) {
             properties.push(
               new Property(p.isOptional && thatp.isOptional, p.key, p.value.combine(thatp.value, options))
@@ -1204,9 +1208,7 @@ class Objects {
           }
         }
         for (const p of that.properties) {
-          if (!keys.has(p.key)) {
-            properties.push(p)
-          }
+          if (!keys.has(p.key)) properties.push(p)
         }
         return new Objects(
           this.isNullable && that.isNullable,
