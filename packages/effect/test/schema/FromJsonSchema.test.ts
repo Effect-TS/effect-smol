@@ -1688,16 +1688,95 @@ describe("FromJsonSchema", () => {
         )
       })
 
-      it.todo("literal & literal", () => {
+      it("enum & enum", () => {
         assertGeneration(
           {
             schema: {
               "type": "string",
-              "enums": ["a", "b"],
+              "enum": ["a", "b"],
               "allOf": [{ "enum": ["a"] }]
             }
           },
           FromJsonSchema.makeGeneration(`Schema.Literal("a")`, FromJsonSchema.makeTypes(`"a"`))
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "enum": ["a", "b"],
+              "allOf": [{ "enum": ["c"] }]
+            }
+          },
+          FromJsonSchema.makeGeneration(`Schema.Never`, FromJsonSchema.makeTypes(`never`))
+        )
+      })
+
+      it("enum & string", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "enum": ["a", 1],
+              "allOf": [{ "type": "string" }]
+            }
+          },
+          FromJsonSchema.makeGeneration(`Schema.Literal("a")`, FromJsonSchema.makeTypes(`"a"`))
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "enum": [1, 2],
+              "allOf": [{ "type": "string" }]
+            }
+          },
+          FromJsonSchema.makeGeneration(`Schema.Never`, FromJsonSchema.makeTypes(`never`))
+        )
+      })
+
+      it("enum & number", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "enum": ["a", 1],
+              "allOf": [{ "type": "number" }]
+            }
+          },
+          FromJsonSchema.makeGeneration(`Schema.Literal(1)`, FromJsonSchema.makeTypes(`1`))
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "enum": ["a", "b"],
+              "allOf": [{ "type": "number" }]
+            }
+          },
+          FromJsonSchema.makeGeneration(`Schema.Never`, FromJsonSchema.makeTypes(`never`))
+        )
+      })
+
+      it("enum & boolean", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "enum": ["a", true],
+              "allOf": [{ "type": "boolean" }]
+            }
+          },
+          FromJsonSchema.makeGeneration(`Schema.Literal(true)`, FromJsonSchema.makeTypes(`true`))
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "enum": [1, 2],
+              "allOf": [{ "type": "boolean" }]
+            }
+          },
+          FromJsonSchema.makeGeneration(`Schema.Never`, FromJsonSchema.makeTypes(`never`))
         )
       })
 

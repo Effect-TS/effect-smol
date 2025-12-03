@@ -499,7 +499,8 @@ class Never {
     return this
   }
   combine(that: AST): AST {
-    return new Never(annotationsCombiner.combine(this.annotations, that.annotations))
+    const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
+    return new Never(annotations)
   }
   toGeneration(_: RecurOptions): Generation {
     const suffix = renderAnnotations(this.annotations)
@@ -524,8 +525,14 @@ class Null {
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  combine(_: AST): AST {
-    return new Never()
+  combine(that: AST): AST {
+    const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
+    switch (that._tag) {
+      case "Null":
+        return new Null(annotations)
+      default:
+        return new Never(annotations)
+    }
   }
   toGeneration(_: RecurOptions): Generation {
     const suffix = renderAnnotations(this.annotations)
@@ -596,6 +603,7 @@ class String {
     })
   }
   combine(that: AST, options: RecurOptions): AST {
+    const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
     switch (that._tag) {
       case "String":
         return new String(
@@ -606,23 +614,16 @@ class String {
             : that.contentSchema === undefined
             ? this.contentSchema
             : this.contentSchema.combine(that.contentSchema, options),
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          annotations
         )
       case "Unknown":
-        return new String(
-          this.isNullable,
-          this.checks,
-          this.contentSchema,
-          annotationsCombiner.combine(this.annotations, that.annotations)
-        )
+        return new String(this.isNullable, this.checks, this.contentSchema, annotations)
+      case "Enum":
+        return Enum.make(that.values.filter((v) => typeof v === "string"), annotations)
       case "Union":
-        return Union.make(
-          that.members.map((m) => this.combine(m, options)),
-          that.mode,
-          annotationsCombiner.combine(this.annotations, that.annotations)
-        )
+        return Union.make(that.members.map((m) => this.combine(m, options)), that.mode, annotations)
       default:
-        return new Never()
+        return new Never(annotations)
     }
   }
   toGeneration(options: RecurOptions): Generation {
@@ -728,29 +729,21 @@ class Number {
     })
   }
   combine(that: AST, options: RecurOptions): AST {
+    const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
     switch (that._tag) {
       case "Number":
-        return new Number(
-          this.isNullable && that.isNullable,
-          this.isInteger || that.isInteger,
-          [...this.checks, ...that.checks],
-          annotationsCombiner.combine(this.annotations, that.annotations)
-        )
+        return new Number(this.isNullable && that.isNullable, this.isInteger || that.isInteger, [
+          ...this.checks,
+          ...that.checks
+        ], annotations)
       case "Unknown":
-        return new Number(
-          this.isNullable,
-          this.isInteger,
-          this.checks,
-          annotationsCombiner.combine(this.annotations, that.annotations)
-        )
+        return new Number(this.isNullable, this.isInteger, this.checks, annotations)
+      case "Enum":
+        return Enum.make(that.values.filter((v) => typeof v === "number"), annotations)
       case "Union":
-        return Union.make(
-          that.members.map((m) => this.combine(m, options)),
-          that.mode,
-          annotationsCombiner.combine(this.annotations, that.annotations)
-        )
+        return Union.make(that.members.map((m) => this.combine(m, options)), that.mode, annotations)
       default:
-        return new Never()
+        return new Never(annotations)
     }
   }
   toGeneration(_: RecurOptions): Generation {
@@ -782,25 +775,22 @@ class Boolean {
     return this
   }
   combine(that: AST, options: RecurOptions): AST {
+    const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
     switch (that._tag) {
       case "Boolean":
-        return new Boolean(
-          this.isNullable && that.isNullable,
-          annotationsCombiner.combine(this.annotations, that.annotations)
-        )
+        return new Boolean(this.isNullable && that.isNullable, annotations)
       case "Unknown":
-        return new Boolean(
-          this.isNullable,
-          annotationsCombiner.combine(this.annotations, that.annotations)
-        )
+        return new Boolean(this.isNullable, annotations)
+      case "Enum":
+        return Enum.make(that.values.filter((v) => typeof v === "boolean"), annotations)
       case "Union":
         return Union.make(
           that.members.map((m) => this.combine(m, options)),
           that.mode,
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          annotations
         )
       default:
-        return new Never()
+        return new Never(annotations)
     }
   }
   toGeneration(_: RecurOptions): Generation {
@@ -837,17 +827,34 @@ class Enum {
     return this
   }
   combine(that: AST, options: RecurOptions): AST {
+    const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
     switch (that._tag) {
+      case "Enum": {
+        const intersection = new Set<AST.LiteralValue>()
+        const thatValues = new Set(that.values)
+        for (const value of this.values) {
+          if (thatValues.has(value)) {
+            intersection.add(value)
+          }
+        }
+        return Enum.make(Array.from(intersection), annotations)
+      }
       case "Unknown":
-        return new Enum(this.values, annotationsCombiner.combine(this.annotations, that.annotations))
+        return new Enum(this.values, annotations)
+      case "String":
+        return Enum.make(this.values.filter((v) => typeof v === "string"), annotations)
+      case "Number":
+        return Enum.make(this.values.filter((v) => typeof v === "number"), annotations)
+      case "Boolean":
+        return Enum.make(this.values.filter((v) => typeof v === "boolean"), annotations)
       case "Union":
         return Union.make(
           that.members.map((m) => this.combine(m, options)),
           that.mode,
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          annotations
         )
       default:
-        return new Never()
+        return new Never(annotations)
     }
   }
   toGeneration(_: RecurOptions): Generation {
@@ -953,6 +960,7 @@ class Arrays {
     })
   }
   combine(that: AST, options: RecurOptions): AST {
+    const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
     switch (that._tag) {
       case "Unknown":
         return new Arrays(
@@ -960,11 +968,11 @@ class Arrays {
           this.elements,
           this.rest,
           this.checks,
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          annotations
         )
       case "Arrays": {
         if (this.elements.length > 0 && that.elements.length > 0) {
-          return new Never()
+          return new Never(annotations)
         }
         return new Arrays(
           this.isNullable && that.isNullable,
@@ -975,17 +983,17 @@ class Arrays {
             ? this.rest
             : this.rest.combine(that.rest, options),
           [...this.checks, ...that.checks],
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          annotations
         )
       }
       case "Union":
         return Union.make(
           that.members.map((m) => this.combine(m, options)),
           that.mode,
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          annotations
         )
       default:
-        return new Never()
+        return new Never(annotations)
     }
   }
   toGeneration(options: RecurOptions): Generation {
@@ -1170,6 +1178,7 @@ class Objects {
     })
   }
   combine(that: AST, options: RecurOptions): AST {
+    const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
     switch (that._tag) {
       case "Unknown":
         return new Objects(
@@ -1178,7 +1187,7 @@ class Objects {
           this.indexSignatures,
           this.additionalProperties,
           this.checks,
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          annotations
         )
       case "Objects":
         return new Objects(
@@ -1187,16 +1196,16 @@ class Objects {
           this.indexSignatures.concat(that.indexSignatures),
           this.additionalProperties && that.additionalProperties,
           [...this.checks, ...that.checks],
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          annotations
         )
       case "Union":
         return Union.make(
           that.members.map((m) => this.combine(m, options)),
           that.mode,
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          annotations
         )
       default:
-        return new Never()
+        return new Never(annotations)
     }
   }
   toGeneration(options: RecurOptions): Generation {
@@ -1383,19 +1392,6 @@ class Union {
   }
   combine(that: AST, options: RecurOptions): AST {
     switch (that._tag) {
-      case "Unknown":
-        return new Union(
-          this.members,
-          this.mode,
-          annotationsCombiner.combine(this.annotations, that.annotations)
-        )
-      case "Arrays":
-      case "Objects":
-        return new Union(
-          this.members.map((m) => m.combine(that, options)),
-          this.mode,
-          this.annotations
-        )
       case "Union":
         return new Union(
           this.members.concat(that.members),
@@ -1403,7 +1399,7 @@ class Union {
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       default:
-        return new Never()
+        return new Union(this.members.map((m) => m.combine(that, options)), this.mode, this.annotations)
     }
   }
   toGeneration(options: RecurOptions): Generation {
