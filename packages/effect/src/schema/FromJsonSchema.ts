@@ -581,23 +581,31 @@ class String {
     return cs
   }
   readonly _tag = "String"
+  readonly isNullable: boolean
   readonly checks: ReadonlyArray<StringCheck>
   readonly contentSchema: AST | undefined
   readonly annotations: Annotations
-  constructor(checks: ReadonlyArray<StringCheck>, contentSchema: AST | undefined, annotations: Annotations = {}) {
+  constructor(
+    isNullable: boolean,
+    checks: ReadonlyArray<StringCheck>,
+    contentSchema: AST | undefined,
+    annotations: Annotations = {}
+  ) {
+    this.isNullable = isNullable
     this.checks = checks
     this.contentSchema = contentSchema
     this.annotations = annotations
   }
   annotate(annotations: Annotations | undefined): String {
     return new String(
+      this.isNullable,
       this.checks,
       this.contentSchema,
       annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
   parseChecks(f: Schema.JsonSchema): AST {
-    return new String([...this.checks, ...String.parseChecks(f)], this.contentSchema, this.annotations)
+    return new String(this.isNullable, [...this.checks, ...String.parseChecks(f)], this.contentSchema, this.annotations)
   }
   renderChecks(): string {
     return renderChecksWith(this.checks, (c) => {
@@ -615,6 +623,7 @@ class String {
     switch (that._tag) {
       case "String":
         return new String(
+          this.isNullable && that.isNullable,
           [...this.checks, ...that.checks],
           this.contentSchema === undefined
             ? that.contentSchema
@@ -625,8 +634,15 @@ class String {
         )
       case "Unknown":
         return new String(
+          this.isNullable,
           this.checks,
           this.contentSchema,
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
+      case "Union":
+        return Union.make(
+          that.members.map((m) => this.combine(m, options)),
+          that.mode,
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       default:
@@ -693,27 +709,31 @@ class Number {
     return cs
   }
   readonly _tag = "Number"
+  readonly isNullable: boolean
   readonly isInteger: boolean
   readonly checks: ReadonlyArray<NumberCheck>
   readonly annotations: Annotations
   constructor(
+    isNullable: boolean,
     isInteger: boolean,
     checks: ReadonlyArray<NumberCheck>,
     annotations: Annotations = {}
   ) {
+    this.isNullable = isNullable
     this.isInteger = isInteger
     this.checks = checks
     this.annotations = annotations
   }
   annotate(annotations: Annotations | undefined): Number {
     return new Number(
+      this.isNullable,
       this.isInteger,
       this.checks,
       annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
   parseChecks(f: Schema.JsonSchema): AST {
-    return new Number(this.isInteger, [...this.checks, ...Number.parseChecks(f)], this.annotations)
+    return new Number(this.isNullable, this.isInteger, [...this.checks, ...Number.parseChecks(f)], this.annotations)
   }
   renderChecks(): string {
     return renderChecksWith(this.checks, (c) => {
@@ -731,18 +751,26 @@ class Number {
       }
     })
   }
-  combine(that: AST): AST {
+  combine(that: AST, options: RecurOptions): AST {
     switch (that._tag) {
       case "Number":
         return new Number(
+          this.isNullable && that.isNullable,
           this.isInteger || that.isInteger,
           [...this.checks, ...that.checks],
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       case "Unknown":
         return new Number(
+          this.isNullable,
           this.isInteger,
           this.checks,
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
+      case "Union":
+        return Union.make(
+          that.members.map((m) => this.combine(m, options)),
+          that.mode,
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       default:
@@ -762,18 +790,42 @@ class Number {
 
 class Boolean {
   readonly _tag = "Boolean"
+  readonly isNullable: boolean
   readonly annotations: Annotations
-  constructor(annotations: Annotations = {}) {
+  constructor(isNullable: boolean, annotations: Annotations = {}) {
+    this.isNullable = isNullable
     this.annotations = annotations
   }
   annotate(annotations: Annotations | undefined): Boolean {
-    return new Boolean(annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
+    return new Boolean(
+      this.isNullable,
+      annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
+    )
   }
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  combine(_: AST): AST {
-    return new Never()
+  combine(that: AST, options: RecurOptions): AST {
+    switch (that._tag) {
+      case "Boolean":
+        return new Boolean(
+          this.isNullable && that.isNullable,
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
+      case "Unknown":
+        return new Boolean(
+          this.isNullable,
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
+      case "Union":
+        return Union.make(
+          that.members.map((m) => this.combine(m, options)),
+          that.mode,
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
+      default:
+        return new Never()
+    }
   }
   toGeneration(_: RecurOptions): Generation {
     const suffix = renderAnnotations(this.annotations)
@@ -819,10 +871,14 @@ function isLiteralValue(value: unknown): value is AST.LiteralValue {
 }
 
 class Enum {
+  static make(values: ReadonlyArray<AST.LiteralValue>, annotations: Annotations = {}): AST {
+    if (values.length === 0) return new Never(annotations)
+    return new Enum(values, annotations)
+  }
   readonly _tag = "Enum"
   readonly values: ReadonlyArray<AST.LiteralValue>
   readonly annotations: Annotations
-  constructor(values: ReadonlyArray<AST.LiteralValue>, annotations: Annotations = {}) {
+  private constructor(values: ReadonlyArray<AST.LiteralValue>, annotations: Annotations = {}) {
     this.annotations = annotations
     this.values = values
   }
@@ -882,16 +938,19 @@ class Arrays {
     return cs
   }
   readonly _tag = "Arrays"
+  readonly isNullable: boolean
   readonly elements: ReadonlyArray<Element>
   readonly rest: AST | undefined
   readonly checks: ReadonlyArray<ArraysCheck>
   readonly annotations: Annotations
   constructor(
+    isNullable: boolean,
     elements: ReadonlyArray<Element>,
     rest: AST | undefined,
     checks: ReadonlyArray<ArraysCheck>,
     annotations: Annotations = {}
   ) {
+    this.isNullable = isNullable
     this.elements = elements
     this.rest = rest
     const i = elements.findIndex((e) => e.isOptional)
@@ -906,6 +965,7 @@ class Arrays {
   }
   annotate(annotations: Annotations | undefined): Arrays {
     return new Arrays(
+      this.isNullable,
       this.elements,
       this.rest,
       this.checks,
@@ -913,7 +973,13 @@ class Arrays {
     )
   }
   parseChecks(schema: Schema.JsonSchema): AST {
-    return new Arrays(this.elements, this.rest, [...this.checks, ...Arrays.parseChecks(schema)], this.annotations)
+    return new Arrays(
+      this.isNullable,
+      this.elements,
+      this.rest,
+      [...this.checks, ...Arrays.parseChecks(schema)],
+      this.annotations
+    )
   }
   renderChecks(): string {
     return renderChecksWith(this.checks, (c) => {
@@ -931,6 +997,7 @@ class Arrays {
     switch (that._tag) {
       case "Unknown":
         return new Arrays(
+          this.isNullable,
           this.elements,
           this.rest,
           this.checks,
@@ -941,6 +1008,7 @@ class Arrays {
           return new Never()
         }
         return new Arrays(
+          this.isNullable && that.isNullable,
           this.elements.concat(that.elements),
           this.rest === undefined
             ? that.rest
@@ -952,7 +1020,7 @@ class Arrays {
         )
       }
       case "Union":
-        return new Union(
+        return Union.make(
           that.members.map((m) => this.combine(m, options)),
           that.mode,
           annotationsCombiner.combine(this.annotations, that.annotations)
@@ -1091,18 +1159,21 @@ class Objects {
     return cs
   }
   readonly _tag = "Objects"
+  readonly isNullable: boolean
   readonly properties: ReadonlyArray<Property>
   readonly indexSignatures: ReadonlyArray<IndexSignature>
   readonly additionalProperties: boolean
   readonly checks: ReadonlyArray<ObjectsCheck>
   readonly annotations: Annotations
   constructor(
+    isNullable: boolean,
     properties: ReadonlyArray<Property>,
     indexSignatures: ReadonlyArray<IndexSignature>,
     additionalProperties: boolean,
     checks: ReadonlyArray<ObjectsCheck>,
     annotations: Annotations = {}
   ) {
+    this.isNullable = isNullable
     this.properties = properties
     this.indexSignatures = indexSignatures
     this.additionalProperties = additionalProperties
@@ -1111,6 +1182,7 @@ class Objects {
   }
   annotate(annotations: Annotations | undefined): Objects {
     return new Objects(
+      this.isNullable,
       this.properties,
       this.indexSignatures,
       this.additionalProperties,
@@ -1120,6 +1192,7 @@ class Objects {
   }
   parseChecks(f: Schema.JsonSchema): AST {
     return new Objects(
+      this.isNullable,
       this.properties,
       this.indexSignatures,
       this.additionalProperties,
@@ -1141,6 +1214,7 @@ class Objects {
     switch (that._tag) {
       case "Unknown":
         return new Objects(
+          this.isNullable,
           this.properties,
           this.indexSignatures,
           this.additionalProperties,
@@ -1149,6 +1223,7 @@ class Objects {
         )
       case "Objects":
         return new Objects(
+          this.isNullable && that.isNullable,
           this.properties.concat(that.properties),
           this.indexSignatures.concat(that.indexSignatures),
           this.additionalProperties && that.additionalProperties,
@@ -1156,7 +1231,7 @@ class Objects {
           annotationsCombiner.combine(this.annotations, that.annotations)
         )
       case "Union":
-        return new Union(
+        return Union.make(
           that.members.map((m) => this.combine(m, options)),
           that.mode,
           annotationsCombiner.combine(this.annotations, that.annotations)
@@ -1169,16 +1244,18 @@ class Objects {
     if (this.properties.length === 0 && this.indexSignatures.length === 0) {
       if (this.additionalProperties === false) {
         return new Objects(
+          this.isNullable,
           [],
-          [new IndexSignature(new String([], undefined), new Never())],
+          [new IndexSignature(new String(false, [], undefined), new Never())],
           false,
           this.checks,
           this.annotations
         ).toGeneration(options)
       } else {
         return new Objects(
+          this.isNullable,
           [],
-          [new IndexSignature(new String([], undefined), new Unknown())],
+          [new IndexSignature(new String(false, [], undefined), new Unknown())],
           false,
           this.checks,
           this.annotations
@@ -1320,11 +1397,17 @@ type IndexSignatureGen = {
 }
 
 class Union {
+  static make(members: ReadonlyArray<AST>, mode: "anyOf" | "oneOf", annotations: Annotations = {}): AST {
+    members = members.filter((m) => m._tag !== "Never")
+    if (members.length === 0) return new Never(annotations)
+    if (members.length === 1) return members[0].annotate(annotations)
+    return new Union(members, mode, annotations)
+  }
   readonly _tag = "Union"
   readonly members: ReadonlyArray<AST>
   readonly mode: "anyOf" | "oneOf"
   readonly annotations: Annotations
-  constructor(members: ReadonlyArray<AST>, mode: "anyOf" | "oneOf", annotations: Annotations = {}) {
+  private constructor(members: ReadonlyArray<AST>, mode: "anyOf" | "oneOf", annotations: Annotations = {}) {
     this.members = members
     this.mode = mode
     this.annotations = annotations
@@ -1435,31 +1518,27 @@ function parse(schema: unknown, options: RecurOptions): AST {
     )
   }
 
-  if (isNullable(schema, options)) {
+  if (options.source === "openapi-3.0" && "isNullable" in ast && ast.isNullable === true) {
     ast = NullOr(ast.annotate(undefined)).annotate(ast.annotations)
   }
 
   return ast
 }
 
-function isNullable(schema: Schema.JsonSchema, options: RecurOptions): boolean {
-  return schema.nullable === true && options.source === "openapi-3.0" && isType(schema.type)
-}
-
 function NullOr(ast: AST): AST {
-  return new Union([ast, new Null()], "anyOf")
+  return Union.make([ast, new Null()], "anyOf")
 }
 
 function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   if (Array.isArray(schema.anyOf)) {
-    return new Union(schema.anyOf.map((m) => parse(m, options)), "anyOf")
+    return Union.make(schema.anyOf.map((m) => parse(m, options)), "anyOf")
   }
   if (Array.isArray(schema.oneOf)) {
-    return new Union(schema.oneOf.map((m) => parse(m, options)), "oneOf")
+    return Union.make(schema.oneOf.map((m) => parse(m, options)), "oneOf")
   }
 
   if (Array.isArray(schema.type)) {
-    return new Union(schema.type.filter(isType).map((type) => handleType(type, {}, options)), "anyOf")
+    return Union.make(schema.type.filter(isType).map((type) => handleType(type, {}, options)), "anyOf")
   }
 
   if (schema.const !== undefined) {
@@ -1471,12 +1550,8 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   if (Array.isArray(schema.enum)) {
     const enums = schema.enum.filter(isLiteralValue)
     const isNullable = schema.enum.some((e) => e === null)
-    if (enums.length === 0) {
-      if (isNullable) return new Null()
-      return new Never()
-    }
-    if (isNullable) return NullOr(new Enum(enums))
-    return new Enum(enums)
+    if (isNullable) return NullOr(Enum.make(enums))
+    return Enum.make(enums)
   }
 
   schema = normalize(schema)
@@ -1595,21 +1670,21 @@ function handleType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, opt
       return new Null()
     case "string": {
       if (schema.contentMediaType !== undefined && schema.contentMediaType === "application/json") {
-        return new String([], parse(schema.contentSchema, options))
+        return new String(schema.nullable === true, [], parse(schema.contentSchema, options))
       }
-      return new String([], undefined)
+      return new String(schema.nullable === true, [], undefined)
     }
     case "number":
-      return new Number(false, [])
+      return new Number(schema.nullable === true, false, [])
     case "integer":
-      return new Number(true, [])
+      return new Number(schema.nullable === true, true, [])
     case "boolean":
-      return new Boolean()
+      return new Boolean(schema.nullable === true)
     case "object": {
       const properties = collectProperties(schema, options)
       const indexSignatures = collectIndexSignatures(schema, options)
       const additionalProperties = schema.additionalProperties === false ? false : true
-      return new Objects(properties, indexSignatures, additionalProperties, [])
+      return new Objects(schema.nullable === true, properties, indexSignatures, additionalProperties, [])
     }
     case "array": {
       const minItems = typeof schema.minItems === "number" ? schema.minItems : 0
@@ -1619,6 +1694,7 @@ function handleType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, opt
       const rest = collectRest(schema, options)
 
       return new Arrays(
+        schema.nullable === true,
         elements,
         rest !== undefined ? rest === false ? undefined : parse(rest, options) : new Unknown(),
         []
@@ -1648,7 +1724,7 @@ function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions
     for (const [pattern, value] of Object.entries(schema.patternProperties)) {
       out.push(
         new IndexSignature(
-          new String([makePatternCheck(pattern)], undefined),
+          new String(false, [makePatternCheck(pattern)], undefined),
           parse(value, options)
         )
       )
@@ -1656,7 +1732,7 @@ function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions
   }
 
   if (isObject(schema.additionalProperties)) {
-    out.push(new IndexSignature(new String([], undefined), parse(schema.additionalProperties, options)))
+    out.push(new IndexSignature(new String(false, [], undefined), parse(schema.additionalProperties, options)))
   }
 
   return out
