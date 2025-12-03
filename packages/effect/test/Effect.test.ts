@@ -1543,4 +1543,16 @@ describe("Effect", () => {
         }))
     })
   })
+
+  describe("Effect.fn", () => {
+    it.effect("should support pipeable arguments", () => {
+      const fn = Effect.fn(function*(s: string) {
+        return s.length
+      }, (effect, ...args) => effect.pipe(Effect.map((result) => [result, ...args])))
+      return Effect.gen(function*() {
+        const result = yield* fn("a")
+        assert.deepStrictEqual(result, [1, "a"])
+      })
+    })
+  })
 })

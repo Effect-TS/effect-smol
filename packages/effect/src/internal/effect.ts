@@ -1071,7 +1071,7 @@ export const fn: Effect.fn.Gen & Effect.fn.NonGen = (
   const defError = new globalThis.Error()
   globalThis.Error.stackTraceLimit = prevLimit
 
-  return function(this: any) {
+  return function(this: any, ...args: Array<any>) {
     let result = suspend(() => {
       const iter = body.apply(this, arguments)
       return isEffect(iter) ? iter : fromIteratorUnsafe(iter)
