@@ -2283,8 +2283,6 @@ const schema1 = Schema.Struct({ "a": A });`
   })
 
   it("roundtrips", () => {
-    assertRoundtrip({ schema: Schema.Never })
-
     assertRoundtrip({ schema: Schema.Unknown })
 
     assertRoundtrip({ schema: Schema.Null })
@@ -2353,10 +2351,8 @@ const schema1 = Schema.Struct({ "a": A });`
     assertRoundtrip({ schema: Schema.Array(Schema.String).check(Schema.isMinLength(1)) })
     assertRoundtrip({ schema: Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]) })
 
-    assertRoundtrip({ schema: Schema.Union([]) })
     assertRoundtrip({ schema: Schema.Union([Schema.String]) })
     assertRoundtrip({ schema: Schema.Union([Schema.String, Schema.Number]) })
-    assertRoundtrip({ schema: Schema.Union([], { mode: "oneOf" }) })
     assertRoundtrip({ schema: Schema.Union([Schema.String], { mode: "oneOf" }) })
     assertRoundtrip({ schema: Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }) })
   })

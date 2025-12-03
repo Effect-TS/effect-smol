@@ -450,7 +450,6 @@ const annotationsCombiner: Combiner.Combiner<Annotations> = Struct.getCombiner({
 type AST =
   | Unknown
   | Never
-  | Not
   | Null
   | String
   | Number
@@ -475,7 +474,7 @@ class Unknown {
     return this
   }
   combine(that: AST): AST {
-    return that
+    return that.annotate(this.annotations)
   }
   toGeneration(_: RecurOptions): Generation {
     const suffix = renderAnnotations(this.annotations)
@@ -500,8 +499,8 @@ class Never {
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  combine(_: AST): AST {
-    return new Never()
+  combine(that: AST): AST {
+    return new Never(annotationsCombiner.combine(this.annotations, that.annotations))
   }
   toGeneration(_: RecurOptions): Generation {
     const suffix = renderAnnotations(this.annotations)
@@ -511,28 +510,6 @@ class Never {
       annotations: this.annotations,
       importDeclarations: emptySet
     }
-  }
-}
-
-class Not {
-  readonly _tag = "Not"
-  readonly ast: AST
-  readonly annotations: Annotations
-  constructor(ast: AST, annotations: Annotations = {}) {
-    this.ast = ast
-    this.annotations = annotations
-  }
-  annotate(annotations: Annotations | undefined): Not {
-    return new Not(this.ast, annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
-  }
-  parseChecks(_: Schema.JsonSchema): AST {
-    return this
-  }
-  combine(_: AST): AST {
-    return new Never()
-  }
-  toGeneration(options: RecurOptions): Generation {
-    return new Never(this.annotations).toGeneration(options)
   }
 }
 
@@ -1591,10 +1568,6 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
     } else {
       throw new Error(`Invalid $ref: ${schema.$ref}`)
     }
-  }
-
-  if (isObject(schema.not)) {
-    return new Not(parse(schema.not, options))
   }
 
   return new Unknown()
