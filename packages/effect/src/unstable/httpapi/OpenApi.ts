@@ -230,7 +230,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
     tags: []
   }
 
-  function processAST(ast: AST.AST): object {
+  function processAST(ast: AST.AST): Schema.JsonSchema {
     const { definitions, schema } = Schema.makeJsonSchema(Schema.make(ast), {
       target: "openapi-3.1",
       additionalProperties: options?.additionalProperties,
@@ -611,7 +611,7 @@ export interface OpenApiSpecResponse {
  * @since 4.0.0
  */
 export interface OpenApiSpecMediaType {
-  schema: object
+  schema: Schema.JsonSchema
 }
 
 /**
@@ -628,7 +628,7 @@ export interface OpenAPISpecRequestBody {
  * @since 4.0.0
  */
 export interface OpenAPIComponents {
-  schemas: Record<string, object>
+  schemas: Record<string, Schema.JsonSchema>
   securitySchemes: Record<string, OpenAPISecurityScheme>
 }
 

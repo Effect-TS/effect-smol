@@ -61,8 +61,6 @@ export const make = Effect.gen(function*() {
       }
 
       const operations: Array<ParsedOperation.ParsedOperation> = []
-      const components = spec.components ? { ...spec.components } : { schemas: {} }
-      const context: JsonSchemaGenerator.OpenApiContext = { components } as any
 
       function handlePath(path: string, methods: OpenAPISpecPathItem): void {
         for (const method of methodNames) {
@@ -144,9 +142,7 @@ export const make = Effect.gen(function*() {
 
             op.params = generator.addSchema(
               `${schemaId}Params`,
-              schema,
-              context,
-              true
+              schema
             )
 
             op.paramsOptional = !schema.required || schema.required.length === 0
@@ -155,16 +151,14 @@ export const make = Effect.gen(function*() {
           if (Predicate.isNotUndefined(operation.requestBody?.content?.["application/json"]?.schema)) {
             op.payload = generator.addSchema(
               `${schemaId}Request`,
-              operation.requestBody.content["application/json"].schema,
-              context
+              operation.requestBody.content["application/json"].schema
             )
           }
 
           if (Predicate.isNotUndefined(operation.requestBody?.content?.["multipart/form-data"]?.schema)) {
             op.payload = generator.addSchema(
               `${schemaId}Request`,
-              operation.requestBody.content["multipart/form-data"].schema,
-              context
+              operation.requestBody.content["multipart/form-data"].schema
             )
             op.payloadFormData = true
           }
@@ -181,9 +175,7 @@ export const make = Effect.gen(function*() {
             if (Predicate.isNotUndefined(response.content?.["application/json"]?.schema)) {
               const schemaName = generator.addSchema(
                 `${schemaId}${status}`,
-                response.content["application/json"].schema,
-                context,
-                true
+                response.content["application/json"].schema
               )
 
               if (status === "default") {
@@ -221,7 +213,8 @@ export const make = Effect.gen(function*() {
 
       // TODO: make a CLI option ?
       const importName = "Schema"
-      const generation = generator.generate(getSource(spec))
+      const source = getSource(spec)
+      const generation = generator.generate(source, spec, options.typeOnly)
 
       return String.stripMargin(
         `|${openApiTransformer.imports(importName)}
