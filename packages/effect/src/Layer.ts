@@ -220,13 +220,13 @@ export const fromBuild = <ROut, E, RIn>(
     scope: Scope.Scope
   ) => Effect<ServiceMap.ServiceMap<ROut>, E, RIn>
 ): Layer<ROut, E, RIn> =>
-  fromBuildUnsafe((memoMap: MemoMap, scope: Scope.Scope) =>
-    internalEffect.flatMap(Scope.fork(scope), (scope) =>
-      internalEffect.onExit(
-        build(memoMap, scope),
-        (exit) => exit._tag === "Failure" ? Scope.close(scope, exit) : internalEffect.void
-      ))
-  )
+  fromBuildUnsafe((memoMap: MemoMap, scope: Scope.Scope) => {
+    const layerScope = Scope.forkUnsafe(scope)
+    return internalEffect.onExit(
+      build(memoMap, layerScope),
+      (exit) => exit._tag === "Failure" ? Scope.close(layerScope, exit) : internalEffect.void
+    )
+  })
 
 /**
  * Constructs a Layer from a function that uses a `MemoMap` and `Scope` to build the layer,
@@ -849,18 +849,14 @@ const mergeAllEffect = <Layers extends [Layer<never, any, any>, ...Array<Layer<n
   ServiceMap.ServiceMap<{ [k in keyof Layers]: Success<Layers[k]> }[number]>,
   { [k in keyof Layers]: Error<Layers[k]> }[number],
   { [k in keyof Layers]: Services<Layers[k]> }[number]
-> =>
-  internalEffect.forEach(layers, (layer) => layer.build(memoMap, scope), { concurrency: layers.length }).pipe(
-    internalEffect.map((contexts) => {
-      const map = new Map<string, any>()
-      for (const context of contexts) {
-        for (const [key, value] of context.mapUnsafe) {
-          map.set(key, value)
-        }
-      }
-      return ServiceMap.makeUnsafe(map)
-    })
+> => {
+  const parentScope = Scope.forkUnsafe(scope, "parallel")
+  return internalEffect.forEach(layers, (layer) => layer.build(memoMap, Scope.forkUnsafe(parentScope, "sequential")), {
+    concurrency: layers.length
+  }).pipe(
+    internalEffect.map((services) => ServiceMap.mergeAll(...(services as any)))
   )
+}
 
 /**
  * Combines all the provided layers concurrently, creating a new layer with merged input, error, and output types.

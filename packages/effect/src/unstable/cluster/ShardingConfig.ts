@@ -56,6 +56,24 @@ export class ShardingConfig extends ServiceMap.Service<ShardingConfig, {
    */
   readonly shardsPerGroup: number
   /**
+   * Shard lock refresh interval.
+   */
+  readonly shardLockRefreshInterval: DurationInput
+  /**
+   * Shard lock expiration duration.
+   */
+  readonly shardLockExpiration: DurationInput
+  /**
+   * Disable the use of advisory locks for shard locking.
+   */
+  readonly shardLockDisableAdvisory: boolean
+  /**
+   * Start shutting down as soon as an Entity has started shutting down.
+   *
+   * Defaults to `true`.
+   */
+  readonly preemptiveShutdown: boolean
+  /**
    * The default capacity of the mailbox for entities.
    */
   readonly entityMailboxCapacity: number | "unbounded"
@@ -65,10 +83,16 @@ export class ShardingConfig extends ServiceMap.Service<ShardingConfig, {
    */
   readonly entityMaxIdleTime: DurationInput
   /**
+   * If an entity does not register itself within this time after a message is
+   * sent to it, the message will be marked as failed.
+   *
+   * Defaults to 1 minute.
+   */
+  readonly entityRegistrationTimeout: DurationInput
+  /**
    * The maximum duration of time to wait for an entity to terminate.
    *
-   * By default this is set to 25 seconds to stay within kubernetes default
-   * `terminationGracePeriodSeconds` of 30 seconds.
+   * By default this is set to 15 seconds to stay within kubernetes defaults.
    */
   readonly entityTerminationTimeout: DurationInput
   /**
@@ -92,7 +116,6 @@ export class ShardingConfig extends ServiceMap.Service<ShardingConfig, {
    * The interval at which to check for unhealthy runners and report them
    */
   readonly runnerHealthCheckInterval: DurationInput
-  // readonly unhealthyRunnerReportInterval: Duration.Duration
   /**
    * Simulate serialization and deserialization to remote runners for local
    * entities.
@@ -112,9 +135,14 @@ export const defaults: ShardingConfig["Service"] = {
   runnerShardWeight: 1,
   shardsPerGroup: 300,
   shardGroups: ["default"],
+  preemptiveShutdown: true,
+  shardLockRefreshInterval: Duration.seconds(10),
+  shardLockExpiration: Duration.seconds(35),
+  shardLockDisableAdvisory: false,
   entityMailboxCapacity: 4096,
   entityMaxIdleTime: Duration.minutes(1),
-  entityTerminationTimeout: Duration.seconds(25),
+  entityRegistrationTimeout: Duration.minutes(1),
+  entityTerminationTimeout: Duration.seconds(15),
   entityMessagePollInterval: Duration.seconds(10),
   entityReplyPollInterval: Duration.millis(200),
   sendRetryInterval: Duration.millis(100),

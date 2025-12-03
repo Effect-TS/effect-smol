@@ -22,6 +22,7 @@ declare namespace State {
     readonly scope: Scope.Closeable
     fiber: Fiber.Fiber<void, never> | undefined
     refCount: number
+    invalidated: boolean
   }
 
   interface Closed {
@@ -110,7 +111,8 @@ const getState = <A, E>(self: RcRefImpl<A, E>) =>
               value,
               scope,
               fiber: undefined,
-              refCount: 1
+              refCount: 1,
+              invalidated: false
             }
             self.state = state
             return state
@@ -127,6 +129,7 @@ export const get = Effect.fnUntraced(function*<A, E>(
   const self = self_ as RcRefImpl<A, E>
   const state = yield* getState(self)
   const scope = yield* Effect.scope
+  const isFinite = self.idleTimeToLive !== undefined && Duration.isFinite(self.idleTimeToLive)
   yield* Scope.addFinalizerExit(scope, () => {
     state.refCount--
     if (state.refCount > 0) {
@@ -135,6 +138,10 @@ export const get = Effect.fnUntraced(function*<A, E>(
     if (self.idleTimeToLive === undefined) {
       self.state = stateEmpty
       return Scope.close(state.scope, Exit.void)
+    } else if (state.invalidated) {
+      return Scope.close(state.scope, Exit.void)
+    } else if (!isFinite) {
+      return Effect.void
     }
     state.fiber = Effect.sleep(self.idleTimeToLive).pipe(
       Effect.flatMap(() => {
@@ -154,3 +161,23 @@ export const get = Effect.fnUntraced(function*<A, E>(
   })
   return state.value
 })
+
+/** @internal */
+export const invalidate = <A, E>(
+  self_: RcRef.RcRef<A, E>
+): Effect.Effect<void> => {
+  const self = self_ as RcRefImpl<A, E>
+  return Effect.uninterruptible(Effect.suspend(() => {
+    if (self.state._tag !== "Acquired") {
+      return Effect.void
+    }
+    const state = self.state
+    self.state = stateEmpty
+    state.invalidated = true
+    if (state.refCount > 0) {
+      return Effect.void
+    }
+    state.fiber?.interruptUnsafe()
+    return Scope.close(state.scope, Exit.void)
+  }))
+}

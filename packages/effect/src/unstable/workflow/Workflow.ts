@@ -15,7 +15,7 @@ import * as Issue from "../../schema/Issue.ts"
 import * as Parser from "../../schema/Parser.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Tranformation from "../../schema/Transformation.ts"
-import type * as Scope from "../../Scope.ts"
+import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { ExitEncoded } from "../rpc/RpcMessage.ts"
 import { makeHashDigest } from "./internal/crypto.ts"
@@ -187,8 +187,11 @@ export interface Execution<Name extends string> {
 export interface Any {
   readonly [TypeId]: typeof TypeId
   readonly name: string
-  readonly annotations: ServiceMap.ServiceMap<never>
   readonly executionId: (payload: any) => Effect.Effect<string>
+  readonly payloadSchema: AnyStructSchema
+  readonly successSchema: Schema.Top
+  readonly errorSchema: Schema.Top
+  readonly annotations: ServiceMap.ServiceMap<never>
 }
 
 /**
@@ -545,41 +548,42 @@ export const intoResult = <A, E, R>(
 > =>
   Effect.servicesWith((services: ServiceMap.ServiceMap<WorkflowInstance>) => {
     const instance = ServiceMap.get(services, InstanceTag)
-    const captureDefects = ServiceMap.get(
-      instance.workflow.annotations,
-      CaptureDefects
-    )
-    const suspendOnFailure = ServiceMap.get(
-      instance.workflow.annotations,
-      SuspendOnFailure
-    )
-    return Effect.uninterruptibleMask((restore) =>
-      effect.pipe(
-        // so we can use external interruption to suspend the workflow
-        Effect.forkChild({ startImmediately: true }),
-        Effect.flatMap((fiber) => Effect.onInterrupt(Fiber.join(fiber), () => Fiber.interrupt(fiber))),
-        restore,
-        suspendOnFailure
-          ? Effect.catchCause((cause) => {
-            instance.suspended = true
-            if (!Cause.isInterruptedOnly(cause)) {
-              instance.cause = Cause.die(Cause.squash(cause))
-            }
-            return Effect.interrupt
-          })
-          : identity,
-        Effect.scoped,
-        Effect.matchCauseEffect({
-          onSuccess: (value) => Effect.succeed(new Complete({ exit: Exit.succeed(value) })),
-          onFailure: (cause): Effect.Effect<Result<A, E>> =>
-            instance.suspended
-              ? Effect.succeed(new Suspended({ cause: instance.cause }))
-              : (!instance.interrupted && Cause.isInterruptedOnly(cause)) ||
-                  (!captureDefects && Cause.hasDie(cause))
-              ? Effect.failCause(cause as Cause.Cause<never>)
-              : Effect.succeed(new Complete({ exit: Exit.failCause(cause) }))
+    const captureDefects = ServiceMap.get(instance.workflow.annotations, CaptureDefects)
+    const suspendOnFailure = ServiceMap.get(instance.workflow.annotations, SuspendOnFailure)
+    return effect.pipe(
+      // so we can use external interruption to suspend the workflow
+      Effect.forkChild({ startImmediately: true }),
+      Effect.flatMap((fiber) => Effect.onInterrupt(Fiber.join(fiber), () => Fiber.interrupt(fiber))),
+      Effect.interruptible,
+      suspendOnFailure
+        ? Effect.catchCause((cause) => {
+          instance.suspended = true
+          if (!Cause.isInterruptedOnly(cause)) {
+            instance.cause = Cause.die(Cause.squash(cause))
+          }
+          return Effect.interrupt
         })
-      )
+        : identity,
+      Effect.scoped,
+      Effect.matchCauseEffect({
+        onSuccess: (value) => Effect.succeed(new Complete({ exit: Exit.succeed(value) })),
+        onFailure: (cause): Effect.Effect<Result<A, E>> =>
+          instance.suspended
+            ? Effect.succeed(new Suspended({ cause: instance.cause }))
+            : (!instance.interrupted && Cause.isInterruptedOnly(cause)) ||
+                (!captureDefects && Cause.hasDie(cause))
+            ? Effect.failCause(cause as Cause.Cause<never>)
+            : Effect.succeed(new Complete({ exit: Exit.failCause(cause) }))
+      }),
+      Effect.onExitInterruptible((exit) => {
+        if (Exit.isFailure(exit)) {
+          return Scope.close(instance.scope, exit)
+        } else if (exit.value._tag === "Complete") {
+          return Scope.close(instance.scope, exit.value.exit)
+        }
+        return Effect.void
+      }),
+      Effect.uninterruptible
     )
   })
 
@@ -598,9 +602,9 @@ export const wrapActivityResult = <A, E, R>(
       return state.count > 0
         ? state.latch.await.pipe(
           Effect.andThen(Effect.yieldNow),
-          Effect.andThen(Effect.interrupt)
+          Effect.andThen(suspend(instance))
         )
-        : Effect.interrupt
+        : suspend(instance)
     }
     if (state.count === 0) state.latch.closeUnsafe()
     state.count++
@@ -626,6 +630,56 @@ export const wrapActivityResult = <A, E, R>(
   })
 
 /**
+ * Accesses the workflow scope.
+ *
+ * The workflow scope is only closed when the workflow execution fully
+ * completes.
+ *
+ * @since 1.0.0
+ * @category Scope
+ */
+export const scope: Effect.Effect<
+  Scope.Scope,
+  never,
+  WorkflowInstance
+> = Effect.map(
+  InstanceTag.asEffect(),
+  (instance) => instance.scope as Scope.Scope
+)
+
+/**
+ * Provides the workflow scope to the given effect.
+ *
+ * The workflow scope is only closed when the workflow execution fully
+ * completes.
+ *
+ * @since 1.0.0
+ * @category Scope
+ */
+export const provideScope = <A, E, R>(
+  effect: Effect.Effect<A, E, R>
+): Effect.Effect<A, E, Exclude<R, Scope.Scope> | WorkflowInstance> =>
+  Effect.flatMap(scope, (scope) => Scope.provide(effect, scope))
+
+/**
+ * @since 1.0.0
+ * @category Scope
+ */
+export const addFinalizer: <R>(
+  f: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void, never, R>
+) => Effect.Effect<
+  void,
+  never,
+  WorkflowInstance | R
+> = Effect.fnUntraced(function*<R>(
+  f: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void, never, R>
+) {
+  const scope = (yield* InstanceTag).scope
+  const services = yield* Effect.services<R>()
+  yield* Scope.addFinalizerExit(scope, (exit) => Effect.provideServices(f(exit), services))
+})
+
+/**
  * Add compensation logic to an effect inside a Workflow. The compensation finalizer will be
  * called if the entire workflow fails, allowing you to perform cleanup or
  * other actions based on the success value and the cause of the workflow failure.
@@ -633,47 +687,29 @@ export const wrapActivityResult = <A, E, R>(
  * NOTE: Compensation will not work for nested activities. Compensation
  * finalizers are only registered for top-level effects in the workflow.
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category Compensation
  */
 export const withCompensation: {
   <A, R2>(
-    compensation: (
-      value: A,
-      cause: Cause.Cause<unknown>
-    ) => Effect.Effect<void, never, R2>
+    compensation: (value: A, cause: Cause.Cause<unknown>) => Effect.Effect<void, never, R2>
   ): <E, R>(
     effect: Effect.Effect<A, E, R>
   ) => Effect.Effect<A, E, R | R2 | WorkflowInstance | Scope.Scope>
   <A, E, R, R2>(
     effect: Effect.Effect<A, E, R>,
-    compensation: (
-      value: A,
-      cause: Cause.Cause<unknown>
-    ) => Effect.Effect<void, never, R2>
+    compensation: (value: A, cause: Cause.Cause<unknown>) => Effect.Effect<void, never, R2>
   ): Effect.Effect<A, E, R | R2 | WorkflowInstance | Scope.Scope>
-} = dual(
-  2,
-  <A, E, R, R2>(
-    effect: Effect.Effect<A, E, R>,
-    compensation: (
-      value: A,
-      cause: Cause.Cause<unknown>
-    ) => Effect.Effect<void, never, R2>
-  ): Effect.Effect<A, E, R | R2 | WorkflowInstance | Scope.Scope> =>
-    Effect.uninterruptibleMask((restore) =>
-      Effect.tap(restore(effect), (value) =>
-        Effect.servicesWith(
-          (services: ServiceMap.ServiceMap<WorkflowInstance>) =>
-            Effect.addFinalizer((exit) =>
-              Exit.isSuccess(exit) ||
-                ServiceMap.get(services, InstanceTag).suspended
-                ? Effect.void
-                : compensation(value, exit.cause)
-            )
-        ))
+} = dual(2, <A, E, R, R2>(
+  effect: Effect.Effect<A, E, R>,
+  compensation: (value: A, cause: Cause.Cause<unknown>) => Effect.Effect<void, never, R2>
+): Effect.Effect<A, E, R | R2 | WorkflowInstance | Scope.Scope> =>
+  Effect.uninterruptibleMask((restore) =>
+    Effect.tap(
+      restore(effect),
+      (value) => addFinalizer((exit) => Exit.isSuccess(exit) ? Effect.void : compensation(value, exit.cause))
     )
-)
+  ))
 
 /**
  * @since 4.0.0

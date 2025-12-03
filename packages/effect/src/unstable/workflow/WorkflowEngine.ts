@@ -7,7 +7,7 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../schema/Schema.ts"
-import type * as Scope from "../../Scope.ts"
+import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Activity from "./Activity.ts"
 import type { DurableClock } from "./DurableClock.ts"
@@ -39,6 +39,7 @@ export class WorkflowEngine extends ServiceMap.Service<
     ) => Effect.Effect<
       void,
       never,
+      | Scope.Scope
       | Exclude<
         R,
         | WorkflowEngine
@@ -199,6 +200,13 @@ export class WorkflowInstance extends ServiceMap.Service<
     readonly workflow: Workflow.Any
 
     /**
+     * A scope that represents the lifetime of the workflow.
+     *
+     * It is only closed when the workflow is completed.
+     */
+    readonly scope: Scope.Closeable
+
+    /**
      * Whether the workflow has requested to be suspended.
      */
     suspended: boolean
@@ -227,6 +235,7 @@ export class WorkflowInstance extends ServiceMap.Service<
     return WorkflowInstance.of({
       executionId,
       workflow,
+      scope: Scope.makeUnsafe(),
       suspended: false,
       interrupted: false,
       cause: undefined,
@@ -249,7 +258,7 @@ export interface Encoded {
       payload: object,
       executionId: string
     ) => Effect.Effect<unknown, unknown, WorkflowInstance | WorkflowEngine>
-  ) => Effect.Effect<void>
+  ) => Effect.Effect<void, never, Scope.Scope>
   readonly execute: <const Discard extends boolean>(
     workflow: Workflow.Any,
     options: {

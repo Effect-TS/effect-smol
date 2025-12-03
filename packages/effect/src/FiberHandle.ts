@@ -14,6 +14,7 @@ import { type Pipeable } from "./interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import type { Scheduler } from "./Scheduler.ts"
 import type * as Scope from "./Scope.ts"
+import type { ServiceMap } from "./ServiceMap.ts"
 
 const TypeId = "~effect/FiberHandle"
 
@@ -517,19 +518,17 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
   effect: Effect.Effect<XA, XE, R>,
   options?: {
     readonly onlyIfMissing?: boolean | undefined
-    readonly startImmediately?: boolean | undefined
   }
 ): Effect.Effect<Fiber.Fiber<XA, XE>, never, R> =>
-  Effect.suspend(() => {
+  Effect.withFiber((parent) => {
     if (self.state._tag === "Closed") {
       return Effect.interrupt
     } else if (self.state.fiber !== undefined && options?.onlyIfMissing === true) {
       return Effect.sync(constInterruptedFiber)
     }
-    return Effect.tap(
-      Effect.forkDetach(effect, options),
-      (fiber) => setUnsafe(self, fiber, options)
-    )
+    const fiber = Effect.runForkWith(parent.services as ServiceMap<R>)(effect)
+    setUnsafe(self, fiber, options)
+    return Effect.succeed(fiber)
   })
 
 /**

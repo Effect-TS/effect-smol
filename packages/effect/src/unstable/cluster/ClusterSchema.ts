@@ -17,9 +17,28 @@ export const Persisted = ServiceMap.Reference<boolean>("effect/cluster/ClusterSc
  * @since 4.0.0
  * @category Annotations
  */
-export const Uninterruptible = ServiceMap.Reference<boolean>("effect/cluster/ClusterSchema/Uninterruptible", {
-  defaultValue: constFalse
-})
+export const Uninterruptible = ServiceMap.Reference<boolean | "client" | "server">(
+  "effect/cluster/ClusterSchema/Uninterruptible",
+  { defaultValue: constFalse }
+)
+
+/**
+ * @since 4.0.0
+ * @category Annotations
+ */
+export const isUninterruptibleForServer = (context: ServiceMap.ServiceMap<never>): boolean => {
+  const value = ServiceMap.get(context, Uninterruptible)
+  return value === true || value === "server"
+}
+
+/**
+ * @since 4.0.0
+ * @category Annotations
+ */
+export const isUninterruptibleForClient = (context: ServiceMap.ServiceMap<never>): boolean => {
+  const value = ServiceMap.get(context, Uninterruptible)
+  return value === true || value === "client"
+}
 
 /**
  * @since 4.0.0

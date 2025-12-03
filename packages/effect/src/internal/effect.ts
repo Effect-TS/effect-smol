@@ -950,6 +950,12 @@ export const withFiberId = <A, E, R>(
   f: (fiberId: number) => Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, R> => withFiber((fiber) => f(fiber.id))
 
+/** @internal */
+export const fiber = withFiber(succeed)
+
+/** @internal */
+export const fiberId = withFiberId(succeed)
+
 const callbackOptions: <A, E = never, R = never>(
   register: (
     this: Scheduler.Scheduler,
@@ -2684,6 +2690,10 @@ export const orElseSucceed: {
 )
 
 /** @internal */
+export const eventually = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, never, R> =>
+  catch_(self, (_) => flatMap(yieldNow, () => eventually(self)))
+
+/** @internal */
 export const ignore = <A, E, R>(
   self: Effect.Effect<A, E, R>
 ): Effect.Effect<void, never, R> => matchEffect(self, { onFailure: (_) => void_, onSuccess: (_) => void_ })
@@ -2693,7 +2703,7 @@ export const ignoreLogged = <A, E, R>(
   self: Effect.Effect<A, E, R>
 ): Effect.Effect<void, never, R> =>
   matchCauseEffect(self, {
-    onFailure: (cause) => logWithLevel("Debug")("Effect.ignoreLogged", cause),
+    onFailure: logWithLevel(),
     onSuccess: (_) => void_
   })
 
@@ -4182,7 +4192,7 @@ export const runSync: <A, E>(effect: Effect.Effect<A, E>) => A = runSyncWith(Ser
 class Semaphore {
   public waiters = new Set<() => void>()
   public taken = 0
-  readonly permits: number
+  public permits: number
 
   constructor(permits: number) {
     this.permits = permits
@@ -4212,21 +4222,35 @@ class Semaphore {
       return resume(succeed(n))
     })
 
-  readonly updateTaken = (f: (n: number) => number): Effect.Effect<number> =>
-    withFiber((fiber) => {
-      this.taken = f(this.taken)
-      if (this.waiters.size > 0) {
-        fiber.currentScheduler.scheduleTask(() => {
-          const iter = this.waiters.values()
-          let item = iter.next()
-          while (item.done === false && this.free > 0) {
-            item.value()
-            item = iter.next()
-          }
-        }, 0)
-      }
-      return succeed(this.free)
-    })
+  updateTakenUnsafe(fiber: Fiber.Fiber<any, any>, f: (n: number) => number): Effect.Effect<number> {
+    this.taken = f(this.taken)
+    if (this.waiters.size > 0) {
+      fiber.currentScheduler.scheduleTask(() => {
+        const iter = this.waiters.values()
+        let item = iter.next()
+        while (item.done === false && this.free > 0) {
+          item.value()
+          item = iter.next()
+        }
+      }, 0)
+    }
+    return succeed(this.free)
+  }
+
+  updateTaken(f: (n: number) => number): Effect.Effect<number> {
+    return withFiber((fiber) => this.updateTakenUnsafe(fiber, f))
+  }
+
+  readonly resize = (permits: number) =>
+    asVoid(
+      withFiber((fiber) => {
+        this.permits = permits
+        if (this.free < 0) {
+          return void_
+        }
+        return this.updateTakenUnsafe(fiber, (taken) => taken)
+      })
+    )
 
   readonly release = (n: number): Effect.Effect<number> => this.updateTaken((taken) => taken - n)
 

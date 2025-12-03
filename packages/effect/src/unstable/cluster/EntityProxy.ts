@@ -6,15 +6,14 @@ import * as HttpApiEndpoint from "../httpapi/HttpApiEndpoint.ts"
 import * as HttpApiGroup from "../httpapi/HttpApiGroup.ts"
 import * as Rpc from "../rpc/Rpc.ts"
 import * as RpcGroup from "../rpc/RpcGroup.ts"
-import { AlreadyProcessingMessage, EntityNotManagedByRunner, MailboxFull, PersistenceError } from "./ClusterError.ts"
+import { AlreadyProcessingMessage, MailboxFull, PersistenceError } from "./ClusterError.ts"
 import type * as Entity from "./Entity.ts"
 import type { EntityId } from "./EntityId.ts"
 
 const clientErrors = [
   MailboxFull,
   AlreadyProcessingMessage,
-  PersistenceError,
-  EntityNotManagedByRunner
+  PersistenceError
 ] as const
 
 /**
@@ -97,12 +96,11 @@ export type ConvertRpcs<Rpcs extends Rpc.Any, Prefix extends string> = Rpcs exte
       }>,
       _Success,
       Schema.Codec<
-        _Error["Type"] | MailboxFull | AlreadyProcessingMessage | PersistenceError | EntityNotManagedByRunner,
+        _Error["Type"] | MailboxFull | AlreadyProcessingMessage | PersistenceError,
         | _Error["Encoded"]
         | typeof MailboxFull["Encoded"]
         | typeof AlreadyProcessingMessage["Encoded"]
-        | typeof PersistenceError["Encoded"]
-        | typeof EntityNotManagedByRunner["Encoded"],
+        | typeof PersistenceError["Encoded"],
         _Error["DecodingServices"],
         _Error["EncodingServices"]
       >
@@ -117,8 +115,7 @@ export type ConvertRpcs<Rpcs extends Rpc.Any, Prefix extends string> = Rpcs exte
       Schema.Union<[
         typeof MailboxFull,
         typeof AlreadyProcessingMessage,
-        typeof PersistenceError,
-        typeof EntityNotManagedByRunner
+        typeof PersistenceError
       ]>
     >
   : never
@@ -222,7 +219,6 @@ export type ConvertHttpApi<Rpcs extends Rpc.Any> = Rpcs extends Rpc.Rpc<
       | typeof MailboxFull
       | typeof AlreadyProcessingMessage
       | typeof PersistenceError
-      | typeof EntityNotManagedByRunner
     >
     | HttpApiEndpoint.HttpApiEndpoint<
       `${_Tag}Discard`,
@@ -233,6 +229,6 @@ export type ConvertHttpApi<Rpcs extends Rpc.Any> = Rpcs extends Rpc.Rpc<
       _Payload,
       never,
       Schema.Void,
-      typeof MailboxFull | typeof AlreadyProcessingMessage | typeof PersistenceError | typeof EntityNotManagedByRunner
+      typeof MailboxFull | typeof AlreadyProcessingMessage | typeof PersistenceError
     >
   : never

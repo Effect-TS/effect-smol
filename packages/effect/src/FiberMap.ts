@@ -16,6 +16,7 @@ import type * as Inspectable from "./interfaces/Inspectable.ts"
 import { type Pipeable } from "./interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import type * as Scope from "./Scope.ts"
+import type { ServiceMap } from "./ServiceMap.ts"
 
 const TypeId = "~effect/FiberMap"
 
@@ -683,19 +684,17 @@ const runImpl = <K, A, E, R, XE extends E, XA extends A>(
   options?: {
     readonly onlyIfMissing?: boolean
     readonly propagateInterruption?: boolean | undefined
-    readonly startImmediately?: boolean | undefined
   }
 ) =>
-  Effect.suspend(() => {
+  Effect.withFiber((parent) => {
     if (self.state._tag === "Closed") {
       return Effect.interrupt
     } else if (options?.onlyIfMissing === true && hasUnsafe(self, key)) {
       return Effect.sync(constInterruptedFiber)
     }
-    return Effect.tap(
-      Effect.forkDetach(effect, options),
-      (fiber) => setUnsafe(self, key, fiber, options)
-    )
+    const fiber = Effect.runForkWith(parent.services as ServiceMap<R>)(effect)
+    setUnsafe(self, key, fiber, options)
+    return Effect.succeed(fiber)
   })
 
 /**

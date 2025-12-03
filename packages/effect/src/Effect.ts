@@ -3027,6 +3027,30 @@ export const tapDefect: {
   <A, E, R, B, E2, R2>(self: Effect<A, E, R>, f: (defect: unknown) => Effect<B, E2, R2>): Effect<A, E | E2, R | R2>
 } = internal.tapDefect
 
+/**
+ * Runs an effect repeatedly until it succeeds, ignoring errors.
+ *
+ * **Details**
+ *
+ * This function takes an effect and runs it repeatedly until the effect
+ * successfully completes. If the effect fails, it will ignore the error and
+ * retry the operation. This is useful when you need to perform a task that may
+ * fail occasionally, but you want to keep trying until it eventually succeeds.
+ * It works by repeatedly executing the effect until it no longer throws an
+ * error.
+ *
+ * **When to Use**
+ *
+ * Use this function when you want to retry an operation multiple times until it
+ * succeeds. It is helpful in cases where the operation may fail temporarily
+ * (e.g., a network request), and you want to keep trying without handling or
+ * worrying about the errors.
+ *
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const eventually: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R> = internal.eventually
+
 // -----------------------------------------------------------------------------
 // Error Handling
 // -----------------------------------------------------------------------------
@@ -5761,21 +5785,53 @@ export const interruptibleMask: <A, E, R>(
  * ```
  */
 export interface Semaphore {
-  /** when a permit is available, run the effect and release the permits when finished */
-  withPermit<A, E, R>(self: Effect<A, E, R>): Effect<A, E, R>
-  /** when the given amount of permits are available, run the effect and release the permits when finished */
-  withPermits(
-    permits: number
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>
-  /** only if the given permits are available, run the effect and release the permits when finished */
-  withPermitsIfAvailable(
-    permits: number
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, E, R>
-  /** take the given amount of permits, suspending if they are not yet available */
+  /**
+   * Adjusts the number of permits available in the semaphore.
+   */
+  resize(permits: number): Effect<void>
+
+  /**
+   * Runs an effect with the given number of permits and releases the permits
+   * when the effect completes.
+   *
+   * **Details**
+   *
+   * This function acquires the specified number of permits before executing
+   * the provided effect. Once the effect finishes, the permits are released.
+   * If insufficient permits are available, the function will wait until they
+   * are released by other tasks.
+   */
+  withPermits(permits: number): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>
+
+  /**
+   * Runs an effect only if the specified number of permits are immediately
+   * available.
+   *
+   * **Details**
+   *
+   * This function attempts to acquire the specified number of permits. If they
+   * are available, it runs the effect and releases the permits after the effect
+   * completes. If permits are not available, the effect does not execute, and
+   * the result is `Option.none`.
+   */
+  withPermitsIfAvailable(permits: number): <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, E, R>
+
+  /**
+   * Acquires the specified number of permits and returns the resulting
+   * available permits, suspending the task if they are not yet available.
+   * Concurrent pending `take` calls are processed in a first-in, first-out manner.
+   */
   take(permits: number): Effect<number>
-  /** release the given amount of permits, and return the resulting available permits */
+
+  /**
+   * Releases the specified number of permits and returns the resulting
+   * available permits.
+   */
   release(permits: number): Effect<number>
-  /** release all the taken permits, and return the resulting available permits */
+
+  /**
+   * Releases all permits held by this semaphore and returns the resulting available permits.
+   */
   releaseAll: Effect<number>
 }
 
@@ -7079,6 +7135,22 @@ export const forkDetach: <
   } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
   : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R> = internal.forkDetach
+
+/**
+ * Access the current fiber executing the effect.
+ *
+ * @since 4.0.0
+ * @category supervision & fibers
+ */
+export const fiber: Effect<Fiber<unknown, unknown>> = internal.fiber
+
+/**
+ * Access the current fiber id executing the effect.
+ *
+ * @since 4.0.0
+ * @category supervision & fibers
+ */
+export const fiberId: Effect<number> = internal.fiberId
 
 // -----------------------------------------------------------------------------
 // Running Effects

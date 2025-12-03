@@ -52,9 +52,6 @@ export class RunnerStorage extends ServiceMap.Service<RunnerStorage, {
 
   /**
    * Refresh the locks owned by the given runner.
-   *
-   * Locks expire after 5 seconds, so this method should be called every 4
-   * seconds to keep the locks alive.
    */
   readonly refresh: (
     address: RunnerAddress,
@@ -73,7 +70,7 @@ export class RunnerStorage extends ServiceMap.Service<RunnerStorage, {
    * Release all the shards assigned to the given runner.
    */
   readonly releaseAll: (address: RunnerAddress) => Effect.Effect<void, PersistenceError>
-}>()("effect/cluster/ShardStorage") {}
+}>()("effect/cluster/RunnerStorage") {}
 
 /**
  * @since 4.0.0
@@ -116,7 +113,7 @@ export interface Encoded {
   readonly refresh: (
     address: string,
     shardIds: Array<string>
-  ) => Effect.Effect<Array<string>, PersistenceError>
+  ) => Effect.Effect<ReadonlyArray<string>, PersistenceError>
 
   /**
    * Release the lock on the given shard.
@@ -143,6 +140,7 @@ export const makeEncoded = (encoded: Encoded) =>
       const results: Array<[Runner, boolean]> = []
       for (let i = 0; i < runners.length; i++) {
         const [runner, healthy] = runners[i]
+        // @effect-diagnostics-next-line tryCatchInEffectGen:off
         try {
           results.push([Runner.decodeSync(runner), healthy])
         } catch {
@@ -165,12 +163,10 @@ export const makeEncoded = (encoded: Encoded) =>
         Effect.map((shards) => shards.map(ShardId.fromString))
       )
     },
-    refresh: (address, shardIds) => {
-      const arr = Array.from(shardIds, (id) => id.toString())
-      return encoded.refresh(encodeRunnerAddress(address), arr).pipe(
+    refresh: (address, shardIds) =>
+      encoded.refresh(encodeRunnerAddress(address), Array.from(shardIds, (id) => id.toString())).pipe(
         Effect.map((shards) => shards.map(ShardId.fromString))
-      )
-    },
+      ),
     release(address, shardId) {
       return encoded.release(encodeRunnerAddress(address), shardId.toString())
     },
@@ -178,30 +174,6 @@ export const makeEncoded = (encoded: Encoded) =>
       return encoded.releaseAll(encodeRunnerAddress(address))
     }
   })
-
-/**
- * @since 4.0.0
- * @category layers
- */
-export const layerNoop: Layer.Layer<RunnerStorage> = Layer.sync(RunnerStorage)(
-  () => {
-    let acquired: Array<ShardId> = []
-    let id = 0
-    return RunnerStorage.of({
-      getRunners: Effect.sync(() => []),
-      register: () => Effect.sync(() => MachineId.make(id++)),
-      unregister: () => Effect.void,
-      setRunnerHealth: () => Effect.void,
-      acquire: (_address, shards) => {
-        acquired = Array.from(shards)
-        return Effect.succeed(Array.from(shards))
-      },
-      refresh: () => Effect.sync(() => acquired),
-      release: () => Effect.void,
-      releaseAll: () => Effect.void
-    })
-  }
-)
 
 /**
  * @since 4.0.0

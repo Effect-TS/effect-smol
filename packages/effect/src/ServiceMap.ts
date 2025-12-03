@@ -810,6 +810,43 @@ export const merge: {
 })
 
 /**
+ * Merges any number of `ServiceMap`s, returning a new `ServiceMap` containing the services of all.
+ *
+ * @example
+ * ```ts
+ * import * as assert from "node:assert"
+ * import { ServiceMap } from "effect"
+ *
+ * const Port = ServiceMap.Service<{ PORT: number }>("Port")
+ * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
+ * const Host = ServiceMap.Service<{ HOST: string }>("Host")
+ *
+ * const firstServiceMap = ServiceMap.make(Port, { PORT: 8080 })
+ * const secondServiceMap = ServiceMap.make(Timeout, { TIMEOUT: 5000 })
+ * const thirdServiceMap = ServiceMap.make(Host, { HOST: "localhost" })
+ *
+ * const Services = ServiceMap.mergeAll(firstServiceMap, secondServiceMap, thirdServiceMap)
+ *
+ * assert.deepStrictEqual(ServiceMap.get(Services, Port), { PORT: 8080 })
+ * assert.deepStrictEqual(ServiceMap.get(Services, Timeout), { TIMEOUT: 5000 })
+ * assert.deepStrictEqual(ServiceMap.get(Services, Host), { HOST: "localhost" })
+ * ```
+ *
+ * @since 3.12.0
+ */
+export const mergeAll = <T extends Array<unknown>>(
+  ...ctxs: [...{ [K in keyof T]: ServiceMap<T[K]> }]
+): ServiceMap<T[number]> => {
+  const map = new Map()
+  for (let i = 0; i < ctxs.length; i++) {
+    ctxs[i].mapUnsafe.forEach((value, key) => {
+      map.set(key, value)
+    })
+  }
+  return makeUnsafe(map)
+}
+
+/**
  * Returns a new `ServiceMap` that contains only the specified services.
  *
  * @param self - The `ServiceMap` to prune services from.

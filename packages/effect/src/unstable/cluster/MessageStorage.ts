@@ -13,7 +13,7 @@ import * as Layer from "../../Layer.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
-import type { PersistenceError } from "./ClusterError.ts"
+import { EntityNotAssignedToRunner, type PersistenceError } from "./ClusterError.js"
 import { MalformedMessage } from "./ClusterError.ts"
 import * as DeliverAt from "./DeliverAt.ts"
 import type { EntityAddress } from "./EntityAddress.ts"
@@ -87,14 +87,18 @@ export class MessageStorage extends ServiceMap.Service<MessageStorage, {
    * For locally sent messages, register a handler to process the replies.
    */
   readonly registerReplyHandler: <R extends Rpc.Any>(
-    message: Message.OutgoingRequest<R> | Message.IncomingRequest<R>,
-    onUnregister: Effect.Effect<void>
-  ) => Effect.Effect<void>
+    message: Message.OutgoingRequest<R> | Message.IncomingRequest<R>
+  ) => Effect.Effect<void, EntityNotAssignedToRunner>
 
   /**
-   * Unregisters the reply handler for the specified request id.
+   * Unregister the reply handler for the specified message.
    */
   readonly unregisterReplyHandler: (requestId: Snowflake.Snowflake) => Effect.Effect<void>
+
+  /**
+   * Unregister the reply handlers for the specified ShardId.
+   */
+  readonly unregisterShardReplyHandlers: (shardId: ShardId) => Effect.Effect<void>
 
   /**
    * Retrieves the unprocessed messages for the specified shards.
@@ -339,46 +343,98 @@ export type EncodedRepliesOptions<A> = {
  * @category constructors
  */
 export const make = (
-  storage: Omit<MessageStorage["Service"], "registerReplyHandler" | "unregisterReplyHandler">
+  storage: Omit<
+    MessageStorage["Service"],
+    "registerReplyHandler" | "unregisterReplyHandler" | "unregisterShardReplyHandlers"
+  >
 ): Effect.Effect<MessageStorage["Service"]> =>
   Effect.sync(() => {
-    const replyHandlers = new Map<
-      Snowflake.Snowflake,
-      {
-        readonly respond: (
-          reply: Reply.ReplyWithContext<any>
-        ) => Effect.Effect<void, PersistenceError | MalformedMessage>
-        readonly onUnregister: Effect.Effect<void>
-      }
-    >()
+    type ReplyHandler = {
+      readonly message: Message.OutgoingRequest<any> | Message.IncomingRequest<any>
+      readonly shardSet: Set<ReplyHandler>
+      readonly respond: (reply: Reply.ReplyWithContext<any>) => Effect.Effect<void, PersistenceError | MalformedMessage>
+      readonly resume: (effect: Effect.Effect<void, EntityNotAssignedToRunner>) => void
+    }
+    const replyHandlers = new Map<Snowflake.Snowflake, Array<ReplyHandler>>()
+    const replyHandlersShard = new Map<string, Set<ReplyHandler>>()
     return MessageStorage.of({
       ...storage,
-      registerReplyHandler: (message, onUnregister) =>
-        Effect.sync(() => {
-          replyHandlers.set(
-            message.envelope.requestId,
-            {
-              respond: message._tag === "IncomingRequest" ? message.respond : (reply) => message.respond(reply.reply),
-              onUnregister
-            }
-          )
-        }),
+      registerReplyHandler: (message) => {
+        const requestId = message.envelope.requestId
+        return Effect.callback<void, EntityNotAssignedToRunner>((resume) => {
+          const shardId = message.envelope.address.shardId.toString()
+          let handlers = replyHandlers.get(requestId)
+          if (handlers === undefined) {
+            handlers = []
+            replyHandlers.set(requestId, handlers)
+          }
+          let shardSet = replyHandlersShard.get(shardId)
+          if (!shardSet) {
+            shardSet = new Set()
+            replyHandlersShard.set(shardId, shardSet)
+          }
+          const entry: ReplyHandler = {
+            message,
+            shardSet,
+            respond: message._tag === "IncomingRequest" ? message.respond : (reply) => message.respond(reply.reply),
+            resume
+          }
+          handlers.push(entry)
+          shardSet.add(entry)
+          return Effect.sync(() => {
+            const index = handlers.indexOf(entry)
+            handlers.splice(index, 1)
+            shardSet.delete(entry)
+          })
+        })
+      },
       unregisterReplyHandler: (requestId) =>
-        Effect.suspend(() => {
-          const handler = replyHandlers.get(requestId)
-          if (!handler) return Effect.void
+        Effect.sync(() => {
+          const handlers = replyHandlers.get(requestId)
+          if (!handlers) return
           replyHandlers.delete(requestId)
-          return handler.onUnregister
+          for (let i = 0; i < handlers.length; i++) {
+            const handler = handlers[i]
+            handler.shardSet.delete(handler)
+            handler.resume(Effect.fail(
+              new EntityNotAssignedToRunner({
+                address: handler.message.envelope.address
+              })
+            ))
+          }
+        }),
+      unregisterShardReplyHandlers: (shardId) =>
+        Effect.sync(() => {
+          const id = shardId.toString()
+          const shardSet = replyHandlersShard.get(id)
+          if (!shardSet) return
+          replyHandlersShard.delete(id)
+          shardSet.forEach((handler) => {
+            replyHandlers.delete(handler.message.envelope.requestId)
+            handler.resume(Effect.fail(
+              new EntityNotAssignedToRunner({
+                address: handler.message.envelope.address
+              })
+            ))
+          })
         }),
       saveReply(reply) {
+        const requestId = reply.reply.requestId
         return Effect.flatMap(storage.saveReply(reply), () => {
-          const handler = replyHandlers.get(reply.reply.requestId)
-          if (!handler) {
+          const handlers = replyHandlers.get(requestId)
+          if (!handlers) {
             return Effect.void
           } else if (reply.reply._tag === "WithExit") {
-            replyHandlers.delete(reply.reply.requestId)
+            replyHandlers.delete(requestId)
+            for (let i = 0; i < handlers.length; i++) {
+              const handler = handlers[i]
+              handler.shardSet.delete(handler)
+              handler.resume(Effect.void)
+            }
           }
-          return handler.respond(reply)
+          return handlers.length === 1
+            ? handlers[0].respond(reply)
+            : Effect.forEach(handlers, (handler) => handler.respond(reply))
         })
       }
     })
@@ -832,7 +888,7 @@ export class MemoryDriver extends ServiceMap.Service<MemoryDriver>()("effect/clu
  * @since 4.0.0
  * @category layers
  */
-export const layerNoop: Layer.Layer<MessageStorage> = Layer.succeed(MessageStorage)(noop)
+export const layerNoop: Layer.Layer<MessageStorage> = Layer.succeed(MessageStorage, noop)
 
 /**
  * @since 4.0.0
@@ -842,7 +898,7 @@ export const layerMemory: Layer.Layer<
   MessageStorage | MemoryDriver,
   never,
   ShardingConfig
-> = Layer.effect(MessageStorage)(Effect.map(MemoryDriver.asEffect(), (_) => _.storage)).pipe(
+> = Layer.effect(MessageStorage, Effect.map(MemoryDriver.asEffect(), (_) => _.storage)).pipe(
   Layer.provideMerge(MemoryDriver.layer)
 )
 

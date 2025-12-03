@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Cause from "../../Cause.ts"
+import type * as Cause from "../../Cause.ts"
 import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import * as Predicate from "../../data/Predicate.ts"
@@ -23,12 +23,7 @@ import * as Rpc from "../rpc/Rpc.ts"
 import * as RpcClient from "../rpc/RpcClient.ts"
 import * as RpcGroup from "../rpc/RpcGroup.ts"
 import * as RpcServer from "../rpc/RpcServer.ts"
-import type {
-  AlreadyProcessingMessage,
-  EntityNotManagedByRunner,
-  MailboxFull,
-  PersistenceError
-} from "./ClusterError.ts"
+import type { AlreadyProcessingMessage, MailboxFull, PersistenceError } from "./ClusterError.ts"
 import { Persisted, ShardGroup, Uninterruptible } from "./ClusterSchema.ts"
 import { EntityAddress } from "./EntityAddress.ts"
 import type { EntityId } from "./EntityId.ts"
@@ -104,7 +99,7 @@ export interface Entity<
       entityId: string
     ) => RpcClient.RpcClient.From<
       Rpcs,
-      MailboxFull | AlreadyProcessingMessage | PersistenceError | EntityNotManagedByRunner
+      MailboxFull | AlreadyProcessingMessage | PersistenceError
     >,
     never,
     Sharding
@@ -608,6 +603,7 @@ export const keepAlive: (
   const address = yield* CurrentAddress
   const requestId = yield* sharding.getSnowflake
   const span = yield* Effect.orDie(Effect.currentSpan)
+  olatch.value.closeUnsafe()
   yield* Effect.orDie(sharding.sendOutgoing(
     new Message.OutgoingRequest({
       rpc: KeepAliveRpc,
@@ -627,7 +623,12 @@ export const keepAlive: (
     }),
     true
   ))
-}, Effect.withSpan("Entity/keepAlive", (enabled) => ({ attributes: { enabled } })))
+}, (effect, enabled) =>
+  Effect.withSpan(
+    effect,
+    "Entity/keepAlive",
+    { attributes: { enabled }, captureStackTrace: false }
+  ))
 
 /**
  * @since 4.0.0
@@ -644,19 +645,3 @@ export const KeepAliveRpc = Rpc.make("Cluster/Entity/keepAlive")
 export class KeepAliveLatch extends ServiceMap.Service<KeepAliveLatch, Effect.Latch>()(
   "effect/cluster/Entity/KeepAliveLatch"
 ) {}
-
-/**
- * Fiber id used to interrupt the current rpc and don't persist the result.
- *
- * @since 4.0.0
- * @category Interruption
- */
-export const fiberIdIgnored: number = -1
-
-/**
- * Interrupt the current rpc and don't persist the result.
- *
- * @since 4.0.0
- * @category Interruption
- */
-export const interruptIgnored: Effect.Effect<never> = Effect.failCause(Cause.interrupt(fiberIdIgnored))

@@ -1,13 +1,16 @@
 /**
  * @since 4.0.0
  */
+import * as Cause from "../../Cause.ts"
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
+import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type { Scope } from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import type * as Types from "../../types/Types.ts"
 import * as DurableDeferred from "./DurableDeferred.ts"
 import { makeHashDigest } from "./internal/crypto.ts"
 import * as Workflow from "./Workflow.ts"
@@ -97,6 +100,7 @@ export const make = <
   readonly success?: Success | undefined
   readonly error?: Error | undefined
   readonly execute: Effect.Effect<Success["Type"], Error["Type"], R>
+  readonly interruptRetryPolicy?: Schedule.Schedule<any, Cause.Cause<unknown>> | undefined
 }): Activity<Success, Error, Exclude<R, WorkflowInstance | WorkflowEngine | Scope>> => {
   const successSchema = options.success ?? (Schema.Void as any as Success)
   const errorSchema = options.error ?? (Schema.Never as any as Error)
@@ -104,6 +108,10 @@ export const make = <
   const errorSchemaJson = Schema.toSerializerJson(errorSchema)
   // eslint-disable-next-line prefer-const
   let execute!: Effect.Effect<Success["Type"], Error["Type"], any>
+  const executeWithoutInterrupt = retryOnInterrupt(
+    options.name,
+    options.interruptRetryPolicy
+  )(options.execute)
   const self: Activity<Success, Error, Exclude<R, WorkflowInstance | WorkflowEngine>> = {
     ...PipeInspectableProto,
     ...YieldableProto,
@@ -112,8 +120,8 @@ export const make = <
     successSchema,
     errorSchema,
     exitSchema: Schema.Exit(successSchemaJson, errorSchemaJson, Schema.Defect),
-    execute: options.execute,
-    executeEncoded: Effect.matchEffect(options.execute, {
+    execute: executeWithoutInterrupt,
+    executeEncoded: Effect.matchEffect(executeWithoutInterrupt, {
       onFailure: (error) => Effect.flatMap(Effect.orDie(Schema.encodeEffect(errorSchemaJson)(error)), Effect.fail),
       onSuccess: (value) => Effect.orDie(Schema.encodeEffect(successSchemaJson)(value))
     }),
@@ -125,11 +133,40 @@ export const make = <
   return self
 }
 
+const interruptRetryPolicy = Schedule.exponential(4.0, 1.5).pipe(
+  Schedule.either(Schedule.spaced("10 seconds")),
+  Schedule.either(Schedule.recurs(10)),
+  Schedule.satisfiesInputType<Cause.Cause<unknown>>(),
+  Schedule.while((meta) => Cause.hasInterrupt(meta.input))
+)
+
+const retryOnInterrupt = (
+  name: string,
+  policy: Schedule.Schedule<any, Cause.Cause<unknown>> = interruptRetryPolicy
+) =>
+<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+  effect.pipe(
+    Effect.sandbox,
+    Effect.retry(policy),
+    Effect.catch((cause) => {
+      if (!Cause.hasInterrupt(cause)) return Effect.failCause(cause)
+      return Effect.die(`Activity "${name}" interrupted and retry attempts exhausted`)
+    })
+  )
+
 /**
  * @since 4.0.0
  * @category Error handling
  */
-export const retry: typeof Effect.retry = dual(
+export const retry: {
+  <E, O extends Types.NoExcessProperties<Omit<Effect.Retry.Options<E>, "schedule">, O>>(
+    options: O
+  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Retry.Return<R, E, A, O>
+  <A, E, R, O extends Types.NoExcessProperties<Omit<Effect.Retry.Options<E>, "schedule">, O>>(
+    self: Effect.Effect<A, E, R>,
+    options: O
+  ): Effect.Retry.Return<R, E, A, O>
+} = dual(
   2,
   (effect: Effect.Effect<any, any, any>, options: {}) =>
     Effect.suspend(() => {
@@ -144,23 +181,29 @@ export const retry: typeof Effect.retry = dual(
  */
 export const CurrentAttempt = ServiceMap.Reference<number>(
   "effect/workflow/Activity/CurrentAttempt",
-  {
-    defaultValue: () => 1
-  }
+  { defaultValue: () => 1 }
 )
 
 /**
  * @since 4.0.0
- * @category Execution ID
+ * @category Idempotency
  */
-export const executionIdWithAttempt: Effect.Effect<
-  string,
-  never,
-  WorkflowInstance
-> = Effect.gen(function*() {
+export const idempotencyKey: (
+  name: string,
+  options?: {
+    readonly includeAttempt?: boolean | undefined
+  } | undefined
+) => Effect.Effect<string, never, WorkflowInstance> = Effect.fnUntraced(function*(name: string, options?: {
+  readonly includeAttempt?: boolean | undefined
+}) {
   const instance = yield* InstanceTag
-  const attempt = yield* CurrentAttempt
-  return yield* makeHashDigest(`${instance.executionId}-${attempt}`)
+  let key = `${instance.executionId}`
+  if (options?.includeAttempt) {
+    const attempt = yield* CurrentAttempt
+    key += `-${attempt}`
+  }
+  key += `-${name}`
+  return yield* makeHashDigest(key)
 })
 
 /**
@@ -203,12 +246,13 @@ const InstanceTag = ServiceMap.Service<WorkflowInstance, WorkflowInstance["Servi
 
 const makeExecute = Effect.fnUntraced(function*<
   R,
-  Success extends Schema.Top = Schema.Void,
-  Error extends Schema.Top = Schema.Never
+  Success extends Schema.Top = typeof Schema.Void,
+  Error extends Schema.Top = typeof Schema.Never
 >(activity: Activity<Success, Error, R>) {
   const engine = yield* EngineTag
   const instance = yield* InstanceTag
   const attempt = yield* CurrentAttempt
+  yield* Effect.annotateCurrentSpan({ executionId: instance.executionId })
   const result = yield* Workflow.wrapActivityResult(
     engine.activityExecute(activity, attempt),
     (_) => _._tag === "Suspended"
@@ -217,4 +261,7 @@ const makeExecute = Effect.fnUntraced(function*<
     return yield* Workflow.suspend(instance)
   }
   return yield* result.exit
-})
+}, (effect, activity) =>
+  Effect.withSpan(effect, activity.name, {
+    captureStackTrace: false
+  }))

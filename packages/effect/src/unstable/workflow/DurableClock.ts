@@ -5,6 +5,7 @@ import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import * as Activity from "./Activity.ts"
 import * as DurableDeferred from "./DurableDeferred.ts"
 import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
 
@@ -47,16 +48,46 @@ const InstanceTag = ServiceMap.Service<
 )
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Sleeping
  */
-export const sleep: (options: {
+export const sleep: (
+  options: {
+    readonly name: string
+    readonly duration: Duration.DurationInput
+    /**
+     * If the duration is less than or equal to this threshold, the clock will
+     * be executed in memory.
+     *
+     * Defaults to 60 seconds.
+     */
+    readonly inMemoryThreshold?: Duration.DurationInput | undefined
+  }
+) => Effect.Effect<
+  void,
+  never,
+  WorkflowEngine | WorkflowInstance
+> = Effect.fnUntraced(function*(options: {
   readonly name: string
   readonly duration: Duration.DurationInput
-}) => Effect.Effect<void, never, WorkflowEngine | WorkflowInstance> = Effect.fnUntraced(function*(options: {
-  readonly name: string
-  readonly duration: Duration.DurationInput
+  readonly inMemoryThreshold?: Duration.DurationInput | undefined
 }) {
+  const duration = Duration.fromDurationInputUnsafe(options.duration)
+  if (Duration.isZero(duration)) {
+    return
+  }
+
+  const inMemoryThreshold = options.inMemoryThreshold
+    ? Duration.fromDurationInputUnsafe(options.inMemoryThreshold)
+    : defaultInMemoryThreshold
+
+  if (Duration.lessThanOrEqualTo(duration, inMemoryThreshold)) {
+    return yield* Activity.make({
+      name: `DurableClock/${options.name}`,
+      execute: Effect.sleep(duration)
+    })
+  }
+
   const engine = yield* EngineTag
   const instance = yield* InstanceTag
   const clock = make(options)
@@ -64,5 +95,7 @@ export const sleep: (options: {
     executionId: instance.executionId,
     clock
   })
-  yield* DurableDeferred.await(clock.deferred)
+  return yield* DurableDeferred.await(clock.deferred)
 })
+
+const defaultInMemoryThreshold = Duration.seconds(60)
