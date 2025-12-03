@@ -1688,6 +1688,19 @@ describe("FromJsonSchema", () => {
         )
       })
 
+      it.todo("literal & literal", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "enums": ["a", "b"],
+              "allOf": [{ "enum": ["a"] }]
+            }
+          },
+          FromJsonSchema.makeGeneration(`Schema.Literal("a")`, FromJsonSchema.makeTypes(`"a"`))
+        )
+      })
+
       it("object & untyped", () => {
         assertGeneration(
           {

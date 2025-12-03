@@ -454,7 +454,6 @@ type AST =
   | String
   | Number
   | Boolean
-  | Const
   | Enum
   | Arrays
   | Objects
@@ -815,34 +814,6 @@ class Boolean {
   }
 }
 
-class Const {
-  readonly _tag = "Const"
-  readonly value: AST.LiteralValue
-  readonly annotations: Annotations
-  constructor(value: AST.LiteralValue, annotations: Annotations = {}) {
-    this.annotations = annotations
-    this.value = value
-  }
-  annotate(annotations: Annotations | undefined): Const {
-    return new Const(this.value, annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
-  }
-  parseChecks(_: Schema.JsonSchema): AST {
-    return this
-  }
-  combine(_: AST): AST {
-    return new Never()
-  }
-  toGeneration(_: RecurOptions): Generation {
-    const suffix = renderAnnotations(this.annotations)
-    return {
-      runtime: `Schema.Literal(${format(this.value)})` + suffix,
-      types: makeTypes(format(this.value)),
-      annotations: this.annotations,
-      importDeclarations: emptySet
-    }
-  }
-}
-
 function isLiteralValue(value: unknown): value is AST.LiteralValue {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
 }
@@ -865,8 +836,19 @@ class Enum {
   parseChecks(_: Schema.JsonSchema): AST {
     return this
   }
-  combine(_: AST): AST {
-    return new Never()
+  combine(that: AST, options: RecurOptions): AST {
+    switch (that._tag) {
+      case "Unknown":
+        return new Enum(this.values, annotationsCombiner.combine(this.annotations, that.annotations))
+      case "Union":
+        return Union.make(
+          that.members.map((m) => this.combine(m, options)),
+          that.mode,
+          annotationsCombiner.combine(this.annotations, that.annotations)
+        )
+      default:
+        return new Never()
+    }
   }
   toGeneration(_: RecurOptions): Generation {
     const values = this.values.map((v) => format(v))
@@ -1519,7 +1501,7 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   }
 
   if (schema.const !== undefined) {
-    if (isLiteralValue(schema.const)) return new Const(schema.const)
+    if (isLiteralValue(schema.const)) return Enum.make([schema.const])
     if (schema.const === null) return new Null()
     return new Never()
   }
