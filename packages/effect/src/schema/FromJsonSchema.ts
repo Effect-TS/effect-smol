@@ -24,6 +24,7 @@ import * as Reducer from "../data/Reducer.ts"
 import * as Struct from "../data/Struct.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
 import { type Mutable } from "../types/Types.ts"
+import type * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
 
 /**
@@ -813,11 +814,15 @@ class Const {
   }
 }
 
+function isLiteralValue(value: unknown): value is AST.LiteralValue {
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+}
+
 class Enum {
   readonly _tag = "Enum"
-  readonly values: ReadonlyArray<unknown>
+  readonly values: ReadonlyArray<AST.LiteralValue>
   readonly annotations: Annotations
-  constructor(values: ReadonlyArray<unknown>, annotations: Annotations = {}) {
+  constructor(values: ReadonlyArray<AST.LiteralValue>, annotations: Annotations = {}) {
     this.annotations = annotations
     this.values = values
   }
@@ -1462,7 +1467,14 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   }
 
   if (Array.isArray(schema.enum)) {
-    return new Enum(schema.enum)
+    const enums = schema.enum.filter(isLiteralValue)
+    const isNullable = schema.enum.some((e) => e === null)
+    if (enums.length === 0) {
+      if (isNullable) return new Null()
+      return new Never()
+    }
+    if (isNullable) return NullOr(new Enum(enums))
+    return new Enum(enums)
   }
 
   schema = normalize(schema)

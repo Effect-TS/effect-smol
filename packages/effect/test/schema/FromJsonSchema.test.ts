@@ -254,6 +254,18 @@ describe("FromJsonSchema", () => {
           )
         )
       })
+
+      it("should support nullable in enum", () => {
+        assertGeneration(
+          {
+            schema: { "enum": ["a", null], "nullable": true },
+            options: {
+              source: "openapi-3.0"
+            }
+          },
+          FromJsonSchema.makeGeneration(`Schema.NullOr(Schema.Literal("a"))`, FromJsonSchema.makeTypes(`"a" | null`))
+        )
+      })
     })
 
     describe("options", () => {
@@ -599,6 +611,42 @@ describe("FromJsonSchema", () => {
         FromJsonSchema.makeGeneration(
           `Schema.Literals(["a", "b"]).annotate({ "description": "lorem" })`,
           FromJsonSchema.makeTypes(`"a" | "b"`),
+          { description: "lorem" }
+        )
+      )
+      assertGeneration(
+        { schema: { "enum": [] } },
+        FromJsonSchema.makeGeneration(`Schema.Never`, FromJsonSchema.makeTypes(`never`))
+      )
+      assertGeneration(
+        { schema: { "enum": [], "description": "lorem" } },
+        FromJsonSchema.makeGeneration(
+          `Schema.Never.annotate({ "description": "lorem" })`,
+          FromJsonSchema.makeTypes(`never`),
+          { description: "lorem" }
+        )
+      )
+      assertGeneration(
+        { schema: { "enum": [null] } },
+        FromJsonSchema.makeGeneration(`Schema.Null`, FromJsonSchema.makeTypes(`null`))
+      )
+      assertGeneration(
+        { schema: { "enum": [null], "description": "lorem" } },
+        FromJsonSchema.makeGeneration(
+          `Schema.Null.annotate({ "description": "lorem" })`,
+          FromJsonSchema.makeTypes(`null`),
+          { description: "lorem" }
+        )
+      )
+      assertGeneration(
+        { schema: { "enum": ["a", null] } },
+        FromJsonSchema.makeGeneration(`Schema.NullOr(Schema.Literal("a"))`, FromJsonSchema.makeTypes(`"a" | null`))
+      )
+      assertGeneration(
+        { schema: { "enum": ["a", null], "description": "lorem" } },
+        FromJsonSchema.makeGeneration(
+          `Schema.NullOr(Schema.Literal("a")).annotate({ "description": "lorem" })`,
+          FromJsonSchema.makeTypes(`"a" | null`),
           { description: "lorem" }
         )
       )
