@@ -1189,15 +1189,34 @@ class Objects {
           this.checks,
           annotations
         )
-      case "Objects":
+      case "Objects": {
+        const properties: Array<Property> = []
+        const keys = new Set<string>()
+        for (const p of this.properties) {
+          keys.add(p.key)
+          const thatp = that.properties.find((pp) => pp.key === p.key)
+          if (thatp) {
+            properties.push(
+              new Property(p.isOptional && thatp.isOptional, p.key, p.value.combine(thatp.value, options))
+            )
+          } else {
+            properties.push(p)
+          }
+        }
+        for (const p of that.properties) {
+          if (!keys.has(p.key)) {
+            properties.push(p)
+          }
+        }
         return new Objects(
           this.isNullable && that.isNullable,
-          this.properties.concat(that.properties),
+          properties,
           this.indexSignatures.concat(that.indexSignatures),
           this.additionalProperties && that.additionalProperties,
           [...this.checks, ...that.checks],
           annotations
         )
+      }
       case "Union":
         return Union.make(
           that.members.map((m) => this.combine(m, options)),

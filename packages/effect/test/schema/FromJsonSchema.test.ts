@@ -1850,6 +1850,32 @@ describe("FromJsonSchema", () => {
             FromJsonSchema.makeTypes(`{ readonly "a": string, readonly "b"?: string }`)
           )
         )
+        assertGeneration(
+          {
+            schema: {
+              "type": "object",
+              "properties": {
+                "a": { "type": "string" },
+                "b": { "type": "string" }
+              },
+              "required": ["a", "b"],
+              "additionalProperties": false,
+              "allOf": [{
+                "type": "object",
+                "properties": {
+                  "b": { "enum": ["b"] },
+                  "c": { "type": "string" }
+                },
+                "required": ["c"],
+                "additionalProperties": false
+              }]
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Struct({ "a": Schema.String, "b": Schema.Literal("b"), "c": Schema.String })`,
+            FromJsonSchema.makeTypes(`{ readonly "a": string, readonly "b": "b", readonly "c": string }`)
+          )
+        )
       })
 
       it("struct & record", () => {
