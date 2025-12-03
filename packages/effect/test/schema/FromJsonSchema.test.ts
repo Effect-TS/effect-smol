@@ -223,15 +223,17 @@ describe("FromJsonSchema", () => {
             schema: {
               "type": "string",
               "nullable": true,
-              "description": "lorem"
+              "description": "lorem",
+              "example": null
             },
             options: {
               source: "openapi-3.0"
             }
           },
           FromJsonSchema.makeGeneration(
-            `Schema.NullOr(Schema.String.annotate({ "description": "lorem" }))`,
-            FromJsonSchema.makeTypes("string | null")
+            `Schema.NullOr(Schema.String).annotate({ "description": "lorem", "examples": [null] })`,
+            FromJsonSchema.makeTypes("string | null"),
+            { "description": "lorem", "examples": [null] }
           )
         )
         assertGeneration(

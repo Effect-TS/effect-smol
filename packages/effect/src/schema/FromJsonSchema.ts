@@ -467,8 +467,8 @@ class Unknown {
   constructor(annotations: Annotations = {}) {
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Unknown {
-    return new Unknown(annotationsCombiner.combine(this.annotations, annotations))
+  annotate(annotations: Annotations | undefined): Unknown {
+    return new Unknown(annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
   parseChecks(_: Schema.JsonSchema): AST {
     return this
@@ -493,8 +493,8 @@ class Never {
   constructor(annotations: Annotations = {}) {
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Never {
-    return new Never(annotationsCombiner.combine(this.annotations, annotations))
+  annotate(annotations: Annotations | undefined): Never {
+    return new Never(annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
   parseChecks(_: Schema.JsonSchema): AST {
     return this
@@ -521,8 +521,8 @@ class Not {
     this.ast = ast
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Not {
-    return new Not(this.ast, annotationsCombiner.combine(this.annotations, annotations))
+  annotate(annotations: Annotations | undefined): Not {
+    return new Not(this.ast, annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
   parseChecks(_: Schema.JsonSchema): AST {
     return this
@@ -541,8 +541,8 @@ class Null {
   constructor(annotations: Annotations = {}) {
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Null {
-    return new Null(annotationsCombiner.combine(this.annotations, annotations))
+  annotate(annotations: Annotations | undefined): Null {
+    return new Null(annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
   parseChecks(_: Schema.JsonSchema): AST {
     return this
@@ -588,8 +588,12 @@ class String {
     this.contentSchema = contentSchema
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): String {
-    return new String(this.checks, this.contentSchema, annotationsCombiner.combine(this.annotations, annotations))
+  annotate(annotations: Annotations | undefined): String {
+    return new String(
+      this.checks,
+      this.contentSchema,
+      annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
+    )
   }
   parseChecks(f: Schema.JsonSchema): AST {
     return new String([...this.checks, ...String.parseChecks(f)], this.contentSchema, this.annotations)
@@ -700,8 +704,12 @@ class Number {
     this.checks = checks
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Number {
-    return new Number(this.isInteger, this.checks, annotationsCombiner.combine(this.annotations, annotations))
+  annotate(annotations: Annotations | undefined): Number {
+    return new Number(
+      this.isInteger,
+      this.checks,
+      annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
+    )
   }
   parseChecks(f: Schema.JsonSchema): AST {
     return new Number(this.isInteger, [...this.checks, ...Number.parseChecks(f)], this.annotations)
@@ -757,8 +765,8 @@ class Boolean {
   constructor(annotations: Annotations = {}) {
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Boolean {
-    return new Boolean(annotationsCombiner.combine(this.annotations, annotations))
+  annotate(annotations: Annotations | undefined): Boolean {
+    return new Boolean(annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
   parseChecks(_: Schema.JsonSchema): AST {
     return this
@@ -785,8 +793,8 @@ class Const {
     this.annotations = annotations
     this.value = value
   }
-  annotate(annotations: Annotations): Const {
-    return new Const(this.value, annotationsCombiner.combine(this.annotations, annotations))
+  annotate(annotations: Annotations | undefined): Const {
+    return new Const(this.value, annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
   parseChecks(_: Schema.JsonSchema): AST {
     return this
@@ -813,8 +821,8 @@ class Enum {
     this.annotations = annotations
     this.values = values
   }
-  annotate(annotations: Annotations): Enum {
-    return new Enum(this.values, annotationsCombiner.combine(this.annotations, annotations))
+  annotate(annotations: Annotations | undefined): Enum {
+    return new Enum(this.values, annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
   parseChecks(_: Schema.JsonSchema): AST {
     return this
@@ -855,7 +863,7 @@ class Element {
     this.isOptional = isOptional
     this.ast = ast
   }
-  annotate(annotations: Annotations): Element {
+  annotate(annotations: Annotations | undefined): Element {
     return new Element(this.isOptional, this.ast.annotate(annotations))
   }
 }
@@ -891,8 +899,13 @@ class Arrays {
     })
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Arrays {
-    return new Arrays(this.elements, this.rest, this.checks, annotationsCombiner.combine(this.annotations, annotations))
+  annotate(annotations: Annotations | undefined): Arrays {
+    return new Arrays(
+      this.elements,
+      this.rest,
+      this.checks,
+      annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
+    )
   }
   parseChecks(schema: Schema.JsonSchema): AST {
     return new Arrays(this.elements, this.rest, [...this.checks, ...Arrays.parseChecks(schema)], this.annotations)
@@ -1091,13 +1104,13 @@ class Objects {
     this.checks = checks
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Objects {
+  annotate(annotations: Annotations | undefined): Objects {
     return new Objects(
       this.properties,
       this.indexSignatures,
       this.additionalProperties,
       this.checks,
-      annotationsCombiner.combine(this.annotations, annotations)
+      annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
   parseChecks(f: Schema.JsonSchema): AST {
@@ -1311,8 +1324,12 @@ class Union {
     this.mode = mode
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Union {
-    return new Union(this.members, this.mode, annotationsCombiner.combine(this.annotations, annotations))
+  annotate(annotations: Annotations | undefined): Union {
+    return new Union(
+      this.members,
+      this.mode,
+      annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
+    )
   }
   parseChecks(_: Schema.JsonSchema): AST {
     return this
@@ -1371,8 +1388,8 @@ class Reference {
     this.ref = ref
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Reference {
-    return new Reference(this.ref, annotationsCombiner.combine(this.annotations, annotations))
+  annotate(annotations: Annotations | undefined): Reference {
+    return new Reference(this.ref, annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
   parseChecks(_: Schema.JsonSchema): AST {
     return this
@@ -1414,7 +1431,7 @@ function parse(schema: unknown, options: RecurOptions): AST {
   }
 
   if (isNullable(schema, options)) {
-    ast = NullOr(ast)
+    ast = NullOr(ast.annotate(undefined)).annotate(ast.annotations)
   }
 
   return ast
