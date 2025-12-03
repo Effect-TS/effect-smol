@@ -1,13 +1,13 @@
 import * as Predicate from "effect/data/Predicate"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import type * as FromJsonSchema from "effect/schema/FromJsonSchema"
 import type * as Schema from "effect/schema/Schema"
 import * as ServiceMap from "effect/ServiceMap"
 import * as String from "effect/String"
 import type { OpenAPISpec, OpenAPISpecMethodName, OpenAPISpecPathItem } from "effect/unstable/httpapi/OpenApi"
 import SwaggerToOpenApi from "swagger2openapi"
 import * as JsonSchemaGenerator from "./JsonSchemaGenerator.ts"
-import * as JsonSchemaTransformer from "./JsonSchemaTransformer.ts"
 import * as OpenApiTransformer from "./OpenApiTransformer.ts"
 import * as ParsedOperation from "./ParsedOperation.ts"
 import * as Utils from "./Utils.ts"
@@ -44,7 +44,6 @@ export const make = Effect.gen(function*() {
   const generate = Effect.fn(
     function*(spec: OpenAPISpec, options: OpenApiGenerateOptions) {
       const generator = yield* JsonSchemaGenerator.JsonSchemaGenerator
-      const jsonSchemaTransformer = yield* JsonSchemaTransformer.JsonSchemaTransformer
       const openApiTransformer = yield* OpenApiTransformer.OpenApiTransformer
 
       // If we receive a Swagger 2.0 spec, convert it to an OpenApi 3.0 spec
@@ -221,14 +220,14 @@ export const make = Effect.gen(function*() {
       }
 
       // TODO: make a CLI option ?
-      const importName = "S"
-      const schemas = yield* generator.generate(importName)
+      const importName = "Schema"
+      const generation = generator.generate(getSource(spec))
 
       return String.stripMargin(
         `|${openApiTransformer.imports(importName)}
-         |${jsonSchemaTransformer.imports()}
+         |${generation.imports}
          |
-         |${schemas}
+         |${generation.schemas}
          |
          |${openApiTransformer.toImplementation(importName, options.name, operations)}
          |
@@ -242,14 +241,6 @@ export const make = Effect.gen(function*() {
     (effect, _, options) =>
       Effect.provideServiceEffect(
         effect,
-        JsonSchemaTransformer.JsonSchemaTransformer,
-        options.typeOnly
-          ? JsonSchemaTransformer.makeTransformerTs
-          : JsonSchemaTransformer.makeTransformerSchema
-      ),
-    (effect, _, options) =>
-      Effect.provideServiceEffect(
-        effect,
         OpenApiTransformer.OpenApiTransformer,
         options.typeOnly
           ? Effect.sync(OpenApiTransformer.makeTransformerTs)
@@ -259,6 +250,10 @@ export const make = Effect.gen(function*() {
 
   return { generate } as const
 })
+
+function getSource(spec: OpenAPISpec): FromJsonSchema.Source {
+  return spec.openapi.trim().startsWith("3.0") ? "openapi-3.0" : "openapi-3.1"
+}
 
 export const layerTransformerSchema: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make)
 
