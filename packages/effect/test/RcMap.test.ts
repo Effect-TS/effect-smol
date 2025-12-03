@@ -176,4 +176,63 @@ describe("RcMap", () => {
 
       assert.deepStrictEqual(Array.from(yield* RcMap.keys(map)), ["foo", "bar", "baz"])
     }))
+
+  it.effect("dynamic idleTimeToLive", () =>
+    Effect.gen(function*() {
+      const acquired: Array<string> = []
+      const released: Array<string> = []
+      const map = yield* RcMap.make({
+        lookup: (key: string) =>
+          Effect.acquireRelease(
+            Effect.sync(() => {
+              acquired.push(key)
+              return key
+            }),
+            () => Effect.sync(() => released.push(key))
+          ),
+        idleTimeToLive: (key: string) => key.startsWith("short:") ? 500 : 2000
+      })
+
+      assert.deepStrictEqual(acquired, [])
+
+      yield* Effect.scoped(RcMap.get(map, "short:a"))
+      yield* Effect.scoped(RcMap.get(map, "long:b"))
+      assert.deepStrictEqual(acquired, ["short:a", "long:b"])
+      assert.deepStrictEqual(released, [])
+
+      yield* TestClock.adjust(500)
+      assert.deepStrictEqual(released, ["short:a"])
+
+      yield* TestClock.adjust(1500)
+      assert.deepStrictEqual(released, ["short:a", "long:b"])
+    }))
+
+  it.effect("dynamic idleTimeToLive with touch", () =>
+    Effect.gen(function*() {
+      const acquired: Array<string> = []
+      const released: Array<string> = []
+      const map = yield* RcMap.make({
+        lookup: (key: string) =>
+          Effect.acquireRelease(
+            Effect.sync(() => {
+              acquired.push(key)
+              return key
+            }),
+            () => Effect.sync(() => released.push(key))
+          ),
+        idleTimeToLive: (key: string) => key.startsWith("short:") ? 500 : 2000
+      })
+
+      yield* Effect.scoped(RcMap.get(map, "short:a"))
+      assert.deepStrictEqual(acquired, ["short:a"])
+      assert.deepStrictEqual(released, [])
+
+      yield* TestClock.adjust(250)
+      yield* RcMap.touch(map, "short:a")
+      yield* TestClock.adjust(250)
+      assert.deepStrictEqual(released, [])
+
+      yield* TestClock.adjust(250)
+      assert.deepStrictEqual(released, ["short:a"])
+    }))
 })
