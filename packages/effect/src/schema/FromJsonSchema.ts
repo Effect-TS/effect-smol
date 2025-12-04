@@ -1230,47 +1230,42 @@ class Objects {
     }
   }
   toGeneration(options: RecurOptions): Generation {
-    if (this.properties.length === 0 && this.indexSignatures.length === 0) {
-      if (this.additionalProperties === false) {
-        return new Objects(
-          this.isNullable,
-          [],
-          [new IndexSignature(new String(false, [], undefined), new Never())],
-          false,
-          this.checks,
-          this.annotations
-        ).toGeneration(options)
-      } else {
-        return new Objects(
-          this.isNullable,
-          [],
-          [new IndexSignature(new String(false, [], undefined), new Unknown())],
-          false,
-          this.checks,
-          this.annotations
-        ).toGeneration(options)
-      }
+    const ps = this.properties
+    let iss = this.indexSignatures
+    if (iss.length === 0 && this.additionalProperties === true) {
+      iss = [new IndexSignature(new String(false, [], undefined), new Unknown())]
     }
 
-    const ps: ReadonlyArray<PropertyGen> = this.properties.map((p) => ({
+    if (ps.length === 0 && iss.length === 0) {
+      return new Objects(
+        this.isNullable,
+        [],
+        [new IndexSignature(new String(false, [], undefined), new Never())],
+        false,
+        this.checks,
+        this.annotations
+      ).toGeneration(options)
+    }
+
+    const psGen: ReadonlyArray<PropertyGen> = ps.map((p) => ({
       key: p.key,
       value: p.value.toGeneration(options),
       isOptional: p.isOptional,
       annotations: p.value.annotations
     }))
 
-    const iss: ReadonlyArray<IndexSignatureGen> = this.indexSignatures.map((is) => ({
+    const issGen: ReadonlyArray<IndexSignatureGen> = iss.map((is) => ({
       key: is.key.toGeneration(options),
       value: is.value.toGeneration(options)
     }))
 
-    const p = renderProperties(ps, options)
-    const i = renderIndexSignatures(iss)
+    const p = renderProperties(psGen, options)
+    const i = renderIndexSignatures(issGen)
 
     const suffix = this.renderChecks() + renderAnnotations(this.annotations)
 
-    // 1) Only properties -> Struct
-    if (iss.length === 0) {
+    if (issGen.length === 0) {
+      // 1) Only properties -> Struct
       return {
         runtime: `Schema.Struct({ ${p.runtime} })` + suffix,
         types: makeTypes(
@@ -1282,11 +1277,9 @@ class Objects {
         annotations: this.annotations,
         importDeclarations: p.importDeclarations
       }
-    }
-
-    // 2) Only one index signature and no properties -> Record
-    if (ps.length === 0 && iss.length === 1) {
-      const is = iss[0]
+    } else if (psGen.length === 0 && issGen.length === 1) {
+      // 2) Only one index signature and no properties -> Record
+      const is = issGen[0]
       return {
         runtime: indexSignatureRuntime(is) + suffix,
         types: makeTypes(
@@ -1298,26 +1291,26 @@ class Objects {
         annotations: this.annotations,
         importDeclarations: indexSignatureImports(is)
       }
-    }
-
-    // 3) Properties + index signatures -> StructWithRest
-    return {
-      runtime: `Schema.StructWithRest(Schema.Struct({ ${p.runtime} }), [${i.runtime}])` + suffix,
-      types: ps.length === 0
-        ? makeTypes(
-          `{ ${i.types.Type} }`,
-          `{ ${i.types.Encoded} }`,
-          i.types.DecodingServices,
-          i.types.EncodingServices
-        )
-        : makeTypes(
-          `{ ${p.types.Type}, ${i.types.Type} }`,
-          `{ ${p.types.Encoded}, ${i.types.Encoded} }`,
-          joinServices([p.types.DecodingServices, i.types.DecodingServices]),
-          joinServices([p.types.EncodingServices, i.types.EncodingServices])
-        ),
-      annotations: this.annotations,
-      importDeclarations: ReadonlySetReducer.combineAll([p.importDeclarations, i.importDeclarations])
+    } else {
+      // 3) Properties + index signatures -> StructWithRest
+      return {
+        runtime: `Schema.StructWithRest(Schema.Struct({ ${p.runtime} }), [${i.runtime}])` + suffix,
+        types: psGen.length === 0
+          ? makeTypes(
+            `{ ${i.types.Type} }`,
+            `{ ${i.types.Encoded} }`,
+            i.types.DecodingServices,
+            i.types.EncodingServices
+          )
+          : makeTypes(
+            `{ ${p.types.Type}, ${i.types.Type} }`,
+            `{ ${p.types.Encoded}, ${i.types.Encoded} }`,
+            joinServices([p.types.DecodingServices, i.types.DecodingServices]),
+            joinServices([p.types.EncodingServices, i.types.EncodingServices])
+          ),
+        annotations: this.annotations,
+        importDeclarations: ReadonlySetReducer.combineAll([p.importDeclarations, i.importDeclarations])
+      }
     }
   }
 }

@@ -1105,6 +1105,39 @@ describe("FromJsonSchema", () => {
           )
         )
       })
+
+      it("missing additionalProperties", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "object",
+              "properties": { "a": { "type": "string" } },
+              "required": ["a"]
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.StructWithRest(Schema.Struct({ "a": Schema.String }), [Schema.Record(Schema.String, Schema.Unknown)])`,
+            FromJsonSchema.makeTypes(`{ readonly "a": string, readonly [x: string]: unknown }`)
+          )
+        )
+      })
+
+      it("additionalProperties: true", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "object",
+              "properties": { "a": { "type": "string" } },
+              "required": ["a"],
+              "additionalProperties": true
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.StructWithRest(Schema.Struct({ "a": Schema.String }), [Schema.Record(Schema.String, Schema.Unknown)])`,
+            FromJsonSchema.makeTypes(`{ readonly "a": string, readonly [x: string]: unknown }`)
+          )
+        )
+      })
     })
 
     it("Union", () => {
