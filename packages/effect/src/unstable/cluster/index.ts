@@ -60,6 +60,11 @@ export * as EntityProxyServer from "./EntityProxyServer.ts"
 /**
  * @since 4.0.0
  */
+export * as EntityResource from "./EntityResource.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as EntityType from "./EntityType.ts"
 
 /**
@@ -70,12 +75,12 @@ export * as Envelope from "./Envelope.ts"
 /**
  * @since 4.0.0
  */
-export * as HttpCommon from "./HttpCommon.ts"
+export * as HttpRunner from "./HttpRunner.ts"
 
 /**
  * @since 4.0.0
  */
-export * as HttpRunner from "./HttpRunner.ts"
+export * as K8sHttpClient from "./K8sHttpClient.ts"
 
 /**
  * @since 4.0.0
@@ -150,6 +155,11 @@ export * as ShardingRegistrationEvent from "./ShardingRegistrationEvent.ts"
 /**
  * @since 4.0.0
  */
+export * as SingleRunner from "./SingleRunner.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as Singleton from "./Singleton.ts"
 
 /**
@@ -176,3 +186,8 @@ export * as SqlMessageStorage from "./SqlMessageStorage.ts"
  * @since 4.0.0
  */
 export * as SqlRunnerStorage from "./SqlRunnerStorage.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as TestRunner from "./TestRunner.ts"

@@ -19,7 +19,7 @@ import { TestEntity, TestEntityNoState, TestEntityState, User } from "./TestEnti
 describe.concurrent("Sharding", () => {
   it.effect("delivers a message", () =>
     Effect.gen(function*() {
-      yield* TestClock.adjust(2000)
+      yield* TestClock.adjust(1)
       const makeClient = yield* TestEntity.client
       const client = makeClient("1")
       const user = yield* client.GetUserVolatile({ id: 1 })
@@ -28,7 +28,7 @@ describe.concurrent("Sharding", () => {
 
   it.effect("delivers a message via storage", () =>
     Effect.gen(function*() {
-      yield* TestClock.adjust(2000)
+      yield* TestClock.adjust(1)
       const driver = yield* MessageStorage.MemoryDriver
       const makeClient = yield* TestEntity.client
       const client = makeClient("1")
@@ -43,13 +43,14 @@ describe.concurrent("Sharding", () => {
       const driver = yield* MessageStorage.MemoryDriver
       const state = yield* TestEntityState
       const makeClient = yield* TestEntity.client
-      yield* TestClock.adjust(2000)
+      yield* TestClock.adjust(1)
       const client = makeClient("1")
 
       const fiber = yield* client.Never().pipe(Effect.forkChild({ startImmediately: true }))
+      yield* TestClock.adjust(1)
       yield* Fiber.interrupt(fiber)
 
-      yield* TestClock.adjust(2000)
+      yield* TestClock.adjust(1)
       expect(driver.journal.length).toEqual(2)
       expect(driver.replyIds.size).toEqual(1)
       expect(Queue.sizeUnsafe(state.interrupts)).toEqual(1)
@@ -61,7 +62,7 @@ describe.concurrent("Sharding", () => {
       yield* Effect.gen(function*() {
         driver = yield* MessageStorage.MemoryDriver
         const makeClient = yield* TestEntity.client
-        yield* TestClock.adjust(2000)
+        yield* TestClock.adjust(1)
         const client = makeClient("1")
         yield* client.Never().pipe(Effect.forkChild)
         yield* TestClock.adjust(1)
@@ -85,7 +86,7 @@ describe.concurrent("Sharding", () => {
         yield* TestClock.adjust(1)
         const config = yield* ShardingConfig.ShardingConfig
         ;(config as any).runnerAddress = Option.some(RunnerAddress.make("localhost", 1234))
-        setTimeout(() => {
+        fiber.currentScheduler.scheduleTask(() => {
           fiber.interruptUnsafe()
           Effect.runFork(testClock.adjust(30000))
         }, 0)
@@ -126,7 +127,7 @@ describe.concurrent("Sharding", () => {
     Effect.gen(function*() {
       const driver = yield* MessageStorage.MemoryDriver
       const makeClient = yield* TestEntity.client
-      yield* TestClock.adjust(2000)
+      yield* TestClock.adjust(1)
       const client = makeClient("1")
 
       const fiber = yield* client.Never().pipe(Effect.forkChild)
@@ -164,7 +165,7 @@ describe.concurrent("Sharding", () => {
   it.effect("MailboxFull for volatile messages", () =>
     Effect.gen(function*() {
       const makeClient = yield* TestEntity.client
-      yield* TestClock.adjust(2000)
+      yield* TestClock.adjust(1)
       const client = makeClient("1")
 
       yield* client.NeverVolatile().pipe(Effect.forkChild, Effect.replicateEffect(10))
@@ -179,7 +180,7 @@ describe.concurrent("Sharding", () => {
       yield* Effect.gen(function*() {
         const state = yield* TestEntityState
         const makeClient = yield* TestEntity.client
-        yield* TestClock.adjust(2000)
+        yield* TestClock.adjust(1)
         const client = makeClient("1")
 
         const fibers = yield* client.NeverFork().pipe(Effect.forkChild, Effect.replicateEffect(11))
@@ -227,7 +228,7 @@ describe.concurrent("Sharding", () => {
     Effect.gen(function*() {
       const state = yield* TestEntityState
       const makeClient = yield* TestEntity.client
-      yield* TestClock.adjust(2000)
+      yield* TestClock.adjust(1)
       const client = makeClient("1")
 
       const fibers = yield* client.NeverFork().pipe(
@@ -253,7 +254,7 @@ describe.concurrent("Sharding", () => {
   it.effect("delivers a durable stream", () =>
     Effect.gen(function*() {
       const driver = yield* MessageStorage.MemoryDriver
-      yield* TestClock.adjust(2000)
+      yield* TestClock.adjust(1)
       const makeClient = yield* TestEntity.client
       const client = makeClient("1")
       const users = yield* client.GetAllUsers({ ids: [1, 2, 3] }).pipe(
@@ -341,7 +342,7 @@ describe.concurrent("Sharding", () => {
       const state = yield* TestEntityState
 
       yield* Effect.gen(function*() {
-        yield* TestClock.adjust(2000)
+        yield* TestClock.adjust(1)
         const makeClient = yield* TestEntity.client
         const client = makeClient("1")
         yield* Effect.forkChild(client.RequestWithKey({ key: "abc" }))
@@ -371,7 +372,7 @@ describe.concurrent("Sharding", () => {
 
       // the client should read the result from storage
       yield* Effect.gen(function*() {
-        yield* TestClock.adjust(2000)
+        yield* TestClock.adjust(1)
         const makeClient = yield* TestEntity.client
         const client = makeClient("1")
         const result = yield* client.RequestWithKey({ key: "abc" })
@@ -452,7 +453,7 @@ describe.concurrent("Sharding", () => {
 
   it.effect("client discard option", () =>
     Effect.gen(function*() {
-      yield* TestClock.adjust(2000)
+      yield* TestClock.adjust(1)
       const driver = yield* MessageStorage.MemoryDriver
       const makeClient = yield* TestEntity.client
       const client = makeClient("1")
@@ -465,7 +466,7 @@ describe.concurrent("Sharding", () => {
 
   it.effect("client discard with Never", () =>
     Effect.gen(function*() {
-      yield* TestClock.adjust(2000)
+      yield* TestClock.adjust(1)
       const driver = yield* MessageStorage.MemoryDriver
       const makeClient = yield* TestEntity.client
       const client = makeClient("1")
@@ -490,25 +491,9 @@ describe.concurrent("Sharding", () => {
       Layer.provide(MessageStorage.layerNoop)
     ))))
 
-  it.effect("EntityNotManagedByRunner", () =>
-    Effect.gen(function*() {
-      yield* TestClock.adjust(2000)
-      const makeClient = yield* TestEntity.client
-      const client = makeClient("1")
-      yield* TestClock.adjust(2000).pipe(
-        Effect.forkChild
-      )
-      const error = yield* client.GetUser({ id: 123 }).pipe(
-        Effect.flip
-      )
-      expect(error._tag).toEqual("EntityNotManagedByRunner")
-    }).pipe(
-      Effect.provide(TestShardingWithoutEntities)
-    ))
-
   it.effect("restart on defect", () =>
     Effect.gen(function*() {
-      yield* TestClock.adjust(2000)
+      yield* TestClock.adjust(1)
       const state = yield* TestEntityState
       const makeClient = yield* TestEntity.client
       const client = makeClient("1")
@@ -545,14 +530,6 @@ const TestShardingWithoutStorage = TestShardingWithoutRunners.pipe(
 )
 
 const TestSharding = TestShardingWithoutStorage.pipe(
-  Layer.provideMerge(MessageStorage.layerMemory),
-  Layer.provide(TestShardingConfig)
-)
-
-const TestShardingWithoutEntities = Sharding.layer.pipe(
-  Layer.provide(RunnerStorage.layerMemory),
-  Layer.provide(RunnerHealth.layerNoop),
-  Layer.provide(Runners.layerNoop),
   Layer.provideMerge(MessageStorage.layerMemory),
   Layer.provide(TestShardingConfig)
 )

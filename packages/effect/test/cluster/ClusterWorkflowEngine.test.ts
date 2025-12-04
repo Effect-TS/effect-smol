@@ -1,5 +1,5 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Cause, DateTime, Effect, Exit, Fiber, Layer, ServiceMap } from "effect"
+import { Cause, DateTime, Duration, Effect, Exit, Fiber, Layer, ServiceMap } from "effect"
 import { Schema } from "effect/schema"
 import { TestClock } from "effect/testing"
 import {
@@ -24,8 +24,9 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       const fiber = yield* EmailWorkflow.execute({
         id: "test-email-1",
         to: "bob@example.com"
-      }).pipe(Effect.forkChild({ startImmediately: true }))
+      }).pipe(Effect.fork)
 
+      yield* TestClock.adjust(1)
       // resume after the clock
       yield* TestClock.adjust("10 seconds")
       yield* sharding.pollStorage
@@ -47,7 +48,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       expect(flags.get("compensation")).toBeFalsy()
       // ensuring will run
       expect(flags.get("ensuring")).toBeTruthy()
-      expect(flags.get("catchCause")).toBeFalsy()
+      expect(flags.get("catchAllCause")).toBeFalsy()
 
       // --- resume the workflow using DurableDeferred.done
 
@@ -71,7 +72,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       // ensuring will run
       expect(flags.get("ensuring")).toBeTruthy()
-      expect(flags.get("catchCause")).toBeFalsy()
+      expect(flags.get("catchAllCause")).toBeFalsy()
 
       // test deduplication
       yield* EmailWorkflow.execute({
@@ -80,9 +81,8 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       })
       expect(driver.requests.size).toEqual(10)
 
-      // Test poll
-      const result = yield* EmailWorkflow.poll(executionId)
-      expect(result).toEqual(new Workflow.Complete({ exit: Exit.void }))
+      // test poll
+      expect(yield* EmailWorkflow.poll(executionId)).toEqual(new Workflow.Complete({ exit: Exit.void }))
     }).pipe(Effect.provide(TestWorkflowLayer)))
 
   it.effect("interrupt", () =>
@@ -94,7 +94,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       const fiber = yield* EmailWorkflow.execute({
         id: "test-email-2",
         to: "bob@example.com"
-      }).pipe(Effect.forkChild)
+      }).pipe(Effect.fork)
 
       yield* TestClock.adjust(1)
       yield* TestClock.adjust("10 seconds")
@@ -111,6 +111,10 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       // - 1 durable clock run
       // - 1 durable clock deferred set
       // - 1 interrupt signal set
+      expect(driver.requests.size).toEqual(10)
+      yield* TestClock.adjust(5000)
+      yield* sharding.pollStorage
+      yield* TestClock.adjust(5000)
       // - clock cleared
       expect(driver.requests.size).toEqual(9)
 
@@ -123,7 +127,6 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       const value = reply.exit.value as Workflow.ResultEncoded<any, any>
       assert(value._tag === "Complete" && value.exit._tag === "Failure")
 
-      yield* TestClock.adjust(5000)
       const exit = yield* Fiber.await(fiber)
       assert(Exit.hasInterrupt(exit))
 
@@ -140,7 +143,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       const fiber = yield* EmailWorkflow.execute({
         id: "test-email-3",
         to: "compensation"
-      }).pipe(Effect.forkChild({ startImmediately: true }))
+      }).pipe(Effect.fork)
 
       yield* TestClock.adjust(1)
 
@@ -162,9 +165,10 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       const fiber = yield* RaceWorkflow.execute({
         id: "race-1"
-      }).pipe(Effect.forkChild({ startImmediately: true }))
+      }).pipe(Effect.fork)
 
-      yield* TestClock.adjust(500)
+      yield* TestClock.adjust(1)
+      yield* TestClock.adjust(1000)
 
       const result = yield* Fiber.join(fiber)
       expect(result).toEqual("Activity3")
@@ -181,7 +185,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       const fiber = yield* DurableRaceWorkflow.execute({
         id: "race-2"
-      }).pipe(Effect.forkChild)
+      }).pipe(Effect.fork)
 
       yield* TestClock.adjust(1)
       yield* TestClock.adjust(1000)
@@ -200,8 +204,9 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       yield* ParentWorkflow.execute({
         id: "123"
-      }).pipe(Effect.forkChild)
-      yield* TestClock.adjust(1000)
+      }).pipe(Effect.fork)
+      yield* TestClock.adjust(1)
+      yield* TestClock.adjust(5000)
 
       assert.isUndefined(flags.get("parent-end"))
       assert.isUndefined(flags.get("child-end"))
@@ -213,8 +218,8 @@ describe.concurrent("ClusterWorkflowEngine", () => {
         token: DurableDeferred.Token.makeUnsafe(token),
         exit: Exit.void
       })
-      yield* TestClock.adjust(5000)
       yield* sharding.pollStorage
+      yield* TestClock.adjust(5000)
       assert.isTrue(flags.get("parent-end"))
       assert.isTrue(flags.get("child-end"))
     }).pipe(Effect.provide(TestWorkflowLayer)))
@@ -226,11 +231,25 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       yield* SuspendOnFailureWorkflow.execute({
         id: ""
-      }).pipe(Effect.forkChild)
-      yield* TestClock.adjust(1000)
+      }).pipe(Effect.fork)
+      yield* TestClock.adjust(1)
 
       assert.isTrue(flags.get("suspended"))
       assert.include(flags.get("cause"), "boom")
+    }).pipe(Effect.provide(TestWorkflowLayer)))
+
+  it.effect("catchAllCause activity", () =>
+    Effect.gen(function*() {
+      const flags = yield* Flags
+      yield* TestClock.adjust(1)
+
+      const fiber = yield* CatchWorkflow.execute({
+        id: ""
+      }).pipe(Effect.fork)
+      yield* TestClock.adjust(1)
+      yield* Fiber.join(fiber)
+
+      assert.isTrue(flags.get("catch"))
     }).pipe(Effect.provide(TestWorkflowLayer)))
 })
 
@@ -239,16 +258,15 @@ const TestShardingConfig = ShardingConfig.layer({
   entityMailboxCapacity: 10,
   entityTerminationTimeout: 0,
   entityMessagePollInterval: 5000,
-  sendRetryInterval: 100,
-  refreshAssignmentsInterval: 0
+  sendRetryInterval: 100
 })
 
 const TestWorkflowEngine = ClusterWorkflowEngine.layer.pipe(
   Layer.provideMerge(Sharding.layer),
-  Layer.provide(RunnerStorage.layerMemory),
-  Layer.provide(RunnerHealth.layerNoop),
   Layer.provide(Runners.layerNoop),
   Layer.provideMerge(MessageStorage.layerMemory),
+  Layer.provide(RunnerStorage.layerMemory),
+  Layer.provide(RunnerHealth.layerNoop),
   Layer.provide(TestShardingConfig)
 )
 
@@ -272,7 +290,7 @@ const EmailWorkflow = Workflow.make({
 class Flags extends ServiceMap.Service<Flags>()("Flags", {
   make: Effect.sync(() => new Map<string, boolean | string>())
 }) {
-  static layer = Layer.effect(this)(this.make)
+  static layer = Layer.effect(Flags, this.make)
 }
 
 const EmailWorkflowLayer = EmailWorkflow.toLayer(Effect.fn(function*(payload) {
@@ -314,7 +332,8 @@ const EmailWorkflowLayer = EmailWorkflow.toLayer(Effect.fn(function*(payload) {
       // suspended inside Activity
       yield* DurableClock.sleep({
         name: "Some sleep",
-        duration: "10 seconds"
+        duration: "10 seconds",
+        inMemoryThreshold: Duration.zero
       })
       return yield* DateTime.now
     })
@@ -326,14 +345,12 @@ const EmailWorkflowLayer = EmailWorkflow.toLayer(Effect.fn(function*(payload) {
   // suspended outside Activity
   yield* DurableDeferred.await(EmailTrigger).pipe(
     Effect.catchCause(() => {
-      flags.set("catchCause", true)
+      flags.set("catchAllCause", true)
       return Effect.void
     }),
-    Effect.ensuring(
-      Effect.sync(() => {
-        flags.set("ensuring", true)
-      })
-    )
+    Effect.ensuring(Effect.sync(() => {
+      flags.set("ensuring", true)
+    }))
   )
 })).pipe(
   Layer.provideMerge(Flags.layer)
@@ -417,7 +434,8 @@ const DurableRaceWorkflowLayer = DurableRaceWorkflow.toLayer(Effect.fnUntraced(f
       error: Schema.Never,
       execute: DurableClock.sleep({
         name: "Activity1",
-        duration: 50000
+        duration: 50000,
+        inMemoryThreshold: Duration.zero
       }).pipe(
         Effect.as("Activity1")
       )
@@ -428,7 +446,8 @@ const DurableRaceWorkflowLayer = DurableRaceWorkflow.toLayer(Effect.fnUntraced(f
       error: Schema.Never,
       execute: DurableClock.sleep({
         name: "Activity2",
-        duration: 10000
+        duration: 10000,
+        inMemoryThreshold: Duration.zero
       }).pipe(
         Effect.as("Activity2")
       )
@@ -439,7 +458,8 @@ const DurableRaceWorkflowLayer = DurableRaceWorkflow.toLayer(Effect.fnUntraced(f
       error: Schema.Never,
       execute: DurableClock.sleep({
         name: "Activity3",
-        duration: 1000
+        duration: 1000,
+        inMemoryThreshold: Duration.zero
       }).pipe(
         Effect.as("Activity3")
       )
@@ -512,12 +532,41 @@ const SuspendOnFailureWorkflowLayer = SuspendOnFailureWorkflow.toLayer(Effect.fn
   })
 }))
 
+const CatchWorkflow = Workflow.make({
+  name: "CatchWorkflow",
+  payload: {
+    id: Schema.String
+  },
+  idempotencyKey(payload) {
+    return payload.id
+  }
+})
+
+const CatchWorkflowLayer = CatchWorkflow.toLayer(Effect.fnUntraced(function*() {
+  const flags = yield* Flags
+  yield* Activity.make({
+    name: "fail",
+    execute: Effect.die("boom")
+  }).asEffect().pipe(
+    Effect.catchCause((cause) =>
+      Activity.make({
+        name: "log",
+        execute: Effect.suspend(() => {
+          flags.set("catch", true)
+          return Effect.log(cause)
+        })
+      }).asEffect()
+    )
+  )
+}))
+
 const TestWorkflowLayer = EmailWorkflowLayer.pipe(
   Layer.merge(RaceWorkflowLayer),
   Layer.merge(DurableRaceWorkflowLayer),
   Layer.merge(ParentWorkflowLayer),
   Layer.merge(ChildWorkflowLayer),
   Layer.merge(SuspendOnFailureWorkflowLayer),
+  Layer.merge(CatchWorkflowLayer),
   Layer.provideMerge(Flags.layer),
   Layer.provideMerge(TestWorkflowEngine)
 )

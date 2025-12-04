@@ -809,8 +809,9 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Stream<A> =>
  * @since 4.0.0
  * @category constructors
  */
-export const fromArrayEffect = <A, E, R>(effect: Effect.Effect<ReadonlyArray<A>, E, R>): Stream<A, E, R> =>
-  unwrap(Effect.map(effect, fromArray))
+export const fromArrayEffect = <A, E, R>(
+  effect: Effect.Effect<ReadonlyArray<A>, E, R>
+): Stream<A, Pull.ExcludeHalt<E>, R> => unwrap(Effect.map(effect, fromArray)) as any
 
 /**
  * Creates a stream from some ararys.

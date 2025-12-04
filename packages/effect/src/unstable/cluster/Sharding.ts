@@ -430,7 +430,7 @@ const make = Effect.gen(function*() {
   // & ack envelopes can still be processed.
 
   const storageReadLatch = yield* Effect.makeLatch(true)
-  const openStorageReadLatch = constant(storageReadLatch.open)
+  const openStorageReadLatch = constant(Effect.asVoid(storageReadLatch.open))
 
   const storageReadLock = Effect.makeSemaphoreUnsafe(1)
   const withStorageReadLock = storageReadLock.withPermits(1)

@@ -2,17 +2,19 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
+import type * as Exit from "../../Exit.ts"
+import * as Fiber from "../../Fiber.ts"
 import { constant } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as RpcServer from "../rpc/RpcServer.ts"
-import { EntityNotAssignedToRunner } from "./ClusterError.ts"
+import type * as ClusterError from "./ClusterError.ts"
 import * as Message from "./Message.ts"
 import * as MessageStorage from "./MessageStorage.ts"
 import * as Reply from "./Reply.ts"
 import * as RunnerHealth from "./RunnerHealth.ts"
 import * as Runners from "./Runners.ts"
-import * as RunnerStorage from "./RunnerStorage.ts"
+import type * as RunnerStorage from "./RunnerStorage.ts"
 import * as Sharding from "./Sharding.ts"
 import { ShardingConfig } from "./ShardingConfig.ts"
 
@@ -39,67 +41,84 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
           : new Message.IncomingEnvelope({ envelope })
       ),
     Effect: ({ persisted, request }) => {
-      let resume: (reply: Effect.Effect<Reply.Encoded, EntityNotAssignedToRunner>) => void
-      let replyEncoded: Reply.Encoded | undefined
+      let replyEncoded:
+        | Effect.Effect<
+          Reply.Encoded,
+          ClusterError.EntityNotAssignedToRunner
+        >
+        | undefined = undefined
+      let resume = (reply: Effect.Effect<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>) => {
+        replyEncoded = reply
+      }
       const message = new Message.IncomingRequest({
         envelope: request,
         lastSentReply: undefined,
         respond(reply) {
-          return Effect.flatMap(Reply.serialize(reply), (reply) => {
-            if (resume) {
-              resume(Effect.succeed(reply))
-            } else {
-              replyEncoded = reply
-            }
-            return Effect.void
-          })
+          resume(Effect.orDie(Reply.serialize(reply)))
+          return Effect.void
         }
       })
-      return Effect.flatMap(
-        persisted ?
-          Effect.flatMap(
-            storage.registerReplyHandler(
-              message,
-              Effect.sync(() =>
-                resume(Effect.fail(
-                  new EntityNotAssignedToRunner({
-                    address: request.address
-                  })
-                ))
-              )
-            ),
-            () => sharding.notify(message)
-          ) :
-          sharding.send(message),
-        () =>
-          Effect.callback<Reply.Encoded, EntityNotAssignedToRunner>((resume_) => {
-            if (replyEncoded) {
-              resume_(Effect.succeed(replyEncoded))
-            } else {
-              resume = resume_
+      if (persisted) {
+        return Effect.callback<
+          Reply.Encoded,
+          ClusterError.EntityNotAssignedToRunner
+        >((resume_) => {
+          resume = resume_
+          const parent = Fiber.getCurrent()!
+          const onExit = (
+            exit: Exit.Exit<
+              any,
+              ClusterError.EntityNotAssignedToRunner
+            >
+          ) => {
+            if (exit._tag === "Failure") {
+              resume(exit as any)
             }
-          })
+          }
+          const runFork = Effect.runForkWith(parent.services)
+          const fiber = runFork(storage.registerReplyHandler(message))
+          fiber.addObserver(onExit)
+          runFork(Effect.catchTag(
+            sharding.notify(message, constWaitUntilRead),
+            "AlreadyProcessingMessage",
+            () => Effect.void
+          )).addObserver(onExit)
+          return Fiber.interrupt(fiber)
+        })
+      }
+      return Effect.andThen(
+        sharding.send(message),
+        Effect.callback<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>((resume_) => {
+          if (replyEncoded) {
+            resume_(replyEncoded)
+          } else {
+            resume = resume_
+          }
+        })
       )
     },
     Stream: ({ persisted, request }) =>
       Effect.flatMap(
-        Queue.make<Reply.Encoded, EntityNotAssignedToRunner>(),
+        Queue.make<Reply.Encoded, ClusterError.EntityNotAssignedToRunner>(),
         (queue) => {
           const message = new Message.IncomingRequest({
             envelope: request,
             lastSentReply: undefined,
             respond(reply) {
-              return Effect.flatMap(Reply.serialize(reply), (reply) => Queue.offer(queue, reply))
+              return Effect.flatMap(Reply.serialize(reply), (reply) => {
+                Queue.offerUnsafe(queue, reply)
+                return Effect.void
+              })
             }
           })
           return Effect.as(
             persisted ?
-              Effect.flatMap(
-                storage.registerReplyHandler(
-                  message,
-                  Effect.suspend(() => Queue.fail(queue, new EntityNotAssignedToRunner({ address: request.address })))
+              Effect.andThen(
+                storage.registerReplyHandler(message).pipe(
+                  Effect.onError((cause) => Queue.failCause(queue, cause)),
+                  Effect.fork
                 ),
-                () => sharding.notify(message)
+                sharding.notify(message, constWaitUntilRead)
               ) :
               sharding.send(message),
             queue
@@ -109,6 +128,8 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
     Envelope: ({ envelope }) => sharding.send(new Message.IncomingEnvelope({ envelope }))
   }
 }))
+
+const constWaitUntilRead = { waitUntilRead: true } as const
 
 /**
  * The `RunnerServer` recieves messages from other Runners and forwards them to the
@@ -164,9 +185,9 @@ export const layerClientOnly: Layer.Layer<
   | ShardingConfig
   | Runners.RpcClientProtocol
   | MessageStorage.MessageStorage
+  | RunnerStorage.RunnerStorage
 > = Sharding.layer.pipe(
   Layer.provideMerge(Runners.layerRpc),
-  Layer.provide(RunnerStorage.layerNoop),
   Layer.provide(RunnerHealth.layerNoop),
   Layer.updateService(ShardingConfig, (config) => ({
     ...config,

@@ -157,7 +157,7 @@ export const make = (
 
       run(
         sql: string,
-        params: ReadonlyArray<Statement.Primitive> = []
+        params: ReadonlyArray<unknown> = []
       ) {
         return Effect.map(
           Effect.tryPromise({
@@ -170,7 +170,7 @@ export const make = (
 
       runRaw(
         sql: string,
-        params: ReadonlyArray<Statement.Primitive> = []
+        params: ReadonlyArray<unknown> = []
       ) {
         return Effect.tryPromise({
           try: () => this.sdk.execute({ sql, args: params as Array<any> }),
@@ -180,22 +180,22 @@ export const make = (
 
       execute(
         sql: string,
-        params: ReadonlyArray<Statement.Primitive>,
+        params: ReadonlyArray<unknown>,
         transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
       ) {
         return transformRows
           ? Effect.map(this.run(sql, params), transformRows)
           : this.run(sql, params)
       }
-      executeRaw(sql: string, params: ReadonlyArray<Statement.Primitive>) {
+      executeRaw(sql: string, params: ReadonlyArray<unknown>) {
         return this.runRaw(sql, params)
       }
-      executeValues(sql: string, params: ReadonlyArray<Statement.Primitive>) {
+      executeValues(sql: string, params: ReadonlyArray<unknown>) {
         return Effect.map(this.run(sql, params), (rows) => rows.map((row) => Array.from(row) as Array<any>))
       }
       executeUnprepared(
         sql: string,
-        params: ReadonlyArray<Statement.Primitive>,
+        params: ReadonlyArray<unknown>,
         transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
       ) {
         return this.execute(sql, params, transformRows)

@@ -8,11 +8,10 @@ import * as Schema from "../../schema/Schema.ts"
  * @category constructors
  */
 export const MachineId = Schema.Int.pipe(
-  Schema.brand<"~effect/cluster/MachineId">()
-  // TODO: override pretty
-  // Schema.annotations({
-  //   pretty: () => (machineId) => `MachineId(${machineId})`
-  // })
+  Schema.brand<"~effect/cluster/MachineId">(),
+  Schema.annotate({
+    formatter: () => (machineId: string) => `MachineId(${machineId})`
+  })
 )
 
 /**

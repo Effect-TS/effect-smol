@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Effect, Exit, Layer, ServiceMap } from "effect"
+import { Effect, Exit, Fiber, Layer, ServiceMap } from "effect"
 import { Schema } from "effect/schema"
+import { TestClock } from "effect/testing"
 import {
   EntityAddress,
   EntityId,
@@ -80,15 +81,16 @@ describe("MessageStorage", () => {
         const latch = yield* Effect.makeLatch()
         const request = yield* makeRequest()
         yield* storage.saveRequest(request)
-        yield* storage.registerReplyHandler(
+        const fiber = yield* storage.registerReplyHandler(
           new Message.OutgoingRequest({
             ...request,
             respond: () => latch.open
-          }),
-          Effect.void
-        )
+          })
+        ).pipe(Effect.forkChild)
+        yield* TestClock.adjust(1)
         yield* storage.saveReply(yield* makeReply(request))
         yield* latch.await
+        yield* Fiber.await(fiber)
       }).pipe(Effect.provide(MemoryLive)))
   })
 })

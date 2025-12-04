@@ -5804,6 +5804,19 @@ export interface Semaphore {
   withPermits(permits: number): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, R>
 
   /**
+   * Runs an effect with the given number of permits and releases the permits
+   * when the effect completes.
+   *
+   * **Details**
+   *
+   * This function acquires the specified number of permits before executing
+   * the provided effect. Once the effect finishes, the permits are released.
+   * If insufficient permits are available, the function will wait until they
+   * are released by other tasks.
+   */
+  withPermit<A, E, R>(self: Effect<A, E, R>): Effect<A, E, R>
+
+  /**
    * Runs an effect only if the specified number of permits are immediately
    * available.
    *

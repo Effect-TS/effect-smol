@@ -16,7 +16,6 @@ import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
 import { SqlError } from "effect/unstable/sql/SqlError"
-import type { Primitive } from "effect/unstable/sql/Statement"
 import * as Statement from "effect/unstable/sql/Statement"
 import * as Crypto from "node:crypto"
 import type { Readable } from "node:stream"
@@ -43,7 +42,7 @@ export type TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
 export interface ClickhouseClient extends Client.SqlClient {
   readonly [TypeId]: TypeId
   readonly config: ClickhouseClientConfig
-  readonly param: (dataType: string, value: Statement.Primitive) => Statement.Fragment
+  readonly param: (dataType: string, value: unknown) => Statement.Fragment
   readonly asCommand: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
   readonly insertQuery: <T = unknown>(options: {
     readonly table: string
@@ -121,7 +120,7 @@ export const make = (
         this.conn = conn
       }
 
-      private runRaw(sql: string, params: ReadonlyArray<Primitive>, format: Clickhouse.DataFormat = "JSON") {
+      private runRaw(sql: string, params: ReadonlyArray<unknown>, format: Clickhouse.DataFormat = "JSON") {
         const paramsObj: Record<string, unknown> = {}
         for (let i = 0; i < params.length; i++) {
           paramsObj[`p${i + 1}`] = params[i]
@@ -164,7 +163,7 @@ export const make = (
         })
       }
 
-      private run(sql: string, params: ReadonlyArray<Primitive>, format?: Clickhouse.DataFormat) {
+      private run(sql: string, params: ReadonlyArray<unknown>, format?: Clickhouse.DataFormat) {
         return this.runRaw(sql, params, format).pipe(
           Effect.flatMap((result) => {
             if ("json" in result) {
@@ -182,25 +181,25 @@ export const make = (
 
       execute(
         sql: string,
-        params: ReadonlyArray<Primitive>,
+        params: ReadonlyArray<unknown>,
         transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
       ) {
         return transformRows
           ? Effect.map(this.run(sql, params), transformRows)
           : this.run(sql, params)
       }
-      executeRaw(sql: string, params: ReadonlyArray<Primitive>) {
+      executeRaw(sql: string, params: ReadonlyArray<unknown>) {
         return this.runRaw(sql, params)
       }
-      executeValues(sql: string, params: ReadonlyArray<Primitive>) {
+      executeValues(sql: string, params: ReadonlyArray<unknown>) {
         return this.run(sql, params, "JSONCompact")
       }
-      executeUnprepared(sql: string, params: ReadonlyArray<Primitive>, transformRows?: any) {
+      executeUnprepared(sql: string, params: ReadonlyArray<unknown>, transformRows?: any) {
         return this.execute(sql, params, transformRows)
       }
       executeStream(
         sql: string,
-        params: ReadonlyArray<Primitive>,
+        params: ReadonlyArray<unknown>,
         transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
       ) {
         return this.runRaw(sql, params, "JSONEachRow").pipe(
@@ -249,7 +248,7 @@ export const make = (
       {
         [TypeId]: TypeId as TypeId,
         config: options,
-        param(dataType: string, value: Statement.Primitive) {
+        param(dataType: string, value: unknown) {
           return Statement.fragment([clickhouseParam(dataType, value)])
         },
         asCommand<A, E, R>(effect: Effect.Effect<A, E, R>) {
@@ -419,7 +418,7 @@ export type ClickhouseCustom = ClickhouseParam
  * @category custom types
  * @since 1.0.0
  */
-interface ClickhouseParam extends Statement.Custom<"ClickhouseParam", string, Statement.Primitive> {}
+interface ClickhouseParam extends Statement.Custom<"ClickhouseParam", string, unknown> {}
 
 const clickhouseParam = Statement.custom<ClickhouseParam>("ClickhouseParam")
 const isClickhouseParam = Statement.isCustom<ClickhouseParam>("ClickhouseParam")

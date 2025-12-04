@@ -51,7 +51,7 @@ export interface MssqlClient extends Client.SqlClient {
 
   readonly param: (
     type: DataType,
-    value: Statement.Primitive,
+    value: unknown,
     options?: ParameterOptions
   ) => Statement.Fragment
 
@@ -391,7 +391,7 @@ export const make = (
         withTransaction,
         param: (
           type: DataType,
-          value: Statement.Primitive,
+          value: unknown,
           options: ParameterOptions = {}
         ) => Statement.fragment([mssqlParam(type, value, options)]),
         call: <
@@ -529,7 +529,7 @@ interface MssqlParam extends
   Statement.Custom<
     "MssqlParam",
     DataType,
-    Statement.Primitive,
+    unknown,
     ParameterOptions
   >
 {}

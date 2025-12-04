@@ -128,6 +128,7 @@
     "fast-check": "^4.3.0",
     "find-my-way-ts": "^0.1.6",
     "ini": "^5.0.0",
+    "kubernetes-types": "^1.30.0",
     "msgpackr": "^1.11.5",
     "multipasta": "^0.2.7",
     "toml": "^3.0.0",

@@ -131,22 +131,22 @@ export const make = (
 
       execute(
         sql: string,
-        params: ReadonlyArray<Statement.Primitive>,
+        params: ReadonlyArray<unknown>,
         transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
       ) {
         return transformRows
           ? Effect.map(this.run(sql, params), transformRows)
           : this.run(sql, params)
       }
-      executeRaw(sql: string, params: ReadonlyArray<Statement.Primitive>) {
+      executeRaw(sql: string, params: ReadonlyArray<unknown>) {
         return this.runRaw(sql, params)
       }
-      executeValues(sql: string, params: ReadonlyArray<Statement.Primitive>) {
+      executeValues(sql: string, params: ReadonlyArray<unknown>) {
         return this.run(sql, params, true)
       }
       executeUnprepared(
         sql: string,
-        params: ReadonlyArray<Statement.Primitive>,
+        params: ReadonlyArray<unknown>,
         transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
       ) {
         return transformRows
@@ -155,7 +155,7 @@ export const make = (
       }
       executeStream(
         sql: string,
-        params: ReadonlyArray<Statement.Primitive>,
+        params: ReadonlyArray<unknown>,
         transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
       ) {
         const stream = queryStream(this.conn as any, sql, params)

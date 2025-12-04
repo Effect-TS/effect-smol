@@ -52,11 +52,11 @@ export interface Statement<A> extends Fragment, Effect.Effect<ReadonlyArray<A>, 
   readonly raw: Effect.Effect<unknown, SqlError>
   readonly withoutTransform: Effect.Effect<ReadonlyArray<A>, SqlError>
   readonly stream: Stream.Stream<A, SqlError>
-  readonly values: Effect.Effect<ReadonlyArray<ReadonlyArray<Primitive>>, SqlError>
+  readonly values: Effect.Effect<ReadonlyArray<ReadonlyArray<unknown>>, SqlError>
   readonly unprepared: Effect.Effect<ReadonlyArray<A>, SqlError>
   readonly compile: (withoutTransform?: boolean | undefined) => readonly [
     sql: string,
-    params: ReadonlyArray<Primitive>
+    params: ReadonlyArray<unknown>
   ]
 }
 
@@ -115,14 +115,14 @@ export type Segment =
 export interface Literal {
   readonly _tag: "Literal"
   readonly value: string
-  readonly params?: ReadonlyArray<Primitive> | undefined
+  readonly params?: ReadonlyArray<unknown> | undefined
 }
 
 /**
  * @category constructors
  * @since 4.0.0
  */
-export const literal = (value: string, params?: ReadonlyArray<Primitive> | undefined): Literal => ({
+export const literal = (value: string, params?: ReadonlyArray<unknown> | undefined): Literal => ({
   _tag: "Literal",
   value,
   params
@@ -152,14 +152,14 @@ export const identifier = (value: string): Identifier => ({
  */
 export interface Parameter {
   readonly _tag: "Parameter"
-  readonly value: Primitive
+  readonly value: unknown
 }
 
 /**
  * @category constructors
  * @since 4.0.0
  */
-export const parameter = (value: Primitive): Parameter => ({
+export const parameter = (value: unknown): Parameter => ({
   _tag: "Parameter",
   value
 })
@@ -170,14 +170,14 @@ export const parameter = (value: Primitive): Parameter => ({
  */
 export interface ArrayHelper {
   readonly _tag: "ArrayHelper"
-  readonly value: ReadonlyArray<Primitive | Fragment>
+  readonly value: ReadonlyArray<unknown | Fragment>
 }
 
 /**
  * @category constructors
  * @since 4.0.0
  */
-export const arrayHelper = (value: ReadonlyArray<Primitive | Fragment>): ArrayHelper => ({
+export const arrayHelper = (value: ReadonlyArray<unknown | Fragment>): ArrayHelper => ({
   _tag: "ArrayHelper",
   value
 })
@@ -188,7 +188,7 @@ export const arrayHelper = (value: ReadonlyArray<Primitive | Fragment>): ArrayHe
  */
 export interface RecordInsertHelper {
   readonly _tag: "RecordInsertHelper"
-  readonly value: ReadonlyArray<Record<string, Primitive | Fragment | undefined>>
+  readonly value: ReadonlyArray<Record<string, unknown>>
   /** @internal */
   readonly returningIdentifier: string | Fragment | undefined
   readonly returning: (sql: string | Identifier | Fragment) => RecordInsertHelper
@@ -210,7 +210,7 @@ const RecordInsertHelperProto = {
  * @since 4.0.0
  */
 export const recordInsertHelper = (
-  value: ReadonlyArray<Record<string, Primitive | Fragment | undefined>>
+  value: ReadonlyArray<Record<string, unknown>>
 ): RecordInsertHelper =>
   Object.assign(Object.create(RecordInsertHelperProto), {
     value,
@@ -223,7 +223,7 @@ export const recordInsertHelper = (
  */
 export interface RecordUpdateHelper {
   readonly _tag: "RecordUpdateHelper"
-  readonly value: ReadonlyArray<Record<string, Primitive | Fragment | undefined>>
+  readonly value: ReadonlyArray<Record<string, unknown>>
   readonly alias: string
   /** @internal */
   readonly returningIdentifier: string | Fragment | undefined
@@ -240,7 +240,7 @@ const RecordUpdateHelperProto = {
  * @since 4.0.0
  */
 export const recordUpdateHelper = (
-  value: ReadonlyArray<Record<string, Primitive | Fragment | undefined>>,
+  value: ReadonlyArray<Record<string, unknown>>,
   alias: string
 ): RecordUpdateHelper =>
   Object.assign(Object.create(RecordUpdateHelperProto), {
@@ -255,7 +255,7 @@ export const recordUpdateHelper = (
  */
 export interface RecordUpdateHelperSingle {
   readonly _tag: "RecordUpdateHelperSingle"
-  readonly value: Record<string, Primitive | Fragment | undefined>
+  readonly value: Record<string, unknown>
   readonly omit: ReadonlyArray<string>
   /** @internal */
   readonly returningIdentifier: string | Fragment | undefined
@@ -272,7 +272,7 @@ const RecordUpdateHelperSingleProto = {
  * @since 4.0.0
  */
 export const recordUpdateHelperSingle = (
-  value: Record<string, Primitive | Fragment | undefined>,
+  value: Record<string, unknown>,
   omit: ReadonlyArray<string>
 ): RecordUpdateHelperSingle =>
   Object.assign(Object.create(RecordUpdateHelperSingleProto), {
@@ -315,20 +315,6 @@ export const custom = <C extends Custom<any, any, any, any>>(
  * @category model
  * @since 4.0.0
  */
-export type Primitive =
-  | string
-  | number
-  | bigint
-  | boolean
-  | Date
-  | null
-  | Int8Array
-  | Uint8Array
-
-/**
- * @category model
- * @since 4.0.0
- */
 export type PrimitiveKind =
   | "string"
   | "number"
@@ -355,16 +341,10 @@ export type Helper =
  * @category model
  * @since 4.0.0
  */
-export type Argument = Primitive | Helper | Fragment
-
-/**
- * @category model
- * @since 4.0.0
- */
 export interface Constructor {
   <A extends object = Row>(
     strings: TemplateStringsArray,
-    ...args: Array<Argument>
+    ...args: Array<any>
   ): Statement<A>
 
   (value: string): Identifier
@@ -374,25 +354,25 @@ export interface Constructor {
    */
   readonly unsafe: <A extends object>(
     sql: string,
-    params?: ReadonlyArray<Primitive> | undefined
+    params?: ReadonlyArray<unknown> | undefined
   ) => Statement<A>
 
   readonly literal: (sql: string) => Fragment
 
   readonly in: {
-    (value: ReadonlyArray<Primitive>): ArrayHelper
-    (column: string, value: ReadonlyArray<Primitive>): Fragment
+    (value: ReadonlyArray<unknown>): ArrayHelper
+    (column: string, value: ReadonlyArray<unknown>): Fragment
   }
 
   readonly insert: {
     (
-      value: ReadonlyArray<Record<string, Primitive | Fragment | undefined>>
+      value: ReadonlyArray<Record<string, unknown>>
     ): RecordInsertHelper
-    (value: Record<string, Primitive | Fragment | undefined>): RecordInsertHelper
+    (value: Record<string, unknown>): RecordInsertHelper
   }
 
   /** Update a single row */
-  readonly update: <A extends Record<string, Primitive | Fragment | undefined>>(
+  readonly update: <A extends Record<string, unknown>>(
     value: A,
     omit?: ReadonlyArray<keyof A>
   ) => RecordUpdateHelperSingle
@@ -403,7 +383,7 @@ export interface Constructor {
    * **Note:** Not supported in sqlite
    */
   readonly updateValues: (
-    value: ReadonlyArray<Record<string, Primitive | Fragment | undefined>>,
+    value: ReadonlyArray<Record<string, unknown>>,
     alias: string
   ) => RecordUpdateHelper
 
@@ -485,7 +465,7 @@ export const make = (
     {
       unsafe<A extends object = Row>(
         sql: string,
-        params?: ReadonlyArray<Primitive>
+        params?: ReadonlyArray<unknown>
       ) {
         return makeUnsafe<A>(
           [literal(sql, params)],
@@ -541,7 +521,7 @@ export const statement = <A = Row>(
   acquirer: Acquirer,
   compiler: Compiler,
   strings: TemplateStringsArray,
-  args: Array<Argument>,
+  args: Array<any>,
   spanAttributes: ReadonlyArray<readonly [string, unknown]>,
   transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
 ): Statement<A> => {
@@ -653,7 +633,7 @@ export interface Compiler {
   readonly compile: (
     statement: Fragment,
     withoutTransform: boolean
-  ) => readonly [sql: string, params: ReadonlyArray<Primitive>]
+  ) => readonly [sql: string, params: ReadonlyArray<unknown>]
   readonly withoutTransform: this
 }
 
@@ -669,25 +649,25 @@ export type CompilerOptions<C extends Custom<any, any, any, any> = any> = {
     placeholders: string,
     alias: string,
     columns: string,
-    values: ReadonlyArray<ReadonlyArray<Primitive>>,
-    returning: readonly [sql: string, params: ReadonlyArray<Primitive>] | undefined
-  ) => readonly [sql: string, params: ReadonlyArray<Primitive>]
+    values: ReadonlyArray<ReadonlyArray<unknown>>,
+    returning: readonly [sql: string, params: ReadonlyArray<unknown>] | undefined
+  ) => readonly [sql: string, params: ReadonlyArray<unknown>]
   readonly onCustom: (
     type: C,
     placeholder: (u: unknown) => string,
     withoutTransform: boolean
-  ) => readonly [sql: string, params: ReadonlyArray<Primitive>]
+  ) => readonly [sql: string, params: ReadonlyArray<unknown>]
   readonly onInsert?: (
     columns: ReadonlyArray<string>,
     placeholders: string,
-    values: ReadonlyArray<ReadonlyArray<Primitive>>,
-    returning: readonly [sql: string, params: ReadonlyArray<Primitive>] | undefined
-  ) => readonly [sql: string, binds: ReadonlyArray<Primitive>]
+    values: ReadonlyArray<ReadonlyArray<unknown>>,
+    returning: readonly [sql: string, params: ReadonlyArray<unknown>] | undefined
+  ) => readonly [sql: string, binds: ReadonlyArray<unknown>]
   readonly onRecordUpdateSingle?: (
     columns: ReadonlyArray<string>,
-    values: ReadonlyArray<Primitive>,
-    returning: readonly [sql: string, params: ReadonlyArray<Primitive>] | undefined
-  ) => readonly [sql: string, params: ReadonlyArray<Primitive>]
+    values: ReadonlyArray<unknown>,
+    returning: readonly [sql: string, params: ReadonlyArray<unknown>] | undefined
+  ) => readonly [sql: string, params: ReadonlyArray<unknown>]
 }
 
 /**
@@ -711,7 +691,7 @@ interface CompilerImpl extends Compiler {
     statement: Fragment,
     withoutTransform?: boolean,
     placeholderOverride?: (u: unknown) => string
-  ): readonly [sql: string, binds: ReadonlyArray<Primitive>]
+  ): readonly [sql: string, binds: ReadonlyArray<unknown>]
 }
 
 const statementCacheSymbol = Symbol.for("effect/unstable/sql/Statement/statementCache")
@@ -723,7 +703,7 @@ const CompilerProto = {
     statement: Fragment,
     withoutTransform = false,
     placeholderOverride?: (u: unknown) => string
-  ): readonly [sql: string, binds: ReadonlyArray<Primitive>] {
+  ): readonly [sql: string, binds: ReadonlyArray<unknown>] {
     const opts = this.options
     withoutTransform = withoutTransform || this.disableTransforms
     const cacheSymbol = withoutTransform ? statementCacheNoTransformSymbol : statementCacheSymbol
@@ -735,7 +715,7 @@ const CompilerProto = {
     const len = segments.length
 
     let sql = ""
-    const binds: Array<Primitive> = []
+    const binds: Array<unknown> = []
     let placeholderCount = 0
     const placeholder = placeholderOverride ?? ((u: unknown) => opts.placeholder(++placeholderCount, u))
     const placeholderNoIncrement = (u: unknown) => opts.placeholder(placeholderCount, u)
@@ -774,10 +754,10 @@ const CompilerProto = {
           const keys = Object.keys(segment.value[0])
 
           if (opts.onInsert) {
-            const values: Array<ReadonlyArray<Primitive>> = new Array(segment.value.length)
+            const values: Array<ReadonlyArray<unknown>> = new Array(segment.value.length)
             let placeholders = ""
             for (let i = 0; i < segment.value.length; i++) {
-              const row: Array<Primitive> = new Array(keys.length)
+              const row: Array<unknown> = new Array(keys.length)
               values[i] = row
               placeholders += i === 0 ? "(" : ",("
               for (let j = 0; j < keys.length; j++) {
@@ -892,10 +872,10 @@ const CompilerProto = {
 
         case "RecordUpdateHelper": {
           const keys = Object.keys(segment.value[0])
-          const values: Array<ReadonlyArray<Primitive>> = new Array(segment.value.length)
+          const values: Array<ReadonlyArray<unknown>> = new Array(segment.value.length)
           let placeholders = ""
           for (let i = 0; i < segment.value.length; i++) {
-            const row: Array<Primitive> = new Array(keys.length)
+            const row: Array<unknown> = new Array(keys.length)
             values[i] = row
             placeholders += i === 0 ? "(" : ",("
             for (let j = 0; j < keys.length; j++) {
@@ -985,7 +965,7 @@ export function defaultEscape(c: string) {
 /**
  * @since 4.0.0
  */
-export const primitiveKind = (value: Primitive): PrimitiveKind => {
+export const primitiveKind = (value: unknown): PrimitiveKind => {
   switch (typeof value) {
     case "string":
       return "string"
@@ -1103,7 +1083,7 @@ interface StatementImpl<A> extends Statement<A> {
     f: (
       connection: Connection,
       sql: string,
-      params: ReadonlyArray<Primitive>
+      params: ReadonlyArray<unknown>
     ) => Effect.Effect<XA, E>,
     withoutTransform?: boolean | undefined
   ): Effect.Effect<XA, E | SqlError>
@@ -1112,7 +1092,7 @@ interface StatementImpl<A> extends Statement<A> {
     f: (
       connection: Connection,
       sql: string,
-      params: ReadonlyArray<Primitive>
+      params: ReadonlyArray<unknown>
     ) => Effect.Effect<XA, E>,
     withoutTransform: boolean,
     span: Tracer.Span
@@ -1148,7 +1128,7 @@ const StatementProto: Omit<
     f: (
       connection: Connection,
       sql: string,
-      params: ReadonlyArray<Primitive>
+      params: ReadonlyArray<unknown>
     ) => Effect.Effect<XA, E>,
     withoutTransform = false
   ): Effect.Effect<XA, E | SqlError> {
@@ -1170,7 +1150,7 @@ const StatementProto: Omit<
     f: (
       connection: Connection,
       sql: string,
-      params: ReadonlyArray<Primitive>
+      params: ReadonlyArray<unknown>
     ) => Effect.Effect<XA, E>,
     withoutTransform: boolean,
     span: Tracer.Span
@@ -1220,7 +1200,7 @@ const StatementProto: Omit<
   },
 
   get values(): Effect.Effect<
-    ReadonlyArray<ReadonlyArray<Primitive>>,
+    ReadonlyArray<ReadonlyArray<unknown>>,
     SqlError
   > {
     return this.withConnection("executeValues", (connection, sql, params) => connection.executeValues(sql, params))
@@ -1344,15 +1324,15 @@ const generateColumns = (
 }
 
 const extractPrimitive = (
-  value: Primitive | Fragment | undefined,
+  value: unknown,
   onCustom: (
     type: Custom<string, unknown, unknown>,
     placeholder: (u: unknown) => string,
     withoutTransform: boolean
-  ) => readonly [sql: string, binds: ReadonlyArray<Primitive>],
+  ) => readonly [sql: string, binds: ReadonlyArray<unknown>],
   placeholder: (u: unknown) => string,
   withoutTransform: boolean
-): Primitive => {
+): unknown => {
   if (value === undefined) {
     return null
   } else if (isFragment(value)) {
@@ -1370,8 +1350,8 @@ const extractPrimitive = (
 
 const escapeSqlite = defaultEscape("\"")
 
-function in_(values: ReadonlyArray<Primitive>): ArrayHelper
-function in_(column: string, values: ReadonlyArray<Primitive>): Fragment
+function in_(values: ReadonlyArray<unknown>): ArrayHelper
+function in_(column: string, values: ReadonlyArray<unknown>): Fragment
 function in_(): Fragment | ArrayHelper {
   if (arguments.length === 1) {
     return arrayHelper(arguments[0])

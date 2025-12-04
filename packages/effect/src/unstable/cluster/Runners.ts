@@ -296,7 +296,6 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
         foundRequests.clear()
       }
     }).pipe(
-      Effect.interruptible,
       Effect.forkIn(runnersScope)
     )
 
@@ -308,7 +307,6 @@ export const make: (options: Omit<Runners["Service"], "sendLocal" | "notifyLocal
     }).pipe(
       Effect.delay(config.entityReplyPollInterval),
       Effect.forever,
-      Effect.interruptible,
       Effect.forkIn(runnersScope)
     )
   }
@@ -494,12 +492,12 @@ export const makeRpc: Effect.Effect<
     ping(address) {
       return RcMap.get(clients, address).pipe(
         Effect.flatMap((client) => client.Ping()),
-        Effect.catchCause(() => {
-          return Effect.andThen(
+        Effect.catchCause(() =>
+          Effect.andThen(
             RcMap.invalidate(clients, address),
             Effect.fail(new RunnerUnavailable({ address }))
           )
-        }),
+        ),
         Effect.scoped
       )
     },

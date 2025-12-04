@@ -108,7 +108,7 @@ export const make = (
 
       const run = (
         sql: string,
-        params: ReadonlyArray<Statement.Primitive> = [],
+        params: ReadonlyArray<unknown> = [],
         values = false
       ) =>
         Effect.withFiber<Array<any>, SqlError>((fiber) => {
