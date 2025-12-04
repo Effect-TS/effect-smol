@@ -54,7 +54,7 @@ jobs:
         uses: ./.github/actions/setup
         with:
           deno-version: v2.5.x
-      - run: deno check
+      - run: deno check .
 
   bundle:
     name: Bundle
