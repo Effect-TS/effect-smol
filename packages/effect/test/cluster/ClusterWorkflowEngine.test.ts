@@ -24,9 +24,8 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       const fiber = yield* EmailWorkflow.execute({
         id: "test-email-1",
         to: "bob@example.com"
-      }).pipe(Effect.fork)
+      }).pipe(Effect.forkChild({ startImmediately: true }))
 
-      yield* TestClock.adjust(1)
       // resume after the clock
       yield* TestClock.adjust("10 seconds")
       yield* sharding.pollStorage
@@ -48,7 +47,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       expect(flags.get("compensation")).toBeFalsy()
       // ensuring will run
       expect(flags.get("ensuring")).toBeTruthy()
-      expect(flags.get("catchAllCause")).toBeFalsy()
+      expect(flags.get("catchCause")).toBeFalsy()
 
       // --- resume the workflow using DurableDeferred.done
 
@@ -72,7 +71,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       // ensuring will run
       expect(flags.get("ensuring")).toBeTruthy()
-      expect(flags.get("catchAllCause")).toBeFalsy()
+      expect(flags.get("catchCause")).toBeFalsy()
 
       // test deduplication
       yield* EmailWorkflow.execute({
@@ -94,7 +93,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       const fiber = yield* EmailWorkflow.execute({
         id: "test-email-2",
         to: "bob@example.com"
-      }).pipe(Effect.fork)
+      }).pipe(Effect.forkChild)
 
       yield* TestClock.adjust(1)
       yield* TestClock.adjust("10 seconds")
@@ -143,7 +142,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       const fiber = yield* EmailWorkflow.execute({
         id: "test-email-3",
         to: "compensation"
-      }).pipe(Effect.fork)
+      }).pipe(Effect.forkChild({ startImmediately: true }))
 
       yield* TestClock.adjust(1)
 
@@ -165,10 +164,9 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       const fiber = yield* RaceWorkflow.execute({
         id: "race-1"
-      }).pipe(Effect.fork)
+      }).pipe(Effect.forkChild({ startImmediately: true }))
 
-      yield* TestClock.adjust(1)
-      yield* TestClock.adjust(1000)
+      yield* TestClock.adjust(500)
 
       const result = yield* Fiber.join(fiber)
       expect(result).toEqual("Activity3")
@@ -185,7 +183,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       const fiber = yield* DurableRaceWorkflow.execute({
         id: "race-2"
-      }).pipe(Effect.fork)
+      }).pipe(Effect.forkChild)
 
       yield* TestClock.adjust(1)
       yield* TestClock.adjust(1000)
@@ -204,9 +202,8 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       yield* ParentWorkflow.execute({
         id: "123"
-      }).pipe(Effect.fork)
-      yield* TestClock.adjust(1)
-      yield* TestClock.adjust(5000)
+      }).pipe(Effect.forkChild)
+      yield* TestClock.adjust(1000)
 
       assert.isUndefined(flags.get("parent-end"))
       assert.isUndefined(flags.get("child-end"))
@@ -218,8 +215,8 @@ describe.concurrent("ClusterWorkflowEngine", () => {
         token: DurableDeferred.Token.makeUnsafe(token),
         exit: Exit.void
       })
-      yield* sharding.pollStorage
       yield* TestClock.adjust(5000)
+      yield* sharding.pollStorage
       assert.isTrue(flags.get("parent-end"))
       assert.isTrue(flags.get("child-end"))
     }).pipe(Effect.provide(TestWorkflowLayer)))
@@ -231,14 +228,14 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       yield* SuspendOnFailureWorkflow.execute({
         id: ""
-      }).pipe(Effect.fork)
+      }).pipe(Effect.forkChild({ startImmediately: true }))
       yield* TestClock.adjust(1)
 
       assert.isTrue(flags.get("suspended"))
       assert.include(flags.get("cause"), "boom")
     }).pipe(Effect.provide(TestWorkflowLayer)))
 
-  it.effect("catchAllCause activity", () =>
+  it.effect("catchCause activity", () =>
     Effect.gen(function*() {
       const flags = yield* Flags
       yield* TestClock.adjust(1)
@@ -345,7 +342,7 @@ const EmailWorkflowLayer = EmailWorkflow.toLayer(Effect.fn(function*(payload) {
   // suspended outside Activity
   yield* DurableDeferred.await(EmailTrigger).pipe(
     Effect.catchCause(() => {
-      flags.set("catchAllCause", true)
+      flags.set("catchCause", true)
       return Effect.void
     }),
     Effect.ensuring(Effect.sync(() => {
