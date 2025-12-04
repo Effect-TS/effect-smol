@@ -229,7 +229,8 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       yield* SuspendOnFailureWorkflow.execute({
         id: ""
       }).pipe(Effect.forkChild({ startImmediately: true }))
-      yield* TestClock.adjust(1)
+
+      yield* TestClock.adjust(2000)
 
       assert.isTrue(flags.get("suspended"))
       assert.include(flags.get("cause"), "boom")
