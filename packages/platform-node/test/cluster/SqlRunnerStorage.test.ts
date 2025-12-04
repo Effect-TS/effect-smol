@@ -3,7 +3,14 @@ import { SqliteClient } from "@effect/sql-sqlite-node"
 import { describe, expect, it } from "@effect/vitest"
 import { Effect, Layer } from "effect"
 import { FileSystem } from "effect/platform"
-import { Runner, RunnerAddress, RunnerStorage, ShardId, SqlRunnerStorage } from "effect/unstable/cluster"
+import {
+  Runner,
+  RunnerAddress,
+  RunnerStorage,
+  ShardId,
+  ShardingConfig,
+  SqlRunnerStorage
+} from "effect/unstable/cluster"
 import { MysqlContainer } from "../fixtures/mysql2-utils.ts"
 import { PgContainer } from "../fixtures/pg-utils.ts"
 
@@ -11,9 +18,9 @@ const StorageLive = SqlRunnerStorage.layer
 
 describe("SqlRunnerStorage", () => {
   ;([
-    ["pg", Layer.orDie(PgContainer.ClientLive)],
-    ["mysql", Layer.orDie(MysqlContainer.ClientLive)],
-    ["vitess", Layer.orDie(MysqlContainer.ClientLiveVitess)],
+    ["pg", Layer.orDie(PgContainer.layerClient)],
+    ["mysql", Layer.orDie(MysqlContainer.layerClient)],
+    ["vitess", Layer.orDie(MysqlContainer.layerClientVitess)],
     ["sqlite", Layer.orDie(SqliteLayer)]
   ] as const).flatMap(([label, layer]) =>
     [

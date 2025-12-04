@@ -22,14 +22,16 @@ export class MysqlContainer extends ServiceMap.Service<
     )
   )
 
-  static layerClient = Layer.unwrap(
+  static client = Layer.unwrap(
     Effect.gen(function*() {
       const container = yield* MysqlContainer
       return MysqlClient.layer({
         url: Redacted.make(container.getConnectionUri())
       })
     })
-  ).pipe(Layer.provide(this.layer))
+  )
+
+  static layerClient = this.client.pipe(Layer.provide(this.layer))
 
   static layerClientWithTransforms = Layer.unwrap(
     Effect.gen(function*() {
@@ -41,4 +43,23 @@ export class MysqlContainer extends ServiceMap.Service<
       })
     })
   ).pipe(Layer.provide(this.layer))
+
+  static layerVitest = Layer.effect(
+    this,
+    Effect.acquireRelease(
+      Effect.tryPromise({
+        try: () =>
+          new MySqlContainer("vitess/vttestserver:mysql80").withEnvironment({
+            KEYSPACES: "test,unsharded",
+            NUM_SHARDS: "1,1",
+            MYSQL_BIND_HOST: "0.0.0.0",
+            PORT: "3303"
+          }).start(),
+        catch: (cause) => new ContainerError({ cause })
+      }),
+      (container) => Effect.promise(() => container.stop())
+    )
+  )
+
+  static layerClientVitess = this.client.pipe(Layer.provide(this.layerVitest))
 }
