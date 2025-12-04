@@ -202,9 +202,8 @@ export const layerServer: <R extends string>(
  */
 export const layerHttpServices: Layer.Layer<
   | HttpPlatform
-  | FileSystem.FileSystem
   | Etag.Generator
-  | Path.Path
+  | BunServices.BunServices
 > = Layer.mergeAll(
   Platform.layer,
   Etag.layerWeak,
@@ -220,9 +219,8 @@ export const layer = <R extends string>(
 ): Layer.Layer<
   | Server.HttpServer
   | HttpPlatform
-  | FileSystem.FileSystem
   | Etag.Generator
-  | Path.Path
+  | BunServices.BunServices
 > => Layer.mergeAll(layerServer(options), layerHttpServices)
 
 /**

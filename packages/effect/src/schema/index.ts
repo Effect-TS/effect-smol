@@ -53,8 +53,14 @@ export * as Parser from "./Parser.ts"
 export * as Schema from "./Schema.ts"
 
 /**
- * @since 4.0.0
- */
+   * The target version of the generated JSON Schema.
+   *
+   * It is *strongly recommended* that implementers support `"draft-2020-12"` and `"draft-07"`, as they are both in wide use.
+   *
+   * The `"openapi-3.0"` target is intended as a standardized specifier for OpenAPI 3.0 which is a superset of JSON Schema `"draft-04"`.
+   *
+   * All other targets can be implemented on a best-effort basis. Libraries should throw if they don't support a specified target.
+   */
 export * as StandardSchema from "./StandardSchema.ts"
 
 /**

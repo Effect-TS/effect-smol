@@ -10,12 +10,12 @@ export * as Mime from "./Mime.ts"
 /**
  * @since 1.0.0
  */
-export * as NodeClusterRunnerHttp from "./NodeClusterRunnerHttp.ts"
+export * as NodeClusterHttp from "./NodeClusterHttp.ts"
 
 /**
  * @since 1.0.0
  */
-export * as NodeClusterRunnerSocket from "./NodeClusterRunnerSocket.ts"
+export * as NodeClusterSocket from "./NodeClusterSocket.ts"
 
 /**
  * @since 1.0.0

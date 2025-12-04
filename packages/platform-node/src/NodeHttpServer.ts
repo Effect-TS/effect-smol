@@ -361,7 +361,7 @@ export const layerServer: (
  * @category Layers
  */
 export const layerHttpServices: Layer.Layer<
-  FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform | Etag.Generator
+  NodeServices.NodeServices | HttpPlatform.HttpPlatform | Etag.Generator
 > = Layer.mergeAll(
   NodeHttpPlatform.layer,
   Etag.layerWeak,
@@ -376,7 +376,7 @@ export const layer = (
   evaluate: LazyArg<Http.Server>,
   options: Net.ListenOptions
 ): Layer.Layer<
-  HttpServer.HttpServer | FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform | Etag.Generator,
+  HttpServer.HttpServer | NodeServices.NodeServices | HttpPlatform.HttpPlatform | Etag.Generator,
   ServeError
 > =>
   Layer.mergeAll(

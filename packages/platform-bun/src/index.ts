@@ -5,12 +5,12 @@
 /**
  * @since 1.0.0
  */
-export * as BunClusterRunnerHttp from "./BunClusterRunnerHttp.ts"
+export * as BunClusterHttp from "./BunClusterHttp.ts"
 
 /**
  * @since 1.0.0
  */
-export * as BunClusterRunnerSocket from "./BunClusterRunnerSocket.ts"
+export * as BunClusterSocket from "./BunClusterSocket.ts"
 
 /**
  * @since 1.0.0

@@ -4,8 +4,6 @@
 import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import type * as FileSystem from "effect/platform/FileSystem"
-import type * as Path from "effect/platform/Path"
 import * as HttpRunner from "effect/unstable/cluster/HttpRunner"
 import * as MessageStorage from "effect/unstable/cluster/MessageStorage"
 import * as RunnerHealth from "effect/unstable/cluster/RunnerHealth"
@@ -21,13 +19,20 @@ import type { HttpServer } from "effect/unstable/http/HttpServer"
 import type { ServeError } from "effect/unstable/http/HttpServerError"
 import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
-import type { SqlError } from "effect/unstable/sql/SqlError"
 import { createServer } from "node:http"
-import { layerHttpClientK8s } from "./NodeClusterRunnerSocket.ts"
-import * as NodeFileSystem from "./NodeFileSystem.ts"
+import { layerK8sHttpClient } from "./NodeClusterSocket.ts"
 import * as NodeHttpClient from "./NodeHttpClient.ts"
 import * as NodeHttpServer from "./NodeHttpServer.ts"
+import type { NodeServices } from "./NodeServices.ts"
 import * as NodeSocket from "./NodeSocket.ts"
+
+export {
+  /**
+   * @since 1.0.0
+   * @category Re-exports
+   */
+  layerK8sHttpClient
+} from "./NodeClusterSocket.js"
 
 /**
  * @since 1.0.0
@@ -35,28 +40,31 @@ import * as NodeSocket from "./NodeSocket.ts"
  */
 export const layer = <
   const ClientOnly extends boolean = false,
-  const Storage extends "local" | "sql" = never,
-  const Health extends "ping" | "k8s" = never
+  const Storage extends "local" | "sql" | "byo" = never
 >(options: {
   readonly transport: "http" | "websocket"
   readonly serialization?: "msgpack" | "ndjson" | undefined
   readonly clientOnly?: ClientOnly | undefined
   readonly storage?: Storage | undefined
-  readonly runnerHealth?: Health | undefined
+  readonly runnerHealth?: "ping" | "k8s" | undefined
   readonly runnerHealthK8s?: {
     readonly namespace?: string | undefined
     readonly labelSelector?: string | undefined
   } | undefined
   readonly shardingConfig?: Partial<ShardingConfig.ShardingConfig["Service"]> | undefined
 }): ClientOnly extends true ? Layer.Layer<
-    Sharding | Runners.Runners | MessageStorage.MessageStorage,
-    Config.ConfigError | ("local" extends Storage ? never : SqlError),
-    "local" extends Storage ? never : SqlClient
+    Sharding | Runners.Runners | ("byo" extends Storage ? never : MessageStorage.MessageStorage),
+    Config.ConfigError,
+    "local" extends Storage ? never
+      : "byo" extends Storage ? (MessageStorage.MessageStorage | RunnerStorage.RunnerStorage)
+      : SqlClient
   > :
   Layer.Layer<
-    Sharding | Runners.Runners | MessageStorage.MessageStorage,
-    ServeError | Config.ConfigError | ("local" extends Storage ? never : SqlError),
-    "local" extends Storage ? never : SqlClient
+    Sharding | Runners.Runners | ("byo" extends Storage ? never : MessageStorage.MessageStorage),
+    ServeError | Config.ConfigError,
+    "local" extends Storage ? never
+      : "byo" extends Storage ? (MessageStorage.MessageStorage | RunnerStorage.RunnerStorage)
+      : SqlClient
   > =>
 {
   const layer: Layer.Layer<any, any, any> = options.clientOnly
@@ -73,7 +81,7 @@ export const layer = <
     ? Layer.empty as any
     : options?.runnerHealth === "k8s"
     ? RunnerHealth.layerK8s(options.runnerHealthK8s).pipe(
-      Layer.provide([NodeFileSystem.layer, layerHttpClientK8s])
+      Layer.provide(layerK8sHttpClient)
     )
     : RunnerHealth.layerPing.pipe(
       Layer.provide(Runners.layerRpc),
@@ -89,9 +97,17 @@ export const layer = <
     Layer.provideMerge(
       options?.storage === "local"
         ? MessageStorage.layerNoop
-        : SqlMessageStorage.layer
+        : options?.storage === "byo"
+        ? Layer.empty
+        : Layer.orDie(SqlMessageStorage.layer)
     ),
-    Layer.provide(options?.storage === "local" ? RunnerStorage.layerMemory : SqlRunnerStorage.layer),
+    Layer.provide(
+      options?.storage === "local"
+        ? RunnerStorage.layerMemory
+        : options?.storage === "byo"
+        ? Layer.empty
+        : Layer.orDie(SqlRunnerStorage.layer)
+    ),
     Layer.provide(ShardingConfig.layerFromEnv(options?.shardingConfig)),
     Layer.provide(
       options?.serialization === "ndjson" ? RpcSerialization.layerNdjson : RpcSerialization.layerMsgPack
@@ -104,18 +120,17 @@ export const layer = <
  * @category Layers
  */
 export const layerHttpServer: Layer.Layer<
-  | Etag.Generator
-  | FileSystem.FileSystem
   | HttpPlatform
-  | HttpServer
-  | Path.Path,
+  | Etag.Generator
+  | NodeServices
+  | HttpServer,
   ServeError,
   ShardingConfig.ShardingConfig
 > = Effect.gen(function*() {
   const config = yield* ShardingConfig.ShardingConfig
   const listenAddress = config.runnerListenAddress ?? config.runnerAddress
   if (listenAddress === undefined) {
-    return yield* Effect.die("NodeClusterHttpRunner.layerHttpServer: ShardingConfig.podAddress is None")
+    return yield* Effect.die("NodeClusterHttp.layerHttpServer: ShardingConfig.runnerAddress is undefined")
   }
   return NodeHttpServer.layer(createServer, listenAddress)
 }).pipe(Layer.unwrap)

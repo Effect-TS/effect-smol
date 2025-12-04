@@ -4,8 +4,6 @@
 import type * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import type * as FileSystem from "effect/platform/FileSystem"
-import type * as Path from "effect/platform/Path"
 import * as HttpRunner from "effect/unstable/cluster/HttpRunner"
 import * as MessageStorage from "effect/unstable/cluster/MessageStorage"
 import * as RunnerHealth from "effect/unstable/cluster/RunnerHealth"
@@ -22,8 +20,8 @@ import type { HttpServer } from "effect/unstable/http/HttpServer"
 import type { ServeError } from "effect/unstable/http/HttpServerError"
 import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
-import type { SqlError } from "effect/unstable/sql/SqlError"
 import * as BunHttpServer from "./BunHttpServer.ts"
+import type { BunServices } from "./BunServices.ts"
 import * as BunSocket from "./BunSocket.ts"
 
 /**
@@ -31,18 +29,17 @@ import * as BunSocket from "./BunSocket.ts"
  * @category Layers
  */
 export const layerHttpServer: Layer.Layer<
-  | Etag.Generator
-  | FileSystem.FileSystem
   | HttpPlatform
-  | HttpServer
-  | Path.Path,
+  | Etag.Generator
+  | BunServices
+  | HttpServer,
   ServeError,
   ShardingConfig.ShardingConfig
 > = Effect.gen(function*() {
   const config = yield* ShardingConfig.ShardingConfig
   const listenAddress = config.runnerListenAddress ?? config.runnerAddress
   if (listenAddress === undefined) {
-    return yield* Effect.die("BunClusterHttpRunners.layerHttpServer: ShardingConfig.runnerAddress is None")
+    return yield* Effect.die("BunClusterHttp.layerHttpServer: ShardingConfig.runnerAddress is undefined")
   }
   return BunHttpServer.layer(listenAddress)
 }).pipe(Layer.unwrap)
@@ -53,7 +50,7 @@ export const layerHttpServer: Layer.Layer<
  */
 export const layer = <
   const ClientOnly extends boolean = false,
-  const Storage extends "local" | "sql" = never
+  const Storage extends "local" | "sql" | "byo" = never
 >(options: {
   readonly transport: "http" | "websocket"
   readonly serialization?: "msgpack" | "ndjson" | undefined
@@ -61,14 +58,18 @@ export const layer = <
   readonly storage?: Storage | undefined
   readonly shardingConfig?: Partial<ShardingConfig.ShardingConfig["Service"]> | undefined
 }): ClientOnly extends true ? Layer.Layer<
-    Sharding | Runners.Runners | MessageStorage.MessageStorage,
-    Config.ConfigError | ("local" extends Storage ? never : SqlError),
-    "local" extends Storage ? never : SqlClient
+    Sharding | Runners.Runners | ("byo" extends Storage ? never : MessageStorage.MessageStorage),
+    Config.ConfigError,
+    "local" extends Storage ? never
+      : "byo" extends Storage ? (MessageStorage.MessageStorage | RunnerStorage.RunnerStorage)
+      : SqlClient
   > :
   Layer.Layer<
     Sharding | Runners.Runners | MessageStorage.MessageStorage,
-    ServeError | Config.ConfigError | ("local" extends Storage ? never : SqlError),
-    "local" extends Storage ? never : SqlClient
+    ServeError | Config.ConfigError,
+    "local" extends Storage ? never
+      : "byo" extends Storage ? (MessageStorage.MessageStorage | RunnerStorage.RunnerStorage)
+      : SqlClient
   > =>
 {
   const layer: Layer.Layer<any, any, any> = options.clientOnly
@@ -102,9 +103,17 @@ export const layer = <
     Layer.provideMerge(
       options?.storage === "local"
         ? MessageStorage.layerNoop
-        : SqlMessageStorage.layer
+        : options?.storage === "byo"
+        ? Layer.empty
+        : Layer.orDie(SqlMessageStorage.layer)
     ),
-    Layer.provide(options?.storage === "local" ? RunnerStorage.layerMemory : SqlRunnerStorage.layer),
+    Layer.provide(
+      options?.storage === "local"
+        ? RunnerStorage.layerMemory
+        : options?.storage === "byo"
+        ? Layer.empty
+        : Layer.orDie(SqlRunnerStorage.layer)
+    ),
     Layer.provide(ShardingConfig.layerFromEnv(options?.shardingConfig)),
     Layer.provide(
       options?.serialization === "ndjson" ? RpcSerialization.layerNdjson : RpcSerialization.layerMsgPack
