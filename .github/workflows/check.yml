@@ -39,7 +39,6 @@ jobs:
         uses: ./.github/actions/setup
         with:
           node-version: 24.10.0
-          deno-version: rc
       - run: pnpm check
       - run: pnpm test-types --target '>=5.8'
 
@@ -54,8 +53,8 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          deno-version: rc
-      - run: deno check --all
+          deno-version: canary
+      - run: deno check
 
   bundle:
     name: Bundle
