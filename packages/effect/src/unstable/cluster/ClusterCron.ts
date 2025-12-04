@@ -93,8 +93,7 @@ export const make = <E, R>(options: {
     return {
       run: (request) =>
         effect(request.payload.dateTime).pipe(
-          Effect.exit,
-          Effect.flatMap(Effect.fnUntraced(function*(exit) {
+          Effect.onExitInterruptible(Effect.fnUntraced(function*(exit) {
             if (Exit.isFailure(exit)) {
               yield* Effect.logWarning(exit.cause)
             }
@@ -112,7 +111,7 @@ export const make = <E, R>(options: {
             )
           })),
           Effect.annotateLogs({
-            module: "ClusterCron",
+            module: "effect/cluster/ClusterCron",
             name: options.name,
             dateTime: request.payload.dateTime
           })
