@@ -151,7 +151,7 @@ jobs:
         if: matrix.runtime == 'Deno'
         uses: ./.github/actions/setup
         with:
-          deno-version: rc
+          deno-version: canary
       - name: Test
         if: matrix.runtime == 'Deno'
         run: deno task test --shard ${{ matrix.shard }}
