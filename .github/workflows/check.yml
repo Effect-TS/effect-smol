@@ -53,7 +53,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          deno-version: 2.5.x
+          deno-version: v2.5.x
       - run: deno check
 
   bundle:
@@ -151,7 +151,7 @@ jobs:
         if: matrix.runtime == 'Deno'
         uses: ./.github/actions/setup
         with:
-          deno-version: 2.5.x
+          deno-version: v2.5.x
       - name: Test
         if: matrix.runtime == 'Deno'
         run: deno task test --shard ${{ matrix.shard }}
