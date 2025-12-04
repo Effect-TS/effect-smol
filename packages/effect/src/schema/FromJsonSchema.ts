@@ -187,7 +187,13 @@ const defaultResolver: Resolver = (ref: string) => {
   return makeGeneration(ref, makeTypes(ref))
 }
 
-function defaultExtractJsDocs(annotations: Annotations): string {
+/**
+ * The default implementation of `extractJsDocs` that extracts the `description`
+ * annotation.
+ *
+ * @since 4.0.0
+ */
+export function defaultExtractJsDocs(annotations: Annotations): string {
   if (annotations.description === undefined) return ""
   return `\n/** ${annotations.description} */\n`
 }

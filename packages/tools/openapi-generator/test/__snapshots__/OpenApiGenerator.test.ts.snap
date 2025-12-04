@@ -206,9 +206,13 @@ import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 
 
+
+/** User object */
 export type GetUser200 = { readonly "id": string, readonly "name": string }
 export type GetUser200Encoded = GetUser200
-export const GetUser200 = Schema.Struct({ "id": Schema.String, "name": Schema.String })
+
+/** User object */
+export const GetUser200 = Schema.Struct({ "id": Schema.String, "name": Schema.String }).annotate({ "description": "User object" })
 
 export const make = (
   httpClient: HttpClient.HttpClient,

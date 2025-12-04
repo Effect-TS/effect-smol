@@ -88,15 +88,16 @@ export const make = Effect.gen(function*() {
 
     for (const { generation, name } of generations) {
       addImportDeclarations(generation.importDeclarations)
+      const jsDocs = FromJsonSchema.defaultExtractJsDocs(generation.annotations)
       if (name) {
         const strings = [
-          `export type ${name} = ${generation.types.Type}`,
+          jsDocs + `export type ${name} = ${generation.types.Type}`,
           generation.types.Encoded !== generation.types.Type
             ? `export type ${name}Encoded = ${generation.types.Encoded}`
             : `export type ${name}Encoded = ${name}`
         ]
         if (!typeOnly) {
-          strings.push(`export const ${name} = ${generation.runtime}`)
+          strings.push(jsDocs + `export const ${name} = ${generation.runtime}`)
         }
         schemas.push(strings.join("\n"))
       }
