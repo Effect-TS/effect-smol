@@ -221,6 +221,7 @@ export const layerHttpClientOnly: Layer.Layer<
   | ShardingConfig.ShardingConfig
   | HttpClient.HttpClient
   | MessageStorage
+  | RunnerStorage
 > = RunnerServer.layerClientOnly.pipe(
   Layer.provide(layerClientProtocolHttpDefault)
 )
@@ -250,7 +251,11 @@ export const layerWebsocket: Layer.Layer<
 export const layerWebsocketClientOnly: Layer.Layer<
   Sharding.Sharding | Runners.Runners,
   never,
-  ShardingConfig.ShardingConfig | MessageStorage | RpcSerialization.RpcSerialization | Socket.WebSocketConstructor
+  | ShardingConfig.ShardingConfig
+  | MessageStorage
+  | RunnerStorage
+  | RpcSerialization.RpcSerialization
+  | Socket.WebSocketConstructor
 > = RunnerServer.layerClientOnly.pipe(
   Layer.provide(layerClientProtocolWebsocketDefault)
 )

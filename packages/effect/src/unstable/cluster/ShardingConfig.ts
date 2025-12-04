@@ -199,6 +199,22 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
     Config.withDefault(() => defaults.shardsPerGroup)
     // Config.withDescription("The number of shards to allocate per shard group.")
   ),
+  shardLockRefreshInterval: Config.duration("shardLockRefreshInterval").pipe(
+    Config.withDefault(() => defaults.shardLockRefreshInterval)
+    // Config.withDescription("Shard lock refresh interval.")
+  ),
+  shardLockExpiration: Config.duration("shardLockExpiration").pipe(
+    Config.withDefault(() => defaults.shardLockExpiration)
+    // Config.withDescription("Shard lock expiration duration.")
+  ),
+  shardLockDisableAdvisory: Config.boolean("shardLockDisableAdvisory").pipe(
+    Config.withDefault(() => defaults.shardLockDisableAdvisory)
+    // Config.withDescription("Disable the use of advisory locks for shard locking.")
+  ),
+  preemptiveShutdown: Config.boolean("preemptiveShutdown").pipe(
+    Config.withDefault(() => defaults.preemptiveShutdown)
+    // Config.withDescription("Start shutting down as soon as an Entity has started shutting down.")
+  ),
   entityMailboxCapacity: Config.int("entityMailboxCapacity").pipe(
     Config.withDefault(() => defaults.entityMailboxCapacity)
     // Config.withDescription("The default capacity of the mailbox for entities.")
@@ -208,6 +224,10 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
     // Config.withDescription(
     //   "The maximum duration of inactivity (i.e. without receiving a message) after which an entity will be interrupted."
     // )
+  ),
+  entityRegistrationTimeout: Config.duration("entityRegistrationTimeout").pipe(
+    Config.withDefault(() => defaults.entityRegistrationTimeout)
+    // Config.withDescription("If an entity does not register itself within this time after a message is sent to it, the message will be marked as failed.")
   ),
   entityTerminationTimeout: Config.duration("entityTerminationTimeout").pipe(
     Config.withDefault(() => defaults.entityTerminationTimeout)
