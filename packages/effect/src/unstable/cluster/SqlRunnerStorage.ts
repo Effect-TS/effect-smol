@@ -67,16 +67,6 @@ export const make = Effect.fnUntraced(function*(options: {
   const runnersTable = table("runners")
   const runnersTableSql = sql(runnersTable)
 
-  // Migrate old tables if they exist
-  // TODO: Remove in next major version
-  const hasOldTables = yield* sql`SELECT shard_id FROM ${sql(table("shards"))} LIMIT 1`.pipe(
-    Effect.isSuccess
-  )
-  if (hasOldTables) {
-    yield* sql`DROP TABLE ${sql(table("shards"))}`.pipe(Effect.ignore)
-    yield* sql`DROP TABLE ${runnersTableSql}`.pipe(Effect.ignore)
-  }
-
   yield* sql.onDialectOrElse({
     mssql: () =>
       sql`
