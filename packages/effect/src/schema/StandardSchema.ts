@@ -1,3 +1,8 @@
+/**
+ * @since 4.0.0
+ * @experimental
+ */
+
 /** The Standard Typed interface. */
 export interface StandardTypedV1<Input = unknown, Output = Input> {
   /** The Standard properties. */
