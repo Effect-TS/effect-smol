@@ -78,7 +78,7 @@ export const layer = <
   const runnerHealth: Layer.Layer<any, any, any> = options?.clientOnly
     ? Layer.empty as any
     : options?.runnerHealth === "k8s"
-    ? RunnerHealth.layerK8s().pipe(
+    ? RunnerHealth.layerK8s(options.runnerHealthK8s).pipe(
       Layer.provide([BunFileSystem.layer, layerK8sHttpClient])
     )
     : RunnerHealth.layerPing.pipe(

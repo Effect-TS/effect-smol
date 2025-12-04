@@ -20,9 +20,19 @@ import type { HttpServer } from "effect/unstable/http/HttpServer"
 import type { ServeError } from "effect/unstable/http/HttpServerError"
 import * as RpcSerialization from "effect/unstable/rpc/RpcSerialization"
 import type { SqlClient } from "effect/unstable/sql/SqlClient"
+import { layerK8sHttpClient } from "./BunClusterSocket.ts"
+import * as BunFileSystem from "./BunFileSystem.ts"
 import * as BunHttpServer from "./BunHttpServer.ts"
 import type { BunServices } from "./BunServices.ts"
 import * as BunSocket from "./BunSocket.ts"
+
+export {
+  /**
+   * @since 1.0.0
+   * @category Re-exports
+   */
+  layerK8sHttpClient
+}
 
 /**
  * @since 1.0.0
@@ -56,6 +66,11 @@ export const layer = <
   readonly serialization?: "msgpack" | "ndjson" | undefined
   readonly clientOnly?: ClientOnly | undefined
   readonly storage?: Storage | undefined
+  readonly runnerHealth?: "ping" | "k8s" | undefined
+  readonly runnerHealthK8s?: {
+    readonly namespace?: string | undefined
+    readonly labelSelector?: string | undefined
+  } | undefined
   readonly shardingConfig?: Partial<ShardingConfig.ShardingConfig["Service"]> | undefined
 }): ClientOnly extends true ? Layer.Layer<
     Sharding | Runners.Runners | ("byo" extends Storage ? never : MessageStorage.MessageStorage),
@@ -84,11 +99,10 @@ export const layer = <
 
   const runnerHealth: Layer.Layer<any, any, any> = options?.clientOnly
     ? Layer.empty as any
-    // TODO: when bun supports adding custom CA certificates
-    // : options?.runnerHealth === "k8s"
-    // ? RunnerHealth.layerK8s().pipe(
-    //   Layer.provide([NodeFileSystem.layer, layerHttpClientK8s])
-    // )
+    : options?.runnerHealth === "k8s"
+    ? RunnerHealth.layerK8s(options.runnerHealthK8s).pipe(
+      Layer.provide([BunFileSystem.layer, layerK8sHttpClient])
+    )
     : RunnerHealth.layerPing.pipe(
       Layer.provide(Runners.layerRpc),
       Layer.provide(
