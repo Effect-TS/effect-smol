@@ -97,7 +97,7 @@ export const make = Effect.gen(function*() {
             : `export type ${name}Encoded = ${name}`
         ]
         if (!typeOnly) {
-          strings.push(jsDocs + `export const ${name} = ${generation.runtime}`)
+          strings.push(jsDocs + `export const ${name} = ${generation.code}`)
         }
         schemas.push(strings.join("\n"))
       }

@@ -69,8 +69,8 @@ export type Annotations = {
  * @since 4.0.0
  */
 export type Generation = {
-  /** The runtime code to generate the schema (e.g. `Schema.Struct({ "a": Schema.String })`) */
-  readonly runtime: string
+  /** The runtime code of the generated schema (e.g. `Schema.Struct({ "a": Schema.String })`) */
+  readonly code: string
   /** The `Type`, `Encoded`, `DecodingServices`, and `EncodingServices` types related to the generated schema */
   readonly types: Types
   /** The JSON Schema annotations found on the JSON Schema (e.g. `{ "description": "a description", "examples": [{ "a": "foo" }] }`) */
@@ -88,7 +88,7 @@ export function makeGeneration(
   annotations: Annotations = {},
   importDeclarations: ReadonlySet<string> = emptySet
 ): Generation {
-  return { runtime, types, annotations, importDeclarations }
+  return { code: runtime, types, annotations, importDeclarations }
 }
 
 /**
@@ -436,7 +436,7 @@ export function generateDefinitions(
     return {
       ref,
       generation: makeGeneration(
-        out.runtime + `.annotate({ "identifier": ${format(ref)} })`,
+        out.code + `.annotate({ "identifier": ${format(ref)} })`,
         out.types,
         out.annotations,
         out.importDeclarations
@@ -620,7 +620,7 @@ class String {
     if (this.contentSchema !== undefined && options.parseContentSchema) {
       const contentSchema = this.contentSchema.toGeneration(options)
       return makeGeneration(
-        `Schema.fromJsonString(${contentSchema.runtime + suffix})`,
+        `Schema.fromJsonString(${contentSchema.code + suffix})`,
         makeTypes(
           contentSchema.types.Type,
           "string",
@@ -988,7 +988,7 @@ class Arrays {
 
     if (es.length === 0 && rest !== undefined) {
       return makeGeneration(
-        `Schema.Array(${rest.runtime})` + suffix,
+        `Schema.Array(${rest.code})` + suffix,
         makeTypes(
           `ReadonlyArray<${rest.types.Type}>`,
           `ReadonlyArray<${rest.types.Encoded}>`,
@@ -1002,7 +1002,7 @@ class Arrays {
 
     if (rest === undefined) {
       return makeGeneration(
-        `Schema.Tuple([${el.runtime}])` + suffix,
+        `Schema.Tuple([${el.code}])` + suffix,
         makeTypes(
           `readonly [${el.types.Type}]`,
           `readonly [${el.types.Encoded}]`,
@@ -1015,7 +1015,7 @@ class Arrays {
     }
 
     return makeGeneration(
-      `Schema.TupleWithRest(Schema.Tuple([${el.runtime}]), [${rest.runtime}])` + suffix,
+      `Schema.TupleWithRest(Schema.Tuple([${el.code}]), [${rest.code}])` + suffix,
       makeTypes(
         `readonly [${el.types.Type}, ...Array<${rest.types.Type}>]`,
         `readonly [${el.types.Encoded}, ...Array<${rest.types.Encoded}>]`,
@@ -1035,7 +1035,7 @@ type ElementIR = {
 
 function renderElements(es: ReadonlyArray<ElementIR>): Generation {
   return makeGeneration(
-    es.map((e) => optionalRuntime(e.isOptional, e.value.runtime)).join(", "),
+    es.map((e) => optionalRuntime(e.isOptional, e.value.code)).join(", "),
     makeTypes(
       join(es, (e) => addQuestionMark(e.isOptional, e.value.types.Type)),
       join(es, (e) => addQuestionMark(e.isOptional, e.value.types.Encoded)),
@@ -1226,7 +1226,7 @@ class Objects {
     if (indexSignaturesGen.length === 0) {
       // 1) Only properties -> Struct
       return makeGeneration(
-        `Schema.Struct({ ${p.runtime} })` + suffix,
+        `Schema.Struct({ ${p.code} })` + suffix,
         makeTypes(
           `{ ${p.types.Type} }`,
           `{ ${p.types.Encoded} }`,
@@ -1253,7 +1253,7 @@ class Objects {
     } else {
       // 3) Properties + index signatures -> StructWithRest
       return makeGeneration(
-        `Schema.StructWithRest(Schema.Struct({ ${p.runtime} }), [${i.runtime}])` + suffix,
+        `Schema.StructWithRest(Schema.Struct({ ${p.code} }), [${i.code}])` + suffix,
         propertiesGen.length === 0
           ? makeTypes(
             `{ ${i.types.Type} }`,
@@ -1293,7 +1293,7 @@ function combineAdditionalProperties(a: boolean | AST, b: boolean | AST, options
 function renderProperties(ps: ReadonlyArray<PropertyGen>, options: RecurOptions): Generation {
   const descriptions = ps.map((p) => renderJsDocs(p.value.annotations, options))
   return makeGeneration(
-    ps.map((p) => `${formatPropertyKey(p.key)}: ${optionalRuntime(p.isOptional, p.value.runtime)}`).join(", "),
+    ps.map((p) => `${formatPropertyKey(p.key)}: ${optionalRuntime(p.isOptional, p.value.code)}`).join(", "),
     makeTypes(
       join(ps, (p, i) => descriptions[i] + renderProperty(p.isOptional, p.key, p.value.types.Type)),
       join(ps, (p, i) => descriptions[i] + renderProperty(p.isOptional, p.key, p.value.types.Encoded)),
@@ -1332,7 +1332,7 @@ function renderIndexSignature(key: string, value: string): string {
 }
 
 function indexSignatureRuntime(is: IndexSignatureGen) {
-  return `Schema.Record(${is.key.runtime}, ${is.value.runtime})`
+  return `Schema.Record(${is.key.code}, ${is.value.code})`
 }
 
 function indexSignatureImports(is: IndexSignatureGen): ReadonlySet<string> {
@@ -1393,8 +1393,8 @@ class Union {
     const members = this.members.map((m) => m.toGeneration(options))
     const runtime = this.members.length === 2 && this.members[1]._tag === "Null" &&
         Object.keys(this.members[1].annotations).length === 0 ?
-      `Schema.NullOr(${members[0].runtime})` :
-      `Schema.Union([${members.map((m) => m.runtime).join(", ")}]${this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""})`
+      `Schema.NullOr(${members[0].code})` :
+      `Schema.Union([${members.map((m) => m.code).join(", ")}]${this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""})`
     const suffix = renderAnnotations(this.annotations)
     return makeGeneration(
       runtime + suffix,
@@ -1431,7 +1431,7 @@ class Reference {
     const out = options.resolver(this.ref)
     const suffix = renderAnnotations(this.annotations)
     return makeGeneration(
-      out.runtime + suffix,
+      out.code + suffix,
       out.types,
       annotationsCombiner.combine(this.annotations, out.annotations),
       out.importDeclarations

@@ -5522,8 +5522,8 @@ It returns a `Generation` object with:
 
 ```ts
 export type Generation = {
-  /** The runtime code to generate the schema (for example: `Schema.Struct({ "a": Schema.String })`) */
-  readonly runtime: string
+  /** The runtime code of the generated schema (e.g. `Schema.Struct({ "a": Schema.String })`) */
+  readonly code: string
   /** The `Type`, `Encoded`, `DecodingServices`, and `EncodingServices` types related to the generated schema */
   readonly types: Types
   /** The JSON Schema annotations found on the JSON Schema (for example: `{ "description": "...", "examples": [...] }`) */
@@ -5553,7 +5553,7 @@ const jsonSchema = JSON.parse(`{
 console.log(FromJsonSchema.generate(jsonSchema, { source: "draft-07" }))
 /*
 {
-  runtime: 'Schema.Struct({ "a": Schema.String, "b": Schema.Int })',
+  code: 'Schema.Struct({ "a": Schema.String, "b": Schema.Int })',
   types: {
     Type: '{ readonly "a": string, readonly "b": number }',
     Encoded: '{ readonly "a": string, readonly "b": number }',
@@ -5588,7 +5588,7 @@ const schema = FromJsonSchema.generate(jsonSchema, { source: "draft-2020-12" })
 console.log(schema)
 /*
 {
-  runtime: 'Schema.Tuple([Schema.String, Schema.Number])',
+  code: 'Schema.Tuple([Schema.String, Schema.Number])',
   types: {
     Type: 'readonly [string, number]',
     Encoded: 'readonly [string, number]',
@@ -5665,7 +5665,7 @@ const generation = FromJsonSchema.generate(jsonSchema, {
 console.log(generation)
 /*
 {
-  runtime: 'Schema.Struct({ "a": Schema.String, "b": Schema.String })',
+  code: 'Schema.Struct({ "a": Schema.String, "b": Schema.String })',
   types: {
     Type: '{ readonly "a": string, readonly "b": string }',
     Encoded: '{ readonly "a": string, readonly "b": string }',
@@ -5703,7 +5703,7 @@ const jsonSchema = JSON.parse(`{
 console.log(FromJsonSchema.generate(jsonSchema, { source: "draft-07" }))
 /*
 {
-  runtime: 'Schema.Struct({ "a": Schema.String, "b": B })',
+  code: 'Schema.Struct({ "a": Schema.String, "b": B })',
   types: {
     Type: '{ readonly "a": string, readonly "b": B }',
     Encoded: '{ readonly "a": string, readonly "b": B }',
@@ -5752,7 +5752,7 @@ console.dir(FromJsonSchema.generateDefinitions(jsonSchema.definitions, { source:
   {
     identifier: 'B',
     generation: {
-      runtime: 'Schema.Int.annotate({ "identifier": "B" })',
+      code: 'Schema.Int.annotate({ "identifier": "B" })',
       types: {
         Type: 'number',
         Encoded: 'number',
@@ -5791,7 +5791,7 @@ console.dir(FromJsonSchema.generateDefinitions(definitions, { source: "draft-07"
   {
     identifier: 'B',
     generation: {
-      runtime: 'Schema.String.annotate({ "identifier": "B" })',
+      code: 'Schema.String.annotate({ "identifier": "B" })',
       types: {
         Type: 'string',
         Encoded: 'string',
@@ -5805,7 +5805,7 @@ console.dir(FromJsonSchema.generateDefinitions(definitions, { source: "draft-07"
   {
     identifier: 'A',
     generation: {
-      runtime: 'Schema.Struct({ "dependent": B }).annotate({ "identifier": "A" })',
+      code: 'Schema.Struct({ "dependent": B }).annotate({ "identifier": "A" })',
       types: {
         Type: '{ readonly "dependent": B }',
         Encoded: '{ readonly "dependent": B }',
@@ -5967,7 +5967,7 @@ const schema = FromJsonSchema.generate(jsonSchema, { source: "draft-07" })
 console.log(schema)
 /*
 {
-  runtime: 'Schema.Struct({ "a": Schema.String, "b": my/extern })',
+  code: 'Schema.Struct({ "a": Schema.String, "b": my/extern })',
   types: {
     Type: '{ readonly "a": string, readonly "b": my/extern }',
     Encoded: '{ readonly "a": string, readonly "b": my/extern }',
@@ -6026,7 +6026,7 @@ const schema = FromJsonSchema.generate(jsonSchema, {
 console.log(schema)
 /*
 {
-  runtime: 'Schema.Struct({ "a": Schema.String, "b": MyExtern })',
+  code: 'Schema.Struct({ "a": Schema.String, "b": MyExtern })',
   types: {
     Type: `{ readonly "a": string, readonly "b": typeof MyExtern['Type'] }`,
     Encoded: `{ readonly "a": string, readonly "b": typeof MyExtern['Encoded'] }`,
