@@ -23,6 +23,7 @@ function assertGeneration(
       readonly source?: FromJsonSchema.Source | undefined
       readonly resolver?: FromJsonSchema.Resolver | undefined
       readonly extractJsDocs?: boolean | ((annotations: FromJsonSchema.Annotations) => string) | undefined
+      readonly parseContentSchema?: boolean | undefined
       readonly definitions?: Schema.JsonSchema.Definitions | undefined
     } | undefined
   },
@@ -42,6 +43,18 @@ function assertGeneration(
   })
 }
 
+const sourceDraft202012: FromJsonSchema.GenerateOptions = {
+  source: "draft-2020-12"
+}
+
+const sourceOpenapi30: FromJsonSchema.GenerateOptions = {
+  source: "openapi-3.0"
+}
+
+const sourceOpenapi31: FromJsonSchema.GenerateOptions = {
+  source: "openapi-3.1"
+}
+
 describe("FromJsonSchema", () => {
   describe("generate", () => {
     describe("draft-2020-12", () => {
@@ -54,9 +67,7 @@ describe("FromJsonSchema", () => {
               "items": false,
               "minItems": 1
             },
-            options: {
-              source: "draft-2020-12"
-            }
+            options: sourceDraft202012
           },
           FromJsonSchema.makeGeneration(
             "Schema.Tuple([Schema.String])",
@@ -76,9 +87,7 @@ describe("FromJsonSchema", () => {
               "items": false,
               "minItems": 1
             },
-            options: {
-              source: "openapi-3.1"
-            }
+            options: sourceOpenapi31
           },
           FromJsonSchema.makeGeneration(
             "Schema.Tuple([Schema.String])",
@@ -112,9 +121,7 @@ describe("FromJsonSchema", () => {
               "type": "number",
               "minimum": 0
             },
-            options: {
-              source: "openapi-3.0"
-            }
+            options: sourceOpenapi30
           },
           FromJsonSchema.makeGeneration(
             "Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))",
@@ -128,9 +135,7 @@ describe("FromJsonSchema", () => {
               "minimum": 0,
               "exclusiveMinimum": false
             },
-            options: {
-              source: "openapi-3.0"
-            }
+            options: sourceOpenapi30
           },
           FromJsonSchema.makeGeneration(
             "Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))",
@@ -144,9 +149,7 @@ describe("FromJsonSchema", () => {
               "minimum": 0,
               "exclusiveMinimum": true
             },
-            options: {
-              source: "openapi-3.0"
-            }
+            options: sourceOpenapi30
           },
           FromJsonSchema.makeGeneration(
             "Schema.Number.check(Schema.isGreaterThan(0))",
@@ -162,9 +165,7 @@ describe("FromJsonSchema", () => {
               "type": "number",
               "maximum": 10
             },
-            options: {
-              source: "openapi-3.0"
-            }
+            options: sourceOpenapi30
           },
           FromJsonSchema.makeGeneration(
             "Schema.Number.check(Schema.isLessThanOrEqualTo(10))",
@@ -178,9 +179,7 @@ describe("FromJsonSchema", () => {
               "maximum": 10,
               "exclusiveMaximum": false
             },
-            options: {
-              source: "openapi-3.0"
-            }
+            options: sourceOpenapi30
           },
           FromJsonSchema.makeGeneration(
             "Schema.Number.check(Schema.isLessThanOrEqualTo(10))",
@@ -194,9 +193,7 @@ describe("FromJsonSchema", () => {
               "maximum": 10,
               "exclusiveMaximum": true
             },
-            options: {
-              source: "openapi-3.0"
-            }
+            options: sourceOpenapi30
           },
           FromJsonSchema.makeGeneration(
             "Schema.Number.check(Schema.isLessThan(10))",
@@ -212,9 +209,7 @@ describe("FromJsonSchema", () => {
               "type": "string",
               "nullable": true
             },
-            options: {
-              source: "openapi-3.0"
-            }
+            options: sourceOpenapi30
           },
           FromJsonSchema.makeGeneration("Schema.NullOr(Schema.String)", FromJsonSchema.makeTypes("string | null"))
         )
@@ -226,9 +221,7 @@ describe("FromJsonSchema", () => {
               "description": "lorem",
               "example": null
             },
-            options: {
-              source: "openapi-3.0"
-            }
+            options: sourceOpenapi30
           },
           FromJsonSchema.makeGeneration(
             `Schema.NullOr(Schema.String).annotate({ "description": "lorem", "examples": [null] })`,
@@ -244,9 +237,7 @@ describe("FromJsonSchema", () => {
                 { "minLength": 1, "nullable": true }
               ]
             },
-            options: {
-              source: "openapi-3.0"
-            }
+            options: sourceOpenapi30
           },
           FromJsonSchema.makeGeneration(
             "Schema.String.check(Schema.isMinLength(1))",
@@ -259,9 +250,7 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: { "enum": ["a", null], "nullable": true },
-            options: {
-              source: "openapi-3.0"
-            }
+            options: sourceOpenapi30
           },
           FromJsonSchema.makeGeneration(`Schema.NullOr(Schema.Literal("a"))`, FromJsonSchema.makeTypes(`"a" | null`))
         )
@@ -475,70 +464,103 @@ describe("FromJsonSchema", () => {
       )
     })
 
-    it("contentSchema", () => {
-      assertGeneration(
-        {
-          schema: {
-            "type": "string",
-            "contentSchema": {
-              "type": "number"
-            }
-          }
-        },
-        FromJsonSchema.makeGeneration(
-          `Schema.String`,
-          FromJsonSchema.makeTypes("string")
-        )
-      )
-      assertGeneration(
-        {
-          schema: {
-            "type": "string",
-            "contentMediaType": "application/json",
-            "contentSchema": {
-              "type": "number"
+    describe("contentSchema", () => {
+      it("should be ignored in draft-07", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "contentMediaType": "application/json",
+              "contentSchema": {
+                "type": "number"
+              },
+              "description": "a string that will be decoded as JSON"
             },
-            "description": "a string that will be decoded as JSON"
-          }
-        },
-        FromJsonSchema.makeGeneration(
-          `Schema.fromJsonString(Schema.Number)`,
-          FromJsonSchema.makeTypes("number", "string", "never", "never")
+            options: {
+              source: "draft-07",
+              parseContentSchema: true
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.String.annotate({ "description": "a string that will be decoded as JSON" })`,
+            FromJsonSchema.makeTypes("string"),
+            { description: "a string that will be decoded as JSON" }
+          )
         )
-      )
+      })
 
       const options: FromJsonSchema.GenerateOptions = {
-        source: "draft-07",
-        resolver: (ref) => {
-          const identifier = ref.replace(/[/~]/g, "$")
-          return FromJsonSchema.makeGeneration(
-            identifier,
-            FromJsonSchema.makeTypes(
-              `T${identifier}`,
-              `E${identifier}`,
-              `DS${identifier}`,
-              `ES${identifier}`
-            )
-          )
-        }
+        source: "draft-2020-12",
+        parseContentSchema: true
       }
-      assertGeneration(
-        {
-          schema: {
-            "type": "string",
-            "contentMediaType": "application/json",
-            "contentSchema": {
-              "$ref": "#/definitions/A"
+
+      it("missing contentSchema", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "contentMediaType": "application/json"
             },
-            "description": "a string that will be decoded as JSON"
+            options
           },
-          options
-        },
-        FromJsonSchema.makeGeneration(
-          `Schema.fromJsonString(A)`,
-          FromJsonSchema.makeTypes("TA", "string", "DSA", "ESA")
+          FromJsonSchema.makeGeneration(`Schema.String`, FromJsonSchema.makeTypes("string"))
         )
-      )
+      })
+
+      it("missing contentMediaType", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "contentSchema": {
+                "type": "number"
+              }
+            },
+            options
+          },
+          FromJsonSchema.makeGeneration(`Schema.String`, FromJsonSchema.makeTypes("string"))
+        )
+      })
+
+      it("contentSchema: object", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "contentMediaType": "application/json",
+              "contentSchema": {
+                "type": "number"
+              },
+              "description": "a string that will be decoded as JSON"
+            },
+            options
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.fromJsonString(Schema.Number)`,
+            FromJsonSchema.makeTypes("number", "string", "never", "never")
+          )
+        )
+      })
+
+      it("contentSchema: $ref", () => {
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
+              "contentMediaType": "application/json",
+              "contentSchema": {
+                "$ref": "#/definitions/A"
+              },
+              "description": "a string that will be decoded as JSON"
+            },
+            options
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.fromJsonString(A)`,
+            FromJsonSchema.makeTypes("A", "string", "never", "never")
+          )
+        )
+      })
     })
 
     it("true", () => {

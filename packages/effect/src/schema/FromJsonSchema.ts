@@ -154,6 +154,14 @@ export type GenerateOptions = {
    * from the annotations.
    */
   readonly extractJsDocs?: boolean | ((annotations: Annotations) => string) | undefined
+
+  /**
+   * Whether to parse the "contentSchema" field of the schema when the
+   * "contentMediaType" is "application/json" using `Schema.fromJsonString`.
+   *
+   * Default: false
+   */
+  readonly parseContentSchema?: boolean | undefined
 }
 
 interface RecurOptions {
@@ -161,6 +169,7 @@ interface RecurOptions {
   readonly root: Schema.JsonSchema | undefined
   readonly resolver: Resolver
   readonly extractJsDocs: ((annotations: Annotations) => string) | undefined
+  readonly parseContentSchema: boolean
   readonly definitions: Schema.JsonSchema.Definitions
   readonly inlineRefs: boolean
   readonly refStack: ReadonlySet<string>
@@ -176,6 +185,7 @@ export function generate(schema: Schema.JsonSchema | boolean, options: GenerateO
     root: isObject(schema) ? schema : undefined,
     resolver: options.resolver ?? defaultResolver,
     extractJsDocs: extractJsDocs === true ? defaultExtractJsDocs : extractJsDocs === false ? undefined : extractJsDocs,
+    parseContentSchema: options.parseContentSchema ?? false,
     definitions: options.definitions ?? {},
     inlineRefs: false,
     refStack: emptySet
@@ -634,7 +644,7 @@ class String {
   }
   toGeneration(options: RecurOptions): Generation {
     const suffix = this.renderChecks() + renderAnnotations(this.annotations)
-    if (this.contentSchema !== undefined) {
+    if (this.contentSchema !== undefined && options.parseContentSchema) {
       const contentSchema = this.contentSchema.toGeneration(options)
       return {
         runtime: `Schema.fromJsonString(${contentSchema.runtime + suffix})`,
@@ -1513,7 +1523,7 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   }
 
   if (Array.isArray(schema.type)) {
-    return Union.make(schema.type.filter(isType).map((type) => handleType(type, {}, options)), "anyOf")
+    return Union.make(schema.type.filter(isType).map((type) => parseType(type, {}, options)), "anyOf")
   }
 
   if (schema.const !== undefined) {
@@ -1532,7 +1542,7 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   schema = normalize(schema)
 
   if (isType(schema.type)) {
-    return handleType(schema.type, schema, options)
+    return parseType(schema.type, schema, options)
   }
 
   if (typeof schema.$ref === "string") {
@@ -1635,27 +1645,31 @@ function isType(type: unknown): type is Schema.JsonSchema.Type {
   return typeof type === "string" && types.includes(type)
 }
 
-function handleType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, options: RecurOptions): AST {
+function parseType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, options: RecurOptions): AST {
+  const isNullable = schema.nullable === true
   switch (type) {
     case "null":
       return new Null()
     case "string": {
-      if (schema.contentMediaType !== undefined && schema.contentMediaType === "application/json") {
-        return new String(schema.nullable === true, [], parse(schema.contentSchema, options))
+      if (
+        options.source !== "draft-07" && schema.contentMediaType === "application/json" &&
+        schema.contentSchema !== undefined
+      ) {
+        return new String(isNullable, [], parse(schema.contentSchema, options))
       }
-      return new String(schema.nullable === true, [], undefined)
+      return new String(isNullable, [], undefined)
     }
     case "number":
-      return new Number(schema.nullable === true, false, [])
+      return new Number(isNullable, false, [])
     case "integer":
-      return new Number(schema.nullable === true, true, [])
+      return new Number(isNullable, true, [])
     case "boolean":
-      return new Boolean(schema.nullable === true)
+      return new Boolean(isNullable)
     case "object": {
       const properties = collectProperties(schema, options)
       const indexSignatures = collectIndexSignatures(schema, options)
       const additionalProperties = schema.additionalProperties === false ? false : true
-      return new Objects(schema.nullable === true, properties, indexSignatures, additionalProperties, [])
+      return new Objects(isNullable, properties, indexSignatures, additionalProperties, [])
     }
     case "array": {
       const minItems = typeof schema.minItems === "number" ? schema.minItems : 0
@@ -1663,9 +1677,8 @@ function handleType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, opt
         new Element(index + 1 > minItems, parse(item, options))
       )
       const rest = collectRest(schema, options)
-
       return new Arrays(
-        schema.nullable === true,
+        isNullable,
         elements,
         rest !== undefined ? rest === false ? undefined : parse(rest, options) : new Unknown(),
         []
