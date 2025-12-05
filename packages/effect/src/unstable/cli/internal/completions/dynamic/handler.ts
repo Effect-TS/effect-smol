@@ -4,9 +4,10 @@
  */
 
 import type { Command } from "../../../Command.ts"
+import { toImpl } from "../../command.ts"
 import { getSingles } from "../shared.ts"
 import { optionRequiresValue } from "../types.ts"
-import type { SingleFlagMeta } from "../types.ts"
+import type { FlagDescriptor } from "../types.ts"
 
 interface CompletionContext {
   readonly words: ReadonlyArray<string>
@@ -64,6 +65,15 @@ interface CompletionItem {
   readonly description?: string
 }
 
+const lookupFlag = (
+  token: string,
+  flags: ReadonlyArray<FlagDescriptor>
+): FlagDescriptor | undefined =>
+  flags.find((flag) =>
+    token === `--${flag.name}` ||
+    flag.aliases.some((a) => token === (a.length === 1 ? `-${a}` : `--${a}`))
+  )
+
 const formatAlias = (alias: string): string => {
   if (alias.startsWith("-")) {
     return alias
@@ -71,7 +81,7 @@ const formatAlias = (alias: string): string => {
   return alias.length === 1 ? `-${alias}` : `--${alias}`
 }
 
-const getTypeLabel = (flag: SingleFlagMeta): string | undefined => {
+const getTypeLabel = (flag: FlagDescriptor): string | undefined => {
   if (flag.typeName) {
     switch (flag.typeName) {
       case "directory":
@@ -102,7 +112,7 @@ const getTypeLabel = (flag: SingleFlagMeta): string | undefined => {
   }
 }
 
-const buildFlagDescription = (flag: SingleFlagMeta): string => {
+const buildFlagDescription = (flag: FlagDescriptor): string => {
   const parts: Array<string> = []
   const aliasParts = flag.aliases
     .map(formatAlias)
@@ -126,7 +136,7 @@ const buildFlagDescription = (flag: SingleFlagMeta): string => {
 
 const addFlagCandidates = (
   addItem: (item: CompletionItem) => void,
-  flag: SingleFlagMeta,
+  flag: FlagDescriptor,
   query: string,
   includeAliases: boolean
 ) => {
@@ -182,7 +192,7 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
   }
 
   // Find the current command context by walking through the words
-  let currentCmd: Command<any, any, any, any> = rootCmd as any
+  let currentCmd: Command.Any = rootCmd
   let wordIndex = 1 // Skip executable name
 
   // Walk through words to find the current command context
@@ -200,24 +210,21 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
         continue
       }
 
-      const singles = getSingles(currentCmd.config.flags)
-      const matchingOption = singles.find((s) =>
-        optionToken === `--${s.name}` ||
-        s.aliases.some((a) => optionToken === (a.length === 1 ? `-${a}` : `--${a}`))
-      )
+      const singles = getSingles(toImpl(currentCmd).config.flags)
+      const matchingFlag = lookupFlag(optionToken, singles)
 
       wordIndex++ // Move past the option
 
       if (
-        matchingOption && optionRequiresValue(matchingOption) && !hasInlineValue && wordIndex < context.currentIndex
+        matchingFlag && optionRequiresValue(matchingFlag) && !hasInlineValue && wordIndex < context.currentIndex
       ) {
         wordIndex++ // Skip the option value
       }
     } else {
       // Check if it's a subcommand
-      const subCmd = currentCmd.subcommands.find((c: any) => c.name === word)
+      const subCmd = currentCmd.subcommands.find((c) => c.name === word)
       if (subCmd) {
-        currentCmd = subCmd as any
+        currentCmd = subCmd
         wordIndex++
       } else {
         // Unknown word in command path - return empty completions
@@ -230,17 +237,14 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
   // Generate completions based on current context
   const currentWord = context.currentWord
 
-  const singles = getSingles(currentCmd.config.flags)
+  const singles = getSingles(toImpl(currentCmd).config.flags)
   const equalIndex = currentWord.indexOf("=")
   if (currentWord.startsWith("-") && equalIndex !== -1) {
     const optionToken = currentWord.slice(0, equalIndex)
-    const matchingOption = singles.find((s) =>
-      optionToken === `--${s.name}` ||
-      s.aliases.some((a) => optionToken === (a.length === 1 ? `-${a}` : `--${a}`))
-    )
+    const matchingFlag = lookupFlag(optionToken, singles)
 
-    if (matchingOption && optionRequiresValue(matchingOption)) {
-      const candidateKind = matchingOption.typeName ?? (matchingOption.primitiveTag === "Path" ? "path" : undefined)
+    if (matchingFlag && optionRequiresValue(matchingFlag)) {
+      const candidateKind = matchingFlag.typeName ?? (matchingFlag.primitiveTag === "Path" ? "path" : undefined)
       const fileKind = candidateKind === "directory" || candidateKind === "file" || candidateKind === "either" ||
           candidateKind === "path"
         ? candidateKind
@@ -267,13 +271,10 @@ export const generateDynamicCompletions = <Name extends string, I, E, R>(
       if (prevWord && prevWord.startsWith("-")) {
         const prevEqIndex = prevWord.indexOf("=")
         const prevToken = prevEqIndex === -1 ? prevWord : prevWord.slice(0, prevEqIndex)
-        const matchingOption = singles.find((s) =>
-          prevToken === `--${s.name}` ||
-          s.aliases.some((a) => prevToken === (a.length === 1 ? `-${a}` : `--${a}`))
-        )
+        const matchingFlag = lookupFlag(prevToken, singles)
 
-        if (matchingOption && optionRequiresValue(matchingOption)) {
-          const candidateKind = matchingOption.typeName ?? (matchingOption.primitiveTag === "Path" ? "path" : undefined)
+        if (matchingFlag && optionRequiresValue(matchingFlag)) {
+          const candidateKind = matchingFlag.typeName ?? (matchingFlag.primitiveTag === "Path" ? "path" : undefined)
           const fileKind = candidateKind === "directory" || candidateKind === "file" || candidateKind === "either" ||
               candidateKind === "path"
             ? candidateKind

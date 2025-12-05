@@ -3,7 +3,7 @@ import { Effect, Layer } from "effect"
 import { Option } from "effect/data"
 import { FileSystem, Path } from "effect/platform"
 import { TestConsole } from "effect/testing"
-import { Command, Flag, HelpFormatter } from "effect/unstable/cli"
+import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"
 import * as MockTerminal from "./services/MockTerminal.ts"
 import * as TestActions from "./services/TestActions.ts"
@@ -13,8 +13,8 @@ const ConsoleLayer = TestConsole.layer
 const FileSystemLayer = FileSystem.layerNoop({})
 const PathLayer = Path.layer
 const TerminalLayer = MockTerminal.layer
-const HelpFormatterLayer = HelpFormatter.layer(
-  HelpFormatter.defaultHelpRenderer({
+const CliOutputLayer = CliOutput.layer(
+  CliOutput.defaultFormatter({
     colors: false
   })
 )
@@ -25,7 +25,7 @@ const TestLayer = Layer.mergeAll(
   FileSystemLayer,
   PathLayer,
   TerminalLayer,
-  HelpFormatterLayer
+  CliOutputLayer
 )
 
 describe("Command", () => {
@@ -107,7 +107,7 @@ describe("Command", () => {
         const captured: Array<Record<string, string>> = []
 
         const command = Command.make("env", {
-          env: Flag.keyValueMap("env")
+          env: Flag.keyValuePair("env")
         }, (config) =>
           Effect.sync(() => {
             captured.push(config.env)
@@ -132,7 +132,7 @@ describe("Command", () => {
         const captured: Array<Record<string, unknown>> = []
 
         const command = Command.make("env", {
-          env: Flag.keyValueMap("env"),
+          env: Flag.keyValuePair("env"),
           verbose: Flag.boolean("verbose"),
           profile: Flag.string("profile")
         }, (config) =>
@@ -168,7 +168,7 @@ describe("Command", () => {
         let invoked = false
 
         const command = Command.make("env", {
-          env: Flag.keyValueMap("env")
+          env: Flag.keyValuePair("env")
         }, () =>
           Effect.sync(() => {
             invoked = true
@@ -341,8 +341,8 @@ describe("Command", () => {
         // Create subcommand that accesses parent context
         const child = Command.make("child", { action: Flag.string("action") }, (config) =>
           Effect.gen(function*() {
-            // Access parent config via the auto-generated tag
-            const parentConfig = yield* parent.service
+            // Access parent config by yielding the parent command
+            const parentConfig = yield* parent
             messages.push(`child: parent.verbose=${parentConfig.verbose}`)
             messages.push(`child: parent.config=${parentConfig.config}`)
             messages.push(`child: action=${config.action}`)
@@ -350,7 +350,7 @@ describe("Command", () => {
 
         // Combine parent and child
         const combined = parent.pipe(
-          Command.withSubcommands(child)
+          Command.withSubcommands([child])
         )
 
         const runCommand = Command.runWith(combined, {
@@ -386,11 +386,11 @@ describe("Command", () => {
           pkg: Flag.string("pkg")
         }, (config) =>
           Effect.gen(function*() {
-            const parentConfig = yield* root.service
+            const parentConfig = yield* root
             messages.push(`install: global=${parentConfig.global}, pkg=${config.pkg}`)
           }))
 
-        const npm = root.pipe(Command.withSubcommands(install))
+        const npm = root.pipe(Command.withSubcommands([install]))
 
         const runNpm = Command.runWith(npm, { version: "1.0.0" })
 
@@ -423,7 +423,7 @@ describe("Command", () => {
             messages.push(`install: global=${parentConfig.global}, pkg=${config.pkg}`)
           }))
 
-        const npm = root.pipe(Command.withSubcommands(install))
+        const npm = root.pipe(Command.withSubcommands([install]))
 
         const runNpm = Command.runWith(npm, { version: "1.0.0" })
 
@@ -452,7 +452,7 @@ describe("Command", () => {
           name: Flag.string("name")
         }, (config) =>
           Effect.gen(function*() {
-            const rootConfig = yield* root.service
+            const rootConfig = yield* root
             messages.push(`service: root.env=${rootConfig.env}`)
             messages.push(`service: name=${config.name}`)
           }))
@@ -462,8 +462,8 @@ describe("Command", () => {
           targetVersion: Flag.string("target-version")
         }, (config) =>
           Effect.gen(function*() {
-            const rootConfig = yield* root.service
-            const serviceConfig = yield* service.service
+            const rootConfig = yield* root
+            const serviceConfig = yield* service
             messages.push(`deploy: root.env=${rootConfig.env}`)
             messages.push(`deploy: service.name=${serviceConfig.name}`)
             messages.push(`deploy: target-version=${config.targetVersion}`)
@@ -471,11 +471,11 @@ describe("Command", () => {
 
         // Build the nested command structure
         const serviceWithDeploy = service.pipe(
-          Command.withSubcommands(deploy)
+          Command.withSubcommands([deploy])
         )
 
         const appWithService = root.pipe(
-          Command.withSubcommands(serviceWithDeploy)
+          Command.withSubcommands([serviceWithDeploy])
         )
 
         const runCommand = Command.runWith(appWithService, { version: "1.0.0" })
@@ -515,14 +515,14 @@ describe("Command", () => {
           targetVersion: Flag.string("target-version")
         }, (config) =>
           Effect.gen(function*() {
-            const parentConfig = yield* parent.service
+            const parentConfig = yield* parent
             messages.push(`deploy: parent.verbose=${parentConfig.verbose}`)
             messages.push(`deploy: target-version=${config.targetVersion}`)
           }))
 
         // Combine commands
         const combined = parent.pipe(
-          Command.withSubcommands(deploy)
+          Command.withSubcommands([deploy])
         )
 
         const runCommand = Command.runWith(combined, { version: "1.0.0" })
@@ -539,6 +539,143 @@ describe("Command", () => {
           "deploy: parent.verbose=true",
           "deploy: target-version=1.0.0"
         ])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should treat tokens after -- as operands (no subcommand or flags)", () =>
+      Effect.gen(function*() {
+        const captured: Array<ReadonlyArray<string>> = []
+        let childInvoked = false
+
+        const root = Command.make("tool", {
+          rest: Argument.string("rest").pipe(Argument.variadic())
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config.rest)
+          }))
+
+        const child = Command.make("child", {
+          value: Flag.string("value")
+        }, () =>
+          Effect.sync(() => {
+            childInvoked = true
+          }))
+
+        const cli = root.pipe(Command.withSubcommands([child]))
+        const runCli = Command.runWith(cli, { version: "1.0.0" })
+
+        yield* runCli(["--", "child", "--value", "x"])
+
+        assert.isFalse(childInvoked)
+        assert.deepStrictEqual(captured, [["child", "--value", "x"]])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should coerce boolean flags to false when given falsey literals", () =>
+      Effect.gen(function*() {
+        const captured: Array<boolean> = []
+
+        const cmd = Command.make("tool", {
+          verbose: Flag.boolean("verbose")
+        }, (config) => Effect.sync(() => captured.push(config.verbose)))
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        yield* runCmd(["--verbose", "false"])
+        yield* runCmd(["--verbose", "0"])
+
+        assert.deepStrictEqual(captured, [false, false])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should fail when a required flag value is missing", () =>
+      Effect.gen(function*() {
+        let invoked = false
+
+        const cmd = Command.make("tool", {
+          pkg: Flag.string("pkg")
+        }, () =>
+          Effect.sync(() => {
+            invoked = true
+          }))
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        yield* runCmd(["--pkg"])
+
+        assert.isFalse(invoked)
+        const stderr = yield* TestConsole.errorLines
+        assert.isAbove(stderr.length, 0)
+        assert.isTrue(stderr.join("\n").includes("--pkg"))
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should parse combined short flags including one that expects a value", () =>
+      Effect.gen(function*() {
+        const captured: Array<{ all: boolean; verbose: boolean; pkg: string }> = []
+
+        const cmd = Command.make("tool", {
+          all: Flag.boolean("all").pipe(Flag.withAlias("a")),
+          verbose: Flag.boolean("verbose").pipe(Flag.withAlias("v")),
+          pkg: Flag.string("pkg").pipe(Flag.withAlias("p"))
+        }, (config) =>
+          Effect.sync(() => {
+            captured.push(config)
+          }))
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        yield* runCmd(["-avp", "cowsay"])
+
+        assert.deepStrictEqual(captured, [{ all: true, verbose: true, pkg: "cowsay" }])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should honor -- while still applying parent flags", () =>
+      Effect.gen(function*() {
+        const captured: Array<{ global: boolean; rest: ReadonlyArray<string> }> = []
+
+        const root = Command.make("tool", {
+          global: Flag.boolean("global"),
+          rest: Argument.string("rest").pipe(Argument.variadic())
+        }, (config) => Effect.sync(() => captured.push({ global: config.global, rest: config.rest })))
+
+        const child = Command.make("child", {
+          value: Flag.string("value")
+        })
+
+        const cli = root.pipe(Command.withSubcommands([child]))
+        const runCli = Command.runWith(cli, { version: "1.0.0" })
+
+        yield* runCli(["--global", "--", "child", "--value", "x"])
+
+        assert.deepStrictEqual(captured, [{ global: true, rest: ["child", "--value", "x"] }])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should report unknown flag even when subcommand is unknown", () =>
+      Effect.gen(function*() {
+        const root = Command.make("root", {})
+        const known = Command.make("known", {})
+        const cli = root.pipe(Command.withSubcommands([known]))
+        const runCli = Command.runWith(cli, { version: "1.0.0" })
+
+        yield* runCli(["--unknown", "bogus"])
+
+        const stderr = yield* TestConsole.errorLines
+        const text = stderr.join("\n")
+        assert.isTrue(text.includes("Unrecognized flag: --unknown"))
+        // Parser may also surface the unknown subcommand; ensure at least one error is emitted.
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should keep variadic argument order when options are interleaved", () =>
+      Effect.gen(function*() {
+        const captured: Array<{ files: ReadonlyArray<string>; verbose: boolean }> = []
+
+        const cmd = Command.make("copy", {
+          verbose: Flag.boolean("verbose"),
+          files: Argument.string("file").pipe(Argument.variadic())
+        }, (config) => Effect.sync(() => captured.push({ files: config.files, verbose: config.verbose })))
+
+        const runCmd = Command.runWith(cmd, { version: "1.0.0" })
+
+        yield* runCmd(["--verbose", "a.txt", "b.txt", "--verbose", "c.txt"])
+
+        assert.deepStrictEqual(captured, [{ files: ["a.txt", "b.txt", "c.txt"], verbose: true }])
       }).pipe(Effect.provide(TestLayer)))
 
     it.effect("should support options before, after, or between operands (relaxed POSIX Syntax Guideline No. 9)", () =>
@@ -652,6 +789,30 @@ describe("Command", () => {
               -c
               -q"
         `)
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should print version and exit even with subcommands (global precedence)", () =>
+      Effect.gen(function*() {
+        // --version should work on a command with subcommands
+        yield* Cli.run(["--version"])
+
+        const output = yield* TestConsole.logLines
+        const outputText = output.join("\n")
+        expect(outputText).toContain("1.0.0")
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should print version and exit when --version appears before subcommand", () =>
+      Effect.gen(function*() {
+        // --version should take precedence over subcommand
+        yield* Cli.run(["--version", "copy", "src.txt", "dest.txt"])
+
+        const output = yield* TestConsole.logLines
+        const outputText = output.join("\n")
+        expect(outputText).toContain("1.0.0")
+
+        // Subcommand should NOT have run
+        const actions = yield* TestActions.getActions
+        assert.strictEqual(actions.length, 0)
       }).pipe(Effect.provide(TestLayer)))
   })
 })
