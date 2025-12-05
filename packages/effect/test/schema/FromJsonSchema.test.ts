@@ -1,4 +1,5 @@
 import { FromJsonSchema, Schema } from "effect/schema"
+import type { Annotations } from "effect/schema/Annotations"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
 
@@ -22,15 +23,16 @@ function assertGeneration(
     readonly options?: {
       readonly source?: FromJsonSchema.Source | undefined
       readonly resolver?: FromJsonSchema.Resolver | undefined
-      readonly extractJsDocs?: boolean | ((annotations: FromJsonSchema.Annotations) => string) | undefined
+      readonly extractJsDocs?: boolean | ((annotations: Annotations) => string) | undefined
       readonly parseContentSchema?: boolean | undefined
+      readonly collectAnnotations?: ((schema: Schema.JsonSchema, annotations: Annotations) => Annotations) | undefined
       readonly definitions?: Schema.JsonSchema.Definitions | undefined
     } | undefined
   },
   expected: {
     readonly code: string
     readonly types: FromJsonSchema.Types
-    readonly annotations?: FromJsonSchema.Annotations | undefined
+    readonly annotations?: Annotations | undefined
     readonly importDeclarations?: ReadonlySet<string>
   }
 ) {
@@ -329,6 +331,38 @@ describe("FromJsonSchema", () => {
             `Schema.Struct({ "a": Schema.String, "b": Schema.String.annotate({ "title": "desc-b" }) })`,
             FromJsonSchema.makeTypes(`{ readonly "a": string, \n/** desc-b */\nreadonly "b": string }`),
             {}
+          )
+        )
+      })
+
+      it("collectAnnotations", () => {
+        assertGeneration(
+          {
+            schema: {
+              "properties": {
+                "a": {
+                  "type": "string",
+                  "errorMessage": "Input must be a string"
+                },
+                "b": {
+                  "type": "number"
+                }
+              },
+              "required": ["a", "b"],
+              "additionalProperties": false
+            },
+            options: {
+              collectAnnotations: (schema, annotations) => {
+                return {
+                  ...annotations,
+                  ...(typeof schema.errorMessage === "string" ? { message: schema.errorMessage } : {})
+                }
+              }
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Struct({ "a": Schema.String.annotate({ "message": "Input must be a string" }), "b": Schema.Number })`,
+            FromJsonSchema.makeTypes(`{ readonly "a": string, readonly "b": number }`)
           )
         )
       })

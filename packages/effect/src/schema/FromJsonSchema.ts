@@ -19,11 +19,11 @@
 import * as Arr from "../collections/Array.ts"
 import * as Combiner from "../data/Combiner.ts"
 import { format, formatPropertyKey } from "../data/Formatter.ts"
-import { isObject, isUndefined } from "../data/Predicate.ts"
+import { isObject } from "../data/Predicate.ts"
 import * as Reducer from "../data/Reducer.ts"
-import * as Struct from "../data/Struct.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
 import { type Mutable } from "../types/Types.ts"
+import type { Annotations } from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"
 
@@ -52,17 +52,6 @@ export function makeTypes(
   EncodingServices: string = "never"
 ): Types {
   return { Type, Encoded, DecodingServices, EncodingServices }
-}
-
-/**
- * @since 4.0.0
- */
-export type Annotations = {
-  readonly description?: string | undefined
-  readonly title?: string | undefined
-  readonly examples?: ReadonlyArray<unknown> | undefined
-  readonly default?: unknown | undefined
-  readonly format?: string | undefined
 }
 
 /**
@@ -162,6 +151,18 @@ export type GenerateOptions = {
    * Default: false
    */
   readonly parseContentSchema?: boolean | undefined
+
+  /**
+   * A function that is called to collect custom Effect Schema annotations from the JSON Schema.
+   *
+   * The `annotations` parameter contains the annotations from the JSON Schema:
+   * - `description`
+   * - `title`
+   * - `examples`
+   * - `default`
+   * - `format`
+   */
+  readonly collectAnnotations?: ((schema: Schema.JsonSchema, annotations: Annotations) => Annotations) | undefined
 }
 
 interface RecurOptions {
@@ -170,6 +171,7 @@ interface RecurOptions {
   readonly resolver: Resolver
   readonly extractJsDocs: ((annotations: Annotations) => string) | undefined
   readonly parseContentSchema: boolean
+  readonly collectAnnotations: (schema: Schema.JsonSchema, annotations: Annotations) => Annotations
   readonly definitions: Schema.JsonSchema.Definitions
   readonly inlineRefs: boolean
   readonly refStack: ReadonlySet<string>
@@ -186,6 +188,7 @@ export function generate(schema: Schema.JsonSchema | boolean, options: GenerateO
     resolver: options.resolver ?? defaultResolver,
     extractJsDocs: extractJsDocs === true ? defaultExtractJsDocs : extractJsDocs === false ? undefined : extractJsDocs,
     parseContentSchema: options.parseContentSchema ?? false,
+    collectAnnotations: options.collectAnnotations ?? ((_, annotations) => annotations),
     definitions: options.definitions ?? {},
     inlineRefs: false,
     refStack: emptySet
@@ -453,15 +456,23 @@ const joinReducer = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
   return `${a}, ${b}`
 }))
 
-const annotationsCombiner: Combiner.Combiner<Annotations> = Struct.getCombiner({
+const annotations: Record<string, Reducer.Reducer<any>> = {
   description: joinReducer,
   title: joinReducer,
   default: UndefinedOr.getReducer(Combiner.last()),
   examples: UndefinedOr.getReducer(Arr.getReducerConcat()),
-  format: Combiner.last<string>()
-}, {
-  omitKeyWhen: isUndefined
-}) as any
+  format: UndefinedOr.getReducer(Combiner.last<string>()),
+  message: joinReducer
+}
+
+const annotationsCombiner = Combiner.make<Annotations>((a, b) => {
+  const out = { ...a, ...b }
+  for (const key in annotations) {
+    const value = annotations[key].combine(a[key], b[key])
+    if (value !== undefined) out[key] = value
+  }
+  return out
+})
 
 type AST =
   | Unknown
@@ -1446,8 +1457,8 @@ function parse(schema: unknown, options: RecurOptions): AST {
 
   let ast = parseFragment(schema, options)
 
-  const annotations = collectAnnotations(schema, ast)
-  if (annotations) ast = ast.annotate(annotations)
+  const annotations = options.collectAnnotations(schema, collectAnnotations(schema, ast))
+  if (Object.keys(annotations).length > 0) ast = ast.annotate(annotations)
 
   ast = ast.parseChecks(schema)
 
@@ -1717,7 +1728,7 @@ function collectRest(schema: Schema.JsonSchema, options: RecurOptions): Schema.J
   }
 }
 
-function collectAnnotations(schema: Schema.JsonSchema, ast: AST): Annotations | undefined {
+function collectAnnotations(schema: Schema.JsonSchema, ast: AST): Annotations {
   const as: Mutable<Annotations> = {}
 
   if (typeof schema.title === "string") as.title = schema.title
@@ -1738,6 +1749,5 @@ function collectAnnotations(schema: Schema.JsonSchema, ast: AST): Annotations | 
   }
   if (typeof schema.format === "string") as.format = schema.format
 
-  if (Object.keys(as).length === 0) return undefined
   return as
 }
