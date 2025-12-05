@@ -34,6 +34,27 @@ const IdParams = Schema.Struct({
 const todoResponse = HttpServerResponse.schemaJson(Todo)
 
 describe("HttpServer", () => {
+  it.effect("empty", () =>
+    Effect.gen(function*() {
+      const now = new Date().toISOString()
+      yield* HttpRouter.add(
+        "GET",
+        "/healthz",
+        Effect.succeed(
+          HttpServerResponse.empty({
+            status: 200,
+            headers: { date: now }
+          })
+        )
+      ).pipe(
+        HttpRouter.serve,
+        Layer.build
+      )
+      const health = yield* HttpClient.get("/healthz")
+      expect(health.status).toEqual(200)
+      expect(health.headers.date).toEqual(now)
+    }).pipe(Effect.provide(NodeHttpServer.layerTest)))
+
   it.effect("schema", () =>
     Effect.gen(function*() {
       yield* HttpRouter.add(
