@@ -78,11 +78,16 @@ export const isHttpServerResponse = (u: unknown): u is HttpServerResponse => has
  */
 export const empty = (
   options?: Options.WithContent | undefined
-): HttpServerResponse =>
-  makeResponse({
+): HttpServerResponse => {
+  const headers = options?.headers
+    ? Headers.fromInput(options.headers)
+    : Headers.empty
+  return makeResponse({
     status: options?.status ?? 204,
-    statusText: options?.statusText
-  })
+    statusText: options?.statusText,
+    headers
+  });
+}
 
 /**
  * @since 4.0.0
