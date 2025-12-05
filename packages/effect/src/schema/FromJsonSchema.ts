@@ -1145,14 +1145,14 @@ class Objects {
   readonly isNullable: boolean
   readonly properties: ReadonlyArray<Property>
   readonly indexSignatures: ReadonlyArray<IndexSignature>
-  readonly additionalProperties: boolean
+  readonly additionalProperties: boolean | AST
   readonly checks: ReadonlyArray<ObjectsCheck>
   readonly annotations: Annotations
   constructor(
     isNullable: boolean,
     properties: ReadonlyArray<Property>,
     indexSignatures: ReadonlyArray<IndexSignature>,
-    additionalProperties: boolean,
+    additionalProperties: boolean | AST,
     checks: ReadonlyArray<ObjectsCheck>,
     annotations: Annotations = {}
   ) {
@@ -1230,7 +1230,7 @@ class Objects {
           this.isNullable && that.isNullable,
           properties,
           this.indexSignatures.concat(that.indexSignatures),
-          this.additionalProperties && that.additionalProperties,
+          combineAdditionalProperties(this.additionalProperties, that.additionalProperties, options),
           [...this.checks, ...that.checks],
           annotations
         )
@@ -1246,41 +1246,39 @@ class Objects {
     }
   }
   toGeneration(options: RecurOptions): Generation {
-    const ps = this.properties
-    let iss = this.indexSignatures
-    if (iss.length === 0 && this.additionalProperties === true) {
-      iss = [new IndexSignature(new String(false, [], undefined), new Unknown())]
-    }
-
-    if (ps.length === 0 && iss.length === 0) {
-      return new Objects(
-        this.isNullable,
-        [],
-        [new IndexSignature(new String(false, [], undefined), new Never())],
-        false,
-        this.checks,
-        this.annotations
-      ).toGeneration(options)
-    }
-
-    const psGen: ReadonlyArray<PropertyGen> = ps.map((p) => ({
+    const propertiesGen: Array<PropertyGen> = this.properties.map((p) => ({
       key: p.key,
       value: p.value.toGeneration(options),
       isOptional: p.isOptional,
       annotations: p.value.annotations
     }))
 
-    const issGen: ReadonlyArray<IndexSignatureGen> = iss.map((is) => ({
+    const indexSignaturesGen: Array<IndexSignatureGen> = this.indexSignatures.map((is) => ({
       key: is.key.toGeneration(options),
       value: is.value.toGeneration(options)
     }))
+    if (typeof this.additionalProperties !== "boolean") {
+      indexSignaturesGen.push({
+        key: new String(false, [], undefined).toGeneration(options),
+        value: this.additionalProperties.toGeneration(options)
+      })
+    } else if (this.additionalProperties === true && indexSignaturesGen.length === 0) {
+      indexSignaturesGen.push({
+        key: new String(false, [], undefined).toGeneration(options),
+        value: new Unknown().toGeneration(options)
+      })
+    }
 
-    const p = renderProperties(psGen, options)
-    const i = renderIndexSignatures(issGen)
+    if (propertiesGen.length === 0 && indexSignaturesGen.length === 0) {
+      return makeGeneration("Schema.Record(Schema.String, Schema.Never)", makeTypes("{ readonly [x: string]: never }"))
+    }
+
+    const p = renderProperties(propertiesGen, options)
+    const i = renderIndexSignatures(indexSignaturesGen)
 
     const suffix = this.renderChecks() + renderAnnotations(this.annotations)
 
-    if (issGen.length === 0) {
+    if (indexSignaturesGen.length === 0) {
       // 1) Only properties -> Struct
       return {
         runtime: `Schema.Struct({ ${p.runtime} })` + suffix,
@@ -1293,9 +1291,9 @@ class Objects {
         annotations: this.annotations,
         importDeclarations: p.importDeclarations
       }
-    } else if (psGen.length === 0 && issGen.length === 1) {
+    } else if (propertiesGen.length === 0 && indexSignaturesGen.length === 1) {
       // 2) Only one index signature and no properties -> Record
-      const is = issGen[0]
+      const is = indexSignaturesGen[0]
       return {
         runtime: indexSignatureRuntime(is) + suffix,
         types: makeTypes(
@@ -1311,7 +1309,7 @@ class Objects {
       // 3) Properties + index signatures -> StructWithRest
       return {
         runtime: `Schema.StructWithRest(Schema.Struct({ ${p.runtime} }), [${i.runtime}])` + suffix,
-        types: psGen.length === 0
+        types: propertiesGen.length === 0
           ? makeTypes(
             `{ ${i.types.Type} }`,
             `{ ${i.types.Encoded} }`,
@@ -1327,6 +1325,22 @@ class Objects {
         annotations: this.annotations,
         importDeclarations: ReadonlySetReducer.combineAll([p.importDeclarations, i.importDeclarations])
       }
+    }
+  }
+}
+
+function combineAdditionalProperties(a: boolean | AST, b: boolean | AST, options: RecurOptions): boolean | AST {
+  if (typeof a === "boolean") {
+    if (typeof b === "boolean") {
+      return a && b
+    } else {
+      return a ? b : false
+    }
+  } else {
+    if (typeof b === "boolean") {
+      return b ? a : false
+    } else {
+      return a.combine(b, options)
     }
   }
 }
@@ -1668,7 +1682,12 @@ function parseType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, opti
     case "object": {
       const properties = collectProperties(schema, options)
       const indexSignatures = collectIndexSignatures(schema, options)
-      const additionalProperties = schema.additionalProperties === false ? false : true
+      const additionalProperties = schema.additionalProperties === false
+        ? false
+        : isObject(schema.additionalProperties)
+        ? parse(schema.additionalProperties, options)
+        : true
+
       return new Objects(isNullable, properties, indexSignatures, additionalProperties, [])
     }
     case "array": {
@@ -1714,10 +1733,6 @@ function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions
         )
       )
     }
-  }
-
-  if (isObject(schema.additionalProperties)) {
-    out.push(new IndexSignature(new String(false, [], undefined), parse(schema.additionalProperties, options)))
   }
 
   return out

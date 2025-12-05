@@ -62,7 +62,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "array",
               "prefixItems": [{ "type": "string" }],
               "items": false,
               "minItems": 1
@@ -82,7 +81,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "array",
               "prefixItems": [{ "type": "string" }],
               "items": false,
               "minItems": 1
@@ -118,7 +116,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "number",
               "minimum": 0
             },
             options: sourceOpenapi30
@@ -131,7 +128,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "number",
               "minimum": 0,
               "exclusiveMinimum": false
             },
@@ -145,7 +141,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "number",
               "minimum": 0,
               "exclusiveMinimum": true
             },
@@ -162,7 +157,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "number",
               "maximum": 10
             },
             options: sourceOpenapi30
@@ -175,7 +169,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "number",
               "maximum": 10,
               "exclusiveMaximum": false
             },
@@ -189,7 +182,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "number",
               "maximum": 10,
               "exclusiveMaximum": true
             },
@@ -244,6 +236,20 @@ describe("FromJsonSchema", () => {
             FromJsonSchema.makeTypes("string")
           )
         )
+        assertGeneration(
+          {
+            schema: {
+              "allOf": [
+                { "minLength": 1, "nullable": true }
+              ]
+            },
+            options: sourceOpenapi30
+          },
+          FromJsonSchema.makeGeneration(
+            "Schema.NullOr(Schema.String.check(Schema.isMinLength(1)))",
+            FromJsonSchema.makeTypes("string | null")
+          )
+        )
       })
 
       it("should support nullable in enum", () => {
@@ -280,7 +286,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": {
                 "a": { "type": "string" },
                 "b": { "type": "string", "description": "desc-b" }
@@ -311,7 +316,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": {
                 "a": { "type": "string" },
                 "b": { "type": "string", "title": "desc-b" }
@@ -336,7 +340,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "properties": {
               "a": { "type": "string" },
               "b": { "$ref": "#/definitions/B" },
@@ -407,7 +410,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "patternProperties": {}
           }
         },
@@ -419,7 +421,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "patternProperties": {
               "^x-": { "type": "string" }
             },
@@ -434,7 +435,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "patternProperties": {
               "^x-": { "type": "string" },
               "^y-": { "type": "number" }
@@ -453,7 +453,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "propertyNames": { "pattern": "^[A-Z]" }
           }
         },
@@ -469,7 +468,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "string",
               "contentMediaType": "application/json",
               "contentSchema": {
                 "type": "number"
@@ -498,7 +496,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "string",
               "contentMediaType": "application/json"
             },
             options
@@ -511,7 +508,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "string",
               "contentSchema": {
                 "type": "number"
               }
@@ -526,7 +522,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "string",
               "contentMediaType": "application/json",
               "contentSchema": {
                 "type": "number"
@@ -546,7 +541,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "string",
               "contentMediaType": "application/json",
               "contentSchema": {
                 "$ref": "#/definitions/A"
@@ -751,19 +745,19 @@ describe("FromJsonSchema", () => {
         )
       )
       assertGeneration(
-        { schema: { "type": "string", "minLength": 1 } },
+        { schema: { "minLength": 1 } },
         FromJsonSchema.makeGeneration(`Schema.String.check(Schema.isMinLength(1))`, FromJsonSchema.makeTypes("string"))
       )
       assertGeneration(
-        { schema: { "type": "string", "maxLength": 10 } },
+        { schema: { "maxLength": 10 } },
         FromJsonSchema.makeGeneration(`Schema.String.check(Schema.isMaxLength(10))`, FromJsonSchema.makeTypes("string"))
       )
       assertGeneration(
-        { schema: { "type": "string", "pattern": "a" } },
+        { schema: { "pattern": "a" } },
         FromJsonSchema.makeGeneration(`Schema.String.check(Schema.isPattern(/a/))`, FromJsonSchema.makeTypes("string"))
       )
       assertGeneration(
-        { schema: { "type": "string", "minLength": 1, "maxLength": 10 } },
+        { schema: { "minLength": 1, "maxLength": 10 } },
         FromJsonSchema.makeGeneration(
           `Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10))`,
           FromJsonSchema.makeTypes("string")
@@ -785,39 +779,39 @@ describe("FromJsonSchema", () => {
         )
       )
       assertGeneration(
-        { schema: { "type": "number", "minimum": 0 } },
+        { schema: { "minimum": 0 } },
         FromJsonSchema.makeGeneration(
           `Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))`,
           FromJsonSchema.makeTypes("number")
         )
       )
       assertGeneration(
-        { schema: { "type": "number", "maximum": 10 } },
+        { schema: { "maximum": 10 } },
         FromJsonSchema.makeGeneration(
           `Schema.Number.check(Schema.isLessThanOrEqualTo(10))`,
           FromJsonSchema.makeTypes("number")
         )
       )
       assertGeneration(
-        { schema: { "type": "number", "exclusiveMinimum": 0 } },
+        { schema: { "exclusiveMinimum": 0 } },
         FromJsonSchema.makeGeneration(
           `Schema.Number.check(Schema.isGreaterThan(0))`,
           FromJsonSchema.makeTypes("number")
         )
       )
       assertGeneration(
-        { schema: { "type": "number", "exclusiveMaximum": 10 } },
+        { schema: { "exclusiveMaximum": 10 } },
         FromJsonSchema.makeGeneration(`Schema.Number.check(Schema.isLessThan(10))`, FromJsonSchema.makeTypes("number"))
       )
       assertGeneration(
-        { schema: { "type": "number", "multipleOf": 10 } },
+        { schema: { "multipleOf": 10 } },
         FromJsonSchema.makeGeneration(
           `Schema.Number.check(Schema.isMultipleOf(10))`,
           FromJsonSchema.makeTypes("number")
         )
       )
       assertGeneration(
-        { schema: { "type": "number", "minimum": 1, "maximum": 10 } },
+        { schema: { "minimum": 1, "maximum": 10 } },
         FromJsonSchema.makeGeneration(
           `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(10))`,
           FromJsonSchema.makeTypes("number")
@@ -829,6 +823,21 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         { schema: { "type": "integer" } },
         FromJsonSchema.makeGeneration("Schema.Int", FromJsonSchema.makeTypes("number"))
+      )
+      assertGeneration(
+        { schema: { "type": "integer", "description": "lorem" } },
+        FromJsonSchema.makeGeneration(
+          `Schema.Int.annotate({ "description": "lorem" })`,
+          FromJsonSchema.makeTypes("number"),
+          { description: "lorem" }
+        )
+      )
+      assertGeneration(
+        { schema: { "type": "integer", "minimum": 1 } },
+        FromJsonSchema.makeGeneration(
+          `Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))`,
+          FromJsonSchema.makeTypes("number")
+        )
       )
     })
 
@@ -865,42 +874,42 @@ describe("FromJsonSchema", () => {
           )
         )
         assertGeneration(
-          { schema: { "type": "array", "minItems": 1 } },
+          { schema: { "minItems": 1 } },
           FromJsonSchema.makeGeneration(
             `Schema.Array(Schema.Unknown).check(Schema.isMinLength(1))`,
             FromJsonSchema.makeTypes("ReadonlyArray<unknown>")
           )
         )
         assertGeneration(
-          { schema: { "type": "array", "additionalItems": false, "minItems": 1 } },
+          { schema: { "additionalItems": false, "minItems": 1 } },
           FromJsonSchema.makeGeneration(
             `Schema.Tuple([])`,
             FromJsonSchema.makeTypes("readonly []")
           )
         )
         assertGeneration(
-          { schema: { "type": "array", "maxItems": 10 } },
+          { schema: { "maxItems": 10 } },
           FromJsonSchema.makeGeneration(
             `Schema.Array(Schema.Unknown).check(Schema.isMaxLength(10))`,
             FromJsonSchema.makeTypes("ReadonlyArray<unknown>")
           )
         )
         assertGeneration(
-          { schema: { "type": "array", "uniqueItems": true } },
+          { schema: { "uniqueItems": true } },
           FromJsonSchema.makeGeneration(
             `Schema.Array(Schema.Unknown).check(Schema.isUnique())`,
             FromJsonSchema.makeTypes("ReadonlyArray<unknown>")
           )
         )
         assertGeneration(
-          { schema: { "type": "array", "items": [] } },
+          { schema: { "items": [] } },
           FromJsonSchema.makeGeneration(
             "Schema.Array(Schema.Unknown)",
             FromJsonSchema.makeTypes("ReadonlyArray<unknown>")
           )
         )
         assertGeneration(
-          { schema: { "type": "array", "items": {} } },
+          { schema: { "items": {} } },
           FromJsonSchema.makeGeneration(
             "Schema.Array(Schema.Unknown)",
             FromJsonSchema.makeTypes("ReadonlyArray<unknown>")
@@ -912,7 +921,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "array",
               "items": [],
               "additionalItems": false
             }
@@ -925,7 +933,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "array",
               "items": [],
               "additionalItems": false,
               "description": "lorem"
@@ -943,7 +950,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "array",
               "items": [{ "type": "string" }],
               "additionalItems": false,
               "minItems": 1
@@ -960,7 +966,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "array",
               "items": [{ "type": "string" }],
               "additionalItems": false
             }
@@ -973,7 +978,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "array",
               "items": [{ "type": "string" }],
               "additionalItems": false,
               "description": "lorem"
@@ -988,7 +992,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "array",
               "items": [{ "type": "string" }],
               "additionalItems": false,
               "minItems": 0
@@ -1005,7 +1008,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "array",
               "minItems": 1,
               "items": [
                 { "type": "string" }
@@ -1041,14 +1043,14 @@ describe("FromJsonSchema", () => {
           )
         )
         assertGeneration(
-          { schema: { "type": "object", "minProperties": 1 } },
+          { schema: { "minProperties": 1 } },
           FromJsonSchema.makeGeneration(
             `Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMinProperties(1))`,
             FromJsonSchema.makeTypes("{ readonly [x: string]: unknown }")
           )
         )
         assertGeneration(
-          { schema: { "type": "object", "maxProperties": 10 } },
+          { schema: { "maxProperties": 10 } },
           FromJsonSchema.makeGeneration(
             `Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMaxProperties(10))`,
             FromJsonSchema.makeTypes("{ readonly [x: string]: unknown }")
@@ -1057,7 +1059,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": {}
             }
           },
@@ -1069,7 +1070,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": {},
               "additionalProperties": false
             }
@@ -1338,7 +1338,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "properties": {
               "a": { "$ref": "#/definitions/A" }
             },
@@ -1355,7 +1354,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "properties": {
               "a": { "$ref": "#/definitions/A" },
               "b": { "$ref": "#/definitions/B" }
@@ -1378,7 +1376,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "additionalProperties": { "$ref": "#/definitions/A" }
           },
           options
@@ -1391,7 +1388,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "properties": {
               "a": { "$ref": "#/definitions/A" }
             },
@@ -1431,7 +1427,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "properties": {
               "a": { "$ref": "#/definitions/A" }
             },
@@ -1452,7 +1447,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "properties": {
               "a": { "$ref": "#/definitions/A" }
             },
@@ -1475,7 +1469,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "properties": {
               "a": { "$ref": "#/definitions/A" }
             },
@@ -1495,7 +1488,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "properties": {
               "a": { "$ref": "#/definitions/B/definitions/C" }
             },
@@ -1503,7 +1495,6 @@ describe("FromJsonSchema", () => {
             "additionalProperties": false,
             "definitions": {
               "B": {
-                "type": "object",
                 "properties": {
                   "b": { "type": "string" }
                 },
@@ -1525,7 +1516,6 @@ describe("FromJsonSchema", () => {
       assertGeneration(
         {
           schema: {
-            "type": "object",
             "properties": {
               "a": { "$ref": "#/definitions/B/definitions/C/properties/b" }
             },
@@ -1533,7 +1523,6 @@ describe("FromJsonSchema", () => {
             "additionalProperties": false,
             "definitions": {
               "B": {
-                "type": "object",
                 "properties": {
                   "b": { "type": "string" }
                 },
@@ -1541,7 +1530,6 @@ describe("FromJsonSchema", () => {
                 "additionalProperties": false,
                 "definitions": {
                   "C": {
-                    "type": "object",
                     "properties": {
                       "b": { "type": "string" }
                     },
@@ -1561,7 +1549,7 @@ describe("FromJsonSchema", () => {
     })
 
     describe("allOf", () => {
-      it("string & untyped", () => {
+      it("string & unknown", () => {
         assertGeneration(
           {
             schema: {
@@ -1674,7 +1662,7 @@ describe("FromJsonSchema", () => {
         )
       })
 
-      it("number & untyped", () => {
+      it("number & unknown", () => {
         assertGeneration(
           {
             schema: {
@@ -1866,7 +1854,7 @@ describe("FromJsonSchema", () => {
         )
       })
 
-      it("object & untyped", () => {
+      it("object & unknown", () => {
         assertGeneration(
           {
             schema: {
@@ -1883,7 +1871,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "minProperties": 1,
               "allOf": [{ "description": "lorem" }]
             }
@@ -1900,12 +1887,10 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": { "a": { "type": "string" } },
               "required": ["a"],
               "additionalProperties": false,
               "allOf": [{
-                "type": "object",
                 "properties": { "b": { "type": "string" } },
                 "required": ["b"],
                 "additionalProperties": false
@@ -1920,12 +1905,10 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": { "a": { "type": "string" } },
               "required": ["a"],
               "additionalProperties": false,
               "allOf": [{
-                "type": "object",
                 "properties": { "b": { "type": "string" } },
                 "additionalProperties": false
               }]
@@ -1939,7 +1922,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": {
                 "a": { "type": "string" },
                 "b": { "type": "string" }
@@ -1947,7 +1929,6 @@ describe("FromJsonSchema", () => {
               "required": ["a", "b"],
               "additionalProperties": false,
               "allOf": [{
-                "type": "object",
                 "properties": {
                   "b": { "enum": ["b"] },
                   "c": { "type": "string" }
@@ -1968,12 +1949,26 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": { "a": { "type": "string" } },
               "required": ["a"],
               "additionalProperties": false,
               "allOf": [{
-                "type": "object",
+                "additionalProperties": { "type": "string" }
+              }]
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Struct({ "a": Schema.String })`,
+            FromJsonSchema.makeTypes(`{ readonly "a": string }`)
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "properties": { "a": { "type": "string" } },
+              "required": ["a"],
+              "additionalProperties": true,
+              "allOf": [{
                 "additionalProperties": { "type": "string" }
               }]
             }
@@ -1989,13 +1984,27 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "additionalProperties": { "type": "string" },
               "allOf": [{
-                "type": "object",
                 "properties": { "a": { "type": "string" } },
                 "required": ["a"],
                 "additionalProperties": false
+              }]
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Struct({ "a": Schema.String })`,
+            FromJsonSchema.makeTypes(`{ readonly "a": string }`)
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "additionalProperties": { "type": "string" },
+              "allOf": [{
+                "properties": { "a": { "type": "string" } },
+                "required": ["a"],
+                "additionalProperties": true
               }]
             }
           },
@@ -2006,11 +2015,43 @@ describe("FromJsonSchema", () => {
         )
       })
 
+      it("record & record", () => {
+        assertGeneration(
+          {
+            schema: {
+              "additionalProperties": { "required": ["a"] },
+              "allOf": [{
+                "additionalProperties": { "required": ["b"], "additionalProperties": false }
+              }]
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Record(Schema.String, Schema.Struct({ "a": Schema.Unknown, "b": Schema.Unknown }))`,
+            FromJsonSchema.makeTypes(`{ readonly [x: string]: { readonly "a": unknown, readonly "b": unknown } }`)
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "additionalProperties": { "required": ["a"] },
+              "allOf": [{
+                "additionalProperties": { "required": ["b"] }
+              }]
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Record(Schema.String, Schema.StructWithRest(Schema.Struct({ "a": Schema.Unknown, "b": Schema.Unknown }), [Schema.Record(Schema.String, Schema.Unknown)]))`,
+            FromJsonSchema.makeTypes(
+              `{ readonly [x: string]: { readonly "a": unknown, readonly "b": unknown, readonly [x: string]: unknown } }`
+            )
+          )
+        )
+      })
+
       it("struct & union", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": { "a": { "type": "string" } },
               "required": ["a"],
               "additionalProperties": false,
@@ -2018,13 +2059,11 @@ describe("FromJsonSchema", () => {
                 {
                   "anyOf": [
                     {
-                      "type": "object",
                       "properties": { "b": { "type": "string" } },
                       "required": ["b"],
                       "additionalProperties": false
                     },
                     {
-                      "type": "object",
                       "properties": { "c": { "type": "string" } },
                       "additionalProperties": false
                     }
@@ -2048,19 +2087,16 @@ describe("FromJsonSchema", () => {
             schema: {
               "anyOf": [
                 {
-                  "type": "object",
                   "properties": { "b": { "type": "string" } },
                   "required": ["b"],
                   "additionalProperties": false
                 },
                 {
-                  "type": "object",
                   "properties": { "c": { "type": "string" } },
                   "additionalProperties": false
                 }
               ],
               "allOf": [{
-                "type": "object",
                 "properties": { "a": { "type": "string" } },
                 "required": ["a"],
                 "additionalProperties": false
@@ -2130,7 +2166,7 @@ describe("FromJsonSchema", () => {
         )
       })
 
-      it("array & untyped", () => {
+      it("array & unknown", () => {
         assertGeneration(
           {
             schema: {
@@ -2150,10 +2186,9 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "array",
               "minItems": 1,
               "items": [{ "type": "string" }],
-              "allOf": [{ "type": "array", "items": { "type": "string" } }]
+              "allOf": [{ "items": { "type": "string" } }]
             }
           },
           FromJsonSchema.makeGeneration(
@@ -2167,14 +2202,13 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "array",
               "minItems": 1,
               "items": [{ "type": "string" }],
               "allOf": [
                 {
                   "anyOf": [
-                    { "type": "array", "items": { "type": "string" } },
-                    { "type": "array", "items": { "type": "number" } }
+                    { "items": { "type": "string" } },
+                    { "items": { "type": "number" } }
                   ]
                 }
               ]
@@ -2192,12 +2226,11 @@ describe("FromJsonSchema", () => {
           {
             schema: {
               "anyOf": [
-                { "type": "array", "items": { "type": "string" } },
-                { "type": "array", "items": { "type": "number" } }
+                { "items": { "type": "string" } },
+                { "items": { "type": "number" } }
               ],
               "allOf": [
                 {
-                  "type": "array",
                   "minItems": 1,
                   "items": [{ "type": "string" }]
                 }
@@ -2215,7 +2248,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": {
                 "a": { "type": "string" }
               },
@@ -2226,7 +2258,6 @@ describe("FromJsonSchema", () => {
               ],
               "definitions": {
                 "B": {
-                  "type": "object",
                   "properties": {
                     "b": { "type": "string" }
                   },
@@ -2244,7 +2275,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": {
                 "a": { "type": "string" }
               },
@@ -2255,7 +2285,6 @@ describe("FromJsonSchema", () => {
               ],
               "definitions": {
                 "B": {
-                  "type": "object",
                   "properties": {
                     "b": { "$ref": "#/definitions/C" }
                   },
@@ -2276,7 +2305,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": {
                 "a": { "type": "string" }
               },
@@ -2289,7 +2317,6 @@ describe("FromJsonSchema", () => {
             options: {
               definitions: {
                 "B": {
-                  "type": "object",
                   "properties": {
                     "b": { "type": "string" }
                   },
@@ -2307,7 +2334,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": {
                 "a": { "type": "string" }
               },
@@ -2320,7 +2346,6 @@ describe("FromJsonSchema", () => {
             options: {
               definitions: {
                 "B": {
-                  "type": "object",
                   "properties": {
                     "b": { "$ref": "#/definitions/C" }
                   },
@@ -2341,7 +2366,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": {
                 "a": { "type": "string" }
               },
@@ -2354,14 +2378,12 @@ describe("FromJsonSchema", () => {
             options: {
               definitions: {
                 "B": {
-                  "type": "object",
                   "properties": {
                     "b": { "type": "string" }
                   },
                   "required": ["b"],
                   "definitions": {
                     "C": {
-                      "type": "object",
                       "properties": {
                         "c": { "type": "string" }
                       },
@@ -2888,7 +2910,6 @@ const schema1 = Schema.Struct({ "a": A });`
           {
             identifier: "A",
             schema: {
-              "type": "object",
               "properties": {
                 "a": {
                   "$ref": "#/definitions/B"
@@ -2901,7 +2922,6 @@ const schema1 = Schema.Struct({ "a": A });`
         ],
         {
           "B": {
-            "type": "object",
             "properties": {
               "b": {
                 "$ref": "#/definitions/B"
@@ -2978,7 +2998,6 @@ export const A = Schema.Struct({ "a": B });`
         {
           identifier: "A",
           schema: {
-            "type": "object",
             "properties": {
               "a": {
                 "$ref": "#/components/schemas/B"
