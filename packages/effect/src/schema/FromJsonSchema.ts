@@ -1688,13 +1688,14 @@ function parseType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, opti
 }
 
 function collectProperties(schema: Schema.JsonSchema, options: RecurOptions): Array<Property> {
-  if (isObject(schema.properties)) {
-    const required = Array.isArray(schema.required) ? schema.required : []
-    return Object.entries(schema.properties).map(([key, v]) =>
-      new Property(!required.includes(key), key, parse(v, options))
-    )
-  }
-  return []
+  const properties: Record<string, unknown> = isObject(schema.properties) ? schema.properties : {}
+  const required = Array.isArray(schema.required) ? schema.required : []
+  required.forEach((key) => {
+    if (!Object.hasOwn(properties, key)) {
+      properties[key] = {}
+    }
+  })
+  return Object.entries(properties).map(([key, v]) => new Property(!required.includes(key), key, parse(v, options)))
 }
 
 function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions): Array<IndexSignature> {

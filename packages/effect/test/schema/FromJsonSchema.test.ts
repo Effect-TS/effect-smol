@@ -1085,7 +1085,29 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
+              "required": ["a"],
+              "additionalProperties": false
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Struct({ "a": Schema.Unknown })`,
+            FromJsonSchema.makeTypes(`{ readonly "a": unknown }`)
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "required": ["a"]
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.StructWithRest(Schema.Struct({ "a": Schema.Unknown }), [Schema.Record(Schema.String, Schema.Unknown)])`,
+            FromJsonSchema.makeTypes(`{ readonly "a": unknown, readonly [x: string]: unknown }`)
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
               "properties": { "a": { "type": "string" } },
               "required": ["a"],
               "additionalProperties": false
@@ -1099,7 +1121,19 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
+              "properties": { "a": { "type": "string" } },
+              "required": ["a", "b"],
+              "additionalProperties": false
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.Struct({ "a": Schema.String, "b": Schema.Unknown })`,
+            FromJsonSchema.makeTypes(`{ readonly "a": string, readonly "b": unknown }`)
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
               "properties": { "a-b": { "type": "string" } },
               "required": ["a-b"],
               "additionalProperties": false
@@ -1116,7 +1150,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": { "a": { "type": "string" } },
               "additionalProperties": false
             }
@@ -1132,7 +1165,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": { "a": { "type": "string" } },
               "required": ["a"]
             }
@@ -1148,7 +1180,6 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           {
             schema: {
-              "type": "object",
               "properties": { "a": { "type": "string" } },
               "required": ["a"],
               "additionalProperties": true
