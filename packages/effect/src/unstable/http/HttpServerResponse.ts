@@ -85,7 +85,8 @@ export const empty = (
   return makeResponse({
     status: options?.status ?? 204,
     statusText: options?.statusText,
-    headers
+    headers,
+    cookies: options?.cookies ?? Cookies.empty
   });
 }
 
