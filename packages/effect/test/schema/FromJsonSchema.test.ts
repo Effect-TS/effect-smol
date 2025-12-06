@@ -223,45 +223,6 @@ describe("FromJsonSchema", () => {
             { "description": "lorem", "examples": [null] }
           )
         )
-        assertGeneration(
-          {
-            schema: {
-              "type": "string",
-              "allOf": [
-                { "minLength": 1, "nullable": true }
-              ]
-            },
-            options: sourceOpenapi30
-          },
-          FromJsonSchema.makeGeneration(
-            "Schema.String.check(Schema.isMinLength(1))",
-            FromJsonSchema.makeTypes("string")
-          )
-        )
-        assertGeneration(
-          {
-            schema: {
-              "allOf": [
-                { "minLength": 1, "nullable": true }
-              ]
-            },
-            options: sourceOpenapi30
-          },
-          FromJsonSchema.makeGeneration(
-            "Schema.NullOr(Schema.String.check(Schema.isMinLength(1)))",
-            FromJsonSchema.makeTypes("string | null")
-          )
-        )
-      })
-
-      it("should support nullable in enum", () => {
-        assertGeneration(
-          {
-            schema: { "enum": ["a", null], "nullable": true },
-            options: sourceOpenapi30
-          },
-          FromJsonSchema.makeGeneration(`Schema.NullOr(Schema.Literal("a"))`, FromJsonSchema.makeTypes(`"a" | null`))
-        )
       })
     })
 
