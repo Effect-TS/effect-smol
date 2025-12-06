@@ -87,7 +87,7 @@ export const empty = (
     statusText: options?.statusText,
     headers,
     cookies: options?.cookies ?? Cookies.empty
-  });
+  })
 }
 
 /**
