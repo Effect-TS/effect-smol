@@ -173,7 +173,7 @@ interface RecurOptions {
   readonly parseContentSchema: boolean
   readonly collectAnnotations: (schema: Schema.JsonSchema, annotations: Annotations) => Annotations
   readonly definitions: Schema.JsonSchema.Definitions
-  readonly inlineRefs: boolean
+  readonly allOf: boolean
   readonly refStack: ReadonlySet<string>
 }
 
@@ -190,7 +190,7 @@ export function generate(schema: Schema.JsonSchema | boolean, options: GenerateO
     parseContentSchema: options.parseContentSchema ?? false,
     collectAnnotations: options.collectAnnotations ?? ((_, annotations) => annotations),
     definitions: options.definitions ?? {},
-    inlineRefs: false,
+    allOf: false,
     refStack: emptySet
   }
   return parse(schema, recurOptions).toGeneration(recurOptions)
@@ -218,10 +218,21 @@ function renderJsDocs(annotations: Annotations, options: RecurOptions): string {
 
 function renderAnnotations(annotations: Annotations): string {
   const entries = Object.entries(annotations)
-
   if (entries.length === 0) return ""
+  return `{ ${entries.map(([key, value]) => `${formatPropertyKey(key)}: ${format(value)}`).join(", ")} }`
+}
 
-  return `.annotate({ ${entries.map(([key, value]) => `${formatPropertyKey(key)}: ${format(value)}`).join(", ")} })`
+function renderAnnotationsMethod(annotations: Annotations): string {
+  const a = renderAnnotations(annotations)
+  if (a === "") return ""
+  return `.annotate(${renderAnnotations(annotations)})`
+}
+
+function renderAnnotationsObject(annotations: Annotations | undefined): string {
+  if (annotations === undefined) return ""
+  const a = renderAnnotations(annotations)
+  if (a === "") return ""
+  return `, ${renderAnnotations(annotations)}`
 }
 
 const emptySet: ReadonlySet<string> = new Set()
@@ -496,14 +507,14 @@ class Unknown {
   annotate(annotations: Annotations | undefined): Unknown {
     return new Unknown(annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
-  parseChecks(_: Schema.JsonSchema): AST {
+  parseChecks(_: Schema.JsonSchema): Unknown {
     return this
   }
-  combine(that: AST): AST {
-    return that.annotate(this.annotations)
+  combine(that: AST, options: RecurOptions): AST {
+    return that.annotate(this.annotations, options.allOf)
   }
   toGeneration(_: RecurOptions): Generation {
-    const suffix = renderAnnotations(this.annotations)
+    const suffix = renderAnnotationsMethod(this.annotations)
     return makeGeneration("Schema.Unknown" + suffix, makeTypes("unknown"), this.annotations)
   }
 }
@@ -517,7 +528,7 @@ class Never {
   annotate(annotations: Annotations | undefined): Never {
     return new Never(annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
-  parseChecks(_: Schema.JsonSchema): AST {
+  parseChecks(_: Schema.JsonSchema): Never {
     return this
   }
   combine(that: AST): AST {
@@ -525,7 +536,7 @@ class Never {
     return new Never(annotations)
   }
   toGeneration(_: RecurOptions): Generation {
-    const suffix = renderAnnotations(this.annotations)
+    const suffix = renderAnnotationsMethod(this.annotations)
     return makeGeneration("Schema.Never" + suffix, makeTypes("never"), this.annotations)
   }
 }
@@ -539,7 +550,7 @@ class Null {
   annotate(annotations: Annotations | undefined): Null {
     return new Null(annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
-  parseChecks(_: Schema.JsonSchema): AST {
+  parseChecks(_: Schema.JsonSchema): Null {
     return this
   }
   combine(that: AST): AST {
@@ -552,29 +563,21 @@ class Null {
     }
   }
   toGeneration(_: RecurOptions): Generation {
-    const suffix = renderAnnotations(this.annotations)
+    const suffix = renderAnnotationsMethod(this.annotations)
     return makeGeneration("Schema.Null" + suffix, makeTypes("null"), this.annotations)
   }
 }
 
 type StringCheck =
-  | { readonly _tag: "minLength"; readonly value: number }
-  | { readonly _tag: "maxLength"; readonly value: number }
-  | { readonly _tag: "pattern"; readonly value: string }
+  | { readonly _tag: "minLength"; readonly value: number; readonly annotations?: Annotations | undefined }
+  | { readonly _tag: "maxLength"; readonly value: number; readonly annotations?: Annotations | undefined }
+  | { readonly _tag: "pattern"; readonly value: string; readonly annotations?: Annotations | undefined }
 
 function makePatternCheck(pattern: string): StringCheck {
   return { _tag: "pattern", value: pattern.replace(/\//g, "\\/") }
 }
 
 class String {
-  static parseChecks(f: Schema.JsonSchema): Array<StringCheck> {
-    const cs: Array<StringCheck> = []
-    if (typeof f.minLength === "number") cs.push({ _tag: "minLength", value: f.minLength })
-    if (typeof f.maxLength === "number") cs.push({ _tag: "maxLength", value: f.maxLength })
-    // Escape forward slashes to prevent them from terminating the regex literal delimiter
-    if (typeof f.pattern === "string") cs.push(makePatternCheck(f.pattern))
-    return cs
-  }
   readonly _tag = "String"
   readonly isNullable: boolean
   readonly checks: ReadonlyArray<StringCheck>
@@ -591,7 +594,10 @@ class String {
     this.contentSchema = contentSchema
     this.annotations = annotations
   }
-  annotate(annotations: Annotations | undefined): String {
+  annotate(annotations: Annotations | undefined, allOf: boolean): String {
+    if (allOf && this.checks.length === 1) {
+      return new String(this.isNullable, [{ ...this.checks[0], annotations }], this.contentSchema, this.annotations)
+    }
     return new String(
       this.isNullable,
       this.checks,
@@ -599,8 +605,21 @@ class String {
       annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
-  parseChecks(f: Schema.JsonSchema): AST {
-    return new String(this.isNullable, [...this.checks, ...String.parseChecks(f)], this.contentSchema, this.annotations)
+  parseChecks(schema: Schema.JsonSchema): String {
+    const cs: Array<StringCheck> = []
+
+    if (typeof schema.minLength === "number") {
+      cs.push({ _tag: "minLength", value: schema.minLength })
+    }
+
+    if (typeof schema.maxLength === "number") {
+      cs.push({ _tag: "maxLength", value: schema.maxLength })
+    }
+
+    // Escape forward slashes to prevent them from terminating the regex literal delimiter
+    if (typeof schema.pattern === "string") cs.push(makePatternCheck(schema.pattern))
+
+    return new String(this.isNullable, [...this.checks, ...cs], this.contentSchema, this.annotations)
   }
   combine(that: AST, options: RecurOptions): AST {
     const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
@@ -627,7 +646,7 @@ class String {
     }
   }
   toGeneration(options: RecurOptions): Generation {
-    const suffix = renderChecks(this.checks) + renderAnnotations(this.annotations)
+    const suffix = renderAnnotationsMethod(this.annotations) + renderChecks(this.checks)
     if (this.contentSchema !== undefined && options.parseContentSchema) {
       const contentSchema = this.contentSchema.toGeneration(options)
       return makeGeneration(
@@ -648,33 +667,34 @@ class String {
 type Check = StringCheck | NumberCheck | ArraysCheck | ObjectsCheck
 
 function renderCheck(c: Check): string {
+  const a = renderAnnotationsObject(c.annotations)
   switch (c._tag) {
     case "minLength":
-      return `Schema.isMinLength(${c.value})`
+      return `Schema.isMinLength(${c.value}${a})`
     case "maxLength":
-      return `Schema.isMaxLength(${c.value})`
+      return `Schema.isMaxLength(${c.value}${a})`
     case "pattern":
-      return `Schema.isPattern(/${c.value}/)`
+      return `Schema.isPattern(/${c.value}/${a})`
     case "greaterThanOrEqualTo":
-      return `Schema.isGreaterThanOrEqualTo(${c.value})`
+      return `Schema.isGreaterThanOrEqualTo(${c.value}${a})`
     case "lessThanOrEqualTo":
-      return `Schema.isLessThanOrEqualTo(${c.value})`
+      return `Schema.isLessThanOrEqualTo(${c.value}${a})`
     case "greaterThan":
-      return `Schema.isGreaterThan(${c.value})`
+      return `Schema.isGreaterThan(${c.value}${a})`
     case "lessThan":
-      return `Schema.isLessThan(${c.value})`
+      return `Schema.isLessThan(${c.value}${a})`
     case "multipleOf":
-      return `Schema.isMultipleOf(${c.value})`
+      return `Schema.isMultipleOf(${c.value}${a})`
     case "minItems":
-      return `Schema.isMinLength(${c.value})`
+      return `Schema.isMinLength(${c.value}${a})`
     case "maxItems":
-      return `Schema.isMaxLength(${c.value})`
+      return `Schema.isMaxLength(${c.value}${a})`
     case "uniqueItems":
-      return `Schema.isUnique()`
+      return `Schema.isUnique(${a})`
     case "minProperties":
-      return `Schema.isMinProperties(${c.value})`
+      return `Schema.isMinProperties(${c.value}${a})`
     case "maxProperties":
-      return `Schema.isMaxProperties(${c.value})`
+      return `Schema.isMaxProperties(${c.value}${a})`
   }
 }
 
@@ -683,35 +703,13 @@ function renderChecks(checks: ReadonlyArray<Check>): string {
 }
 
 type NumberCheck =
-  | { readonly _tag: "greaterThanOrEqualTo"; readonly value: number }
-  | { readonly _tag: "lessThanOrEqualTo"; readonly value: number }
-  | { readonly _tag: "greaterThan"; readonly value: number }
-  | { readonly _tag: "lessThan"; readonly value: number }
-  | { readonly _tag: "multipleOf"; readonly value: number }
+  | { readonly _tag: "greaterThanOrEqualTo"; readonly value: number; readonly annotations?: Annotations | undefined }
+  | { readonly _tag: "lessThanOrEqualTo"; readonly value: number; readonly annotations?: Annotations | undefined }
+  | { readonly _tag: "greaterThan"; readonly value: number; readonly annotations?: Annotations | undefined }
+  | { readonly _tag: "lessThan"; readonly value: number; readonly annotations?: Annotations | undefined }
+  | { readonly _tag: "multipleOf"; readonly value: number; readonly annotations?: Annotations | undefined }
 
 class Number {
-  static parseChecks(f: Schema.JsonSchema): Array<NumberCheck> {
-    const cs: Array<NumberCheck> = []
-
-    if (typeof f.exclusiveMinimum === "number") {
-      cs.push({ _tag: "greaterThan", value: f.exclusiveMinimum })
-    } else if (f.exclusiveMinimum === true && typeof f.minimum === "number") {
-      cs.push({ _tag: "greaterThan", value: f.minimum })
-    } else if (typeof f.minimum === "number") {
-      cs.push({ _tag: "greaterThanOrEqualTo", value: f.minimum })
-    }
-
-    if (typeof f.exclusiveMaximum === "number") {
-      cs.push({ _tag: "lessThan", value: f.exclusiveMaximum })
-    } else if (f.exclusiveMaximum === true && typeof f.maximum === "number") {
-      cs.push({ _tag: "lessThan", value: f.maximum })
-    } else if (typeof f.maximum === "number") {
-      cs.push({ _tag: "lessThanOrEqualTo", value: f.maximum })
-    }
-
-    if (typeof f.multipleOf === "number") cs.push({ _tag: "multipleOf", value: f.multipleOf })
-    return cs
-  }
   readonly _tag = "Number"
   readonly isNullable: boolean
   readonly isInteger: boolean
@@ -728,7 +726,10 @@ class Number {
     this.checks = checks
     this.annotations = annotations
   }
-  annotate(annotations: Annotations | undefined): Number {
+  annotate(annotations: Annotations | undefined, allOf: boolean): Number {
+    if (allOf && this.checks.length === 1) {
+      return new Number(this.isNullable, this.isInteger, [{ ...this.checks[0], annotations }], this.annotations)
+    }
     return new Number(
       this.isNullable,
       this.isInteger,
@@ -736,8 +737,32 @@ class Number {
       annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
-  parseChecks(f: Schema.JsonSchema): AST {
-    return new Number(this.isNullable, this.isInteger, [...this.checks, ...Number.parseChecks(f)], this.annotations)
+  parseChecks(schema: Schema.JsonSchema): Number {
+    const cs: Array<NumberCheck> = []
+
+    if (typeof schema.exclusiveMinimum === "number") {
+      cs.push({ _tag: "greaterThan", value: schema.exclusiveMinimum })
+    } else if (schema.exclusiveMinimum === true && typeof schema.minimum === "number") {
+      cs.push({ _tag: "greaterThan", value: schema.minimum })
+    } else if (typeof schema.minimum === "number") {
+      cs.push({ _tag: "greaterThanOrEqualTo", value: schema.minimum })
+    }
+
+    if (typeof schema.exclusiveMaximum === "number") {
+      cs.push({ _tag: "lessThan", value: schema.exclusiveMaximum })
+    } else if (schema.exclusiveMaximum === true && typeof schema.maximum === "number") {
+      cs.push({ _tag: "lessThan", value: schema.maximum })
+    } else if (typeof schema.maximum === "number") {
+      cs.push({ _tag: "lessThanOrEqualTo", value: schema.maximum })
+    }
+
+    if (typeof schema.multipleOf === "number") cs.push({ _tag: "multipleOf", value: schema.multipleOf })
+    return new Number(
+      this.isNullable,
+      this.isInteger,
+      [...this.checks, ...cs],
+      this.annotations
+    )
   }
   combine(that: AST, options: RecurOptions): AST {
     const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
@@ -758,7 +783,7 @@ class Number {
     }
   }
   toGeneration(_: RecurOptions): Generation {
-    const suffix = renderChecks(this.checks) + renderAnnotations(this.annotations)
+    const suffix = renderAnnotationsMethod(this.annotations) + renderChecks(this.checks)
     return makeGeneration(
       (this.isInteger ? "Schema.Int" : "Schema.Number") + suffix,
       makeTypes("number"),
@@ -781,7 +806,7 @@ class Boolean {
       annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
-  parseChecks(_: Schema.JsonSchema): AST {
+  parseChecks(_: Schema.JsonSchema): Boolean {
     return this
   }
   combine(that: AST, options: RecurOptions): AST {
@@ -804,7 +829,7 @@ class Boolean {
     }
   }
   toGeneration(_: RecurOptions): Generation {
-    const suffix = renderAnnotations(this.annotations)
+    const suffix = renderAnnotationsMethod(this.annotations)
     return makeGeneration("Schema.Boolean" + suffix, makeTypes("boolean"), this.annotations)
   }
 }
@@ -828,7 +853,7 @@ class Enum {
   annotate(annotations: Annotations | undefined): Enum {
     return new Enum(this.values, annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
-  parseChecks(_: Schema.JsonSchema): AST {
+  parseChecks(_: Schema.JsonSchema): Enum {
     return this
   }
   combine(that: AST, options: RecurOptions): AST {
@@ -864,7 +889,7 @@ class Enum {
   }
   toGeneration(_: RecurOptions): Generation {
     const values = this.values.map((v) => format(v))
-    const suffix = renderAnnotations(this.annotations)
+    const suffix = renderAnnotationsMethod(this.annotations)
     if (values.length === 1) {
       return makeGeneration(`Schema.Literal(${values[0]})` + suffix, makeTypes(values[0]), this.annotations)
     } else {
@@ -878,9 +903,9 @@ class Enum {
 }
 
 type ArraysCheck =
-  | { readonly _tag: "minItems"; readonly value: number }
-  | { readonly _tag: "maxItems"; readonly value: number }
-  | { readonly _tag: "uniqueItems" }
+  | { readonly _tag: "minItems"; readonly value: number; readonly annotations?: Annotations | undefined }
+  | { readonly _tag: "maxItems"; readonly value: number; readonly annotations?: Annotations | undefined }
+  | { readonly _tag: "uniqueItems"; readonly annotations?: Annotations | undefined }
 
 class Element {
   readonly isOptional: boolean
@@ -889,19 +914,12 @@ class Element {
     this.isOptional = isOptional
     this.ast = ast
   }
-  annotate(annotations: Annotations | undefined): Element {
-    return new Element(this.isOptional, this.ast.annotate(annotations))
+  annotate(annotations: Annotations | undefined, allOf: boolean): Element {
+    return new Element(this.isOptional, this.ast.annotate(annotations, allOf))
   }
 }
 
 class Arrays {
-  static parseChecks(f: Schema.JsonSchema): Array<ArraysCheck> {
-    const cs: Array<ArraysCheck> = []
-    if (typeof f.minItems === "number") cs.push({ _tag: "minItems", value: f.minItems })
-    if (typeof f.maxItems === "number") cs.push({ _tag: "maxItems", value: f.maxItems })
-    if (f.uniqueItems === true) cs.push({ _tag: "uniqueItems" })
-    return cs
-  }
   readonly _tag = "Arrays"
   readonly isNullable: boolean
   readonly elements: ReadonlyArray<Element>
@@ -928,7 +946,16 @@ class Arrays {
     })
     this.annotations = annotations
   }
-  annotate(annotations: Annotations | undefined): Arrays {
+  annotate(annotations: Annotations | undefined, allOf: boolean): Arrays {
+    if (allOf && this.checks.length === 1) {
+      return new Arrays(
+        this.isNullable,
+        this.elements,
+        this.rest,
+        [{ ...this.checks[0], annotations }],
+        this.annotations
+      )
+    }
     return new Arrays(
       this.isNullable,
       this.elements,
@@ -937,12 +964,16 @@ class Arrays {
       annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
-  parseChecks(schema: Schema.JsonSchema): AST {
+  parseChecks(schema: Schema.JsonSchema): Arrays {
+    const cs: Array<ArraysCheck> = []
+    if (typeof schema.minItems === "number") cs.push({ _tag: "minItems", value: schema.minItems })
+    if (typeof schema.maxItems === "number") cs.push({ _tag: "maxItems", value: schema.maxItems })
+    if (schema.uniqueItems === true) cs.push({ _tag: "uniqueItems" })
     return new Arrays(
       this.isNullable,
       this.elements,
       this.rest,
-      [...this.checks, ...Arrays.parseChecks(schema)],
+      [...this.checks, ...cs],
       this.annotations
     )
   }
@@ -991,7 +1022,7 @@ class Arrays {
     const rest = this.rest !== undefined ? this.rest.toGeneration(options) : undefined
     const el = renderElements(es)
 
-    const suffix = renderChecks(this.checks) + renderAnnotations(this.annotations)
+    const suffix = renderAnnotationsMethod(this.annotations) + renderChecks(this.checks)
 
     if (es.length === 0 && rest === undefined) {
       return makeGeneration(`Schema.Tuple([])` + suffix, makeTypes("readonly []"), this.annotations)
@@ -1077,8 +1108,8 @@ function addQuestionMark(isOptional: boolean, type: string): string {
 }
 
 type ObjectsCheck =
-  | { readonly _tag: "minProperties"; readonly value: number }
-  | { readonly _tag: "maxProperties"; readonly value: number }
+  | { readonly _tag: "minProperties"; readonly value: number; readonly annotations?: Annotations | undefined }
+  | { readonly _tag: "maxProperties"; readonly value: number; readonly annotations?: Annotations | undefined }
 
 class Property {
   readonly isOptional: boolean
@@ -1101,12 +1132,6 @@ class IndexSignature {
 }
 
 class Objects {
-  static parseChecks(f: Schema.JsonSchema): Array<ObjectsCheck> {
-    const cs: Array<ObjectsCheck> = []
-    if (typeof f.minProperties === "number") cs.push({ _tag: "minProperties", value: f.minProperties })
-    if (typeof f.maxProperties === "number") cs.push({ _tag: "maxProperties", value: f.maxProperties })
-    return cs
-  }
   readonly _tag = "Objects"
   readonly isNullable: boolean
   readonly properties: ReadonlyArray<Property>
@@ -1129,7 +1154,13 @@ class Objects {
     this.checks = checks
     this.annotations = annotations
   }
-  annotate(annotations: Annotations | undefined): Objects {
+  annotate(annotations: Annotations | undefined, allOf: boolean): Objects {
+    if (allOf && this.checks.length === 1) {
+      return new Objects(this.isNullable, this.properties, this.indexSignatures, this.additionalProperties, [{
+        ...this.checks[0],
+        annotations
+      }], this.annotations)
+    }
     return new Objects(
       this.isNullable,
       this.properties,
@@ -1139,13 +1170,16 @@ class Objects {
       annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
-  parseChecks(f: Schema.JsonSchema): AST {
+  parseChecks(schema: Schema.JsonSchema): Objects {
+    const cs: Array<ObjectsCheck> = []
+    if (typeof schema.minProperties === "number") cs.push({ _tag: "minProperties", value: schema.minProperties })
+    if (typeof schema.maxProperties === "number") cs.push({ _tag: "maxProperties", value: schema.maxProperties })
     return new Objects(
       this.isNullable,
       this.properties,
       this.indexSignatures,
       this.additionalProperties,
-      [...this.checks, ...Objects.parseChecks(f)],
+      [...this.checks, ...cs],
       this.annotations
     )
   }
@@ -1232,7 +1266,7 @@ class Objects {
     const p = renderProperties(propertiesGen, options)
     const i = renderIndexSignatures(indexSignaturesGen)
 
-    const suffix = renderChecks(this.checks) + renderAnnotations(this.annotations)
+    const suffix = renderAnnotationsMethod(this.annotations) + renderChecks(this.checks)
 
     if (indexSignaturesGen.length === 0) {
       // 1) Only properties -> Struct
@@ -1366,7 +1400,7 @@ class Union {
   static make(members: ReadonlyArray<AST>, mode: "anyOf" | "oneOf", annotations: Annotations = {}): AST {
     members = members.filter((m) => m._tag !== "Never")
     if (members.length === 0) return new Never(annotations)
-    if (members.length === 1) return members[0].annotate(annotations)
+    if (members.length === 1) return members[0].annotate(annotations, false)
     return new Union(members, mode, annotations)
   }
   readonly _tag = "Union"
@@ -1385,7 +1419,7 @@ class Union {
       annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
-  parseChecks(_: Schema.JsonSchema): AST {
+  parseChecks(_: Schema.JsonSchema): Union {
     return this
   }
   combine(that: AST, options: RecurOptions): AST {
@@ -1406,7 +1440,7 @@ class Union {
         Object.keys(this.members[1].annotations).length === 0 ?
       `Schema.NullOr(${members[0].code})` :
       `Schema.Union([${members.map((m) => m.code).join(", ")}]${this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""})`
-    const suffix = renderAnnotations(this.annotations)
+    const suffix = renderAnnotationsMethod(this.annotations)
     return makeGeneration(
       runtime + suffix,
       makeTypes(
@@ -1432,7 +1466,7 @@ class Reference {
   annotate(annotations: Annotations | undefined): Reference {
     return new Reference(this.ref, annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
   }
-  parseChecks(_: Schema.JsonSchema): AST {
+  parseChecks(_: Schema.JsonSchema): Reference {
     return this
   }
   combine(_: AST): AST {
@@ -1440,7 +1474,7 @@ class Reference {
   }
   toGeneration(options: RecurOptions): Generation {
     const out = options.resolver(this.ref)
-    const suffix = renderAnnotations(this.annotations)
+    const suffix = renderAnnotationsMethod(this.annotations)
     return makeGeneration(
       out.code + suffix,
       out.types,
@@ -1457,14 +1491,16 @@ function parse(schema: unknown, options: RecurOptions): AST {
 
   let ast = parseFragment(schema, options)
 
-  const annotations = options.collectAnnotations(schema, collectAnnotations(schema, ast))
-  if (Object.keys(annotations).length > 0) ast = ast.annotate(annotations)
-
   ast = ast.parseChecks(schema)
+
+  const annotations = options.collectAnnotations(schema, collectAnnotations(schema, ast))
+  if (Object.keys(annotations).length > 0) {
+    ast = ast.annotate(annotations, options.allOf)
+  }
 
   if (Array.isArray(schema.allOf)) {
     // inline local refs only while parsing members of `allOf`
-    const allOfOptions: RecurOptions = { ...options, inlineRefs: true }
+    const allOfOptions: RecurOptions = { ...options, allOf: true }
     return schema.allOf.map((m) => parse(m, allOfOptions)).reduce(
       (acc, curr) => acc.combine(curr, allOfOptions),
       ast
@@ -1472,7 +1508,7 @@ function parse(schema: unknown, options: RecurOptions): AST {
   }
 
   if (options.source === "openapi-3.0" && "isNullable" in ast && ast.isNullable === true) {
-    ast = NullOr(ast.annotate(undefined)).annotate(ast.annotations)
+    ast = NullOr(ast.annotate(undefined, false)).annotate(ast.annotations, false)
   }
 
   return ast
@@ -1530,7 +1566,7 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
       if (Arr.isArrayNonEmpty(ref)) {
         const definition = extractDefinition(options.definitions, ref)
         if (
-          options.inlineRefs &&
+          options.allOf &&
           definition !== undefined &&
           !options.refStack.has(schema.$ref)
         ) {

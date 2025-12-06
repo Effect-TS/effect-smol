@@ -1601,6 +1601,20 @@ describe("FromJsonSchema", () => {
           {
             schema: {
               "type": "string",
+              "description": " ",
+              "allOf": [{ "description": "lorem" }]
+            }
+          },
+          FromJsonSchema.makeGeneration(
+            `Schema.String.annotate({ "description": "lorem" })`,
+            FromJsonSchema.makeTypes("string"),
+            { description: "lorem" }
+          )
+        )
+        assertGeneration(
+          {
+            schema: {
+              "type": "string",
               "allOf": [{ "minLength": 1 }]
             }
           },
@@ -1618,7 +1632,7 @@ describe("FromJsonSchema", () => {
             }
           },
           FromJsonSchema.makeGeneration(
-            `Schema.String.check(Schema.isMinLength(1)).annotate({ "description": "lorem" })`,
+            `Schema.String.annotate({ "description": "lorem" }).check(Schema.isMinLength(1))`,
             FromJsonSchema.makeTypes("string"),
             { description: "lorem" }
           )
@@ -1632,35 +1646,7 @@ describe("FromJsonSchema", () => {
             }
           },
           FromJsonSchema.makeGeneration(
-            `Schema.String.check(Schema.isMinLength(1)).annotate({ "description": "lorem, ipsum" })`,
-            FromJsonSchema.makeTypes("string"),
-            { description: "lorem, ipsum" }
-          )
-        )
-        assertGeneration(
-          {
-            schema: {
-              "type": "string",
-              "description": " ",
-              "allOf": [{ "minLength": 1, "description": "ipsum" }]
-            }
-          },
-          FromJsonSchema.makeGeneration(
-            `Schema.String.check(Schema.isMinLength(1)).annotate({ "description": "ipsum" })`,
-            FromJsonSchema.makeTypes("string"),
-            { description: "ipsum" }
-          )
-        )
-        assertGeneration(
-          {
-            schema: {
-              "type": "string",
-              "description": "lorem",
-              "allOf": [{ "minLength": 1, "description": " " }]
-            }
-          },
-          FromJsonSchema.makeGeneration(
-            `Schema.String.check(Schema.isMinLength(1)).annotate({ "description": "lorem" })`,
+            `Schema.String.annotate({ "description": "lorem" }).check(Schema.isMinLength(1, { "description": "ipsum" }))`,
             FromJsonSchema.makeTypes("string"),
             { description: "lorem" }
           )
@@ -1731,7 +1717,7 @@ describe("FromJsonSchema", () => {
             }
           },
           FromJsonSchema.makeGeneration(
-            `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ "description": "lorem" })`,
+            `Schema.Number.annotate({ "description": "lorem" }).check(Schema.isGreaterThanOrEqualTo(1))`,
             FromJsonSchema.makeTypes("number"),
             { description: "lorem" }
           )
@@ -1745,9 +1731,9 @@ describe("FromJsonSchema", () => {
             }
           },
           FromJsonSchema.makeGeneration(
-            `Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)).annotate({ "description": "lorem, ipsum" })`,
+            `Schema.Number.annotate({ "description": "lorem" }).check(Schema.isGreaterThanOrEqualTo(1, { "description": "ipsum" }))`,
             FromJsonSchema.makeTypes("number"),
-            { description: "lorem, ipsum" }
+            { description: "lorem" }
           )
         )
       })
@@ -1910,7 +1896,7 @@ describe("FromJsonSchema", () => {
             }
           },
           FromJsonSchema.makeGeneration(
-            `Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMinProperties(1)).annotate({ "description": "lorem" })`,
+            `Schema.Record(Schema.String, Schema.Unknown).annotate({ "description": "lorem" }).check(Schema.isMinProperties(1))`,
             FromJsonSchema.makeTypes("{ readonly [x: string]: unknown }"),
             { description: "lorem" }
           )
