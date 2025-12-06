@@ -49,6 +49,18 @@ export const helpFlag: Flag.Flag<boolean> = Flag
   )
 
 /**
+ * Built-in --help-full option for complete recursive help output.
+ *
+ * @since 4.0.0
+ * @internal
+ */
+export const helpFullFlag: Flag.Flag<boolean> = Flag
+  .boolean("help-full")
+  .pipe(
+    Flag.withDescription("Show complete recursive help for all subcommands")
+  )
+
+/**
  * Built-in --version option.
  *
  * @since 4.0.0
