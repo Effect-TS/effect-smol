@@ -520,8 +520,7 @@ describe("FromJsonSchema", () => {
               "contentMediaType": "application/json",
               "contentSchema": {
                 "type": "number"
-              },
-              "description": "a string that will be decoded as JSON"
+              }
             },
             options
           },
@@ -539,8 +538,7 @@ describe("FromJsonSchema", () => {
               "contentMediaType": "application/json",
               "contentSchema": {
                 "$ref": "#/definitions/A"
-              },
-              "description": "a string that will be decoded as JSON"
+              }
             },
             options
           },
@@ -726,38 +724,241 @@ describe("FromJsonSchema", () => {
       )
     })
 
-    it("type: string", () => {
-      assertGeneration(
-        { schema: { "type": "string" } },
-        FromJsonSchema.makeGeneration("Schema.String", FromJsonSchema.makeTypes("string"))
-      )
-      assertGeneration(
-        { schema: { "type": "string", "description": "lorem" } },
-        FromJsonSchema.makeGeneration(
-          `Schema.String.annotate({ "description": "lorem" })`,
-          FromJsonSchema.makeTypes("string"),
-          { description: "lorem" }
+    describe("type: string", () => {
+      it("baseline", () => {
+        assertGeneration(
+          { schema: { "type": "string" } },
+          FromJsonSchema.makeGeneration("Schema.String", FromJsonSchema.makeTypes("string"))
         )
-      )
-      assertGeneration(
-        { schema: { "minLength": 1 } },
-        FromJsonSchema.makeGeneration(`Schema.String.check(Schema.isMinLength(1))`, FromJsonSchema.makeTypes("string"))
-      )
-      assertGeneration(
-        { schema: { "maxLength": 10 } },
-        FromJsonSchema.makeGeneration(`Schema.String.check(Schema.isMaxLength(10))`, FromJsonSchema.makeTypes("string"))
-      )
-      assertGeneration(
-        { schema: { "pattern": "a" } },
-        FromJsonSchema.makeGeneration(`Schema.String.check(Schema.isPattern(/a/))`, FromJsonSchema.makeTypes("string"))
-      )
-      assertGeneration(
-        { schema: { "minLength": 1, "maxLength": 10 } },
-        FromJsonSchema.makeGeneration(
-          `Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10))`,
-          FromJsonSchema.makeTypes("string")
+        assertGeneration(
+          { schema: { "type": "string", "description": "lorem" } },
+          FromJsonSchema.makeGeneration(
+            `Schema.String.annotate({ "description": "lorem" })`,
+            FromJsonSchema.makeTypes("string"),
+            { description: "lorem" }
+          )
         )
-      )
+      })
+
+      it("checks", () => {
+        assertGeneration(
+          { schema: { "minLength": 1 } },
+          FromJsonSchema.makeGeneration(
+            `Schema.String.check(Schema.isMinLength(1))`,
+            FromJsonSchema.makeTypes("string")
+          )
+        )
+        assertGeneration(
+          { schema: { "maxLength": 10 } },
+          FromJsonSchema.makeGeneration(
+            `Schema.String.check(Schema.isMaxLength(10))`,
+            FromJsonSchema.makeTypes("string")
+          )
+        )
+        assertGeneration(
+          { schema: { "pattern": "a" } },
+          FromJsonSchema.makeGeneration(
+            `Schema.String.check(Schema.isPattern(/a/))`,
+            FromJsonSchema.makeTypes("string")
+          )
+        )
+        assertGeneration(
+          { schema: { "minLength": 1, "maxLength": 10 } },
+          FromJsonSchema.makeGeneration(
+            `Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10))`,
+            FromJsonSchema.makeTypes("string")
+          )
+        )
+        assertGeneration(
+          { schema: { "minLength": 1, "maxLength": 10, "description": "lorem" } },
+          FromJsonSchema.makeGeneration(
+            `Schema.String.annotate({ "description": "lorem" }).check(Schema.isMinLength(1), Schema.isMaxLength(10))`,
+            FromJsonSchema.makeTypes("string"),
+            { description: "lorem" }
+          )
+        )
+      })
+
+      describe("allOf", () => {
+        it("string & unknown", () => {
+          assertGeneration(
+            {
+              schema: {
+                "type": "string",
+                "allOf": [{ "description": "lorem" }]
+              }
+            },
+            FromJsonSchema.makeGeneration(
+              `Schema.String.annotate({ "description": "lorem" })`,
+              FromJsonSchema.makeTypes("string"),
+              { description: "lorem" }
+            )
+          )
+          assertGeneration(
+            {
+              schema: {
+                "type": "string",
+                "description": "lorem",
+                "allOf": [{ "description": "ipsum" }]
+              }
+            },
+            FromJsonSchema.makeGeneration(
+              `Schema.String.annotate({ "description": "lorem, ipsum" })`,
+              FromJsonSchema.makeTypes("string"),
+              { description: "lorem, ipsum" }
+            )
+          )
+          assertGeneration(
+            {
+              schema: {
+                "type": "string",
+                "description": " ",
+                "allOf": [{ "description": "ipsum" }]
+              }
+            },
+            FromJsonSchema.makeGeneration(
+              `Schema.String.annotate({ "description": "ipsum" })`,
+              FromJsonSchema.makeTypes("string"),
+              { description: "ipsum" }
+            )
+          )
+          assertGeneration(
+            {
+              schema: {
+                "type": "string",
+                "description": "lorem",
+                "allOf": [{ "description": " " }]
+              }
+            },
+            FromJsonSchema.makeGeneration(
+              `Schema.String.annotate({ "description": "lorem" })`,
+              FromJsonSchema.makeTypes("string"),
+              { description: "lorem" }
+            )
+          )
+        })
+
+        it("string & string", () => {
+          assertGeneration(
+            {
+              schema: {
+                "type": "string",
+                "allOf": [{ "minLength": 1 }]
+              }
+            },
+            FromJsonSchema.makeGeneration(
+              `Schema.String.check(Schema.isMinLength(1))`,
+              FromJsonSchema.makeTypes("string")
+            )
+          )
+          assertGeneration(
+            {
+              schema: {
+                "type": "string",
+                "description": "lorem",
+                "allOf": [{ "minLength": 1 }]
+              }
+            },
+            FromJsonSchema.makeGeneration(
+              `Schema.String.annotate({ "description": "lorem" }).check(Schema.isMinLength(1))`,
+              FromJsonSchema.makeTypes("string"),
+              { description: "lorem" }
+            )
+          )
+          assertGeneration(
+            {
+              schema: {
+                "type": "string",
+                "allOf": [{ "minLength": 1, "description": "ipsum" }]
+              }
+            },
+            FromJsonSchema.makeGeneration(
+              `Schema.String.check(Schema.isMinLength(1, { "description": "ipsum" }))`,
+              FromJsonSchema.makeTypes("string")
+            )
+          )
+          assertGeneration(
+            {
+              schema: {
+                "type": "string",
+                "description": "lorem",
+                "allOf": [{ "minLength": 1, "description": "ipsum" }]
+              }
+            },
+            FromJsonSchema.makeGeneration(
+              `Schema.String.annotate({ "description": "lorem" }).check(Schema.isMinLength(1, { "description": "ipsum" }))`,
+              FromJsonSchema.makeTypes("string"),
+              { description: "lorem" }
+            )
+          )
+          assertGeneration(
+            {
+              schema: {
+                "type": "string",
+                "allOf": [
+                  { "minLength": 1 },
+                  { "maxLength": 10 }
+                ]
+              }
+            },
+            FromJsonSchema.makeGeneration(
+              `Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10))`,
+              FromJsonSchema.makeTypes("string")
+            )
+          )
+          assertGeneration(
+            {
+              schema: {
+                "type": "string",
+                "description": "lorem",
+                "allOf": [
+                  { "minLength": 1 },
+                  { "maxLength": 10 }
+                ]
+              }
+            },
+            FromJsonSchema.makeGeneration(
+              `Schema.String.annotate({ "description": "lorem" }).check(Schema.isMinLength(1), Schema.isMaxLength(10))`,
+              FromJsonSchema.makeTypes("string"),
+              { description: "lorem" }
+            )
+          )
+          assertGeneration(
+            {
+              schema: {
+                "type": "string",
+                "allOf": [
+                  { "description": "lorem" },
+                  { "minLength": 1, "description": "ipsum" },
+                  { "maxLength": 10, "description": "dolor" }
+                ]
+              }
+            },
+            FromJsonSchema.makeGeneration(
+              `Schema.String.annotate({ "description": "lorem" }).check(Schema.isMinLength(1, { "description": "ipsum" }), Schema.isMaxLength(10, { "description": "dolor" }))`,
+              FromJsonSchema.makeTypes("string"),
+              { description: "lorem" }
+            )
+          )
+          assertGeneration(
+            {
+              schema: {
+                "type": "string",
+                "allOf": [
+                  {
+                    "minLength": 1,
+                    "allOf": [{ "maxLength": 10, "description": "dolor" }]
+                  }
+                ]
+              }
+            },
+            FromJsonSchema.makeGeneration(
+              `Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10, { "description": "dolor" }))`,
+              FromJsonSchema.makeTypes("string")
+            )
+          )
+        })
+      })
     })
 
     it("type: number", () => {
@@ -812,6 +1013,14 @@ describe("FromJsonSchema", () => {
           FromJsonSchema.makeTypes("number")
         )
       )
+      assertGeneration(
+        { schema: { "minimum": 1, "maximum": 10, "description": "lorem" } },
+        FromJsonSchema.makeGeneration(
+          `Schema.Number.annotate({ "description": "lorem" }).check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(10))`,
+          FromJsonSchema.makeTypes("number"),
+          { description: "lorem" }
+        )
+      )
     })
 
     it("type: integer", () => {
@@ -828,10 +1037,50 @@ describe("FromJsonSchema", () => {
         )
       )
       assertGeneration(
-        { schema: { "type": "integer", "minimum": 1 } },
+        { schema: { "type": "integer", "minimum": 0 } },
         FromJsonSchema.makeGeneration(
-          `Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))`,
+          `Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))`,
           FromJsonSchema.makeTypes("number")
+        )
+      )
+      assertGeneration(
+        { schema: { "type": "integer", "maximum": 10 } },
+        FromJsonSchema.makeGeneration(
+          `Schema.Int.check(Schema.isLessThanOrEqualTo(10))`,
+          FromJsonSchema.makeTypes("number")
+        )
+      )
+      assertGeneration(
+        { schema: { "type": "integer", "exclusiveMinimum": 0 } },
+        FromJsonSchema.makeGeneration(
+          `Schema.Int.check(Schema.isGreaterThan(0))`,
+          FromJsonSchema.makeTypes("number")
+        )
+      )
+      assertGeneration(
+        { schema: { "type": "integer", "exclusiveMaximum": 10 } },
+        FromJsonSchema.makeGeneration(`Schema.Int.check(Schema.isLessThan(10))`, FromJsonSchema.makeTypes("number"))
+      )
+      assertGeneration(
+        { schema: { "type": "integer", "multipleOf": 10 } },
+        FromJsonSchema.makeGeneration(
+          `Schema.Int.check(Schema.isMultipleOf(10))`,
+          FromJsonSchema.makeTypes("number")
+        )
+      )
+      assertGeneration(
+        { schema: { "type": "integer", "minimum": 1, "maximum": 10 } },
+        FromJsonSchema.makeGeneration(
+          `Schema.Int.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(10))`,
+          FromJsonSchema.makeTypes("number")
+        )
+      )
+      assertGeneration(
+        { schema: { "type": "integer", "minimum": 1, "maximum": 10, "description": "lorem" } },
+        FromJsonSchema.makeGeneration(
+          `Schema.Int.annotate({ "description": "lorem" }).check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(10))`,
+          FromJsonSchema.makeTypes("number"),
+          { description: "lorem" }
         )
       )
     })
@@ -876,17 +1125,17 @@ describe("FromJsonSchema", () => {
           )
         )
         assertGeneration(
-          { schema: { "additionalItems": false, "minItems": 1 } },
-          FromJsonSchema.makeGeneration(
-            `Schema.Tuple([])`,
-            FromJsonSchema.makeTypes("readonly []")
-          )
-        )
-        assertGeneration(
           { schema: { "maxItems": 10 } },
           FromJsonSchema.makeGeneration(
             `Schema.Array(Schema.Unknown).check(Schema.isMaxLength(10))`,
             FromJsonSchema.makeTypes("ReadonlyArray<unknown>")
+          )
+        )
+        assertGeneration(
+          { schema: { "additionalItems": false, "minItems": 1 } },
+          FromJsonSchema.makeGeneration(
+            `Schema.Tuple([])`,
+            FromJsonSchema.makeTypes("readonly []")
           )
         )
         assertGeneration(
@@ -1544,105 +1793,6 @@ describe("FromJsonSchema", () => {
     })
 
     describe("allOf", () => {
-      it("string & unknown", () => {
-        assertGeneration(
-          {
-            schema: {
-              "type": "string",
-              "allOf": [{ "description": "lorem" }]
-            }
-          },
-          FromJsonSchema.makeGeneration(
-            `Schema.String.annotate({ "description": "lorem" })`,
-            FromJsonSchema.makeTypes("string"),
-            { description: "lorem" }
-          )
-        )
-        assertGeneration(
-          {
-            schema: {
-              "type": "string",
-              "description": " ",
-              "allOf": [{ "description": "lorem" }]
-            }
-          },
-          FromJsonSchema.makeGeneration(
-            `Schema.String.annotate({ "description": "lorem" })`,
-            FromJsonSchema.makeTypes("string"),
-            { description: "lorem" }
-          )
-        )
-        assertGeneration(
-          {
-            schema: {
-              "type": "string",
-              "allOf": [{ "minLength": 1 }]
-            }
-          },
-          FromJsonSchema.makeGeneration(
-            `Schema.String.check(Schema.isMinLength(1))`,
-            FromJsonSchema.makeTypes("string")
-          )
-        )
-        assertGeneration(
-          {
-            schema: {
-              "type": "string",
-              "description": "lorem",
-              "allOf": [{ "minLength": 1 }]
-            }
-          },
-          FromJsonSchema.makeGeneration(
-            `Schema.String.annotate({ "description": "lorem" }).check(Schema.isMinLength(1))`,
-            FromJsonSchema.makeTypes("string"),
-            { description: "lorem" }
-          )
-        )
-        assertGeneration(
-          {
-            schema: {
-              "type": "string",
-              "description": "lorem",
-              "allOf": [{ "minLength": 1, "description": "ipsum" }]
-            }
-          },
-          FromJsonSchema.makeGeneration(
-            `Schema.String.annotate({ "description": "lorem" }).check(Schema.isMinLength(1, { "description": "ipsum" }))`,
-            FromJsonSchema.makeTypes("string"),
-            { description: "lorem" }
-          )
-        )
-      })
-
-      it("string & string", () => {
-        assertGeneration(
-          {
-            schema: {
-              "type": "string",
-              "minLength": 1,
-              "allOf": [{ "type": "string", "maxLength": 10 }]
-            }
-          },
-          FromJsonSchema.makeGeneration(
-            `Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10))`,
-            FromJsonSchema.makeTypes("string")
-          )
-        )
-        assertGeneration(
-          {
-            schema: {
-              "type": "string",
-              "minLength": 1,
-              "allOf": [{ "type": "string", "minLength": 2 }]
-            }
-          },
-          FromJsonSchema.makeGeneration(
-            `Schema.String.check(Schema.isMinLength(1), Schema.isMinLength(2))`,
-            FromJsonSchema.makeTypes("string")
-          )
-        )
-      })
-
       it("number & unknown", () => {
         assertGeneration(
           {

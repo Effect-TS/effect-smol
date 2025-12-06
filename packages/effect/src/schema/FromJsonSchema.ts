@@ -492,7 +492,7 @@ type AST =
   | String
   | Number
   | Boolean
-  | Enum
+  | Literals
   | Arrays
   | Objects
   | Union
@@ -570,7 +570,7 @@ class Null {
 
 type FilterGroup<T> = {
   readonly _tag: "FilterGroup"
-  readonly checks: readonly [T, T, ...Array<T>]
+  readonly checks: ReadonlyArray<T>
   readonly annotations?: Annotations | undefined
 }
 
@@ -581,7 +581,7 @@ type StringFilter =
   | { readonly _tag: "maxLength"; readonly value: number; readonly annotations?: Annotations | undefined }
   | { readonly _tag: "pattern"; readonly value: string; readonly annotations?: Annotations | undefined }
 
-function makePatternCheck(pattern: string): StringCheck {
+function makePatternCheck(pattern: string): StringFilter {
   return { _tag: "pattern", value: pattern.replace(/\//g, "\\/") }
 }
 
@@ -609,8 +609,8 @@ class String {
       annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
-  parseChecks(schema: Schema.JsonSchema): String {
-    const cs: Array<StringCheck> = []
+  parseChecks(schema: Schema.JsonSchema, options: RecurOptions): String {
+    const cs: Array<StringFilter> = []
 
     if (typeof schema.minLength === "number") {
       cs.push({ _tag: "minLength", value: schema.minLength })
@@ -621,9 +621,22 @@ class String {
     }
 
     // Escape forward slashes to prevent them from terminating the regex literal delimiter
-    if (typeof schema.pattern === "string") cs.push(makePatternCheck(schema.pattern))
+    if (typeof schema.pattern === "string") {
+      cs.push(makePatternCheck(schema.pattern))
+    }
 
-    return new String([...this.checks, ...cs], this.contentSchema, this.annotations)
+    if (options.allOf) {
+      const annotations = options.collectAnnotations(schema, collectAnnotations(schema))
+      switch (cs.length) {
+        case 0:
+          return new String(cs, this.contentSchema)
+        case 1:
+          return new String([{ ...cs[0], annotations }], this.contentSchema)
+        default:
+          return new String([{ _tag: "FilterGroup", checks: cs, annotations }], this.contentSchema)
+      }
+    }
+    return new String(cs, this.contentSchema)
   }
   combine(that: AST, options: RecurOptions): AST {
     const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
@@ -640,8 +653,8 @@ class String {
         )
       case "Unknown":
         return new String(this.checks, this.contentSchema, annotations)
-      case "Enum":
-        return Enum.make(that.values.filter((v) => typeof v === "string"), annotations)
+      case "Literals":
+        return Literals.make(that.values.filter((v) => typeof v === "string"), annotations)
       case "Union":
         return Union.make(that.members.map((m) => this.combine(m, options)), that.mode, annotations)
       default:
@@ -673,7 +686,7 @@ type Filter = StringFilter | NumberFilter | ArraysFilter | ObjectsFilter
 function renderCheck(c: Check): string {
   switch (c._tag) {
     case "FilterGroup":
-      return c.checks.map(renderCheck).join(", ")
+      return `Schema.makeFilterGroup(${c.checks.map(renderCheck).join(", ")})${renderAnnotationsObject(c.annotations)}`
     default:
       return renderFilter(c)
   }
@@ -748,8 +761,8 @@ class Number {
       annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
-  parseChecks(schema: Schema.JsonSchema): Number {
-    const cs: Array<NumberCheck> = []
+  parseChecks(schema: Schema.JsonSchema, options: RecurOptions): Number {
+    const cs: Array<NumberFilter> = []
 
     if (typeof schema.exclusiveMinimum === "number") {
       cs.push({ _tag: "greaterThan", value: schema.exclusiveMinimum })
@@ -768,7 +781,19 @@ class Number {
     }
 
     if (typeof schema.multipleOf === "number") cs.push({ _tag: "multipleOf", value: schema.multipleOf })
-    return new Number(this.isInteger, [...this.checks, ...cs], this.annotations)
+
+    if (options.allOf) {
+      const annotations = options.collectAnnotations(schema, collectAnnotations(schema))
+      switch (cs.length) {
+        case 0:
+          return new Number(this.isInteger, cs)
+        case 1:
+          return new Number(this.isInteger, [{ ...cs[0], annotations }])
+        default:
+          return new Number(this.isInteger, [{ _tag: "FilterGroup", checks: cs, annotations }])
+      }
+    }
+    return new Number(this.isInteger, cs)
   }
   combine(that: AST, options: RecurOptions): AST {
     const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
@@ -780,8 +805,8 @@ class Number {
         ], annotations)
       case "Unknown":
         return new Number(this.isInteger, this.checks, annotations)
-      case "Enum":
-        return Enum.make(that.values.filter((v) => typeof v === "number"), annotations)
+      case "Literals":
+        return Literals.make(that.values.filter((v) => typeof v === "number"), annotations)
       case "Union":
         return Union.make(that.members.map((m) => this.combine(m, options)), that.mode, annotations)
       default:
@@ -816,8 +841,8 @@ class Boolean {
       case "Boolean":
       case "Unknown":
         return new Boolean(annotations)
-      case "Enum":
-        return Enum.make(that.values.filter((v) => typeof v === "boolean"), annotations)
+      case "Literals":
+        return Literals.make(that.values.filter((v) => typeof v === "boolean"), annotations)
       case "Union":
         return Union.make(
           that.members.map((m) => this.combine(m, options)),
@@ -838,28 +863,31 @@ function isLiteralValue(value: unknown): value is AST.LiteralValue {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
 }
 
-class Enum {
+class Literals {
   static make(values: ReadonlyArray<AST.LiteralValue>, annotations: Annotations = {}): AST {
     if (values.length === 0) return new Never(annotations)
-    return new Enum(values, annotations)
+    return new Literals(values, annotations)
   }
-  readonly _tag = "Enum"
+  readonly _tag = "Literals"
   readonly values: ReadonlyArray<AST.LiteralValue>
   readonly annotations: Annotations
   private constructor(values: ReadonlyArray<AST.LiteralValue>, annotations: Annotations = {}) {
     this.annotations = annotations
     this.values = values
   }
-  annotate(annotations: Annotations | undefined): Enum {
-    return new Enum(this.values, annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined)
+  annotate(annotations: Annotations | undefined): Literals {
+    return new Literals(
+      this.values,
+      annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
+    )
   }
-  parseChecks(_: Schema.JsonSchema): Enum {
+  parseChecks(_: Schema.JsonSchema): Literals {
     return this
   }
   combine(that: AST, options: RecurOptions): AST {
     const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
     switch (that._tag) {
-      case "Enum": {
+      case "Literals": {
         const intersection = new Set<AST.LiteralValue>()
         const thatValues = new Set(that.values)
         for (const value of this.values) {
@@ -867,16 +895,16 @@ class Enum {
             intersection.add(value)
           }
         }
-        return Enum.make(Array.from(intersection), annotations)
+        return Literals.make(Array.from(intersection), annotations)
       }
       case "Unknown":
-        return new Enum(this.values, annotations)
+        return new Literals(this.values, annotations)
       case "String":
-        return Enum.make(this.values.filter((v) => typeof v === "string"), annotations)
+        return Literals.make(this.values.filter((v) => typeof v === "string"), annotations)
       case "Number":
-        return Enum.make(this.values.filter((v) => typeof v === "number"), annotations)
+        return Literals.make(this.values.filter((v) => typeof v === "number"), annotations)
       case "Boolean":
-        return Enum.make(this.values.filter((v) => typeof v === "boolean"), annotations)
+        return Literals.make(this.values.filter((v) => typeof v === "boolean"), annotations)
       case "Union":
         return Union.make(
           that.members.map((m) => this.combine(m, options)),
@@ -961,17 +989,25 @@ class Arrays {
       annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
-  parseChecks(schema: Schema.JsonSchema): Arrays {
-    const cs: Array<ArraysCheck> = []
+  parseChecks(schema: Schema.JsonSchema, options: RecurOptions): Arrays {
+    const cs: Array<ArraysFilter> = []
+
     if (typeof schema.minItems === "number") cs.push({ _tag: "minItems", value: schema.minItems })
     if (typeof schema.maxItems === "number") cs.push({ _tag: "maxItems", value: schema.maxItems })
     if (schema.uniqueItems === true) cs.push({ _tag: "uniqueItems" })
-    return new Arrays(
-      this.elements,
-      this.rest,
-      [...this.checks, ...cs],
-      this.annotations
-    )
+
+    if (options.allOf) {
+      const annotations = options.collectAnnotations(schema, collectAnnotations(schema))
+      switch (cs.length) {
+        case 0:
+          return new Arrays(this.elements, this.rest, cs)
+        case 1:
+          return new Arrays(this.elements, this.rest, [{ ...cs[0], annotations }])
+        default:
+          return new Arrays(this.elements, this.rest, [{ _tag: "FilterGroup", checks: cs, annotations }])
+      }
+    }
+    return new Arrays(this.elements, this.rest, cs)
   }
   combine(that: AST, options: RecurOptions): AST {
     const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
@@ -1157,17 +1193,31 @@ class Objects {
       annotations ? annotationsCombiner.combine(this.annotations, annotations) : undefined
     )
   }
-  parseChecks(schema: Schema.JsonSchema): Objects {
-    const cs: Array<ObjectsCheck> = []
+  parseChecks(schema: Schema.JsonSchema, options: RecurOptions): Objects {
+    const cs: Array<ObjectsFilter> = []
+
     if (typeof schema.minProperties === "number") cs.push({ _tag: "minProperties", value: schema.minProperties })
     if (typeof schema.maxProperties === "number") cs.push({ _tag: "maxProperties", value: schema.maxProperties })
-    return new Objects(
-      this.properties,
-      this.indexSignatures,
-      this.additionalProperties,
-      [...this.checks, ...cs],
-      this.annotations
-    )
+
+    if (options.allOf) {
+      const annotations = options.collectAnnotations(schema, collectAnnotations(schema))
+      switch (cs.length) {
+        case 0:
+          return new Objects(this.properties, this.indexSignatures, this.additionalProperties, cs)
+        case 1:
+          return new Objects(this.properties, this.indexSignatures, this.additionalProperties, [{
+            ...cs[0],
+            annotations
+          }])
+        default:
+          return new Objects(this.properties, this.indexSignatures, this.additionalProperties, [{
+            _tag: "FilterGroup",
+            checks: cs,
+            annotations
+          }])
+      }
+    }
+    return new Objects(this.properties, this.indexSignatures, this.additionalProperties, cs)
   }
   combine(that: AST, options: RecurOptions): AST {
     const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
@@ -1473,9 +1523,9 @@ function parse(schema: unknown, options: RecurOptions): AST {
   if (schema === true) return new Unknown()
   if (!isObject(schema)) return new Unknown()
 
-  let ast = parseFragment(schema, options)
+  let ast = parseJsonSchema(schema, options)
 
-  const annotations = options.collectAnnotations(schema, collectAnnotations(schema, ast))
+  const annotations = options.collectAnnotations(schema, collectAnnotations(schema))
   if (Object.keys(annotations).length > 0) {
     ast = ast.annotate(annotations, options.allOf)
   }
@@ -1495,7 +1545,7 @@ function NullOr(ast: AST): AST {
   return Union.make([ast, new Null()], "anyOf")
 }
 
-function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
+function parseJsonSchema(schema: Schema.JsonSchema, options: RecurOptions): AST {
   if (Array.isArray(schema.anyOf)) {
     return Union.make(schema.anyOf.map((m) => parse(m, options)), "anyOf")
   }
@@ -1508,7 +1558,7 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   }
 
   if (schema.const !== undefined) {
-    if (isLiteralValue(schema.const)) return Enum.make([schema.const])
+    if (isLiteralValue(schema.const)) return Literals.make([schema.const])
     if (schema.const === null) return new Null()
     return new Never()
   }
@@ -1516,8 +1566,8 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
   if (Array.isArray(schema.enum)) {
     const enums = schema.enum.filter(isLiteralValue)
     const isNullable = schema.enum.some((e) => e === null)
-    if (isNullable) return NullOr(Enum.make(enums))
-    return Enum.make(enums)
+    if (isNullable) return NullOr(Literals.make(enums))
+    return Literals.make(enums)
   }
 
   schema = normalize(schema)
@@ -1527,8 +1577,7 @@ function parseFragment(schema: Schema.JsonSchema, options: RecurOptions): AST {
     if (options.source === "openapi-3.0" && schema.nullable === true) {
       out = NullOr(out)
     }
-    out = out.parseChecks(schema)
-    return out
+    return out.parseChecks(schema, options)
   }
 
   if (typeof schema.$ref === "string") {
@@ -1744,18 +1793,11 @@ function collectRest(schema: Schema.JsonSchema, options: RecurOptions): Schema.J
   }
 }
 
-function collectAnnotations(schema: Schema.JsonSchema, ast: AST): Annotations {
+function collectAnnotations(schema: Schema.JsonSchema): Annotations {
   const as: Mutable<Annotations> = {}
 
   if (typeof schema.title === "string") as.title = schema.title
-  if (typeof schema.description === "string") {
-    if (
-      ast._tag !== "String" || ast.contentSchema === undefined ||
-      schema.description !== "a string that will be decoded as JSON"
-    ) {
-      as.description = schema.description
-    }
-  }
+  if (typeof schema.description === "string") as.description = schema.description
   if (schema.default !== undefined) as.default = schema.default
   if (Array.isArray(schema.examples)) {
     as.examples = schema.examples
