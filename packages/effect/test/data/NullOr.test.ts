@@ -63,4 +63,15 @@ describe("NullOr", () => {
     strictEqual(R.combineAll([1, null, 2]), null)
     strictEqual(R.combineAll([1, 2]), 3)
   })
+
+  it("getOrder", () => {
+    const O = NullOr.getOrder(Number.Order)
+
+    strictEqual(O(null, null), 0)
+    strictEqual(O(null, 1), -1)
+    strictEqual(O(1, null), 1)
+    strictEqual(O(1, 2), -1)
+    strictEqual(O(1, 1), 0)
+    strictEqual(O(2, 1), 1)
+  })
 })
