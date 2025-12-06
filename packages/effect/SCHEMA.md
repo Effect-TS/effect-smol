@@ -6039,6 +6039,38 @@ console.log(schema)
 */
 ```
 
+#### Collecting custom annotations
+
+You can collect annotations from the JSON Schema by providing a `collectAnnotations` function.
+
+**Example** (Collect annotations from the JSON Schema)
+
+```ts
+import { FromJsonSchema } from "effect/schema"
+
+const jsonSchema = JSON.parse(`{
+  "type": "object",
+  "properties": {
+    "a": { "type": "string", "errorMessage": "Input must be a string", "description": "my property" }
+  },
+  "required": ["a"],
+  "additionalProperties": false
+}`)
+
+const generation = FromJsonSchema.generate(jsonSchema, {
+  source: "draft-07",
+  collectAnnotations: (schema, annotations) => {
+    return {
+      ...annotations,
+      ...(typeof schema.errorMessage === "string" ? { message: schema.errorMessage } : {})
+    }
+  }
+})
+
+console.log(generation.code)
+// Schema.Struct({ "a": Schema.String.annotate({ "description": "my property", "message": "Input must be a string" }) })
+```
+
 ## Generating an Arbitrary from a Schema
 
 ### Basic Conversion
