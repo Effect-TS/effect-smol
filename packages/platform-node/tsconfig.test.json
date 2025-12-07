@@ -4,6 +4,7 @@
   "include": ["test/**/*.ts", "test/**/*.json"],
   "references": [
     { "path": "tsconfig.src.json" },
+    { "path": "../effect/tsconfig.test.json" },
     { "path": "../sql/pg/tsconfig.src.json" },
     { "path": "../sql/mysql2/tsconfig.src.json" },
     { "path": "../sql/sqlite-node/tsconfig.src.json" }
@@ -17,6 +18,7 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
+      "effect-test/*": ["../effect/test/*.ts"],
       "@effect/platform-node": ["src/index.ts"],
       "@effect/platform-node/*": ["src/*/index.ts", "src/*.ts"],
       "@effect/sql-mysql2": ["../sql/mysql2/src/index.ts"],

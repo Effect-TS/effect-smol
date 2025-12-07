@@ -333,7 +333,7 @@ export const make = (
       }).pipe(
         Effect.catch(() => Pool.invalidate(pool, connection)),
         Effect.interruptible,
-        Effect.fork
+        Effect.forkScoped
       )
 
       return connection

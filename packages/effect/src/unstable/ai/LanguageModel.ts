@@ -882,7 +882,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             yield* Queue.offerAll(queue, toolResults as any)
           })),
           Queue.into(queue),
-          Effect.fork
+          Effect.forkScoped
         )
         return Stream.fromQueue(queue)
       }

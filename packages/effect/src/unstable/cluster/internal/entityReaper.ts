@@ -47,7 +47,7 @@ export class EntityReaper extends ServiceMap.Service<EntityReaper>()("effect/clu
       }
     }).pipe(
       latch.whenOpen,
-      Effect.fork
+      Effect.forkScoped
     )
 
     return { register } as const

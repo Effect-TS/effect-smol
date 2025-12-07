@@ -418,7 +418,7 @@ export const run: (
     })),
     Effect.catchCause(() => Effect.void),
     Effect.forever,
-    Effect.fork
+    Effect.forkScoped
   )
 
   return yield* RpcServer.make(ClientRpcs, {
@@ -439,7 +439,7 @@ export const layer = (options: {
   readonly name: string
   readonly version: string
 }): Layer.Layer<McpServer | McpServerClient, never, RpcServer.Protocol> =>
-  Layer.effectDiscard(Effect.fork(run(options))).pipe(
+  Layer.effectDiscard(Effect.forkScoped(run(options))).pipe(
     Layer.provideMerge(McpServer.layer)
   )
 

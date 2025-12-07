@@ -202,6 +202,7 @@ const checkCapacity = <K, A, E>(
   map: MutableHashMap.MutableHashMap<K, Entry<A, E>>,
   capacity: number
 ): Effect.Effect<void> => {
+  if (!Number.isFinite(capacity)) return effect.void
   let diff = MutableHashMap.size(map) - capacity
   if (diff <= 0) return effect.void
   // MutableHashMap has insertion order, so we can remove the oldest entries

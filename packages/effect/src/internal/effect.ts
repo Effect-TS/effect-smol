@@ -4006,7 +4006,7 @@ export const forkIn: {
 )
 
 /** @internal */
-export const fork: {
+export const forkScoped: {
   <
     Arg extends Effect.Effect<any, any, any> | {
       readonly startImmediately?: boolean | undefined

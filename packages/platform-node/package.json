@@ -72,6 +72,7 @@
   "devDependencies": {
     "@testcontainers/mysql": "^11.6.0",
     "@testcontainers/postgresql": "^11.6.0",
+    "@testcontainers/redis": "^11.9.0",
     "@types/node": "^24.8.1",
     "effect": "workspace:^"
   }

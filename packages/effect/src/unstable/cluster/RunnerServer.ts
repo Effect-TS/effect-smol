@@ -116,7 +116,7 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
               Effect.andThen(
                 storage.registerReplyHandler(message).pipe(
                   Effect.onError((cause) => Queue.failCause(queue, cause)),
-                  Effect.fork
+                  Effect.forkScoped
                 ),
                 sharding.notify(message, constWaitUntilRead)
               ) :

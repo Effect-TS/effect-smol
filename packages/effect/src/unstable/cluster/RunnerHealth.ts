@@ -17,7 +17,7 @@ import * as Runners from "./Runners.ts"
  * still be processing messages. If a Runner is not responsive, then its
  * associated shards can and will be re-assigned to a different Runner.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category models
  */
 export class RunnerHealth extends ServiceMap.Service<
@@ -32,7 +32,7 @@ export class RunnerHealth extends ServiceMap.Service<
  *
  * This is useful for testing.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category layers
  */
 export const layerNoop = Layer.succeed(RunnerHealth, {
@@ -40,7 +40,7 @@ export const layerNoop = Layer.succeed(RunnerHealth, {
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Constructors
  */
 export const makePing: Effect.Effect<
@@ -65,7 +65,7 @@ export const makePing: Effect.Effect<
 /**
  * A layer which will ping a Runner directly to check if it is healthy.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category layers
  */
 export const layerPing: Layer.Layer<
@@ -75,7 +75,7 @@ export const layerPing: Layer.Layer<
 > = Layer.effect(RunnerHealth, makePing)
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Constructors
  */
 export const makeK8s = Effect.fnUntraced(function*(options?: {
@@ -102,7 +102,7 @@ export const makeK8s = Effect.fnUntraced(function*(options?: {
  * The pod service account will also need to have permissions to list pods in
  * order to use this layer.
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category layers
  */
 export const layerK8s = (

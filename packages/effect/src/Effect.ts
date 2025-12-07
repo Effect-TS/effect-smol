@@ -7080,7 +7080,7 @@ export const forkIn: {
  *
  * const program = Effect.scoped(
  *   Effect.gen(function* () {
- *     const fiber = yield* Effect.fork(backgroundTask)
+ *     const fiber = yield* Effect.forkScoped(backgroundTask)
  *     yield* Effect.log("Task forked in scope")
  *     yield* Effect.sleep("1 second")
  *     // Fiber will be interrupted when scope closes
@@ -7092,7 +7092,7 @@ export const forkIn: {
  * @since 2.0.0
  * @category supervision & fibers
  */
-export const fork: <
+export const forkScoped: <
   Arg extends Effect<any, any, any> | {
     readonly startImmediately?: boolean | undefined
     readonly uninterruptible?: boolean | "inherit" | undefined
@@ -7104,7 +7104,7 @@ export const fork: <
     readonly uninterruptible?: boolean | "inherit" | undefined
   } | undefined
 ) => [Arg] extends [Effect<infer _A, infer _E, infer _R>] ? Effect<Fiber<_A, _E>, never, _R>
-  : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R | Scope> = internal.fork
+  : <A, E, R>(self: Effect<A, E, R>) => Effect<Fiber<A, E>, never, R | Scope> = internal.forkScoped
 
 /**
  * Forks the effect into a new fiber attached to the global scope. Because the

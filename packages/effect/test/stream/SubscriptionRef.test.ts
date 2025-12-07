@@ -13,7 +13,7 @@ describe("SubscriptionRef", () => {
         Stream.tap(() => latch1.open),
         Stream.take(3),
         Stream.runCollect,
-        Effect.fork
+        Effect.forkScoped
       )
       yield* latch1.await
       yield* SubscriptionRef.update(ref, Number.increment)
@@ -21,7 +21,7 @@ describe("SubscriptionRef", () => {
         Stream.tap(() => latch2.open),
         Stream.take(2),
         Stream.runCollect,
-        Effect.fork
+        Effect.forkScoped
       )
       yield* latch2.await
       yield* SubscriptionRef.update(ref, Number.increment)
@@ -40,7 +40,7 @@ describe("SubscriptionRef", () => {
         Stream.tap(() => latch1.open),
         Stream.take(5),
         Stream.runCollect,
-        Effect.fork
+        Effect.forkScoped
       )
       yield* latch1.await
       yield* SubscriptionRef.update(ref, Number.increment)
@@ -48,7 +48,7 @@ describe("SubscriptionRef", () => {
         Stream.tap(() => latch2.open),
         Stream.take(2),
         Stream.runCollect,
-        Effect.fork
+        Effect.forkScoped
       )
       yield* latch2.await
       yield* SubscriptionRef.update(ref, Number.increment)
@@ -64,7 +64,7 @@ describe("SubscriptionRef", () => {
       const ref = yield* SubscriptionRef.make(0)
       const producer = yield* SubscriptionRef.update(ref, Number.increment).pipe(
         Effect.forever,
-        Effect.fork
+        Effect.forkScoped
       )
       const [result1, result2] = yield* Effect.all([
         makeConsumer(ref),

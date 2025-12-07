@@ -395,7 +395,9 @@ export const get: {
         deferred
       }
       MutableHashMap.set(self.map, key, entry)
-      checkCapacity(self)
+      if (Number.isFinite(self.capacity)) {
+        checkCapacity(self)
+      }
       return effect.onExit(self.lookup(key), (exit) => {
         Deferred.doneUnsafe(deferred, exit)
         const ttl = self.timeToLive(exit, key)

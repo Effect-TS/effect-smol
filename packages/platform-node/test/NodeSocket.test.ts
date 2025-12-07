@@ -12,7 +12,7 @@ const makeServer = Effect.gen(function*() {
   yield* server.run(Effect.fnUntraced(function*(socket) {
     const write = yield* socket.writer
     yield* socket.run(write)
-  }, Effect.scoped)).pipe(Effect.fork)
+  }, Effect.scoped)).pipe(Effect.forkScoped)
 
   return server
 })
@@ -104,7 +104,7 @@ describe("Socket", () => {
             )
           ),
           Effect.scoped,
-          Effect.fork
+          Effect.forkChild
         )
         const received: Array<string> = []
         yield* socket.run((chunk) =>

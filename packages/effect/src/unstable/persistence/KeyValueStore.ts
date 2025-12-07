@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Data from "../../data/Data.ts"
 import * as Option from "../../data/Option.ts"
@@ -19,7 +19,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
 const TypeId = "~effect/persistence/KeyValueStore" as const
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Models
  */
 export interface KeyValueStore {
@@ -82,7 +82,7 @@ export interface KeyValueStore {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Models
  */
 export type MakeOptions = Partial<KeyValueStore> & {
@@ -118,7 +118,7 @@ export type MakeOptions = Partial<KeyValueStore> & {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Models
  */
 export type MakeStringOptions = Partial<Omit<KeyValueStore, "set">> & {
@@ -151,7 +151,7 @@ export type MakeStringOptions = Partial<Omit<KeyValueStore, "set">> & {
 const ErrorTypeId = "~effect/persistence/KeyValueStore/KeyValueStoreError" as const
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Errors
  */
 export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
@@ -161,13 +161,13 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
   cause?: unknown
 }> {
   /**
-   * @since 1.0.0
+   * @since 4.0.0
    */
   readonly [ErrorTypeId]: typeof ErrorTypeId = ErrorTypeId
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category tags
  */
 export const KeyValueStore: ServiceMap.Service<
@@ -176,7 +176,7 @@ export const KeyValueStore: ServiceMap.Service<
 > = ServiceMap.Service("effect/persistence/KeyValueStore")
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructors
  */
 export const make = (options: MakeOptions): KeyValueStore =>
@@ -213,7 +213,7 @@ export const make = (options: MakeOptions): KeyValueStore =>
   })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructors
  */
 export const makeStringOnly = (
@@ -239,7 +239,7 @@ export const makeStringOnly = (
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category combinators
  */
 export const prefix: {
@@ -257,7 +257,7 @@ export const prefix: {
 }))
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category layers
  */
 export const layerMemory: Layer.Layer<KeyValueStore> = Layer.sync(KeyValueStore)(() => {
@@ -283,7 +283,7 @@ export const layerMemory: Layer.Layer<KeyValueStore> = Layer.sync(KeyValueStore)
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category layers
  */
 export const layerFileSystem = (
@@ -386,7 +386,7 @@ export const layerFileSystem = (
 const SchemaStoreTypeId = "~effect/persistence/KeyValueStore/SchemaStore" as const
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category SchemaStore
  */
 export interface SchemaStore<S extends Schema.Top> {
@@ -445,7 +445,7 @@ export interface SchemaStore<S extends Schema.Top> {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category SchemaStore
  */
 export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema: S): SchemaStore<S> => {
@@ -498,7 +498,7 @@ export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema:
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
  *
- * @since 1.0.0
+ * @since 4.0.0
  * @category layers
  */
 export const layerStorage = (

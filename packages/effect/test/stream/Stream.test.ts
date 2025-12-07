@@ -929,7 +929,7 @@ describe("Stream", () => {
           ),
           Stream.take(5),
           Stream.runCollect,
-          Effect.fork
+          Effect.forkScoped
         )
         yield* TestClock.adjust("5 second")
         const result = yield* Fiber.join(fiber)
@@ -1165,7 +1165,7 @@ describe("Stream", () => {
           Stream.make(1, 1, 2),
           Stream.aggregateWithin(sink, Schedule.spaced(Duration.minutes(30))),
           Stream.runCollect,
-          Effect.fork
+          Effect.forkScoped
         )
         yield* Deferred.await(latch)
         yield* Fiber.interrupt(fiber)
@@ -1184,7 +1184,7 @@ describe("Stream", () => {
         const fiber = yield* Stream.make(1, 1, 2).pipe(
           Stream.aggregateWithin(sink, Schedule.spaced(Duration.minutes(30))),
           Stream.runCollect,
-          Effect.fork({ startImmediately: true })
+          Effect.forkScoped({ startImmediately: true })
         )
         yield* Fiber.interrupt(fiber)
         const result = yield* Ref.get(ref)
@@ -1207,7 +1207,7 @@ describe("Stream", () => {
     //       ),
     //       Stream.flattenIterable,
     //       Stream.runCollect,
-    //       Effect.fork
+    //       Effect.forkScoped
     //     )
     //     yield* TestClock.adjust(Duration.minutes(31))
     //     const result = yield* Fiber.join(fiber)
@@ -1229,22 +1229,22 @@ describe("Stream", () => {
           Stream.chunks,
           Stream.debounce(Duration.seconds(1))
         )
-        const fiber = yield* pipe(stream, Stream.runCollect, Effect.fork)
+        const fiber = yield* pipe(stream, Stream.runCollect, Effect.forkScoped)
         yield* coordination.offer
         yield* pipe(
           Effect.sleep(Duration.millis(500)),
           Effect.andThen(coordination.offer),
-          Effect.fork
+          Effect.forkScoped
         )
         yield* pipe(
           Effect.sleep(Duration.seconds(2)),
           Effect.andThen(coordination.offer),
-          Effect.fork
+          Effect.forkScoped
         )
         yield* pipe(
           Effect.sleep(Duration.millis(2500)),
           Effect.andThen(coordination.offer),
-          Effect.fork
+          Effect.forkScoped
         )
         yield* TestClock.adjust(Duration.millis(3500))
         const result = yield* Fiber.join(fiber)
@@ -1266,7 +1266,7 @@ describe("Stream", () => {
           Stream.chunks,
           Stream.debounce(Duration.seconds(1))
         )
-        const fiber = yield* pipe(stream, Stream.runCollect, Effect.fork)
+        const fiber = yield* pipe(stream, Stream.runCollect, Effect.forkScoped)
         yield* pipe(
           coordination.offer,
           Effect.andThen(coordination.offer),
@@ -1289,7 +1289,7 @@ describe("Stream", () => {
           Stream.chunks,
           Stream.debounce(Duration.seconds(1))
         )
-        const fiber = yield* pipe(stream, Stream.runCollect, Effect.fork)
+        const fiber = yield* pipe(stream, Stream.runCollect, Effect.forkScoped)
         yield* Effect.all([
           coordination.offer,
           coordination.offer,
@@ -1307,7 +1307,7 @@ describe("Stream", () => {
           Stream.tap(() => Effect.sleep(Duration.millis(500))),
           Stream.debounce(Duration.seconds(1)),
           Stream.runCollect,
-          Effect.fork({ startImmediately: true })
+          Effect.forkScoped({ startImmediately: true })
         )
         yield* TestClock.adjust(Duration.seconds(3))
         const result = yield* Fiber.join(fiber)
@@ -1341,7 +1341,7 @@ describe("Stream", () => {
           Stream.make(1, 2, 3),
           Stream.debounce(Duration.seconds(1)),
           Stream.runCollect,
-          Effect.fork
+          Effect.forkScoped
         )
         yield* TestClock.adjust(Duration.seconds(1))
         const result = yield* Fiber.join(fiber)
@@ -1364,7 +1364,7 @@ describe("Stream", () => {
           // Stream.interruptWhen(Effect.never),
           Stream.take(1),
           Stream.runCollect,
-          Effect.fork
+          Effect.forkScoped
         )
         yield* pipe(
           coordination.offer,
@@ -1388,7 +1388,7 @@ describe("Stream", () => {
           ))),
           Stream.debounce(Duration.millis(800)),
           Stream.runDrain,
-          Effect.fork
+          Effect.forkScoped
         )
         yield* TestClock.adjust(Duration.minutes(1))
         yield* Fiber.interrupt(fiber)
@@ -1440,7 +1440,7 @@ describe("Stream", () => {
             strategy: "enforce"
           }),
           Stream.runCollect,
-          Effect.fork
+          Effect.forkScoped
         )
         yield* TestClock.adjust(Duration.seconds(1))
         const result = yield* Fiber.join(fiber)
@@ -1472,7 +1472,7 @@ describe("Stream", () => {
             })
           ),
           Effect.scoped,
-          Effect.fork
+          Effect.forkScoped
         )
         yield* TestClock.adjust(Duration.seconds(8))
         const result = yield* Fiber.join(fiber)
@@ -1532,7 +1532,7 @@ describe("Stream", () => {
             })
           ),
           Effect.scoped,
-          Effect.fork
+          Effect.forkScoped
         )
         const result = yield* Fiber.join(fiber)
         deepStrictEqual(result, [[1], [2], [3]])
@@ -2274,7 +2274,7 @@ describe("Stream", () => {
           const queue1 = yield* Queue.unbounded<number>()
           const queue2 = yield* Queue.unbounded<string>()
 
-          const fiber = yield* Effect.fork(
+          const fiber = yield* Effect.forkScoped(
             Stream.zipLatest(
               Stream.fromQueue(queue1),
               Stream.fromQueue(queue2)

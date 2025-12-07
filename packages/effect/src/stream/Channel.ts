@@ -5893,7 +5893,7 @@ export const toPubSub: {
     }
   ) {
     const pubsub = yield* makePubSub<OutElem>(options)
-    yield* Effect.fork(runIntoPubSub(self, pubsub, {
+    yield* Effect.forkScoped(runIntoPubSub(self, pubsub, {
       shutdownOnEnd: options.shutdownOnEnd !== false
     }))
     return pubsub
@@ -6008,7 +6008,7 @@ export const toPubSubArray: {
     }
   ) {
     const pubsub = yield* makePubSub<OutElem>(options)
-    yield* Effect.fork(runIntoPubSubArray(self, pubsub, {
+    yield* Effect.forkScoped(runIntoPubSubArray(self, pubsub, {
       shutdownOnEnd: options.shutdownOnEnd !== false
     }))
     return pubsub
@@ -6103,7 +6103,7 @@ export const toPubSubTake: {
     const pubsub = yield* makePubSub<Take.Take<OutElem, OutErr, OutDone>>(options)
     yield* runForEach(self, (value) => PubSub.publish(pubsub, value)).pipe(
       Effect.onExit((exit) => PubSub.publish(pubsub, exit)),
-      Effect.fork
+      Effect.forkScoped
     )
     return pubsub
   })

@@ -33,10 +33,10 @@ describe("TestClock", () => {
       let message = ""
       yield* Effect.sync(() => {
         message += "World!"
-      }).pipe(Effect.delay("3 hours"), Effect.fork)
+      }).pipe(Effect.delay("3 hours"), Effect.forkScoped)
       yield* Effect.sync(() => {
         message += "Hello, "
-      }).pipe(Effect.delay("1 hour"), Effect.fork)
+      }).pipe(Effect.delay("1 hour"), Effect.forkScoped)
       yield* TestClock.adjust("1 hour")
       assert.strictEqual(message, "Hello, ")
       yield* TestClock.adjust("4 hours")

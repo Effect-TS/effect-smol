@@ -1000,7 +1000,7 @@ describe("Effect", () => {
               interrupted = true
             })
           ),
-          Effect.fork({ startImmediately: true }),
+          Effect.forkScoped({ startImmediately: true }),
           Scope.provide(scope)
         )
         yield* Scope.close(scope, Exit.void)

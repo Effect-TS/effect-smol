@@ -52,7 +52,7 @@ describe("LanguageModel", () => {
             ]
           }),
           Effect.provide(MyToolkitLayer),
-          Effect.fork
+          Effect.forkScoped
         )
 
         yield* latch.await

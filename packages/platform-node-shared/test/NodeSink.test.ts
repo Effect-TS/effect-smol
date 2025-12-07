@@ -136,7 +136,7 @@ const entries = <R, E>(
           onError: (error) => new TarError({ error })
         })
       ),
-      Effect.fork
+      Effect.forkScoped
     )
 
     return Stream.callback<Tar.ReadEntry, TarError>((queue) => {

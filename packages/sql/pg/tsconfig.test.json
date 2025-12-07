@@ -2,7 +2,7 @@
   "$schema": "http://json.schemastore.org/tsconfig",
   "extends": "../../../tsconfig.base.jsonc",
   "include": ["test/**/*.ts", "test/**/*.json"],
-  "references": [{ "path": "tsconfig.src.json" }],
+  "references": [{ "path": "tsconfig.src.json" }, { "path": "../../effect/tsconfig.test.json" }],
   "compilerOptions": {
     "tsBuildInfoFile": ".tsbuildinfo/test.tsbuildinfo",
     "outDir": ".tsbuildinfo/test",
@@ -12,6 +12,7 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
+      "effect-test/*": ["../../effect/test/*.ts"],
       "@effect/sql-pg": ["src/index.ts"],
       "@effect/sql-pg/*": ["src/*/index.ts", "src/*.ts"]
     },

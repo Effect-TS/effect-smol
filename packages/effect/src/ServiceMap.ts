@@ -50,6 +50,7 @@ export interface Service<in out Identifier, in out Shape>
   readonly Identifier: Identifier
   of(self: Shape): Shape
   serviceMap(self: Shape): ServiceMap<Identifier>
+  use<A, E, R>(f: (service: Shape) => Effect<A, E, R>): Effect<A, E, R | Identifier>
 
   readonly stack?: string | undefined
   readonly key: string
@@ -199,6 +200,9 @@ const ServiceProto: any = {
     self: Shape
   ): ServiceMap<Identifier> {
     return make(this, self)
+  },
+  use<A, E, R>(this: Service<never, any>, f: (service: any) => Effect<A, E, R>): Effect<A, E, R> {
+    return withFiber((fiber) => f(get(fiber.services, this)))
   }
 }
 

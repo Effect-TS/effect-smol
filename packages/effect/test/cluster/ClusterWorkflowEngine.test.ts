@@ -243,7 +243,7 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       const fiber = yield* CatchWorkflow.execute({
         id: ""
-      }).pipe(Effect.fork)
+      }).pipe(Effect.forkScoped)
       yield* TestClock.adjust(1)
       yield* Fiber.join(fiber)
 

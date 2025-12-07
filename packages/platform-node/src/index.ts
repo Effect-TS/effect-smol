@@ -60,7 +60,7 @@ export * as NodePath from "./NodePath.ts"
 /**
  * @since 1.0.0
  */
-export * as NodePersistence from "./NodePersistence.ts"
+export * as NodeRedis from "./NodeRedis.ts"
 
 /**
  * @since 1.0.0

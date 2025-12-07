@@ -390,7 +390,7 @@ describe("Pool", () => {
 
   it.effect("get is interruptible with dynamic size", () =>
     Effect.gen(function*() {
-      const get = Effect.never.pipe(Effect.fork)
+      const get = Effect.never.pipe(Effect.forkScoped)
       const fiberId = Fiber.getCurrent()!.id
       const pool = yield* Pool.makeWithTTL({ acquire: get, min: 0, max: 10, timeToLive: Duration.infinity })
       yield* Effect.repeat(Pool.get(pool), { times: 9 })

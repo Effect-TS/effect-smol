@@ -190,7 +190,7 @@ describe("SqlMessageStorage", () => {
               ...request,
               respond: () => latch.open
             })
-          ).pipe(Effect.fork)
+          ).pipe(Effect.forkChild)
           yield* TestClock.adjust(1)
           yield* storage.saveReply(yield* makeReply(request))
           yield* latch.await

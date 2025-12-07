@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Cache from "../../Cache.ts"
 import * as Duration from "../../Duration.ts"
@@ -14,7 +14,7 @@ import * as Persistence from "./Persistence.ts"
 const TypeId = "~effect/persistence/PersistedCache" as const
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Models
  */
 export interface PersistedCache<K extends Persistable.Any> {
@@ -34,7 +34,7 @@ export interface PersistedCache<K extends Persistable.Any> {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category Constructors
  */
 export const make: <K extends Persistable.Any, R>(options: {

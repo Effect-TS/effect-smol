@@ -311,6 +311,9 @@ importers:
       '@testcontainers/postgresql':
         specifier: ^11.6.0
         version: 11.7.1
+      '@testcontainers/redis':
+        specifier: ^11.9.0
+        version: 11.9.0
       '@types/node':
         specifier: ^24.8.1
         version: 24.8.1
@@ -2235,6 +2238,9 @@ packages:
   '@testcontainers/postgresql@11.7.1':
     resolution: {integrity: sha512-8PfGNqwdyoMPQuubZM0wd07/tfi4vhLAjXP791tM105vSCmzCOhLfYu2CIq04GKVlmW1J5z5nOZWLNlU9WrUuQ==}
 
+  '@testcontainers/redis@11.9.0':
+    resolution: {integrity: sha512-nDDsi8d17mYK44JAkX4tI91kgoQAT4E02UJK+d2BbcYYLZJtS3tP+w+MUkDuHWrUMlqb3HiyAdhcPz2ezxn2TA==}
+
   '@testing-library/dom@10.4.1':
     resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
     engines: {node: '>=18'}
@@ -2296,6 +2302,9 @@ packages:
 
   '@types/dockerode@3.3.44':
     resolution: {integrity: sha512-fUpIHlsbYpxAJb285xx3vp7q5wf5mjqSn3cYwl/MhiM+DB99OdO5sOCPlO0PjO+TyOtphPs7tMVLU/RtOo/JjA==}
+
+  '@types/dockerode@3.3.47':
+    resolution: {integrity: sha512-ShM1mz7rCjdssXt7Xz0u1/R2BJC7piWa3SJpUBiVjCf2A3XNn4cP6pUVaD8bLanpPVVn4IKzJuw3dOvkJ8IbYw==}
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
@@ -5703,6 +5712,9 @@ packages:
   testcontainers@11.7.1:
     resolution: {integrity: sha512-fjut+07G4Avp6Lly/6hQePpUpQFv9ZyQd+7JC5iCDKg+dWa2Sw7fXD3pBrkzslYFfKqGx9M6kyIaLpg9VeMsjw==}
 
+  testcontainers@11.9.0:
+    resolution: {integrity: sha512-SQ6OqQUig7HcGVF72i+ZVIMvxPSpEz8cgC/B63ekqMzgf98DnveoBbOmqux/Wa5wQAQCt4mEPNMa/Jz7vMg9fQ==}
+
   text-decoder@1.2.3:
     resolution: {integrity: sha512-3/o9z3X0X0fTupwsYvR03pJ/DjWuqqrfwBgTQzdWDiQSm9KitAyz/9WqsT2JQW7KV2m+bC2ol/zqpW37NHxLaA==}
 
@@ -7905,6 +7917,14 @@ snapshots:
       - react-native-b4a
       - supports-color
 
+  '@testcontainers/redis@11.9.0':
+    dependencies:
+      testcontainers: 11.9.0
+    transitivePeerDependencies:
+      - bare-buffer
+      - react-native-b4a
+      - supports-color
+
   '@testing-library/dom@10.4.1':
     dependencies:
       '@babel/code-frame': 7.27.1
@@ -7985,6 +8005,12 @@ snapshots:
       '@types/ssh2': 1.15.5
 
   '@types/dockerode@3.3.44':
+    dependencies:
+      '@types/docker-modem': 3.0.6
+      '@types/node': 24.8.1
+      '@types/ssh2': 1.15.5
+
+  '@types/dockerode@3.3.47':
     dependencies:
       '@types/docker-modem': 3.0.6
       '@types/node': 24.8.1
@@ -11772,6 +11798,28 @@ snapshots:
     dependencies:
       '@balena/dockerignore': 1.0.2
       '@types/dockerode': 3.3.44
+      archiver: 7.0.1
+      async-lock: 1.4.1
+      byline: 5.0.0
+      debug: 4.4.3(supports-color@10.2.2)
+      docker-compose: 1.3.0
+      dockerode: 4.0.9
+      get-port: 7.1.0
+      proper-lockfile: 4.1.2
+      properties-reader: 2.3.0
+      ssh-remote-port-forward: 1.0.4
+      tar-fs: 3.1.1
+      tmp: 0.2.5
+      undici: 7.16.0
+    transitivePeerDependencies:
+      - bare-buffer
+      - react-native-b4a
+      - supports-color
+
+  testcontainers@11.9.0:
+    dependencies:
+      '@balena/dockerignore': 1.0.2
+      '@types/dockerode': 3.3.47
       archiver: 7.0.1
       async-lock: 1.4.1
       byline: 5.0.0

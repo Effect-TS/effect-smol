@@ -16,6 +16,7 @@ import * as SqlClient from "../sql/SqlClient.ts"
 import type { SqlError } from "../sql/SqlError.ts"
 import * as KeyValueStore from "./KeyValueStore.ts"
 import * as Persistable from "./Persistable.ts"
+import * as Redis from "./Redis.ts"
 
 const ErrorTypeId = "~effect/persistence/Persistence/PersistenceError" as const
 
@@ -461,6 +462,160 @@ export const layerBackingSql: Layer.Layer<
  * @since 4.0.0
  * @category layers
  */
+export const layerBackingRedis: Layer.Layer<
+  BackingPersistence,
+  never,
+  Redis.Redis
+> = Layer.effect(BackingPersistence)(Effect.gen(function*() {
+  const redis = yield* Redis.Redis
+  const setMany = redis.eval(setManyRedis)
+
+  return BackingPersistence.of({
+    make: (prefix) =>
+      Effect.sync(() => {
+        const prefixed = (key: string) => `${prefix}:${key}`
+        const parse = (str: string | null) => {
+          if (str === null) {
+            return Effect.undefined
+          }
+          try {
+            return Effect.succeed(JSON.parse(str))
+          } catch (cause) {
+            return Effect.fail(
+              new PersistenceError({
+                message: `Failed to parse value from Redis`,
+                cause
+              })
+            )
+          }
+        }
+        return identity<BackingPersistenceStore>({
+          get: (key) =>
+            Effect.flatMap(
+              Effect.mapError(
+                redis.send<string>("GET", prefixed(key)),
+                ({ cause }) =>
+                  new PersistenceError({
+                    message: `Failed to get key ${key} from Redis`,
+                    cause
+                  })
+              ),
+              parse
+            ),
+          getMany: (keys) =>
+            Effect.flatMap(
+              Effect.mapError(
+                redis.send<Arr.NonEmptyArray<string>>("mget", ...keys.map(prefixed)),
+                ({ cause }) =>
+                  new PersistenceError({
+                    message: `Failed to getMany from Redis`,
+                    cause
+                  })
+              ),
+              (values) => {
+                const out = new Array<object | undefined>(keys.length) as Arr.NonEmptyArray<object | undefined>
+                for (let i = 0; i < keys.length; i++) {
+                  const value = values[i]
+                  try {
+                    out[i] = value === null ? undefined : JSON.parse(value)
+                  } catch {
+                    // TODO: remove bad entries?
+                    out[i] = undefined
+                  }
+                }
+                return Effect.succeed(out)
+              }
+            ),
+          set: (key, value, ttl) =>
+            Effect.mapError(
+              ttl === undefined
+                ? redis.send("SET", prefixed(key), JSON.stringify(value))
+                : redis.send("SET", prefixed(key), JSON.stringify(value), "PX", String(Duration.toMillis(ttl))),
+              ({ cause }) =>
+                new PersistenceError({
+                  message: `Failed to set key ${key} in Redis`,
+                  cause
+                })
+            ),
+          setMany: (entries) =>
+            Effect.suspend(() => {
+              const sets = new Map<string, string>()
+              const expires = new Map<string, number>()
+              for (const [key, value, ttl] of entries) {
+                const pkey = prefixed(key)
+                sets.set(pkey, JSON.stringify(value))
+                if (ttl) {
+                  expires.set(pkey, Duration.toMillis(ttl))
+                }
+              }
+              return Effect.mapError(
+                setMany({ sets, expires }),
+                ({ cause }) =>
+                  new PersistenceError({
+                    message: `Failed to setMany in Redis`,
+                    cause
+                  })
+              )
+            }),
+          remove: (key) =>
+            Effect.mapError(
+              redis.send("DEL", prefixed(key)),
+              ({ cause }) => new PersistenceError({ message: `Failed to remove key ${key} from Redis`, cause })
+            ),
+          clear: redis.send<Array<string>>("KEYS", `${prefix}:*`).pipe(
+            Effect.flatMap((keys) => redis.send("DEL", ...keys)),
+            Effect.mapError(({ cause }) =>
+              new PersistenceError({
+                message: `Failed to clear keys from Redis`,
+                cause
+              })
+            )
+          )
+        })
+      })
+  })
+}))
+
+const setManyRedis = Redis.script<void>()(
+  (options: {
+    readonly sets: Map<string, string>
+    readonly expires: Map<string, number>
+  }) => [
+    ...options.sets.keys(),
+    ...options.expires.keys(),
+    options.sets.size,
+    options.expires.size,
+    ...options.sets.values(),
+    ...options.expires.values()
+  ],
+  {
+    numberOfKeys: (options) => options.sets.size + options.expires.size,
+    lua: `
+local num_sets = tonumber(ARGV[1])
+local num_expires = tonumber(ARGV[2])
+local index = 3
+
+for i = 1, num_sets do
+  local key = KEYS[i]
+  local value = ARGV[index]
+  redis.call("SET", key, value)
+  index = index + 1
+end
+
+for i = 1, num_expires do
+  local key = KEYS[num_sets + i]
+  local expire = tonumber(ARGV[index])
+  redis.call("PEXPIRE", key, expire)
+  index = index + 1
+end
+`
+  }
+)
+
+/**
+ * @since 4.0.0
+ * @category layers
+ */
 export const layerBackingKvs: Layer.Layer<
   BackingPersistence,
   never,
@@ -567,6 +722,14 @@ export const layerKvs: Layer.Layer<Persistence, never, KeyValueStore.KeyValueSto
  */
 export const layerMemory: Layer.Layer<Persistence> = layer.pipe(
   Layer.provide(layerBackingMemory)
+)
+
+/**
+ * @since 4.0.0
+ * @category layers
+ */
+export const layerRedis: Layer.Layer<Persistence, never, Redis.Redis> = layer.pipe(
+  Layer.provide(layerBackingRedis)
 )
 
 /**

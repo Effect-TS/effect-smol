@@ -10,11 +10,11 @@ const program = Effect.gen(function*() {
       const element = yield* PubSub.take(subscription)
       console.log(element)
     }
-  }).pipe(Effect.fork({ startImmediately: true }))
+  }).pipe(Effect.forkScoped({ startImmediately: true }))
 
   yield* PubSub.publishAll(pubsub, [1, 2])
-  yield* PubSub.publishAll(pubsub, [3, 4]).pipe(Effect.delay("100 millis"), Effect.fork)
-  yield* PubSub.publishAll(pubsub, [5, 6, 7, 8]).pipe(Effect.delay("200 millis"), Effect.fork)
+  yield* PubSub.publishAll(pubsub, [3, 4]).pipe(Effect.delay("100 millis"), Effect.forkScoped)
+  yield* PubSub.publishAll(pubsub, [5, 6, 7, 8]).pipe(Effect.delay("200 millis"), Effect.forkScoped)
 
   yield* Effect.sleep("500 millis")
 })

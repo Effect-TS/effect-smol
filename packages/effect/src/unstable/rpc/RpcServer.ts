@@ -671,7 +671,7 @@ export const layer = <Rpcs extends Rpc.Any>(
   | Rpc.ToHandler<Rpcs>
   | Rpc.Middleware<Rpcs>
   | Rpc.ServicesServer<Rpcs>
-> => Layer.effectDiscard(Effect.fork(make(group, options)))
+> => Layer.effectDiscard(Effect.forkScoped(make(group, options)))
 
 /**
  * Create a RPC server that registers a HTTP route with a `HttpRouter`.
@@ -741,7 +741,7 @@ export class Protocol extends ServiceMap.Service<Protocol, {
 export const makeProtocolSocketServer = Effect.gen(function*() {
   const server = yield* SocketServer.SocketServer
   const { onSocket, protocol } = yield* makeSocketProtocol
-  yield* Effect.fork(server.run(Effect.fnUntraced(onSocket, Effect.scoped)))
+  yield* Effect.forkScoped(server.run(Effect.fnUntraced(onSocket, Effect.scoped)))
   return protocol
 })
 
@@ -1038,7 +1038,7 @@ export const toHttpEffect: <Rpcs extends Rpc.Any>(
   const { httpEffect, protocol } = yield* makeProtocolWithHttpEffect
   yield* make(group, options).pipe(
     Effect.provideService(Protocol, protocol),
-    Effect.fork
+    Effect.forkScoped
   )
   // @effect-diagnostics-next-line returnEffectInGen:off
   return httpEffect
@@ -1074,7 +1074,7 @@ export const toHttpEffectWebsocket: <Rpcs extends Rpc.Any>(
   const { httpEffect, protocol } = yield* makeProtocolWithHttpEffectWebsocket
   yield* make(group, options).pipe(
     Effect.provideService(Protocol, protocol),
-    Effect.fork
+    Effect.forkScoped
   )
   // @effect-diagnostics-next-line returnEffectInGen:off
   return httpEffect
@@ -1112,13 +1112,13 @@ export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROu
       Effect.tapError(Effect.logError),
       Effect.retry(Schedule.spaced(500)),
       Effect.ensuring(Effect.forkDetach(Fiber.interrupt(fiber), { startImmediately: true })),
-      Effect.fork
+      Effect.forkScoped
     )
 
     yield* Stream.fromQueue(queue).pipe(
       Stream.run(options.stdout),
       Effect.retry(Schedule.spaced(500)),
-      Effect.fork
+      Effect.forkScoped
     )
 
     return {
@@ -1181,7 +1181,7 @@ export const makeProtocolWorkerRunner: Effect.Effect<
     Effect.onExit(() => {
       fiber.currentScheduler.scheduleTask(() => fiber.interruptUnsafe(fiber.id), 0)
     }),
-    Effect.fork
+    Effect.forkScoped
   )
 
   if (backing.disconnects) {
@@ -1190,7 +1190,7 @@ export const makeProtocolWorkerRunner: Effect.Effect<
         clientIds.delete(clientId)
         return Queue.offer(disconnects, clientId)
       }),
-      Effect.fork
+      Effect.forkScoped
     )
   }
 

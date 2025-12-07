@@ -43,12 +43,12 @@ const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
 ].forEach(({ layer, name }) => {
   it.layer(layer)(name, (it) => {
     it.effect("google", () =>
-      Effect.gen(function*() {
+      it.flakyTest(Effect.gen(function*() {
         const response = yield* HttpClient.get("https://www.google.com/").pipe(
           Effect.flatMap((_) => _.text)
         )
         expect(response).toContain("Google")
-      }))
+      })))
 
     it.effect("google followRedirects", () =>
       it.flakyTest(Effect.gen(function*() {

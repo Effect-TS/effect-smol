@@ -265,7 +265,7 @@ const make = Effect.gen(function*() {
         const fibers = Arr.empty<Fiber.Fiber<void>>()
         for (const state of entityManagers.values()) {
           if (state.status === "closed") continue
-          fibers.push(yield* Effect.fork(state.manager.interruptShard(shardId)))
+          fibers.push(yield* Effect.forkScoped(state.manager.interruptShard(shardId)))
         }
         yield* Fiber.joinAll(fibers)
         yield* runnerStorage.release(selfAddress, shardId)

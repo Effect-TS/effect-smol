@@ -6,7 +6,6 @@
   "compilerOptions": {
     "tsBuildInfoFile": ".tsbuildinfo/test.tsbuildinfo",
     "outDir": ".tsbuildinfo/test",
-    "noEmit": true,
     "erasableSyntaxOnly": false,
     "baseUrl": ".",
     "paths": {

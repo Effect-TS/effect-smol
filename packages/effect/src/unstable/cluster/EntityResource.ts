@@ -16,13 +16,13 @@ import type { Sharding } from "./Sharding.ts"
  * @since 4.0.0
  * @category Type ids
  */
-export const TypeId: TypeId = "~@effect/cluster/EntityResource"
+export const TypeId: TypeId = "~effect/cluster/EntityResource"
 
 /**
  * @since 4.0.0
  * @category Type ids
  */
-export type TypeId = "~@effect/cluster/EntityResource"
+export type TypeId = "~effect/cluster/EntityResource"
 
 /**
  * @since 4.0.0

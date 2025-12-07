@@ -87,7 +87,7 @@ export const make: <A>(value: A) => Effect.Effect<SubscriptionRef<A>> = Effect.f
  *
  *   const fiber = yield* Stream.runForEach(stream, (value) =>
  *     Effect.sync(() => console.log("Value:", value))
- *   ).pipe(Effect.fork)
+ *   ).pipe(Effect.forkScoped)
  *
  *   yield* SubscriptionRef.set(ref, 1)
  *   yield* SubscriptionRef.set(ref, 2)
