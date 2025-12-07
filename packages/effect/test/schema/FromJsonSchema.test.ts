@@ -867,16 +867,6 @@ describe("FromJsonSchema", () => {
             },
             FromJsonSchema.makeGeneration(`Schema.Literal("a")`, FromJsonSchema.makeTypes(`"a"`))
           )
-          // should support invalid pattern
-          assertGeneration(
-            {
-              schema: {
-                "enum": ["a", "b"],
-                "allOf": [{ "pattern": "\\" }]
-              }
-            },
-            FromJsonSchema.makeGeneration(`Schema.Literals(["a", "b"])`, FromJsonSchema.makeTypes(`"a" | "b"`))
-          )
         })
 
         it("enum & number", () => {
@@ -1040,6 +1030,13 @@ describe("FromJsonSchema", () => {
             `Schema.String.check(Schema.isPattern(new RegExp("a/b")))`,
             FromJsonSchema.makeTypes("string")
           )
+        )
+        // should ignore invalid pattern
+        assertGeneration(
+          {
+            schema: { "pattern": "\\" }
+          },
+          FromJsonSchema.makeGeneration(`Schema.String`, FromJsonSchema.makeTypes(`string`))
         )
         assertGeneration(
           { schema: { "minLength": 1, "maxLength": 10 } },

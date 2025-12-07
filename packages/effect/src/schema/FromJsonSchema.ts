@@ -600,13 +600,22 @@ function makePatternFilter(pattern: string): StringFilter {
   return { _tag: "pattern", value: pattern, annotations: {} }
 }
 
+function isValidRegExp(source: string): boolean {
+  try {
+    new RegExp(source)
+    return true
+  } catch {
+    return false
+  }
+}
+
 class String {
   static parseFilters(schema: Schema.JsonSchema): Array<StringFilter> {
     const fs: Array<StringFilter> = []
 
     if (typeof schema.minLength === "number") fs.push({ _tag: "minLength", value: schema.minLength, annotations: {} })
     if (typeof schema.maxLength === "number") fs.push({ _tag: "maxLength", value: schema.maxLength, annotations: {} })
-    if (typeof schema.pattern === "string") fs.push(makePatternFilter(schema.pattern))
+    if (typeof schema.pattern === "string" && isValidRegExp(schema.pattern)) fs.push(makePatternFilter(schema.pattern))
 
     return fs
   }
@@ -713,13 +722,7 @@ function getStringPredicate(f: StringFilter): (s: string) => boolean {
     case "maxLength":
       return (s: string) => s.length <= f.value
     case "pattern":
-      return (s: string) => {
-        try {
-          return new RegExp(f.value).test(s)
-        } catch {
-          return true
-        }
-      }
+      return (s: string) => new RegExp(f.value).test(s)
   }
 }
 
