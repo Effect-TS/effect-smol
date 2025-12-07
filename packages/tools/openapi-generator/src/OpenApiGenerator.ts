@@ -96,7 +96,8 @@ export const make = Effect.gen(function*() {
             const schema = {
               type: "object" as Schema.JsonSchema.Type,
               properties: {} as Record<string, any>,
-              required: [] as Array<string>
+              required: [] as Array<string>,
+              additionalProperties: false
             }
 
             for (let parameter of validParameters) {

@@ -78,6 +78,7 @@ describe("OpenApiGenerator", () => {
                             }
                           },
                           required: ["id", "name"],
+                          additionalProperties: false,
                           description: "User object"
                         }
                       }
@@ -137,7 +138,8 @@ describe("OpenApiGenerator", () => {
                               type: "string"
                             }
                           },
-                          required: ["id", "name"]
+                          required: ["id", "name"],
+                          additionalProperties: false
                         }
                       }
                     }

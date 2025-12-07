@@ -62,8 +62,8 @@ export type Generation = {
   readonly code: string
   /** The `Type`, `Encoded`, `DecodingServices`, and `EncodingServices` types related to the generated schema */
   readonly types: Types
-  /** The JSON Schema annotations found on the JSON Schema (e.g. `{ "description": "a description", "examples": [{ "a": "foo" }] }`) */
-  readonly annotations: Annotations
+  /** The JavaScript documentation found on the JSON Schema */
+  readonly jsDocs: string | undefined
   /** The import declarations needed to generate the schema */
   readonly importDeclarations: ReadonlySet<string>
 }
@@ -74,10 +74,10 @@ export type Generation = {
 export function makeGeneration(
   runtime: string,
   types: Types,
-  annotations: Annotations = {},
+  jsDocs: string | undefined = undefined,
   importDeclarations: ReadonlySet<string> = emptySet
 ): Generation {
-  return { code: runtime, types, annotations, importDeclarations }
+  return { code: runtime, types, jsDocs, importDeclarations }
 }
 
 /**
@@ -102,7 +102,7 @@ export function makeGenerationExtern(
       `typeof ${namespace}["DecodingServices"]`,
       `typeof ${namespace}["EncodingServices"]`
     ),
-    {},
+    undefined,
     new Set([importDeclaration])
   )
 }
@@ -142,7 +142,7 @@ export type GenerateOptions = {
    * You can also set it to a function that will be called to extract the jsDocs
    * from the annotations.
    */
-  readonly extractJsDocs?: boolean | ((annotations: Annotations) => string) | undefined
+  readonly extractJsDocs?: boolean | ((annotations: Annotations) => string | undefined) | undefined
 
   /**
    * Whether to parse the "contentSchema" field of the schema when the
@@ -169,7 +169,7 @@ interface RecurOptions {
   readonly source: Source
   readonly root: Schema.JsonSchema | undefined
   readonly resolver: Resolver
-  readonly extractJsDocs: ((annotations: Annotations) => string) | undefined
+  readonly extractJsDocs: (annotations: Annotations) => string | undefined
   readonly parseContentSchema: boolean
   readonly collectAnnotations: (schema: Schema.JsonSchema, annotations: Annotations) => Annotations
   readonly definitions: Schema.JsonSchema.Definitions
@@ -183,7 +183,11 @@ function getRecurOptions(schema: Schema.JsonSchema | boolean, options: GenerateO
     source: options.source,
     root: isObject(schema) ? schema : undefined,
     resolver: options.resolver ?? defaultResolver,
-    extractJsDocs: extractJsDocs === true ? defaultExtractJsDocs : extractJsDocs === false ? undefined : extractJsDocs,
+    extractJsDocs: extractJsDocs === true
+      ? defaultExtractJsDocs
+      : extractJsDocs === false
+      ? () => undefined
+      : extractJsDocs,
     parseContentSchema: options.parseContentSchema ?? false,
     collectAnnotations: options.collectAnnotations ?? ((_, annotations) => annotations),
     definitions: options.definitions ?? {},
@@ -216,27 +220,22 @@ export function defaultExtractJsDocs(annotations: Annotations): string {
   return `\n/** ${annotations.description} */\n`
 }
 
-function renderJsDocs(annotations: Annotations, options: RecurOptions): string {
-  if (!options.extractJsDocs) return ""
-  return options.extractJsDocs(annotations)
-}
-
 function renderAnnotations(annotations: Annotations): string {
   const entries = Object.entries(annotations)
   if (entries.length === 0) return ""
   return `{ ${entries.map(([key, value]) => `${formatPropertyKey(key)}: ${format(value)}`).join(", ")} }`
 }
 
-function renderAnnotationsMethod(annotations: Annotations): string {
-  const a = renderAnnotations(annotations)
-  if (a === "") return ""
+function renderAnnotate(annotations: Annotations): string {
+  const s = renderAnnotations(annotations)
+  if (s === "") return ""
   return `.annotate(${renderAnnotations(annotations)})`
 }
 
-function renderAnnotationsObject(annotations: Annotations | undefined): string {
+function renderCheckAnnotations(annotations: Annotations | undefined): string {
   if (annotations === undefined) return ""
-  const a = renderAnnotations(annotations)
-  if (a === "") return ""
+  const s = renderAnnotations(annotations)
+  if (s === "") return ""
   return `, ${renderAnnotations(annotations)}`
 }
 
@@ -457,7 +456,7 @@ export function generateDefinitions(
       generation: makeGeneration(
         out.code + `.annotate({ "identifier": ${format(ref)} })`,
         out.types,
-        out.annotations,
+        out.jsDocs,
         out.importDeclarations
       )
     }
@@ -465,10 +464,6 @@ export function generateDefinitions(
 }
 
 const joinReducer = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
-  a = a.trim()
-  b = b.trim()
-  if (a === "") return b
-  if (b === "") return a
   return `${a}, ${b}`
 }))
 
@@ -481,14 +476,14 @@ const annotationsReducers: Record<string, Reducer.Reducer<any>> = {
   message: joinReducer
 }
 
-const annotationsCombiner = Combiner.make<Annotations>((a, b) => {
+function combineAnnotations(a: Annotations, b: Annotations): Annotations {
   const out = { ...a, ...b }
   for (const key in annotationsReducers) {
     const value = annotationsReducers[key].combine(a[key], b[key])
     if (value !== undefined) out[key] = value
   }
   return out
-})
+}
 
 type AST =
   | Unknown
@@ -510,19 +505,19 @@ class Unknown {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Unknown {
-    return new Unknown(annotationsCombiner.combine(this.annotations, annotations))
+    return new Unknown(combineAnnotations(this.annotations, annotations))
   }
   combine(that: AST): AST {
     switch (that._tag) {
       case "Unknown":
-        return new Unknown(annotationsCombiner.combine(this.annotations, that.annotations))
+        return new Unknown(combineAnnotations(this.annotations, that.annotations))
       default:
         return that.combine(this)
     }
   }
-  toGeneration(_: RecurOptions): Generation {
-    const suffix = renderAnnotationsMethod(this.annotations)
-    return makeGeneration("Schema.Unknown" + suffix, makeTypes("unknown"), this.annotations)
+  toGeneration(options: RecurOptions): Generation {
+    const suffix = renderAnnotate(this.annotations)
+    return makeGeneration("Schema.Unknown" + suffix, makeTypes("unknown"), options.extractJsDocs(this.annotations))
   }
 }
 
@@ -533,14 +528,14 @@ class Never {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Never {
-    return new Never(annotationsCombiner.combine(this.annotations, annotations))
+    return new Never(combineAnnotations(this.annotations, annotations))
   }
   combine(that: AST): AST {
-    return new Never(annotationsCombiner.combine(this.annotations, that.annotations))
+    return new Never(combineAnnotations(this.annotations, that.annotations))
   }
-  toGeneration(_: RecurOptions): Generation {
-    const suffix = renderAnnotationsMethod(this.annotations)
-    return makeGeneration("Schema.Never" + suffix, makeTypes("never"), this.annotations)
+  toGeneration(options: RecurOptions): Generation {
+    const suffix = renderAnnotate(this.annotations)
+    return makeGeneration("Schema.Never" + suffix, makeTypes("never"), options.extractJsDocs(this.annotations))
   }
 }
 
@@ -551,14 +546,14 @@ class Null {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Null {
-    return new Null(annotationsCombiner.combine(this.annotations, annotations))
+    return new Null(combineAnnotations(this.annotations, annotations))
   }
   combine(that: AST): AST {
-    return new Null(annotationsCombiner.combine(this.annotations, that.annotations))
+    return new Null(combineAnnotations(this.annotations, that.annotations))
   }
-  toGeneration(_: RecurOptions): Generation {
-    const suffix = renderAnnotationsMethod(this.annotations)
-    return makeGeneration("Schema.Null" + suffix, makeTypes("null"), this.annotations)
+  toGeneration(options: RecurOptions): Generation {
+    const suffix = renderAnnotate(this.annotations)
+    return makeGeneration("Schema.Null" + suffix, makeTypes("null"), options.extractJsDocs(this.annotations))
   }
 }
 
@@ -604,7 +599,7 @@ class String {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): String {
-    return new String(this.checks, this.contentSchema, annotationsCombiner.combine(this.annotations, annotations))
+    return new String(this.checks, this.contentSchema, combineAnnotations(this.annotations, annotations))
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -619,12 +614,12 @@ class String {
         if (Object.keys(annotations).length === 0) {
           return new String([...this.checks, ...checks], contentSchema, this.annotations)
         } else if (checks.length === 0) {
-          return new String(this.checks, contentSchema, annotationsCombiner.combine(this.annotations, annotations))
+          return new String(this.checks, contentSchema, combineAnnotations(this.annotations, annotations))
         } else if (checks.length === 1) {
           return new String(
             [...this.checks, {
               ...checks[0],
-              annotations: annotationsCombiner.combine(checks[0].annotations, annotations)
+              annotations: combineAnnotations(checks[0].annotations, annotations)
             }],
             contentSchema,
             this.annotations
@@ -641,21 +636,21 @@ class String {
         return new String(
           this.checks,
           this.contentSchema,
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          combineAnnotations(this.annotations, that.annotations)
         )
       case "Literals":
         return Literals.make(
           that.values.filter((v) => typeof v === "string"),
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          combineAnnotations(this.annotations, that.annotations)
         )
       case "Union":
         return Union.make(that.members.map((m) => this.combine(m)), that.mode, that.annotations)
       default:
-        return new Never(annotationsCombiner.combine(this.annotations, that.annotations))
+        return new Never(combineAnnotations(this.annotations, that.annotations))
     }
   }
   toGeneration(options: RecurOptions): Generation {
-    const suffix = renderAnnotationsMethod(this.annotations) + renderChecks(this.checks)
+    const suffix = renderAnnotate(this.annotations) + renderChecks(this.checks)
     if (this.contentSchema !== undefined && options.parseContentSchema) {
       const contentSchema = this.contentSchema.toGeneration(options)
       return makeGeneration(
@@ -666,10 +661,10 @@ class String {
           contentSchema.types.DecodingServices,
           contentSchema.types.EncodingServices
         ),
-        this.annotations
+        options.extractJsDocs(this.annotations)
       )
     }
-    return makeGeneration("Schema.String" + suffix, makeTypes("string"), this.annotations)
+    return makeGeneration("Schema.String" + suffix, makeTypes("string"), options.extractJsDocs(this.annotations))
   }
 }
 
@@ -679,16 +674,14 @@ type Filter = StringFilter | NumberFilter | ArraysFilter | ObjectsFilter
 function renderCheck(c: Check): string {
   switch (c._tag) {
     case "FilterGroup":
-      return `Schema.makeFilterGroup([${c.checks.map(renderCheck).join(", ")}])${
-        renderAnnotationsObject(c.annotations)
-      }`
+      return `Schema.makeFilterGroup([${c.checks.map(renderCheck).join(", ")}])${renderCheckAnnotations(c.annotations)}`
     default:
       return renderFilter(c)
   }
 }
 
 function renderFilter(f: Filter): string {
-  const a = renderAnnotationsObject(f.annotations)
+  const a = renderCheckAnnotations(f.annotations)
   switch (f._tag) {
     case "minLength":
       return `Schema.isMinLength(${f.value}${a})`
@@ -772,7 +765,7 @@ class Number {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Number {
-    return new Number(this.isInteger, this.checks, annotationsCombiner.combine(this.annotations, annotations))
+    return new Number(this.isInteger, this.checks, combineAnnotations(this.annotations, annotations))
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -783,13 +776,13 @@ class Number {
         if (Object.keys(annotations).length === 0) {
           return new Number(isInteger, [...this.checks, ...checks], this.annotations)
         } else if (checks.length === 0) {
-          return new Number(isInteger, this.checks, annotationsCombiner.combine(this.annotations, annotations))
+          return new Number(isInteger, this.checks, combineAnnotations(this.annotations, annotations))
         } else if (checks.length === 1) {
           return new Number(
             isInteger,
             [...this.checks, {
               ...checks[0],
-              annotations: annotationsCombiner.combine(checks[0].annotations, annotations)
+              annotations: combineAnnotations(checks[0].annotations, annotations)
             }],
             this.annotations
           )
@@ -802,24 +795,24 @@ class Number {
         }
       }
       case "Unknown":
-        return new Number(this.isInteger, this.checks, annotationsCombiner.combine(this.annotations, that.annotations))
+        return new Number(this.isInteger, this.checks, combineAnnotations(this.annotations, that.annotations))
       case "Literals":
         return Literals.make(
           that.values.filter((v) => typeof v === "number"),
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          combineAnnotations(this.annotations, that.annotations)
         )
       case "Union":
         return Union.make(that.members.map((m) => this.combine(m)), that.mode, that.annotations)
       default:
-        return new Never(annotationsCombiner.combine(this.annotations, that.annotations))
+        return new Never(combineAnnotations(this.annotations, that.annotations))
     }
   }
-  toGeneration(_: RecurOptions): Generation {
-    const suffix = renderAnnotationsMethod(this.annotations) + renderChecks(this.checks)
+  toGeneration(options: RecurOptions): Generation {
+    const suffix = renderAnnotate(this.annotations) + renderChecks(this.checks)
     return makeGeneration(
       (this.isInteger ? "Schema.Int" : "Schema.Number") + suffix,
       makeTypes("number"),
-      this.annotations
+      options.extractJsDocs(this.annotations)
     )
   }
 }
@@ -831,10 +824,10 @@ class Boolean {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Boolean {
-    return new Boolean(annotationsCombiner.combine(this.annotations, annotations))
+    return new Boolean(combineAnnotations(this.annotations, annotations))
   }
   combine(that: AST): AST {
-    const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
+    const annotations = combineAnnotations(this.annotations, that.annotations)
     switch (that._tag) {
       case "Boolean":
       case "Unknown":
@@ -847,9 +840,9 @@ class Boolean {
         return new Never(annotations)
     }
   }
-  toGeneration(_: RecurOptions): Generation {
-    const suffix = renderAnnotationsMethod(this.annotations)
-    return makeGeneration("Schema.Boolean" + suffix, makeTypes("boolean"), this.annotations)
+  toGeneration(options: RecurOptions): Generation {
+    const suffix = renderAnnotate(this.annotations)
+    return makeGeneration("Schema.Boolean" + suffix, makeTypes("boolean"), options.extractJsDocs(this.annotations))
   }
 }
 
@@ -871,10 +864,10 @@ class Literals {
     this.values = values
   }
   annotate(annotations: Annotations): Literals {
-    return new Literals(this.values, annotationsCombiner.combine(this.annotations, annotations))
+    return new Literals(this.values, combineAnnotations(this.annotations, annotations))
   }
   combine(that: AST): AST {
-    const annotations = annotationsCombiner.combine(this.annotations, that.annotations)
+    const annotations = combineAnnotations(this.annotations, that.annotations)
     switch (that._tag) {
       case "Literals": {
         const intersection = new Set<AST.LiteralValue>()
@@ -898,16 +891,20 @@ class Literals {
         return new Never(annotations)
     }
   }
-  toGeneration(_: RecurOptions): Generation {
+  toGeneration(options: RecurOptions): Generation {
     const values = this.values.map((v) => format(v))
-    const suffix = renderAnnotationsMethod(this.annotations)
+    const suffix = renderAnnotate(this.annotations)
     if (values.length === 1) {
-      return makeGeneration(`Schema.Literal(${values[0]})` + suffix, makeTypes(values[0]), this.annotations)
+      return makeGeneration(
+        `Schema.Literal(${values[0]})` + suffix,
+        makeTypes(values[0]),
+        options.extractJsDocs(this.annotations)
+      )
     } else {
       return makeGeneration(
         `Schema.Literals([${values.join(", ")}])` + suffix,
         makeTypes(values.join(" | ")),
-        this.annotations
+        options.extractJsDocs(this.annotations)
       )
     }
   }
@@ -964,13 +961,13 @@ class Arrays {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Arrays {
-    return new Arrays(this.elements, this.rest, this.checks, annotationsCombiner.combine(this.annotations, annotations))
+    return new Arrays(this.elements, this.rest, this.checks, combineAnnotations(this.annotations, annotations))
   }
   combine(that: AST): AST {
     switch (that._tag) {
       case "Arrays": {
         if (this.elements.length > 0 && that.elements.length > 0) {
-          return new Never(annotationsCombiner.combine(this.annotations, that.annotations))
+          return new Never(combineAnnotations(this.annotations, that.annotations))
         }
         const elements = this.elements.concat(that.elements)
         const rest = this.rest === undefined
@@ -983,14 +980,14 @@ class Arrays {
         if (Object.keys(annotations).length === 0) {
           return new Arrays(elements, rest, [...this.checks, ...checks], this.annotations)
         } else if (checks.length === 0) {
-          return new Arrays(elements, rest, this.checks, annotationsCombiner.combine(this.annotations, annotations))
+          return new Arrays(elements, rest, this.checks, combineAnnotations(this.annotations, annotations))
         } else if (checks.length === 1) {
           return new Arrays(
             elements,
             rest,
             [...this.checks, {
               ...checks[0],
-              annotations: annotationsCombiner.combine(checks[0].annotations, annotations)
+              annotations: combineAnnotations(checks[0].annotations, annotations)
             }],
             this.annotations
           )
@@ -1008,12 +1005,12 @@ class Arrays {
           this.elements,
           this.rest,
           this.checks,
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          combineAnnotations(this.annotations, that.annotations)
         )
       case "Union":
         return Union.make(that.members.map((m) => this.combine(m)), that.mode, that.annotations)
       default:
-        return new Never(annotationsCombiner.combine(this.annotations, that.annotations))
+        return new Never(combineAnnotations(this.annotations, that.annotations))
     }
   }
   toGeneration(options: RecurOptions): Generation {
@@ -1024,10 +1021,14 @@ class Arrays {
     const rest = this.rest !== undefined ? this.rest.toGeneration(options) : undefined
     const el = renderElements(es)
 
-    const suffix = renderAnnotationsMethod(this.annotations) + renderChecks(this.checks)
+    const suffix = renderAnnotate(this.annotations) + renderChecks(this.checks)
 
     if (es.length === 0 && rest === undefined) {
-      return makeGeneration(`Schema.Tuple([])` + suffix, makeTypes("readonly []"), this.annotations)
+      return makeGeneration(
+        `Schema.Tuple([])` + suffix,
+        makeTypes("readonly []"),
+        options.extractJsDocs(this.annotations)
+      )
     }
 
     if (es.length === 0 && rest !== undefined) {
@@ -1039,7 +1040,7 @@ class Arrays {
           rest.types.DecodingServices,
           rest.types.EncodingServices
         ),
-        this.annotations,
+        options.extractJsDocs(this.annotations),
         rest.importDeclarations
       )
     }
@@ -1053,7 +1054,7 @@ class Arrays {
           el.types.DecodingServices,
           el.types.EncodingServices
         ),
-        this.annotations,
+        options.extractJsDocs(this.annotations),
         el.importDeclarations
       )
     }
@@ -1066,7 +1067,7 @@ class Arrays {
         joinServices([el.types.DecodingServices, rest.types.DecodingServices]),
         joinServices([el.types.EncodingServices, rest.types.EncodingServices])
       ),
-      this.annotations,
+      options.extractJsDocs(this.annotations),
       ReadonlySetReducer.combine(el.importDeclarations, rest.importDeclarations)
     )
   }
@@ -1086,7 +1087,7 @@ function renderElements(es: ReadonlyArray<ElementIR>): Generation {
       joinServices(es.map((e) => e.value.types.DecodingServices)),
       joinServices(es.map((e) => e.value.types.EncodingServices))
     ),
-    {},
+    undefined,
     ReadonlySetReducer.combineAll(es.map((e) => e.value.importDeclarations))
   )
 }
@@ -1173,7 +1174,7 @@ class Objects {
       this.indexSignatures,
       this.additionalProperties,
       this.checks,
-      annotationsCombiner.combine(this.annotations, annotations)
+      combineAnnotations(this.annotations, annotations)
     )
   }
   combine(that: AST): AST {
@@ -1217,7 +1218,7 @@ class Objects {
             indexSignatures,
             additionalProperties,
             this.checks,
-            annotationsCombiner.combine(this.annotations, annotations)
+            combineAnnotations(this.annotations, annotations)
           )
         } else if (checks.length === 1) {
           return new Objects(
@@ -1226,7 +1227,7 @@ class Objects {
             additionalProperties,
             [...this.checks, {
               ...checks[0],
-              annotations: annotationsCombiner.combine(checks[0].annotations, annotations)
+              annotations: combineAnnotations(checks[0].annotations, annotations)
             }],
             this.annotations
           )
@@ -1246,12 +1247,12 @@ class Objects {
           this.indexSignatures,
           this.additionalProperties,
           this.checks,
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          combineAnnotations(this.annotations, that.annotations)
         )
       case "Union":
         return Union.make(that.members.map((m) => this.combine(m)), that.mode, that.annotations)
       default:
-        return new Never(annotationsCombiner.combine(this.annotations, that.annotations))
+        return new Never(combineAnnotations(this.annotations, that.annotations))
     }
   }
   toGeneration(options: RecurOptions): Generation {
@@ -1282,10 +1283,10 @@ class Objects {
       return makeGeneration("Schema.Record(Schema.String, Schema.Never)", makeTypes("{ readonly [x: string]: never }"))
     }
 
-    const p = renderProperties(propertiesGen, options)
+    const p = renderProperties(propertiesGen)
     const i = renderIndexSignatures(indexSignaturesGen)
 
-    const suffix = renderAnnotationsMethod(this.annotations) + renderChecks(this.checks)
+    const suffix = renderAnnotate(this.annotations) + renderChecks(this.checks)
 
     if (indexSignaturesGen.length === 0) {
       // 1) Only properties -> Struct
@@ -1297,7 +1298,7 @@ class Objects {
           p.types.DecodingServices,
           p.types.EncodingServices
         ),
-        this.annotations,
+        options.extractJsDocs(this.annotations),
         p.importDeclarations
       )
     } else if (propertiesGen.length === 0 && indexSignaturesGen.length === 1) {
@@ -1311,7 +1312,7 @@ class Objects {
           joinServices([is.key.types.DecodingServices, is.value.types.DecodingServices]),
           joinServices([is.key.types.EncodingServices, is.value.types.EncodingServices])
         ),
-        this.annotations,
+        options.extractJsDocs(this.annotations),
         indexSignatureImports(is)
       )
     } else {
@@ -1331,7 +1332,7 @@ class Objects {
             joinServices([p.types.DecodingServices, i.types.DecodingServices]),
             joinServices([p.types.EncodingServices, i.types.EncodingServices])
           ),
-        this.annotations,
+        options.extractJsDocs(this.annotations),
         ReadonlySetReducer.combineAll([p.importDeclarations, i.importDeclarations])
       )
     }
@@ -1354,17 +1355,17 @@ function combineAdditionalProperties(a: boolean | AST, b: boolean | AST): boolea
   }
 }
 
-function renderProperties(ps: ReadonlyArray<PropertyGen>, options: RecurOptions): Generation {
-  const descriptions = ps.map((p) => renderJsDocs(p.value.annotations, options))
+function renderProperties(ps: ReadonlyArray<PropertyGen>): Generation {
+  const jsDocs = ps.map((p) => p.value.jsDocs ?? "")
   return makeGeneration(
     ps.map((p) => `${formatPropertyKey(p.key)}: ${optionalRuntime(p.isOptional, p.value.code)}`).join(", "),
     makeTypes(
-      join(ps, (p, i) => descriptions[i] + renderProperty(p.isOptional, p.key, p.value.types.Type)),
-      join(ps, (p, i) => descriptions[i] + renderProperty(p.isOptional, p.key, p.value.types.Encoded)),
+      join(ps, (p, i) => jsDocs[i] + renderProperty(p.isOptional, p.key, p.value.types.Type)),
+      join(ps, (p, i) => jsDocs[i] + renderProperty(p.isOptional, p.key, p.value.types.Encoded)),
       joinServices(ps.map((p) => p.value.types.DecodingServices)),
       joinServices(ps.map((p) => p.value.types.EncodingServices))
     ),
-    {},
+    undefined,
     ReadonlySetReducer.combineAll(ps.map((p) => p.value.importDeclarations))
   )
 }
@@ -1386,7 +1387,7 @@ function renderIndexSignatures(iss: ReadonlyArray<IndexSignatureGen>): Generatio
         iss.map((is) => is.key.types.EncodingServices).concat(iss.map((is) => is.value.types.EncodingServices))
       )
     ),
-    {},
+    undefined,
     ReadonlySetReducer.combineAll(iss.map(indexSignatureImports))
   )
 }
@@ -1432,7 +1433,7 @@ class Union {
     this.annotations = annotations
   }
   annotate(annotations: Annotations): Union {
-    return new Union(this.members, this.mode, annotationsCombiner.combine(this.annotations, annotations))
+    return new Union(this.members, this.mode, combineAnnotations(this.annotations, annotations))
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -1440,7 +1441,7 @@ class Union {
         return new Union(
           this.members.concat(that.members),
           this.mode === "oneOf" && that.mode === "oneOf" ? "oneOf" : "anyOf",
-          annotationsCombiner.combine(this.annotations, that.annotations)
+          combineAnnotations(this.annotations, that.annotations)
         )
       default:
         return new Union(this.members.map((m) => m.combine(that)), this.mode, this.annotations)
@@ -1452,7 +1453,7 @@ class Union {
         Object.keys(this.members[1].annotations).length === 0 ?
       `Schema.NullOr(${members[0].code})` :
       `Schema.Union([${members.map((m) => m.code).join(", ")}]${this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""})`
-    const suffix = renderAnnotationsMethod(this.annotations)
+    const suffix = renderAnnotate(this.annotations)
     return makeGeneration(
       runtime + suffix,
       makeTypes(
@@ -1461,7 +1462,7 @@ class Union {
         joinServices(members.map((m) => m.types.DecodingServices)),
         joinServices(members.map((m) => m.types.EncodingServices))
       ),
-      this.annotations,
+      options.extractJsDocs(this.annotations),
       ReadonlySetReducer.combineAll(members.map((m) => m.importDeclarations))
     )
   }
@@ -1470,33 +1471,27 @@ class Union {
 class Reference {
   readonly _tag = "Reference"
   readonly ref: string
-  readonly annotations: Annotations
-  constructor(ref: string, annotations: Annotations = {}) {
+  readonly annotations: Annotations = {}
+  constructor(ref: string) {
     this.ref = ref
-    this.annotations = annotations
   }
-  annotate(annotations: Annotations): Reference {
-    return new Reference(this.ref, annotationsCombiner.combine(this.annotations, annotations))
+  annotate(_: Annotations): Reference {
+    return this
   }
   combine(_: AST): AST {
     return new Never()
   }
   toGeneration(options: RecurOptions): Generation {
-    const out = options.resolver(this.ref)
-    const suffix = renderAnnotationsMethod(this.annotations)
-    return makeGeneration(
-      out.code + suffix,
-      out.types,
-      annotationsCombiner.combine(this.annotations, out.annotations),
-      out.importDeclarations
-    )
+    return options.resolver(this.ref)
   }
 }
 
-function parse(schema: unknown, options: RecurOptions): AST {
-  if (schema === false) return new Never()
-  if (schema === true) return new Unknown()
-  if (!isObject(schema)) return new Unknown()
+function parse(u: unknown, options: RecurOptions): AST {
+  if (u === false) return new Never()
+  if (u === true) return new Unknown()
+  if (!isObject(u)) return new Unknown()
+
+  const schema = normalize(u)
 
   let ast = parseJsonSchema(schema, options)
   const annotations = options.collectAnnotations(schema, collectAnnotations(schema))
@@ -1541,8 +1536,6 @@ function parseJsonSchema(schema: Schema.JsonSchema, options: RecurOptions): AST 
     if (isNullable) return NullOr(Literals.make(enums))
     return Literals.make(enums)
   }
-
-  schema = normalize(schema)
 
   if (isType(schema.type)) {
     let out = parseType(schema.type, schema, options)
@@ -1627,8 +1620,12 @@ const objectKeys = [
 ]
 const arrayKeys = ["items", "prefixItems", "additionalItems", "minItems", "maxItems", "uniqueItems"]
 
-// adds a "type": Type to the schema if it is not present
 function normalize(schema: Schema.JsonSchema): Schema.JsonSchema {
+  if (typeof schema.$ref === "string") {
+    // ignore everything else in that same object except for the $ref
+    return { $ref: schema.$ref }
+  }
+
   if (schema.type === undefined) {
     if (stringKeys.some((key) => schema[key] !== undefined)) {
       return { ...schema, type: "string" }
