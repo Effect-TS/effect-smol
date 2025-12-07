@@ -22,6 +22,7 @@ import { format, formatPropertyKey } from "../data/Formatter.ts"
 import { isObject } from "../data/Predicate.ts"
 import * as Reducer from "../data/Reducer.ts"
 import * as UndefinedOr from "../data/UndefinedOr.ts"
+import { remainder } from "../Number.ts"
 import { type Mutable } from "../types/Types.ts"
 import type { Annotations } from "./Annotations.ts"
 import type * as AST from "./AST.ts"
@@ -638,11 +639,13 @@ class String {
           this.contentSchema,
           combineAnnotations(this.annotations, that.annotations)
         )
-      case "Literals":
+      case "Literals": {
+        const predicates = getStringFilters(this.checks).map(getStringPredicate)
         return Literals.make(
-          that.values.filter((v) => typeof v === "string"),
+          that.values.filter((v) => typeof v === "string" && predicates.every((f) => f(v))),
           combineAnnotations(this.annotations, that.annotations)
         )
+      }
       case "Union":
         return Union.make(that.members.map((m) => this.combine(m)), that.mode, that.annotations)
       default:
@@ -668,8 +671,33 @@ class String {
   }
 }
 
+function getStringFilters(checks: ReadonlyArray<StringCheck>): Array<StringFilter> {
+  return checks.flatMap((c) => {
+    switch (c._tag) {
+      case "FilterGroup":
+        return getStringFilters(c.checks)
+      default:
+        return [c]
+    }
+  })
+}
+
+function getStringPredicate(f: StringFilter): (s: string) => boolean {
+  switch (f._tag) {
+    case "minLength":
+      return (s: string) => s.length >= f.value
+    case "maxLength":
+      return (s: string) => s.length <= f.value
+    case "pattern":
+      return (s: string) => new RegExp(f.value).test(s)
+  }
+}
+
 type Check = StringCheck | NumberCheck | ArraysCheck | ObjectsCheck
-type Filter = StringFilter | NumberFilter | ArraysFilter | ObjectsFilter
+
+function renderChecks(checks: ReadonlyArray<Check>): string {
+  return checks.length === 0 ? "" : `.check(${checks.map(renderCheck).join(", ")})`
+}
 
 function renderCheck(c: Check): string {
   switch (c._tag) {
@@ -680,7 +708,7 @@ function renderCheck(c: Check): string {
   }
 }
 
-function renderFilter(f: Filter): string {
+function renderFilter(f: StringFilter | NumberFilter | ArraysFilter | ObjectsFilter): string {
   const a = renderCheckAnnotations(f.annotations)
   switch (f._tag) {
     case "minLength":
@@ -710,10 +738,6 @@ function renderFilter(f: Filter): string {
     case "maxProperties":
       return `Schema.isMaxProperties(${f.value}${a})`
   }
-}
-
-function renderChecks(checks: ReadonlyArray<Check>): string {
-  return checks.length === 0 ? "" : `.check(${checks.map(renderCheck).join(", ")})`
 }
 
 type NumberCheck = NumberFilter | FilterGroup<NumberCheck>
@@ -796,11 +820,13 @@ class Number {
       }
       case "Unknown":
         return new Number(this.isInteger, this.checks, combineAnnotations(this.annotations, that.annotations))
-      case "Literals":
+      case "Literals": {
+        const predicates = getNumberFilters(this.checks).map(getNumberPredicate)
         return Literals.make(
-          that.values.filter((v) => typeof v === "number"),
+          that.values.filter((v) => typeof v === "number" && predicates.every((f) => f(v))),
           combineAnnotations(this.annotations, that.annotations)
         )
+      }
       case "Union":
         return Union.make(that.members.map((m) => this.combine(m)), that.mode, that.annotations)
       default:
@@ -814,6 +840,32 @@ class Number {
       makeTypes("number"),
       options.extractJsDocs(this.annotations)
     )
+  }
+}
+
+function getNumberFilters(checks: ReadonlyArray<NumberCheck>): Array<NumberFilter> {
+  return checks.flatMap((c) => {
+    switch (c._tag) {
+      case "FilterGroup":
+        return getNumberFilters(c.checks)
+      default:
+        return [c]
+    }
+  })
+}
+
+function getNumberPredicate(f: NumberFilter): (n: number) => boolean {
+  switch (f._tag) {
+    case "greaterThanOrEqualTo":
+      return (n: number) => n >= f.value
+    case "lessThanOrEqualTo":
+      return (n: number) => n <= f.value
+    case "greaterThan":
+      return (n: number) => n > f.value
+    case "lessThan":
+      return (n: number) => n < f.value
+    case "multipleOf":
+      return (n: number) => remainder(n, f.value) === 0
   }
 }
 
@@ -850,7 +902,6 @@ function isLiteralValue(value: unknown): value is AST.LiteralValue {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
 }
 
-// TODO: add checks: StringCheck | NumberCheck to the Literals class
 class Literals {
   static make(values: ReadonlyArray<AST.LiteralValue>, annotations: Annotations = {}): AST {
     if (values.length === 0) return new Never(annotations)
