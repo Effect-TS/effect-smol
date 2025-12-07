@@ -96,13 +96,6 @@ export function makeGeneration(
 /**
  * @since 4.0.0
  */
-export function makeGenerationIdentifier(identifier: string): Generation {
-  return makeGeneration(identifier, makeTypes(identifier))
-}
-
-/**
- * @since 4.0.0
- */
 export function makeGenerationExtern(
   namespace: string,
   importDeclaration: string
@@ -256,13 +249,6 @@ function renderAnnotate(annotations: Annotations): string {
   return `.annotate(${renderAnnotations(annotations)})`
 }
 
-function renderCheckAnnotations(annotations: Annotations | undefined): string {
-  if (annotations === undefined) return ""
-  const s = renderAnnotations(annotations)
-  if (s === "") return ""
-  return `, ${renderAnnotations(annotations)}`
-}
-
 const emptySet: ReadonlySet<string> = new Set()
 
 const ReadonlySetReducer: Reducer.Reducer<ReadonlySet<string>> = Reducer.make<ReadonlySet<string>>(
@@ -413,7 +399,7 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
 }
 
 function getRefParts($ref: string): Array<string> {
-  return $ref.slice(2).split("/").map(unescapeJsonPointerPart)
+  return $ref.slice(2).split("/").filter((part) => part !== "").map(unescapeJsonPointerPart)
 }
 
 function unescapeJsonPointerPart(part: string): string {
@@ -528,8 +514,8 @@ class Unknown {
   constructor(annotations: Annotations = {}) {
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Unknown {
-    return new Unknown(combineAnnotations(this.annotations, annotations))
+  replaceAnnotations(annotations: Annotations): Unknown {
+    return new Unknown(annotations)
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -551,8 +537,8 @@ class Never {
   constructor(annotations: Annotations = {}) {
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Never {
-    return new Never(combineAnnotations(this.annotations, annotations))
+  replaceAnnotations(annotations: Annotations): Never {
+    return new Never(annotations)
   }
   combine(that: AST): AST {
     return new Never(combineAnnotations(this.annotations, that.annotations))
@@ -569,11 +555,22 @@ class Null {
   constructor(annotations: Annotations = {}) {
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Null {
-    return new Null(combineAnnotations(this.annotations, annotations))
+  replaceAnnotations(annotations: Annotations): Null {
+    return new Null(annotations)
   }
   combine(that: AST): AST {
-    return new Null(combineAnnotations(this.annotations, that.annotations))
+    const annotations = combineAnnotations(this.annotations, that.annotations)
+    switch (that._tag) {
+      case "Unknown":
+      case "Null":
+        return new Null(annotations)
+      case "Union":
+        return that.members.some(includesNull)
+          ? new Null(annotations)
+          : new Never(annotations)
+      default:
+        return new Never(annotations)
+    }
   }
   toGeneration(options: RecurOptions): Generation {
     const suffix = renderAnnotate(this.annotations)
@@ -604,8 +601,7 @@ class String {
 
     if (typeof schema.minLength === "number") fs.push({ _tag: "minLength", value: schema.minLength, annotations: {} })
     if (typeof schema.maxLength === "number") fs.push({ _tag: "maxLength", value: schema.maxLength, annotations: {} })
-    // Escape forward slashes to prevent them from terminating the regex literal delimiter
-    if (typeof schema.pattern === "string") fs.push({ _tag: "pattern", value: schema.pattern, annotations: {} })
+    if (typeof schema.pattern === "string") fs.push(makePatternCheck(schema.pattern))
 
     return fs
   }
@@ -622,8 +618,8 @@ class String {
     this.contentSchema = contentSchema
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): String {
-    return new String(this.checks, this.contentSchema, combineAnnotations(this.annotations, annotations))
+  replaceAnnotations(annotations: Annotations): String {
+    return new String(this.checks, this.contentSchema, annotations)
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -724,42 +720,46 @@ function renderChecks(checks: ReadonlyArray<Check>): string {
 
 function renderCheck(c: Check): string {
   switch (c._tag) {
-    case "FilterGroup":
-      return `Schema.makeFilterGroup([${c.checks.map(renderCheck).join(", ")}])${renderCheckAnnotations(c.annotations)}`
+    case "FilterGroup": {
+      const a = renderAnnotations(c.annotations)
+      const ca = a === "" ? "" : `, ${a}`
+      return `Schema.makeFilterGroup([${c.checks.map(renderCheck).join(", ")}]${ca})`
+    }
     default:
       return renderFilter(c)
   }
 }
 
 function renderFilter(f: StringFilter | NumberFilter | ArraysFilter | ObjectsFilter): string {
-  const a = renderCheckAnnotations(f.annotations)
+  const a = renderAnnotations(f.annotations)
+  const ca = a === "" ? "" : `, ${a}`
   switch (f._tag) {
     case "minLength":
-      return `Schema.isMinLength(${f.value}${a})`
+      return `Schema.isMinLength(${f.value}${ca})`
     case "maxLength":
-      return `Schema.isMaxLength(${f.value}${a})`
+      return `Schema.isMaxLength(${f.value}${ca})`
     case "pattern":
-      return `Schema.isPattern(/${f.value}/${a})`
+      return `Schema.isPattern(/${f.value}/${ca})`
     case "greaterThanOrEqualTo":
-      return `Schema.isGreaterThanOrEqualTo(${f.value}${a})`
+      return `Schema.isGreaterThanOrEqualTo(${f.value}${ca})`
     case "lessThanOrEqualTo":
-      return `Schema.isLessThanOrEqualTo(${f.value}${a})`
+      return `Schema.isLessThanOrEqualTo(${f.value}${ca})`
     case "greaterThan":
-      return `Schema.isGreaterThan(${f.value}${a})`
+      return `Schema.isGreaterThan(${f.value}${ca})`
     case "lessThan":
-      return `Schema.isLessThan(${f.value}${a})`
+      return `Schema.isLessThan(${f.value}${ca})`
     case "multipleOf":
-      return `Schema.isMultipleOf(${f.value}${a})`
+      return `Schema.isMultipleOf(${f.value}${ca})`
     case "minItems":
-      return `Schema.isMinLength(${f.value}${a})`
+      return `Schema.isMinLength(${f.value}${ca})`
     case "maxItems":
-      return `Schema.isMaxLength(${f.value}${a})`
+      return `Schema.isMaxLength(${f.value}${ca})`
     case "uniqueItems":
       return `Schema.isUnique(${a})`
     case "minProperties":
-      return `Schema.isMinProperties(${f.value}${a})`
+      return `Schema.isMinProperties(${f.value}${ca})`
     case "maxProperties":
-      return `Schema.isMaxProperties(${f.value}${a})`
+      return `Schema.isMaxProperties(${f.value}${ca})`
   }
 }
 
@@ -811,8 +811,8 @@ class Number {
     this.checks = checks
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Number {
-    return new Number(this.isInteger, this.checks, combineAnnotations(this.annotations, annotations))
+  replaceAnnotations(annotations: Annotations): Number {
+    return new Number(this.isInteger, this.checks, annotations)
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -898,8 +898,8 @@ class Boolean {
   constructor(annotations: Annotations = {}) {
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Boolean {
-    return new Boolean(combineAnnotations(this.annotations, annotations))
+  replaceAnnotations(annotations: Annotations): Boolean {
+    return new Boolean(annotations)
   }
   combine(that: AST): AST {
     const annotations = combineAnnotations(this.annotations, that.annotations)
@@ -937,8 +937,8 @@ class Literals {
     this.annotations = annotations
     this.values = values
   }
-  annotate(annotations: Annotations): Literals {
-    return new Literals(this.values, combineAnnotations(this.annotations, annotations))
+  replaceAnnotations(annotations: Annotations): Literals {
+    return new Literals(this.values, annotations)
   }
   combine(that: AST): AST {
     const annotations = combineAnnotations(this.annotations, that.annotations)
@@ -998,9 +998,6 @@ class Element {
     this.isOptional = isOptional
     this.ast = ast
   }
-  annotate(annotations: Annotations): Element {
-    return new Element(this.isOptional, this.ast.annotate(annotations))
-  }
 }
 
 class Arrays {
@@ -1034,8 +1031,8 @@ class Arrays {
     })
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Arrays {
-    return new Arrays(this.elements, this.rest, this.checks, combineAnnotations(this.annotations, annotations))
+  replaceAnnotations(annotations: Annotations): Arrays {
+    return new Arrays(this.elements, this.rest, this.checks, annotations)
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -1242,14 +1239,8 @@ class Objects {
     this.checks = checks
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Objects {
-    return new Objects(
-      this.properties,
-      this.indexSignatures,
-      this.additionalProperties,
-      this.checks,
-      combineAnnotations(this.annotations, annotations)
-    )
+  replaceAnnotations(annotations: Annotations): Objects {
+    return new Objects(this.properties, this.indexSignatures, this.additionalProperties, this.checks, annotations)
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -1494,7 +1485,9 @@ class Union {
   static make(members: ReadonlyArray<AST>, mode: "anyOf" | "oneOf", annotations: Annotations = {}): AST {
     members = members.filter((m) => m._tag !== "Never")
     if (members.length === 0) return new Never(annotations)
-    if (members.length === 1) return members[0].annotate(annotations)
+    if (members.length === 1) {
+      return members[0].replaceAnnotations(combineAnnotations(members[0].annotations, annotations))
+    }
     return new Union(members, mode, annotations)
   }
   readonly _tag = "Union"
@@ -1506,8 +1499,8 @@ class Union {
     this.mode = mode
     this.annotations = annotations
   }
-  annotate(annotations: Annotations): Union {
-    return new Union(this.members, this.mode, combineAnnotations(this.annotations, annotations))
+  replaceAnnotations(annotations: Annotations): Union {
+    return new Union(this.members, this.mode, annotations)
   }
   combine(that: AST): AST {
     switch (that._tag) {
@@ -1522,24 +1515,32 @@ class Union {
     }
   }
   toGeneration(options: RecurOptions): Generation {
-    const members = this.members.map((m) => m.toGeneration(options))
-    const runtime = this.members.length === 2 && this.members[1]._tag === "Null" &&
-        Object.keys(this.members[1].annotations).length === 0 ?
-      `Schema.NullOr(${members[0].code})` :
-      `Schema.Union([${members.map((m) => m.code).join(", ")}]${this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""})`
+    let gens = this.members.map((m) => m.toGeneration(options))
+    if (this.members.length === 2 && isBareNull(this.members[0])) {
+      gens = [gens[1], gens[0]]
+    }
+
+    const runtime = this.members.length === 2 && (isBareNull(this.members[0]) || isBareNull(this.members[1])) ?
+      `Schema.NullOr(${gens[0].code})` :
+      `Schema.Union([${gens.map((m) => m.code).join(", ")}]${this.mode === "oneOf" ? `, { mode: "oneOf" }` : ""})`
+
     const suffix = renderAnnotate(this.annotations)
     return makeGeneration(
       runtime + suffix,
       makeTypes(
-        members.map((m) => m.types.Type).join(" | "),
-        members.map((m) => m.types.Encoded).join(" | "),
-        joinServices(members.map((m) => m.types.DecodingServices)),
-        joinServices(members.map((m) => m.types.EncodingServices))
+        gens.map((m) => m.types.Type).join(" | "),
+        gens.map((m) => m.types.Encoded).join(" | "),
+        joinServices(gens.map((m) => m.types.DecodingServices)),
+        joinServices(gens.map((m) => m.types.EncodingServices))
       ),
       options.extractJsDocs(this.annotations),
-      ReadonlySetReducer.combineAll(members.map((m) => m.importDeclarations))
+      ReadonlySetReducer.combineAll(gens.map((m) => m.importDeclarations))
     )
   }
+}
+
+function isBareNull(ast: AST): boolean {
+  return ast._tag === "Null" && Object.keys(ast.annotations).length === 0
 }
 
 class Reference {
@@ -1549,7 +1550,7 @@ class Reference {
   constructor(ref: string) {
     this.ref = ref
   }
-  annotate(_: Annotations): Reference {
+  replaceAnnotations(_: Annotations): Reference {
     return this
   }
   combine(_: AST): AST {
@@ -1568,8 +1569,6 @@ function parse(u: unknown, options: RecurOptions): AST {
   const schema = normalize(u)
 
   let ast = parseJsonSchema(schema, options)
-  const annotations = options.collectAnnotations(schema, collectAnnotations(schema))
-  ast = ast.annotate(annotations)
 
   if (Array.isArray(schema.allOf)) {
     const allOfOptions: RecurOptions = { ...options, allOf: true }
@@ -1579,11 +1578,29 @@ function parse(u: unknown, options: RecurOptions): AST {
     )
   }
 
+  if (options.source === "openapi-3.0" && schema.nullable === true) {
+    ast = NullOr(ast)
+  }
+
+  const annotations = options.collectAnnotations(schema, collectAnnotations(schema))
+  ast = ast.replaceAnnotations(combineAnnotations(annotations, ast.annotations))
+
   return ast
 }
 
+function includesNull(ast: AST): boolean {
+  switch (ast._tag) {
+    case "Null":
+      return true
+    case "Union":
+      return ast.members.some(includesNull)
+    default:
+      return false
+  }
+}
+
 function NullOr(ast: AST): AST {
-  return Union.make([ast, new Null()], "anyOf")
+  return includesNull(ast) ? ast : Union.make([ast, new Null()], "anyOf")
 }
 
 function parseJsonSchema(schema: Schema.JsonSchema, options: RecurOptions): AST {
@@ -1595,7 +1612,7 @@ function parseJsonSchema(schema: Schema.JsonSchema, options: RecurOptions): AST 
   }
 
   if (Array.isArray(schema.type)) {
-    return Union.make(schema.type.filter(isType).map((type) => parseType(type, {}, options)), "anyOf")
+    return Union.make(schema.type.filter(isType).map((type) => parseType(type, schema, options)), "anyOf")
   }
 
   if (schema.const !== undefined) {
@@ -1612,11 +1629,7 @@ function parseJsonSchema(schema: Schema.JsonSchema, options: RecurOptions): AST 
   }
 
   if (isType(schema.type)) {
-    let out = parseType(schema.type, schema, options)
-    if (options.source === "openapi-3.0" && schema.nullable === true) {
-      out = NullOr(out)
-    }
-    return out
+    return parseType(schema.type, schema, options)
   }
 
   if (typeof schema.$ref === "string") {
@@ -1648,7 +1661,7 @@ function parseJsonSchema(schema: Schema.JsonSchema, options: RecurOptions): AST 
 
       return new Reference(ref.join("/"))
     } else {
-      throw new Error(`Invalid $ref: ${schema.$ref}`)
+      throw new Error(`Invalid $ref: ${format(schema.$ref)}`)
     }
   }
 
@@ -1695,11 +1708,6 @@ const objectKeys = [
 const arrayKeys = ["items", "prefixItems", "additionalItems", "minItems", "maxItems", "uniqueItems"]
 
 function normalize(schema: Schema.JsonSchema): Schema.JsonSchema {
-  if (typeof schema.$ref === "string") {
-    // ignore everything else in that same object except for the $ref
-    return { $ref: schema.$ref }
-  }
-
   if (schema.type === undefined) {
     if (stringKeys.some((key) => schema[key] !== undefined)) {
       return { ...schema, type: "string" }
