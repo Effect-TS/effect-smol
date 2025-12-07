@@ -69,9 +69,9 @@ describe("FromJsonSchema", () => {
       strictEqual(result, "\n/** Test description */\n")
     })
 
-    it("should handle empty string description", () => {
-      const result = FromJsonSchema.defaultExtractJsDocs({ description: "" })
-      strictEqual(result, "\n/**  */\n")
+    it("should handle `*/` in description", () => {
+      const result = FromJsonSchema.defaultExtractJsDocs({ description: "a */ b" })
+      strictEqual(result, "\n/** a *\\/ b */\n")
     })
   })
 

@@ -233,8 +233,9 @@ const defaultResolver: Resolver = () => {
  * @since 4.0.0
  */
 export function defaultExtractJsDocs(annotations: Annotations): string | undefined {
-  if (annotations.description === undefined) return undefined
-  return `\n/** ${annotations.description} */\n`
+  if (typeof annotations.description === "string") {
+    return `\n/** ${annotations.description.replace(/\*\//g, "*\\/")} */\n`
+  }
 }
 
 function renderAnnotations(annotations: Annotations): string {
