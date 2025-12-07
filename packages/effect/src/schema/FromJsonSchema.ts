@@ -247,7 +247,7 @@ function renderAnnotations(annotations: Annotations): string {
 function renderAnnotate(annotations: Annotations): string {
   const s = renderAnnotations(annotations)
   if (s === "") return ""
-  return `.annotate(${renderAnnotations(annotations)})`
+  return `.annotate(${s})`
 }
 
 const emptySet: ReadonlySet<string> = new Set()
@@ -592,7 +592,7 @@ type StringFilter =
   | { readonly _tag: "maxLength"; readonly value: number; readonly annotations: Annotations }
   | { readonly _tag: "pattern"; readonly value: string; readonly annotations: Annotations }
 
-function makePatternCheck(pattern: string): StringFilter {
+function makePatternFilter(pattern: string): StringFilter {
   return { _tag: "pattern", value: pattern, annotations: {} }
 }
 
@@ -602,7 +602,7 @@ class String {
 
     if (typeof schema.minLength === "number") fs.push({ _tag: "minLength", value: schema.minLength, annotations: {} })
     if (typeof schema.maxLength === "number") fs.push({ _tag: "maxLength", value: schema.maxLength, annotations: {} })
-    if (typeof schema.pattern === "string") fs.push(makePatternCheck(schema.pattern))
+    if (typeof schema.pattern === "string") fs.push(makePatternFilter(schema.pattern))
 
     return fs
   }
@@ -709,7 +709,13 @@ function getStringPredicate(f: StringFilter): (s: string) => boolean {
     case "maxLength":
       return (s: string) => s.length <= f.value
     case "pattern":
-      return (s: string) => new RegExp(f.value).test(s)
+      return (s: string) => {
+        try {
+          return new RegExp(f.value).test(s)
+        } catch {
+          return true
+        }
+      }
   }
 }
 
@@ -1804,7 +1810,7 @@ function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions
     for (const [pattern, value] of Object.entries(schema.patternProperties)) {
       out.push(
         new IndexSignature(
-          new String([makePatternCheck(pattern)], undefined),
+          new String([makePatternFilter(pattern)], undefined),
           parse(value, options)
         )
       )

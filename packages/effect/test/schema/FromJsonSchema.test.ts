@@ -858,6 +858,25 @@ describe("FromJsonSchema", () => {
             },
             FromJsonSchema.makeGeneration(`Schema.Literal("aa")`, FromJsonSchema.makeTypes(`"aa"`))
           )
+          assertGeneration(
+            {
+              schema: {
+                "enum": ["a", "b"],
+                "allOf": [{ "pattern": "a" }]
+              }
+            },
+            FromJsonSchema.makeGeneration(`Schema.Literal("a")`, FromJsonSchema.makeTypes(`"a"`))
+          )
+          // should support invalid pattern
+          assertGeneration(
+            {
+              schema: {
+                "enum": ["a", "b"],
+                "allOf": [{ "pattern": "\\" }]
+              }
+            },
+            FromJsonSchema.makeGeneration(`Schema.Literals(["a", "b"])`, FromJsonSchema.makeTypes(`"a" | "b"`))
+          )
         })
 
         it("enum & number", () => {
