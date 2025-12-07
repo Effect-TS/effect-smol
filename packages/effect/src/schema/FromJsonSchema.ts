@@ -592,7 +592,7 @@ type StringFilter =
   | { readonly _tag: "pattern"; readonly value: string; readonly annotations: Annotations }
 
 function makePatternCheck(pattern: string): StringFilter {
-  return { _tag: "pattern", value: pattern.replace(/\//g, "\\/"), annotations: {} }
+  return { _tag: "pattern", value: pattern, annotations: {} }
 }
 
 class String {
@@ -739,7 +739,7 @@ function renderFilter(f: StringFilter | NumberFilter | ArraysFilter | ObjectsFil
     case "maxLength":
       return `Schema.isMaxLength(${f.value}${ca})`
     case "pattern":
-      return `Schema.isPattern(/${f.value}/${ca})`
+      return `Schema.isPattern(new RegExp(${format(f.value)})${ca})`
     case "greaterThanOrEqualTo":
       return `Schema.isGreaterThanOrEqualTo(${f.value}${ca})`
     case "lessThanOrEqualTo":

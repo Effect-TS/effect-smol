@@ -496,7 +496,7 @@ describe("FromJsonSchema", () => {
           }
         },
         FromJsonSchema.makeGeneration(
-          `Schema.Record(Schema.String.check(Schema.isPattern(/^x-/)), Schema.String)`,
+          `Schema.Record(Schema.String.check(Schema.isPattern(new RegExp("^x-"))), Schema.String)`,
           FromJsonSchema.makeTypes(`{ readonly [x: string]: string }`)
         )
       )
@@ -511,7 +511,7 @@ describe("FromJsonSchema", () => {
           }
         },
         FromJsonSchema.makeGeneration(
-          `Schema.StructWithRest(Schema.Struct({  }), [Schema.Record(Schema.String.check(Schema.isPattern(/^x-/)), Schema.String), Schema.Record(Schema.String.check(Schema.isPattern(/^y-/)), Schema.Number)])`,
+          `Schema.StructWithRest(Schema.Struct({  }), [Schema.Record(Schema.String.check(Schema.isPattern(new RegExp("^x-"))), Schema.String), Schema.Record(Schema.String.check(Schema.isPattern(new RegExp("^y-"))), Schema.Number)])`,
           FromJsonSchema.makeTypes(`{ readonly [x: string]: string, readonly [x: string]: number }`)
         )
       )
@@ -525,7 +525,7 @@ describe("FromJsonSchema", () => {
           }
         },
         FromJsonSchema.makeGeneration(
-          `Schema.Record(Schema.String.check(Schema.isPattern(/^[A-Z]/)), Schema.Unknown)`,
+          `Schema.Record(Schema.String.check(Schema.isPattern(new RegExp("^[A-Z]"))), Schema.Unknown)`,
           FromJsonSchema.makeTypes(`{ readonly [x: string]: unknown }`)
         )
       )
@@ -1018,7 +1018,7 @@ describe("FromJsonSchema", () => {
         assertGeneration(
           { schema: { "pattern": "a/b" } },
           FromJsonSchema.makeGeneration(
-            `Schema.String.check(Schema.isPattern(/a\\/b/))`,
+            `Schema.String.check(Schema.isPattern(new RegExp("a/b")))`,
             FromJsonSchema.makeTypes("string")
           )
         )
