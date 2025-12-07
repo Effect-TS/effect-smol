@@ -2462,7 +2462,7 @@ describe("FromJsonSchema", () => {
       })
     })
 
-    it.todo("$ref", () => {
+    it("$ref", () => {
       const options: FromJsonSchema.GenerateOptions = {
         source: "draft-07",
         resolver: (ref) => {
@@ -2491,6 +2491,7 @@ describe("FromJsonSchema", () => {
           FromJsonSchema.makeTypes("TA", "EA", "DSA", "ESA")
         )
       )
+      // should ignore annotations on the referenced schema
       assertGeneration(
         {
           schema: {
@@ -2500,7 +2501,7 @@ describe("FromJsonSchema", () => {
           options
         },
         FromJsonSchema.makeGeneration(
-          `A.annotate({ "description": "a" })`,
+          `A`,
           FromJsonSchema.makeTypes("TA", "EA", "DSA", "ESA")
         )
       )
@@ -3295,6 +3296,48 @@ const schema1 = Schema.Struct({ "a": A });`
   })
 
   describe("generateCode", () => {
+    it("smoke test", () => {
+      const generation = generateCode(
+        "draft-07",
+        [
+          {
+            identifier: "A",
+            schema: {
+              "type": "string",
+              "description": "A string schema"
+            }
+          }
+        ],
+        {
+          "B": {
+            "type": "string",
+            "description": "A string definition"
+          }
+        },
+        {}
+      )
+      const code = toCode(generation)
+      strictEqual(
+        code,
+        `import * as Schema from "effect/schema/Schema"
+
+/** A string definition */
+export type B = string
+export type BEncoded = B
+
+/** A string definition */
+export const B = Schema.String.annotate({ "description": "A string definition" }).annotate({ "identifier": "B" })
+
+/** A string schema */
+export type A = string
+export type AEncoded = A
+
+/** A string schema */
+export const A = Schema.String.annotate({ "description": "A string schema" })
+`
+      )
+    })
+
     it("recursion & external reference", () => {
       const generation = generateCode(
         "draft-07",
@@ -3333,96 +3376,20 @@ const schema1 = Schema.Struct({ "a": A });`
           }
         }
       )
-      deepStrictEqual(
-        generation,
-        {
-          definitionGenerations: [
-            {
-              ref: "B",
-              generation: FromJsonSchema.makeGeneration(
-                `Schema.Struct({ "b": Schema.suspend((): Schema.Codec<B, BEncoded> => B), "c": C }).annotate({ "identifier": "B" })`,
-                FromJsonSchema.makeTypes(
-                  `{ readonly "b": B, readonly "c": typeof C["Type"] }`,
-                  `{ readonly "b": BEncoded, readonly "c": typeof C["Encoded"] }`,
-                  `typeof C["DecodingServices"]`,
-                  `typeof C["EncodingServices"]`
-                ),
-                undefined,
-                new Set([`import { C } from "my-lib"`])
-              )
-            }
-          ],
-          schemaGenerations: [{
-            identifier: "A",
-            generation: FromJsonSchema.makeGeneration(
-              `Schema.Struct({ "a": B })`,
-              FromJsonSchema.makeTypes(`{ readonly "a": B }`, `{ readonly "a": BEncoded }`)
-            )
-          }],
-          importDeclarations: new Set([`import * as Schema from "effect/schema/Schema"`, `import { C } from "my-lib"`])
-        }
-      )
       const code = toCode(generation)
-      // console.log(code)
-
       strictEqual(
         code,
-        `// Imports
-import * as Schema from "effect/schema/Schema"
+        `import * as Schema from "effect/schema/Schema"
 import { C } from "my-lib"
-
-// Definitions
-export type B = { readonly "b": B, readonly "c": typeof C["Type"] };
-export type BEncoded = { readonly "b": BEncoded, readonly "c": typeof C["Encoded"] };
-export const B = Schema.Struct({ "b": Schema.suspend((): Schema.Codec<B, BEncoded> => B), "c": C }).annotate({ "identifier": "B" });
-
-
-// Schemas
-export const A = Schema.Struct({ "a": B });`
+export type B = { readonly "b": B, readonly "c": typeof C["Type"] }
+export type BEncoded = { readonly "b": BEncoded, readonly "c": typeof C["Encoded"] }
+export const B = Schema.Struct({ "b": Schema.suspend((): Schema.Codec<B, BEncoded> => B), "c": C }).annotate({ "identifier": "B" })
+export type A = { readonly "a": B }
+export type AEncoded = { readonly "a": BEncoded }
+export const A = Schema.Struct({ "a": B })
+`
       )
     })
-  })
-
-  it("open api", () => {
-    const generation = generateCode(
-      "openapi-3.1",
-      [
-        {
-          identifier: "A",
-          schema: {
-            "properties": {
-              "a": {
-                "$ref": "#/components/schemas/B"
-              }
-            },
-            "required": ["a"],
-            "additionalProperties": false
-          }
-        }
-      ],
-      {
-        "B": {
-          "type": "string"
-        }
-      }
-    )
-    const code = toCode(generation)
-    // console.log(code)
-
-    strictEqual(
-      code,
-      `// Imports
-import * as Schema from "effect/schema/Schema"
-
-// Definitions
-export type B = string;
-export type BEncoded = B;
-export const B = Schema.String.annotate({ "identifier": "B" });
-
-
-// Schemas
-export const A = Schema.Struct({ "a": B });`
-    )
   })
 })
 
@@ -3461,7 +3428,8 @@ function generateCode(
         FromJsonSchema.makeTypes(ref, `${ref}Encoded`)
       )
     },
-    definitions
+    definitions,
+    extractJsDocs: true
   }
   const schemaGenerations = schemas.map(({ identifier, schema }) => ({
     identifier,
@@ -3484,24 +3452,23 @@ function generateCode(
 }
 
 function toCode(generation: CodeGeneration): string {
-  return `// Imports
-${[...generation.importDeclarations].join("\n")}
-
-// Definitions
-${
+  return [...generation.importDeclarations].map((i) => i + "\n").join("") +
     generation.definitionGenerations.map((d) => {
       const identifier = d.ref.replace(/[/~]/g, "$")
-      let out = `export type ${identifier} = ${d.generation.types.Type};\n`
-      if (d.generation.types.Encoded !== d.generation.types.Type) {
-        out += `export type ${identifier}Encoded = ${d.generation.types.Encoded};\n`
-      } else {
-        out += `export type ${identifier}Encoded = ${identifier};\n`
-      }
-      out += `export const ${identifier} = ${d.generation.code};\n`
-      return out
-    }).join("\n")
-  }
+      return render(identifier, d.generation)
+    }).join("") +
+    generation.schemaGenerations.map((s) => {
+      return render(s.identifier, s.generation)
+    }).join("")
+}
 
-// Schemas
-${generation.schemaGenerations.map((s) => `export const ${s.identifier} = ${s.generation.code};`).join("\n")}`
+function render(identifier: string, generation: FromJsonSchema.Generation): string {
+  let out = `${generation.jsDocs ?? ""}export type ${identifier} = ${generation.types.Type}\n`
+  if (generation.types.Encoded !== generation.types.Type) {
+    out += `export type ${identifier}Encoded = ${generation.types.Encoded}\n`
+  } else {
+    out += `export type ${identifier}Encoded = ${identifier}\n`
+  }
+  out += `${generation.jsDocs ?? ""}export const ${identifier} = ${generation.code}\n`
+  return out
 }

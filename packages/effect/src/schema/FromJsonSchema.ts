@@ -59,13 +59,25 @@ export function makeTypes(
  * @since 4.0.0
  */
 export type Generation = {
-  /** The runtime code of the generated schema (e.g. `Schema.Struct({ "a": Schema.String })`) */
+  /**
+   * The runtime code of the generated schema (e.g. `Schema.Struct({ "a": Schema.String })`)
+   */
   readonly code: string
-  /** The `Type`, `Encoded`, `DecodingServices`, and `EncodingServices` types related to the generated schema */
+
+  /**
+   * The `Type`, `Encoded`, `DecodingServices`, and `EncodingServices` types
+   * related to the generated schema
+   */
   readonly types: Types
-  /** The JavaScript documentation found on the JSON Schema */
+
+  /**
+   * The JavaScript documentation found on the JSON Schema
+   */
   readonly jsDocs: string | undefined
-  /** The import declarations needed to generate the schema */
+
+  /**
+   * The import declarations needed to generate the schema
+   */
   readonly importDeclarations: ReadonlySet<string>
 }
 
@@ -127,13 +139,24 @@ export type Resolver = (ref: string) => Generation
  * @since 4.0.0
  */
 export type GenerateOptions = {
+  /**
+   * The type of the specification of the JSON Schema.
+   */
   readonly source: Source
+
+  /**
+   * A function that is called to resolve a reference.
+   *
+   * Default: resolves to `Schema.Unknown`
+   */
   readonly resolver?: Resolver | undefined
+
   /**
    * This becomes required if the schema contains references in an `allOf` array
    * because references must be resolved in order to merge the schemas.
    */
   readonly definitions?: Schema.JsonSchema.Definitions | undefined
+
   /**
    * A function that is called to extract the JavaScript documentation from the
    * annotations.
@@ -216,8 +239,8 @@ const defaultResolver: Resolver = () => {
  *
  * @since 4.0.0
  */
-export function defaultExtractJsDocs(annotations: Annotations): string {
-  if (annotations.description === undefined) return ""
+export function defaultExtractJsDocs(annotations: Annotations): string | undefined {
+  if (annotations.description === undefined) return undefined
   return `\n/** ${annotations.description} */\n`
 }
 
@@ -1705,13 +1728,13 @@ function parseType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, opti
     case "null":
       return new Null()
     case "string": {
-      if (
-        options.source !== "draft-07" && schema.contentMediaType === "application/json" &&
+      const shouldParseContentSchema = options.source !== "draft-07" &&
+        schema.contentMediaType === "application/json" &&
         schema.contentSchema !== undefined
-      ) {
-        return new String(String.parseFilters(schema), parse(schema.contentSchema, options))
-      }
-      return new String(String.parseFilters(schema), undefined)
+
+      const contentSchema = shouldParseContentSchema ? parse(schema.contentSchema, options) : undefined
+
+      return new String(String.parseFilters(schema), contentSchema)
     }
     case "number":
       return new Number(false, Number.parseFilters(schema))
@@ -1728,7 +1751,12 @@ function parseType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, opti
         ? parse(schema.additionalProperties, options)
         : true
 
-      return new Objects(properties, indexSignatures, additionalProperties, Objects.parseFilters(schema))
+      return new Objects(
+        properties,
+        indexSignatures,
+        additionalProperties,
+        Objects.parseFilters(schema)
+      )
     }
     case "array": {
       const minItems = typeof schema.minItems === "number" ? schema.minItems : 0
