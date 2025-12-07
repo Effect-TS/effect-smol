@@ -399,8 +399,12 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
   return { nonRecursives, recursives }
 }
 
-function getRefParts($ref: string): Array<string> {
-  return $ref.slice(2).split("/").filter((part) => part !== "").map(unescapeJsonPointerPart)
+function getRefParts($ref: string): [string, ...Array<string>] {
+  if ($ref.startsWith("#/")) {
+    const parts = $ref.slice(2).split("/").filter((part) => part !== "").map(unescapeJsonPointerPart)
+    if (Arr.isArrayNonEmpty(parts)) return parts
+  }
+  throw new Error(`Invalid $ref: ${format($ref)}`)
 }
 
 function unescapeJsonPointerPart(part: string): string {
@@ -1641,35 +1645,31 @@ function parseJsonSchema(schema: Schema.JsonSchema, options: RecurOptions): AST 
 
   if (typeof schema.$ref === "string") {
     const parts = getRefParts(schema.$ref)
-    if (Arr.isArrayNonEmpty(parts)) {
-      // handle local definitions
-      if (options.root !== undefined && (parts[0] === "definitions" || parts[0] === "$defs")) {
-        const definition = extractDefinition(options.root, parts)
-        if (definition !== undefined && !options.refStack.has(schema.$ref)) {
-          const nextStack = new Set(options.refStack)
-          nextStack.add(schema.$ref)
-          return parse(definition, { ...options, refStack: nextStack })
-        }
+    // handle local definitions
+    if (options.root !== undefined && (parts[0] === "definitions" || parts[0] === "$defs")) {
+      const definition = extractDefinition(options.root, parts)
+      if (definition !== undefined && !options.refStack.has(schema.$ref)) {
+        const nextStack = new Set(options.refStack)
+        nextStack.add(schema.$ref)
+        return parse(definition, { ...options, refStack: nextStack })
       }
-
-      const ref = getRef(parts, options.source)
-      if (Arr.isArrayNonEmpty(ref)) {
-        const definition = extractDefinition(options.definitions, ref)
-        if (
-          options.allOf &&
-          definition !== undefined &&
-          !options.refStack.has(schema.$ref)
-        ) {
-          const nextStack = new Set(options.refStack)
-          nextStack.add(schema.$ref)
-          return parse(definition, { ...options, refStack: nextStack })
-        }
-      }
-
-      return new Reference(ref.join("/"))
-    } else {
-      throw new Error(`Invalid $ref: ${format(schema.$ref)}`)
     }
+
+    const ref = getRef(parts, options.source)
+    if (Arr.isArrayNonEmpty(ref)) {
+      const definition = extractDefinition(options.definitions, ref)
+      if (
+        options.allOf &&
+        definition !== undefined &&
+        !options.refStack.has(schema.$ref)
+      ) {
+        const nextStack = new Set(options.refStack)
+        nextStack.add(schema.$ref)
+        return parse(definition, { ...options, refStack: nextStack })
+      }
+    }
+
+    return new Reference(ref.join("/"))
   }
 
   return new Unknown()
