@@ -159,41 +159,8 @@ export const formatUnsafe = (
 }
 
 /**
- * Create an HTTP response containing metrics in Prometheus exposition format.
- *
- * This function returns an `HttpServerResponse` that can be used directly
- * as a route handler for a `/metrics` endpoint.
- *
- * @example
- * ```ts
- * import { Effect, Metric } from "effect"
- * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
- *
- * const program = Effect.gen(function*() {
- *   // Create and update a metric
- *   const requestCounter = Metric.counter("http_requests_total")
- *   yield* Metric.update(requestCounter, 1)
- *
- *   // Get the HTTP response for a /metrics endpoint
- *   const response = yield* PrometheusMetrics.handler()
- *   console.log(response.status) // 200
- * })
- * ```
- *
- * @since 4.0.0
- * @category Http
- */
-export const handler: (
-  options?: FormatOptions | undefined
-) => Effect.Effect<HttpServerResponse.HttpServerResponse> = Effect.fnUntraced(function*(options) {
-  const body = yield* format(options)
-  return HttpServerResponse.text(body, {
-    contentType: "text/plain; version=0.0.4; charset=utf-8"
-  })
-})
-
-/**
- * Creates a Layer that registers a `/metrics` HTTP endpoint for Prometheus scraping.
+ * Creates a Layer that registers a `/metrics` HTTP endpoint for Prometheus
+ * scraping.
  *
  * This layer automatically adds a GET route to your HTTP router that serves
  * metrics in Prometheus exposition format. By default, the endpoint is
@@ -223,9 +190,18 @@ export const layerHttp = (
   options?: HttpOptions | undefined
 ): Layer.Layer<never, never, HttpRouter.HttpRouter> =>
   Layer.effectDiscard(Effect.gen(function*() {
-    const { path, ...formatOptions } = options ?? {}
     const router = yield* HttpRouter.HttpRouter
-    yield* router.add("GET", path ?? "/metrics", handler(formatOptions))
+
+    const { path, ...formatOptions } = options ?? {}
+
+    const handler = Effect.gen(function*() {
+      const body = yield* format(formatOptions)
+      return HttpServerResponse.text(body, {
+        contentType: "text/plain; version=0.0.4; charset=utf-8"
+      })
+    })
+
+    yield* router.add("GET", path ?? "/metrics", handler)
   }))
 
 // -----------------------------------------------------------------------------
