@@ -37,12 +37,12 @@ describe("Config", () => {
 
     await succeed(
       Config.map(config, (value) => value.toUpperCase()),
-      ConfigProvider.fromStringTree("value"),
+      ConfigProvider.fromUnknown("value"),
       "VALUE"
     )
     await succeed(
       pipe(config, Config.map((value) => value.toUpperCase())),
-      ConfigProvider.fromStringTree("value"),
+      ConfigProvider.fromUnknown("value"),
       "VALUE"
     )
   })
@@ -58,12 +58,12 @@ describe("Config", () => {
 
     await succeed(
       Config.mapOrFail(config, f),
-      ConfigProvider.fromStringTree("value"),
+      ConfigProvider.fromUnknown("value"),
       "VALUE"
     )
     await fail(
       Config.mapOrFail(config, f),
-      ConfigProvider.fromStringTree(""),
+      ConfigProvider.fromUnknown(""),
       `empty`
     )
   })
@@ -73,12 +73,12 @@ describe("Config", () => {
 
     await succeed(
       config,
-      ConfigProvider.fromStringTree({ a: "value" }),
+      ConfigProvider.fromUnknown({ a: "value" }),
       "value"
     )
     await succeed(
       config,
-      ConfigProvider.fromStringTree({ b: "1" }),
+      ConfigProvider.fromUnknown({ b: "1" }),
       1
     )
   })
@@ -87,16 +87,16 @@ describe("Config", () => {
     it("tuple", async () => {
       const config = Config.all([Config.nonEmptyString("a"), Config.finite("b")])
 
-      await succeed(config, ConfigProvider.fromStringTree({ a: "a", b: "1" }), ["a", 1])
+      await succeed(config, ConfigProvider.fromUnknown({ a: "a", b: "1" }), ["a", 1])
       await fail(
         config,
-        ConfigProvider.fromStringTree({ a: "", b: "1" }),
+        ConfigProvider.fromUnknown({ a: "", b: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["a"]`
       )
       await fail(
         config,
-        ConfigProvider.fromStringTree({ a: "a", b: "b" }),
+        ConfigProvider.fromUnknown({ a: "a", b: "b" }),
         `Expected a string representing a number, got "b"
   at ["b"]`
       )
@@ -105,16 +105,16 @@ describe("Config", () => {
     it("iterable", async () => {
       const config = Config.all(new Set([Config.nonEmptyString("a"), Config.finite("b")]))
 
-      await succeed(config, ConfigProvider.fromStringTree({ a: "a", b: "1" }), ["a", 1])
+      await succeed(config, ConfigProvider.fromUnknown({ a: "a", b: "1" }), ["a", 1])
       await fail(
         config,
-        ConfigProvider.fromStringTree({ a: "", b: "1" }),
+        ConfigProvider.fromUnknown({ a: "", b: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["a"]`
       )
       await fail(
         config,
-        ConfigProvider.fromStringTree({ a: "a", b: "b" }),
+        ConfigProvider.fromUnknown({ a: "a", b: "b" }),
         `Expected a string representing a number, got "b"
   at ["b"]`
       )
@@ -123,16 +123,16 @@ describe("Config", () => {
     it("struct", async () => {
       const config = Config.all({ a: Config.nonEmptyString("b"), c: Config.finite("d") })
 
-      await succeed(config, ConfigProvider.fromStringTree({ b: "b", d: "1" }), { a: "b", c: 1 })
+      await succeed(config, ConfigProvider.fromUnknown({ b: "b", d: "1" }), { a: "b", c: 1 })
       await fail(
         config,
-        ConfigProvider.fromStringTree({ b: "", d: "1" }),
+        ConfigProvider.fromUnknown({ b: "", d: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["b"]`
       )
       await fail(
         config,
-        ConfigProvider.fromStringTree({ b: "b", d: "b" }),
+        ConfigProvider.fromUnknown({ b: "b", d: "b" }),
         `Expected a string representing a number, got "b"
   at ["d"]`
       )
@@ -144,11 +144,11 @@ describe("Config", () => {
       const defaultValue = 0
       const config = Config.finite("a").pipe(Config.withDefault(() => defaultValue))
 
-      await succeed(config, ConfigProvider.fromStringTree({ a: "1" }), 1)
-      await succeed(config, ConfigProvider.fromStringTree({}), defaultValue)
+      await succeed(config, ConfigProvider.fromUnknown({ a: "1" }), 1)
+      await succeed(config, ConfigProvider.fromUnknown({}), defaultValue)
       await fail(
         config,
-        ConfigProvider.fromStringTree({ a: "value" }),
+        ConfigProvider.fromUnknown({ a: "value" }),
         `Expected a string representing a number, got "value"
   at ["a"]`
       )
@@ -160,13 +160,13 @@ describe("Config", () => {
         Config.withDefault(() => defaultValue)
       )
 
-      await succeed(config, ConfigProvider.fromStringTree({ b: "b", d: "1" }), { a: "b", c: 1 })
-      await succeed(config, ConfigProvider.fromStringTree({ b: "b" }), defaultValue)
-      await succeed(config, ConfigProvider.fromStringTree({ d: "1" }), defaultValue)
+      await succeed(config, ConfigProvider.fromUnknown({ b: "b", d: "1" }), { a: "b", c: 1 })
+      await succeed(config, ConfigProvider.fromUnknown({ b: "b" }), defaultValue)
+      await succeed(config, ConfigProvider.fromUnknown({ d: "1" }), defaultValue)
 
       await fail(
         config,
-        ConfigProvider.fromStringTree({ b: "", d: "1" }),
+        ConfigProvider.fromUnknown({ b: "", d: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["b"]`
       )
@@ -177,11 +177,11 @@ describe("Config", () => {
     it("value", async () => {
       const config = Config.finite("a").pipe(Config.option)
 
-      await succeed(config, ConfigProvider.fromStringTree({ a: "1" }), Option.some(1))
-      await succeed(config, ConfigProvider.fromStringTree({}), Option.none())
+      await succeed(config, ConfigProvider.fromUnknown({ a: "1" }), Option.some(1))
+      await succeed(config, ConfigProvider.fromUnknown({}), Option.none())
       await fail(
         config,
-        ConfigProvider.fromStringTree({ a: "value" }),
+        ConfigProvider.fromUnknown({ a: "value" }),
         `Expected a string representing a number, got "value"
   at ["a"]`
       )
@@ -192,13 +192,13 @@ describe("Config", () => {
         Config.option
       )
 
-      await succeed(config, ConfigProvider.fromStringTree({ b: "b", d: "1" }), Option.some({ a: "b", c: 1 }))
-      await succeed(config, ConfigProvider.fromStringTree({ b: "b" }), Option.none())
-      await succeed(config, ConfigProvider.fromStringTree({ d: "1" }), Option.none())
+      await succeed(config, ConfigProvider.fromUnknown({ b: "b", d: "1" }), Option.some({ a: "b", c: 1 }))
+      await succeed(config, ConfigProvider.fromUnknown({ b: "b" }), Option.none())
+      await succeed(config, ConfigProvider.fromUnknown({ d: "1" }), Option.none())
 
       await fail(
         config,
-        ConfigProvider.fromStringTree({ b: "", d: "1" }),
+        ConfigProvider.fromUnknown({ b: "", d: "1" }),
         `Expected a value with a length of at least 1, got ""
   at ["b"]`
       )
@@ -211,7 +211,7 @@ describe("Config", () => {
         a: Config.schema(Schema.String, "a2")
       })
 
-      await succeed(config, ConfigProvider.fromStringTree({ a2: "value" }), { a: "value" })
+      await succeed(config, ConfigProvider.fromUnknown({ a2: "value" }), { a: "value" })
     })
 
     it("nested", async () => {
@@ -223,7 +223,7 @@ describe("Config", () => {
 
       await succeed(
         config,
-        ConfigProvider.fromStringTree({ b2: "value" }),
+        ConfigProvider.fromUnknown({ b2: "value" }),
         { a: { b: "value" } }
       )
     })
@@ -481,31 +481,39 @@ describe("Config", () => {
     })
   })
 
-  describe("fromStringLeafJson", () => {
+  describe("fromUnknown", () => {
     it("path argument", async () => {
       await succeed(
         Config.schema(Schema.String, []),
-        ConfigProvider.fromStringTree("value"),
+        ConfigProvider.fromUnknown("value"),
         "value"
       )
       await succeed(
         Config.schema(Schema.String, "a"),
-        ConfigProvider.fromStringTree({ a: "value" }),
+        ConfigProvider.fromUnknown({ a: "value" }),
         "value"
       )
       await succeed(
         Config.schema(Schema.String, ["a", "b"]),
-        ConfigProvider.fromStringTree({ a: { b: "value" } }),
+        ConfigProvider.fromUnknown({ a: { b: "value" } }),
         "value"
       )
+    })
+
+    it("Null", async () => {
+      const schema = Schema.Null
+      const config = Config.schema(schema)
+
+      await succeed(config, ConfigProvider.fromUnknown(null), null)
+      await fail(config, ConfigProvider.fromUnknown("a"), `Expected undefined, got "a"`)
     })
 
     it("String", async () => {
       const schema = Schema.String
       const config = Config.schema(schema)
 
-      await succeed(config, ConfigProvider.fromStringTree("value"), "value")
-      await fail(config, ConfigProvider.fromStringTree({}), `Expected string, got undefined`)
+      await succeed(config, ConfigProvider.fromUnknown("value"), "value")
+      await fail(config, ConfigProvider.fromUnknown({}), `Expected string, got undefined`)
     })
 
     describe("Struct", () => {
@@ -513,16 +521,16 @@ describe("Config", () => {
         const schema = Schema.Struct({ a: Schema.Finite })
         const config = Config.schema(schema)
 
-        await succeed(config, ConfigProvider.fromStringTree({ a: "1" }), { a: 1 })
+        await succeed(config, ConfigProvider.fromUnknown({ a: "1" }), { a: 1 })
         await fail(
           config,
-          ConfigProvider.fromStringTree({}),
+          ConfigProvider.fromUnknown({}),
           `Missing key
   at ["a"]`
         )
         await fail(
           config,
-          ConfigProvider.fromStringTree({ a: "value" }),
+          ConfigProvider.fromUnknown({ a: "value" }),
           `Expected a string representing a number, got "value"
   at ["a"]`
         )
@@ -532,8 +540,8 @@ describe("Config", () => {
         const schema = Schema.Struct({ a: Schema.optionalKey(Schema.Finite) })
         const config = Config.schema(schema)
 
-        await succeed(config, ConfigProvider.fromStringTree({ a: "1" }), { a: 1 })
-        await succeed(config, ConfigProvider.fromStringTree({}), {})
+        await succeed(config, ConfigProvider.fromUnknown({ a: "1" }), { a: 1 })
+        await succeed(config, ConfigProvider.fromUnknown({}), {})
       })
 
       it("optional properties", async () => {
@@ -541,16 +549,16 @@ describe("Config", () => {
           Schema.Struct({ a: Schema.optional(Schema.Finite) })
         )
 
-        await succeed(config, ConfigProvider.fromStringTree({ a: "1" }), { a: 1 })
-        await succeed(config, ConfigProvider.fromStringTree({}), {})
+        await succeed(config, ConfigProvider.fromUnknown({ a: "1" }), { a: 1 })
+        await succeed(config, ConfigProvider.fromUnknown({}), {})
       })
 
       it("Literals", async () => {
         const schema = Schema.Struct({ a: Schema.Literals(["b", "c"]) })
         const config = Config.schema(schema)
 
-        await succeed(config, ConfigProvider.fromStringTree({ a: "b" }), { a: "b" })
-        await succeed(config, ConfigProvider.fromStringTree({ a: "c" }), { a: "c" })
+        await succeed(config, ConfigProvider.fromUnknown({ a: "b" }), { a: "b" })
+        await succeed(config, ConfigProvider.fromUnknown({ a: "c" }), { a: "c" })
       })
     })
 
@@ -558,11 +566,11 @@ describe("Config", () => {
       const schema = Schema.Record(Schema.String, Schema.Finite)
       const config = Config.schema(schema)
 
-      await succeed(config, ConfigProvider.fromStringTree({ a: "1" }), { a: 1 })
-      await succeed(config, ConfigProvider.fromStringTree({ a: "1", b: "2" }), { a: 1, b: 2 })
+      await succeed(config, ConfigProvider.fromUnknown({ a: "1" }), { a: 1 })
+      await succeed(config, ConfigProvider.fromUnknown({ a: "1", b: "2" }), { a: 1, b: 2 })
       await fail(
         config,
-        ConfigProvider.fromStringTree({ a: "1", b: "value" }),
+        ConfigProvider.fromUnknown({ a: "1", b: "value" }),
         `Expected a string representing a number, got "value"
   at ["b"]`
       )
@@ -573,24 +581,24 @@ describe("Config", () => {
         const schema = Schema.Tuple([Schema.Finite])
         const config = Config.schema(schema)
 
-        await succeed(config, ConfigProvider.fromStringTree(["1"]), [1])
-        await succeed(config, ConfigProvider.fromStringTree("1"), [1])
+        await succeed(config, ConfigProvider.fromUnknown(["1"]), [1])
+        await succeed(config, ConfigProvider.fromUnknown("1"), [1])
       })
 
       it("required elements", async () => {
         const schema = Schema.Tuple([Schema.String, Schema.Finite])
         const config = Config.schema(schema)
 
-        await succeed(config, ConfigProvider.fromStringTree(["a", "2"]), ["a", 2])
+        await succeed(config, ConfigProvider.fromUnknown(["a", "2"]), ["a", 2])
         await fail(
           config,
-          ConfigProvider.fromStringTree(["a"]),
+          ConfigProvider.fromUnknown(["a"]),
           `Missing key
   at [1]`
         )
         await fail(
           config,
-          ConfigProvider.fromStringTree(["a", "value"]),
+          ConfigProvider.fromUnknown(["a", "value"]),
           `Expected a string representing a number, got "value"
   at [1]`
         )
@@ -601,13 +609,13 @@ describe("Config", () => {
       const schema = Schema.Array(Schema.Finite)
       const config = Config.schema(schema)
 
-      await succeed(config, ConfigProvider.fromStringTree(["1"]), [1])
+      await succeed(config, ConfigProvider.fromUnknown(["1"]), [1])
       // ensure array
-      await succeed(config, ConfigProvider.fromStringTree("1"), [1])
-      await succeed(config, ConfigProvider.fromStringTree(["1", "2"]), [1, 2])
+      await succeed(config, ConfigProvider.fromUnknown("1"), [1])
+      await succeed(config, ConfigProvider.fromUnknown(["1", "2"]), [1, 2])
       await fail(
         config,
-        ConfigProvider.fromStringTree(["1", "value"]),
+        ConfigProvider.fromUnknown(["1", "value"]),
         `Expected a string representing a number, got "value"
   at [1]`
       )
@@ -619,9 +627,25 @@ describe("Config", () => {
           const schema = Schema.Literals(["a", "b"])
           const config = Config.schema(schema)
 
-          await succeed(config, ConfigProvider.fromStringTree("a"), "a")
-          await succeed(config, ConfigProvider.fromStringTree("b"), "b")
+          await succeed(config, ConfigProvider.fromUnknown("a"), "a")
+          await succeed(config, ConfigProvider.fromUnknown("b"), "b")
         })
+      })
+
+      it("number | string", async () => {
+        const schema = Schema.Union([Schema.Finite, Schema.String])
+        const config = Config.schema(schema)
+
+        await succeed(config, ConfigProvider.fromUnknown("1"), 1)
+        await succeed(config, ConfigProvider.fromUnknown("a"), "a")
+      })
+
+      it.todo("string | number", async () => {
+        const schema = Schema.Union([Schema.String, Schema.Finite])
+        const config = Config.schema(schema)
+
+        await succeed(config, ConfigProvider.fromUnknown("1"), 1)
+        await succeed(config, ConfigProvider.fromUnknown("a"), "a")
       })
     })
 
@@ -636,8 +660,8 @@ describe("Config", () => {
       })
       const config = Config.schema(schema)
 
-      await succeed(config, ConfigProvider.fromStringTree({ a: "1", as: [] }), { a: "1", as: [] })
-      await succeed(config, ConfigProvider.fromStringTree({ a: "1", as: [{ a: "2", as: [] }] }), {
+      await succeed(config, ConfigProvider.fromUnknown({ a: "1", as: [] }), { a: "1", as: [] })
+      await succeed(config, ConfigProvider.fromUnknown({ a: "1", as: [{ a: "2", as: [] }] }), {
         a: "1",
         as: [{ a: "2", as: [] }]
       })
@@ -649,7 +673,7 @@ describe("Config", () => {
 
       await succeed(
         config,
-        ConfigProvider.fromStringTree({ url: "https://example.com" }),
+        ConfigProvider.fromUnknown({ url: "https://example.com" }),
         { url: new URL("https://example.com") }
       )
     })
@@ -661,18 +685,18 @@ describe("Config", () => {
         Config.fail(
           new Schema.SchemaError(new Issue.Forbidden(Option.none(), { message: "failure message" }))
         ),
-        ConfigProvider.fromStringTree({}),
+        ConfigProvider.fromUnknown({}),
         `failure message`
       )
     })
 
     it("succeed", async () => {
-      const provider = ConfigProvider.fromStringTree({})
+      const provider = ConfigProvider.fromUnknown({})
       await succeed(Config.succeed(1), provider, 1)
     })
 
     it("string", async () => {
-      const provider = ConfigProvider.fromStringTree({ a: "value" })
+      const provider = ConfigProvider.fromUnknown({ a: "value" })
       await succeed(Config.string("a"), provider, "value")
       await fail(
         Config.string("b"),
@@ -683,7 +707,7 @@ describe("Config", () => {
     })
 
     it("nonEmptyString", async () => {
-      const provider = ConfigProvider.fromStringTree({ a: "value", b: "" })
+      const provider = ConfigProvider.fromUnknown({ a: "value", b: "" })
       await succeed(Config.nonEmptyString("a"), provider, "value")
       await fail(
         Config.nonEmptyString("b"),
@@ -694,7 +718,7 @@ describe("Config", () => {
     })
 
     it("number", async () => {
-      const provider = ConfigProvider.fromStringTree({ a: "1", c: "c", d: "Infinity" })
+      const provider = ConfigProvider.fromUnknown({ a: "1", c: "c", d: "Infinity" })
       await succeed(Config.number("a"), provider, 1)
       await succeed(Config.number("d"), provider, Infinity)
       await fail(
@@ -712,7 +736,7 @@ describe("Config", () => {
     })
 
     it("finite", async () => {
-      const provider = ConfigProvider.fromStringTree({ a: "1", b: "a", c: "Infinity" })
+      const provider = ConfigProvider.fromUnknown({ a: "1", b: "a", c: "Infinity" })
       await succeed(Config.finite("a"), provider, 1)
       await fail(
         Config.finite("b"),
@@ -729,7 +753,7 @@ describe("Config", () => {
     })
 
     it("int", async () => {
-      const provider = ConfigProvider.fromStringTree({ a: "1", b: "1.2" })
+      const provider = ConfigProvider.fromUnknown({ a: "1", b: "1.2" })
       await succeed(Config.int("a"), provider, 1)
       await fail(
         Config.int("b"),
@@ -740,7 +764,7 @@ describe("Config", () => {
     })
 
     it("literal", async () => {
-      const provider = ConfigProvider.fromStringTree({ a: "L" })
+      const provider = ConfigProvider.fromUnknown({ a: "L" })
       await succeed(Config.literal("L", "a"), provider, "L")
       await fail(
         Config.literal("-", "a"),
@@ -751,7 +775,7 @@ describe("Config", () => {
     })
 
     it("date", async () => {
-      const provider = ConfigProvider.fromStringTree({ a: "2021-01-01", b: "invalid" })
+      const provider = ConfigProvider.fromUnknown({ a: "2021-01-01", b: "invalid" })
       await succeed(Config.date("a"), provider, new Date("2021-01-01"))
       await fail(
         Config.date("b"),
@@ -762,7 +786,7 @@ describe("Config", () => {
     })
 
     it("redacted", async () => {
-      const provider = ConfigProvider.fromStringTree({
+      const provider = ConfigProvider.fromUnknown({
         a: "value"
       })
 
@@ -776,7 +800,7 @@ describe("Config", () => {
     })
 
     it("url", async () => {
-      const provider = ConfigProvider.fromStringTree({
+      const provider = ConfigProvider.fromUnknown({
         a: "https://example.com"
       })
 
@@ -792,7 +816,7 @@ describe("Config", () => {
 
   describe("schemas", () => {
     it("Boolean", async () => {
-      const provider = ConfigProvider.fromStringTree({
+      const provider = ConfigProvider.fromUnknown({
         a: "true",
         b: "false",
         c: "yes",
@@ -825,7 +849,7 @@ describe("Config", () => {
     })
 
     it("Duration", async () => {
-      const provider = ConfigProvider.fromStringTree({
+      const provider = ConfigProvider.fromUnknown({
         a: "1000 millis",
         b: "1 second",
         failure: "value"
@@ -842,7 +866,7 @@ describe("Config", () => {
     })
 
     it("Port", async () => {
-      const provider = ConfigProvider.fromStringTree({
+      const provider = ConfigProvider.fromUnknown({
         a: "8080",
         failure: "-1"
       })
@@ -857,7 +881,7 @@ describe("Config", () => {
     })
 
     it("LogLevel / logLevel", async () => {
-      const provider = ConfigProvider.fromStringTree({
+      const provider = ConfigProvider.fromUnknown({
         a: "Info",
         failure_1: "info",
         failure_2: "value"
@@ -885,7 +909,7 @@ describe("Config", () => {
 
         await succeed(
           config,
-          ConfigProvider.fromStringTree({
+          ConfigProvider.fromUnknown({
             OTEL_RESOURCE_ATTRIBUTES: {
               "service.name": "my-service",
               "service.version": "1.0.0",

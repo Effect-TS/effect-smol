@@ -3,6 +3,7 @@
  */
 
 import * as Data from "./data/Data.ts"
+import { format } from "./data/Formatter.ts"
 import * as Predicate from "./data/Predicate.ts"
 import * as Effect from "./Effect.ts"
 import { dual, flow } from "./Function.ts"
@@ -12,7 +13,6 @@ import * as Layer from "./Layer.ts"
 import * as FileSystem from "./platform/FileSystem.ts"
 import * as Path_ from "./platform/Path.ts"
 import type { PlatformError } from "./platform/PlatformError.ts"
-import type { StringTree } from "./schema/Schema.ts"
 import type { Scope } from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as Str from "./String.ts"
@@ -21,27 +21,21 @@ import * as Str from "./String.ts"
  * @category Models
  * @since 4.0.0
  */
-export type Path = ReadonlyArray<string | number>
-
-/**
- * @category Models
- * @since 4.0.0
- */
-export type Stat =
+export type Node =
   /** A terminal string value */
   | {
-    readonly _tag: "leaf"
+    readonly _tag: "Value"
     readonly value: string
   }
   /** An object; keys are unordered */
   | {
-    readonly _tag: "object"
+    readonly _tag: "Record"
     readonly keys: ReadonlySet<string>
     readonly value: string | undefined
   }
   /** An array-like container; length is the number of elements */
   | {
-    readonly _tag: "array"
+    readonly _tag: "Array"
     readonly length: number
     readonly value: string | undefined
   }
@@ -50,24 +44,24 @@ export type Stat =
  * @category Constructors
  * @since 4.0.0
  */
-export function leaf(value: string): Stat {
-  return { _tag: "leaf", value }
+export function makeValue(value: string): Node {
+  return { _tag: "Value", value }
 }
 
 /**
  * @category Constructors
  * @since 4.0.0
  */
-export function object(keys: ReadonlySet<string>, value?: string): Stat {
-  return { _tag: "object", keys, value }
+export function makeRecord(keys: ReadonlySet<string>, value?: string): Node {
+  return { _tag: "Record", keys, value }
 }
 
 /**
  * @category Constructors
  * @since 4.0.0
  */
-export function array(length: number, value?: string): Stat {
-  return { _tag: "array", length, value }
+export function makeArray(length: number, value?: string): Node {
+  return { _tag: "Array", length, value }
 }
 
 /**
@@ -83,17 +77,23 @@ export class SourceError extends Data.TaggedError("SourceError")<{
  * @category Models
  * @since 4.0.0
  */
+export type Path = ReadonlyArray<string | number>
+
+/**
+ * @category Models
+ * @since 4.0.0
+ */
 export interface ConfigProvider extends Pipeable {
   /**
    * Returns the node found at `path`, or `undefined` if it does not exist.
    * Fails with `SourceError` when the underlying source cannot be read.
    */
-  readonly load: (path: Path) => Effect.Effect<Stat | undefined, SourceError>
+  readonly load: (path: Path) => Effect.Effect<Node | undefined, SourceError>
 
   /**
    * Raw access to the underlying source.
    */
-  readonly get: (path: Path) => Effect.Effect<Stat | undefined, SourceError>
+  readonly get: (path: Path) => Effect.Effect<Node | undefined, SourceError>
 
   /**
    * Function to map the input path.
@@ -107,7 +107,7 @@ export interface ConfigProvider extends Pipeable {
 }
 
 /**
- * @category References
+ * @category Services
  * @since 4.0.0
  */
 export const ConfigProvider: ServiceMap.Reference<ConfigProvider> = ServiceMap.Reference<ConfigProvider>(
@@ -129,7 +129,7 @@ const Proto = {
  * @since 4.0.0
  */
 export function make(
-  get: (path: Path) => Effect.Effect<Stat | undefined, SourceError>,
+  get: (path: Path) => Effect.Effect<Node | undefined, SourceError>,
   mapInput?: (path: Path) => Path,
   prefix?: Path
 ): ConfigProvider {
@@ -159,7 +159,7 @@ export const orElse: {
 } = dual(
   2,
   (self: ConfigProvider, that: ConfigProvider): ConfigProvider =>
-    make((path) => Effect.flatMap(self.get(path), (stat) => stat ? Effect.succeed(stat) : that.get(path)))
+    make((path) => Effect.flatMap(self.get(path), (node) => node ? Effect.succeed(node) : that.get(path)))
 )
 
 /**
@@ -233,78 +233,55 @@ export const layerAdd = <E = never, R = never>(
   )
 
 /**
- * Create a ConfigProvider that reads values from a `StringTree`.
+ * Create a ConfigProvider that reads values from an `unknown` value, typically
+ * a JSON object.
  *
  * @category ConfigProviders
  * @since 4.0.0
  */
-export function fromStringTree(root: StringTree): ConfigProvider {
-  return make((path) => Effect.succeed(describeStat(resolvePath(root, path))))
+export function fromUnknown(root: unknown): ConfigProvider {
+  return make((path) => Effect.succeed(nodeAtJson(root, path)))
 }
 
-function resolvePath(input: StringTree, path: Path): StringTree | undefined {
-  let out: StringTree = input
+function nodeAtJson(root: unknown, path: Path): Node | undefined {
+  let cur: unknown = root
 
   for (const seg of path) {
-    if (typeof out === "string") return undefined
-    if (Array.isArray(out)) {
-      if (typeof seg !== "number" || !Number.isInteger(seg) || seg < 0 || seg >= out.length) {
-        return undefined
-      }
-    } else {
-      if (typeof seg !== "string" || !Object.prototype.hasOwnProperty.call(out, seg)) {
-        return undefined
-      }
+    if (cur === null || cur === undefined) return undefined
+
+    if (Array.isArray(cur)) {
+      if (typeof seg !== "number" || !Number.isInteger(seg) || seg < 0 || seg >= cur.length) return undefined
+      cur = cur[seg]
+      continue
     }
-    out = (out as any)[seg]
+
+    if (Predicate.isObject(cur)) {
+      if (typeof seg !== "string") return undefined
+      if (!Object.hasOwn(cur, seg)) return undefined
+      cur = cur[seg]
+      continue
+    }
+
+    // cannot descend
+    return undefined
   }
 
-  return out
+  return describeUnknown(cur)
 }
 
-function describeStat(value: StringTree | undefined): Stat | undefined {
-  if (value === undefined) return undefined
-  if (typeof value === "string") return leaf(value)
-  if (Array.isArray(value)) return array(value.length)
-  return object(new Set(Object.keys(value)))
-}
-
-// -----------------------------------------------------------------------------
-// fromJson
-// -----------------------------------------------------------------------------
-
-/**
- * Create a ConfigProvider that reads values from a JSON object.
- *
- * @category ConfigProviders
- * @since 4.0.0
- */
-export function fromJson(root: unknown): ConfigProvider {
-  return fromStringTree(asStringTree(root))
-}
-
-function asStringTree(u: unknown): StringTree {
-  if (u === null || u === undefined) return ""
-  if (typeof u === "string") return u
-  if (typeof u === "number") return String(u)
-  if (typeof u === "boolean") return String(u)
-  if (Array.isArray(u)) return u.map(asStringTree)
-
+function describeUnknown(u: unknown): Node | undefined {
+  if (u === undefined || u === null) return undefined
+  if (typeof u === "string") return makeValue(u)
+  if (typeof u === "number" || typeof u === "boolean" || typeof u === "bigint") {
+    return makeValue(String(u))
+  }
+  if (Array.isArray(u)) return makeArray(u.length)
   if (Predicate.isObject(u)) {
-    const result: Record<string, StringTree> = {}
-    for (const [key, value] of Object.entries(u)) {
-      result[key] = asStringTree(value)
-    }
-    return result
+    return makeRecord(new Set(Object.keys(u)))
   }
-
-  // Fallback for any other type
-  return String(u)
+  // unknown values
+  return makeValue(format(u))
 }
-
-// -----------------------------------------------------------------------------
-// fromEnv
-// -----------------------------------------------------------------------------
 
 /**
  * Create a ConfigProvider that reads values from environment variables.
@@ -336,7 +313,7 @@ export function fromEnv(options?: { readonly env?: Record<string, string> | unde
     return make(() =>
       Effect.fail(
         new SourceError({
-          message: e instanceof Error ? e.message : String(e),
+          message: e instanceof Error ? e.message : format(e),
           cause: e
         })
       )
@@ -415,7 +392,7 @@ function validate(node: TrieNode, path: Array<string> = []): void {
 }
 
 // Navigate and return Stat with optional value on containers
-function statAt(node: TrieNode | undefined): Stat | undefined {
+function statAt(node: TrieNode | undefined): Node | undefined {
   if (!node) return undefined
 
   const children = node.children ? Object.keys(node.children) : []
@@ -423,23 +400,23 @@ function statAt(node: TrieNode | undefined): Stat | undefined {
   // __TYPE yields an empty container; leafValue may coexist (R3 relaxed)
   if (node.typeSentinel) {
     return node.typeSentinel === "A"
-      ? array(0, node.leafValue)
-      : object(new Set<string>(), node.leafValue)
+      ? makeArray(0, node.leafValue)
+      : makeRecord(new Set<string>(), node.leafValue)
   }
 
   if (children.length > 0) {
     const allNumeric = children.every((k) => NUMERIC_INDEX.test(k))
     if (allNumeric) {
       const length = Math.max(...children.map((k) => parseInt(k, 10))) + 1
-      return array(length, node.leafValue)
+      return makeArray(length, node.leafValue)
     } else {
-      return object(new Set(children), node.leafValue)
+      return makeRecord(new Set(children), node.leafValue)
     }
   }
 
   // leaf only
   if (node.leafValue !== undefined) {
-    return leaf(node.leafValue)
+    return makeValue(node.leafValue)
   }
 
   return undefined
@@ -454,10 +431,6 @@ function findNode(root: TrieNode, path: Path): TrieNode | undefined {
   }
   return cur
 }
-
-// -----------------------------------------------------------------------------
-// fromDotEnvContents
-// -----------------------------------------------------------------------------
 
 /**
  * A ConfigProvider that parses the contents of a `.env` file.
@@ -576,10 +549,6 @@ function searchLast(str: string, rgx: RegExp): number {
   return matches.length > 0 ? matches.slice(-1)[0].index : -1
 }
 
-// -----------------------------------------------------------------------------
-// fromDotEnv
-// -----------------------------------------------------------------------------
-
 /**
  * A ConfigProvider that loads configuration from a `.env` file.
  *
@@ -598,18 +567,14 @@ export const fromDotEnv: (options?: {
   }
 )
 
-// -----------------------------------------------------------------------------
-// fromDir
-// -----------------------------------------------------------------------------
-
 /**
  * Creates a ConfigProvider from a file tree structure.
  *
  * The default root path is `/`. You can change it by passing `{ rootPath: "..." }`.
  *
  * Resolution rules:
- * - Regular file  -> `{ _tag: "leaf", value }` where `value` is the file text, trimmed.
- * - Directory     -> `{ _tag: "object", keys }` collecting immediate child names (order unspecified).
+ * - Regular file  -> `{ _tag: "Value", value }` where `value` is the file text, trimmed.
+ * - Directory     -> `{ _tag: "Record", keys }` collecting immediate child names (order unspecified).
  * - Not found     -> `undefined`.
  * - Other I/O     -> `SourceError`.
  *
@@ -632,15 +597,15 @@ export const fromDir: (options?: {
 
     // Try reading as a *file*
     const asFile = fs.readFileString(fullPath).pipe(
-      Effect.map((content) => leaf(String(content).trim()))
+      Effect.map((content) => makeValue(content.trim()))
     )
 
     // If not a file, try reading as a *directory*
     const asDirectory = fs.readDirectory(fullPath).pipe(
       Effect.map((entries: ReadonlyArray<any>) => {
         // Support both string paths and DirEntry-like objects
-        const keys = entries.map((e) => typeof e === "string" ? platformPath.basename(e) : String(e?.name ?? ""))
-        return object(new Set(keys))
+        const keys = entries.map((e) => typeof e === "string" ? platformPath.basename(e) : format(e?.name ?? ""))
+        return makeRecord(new Set(keys))
       })
     )
 

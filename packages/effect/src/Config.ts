@@ -290,9 +290,9 @@ const dump: (
   const stat = yield* provider.load(path)
   if (stat === undefined) return undefined
   switch (stat._tag) {
-    case "leaf":
+    case "Value":
       return stat.value
-    case "object": {
+    case "Record": {
       // If the object has no children but has a co-located value, surface that value.
       if (stat.keys.size === 0 && stat.value !== undefined) return stat.value
       const out: Record<string, Schema.StringTree> = {}
@@ -302,7 +302,7 @@ const dump: (
       }
       return out
     }
-    case "array": {
+    case "Array": {
       // If the array has no children but has a co-located value, surface that value.
       if (stat.length === 0 && stat.value !== undefined) return stat.value
       const out: Array<Schema.StringTree> = []
@@ -333,7 +333,7 @@ const recur: (
         }
         if (ast.indexSignatures.length > 0) {
           const stat = yield* provider.load(path)
-          if (stat && stat._tag === "object") {
+          if (stat && stat._tag === "Record") {
             for (const is of ast.indexSignatures) {
               const matches = Parser.refinement(is.parameter)
               for (const key of stat.keys) {
@@ -354,7 +354,7 @@ const recur: (
           return out
         }
         const stat = yield* provider.load(path)
-        if (stat && stat._tag === "leaf") return stat.value
+        if (stat && stat._tag === "Value") return stat.value
         const out: Array<Schema.StringTree> = []
         for (let i = 0; i < ast.elements.length; i++) {
           const value = yield* recur(ast.elements[i], provider, [...path, i])
@@ -371,9 +371,9 @@ const recur: (
         // Base primitives / string-like encoded nodes.
         const stat = yield* provider.load(path)
         if (stat === undefined) return undefined
-        if (stat._tag === "leaf") return stat.value
-        if (stat._tag === "object" && stat.value !== undefined) return stat.value
-        if (stat._tag === "array" && stat.value !== undefined) return stat.value
+        if (stat._tag === "Value") return stat.value
+        if (stat._tag === "Record" && stat.value !== undefined) return stat.value
+        if (stat._tag === "Array" && stat.value !== undefined) return stat.value
         // Container without a co-located value cannot satisfy a scalar request.
         return undefined
       }

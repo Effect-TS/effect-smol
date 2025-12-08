@@ -622,15 +622,13 @@ export function encodeURLSearchParams(): Getter<URLSearchParams, unknown> {
  * @category Tree
  * @since 4.0.0
  */
-export type Tree<A> = A | { readonly [x: string]: Tree<A> } | ReadonlyArray<Tree<A>>
+export type Tree<A> = A | TreeRecord<A> | ReadonlyArray<Tree<A>>
 
 /**
  * @category Tree
  * @since 4.0.0
  */
-export interface TreeRecord<A> {
-  readonly [x: string]: Tree<A>
-}
+export interface TreeRecord<A> extends Record<string, Tree<A>> {}
 
 const INDEX_REGEXP = /^\d+$/
 
