@@ -2035,30 +2035,12 @@ describe("Serializers", () => {
         )
       })
     })
-  })
-
-  describe("toSerializerEnsureArray", () => {
-    describe("should memoize the result", () => {
-      it("Struct", async () => {
-        const schema = Schema.Struct({
-          a: Schema.Finite
-        })
-        const serializer = Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(schema))
-        strictEqual(serializer.ast, Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(serializer)).ast)
-      })
-
-      it("Array", async () => {
-        const schema = Schema.Array(Schema.Finite)
-        const serializer = Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(schema))
-        strictEqual(serializer.ast, Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(serializer)).ast)
-      })
-    })
 
     it("should handle optional keys", async () => {
       const schema = Schema.Struct({
         a: Schema.optionalKey(Schema.NonEmptyArray(Schema.String))
       })
-      const serializer = Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(schema))
+      const serializer = Schema.toSerializerStringTree(schema)
       const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(serializer))
 
       const decoding = asserts.decoding()

@@ -7641,29 +7641,28 @@ export function toSerializerIso<S extends Top>(schema: S): Codec<S["Type"], S["I
 export type StringTree = Getter.Tree<string | undefined>
 
 /**
+ * The StringTree serializer converts **every leaf value to a string**, while
+ * preserving the original structure.
+ *
+ * Custom types are converted to `undefined`.
+ *
  * @category Serializer
  * @since 4.0.0
  */
 export function toSerializerStringTree<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, StringTree, RD, RE> {
-  return make(serializerStringTree(schema.ast))
+  return make(serializerEnsureArray(serializerStringTree(schema.ast)))
 }
 
 /**
+ * This loose version behaves like the StringTree serializer, but it does
+ * **not** convert custom types to `undefined`. Instead, it keeps them as they
+ * are.
+ *
  * @category Serializer
  * @since 4.0.0
  */
 export function toSerializerStringTreeLoose<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
-  return make(serializerStringTreeLoose(schema.ast))
-}
-
-/**
- * @category Serializer
- * @since 4.0.0
- */
-export function toSerializerEnsureArray<T, RD, RE>(schema: Codec<T, unknown, RD, RE>): Codec<T, unknown, RD, RE>
-export function toSerializerEnsureArray<T, RD, RE>(schema: Codec<T, StringTree, RD, RE>): Codec<T, StringTree, RD, RE>
-export function toSerializerEnsureArray<T, RD, RE>(schema: Codec<T, unknown, RD, RE>): Codec<T, unknown, RD, RE> {
-  return make(serializerEnsureArray(schema.ast))
+  return make(serializerEnsureArray(serializerStringTreeLoose(schema.ast)))
 }
 
 type XmlEncoderOptions = {

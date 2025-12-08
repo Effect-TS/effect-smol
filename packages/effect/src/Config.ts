@@ -377,7 +377,7 @@ const recur: (
  * @since 4.0.0
  */
 export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigProvider.Path): Config<T> {
-  const serializer = Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(codec))
+  const serializer = Schema.toSerializerStringTree(codec)
   const decodeUnknownEffect = Parser.decodeUnknownEffect(serializer)
   const serializerEncodedAST = AST.encodedAST(serializer.ast)
   const defaultPath = typeof path === "string" ? [path] : path ?? []

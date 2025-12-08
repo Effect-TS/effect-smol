@@ -7016,7 +7016,7 @@ function decodingJsonSchema<T, E, RE>(schema: Schema.Codec<T, E, never, RE>) {
 }
 
 function decodingStringSchema<T, E, RE>(schema: Schema.Codec<T, E, never, RE>) {
-  return Schema.asStandardSchemaV1(Schema.toSerializerEnsureArray(Schema.toSerializerStringTree(schema)))
+  return Schema.asStandardSchemaV1(Schema.toSerializerStringTree(schema))
 }
 
 function mapJsonSchema(schema: Schema.Top) {
