@@ -629,8 +629,9 @@ const expireAllRedis = Redis.script(
   {
     numberOfKeys: (keys) => keys.length,
     lua: `
+local ttl = ARGV[1]
 for i, key in ipairs(KEYS) do
-  redis.call("PEXPIRE", key, ARGV[1])
+  redis.call("PEXPIRE", key, ttl)
 end
 `
   }

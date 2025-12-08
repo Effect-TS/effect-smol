@@ -17,7 +17,7 @@ import * as Redis from "effect/unstable/persistence/Redis"
 export class BunRedis extends ServiceMap.Service<BunRedis, {
   readonly client: RedisClient
   readonly use: <A>(f: (client: RedisClient) => Promise<A>) => Effect.Effect<A, Redis.RedisError>
-}>()("effect/platform-bun/BunRedis") {}
+}>()("@effect/platform-bun/BunRedis") {}
 
 const make = Effect.fnUntraced(function*(
   options?: {

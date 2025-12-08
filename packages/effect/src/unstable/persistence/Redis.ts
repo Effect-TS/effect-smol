@@ -4,6 +4,8 @@
 import * as Cache from "../../Cache.ts"
 import * as Effect from "../../Effect.ts"
 import { constant, identity } from "../../Function.ts"
+import * as Equal from "../../interfaces/Equal.ts"
+import * as Hash from "../../interfaces/Hash.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 
@@ -98,8 +100,17 @@ export interface Script<
   readonly numberOfKeys: (...params: Config["params"]) => number
 }
 
-const variance = {
-  Params: (_: never) => _
+const ScriptProto = {
+  [ScriptTypeId]: {
+    params: identity,
+    result: identity
+  },
+  [Equal.symbol](that: unknown): boolean {
+    return this === that
+  },
+  [Hash.symbol](): number {
+    return Hash.random(this)
+  }
 }
 
 /**
@@ -143,9 +154,9 @@ const scriptImpl = <Params extends ReadonlyArray<any>>(
 ): Script<{
   params: Params
   result: any
-}> => ({
-  ...options,
-  [ScriptTypeId]: variance as any,
-  params: f,
-  numberOfKeys: typeof options.numberOfKeys === "number" ? constant(options.numberOfKeys) : options.numberOfKeys
-})
+}> =>
+  Object.assign(Object.create(ScriptProto), {
+    ...options,
+    params: f,
+    numberOfKeys: typeof options.numberOfKeys === "number" ? constant(options.numberOfKeys) : options.numberOfKeys
+  })

@@ -17,7 +17,7 @@ import * as IoRedis from "ioredis"
 export class NodeRedis extends ServiceMap.Service<NodeRedis, {
   readonly client: IoRedis.Redis
   readonly use: <A>(f: (client: IoRedis.Redis) => Promise<A>) => Effect.Effect<A, Redis.RedisError>
-}>()("effect/platform-node/NodeRedis") {}
+}>()("@effect/platform-node/NodeRedis") {}
 
 const make = Effect.fnUntraced(function*(
   options?: IoRedis.RedisOptions
