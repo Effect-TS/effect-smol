@@ -298,138 +298,70 @@ export function fromEnv(options?: { readonly env?: Record<string, string> | unde
     ...(import.meta as any)?.env
   }
 
-  try {
-    const root = buildTrie(env)
-    validate(root)
+  const trie = buildEnvTrie(env)
 
-    return make((path) => {
-      if (path.length === 0) {
-        return Effect.succeed(statAt(root))
-      }
-      const node = findNode(root, path)
-      return Effect.succeed(statAt(node))
-    })
-  } catch (e) {
-    return make(() =>
-      Effect.fail(
-        new SourceError({
-          message: e instanceof Error ? e.message : format(e),
-          cause: e
-        })
-      )
-    )
-  }
+  return make((path) => Effect.succeed(nodeAtEnv(trie, env, path)))
 }
 
-// Internal trie node used during decoding.
-type TrieNode = {
-  leafValue?: string // optional co-located value
-  typeSentinel?: "A" | "O" // __TYPE for empty array/object
-  children?: Record<string, TrieNode>
+type EnvTrieNode = {
+  value?: string
+  children?: Record<string, EnvTrieNode>
 }
 
-// fetch or create a child node by segment (plain object).
-function getOrCreateChild(parent: TrieNode, segment: string): TrieNode {
-  parent.children ??= {}
-  return (parent.children[segment] ??= {})
-}
+function buildEnvTrie(env: Record<string, string | undefined>): EnvTrieNode {
+  const root: EnvTrieNode = {}
 
-function buildTrie(env: Record<string, string>): TrieNode {
-  const root: TrieNode = {}
+  for (const [name, value] of Object.entries(env)) {
+    if (value === undefined) continue
 
-  for (const [name, raw] of Object.entries(env)) {
-    const endsWithType = name.endsWith("__TYPE")
-    const base = endsWithType ? name.slice(0, -6) : name
-    const segments = base === "" ? [] : base.split("__")
+    // Split on "_" and keep empty segments (no special handling for "__")
+    const segments = name.split("_")
 
     let node = root
-    for (const seg of segments) node = getOrCreateChild(node, seg)
-
-    if (endsWithType) {
-      const kind = raw.trim().toUpperCase()
-      if (kind !== "A" && kind !== "O") {
-        throw new Error(`Invalid environment: "${name}" must be "A" or "O"`)
-      }
-      node.typeSentinel = kind
-    } else {
-      if (node.leafValue !== undefined && node.leafValue !== raw) {
-        throw new Error(`Invalid environment: duplicate leaf with different values at "${name}"`)
-      }
-      node.leafValue = raw
+    for (const seg of segments) {
+      node.children ??= {}
+      node = node.children[seg] ??= {}
     }
+
+    // co-located value at this node
+    node.value = value
   }
 
   return root
 }
 
-// Numeric index per R4/R5 (array indices; no leading zeros except "0").
 const NUMERIC_INDEX = /^(0|[1-9][0-9]*)$/
 
-// Validate constraints that still hold:
-// - __TYPE cannot coexist with children (it's an *empty* container marker)
-// - numeric children => must be dense (0..max)
-function validate(node: TrieNode, path: Array<string> = []): void {
-  const children = node.children ? Object.keys(node.children) : []
+function nodeAtEnv(trie: EnvTrieNode, env: Record<string, string | undefined>, path: Path): Node | undefined {
+  const key = path.map(String).join("_")
+  const leafValue = env[key]
 
-  if (node.typeSentinel && children.length > 0) {
-    throw new Error(`Invalid environment: node "${path.join("__")}" has __TYPE and also children`)
+  const trieNode = trieNodeAt(trie, path)
+  const children = trieNode?.children ? Object.keys(trieNode.children) : []
+
+  if (children.length === 0) {
+    return leafValue === undefined ? undefined : makeValue(leafValue)
   }
 
-  if (children.length > 0) {
-    const allNumeric = children.every((k) => NUMERIC_INDEX.test(k))
-    if (allNumeric) {
-      const indices = children.map((k) => parseInt(k, 10)).sort((a, b) => a - b)
-      const max = indices[indices.length - 1]!
-      if (max !== indices.length - 1) {
-        throw new Error(
-          `Invalid environment: array at "${path.join("__")}" is not dense (expected indices 0..${max})`
-        )
-      }
-    }
-    // recurse
-    for (const k of children) validate(node.children![k]!, [...path, k])
+  const allNumeric = children.every((k) => NUMERIC_INDEX.test(k))
+  if (allNumeric) {
+    const length = Math.max(...children.map((k) => parseInt(k, 10))) + 1
+    return makeArray(length, leafValue)
   }
+
+  return makeRecord(new Set(children), leafValue)
 }
 
-// Navigate and return Stat with optional value on containers
-function statAt(node: TrieNode | undefined): Node | undefined {
-  if (!node) return undefined
+function trieNodeAt(root: EnvTrieNode, path: Path): EnvTrieNode | undefined {
+  if (path.length === 0) return root
 
-  const children = node.children ? Object.keys(node.children) : []
-
-  // __TYPE yields an empty container; leafValue may coexist (R3 relaxed)
-  if (node.typeSentinel) {
-    return node.typeSentinel === "A"
-      ? makeArray(0, node.leafValue)
-      : makeRecord(new Set<string>(), node.leafValue)
-  }
-
-  if (children.length > 0) {
-    const allNumeric = children.every((k) => NUMERIC_INDEX.test(k))
-    if (allNumeric) {
-      const length = Math.max(...children.map((k) => parseInt(k, 10))) + 1
-      return makeArray(length, node.leafValue)
-    } else {
-      return makeRecord(new Set(children), node.leafValue)
-    }
-  }
-
-  // leaf only
-  if (node.leafValue !== undefined) {
-    return makeValue(node.leafValue)
-  }
-
-  return undefined
-}
-
-function findNode(root: TrieNode, path: Path): TrieNode | undefined {
-  let cur: TrieNode | undefined = root
+  // Convert path segments to strings and navigate through the trie
+  let node: EnvTrieNode | undefined = root
   for (const seg of path) {
-    if (!cur?.children) return undefined
-    const key = String(seg)
-    cur = cur.children[key]
+    node = node?.children?.[String(seg)]
+    if (!node) return undefined
   }
-  return cur
+  return node
 }
 
 /**

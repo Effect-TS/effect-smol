@@ -235,21 +235,21 @@ describe("Config", () => {
         const schema = Schema.Struct({ a: Schema.Finite })
         const config = Config.schema(schema)
 
-        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1", "a__b": "2" } }), { a: 1 })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1", "a_b": "2" } }), { a: 1 })
       })
 
       it("node can be both leaf and array", async () => {
         const schema = Schema.Struct({ a: Schema.Finite })
         const config = Config.schema(schema)
 
-        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1", "a__0": "2" } }), { a: 1 })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1", "a_0": "2" } }), { a: 1 })
       })
 
       it("if a node can be both object and array, it should be an object", async () => {
         const schema = Schema.Struct({ a: Schema.Struct({ b: Schema.Finite }) })
         const config = Config.schema(schema)
 
-        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1", "a__b": "2", "a__0": "3" } }), {
+        await succeed(config, ConfigProvider.fromEnv({ env: { a: "1", "a_b": "2", "a_0": "3" } }), {
           a: { b: 2 }
         })
       })
@@ -263,7 +263,7 @@ describe("Config", () => {
       )
       await succeed(
         Config.schema(Schema.String, ["a", "b"]),
-        ConfigProvider.fromEnv({ env: { "a__b": "value" } }),
+        ConfigProvider.fromEnv({ env: { "a_b": "value" } }),
         "value"
       )
       await succeed(
@@ -330,7 +330,7 @@ describe("Config", () => {
 
         await succeed(config, ConfigProvider.fromEnv({ env: { a: "" } }), { a: [] })
         await succeed(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: [1] })
-        await succeed(config, ConfigProvider.fromEnv({ env: { a__0: "1", a__1: "2" } }), { a: [1, 2] })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a_0: "1", a_1: "2" } }), { a: [1, 2] })
       })
     })
 
@@ -369,7 +369,7 @@ describe("Config", () => {
         const schema = Schema.Struct({ a: Schema.Tuple([Schema.String, Schema.Finite]) })
         const config = Config.schema(schema)
 
-        await succeed(config, ConfigProvider.fromEnv({ env: { a__0: "a", a__1: "2" } }), { a: ["a", 2] })
+        await succeed(config, ConfigProvider.fromEnv({ env: { a_0: "a", a_1: "2" } }), { a: ["a", 2] })
         await fail(
           config,
           ConfigProvider.fromEnv({ env: { a: "a" } }),
@@ -378,7 +378,7 @@ describe("Config", () => {
         )
         await fail(
           config,
-          ConfigProvider.fromEnv({ env: { a__0: "a", a__1: "value" } }),
+          ConfigProvider.fromEnv({ env: { a_0: "a", a_1: "value" } }),
           `Expected a string representing a number, got "value"
   at ["a"][1]`
         )
@@ -390,10 +390,10 @@ describe("Config", () => {
       const config = Config.schema(schema)
 
       await succeed(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: [1] })
-      await succeed(config, ConfigProvider.fromEnv({ env: { a__0: "1", a__1: "2" } }), { a: [1, 2] })
+      await succeed(config, ConfigProvider.fromEnv({ env: { a_0: "1", a_1: "2" } }), { a: [1, 2] })
       await fail(
         config,
-        ConfigProvider.fromEnv({ env: { a__0: "1", a__1: "value" } }),
+        ConfigProvider.fromEnv({ env: { a_0: "1", a_1: "value" } }),
         `Expected a string representing a number, got "value"
   at ["a"][1]`
       )
@@ -453,7 +453,7 @@ describe("Config", () => {
       await succeed(config, ConfigProvider.fromEnv({ env: { a: "1", as: "" } }), { a: "1", as: [] })
       await succeed(
         config,
-        ConfigProvider.fromEnv({ env: { a: "1", as__0__a: "2", as__0__as__TYPE: "A" } }),
+        ConfigProvider.fromEnv({ env: { a: "1", as_0_a: "2", as_0_as: "" } }),
         {
           a: "1",
           as: [{ a: "2", as: [] }]
