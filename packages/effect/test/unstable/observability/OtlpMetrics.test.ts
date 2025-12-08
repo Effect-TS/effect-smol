@@ -8,7 +8,7 @@ import { OtlpMetrics } from "effect/unstable/observability"
 
 describe("OtlpMetrics", () => {
   describe("cumulative temporality", () => {
-    it.effect("counter", () =>
+    it.effect("Counter", () =>
       Effect.gen(function*() {
         const metricName = "cumulative_counter_test"
         const counter = Metric.counter(metricName, {
@@ -34,7 +34,7 @@ describe("OtlpMetrics", () => {
         assert.strictEqual(secondMetric?.sum?.dataPoints[0].asDouble, 8)
       }).pipe(Effect.provide(TestLayerCumulative)))
 
-    it.effect("histogram", () =>
+    it.effect("Histogram", () =>
       Effect.gen(function*() {
         const metricName = "cumulative_histogram_test"
 
@@ -65,7 +65,7 @@ describe("OtlpMetrics", () => {
         assert.strictEqual(secondMetric?.histogram?.dataPoints[0].sum, 130)
       }).pipe(Effect.provide(TestLayerCumulative)))
 
-    it.effect("frequency", () =>
+    it.effect("Frequency", () =>
       Effect.gen(function*() {
         const metricName = "cumulative_frequency_test"
         const frequency = Metric.frequency(metricName, {
@@ -128,7 +128,7 @@ describe("OtlpMetrics", () => {
         assert.strictEqual(secondB?.asInt, 3) // Cumulative: 1+2=3
       }).pipe(Effect.provide(TestLayerCumulative)))
 
-    it.effect("summary", () =>
+    it.effect("Summary", () =>
       Effect.gen(function*() {
         const metricName = "cumulative_summary_test"
         const summary = Metric.summary(metricName, {
@@ -168,7 +168,7 @@ describe("OtlpMetrics", () => {
   })
 
   describe("delta temporality", () => {
-    it.effect("counter", () =>
+    it.effect("Counter", () =>
       Effect.gen(function*() {
         const metricName = "delta_counter_test"
         const counter = Metric.counter(metricName, {
@@ -193,7 +193,7 @@ describe("OtlpMetrics", () => {
         assert.strictEqual(secondMetric?.sum?.dataPoints[0].asDouble, 3)
       }).pipe(Effect.provide(TestLayerDelta)))
 
-    it.effect("histogram", () =>
+    it.effect("Histogram", () =>
       Effect.gen(function*() {
         const metricName = "delta_histogram_test"
         const histogram = Metric.histogram(metricName, {
@@ -222,7 +222,7 @@ describe("OtlpMetrics", () => {
         assert.strictEqual(secondMetric?.histogram?.dataPoints[0].sum, 30)
       }).pipe(Effect.provide(TestLayerDelta)))
 
-    it.effect("frequency", () =>
+    it.effect("Frequency", () =>
       Effect.gen(function*() {
         const metricName = "delta_frequency_test"
         const frequency = Metric.frequency(metricName, {
@@ -284,7 +284,7 @@ describe("OtlpMetrics", () => {
         assert.strictEqual(secondB?.asInt, 2) // Delta: 3-1=2
       }).pipe(Effect.provide(TestLayerDelta)))
 
-    it.effect("summary", () =>
+    it.effect("Summary", () =>
       Effect.gen(function*() {
         const metricName = "delta_summary_test"
         const summary = Metric.summary(metricName, {
@@ -323,7 +323,7 @@ describe("OtlpMetrics", () => {
       }).pipe(Effect.provide(TestLayerDelta)))
   })
 
-  describe("summary", () => {
+  describe("Summary", () => {
     it.effect("exports quantile metrics", () =>
       Effect.gen(function*() {
         const metricName = "summary_quantiles_test"
@@ -371,7 +371,7 @@ describe("OtlpMetrics", () => {
       }).pipe(Effect.provide(TestLayerCumulative)))
   })
 
-  describe("gauge (no temporality)", () => {
+  describe("Gauge (no temporality)", () => {
     it.effect.each([
       ["cumulative", TestLayerCumulative] as const,
       ["delta", TestLayerDelta] as const
