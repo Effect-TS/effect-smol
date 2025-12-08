@@ -1,6 +1,6 @@
 import { Cause, DateTime, Duration, Effect } from "effect"
 import { Option, Redacted, Result } from "effect/data"
-import { Issue, Parser, Schema, Transformation } from "effect/schema"
+import { Getter, Issue, Parser, Schema, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
 import { assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
@@ -17,6 +17,21 @@ const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
 
 describe("Serializers", () => {
   describe("toSerializerJson", () => {
+    it("should reorder the types in the Union based on the encoded side", async () => {
+      const schema = Schema.Union([
+        Schema.String,
+        Schema.String.pipe(Schema.encodeTo(Schema.BigInt, {
+          decode: Getter.transform((n: bigint) => String(n) + "a"),
+          encode: Getter.transform(() => 0n)
+        }))
+      ])
+      const serializer = Schema.toSerializerJson(schema)
+      const asserts = new TestSchema.Asserts(Schema.toSerializerJson(serializer))
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("1", "1a")
+    })
+
     describe("Schemas without encoding", () => {
       describe("Unsupported schemas", () => {
         it("Struct with Symbol property name", () => {
@@ -1202,6 +1217,21 @@ describe("Serializers", () => {
       })
     })
 
+    it("should reorder the types in the Union based on the encoded side", async () => {
+      const schema = Schema.Union([
+        Schema.String,
+        Schema.String.pipe(Schema.encodeTo(Schema.BigInt, {
+          decode: Getter.transform((n: bigint) => String(n) + "a"),
+          encode: Getter.transform(() => 0n)
+        }))
+      ])
+      const serializer = Schema.toSerializerStringTreeLoose(schema)
+      const asserts = new TestSchema.Asserts(Schema.toSerializerJson(serializer))
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("1", "1a")
+    })
+
     it("should passthrough the schema if it's a declaration without an annotation", async () => {
       const schema = Schema.Struct({
         a: Schema.instanceOf(URL),
@@ -1224,6 +1254,21 @@ describe("Serializers", () => {
   })
 
   describe("toSerializerStringTree", () => {
+    it("should reorder the types in the Union based on the encoded side", async () => {
+      const schema = Schema.Union([
+        Schema.String,
+        Schema.String.pipe(Schema.encodeTo(Schema.BigInt, {
+          decode: Getter.transform((n: bigint) => String(n) + "a"),
+          encode: Getter.transform(() => 0n)
+        }))
+      ])
+      const serializer = Schema.toSerializerStringTree(schema)
+      const asserts = new TestSchema.Asserts(Schema.toSerializerJson(serializer))
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("1", "1a")
+    })
+
     describe("should return the same reference if nothing changed", () => {
       it("String", async () => {
         const schema = Schema.String

@@ -7692,6 +7692,46 @@ export function makeEncoderXml<T, E, RD, RE>(
     serialize(t).pipe(Effect.map((stringTree) => stringTreeToXml(stringTree, { rootName, ...options })))
 }
 
+function makeReorder(getPriority: (ast: AST.AST) => number) {
+  return (types: ReadonlyArray<AST.AST>): ReadonlyArray<AST.AST> => {
+    // Create a map of original indices for O(1) lookup
+    const indexMap = new Map<AST.AST, number>()
+    for (let i = 0; i < types.length; i++) {
+      indexMap.set(AST.encodedAST(types[i]), i)
+    }
+
+    // Create a sorted copy of the types array
+    const sortedTypes = [...types].sort((a, b) => {
+      a = AST.encodedAST(a)
+      b = AST.encodedAST(b)
+      const pa = getPriority(a)
+      const pb = getPriority(b)
+      if (pa !== pb) return pa - pb
+      // If priorities are equal, maintain original order (stable sort)
+      return indexMap.get(a)! - indexMap.get(b)!
+    })
+
+    // Check if order changed by comparing arrays
+    const orderChanged = sortedTypes.some((ast, index) => ast !== types[index])
+
+    if (!orderChanged) return types
+    return sortedTypes
+  }
+}
+
+function getJsonPriority(ast: AST.AST): number {
+  switch (ast._tag) {
+    case "BigInt":
+    case "Symbol":
+    case "UniqueSymbol":
+      return 0
+    default:
+      return 1
+  }
+}
+
+const jsonReorder = makeReorder(getJsonPriority)
+
 function serializerJsonBase(ast: AST.AST): AST.AST {
   switch (ast._tag) {
     case "Unknown":
@@ -7719,15 +7759,29 @@ function serializerJsonBase(ast: AST.AST): AST.AST {
       return ast.encodeToStringOrNumberOrBoolean()
     case "Number":
       return ast.encodeToNumberOrNonFiniteLiterals()
-    case "Objects":
-    case "Arrays":
-    case "Union":
-    case "Suspend": {
-      if (AST.isObjects(ast) && ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
+    case "Objects": {
+      if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
         throw new globalThis.Error("Objects property names must be strings", { cause: ast })
       }
       return ast.recur(serializerJson)
     }
+    case "Union": {
+      const sortedTypes = jsonReorder(ast.types)
+      if (sortedTypes !== ast.types) {
+        return new AST.Union(
+          sortedTypes,
+          ast.mode,
+          ast.annotations,
+          ast.checks,
+          ast.encoding,
+          ast.context
+        ).recur(serializerJson)
+      }
+      return ast.recur(serializerJson)
+    }
+    case "Arrays":
+    case "Suspend":
+      return ast.recur(serializerJson)
   }
   // `Schema.Any` is used as an escape hatch
   return ast
@@ -7777,6 +7831,22 @@ const serializerIso = memoize((ast: AST.AST): AST.AST => {
   return out
 })
 
+function getStringTreePriority(ast: AST.AST): number {
+  switch (ast._tag) {
+    case "Null":
+    case "Boolean":
+    case "Number":
+    case "BigInt":
+    case "Symbol":
+    case "UniqueSymbol":
+      return 0
+    default:
+      return 1
+  }
+}
+
+const treeReorder = makeReorder(getStringTreePriority)
+
 function serializerTree(
   ast: AST.AST,
   recur: (ast: AST.AST) => AST.AST,
@@ -7808,15 +7878,29 @@ function serializerTree(
     case "Symbol":
     case "BigInt":
       return ast.encodeToString()
-    case "Objects":
-    case "Arrays":
-    case "Union":
-    case "Suspend": {
-      if (AST.isObjects(ast) && ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
+    case "Objects": {
+      if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
         throw new globalThis.Error("Objects property names must be strings", { cause: ast })
       }
       return ast.recur(recur)
     }
+    case "Union": {
+      const sortedTypes = treeReorder(ast.types)
+      if (sortedTypes !== ast.types) {
+        return new AST.Union(
+          sortedTypes,
+          ast.mode,
+          ast.annotations,
+          ast.checks,
+          ast.encoding,
+          ast.context
+        ).recur(recur)
+      }
+      return ast.recur(recur)
+    }
+    case "Arrays":
+    case "Suspend":
+      return ast.recur(recur)
   }
   // `Schema.Any` is used as an escape hatch
   return ast
