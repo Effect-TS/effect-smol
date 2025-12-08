@@ -8,6 +8,7 @@ import type * as Headers from "../http/Headers.ts"
 import type * as HttpClient from "../http/HttpClient.ts"
 import * as HttpClientRequest from "../http/HttpClientRequest.ts"
 import * as OtlpLogger from "./OtlpLogger.ts"
+import type { AggregationTemporality } from "./OtlpMetrics.ts"
 import * as OtlpMetrics from "./OtlpMetrics.ts"
 import * as OtlpTracer from "./OtlpTracer.ts"
 
@@ -29,6 +30,7 @@ export const layer = (options: {
   readonly loggerExcludeLogSpans?: boolean | undefined
   readonly loggerMergeWithExisting?: boolean | undefined
   readonly metricsExportInterval?: Duration.DurationInput | undefined
+  readonly metricsTemporality?: AggregationTemporality | undefined
   readonly tracerExportInterval?: Duration.DurationInput | undefined
   readonly shutdownTimeout?: Duration.DurationInput | undefined
 }): Layer.Layer<never, never, HttpClient.HttpClient> => {
@@ -50,7 +52,8 @@ export const layer = (options: {
       resource: options.resource,
       headers: options.headers,
       exportInterval: options.metricsExportInterval,
-      shutdownTimeout: options.shutdownTimeout
+      shutdownTimeout: options.shutdownTimeout,
+      temporality: options.metricsTemporality
     }),
     OtlpTracer.layer({
       url: url("/v1/traces"),
