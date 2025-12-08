@@ -484,6 +484,10 @@ function searchLast(str: string, rgx: RegExp): number {
 /**
  * A ConfigProvider that loads configuration from a `.env` file.
  *
+ * **Options**
+ *
+ * - `path`: The path to the `.env` file, defaults to `".env"`.
+ *
  * @see {@link fromDotEnvContents} for a ConfigProvider that parses a `.env` file.
  *
  * @since 4.0.0

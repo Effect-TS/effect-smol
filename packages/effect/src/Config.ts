@@ -293,8 +293,7 @@ const dump: (
     case "Value":
       return stat.value
     case "Record": {
-      // If the object has no children but has a co-located value, surface that value.
-      if (stat.keys.size === 0 && stat.value !== undefined) return stat.value
+      if (stat.value !== undefined) return stat.value
       const out: Record<string, Schema.StringTree> = {}
       for (const key of stat.keys) {
         const child = yield* dump(provider, [...path, key])
@@ -303,12 +302,10 @@ const dump: (
       return out
     }
     case "Array": {
-      // If the array has no children but has a co-located value, surface that value.
-      if (stat.length === 0 && stat.value !== undefined) return stat.value
+      if (stat.value !== undefined) return stat.value
       const out: Array<Schema.StringTree> = []
       for (let i = 0; i < stat.length; i++) {
-        const child = yield* dump(provider, [...path, i])
-        if (child !== undefined) out.push(child)
+        out.push(yield* dump(provider, [...path, i]))
       }
       return out
     }
@@ -348,17 +345,11 @@ const recur: (
         return out
       }
       case "Arrays": {
-        if (ast.rest.length > 0) {
-          const out = yield* dump(provider, path)
-          if (typeof out === "string") return out
-          return out
-        }
         const stat = yield* provider.load(path)
         if (stat && stat._tag === "Value") return stat.value
         const out: Array<Schema.StringTree> = []
         for (let i = 0; i < ast.elements.length; i++) {
-          const value = yield* recur(ast.elements[i], provider, [...path, i])
-          if (value !== undefined) out.push(value)
+          out.push(yield* recur(ast.elements[i], provider, [...path, i]))
         }
         return out
       }
@@ -552,6 +543,8 @@ export function succeed<T>(value: T) {
 /**
  * Creates a configuration for string values.
  *
+ * Shortcut for `Config.schema(Schema.String, name)`.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -562,6 +555,8 @@ export function string(name?: string) {
 /**
  * Creates a configuration for non-empty string values.
  *
+ * Shortcut for `Config.schema(Schema.NonEmptyString, name)`.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -571,6 +566,8 @@ export function nonEmptyString(name?: string) {
 
 /**
  * Creates a configuration for number values.
+ *
+ * Shortcut for `Config.schema(Schema.Number, name)`.
  *
  * @see {@link finite} for a configuration that is guaranteed to be a finite number.
  *
@@ -584,6 +581,8 @@ export function number(name?: string) {
 /**
  * Creates a configuration for finite number values.
  *
+ * Shortcut for `Config.schema(Schema.Finite, name)`.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -593,6 +592,8 @@ export function finite(name?: string) {
 
 /**
  * Creates a configuration for integer values.
+ *
+ * Shortcut for `Config.schema(Schema.Int, name)`.
  *
  * @category Constructors
  * @since 4.0.0
@@ -604,6 +605,8 @@ export function int(name?: string) {
 /**
  * Creates a configuration for literal values.
  *
+ * Shortcut for `Config.schema(Schema.Literal(literal), name)`.
+ *
  * @category Constructors
  * @since 4.0.0
  */
@@ -613,6 +616,8 @@ export function literal<L extends AST.LiteralValue>(literal: L, name?: string) {
 
 /**
  * Creates a configuration for boolean values.
+ *
+ * Shortcut for `Config.schema(Config.Boolean, name)`.
  *
  * Booleans can be encoded as `true`, `false`, `yes`, `no`, `on`, `off`, `1`, or `0`.
  *
@@ -648,6 +653,8 @@ export function boolean(name?: string) {
 /**
  * Creates a configuration for duration values.
  *
+ * Shortcut for `Config.schema(Config.Duration, name)`.
+ *
  * Durations can be encoded as `DurationInput` values.
  *
  * **Example**
@@ -682,6 +689,8 @@ export function duration(name?: string) {
 /**
  * Creates a configuration for port values.
  *
+ * Shortcut for `Config.schema(Config.Port, name)`.
+ *
  * Ports can be encoded as integers between 1 and 65535.
  *
  * **Example**
@@ -715,6 +724,8 @@ export function port(name?: string) {
 
 /**
  * Creates a configuration for log level values.
+ *
+ * Shortcut for `Config.schema(Config.LogLevel, name)`.
  *
  * Log levels can be encoded as the string values of the `LogLevel` enum:
  *
@@ -758,6 +769,8 @@ export function logLevel(name?: string) {
 
 /**
  * Creates a configuration for redacted string values.
+ *
+ * Shortcut for `Config.schema(Schema.Redacted(Schema.String), name)`.
  *
  * **Example**
  *
