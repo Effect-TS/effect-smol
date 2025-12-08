@@ -2111,12 +2111,12 @@ describe("Serializers", () => {
 
     it("Any", async () => {
       await assertXml(Schema.Any, "test", "<root>test</root>")
-      await assertXml(Schema.Any, 42, "<root/>")
+      await assertXml(Schema.Any, 42, "<root>42</root>")
       await assertXml(
         Schema.Any,
         { a: 1 },
         `<root>
-  <a/>
+  <a>1</a>
 </root>`
       )
     })

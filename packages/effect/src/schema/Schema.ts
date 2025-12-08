@@ -7689,7 +7689,7 @@ export function makeEncoderXml<T, E, RD, RE>(
   const rootName = Annotations.resolveIdentifier(codec.ast) ?? Annotations.resolveTitle(codec.ast)
   const serialize = encodeEffect(toSerializerStringTree(codec))
   return (t: T): Effect.Effect<string, SchemaError, RE> =>
-    serialize(t).pipe(Effect.map((pojo) => stringTreeToXml(pojo, { rootName, ...options })))
+    serialize(t).pipe(Effect.map((stringTree) => stringTreeToXml(stringTree, { rootName, ...options })))
 }
 
 function serializerJsonBase(ast: AST.AST): AST.AST {
@@ -7949,7 +7949,7 @@ function stringTreeToXml(value: StringTree, options: XmlEncoderOptions): string 
           for (const item of node) render(opts.arrayItemName, item, depth + 1)
           push(depth, `</${safeParent}>`)
         }
-      } else {
+      } else if (Predicate.isObject(node)) {
         const obj = node as { readonly [x: string]: StringTree }
         const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
         const keys = Object.keys(obj)
@@ -7964,6 +7964,9 @@ function stringTreeToXml(value: StringTree, options: XmlEncoderOptions): string 
           render(childSafe, obj[k], depth + 1, k)
         }
         push(depth, `</${safe}>`)
+      } else {
+        const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
+        push(depth, `<${safe}${attrs}>${escapeText(format(node))}</${safe}>`)
       }
     } finally {
       seen.delete(node)
