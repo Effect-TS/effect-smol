@@ -1396,10 +1396,10 @@ describe("Serializers", () => {
         const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(schema))
 
         const encoding = asserts.encoding()
-        await encoding.succeed(null, undefined)
+        await encoding.succeed(null, "null")
 
         const decoding = asserts.decoding()
-        await decoding.succeed(undefined, null)
+        await decoding.succeed("null", null)
       })
 
       it("String", async () => {
@@ -1648,13 +1648,13 @@ describe("Serializers", () => {
           await encoding.succeed({ a: new Date("2021-01-01") }, {
             a: "2021-01-01T00:00:00.000Z"
           })
-          await encoding.succeed({ a: null }, { a: undefined })
+          await encoding.succeed({ a: null }, { a: "null" })
 
           const decoding = asserts.decoding()
           await decoding.succeed({ a: "2021-01-01T00:00:00.000Z" }, {
             a: new Date("2021-01-01")
           })
-          await decoding.succeed({ a: undefined }, { a: null })
+          await decoding.succeed({ a: "null" }, { a: null })
         })
 
         it("optionalKey(Date)", async () => {
@@ -1759,13 +1759,13 @@ describe("Serializers", () => {
           await encoding.succeed([new Date("2021-01-01")], [
             "2021-01-01T00:00:00.000Z"
           ])
-          await encoding.succeed([null], [undefined])
+          await encoding.succeed([null], ["null"])
 
           const decoding = asserts.decoding()
           await decoding.succeed(["2021-01-01T00:00:00.000Z"], [
             new Date("2021-01-01")
           ])
-          await decoding.succeed([undefined], [null])
+          await decoding.succeed(["null"], [null])
         })
 
         it("optionalKey(Date)", async () => {
@@ -1823,10 +1823,10 @@ describe("Serializers", () => {
 
           const encoding = asserts.encoding()
           await encoding.succeed("a", "a")
-          await encoding.succeed(null, undefined)
+          await encoding.succeed(null, "null")
 
           const decoding = asserts.decoding()
-          await decoding.succeed(undefined, null)
+          await decoding.succeed("null", null)
           await decoding.succeed("a", "a")
         })
 
@@ -1836,10 +1836,10 @@ describe("Serializers", () => {
 
           const encoding = asserts.encoding()
           await encoding.succeed(1, "1")
-          await encoding.succeed(null, undefined)
+          await encoding.succeed(null, "null")
 
           const decoding = asserts.decoding()
-          await decoding.succeed(undefined, null)
+          await decoding.succeed("null", null)
           await decoding.succeed("1", 1)
         })
 
@@ -1848,10 +1848,10 @@ describe("Serializers", () => {
           const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(schema))
 
           const encoding = asserts.encoding()
-          await encoding.succeed([1, null], ["1", undefined])
+          await encoding.succeed([1, null], ["1", "null"])
 
           const decoding = asserts.decoding()
-          await decoding.succeed(["1", undefined], [1, null])
+          await decoding.succeed(["1", "null"], [1, null])
         })
 
         it("Union(Date, Finite)", async () => {
@@ -2175,7 +2175,7 @@ describe("Serializers", () => {
     })
 
     it("Null", async () => {
-      await assertXml(Schema.Null, null, "<root/>")
+      await assertXml(Schema.Null, null, "<root>null</root>")
     })
 
     it("Number", async () => {
@@ -2281,7 +2281,7 @@ describe("Serializers", () => {
 
     it("NullOr", async () => {
       await assertXml(Schema.NullOr(Schema.String), "test", "<root>test</root>")
-      await assertXml(Schema.NullOr(Schema.String), null, "<root/>")
+      await assertXml(Schema.NullOr(Schema.String), null, "<root>null</root>")
     })
 
     it("TaggedUnion", async () => {

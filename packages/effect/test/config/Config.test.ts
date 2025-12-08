@@ -569,9 +569,13 @@ describe("Config", () => {
       const schema = Schema.Null
       const config = Config.schema(schema, "a")
 
-      await assertSuccess(config, ConfigProvider.fromEnv({ env: {} }), null)
-      // TODO
-      // await assertFailure(config, ConfigProvider.fromEnv({ env: {} }), `Expected undefined, got "a"`)
+      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "null" } }), null)
+      await assertFailure(
+        config,
+        ConfigProvider.fromEnv({ env: {} }),
+        `Expected "null", got undefined
+  at ["a"]`
+      )
     })
 
     it("String", async () => {
@@ -864,8 +868,8 @@ describe("Config", () => {
       const schema = Schema.Null
       const config = Config.schema(schema)
 
-      await assertSuccess(config, ConfigProvider.fromUnknown(null), null)
-      await assertFailure(config, ConfigProvider.fromUnknown("a"), `Expected undefined, got "a"`)
+      await assertSuccess(config, ConfigProvider.fromUnknown("null"), null)
+      await assertFailure(config, ConfigProvider.fromUnknown("a"), `Expected "null", got "a"`)
     })
 
     it("String", async () => {

@@ -7868,7 +7868,7 @@ function serializerTree(
       return onMissingAnnotation(ast)
     }
     case "Null":
-      return AST.replaceEncoding(ast, [nullToUndefined])
+      return AST.replaceEncoding(ast, [nullToString])
     case "Boolean":
       return AST.replaceEncoding(ast, [booleanToString])
     case "Enum":
@@ -7906,11 +7906,11 @@ function serializerTree(
   return ast
 }
 
-const nullToUndefined = new AST.Link(
-  AST.undefined,
+const nullToString = new AST.Link(
+  new AST.Literal("null"),
   new Transformation.Transformation(
     Getter.transform(() => null),
-    Getter.transform(() => undefined)
+    Getter.transform(() => "null")
   )
 )
 
