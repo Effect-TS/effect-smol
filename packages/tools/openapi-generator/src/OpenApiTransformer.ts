@@ -1,3 +1,4 @@
+import * as Predicate from "effect/data/Predicate"
 import * as Layer from "effect/Layer"
 import * as ServiceMap from "effect/ServiceMap"
 import type { OpenAPISpecMethodName } from "effect/unstable/httpapi/OpenApi"
@@ -42,31 +43,28 @@ ${clientErrorSource(name)}`
     if (operation.pathIds.length > 0) {
       Utils.spreadElementsInto(operation.pathIds.map((id) => `${id}: string`), args)
     }
+
     const options: Array<string> = []
-    if (operation.params && !operation.payload) {
-      args.push(
-        `options${operation.paramsOptional ? "?" : ""}: typeof ${operation.params}.Encoded${
-          operation.paramsOptional ? " | undefined" : ""
-        }`
-      )
-    } else if (operation.params) {
-      options.push(
-        `readonly params${operation.paramsOptional ? "?" : ""}: typeof ${operation.params}.Encoded${
-          operation.paramsOptional ? " | undefined" : ""
-        }`
-      )
+    if (operation.params) {
+      const key = `readonly params${operation.paramsOptional ? "?" : ""}`
+      const type = `typeof ${operation.params}.Encoded${operation.paramsOptional ? " | undefined" : ""}`
+      options.push(`${key}: ${type}`)
     }
     if (operation.payload) {
+      const key = `readonly payload`
       const type = `typeof ${operation.payload}.Encoded`
-      if (!operation.params) {
-        args.push(`options: ${type}`)
-      } else {
-        options.push(`readonly payload: ${type}`)
-      }
+      options.push(`${key}: ${type}`)
     }
-    if (options.length > 0) {
+    options.push("readonly config?: Config | undefined")
+
+    // If all options are optional, the argument itself should be optional
+    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    if (hasOptions) {
       args.push(`options: { ${options.join("; ")} }`)
+    } else {
+      args.push(`options: { ${options.join("; ")} } | undefined`)
     }
+
     let success = "void"
     if (operation.successSchemas.size > 0) {
       success = Array.from(operation.successSchemas.values())
@@ -82,9 +80,13 @@ ${clientErrorSource(name)}`
         errors
       )
     }
-    return `${Utils.toComment(operation.description)}readonly "${operation.id}": (${
-      args.join(", ")
-    }) => Effect.Effect<${success}, ${errors.join(" | ")}>`
+
+    const jsdoc = Utils.toComment(operation.description)
+    const methodKey = `readonly "${operation.id}"`
+    const generic = `<Config extends OperationConfig>`
+    const parameters = args.join(", ")
+    const returnType = `Effect.Effect<WithOptionalResponse<${success}, Config>, ${errors.join(" | ")}>`
+    return `${jsdoc}${methodKey}: ${generic}(${parameters}) => ${returnType}`
   }
 
   const operationsToImpl = (
@@ -92,7 +94,29 @@ ${clientErrorSource(name)}`
     name: string,
     operations: ReadonlyArray<ParsedOperation>
   ) =>
-    `export const make = (
+    `export interface OperationConfig {
+  /**
+   * Whether or not the response should be included in the value returned from
+   * an operation.
+   *
+   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned, 
+   * where \`A\` is the success type of the operation.
+   *
+   * If set to \`false\`, only the success type of the operation will be returned.
+   */
+  readonly includeResponse?: boolean | undefined
+}
+
+/**
+ * A utility type which optionally includes the response in the return result
+ * of an operation based upon the value of the \`includeResponse\` configuration 
+ * option.
+ */
+export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
+  readonly includeResponse: true
+} ? [A, HttpClientResponse.HttpClientResponse] : A
+
+export const make = (
   httpClient: HttpClient.HttpClient,
   options: {
     readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
@@ -117,38 +141,33 @@ ${clientErrorSource(name)}`
 }`
 
   const operationToImpl = (operation: ParsedOperation) => {
-    const args: Array<string> = [...operation.pathIds]
-    const hasOptions = operation.params || operation.payload
-    if (hasOptions) {
-      args.push("options")
-    }
+    const args: Array<string> = [...operation.pathIds, "options"]
     const params = `${args.join(", ")}`
 
     const pipeline: Array<string> = []
 
     if (operation.params) {
-      const varName = operation.payload ? "options.params?." : "options?."
+      const paramsAccessor = resolveParamsAccessor(operation, "options", "params")
+
       if (operation.urlParams.length > 0) {
         const props = operation.urlParams.map(
-          (param) => `"${param}": ${varName}["${param}"] as any`
+          (param) => `"${param}": ${paramsAccessor}["${param}"] as any`
         )
         pipeline.push(`HttpClientRequest.setUrlParams({ ${props.join(", ")} })`)
       }
       if (operation.headers.length > 0) {
         const props = operation.headers.map(
-          (param) => `"${param}": ${varName}["${param}"] ?? undefined`
+          (param) => `"${param}": ${paramsAccessor}["${param}"] ?? undefined`
         )
         pipeline.push(`HttpClientRequest.setHeaders({ ${props.join(", ")} })`)
       }
     }
 
-    const payloadVarName = operation.params ? "options.payload" : "options"
+    const payloadVarName = "options.payload"
     if (operation.payloadFormData) {
-      pipeline.push(
-        `HttpClientRequest.bodyFormDataRecord(${payloadVarName} as any)`
-      )
+      pipeline.push(`HttpClientRequest.bodyFormDataRecord(${payloadVarName} as any)`)
     } else if (operation.payload) {
-      pipeline.push(`HttpClientRequest.bodyUnsafeJson(${payloadVarName})`)
+      pipeline.push(`HttpClientRequest.bodyJsonUnsafe(${payloadVarName})`)
     }
 
     const decodes: Array<string> = []
@@ -165,7 +184,8 @@ ${clientErrorSource(name)}`
     })
     decodes.push(`orElse: unexpectedStatus`)
 
-    pipeline.push(`withResponse(HttpClientResponse.matchStatus({
+    const configAccessor = resolveConfigAccessor(operation, "options", "config")
+    pipeline.push(`withResponse(${configAccessor})(HttpClientResponse.matchStatus({
       ${decodes.join(",\n      ")}
     }))`)
 
@@ -214,47 +234,46 @@ ${clientErrorSource(name)}`
   const operationToMethod = (name: string, operation: ParsedOperation) => {
     const args: Array<string> = []
     if (operation.pathIds.length > 0) {
-      // eslint-disable-next-line no-restricted-syntax
-      args.push(...operation.pathIds.map((id) => `${id}: string`))
+      Utils.spreadElementsInto(operation.pathIds.map((id) => `${id}: string`), args)
     }
+
     const options: Array<string> = []
-    if (operation.params && !operation.payload) {
-      args.push(
-        `options${operation.paramsOptional ? "?" : ""}: ${operation.params}${
-          operation.paramsOptional ? " | undefined" : ""
-        }`
-      )
-    } else if (operation.params) {
-      options.push(
-        `readonly params${operation.paramsOptional ? "?" : ""}: ${operation.params}${
-          operation.paramsOptional ? " | undefined" : ""
-        }`
-      )
+    if (operation.params) {
+      const key = `readonly params${operation.paramsOptional ? "?" : ""}`
+      const type = `${operation.params}${operation.paramsOptional ? " | undefined" : ""}`
+      options.push(`${key}: ${type}`)
     }
     if (operation.payload) {
-      const type = operation.payload
-      if (!operation.params) {
-        args.push(`options: ${type}`)
-      } else {
-        options.push(`readonly payload: ${type}`)
-      }
+      options.push(`readonly payload: ${operation.payload}`)
     }
-    if (options.length > 0) {
+    options.push("readonly config?: Config | undefined")
+
+    // If all options are optional, the argument itself should be optional
+    const hasOptions = (operation.params && !operation.paramsOptional) || operation.payload
+    if (hasOptions) {
       args.push(`options: { ${options.join("; ")} }`)
+    } else {
+      args.push(`options: { ${options.join("; ")} } | undefined`)
     }
+
     let success = "void"
     if (operation.successSchemas.size > 0) {
       success = Array.from(operation.successSchemas.values()).join(" | ")
     }
+
     const errors = ["HttpClientError.HttpClientError"]
     if (operation.errorSchemas.size > 0) {
       for (const schema of operation.errorSchemas.values()) {
         errors.push(`${name}Error<"${schema}", ${schema}>`)
       }
     }
-    return `${Utils.toComment(operation.description)}readonly "${operation.id}": (${
-      args.join(", ")
-    }) => Effect.Effect<${success}, ${errors.join(" | ")}>`
+
+    const jsdoc = Utils.toComment(operation.description)
+    const methodKey = `readonly "${operation.id}"`
+    const generic = `<Config extends OperationConfig>`
+    const parameters = args.join(", ")
+    const returnType = `Effect.Effect<WithOptionalResponse<${success}, Config>, ${errors.join(" | ")}>`
+    return `${jsdoc}${methodKey}: ${generic}(${parameters}) => ${returnType}`
   }
 
   const operationsToImpl = (
@@ -262,7 +281,29 @@ ${clientErrorSource(name)}`
     name: string,
     operations: ReadonlyArray<ParsedOperation>
   ) =>
-    `export const make = (
+    `export interface OperationConfig {
+  /**
+   * Whether or not the response should be included in the value returned from
+   * an operation.
+   *
+   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned, 
+   * where \`A\` is the success type of the operation.
+   *
+   * If set to \`false\`, only the success type of the operation will be returned.
+   */
+  readonly includeResponse?: boolean | undefined
+}
+
+/**
+ * A utility type which optionally includes the response in the return result
+ * of an operation based upon the value of the \`includeResponse\` configuration 
+ * option.
+ */
+export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
+  readonly includeResponse: true
+} ? [A, HttpClientResponse.HttpClientResponse] : A
+
+export const make = (
   httpClient: HttpClient.HttpClient,
   options: {
     readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
@@ -285,7 +326,7 @@ ${clientErrorSource(name)}`
         response.json as Effect.Effect<E, HttpClientError.ResponseError>,
         (cause) => Effect.fail(${name}Error(tag, cause, response)),
       )
-  const onRequest = (
+  const onRequest = <Config extends OperationConfig>(config: Config | undefined) => (
     successCodes: ReadonlyArray<string>,
     errorCodes?: Record<string, string>,
   ) => {
@@ -301,7 +342,7 @@ ${clientErrorSource(name)}`
     if (successCodes.length === 0) {
       cases["2xx"] = decodeVoid
     }
-    return withResponse(HttpClientResponse.matchStatus(cases) as any)
+    return withResponse(config)(HttpClientResponse.matchStatus(cases) as any)
   }
   return {
     httpClient,
@@ -310,38 +351,33 @@ ${clientErrorSource(name)}`
 }`
 
   const operationToImpl = (operation: ParsedOperation) => {
-    const args: Array<string> = [...operation.pathIds]
-    const hasOptions = operation.params || operation.payload
-    if (hasOptions) {
-      args.push("options")
-    }
+    const args: Array<string> = [...operation.pathIds, "options"]
     const params = `${args.join(", ")}`
 
     const pipeline: Array<string> = []
 
     if (operation.params) {
-      const varName = operation.payload ? "options.params?." : "options?."
+      const paramsAccessor = resolveParamsAccessor(operation, "options", "params")
+
       if (operation.urlParams.length > 0) {
         const props = operation.urlParams.map(
-          (param) => `"${param}": ${varName}["${param}"] as any`
+          (param) => `"${param}": ${paramsAccessor}["${param}"] as any`
         )
         pipeline.push(`HttpClientRequest.setUrlParams({ ${props.join(", ")} })`)
       }
       if (operation.headers.length > 0) {
         const props = operation.headers.map(
-          (param) => `"${param}": ${varName}["${param}"] ?? undefined`
+          (param) => `"${param}": ${paramsAccessor}["${param}"] ?? undefined`
         )
         pipeline.push(`HttpClientRequest.setHeaders({ ${props.join(", ")} })`)
       }
     }
 
-    const payloadVarName = operation.params ? "options.payload" : "options"
+    const payloadAccessor = "options.payload"
     if (operation.payloadFormData) {
-      pipeline.push(
-        `HttpClientRequest.bodyFormDataRecord(${payloadVarName} as any)`
-      )
+      pipeline.push(`HttpClientRequest.bodyFormDataRecord(${payloadAccessor} as any)`)
     } else if (operation.payload) {
-      pipeline.push(`HttpClientRequest.bodyUnsafeJson(${payloadVarName})`)
+      pipeline.push(`HttpClientRequest.bodyJsonUnsafe(${payloadAccessor})`)
     }
 
     const successCodesRaw = Array.from(operation.successSchemas.keys())
@@ -351,8 +387,11 @@ ${clientErrorSource(name)}`
     const singleSuccessCode = successCodesRaw.length === 1 && successCodesRaw[0].startsWith("2")
     const errorCodes = operation.errorSchemas.size > 0 &&
       Object.fromEntries(operation.errorSchemas.entries())
+    const configAccessor = resolveConfigAccessor(operation, "options", "config")
     pipeline.push(
-      `onRequest([${singleSuccessCode ? `"2xx"` : successCodes}]${errorCodes ? `, ${JSON.stringify(errorCodes)}` : ""})`
+      `onRequest(${configAccessor})([${singleSuccessCode ? `"2xx"` : successCodes}]${
+        errorCodes ? `, ${JSON.stringify(errorCodes)}` : ""
+      })`
     )
 
     return (
@@ -379,7 +418,7 @@ ${clientErrorSource(name)}`
 
 export const layerTransformerTs = Layer.sync(
   OpenApiTransformer,
-  makeTransformerSchema
+  makeTransformerTs
 )
 
 const commonSource = `const unexpectedStatus = (response: HttpClientResponse.HttpClientResponse) =>
@@ -395,19 +434,22 @@ const commonSource = `const unexpectedStatus = (response: HttpClientResponse.Htt
           }),
         ),
     )
-  const withResponse: <A, E>(
+  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => <A, E>(
     f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
-  ) => (
-    request: HttpClientRequest.HttpClientRequest,
-  ) => Effect.Effect<any, any> = options.transformClient
-    ? (f) => (request) =>
-        Effect.flatMap(
-          Effect.flatMap(options.transformClient!(httpClient), (client) =>
-            client.execute(request),
-          ),
-          f,
-        )
-    : (f) => (request) => Effect.flatMap(httpClient.execute(request), f)`
+  ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
+    const withOptionalResponse = (
+      config?.includeResponse
+        ? (response: HttpClientResponse.HttpClientResponse) => Effect.map(f(response), (a) => [a, response]) 
+        : (response: HttpClientResponse.HttpClientResponse) => f(response)
+    ) as any
+    return options?.transformClient
+      ? (request) => 
+          Effect.flatMap(
+            Effect.flatMap(options.transformClient!(httpClient), (client) => client.execute(request)),
+            withOptionalResponse
+          )
+      : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
+  }`
 
 const clientErrorSource = (
   name: string
@@ -437,3 +479,33 @@ export const ${name}Error = <Tag extends string, E>(
     response,
     request: response.request,
   }) as any`
+
+const resolveConfigAccessor = (operation: ParsedOperation, rootKey: string, configKey: string): string => {
+  // If an operation payload is defined, then the root object must exist
+  if (Predicate.isNotUndefined(operation.payload)) {
+    return `${rootKey}.${configKey}`
+  }
+
+  // If operation parameters are defined and non-optional, then the root object must exist
+  if (Predicate.isNotUndefined(operation.params) && !operation.paramsOptional) {
+    return `${rootKey}.${configKey}`
+  }
+
+  // User-specified arguments are allowed but are not required, so the root object is optional
+  return `${rootKey}?.${configKey}`
+}
+
+const resolveParamsAccessor = (operation: ParsedOperation, rootKey: string, paramsKey: string): string => {
+  // If an operation payload is not defined and parameters are optional, then the
+  // root object may or may not exist and parameters must be marked as optional
+  if (Predicate.isUndefined(operation.payload) && operation.paramsOptional) {
+    return `${rootKey}?.${paramsKey}?.`
+  }
+
+  // If parameters are optional, they must be marked as optional
+  if (operation.paramsOptional) {
+    return `${rootKey}.${paramsKey}?.`
+  }
+
+  return `${rootKey}.${paramsKey}`
+}

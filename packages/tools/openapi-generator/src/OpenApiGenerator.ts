@@ -181,6 +181,7 @@ export const make = Effect.gen(function*() {
 
               if (status === "default") {
                 defaultSchema = schemaName
+                return
               }
 
               const statusLower = status.toLowerCase()
@@ -196,7 +197,9 @@ export const make = Effect.gen(function*() {
             }
 
             if (Predicate.isUndefined(response.content)) {
-              op.voidSchemas.add(status.toLowerCase())
+              if (status !== "default") {
+                op.voidSchemas.add(status.toLowerCase())
+              }
             }
           }
 
