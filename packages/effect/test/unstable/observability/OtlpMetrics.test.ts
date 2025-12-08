@@ -8,7 +8,7 @@ import { OtlpMetrics } from "effect/unstable/observability"
 
 describe("OtlpMetrics", () => {
   describe("cumulative temporality", () => {
-    it.effect("Counter reports cumulative values", () =>
+    it.effect("counter", () =>
       Effect.gen(function*() {
         const metricName = "cumulative_counter_test"
         const counter = Metric.counter(metricName, {
@@ -34,7 +34,7 @@ describe("OtlpMetrics", () => {
         assert.strictEqual(secondMetric?.sum?.dataPoints[0].asDouble, 8)
       }).pipe(Effect.provide(TestLayerCumulative)))
 
-    it.effect("Histogram reports cumulative values", () =>
+    it.effect("histogram", () =>
       Effect.gen(function*() {
         const metricName = "cumulative_histogram_test"
 
@@ -63,6 +63,107 @@ describe("OtlpMetrics", () => {
         assert.isDefined(secondMetric)
         assert.strictEqual(secondMetric?.histogram?.dataPoints[0].count, 3)
         assert.strictEqual(secondMetric?.histogram?.dataPoints[0].sum, 130)
+      }).pipe(Effect.provide(TestLayerCumulative)))
+
+    it.effect("frequency", () =>
+      Effect.gen(function*() {
+        const metricName = "cumulative_frequency_test"
+        const frequency = Metric.frequency(metricName, {
+          description: "Test frequency"
+        })
+
+        // First export interval: "a" x 2, "b" x 1
+        yield* Metric.update(frequency, "a")
+        yield* Metric.update(frequency, "a")
+        yield* Metric.update(frequency, "b")
+        yield* triggerExport
+
+        // Second export interval: "a" x 1, "b" x 2 more (cumulative: "a"=3, "b"=3)
+        yield* Metric.update(frequency, "a")
+        yield* Metric.update(frequency, "b")
+        yield* Metric.update(frequency, "b")
+        yield* triggerExport
+
+        const requests = yield* MockHttpClient.requests
+        assert.isAtLeast(requests.length, 2)
+
+        const firstMetric = findMetric(requests[0], metricName)
+        const firstDataPoints = firstMetric?.sum?.dataPoints
+        const firstA = firstDataPoints?.find((dp) =>
+          dp.attributes.some((attr) =>
+            attr.key === "key" &&
+            Predicate.hasProperty(attr.value, "stringValue") &&
+            attr.value.stringValue === "a"
+          )
+        )
+        const firstB = firstDataPoints?.find((dp) =>
+          dp.attributes.some((attr) =>
+            attr.key === "key" &&
+            Predicate.hasProperty(attr.value, "stringValue") &&
+            attr.value.stringValue === "b"
+          )
+        )
+        assert.strictEqual(firstA?.asInt, 2)
+        assert.strictEqual(firstB?.asInt, 1)
+
+        // Second export should report cumulative values
+        const secondMetric = findMetric(requests[1], metricName)
+        assert.isDefined(secondMetric)
+        const secondDataPoints = secondMetric?.sum?.dataPoints
+        const secondA = secondDataPoints?.find((dp) =>
+          dp.attributes.some((attr) =>
+            attr.key === "key" &&
+            Predicate.hasProperty(attr.value, "stringValue") &&
+            attr.value.stringValue === "a"
+          )
+        )
+        const secondB = secondDataPoints?.find((dp) =>
+          dp.attributes.some((attr) =>
+            attr.key === "key" &&
+            Predicate.hasProperty(attr.value, "stringValue") &&
+            attr.value.stringValue === "b"
+          )
+        )
+        assert.strictEqual(secondA?.asInt, 3) // Cumulative: 2+1=3
+        assert.strictEqual(secondB?.asInt, 3) // Cumulative: 1+2=3
+      }).pipe(Effect.provide(TestLayerCumulative)))
+
+    it.effect("summary", () =>
+      Effect.gen(function*() {
+        const metricName = "cumulative_summary_test"
+        const summary = Metric.summary(metricName, {
+          description: "Test summary",
+          maxAge: "1 minute",
+          maxSize: 100,
+          quantiles: [0.5, 0.9, 0.99]
+        })
+
+        // First interval: observe 10, 20, 30 (count=3, sum=60)
+        yield* Metric.update(summary, 10)
+        yield* Metric.update(summary, 20)
+        yield* Metric.update(summary, 30)
+        yield* triggerExport
+
+        // Second interval: observe 40 (cumulative count=4, sum=100)
+        yield* Metric.update(summary, 40)
+        yield* triggerExport
+
+        const requests = yield* MockHttpClient.requests
+        assert.isAtLeast(requests.length, 2)
+
+        // First export - check count and sum metrics
+        const firstCount = findMetric(requests[0], `${metricName}_count`)
+        assert.strictEqual(firstCount?.sum?.dataPoints[0].asInt, 3)
+
+        const firstSum = findMetric(requests[0], `${metricName}_sum`)
+        assert.strictEqual(firstSum?.sum?.dataPoints[0].asDouble, 60)
+
+        // Second export should report cumulative values
+        const secondCount = findMetric(requests[1], `${metricName}_count`)
+        assert.strictEqual(secondCount?.sum?.dataPoints[0].asInt, 4)
+
+        const secondSum = findMetric(requests[1], `${metricName}_sum`)
+        assert.strictEqual(secondSum?.sum?.dataPoints[0].asDouble, 100)
       }).pipe(Effect.provide(TestLayerCumulative)))
   })
 
@@ -182,6 +283,92 @@ describe("OtlpMetrics", () => {
         assert.strictEqual(secondA?.asInt, 1) // Delta: 3-2=1
         assert.strictEqual(secondB?.asInt, 2) // Delta: 3-1=2
       }).pipe(Effect.provide(TestLayerDelta)))
+
+    it.effect("summary", () =>
+      Effect.gen(function*() {
+        const metricName = "delta_summary_test"
+        const summary = Metric.summary(metricName, {
+          description: "Test summary",
+          maxAge: "1 minute",
+          maxSize: 100,
+          quantiles: [0.5, 0.9, 0.99]
+        })
+
+        // First interval: observe 10, 20, 30 (count=3, sum=60)
+        yield* Metric.update(summary, 10)
+        yield* Metric.update(summary, 20)
+        yield* Metric.update(summary, 30)
+        yield* triggerExport
+
+        // Second interval: observe 40 (delta count=1, delta sum=40)
+        yield* Metric.update(summary, 40)
+        yield* triggerExport
+
+        const requests = yield* MockHttpClient.requests
+        assert.isAtLeast(requests.length, 2)
+
+        // First export
+        const firstCount = findMetric(requests[0], `${metricName}_count`)
+        assert.strictEqual(firstCount?.sum?.dataPoints[0].asInt, 3)
+
+        const firstSum = findMetric(requests[0], `${metricName}_sum`)
+        assert.strictEqual(firstSum?.sum?.dataPoints[0].asDouble, 60)
+
+        // Second export should report delta values
+        const secondCount = findMetric(requests[1], `${metricName}_count`)
+        assert.strictEqual(secondCount?.sum?.dataPoints[0].asInt, 1) // Delta: 4-3=1
+
+        const secondSum = findMetric(requests[1], `${metricName}_sum`)
+        assert.strictEqual(secondSum?.sum?.dataPoints[0].asDouble, 40) // Delta: 100-60=40
+      }).pipe(Effect.provide(TestLayerDelta)))
+  })
+
+  describe("summary", () => {
+    it.effect("exports quantile metrics", () =>
+      Effect.gen(function*() {
+        const metricName = "summary_quantiles_test"
+        const summary = Metric.summary(metricName, {
+          description: "Test summary",
+          maxAge: "1 minute",
+          maxSize: 100,
+          quantiles: [0.5, 0.9]
+        })
+
+        yield* Metric.update(summary, 10)
+        yield* Metric.update(summary, 20)
+        yield* Metric.update(summary, 30)
+        yield* triggerExport
+
+        const requests = yield* MockHttpClient.requests
+        assert.isAtLeast(requests.length, 1)
+
+        // Check that quantiles metric exists
+        const quantilesMetric = findMetric(requests[0], `${metricName}_quantiles`)
+        assert.isDefined(quantilesMetric)
+        assert.isDefined(quantilesMetric?.sum)
+
+        // Should have data points for min, max, and each quantile (0.5, 0.9)
+        const dataPoints = quantilesMetric?.sum?.dataPoints ?? []
+        assert.isAtLeast(dataPoints.length, 4) // min, 0.5, 0.9, max
+
+        // Find min and max quantile data points
+        const minPoint = dataPoints.find((dp) =>
+          dp.attributes.some((attr) =>
+            attr.key === "quantile" &&
+            Predicate.hasProperty(attr.value, "stringValue") &&
+            attr.value.stringValue === "min"
+          )
+        )
+        const maxPoint = dataPoints.find((dp) =>
+          dp.attributes.some((attr) =>
+            attr.key === "quantile" &&
+            Predicate.hasProperty(attr.value, "stringValue") &&
+            attr.value.stringValue === "max"
+          )
+        )
+        assert.strictEqual(minPoint?.asDouble, 10)
+        assert.strictEqual(maxPoint?.asDouble, 30)
+      }).pipe(Effect.provide(TestLayerCumulative)))
   })
 
   describe("gauge (no temporality)", () => {
