@@ -541,7 +541,7 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
   })
 })
 
-const fixedWindowScript = Redis.script<readonly [currentTokens: number, nextPttl: number]>()(
+const fixedWindowScript = Redis.script(
   (key: string, tokens: number, refillMillis: number, limit?: number) => [key, tokens, refillMillis, limit],
   {
     numberOfKeys: 1,
@@ -569,9 +569,9 @@ redis.call("SET", key, next, "PX", nextpttl)
 return { next, nextpttl }
 `
   }
-)
+).withReturnType<readonly [currentTokens: number, nextPttl: number]>()
 
-const tokenBucketScript = Redis.script<number>()(
+const tokenBucketScript = Redis.script(
   (
     key: string,
     tokens: number,
@@ -618,7 +618,7 @@ redis.call("SET", key, next)
 return next
 `
   }
-)
+).withReturnType<number>()
 
 /**
  * @since 4.0.0

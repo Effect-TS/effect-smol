@@ -576,7 +576,7 @@ export const layerBackingRedis: Layer.Layer<
   })
 }))
 
-const setManyRedis = Redis.script<void>()(
+const setManyRedis = Redis.script(
   (options: {
     readonly sets: Map<string, string>
     readonly expires: Map<string, number>

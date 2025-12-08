@@ -98,12 +98,23 @@ export interface Script<
   readonly lua: string
   readonly params: (...params: Config["params"]) => ReadonlyArray<unknown>
   readonly numberOfKeys: (...params: Config["params"]) => number
+
+  /**
+   * Set the return type of the script.
+   */
+  withReturnType<Result>(): Script<{
+    params: Config["params"]
+    result: Result
+  }>
 }
 
 const ScriptProto = {
   [ScriptTypeId]: {
     params: identity,
     result: identity
+  },
+  withReturnType() {
+    return this
   },
   [Equal.symbol](that: unknown): boolean {
     return this === that
@@ -117,35 +128,7 @@ const ScriptProto = {
  * @since 4.0.0
  * @category Scripting
  */
-export const script: {
-  <A>(): <Params extends ReadonlyArray<any>>(
-    f: (...params: Params) => ReadonlyArray<unknown>,
-    options: {
-      readonly lua: string
-      readonly numberOfKeys: number | ((...params: Params) => number)
-    }
-  ) => Script<{
-    params: Params
-    result: A
-  }>
-  <Params extends ReadonlyArray<any>>(
-    f: (...params: Params) => ReadonlyArray<unknown>,
-    options: {
-      readonly lua: string
-      readonly numberOfKeys: number | ((...params: Params) => number)
-    }
-  ): Script<{
-    params: Params
-    result: void
-  }>
-} = function() {
-  if (arguments.length === 0) {
-    return scriptImpl
-  }
-  return scriptImpl(arguments[0], arguments[1]) as any
-}
-
-const scriptImpl = <Params extends ReadonlyArray<any>>(
+export const script = <Params extends ReadonlyArray<any>>(
   f: (...params: Params) => ReadonlyArray<unknown>,
   options: {
     readonly lua: string
@@ -153,7 +136,7 @@ const scriptImpl = <Params extends ReadonlyArray<any>>(
   }
 ): Script<{
   params: Params
-  result: any
+  result: void
 }> =>
   Object.assign(Object.create(ScriptProto), {
     ...options,
