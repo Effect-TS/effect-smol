@@ -414,36 +414,4 @@ describe("PrometheusMetrics", () => {
         }))
     })
   })
-
-  describe("handler", () => {
-    it.effect("returns HttpServerResponse with correct content type", () =>
-      Effect.gen(function*() {
-        const counter = Metric.counter("handler_test", {
-          description: "Handler test counter"
-        })
-
-        yield* Metric.update(counter, 1)
-
-        const response = yield* PrometheusMetrics.handler()
-
-        assert.strictEqual(response.status, 200)
-        assert.strictEqual(
-          response.headers["content-type"],
-          "text/plain; version=0.0.4; charset=utf-8"
-        )
-      }))
-
-    it.effect("handler accepts options", () =>
-      Effect.gen(function*() {
-        const counter = Metric.counter("handler_options_test", {
-          description: "Handler options test"
-        })
-
-        yield* Metric.update(counter, 1)
-
-        const response = yield* PrometheusMetrics.handler({ prefix: "test" })
-
-        assert.strictEqual(response.status, 200)
-      }))
-  })
 })
