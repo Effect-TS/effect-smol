@@ -6506,6 +6506,71 @@ The idea is simple: if you have a `Schema` for a type `T`, you can serialize any
 
 This approach keeps patches independent from TypeScript types and uses the schema as the guardrail when turning JSON back into `T`.
 
+## MetaSchema
+
+The `MetaSchema` module provides a way to encode and decode schemas to and from JSON. This is useful for sending schemas over the wire or storing them on disk.
+
+**Example** (Encoding and decoding a schema)
+
+```ts
+import { MetaSchema, Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.String.annotate({
+    description: "my description",
+    custom: { version: [1, 0, 0] } // custom annotation
+  })
+})
+
+// Encode the schema into a JSON-compatible representation.
+const json = MetaSchema.encode(schema)
+
+// This output is safe to send over the network or store on disk.
+console.log(JSON.stringify(json, null, 2))
+/*
+{
+  "_tag": "Objects",
+  "annotations": null,
+  "propertySignatures": [
+    {
+      "name": "a",
+      "type": {
+        "_tag": "String",
+        "annotations": {
+          "description": "my description",
+          "custom": {
+            "version": [
+              1,
+              0,
+              0
+            ]
+          }
+        }
+      },
+      "isOptional": false,
+      "isMutable": false
+    }
+  ],
+  "indexSignatures": []
+}
+*/
+
+/*
+Decode the JSON representation back into a runtime schema.
+The type argument keeps the decoded schema aligned with the original schema type.
+const decoded: Schema.Struct<{
+  readonly a: Schema.String
+}>
+*/
+const decoded = MetaSchema.decode<typeof schema>(json)
+
+// You can read annotations from the decoded schema, since they were preserved through the round trip.
+console.log(decoded.fields.a.ast.annotations?.description)
+// my description
+console.log(decoded.fields.a.ast.annotations?.custom)
+// { version: [ 1, 0, 0 ] }
+```
+
 ## Formatters
 
 ### StandardSchemaV1 formatter
