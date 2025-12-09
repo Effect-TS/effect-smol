@@ -1203,7 +1203,7 @@ describe("Serializers", () => {
     })
   })
 
-  describe("toSerializerStringTreeLoose", () => {
+  describe("keepDeclarations: true", () => {
     describe("Unsupported schemas", () => {
       it("Struct with Symbol property name", () => {
         const a = Symbol.for("a")
@@ -1211,7 +1211,7 @@ describe("Serializers", () => {
           [a]: Schema.String
         })
         throws(
-          () => Schema.toSerializerStringTreeLoose(schema),
+          () => Schema.toSerializerStringTree(schema, { keepDeclarations: true }),
           "Objects property names must be strings"
         )
       })
@@ -1225,7 +1225,7 @@ describe("Serializers", () => {
           encode: Getter.transform(() => 0n)
         }))
       ])
-      const serializer = Schema.toSerializerStringTreeLoose(schema)
+      const serializer = Schema.toSerializerStringTree(schema, { keepDeclarations: true })
       const asserts = new TestSchema.Asserts(Schema.toSerializerJson(serializer))
 
       const decoding = asserts.decoding()
@@ -1237,7 +1237,7 @@ describe("Serializers", () => {
         a: Schema.instanceOf(URL),
         b: Schema.Number
       })
-      const asserts = new TestSchema.Asserts(Schema.toSerializerStringTreeLoose(schema))
+      const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(schema, { keepDeclarations: true }))
 
       const encoding = asserts.encoding()
       await encoding.succeed({ a: new URL("https://effect.website"), b: 1 }, {

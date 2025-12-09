@@ -7630,25 +7630,34 @@ export type StringTree = Getter.Tree<string | undefined>
  * The StringTree serializer converts **every leaf value to a string**, while
  * preserving the original structure.
  *
- * Custom types are converted to `undefined`.
+ * Declarations are converted to `undefined` (unless they have a
+ * `serializerJson` or `serializer` annotation).
+ *
+ * **Options**
+ *
+ * - `keepDeclarations`: if `true`, it **does not** convert declarations to
+ *   `undefined` but instead keeps them as they are (unless they have a
+ *   `serializerJson` or `serializer` annotation).
+ *
+ *    Defaults to `false`.
  *
  * @category Serializer
  * @since 4.0.0
  */
-export function toSerializerStringTree<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, StringTree, RD, RE> {
-  return make(serializerEnsureArray(serializerStringTree(schema.ast)))
-}
-
-/**
- * This loose version behaves like the StringTree serializer, but it does
- * **not** convert custom types to `undefined`. Instead, it keeps them as they
- * are.
- *
- * @category Serializer
- * @since 4.0.0
- */
-export function toSerializerStringTreeLoose<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
-  return make(serializerEnsureArray(serializerStringTreeLoose(schema.ast)))
+export function toSerializerStringTree<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, StringTree, RD, RE>
+export function toSerializerStringTree<T, E, RD, RE>(
+  schema: Codec<T, E, RD, RE>,
+  options: { readonly keepDeclarations: true }
+): Codec<T, unknown, RD, RE>
+export function toSerializerStringTree<T, E, RD, RE>(
+  schema: Codec<T, E, RD, RE>,
+  options?: { readonly keepDeclarations?: boolean | undefined }
+): Codec<T, unknown, RD, RE> {
+  if (options?.keepDeclarations === true) {
+    return make(serializerEnsureArray(serializerStringTreeKeepDeclarations(schema.ast)))
+  } else {
+    return make(serializerEnsureArray(serializerStringTree(schema.ast)))
+  }
 }
 
 type XmlEncoderOptions = {
@@ -7924,8 +7933,8 @@ const unknownToUndefined = new AST.Link(
   )
 )
 
-const serializerStringTreeLoose = AST.serializer((ast) => {
-  const out = serializerTree(ast, serializerStringTreeLoose, identity)
+const serializerStringTreeKeepDeclarations = AST.serializer((ast) => {
+  const out = serializerTree(ast, serializerStringTreeKeepDeclarations, identity)
   if (out !== ast && AST.isOptional(ast)) {
     return AST.optionalKeyLastLink(out)
   }

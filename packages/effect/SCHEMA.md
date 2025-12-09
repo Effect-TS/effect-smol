@@ -635,9 +635,9 @@ everything is a string
 
 The key difference: JSON keeps numbers, booleans, and nested objects in their original types (except for dates, which become strings). The StringTree serializer converts **every leaf value to a string**, while preserving the original structure.
 
-### Custom Types in StringTree
+### Declarations in StringTree
 
-**Note**: Schemas representing custom types without serializers are encoded as `undefined`:
+**Note**: Schemas representing declarations without a `serializerJson` or `serializer` annotation are encoded as `undefined`:
 
 ```ts
 import { Schema } from "effect/schema"
@@ -658,9 +658,9 @@ console.log(
 // { a: undefined, b: '1' }
 ```
 
-### Loose StringTree Serializer
+### keepDeclarations: true
 
-The loose version (`toSerializerStringTreeLoose`) behaves like the StringTree serializer, but it does **not** convert custom types to `undefined`. Instead, it keeps them as they are.
+The `keepDeclarations: true` option behaves like the StringTree serializer, but it does **not** convert declarations to `undefined`. Instead, it keeps them as they are (unless they have a `serializerJson` or `serializer` annotation).
 
 ```ts
 import { Schema } from "effect/schema"
@@ -670,7 +670,7 @@ const schema = Schema.Struct({
   b: Schema.Number
 })
 
-const stringTree = Schema.toSerializerStringTreeLoose(schema)
+const stringTree = Schema.toSerializerStringTree(schema, { keepDeclarations: true })
 
 console.log(
   Schema.encodeUnknownSync(stringTree)({
@@ -4908,7 +4908,7 @@ You can express nested values using bracket notation.
 import { Schema } from "effect/schema"
 
 const schema = Schema.fromFormData(
-  Schema.toSerializerStringTreeLoose(
+  Schema.toSerializerStringTree(
     Schema.Struct({
       a: Schema.String,
       b: Schema.Struct({
@@ -4928,8 +4928,7 @@ console.log(String(Schema.decodeUnknownExit(schema)(formData)))
 // Success({"a":"1","b":{"c":"2","d":"3"}})
 ```
 
-If you want to decode values that are not strings, use `Schema.toSerializerStringTreeLoose`. This serializer preserves values such
-as numbers and `Blob` objects when compatible with the schema.
+If you want to decode values that are not strings, use `Schema.toSerializerStringTree` with the `keepDeclarations: true` option. This serializer preserves values such as numbers and `Blob` objects when compatible with the schema.
 
 **Example** (Parsing non-string values)
 
@@ -4937,10 +4936,11 @@ as numbers and `Blob` objects when compatible with the schema.
 import { Schema } from "effect/schema"
 
 const schema = Schema.fromFormData(
-  Schema.toSerializerStringTreeLoose(
+  Schema.toSerializerStringTree(
     Schema.Struct({
       a: Schema.Int
-    })
+    }),
+    { keepDeclarations: true }
   )
 )
 
@@ -5002,8 +5002,7 @@ console.log(String(Schema.decodeUnknownExit(schema)(urlSearchParams)))
 // Success({"a":"1","b":{"c":"2","d":"3"}})
 ```
 
-If you want to decode values that are not strings, use `Schema.toSerializerStringTree`. This serializer preserves values such as
-numbers when compatible with the schema.
+If you want to decode values that are not strings, use `Schema.toSerializerStringTree` with the `keepDeclarations: true` option. This serializer preserves values such as numbers or declarations when compatible with the schema.
 
 **Example** (Parsing non-string values)
 
@@ -5014,7 +5013,8 @@ const schema = Schema.fromURLSearchParams(
   Schema.toSerializerStringTree(
     Schema.Struct({
       a: Schema.Int
-    })
+    }),
+    { keepDeclarations: true }
   )
 )
 
