@@ -4908,15 +4908,13 @@ You can express nested values using bracket notation.
 import { Schema } from "effect/schema"
 
 const schema = Schema.fromFormData(
-  Schema.toSerializerStringTree(
-    Schema.Struct({
-      a: Schema.String,
-      b: Schema.Struct({
-        c: Schema.String,
-        d: Schema.String
-      })
+  Schema.Struct({
+    a: Schema.String,
+    b: Schema.Struct({
+      c: Schema.String,
+      d: Schema.String
     })
-  )
+  })
 )
 
 const formData = new FormData()

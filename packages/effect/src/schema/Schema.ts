@@ -6457,15 +6457,13 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {}
  * import { Schema } from "effect/schema"
  *
  * const schema = Schema.fromFormData(
- *   Schema.toSerializerStringTreeLoose(
- *     Schema.Struct({
- *       a: Schema.String,
- *       b: Schema.Struct({
- *         c: Schema.String,
- *         d: Schema.String
- *       })
+ *   Schema.Struct({
+ *     a: Schema.String,
+ *     b: Schema.Struct({
+ *       c: Schema.String,
+ *       d: Schema.String
  *     })
- *   )
+ *   })
  * )
  *
  * const formData = new FormData()
@@ -6478,8 +6476,9 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {}
  * ```
  *
  * If you want to decode values that are not strings, use
- * `Schema.toSerializerStringTreeLoose`. This serializer preserves values such
- * as numbers and `Blob` objects when compatible with the schema.
+ * `Schema.toSerializerStringTree` with the `keepDeclarations: true` option.
+ * This serializer preserves values such as numbers and `Blob` objects when
+ * compatible with the schema.
  *
  * **Example** (Parsing non-string values)
  *
@@ -6487,10 +6486,11 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {}
  * import { Schema } from "effect/schema"
  *
  * const schema = Schema.fromFormData(
- *   Schema.toSerializerStringTreeLoose(
+ *   Schema.toSerializerStringTree(
  *     Schema.Struct({
  *       a: Schema.Int
- *     })
+ *     }),
+ *     { keepDeclarations: true }
  *   )
  * )
  *
