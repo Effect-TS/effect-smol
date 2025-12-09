@@ -534,8 +534,7 @@ export const orElse =
     const toResult = result(self)
 
     if (Result.isResult(toResult)) {
-      // @ts-expect-error
-      return toResult._tag === "Right" ? toResult.right : f(toResult.left)
+      return toResult._tag === "Success" ? toResult.success as any : f(toResult.failure) as any
     }
 
     // @ts-expect-error
