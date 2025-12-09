@@ -599,12 +599,9 @@ export const wrapActivityResult = <A, E, R>(
     const instance = ServiceMap.get(services, InstanceTag)
     const state = instance.activityState
     if (instance.suspended) {
-      return state.count > 0
-        ? state.latch.await.pipe(
-          Effect.andThen(Effect.yieldNow),
-          Effect.andThen(suspend(instance))
-        )
-        : suspend(instance)
+      return waitForZero(instance).pipe(
+        Effect.andThen(suspend(instance))
+      )
     }
     if (state.count === 0) state.latch.closeUnsafe()
     state.count++
@@ -624,10 +621,23 @@ export const wrapActivityResult = <A, E, R>(
       return state.count === 0
         ? state.latch.open
         : isSuspended
-        ? state.latch.await
+        ? waitForZero(instance)
         : Effect.void
     })
   })
+
+const waitForZero = Effect.fnUntraced(function*(instance: WorkflowInstance["Service"]) {
+  const state = instance.activityState
+  while (true) {
+    if (state.count > 0) {
+      yield* state.latch.await
+      yield* Effect.yieldNow
+      continue
+    }
+    yield* Effect.yieldNow
+    if (state.count === 0) return
+  }
+})
 
 /**
  * Accesses the workflow scope.
