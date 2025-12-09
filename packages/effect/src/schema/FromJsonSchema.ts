@@ -1160,7 +1160,7 @@ type ElementIR = {
 
 function renderElements(es: ReadonlyArray<ElementIR>): Generation {
   return makeGeneration(
-    es.map((e) => optionalRuntime(e.isOptional, e.value.code)).join(", "),
+    es.map((e) => codeOptional(e.isOptional, e.value.code)).join(", "),
     makeTypes(
       join(es, (e) => addQuestionMark(e.isOptional, e.value.types.Type)),
       join(es, (e) => addQuestionMark(e.isOptional, e.value.types.Encoded)),
@@ -1182,7 +1182,7 @@ function joinServices(services: ReadonlyArray<string>): string {
   return [...new Set(ss)].join(" | ")
 }
 
-function optionalRuntime(isOptional: boolean, code: string): string {
+function codeOptional(isOptional: boolean, code: string): string {
   return isOptional ? `Schema.optionalKey(${code})` : code
 }
 
@@ -1432,10 +1432,10 @@ function combineAdditionalProperties(a: boolean | AST, b: boolean | AST): boolea
 function renderProperties(ps: ReadonlyArray<PropertyGen>): Generation {
   const jsDocs = ps.map((p) => p.value.jsDocs ?? "")
   return makeGeneration(
-    ps.map((p) => `${formatPropertyKey(p.key)}: ${optionalRuntime(p.isOptional, p.value.code)}`).join(", "),
+    ps.map((p) => `${formatPropertyKey(p.key)}: ${codeOptional(p.isOptional, p.value.code)}`).join(", "),
     makeTypes(
-      join(ps, (p, i) => jsDocs[i] + renderProperty(p.isOptional, p.key, p.value.types.Type)),
-      join(ps, (p, i) => jsDocs[i] + renderProperty(p.isOptional, p.key, p.value.types.Encoded)),
+      join(ps, (p, i) => jsDocs[i] + typeProperty(p.isOptional, p.key, p.value.types.Type)),
+      join(ps, (p, i) => jsDocs[i] + typeProperty(p.isOptional, p.key, p.value.types.Encoded)),
       joinServices(ps.map((p) => p.value.types.DecodingServices)),
       joinServices(ps.map((p) => p.value.types.EncodingServices))
     ),
@@ -1444,7 +1444,7 @@ function renderProperties(ps: ReadonlyArray<PropertyGen>): Generation {
   )
 }
 
-function renderProperty(isOptional: boolean, key: string, value: string): string {
+function typeProperty(isOptional: boolean, key: string, value: string): string {
   return `readonly ${addQuestionMark(isOptional, formatPropertyKey(key))}: ${value}`
 }
 

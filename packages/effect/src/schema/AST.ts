@@ -301,6 +301,7 @@ export type Checks = readonly [Check<any>, ...Array<Check<any>>]
  * @since 4.0.0
  */
 export abstract class Base {
+  abstract readonly _tag: string
   readonly annotations: Annotations.Annotations | undefined
   readonly checks: Checks | undefined
   readonly encoding: Encoding | undefined
@@ -316,6 +317,9 @@ export abstract class Base {
     this.checks = checks
     this.encoding = encoding
     this.context = context
+  }
+  toString() {
+    return `<${this._tag}>`
   }
 }
 
