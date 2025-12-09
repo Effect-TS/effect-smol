@@ -6166,7 +6166,7 @@ export const Date: Date = instanceOf(
     expected: "Date",
     serializerJson: () =>
       link<globalThis.Date>()(
-        String.annotate({ description: "a string that will be decoded as a date" }),
+        String,
         Transformation.transform({
           decode: (s) => new globalThis.Date(s),
           encode: formatDate
@@ -6315,9 +6315,9 @@ export interface UnknownFromJsonString extends decodeTo<Unknown, String> {}
  *
  * @since 4.0.0
  */
-export const UnknownFromJsonString: UnknownFromJsonString = String.annotate({
-  description: "a string that will be decoded as JSON"
-}).pipe(decodeTo(Unknown, Transformation.fromJsonString))
+export const UnknownFromJsonString: UnknownFromJsonString = String.pipe(
+  decodeTo(Unknown, Transformation.fromJsonString)
+)
 
 /**
  * @since 4.0.0
@@ -6387,7 +6387,6 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {}
  */
 export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
   return String.annotate({
-    description: "a string that will be decoded as JSON",
     jsonSchema: (ctx) => {
       switch (ctx.target) {
         case "draft-07":
@@ -6641,9 +6640,7 @@ export interface NumberFromString extends decodeTo<Finite, String> {}
  *
  * @since 4.0.0
  */
-export const NumberFromString: NumberFromString = String.annotate({
-  description: "a string that will be decoded as a number"
-}).pipe(decodeTo(
+export const NumberFromString: NumberFromString = String.pipe(decodeTo(
   Number,
   Transformation.numberFromString
 ))
@@ -6665,9 +6662,7 @@ export interface FiniteFromString extends decodeTo<Finite, String> {}
  *
  * @since 4.0.0
  */
-export const FiniteFromString: FiniteFromString = String.annotate({
-  description: "a string that will be decoded as a finite number"
-}).pipe(decodeTo(
+export const FiniteFromString: FiniteFromString = String.pipe(decodeTo(
   Finite,
   Transformation.numberFromString
 ))
@@ -6700,9 +6695,7 @@ export interface Trim extends decodeTo<Trimmed, String> {}
  *
  * @since 4.0.0
  */
-export const Trim: Trim = String.annotate({
-  description: "a string that will be trimmed"
-}).pipe(decodeTo(Trimmed, Transformation.trim()))
+export const Trim: Trim = String.pipe(decodeTo(Trimmed, Transformation.trim()))
 
 /**
  * @since 4.0.0
@@ -6745,8 +6738,6 @@ export const BooleanFromBit: BooleanFromBit = Literals([0, 1]).pipe(
  */
 export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBufferLike>> {}
 
-const StringBase64 = String.annotate({ description: "a string that will be decoded as Uint8Array" })
-
 /**
  * A schema for JavaScript `Uint8Array` objects.
  *
@@ -6759,7 +6750,10 @@ const StringBase64 = String.annotate({ description: "a string that will be decod
  */
 export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBufferLike>, {
   serializerJson: () =>
-    link<globalThis.Uint8Array<ArrayBufferLike>>()(StringBase64, Transformation.uint8ArrayFromString),
+    link<globalThis.Uint8Array<ArrayBufferLike>>()(
+      String,
+      Transformation.uint8ArrayFromString
+    ),
   expected: "Uint8Array",
   arbitrary: () => (fc) => fc.uint8Array()
 })
@@ -6782,7 +6776,7 @@ export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {}
  * @category Uint8Array
  * @since 4.0.0
  */
-export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = StringBase64.pipe(
+export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = String.pipe(
   decodeTo(Uint8Array, Transformation.uint8ArrayFromString)
 )
 
@@ -6804,9 +6798,7 @@ export interface Uint8ArrayFromBase64Url extends decodeTo<Uint8Array, String> {}
  * @category Uint8Array
  * @since 4.0.0
  */
-export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64Url = String.annotate({
-  description: "a string that will be decoded as Uint8Array"
-}).pipe(
+export const Uint8ArrayFromBase64Url: Uint8ArrayFromBase64Url = String.pipe(
   decodeTo(Uint8Array, {
     decode: Getter.decodeBase64Url(),
     encode: Getter.encodeBase64Url()
@@ -6831,9 +6823,7 @@ export interface Uint8ArrayFromHex extends decodeTo<Uint8Array, String> {}
  * @category Uint8Array
  * @since 4.0.0
  */
-export const Uint8ArrayFromHex: Uint8ArrayFromHex = String.annotate({
-  description: "a string that will be decoded as Uint8Array"
-}).pipe(
+export const Uint8ArrayFromHex: Uint8ArrayFromHex = String.pipe(
   decodeTo(Uint8Array, {
     decode: Getter.decodeHex(),
     encode: Getter.encodeHex()
@@ -6917,9 +6907,7 @@ export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {}
  * @category DateTime
  * @since 4.0.0
  */
-export const DateTimeUtcFromString: DateTimeUtcFromString = String.annotate({
-  description: "a string that will be decoded as a DateTime.Utc"
-}).pipe(
+export const DateTimeUtcFromString: DateTimeUtcFromString = String.pipe(
   decodeTo(
     DateTimeUtc,
     Transformation.transform({
@@ -6946,9 +6934,7 @@ export interface DateTimeUtcFromMillis extends decodeTo<instanceOf<DateTime.Utc>
  * @category DateTime
  * @since 4.0.0
  */
-export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.annotate({
-  description: "a number that will be decoded as a DateTime.Utc"
-}).pipe(
+export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.pipe(
   decodeTo(DateTimeUtc, {
     decode: Getter.dateTimeUtcFromInput(),
     encode: Getter.transform(DateTime.toEpochMillis)

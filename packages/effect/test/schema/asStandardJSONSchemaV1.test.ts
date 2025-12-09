@@ -38,8 +38,7 @@ describe("asStandardJSONSchemaV1", () => {
     const schema = Schema.FiniteFromString
     const standardJSONSchema = Schema.asStandardJSONSchemaV1(schema)
     deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
-      "type": "string",
-      "description": "a string that will be decoded as a finite number"
+      "type": "string"
     })
   })
 

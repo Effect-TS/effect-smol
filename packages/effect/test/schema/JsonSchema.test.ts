@@ -3230,8 +3230,7 @@ describe("JsonSchema generation", () => {
           Schema.fromJsonString(Schema.FiniteFromString),
           {
             schema: {
-              "type": "string",
-              "description": "a string that will be decoded as JSON"
+              "type": "string"
             }
           }
         )
@@ -3244,8 +3243,7 @@ describe("JsonSchema generation", () => {
           })),
           {
             schema: {
-              "type": "string",
-              "description": "a string that will be decoded as JSON"
+              "type": "string"
             }
           }
         )
@@ -3330,8 +3328,7 @@ describe("JsonSchema generation", () => {
         Schema.Uint8ArrayFromHex,
         {
           schema: {
-            "type": "string",
-            "description": "a string that will be decoded as Uint8Array"
+            "type": "string"
           }
         }
       )
@@ -3342,8 +3339,7 @@ describe("JsonSchema generation", () => {
         Schema.Uint8ArrayFromBase64,
         {
           schema: {
-            "type": "string",
-            "description": "a string that will be decoded as Uint8Array"
+            "type": "string"
           }
         }
       )
@@ -3354,8 +3350,7 @@ describe("JsonSchema generation", () => {
         Schema.Uint8ArrayFromBase64Url,
         {
           schema: {
-            "type": "string",
-            "description": "a string that will be decoded as Uint8Array"
+            "type": "string"
           }
         }
       )
@@ -3611,11 +3606,9 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "string",
-              "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
               "contentSchema": {
-                "type": "string",
-                "description": "a string that will be decoded as a finite number"
+                "type": "string"
               }
             }
           }
@@ -3630,18 +3623,15 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "string",
-              "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
               "contentSchema": {
                 "type": "object",
                 "properties": {
                   "a": {
                     "type": "string",
-                    "description": "a string that will be decoded as JSON",
                     "contentMediaType": "application/json",
                     "contentSchema": {
-                      "type": "string",
-                      "description": "a string that will be decoded as a finite number"
+                      "type": "string"
                     }
                   }
                 },
@@ -3904,11 +3894,9 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "string",
-              "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
               "contentSchema": {
-                "type": "string",
-                "description": "a string that will be decoded as a finite number"
+                "type": "string"
               }
             }
           }
@@ -3923,18 +3911,15 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "string",
-              "description": "a string that will be decoded as JSON",
               "contentMediaType": "application/json",
               "contentSchema": {
                 "type": "object",
                 "properties": {
                   "a": {
                     "type": "string",
-                    "description": "a string that will be decoded as JSON",
                     "contentMediaType": "application/json",
                     "contentSchema": {
-                      "type": "string",
-                      "description": "a string that will be decoded as a finite number"
+                      "type": "string"
                     }
                   }
                 },

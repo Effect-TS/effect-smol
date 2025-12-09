@@ -771,7 +771,7 @@ export function none<A>(): Prism<Option.Option<A>, undefined> {
 export function success<A, E>(): Prism<Result.Result<A, E>, A> {
   return makePrism(
     (s) =>
-      Result.mapBoth(AST.runRefine(AST.isSuccess<A, E>(), s), {
+      Result.mapBoth(AST.runRefine(AST.isResultSuccess<A, E>(), s), {
         onFailure: String,
         onSuccess: (s) => s.success
       }),
@@ -786,7 +786,7 @@ export function success<A, E>(): Prism<Result.Result<A, E>, A> {
 export function failure<A, E>(): Prism<Result.Result<A, E>, E> {
   return makePrism(
     (s) =>
-      Result.mapBoth(AST.runRefine(AST.isFailure<A, E>(), s), {
+      Result.mapBoth(AST.runRefine(AST.isResultFailure<A, E>(), s), {
         onFailure: String,
         onSuccess: (s) => s.failure
       }),

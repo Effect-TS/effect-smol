@@ -2024,7 +2024,7 @@ export function makeRefinedByGuard<T extends E, E>(
 export function isNotUndefined<A>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<Exclude<A, undefined>, A>(
     Predicate.isNotUndefined,
-    Annotations.combine({ title: "isNotUndefined", description: "a value other than `undefined`" }, annotations)
+    Annotations.combine({ expected: "a value other than `undefined`" }, annotations)
   )
 }
 
@@ -2032,7 +2032,7 @@ export function isNotUndefined<A>(annotations?: Annotations.Filter) {
 export function isSome<A>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<Option.Some<A>, Option.Option<A>>(
     Option.isSome,
-    Annotations.combine({ title: "isSome", description: "a Some value" }, annotations)
+    Annotations.combine({ expected: "a Some value" }, annotations)
   )
 }
 
@@ -2040,23 +2040,23 @@ export function isSome<A>(annotations?: Annotations.Filter) {
 export function isNone<A>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<Option.None<A>, Option.Option<A>>(
     Option.isNone,
-    Annotations.combine({ title: "isNone", description: "a None value" }, annotations)
+    Annotations.combine({ expected: "a None value" }, annotations)
   )
 }
 
 /** @internal */
-export function isSuccess<A, E>(annotations?: Annotations.Filter) {
+export function isResultSuccess<A, E>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<Result.Success<A, E>, Result.Result<A, E>>(
     Result.isSuccess,
-    Annotations.combine({ title: "isSuccess", description: "a Result.Success value" }, annotations)
+    Annotations.combine({ expected: "a Result.Success value" }, annotations)
   )
 }
 
 /** @internal */
-export function isFailure<A, E>(annotations?: Annotations.Filter) {
+export function isResultFailure<A, E>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<Result.Failure<A, E>, Result.Result<A, E>>(
     Result.isFailure,
-    Annotations.combine({ title: "isFailure", description: "a Result.Failure value" }, annotations)
+    Annotations.combine({ expected: "a Result.Failure value" }, annotations)
   )
 }
 
@@ -2532,7 +2532,7 @@ export function isNumberString(annotations?: Annotations.Filter) {
   return isPattern(
     isNumberStringRegExp,
     Annotations.combine({
-      description: "a string representing a number",
+      expected: "a string representing a number",
       meta: {
         _tag: "isNumberString",
         regex: isNumberStringRegExp
@@ -2558,7 +2558,7 @@ export function isBigIntString(annotations?: Annotations.Filter) {
   return isPattern(
     isBigIntStringRegExp,
     Annotations.combine({
-      description: "a string representing a bigint",
+      expected: "a string representing a bigint",
       meta: {
         _tag: "isBigIntString",
         regex: isBigIntStringRegExp
@@ -2606,7 +2606,7 @@ export function isSymbolString(annotations?: Annotations.Filter) {
   return isPattern(
     isSymbolStringRegExp,
     Annotations.combine({
-      description: "a string representing a symbol",
+      expected: "a string representing a symbol",
       meta: {
         _tag: "isSymbolString",
         regex: isSymbolStringRegExp

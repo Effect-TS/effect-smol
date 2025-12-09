@@ -427,9 +427,7 @@ export const Boolean = Schema.Literals([...TrueValues.literals, ...FalseValues.l
  * @category Schema
  * @since 4.0.0
  */
-export const Duration = Schema.String.annotate({
-  description: "a string that will be parsed as a Duration"
-}).pipe(Schema.decodeTo(Schema.Duration, {
+export const Duration = Schema.String.pipe(Schema.decodeTo(Schema.Duration, {
   decode: Getter.transformOrFail((s) => {
     const d = Duration_.fromDurationInput(s as any)
     return d ? Effect.succeed(d) : Effect.fail(new Issue.InvalidValue(Option.some(s)))
@@ -503,9 +501,7 @@ export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K
   readonly keyValueSeparator?: string | undefined
 }) => {
   const record = Schema.Record(key, value)
-  const recordString = Schema.String.annotate({
-    description: "a string that will be parsed as a record of key-value pairs"
-  }).pipe(
+  const recordString = Schema.String.pipe(
     Schema.decodeTo(
       Schema.Record(Schema.String, Schema.String),
       Transformation.splitKeyValue(options)
