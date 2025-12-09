@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          node: true
+          node-version: 24.10.0
       - name: Run codemods
         run: pnpm codemod
       - name: Build package
