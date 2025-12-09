@@ -2464,6 +2464,69 @@ describe("Stream", () => {
         }))
     })
   })
+
+  describe("tapSink", () => {
+    it.effect("sink that is done after stream", () =>
+      Effect.gen(function*() {
+        const ref = yield* Ref.make(0)
+        const sink = Sink.forEach((i: number) => Ref.update(ref, (n) => i + n))
+        const result = yield* pipe(
+          Stream.make(1, 1, 2, 3, 5, 8),
+          Stream.tapSink(sink),
+          Stream.runCollect
+        )
+        const sum = yield* (Ref.get(ref))
+        strictEqual(sum, 20)
+        deepStrictEqual(result, [1, 1, 2, 3, 5, 8])
+      }))
+
+    it.effect("sink that is done before stream", () =>
+      Effect.gen(function*() {
+        const ref = yield* Ref.make(0)
+        const sink = pipe(
+          Sink.take<number>(3),
+          Sink.map(Array.reduce(0, (x, y) => x + y)),
+          Sink.mapEffect((i) => Ref.update(ref, (n) => n + i))
+        )
+        const result = yield* pipe(
+          Stream.make(1, 1, 2, 3, 5, 8),
+          Stream.rechunk(1),
+          Stream.tapSink(sink),
+          Stream.runCollect
+        )
+        const sum = yield* (Ref.get(ref))
+        strictEqual(sum, 4)
+        deepStrictEqual(result, [1, 1, 2, 3, 5, 8])
+      }))
+
+    it.effect("sink that fails before stream", () =>
+      Effect.gen(function*() {
+        const sink = Sink.fail("error")
+        const result = yield* pipe(
+          Stream.make(1, 2, 3),
+          Stream.tapSink(sink),
+          Stream.runCollect,
+          Effect.flip
+        )
+        strictEqual(result, "error")
+      }))
+
+    it.effect("does not read ahead", () =>
+      Effect.gen(function*() {
+        const ref = yield* Ref.make(0)
+        const sink = Sink.forEach((i: number) => Ref.update(ref, (n) => i + n))
+        yield* pipe(
+          Stream.make(1, 2, 3, 4, 5),
+          Stream.rechunk(1),
+          Stream.forever,
+          Stream.tapSink(sink),
+          Stream.take(3),
+          Stream.runDrain
+        )
+        const result = yield* Ref.get(ref)
+        strictEqual(result, 6)
+      }))
+  })
 })
 
 const grouped = <A>(arr: Array<A>, size: number): Array<NonEmptyArray<A>> => {

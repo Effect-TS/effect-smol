@@ -1057,6 +1057,16 @@ export const fromEffect = <A, E, R>(
   )
 
 /**
+ * Use an effect and discard its result.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromEffectDrain = <A, E, R>(
+  effect: Effect.Effect<A, E, R>
+): Channel<never, E, void, unknown, unknown, unknown, R> => fromPull(Effect.flatMap(effect, () => Pull.haltVoid)) as any
+
+/**
  * @since 4.0.0
  * @category constructors
  */
@@ -2782,6 +2792,16 @@ export const drain = <
   transformPull(self, (pull) => Effect.succeed(Effect.forever(pull, { autoYield: false })))
 
 /**
+ * Repeats this channel forever.
+ *
+ * @since 4.0.0
+ * @category utils
+ */
+export const forever = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+): Channel<OutElem, OutErr, never, InElem, InErr, InDone, Env> => concatWith(self, () => forever(self))
+
+/**
  * Filters the output elements of a channel using a predicate function.
  * Elements that don't match the predicate are discarded.
  *
@@ -3314,6 +3334,76 @@ export const catchCause: {
   ))
 
 /**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const tapCause: {
+  <OutErr, A, E, R>(
+    f: (d: Cause.Cause<OutErr>) => Effect.Effect<A, E, R>
+  ): <
+    OutElem,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
+    OutElem,
+    OutErr | E,
+    OutDone | void,
+    InElem,
+    InErr,
+    InDone,
+    Env | R
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    A,
+    E,
+    R
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (d: Cause.Cause<OutErr>) => Effect.Effect<A, E, R>
+  ): Channel<
+    OutElem,
+    OutErr | E,
+    OutDone | void,
+    InElem,
+    InErr,
+    InDone,
+    Env | R
+  >
+} = dual(2, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  A,
+  E,
+  R
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  f: (d: Cause.Cause<OutErr>) => Effect.Effect<A, E, R>
+): Channel<
+  OutElem,
+  OutErr | E,
+  OutDone | void,
+  InElem,
+  InErr,
+  InDone,
+  Env | R
+> => catchCause(self, (err) => fromEffectDrain(f(err))))
+
+/**
  * Catches causes of failure that match a specific filter, allowing
  * conditional error recovery based on the type of failure.
  *
@@ -3489,6 +3579,76 @@ export {
    */
   catch_ as catch
 }
+
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const tapError: {
+  <OutErr, A, E, R>(
+    f: (d: OutErr) => Effect.Effect<A, E, R>
+  ): <
+    OutElem,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env
+  >(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
+    OutElem,
+    OutErr | E,
+    OutDone | void,
+    InElem,
+    InErr,
+    InDone,
+    Env | R
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    A,
+    E,
+    R
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    f: (d: OutErr) => Effect.Effect<A, E, R>
+  ): Channel<
+    OutElem,
+    OutErr | E,
+    OutDone | void,
+    InElem,
+    InErr,
+    InDone,
+    Env | R
+  >
+} = dual(2, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  A,
+  E,
+  R
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  f: (d: OutErr) => Effect.Effect<A, E, R>
+): Channel<
+  OutElem,
+  OutErr | E,
+  OutDone | void,
+  InElem,
+  InErr,
+  InDone,
+  Env | R
+> => catch_(self, (err) => fromEffectDrain(f(err))))
 
 /**
  * @since 4.0.0

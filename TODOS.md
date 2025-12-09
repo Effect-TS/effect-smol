@@ -296,9 +296,9 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |       `onEnd`       |  Done  |                         |          |
 |      `onStart`      |  Done  |                         |          |
 |        `tap`        |  Done  |          `tap`          |          |
-|      `tapBoth`      |   -    |                         |          |
-|     `tapError`      |   -    |                         |          |
-|      `tapSink`      |   -    |                         |          |
+|      `tapBoth`      |  Done  |                         |          |
+|     `tapError`      |  Done  |                         |          |
+|      `tapSink`      |  Done  |                         |          |
 
 ### Tracing
 
@@ -351,7 +351,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |     `filterMapEffect`      |   X    |        `filterEffect`         |          |
 |      `filterMapWhile`      |   X    |                               |          |
 |   `filterMapWhileEffect`   |   X    |                               |          |
-|         `forever`          |   -    |                               |          |
+|         `forever`          |  Done  |                               |          |
 |    `fromEventListener`     |  Done  |                               |          |
 |        `haltAfter`         |   X    |                               |          |
 |         `haltWhen`         |   -    |                               |          |

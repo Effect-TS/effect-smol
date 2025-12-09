@@ -1513,6 +1513,113 @@ export const tap: {
 })
 
 /**
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const tapBoth: {
+  <A, E, X, E2, R2, Y, E3, R3>(
+    options: {
+      readonly onElement: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>
+      readonly onError: (a: NoInfer<E>) => Effect.Effect<Y, E3, R3>
+      readonly concurrency?: number | "unbounded" | undefined
+    }
+  ): <R>(self: Stream<A, E, R>) => Stream<A, E | E2 | E3, R | R2 | R3>
+  <A, E, R, X, E2, R2, Y, E3, R3>(
+    self: Stream<A, E, R>,
+    options: {
+      readonly onElement: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>
+      readonly onError: (a: NoInfer<E>) => Effect.Effect<Y, E3, R3>
+      readonly concurrency?: number | "unbounded" | undefined
+    }
+  ): Stream<A, E | E2 | E3, R | R2 | R3>
+} = dual(2, <A, E, R, X, E2, R2, Y, E3, R3>(
+  self: Stream<A, E, R>,
+  options: {
+    readonly onElement: (a: NoInfer<A>) => Effect.Effect<X, E2, R2>
+    readonly onError: (a: NoInfer<E>) => Effect.Effect<Y, E3, R3>
+    readonly concurrency?: number | "unbounded" | undefined
+  }
+): Stream<A, E | E2 | E3, R | R2 | R3> =>
+  self.pipe(
+    tapError(options.onError),
+    tap(options.onElement, { concurrency: options.concurrency })
+  ))
+
+/**
+ * Sends all elements emitted by this stream to the specified sink in addition
+ * to emitting them.
+ *
+ * @since 2.0.0
+ * @category sequencing
+ */
+export const tapSink: {
+  <A, E2, R2>(sink: Sink.Sink<unknown, A, unknown, E2, R2>): <E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
+  <A, E, R, E2, R2>(self: Stream<A, E, R>, sink: Sink.Sink<unknown, A, unknown, E2, R2>): Stream<A, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    sink: Sink.Sink<unknown, A, unknown, E2, R2>
+  ): Stream<A, E | E2, R | R2> =>
+    transformPullBracket(
+      self,
+      Effect.fnUntraced(function*(pull, _, scope) {
+        const upstreamLatch = Effect.makeLatchUnsafe()
+        const sinkLatch = Effect.makeLatchUnsafe()
+        let chunk: Arr.NonEmptyReadonlyArray<A> | undefined = undefined
+        let causeSink: Cause.Cause<E2> | undefined = undefined
+        let sinkDone = false
+        let streamDone = false
+
+        const sinkUpstream = upstreamLatch.whenOpen(Effect.suspend(() => {
+          if (chunk) {
+            const arr = chunk!
+            chunk = undefined
+            if (!streamDone) upstreamLatch.closeUnsafe()
+            return Effect.as(sinkLatch.open, arr)
+          }
+          return Pull.haltVoid
+        }))
+
+        yield* Channel.toTransform(sink.channel)(sinkUpstream, scope).pipe(
+          Effect.flatMap((pull) => Effect.forever(pull, { autoYield: false })),
+          Effect.tapCause((cause) => {
+            sinkDone = true
+            if (Pull.isHaltCause(cause)) return sinkLatch.open
+            causeSink = cause as Cause.Cause<E2>
+            return sinkLatch.open
+          }),
+          Effect.forkIn(scope)
+        )
+
+        const pullAndOffer = pull.pipe(
+          Effect.flatMap((chunk_) => {
+            chunk = chunk_
+            sinkLatch.closeUnsafe()
+            upstreamLatch.openUnsafe()
+            return Effect.as(sinkLatch.await, chunk_)
+          }),
+          Pull.catchHalt(() => {
+            streamDone = true
+            sinkLatch.closeUnsafe()
+            upstreamLatch.openUnsafe()
+            return Effect.flatMap(sinkLatch.await, () => Pull.haltVoid)
+          })
+        )
+
+        return Effect.suspend((): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R> => {
+          if (causeSink) {
+            return Effect.failCause(causeSink)
+          } else if (sinkDone) {
+            return pull
+          }
+          return pullAndOffer
+        })
+      })
+    )
+)
+
+/**
  * Returns a stream made of the concatenation in strict order of all the
  * streams produced by passing each element of this stream to `f0`
  *
@@ -1623,6 +1730,14 @@ export const flattenArray = <A, E, R>(self: Stream<Arr.NonEmptyReadonlyArray<A>,
  * @category sequencing
  */
 export const drain = <A, E, R>(self: Stream<A, E, R>): Stream<never, E, R> => fromChannel(Channel.drain(self.channel))
+
+/**
+ * Repeats this stream forever.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const forever = <A, E, R>(self: Stream<A, E, R>): Stream<A, E, R> => fromChannel(Channel.forever(self.channel))
 
 /**
  * Flattens a stream of iterables into a single stream.
@@ -2393,6 +2508,27 @@ export const catchCause: {
     fromChannel
   ))
 
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const tapCause: {
+  <E, A2, E2, R2>(
+    f: (cause: Cause.Cause<E>) => Effect.Effect<A2, E2, R2>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (cause: Cause.Cause<E>) => Effect.Effect<A2, E2, R2>
+  ): Stream<A, E | E2, R | R2>
+} = dual(2, <A, E, R, A2, E2, R2>(
+  self: Stream<A, E, R>,
+  f: (cause: Cause.Cause<E>) => Effect.Effect<A2, E2, R2>
+): Stream<A, E | E2, R | R2> =>
+  self.channel.pipe(
+    Channel.tapCause(f),
+    fromChannel
+  ))
+
 const catch_: {
   <E, A2, E2, R2>(
     f: (error: E) => Stream<A2, E2, R2>
@@ -2413,6 +2549,27 @@ export {
    */
   catch_ as catch
 }
+
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const tapError: {
+  <E, A2, E2, R2>(
+    f: (error: E) => Effect.Effect<A2, E2, R2>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    f: (error: E) => Effect.Effect<A2, E2, R2>
+  ): Stream<A, E | E2, R | R2>
+} = dual(2, <A, E, R, A2, E2, R2>(
+  self: Stream<A, E, R>,
+  f: (error: E) => Effect.Effect<A2, E2, R2>
+): Stream<A, E | E2, R | R2> =>
+  self.channel.pipe(
+    Channel.tapError(f),
+    fromChannel
+  ))
 
 /**
  * @since 4.0.0
