@@ -27,24 +27,24 @@ export type MetaAST =
   | Enum
   | {
     readonly _tag: "TemplateLiteral"
-    readonly annotations: typeof Annotations["Type"] | null
+    readonly annotations: typeof Annotations["Type"] | undefined
     readonly parts: ReadonlyArray<MetaAST>
   }
   | {
     readonly _tag: "Arrays"
-    readonly annotations: typeof Annotations["Type"] | null
+    readonly annotations: typeof Annotations["Type"] | undefined
     readonly elements: ReadonlyArray<MetaAST>
     readonly rest: ReadonlyArray<MetaAST>
   }
   | {
     readonly _tag: "Objects"
-    readonly annotations: typeof Annotations["Type"] | null
+    readonly annotations: typeof Annotations["Type"] | undefined
     readonly propertySignatures: ReadonlyArray<PropertySignature>
     readonly indexSignatures: ReadonlyArray<IndexSignature>
   }
   | {
     readonly _tag: "Union"
-    readonly annotations: typeof Annotations["Type"] | null
+    readonly annotations: typeof Annotations["Type"] | undefined
     readonly types: ReadonlyArray<MetaAST>
     readonly mode: "anyOf" | "oneOf"
   }
@@ -83,7 +83,7 @@ export const Annotations = Schema.Record(Schema.String, Schema.Unknown.pipe(Sche
 export class Null extends Schema.Opaque<Null>()(
   Schema.Struct({
     _tag: Schema.tag("Null"),
-    annotations: Schema.NullOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations)
   }).annotate({ identifier: "Null" })
 ) {}
 
@@ -93,7 +93,7 @@ export class Null extends Schema.Opaque<Null>()(
 export class Undefined extends Schema.Opaque<Undefined>()(
   Schema.Struct({
     _tag: Schema.tag("Undefined"),
-    annotations: Schema.NullOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations)
   }).annotate({ identifier: "Undefined" })
 ) {}
 
@@ -103,7 +103,7 @@ export class Undefined extends Schema.Opaque<Undefined>()(
 export class Void extends Schema.Opaque<Void>()(
   Schema.Struct({
     _tag: Schema.tag("Void"),
-    annotations: Schema.NullOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations)
   }).annotate({ identifier: "Void" })
 ) {}
 
@@ -113,7 +113,7 @@ export class Void extends Schema.Opaque<Void>()(
 export class Never extends Schema.Opaque<Never>()(
   Schema.Struct({
     _tag: Schema.tag("Never"),
-    annotations: Schema.NullOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations)
   }).annotate({ identifier: "Never" })
 ) {}
 
@@ -123,7 +123,7 @@ export class Never extends Schema.Opaque<Never>()(
 export class Unknown extends Schema.Opaque<Unknown>()(
   Schema.Struct({
     _tag: Schema.tag("Unknown"),
-    annotations: Schema.NullOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations)
   }).annotate({ identifier: "Unknown" })
 ) {}
 
@@ -133,7 +133,7 @@ export class Unknown extends Schema.Opaque<Unknown>()(
 export class Any extends Schema.Opaque<Any>()(
   Schema.Struct({
     _tag: Schema.tag("Any"),
-    annotations: Schema.NullOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations)
   }).annotate({ identifier: "Any" })
 ) {}
 
@@ -143,7 +143,7 @@ export class Any extends Schema.Opaque<Any>()(
 export class String extends Schema.Opaque<String>()(
   Schema.Struct({
     _tag: Schema.tag("String"),
-    annotations: Schema.NullOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations)
   }).annotate({ identifier: "String" })
 ) {}
 
@@ -153,7 +153,7 @@ export class String extends Schema.Opaque<String>()(
 export class Number extends Schema.Opaque<Number>()(
   Schema.Struct({
     _tag: Schema.tag("Number"),
-    annotations: Schema.NullOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations)
   }).annotate({ identifier: "Number" })
 ) {}
 
@@ -163,7 +163,7 @@ export class Number extends Schema.Opaque<Number>()(
 export class Boolean extends Schema.Opaque<Boolean>()(
   Schema.Struct({
     _tag: Schema.tag("Boolean"),
-    annotations: Schema.NullOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations)
   }).annotate({ identifier: "Boolean" })
 ) {}
 
@@ -173,7 +173,7 @@ export class Boolean extends Schema.Opaque<Boolean>()(
 export class BigInt extends Schema.Opaque<BigInt>()(
   Schema.Struct({
     _tag: Schema.tag("BigInt"),
-    annotations: Schema.NullOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations)
   }).annotate({ identifier: "BigInt" })
 ) {}
 
@@ -183,7 +183,7 @@ export class BigInt extends Schema.Opaque<BigInt>()(
 export class Symbol extends Schema.Opaque<Symbol>()(
   Schema.Struct({
     _tag: Schema.tag("Symbol"),
-    annotations: Schema.NullOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations)
   }).annotate({ identifier: "Symbol" })
 ) {}
 
@@ -203,7 +203,7 @@ export const LiteralValue = Schema.Union([
 export class Literal extends Schema.Opaque<Literal>()(
   Schema.Struct({
     _tag: Schema.tag("Literal"),
-    annotations: Schema.NullOr(Annotations),
+    annotations: Schema.UndefinedOr(Annotations),
     literal: LiteralValue
   }).annotate({ identifier: "Literal" })
 ) {}
@@ -214,7 +214,7 @@ export class Literal extends Schema.Opaque<Literal>()(
 export class UniqueSymbol extends Schema.Opaque<UniqueSymbol>()(
   Schema.Struct({
     _tag: Schema.tag("UniqueSymbol"),
-    annotations: Schema.NullOr(Annotations),
+    annotations: Schema.UndefinedOr(Annotations),
     symbol: Schema.Symbol
   }).annotate({ identifier: "UniqueSymbol" })
 ) {}
@@ -225,7 +225,7 @@ export class UniqueSymbol extends Schema.Opaque<UniqueSymbol>()(
 export class ObjectKeyword extends Schema.Opaque<ObjectKeyword>()(
   Schema.Struct({
     _tag: Schema.tag("ObjectKeyword"),
-    annotations: Schema.NullOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations)
   }).annotate({ identifier: "ObjectKeyword" })
 ) {}
 
@@ -235,7 +235,7 @@ export class ObjectKeyword extends Schema.Opaque<ObjectKeyword>()(
 export class Enum extends Schema.Opaque<Enum>()(
   Schema.Struct({
     _tag: Schema.tag("Enum"),
-    annotations: Schema.NullOr(Annotations),
+    annotations: Schema.UndefinedOr(Annotations),
     enums: Schema.Array(
       Schema.Tuple([Schema.String, Schema.Union([Schema.String, Schema.Number])])
     )
@@ -248,7 +248,7 @@ export class Enum extends Schema.Opaque<Enum>()(
 export class TemplateLiteral extends Schema.Opaque<TemplateLiteral>()(
   Schema.Struct({
     _tag: Schema.tag("TemplateLiteral"),
-    annotations: Schema.NullOr(Annotations),
+    annotations: Schema.UndefinedOr(Annotations),
     parts: Schema.Array(MetaASTSuspended)
   }).annotate({ identifier: "TemplateLiteral" })
 ) {}
@@ -259,7 +259,7 @@ export class TemplateLiteral extends Schema.Opaque<TemplateLiteral>()(
 export class Arrays extends Schema.Opaque<Arrays>()(
   Schema.Struct({
     _tag: Schema.tag("Arrays"),
-    annotations: Schema.NullOr(Annotations),
+    annotations: Schema.UndefinedOr(Annotations),
     elements: Schema.Array(MetaASTSuspended),
     rest: Schema.Array(MetaASTSuspended)
   }).annotate({ identifier: "Arrays" })
@@ -293,7 +293,7 @@ class IndexSignature extends Schema.Opaque<IndexSignature>()(
 export class Objects extends Schema.Opaque<Objects>()(
   Schema.Struct({
     _tag: Schema.tag("Objects"),
-    annotations: Schema.NullOr(Annotations),
+    annotations: Schema.UndefinedOr(Annotations),
     propertySignatures: Schema.Array(PropertySignature),
     indexSignatures: Schema.Array(IndexSignature)
   }).annotate({ identifier: "Objects" })
@@ -305,7 +305,7 @@ export class Objects extends Schema.Opaque<Objects>()(
 export class Union extends Schema.Opaque<Union>()(
   Schema.Struct({
     _tag: Schema.tag("Union"),
-    annotations: Schema.NullOr(Annotations),
+    annotations: Schema.UndefinedOr(Annotations),
     types: Schema.Array(MetaASTSuspended),
     mode: Schema.Literals(["anyOf", "oneOf"])
   }).annotate({ identifier: "Union" })
@@ -358,105 +358,65 @@ export function encode<S extends Schema.Top>(schema: S): JsonValue {
 export function toMetaAST(ast: AST.AST): MetaAST {
   switch (ast._tag) {
     case "Null":
-      return {
-        _tag: "Null",
-        annotations: ast.annotations ?? null
-      }
     case "Undefined":
-      return {
-        _tag: "Undefined",
-        annotations: ast.annotations ?? null
-      }
     case "Void":
-      return {
-        _tag: "Void",
-        annotations: ast.annotations ?? null
-      }
     case "Never":
-      return {
-        _tag: "Never",
-        annotations: ast.annotations ?? null
-      }
     case "Unknown":
-      return {
-        _tag: "Unknown",
-        annotations: ast.annotations ?? null
-      }
     case "Any":
-      return {
-        _tag: "Any",
-        annotations: ast.annotations ?? null
-      }
     case "String":
-      return {
-        _tag: "String",
-        annotations: ast.annotations ?? null
-      }
     case "Number":
-      return {
-        _tag: "Number",
-        annotations: ast.annotations ?? null
-      }
     case "Boolean":
-      return {
-        _tag: "Boolean",
-        annotations: ast.annotations ?? null
-      }
     case "BigInt":
-      return {
-        _tag: "BigInt",
-        annotations: ast.annotations ?? null
-      }
     case "Symbol":
       return {
-        _tag: "Symbol",
-        annotations: ast.annotations ?? null
+        _tag: ast._tag,
+        annotations: ast.annotations
       }
     case "Literal":
       return {
-        _tag: "Literal",
-        annotations: ast.annotations ?? null,
+        _tag: ast._tag,
+        annotations: ast.annotations,
         literal: ast.literal
       }
     case "UniqueSymbol":
       return {
-        _tag: "UniqueSymbol",
-        annotations: ast.annotations ?? null,
+        _tag: ast._tag,
+        annotations: ast.annotations,
         symbol: ast.symbol
       }
     case "ObjectKeyword":
       return {
-        _tag: "ObjectKeyword",
-        annotations: ast.annotations ?? null
+        _tag: ast._tag,
+        annotations: ast.annotations
       }
     case "Enum":
       return {
-        _tag: "Enum",
-        annotations: ast.annotations ?? null,
+        _tag: ast._tag,
+        annotations: ast.annotations,
         enums: ast.enums
       }
     case "TemplateLiteral":
       return {
-        _tag: "TemplateLiteral",
-        annotations: ast.annotations ?? null,
+        _tag: ast._tag,
+        annotations: ast.annotations,
         parts: ast.parts.map(toMetaAST)
       }
     case "Arrays":
       return {
-        _tag: "Arrays",
-        annotations: ast.annotations ?? null,
+        _tag: ast._tag,
+        annotations: ast.annotations,
         elements: ast.elements.map(toMetaAST),
         rest: ast.rest.map(toMetaAST)
       }
     case "Objects":
       return {
-        _tag: "Objects",
-        annotations: ast.annotations ?? null,
+        _tag: ast._tag,
+        annotations: ast.annotations,
         propertySignatures: ast.propertySignatures.map((ps) => ({
           name: ps.name,
           type: toMetaAST(ps.type),
           isOptional: AST.isOptional(ps.type),
-          isMutable: isMutable(ps.type)
+          isMutable: AST.isMutable(ps.type)
         })),
         indexSignatures: ast.indexSignatures.map((is) => ({
           parameter: toMetaAST(is.parameter),
@@ -465,8 +425,8 @@ export function toMetaAST(ast: AST.AST): MetaAST {
       }
     case "Union":
       return {
-        _tag: "Union",
-        annotations: ast.annotations ?? null,
+        _tag: ast._tag,
+        annotations: ast.annotations,
         types: ast.types.map(toMetaAST),
         mode: ast.mode
       }
@@ -477,7 +437,7 @@ export function toMetaAST(ast: AST.AST): MetaAST {
 /**
  * @since 4.0.0
  */
-export function decode<S extends Schema.Top>(u: unknown): S {
+export function decode<S extends Schema.Top = Schema.Top>(u: unknown): S {
   return runtime(decodeUnknownSync(u)) as S
 }
 
@@ -485,6 +445,10 @@ export function decode<S extends Schema.Top>(u: unknown): S {
  * @since 4.0.0
  */
 export function code(ast: MetaAST): string {
+  return codeBase(ast) + codeAnnotations(ast.annotations)
+}
+
+function codeBase(ast: MetaAST): string {
   switch (ast._tag) {
     case "Null":
     case "Undefined":
@@ -500,8 +464,13 @@ export function code(ast: MetaAST): string {
       return `Schema.${ast._tag}`
     case "Literal":
       return `Schema.Literal(${format(ast.literal)})`
-    case "UniqueSymbol":
-      return `Schema.UniqueSymbol(${format(ast.symbol)})`
+    case "UniqueSymbol": {
+      const key = globalThis.Symbol.keyFor(ast.symbol)
+      if (key === undefined) {
+        throw new Error("Cannot generate code for UniqueSymbol created without Symbol.for()")
+      }
+      return `Schema.UniqueSymbol(Symbol.for(${format(key)}))`
+    }
     case "ObjectKeyword":
       return "Schema.ObjectKeyword"
     case "Enum":
@@ -537,8 +506,12 @@ export function code(ast: MetaAST): string {
   }
 }
 
-function isMutable(ast: AST.AST): boolean {
-  return ast.context?.isMutable ?? false
+function codeAnnotations(annotations: typeof Annotations["Type"] | undefined): string {
+  if (!annotations || Object.keys(annotations).length === 0) return ""
+  const entries = Object.entries(annotations).map(([key, value]) => {
+    return `${formatPropertyKey(key)}: ${format(value)}`
+  }).join(", ")
+  return `.annotate({ ${entries} })`
 }
 
 function codeOptional(isOptional: boolean, code: string): string {
@@ -549,6 +522,12 @@ function codeOptional(isOptional: boolean, code: string): string {
  * @since 4.0.0
  */
 export function runtime(ast: MetaAST): Schema.Top {
+  const out = runtimeBase(ast)
+  if (ast.annotations) return out.annotate(ast.annotations)
+  return out
+}
+
+function runtimeBase(ast: MetaAST): Schema.Top {
   switch (ast._tag) {
     case "Null":
       return Schema.Null

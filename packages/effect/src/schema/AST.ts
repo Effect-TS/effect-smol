@@ -2352,6 +2352,11 @@ export function isOptional(ast: AST): boolean {
   return ast.context?.isOptional ?? false
 }
 
+/** @internal */
+export function isMutable(ast: AST): boolean {
+  return ast.context?.isMutable ?? false
+}
+
 /**
  * @since 4.0.0
  */
