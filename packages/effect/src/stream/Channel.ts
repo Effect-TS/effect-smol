@@ -2509,6 +2509,121 @@ export const concat: {
 > => concatWith(self, (_) => that))
 
 /**
+ * Combines the elements from this channel and the specified channel by
+ * repeatedly applying the function `f` to extract an element using both sides
+ * and conceptually "offer" it to the destination channel. `f` can maintain
+ * some internal state to control the combining process, with the initial
+ * state being specified by `s`.
+ *
+ * @since 4.0.0
+ * @category sequencing
+ */
+export const combine: {
+  <OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2, S, OutElem, OutErr, OutDone, A, E, R>(
+    that: Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>,
+    s: LazyArg<S>,
+    f: (
+      s: S,
+      pullLeft: Pull.Pull<OutElem, OutErr, OutDone>,
+      pullRight: Pull.Pull<OutElem2, OutErr2, OutDone2>
+    ) => Effect.Effect<readonly [A, S], E, R>
+  ): <InElem, InErr, InDone, Env>(self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>) => Channel<
+    A,
+    Pull.ExcludeHalt<E>,
+    Pull.Halt.Extract<E>,
+    InElem & InElem2,
+    InErr & InErr2,
+    InDone & InDone2,
+    Env | Env2 | R
+  >
+  <
+    OutElem,
+    OutErr,
+    OutDone,
+    InElem,
+    InErr,
+    InDone,
+    Env,
+    OutElem2,
+    OutErr2,
+    OutDone2,
+    InElem2,
+    InErr2,
+    InDone2,
+    Env2,
+    S,
+    A,
+    E,
+    R
+  >(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    that: Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>,
+    s: LazyArg<S>,
+    f: (
+      s: S,
+      pullLeft: Pull.Pull<OutElem, OutErr, OutDone>,
+      pullRight: Pull.Pull<OutElem2, OutErr2, OutDone2>
+    ) => Effect.Effect<readonly [A, S], E, R>
+  ): Channel<
+    A,
+    Pull.ExcludeHalt<E>,
+    Pull.Halt.Extract<E>,
+    InElem & InElem2,
+    InErr & InErr2,
+    InDone & InDone2,
+    Env | Env2 | R
+  >
+} = dual(4, <
+  OutElem,
+  OutErr,
+  OutDone,
+  InElem,
+  InErr,
+  InDone,
+  Env,
+  OutElem2,
+  OutErr2,
+  OutDone2,
+  InElem2,
+  InErr2,
+  InDone2,
+  Env2,
+  S,
+  A,
+  E,
+  R
+>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  that: Channel<OutElem2, OutErr2, OutDone2, InElem2, InErr2, InDone2, Env2>,
+  s: LazyArg<S>,
+  f: (
+    s: S,
+    pullLeft: Pull.Pull<OutElem, OutErr, OutDone>,
+    pullRight: Pull.Pull<OutElem2, OutErr2, OutDone2>
+  ) => Effect.Effect<readonly [A, S], E, R>
+): Channel<
+  A,
+  Pull.ExcludeHalt<E>,
+  Pull.Halt.Extract<E>,
+  InElem & InElem2,
+  InErr & InErr2,
+  InDone & InDone2,
+  Env | Env2 | R
+> =>
+  fromTransform(Effect.fnUntraced(function*(upstream, scope) {
+    const leftPull = yield* toTransform(self)(upstream, scope)
+    const rightPull = yield* toTransform(that)(upstream, scope)
+    let state = s()
+    return Effect.suspend(() => {
+      const combinedPull = f(state, leftPull, rightPull)
+      return Effect.map(combinedPull, ([a, s1]) => {
+        state = s1
+        return a
+      })
+    })
+  })))
+
+/**
  * @since 2.0.0
  * @category sequencing
  */
@@ -4419,6 +4534,30 @@ export const merge: {
     yield* runSide("right", right, Scope.forkUnsafe(forkedScope))
     return Queue.toPull(queue)
   })))
+
+/**
+ * @since 4.0.0
+ * @category utils
+ */
+export const mergeEffect: {
+  <X, E, R>(
+    effect: Effect.Effect<X, E, R>
+  ): <OutElem, OutDone, OutErr, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, X, E, R>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    effect: Effect.Effect<X, E, R>
+  ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, X, E, R>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  effect: Effect.Effect<X, E, R>
+): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
+  merge(
+    self,
+    fromEffectDrain(effect),
+    { haltStrategy: "left" }
+  ) as any)
 
 /**
  * @since 2.0.0

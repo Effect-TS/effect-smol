@@ -6,6 +6,7 @@ import * as Cause from "../Cause.ts"
 import { Clock } from "../Clock.ts"
 import * as Arr from "../collections/Array.ts"
 import * as MutableHashMap from "../collections/MutableHashMap.ts"
+import * as MutableList from "../collections/MutableList.ts"
 import * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import { hasProperty, isTagged } from "../data/Predicate.ts"
@@ -1732,6 +1733,23 @@ export const flattenArray = <A, E, R>(self: Stream<Arr.NonEmptyReadonlyArray<A>,
 export const drain = <A, E, R>(self: Stream<A, E, R>): Stream<never, E, R> => fromChannel(Channel.drain(self.channel))
 
 /**
+ * Drains the provided stream in the background for as long as this stream is
+ * running. If this stream ends before `other`, `other` will be interrupted.
+ * If `other` fails, this stream will fail with that error.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const drainFork: {
+  <A2, E2, R2>(that: Stream<A2, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, that: Stream<A2, E2, R2>): Stream<A, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, that: Stream<A2, E2, R2>): Stream<A, E | E2, R | R2> =>
+    mergeEffect(self, runDrain(that))
+)
+
+/**
  * Repeats this stream forever.
  *
  * @since 2.0.0
@@ -1817,6 +1835,22 @@ export const merge: {
       readonly haltStrategy?: HaltStrategy | undefined
     } | undefined
   ): Stream<A | A2, E | E2, R | R2> => fromChannel(Channel.merge(toChannel(self), toChannel(that), options))
+)
+
+/**
+ * @since 4.0.0
+ * @category utils
+ */
+export const mergeEffect: {
+  <A2, E2, R2>(effect: Effect.Effect<A2, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, effect: Effect.Effect<A2, E2, R2>): Stream<A, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, effect: Effect.Effect<A2, E2, R2>): Stream<A, E | E2, R | R2> =>
+    self.channel.pipe(
+      Channel.mergeEffect(effect),
+      fromChannel
+    )
 )
 
 /**
@@ -3088,6 +3122,141 @@ export const drop: {
 )
 
 /**
+ * Drops all elements of the stream until the specified predicate evaluates to
+ * `true`.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const dropUntil: {
+  <A>(predicate: (a: NoInfer<A>, index: number) => boolean): <E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R>(self: Stream<A, E, R>, predicate: (a: NoInfer<A>, index: number) => boolean): Stream<A, E, R>
+} = dual(2, <A, E, R>(
+  self: Stream<A, E, R>,
+  predicate: (a: NoInfer<A>, index: number) => boolean
+): Stream<A, E, R> => drop(dropWhile(self, (a, i) => !predicate(a, i)), 1))
+
+/**
+ * Drops all elements of the stream until the specified effectful predicate
+ * evaluates to `true`.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const dropUntilEffect: {
+  <A, E2, R2>(
+    predicate: (a: NoInfer<A>, index: number) => Effect.Effect<boolean, E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    predicate: (a: NoInfer<A>, index: number) => Effect.Effect<boolean, E2, R2>
+  ): Stream<A, E | E2, R | R2>
+} = dual(2, <A, E, R, E2, R2>(
+  self: Stream<A, E, R>,
+  predicate: (a: NoInfer<A>, index: number) => Effect.Effect<boolean, E2, R2>
+): Stream<A, E | E2, R | R2> =>
+  drop(
+    dropWhileEffect(
+      self,
+      (a, i) => Effect.map(predicate(a, i), (b) => !b)
+    ),
+    1
+  ))
+
+/**
+ * Drops all elements of the stream for as long as the specified predicate
+ * evaluates to `true`.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const dropWhile: {
+  <A>(predicate: (a: NoInfer<A>, index: number) => boolean): <E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R>(self: Stream<A, E, R>, predicate: (a: NoInfer<A>, index: number) => boolean): Stream<A, E, R>
+} = dual(2, <A, E, R>(
+  self: Stream<A, E, R>,
+  predicate: (a: NoInfer<A>, index: number) => boolean
+): Stream<A, E, R> =>
+  transformPull(self, (pull, _scope) =>
+    Effect.sync(() => {
+      let dropping = true
+      let index = 0
+      const filtered: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = Effect.flatMap(pull, (arr) => {
+        const found = arr.findIndex((a) => !predicate(a, index++))
+        if (found === -1) return filtered
+        dropping = false
+        return Effect.succeed(arr.slice(found) as Arr.NonEmptyArray<A>)
+      })
+      return Effect.suspend(() => dropping ? filtered : pull)
+    })))
+
+/**
+ * Drops all elements of the stream for as long as the specified predicate
+ * produces an effect that evalutates to `true`
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const dropWhileEffect: {
+  <A, E2, R2>(
+    predicate: (a: NoInfer<A>, index: number) => Effect.Effect<boolean, E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
+  <A, E, R, E2, R2>(
+    self: Stream<A, E, R>,
+    predicate: (a: A, index: number) => Effect.Effect<boolean, E2, R2>
+  ): Stream<A, E | E2, R | R2>
+} = dual(2, <A, E, R, E2, R2>(
+  self: Stream<A, E, R>,
+  predicate: (a: NoInfer<A>, index: number) => Effect.Effect<boolean, E2, R2>
+): Stream<A, E | E2, R | R2> =>
+  transformPull(self, (pull, _scope) =>
+    Effect.sync(() => {
+      let dropping = true
+      let index = 0
+      const filtered: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R2> = Effect.gen(function*() {
+        while (true) {
+          const arr = yield* pull
+          for (let i = 0; i < arr.length; i++) {
+            const drop = yield* predicate(arr[i], index++)
+            if (drop) continue
+            dropping = false
+            return arr.slice(i) as Arr.NonEmptyArray<A>
+          }
+        }
+      })
+      return Effect.suspend((): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R | R2> =>
+        dropping ? filtered : pull
+      )
+    })))
+
+/**
+ * Drops the last specified number of elements from this stream.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const dropRight: {
+  (n: number): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<A, E, R>
+} = dual(
+  2,
+  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<A, E, R> => {
+    if (n <= 0) return self
+    return transformPull(self, (pull, _scope) =>
+      Effect.sync(() => {
+        const list = MutableList.make<A>()
+        const emit: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> = Effect.flatMap(pull, (arr) => {
+          MutableList.appendAllUnsafe(list, arr)
+          const toTake = list.length - n
+          const items = MutableList.takeN(list, toTake)
+          return Arr.isArrayNonEmpty(items) ? Effect.succeed(items) : emit
+        })
+        return emit
+      }))
+  }
+)
+
+/**
  * Exposes the underlying chunks of the stream as a stream of chunks of
  * elements.
  *
@@ -3164,6 +3333,106 @@ export const rechunk: {
       )
     }))
 })
+
+/**
+ * Combines the elements from this stream and the specified stream by
+ * repeatedly applying the function `f` to extract an element using both sides
+ * and conceptually "offer" it to the destination stream. `f` can maintain
+ * some internal state to control the combining process, with the initial
+ * state being specified by `s`.
+ *
+ * Where possible, prefer `Stream.combineChunks` for a more efficient
+ * implementation.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const combine: {
+  <A2, E2, R2, S, E, A, A3, E3, R3>(
+    that: Stream<A2, E2, R2>,
+    s: LazyArg<S>,
+    f: (
+      s: S,
+      pullLeft: Pull.Pull<A, E, void>,
+      pullRight: Pull.Pull<A2, E2, void>
+    ) => Effect.Effect<readonly [A3, S], E3, R3>
+  ): <R>(self: Stream<A, E, R>) => Stream<A3, E3, R2 | R3 | R>
+  <A, E, R, A2, E2, R2, S, A3, E3, R3>(
+    self: Stream<A, E, R>,
+    that: Stream<A2, E2, R2>,
+    s: LazyArg<S>,
+    f: (
+      s: S,
+      pullLeft: Pull.Pull<A, E, void>,
+      pullRight: Pull.Pull<A2, E2, void>
+    ) => Effect.Effect<readonly [A3, S], E3, R3>
+  ): Stream<A3, E3, R | R2 | R3>
+} = dual(4, <A, E, R, A2, E2, R2, S, A3, E3, R3>(
+  self: Stream<A, E, R>,
+  that: Stream<A2, E2, R2>,
+  s: LazyArg<S>,
+  f: (
+    s: S,
+    pullLeft: Pull.Pull<A, E, void>,
+    pullRight: Pull.Pull<A2, E2, void>
+  ) => Effect.Effect<readonly [A3, S], E3, R3>
+): Stream<A3, E3, R | R2 | R3> =>
+  Channel.combine(
+    Channel.flattenArray(self.channel),
+    Channel.flattenArray(that.channel),
+    s,
+    f
+  ).pipe(
+    Channel.map(Arr.of),
+    fromChannel
+  ))
+
+/**
+ * Combines the elements from this stream and the specified stream by
+ * repeatedly applying the function `f` to extract an array using both sides
+ * and conceptually "offer" it to the destination stream. `f` can maintain
+ * some internal state to control the combining process, with the initial
+ * state being specified by `s`.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const combineArray: {
+  <A2, E2, R2, S, E, A, A3, E3, R3>(
+    that: Stream<A2, E2, R2>,
+    s: LazyArg<S>,
+    f: (
+      s: S,
+      pullLeft: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void>,
+      pullRight: Pull.Pull<Arr.NonEmptyReadonlyArray<A2>, E2, void>
+    ) => Effect.Effect<readonly [Arr.NonEmptyReadonlyArray<A3>, S], E3, R3>
+  ): <R>(self: Stream<A, E, R>) => Stream<A3, Pull.ExcludeHalt<E3>, R2 | R3 | R>
+  <R, A2, E2, R2, S, E, A, A3, E3, R3>(
+    self: Stream<A, E, R>,
+    that: Stream<A2, E2, R2>,
+    s: LazyArg<S>,
+    f: (
+      s: S,
+      pullLeft: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void>,
+      pullRight: Pull.Pull<Arr.NonEmptyReadonlyArray<A2>, E2, void>
+    ) => Effect.Effect<readonly [Arr.NonEmptyReadonlyArray<A3>, S], E3, R3>
+  ): Stream<A3, Pull.ExcludeHalt<E3>, R | R2 | R3>
+} = dual(4, <R, A2, E2, R2, S, E, A, A3, E3, R3>(
+  self: Stream<A, E, R>,
+  that: Stream<A2, E2, R2>,
+  s: LazyArg<S>,
+  f: (
+    s: S,
+    pullLeft: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void>,
+    pullRight: Pull.Pull<Arr.NonEmptyReadonlyArray<A2>, E2, void>
+  ) => Effect.Effect<readonly [Arr.NonEmptyReadonlyArray<A3>, S], E3, R3>
+): Stream<A3, Pull.ExcludeHalt<E3>, R | R2 | R3> =>
+  fromChannel(Channel.combine(
+    self.channel,
+    that.channel,
+    s,
+    f
+  )))
 
 /**
  * @since 2.0.0

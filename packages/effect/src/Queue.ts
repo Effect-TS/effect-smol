@@ -35,7 +35,6 @@
  */
 import type { Cause } from "./Cause.ts"
 import * as Arr from "./collections/Array.ts"
-import * as Iterable from "./collections/Iterable.ts"
 import * as MutableList from "./collections/MutableList.ts"
 import * as Filter from "./data/Filter.ts"
 import { hasProperty } from "./data/Predicate.ts"
@@ -482,7 +481,7 @@ export const offer = <A, E>(self: Queue<A, E>, message: Types.NoInfer<A>): Effec
         case "suspend":
           if (self.capacity <= 0 && self.state.takers.size > 0) {
             MutableList.append(self.messages, message)
-            releaseTaker(self)
+            releaseTakers(self)
             return exitTrue
           }
           return offerRemainingSingle(self, message)
@@ -536,7 +535,7 @@ export const offerUnsafe = <A, E>(self: Queue<A, E>, message: Types.NoInfer<A>):
       return true
     } else if (self.capacity <= 0 && self.state.takers.size > 0) {
       MutableList.append(self.messages, message)
-      releaseTaker(self)
+      releaseTakers(self)
       return true
     }
     return false
@@ -1503,14 +1502,18 @@ const exitTrue = core.exitSucceed(true)
 const exitFailDone = core.exitFail(Done) as Failure<never, Done>
 const exitInterrupt = internalEffect.exitInterrupt() as Failure<never, never>
 
-const releaseTaker = <A, E>(self: Queue<A, E>) => {
+const releaseTakers = <A, E>(self: Queue<A, E>) => {
   self.scheduleRunning = false
   if (self.state._tag === "Done" || self.state.takers.size === 0) {
     return
   }
-  const taker = Iterable.headUnsafe(self.state.takers)
-  self.state.takers.delete(taker)
-  taker(internalEffect.exitVoid)
+  for (const taker of self.state.takers) {
+    self.state.takers.delete(taker)
+    taker(internalEffect.exitVoid)
+    if (self.messages.length === 0) {
+      break
+    }
+  }
 }
 
 const scheduleReleaseTaker = <A, E>(self: Queue<A, E>) => {
@@ -1518,7 +1521,7 @@ const scheduleReleaseTaker = <A, E>(self: Queue<A, E>) => {
     return
   }
   self.scheduleRunning = true
-  self.scheduler.scheduleTask(() => releaseTaker(self), 0)
+  self.scheduler.scheduleTask(() => releaseTakers(self), 0)
 }
 
 const takeBetweenUnsafe = <A, E>(

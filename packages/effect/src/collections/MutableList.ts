@@ -261,7 +261,7 @@ export const make = <A>(): MutableList<A> => ({
   length: 0
 })
 
-const emptyBucket = (): MutableList.Bucket<never> => ({
+const emptyBucket = <A = never>(): MutableList.Bucket<A> => ({
   array: [],
   mutable: true,
   offset: 0,
@@ -609,6 +609,7 @@ export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
       if (chunk.mutable) chunk.array[chunk.offset] = undefined as any
       chunk.offset++
       if (index === n) {
+        self.head = chunk
         self.length -= n
         if (self.length === 0) clear(self)
         return array
@@ -618,6 +619,34 @@ export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
   }
   clear(self)
   return array
+}
+
+/**
+ * @since 4.0.0
+ * @category elements
+ */
+export const takeNVoid = <A>(self: MutableList<A>, n: number): void => {
+  if (n <= 0 || !self.head) return
+  n = Math.min(n, self.length)
+  if (n === self.length && self.head?.offset === 0 && !self.head.next) {
+    clear(self)
+    return
+  }
+  let count = 0
+  let chunk: MutableList.Bucket<A> | undefined = self.head
+  while (chunk) {
+    const size = chunk.array.length - chunk.offset
+    if (count + size > n) {
+      chunk.offset += n - count
+      self.head = chunk
+      self.length -= n
+      return
+    }
+    count += size
+    chunk = chunk.next
+  }
+  clear(self)
+  return
 }
 
 /**

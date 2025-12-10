@@ -2527,6 +2527,31 @@ describe("Stream", () => {
         strictEqual(result, 6)
       }))
   })
+
+  describe("dropRight", () => {
+    it.effect("dropRight - simple example", () =>
+      Effect.gen(function*() {
+        const n = 2
+        const stream = Stream.make(1, 2, 3, 4, 5)
+        const { result1, result2 } = yield* (Effect.all({
+          result1: pipe(stream, Stream.dropRight(n), Stream.runCollect),
+          result2: pipe(stream, Stream.runCollect, Effect.map(Array.dropRight(n)))
+        }))
+        deepStrictEqual(result1, result2)
+      }))
+
+    it.effect("dropRight - does not swallow errors", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1),
+          Stream.concat(Stream.fail("Ouch")),
+          Stream.dropRight(1),
+          Stream.runDrain,
+          Effect.result
+        )
+        assertFailure(result, "Ouch")
+      }))
+  })
 })
 
 const grouped = <A>(arr: Array<A>, size: number): Array<NonEmptyArray<A>> => {

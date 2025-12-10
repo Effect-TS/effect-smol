@@ -326,20 +326,20 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |    `changesWithEffect`     |  Done  |                               |          |
 |          `chunks`          |  Done  |           `chunks`            |          |
 |        `chunksWith`        |   X    |                               |          |
-|         `combine`          |   -    |                               |          |
-|      `combineChunks`       |   -    |                               |          |
+|         `combine`          |  Done  |                               |          |
+|      `combineChunks`       |  Done  |                               |          |
 |          `concat`          |  Done  |           `concat`            |          |
 |          `cross`           |  Done  |                               |          |
 |        `crossLeft`         |   X    |                               |          |
 |        `crossRight`        |   X    |                               |          |
 |        `crossWith`         |  Done  |                               |          |
 |         `debounce`         |  Done  |                               |          |
-|     `distributedWith`      |   -    |                               |          |
-|  `distributedWithDynamic`  |   -    |                               |          |
+|     `distributedWith`      |   X    |                               |          |
+|  `distributedWithDynamic`  |   X    |                               |          |
 |          `drain`           |  Done  |            `drain`            |          |
-|        `drainFork`         |   -    |                               |          |
+|        `drainFork`         |  Done  |                               |          |
 |           `drop`           |  Done  |            `drop`             |          |
-|        `dropRight`         |   -    |                               |          |
+|        `dropRight`         |  Done  |                               |          |
 |        `dropUntil`         |   -    |                               |          |
 |     `dropUntilEffect`      |   -    |                               |          |
 |        `dropWhile`         |   -    |                               |          |
