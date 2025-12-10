@@ -180,6 +180,26 @@ export type Signal =
   | "SIGINFO"
 
 /**
+ * The encoding format to use for binary data.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export type Encoding =
+  | "ascii"
+  | "utf8"
+  | "utf-8"
+  | "utf16le"
+  | "utf-16le"
+  | "ucs2"
+  | "ucs-2"
+  | "base64"
+  | "base64url"
+  | "latin1"
+  | "binary"
+  | "hex"
+
+/**
  * Options that can be used to control how a child process is terminated.
  *
  * @since 4.0.0
@@ -266,7 +286,7 @@ export interface CommandOptions extends KillOptions {
      *
      * Defaults to `utf-8`.
      */
-    readonly encoding?: BufferEncoding | undefined
+    readonly encoding?: Encoding | undefined
   }
   /**
    * Configuration options for the standard output stream for the child process.
