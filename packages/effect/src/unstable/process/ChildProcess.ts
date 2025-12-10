@@ -1,579 +1,516 @@
 /**
+ * An Effect-native module for working with child processes.
+ *
+ * This module uses an AST-based approach where commands are built first
+ * using `make` and `pipeTo`, then executed using `exec` or `spawn`.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { ChildProcess } from "effect/unstable/process"
+ * import { NodeChildProcessExecutor } from "@effect/platform-node"
+ *
+ * // Build a command
+ * const cmd = ChildProcess.make`echo "hello world"`
+ *
+ * // Execute it
+ * const result = ChildProcess.exec(cmd).pipe(
+ *   Effect.provide(NodeChildProcessExecutor.layer),
+ *   Effect.runPromise
+ * )
+ *
+ * // With options
+ * const withOptions = ChildProcess.make({ cwd: "/tmp" })`ls -la`
+ *
+ * // Piping commands
+ * const pipeline = ChildProcess.make`cat package.json`.pipe(
+ *   ChildProcess.pipeTo(ChildProcess.make`grep name`)
+ * )
+ *
+ * // Execute the pipeline
+ * const pipelineResult = ChildProcess.exec(pipeline).pipe(
+ *   Effect.provide(NodeChildProcessExecutor.layer),
+ *   Effect.runPromise
+ * )
+ * ```
+ *
  * @since 4.0.0
  */
-import * as Arr from "../../collections/Array.ts"
-import * as Data from "../../data/Data.ts"
 import * as Predicate from "../../data/Predicate.ts"
-import * as Duration from "../../Duration.ts"
+import type * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
-import * as Inspectable from "../../interfaces/Inspectable.ts"
-import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
-import * as Schema from "../../schema/Schema.ts"
-import type * as Scope from "../../Scope.ts"
-import * as ServiceMap from "../../ServiceMap.ts"
+import type { Pipeable } from "../../interfaces/Pipeable.ts"
+import { pipeArguments } from "../../interfaces/Pipeable.ts"
+import type * as PlatformError from "../../platform/PlatformError.ts"
 import type * as Sink from "../../stream/Sink.ts"
 import type * as Stream from "../../stream/Stream.ts"
-import { isTemplateString, parseTemplates } from "./internal/template.ts"
+import type { ChildProcessHandle } from "./ChildProcessExecutor.ts"
+import { ChildProcessExecutor } from "./ChildProcessExecutor.ts"
 
-const TypeId = "~effect/process/ChildProcess"
-
-/**
- * @since 4.0.0
- * @category guards
- */
-export const isChildProcess = (u: unknown): u is ChildProcess => Predicate.hasProperty(u, TypeId)
-
-// ═══════════════════════════════════════════════════════════════
-// STDIO TYPES
-// ═══════════════════════════════════════════════════════════════
+const TypeId = "~effect/unstable/process/ChildProcess"
 
 /**
- * Simplified stdio configuration value.
+ * A command that can be executed as a child process.
  *
- * - `"pipe"`: Create an Effect Stream (default for capturing output)
- * - `"inherit"`: Use parent process's stdio (for terminal I/O)
- * - `"ignore"`: Discard the stream
- * - `number`: File descriptor number (for advanced use cases)
- * - `Stream`: Input stream (stdin only)
- * - `Sink`: Output sink (stdout/stderr only)
- *
- * Note: Transforms, file I/O, and multiple targets are intentionally excluded.
- * Users should compose these features using Effect Stream operators:
- * - Transforms: Use `Stream.map()`, `Stream.mapEffect()`
- * - File I/O: Use `Sink.toFile()`, `Stream.fromFile()`
- * - Multiple targets: Use `Stream.broadcast()`, `Stream.tap()`
+ * Commands are built using `make` and can be combined using `pipeTo`.
+ * They are executed using `exec` or `spawn`.
  *
  * @since 4.0.0
- * @category models
+ * @category Models
  */
-export type StdioValue =
+export type Command =
+  | StandardCommand
+  | TemplatedCommand
+  | PipedCommand
+
+/**
+ * A standard command with pre-parsed command and arguments.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export interface StandardCommand extends Pipeable {
+  readonly _tag: "StandardCommand"
+  readonly command: string
+  readonly args: ReadonlyArray<string>
+  readonly options: CommandOptions
+}
+
+/**
+ * A templated command that stores unparsed template information.
+ * Templates are parsed at execution time, allowing errors to flow through Effect.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export interface TemplatedCommand extends Pipeable {
+  readonly _tag: "TemplatedCommand"
+  readonly templates: TemplateStringsArray
+  readonly expressions: ReadonlyArray<TemplateExpression>
+  readonly options: CommandOptions
+}
+
+/**
+ * A pipeline of commands where the output of one is piped to the input of the next.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export interface PipedCommand extends Pipeable {
+  readonly _tag: "PipedCommand"
+  readonly left: Command
+  readonly right: Command
+}
+
+/**
+ * Input type for child process stdin.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export type CommandInput =
   | "pipe"
   | "inherit"
   | "ignore"
-  | number
-  | Stream.Stream<Uint8Array, never, never>
-  | Sink.Sink<void, Uint8Array, never, never, never>
+  | "overlapped"
+  | Stream.Stream<Uint8Array, PlatformError.PlatformError>
 
 /**
- * Stdio configuration for child process.
+ * Output type for child process stdout/stderr.
  *
  * @since 4.0.0
- * @category models
+ * @category Models
  */
-export interface StdioOptions {
-  readonly stdin?: StdioValue
-  readonly stdout?: StdioValue
-  readonly stderr?: StdioValue
-  readonly all?: boolean
+export type CommandOutput =
+  | "pipe"
+  | "inherit"
+  | "ignore"
+  | "overlapped"
+  | Sink.Sink<Uint8Array, Uint8Array, never, PlatformError.PlatformError>
+
+/**
+ * A signal that can be sent to a child process.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export type Signal =
+  | "SIGABRT"
+  | "SIGALRM"
+  | "SIGBUS"
+  | "SIGCHLD"
+  | "SIGCONT"
+  | "SIGFPE"
+  | "SIGHUP"
+  | "SIGILL"
+  | "SIGINT"
+  | "SIGIO"
+  | "SIGIOT"
+  | "SIGKILL"
+  | "SIGPIPE"
+  | "SIGPOLL"
+  | "SIGPROF"
+  | "SIGPWR"
+  | "SIGQUIT"
+  | "SIGSEGV"
+  | "SIGSTKFLT"
+  | "SIGSTOP"
+  | "SIGSYS"
+  | "SIGTERM"
+  | "SIGTRAP"
+  | "SIGTSTP"
+  | "SIGTTIN"
+  | "SIGTTOU"
+  | "SIGUNUSED"
+  | "SIGURG"
+  | "SIGUSR1"
+  | "SIGUSR2"
+  | "SIGVTALRM"
+  | "SIGWINCH"
+  | "SIGXCPU"
+  | "SIGXFSZ"
+  | "SIGBREAK"
+  | "SIGLOST"
+  | "SIGINFO"
+
+/**
+ * Options that can be used to control how a child process is terminated.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export interface KillOptions {
+  /**
+   * The default signal used to terminate the child process.
+   *
+   * Defaults to `"SIGTERM"`.
+   */
+  readonly killSignal?: Signal | undefined
+  /**
+   * The duration of time to wait after the child process has been terminated
+   * before forcefully killing the child process by sending it the `"SIGKILL"`
+   * signal.
+   *
+   * Defaults to `undefined`, which means that no timeout will be enforced by
+   * default.
+   */
+  readonly forceKillAfter?: Duration.DurationInput | undefined
 }
 
 /**
- * Options for child process execution.
+ * Options for command execution.
  *
  * @since 4.0.0
- * @category models
+ * @category Models
  */
-export interface ChildProcessOptions {
-  readonly cwd?: string
-  readonly env?: Record<string, string>
-  readonly timeout?: Duration.Duration
-  readonly stdio?: StdioOptions
-  readonly encoding?: "utf8" | "buffer"
-  readonly maxBuffer?: number
-  readonly shell?: boolean | string
-  readonly windowsHide?: boolean
-  readonly killSignal?: string
-  readonly uid?: number
-  readonly gid?: number
-  readonly detached?: boolean
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ERROR TYPES
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Error when spawning a child process fails.
- *
- * @since 4.0.0
- * @category errors
- */
-export class SpawnError extends Data.TaggedError("SpawnError")<{
-  readonly command: string
-  readonly cause: unknown
-}> {}
-
-/**
- * Error when child process exits with non-zero exit code.
- *
- * @since 4.0.0
- * @category errors
- */
-export class ExitCodeError extends Data.TaggedError("ExitCodeError")<{
-  readonly command: string
-  readonly exitCode: number
-  readonly stdout?: Uint8Array
-  readonly stderr?: Uint8Array
-}> {}
-
-/**
- * Error when child process is terminated by a signal.
- *
- * @since 4.0.0
- * @category errors
- */
-export class SignalError extends Data.TaggedError("SignalError")<{
-  readonly command: string
-  readonly signal: string
-  readonly stdout?: Uint8Array
-  readonly stderr?: Uint8Array
-}> {}
-
-/**
- * Error when child process exceeds timeout.
- *
- * @since 4.0.0
- * @category errors
- */
-export class TimeoutError extends Data.TaggedError("TimeoutError")<{
-  readonly command: string
-  readonly timeout: Duration.Duration
-  readonly stdout?: Uint8Array
-  readonly stderr?: Uint8Array
-}> {}
-
-/**
- * Error when output exceeds maxBuffer limit.
- *
- * @since 4.0.0
- * @category errors
- */
-export class MaxBufferError extends Data.TaggedError("MaxBufferError")<{
-  readonly command: string
-  readonly maxBuffer: number
-  readonly stdout?: Uint8Array
-  readonly stderr?: Uint8Array
-}> {}
-
-/**
- * Error related to stdio stream operations.
- *
- * @since 4.0.0
- * @category errors
- */
-export class StdioError extends Data.TaggedError("StdioError")<{
-  readonly fd: "stdin" | "stdout" | "stderr"
-  readonly cause: unknown
-}> {}
-
-/**
- * Error related to parsing command arguments.
- *
- * @since 4.0.0
- * @category errors
- */
-export class ParseArgumentsError extends Schema.ErrorClass(
-  "effect/unstable/process/ChildProcess/ParseArgumentsError"
-)({ message: Schema.String }) {}
-
-/**
- * Union of all child process error types.
- *
- * @since 4.0.0
- * @category errors
- */
-export type ChildProcessError =
-  | SpawnError
-  | ExitCodeError
-  | SignalError
-  | TimeoutError
-  | MaxBufferError
-  | StdioError
-
-// ═══════════════════════════════════════════════════════════════
-// RESULT TYPES
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Process exit information.
- *
- * @since 4.0.0
- * @category models
- */
-export interface ExitInfo {
-  readonly exitCode: number | undefined
-  readonly signal: string | undefined
+export interface CommandOptions extends KillOptions {
+  readonly cwd?: string | undefined
+  readonly env?: Record<string, string> | undefined
+  readonly extendEnv?: boolean | undefined
+  /**
+   * Configuration options for the standard input stream for the child process.
+   */
+  readonly stdin?: {
+    /**
+     * A string indicating how the operating system should configure the pipe
+     * established between the child process `stdin` and the parent process.
+     *
+     * A `Stream` can also be passed, which will pipe all elements produced by
+     * the `stdin` of the child process.
+     *
+     * Defaults to "pipe".
+     */
+    readonly stdioOption?: CommandInput | undefined
+    /**
+     * Whether or not the child process `stdin` should be closed after the input
+     * stream is finished.
+     *
+     * Defaults to `true`.
+     */
+    readonly endOnDone?: boolean | undefined
+    /**
+     * The buffer encoding to use to decode string chunks.
+     *
+     * Defaults to `utf-8`.
+     */
+    readonly encoding?: BufferEncoding | undefined
+  }
+  /**
+   * Configuration options for the standard output stream for the child process.
+   */
+  readonly stdout?: {
+    /**
+     * A string indicating how the operating system should configure the pipe
+     * established between the child process `stdout` and the parent process.
+     *
+     * A `Sink` can also be passed, which will receive all elements produced by
+     * the `stdout` of the child process.
+     *
+     * Defaults to "pipe".
+     */
+    readonly stdioOption?: CommandOutput | undefined
+  } | undefined
+  /**
+   * Configuration options for the standard error stream for the child process.
+   */
+  readonly stderr?: {
+    /**
+     * A string indicating how the operating system should configure the pipe
+     * established between the child process `stdout` and the parent process.
+     *
+     * A `Sink` can also be passed, which will receive all elements produced by
+     * the `stdout` of the child process.
+     *
+     * Defaults to "pipe".
+     */
+    readonly stdioOption?: CommandOutput | undefined
+  } | undefined
+  readonly timeout?: Duration.DurationInput | undefined
+  readonly shell?: boolean | string | undefined
+  readonly encoding?: "utf8" | "buffer" | undefined
 }
 
 /**
- * Handle to a running child process with streaming I/O.
+ * Valid template expression item types.
  *
  * @since 4.0.0
- * @category models
+ * @category Models
  */
-export interface ChildProcessHandle {
-  readonly pid: number | undefined
-  readonly stdin: Sink.Sink<void, Uint8Array, never, never, Scope.Scope> | undefined
-  readonly stdout: Stream.Stream<Uint8Array, ChildProcessError, Scope.Scope> | undefined
-  readonly stderr: Stream.Stream<Uint8Array, ChildProcessError, Scope.Scope> | undefined
-  readonly all: Stream.Stream<Uint8Array, ChildProcessError, Scope.Scope> | undefined
-  readonly exitCode: Effect.Effect<ExitInfo, ChildProcessError, Scope.Scope>
-  readonly kill: (signal?: string) => Effect.Effect<void, ChildProcessError>
-}
+export type TemplateExpressionItem = string | number | boolean
 
 /**
- * Result of a completed child process.
+ * Template expression type for interpolated values.
  *
  * @since 4.0.0
- * @category models
+ * @category Models
  */
-export interface ChildProcessResult {
-  readonly command: string
-  readonly exitCode: number | undefined
-  readonly signal: string | undefined
-  readonly stdout: Uint8Array | undefined
-  readonly stderr: Uint8Array | undefined
-  readonly all: Uint8Array | undefined
-  readonly duration: Duration.Duration
-}
+export type TemplateExpression = TemplateExpressionItem | ReadonlyArray<TemplateExpressionItem>
 
-// ═══════════════════════════════════════════════════════════════
-// CHILD PROCESS
-// ═══════════════════════════════════════════════════════════════
+// =============================================================================
+// Constructors
+// =============================================================================
 
 /**
- * A description of a child process to be spawned.
- * Immutable and composable.
+ * Create a command from a template literal, options + template, or array form.
+ *
+ * This function supports three calling conventions:
+ * 1. Template literal: `make\`npm run build\``
+ * 2. Options + template literal: `make({ cwd: "/app" })\`npm run build\``
+ * 3. Array form: `make("npm", ["run", "build"], options?)`
+ *
+ * Template literals are not parsed until execution time, allowing parsing
+ * errors to flow through Effect's error channel.
+ *
+ * @example
+ * ```ts
+ * import { ChildProcess } from "effect/unstable/process"
+ *
+ * // Template literal form
+ * const cmd1 = ChildProcess.make`echo "hello"`
+ *
+ * // With options
+ * const cmd2 = ChildProcess.make({ cwd: "/tmp" })`ls -la`
+ *
+ * // Array form
+ * const cmd3 = ChildProcess.make("git", ["status"])
+ * ```
  *
  * @since 4.0.0
- * @category models
+ * @category Constructors
  */
-export interface ChildProcess extends Pipeable, Inspectable.Inspectable {
-  readonly [TypeId]: typeof TypeId
-  readonly command: string
-  readonly args: ReadonlyArray<string>
-  readonly options: ChildProcessOptions
-}
+export const make: {
+  (
+    templates: TemplateStringsArray,
+    ...expressions: ReadonlyArray<TemplateExpression>
+  ): TemplatedCommand
+  (
+    options: CommandOptions
+  ): (
+    templates: TemplateStringsArray,
+    ...expressions: ReadonlyArray<TemplateExpression>
+  ) => TemplatedCommand
+  (
+    command: string,
+    args?: ReadonlyArray<string>,
+    options?: CommandOptions
+  ): StandardCommand
+} = function make(...args: Array<unknown>): any {
+  // Template literal form: make`command`
+  if (isTemplateString(args[0])) {
+    const [templates, ...expressions] = args as [TemplateStringsArray, ...ReadonlyArray<TemplateExpression>]
+    return makeTemplatedCommand(templates, expressions, {})
+  }
 
-const ChildProcessProto: Omit<ChildProcess, "command" | "args" | "options"> = {
-  ...Inspectable.BaseProto,
-  [TypeId]: TypeId,
-  toJSON(this: ChildProcess) {
-    return {
-      _id: "ChildProcess",
-      command: this.command,
-      args: this.args,
-      options: this.options
+  // Options form: make({ cwd: "/tmp" })`command`
+  if (typeof args[0] === "object" && args[0] !== null && !Array.isArray(args[0]) && !isTemplateString(args[0])) {
+    const options = args[0] as CommandOptions
+    return function(
+      templates: TemplateStringsArray,
+      ...expressions: ReadonlyArray<TemplateExpression>
+    ): TemplatedCommand {
+      return makeTemplatedCommand(templates, expressions, options)
     }
-  },
+  }
+
+  // Array form: make("command", ["arg1", "arg2"], options?)
+  const [command, cmdArgs = [], options = {}] = args as [
+    string,
+    ReadonlyArray<string>?,
+    CommandOptions?
+  ]
+  return makeStandardCommand(command, cmdArgs, options)
+}
+
+const Proto = {
+  [TypeId]: TypeId,
   pipe() {
     return pipeArguments(this, arguments)
   }
 }
 
-const makeChildProcess = (
+/**
+ * Check if a value is a `Command`.
+ *
+ * @since 4.0.0
+ * @category Guards
+ */
+export const isCommand = (u: unknown): u is Command => Predicate.hasProperty(u, TypeId)
+
+/**
+ * Check if a command is a `StandardCommand`.
+ *
+ * @since 4.0.0
+ * @category Guards
+ */
+export const isStandardCommand = (command: Command): command is StandardCommand => command._tag === "StandardCommand"
+
+/**
+ * Check if a command is a `TemplatedCommand`.
+ *
+ * @since 4.0.0
+ * @category Guards
+ */
+export const isTemplatedCommand = (command: Command): command is TemplatedCommand => command._tag === "TemplatedCommand"
+
+/**
+ * Check if a command is a `PipedCommand`.
+ *
+ * @since 4.0.0
+ * @category Guards
+ */
+export const isPipedCommand = (command: Command): command is PipedCommand => command._tag === "PipedCommand"
+
+const makeStandardCommand = (
   command: string,
   args: ReadonlyArray<string>,
-  options: ChildProcessOptions
-): ChildProcess => {
-  const self = Object.create(ChildProcessProto)
-  self.command = command
-  self.args = args
-  self.options = options
-  return self
-}
+  options: CommandOptions
+): StandardCommand =>
+  Object.assign(Object.create(Proto), {
+    _tag: "StandardCommand",
+    command,
+    args,
+    options
+  })
 
-// ═══════════════════════════════════════════════════════════════
-// CONSTRUCTORS
-// ═══════════════════════════════════════════════════════════════
+const makeTemplatedCommand = (
+  templates: TemplateStringsArray,
+  expressions: ReadonlyArray<TemplateExpression>,
+  options: CommandOptions
+): TemplatedCommand =>
+  Object.assign(Object.create(Proto), {
+    _tag: "TemplatedCommand",
+    templates,
+    expressions,
+    options
+  })
+
+const makePipedCommand = (
+  left: Command,
+  right: Command
+): PipedCommand =>
+  Object.assign(Object.create(Proto), {
+    _tag: "PipedCommand",
+    left,
+    right
+  })
 
 /**
- * Create a child process description.
+ * Pipe the output of one command to the input of another.
+ *
+ * By default, stdout is piped. Use the `stdio` option to pipe stderr or both.
  *
  * @example
  * ```ts
  * import { ChildProcess } from "effect/unstable/process"
  *
- * const process = ChildProcess.make("node", ["--version"])
+ * // Pipe stdout (default)
+ * const pipeline = ChildProcess.make`cat file.txt`.pipe(
+ *   ChildProcess.pipeTo(ChildProcess.make`grep pattern`)
+ * )
+ *
+ * // Pipe stderr
+ * const pipeStderr = ChildProcess.make`some-command`.pipe(
+ *   ChildProcess.pipeTo(ChildProcess.make`error-handler`, { stdio: "stderr" })
+ * )
+ *
+ * // Pipe both stdout and stderr
+ * const pipeBoth = ChildProcess.make`noisy-command`.pipe(
+ *   ChildProcess.pipeTo(ChildProcess.make`filter`, { stdio: "both" })
+ * )
  * ```
  *
  * @since 4.0.0
- * @category constructors
+ * @category Combinators
  */
-export const make = (command: string, args: ReadonlyArray<string> = []): ChildProcess =>
-  makeChildProcess(command, args, {})
+export const pipeTo: {
+  (that: Command): (self: Command) => PipedCommand
+  (self: Command, that: Command): PipedCommand
+} = dual(2, (self: Command, that: Command) => makePipedCommand(self, that))
 
 /**
- * Create a child process that runs in a shell.
+ * Spawn a command and return a handle for interaction.
+ *
+ * Unlike `exec`, this does not wait for the process to complete. Instead,
+ * it returns a handle that provides access to the process's stdin, stdout,
+ * stderr streams and exit code.
+ *
+ * Note: For piped commands, only the first command in the pipeline is spawned
+ * and a handle to it is returned.
  *
  * @example
  * ```ts
+ * import { Effect, Stream, Console } from "effect"
  * import { ChildProcess } from "effect/unstable/process"
+ * import { NodeChildProcessExecutor } from "@effect/platform-node"
  *
- * const process = ChildProcess.shell("npm run build")
+ * const program = Effect.gen(function* () {
+ *   const cmd = ChildProcess.make`long-running-process`
+ *   const handle = yield* ChildProcess.spawn(cmd)
+ *
+ *   // Stream stdout
+ *   yield* handle.stdout.pipe(
+ *     Stream.decodeText(),
+ *     Stream.runForEach(Console.log)
+ *   )
+ *
+ *   // Wait for exit
+ *   const exitCode = yield* handle.exitCode
+ *   yield* Console.log(`Process exited with code ${exitCode}`)
+ * }).pipe(Effect.provide(NodeChildProcessExecutor.layer))
  * ```
  *
  * @since 4.0.0
- * @category constructors
+ * @category Execution
  */
-export const shell = (command: string): ChildProcess => makeChildProcess(command, [], { shell: true })
-
-// ═══════════════════════════════════════════════════════════════
-// CONFIGURATION
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Set the working directory for the child process.
- *
- * @since 4.0.0
- * @category configuration
- */
-export const withCwd: {
-  (cwd: string): (self: ChildProcess) => ChildProcess
-  (self: ChildProcess, cwd: string): ChildProcess
-} = dual(
-  2,
-  (self: ChildProcess, cwd: string): ChildProcess => makeChildProcess(self.command, self.args, { ...self.options, cwd })
-)
-
-/**
- * Set environment variables for the child process.
- *
- * @since 4.0.0
- * @category configuration
- */
-export const withEnv: {
-  (env: Record<string, string>): (self: ChildProcess) => ChildProcess
-  (self: ChildProcess, env: Record<string, string>): ChildProcess
-} = dual(
-  2,
-  (self: ChildProcess, env: Record<string, string>): ChildProcess =>
-    makeChildProcess(self.command, self.args, { ...self.options, env })
-)
-
-/**
- * Set a timeout for the child process.
- *
- * @since 4.0.0
- * @category configuration
- */
-export const withTimeout: {
-  (duration: Duration.DurationInput): (self: ChildProcess) => ChildProcess
-  (self: ChildProcess, duration: Duration.DurationInput): ChildProcess
-} = dual(
-  2,
-  (self: ChildProcess, duration: Duration.DurationInput): ChildProcess =>
-    makeChildProcess(self.command, self.args, { ...self.options, timeout: Duration.fromDurationInputUnsafe(duration) })
-)
-
-/**
- * Configure stdin for the child process.
- *
- * @since 4.0.0
- * @category configuration
- */
-export const withStdin: {
-  (stdin: StdioValue): (self: ChildProcess) => ChildProcess
-  (self: ChildProcess, stdin: StdioValue): ChildProcess
-} = dual(
-  2,
-  (self: ChildProcess, stdin: StdioValue): ChildProcess =>
-    makeChildProcess(self.command, self.args, {
-      ...self.options,
-      stdio: { ...self.options.stdio, stdin }
-    })
-)
-
-/**
- * Configure stdout for the child process.
- *
- * @since 4.0.0
- * @category configuration
- */
-export const withStdout: {
-  (stdout: StdioValue): (self: ChildProcess) => ChildProcess
-  (self: ChildProcess, stdout: StdioValue): ChildProcess
-} = dual(
-  2,
-  (self: ChildProcess, stdout: StdioValue): ChildProcess =>
-    makeChildProcess(self.command, self.args, {
-      ...self.options,
-      stdio: { ...self.options.stdio, stdout }
-    })
-)
-
-/**
- * Configure stderr for the child process.
- *
- * @since 4.0.0
- * @category configuration
- */
-export const withStderr: {
-  (stderr: StdioValue): (self: ChildProcess) => ChildProcess
-  (self: ChildProcess, stderr: StdioValue): ChildProcess
-} = dual(
-  2,
-  (self: ChildProcess, stderr: StdioValue): ChildProcess =>
-    makeChildProcess(self.command, self.args, {
-      ...self.options,
-      stdio: { ...self.options.stdio, stderr }
-    })
-)
-
-/**
- * Enable interleaved stdout and stderr output.
- *
- * @since 4.0.0
- * @category configuration
- */
-export const withAll: {
-  (all: boolean): (self: ChildProcess) => ChildProcess
-  (self: ChildProcess, all: boolean): ChildProcess
-} = dual(
-  2,
-  (self: ChildProcess, all: boolean): ChildProcess =>
-    makeChildProcess(self.command, self.args, {
-      ...self.options,
-      stdio: { ...self.options.stdio, all }
-    })
-)
-
-// ═══════════════════════════════════════════════════════════════
-// EXECUTOR SERVICE
-// ═══════════════════════════════════════════════════════════════
-
-const ExecutorTypeId = "~effect/process/ChildProcessExecutor"
-
-/**
- * Platform-specific service for executing child processes.
- *
- * @since 4.0.0
- * @category services
- */
-export interface ChildProcessExecutor {
-  readonly [ExecutorTypeId]: typeof ExecutorTypeId
-  readonly execute: (
-    process: ChildProcess
-  ) => Effect.Effect<ChildProcessResult, ChildProcessError, Scope.Scope>
-  readonly spawn: (
-    process: ChildProcess
-  ) => Effect.Effect<ChildProcessHandle, ChildProcessError, Scope.Scope>
-}
-
-/**
- * Service tag for ChildProcessExecutor.
- *
- * @since 4.0.0
- * @category tags
- */
-export const ChildProcessExecutor: ServiceMap.Service<
-  ChildProcessExecutor,
+export const spawn: (command: Command) => Effect.Effect<
+  ChildProcessHandle,
+  PlatformError.PlatformError,
   ChildProcessExecutor
-> = ServiceMap.Service("effect/ChildProcess/Executor")
+> = Effect.fnUntraced(function*(command) {
+  const executor = yield* ChildProcessExecutor
+  return yield* executor.spawn(command)
+})
 
-// ═══════════════════════════════════════════════════════════════
-// EXECUTION
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Execute a child process and collect its output.
- *
- * @example
- * ```ts
- * import { ChildProcess } from "effect/unstable/process"
- * import { Effect } from "effect"
- *
- * const program = Effect.gen(function* () {
- *   const process = ChildProcess.make("node", ["--version"])
- *   const result = yield* ChildProcess.execute(process)
- *   console.log(new TextDecoder().decode(result.stdout))
- * })
- * ```
- *
- * @since 4.0.0
- * @category execution
- */
-export const execute = (
-  process: ChildProcess
-): Effect.Effect<ChildProcessResult, ChildProcessError, ChildProcessExecutor | Scope.Scope> =>
-  Effect.gen(function*() {
-    const executor = yield* ChildProcessExecutor
-    return yield* executor.execute(process)
-  })
-
-/**
- * Spawn a child process for streaming I/O.
- *
- * @example
- * ```ts
- * import { ChildProcess } from "effect/unstable/process"
- * import { Effect } from "effect"
- * import { Stream } from "effect/stream"
- *
- * const program = Effect.gen(function* () {
- *   const process = ChildProcess.make("npm", ["run", "build"])
- *   const handle = yield* ChildProcess.spawn(process)
- *
- *   if (handle.stdout) {
- *     const output = yield* Stream.runCollect(handle.stdout)
- *     const exit = yield* handle.exitCode
- *     return { output, exit }
- *   }
- * })
- * ```
- *
- * @since 4.0.0
- * @category execution
- */
-export const spawn = (
-  process: ChildProcess
-): Effect.Effect<ChildProcessHandle, ChildProcessError, ChildProcessExecutor | Scope.Scope> =>
-  Effect.gen(function*() {
-    const executor = yield* ChildProcessExecutor
-    return yield* executor.spawn(process)
-  })
-
-// =============================================================================
-// Executor
-// =============================================================================
-
-export type TemplateExpressionItem =
-  | string
-  | number
-
-export type TemplateExpression = TemplateExpressionItem | ReadonlyArray<TemplateExpressionItem>
-
-export interface Executor {
-  execute(cmd: string, args: ReadonlyArray<string>): void
-  execute(strings: TemplateStringsArray, ...args: ReadonlyArray<TemplateExpression>): void
-}
-
-declare const executor: Executor
-
-const _ = executor.execute`foo ${1}`
-
-export const make = Effect.fnUntraced(
-  function*() {
-    const execute: {
-      (cmd: TemplateStringsArray, ...args: ReadonlyArray<TemplateExpression>): void
-      (cmd: string, ...args: ReadonlyArray<string>): void
-    } = Effect.fnUntraced(function*(cmd: unknown, ...args: ReadonlyArray<any>) {
-      const parsedArgs = yield* parseArguments(cmd, args)
-    })
-  }
-)
-
-const parseArguments: (cmd: unknown, ...args: ReadonlyArray<any>) => Effect.Effect<
-  Arr.NonEmptyReadonlyArray<string>,
-  ParseArgumentsError
-> = Effect.fnUntraced(
-  function*(cmd, ...args: ReadonlyArray<any>) {
-    if (isTemplateString(cmd)) {
-      return yield* parseTemplates(cmd, args).pipe(
-        Effect.mapError((message) => new ParseArgumentsError({ message }))
-      )
-    }
-    return Arr.prepend(args, cmd)
-  }
-)
+const isTemplateString = (u: unknown): u is TemplateStringsArray =>
+  Array.isArray(u) && "raw" in u && Array.isArray(u.raw)

@@ -468,7 +468,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |            `count`            |   -    |                          |          |
 |             `die`             |  Done  |          `die`           |          |
 |           `dieSync`           |   -    |                          |          |
-|            `drain`            |   -    |                          |          |
+|            `drain`            |  Done  |         `drain`          |          |
 |            `drop`             |   -    |                          |          |
 |          `dropUntil`          |   -    |                          |          |
 |       `dropUntilEffect`       |   -    |                          |          |

@@ -9,49 +9,38 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-import * as Arr from "../../../collections/Array.ts"
-import * as Effect from "../../../Effect.ts"
-import type { TemplateExpression, TemplateExpressionItem } from "../ChildProcess.ts"
+import * as Arr from "effect/collections/Array"
+import type { TemplateExpression, TemplateExpressionItem } from "effect/unstable/process/ChildProcess"
 
-export const isTemplateString = (u: unknown): u is TemplateStringsArray =>
-  Array.isArray(u) && "raw" in u && Array.isArray(u.raw)
-
-export const parseTemplates: (
+/** @internal */
+export const parseTemplates = (
   templates: TemplateStringsArray,
   expressions: ReadonlyArray<TemplateExpression>
-) => Effect.Effect<Arr.NonEmptyReadonlyArray<string>, string> = Effect.fnUntraced(
-  function*(templates, expressions) {
-    let tokens: ReadonlyArray<string> = []
+): Arr.NonEmptyReadonlyArray<string> => {
+  let tokens: ReadonlyArray<string> = []
 
-    for (const [index, template] of templates.entries()) {
-      tokens = yield* parseTemplate(
-        templates,
-        expressions,
-        tokens,
-        template,
-        index
-      )
-    }
-
-    if (Arr.isReadonlyArrayNonEmpty(tokens)) {
-      return tokens
-    }
-
-    return yield* Effect.fail("Template script must not be empty")
+  for (const [index, template] of templates.entries()) {
+    tokens = parseTemplate(templates, expressions, tokens, template, index)
   }
-)
 
-const parseTemplate = Effect.fnUntraced(function*(
+  if (Arr.isReadonlyArrayNonEmpty(tokens)) {
+    return tokens
+  }
+
+  throw new Error("Template script must not be empty")
+}
+
+const parseTemplate = (
   templates: TemplateStringsArray,
   expressions: ReadonlyArray<TemplateExpression>,
   prevTokens: ReadonlyArray<string>,
   template: string,
   index: number
-) {
+): ReadonlyArray<string> => {
   const rawTemplate = templates.raw[index]
 
   if (rawTemplate === undefined) {
-    return yield* Effect.fail(`Invalid backslash sequence: ${templates.raw[index]}`)
+    throw new Error(`Invalid backslash sequence: ${templates.raw[index]}`)
   }
 
   const { hasLeadingWhitespace, hasTrailingWhitespace, tokens } = splitByWhitespaces(template, rawTemplate)
@@ -67,7 +56,7 @@ const parseTemplate = Effect.fnUntraced(function*(
     : [parseExpression(expression as TemplateExpressionItem)]
 
   return concatTokens(nextTokens, expressionTokens, hasTrailingWhitespace)
-})
+}
 
 /**
  * Convert valid expressions defined in a template string command (i.e. using

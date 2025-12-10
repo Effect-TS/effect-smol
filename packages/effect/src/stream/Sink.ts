@@ -8,6 +8,7 @@ import * as Chunk from "../collections/Chunk.ts"
 import * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import type { Predicate } from "../data/Predicate.ts"
+import { hasProperty } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import type { LazyArg } from "../Function.ts"
 import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
@@ -196,6 +197,25 @@ const SinkProto = {
     return pipeArguments(this, arguments)
   }
 }
+
+/**
+ * Checks if a value is a Sink.
+ *
+ * @example
+ * ```ts
+ * import { Sink } from "effect/stream"
+ *
+ * const sink = Sink.never
+ * const notStream = { data: [1, 2, 3] }
+ *
+ * console.log(Sink.isSink(sink))    // true
+ * console.log(Sink.isSink(notStream)) // false
+ * ```
+ *
+ * @since 2.0.0
+ * @category guards
+ */
+export const isSink = (u: unknown): u is Sink<unknown, unknown, unknown, unknown, unknown> => hasProperty(u, TypeId)
 
 /**
  * Creates a sink from a `Channel`.
@@ -431,7 +451,7 @@ export const die = (defect: unknown): Sink<never> => fromChannel(Channel.die(def
  * @since 2.0.0
  * @category constructors
  */
-export const never = fromChannel(Channel.never)
+export const never: Sink<unknown> = fromChannel(Channel.never)
 
 /**
  * Drains the remaining elements from the stream after the sink finishes
@@ -453,6 +473,14 @@ export const fromEffect = <A, E, R>(
     effect,
     (a) => Pull.halt<End<A>>([a])
   ))))
+
+/**
+ * Drains elements from the stream by ignoring all inputs.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const drain: Sink<void, unknown> = fromChannel(Channel.drain(Channel.identity()) as any)
 
 /**
  * A sink that folds its inputs with the provided function, termination

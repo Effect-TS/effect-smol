@@ -8,9 +8,11 @@
 export * as Mime from "./Mime.ts"
 
 /**
+ * Node.js implementation of ChildProcessExecutor.
+ *
  * @since 1.0.0
  */
-export * as NodeProcessExecutor from "./NodeProcessExecutor.ts"
+export * as NodeChildProcessExecutor from "./NodeChildProcessExecutor.ts"
 
 /**
  * @since 1.0.0
