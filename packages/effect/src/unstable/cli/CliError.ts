@@ -6,9 +6,9 @@ import * as Schema from "../../schema/Schema.ts"
 
 /**
  * @since 4.0.0
- * @category TypeId
+ * @category type id
  */
-export const TypeId = "~effect/cli/CliError"
+const TypeId = "~effect/cli/CliError"
 
 /**
  * Type guard to check if a value is a CLI error.
@@ -37,7 +37,7 @@ export const TypeId = "~effect/cli/CliError"
  * ```
  *
  * @since 4.0.0
- * @category Guards
+ * @category guards
  */
 export const isCliError = (u: unknown): u is CliError => Predicate.hasProperty(u, TypeId)
 
@@ -71,7 +71,7 @@ export const isCliError = (u: unknown): u is CliError => Predicate.hasProperty(u
  * ```
  *
  * @since 4.0.0
- * @category Models
+ * @category models
  */
 export type CliError =
   | UnrecognizedOption
@@ -113,7 +113,7 @@ export type CliError =
  * ```
  *
  * @since 4.0.0
- * @category Models
+ * @category models
  */
 export class UnrecognizedOption extends Schema.ErrorClass(`${TypeId}/UnrecognizedOption`)({
   _tag: Schema.tag("UnrecognizedOption"),
@@ -159,7 +159,7 @@ export class UnrecognizedOption extends Schema.ErrorClass(`${TypeId}/Unrecognize
  * ```
  *
  * @since 4.0.0
- * @category Models
+ * @category models
  */
 export class DuplicateOption extends Schema.ErrorClass(`${TypeId}/DuplicateOption`)({
   _tag: Schema.tag("DuplicateOption"),
@@ -207,7 +207,7 @@ export class DuplicateOption extends Schema.ErrorClass(`${TypeId}/DuplicateOptio
  * ```
  *
  * @since 4.0.0
- * @category Models
+ * @category models
  */
 export class MissingOption extends Schema.ErrorClass(`${TypeId}/MissingOption`)({
   _tag: Schema.tag("MissingOption"),
@@ -251,7 +251,7 @@ export class MissingOption extends Schema.ErrorClass(`${TypeId}/MissingOption`)(
  * ```
  *
  * @since 4.0.0
- * @category Models
+ * @category models
  */
 export class MissingArgument extends Schema.ErrorClass(`${TypeId}/MissingArgument`)({
   _tag: Schema.tag("MissingArgument"),
@@ -298,7 +298,7 @@ export class MissingArgument extends Schema.ErrorClass(`${TypeId}/MissingArgumen
  * ```
  *
  * @since 4.0.0
- * @category Models
+ * @category models
  */
 export class InvalidValue extends Schema.ErrorClass(`${TypeId}/InvalidValue`)({
   _tag: Schema.tag("InvalidValue"),
@@ -351,7 +351,7 @@ export class InvalidValue extends Schema.ErrorClass(`${TypeId}/InvalidValue`)({
  * ```
  *
  * @since 4.0.0
- * @category Models
+ * @category models
  */
 export class UnknownSubcommand extends Schema.ErrorClass(`${TypeId}/UnknownSubcommand`)({
   _tag: Schema.tag("UnknownSubcommand"),
@@ -412,7 +412,7 @@ export class UnknownSubcommand extends Schema.ErrorClass(`${TypeId}/UnknownSubco
  * ```
  *
  * @since 4.0.0
- * @category Models
+ * @category models
  */
 export class ShowHelp extends Schema.ErrorClass(`${TypeId}/ShowHelp`)({
   _tag: Schema.tag("ShowHelp"),
@@ -464,7 +464,7 @@ export class ShowHelp extends Schema.ErrorClass(`${TypeId}/ShowHelp`)({
  * ```
  *
  * @since 4.0.0
- * @category Models
+ * @category models
  */
 export class UserError extends Schema.ErrorClass(`${TypeId}/UserError`)({
   _tag: Schema.tag("UserError"),

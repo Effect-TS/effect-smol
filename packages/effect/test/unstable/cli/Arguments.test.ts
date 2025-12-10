@@ -1,8 +1,9 @@
 import { assert, describe, expect, it } from "@effect/vitest"
 import { Effect, Layer, Ref } from "effect"
+import { Option, Result } from "effect/data"
 import { FileSystem, Path, PlatformError } from "effect/platform"
 import { TestConsole } from "effect/testing"
-import { Argument, Command, Flag, HelpFormatter } from "effect/unstable/cli"
+import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
 import * as MockTerminal from "./services/MockTerminal.ts"
 
 const ConsoleLayer = TestConsole.layer
@@ -27,8 +28,8 @@ const FileSystemLayer = FileSystem.layerNoop({
 })
 const PathLayer = Path.layer
 const TerminalLayer = MockTerminal.layer
-const HelpFormatterLayer = HelpFormatter.layer(
-  HelpFormatter.defaultHelpRenderer({
+const CliOutputLayer = CliOutput.layer(
+  CliOutput.defaultFormatter({
     colors: false
   })
 )
@@ -38,7 +39,7 @@ const TestLayer = Layer.mergeAll(
   FileSystemLayer,
   PathLayer,
   TerminalLayer,
-  HelpFormatterLayer
+  CliOutputLayer
 )
 
 describe("Command arguments", () => {
@@ -158,10 +159,10 @@ describe("Command arguments", () => {
       let result: { readonly files: ReadonlyArray<string> } | undefined
 
       const testCommand = Command.make("test", {
-        files: Argument.string("files").pipe(Argument.repeated)
-      }, (config) =>
+        files: Argument.variadic(Argument.string("files"))
+      }, (parsedConfig) =>
         Effect.sync(() => {
-          result = config
+          result = parsedConfig
         }))
 
       yield* Command.runWith(testCommand, { version: "1.0.0" })([
@@ -172,5 +173,155 @@ describe("Command arguments", () => {
 
       assert.isDefined(result)
       assert.deepStrictEqual(result.files, ["file1.txt", "file2.txt", "file3.txt"])
+    }).pipe(Effect.provide(TestLayer)))
+
+  it("should handle choiceWithValue", () =>
+    Effect.gen(function*() {
+      const resultRef = yield* Ref.make<any>(null)
+
+      const testCommand = Command.make("test", {
+        level: Argument.choiceWithValue(
+          "level",
+          [
+            ["debug", 0],
+            ["info", 1],
+            ["error", 2]
+          ] as const
+        )
+      }, (config) => Ref.set(resultRef, config))
+
+      yield* Command.runWith(testCommand, { version: "1.0.0" })(["info"])
+      const result = yield* Ref.get(resultRef)
+      assert.strictEqual(result.level, 1)
+    }).pipe(Effect.provide(TestLayer)))
+
+  it("should handle filter combinator - valid", () =>
+    Effect.gen(function*() {
+      const resultRef = yield* Ref.make<any>(null)
+
+      const testCommand = Command.make("test", {
+        port: Argument.integer("port").pipe(
+          Argument.filter(
+            (n) => n >= 1 && n <= 65535,
+            (n) => `Port ${n} out of range (1-65535)`
+          )
+        )
+      }, (config) => Ref.set(resultRef, config))
+
+      yield* Command.runWith(testCommand, { version: "1.0.0" })(["8080"])
+      const result = yield* Ref.get(resultRef)
+      assert.strictEqual(result.port, 8080)
+    }).pipe(Effect.provide(TestLayer)))
+
+  it("should handle filter combinator - invalid", () =>
+    Effect.gen(function*() {
+      const testCommand = Command.make("test", {
+        port: Argument.integer("port").pipe(
+          Argument.filter(
+            (n) => n >= 1 && n <= 65535,
+            (n) => `Port ${n} out of range (1-65535)`
+          )
+        )
+      }, () => Effect.void)
+
+      yield* Command.runWith(testCommand, { version: "1.0.0" })(["99999"])
+      const stderr = yield* TestConsole.errorLines
+      assert.isTrue(stderr.some((line) => String(line).includes("out of range")))
+    }).pipe(Effect.provide(TestLayer)))
+
+  it("should handle filterMap combinator - valid", () =>
+    Effect.gen(function*() {
+      const resultRef = yield* Ref.make<any>(null)
+
+      const testCommand = Command.make("test", {
+        positiveInt: Argument.integer("num").pipe(
+          Argument.filterMap(
+            (n) => n > 0 ? Option.some(n) : Option.none(),
+            (n) => `Expected positive integer, got ${n}`
+          )
+        )
+      }, (config) => Ref.set(resultRef, config))
+
+      yield* Command.runWith(testCommand, { version: "1.0.0" })(["42"])
+      const result = yield* Ref.get(resultRef)
+      assert.strictEqual(result.positiveInt, 42)
+    }).pipe(Effect.provide(TestLayer)))
+
+  it("should handle filterMap combinator - invalid", () =>
+    Effect.gen(function*() {
+      const testCommand = Command.make("test", {
+        positiveInt: Argument.integer("num").pipe(
+          Argument.filterMap(
+            (n) => n > 0 ? Option.some(n) : Option.none(),
+            (n) => `Expected positive integer, got ${n}`
+          )
+        )
+      }, () => Effect.void)
+
+      yield* Command.runWith(testCommand, { version: "1.0.0" })(["0"])
+      const stderr = yield* TestConsole.errorLines
+      assert.isTrue(stderr.some((line) => String(line).includes("Expected positive integer")))
+    }).pipe(Effect.provide(TestLayer)))
+
+  it("should handle orElse combinator", () =>
+    Effect.gen(function*() {
+      const resultRef = yield* Ref.make<any>(null)
+
+      // Try parsing as integer first, fallback to 0
+      const testCommand = Command.make("test", {
+        value: Argument.integer("value").pipe(
+          Argument.orElse(() => Argument.string("value").pipe(Argument.map(() => -1)))
+        )
+      }, (config) => Ref.set(resultRef, config))
+
+      // Valid integer
+      yield* Command.runWith(testCommand, { version: "1.0.0" })(["42"])
+      let result = yield* Ref.get(resultRef)
+      assert.strictEqual(result.value, 42)
+
+      // Invalid integer, falls back to string path
+      yield* Ref.set(resultRef, null)
+      yield* Command.runWith(testCommand, { version: "1.0.0" })(["abc"])
+      result = yield* Ref.get(resultRef)
+      assert.strictEqual(result.value, -1)
+    }).pipe(Effect.provide(TestLayer)))
+
+  it("should handle orElseResult combinator", () =>
+    Effect.gen(function*() {
+      const resultRef = yield* Ref.make<any>(null)
+
+      const testCommand = Command.make("test", {
+        value: Argument.integer("value").pipe(
+          Argument.orElseResult(() => Argument.string("value"))
+        )
+      }, (config) => Ref.set(resultRef, config))
+
+      // Valid integer - returns Success
+      yield* Command.runWith(testCommand, { version: "1.0.0" })(["42"])
+      let result = yield* Ref.get(resultRef)
+      assert.isTrue(Result.isSuccess(result.value))
+      assert.strictEqual(result.value.value, 42)
+
+      // Invalid integer - returns Failure with string
+      yield* Ref.set(resultRef, null)
+      yield* Command.runWith(testCommand, { version: "1.0.0" })(["abc"])
+      result = yield* Ref.get(resultRef)
+      assert.isTrue(Result.isFailure(result.value))
+      assert.strictEqual(result.value.value, "abc")
+    }).pipe(Effect.provide(TestLayer)))
+
+  it("should handle withMetavar combinator", () =>
+    Effect.gen(function*() {
+      const testCommand = Command.make("test", {
+        file: Argument.string("file").pipe(
+          Argument.withMetavar("FILE_PATH")
+        )
+      }, () => Effect.void)
+
+      // Run with help flag to check pseudo name appears in help
+      yield* Command.runWith(testCommand, { version: "1.0.0" })(["--help"])
+      const stdout = yield* TestConsole.logLines
+      const helpText = stdout.join("\n")
+      assert.isTrue(helpText.includes("FILE_PATH"))
     }).pipe(Effect.provide(TestLayer)))
 })
