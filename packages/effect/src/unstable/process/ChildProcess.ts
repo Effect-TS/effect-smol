@@ -2,22 +2,24 @@
  * An Effect-native module for working with child processes.
  *
  * This module uses an AST-based approach where commands are built first
- * using `make` and `pipeTo`, then executed using `exec` or `spawn`.
+ * using `make` and `pipeTo`, then executed using `spawn`.
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  * import { ChildProcess } from "effect/unstable/process"
- * import { NodeChildProcessExecutor } from "@effect/platform-node"
+ * import { NodeServices } from "@effect/platform-node"
  *
  * // Build a command
- * const cmd = ChildProcess.make`echo "hello world"`
+ * const command = ChildProcess.make`echo "hello world"`
  *
- * // Execute it
- * const result = ChildProcess.exec(cmd).pipe(
- *   Effect.provide(NodeChildProcessExecutor.layer),
- *   Effect.runPromise
- * )
+ * // Spawn and collect output
+ * const program = Effect.gen(function* () {
+ *   const handle = yield* ChildProcess.spawn(command)
+ *   const chunks = yield* Stream.runCollect(handle.stdout)
+ *   const exitCode = yield* handle.exitCode
+ *   return { chunks, exitCode }
+ * }).pipe(Effect.scoped, Effect.provide(NodeServices.layer))
  *
  * // With options
  * const withOptions = ChildProcess.make({ cwd: "/tmp" })`ls -la`
@@ -27,11 +29,12 @@
  *   ChildProcess.pipeTo(ChildProcess.make`grep name`)
  * )
  *
- * // Execute the pipeline
- * const pipelineResult = ChildProcess.exec(pipeline).pipe(
- *   Effect.provide(NodeChildProcessExecutor.layer),
- *   Effect.runPromise
- * )
+ * // Spawn the pipeline
+ * const pipelineProgram = Effect.gen(function* () {
+ *   const handle = yield* ChildProcess.spawn(pipeline)
+ *   const chunks = yield* Stream.runCollect(handle.stdout)
+ *   return chunks
+ * }).pipe(Effect.scoped, Effect.provide(NodeServices.layer))
  * ```
  *
  * @since 4.0.0
@@ -43,6 +46,7 @@ import { dual } from "../../Function.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
 import { pipeArguments } from "../../interfaces/Pipeable.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
+import type * as Scope from "../../Scope.ts"
 import type * as Sink from "../../stream/Sink.ts"
 import type * as Stream from "../../stream/Stream.ts"
 import type { ChildProcessHandle } from "./ChildProcessExecutor.ts"
@@ -79,7 +83,6 @@ export interface StandardCommand extends Pipeable {
 
 /**
  * A templated command that stores unparsed template information.
- * Templates are parsed at execution time, allowing errors to flow through Effect.
  *
  * @since 4.0.0
  * @category Models
@@ -92,7 +95,8 @@ export interface TemplatedCommand extends Pipeable {
 }
 
 /**
- * A pipeline of commands where the output of one is piped to the input of the next.
+ * A pipeline of commands where the output of one is piped to the input of the
+ * next.
  *
  * @since 4.0.0
  * @category Models
@@ -205,9 +209,36 @@ export interface KillOptions {
  * @category Models
  */
 export interface CommandOptions extends KillOptions {
+  /**
+   * The current working directory of the child process.
+   */
   readonly cwd?: string | undefined
+  /**
+   * The environment of the child process.
+   *
+   * If `extendEnv` is set to `true`, the value of `env` will be merged with
+   * the value of `globalThis.process.env`, prioritizing the values in `env`
+   * when conflicts exist.
+   */
   readonly env?: Record<string, string> | undefined
+  /**
+   * If set to `true`, the child process uses both the values in `env` as well
+   * as the values in `globalThis.process.env`, prioritizing the values in `env`
+   * when conflicts exist.
+   *
+   * If set to `false`, only the value of `env` is used.
+   */
   readonly extendEnv?: boolean | undefined
+  /**
+   * If set to `true`, runs the command inside of a shell, defaulting to `/bin/sh`
+   * on UNIX systems and `cmd.exe` on Windows.
+   *
+   * Can also be set to a string representing the absolute path to a shell to
+   * use on the system.
+   *
+   * It is generally disadvised to use this option.
+   */
+  readonly shell?: boolean | string | undefined
   /**
    * Configuration options for the standard input stream for the child process.
    */
@@ -266,9 +297,6 @@ export interface CommandOptions extends KillOptions {
      */
     readonly stdioOption?: CommandOutput | undefined
   } | undefined
-  readonly timeout?: Duration.DurationInput | undefined
-  readonly shell?: boolean | string | undefined
-  readonly encoding?: "utf8" | "buffer" | undefined
 }
 
 /**
@@ -482,7 +510,7 @@ export const pipeTo: {
  * ```ts
  * import { Effect, Stream, Console } from "effect"
  * import { ChildProcess } from "effect/unstable/process"
- * import { NodeChildProcessExecutor } from "@effect/platform-node"
+ * import { NodeServices } from "@effect/platform-node"
  *
  * const program = Effect.gen(function* () {
  *   const cmd = ChildProcess.make`long-running-process`
@@ -491,13 +519,14 @@ export const pipeTo: {
  *   // Stream stdout
  *   yield* handle.stdout.pipe(
  *     Stream.decodeText(),
- *     Stream.runForEach(Console.log)
+ *     Stream.runForEach(Console.log),
+ *     Effect.fork
  *   )
  *
  *   // Wait for exit
  *   const exitCode = yield* handle.exitCode
  *   yield* Console.log(`Process exited with code ${exitCode}`)
- * }).pipe(Effect.provide(NodeChildProcessExecutor.layer))
+ * }).pipe(Effect.provide(NodeServices.layer))
  * ```
  *
  * @since 4.0.0
@@ -506,7 +535,7 @@ export const pipeTo: {
 export const spawn: (command: Command) => Effect.Effect<
   ChildProcessHandle,
   PlatformError.PlatformError,
-  ChildProcessExecutor
+  ChildProcessExecutor | Scope.Scope
 > = Effect.fnUntraced(function*(command) {
   const executor = yield* ChildProcessExecutor
   return yield* executor.spawn(command)

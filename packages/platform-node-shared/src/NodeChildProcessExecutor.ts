@@ -109,10 +109,11 @@ const make = Effect.gen(function*() {
     streamName: "stdout" | "stderr"
   ) {
     const output = command.options[streamName]
+    const nodeStream = childProcess[streamName]
     let stream: Stream.Stream<Uint8Array, PlatformError.PlatformError> = Stream.empty
-    if (Predicate.isNotNull(childProcess.stdout)) {
+    if (Predicate.isNotNull(nodeStream)) {
       stream = NodeStream.fromReadable({
-        evaluate: () => childProcess.stdout!,
+        evaluate: () => nodeStream,
         onError: (error) => toPlatformError(`fromReadable(${streamName})`, toError(error), command)
       })
     }
@@ -127,7 +128,10 @@ const make = Effect.gen(function*() {
   })
 
   const spawn = Effect.fnUntraced(
-    function*(command: ChildProcess.StandardCommand, spawnOptions: NodeChildProcess.SpawnOptions) {
+    function*(
+      command: ChildProcess.StandardCommand,
+      spawnOptions: NodeChildProcess.SpawnOptions
+    ) {
       const deferred = yield* Deferred.make<ExitCodeWithSignal>()
 
       return yield* Effect.callback<
@@ -235,7 +239,7 @@ const make = Effect.gen(function*() {
         ]
 
         const [childProcess, exitSignal] = yield* Effect.acquireRelease(
-          spawn(command, { cwd, env, stdio }),
+          spawn(command, { cwd, env, stdio, shell: options.shell }),
           Effect.fnUntraced(function*([childProcess, exitSignal]) {
             const exited = yield* Deferred.isDone(exitSignal)
             const killWithTimeout = withTimeout(childProcess, command, options)

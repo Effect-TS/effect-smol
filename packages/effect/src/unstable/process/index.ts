@@ -6,22 +6,24 @@
  * An Effect-native module for working with child processes.
  *
  * This module uses an AST-based approach where commands are built first
- * using `make` and `pipeTo`, then executed using `exec` or `spawn`.
+ * using `make` and `pipeTo`, then executed using `spawn`.
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  * import { ChildProcess } from "effect/unstable/process"
  * import { NodeChildProcessExecutor } from "@effect/platform-node"
  *
  * // Build a command
  * const cmd = ChildProcess.make`echo "hello world"`
  *
- * // Execute it
- * const result = ChildProcess.exec(cmd).pipe(
- *   Effect.provide(NodeChildProcessExecutor.layer),
- *   Effect.runPromise
- * )
+ * // Spawn and collect output
+ * const program = Effect.gen(function* () {
+ *   const handle = yield* ChildProcess.spawn(cmd)
+ *   const chunks = yield* Stream.runCollect(handle.stdout)
+ *   const exitCode = yield* handle.exitCode
+ *   return { chunks, exitCode }
+ * }).pipe(Effect.scoped, Effect.provide(NodeChildProcessExecutor.layer))
  *
  * // With options
  * const withOptions = ChildProcess.make({ cwd: "/tmp" })`ls -la`
@@ -31,24 +33,17 @@
  *   ChildProcess.pipeTo(ChildProcess.make`grep name`)
  * )
  *
- * // Execute the pipeline
- * const pipelineResult = ChildProcess.exec(pipeline).pipe(
- *   Effect.provide(NodeChildProcessExecutor.layer),
- *   Effect.runPromise
- * )
+ * // Spawn the pipeline
+ * const pipelineProgram = Effect.gen(function* () {
+ *   const handle = yield* ChildProcess.spawn(pipeline)
+ *   const chunks = yield* Stream.runCollect(handle.stdout)
+ *   return chunks
+ * }).pipe(Effect.scoped, Effect.provide(NodeChildProcessExecutor.layer))
  * ```
  *
  * @since 4.0.0
  */
 export * as ChildProcess from "./ChildProcess.ts"
-
-/**
- * A module containing typed errors which can occur when working with child
- * processes.
- *
- * @since 4.0.0
- */
-export * as ChildProcessError from "./ChildProcessError.ts"
 
 /**
  * A module providing a generic service interface for executing child processes.
