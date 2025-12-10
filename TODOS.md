@@ -10,7 +10,7 @@ Releases are snapshot only
 - [x] Add CLI modules
 - [ ] Add opentelemetry package
 - [x] Port SubscriptionRef
-- [ ] RateLimiter with persistence
+- [x] RateLimiter with persistence
 - [x] Reduce nesting of modules
 - [ ] Effect.fn call site trace
 
