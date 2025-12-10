@@ -9,7 +9,7 @@ Immutability keeps previous references valid after an update. This is useful in 
 ## Features
 
 - **Unified representation of optics.** All optics compose the same way because they share a single data type: `Optional`.
-- **Integration.** Generate `Iso` values from schemas with `effect/schema/ToOptic`.
+- **Integration.** Generate `Iso` values from schemas with `Schema.makeIso`.
 
 ## Known Limitations
 
@@ -352,6 +352,30 @@ export interface Traversal<in out S, in out A> extends Optional<S, ReadonlyArray
 
 To operate on each `A` inside a `Traversal<S, A>`, use `forEach`.
 `forEach` takes a function whose argument is an `Iso<A, A>`, so you can keep drilling down by composing that `Iso` with other optics.
+
+## Generating an Optic from a Schema
+
+**Example**
+
+```ts
+import { Schema } from "effect/schema"
+
+const schema = Schema.Struct({
+  a: Schema.String,
+  b: Schema.Number
+})
+
+/*
+const _b: Lens<{
+    readonly a: string;
+    readonly b: number;
+}, number>
+*/
+const _b = Schema.makeIso(schema).key("b")
+
+console.log(_b.replace(2, { a: "a", b: 1 }))
+// { a: 'a', b: 2 }
+```
 
 ## Why use functional optics when we already have Immer?
 
