@@ -6,7 +6,8 @@
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
  * import { ChildProcess } from "effect/unstable/process"
  * import { NodeServices } from "@effect/platform-node"
  *
@@ -466,8 +467,6 @@ const makePipedCommand = (
 /**
  * Pipe the output of one command to the input of another.
  *
- * By default, stdout is piped. Use the `stdio` option to pipe stderr or both.
- *
  * @example
  * ```ts
  * import { ChildProcess } from "effect/unstable/process"
@@ -475,16 +474,6 @@ const makePipedCommand = (
  * // Pipe stdout (default)
  * const pipeline = ChildProcess.make`cat file.txt`.pipe(
  *   ChildProcess.pipeTo(ChildProcess.make`grep pattern`)
- * )
- *
- * // Pipe stderr
- * const pipeStderr = ChildProcess.make`some-command`.pipe(
- *   ChildProcess.pipeTo(ChildProcess.make`error-handler`, { stdio: "stderr" })
- * )
- *
- * // Pipe both stdout and stderr
- * const pipeBoth = ChildProcess.make`noisy-command`.pipe(
- *   ChildProcess.pipeTo(ChildProcess.make`filter`, { stdio: "both" })
  * )
  * ```
  *
@@ -508,7 +497,8 @@ export const pipeTo: {
  *
  * @example
  * ```ts
- * import { Effect, Stream, Console } from "effect"
+ * import { Console, Effect } from "effect"
+ * import { Stream } from "effect/stream"
  * import { ChildProcess } from "effect/unstable/process"
  * import { NodeServices } from "@effect/platform-node"
  *
@@ -520,7 +510,7 @@ export const pipeTo: {
  *   yield* handle.stdout.pipe(
  *     Stream.decodeText(),
  *     Stream.runForEach(Console.log),
- *     Effect.fork
+ *     Effect.forkChild
  *   )
  *
  *   // Wait for exit
