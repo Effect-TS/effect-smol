@@ -45,17 +45,17 @@ export * as Issue from "./Issue.ts"
 /**
  * @since 4.0.0
  */
-export * as MetaSchema from "./MetaSchema.ts"
-
-/**
- * @since 4.0.0
- */
 export * as Parser from "./Parser.ts"
 
 /**
  * @since 4.0.0
  */
 export * as Schema from "./Schema.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as StandardAST from "./StandardAST.ts"
 
 /**
  * @since 4.0.0

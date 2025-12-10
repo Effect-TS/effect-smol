@@ -1,14 +1,14 @@
-import { MetaSchema, Schema } from "effect/schema"
+import { Schema, StandardAST } from "effect/schema"
 import { describe, it } from "vitest"
 import { strictEqual, throws } from "../utils/assert.ts"
 
 function assertCode(schema: Schema.Top, expected: string) {
-  const ast = MetaSchema.toMetaAST(schema.ast)
-  strictEqual(MetaSchema.code(ast), expected)
+  const ast = StandardAST.fromRuntime(schema.ast)
+  strictEqual(StandardAST.toCode(ast), expected)
 }
 
-describe("MetaSchema", () => {
-  describe("code", () => {
+describe("StandardAST", () => {
+  describe("toCode", () => {
     describe("primitive types", () => {
       it("Null", () => {
         assertCode(Schema.Null, "Schema.Null")
@@ -119,9 +119,9 @@ describe("MetaSchema", () => {
 
       it("should throw error for symbol created without Symbol.for()", () => {
         const sym = Symbol("test")
-        const ast = MetaSchema.toMetaAST(Schema.UniqueSymbol(sym).ast)
+        const ast = StandardAST.fromRuntime(Schema.UniqueSymbol(sym).ast)
         throws(
-          () => MetaSchema.code(ast),
+          () => StandardAST.toCode(ast),
           "Cannot generate code for UniqueSymbol created without Symbol.for()"
         )
       })

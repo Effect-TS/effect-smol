@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "../collections/Array.ts"
 import { format, formatPropertyKey } from "../data/Formatter.ts"
 import * as AST from "./AST.ts"
 import type * as Getter from "./Getter.ts"
@@ -9,7 +10,7 @@ import * as Schema from "./Schema.ts"
 /**
  * @since 4.0.0
  */
-export type MetaAST =
+export type StandardAST =
   | Null
   | Undefined
   | Void
@@ -28,13 +29,13 @@ export type MetaAST =
   | {
     readonly _tag: "TemplateLiteral"
     readonly annotations: typeof Annotations["Type"] | undefined
-    readonly parts: ReadonlyArray<MetaAST>
+    readonly parts: ReadonlyArray<StandardAST>
   }
   | {
     readonly _tag: "Arrays"
     readonly annotations: typeof Annotations["Type"] | undefined
-    readonly elements: ReadonlyArray<MetaAST>
-    readonly rest: ReadonlyArray<MetaAST>
+    readonly elements: ReadonlyArray<StandardAST>
+    readonly rest: ReadonlyArray<StandardAST>
   }
   | {
     readonly _tag: "Objects"
@@ -45,11 +46,11 @@ export type MetaAST =
   | {
     readonly _tag: "Union"
     readonly annotations: typeof Annotations["Type"] | undefined
-    readonly types: ReadonlyArray<MetaAST>
+    readonly types: ReadonlyArray<StandardAST>
     readonly mode: "anyOf" | "oneOf"
   }
 
-const MetaASTSuspended = Schema.suspend((): Schema.Codec<MetaAST> => MetaAST)
+const MetaASTSuspended = Schema.suspend((): Schema.Codec<StandardAST> => StandardAST)
 
 /**
  * @since 4.0.0
@@ -137,13 +138,35 @@ export class Any extends Schema.Opaque<Any>()(
   }).annotate({ identifier: "Any" })
 ) {}
 
+const MinLength = Schema.Struct({
+  _tag: Schema.tag("isMinLength"),
+  minLength: Schema.Number
+})
+
+const MaxLength = Schema.Struct({
+  _tag: Schema.tag("isMaxLength"),
+  maxLength: Schema.Number
+})
+
+const Pattern = Schema.Struct({
+  _tag: Schema.tag("isPattern"),
+  source: Schema.String
+})
+
+const StringCheck = Schema.Union([
+  MinLength,
+  MaxLength,
+  Pattern
+])
+
 /**
  * @since 4.0.0
  */
 export class String extends Schema.Opaque<String>()(
   Schema.Struct({
     _tag: Schema.tag("String"),
-    annotations: Schema.UndefinedOr(Annotations)
+    annotations: Schema.UndefinedOr(Annotations),
+    checks: Schema.Array(StringCheck)
   }).annotate({ identifier: "String" })
 ) {}
 
@@ -314,7 +337,7 @@ export class Union extends Schema.Opaque<Union>()(
 /**
  * @since 4.0.0
  */
-export const MetaAST: Schema.Codec<MetaAST> = Schema.Union([
+export const StandardAST: Schema.Codec<StandardAST> = Schema.Union([
   Null,
   Undefined,
   Void,
@@ -336,7 +359,7 @@ export const MetaAST: Schema.Codec<MetaAST> = Schema.Union([
   Union
 ]).annotate({ identifier: "AST" })
 
-const serializerJson = Schema.toSerializerJson(MetaAST)
+const serializerJson = Schema.toSerializerJson(StandardAST)
 const encodeUnknownSync = Schema.encodeUnknownSync(serializerJson)
 const decodeUnknownSync = Schema.decodeUnknownSync(serializerJson)
 
@@ -348,14 +371,14 @@ export type JsonValue = Getter.Tree<null | string | number | boolean>
 /**
  * @since 4.0.0
  */
-export function encode<S extends Schema.Top>(schema: S): JsonValue {
-  return encodeUnknownSync(toMetaAST(schema.ast)) as JsonValue
+export function toJson<S extends Schema.Top>(schema: S): JsonValue {
+  return encodeUnknownSync(fromRuntime(schema.ast)) as JsonValue
 }
 
 /**
  * @since 4.0.0
  */
-export function toMetaAST(ast: AST.AST): MetaAST {
+export function fromRuntime(ast: AST.AST): StandardAST {
   switch (ast._tag) {
     case "Null":
     case "Undefined":
@@ -363,7 +386,6 @@ export function toMetaAST(ast: AST.AST): MetaAST {
     case "Never":
     case "Unknown":
     case "Any":
-    case "String":
     case "Number":
     case "Boolean":
     case "BigInt":
@@ -372,6 +394,33 @@ export function toMetaAST(ast: AST.AST): MetaAST {
         _tag: ast._tag,
         annotations: ast.annotations
       }
+    case "String": {
+      let checks: Array<typeof StringCheck["Type"]> = []
+      if (ast.checks) {
+        checks = ast.checks.map((c) => {
+          if (c._tag === "Filter") {
+            const meta = c.annotations?.meta
+            if (meta) {
+              switch (meta._tag) {
+                case "isMinLength":
+                  return { _tag: "isMinLength", minLength: meta.minLength }
+                case "isMaxLength":
+                  return { _tag: "isMaxLength", maxLength: meta.maxLength }
+                case "isPattern":
+                  return { _tag: "isPattern", source: meta.regex.source }
+              }
+            }
+          }
+          // TODO: Handle FilterGroup
+          throw new Error("Unsupported check", { cause: c })
+        })
+      }
+      return {
+        _tag: ast._tag,
+        annotations: ast.annotations,
+        checks
+      }
+    }
     case "Literal":
       return {
         _tag: ast._tag,
@@ -399,14 +448,14 @@ export function toMetaAST(ast: AST.AST): MetaAST {
       return {
         _tag: ast._tag,
         annotations: ast.annotations,
-        parts: ast.parts.map(toMetaAST)
+        parts: ast.parts.map(fromRuntime)
       }
     case "Arrays":
       return {
         _tag: ast._tag,
         annotations: ast.annotations,
-        elements: ast.elements.map(toMetaAST),
-        rest: ast.rest.map(toMetaAST)
+        elements: ast.elements.map(fromRuntime),
+        rest: ast.rest.map(fromRuntime)
       }
     case "Objects":
       return {
@@ -414,20 +463,20 @@ export function toMetaAST(ast: AST.AST): MetaAST {
         annotations: ast.annotations,
         propertySignatures: ast.propertySignatures.map((ps) => ({
           name: ps.name,
-          type: toMetaAST(ps.type),
+          type: fromRuntime(ps.type),
           isOptional: AST.isOptional(ps.type),
           isMutable: AST.isMutable(ps.type)
         })),
         indexSignatures: ast.indexSignatures.map((is) => ({
-          parameter: toMetaAST(is.parameter),
-          type: toMetaAST(is.type)
+          parameter: fromRuntime(is.parameter),
+          type: fromRuntime(is.type)
         }))
       }
     case "Union":
       return {
         _tag: ast._tag,
         annotations: ast.annotations,
-        types: ast.types.map(toMetaAST),
+        types: ast.types.map(fromRuntime),
         mode: ast.mode
       }
   }
@@ -437,18 +486,18 @@ export function toMetaAST(ast: AST.AST): MetaAST {
 /**
  * @since 4.0.0
  */
-export function decode<S extends Schema.Top = Schema.Top>(u: unknown): S {
+export function fromJson<S extends Schema.Top = Schema.Top>(u: unknown): S {
   return runtime(decodeUnknownSync(u)) as S
 }
 
 /**
  * @since 4.0.0
  */
-export function code(ast: MetaAST): string {
-  return codeBase(ast) + codeAnnotations(ast.annotations)
+export function toCode(ast: StandardAST): string {
+  return toCodeBase(ast) + codeAnnotations(ast.annotations)
 }
 
-function codeBase(ast: MetaAST): string {
+function toCodeBase(ast: StandardAST): string {
   switch (ast._tag) {
     case "Null":
     case "Undefined":
@@ -476,32 +525,32 @@ function codeBase(ast: MetaAST): string {
     case "Enum":
       return `Schema.Enum([${ast.enums.map(([key, value]) => `[${format(key)}, ${format(value)}]`).join(", ")}])`
     case "TemplateLiteral":
-      return `Schema.TemplateLiteral([${ast.parts.map((p) => code(p)).join(", ")}])`
+      return `Schema.TemplateLiteral([${ast.parts.map((p) => toCode(p)).join(", ")}])`
     case "Arrays": {
       if (ast.elements.length === 0 && ast.rest.length === 0) {
         return "Schema.Tuple([])"
       }
       if (ast.elements.length === 0 && ast.rest.length > 0) {
-        const rest = ast.rest.map((r) => code(r)).join(", ")
+        const rest = ast.rest.map((r) => toCode(r)).join(", ")
         return `Schema.Array(${rest})`
       }
       if (ast.rest.length === 0) {
-        const elements = ast.elements.map((e) => code(e)).join(", ")
+        const elements = ast.elements.map((e) => toCode(e)).join(", ")
         return `Schema.Tuple([${elements}])`
       }
-      const elements = ast.elements.map((e) => code(e)).join(", ")
-      const rest = ast.rest.map((r) => code(r)).join(", ")
+      const elements = ast.elements.map((e) => toCode(e)).join(", ")
+      const rest = ast.rest.map((r) => toCode(r)).join(", ")
       return `Schema.TupleWithRest(Schema.Tuple([${elements}]), [${rest}])`
     }
     case "Objects": {
       const propertySignatures = ast.propertySignatures.map((p) =>
-        `${formatPropertyKey(p.name)}: ${codeOptional(p.isOptional, code(p.type))}`
+        `${formatPropertyKey(p.name)}: ${codeOptional(p.isOptional, toCode(p.type))}`
       ).join(", ")
       return `Schema.Struct({ ${propertySignatures} })`
     }
     case "Union": {
       const mode = ast.mode === "anyOf" ? "" : `, { mode: "oneOf" }`
-      return `Schema.Union([${ast.types.map((t) => code(t)).join(", ")}]${mode})`
+      return `Schema.Union([${ast.types.map((t) => toCode(t)).join(", ")}]${mode})`
     }
   }
 }
@@ -521,13 +570,37 @@ function codeOptional(isOptional: boolean, code: string): string {
 /**
  * @since 4.0.0
  */
-export function runtime(ast: MetaAST): Schema.Top {
-  const out = runtimeBase(ast)
-  if (ast.annotations) return out.annotate(ast.annotations)
+export function runtime(ast: StandardAST): Schema.Top {
+  let out = runtimeBase(ast)
+  if (ast.annotations) out = out.annotate(ast.annotations)
+  out = runtimeChecks(out, ast)
   return out
 }
 
-function runtimeBase(ast: MetaAST): Schema.Top {
+function runtimeChecks(schema: Schema.Top, ast: StandardAST): Schema.Top {
+  switch (ast._tag) {
+    case "String": {
+      const checks = ast.checks.map((c) => {
+        switch (c._tag) {
+          case "isMinLength":
+            return Schema.isMinLength(c.minLength)
+          case "isMaxLength":
+            return Schema.isMaxLength(c.maxLength)
+          case "isPattern":
+            return Schema.isPattern(new RegExp(c.source))
+        }
+      })
+      if (Arr.isArrayNonEmpty(checks)) {
+        return (schema as Schema.String).check(...checks)
+      }
+      return schema
+    }
+    default:
+      return schema
+  }
+}
+
+function runtimeBase(ast: StandardAST): Schema.Top {
   switch (ast._tag) {
     case "Null":
       return Schema.Null
