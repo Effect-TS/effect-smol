@@ -8,7 +8,14 @@ import type { Command, RawInput } from "../Command.ts"
 import * as Param from "../Param.ts"
 import { isFalseValue, isTrueValue } from "../Primitive.ts"
 import { suggest } from "./auto-suggest.ts"
-import { completionsFlag, dynamicCompletionsFlag, helpFlag, logLevelFlag, versionFlag } from "./builtInFlags.ts"
+import {
+  completionsFlag,
+  dynamicCompletionsFlag,
+  helpFlag,
+  helpFullFlag,
+  logLevelFlag,
+  versionFlag
+} from "./builtInFlags.ts"
 import { type LexResult, type Token } from "./lexer.ts"
 
 /** @internal */
@@ -136,6 +143,7 @@ const unrecognizedFlagError = (
 const builtInFlagParams: ReadonlyArray<FlagParam> = [
   ...Param.extractSingleParams(logLevelFlag),
   ...Param.extractSingleParams(helpFlag),
+  ...Param.extractSingleParams(helpFullFlag),
   ...Param.extractSingleParams(versionFlag),
   ...Param.extractSingleParams(completionsFlag),
   ...Param.extractSingleParams(dynamicCompletionsFlag)
@@ -178,6 +186,7 @@ export const extractBuiltInOptions = (
 ): Effect.Effect<
   {
     help: boolean
+    helpFull: boolean
     logLevel: LogLevel | undefined
     version: boolean
     completions: "bash" | "zsh" | "fish" | undefined
@@ -191,12 +200,14 @@ export const extractBuiltInOptions = (
     const { flagMap, remainder } = collectFlagValues(tokens, builtInFlagParams)
     const emptyArgs: Param.ParsedArgs = { flags: flagMap, arguments: [] }
     const [, help] = yield* helpFlag.parse(emptyArgs)
+    const [, helpFull] = yield* helpFullFlag.parse(emptyArgs)
     const [, logLevel] = yield* logLevelFlag.parse(emptyArgs)
     const [, version] = yield* versionFlag.parse(emptyArgs)
     const [, completions] = yield* completionsFlag.parse(emptyArgs)
     const [, dynamicCompletions] = yield* dynamicCompletionsFlag.parse(emptyArgs)
     return {
       help,
+      helpFull,
       logLevel: Option.getOrUndefined(logLevel),
       version,
       completions: Option.getOrUndefined(completions),

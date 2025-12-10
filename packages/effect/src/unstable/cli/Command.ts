@@ -1227,6 +1227,7 @@ export const runWith = <const Name extends string, Input, E, R>(
         completions,
         dynamicCompletions,
         help,
+        helpFull,
         logLevel,
         remainder,
         version
@@ -1234,7 +1235,13 @@ export const runWith = <const Name extends string, Input, E, R>(
       const parsedArgs = yield* Parser.parseArgs({ tokens: remainder, trailingOperands }, command)
       const helpRenderer = yield* HelpFormatter.HelpRenderer
 
-      if (help) {
+      if (helpFull) {
+        const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
+        const targetCommand = getCommandForPath(command, commandPath)
+        const fullHelpText = generateFullHelp(targetCommand)
+        yield* Console.log(fullHelpText)
+        return
+      } else if (help) {
         const commandPath = [command.name, ...Parser.getCommandPath(parsedArgs)]
         const helpDoc = getHelpForCommandPath(command, commandPath)
         const helpText = helpRenderer.formatHelpDoc(helpDoc)
@@ -1581,4 +1588,190 @@ const getHelpForCommandPath = <Name extends string, Input, E, R>(
   }
 
   return getHelpDoc(currentCommand, commandPath)
+}
+
+/**
+ * Helper function to get a command for a specific command path.
+ * Navigates through the command hierarchy to find the right command.
+ */
+const getCommandForPath = <Name extends string, Input, E, R>(
+  command: Command<Name, Input, E, R>,
+  commandPath: ReadonlyArray<string>
+): Command<string, unknown, unknown, unknown> => {
+  let currentCommand: Command<string, unknown, unknown, unknown> = command as any
+
+  for (let i = 1; i < commandPath.length; i++) {
+    const subcommandName = commandPath[i]
+    const subcommand = currentCommand.subcommands.find((sub) => sub.name === subcommandName)
+    if (subcommand) {
+      currentCommand = subcommand
+    }
+  }
+
+  return currentCommand
+}
+
+// Built-in flag names to exclude from full help output
+const builtInFlagNames = new Set(["help", "help-full", "version", "log-level", "completions", "dynamic-completions"])
+
+/**
+ * Generates a compact tree showing command hierarchy.
+ */
+const generateCommandTree = (
+  command: Command<string, unknown, unknown, unknown>,
+  prefix: string = "",
+  isLast: boolean = true,
+  isRoot: boolean = true
+): string => {
+  const lines: Array<string> = []
+  const branch = isLast ? "└─■" : "├─■"
+  const continuation = isLast ? "    " : "│   "
+
+  if (isRoot) {
+    lines.push(command.name)
+  } else {
+    lines.push(`${prefix}${branch} ${command.name}`)
+  }
+
+  const childPrefix = isRoot ? "" : `${prefix}${continuation}`
+  for (let i = 0; i < command.subcommands.length; i++) {
+    const sub = command.subcommands[i]
+    const isLastChild = i === command.subcommands.length - 1
+    lines.push(generateCommandTree(sub, childPrefix, isLastChild, false))
+  }
+
+  return lines.join("\n")
+}
+
+/**
+ * Generates detailed reference for a single command.
+ */
+const generateCommandReference = (
+  command: Command<string, unknown, unknown, unknown>,
+  commandPath: ReadonlyArray<string>
+): string => {
+  const lines: Array<string> = []
+  const helpDoc = getHelpDoc(command, commandPath)
+  const userFlags = helpDoc.flags.filter((f) => !builtInFlagNames.has(f.name))
+
+  // Command path with args in signature
+  let signature = commandPath.join(" ")
+  if (helpDoc.args && helpDoc.args.length > 0) {
+    for (const a of helpDoc.args) {
+      const variadic = a.variadic ? "..." : ""
+      const argStr = a.required ? `<${a.name}${variadic}>` : `[${a.name}${variadic}]`
+      signature += ` ${argStr}`
+    }
+  }
+  lines.push(signature)
+
+  // Description
+  if (command.description) {
+    lines.push(`  ${command.description}`)
+  }
+
+  // Arguments
+  if (helpDoc.args && helpDoc.args.length > 0) {
+    lines.push(`  Arguments:`)
+    for (const a of helpDoc.args) {
+      const variadic = a.variadic ? "..." : ""
+      const req = a.required ? "" : " (optional)"
+      const argName = a.required ? `<${a.name}${variadic}>` : `[${a.name}${variadic}]`
+      const desc = a.description ? `  ${a.description}` : ""
+      lines.push(`    ${argName.padEnd(20)} [${a.type}]${req}${desc}`)
+    }
+  }
+
+  // Flags
+  if (userFlags.length > 0) {
+    lines.push(`  Flags:`)
+    for (const f of userFlags) {
+      const aliases = f.aliases.length > 0 ? `${f.aliases.join(", ")}, ` : ""
+      const flagName = `${aliases}--${f.name}`
+      const req = f.required ? " (required)" : ""
+      const desc = f.description ? `  ${f.description}` : ""
+      lines.push(`    ${flagName.padEnd(20)} [${f.type}]${req}${desc}`)
+    }
+  }
+
+  return lines.join("\n")
+}
+
+/**
+ * Checks if a command should be included in the detailed reference.
+ * Skip pure namespace commands (no own flags, no args, only has subcommands).
+ */
+const shouldIncludeInReference = (
+  command: Command<string, unknown, unknown, unknown>
+): boolean => {
+  const helpDoc = getHelpDoc(command)
+  const userFlags = helpDoc.flags.filter((f) => !builtInFlagNames.has(f.name))
+  const hasOwnFlags = userFlags.length > 0
+  const hasArgs = helpDoc.args && helpDoc.args.length > 0
+  const hasDescription = command.description !== undefined
+  const isLeaf = command.subcommands.length === 0
+
+  // Include if: has own flags, has args, has description, or is a leaf command
+  return hasOwnFlags || hasArgs || hasDescription || isLeaf
+}
+
+/**
+ * Collects all commands that should appear in the reference.
+ * Skips pure namespace commands that have no own flags/args.
+ */
+const collectCommands = (
+  command: Command<string, unknown, unknown, unknown>,
+  path: ReadonlyArray<string> = []
+): Array<{ command: Command<string, unknown, unknown, unknown>; path: ReadonlyArray<string> }> => {
+  const currentPath = [...path, command.name]
+  const result: Array<{ command: Command<string, unknown, unknown, unknown>; path: ReadonlyArray<string> }> = []
+
+  // Only include if command has own content
+  if (shouldIncludeInReference(command)) {
+    result.push({ command, path: currentPath })
+  }
+
+  // Recurse into subcommands
+  for (const sub of command.subcommands) {
+    for (const item of collectCommands(sub, currentPath)) {
+      result.push(item)
+    }
+  }
+
+  return result
+}
+
+/**
+ * Generates complete recursive help output for a command and all its subcommands.
+ * Shows a compact tree overview followed by detailed reference for each command.
+ * Used by --help-full for LLM/agent consumption.
+ */
+const generateFullHelp = (
+  command: Command<string, unknown, unknown, unknown>
+): string => {
+  const lines: Array<string> = []
+
+  // Header with description
+  lines.push(`${command.name}${command.description ? ` - ${command.description}` : ""}`)
+  lines.push("")
+
+  // Tree overview
+  lines.push("Tree:")
+  const treeLines = generateCommandTree(command).split("\n")
+  for (const line of treeLines) {
+    lines.push(`  ${line}`)
+  }
+  lines.push("")
+
+  // Full command reference
+  lines.push("Commands")
+  lines.push("--------")
+
+  const allCommands = collectCommands(command)
+  for (const { command: cmd, path } of allCommands) {
+    lines.push("")
+    lines.push(generateCommandReference(cmd, path))
+  }
+
+  return lines.join("\n")
 }
