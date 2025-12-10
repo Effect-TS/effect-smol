@@ -341,19 +341,19 @@ type ParseJsonOptions = {
  *
  * @since 4.0.0
  */
-export type JsonValue =
+export type MutableJsonValue =
   | null
   | string
   | number
   | boolean
-  | { [x: string]: JsonValue }
-  | Array<JsonValue>
+  | { [x: string]: MutableJsonValue }
+  | Array<MutableJsonValue>
 
 /**
  * @category Json
  * @since 4.0.0
  */
-export function parseJson<E extends string>(): Getter<JsonValue, E>
+export function parseJson<E extends string>(): Getter<MutableJsonValue, E>
 export function parseJson<E extends string>(options: ParseJsonOptions): Getter<unknown, E>
 export function parseJson<E extends string>(options?: ParseJsonOptions | undefined): Getter<unknown, E> {
   return onSome((input) =>

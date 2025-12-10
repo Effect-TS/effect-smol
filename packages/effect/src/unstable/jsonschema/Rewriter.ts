@@ -254,7 +254,7 @@ export const openAi: Rewriter = (document, tracer = NoopTracer) => {
   }
 
   return {
-    uri: document.uri,
+    source: document.source,
     schema: recur(document.schema, ["schema"]),
     definitions: Record_.map(document.definitions, (value) => recur(value, ["definitions"]))
   }

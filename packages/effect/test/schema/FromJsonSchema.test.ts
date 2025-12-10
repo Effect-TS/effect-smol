@@ -21,7 +21,7 @@ function assertGeneration(
   input: {
     readonly schema: Record<string, unknown> | boolean
     readonly options?: {
-      readonly source?: FromJsonSchema.Source | undefined
+      readonly source?: Schema.JsonSchema.Source | undefined
       readonly resolver?: FromJsonSchema.Resolver | undefined
       readonly extractJsDocs?: boolean | ((annotations: Annotations) => string | undefined) | undefined
       readonly parseContentSchema?: boolean | undefined
@@ -3662,7 +3662,7 @@ type CodeGeneration = {
 }
 
 function generateCode(
-  source: FromJsonSchema.Source,
+  source: Schema.JsonSchema.Source,
   schemas: ReadonlyArray<{
     readonly identifier: string
     readonly schema: Schema.JsonSchema

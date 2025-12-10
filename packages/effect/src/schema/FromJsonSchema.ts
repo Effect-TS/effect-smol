@@ -31,11 +31,6 @@ import type * as Schema from "./Schema.ts"
 /**
  * @since 4.0.0
  */
-export type Source = Schema.JsonSchema.Target | "openapi-3.0"
-
-/**
- * @since 4.0.0
- */
 export type Types = {
   readonly Type: string
   readonly Encoded: string
@@ -135,7 +130,7 @@ export type GenerateOptions = {
   /**
    * The type of the specification of the JSON Schema.
    */
-  readonly source: Source
+  readonly source: Schema.JsonSchema.Source
 
   /**
    * A function that is called to resolve a reference.
@@ -183,7 +178,7 @@ export type GenerateOptions = {
 }
 
 interface RecurOptions {
-  readonly source: Source
+  readonly source: Schema.JsonSchema.Source
   readonly root: Schema.JsonSchema | undefined
   readonly resolver: Resolver
   readonly extractJsDocs: (annotations: Annotations) => string | undefined
@@ -1680,7 +1675,7 @@ function parseJsonSchema(schema: Schema.JsonSchema, options: RecurOptions): AST 
   return new Unknown()
 }
 
-function getRef(parts: readonly [string, ...Array<string>], source: Source): Array<string> {
+function getRef(parts: readonly [string, ...Array<string>], source: Schema.JsonSchema.Source): Array<string> {
   switch (source) {
     case "draft-07":
     case "draft-2020-12":

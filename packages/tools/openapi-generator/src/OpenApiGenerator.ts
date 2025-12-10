@@ -1,7 +1,6 @@
 import * as Predicate from "effect/data/Predicate"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import type * as FromJsonSchema from "effect/schema/FromJsonSchema"
 import type * as Schema from "effect/schema/Schema"
 import * as ServiceMap from "effect/ServiceMap"
 import * as String from "effect/String"
@@ -248,7 +247,7 @@ export const make = Effect.gen(function*() {
   return { generate } as const
 })
 
-function getSource(spec: OpenAPISpec): FromJsonSchema.Source {
+function getSource(spec: OpenAPISpec): Schema.JsonSchema.Source {
   return spec.openapi.trim().startsWith("3.0") ? "openapi-3.0" : "openapi-3.1"
 }
 

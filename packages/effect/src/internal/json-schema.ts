@@ -16,7 +16,7 @@ export function make<S extends Schema.Top>(
   const referenceStrategy = options.referenceStrategy ?? "keep"
   const generateDescriptions = options.generateDescriptions ?? false
   return {
-    uri: getMetaSchemaUri(target),
+    source: target,
     schema: recur(
       schema.ast,
       [],
@@ -390,16 +390,6 @@ function base(
       }
       throw errorWithPath("Missing identifier in suspended schema", path)
     }
-  }
-}
-
-function getMetaSchemaUri(target: Schema.JsonSchema.Target) {
-  switch (target) {
-    case "draft-07":
-      return "http://json-schema.org/draft-07/schema"
-    case "draft-2020-12":
-    case "openapi-3.1":
-      return "https://json-schema.org/draft/2020-12/schema"
   }
 }
 

@@ -8,7 +8,7 @@ describe("Multipart", () => {
     it("jsonSchema", () => {
       const document = Schema.makeJsonSchema(Multipart.FileSchema, { target: "draft-07" })
       deepStrictEqual(document, {
-        uri: "http://json-schema.org/draft-07/schema",
+        source: "draft-07",
         schema: {
           "$ref": "#/definitions/PersistedFile"
         },
