@@ -6565,10 +6565,8 @@ const decoded: Schema.Struct<{
 const decoded = MetaSchema.decode<typeof schema>(json)
 
 // You can read annotations from the decoded schema, since they were preserved through the round trip.
-console.log(decoded.fields.a.ast.annotations?.description)
-// my description
-console.log(decoded.fields.a.ast.annotations?.custom)
-// { version: [ 1, 0, 0 ] }
+console.log(decoded.fields.a.ast.annotations)
+// { description: 'my description', custom: { version: [ 1, 0, 0 ] } }
 ```
 
 ## Formatters
