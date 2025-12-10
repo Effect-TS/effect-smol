@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-syntax */
 import { assert, describe, it } from "@effect/vitest"
-import { assertExitFailure, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
+import { assertExitFailure, assertSuccess, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import { Cause, Deferred, Duration, Effect, Exit, Fiber, Queue, Ref, Schedule } from "effect"
 import { Array } from "effect/collections"
 import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/collections/Array"
@@ -2528,7 +2528,30 @@ describe("Stream", () => {
       }))
   })
 
-  describe("dropRight", () => {
+  describe("dropping", () => {
+    it.effect("drop - simple example", () =>
+      Effect.gen(function*() {
+        const n = 2
+        const stream = Stream.make(1, 2, 3, 4, 5)
+        const { result1, result2 } = yield* (Effect.all({
+          result1: pipe(stream, Stream.drop(n), Stream.runCollect),
+          result2: pipe(stream, Stream.runCollect, Effect.map(Array.drop(n)))
+        }))
+        deepStrictEqual(result1, result2)
+      }))
+
+    it.effect("drop - does not swallow errors", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.fail("Ouch"),
+          Stream.concat(Stream.make(1)),
+          Stream.drop(1),
+          Stream.runDrain,
+          Effect.result
+        )
+        assertFailure(result, "Ouch")
+      }))
+
     it.effect("dropRight - simple example", () =>
       Effect.gen(function*() {
         const n = 2
@@ -2550,6 +2573,44 @@ describe("Stream", () => {
           Effect.result
         )
         assertFailure(result, "Ouch")
+      }))
+
+    it.effect("dropUntil", () =>
+      Effect.gen(function*() {
+        const stream = Stream.make(1, 2, 3, 4, 5)
+        const f = (n: number) => n < 3
+        const { result1, result2 } = yield* (Effect.all({
+          result1: pipe(stream, Stream.dropUntil(f), Stream.runCollect),
+          result2: pipe(
+            Stream.runCollect(stream),
+            Effect.map((chunk) => pipe(chunk, Array.dropWhile((n) => !f(n)), Array.drop(1)))
+          )
+        }))
+        deepStrictEqual(result1, result2)
+      }))
+
+    it.effect("dropWhile", () =>
+      Effect.gen(function*() {
+        const stream = Stream.make(1, 2, 3, 4, 5)
+        const f = (n: number) => n < 3
+        const { result1, result2 } = yield* (Effect.all({
+          result1: pipe(stream, Stream.dropWhile(f), Stream.runCollect),
+          result2: pipe(stream, Stream.runCollect, Effect.map(Array.dropWhile(f)))
+        }))
+        deepStrictEqual(result1, result2)
+      }))
+
+    it.effect("dropWhile - short circuits", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1),
+          Stream.concat(Stream.fail("Ouch")),
+          Stream.take(1),
+          Stream.dropWhile(constTrue),
+          Stream.runDrain,
+          Effect.result
+        )
+        assertSuccess(result, void 0)
       }))
   })
 })

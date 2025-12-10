@@ -340,11 +340,11 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |        `drainFork`         |  Done  |                               |          |
 |           `drop`           |  Done  |            `drop`             |          |
 |        `dropRight`         |  Done  |                               |          |
-|        `dropUntil`         |   -    |                               |          |
-|     `dropUntilEffect`      |   -    |                               |          |
-|        `dropWhile`         |   -    |                               |          |
-|     `dropWhileEffect`      |   -    |                               |          |
-|          `either`          |   -    |                               |          |
+|        `dropUntil`         |  Done  |                               |          |
+|     `dropUntilEffect`      |  Done  |                               |          |
+|        `dropWhile`         |  Done  |                               |          |
+|     `dropWhileEffect`      |  Done  |                               |          |
+|          `either`          |  Done  |           `result`            |          |
 |         `ensuring`         |  Done  |          `ensuring`           |          |
 |       `ensuringWith`       |  Done  |           `onExit`            |          |
 |        `filterMap`         |   X    |           `filter`            |          |
@@ -354,13 +354,13 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |         `forever`          |  Done  |                               |          |
 |    `fromEventListener`     |  Done  |                               |          |
 |        `haltAfter`         |   X    |                               |          |
-|         `haltWhen`         |   -    |                               |          |
+|         `haltWhen`         |  Done  |                               |          |
 |     `haltWhenDeferred`     |   X    |                               |          |
 |         `identity`         |   X    |                               |          |
 |        `interleave`        |   -    |                               |          |
 |      `interleaveWith`      |   -    |                               |          |
 |      `interruptAfter`      |   X    |                               |          |
-|      `interruptWhen`       |   -    |                               |          |
+|      `interruptWhen`       |  Done  |                               |          |
 |  `interruptWhenDeferred`   |   X    |                               |          |
 |       `intersperse`        |   -    |                               |          |
 |    `intersperseAffixes`    |   -    |                               |          |

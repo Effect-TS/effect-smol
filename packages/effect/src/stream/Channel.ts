@@ -5032,6 +5032,39 @@ export const interruptWhen: {
   ))
 
 /**
+ * @since 4.0.0
+ * @category utils
+ */
+export const haltWhen: {
+  <OutDone2, OutErr2, Env2>(
+    effect: Effect.Effect<OutDone2, OutErr2, Env2>
+  ): <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr | OutErr2, OutDone | OutDone2, InElem, InErr, InDone, Env2 | Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutDone2, OutErr2, Env2>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    effect: Effect.Effect<OutDone2, OutErr2, Env2>
+  ): Channel<OutElem, OutErr | OutErr2, OutDone | OutDone2, InElem, InErr, InDone, Env2 | Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, OutDone2, OutErr2, Env2>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  effect: Effect.Effect<OutDone2, OutErr2, Env2>
+): Channel<OutElem, OutErr | OutErr2, OutDone | OutDone2, InElem, InErr, InDone, Env2 | Env> =>
+  fromTransformBracket(Effect.fnUntraced(function*(upstream, scope, forkedScope) {
+    const pull = yield* toTransform(self)(upstream, scope)
+    let haltCause: Cause.Cause<OutErr2 | Pull.Halt<OutDone2>> | undefined = undefined
+    yield* effect.pipe(
+      Effect.catchCause((cause) => {
+        haltCause = cause
+        return Effect.void
+      }),
+      Effect.forkIn(forkedScope)
+    )
+    return Effect.suspend((): Pull.Pull<OutElem, OutErr | OutErr2, OutDone | OutDone2> =>
+      haltCause ? Effect.failCause(haltCause) : pull
+    )
+  })))
+
+/**
  * Returns a new channel with an attached finalizer. The finalizer is
  * guaranteed to be executed so long as the channel begins execution (and
  * regardless of whether or not it completes).

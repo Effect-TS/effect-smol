@@ -10,6 +10,7 @@ import * as MutableList from "../collections/MutableList.ts"
 import * as Filter from "../data/Filter.ts"
 import * as Option from "../data/Option.ts"
 import { hasProperty, isTagged } from "../data/Predicate.ts"
+import * as Result from "../data/Result.ts"
 import * as Duration from "../Duration.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
@@ -1448,6 +1449,22 @@ export const mapArrayEffect: {
   self: Stream<A, E, R>,
   f: (a: Arr.NonEmptyReadonlyArray<A>, i: number) => Effect.Effect<Arr.NonEmptyReadonlyArray<B>, E2, R2>
 ): Stream<B, E | E2, R | R2> => fromChannel(Channel.mapEffect(self.channel, f)))
+
+/**
+ * Returns a stream whose failures and successes have been lifted into an
+ * `Result`. The resulting stream cannot fail, because the failures have been
+ * exposed as part of the `Result` success case.
+ *
+ * @note The stream will end as soon as the first error occurs.
+ *
+ * @since 4.0.0
+ * @category utils
+ */
+export const result = <A, E, R>(self: Stream<A, E, R>): Stream<Result.Result<A, E>, never, R> =>
+  self.pipe(
+    map(Result.succeed),
+    catch_((e) => succeed(Result.fail(e)))
+  )
 
 /**
  * Adds an effect to consumption of every element of the stream.
@@ -4766,6 +4783,49 @@ export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, 
     Channel.pipeTo(Channel.splitLines()),
     fromChannel
   )
+
+/**
+ * Interrupts the evaluation of this stream when the provided effect
+ * completes. The given effect will be forked as part of this stream, and its
+ * success will be discarded. This combinator will also interrupt any
+ * in-progress element being pulled from upstream.
+ *
+ * If the effect completes with a failure before the stream completes, the
+ * returned stream will emit that failure.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const interruptWhen: {
+  <X, E2, R2>(effect: Effect.Effect<X, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
+  <A, E, R, X, E2, R2>(self: Stream<A, E, R>, effect: Effect.Effect<X, E2, R2>): Stream<A, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, X, E2, R2>(self: Stream<A, E, R>, effect: Effect.Effect<X, E2, R2>): Stream<A, E | E2, R | R2> =>
+    fromChannel(Channel.interruptWhen(self.channel, effect))
+)
+
+/**
+ * Halts the evaluation of this stream when the provided effect completes. The
+ * given effect will be forked as part of the returned stream, and its success
+ * will be discarded.
+ *
+ * An element in the process of being pulled will not be interrupted when the
+ * effect completes. See `interruptWhen` for this behavior.
+ *
+ * If the effect completes with a failure, the stream will emit that failure.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const haltWhen: {
+  <X, E2, R2>(effect: Effect.Effect<X, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E2 | E, R2 | R>
+  <A, E, R, X, E2, R2>(self: Stream<A, E, R>, effect: Effect.Effect<X, E2, R2>): Stream<A, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, X, E2, R2>(self: Stream<A, E, R>, effect: Effect.Effect<X, E2, R2>): Stream<A, E | E2, R | R2> =>
+    fromChannel(Channel.haltWhen(self.channel, effect))
+)
 
 /**
  * Executes the provided finalizer after this stream's finalizers run.
