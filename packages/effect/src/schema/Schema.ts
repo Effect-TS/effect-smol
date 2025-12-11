@@ -4268,6 +4268,10 @@ export const isMultipleOf = makeIsMultipleOf({
   zero: 0,
   annotate: (divisor) => ({
     expected: `a value that is a multiple of ${divisor}`,
+    meta: {
+      _tag: "isMultipleOf",
+      divisor
+    },
     jsonSchemaConstraint: () => ({ multipleOf: Math.abs(divisor) })
   })
 })
