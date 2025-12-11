@@ -201,7 +201,7 @@ describe("Optic", () => {
   describe("check", () => {
     it("single check", () => {
       type S = number
-      const optic = Optic.id<S>().check(Schema.isPositive())
+      const optic = Optic.id<S>().check(Schema.isGreaterThan(0))
       assertSuccess(optic.getResult(1), 1)
       assertFailure(optic.getResult(0), `Expected a value greater than 0, got 0`)
       strictEqual(optic.set(1), 1)
@@ -212,7 +212,7 @@ describe("Optic", () => {
 
     it("multiple checks", () => {
       type S = number
-      const optic = Optic.id<S>().check(Schema.isInt(), Schema.isPositive())
+      const optic = Optic.id<S>().check(Schema.isInt(), Schema.isGreaterThan(0))
       assertSuccess(optic.getResult(1), 1)
       assertFailure(optic.getResult(0), `Expected a value greater than 0, got 0`)
       assertFailure(optic.getResult(1.1), `Expected an integer, got 1.1`)
@@ -279,7 +279,7 @@ Expected a value greater than 0, got -1.1`
 
   it("key & check", () => {
     type S = { readonly a: number }
-    const optic = Optic.id<S>().key("a").check(Schema.isPositive())
+    const optic = Optic.id<S>().key("a").check(Schema.isGreaterThan(0))
     assertSuccess(optic.getResult({ a: 1 }), 1)
     assertFailure(optic.getResult({ a: 0 }), `Expected a value greater than 0, got 0`)
     assertSuccess(optic.replaceResult(2, { a: 1 }), { a: 2 })
@@ -312,7 +312,7 @@ Expected a value greater than 0, got -1.1`
       type S = { user: { posts: ReadonlyArray<Post> } }
 
       const _like = Optic.id<S>().key("user").key("posts").forEach((post) =>
-        post.key("likes").check(Schema.isPositive())
+        post.key("likes").check(Schema.isGreaterThan(0))
       )
 
       const addLike = _like.modify((likes) => likes.map((l) => l + 1))
@@ -326,7 +326,7 @@ Expected a value greater than 0, got -1.1`
     })
 
     it("Record", () => {
-      const optic = Optic.entries<number>().forEach((entry) => entry.key(1).check(Schema.isPositive()))
+      const optic = Optic.entries<number>().forEach((entry) => entry.key(1).check(Schema.isGreaterThan(0)))
 
       deepStrictEqual(
         optic.modify((entries) => entries.map((value) => value + 1))({ a: 0, b: 1, c: 0 }),
@@ -341,7 +341,7 @@ Expected a value greater than 0, got -1.1`
       type S = { user: { posts: ReadonlyArray<Post> } }
 
       const _like = Optic.id<S>().key("user").key("posts").forEach((post) =>
-        post.key("likes").check(Schema.isPositive())
+        post.key("likes").check(Schema.isGreaterThan(0))
       )
 
       const addLike = _like.modifyAll((like) => like + 1)
@@ -355,7 +355,7 @@ Expected a value greater than 0, got -1.1`
     })
 
     it("Record", () => {
-      const optic = Optic.entries<number>().forEach((entry) => entry.key(1).check(Schema.isPositive()))
+      const optic = Optic.entries<number>().forEach((entry) => entry.key(1).check(Schema.isGreaterThan(0)))
 
       deepStrictEqual(
         optic.modify((entries) => entries.map((value) => value + 1))({ a: 0, b: 1, c: 0 }),
@@ -377,7 +377,7 @@ Expected a value greater than 0, got -1.1`
     type S = {
       readonly a: ReadonlyArray<number>
     }
-    const optic = Optic.id<S>().key("a").forEach((a) => a.check(Schema.isPositive()))
+    const optic = Optic.id<S>().key("a").forEach((a) => a.check(Schema.isGreaterThan(0)))
     const getAll = Optic.getAll(optic)
     deepStrictEqual(getAll({ a: [1, 2, 3] }), [1, 2, 3])
     deepStrictEqual(getAll({ a: [1, -2, 3] }), [1, 3])
@@ -417,7 +417,7 @@ Expected a value greater than 0, got -1.1`
   })
 
   it("fromChecks", () => {
-    const optic = Optic.id<number>().compose(Optic.fromChecks(Schema.isPositive(), Schema.isInt()))
+    const optic = Optic.id<number>().compose(Optic.fromChecks(Schema.isGreaterThan(0), Schema.isInt()))
     assertSuccess(optic.getResult(1), 1)
     assertFailure(optic.getResult(0), `Expected a value greater than 0, got 0`)
     assertFailure(optic.getResult(1.1), `Expected an integer, got 1.1`)

@@ -1488,7 +1488,7 @@ describe("Schema", () => {
       const Int = Brand.check<Int>(Schema.isInt())
 
       type Positive = number & Brand.Brand<"Positive">
-      const Positive = Brand.check<Positive>(Schema.isPositive())
+      const Positive = Brand.check<Positive>(Schema.isGreaterThan(0))
 
       const PositiveInt = Brand.all(Int, Positive)
 

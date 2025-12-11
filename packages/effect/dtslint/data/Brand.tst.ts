@@ -5,7 +5,7 @@ import { describe, expect, it } from "tstyche"
 describe("Brand", () => {
   it("FromConstructor", () => {
     type Positive = number & Brand.Brand<"Positive">
-    const Positive = Brand.check<Positive>(Schema.isPositive())
+    const Positive = Brand.check<Positive>(Schema.isGreaterThan(0))
     expect<Brand.Brand.FromConstructor<typeof Positive>>().type.toBe<Positive>()
   })
 
@@ -38,7 +38,7 @@ describe("Brand", () => {
     const Int = Brand.check<Int>(Schema.isInt())
 
     type Positive = number & Brand.Brand<"Positive">
-    const Positive = Brand.check<Positive>(Schema.isPositive())
+    const Positive = Brand.check<Positive>(Schema.isGreaterThan(0))
 
     expect<Brand.Brand.EnsureCommonBase<[typeof Positive, typeof Int]>>().type.toBe<[typeof Positive, typeof Int]>()
 

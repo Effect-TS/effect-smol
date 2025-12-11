@@ -391,27 +391,27 @@ function toFileUrl(filepath: string) {
   return Effect.succeed(outURL)
 }
 
-const percentRegEx = /%/g
-const backslashRegEx = /\\/g
-const newlineRegEx = /\n/g
-const carriageReturnRegEx = /\r/g
-const tabRegEx = /\t/g
+const percentRegExp = /%/g
+const backslashRegExp = /\\/g
+const newlineRegExp = /\n/g
+const carriageReturnRegExp = /\r/g
+const tabRegExp = /\t/g
 
 function encodePathChars(filepath: string) {
   if (filepath.includes("%")) {
-    filepath = filepath.replace(percentRegEx, "%25")
+    filepath = filepath.replace(percentRegExp, "%25")
   }
   if (filepath.includes("\\")) {
-    filepath = filepath.replace(backslashRegEx, "%5C")
+    filepath = filepath.replace(backslashRegExp, "%5C")
   }
   if (filepath.includes("\n")) {
-    filepath = filepath.replace(newlineRegEx, "%0A")
+    filepath = filepath.replace(newlineRegExp, "%0A")
   }
   if (filepath.includes("\r")) {
-    filepath = filepath.replace(carriageReturnRegEx, "%0D")
+    filepath = filepath.replace(carriageReturnRegExp, "%0D")
   }
   if (filepath.includes("\t")) {
-    filepath = filepath.replace(tabRegEx, "%09")
+    filepath = filepath.replace(tabRegExp, "%09")
   }
   return filepath
 }

@@ -41,7 +41,7 @@ describe("Schema", () => {
 
   describe("parseOptions annotation", () => {
     it("Number", async () => {
-      const schema = Schema.Number.check(Schema.isPositive(), Schema.isInt()).annotate({
+      const schema = Schema.Number.check(Schema.isGreaterThan(0), Schema.isInt()).annotate({
         parseOptions: { errors: "all" }
       })
       const asserts = new TestSchema.Asserts(schema)
@@ -6961,7 +6961,7 @@ describe("Check", () => {
       const Int = Brand.check<Int>(Schema.isInt())
 
       type Positive = number & Brand.Brand<"Positive">
-      const Positive = Brand.check<Positive>(Schema.isPositive())
+      const Positive = Brand.check<Positive>(Schema.isGreaterThan(0))
 
       const PositiveInt = Brand.all(Int, Positive)
       const schema = Schema.Number.pipe(Schema.fromBrand(PositiveInt))

@@ -101,7 +101,7 @@ describe("Optic", () => {
   })
 
   it("fromChecks", () => {
-    const optic = Optic.id<number>().compose(Optic.fromChecks(Schema.isPositive(), Schema.isInt()))
+    const optic = Optic.id<number>().compose(Optic.fromChecks(Schema.isGreaterThan(0), Schema.isInt()))
     expect(optic).type.toBe<Optic.Prism<number, number>>()
   })
 

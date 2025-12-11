@@ -486,7 +486,7 @@ describe("Rewriter", () => {
             a: Schema.Union([
               Schema.NonEmptyString.annotate({ description: "string description" }),
               Schema.Union([
-                Schema.Int.check(Schema.isPositive()),
+                Schema.Int.check(Schema.isGreaterThan(0)),
                 Schema.Boolean.annotate({ description: "boolean description" })
               ]).annotate({ description: "number or boolean description" })
             ]).annotate({ description: "top level description" })
@@ -536,7 +536,7 @@ describe("Rewriter", () => {
             a: Schema.Union([
               Schema.NonEmptyString.annotate({ description: "string description" }),
               Schema.Union([
-                Schema.Int.check(Schema.isPositive()),
+                Schema.Int.check(Schema.isGreaterThan(0)),
                 Schema.Boolean.annotate({ description: "boolean description" })
               ], { mode: "oneOf" }).annotate({ description: "number or boolean description" })
             ], { mode: "oneOf" }).annotate({ description: "top level description" })

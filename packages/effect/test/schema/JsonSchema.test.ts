@@ -3190,7 +3190,7 @@ describe("JsonSchema generation", () => {
 
       it("isUUID", () => {
         assertDraft07(
-          Schema.String.annotate({ description: "description" }).check(Schema.isUUID()),
+          Schema.String.annotate({ description: "description" }).check(Schema.isUUID(undefined)),
           {
             schema: {
               "type": "string",

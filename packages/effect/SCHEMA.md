@@ -1909,7 +1909,7 @@ import { Schema } from "effect/schema"
 const int = Schema.refine(Schema.isInt().pipe(Schema.isBranded("Int")))
 
 // Constrain to positive numbers and add "Positive" brand
-const positive = Schema.refine(Schema.isPositive().pipe(Schema.isBranded("Positive")))
+const positive = Schema.refine(Schema.isGreaterThan(0).pipe(Schema.isBranded("Positive")))
 
 // Compose both refinements to get a PositiveInt
 export const PositiveInt = Schema.Number.pipe(int, positive)
@@ -7239,10 +7239,6 @@ Schema.Number.check(Schema.isGreaterThan(5))
 Schema.Number.check(Schema.isGreaterThanOrEqualTo(5))
 Schema.Number.check(Schema.isLessThan(5))
 Schema.Number.check(Schema.isLessThanOrEqualTo(5))
-Schema.Number.check(Schema.isPositive())
-Schema.Number.check(Schema.isNonNegative())
-Schema.Number.check(Schema.isNegative())
-Schema.Number.check(Schema.isNonPositive())
 Schema.Number.check(Schema.isMultipleOf(5))
 ```
 

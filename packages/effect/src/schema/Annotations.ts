@@ -345,6 +345,7 @@ export interface Issue extends Annotations {
  * @since 4.0.0
  */
 export interface MetaRegistry {
+  // String Meta
   readonly isNumberString: {
     readonly _tag: "isNumberString"
     readonly regExp: RegExp
@@ -357,6 +358,18 @@ export interface MetaRegistry {
     readonly _tag: "isSymbolString"
     readonly regExp: RegExp
   }
+  readonly isMinLength: {
+    readonly _tag: "isMinLength"
+    readonly minLength: number
+  }
+  readonly isMaxLength: {
+    readonly _tag: "isMaxLength"
+    readonly maxLength: number
+  }
+  readonly isLength: {
+    readonly _tag: "isLength"
+    readonly length: number
+  }
   readonly isPattern: {
     readonly _tag: "isPattern"
     readonly regExp: RegExp
@@ -367,6 +380,7 @@ export interface MetaRegistry {
   readonly isUUID: {
     readonly _tag: "isUUID"
     readonly regExp: RegExp
+    readonly version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | undefined
   }
   readonly isULID: {
     readonly _tag: "isULID"
@@ -404,29 +418,9 @@ export interface MetaRegistry {
   readonly isUncapitalized: {
     readonly _tag: "isUncapitalized"
   }
+  // Number Meta
   readonly isFinite: {
     readonly _tag: "isFinite"
-  }
-  readonly isGreaterThan: {
-    readonly _tag: "isGreaterThan"
-    readonly exclusiveMinimum: number
-  }
-  readonly isGreaterThanOrEqualTo: {
-    readonly _tag: "isGreaterThanOrEqualTo"
-    readonly minimum: number
-  }
-  readonly isLessThan: {
-    readonly _tag: "isLessThan"
-    readonly exclusiveMaximum: number
-  }
-  readonly isLessThanOrEqualTo: {
-    readonly _tag: "isLessThanOrEqualTo"
-    readonly maximum: number
-  }
-  readonly isBetween: {
-    readonly _tag: "isBetween"
-    readonly minimum: number
-    readonly maximum: number
   }
   readonly isInt: {
     readonly _tag: "isInt"
@@ -437,75 +431,37 @@ export interface MetaRegistry {
   readonly isUint32: {
     readonly _tag: "isUint32"
   }
+  // Number Meta
+  readonly isGreaterThan: {
+    readonly _tag: "isGreaterThan"
+    readonly exclusiveMinimum: unknown
+  }
+  readonly isGreaterThanOrEqualTo: {
+    readonly _tag: "isGreaterThanOrEqualTo"
+    readonly minimum: unknown
+  }
+  readonly isLessThan: {
+    readonly _tag: "isLessThan"
+    readonly exclusiveMaximum: unknown
+  }
+  readonly isLessThanOrEqualTo: {
+    readonly _tag: "isLessThanOrEqualTo"
+    readonly maximum: unknown
+  }
+  readonly isBetween: {
+    readonly _tag: "isBetween"
+    readonly minimum: unknown
+    readonly maximum: unknown
+  }
+  readonly isMultipleOf: {
+    readonly _tag: "isMultipleOf"
+    readonly divisor: unknown
+  }
+  // Date Meta
   readonly isValidDate: {
     readonly _tag: "isValidDate"
   }
-  readonly isGreaterThanDate: {
-    readonly _tag: "isGreaterThanDate"
-    readonly exclusiveMinimum: Date
-  }
-  readonly isGreaterThanOrEqualToDate: {
-    readonly _tag: "isGreaterThanOrEqualToDate"
-    readonly minimum: Date
-  }
-  readonly isLessThanDate: {
-    readonly _tag: "isLessThanDate"
-    readonly exclusiveMaximum: Date
-  }
-  readonly isLessThanOrEqualToDate: {
-    readonly _tag: "isLessThanOrEqualToDate"
-    readonly maximum: Date
-  }
-  readonly isBetweenDate: {
-    readonly _tag: "isBetweenDate"
-    readonly minimum: Date
-    readonly maximum: Date
-  }
-  readonly isGreaterThanBigInt: {
-    readonly _tag: "isGreaterThanBigInt"
-    readonly exclusiveMinimum: bigint
-  }
-  readonly isGreaterThanOrEqualToBigInt: {
-    readonly _tag: "isGreaterThanOrEqualToBigInt"
-    readonly minimum: bigint
-  }
-  readonly isLessThanBigInt: {
-    readonly _tag: "isLessThanBigInt"
-    readonly exclusiveMaximum: bigint
-  }
-  readonly isLessThanOrEqualToBigInt: {
-    readonly _tag: "isLessThanOrEqualToBigInt"
-    readonly maximum: bigint
-  }
-  readonly isBetweenBigInt: {
-    readonly _tag: "isBetweenBigInt"
-    readonly minimum: bigint
-    readonly maximum: bigint
-  }
-  readonly isMinLength: {
-    readonly _tag: "isMinLength"
-    readonly minLength: number
-  }
-  readonly isMaxLength: {
-    readonly _tag: "isMaxLength"
-    readonly maxLength: number
-  }
-  readonly isLength: {
-    readonly _tag: "isLength"
-    readonly length: number
-  }
-  readonly isMinSize: {
-    readonly _tag: "isMinSize"
-    readonly minSize: number
-  }
-  readonly isMaxSize: {
-    readonly _tag: "isMaxSize"
-    readonly maxSize: number
-  }
-  readonly isSize: {
-    readonly _tag: "isSize"
-    readonly size: number
-  }
+  // Objects Meta
   readonly isMinProperties: {
     readonly _tag: "isMinProperties"
     readonly minProperties: number
@@ -518,9 +474,23 @@ export interface MetaRegistry {
     readonly _tag: "isPropertiesLength"
     readonly length: number
   }
+  // Arrays Meta
   readonly isUnique: {
     readonly _tag: "isUnique"
     readonly equivalence: Equivalence<any>
+  }
+  // Declaration Meta
+  readonly isMinSize: {
+    readonly _tag: "isMinSize"
+    readonly minSize: number
+  }
+  readonly isMaxSize: {
+    readonly _tag: "isMaxSize"
+    readonly maxSize: number
+  }
+  readonly isSize: {
+    readonly _tag: "isSize"
+    readonly size: number
   }
 }
 

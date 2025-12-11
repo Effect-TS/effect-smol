@@ -101,7 +101,7 @@ describe("Brand", () => {
 
     it("multiple checks", () => {
       type PositiveInt = number & Brand.Brand<"PositiveInt">
-      const PositiveInt = Brand.check<PositiveInt>(Schema.isInt(), Schema.isPositive())
+      const PositiveInt = Brand.check<PositiveInt>(Schema.isInt(), Schema.isGreaterThan(0))
 
       assertSuccess(PositiveInt, 1)
       assertFailure(PositiveInt, 1.1, "Expected an integer, got 1.1")
@@ -118,7 +118,7 @@ Expected a value greater than 0, got -1.1`
       type PositiveInt = number & Brand.Brand<"PositiveInt">
       const PositiveInt = Brand.check<PositiveInt>(
         Schema.isInt().abort(), // abort the first check
-        Schema.isPositive()
+        Schema.isGreaterThan(0)
       )
 
       assertSuccess(PositiveInt, 1)
@@ -140,7 +140,7 @@ Expected a value greater than 0, got -1.1`
     const Int = Brand.refine(Schema.isInt().pipe(Schema.isBranded<"Int">()))
 
     type Positive = number & Brand.Brand<"Positive">
-    const Positive = Brand.check<Positive>(Schema.isPositive())
+    const Positive = Brand.check<Positive>(Schema.isGreaterThan(0))
 
     const PositiveInt = Brand.all(Int, Positive)
 

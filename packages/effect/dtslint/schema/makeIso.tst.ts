@@ -32,7 +32,7 @@ describe("makeIso", () => {
 
   describe("brand", () => {
     it("Number & positive", () => {
-      const schema = Schema.Number.check(Schema.isPositive()).pipe(Schema.brand<"positive">())
+      const schema = Schema.Number.check(Schema.isGreaterThan(0)).pipe(Schema.brand<"positive">())
       const optic = Schema.makeIso(schema)
 
       expect(optic).type.toBe<Optic.Iso<number & Brand.Brand<"positive">, number & Brand.Brand<"positive">>>()
