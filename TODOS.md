@@ -357,30 +357,30 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |         `haltWhen`         |  Done  |                               |          |
 |     `haltWhenDeferred`     |   X    |                               |          |
 |         `identity`         |   X    |                               |          |
-|        `interleave`        |   -    |                               |          |
-|      `interleaveWith`      |   -    |                               |          |
+|        `interleave`        |  Done  |                               |          |
+|      `interleaveWith`      |  Done  |                               |          |
 |      `interruptAfter`      |   X    |                               |          |
 |      `interruptWhen`       |  Done  |                               |          |
 |  `interruptWhenDeferred`   |   X    |                               |          |
 |       `intersperse`        |  Done  |                               |          |
 |    `intersperseAffixes`    |  Done  |                               |          |
-|         `mapBoth`          |   -    |                               |          |
+|         `mapBoth`          |  Done  |                               |          |
 |          `merge`           |  Done  |                               |          |
-|         `mergeAll`         |   -    |                               |          |
-|       `mergeEither`        |   -    |                               |          |
-|        `mergeLeft`         |   -    |                               |          |
-|        `mergeRight`        |   -    |                               |          |
-|        `mergeWith`         |   -    |                               |          |
+|         `mergeAll`         |  Done  |                               |          |
+|       `mergeEither`        |  Done  |         `mergeResult`         |          |
+|        `mergeLeft`         |  Done  |                               |          |
+|        `mergeRight`        |  Done  |                               |          |
+|        `mergeWith`         |   X    |                               |          |
 |         `mkString`         |  Done  |          `mkString`           |          |
 |          `onDone`          |   X    |                               |          |
-|         `onError`          |   -    |                               |          |
-|        `partition`         |   -    |                               |          |
-|     `partitionEither`      |   -    |                               |          |
-|           `peel`           |   -    |                               |          |
-|       `pipeThrough`        |   -    |                               |          |
+|         `onError`          |  Done  |                               |          |
+|        `partition`         |  Done  |                               |          |
+|     `partitionEither`      |  Done  |       `partitionEffect`       |          |
+|           `peel`           |  Done  |                               |          |
+|       `pipeThrough`        |  Done  |                               |          |
 |    `pipeThroughChannel`    |  Done  |     `pipeThroughChannel`      |          |
 | `pipeThroughChannelOrFail` |  Done  |  `pipeThroughChannelOrFail`   |          |
-|         `prepend`          |   -    |                               |          |
+|         `prepend`          |  Done  |                               |          |
 |         `rechunk`          |  Done  |           `rechunk`           |          |
 |          `repeat`          |   -    |                               |          |
 |       `repeatEither`       |   -    |                               |          |

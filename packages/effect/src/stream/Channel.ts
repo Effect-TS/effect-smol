@@ -5065,6 +5065,26 @@ export const haltWhen: {
   })))
 
 /**
+ * @since 4.0.0
+ * @category utils
+ */
+export const onError: {
+  <OutDone, OutErr, Env2>(
+    finalizer: (cause: Cause.Cause<OutErr>) => Effect.Effect<unknown, never, Env2>
+  ): <OutElem, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2 | Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, Env2>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    finalizer: (cause: Cause.Cause<OutErr>) => Effect.Effect<unknown, never, Env2>
+  ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2 | Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, Env2>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  finalizer: (cause: Cause.Cause<OutErr>) => Effect.Effect<unknown, never, Env2>
+): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env2 | Env> =>
+  onExit(self, (exit) => Exit.isFailure(exit) ? finalizer(exit.cause) : Effect.void))
+
+/**
  * Returns a new channel with an attached finalizer. The finalizer is
  * guaranteed to be executed so long as the channel begins execution (and
  * regardless of whether or not it completes).

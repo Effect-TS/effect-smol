@@ -1326,6 +1326,30 @@ export const map: {
   }))
 
 /**
+ * Returns a stream whose failure and success channels have been mapped by the
+ * specified `onFailure` and `onSuccess` functions.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const mapBoth: {
+  <E, E2, A, A2>(
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): <R>(self: Stream<A, E, R>) => Stream<A2, E2, R>
+  <A, E, R, E2, A2>(
+    self: Stream<A, E, R>,
+    options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+  ): Stream<A2, E2, R>
+} = dual(2, <A, E, R, E2, A2>(
+  self: Stream<A, E, R>,
+  options: { readonly onFailure: (e: E) => E2; readonly onSuccess: (a: A) => A2 }
+): Stream<A2, E2, R> =>
+  self.pipe(
+    map(options.onSuccess),
+    mapError(options.onFailure)
+  ))
+
+/**
  * @since 2.0.0
  * @category mapping
  */
@@ -1376,7 +1400,6 @@ export const mapEffect: {
     f: (a: A, i: number) => Effect.Effect<A2, E2, R2>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
       readonly unordered?: boolean | undefined
     } | undefined
   ): <E, R>(self: Stream<A, E, R>) => Stream<A2, E2 | E, R2 | R>
@@ -1385,7 +1408,6 @@ export const mapEffect: {
     f: (a: A, i: number) => Effect.Effect<A2, E2, R2>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
       readonly unordered?: boolean | undefined
     } | undefined
   ): Stream<A2, E | E2, R | R2>
@@ -1394,7 +1416,6 @@ export const mapEffect: {
   f: (a: A, i: number) => Effect.Effect<A2, E2, R2>,
   options?: {
     readonly concurrency?: number | "unbounded" | undefined
-    readonly bufferSize?: number | undefined
     readonly unordered?: boolean | undefined
   } | undefined
 ): Stream<A2, E | E2, R | R2> =>
@@ -1413,7 +1434,6 @@ export const flattenEffect: {
   (
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
       readonly unordered?: boolean | undefined
     } | undefined
   ): <A, EX, RX, E, R>(self: Stream<Effect.Effect<A, EX, RX>, E, R>) => Stream<A, EX | E, RX | R>
@@ -1421,7 +1441,6 @@ export const flattenEffect: {
     self: Stream<Effect.Effect<A, EX, RX>, E, R>,
     options?: {
       readonly concurrency?: number | "unbounded" | undefined
-      readonly bufferSize?: number | undefined
       readonly unordered?: boolean | undefined
     } | undefined
   ): Stream<A, EX | E, RX | R>
@@ -1429,7 +1448,6 @@ export const flattenEffect: {
   self: Stream<Effect.Effect<A, EX, RX>, E, R>,
   options?: {
     readonly concurrency?: number | "unbounded" | undefined
-    readonly bufferSize?: number | undefined
     readonly unordered?: boolean | undefined
   } | undefined
 ): Stream<A, EX | E, RX | R> => mapEffect(self, identity, options))
@@ -1827,6 +1845,20 @@ export const concat: {
 )
 
 /**
+ * Emits the provided chunk before emitting any other value.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const prepend: {
+  <B>(values: Iterable<B>): <A, E, R>(self: Stream<A, E, R>) => Stream<B | A, E, R>
+  <A, E, R, B>(self: Stream<A, E, R>, values: Iterable<B>): Stream<A | B, E, R>
+} = dual(2, <A, E, R, B>(
+  self: Stream<A, E, R>,
+  values: Iterable<B>
+): Stream<A | B, E, R> => concat(fromIterable(values), self))
+
+/**
  * @since 2.0.0
  * @category merging
  */
@@ -1870,6 +1902,92 @@ export const mergeEffect: {
       fromChannel
     )
 )
+
+/**
+ * Merges this stream and the specified stream together to produce a stream of
+ * results.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const mergeResult: {
+  <A2, E2, R2>(
+    that: Stream<A2, E2, R2>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<Result.Result<A, A2>, E2 | E, R2 | R>
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, that: Stream<A2, E2, R2>): Stream<Result.Result<A, A2>, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    that: Stream<A2, E2, R2>
+  ): Stream<Result.Result<A, A2>, E | E2, R | R2> =>
+    merge(
+      map(self, Result.succeed),
+      map(that, Result.fail)
+    )
+)
+
+/**
+ * Merges this stream and the specified stream together, discarding the values
+ * from the right stream.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const mergeLeft: {
+  <AR, ER, RR>(right: Stream<AR, ER, RR>): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<AL, ER | EL, RR | RL>
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<AL, EL | ER, RL | RR>
+} = dual(
+  2,
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<AL, EL | ER, RL | RR> =>
+    mergeEffect(left, runDrain(right))
+)
+
+/**
+ * Merges this stream and the specified stream together, discarding the values
+ * from the left stream.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const mergeRight: {
+  <AR, ER, RR>(right: Stream<AR, ER, RR>): <AL, EL, RL>(left: Stream<AL, EL, RL>) => Stream<AR, ER | EL, RR | RL>
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<AR, EL | ER, RL | RR>
+} = dual(
+  2,
+  <AL, EL, RL, AR, ER, RR>(left: Stream<AL, EL, RL>, right: Stream<AR, ER, RR>): Stream<AR, EL | ER, RL | RR> =>
+    mergeEffect(right, runDrain(left))
+)
+
+/**
+ * Merges a variable list of streams in a non-deterministic fashion. Up to `n`
+ * streams may be consumed in parallel and up to `outputBuffer` chunks may be
+ * buffered by this operator.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const mergeAll: {
+  (
+    options: {
+      readonly concurrency: number | "unbounded"
+      readonly bufferSize?: number | undefined
+    }
+  ): <A, E, R>(streams: Iterable<Stream<A, E, R>>) => Stream<A, E, R>
+  <A, E, R>(
+    streams: Iterable<Stream<A, E, R>>,
+    options: {
+      readonly concurrency: number | "unbounded"
+      readonly bufferSize?: number | undefined
+    }
+  ): Stream<A, E, R>
+} = dual(2, <A, E, R>(
+  streams: Iterable<Stream<A, E, R>>,
+  options: {
+    readonly concurrency: number | "unbounded"
+    readonly bufferSize?: number | undefined
+  }
+): Stream<A, E, R> => flatten(fromIterable(streams), options))
 
 /**
  * Composes this stream with the specified stream to create a cartesian
@@ -2455,6 +2573,215 @@ export const filter: {
   2,
   <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>): Stream<B, E, R> =>
     fromChannel(Channel.filterArray(toChannel(self), filter))
+)
+
+/**
+ * @since 2.0.0
+ * @category Filtering
+ */
+export const partition: {
+  <A, B, X>(filter: Filter.Filter<A, B, X>, options?: {
+    readonly capacity?: number | "unbounded" | undefined
+  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
+    [
+      passes: Stream<B, E>,
+      fails: Stream<X, E>
+    ],
+    never,
+    R | Scope.Scope
+  >
+  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>, options?: {
+    readonly capacity?: number | "unbounded" | undefined
+  }): Effect.Effect<
+    [
+      passes: Stream<B, E>,
+      fails: Stream<X, E>
+    ],
+    never,
+    R | Scope.Scope
+  >
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>, options?: {
+    readonly capacity?: number | "unbounded" | undefined
+  }): Effect.Effect<
+    [
+      passes: Stream<B, E>,
+      fails: Stream<X, E>
+    ],
+    never,
+    R | Scope.Scope
+  > =>
+    Effect.map(
+      partitionQueue(filter, options)(self),
+      ([passes, fails]) => [fromQueue(passes), fromQueue(fails)] as const
+    )
+)
+
+/**
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const partitionQueue: {
+  <A, B, X>(filter: Filter.Filter<A, B, X>, options?: {
+    readonly capacity?: number | "unbounded" | undefined
+  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
+    [
+      passes: Queue.Dequeue<B, E | Queue.Done>,
+      fails: Queue.Dequeue<X, E | Queue.Done>
+    ],
+    never,
+    R | Scope.Scope
+  >
+  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>, options?: {
+    readonly capacity?: number | "unbounded" | undefined
+  }): Effect.Effect<
+    [
+      passes: Queue.Dequeue<B, E | Queue.Done>,
+      fails: Queue.Dequeue<X, E | Queue.Done>
+    ],
+    never,
+    R | Scope.Scope
+  >
+} = dual(
+  (args) => isStream(args[0]),
+  Effect.fnUntraced(function*<A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>, options?: {
+    readonly capacity?: number | "unbounded" | undefined
+  }): Effect.fn.Return<
+    [
+      passes: Queue.Dequeue<B, E | Queue.Done>,
+      fails: Queue.Dequeue<X, E | Queue.Done>
+    ],
+    never,
+    R | Scope.Scope
+  > {
+    const scope = yield* Effect.scope
+    const pull = yield* Channel.toPullScoped(self.channel, scope)
+    const capacity = options?.capacity === "unbounded" ? undefined : options?.capacity ?? DefaultChunkSize
+    const passes = yield* Queue.make<B, E | Queue.Done>({ capacity })
+    const fails = yield* Queue.make<X, E | Queue.Done>({ capacity })
+
+    const partition = Arr.partitionFilter(filter)
+
+    yield* Effect.gen(function*() {
+      while (true) {
+        const chunk = yield* pull
+        const results = partition(chunk)
+        let passFiber: Fiber.Fiber<any> | undefined = undefined
+        if (results[0].length > 0) {
+          const leftover = Queue.offerAllUnsafe(passes, results[0])
+          if (leftover.length > 0) {
+            passFiber = yield* Effect.forkChild(Queue.offerAll(passes, leftover))
+          }
+        }
+        if (results[1].length > 0) {
+          const leftover = Queue.offerAllUnsafe(fails, results[1])
+          if (leftover.length > 0) {
+            yield* Queue.offerAll(fails, leftover)
+          }
+        }
+        if (passFiber) yield* Fiber.join(passFiber)
+      }
+    }).pipe(
+      Effect.onError((cause) => {
+        const exit = Pull.isHaltCause(cause) ? Exit.fail(Queue.Done) : Exit.failCause(cause)
+        Queue.doneUnsafe(passes, exit)
+        Queue.doneUnsafe(fails, exit)
+        return Effect.void
+      }),
+      Effect.forkIn(scope)
+    )
+
+    return [passes, fails]
+  })
+)
+
+/**
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const partitionEffect: {
+  <A, B, X, EX, RX>(filter: Filter.FilterEffect<A, B, X, EX, RX>, options?: {
+    readonly capacity?: number | "unbounded" | undefined
+    readonly concurrency?: number | "unbounded" | undefined
+  }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
+    [
+      passes: Stream<B, E | EX>,
+      fails: Stream<X, E | EX>
+    ],
+    never,
+    R | RX | Scope.Scope
+  >
+  <A, E, R, B, X, EX, RX>(self: Stream<A, E, R>, filter: Filter.FilterEffect<A, B, X, EX, RX>, options?: {
+    readonly capacity?: number | "unbounded" | undefined
+    readonly concurrency?: number | "unbounded" | undefined
+  }): Effect.Effect<
+    [
+      passes: Stream<B, E | EX>,
+      fails: Stream<X, E | EX>
+    ],
+    never,
+    R | RX | Scope.Scope
+  >
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, B, X, EX, RX>(self: Stream<A, E, R>, filter: Filter.FilterEffect<A, B, X, EX, RX>, options?: {
+    readonly capacity?: number | "unbounded" | undefined
+    readonly concurrency?: number | "unbounded" | undefined
+  }): Effect.Effect<
+    [
+      passes: Stream<B, E | EX>,
+      fails: Stream<X, E | EX>
+    ],
+    never,
+    R | RX | Scope.Scope
+  > =>
+    self.pipe(
+      mapEffect(filter, options),
+      partition(identity, options)
+    )
+)
+
+/**
+ * Peels off enough material from the stream to construct a `Z` using the
+ * provided `Sink` and then returns both the `Z` and the rest of the
+ * `Stream` in a scope. Like all scoped values, the provided stream is
+ * valid only within the scope.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const peel: {
+  <A2, A, E2, R2>(
+    sink: Sink.Sink<A2, A, A, E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Effect.Effect<[A2, Stream<A, E, never>], E2 | E, Scope.Scope | R2 | R>
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    sink: Sink.Sink<A2, A, A, E2, R2>
+  ): Effect.Effect<[A2, Stream<A, E, never>], E | E2, Scope.Scope | R | R2>
+} = dual(
+  2,
+  Effect.fnUntraced(function*<A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    sink: Sink.Sink<A2, A, A, E2, R2>
+  ): Effect.fn.Return<[A2, Stream<A, E, never>], E | E2, Scope.Scope | R | R2> {
+    let cause: Cause.Cause<E | Pull.Halt<void>> | undefined = undefined
+    const originalPull = yield* Channel.toPull(self.channel)
+    const pull: Pull.Pull<
+      Arr.NonEmptyReadonlyArray<A>,
+      E
+    > = Effect.catchCause(originalPull, (cause_) => {
+      cause = cause_
+      return Effect.failCause(cause_)
+    })
+
+    let stream = fromPull(Effect.succeed(pull)) as Stream<A, E>
+    const leftover = yield* run(stream, sink)
+    if (cause) return [leftover, empty]
+
+    stream = fromPull(Effect.succeed(originalPull))
+    return [leftover, stream]
+  })
 )
 
 /**
@@ -4603,6 +4930,27 @@ export const pipeThroughChannelOrFail: {
 ): Stream<A2, E | E2, R | R2> => fromChannel(Channel.pipeToOrFail(self.channel, channel)))
 
 /**
+ * Pipes all of the values from this stream through the provided sink.
+ *
+ * See also `Stream.transduce`.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const pipeThrough: {
+  <A2, A, L, E2, R2>(sink: Sink.Sink<A2, A, L, E2, R2>): <E, R>(self: Stream<A, E, R>) => Stream<L, E2 | E, R2 | R>
+  <A, E, R, A2, L, E2, R2>(self: Stream<A, E, R>, sink: Sink.Sink<A2, A, L, E2, R2>): Stream<L, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, A2, L, E2, R2>(self: Stream<A, E, R>, sink: Sink.Sink<A2, A, L, E2, R2>): Stream<L, E | E2, R | R2> =>
+    self.channel.pipe(
+      Channel.pipeToOrFail(sink.channel),
+      Channel.concatWith(([_, leftover]) => leftover ? Channel.succeed(leftover) : Channel.empty),
+      fromChannel
+    )
+)
+
+/**
  * @since 2.0.0
  * @category accumulation
  */
@@ -5062,6 +5410,29 @@ export const onExit: {
   self: Stream<A, E, R>,
   finalizer: (exit: Exit.Exit<unknown, E>) => Effect.Effect<unknown, never, R2>
 ): Stream<A, E, R | R2> => fromChannel(Channel.onExit(self.channel, finalizer)))
+
+/**
+ * Runs the specified effect if this stream fails, providing the error to the
+ * effect if it exists.
+ *
+ * Note: Unlike `Effect.onError` there is no guarantee that the provided
+ * effect will not be interrupted.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const onError: {
+  <E, X, R2>(
+    cleanup: (cause: Cause.Cause<E>) => Effect.Effect<X, never, R2>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A, E, R2 | R>
+  <A, E, R, X, R2>(
+    self: Stream<A, E, R>,
+    cleanup: (cause: Cause.Cause<E>) => Effect.Effect<X, never, R2>
+  ): Stream<A, E, R | R2>
+} = dual(2, <A, E, R, X, R2>(
+  self: Stream<A, E, R>,
+  cleanup: (cause: Cause.Cause<E>) => Effect.Effect<X, never, R2>
+): Stream<A, E, R | R2> => fromChannel(Channel.onError(self.channel, cleanup)))
 
 /**
  * @since 4.0.0
