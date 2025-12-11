@@ -325,6 +325,40 @@ export interface StderrConfig {
 }
 
 /**
+ * Configuration for additional file descriptors to expose to the child process.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export type AdditionalFdConfig =
+  | {
+    /**
+     * The direction of data flow for this file descriptor.
+     * - "input": Data flows from parent to child (writable by parent)
+     * - "output": Data flows from child to parent (readable by parent)
+     */
+    readonly type: "input"
+    /**
+     * For input file descriptors, an optional stream to pipe into the file
+     * descriptor..
+     */
+    readonly stream?: Stream.Stream<Uint8Array, PlatformError.PlatformError> | undefined
+  }
+  | {
+    /**
+     * The direction of data flow for this file descriptor.
+     * - "input": Data flows from parent to child (writable by parent)
+     * - "output": Data flows from child to parent (readable by parent)
+     */
+    readonly type: "output"
+    /**
+     * For output file descriptors, an optional sink which receives data from
+     * the file descriptor.
+     */
+    readonly sink?: Sink.Sink<Uint8Array, Uint8Array, never, PlatformError.PlatformError> | undefined
+  }
+
+/**
  * Options for command execution.
  *
  * @since 4.0.0
@@ -373,6 +407,32 @@ export interface CommandOptions extends KillOptions {
    * Configuration options for the standard error stream for the child process.
    */
   readonly stderr?: CommandOutput | StderrConfig | undefined
+  /**
+   * Additional file descriptors beyond stdin/stdout/stderr.
+   *
+   * Keys must be in the format "fd3", "fd4", etc. (fd index >= 3).
+   * The FD index is determined by the numeric suffix.
+   *
+   * @example
+   * ```ts
+   * import { ChildProcess } from "effect/unstable/process"
+   *
+   * // Output fd3 - read data from child
+   * const cmd1 = ChildProcess.make("my-program", [], {
+   *   additionalFds: {
+   *     fd3: { type: "output" }
+   *   }
+   * })
+   *
+   * // Input fd3 - write data to child
+   * const cmd2 = ChildProcess.make("my-program", [], {
+   *   additionalFds: {
+   *     fd3: { type: "input" }
+   *   }
+   * })
+   * ```
+   */
+  readonly additionalFds?: Record<string, AdditionalFdConfig> | undefined
 }
 
 /**
@@ -620,3 +680,29 @@ export const spawn: (command: Command) => Effect.Effect<
 
 const isTemplateString = (u: unknown): u is TemplateStringsArray =>
   Array.isArray(u) && "raw" in u && Array.isArray(u.raw)
+
+// =============================================================================
+// Utilities
+// =============================================================================
+
+/**
+ * Parse an fd name like "fd3" to its numeric index.
+ * Returns undefined if the name is invalid.
+ *
+ * @since 4.0.0
+ * @category Utilities
+ */
+export const parseFdName = (name: string): number | undefined => {
+  const match = /^fd(\d+)$/.exec(name)
+  if (match === null) return undefined
+  const fd = parseInt(match[1], 10)
+  return fd >= 3 ? fd : undefined
+}
+
+/**
+ * Create an fd name from its numeric index.
+ *
+ * @since 4.0.0
+ * @category Utilities
+ */
+export const fdName = (fd: number): string => `fd${fd}`

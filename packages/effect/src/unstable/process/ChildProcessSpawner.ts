@@ -82,6 +82,22 @@ export interface ChildProcessHandle {
    * The standard error stream for the child process.
    */
   readonly stderr: Stream.Stream<Uint8Array, PlatformError.PlatformError>
+  /**
+   * Get an input `Sink` for writing to a file descriptor configured via
+   * `ChildProcessOptions.additionalFds`.
+   *
+   * If a file descriptor is accessed that was not configured, returns a drain
+   * `Sink`.
+   */
+  readonly getInputFd: (fd: number) => Sink.Sink<void, Uint8Array, never, PlatformError.PlatformError>
+  /**
+   * Get an output `Stream` for reading from a file descriptor configured via
+   * `ChildProcessOptions.additionalFds`.
+   *
+   * If a file descriptor is accessed that was not configured, returns an empty
+   * `Stream`.
+   */
+  readonly getOutputFd: (fd: number) => Stream.Stream<Uint8Array, PlatformError.PlatformError>
 }
 
 const HandleProto = {

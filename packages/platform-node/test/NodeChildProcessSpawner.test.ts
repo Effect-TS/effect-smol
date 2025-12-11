@@ -369,4 +369,143 @@ describe("NodeChildProcessSpawner", () => {
         assert.strictEqual(output, input)
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
   })
+
+  describe("additionalFds", () => {
+    it.effect("should read data from an output fd (fd3)", () =>
+      Effect.gen(function*() {
+        // Use a shell script that writes to fd3
+        // The script echoes "hello from fd3" to file descriptor 3
+        const handle = yield* ChildProcess.make("sh", ["-c", "echo 'hello from fd3' >&3"], {
+          additionalFds: { fd3: { type: "output" } }
+        })
+
+        const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
+        const exitCode = yield* handle.exitCode
+
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+        assert.strictEqual(fd3Output, "hello from fd3")
+      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+
+    it.effect("should write data to an input fd (fd3)", () =>
+      Effect.gen(function*() {
+        // Use a shell script that reads from fd3 and echoes it to stdout
+        // The script reads from file descriptor 3 and outputs to stdout
+        const inputData = "data from parent"
+        const inputStream = Stream.make(new TextEncoder().encode(inputData))
+
+        const handle = yield* ChildProcess.make("sh", ["-c", "cat <&3"], {
+          additionalFds: {
+            fd3: { type: "input", stream: inputStream }
+          }
+        })
+
+        const stdout = yield* collectStreamOutput(handle.stdout)
+        const exitCode = yield* handle.exitCode
+
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+        assert.strictEqual(stdout, inputData)
+      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+
+    it.effect("should handle multiple additional fds", () =>
+      Effect.gen(function*() {
+        // Script that writes different messages to fd3 and fd4
+        const handle = yield* ChildProcess.make(
+          "sh",
+          ["-c", "echo 'output on fd3' >&3; echo 'output on fd4' >&4"],
+          {
+            additionalFds: {
+              fd3: { type: "output" },
+              fd4: { type: "output" }
+            }
+          }
+        )
+
+        const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
+        const fd4Output = yield* collectStreamOutput(handle.getOutputFd(4))
+        const exitCode = yield* handle.exitCode
+
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+        assert.strictEqual(fd3Output, "output on fd3")
+        assert.strictEqual(fd4Output, "output on fd4")
+      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+
+    it.effect("should handle fd gaps (e.g., fd3 and fd5 without fd4)", () =>
+      Effect.gen(function*() {
+        // Script that writes to fd3 and fd5, skipping fd4
+        const handle = yield* ChildProcess.make(
+          "sh",
+          ["-c", "echo 'on fd3' >&3; echo 'on fd5' >&5"],
+          {
+            additionalFds: {
+              fd3: { type: "output" },
+              fd5: { type: "output" }
+            }
+          }
+        )
+
+        const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
+        const fd5Output = yield* collectStreamOutput(handle.getOutputFd(5))
+        const exitCode = yield* handle.exitCode
+
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+        assert.strictEqual(fd3Output, "on fd3")
+        assert.strictEqual(fd5Output, "on fd5")
+      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+
+    it.effect("should return empty stream for unconfigured output fd", () =>
+      Effect.gen(function*() {
+        const handle = yield* ChildProcess.make("echo", ["test"])
+
+        // fd3 was not configured, should return empty stream
+        const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
+        const exitCode = yield* handle.exitCode
+
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+        assert.strictEqual(fd3Output, "")
+      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+
+    it.effect("should handle bidirectional communication via separate fds", () =>
+      Effect.gen(function*() {
+        // Script that reads from fd3, transforms it, and writes to fd4
+        const inputData = "hello"
+        const inputStream = Stream.make(new TextEncoder().encode(inputData))
+
+        const handle = yield* ChildProcess.make(
+          "sh",
+          ["-c", "cat <&3 | tr a-z A-Z >&4"],
+          {
+            additionalFds: {
+              fd3: { type: "input", stream: inputStream },
+              fd4: { type: "output" }
+            }
+          }
+        )
+
+        const fd4Output = yield* collectStreamOutput(handle.getOutputFd(4))
+        const exitCode = yield* handle.exitCode
+
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+        assert.strictEqual(fd4Output, "HELLO")
+      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+
+    it.effect("should work alongside normal stdin/stdout/stderr", () =>
+      Effect.gen(function*() {
+        // Script that uses all standard streams plus fd3
+        const handle = yield* ChildProcess.make(
+          "sh",
+          ["-c", "echo 'stdout'; echo 'stderr' >&2; echo 'fd3' >&3"],
+          { additionalFds: { fd3: { type: "output" } } }
+        )
+
+        const stdout = yield* collectStreamOutput(handle.stdout)
+        const stderr = yield* collectStreamOutput(handle.stderr)
+        const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
+        const exitCode = yield* handle.exitCode
+
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+        assert.strictEqual(stdout, "stdout")
+        assert.strictEqual(stderr, "stderr")
+        assert.strictEqual(fd3Output, "fd3")
+      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+  })
 })

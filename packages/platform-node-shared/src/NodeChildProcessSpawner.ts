@@ -116,6 +116,126 @@ const make = Effect.gen(function*() {
     return { stream: option.stream }
   }
 
+  interface ResolvedAdditionalFd {
+    readonly fd: number
+    readonly config: ChildProcess.AdditionalFdConfig
+  }
+
+  const resolveAdditionalFds = (
+    options: ChildProcess.CommandOptions
+  ): ReadonlyArray<ResolvedAdditionalFd> => {
+    if (Predicate.isUndefined(options.additionalFds)) {
+      return []
+    }
+    const result: Array<ResolvedAdditionalFd> = []
+    for (const [name, config] of Object.entries(options.additionalFds)) {
+      const fd = ChildProcess.parseFdName(name)
+      if (Predicate.isNotUndefined(fd)) {
+        result.push({ fd, config })
+      }
+    }
+    // Sort by fd number to ensure correct ordering
+    return result.sort((a, b) => a.fd - b.fd)
+  }
+
+  const buildStdioArray = (
+    stdinConfig: ChildProcess.StdinConfig,
+    stdoutConfig: ChildProcess.StdoutConfig,
+    stderrConfig: ChildProcess.StderrConfig,
+    additionalFds: ReadonlyArray<ResolvedAdditionalFd>
+  ): NodeChildProcess.StdioOptions => {
+    const stdio: Array<NodeChildProcess.IOType | undefined> = [
+      inputToStdioOption(stdinConfig.stream),
+      outputToStdioOption(stdoutConfig.stream),
+      outputToStdioOption(stderrConfig.stream)
+    ]
+
+    if (additionalFds.length === 0) {
+      return stdio as NodeChildProcess.StdioOptions
+    }
+
+    // Find the maximum fd number to size the array correctly
+    const maxFd = additionalFds.reduce((max, { fd }) => Math.max(max, fd), 2)
+
+    // Fill gaps with "ignore"
+    for (let i = 3; i <= maxFd; i++) {
+      stdio[i] = "ignore"
+    }
+
+    // Set up additional fds as "pipe"
+    for (const { fd } of additionalFds) {
+      stdio[fd] = "pipe"
+    }
+
+    return stdio as NodeChildProcess.StdioOptions
+  }
+
+  const setupAdditionalFds = Effect.fnUntraced(function*(
+    command: ChildProcess.StandardCommand,
+    childProcess: NodeChildProcess.ChildProcess,
+    additionalFds: ReadonlyArray<ResolvedAdditionalFd>
+  ) {
+    if (additionalFds.length === 0) {
+      return {
+        getInputFd: () => Sink.drain,
+        getOutputFd: () => Stream.empty
+      }
+    }
+
+    const inputSinks = new Map<number, Sink.Sink<void, Uint8Array, never, PlatformError.PlatformError>>()
+    const outputStreams = new Map<number, Stream.Stream<Uint8Array, PlatformError.PlatformError>>()
+
+    for (const { config, fd } of additionalFds) {
+      const nodeStream = childProcess.stdio[fd]
+
+      switch (config.type) {
+        case "input": {
+          // Create a sink to write to for input file descriptors
+          let sink: Sink.Sink<void, Uint8Array, never, PlatformError.PlatformError> = Sink.drain
+          if (Predicate.isNotNullish(nodeStream) && "write" in nodeStream) {
+            sink = NodeSink.fromWritable({
+              evaluate: () => nodeStream as NodeJS.WritableStream,
+              onError: (error) => toPlatformError(`fromWritable(fd${fd})`, toError(error), command)
+            })
+          }
+
+          // If user provided a stream, pipe it into the sink
+          if (Predicate.isNotUndefined(config.stream)) {
+            yield* Effect.forkScoped(Stream.run(config.stream, sink))
+          }
+
+          inputSinks.set(fd, sink)
+
+          break
+        }
+        case "output": {
+          // Create a stream to read from for output file descriptors
+          let stream: Stream.Stream<Uint8Array, PlatformError.PlatformError> = Stream.empty
+          if (Predicate.isNotNull(nodeStream) && Predicate.isNotUndefined(nodeStream) && "read" in nodeStream) {
+            stream = NodeStream.fromReadable({
+              evaluate: () => nodeStream as NodeJS.ReadableStream,
+              onError: (error) => toPlatformError(`fromReadable(fd${fd})`, toError(error), command)
+            })
+          }
+
+          // If user provided a sink, transduce the stream through it
+          if (Predicate.isNotUndefined(config.sink)) {
+            stream = Stream.transduce(stream, config.sink)
+          }
+
+          outputStreams.set(fd, stream)
+
+          break
+        }
+      }
+    }
+
+    return {
+      getInputFd: (fd: number) => inputSinks.get(fd) ?? Sink.drain,
+      getOutputFd: (fd: number) => outputStreams.get(fd) ?? Stream.empty
+    }
+  })
+
   const setupChildStdin = Effect.fnUntraced(function*(
     command: ChildProcess.StandardCommand,
     childProcess: NodeChildProcess.ChildProcess,
@@ -272,14 +392,11 @@ const make = Effect.gen(function*() {
         const stdinConfig = resolveStdinOption(command.options)
         const stdoutConfig = resolveOutputOption(command.options, "stdout")
         const stderrConfig = resolveOutputOption(command.options, "stderr")
+        const resolvedAdditionalFds = resolveAdditionalFds(command.options)
 
         const cwd = yield* resolveWorkingDirectory(command.options)
         const env = resolveEnvironment(command.options)
-        const stdio = [
-          inputToStdioOption(stdinConfig.stream),
-          outputToStdioOption(stdoutConfig.stream),
-          outputToStdioOption(stderrConfig.stream)
-        ]
+        const stdio = buildStdioArray(stdinConfig, stdoutConfig, stderrConfig, resolvedAdditionalFds)
 
         const [childProcess, exitSignal] = yield* Effect.acquireRelease(
           spawn(command, { cwd, env, stdio, shell: command.options.shell }),
@@ -311,6 +428,7 @@ const make = Effect.gen(function*() {
         const stdin = yield* setupChildStdin(command, childProcess, stdinConfig)
         const stdout = yield* setupChildOutput(command, childProcess, stdoutConfig, "stdout")
         const stderr = yield* setupChildOutput(command, childProcess, stderrConfig, "stderr")
+        const { getInputFd, getOutputFd } = yield* setupAdditionalFds(command, childProcess, resolvedAdditionalFds)
         const isRunning = Effect.map(Deferred.isDone(exitSignal), (done) => !done)
         const exitCode = Effect.flatMap(Deferred.await(exitSignal), ([code, signal]) => {
           if (Predicate.isNotNull(code)) {
@@ -339,7 +457,9 @@ const make = Effect.gen(function*() {
           kill,
           stdin,
           stdout,
-          stderr
+          stderr,
+          getInputFd,
+          getOutputFd
         })
       }
       case "PipedCommand": {
