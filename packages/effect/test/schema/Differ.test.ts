@@ -267,6 +267,7 @@ describe("Differ", () => {
       roundtrip(Schema.Finite)
       roundtrip(Schema.Date)
       roundtrip(Schema.URL)
+      roundtrip(Schema.RegExp)
       roundtrip(Schema.Duration)
       roundtrip(Schema.DateTimeUtc)
       roundtrip(Schema.ValidDate)

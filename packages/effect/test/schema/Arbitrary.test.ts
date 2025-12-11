@@ -549,6 +549,10 @@ describe("Arbitrary generation", () => {
     verifyGeneration(Schema.URL)
   })
 
+  it("RegExp", () => {
+    verifyGeneration(Schema.RegExp)
+  })
+
   it("Duration", () => {
     verifyGeneration(Schema.Duration)
   })

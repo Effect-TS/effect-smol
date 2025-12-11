@@ -25,7 +25,7 @@ import { type Inspectable, NodeInspectSymbol } from "./interfaces/Inspectable.ts
 import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 
 const DEFAULT_PRECISION = 100
-const FINITE_INT_REGEX = /^[+-]?\d+$/
+const FINITE_INT_REGEXP = /^[+-]?\d+$/
 
 const TypeId = "~effect/BigDecimal"
 
@@ -1097,7 +1097,7 @@ export const fromString = (s: string): BigDecimal | undefined => {
     const trail = s.slice(seperator + 1)
     base = s.slice(0, seperator)
     exp = Number(trail)
-    if (base === "" || !Number.isSafeInteger(exp) || !FINITE_INT_REGEX.test(trail)) {
+    if (base === "" || !Number.isSafeInteger(exp) || !FINITE_INT_REGEXP.test(trail)) {
       return undefined
     }
   } else {
@@ -1118,7 +1118,7 @@ export const fromString = (s: string): BigDecimal | undefined => {
     offset = 0
   }
 
-  if (!FINITE_INT_REGEX.test(digits)) {
+  if (!FINITE_INT_REGEXP.test(digits)) {
     return undefined
   }
 

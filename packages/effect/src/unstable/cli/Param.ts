@@ -767,7 +767,7 @@ export const none = <Kind extends ParamKind>(kind: Kind): Param<Kind, never> =>
     kind
   })
 
-const FLAG_DASH_REGEX = /^-+/
+const FLAG_DASH_REGEXP = /^-+/
 
 /**
  * Adds an alias to an option.
@@ -804,7 +804,7 @@ export const withAlias: {
   return transformSingle(self, <X>(single: Single<Kind, X>) =>
     makeSingle({
       ...single,
-      aliases: [...single.aliases, alias.replace(FLAG_DASH_REGEX, "")]
+      aliases: [...single.aliases, alias.replace(FLAG_DASH_REGEXP, "")]
     }))
 })
 

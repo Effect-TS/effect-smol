@@ -416,6 +416,12 @@ describe("Formatter generation", () => {
     strictEqual(format(new URL("https://www.example.com")), "https://www.example.com/")
   })
 
+  it("RegExp", () => {
+    const format = Schema.makeFormatter(Schema.RegExp)
+    strictEqual(format(/a/), `/a/`)
+    strictEqual(format(/a/i), `/a/i`)
+  })
+
   it("Option(String)", () => {
     const format = Schema.makeFormatter(Schema.Option(Schema.String))
     strictEqual(format(Option.some("a")), `some("a")`)

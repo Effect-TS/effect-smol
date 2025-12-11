@@ -852,6 +852,27 @@ describe("Serializers", () => {
         )
       })
 
+      it("RegExp", async () => {
+        const schema = Schema.RegExp
+        const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(new RegExp("a"), { source: "a", flags: "" })
+        await encoding.succeed(new RegExp("a", "i"), { source: "a", flags: "i" })
+
+        const decoding = asserts.decoding()
+        await decoding.succeed({ source: "a", flags: "" }, new RegExp("a"))
+        await decoding.succeed({ source: "a", flags: "i" }, new RegExp("a", "i"))
+        await decoding.fail(
+          { source: "(", flags: "" },
+          `SyntaxError: Invalid regular expression: /(/: Unterminated group`
+        )
+        await decoding.fail(
+          { source: "a", flags: "x" },
+          `SyntaxError: Invalid flags supplied to RegExp constructor 'x'`
+        )
+      })
+
       it("Uint8Array", async () => {
         const schema = Schema.Uint8Array
         const asserts = new TestSchema.Asserts(Schema.toSerializerJson(schema))
@@ -2003,6 +2024,23 @@ describe("Serializers", () => {
         await decoding.fail(
           "not a url",
           isDeno ? `TypeError: Invalid URL: 'not a url'` : `TypeError: Invalid URL`
+        )
+      })
+
+      it("RegExp", async () => {
+        const schema = Schema.RegExp
+        const asserts = new TestSchema.Asserts(Schema.toSerializerStringTree(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(new RegExp("a"), { source: "a", flags: "" })
+        await encoding.succeed(new RegExp("a", "i"), { source: "a", flags: "i" })
+
+        const decoding = asserts.decoding()
+        await decoding.succeed({ source: "a", flags: "" }, new RegExp("a"))
+        await decoding.succeed({ source: "a", flags: "i" }, new RegExp("a", "i"))
+        await decoding.fail(
+          { source: "a", flags: "x" },
+          `SyntaxError: Invalid flags supplied to RegExp constructor 'x'`
         )
       })
 

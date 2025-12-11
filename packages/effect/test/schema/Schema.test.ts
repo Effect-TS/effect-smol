@@ -1074,14 +1074,14 @@ Expected a string including "c", got "ab"`
         await decoding.succeed("a")
         await decoding.fail(
           "b",
-          `Expected a string matching the regex ^a, got "b"`
+          `Expected a string matching the RegExp ^a, got "b"`
         )
 
         const encoding = asserts.encoding()
         await encoding.succeed("a")
         await encoding.fail(
           "b",
-          `Expected a string matching the regex ^a, got "b"`
+          `Expected a string matching the RegExp ^a, got "b"`
         )
       })
 
@@ -3984,6 +3984,15 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     }
   })
 
+  it("RegExp", async () => {
+    const schema = Schema.RegExp
+    const asserts = new TestSchema.Asserts(schema)
+    if (verifyGeneration) {
+      const arbitrary = asserts.arbitrary()
+      arbitrary.verifyGeneration()
+    }
+  })
+
   it("URLFromString", async () => {
     const schema = Schema.URLFromString
     const asserts = new TestSchema.Asserts(schema)
@@ -6862,7 +6871,7 @@ describe("Check", () => {
 
     deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
       _tag: "isNumberString",
-      regex: /(?:[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?|Infinity|-Infinity|NaN)/
+      regExp: /(?:[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?|Infinity|-Infinity|NaN)/
     })
   })
 
@@ -6871,7 +6880,7 @@ describe("Check", () => {
 
     deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
       _tag: "isBigIntString",
-      regex: /-?\d+/
+      regExp: /-?\d+/
     })
   })
 
@@ -6880,7 +6889,7 @@ describe("Check", () => {
 
     deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
       _tag: "isSymbolString",
-      regex: /^Symbol\((.*)\)$/
+      regExp: /^Symbol\((.*)\)$/
     })
   })
 
@@ -6895,14 +6904,14 @@ describe("Check", () => {
 
     deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
       _tag: "isULID",
-      regex: /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
+      regExp: /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
     })
 
     const decoding = asserts.decoding()
     await decoding.succeed("01H4PGGGJVN2DKP2K1H7EH996V")
     await decoding.fail(
       "",
-      `Expected a string matching the regex ^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$, got ""`
+      `Expected a string matching the RegExp ^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$, got ""`
     )
   })
 
@@ -6911,7 +6920,7 @@ describe("Check", () => {
 
     deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
       _tag: "isBase64",
-      regex: /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
+      regExp: /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
     })
   })
 
@@ -6920,7 +6929,7 @@ describe("Check", () => {
 
     deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
       _tag: "isBase64Url",
-      regex: /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
+      regExp: /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
     })
   })
 

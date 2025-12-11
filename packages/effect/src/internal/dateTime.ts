@@ -283,11 +283,11 @@ export const makeZoned: (
 export const make: <A extends DateTime.DateTime.Input>(input: A) => DateTime.DateTime.PreserveZone<A> | undefined =
   UndefinedOr.liftThrowable(makeUnsafe)
 
-const zonedStringRegex = /^(.{17,35})\[(.+)\]$/
+const zonedStringRegExp = /^(.{17,35})\[(.+)\]$/
 
 /** @internal */
 export const makeZonedFromString = (input: string): DateTime.Zoned | undefined => {
-  const match = zonedStringRegex.exec(input)
+  const match = zonedStringRegExp.exec(input)
   if (match === null) {
     const offset = parseOffset(input)
     return offset !== null ? makeZoned(input, { timeZone: offset }) : undefined
@@ -411,11 +411,11 @@ export const zoneMakeNamedEffect = (zoneId: string): Effect.Effect<DateTime.Time
 export const zoneMakeLocal = (): DateTime.TimeZone.Named =>
   zoneMakeIntl(new Intl.DateTimeFormat("en-US", formatOptions))
 
-const offsetZoneRegex = /^(?:GMT|[+-])/
+const offsetZoneRegExp = /^(?:GMT|[+-])/
 
 /** @internal */
 export const zoneFromString = (zone: string): DateTime.TimeZone | undefined => {
-  if (offsetZoneRegex.test(zone)) {
+  if (offsetZoneRegExp.test(zone)) {
     const offset = parseOffset(zone)
     return offset === null ? undefined : zoneMakeOffset(offset)
   }
@@ -811,9 +811,9 @@ const makeZonedFromAdjusted = (
   return makeZonedProto(adjustedMillis - afterOffset, zone)
 }
 
-const offsetRegex = /([+-])(\d{2}):(\d{2})$/
+const offsetRegExp = /([+-])(\d{2}):(\d{2})$/
 const parseOffset = (offset: string): number | null => {
-  const match = offsetRegex.exec(offset)
+  const match = offsetRegExp.exec(offset)
   if (match === null) {
     return null
   }

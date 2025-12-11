@@ -340,6 +340,15 @@ describe("Equivalence generation", () => {
     assertFalse(equivalence(new URL("https://example.com"), new URL("https://example.org")))
   })
 
+  it("RegExp", () => {
+    const schema = Schema.RegExp
+    const equivalence = Schema.makeEquivalence(schema)
+    assertTrue(equivalence(new RegExp("a"), new RegExp("a")))
+    assertTrue(equivalence(new RegExp("a", "i"), new RegExp("a", "i")))
+    assertFalse(equivalence(new RegExp("a"), new RegExp("b")))
+    assertFalse(equivalence(new RegExp("a", "i"), new RegExp("a", "g")))
+  })
+
   it("Redacted(String)", () => {
     const schema = Schema.Redacted(Schema.String)
     const equivalence = Schema.makeEquivalence(schema)

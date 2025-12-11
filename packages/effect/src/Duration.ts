@@ -96,7 +96,7 @@ export type DurationInput =
   | readonly [seconds: number, nanos: number]
   | `${number} ${Unit}`
 
-const DURATION_REGEX = /^(-?\d+(?:\.\d+)?)\s+(nanos?|micros?|millis?|seconds?|minutes?|hours?|days?|weeks?)$/
+const DURATION_REGEXP = /^(-?\d+(?:\.\d+)?)\s+(nanos?|micros?|millis?|seconds?|minutes?|hours?|days?|weeks?)$/
 
 /**
  * Decodes a `DurationInput` into a `Duration`.
@@ -131,7 +131,7 @@ export const fromDurationInputUnsafe = (input: DurationInput): Duration => {
     return nanos(BigInt(Math.round(input[0] * 1_000_000_000)) + BigInt(Math.round(input[1])))
   }
   if (isString(input)) {
-    const match = DURATION_REGEX.exec(input)
+    const match = DURATION_REGEXP.exec(input)
     if (match) {
       const [_, valueStr, unit] = match
       const value = Number(valueStr)

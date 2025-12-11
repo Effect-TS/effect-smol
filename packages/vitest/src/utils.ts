@@ -121,13 +121,13 @@ export function assertInclude(actual: string | undefined, expected: string, ..._
 }
 
 /**
- * Asserts that `actual` matches `regexp`.
+ * Asserts that `actual` matches `regExp`.
  *
  * @since 4.0.0
  */
-export function assertMatch(actual: string, regexp: RegExp, ..._: Array<never>) {
-  if (!regexp.test(actual)) {
-    fail(`Expected\n\n${actual}\n\nto match\n\n${regexp}`)
+export function assertMatch(actual: string, regExp: RegExp, ..._: Array<never>) {
+  if (!regExp.test(actual)) {
+    fail(`Expected\n\n${actual}\n\nto match\n\n${regExp}`)
   }
 }
 

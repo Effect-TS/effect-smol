@@ -3419,12 +3419,13 @@ export function isTrimmed(annotations?: Annotations.Filter) {
  * **Arbitrary**
  *
  * When generating test data with fast-check, this applies a `patterns`
- * constraint to ensure generated strings match the specified regex pattern.
+ * constraint to ensure generated strings match the specified RegExp pattern.
  *
  * @category String checks
  * @since 4.0.0
  */
-export const isPattern: (regex: RegExp, annotations?: Annotations.Filter) => AST.Filter<string> = AST.isPattern
+export const isPattern: (regExp: globalThis.RegExp, annotations?: Annotations.Filter) => AST.Filter<string> =
+  AST.isPattern
 
 /**
  * Validates that a string represents a valid number (can be parsed as a number).
@@ -3481,13 +3482,13 @@ export const isBigIntString: (annotations?: Annotations.Filter) => AST.Filter<st
 export const isSymbolString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isSymbolString
 
 /**
- * Returns a regex for validating an RFC 4122 UUID.
+ * Returns a RegExp for validating an RFC 4122 UUID.
  *
  * Optionally specify a version 1-8. If no version is specified, all versions are supported.
  */
-const getUUIDRegex = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): RegExp => {
+const getUUIDRegExp = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): globalThis.RegExp => {
   if (version) {
-    return new RegExp(
+    return new globalThis.RegExp(
       `^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`
     )
   }
@@ -3512,7 +3513,7 @@ const getUUIDRegex = (version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): RegExp => {
  * @since 4.0.0
  */
 export function isUUID(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
-  const re = getUUIDRegex(version)
+  const re = getUUIDRegExp(version)
   return isPattern(re, {
     expected: version ? `a UUID v${version}` : "a UUID",
     jsonSchemaConstraint: () => ({
@@ -3540,13 +3541,13 @@ export function isUUID(version?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8) {
  * @since 4.0.0
  */
 export function isULID(annotations?: Annotations.Filter) {
-  const regex = /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
+  const regExp = /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
   return isPattern(
-    regex,
+    regExp,
     Annotations.combine({
       meta: {
         _tag: "isULID",
-        regex
+        regExp
       }
     }, annotations)
   )
@@ -3569,14 +3570,14 @@ export function isULID(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function isBase64(annotations?: Annotations.Filter) {
-  const regex = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
+  const regExp = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
   return isPattern(
-    regex,
+    regExp,
     Annotations.combine({
       expected: "a base64 encoded string",
       meta: {
         _tag: "isBase64",
-        regex
+        regExp
       }
     }, annotations)
   )
@@ -3600,14 +3601,14 @@ export function isBase64(annotations?: Annotations.Filter) {
  * @since 4.0.0
  */
 export function isBase64Url(annotations?: Annotations.Filter) {
-  const regex = /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
+  const regExp = /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
   return isPattern(
-    regex,
+    regExp,
     Annotations.combine({
       expected: "a base64url encoded string",
       meta: {
         _tag: "isBase64Url",
-        regex
+        regExp
       }
     }, annotations)
   )
@@ -6123,6 +6124,63 @@ export const URL: URL = instanceOf(
     serializerJson: () => link<globalThis.URL>()(String, Transformation.urlFromString),
     arbitrary: () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s)),
     equivalence: () => (a, b) => a.toString() === b.toString()
+  }
+)
+
+/**
+ * @since 4.0.0
+ */
+export interface RegExp extends instanceOf<globalThis.RegExp> {}
+
+/**
+ * @since 4.0.0
+ */
+export const RegExp: RegExp = instanceOf(
+  globalThis.RegExp,
+  {
+    expected: "RegExp",
+    serializerJson: () =>
+      link<globalThis.RegExp>()(
+        Struct({
+          source: String,
+          flags: String
+        }),
+        Transformation.transformOrFail({
+          decode: (regExp) =>
+            Effect.try({
+              try: () => new globalThis.RegExp(regExp.source, regExp.flags),
+              catch: (e) => new Issue.InvalidValue(Option_.some(regExp), { message: globalThis.String(e) })
+            }),
+          encode: (regExp) =>
+            Effect.succeed({
+              source: regExp.source,
+              flags: regExp.flags
+            })
+        })
+      ),
+    arbitrary: () => (fc) =>
+      fc
+        .tuple(
+          fc.constantFrom(
+            ".",
+            ".*",
+            "\\d+",
+            "\\w+",
+            "[a-z]+",
+            "[A-Z]+",
+            "[0-9]+",
+            "^[a-zA-Z0-9]+$",
+            "^\\d{4}-\\d{2}-\\d{2}$" // date pattern
+          ),
+          fc
+            .uniqueArray(fc.constantFrom("g", "i", "m", "s", "u", "y"), {
+              minLength: 0,
+              maxLength: 6
+            })
+            .map((flags) => flags.join(""))
+        )
+        .map(([source, flags]) => new globalThis.RegExp(source, flags)),
+    equivalence: () => (a, b) => a.source === b.source && a.flags === b.flags
   }
 )
 

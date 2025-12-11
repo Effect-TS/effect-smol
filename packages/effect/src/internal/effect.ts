@@ -382,7 +382,7 @@ export const causePrettyMessage = (u: Record<string, unknown> | Error): string =
   return formatJson(u)
 }
 
-const locationRegex = /\((.*)\)/g
+const locationRegExp = /\((.*)\)/g
 
 const cleanErrorStack = (
   stack: string,
@@ -437,7 +437,7 @@ const currentSpanStack = (span: Tracer.Span): string => {
   while (current && current._tag === "Span" && i < 10) {
     const stack = spanToTrace.get(current)?.()
     if (stack) {
-      const locationMatchAll = stack.matchAll(locationRegex)
+      const locationMatchAll = stack.matchAll(locationRegExp)
       let match = false
       for (const [, location] of locationMatchAll) {
         match = true

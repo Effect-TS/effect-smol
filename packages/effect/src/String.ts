@@ -633,7 +633,7 @@ export const localeCompare =
  * @category searching
  * @since 2.0.0
  */
-export const match = (regexp: RegExp | string) => (self: string): RegExpMatchArray | null => self.match(regexp)
+export const match = (regExp: RegExp | string) => (self: string): RegExpMatchArray | null => self.match(regExp)
 
 /**
  * It is the `pipe`-able version of the native `matchAll` method.
@@ -649,7 +649,7 @@ export const match = (regexp: RegExp | string) => (self: string): RegExpMatchArr
  * @category searching
  * @since 2.0.0
  */
-export const matchAll = (regexp: RegExp) => (self: string): IterableIterator<RegExpMatchArray> => self.matchAll(regexp)
+export const matchAll = (regExp: RegExp) => (self: string): IterableIterator<RegExpMatchArray> => self.matchAll(regExp)
 
 /**
  * Normalizes a string according to the specified Unicode normalization form.
@@ -763,12 +763,12 @@ export const replaceAll = (searchValue: string | RegExp, replaceValue: string) =
  * @since 2.0.0
  */
 export const search: {
-  (regexp: RegExp | string): (self: string) => number | undefined
-  (self: string, regexp: RegExp | string): number | undefined
+  (regExp: RegExp | string): (self: string) => number | undefined
+  (self: string, regExp: RegExp | string): number | undefined
 } = dual(
   2,
-  (self: string, regexp: RegExp | string): number | undefined => {
-    const out = self.search(regexp)
+  (self: string, regExp: RegExp | string): number | undefined => {
+    const out = self.search(regExp)
     return out >= 0 ? out : undefined
   }
 )
@@ -1140,20 +1140,20 @@ const linesSeparated = (self: string, stripped: boolean): LinesIterator => new L
  */
 export const noCase: {
   (options?: {
-    readonly splitRegexp?: RegExp | ReadonlyArray<RegExp> | undefined
-    readonly stripRegexp?: RegExp | ReadonlyArray<RegExp> | undefined
+    readonly splitRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
+    readonly stripRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
     readonly delimiter?: string | undefined
     readonly transform?: (part: string, index: number, parts: ReadonlyArray<string>) => string
   }): (self: string) => string
   (self: string, options?: {
-    readonly splitRegexp?: RegExp | ReadonlyArray<RegExp> | undefined
-    readonly stripRegexp?: RegExp | ReadonlyArray<RegExp> | undefined
+    readonly splitRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
+    readonly stripRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
     readonly delimiter?: string | undefined
     readonly transform?: (part: string, index: number, parts: ReadonlyArray<string>) => string
   }): string
 } = dual((args) => typeof args[0] === "string", (input: string, options?: {
-  readonly splitRegexp?: RegExp | ReadonlyArray<RegExp> | undefined
-  readonly stripRegexp?: RegExp | ReadonlyArray<RegExp> | undefined
+  readonly splitRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
+  readonly stripRegExp?: RegExp | ReadonlyArray<RegExp> | undefined
   readonly delimiter?: string | undefined
   readonly transform?: (part: string, index: number, parts: ReadonlyArray<string>) => string
 }): string => {

@@ -1108,7 +1108,7 @@ const eraseText = (text: string, columns: number): string => {
     return Ansi.eraseLine + Ansi.cursorTo(0)
   }
   let rows = 0
-  const lines = text.split(NEWLINE_REGEX)
+  const lines = text.split(NEWLINE_REGEXP)
   for (const line of lines) {
     rows += 1 + Math.floor(Math.max(line.length - 1, 0) / columns)
   }
@@ -1116,7 +1116,7 @@ const eraseText = (text: string, columns: number): string => {
 }
 
 const lines = (prompt: string, columns: number): number => {
-  const lines = prompt.split(NEWLINE_REGEX)
+  const lines = prompt.split(NEWLINE_REGEXP)
   return columns === 0
     ? lines.length
     : pipe(
@@ -1141,7 +1141,7 @@ const handleConfirmClear = Effect.fnUntraced(function*(options: ConfirmOptionsRe
   return clearOutput + resetCurrentLine
 })
 
-const NEWLINE_REGEX = /\r?\n/
+const NEWLINE_REGEXP = /\r?\n/
 
 const renderConfirmOutput = (
   confirm: string,
@@ -1150,7 +1150,7 @@ const renderConfirmOutput = (
   options: ConfirmOptionsReq
 ) => {
   const prefix = leadingSymbol + " "
-  return Arr.match(options.message.split(NEWLINE_REGEX), {
+  return Arr.match(options.message.split(NEWLINE_REGEXP), {
     onEmpty: () => prefix + " " + trailingSymbol + " " + confirm,
     onNonEmpty: (promptLines) => {
       const lines = Arr.map(promptLines, (line) => annotateLine(line))
@@ -1193,18 +1193,18 @@ const handleConfirmRender = (options: ConfirmOptionsReq) => {
   }
 }
 
-const TRUE_VALUE_REGEX = /^y|t$/
-const FALSE_VALUE_REGEX = /^n|f$/
+const TRUE_VALUE_REGEXP = /^y|t$/
+const FALSE_VALUE_REGEXP = /^n|f$/
 
 const handleConfirmProcess = (input: Terminal.UserInput, defaultValue: boolean) => {
   const value = input.input ?? ""
   if (input.key.name === "enter" || input.key.name === "return") {
     return Effect.succeed(Action.Submit({ value: defaultValue }))
   }
-  if (TRUE_VALUE_REGEX.test(value.toLowerCase())) {
+  if (TRUE_VALUE_REGEXP.test(value.toLowerCase())) {
     return Effect.succeed(Action.Submit({ value: true }))
   }
-  if (FALSE_VALUE_REGEX.test(value.toLowerCase())) {
+  if (FALSE_VALUE_REGEXP.test(value.toLowerCase())) {
     return Effect.succeed(Action.Submit({ value: false }))
   }
   return Effect.succeed(Action.Beep())
@@ -1235,7 +1235,7 @@ const handleDateClear = (options: DateOptionsReq) => {
 
 const renderDateError = (state: DateState, pointer: string): string => {
   if (state.error !== undefined) {
-    const errorLines = state.error.split(NEWLINE_REGEX)
+    const errorLines = state.error.split(NEWLINE_REGEXP)
     if (Arr.isReadonlyArrayNonEmpty(errorLines)) {
       const prefix = Ansi.annotate(pointer, Ansi.red) + " "
       const lines = Arr.map(errorLines, (str) => annotateErrorLine(str))
@@ -1267,7 +1267,7 @@ const renderDateOutput = (
   options: DateOptionsReq
 ) => {
   const prefix = leadingSymbol + " "
-  return Arr.match(options.message.split(NEWLINE_REGEX), {
+  return Arr.match(options.message.split(NEWLINE_REGEXP), {
     onEmpty: () => prefix + " " + trailingSymbol + " " + parts,
     onNonEmpty: (promptLines) => {
       const lines = Arr.map(promptLines, (line) => annotateLine(line))
@@ -1428,10 +1428,10 @@ const handleDateProcess = (options: DateOptionsReq) => {
   }
 }
 
-const DATE_PART_REGEX =
+const DATE_PART_REGEXP =
   /\\(.)|"((?:\\["\\]|[^"])+)"|(D[Do]?|d{3,4}|d)|(M{1,4})|(YY(?:YY)?)|([aA])|([Hh]{1,2})|(m{1,2})|(s{1,2})|(S{1,4})|./g
 
-const regexGroups: Record<number, (params: DatePartParams) => DatePart> = {
+const regExpGroups: Record<number, (params: DatePartParams) => DatePart> = {
   1: ({ token, ...opts }) => new Token({ token: token.replace(/\\(.)/g, "$1"), ...opts }),
   2: (opts) => new Day(opts),
   3: (opts) => new Month(opts),
@@ -1451,12 +1451,12 @@ const makeDateParts = (
   const parts: Array<DatePart> = []
   let result: RegExpExecArray | null = null
   // eslint-disable-next-line no-cond-assign
-  while (result = DATE_PART_REGEX.exec(dateMask)) {
+  while (result = DATE_PART_REGEXP.exec(dateMask)) {
     const match = result.shift()
     const index = result.findIndex((group) => group !== undefined)
-    if (index in regexGroups) {
+    if (index in regExpGroups) {
       const token = (result[index] || match)!
-      parts.push(regexGroups[index]({ token, date, parts, locales }))
+      parts.push(regExpGroups[index]({ token, date, parts, locales }))
     } else {
       parts.push(new Token({ token: (result[index] || match)!, date, parts, locales }))
     }
@@ -1847,7 +1847,7 @@ const renderPrompt = (
   trailingSymbol: string
 ) => {
   const prefix = leadingSymbol + " "
-  return Arr.match(message.split(NEWLINE_REGEX), {
+  return Arr.match(message.split(NEWLINE_REGEXP), {
     onEmpty: () => prefix + " " + trailingSymbol + " " + confirm,
     onNonEmpty: (promptLines) => {
       const lines = Arr.map(promptLines, (line) => annotateLine(line))
@@ -2053,7 +2053,7 @@ type MultiSelectState = {
 
 const renderMultiSelectError = (state: MultiSelectState, pointer: string): string => {
   if (state.error !== undefined) {
-    return Arr.match(state.error.split(NEWLINE_REGEX), {
+    return Arr.match(state.error.split(NEWLINE_REGEXP), {
       onEmpty: () => "",
       onNonEmpty: (errorLines) => {
         const prefix = Ansi.annotate(pointer, Ansi.red) + " "
@@ -2291,7 +2291,7 @@ const renderNumberInput = (state: NumberState, submitted: boolean): string => {
 
 const renderNumberError = (state: NumberState, pointer: string) => {
   if (state.error !== undefined) {
-    return Arr.match(state.error.split(NEWLINE_REGEX), {
+    return Arr.match(state.error.split(NEWLINE_REGEXP), {
       onEmpty: () => "",
       onNonEmpty: (errorLines) => {
         const prefix = Ansi.annotate(pointer, Ansi.red) + " "
@@ -2311,7 +2311,7 @@ const renderNumberOutput = (
   submitted: boolean = false
 ) => {
   const prefix = leadingSymbol + " "
-  return Arr.match(options.message.split(NEWLINE_REGEX), {
+  return Arr.match(options.message.split(NEWLINE_REGEXP), {
     onEmpty: () => prefix + " " + trailingSymbol + " " + renderNumberInput(state, submitted),
     onNonEmpty: (promptLines) => {
       const lines = Arr.map(promptLines, (line) => annotateLine(line))
@@ -2542,7 +2542,7 @@ const renderSelectOutput = <A>(
   options: SelectOptionsReq<A>
 ) => {
   const prefix = leadingSymbol + " "
-  return Arr.match(options.message.split(NEWLINE_REGEX), {
+  return Arr.match(options.message.split(NEWLINE_REGEXP), {
     onEmpty: () => prefix + " " + trailingSymbol,
     onNonEmpty: (promptLines) => {
       const lines = Arr.map(promptLines, (line) => annotateLine(line))
@@ -2755,7 +2755,7 @@ const renderTextInput = (nextState: TextState, options: TextOptionsReq, submitte
 
 const renderTextError = (nextState: TextState, pointer: string): string => {
   if (nextState.error !== undefined) {
-    return Arr.match(nextState.error.split(NEWLINE_REGEX), {
+    return Arr.match(nextState.error.split(NEWLINE_REGEXP), {
       onEmpty: () => "",
       onNonEmpty: (errorLines) => {
         const prefix = Ansi.annotate(pointer, Ansi.red) + " "
@@ -2774,7 +2774,7 @@ const renderTextOutput = (
   options: TextOptionsReq,
   submitted: boolean = false
 ) => {
-  const promptLines = options.message.split(NEWLINE_REGEX)
+  const promptLines = options.message.split(NEWLINE_REGEXP)
   const prefix = leadingSymbol + " "
   if (Arr.isReadonlyArrayNonEmpty(promptLines)) {
     const lines = Arr.map(promptLines, (line) => annotateLine(line))
@@ -2972,7 +2972,7 @@ const renderToggleOutput = (
   trailingSymbol: string,
   options: ToggleOptionsReq
 ) => {
-  const promptLines = options.message.split(NEWLINE_REGEX)
+  const promptLines = options.message.split(NEWLINE_REGEXP)
   const prefix = leadingSymbol + " "
   if (Arr.isReadonlyArrayNonEmpty(promptLines)) {
     const lines = Arr.map(promptLines, (line) => annotateLine(line))

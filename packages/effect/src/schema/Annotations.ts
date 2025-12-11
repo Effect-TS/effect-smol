@@ -347,38 +347,38 @@ export interface Issue extends Annotations {
 export interface MetaRegistry {
   readonly isNumberString: {
     readonly _tag: "isNumberString"
-    readonly regex: RegExp
+    readonly regExp: RegExp
   }
   readonly isBigIntString: {
     readonly _tag: "isBigIntString"
-    readonly regex: RegExp
+    readonly regExp: RegExp
   }
   readonly isSymbolString: {
     readonly _tag: "isSymbolString"
-    readonly regex: RegExp
+    readonly regExp: RegExp
   }
   readonly isPattern: {
     readonly _tag: "isPattern"
-    readonly regex: RegExp
+    readonly regExp: RegExp
   }
   readonly isTrimmed: {
     readonly _tag: "isTrimmed"
   }
   readonly isUUID: {
     readonly _tag: "isUUID"
-    readonly regex: RegExp
+    readonly regExp: RegExp
   }
   readonly isULID: {
     readonly _tag: "isULID"
-    readonly regex: RegExp
+    readonly regExp: RegExp
   }
   readonly isBase64: {
     readonly _tag: "isBase64"
-    readonly regex: RegExp
+    readonly regExp: RegExp
   }
   readonly isBase64Url: {
     readonly _tag: "isBase64Url"
-    readonly regex: RegExp
+    readonly regExp: RegExp
   }
   readonly isStartsWith: {
     readonly _tag: "isStartsWith"
