@@ -274,15 +274,7 @@ export const fromTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, E
 > => {
   const self = Object.create(ChannelProto)
   self.transform = (upstream: any, scope: Scope.Scope) =>
-    Effect.matchCause(transform(upstream, scope), {
-      onSuccess(pull) {
-        const fiber = Fiber.getCurrent()!
-        return Effect.provideServices(pull, fiber.services)
-      },
-      onFailure(cause) {
-        return Effect.failCause(cause)
-      }
-    })
+    Effect.catchCause(transform(upstream, scope), (cause) => Effect.succeed(Effect.failCause(cause)))
   return self
 }
 
@@ -5458,7 +5450,12 @@ export const provideServices: {
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   services: ServiceMap.ServiceMap<R2>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, R2>> =>
-  fromTransform((upstream, scope) => Effect.provideServices(toTransform(self)(upstream, scope), services)))
+  fromTransform((upstream, scope) =>
+    Effect.map(
+      Effect.provideServices(toTransform(self)(upstream, scope), services),
+      Effect.provideServices(services)
+    )
+  ))
 
 /**
  * @since 4.0.0
@@ -5481,7 +5478,12 @@ export const provideService: {
   key: ServiceMap.Service<I, S>,
   service: NoInfer<S>
 ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Exclude<Env, I>> =>
-  fromTransform((upstream, scope) => Effect.provideService(toTransform(self)(upstream, scope), key, service)))
+  fromTransform((upstream, scope) =>
+    Effect.map(
+      Effect.provideService(toTransform(self)(upstream, scope), key, service),
+      Effect.provideService(key, service)
+    )
+  ))
 
 /**
  * @since 4.0.0
@@ -5504,7 +5506,12 @@ export const provideServiceEffect: {
   key: ServiceMap.Service<I, S>,
   service: Effect.Effect<NoInfer<S>, ES, RS>
 ): Channel<OutElem, OutErr | ES, OutDone, InElem, InErr, InDone, Exclude<Env, I> | RS> =>
-  fromTransform((upstream, scope) => Effect.provideServiceEffect(toTransform(self)(upstream, scope), key, service)))
+  fromTransform((upstream, scope) =>
+    Effect.map(
+      Effect.provideServiceEffect(toTransform(self)(upstream, scope), key, service),
+      Effect.provideServiceEffect(key, service)
+    )
+  ))
 
 /**
  * @since 4.0.0
@@ -5524,12 +5531,15 @@ export const provide: {
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   layer: Layer.Layer<A, E, R> | ServiceMap.ServiceMap<A>
 ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Exclude<Env, A> | R> =>
-  ServiceMap.isServiceMap(layer) ? provideServices(self, layer) : fromTransform(
-    (upstream, scope) =>
-      Effect.flatMap(
-        Layer.buildWithScope(layer, scope),
-        (services) => Effect.provideServices(toTransform(self)(upstream, scope), services)
-      )
+  ServiceMap.isServiceMap(layer) ? provideServices(self, layer) : fromTransform((upstream, scope) =>
+    Effect.flatMap(
+      Layer.buildWithScope(layer, scope),
+      (services) =>
+        Effect.map(
+          Effect.provideServices(toTransform(self)(upstream, scope), services),
+          Effect.provideServices(services)
+        )
+    )
   ))
 
 /**
@@ -5550,7 +5560,12 @@ export const updateServices: {
   self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Env>,
   f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<Env>
 ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R2> =>
-  fromTransform((upstream, scope) => Effect.updateServices(toTransform(self)(upstream, scope), f)))
+  fromTransform((upstream, scope) =>
+    Effect.map(
+      Effect.updateServices(toTransform(self)(upstream, scope), f),
+      Effect.updateServices(f)
+    )
+  ))
 
 /**
  * @since 2.0.0
