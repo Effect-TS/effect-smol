@@ -27,6 +27,7 @@
  *
  * @since 4.0.0
  */
+import * as Order from "../data/Order.ts"
 import type { LazyArg } from "../Function.ts"
 import { dual } from "../Function.ts"
 import * as Combiner from "./Combiner.ts"
@@ -178,4 +179,11 @@ export function getReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Redu
     }
     return out
   })
+}
+
+/**
+ * @since 4.0.0
+ */
+export function getOrder<A>(order: Order.Order<A>): Order.Order<A | null> {
+  return Order.make((self, that) => self !== null ? (that !== null ? order(self, that) : 1) : -1)
 }
