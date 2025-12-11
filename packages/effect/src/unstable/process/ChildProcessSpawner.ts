@@ -1,14 +1,14 @@
 /**
- * A module providing a generic service interface for executing child processes.
+ * A module providing a generic service interface for spawning child processes.
  *
- * This module provides the `ChildProcessExecutor` service tag which can be
+ * This module provides the `ChildProcessSpawner` service tag which can be
  * implemented by platform-specific packages (e.g., Node.js).
  *
  * @since 4.0.0
  */
 import * as Brand from "../../data/Brand.ts"
-import type * as Duration from "../../Duration.ts"
 import type * as Effect from "../../Effect.ts"
+import * as Inspectable from "../../interfaces/Inspectable.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -40,20 +40,7 @@ export type ProcessId = Brand.Branded<number, "ProcessId">
  */
 export const ProcessId: Brand.Constructor<ProcessId> = Brand.nominal<ProcessId>()
 
-/**
- * The result of executing a child process to completion.
- *
- * @since 4.0.0
- * @category Models
- */
-export interface ChildProcessResult {
-  readonly executable: string
-  readonly args: ReadonlyArray<string>
-  readonly exitCode: number
-  readonly stdout: string | Uint8Array
-  readonly stderr: string | Uint8Array
-  readonly duration: Duration.Duration
-}
+const HandleTypeId = "~effect/ChildProcessSpawner/ChildProcessHandle"
 
 /**
  * A handle to a running child process.
@@ -62,6 +49,7 @@ export interface ChildProcessResult {
  * @category Models
  */
 export interface ChildProcessHandle {
+  readonly [HandleTypeId]: typeof HandleTypeId
   /**
    * The child process process identifier.
    */
@@ -96,13 +84,30 @@ export interface ChildProcessHandle {
   readonly stderr: Stream.Stream<Uint8Array, PlatformError.PlatformError>
 }
 
+const HandleProto = {
+  [HandleTypeId]: HandleTypeId,
+  ...Inspectable.BaseProto,
+  toJSON(this: ChildProcessHandle) {
+    return { _id: "ChildProcessHandle", pid: this.pid }
+  }
+}
+
 /**
- * Service interface for executing child processes.
+ * Constructs a new `ChildProcessHandle`.
+ *
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const makeHandle = (params: Omit<ChildProcessHandle, typeof HandleTypeId>): ChildProcessHandle =>
+  Object.assign(Object.create(HandleProto), params)
+
+/**
+ * Service interface for spawning child processes.
  *
  * @since 4.0.0
  * @category Models
  */
-export interface ChildProcessExecutor {
+export interface ChildProcessSpawner {
   /**
    * Spawn a command and return a handle for interaction.
    */
@@ -112,12 +117,12 @@ export interface ChildProcessExecutor {
 }
 
 /**
- * Service tag for child process executor.
+ * Service tag for child process spawning.
  *
  * @since 4.0.0
- * @category Tag
+ * @category Service
  */
-export const ChildProcessExecutor: ServiceMap.Service<
-  ChildProcessExecutor,
-  ChildProcessExecutor
-> = ServiceMap.Service("effect/process/ChildProcessExecutor")
+export const ChildProcessSpawner: ServiceMap.Service<
+  ChildProcessSpawner,
+  ChildProcessSpawner
+> = ServiceMap.Service("effect/process/ChildProcessSpawner")

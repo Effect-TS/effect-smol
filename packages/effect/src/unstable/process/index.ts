@@ -10,20 +10,21 @@
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
  * import { ChildProcess } from "effect/unstable/process"
- * import { NodeChildProcessExecutor } from "@effect/platform-node"
+ * import { NodeServices } from "@effect/platform-node"
  *
  * // Build a command
- * const cmd = ChildProcess.make`echo "hello world"`
+ * const command = ChildProcess.make`echo "hello world"`
  *
  * // Spawn and collect output
  * const program = Effect.gen(function* () {
- *   const handle = yield* ChildProcess.spawn(cmd)
+ *   const handle = yield* ChildProcess.spawn(command)
  *   const chunks = yield* Stream.runCollect(handle.stdout)
  *   const exitCode = yield* handle.exitCode
  *   return { chunks, exitCode }
- * }).pipe(Effect.scoped, Effect.provide(NodeChildProcessExecutor.layer))
+ * }).pipe(Effect.scoped, Effect.provide(NodeServices.layer))
  *
  * // With options
  * const withOptions = ChildProcess.make({ cwd: "/tmp" })`ls -la`
@@ -38,7 +39,7 @@
  *   const handle = yield* ChildProcess.spawn(pipeline)
  *   const chunks = yield* Stream.runCollect(handle.stdout)
  *   return chunks
- * }).pipe(Effect.scoped, Effect.provide(NodeChildProcessExecutor.layer))
+ * }).pipe(Effect.scoped, Effect.provide(NodeServices.layer))
  * ```
  *
  * @since 4.0.0
@@ -46,11 +47,11 @@
 export * as ChildProcess from "./ChildProcess.ts"
 
 /**
- * A module providing a generic service interface for executing child processes.
+ * A module providing a generic service interface for spawning child processes.
  *
- * This module provides the `ChildProcessExecutor` service tag which can be
+ * This module provides the `ChildProcessSpawner` service tag which can be
  * implemented by platform-specific packages (e.g., Node.js).
  *
  * @since 4.0.0
  */
-export * as ChildProcessExecutor from "./ChildProcessExecutor.ts"
+export * as ChildProcessSpawner from "./ChildProcessSpawner.ts"

@@ -215,7 +215,7 @@ const SinkProto = {
  * @since 2.0.0
  * @category guards
  */
-export const isSink = (u: unknown): u is Sink<unknown, unknown, unknown, unknown, unknown> => hasProperty(u, TypeId)
+export const isSink = (u: unknown): u is Sink<unknown, never, unknown, unknown, unknown> => hasProperty(u, TypeId)
 
 /**
  * Creates a sink from a `Channel`.

@@ -46,12 +46,13 @@ import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
 import { pipeArguments } from "../../interfaces/Pipeable.ts"
+import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as Sink from "../../stream/Sink.ts"
 import type * as Stream from "../../stream/Stream.ts"
-import type { ChildProcessHandle } from "./ChildProcessExecutor.ts"
-import { ChildProcessExecutor } from "./ChildProcessExecutor.ts"
+import type { ChildProcessHandle } from "./ChildProcessSpawner.ts"
+import { ChildProcessSpawner } from "./ChildProcessSpawner.ts"
 
 const TypeId = "~effect/unstable/process/ChildProcess"
 
@@ -75,7 +76,15 @@ export type Command =
  * @since 4.0.0
  * @category Models
  */
-export interface StandardCommand extends Pipeable {
+export interface StandardCommand extends
+  Pipeable,
+  Effect.Yieldable<
+    StandardCommand,
+    ChildProcessHandle,
+    PlatformError.PlatformError,
+    ChildProcessSpawner
+  >
+{
   readonly _tag: "StandardCommand"
   readonly command: string
   readonly args: ReadonlyArray<string>
@@ -88,7 +97,15 @@ export interface StandardCommand extends Pipeable {
  * @since 4.0.0
  * @category Models
  */
-export interface TemplatedCommand extends Pipeable {
+export interface TemplatedCommand extends
+  Pipeable,
+  Effect.Yieldable<
+    TemplatedCommand,
+    ChildProcessHandle,
+    PlatformError.PlatformError,
+    ChildProcessSpawner
+  >
+{
   readonly _tag: "TemplatedCommand"
   readonly templates: TemplateStringsArray
   readonly expressions: ReadonlyArray<TemplateExpression>
@@ -102,7 +119,15 @@ export interface TemplatedCommand extends Pipeable {
  * @since 4.0.0
  * @category Models
  */
-export interface PipedCommand extends Pipeable {
+export interface PipedCommand extends
+  Pipeable,
+  Effect.Yieldable<
+    PipedCommand,
+    ChildProcessHandle,
+    PlatformError.PlatformError,
+    ChildProcessSpawner
+  >
+{
   readonly _tag: "PipedCommand"
   readonly left: Command
   readonly right: Command
@@ -224,6 +249,82 @@ export interface KillOptions {
 }
 
 /**
+ * Configuration for the child process standard input stream.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export interface StdinConfig {
+  /**
+   * The configuration for the standard input stream of the child process.
+   *
+   * Can be a string indicating how the operating system should configure the
+   * pipe established between the child process `stdin` and the parent process.
+   *
+   * Can also be a `Stream`, which will pipe all elements produced into the
+   * `stdin` of the child process.
+   *
+   * Defaults to "pipe".
+   */
+  readonly stream: CommandInput
+  /**
+   * Whether or not the child process `stdin` should be closed after the input
+   * stream is finished.
+   *
+   * Defaults to `true`.
+   */
+  readonly endOnDone?: boolean | undefined
+  /**
+   * The buffer encoding to use to decode string chunks.
+   *
+   * Defaults to `utf-8`.
+   */
+  readonly encoding?: Encoding | undefined
+}
+
+/**
+ * Configuration for the child process standard output stream.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export interface StdoutConfig {
+  /**
+   * The configuration for the standard ouput stream of the child process.
+   *
+   * Can be a string indicating how the operating system should configure the
+   * pipe established between the child process `stdout` and the parent process.
+   *
+   * A `Sink` can also be passed, which will receive all elements produced by
+   * the `stdout` of the child process.
+   *
+   * Defaults to "pipe".
+   */
+  readonly stream?: CommandOutput | undefined
+}
+
+/**
+ * Configuration for the child process standard error stream.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export interface StderrConfig {
+  /**
+   * The configuration for the standard ouput stream of the child process.
+   *
+   * Can be a string indicating how the operating system should configure the
+   * pipe established between the child process `stderr` and the parent process.
+   *
+   * A `Sink` can also be passed, which will receive all elements produced by
+   * the `stderr` of the child process.
+   *
+   * Defaults to "pipe".
+   */
+  readonly stream?: CommandOutput | undefined
+}
+
+/**
  * Options for command execution.
  *
  * @since 4.0.0
@@ -263,61 +364,15 @@ export interface CommandOptions extends KillOptions {
   /**
    * Configuration options for the standard input stream for the child process.
    */
-  readonly stdin?: {
-    /**
-     * A string indicating how the operating system should configure the pipe
-     * established between the child process `stdin` and the parent process.
-     *
-     * A `Stream` can also be passed, which will pipe all elements produced by
-     * the `stdin` of the child process.
-     *
-     * Defaults to "pipe".
-     */
-    readonly stdioOption?: CommandInput | undefined
-    /**
-     * Whether or not the child process `stdin` should be closed after the input
-     * stream is finished.
-     *
-     * Defaults to `true`.
-     */
-    readonly endOnDone?: boolean | undefined
-    /**
-     * The buffer encoding to use to decode string chunks.
-     *
-     * Defaults to `utf-8`.
-     */
-    readonly encoding?: Encoding | undefined
-  }
+  readonly stdin?: CommandInput | StdinConfig | undefined
   /**
    * Configuration options for the standard output stream for the child process.
    */
-  readonly stdout?: {
-    /**
-     * A string indicating how the operating system should configure the pipe
-     * established between the child process `stdout` and the parent process.
-     *
-     * A `Sink` can also be passed, which will receive all elements produced by
-     * the `stdout` of the child process.
-     *
-     * Defaults to "pipe".
-     */
-    readonly stdioOption?: CommandOutput | undefined
-  } | undefined
+  readonly stdout?: CommandOutput | StdoutConfig | undefined
   /**
    * Configuration options for the standard error stream for the child process.
    */
-  readonly stderr?: {
-    /**
-     * A string indicating how the operating system should configure the pipe
-     * established between the child process `stdout` and the parent process.
-     *
-     * A `Sink` can also be passed, which will receive all elements produced by
-     * the `stdout` of the child process.
-     *
-     * Defaults to "pipe".
-     */
-    readonly stdioOption?: CommandOutput | undefined
-  } | undefined
+  readonly stderr?: CommandOutput | StderrConfig | undefined
 }
 
 /**
@@ -340,81 +395,12 @@ export type TemplateExpression = TemplateExpressionItem | ReadonlyArray<Template
 // Constructors
 // =============================================================================
 
-/**
- * Create a command from a template literal, options + template, or array form.
- *
- * This function supports three calling conventions:
- * 1. Template literal: `make\`npm run build\``
- * 2. Options + template literal: `make({ cwd: "/app" })\`npm run build\``
- * 3. Array form: `make("npm", ["run", "build"], options?)`
- *
- * Template literals are not parsed until execution time, allowing parsing
- * errors to flow through Effect's error channel.
- *
- * @example
- * ```ts
- * import { ChildProcess } from "effect/unstable/process"
- *
- * // Template literal form
- * const cmd1 = ChildProcess.make`echo "hello"`
- *
- * // With options
- * const cmd2 = ChildProcess.make({ cwd: "/tmp" })`ls -la`
- *
- * // Array form
- * const cmd3 = ChildProcess.make("git", ["status"])
- * ```
- *
- * @since 4.0.0
- * @category Constructors
- */
-export const make: {
-  (
-    templates: TemplateStringsArray,
-    ...expressions: ReadonlyArray<TemplateExpression>
-  ): TemplatedCommand
-  (
-    options: CommandOptions
-  ): (
-    templates: TemplateStringsArray,
-    ...expressions: ReadonlyArray<TemplateExpression>
-  ) => TemplatedCommand
-  (
-    command: string,
-    args?: ReadonlyArray<string>,
-    options?: CommandOptions
-  ): StandardCommand
-} = function make(...args: Array<unknown>): any {
-  // Template literal form: make`command`
-  if (isTemplateString(args[0])) {
-    const [templates, ...expressions] = args as [TemplateStringsArray, ...ReadonlyArray<TemplateExpression>]
-    return makeTemplatedCommand(templates, expressions, {})
-  }
-
-  // Options form: make({ cwd: "/tmp" })`command`
-  if (typeof args[0] === "object" && args[0] !== null && !Array.isArray(args[0]) && !isTemplateString(args[0])) {
-    const options = args[0] as CommandOptions
-    return function(
-      templates: TemplateStringsArray,
-      ...expressions: ReadonlyArray<TemplateExpression>
-    ): TemplatedCommand {
-      return makeTemplatedCommand(templates, expressions, options)
-    }
-  }
-
-  // Array form: make("command", ["arg1", "arg2"], options?)
-  const [command, cmdArgs = [], options = {}] = args as [
-    string,
-    ReadonlyArray<string>?,
-    CommandOptions?
-  ]
-  return makeStandardCommand(command, cmdArgs, options)
-}
-
 const Proto = {
+  ...PipeInspectableProto,
+  ...YieldableProto,
   [TypeId]: TypeId,
-  pipe() {
-    return pipeArguments(this, arguments)
+  asEffect(this: Command) {
+    return spawn(this)
   }
 }
 
@@ -485,6 +471,87 @@ const makePipedCommand = (
   })
 
 /**
+ * Create a command from a template literal, options + template, or array form.
+ *
+ * This function supports three calling conventions:
+ * 1. Template literal: `make\`npm run build\``
+ * 2. Options + template literal: `make({ cwd: "/app" })\`npm run build\``
+ * 3. Array form: `make("npm", ["run", "build"], options?)`
+ *
+ * Template literals are not parsed until execution time, allowing parsing
+ * errors to flow through Effect's error channel.
+ *
+ * @example
+ * ```ts
+ * import { ChildProcess } from "effect/unstable/process"
+ *
+ * // Template literal form
+ * const cmd1 = ChildProcess.make`echo "hello"`
+ *
+ * // With options
+ * const cmd2 = ChildProcess.make({ cwd: "/tmp" })`ls -la`
+ *
+ * // Array form
+ * const cmd3 = ChildProcess.make("git", ["status"])
+ * ```
+ *
+ * @since 4.0.0
+ * @category Constructors
+ */
+export const make: {
+  (
+    command: string,
+    args?: ReadonlyArray<string>,
+    options?: CommandOptions
+  ): StandardCommand
+  (
+    command: string,
+    options?: CommandOptions
+  ): StandardCommand
+  (
+    options: CommandOptions
+  ): (
+    templates: TemplateStringsArray,
+    ...expressions: ReadonlyArray<TemplateExpression>
+  ) => TemplatedCommand
+  (
+    templates: TemplateStringsArray,
+    ...expressions: ReadonlyArray<TemplateExpression>
+  ): TemplatedCommand
+} = function make(...args: Array<unknown>): any {
+  // Template literal form: make`command`
+  if (isTemplateString(args[0])) {
+    const [templates, ...expressions] = args as [TemplateStringsArray, ...ReadonlyArray<TemplateExpression>]
+    return makeTemplatedCommand(templates, expressions, {})
+  }
+
+  // Options form: make({ cwd: "/tmp" })`command`
+  if (typeof args[0] === "object" && !Array.isArray(args[0]) && !isTemplateString(args[0])) {
+    const options = args[0] as CommandOptions
+    return function(
+      templates: TemplateStringsArray,
+      ...expressions: ReadonlyArray<TemplateExpression>
+    ): TemplatedCommand {
+      return makeTemplatedCommand(templates, expressions, options)
+    }
+  }
+
+  // Standard form without arguments: make("command", options?)
+  if (typeof args[0] === "string" && !Array.isArray(args[1])) {
+    const [command, options = {}] = args as [string, CommandOptions?]
+    return makeStandardCommand(command, [], options)
+  }
+
+  // Standard form with arguments: make("command", ["arg1", "arg2"], options?)
+  const [command, cmdArgs = [], options = {}] = args as [
+    string,
+    ReadonlyArray<string>?,
+    CommandOptions?
+  ]
+  return makeStandardCommand(command, cmdArgs, options)
+}
+
+/**
  * Pipe the output of one command to the input of another.
  *
  * @example
@@ -545,9 +612,9 @@ export const pipeTo: {
 export const spawn: (command: Command) => Effect.Effect<
   ChildProcessHandle,
   PlatformError.PlatformError,
-  ChildProcessExecutor | Scope.Scope
+  ChildProcessSpawner | Scope.Scope
 > = Effect.fnUntraced(function*(command) {
-  const executor = yield* ChildProcessExecutor
+  const executor = yield* ChildProcessSpawner
   return yield* executor.spawn(command)
 })
 

@@ -3,9 +3,9 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Sink from "effect/stream/Sink"
 import * as Stream from "effect/stream/Stream"
-import { ChildProcess, ChildProcessExecutor } from "effect/unstable/process"
+import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
-const MockExecutorLayer = Layer.succeed(ChildProcessExecutor.ChildProcessExecutor, {
+const MockExecutorLayer = Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, {
   spawn: Effect.fnUntraced(function*(command) {
     // For piped commands, flatten to get the first command info
     let cmd = command
@@ -16,14 +16,14 @@ const MockExecutorLayer = Layer.succeed(ChildProcessExecutor.ChildProcessExecuto
       ? cmd.command
       : "templated"
     return {
-      pid: ChildProcessExecutor.ProcessId(12345),
+      pid: ChildProcessSpawner.ProcessId(12345),
       stdin: Sink.forEach<Uint8Array, void, never, never>((_chunk) => Effect.void),
       stdout: Stream.fromIterable([new TextEncoder().encode(`mock output for ${executable}`)]),
       stderr: Stream.fromIterable([new TextEncoder().encode("")]),
-      exitCode: Effect.succeed(ChildProcessExecutor.ExitCode(0)),
+      exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(0)),
       isRunning: Effect.succeed(false),
       kill: () => Effect.void
-    } as ChildProcessExecutor.ChildProcessHandle
+    } as ChildProcessSpawner.ChildProcessHandle
   })
 })
 
@@ -67,21 +67,21 @@ describe("ChildProcess", () => {
       Effect.gen(function*() {
         const cmd = ChildProcess.make`echo hello`
         const handle = yield* ChildProcess.spawn(cmd)
-        assert.strictEqual(handle.pid, ChildProcessExecutor.ProcessId(12345))
+        assert.strictEqual(handle.pid, ChildProcessSpawner.ProcessId(12345))
       }).pipe(Effect.scoped, Effect.provide(MockExecutorLayer)))
 
     it.effect("should spawn a standard command", () =>
       Effect.gen(function*() {
         const cmd = ChildProcess.make("node", ["--version"])
         const handle = yield* ChildProcess.spawn(cmd)
-        assert.strictEqual(handle.pid, ChildProcessExecutor.ProcessId(12345))
+        assert.strictEqual(handle.pid, ChildProcessSpawner.ProcessId(12345))
       }).pipe(Effect.scoped, Effect.provide(MockExecutorLayer)))
 
     it.effect("should return a process handle", () =>
       Effect.gen(function*() {
         const cmd = ChildProcess.make`long-running-process`
         const handle = yield* ChildProcess.spawn(cmd)
-        assert.strictEqual(handle.pid, ChildProcessExecutor.ProcessId(12345))
+        assert.strictEqual(handle.pid, ChildProcessSpawner.ProcessId(12345))
       }).pipe(Effect.scoped, Effect.provide(MockExecutorLayer)))
 
     it.effect("should allow streaming stdout", () =>
@@ -97,7 +97,7 @@ describe("ChildProcess", () => {
         const cmd = ChildProcess.make`echo test`
         const handle = yield* ChildProcess.spawn(cmd)
         const exitCode = yield* handle.exitCode
-        assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
       }).pipe(Effect.scoped, Effect.provide(MockExecutorLayer)))
   })
 
@@ -116,7 +116,7 @@ describe("ChildProcess", () => {
           ChildProcess.pipeTo(ChildProcess.make`grep pattern`)
         )
         const handle = yield* ChildProcess.spawn(pipeline)
-        assert.strictEqual(handle.pid, ChildProcessExecutor.ProcessId(12345))
+        assert.strictEqual(handle.pid, ChildProcessSpawner.ProcessId(12345))
       }).pipe(Effect.scoped, Effect.provide(MockExecutorLayer)))
   })
 

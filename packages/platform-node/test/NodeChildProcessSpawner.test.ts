@@ -2,7 +2,7 @@ import { NodeServices } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Stream from "effect/stream/Stream"
-import { ChildProcess, ChildProcessExecutor } from "effect/unstable/process"
+import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
 // Helper to collect stream output into a string
 const collectStreamOutput = (stream: Stream.Stream<Uint8Array, unknown>) =>
@@ -18,7 +18,7 @@ const collectStreamOutput = (stream: Stream.Stream<Uint8Array, unknown>) =>
     return new TextDecoder().decode(result).trim()
   })
 
-describe("NodeChildProcessExecutor", () => {
+describe("NodeChildProcessSpawner", () => {
   describe("spawn", () => {
     describe("basic spawning", () => {
       it.effect("should spawn a simple command and collect output", () =>
@@ -29,7 +29,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           // Verify it contains "v" (version string starts with v)
           assert.isTrue(output.includes("v"))
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
@@ -42,7 +42,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(output, "hello world")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
@@ -54,7 +54,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(output, "spawned")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
     })
@@ -68,7 +68,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           // On macOS, /tmp is a symlink to /private/tmp
           assert.isTrue(output.includes("tmp"))
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
@@ -81,7 +81,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.isTrue(output.includes("tmp"))
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
     })
@@ -98,7 +98,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(output, "test_value")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
@@ -113,7 +113,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(output, "one-two-three")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
     })
@@ -128,7 +128,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           // With shell, $HOME should be expanded
           assert.isTrue(output.length > 0)
           assert.isFalse(output.includes("$HOME"))
@@ -142,7 +142,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           // Without shell, $HOME should not be expanded
           assert.strictEqual(output, "$HOME")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
@@ -155,7 +155,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(output, "HELLO")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
     })
@@ -169,7 +169,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(output, "hello")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
@@ -182,7 +182,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(output, "hello world")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
@@ -195,7 +195,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(output, "count is 42")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
@@ -208,7 +208,7 @@ describe("NodeChildProcessExecutor", () => {
           const exitCode = yield* handle.exitCode
           const output = yield* collectStreamOutput(handle.stdout)
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           // Should list files in /tmp with -l -a flags
           assert.isTrue(output.length > 0)
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
@@ -223,7 +223,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(output, "hello world")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
@@ -236,7 +236,7 @@ describe("NodeChildProcessExecutor", () => {
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(output, "test.txt")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
     })
@@ -250,7 +250,7 @@ describe("NodeChildProcessExecutor", () => {
           const stderr = yield* collectStreamOutput(handle.stderr)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(stderr, "error message")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
@@ -263,7 +263,7 @@ describe("NodeChildProcessExecutor", () => {
           const stderr = yield* collectStreamOutput(handle.stderr)
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(stdout, "stdout")
           assert.strictEqual(stderr, "stderr")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
@@ -328,7 +328,7 @@ describe("NodeChildProcessExecutor", () => {
         const output = yield* collectStreamOutput(handle.stdout)
         const exitCode = yield* handle.exitCode
 
-        assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
         assert.strictEqual(output, "HELLO WORLD")
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
@@ -343,7 +343,7 @@ describe("NodeChildProcessExecutor", () => {
         const output = yield* collectStreamOutput(handle.stdout)
         const exitCode = yield* handle.exitCode
 
-        assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
         assert.strictEqual(output, "HELLO-WORLD")
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
@@ -357,7 +357,7 @@ describe("NodeChildProcessExecutor", () => {
         const output = yield* collectStreamOutput(handle.stdout)
         const exitCode = yield* handle.exitCode
 
-        assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
         assert.strictEqual(output, "line2")
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
@@ -371,7 +371,7 @@ describe("NodeChildProcessExecutor", () => {
         const output = yield* collectStreamOutput(handle.stdout)
         const exitCode = yield* handle.exitCode
 
-        assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
         assert.strictEqual(output, "HELLO")
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
   })
@@ -383,7 +383,7 @@ describe("NodeChildProcessExecutor", () => {
         const handle = yield* ChildProcess.spawn(cmd)
 
         const exitCode = yield* handle.exitCode
-        assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(1))
+        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(1))
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
     it.effect("should fail for invalid command", () =>
@@ -403,22 +403,17 @@ describe("NodeChildProcessExecutor", () => {
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
   })
 
-  describe("combined options", () => {
-    it.effect("should handle cwd + env together", () =>
+  describe("stdin", () => {
+    it.effect("allows providing standard input to a command", () =>
       Effect.gen(function*() {
-        const cmd = ChildProcess.make("sh", ["-c", "pwd; echo $MY_VAR"], {
-          cwd: "/tmp",
-          env: { MY_VAR: "custom_value" },
-          extendEnv: true
-        })
-        const handle = yield* ChildProcess.spawn(cmd)
+        const stdin = Stream.make(Buffer.from("a b c", "utf-8"))
+        const handle = yield* ChildProcess.make("cat", { stdin })
 
         const output = yield* collectStreamOutput(handle.stdout)
         const exitCode = yield* handle.exitCode
 
-        assert.strictEqual(exitCode, ChildProcessExecutor.ExitCode(0))
-        assert.isTrue(output.includes("tmp"))
-        assert.isTrue(output.includes("custom_value"))
+        assert.deepStrictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+        assert.strictEqual(output, "a b c")
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
   })
 })

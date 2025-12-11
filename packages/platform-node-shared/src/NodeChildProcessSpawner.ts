@@ -1,5 +1,5 @@
 /**
- * Node.js implementation of ChildProcessExecutor.
+ * Node.js implementation of `ChildProcessSpawner`.
  *
  * @since 4.0.0
  */
@@ -17,8 +17,8 @@ import type * as Scope from "effect/Scope"
 import * as Sink from "effect/stream/Sink"
 import * as Stream from "effect/stream/Stream"
 import * as ChildProcess from "effect/unstable/process/ChildProcess"
-import type { ChildProcessHandle } from "effect/unstable/process/ChildProcessExecutor"
-import { ChildProcessExecutor, ExitCode, ProcessId } from "effect/unstable/process/ChildProcessExecutor"
+import type { ChildProcessHandle } from "effect/unstable/process/ChildProcessSpawner"
+import { ChildProcessSpawner, ExitCode, makeHandle, ProcessId } from "effect/unstable/process/ChildProcessSpawner"
 import * as NodeChildProcess from "node:child_process"
 import { parseTemplates } from "./internal/process.ts"
 import { handleErrnoException } from "./internal/utils.ts"
@@ -75,41 +75,82 @@ const make = Effect.gen(function*() {
       : options.env
   }
 
-  const resolveStdio = (
-    option: ChildProcess.CommandInput | ChildProcess.CommandOutput | undefined
-  ): NodeChildProcess.IOType => typeof option === "string" ? option : "pipe"
+  const inputToStdioOption = (input: ChildProcess.CommandInput | undefined): NodeChildProcess.IOType | undefined =>
+    Stream.isStream(input) ? "pipe" : input
 
-  const setupChildInputStream = Effect.fnUntraced(function*(
+  const outputToStdioOption = (input: ChildProcess.CommandOutput | undefined): NodeChildProcess.IOType | undefined =>
+    Sink.isSink(input) ? "pipe" : input
+
+  const resolveStdinOption = (options: ChildProcess.CommandOptions): ChildProcess.StdinConfig => {
+    const defaultConfig: ChildProcess.StdinConfig = { stream: "pipe", encoding: "utf-8", endOnDone: true }
+    if (Predicate.isUndefined(options.stdin)) {
+      return defaultConfig
+    }
+    if (typeof options.stdin === "string") {
+      return { ...defaultConfig, stream: options.stdin }
+    }
+    if (Stream.isStream(options.stdin)) {
+      return { ...defaultConfig, stream: options.stdin }
+    }
+    return {
+      stream: options.stdin.stream,
+      encoding: options.stdin.encoding ?? defaultConfig.encoding,
+      endOnDone: options.stdin.endOnDone ?? defaultConfig.endOnDone
+    }
+  }
+
+  const resolveOutputOption = (
+    options: ChildProcess.CommandOptions,
+    streamName: "stdout" | "stderr"
+  ): ChildProcess.StdoutConfig => {
+    const option = options[streamName]
+    if (Predicate.isUndefined(option)) {
+      return { stream: "pipe" }
+    }
+    if (typeof option === "string") {
+      return { stream: option }
+    }
+    if (Sink.isSink(option)) {
+      return { stream: option }
+    }
+    return { stream: option.stream }
+  }
+
+  const setupChildStdin = Effect.fnUntraced(function*(
     command: ChildProcess.StandardCommand,
-    childProcess: NodeChildProcess.ChildProcess
+    childProcess: NodeChildProcess.ChildProcess,
+    config: ChildProcess.StdinConfig
   ) {
-    const stdin = command.options.stdin
+    // If the child process has a standard input stream, connect it to the
+    // sink that will attached to the process handle
     let sink: Sink.Sink<void, unknown, never, PlatformError.PlatformError> = Sink.drain
     if (Predicate.isNotNull(childProcess.stdin)) {
       sink = NodeSink.fromWritable({
         evaluate: () => childProcess.stdin!,
         onError: (error) => toPlatformError("fromWritable(stdin)", toError(error), command),
-        endOnDone: stdin?.endOnDone,
-        encoding: stdin?.encoding
+        endOnDone: config.endOnDone,
+        encoding: config.encoding
       })
     }
-    if (
-      Predicate.isNotUndefined(stdin) &&
-      Predicate.isNotUndefined(stdin.stdioOption) &&
-      typeof stdin.stdioOption !== "string"
-    ) {
-      yield* Effect.forkScoped(Stream.run(stdin.stdioOption, sink))
+
+    // If the user provided a `Stream`, run it into the stdin sink
+    if (Stream.isStream(config.stream)) {
+      yield* Effect.forkScoped(Stream.run(config.stream, sink))
     }
+
     return sink
   })
 
-  const setupChildOutputStream = Effect.fnUntraced(function*(
+  const setupChildOutput = Effect.fnUntraced(function*(
     command: ChildProcess.StandardCommand,
     childProcess: NodeChildProcess.ChildProcess,
+    config: ChildProcess.StdoutConfig,
     streamName: "stdout" | "stderr"
   ) {
-    const output = command.options[streamName]
     const nodeStream = childProcess[streamName]
+
+    // If the child process has a standard output stream, connect it to the
+    // corresponding stream that will be attached to the process handle
     let stream: Stream.Stream<Uint8Array, PlatformError.PlatformError> = Stream.empty
     if (Predicate.isNotNull(nodeStream)) {
       stream = NodeStream.fromReadable({
@@ -117,13 +158,12 @@ const make = Effect.gen(function*() {
         onError: (error) => toPlatformError(`fromReadable(${streamName})`, toError(error), command)
       })
     }
-    if (
-      Predicate.isNotUndefined(output) &&
-      Predicate.isNotUndefined(output.stdioOption) &&
-      typeof output.stdioOption !== "string"
-    ) {
-      stream = Stream.transduce(stream, output.stdioOption)
+
+    // If the user provided a `Sink`, run the output stream through it
+    if (Sink.isSink(config.stream)) {
+      stream = Stream.transduce(stream, config.stream)
     }
+
     return stream
   })
 
@@ -228,21 +268,24 @@ const make = Effect.gen(function*() {
       case "StandardCommand":
       case "TemplatedCommand": {
         const command = yield* resolveCommand(cmd)
-        const options = command.options
 
-        const cwd = yield* resolveWorkingDirectory(options)
-        const env = resolveEnvironment(options)
+        const stdinConfig = resolveStdinOption(command.options)
+        const stdoutConfig = resolveOutputOption(command.options, "stdout")
+        const stderrConfig = resolveOutputOption(command.options, "stderr")
+
+        const cwd = yield* resolveWorkingDirectory(command.options)
+        const env = resolveEnvironment(command.options)
         const stdio = [
-          resolveStdio(options.stdin?.stdioOption),
-          resolveStdio(options.stdout?.stdioOption),
-          resolveStdio(options.stderr?.stdioOption)
+          inputToStdioOption(stdinConfig.stream),
+          outputToStdioOption(stdoutConfig.stream),
+          outputToStdioOption(stderrConfig.stream)
         ]
 
         const [childProcess, exitSignal] = yield* Effect.acquireRelease(
-          spawn(command, { cwd, env, stdio, shell: options.shell }),
+          spawn(command, { cwd, env, stdio, shell: command.options.shell }),
           Effect.fnUntraced(function*([childProcess, exitSignal]) {
             const exited = yield* Deferred.isDone(exitSignal)
-            const killWithTimeout = withTimeout(childProcess, command, options)
+            const killWithTimeout = withTimeout(childProcess, command, command.options)
             if (exited) {
               // Process already exited, check if children need cleanup
               const [code] = yield* Deferred.await(exitSignal)
@@ -265,9 +308,9 @@ const make = Effect.gen(function*() {
         )
 
         const pid = ProcessId(childProcess.pid!)
-        const stdin = yield* setupChildInputStream(command, childProcess)
-        const stdout = yield* setupChildOutputStream(command, childProcess, "stdout")
-        const stderr = yield* setupChildOutputStream(command, childProcess, "stderr")
+        const stdin = yield* setupChildStdin(command, childProcess, stdinConfig)
+        const stdout = yield* setupChildOutput(command, childProcess, stdoutConfig, "stdout")
+        const stderr = yield* setupChildOutput(command, childProcess, stderrConfig, "stderr")
         const isRunning = Effect.map(Deferred.isDone(exitSignal), (done) => !done)
         const exitCode = Effect.flatMap(Deferred.await(exitSignal), ([code, signal]) => {
           if (Predicate.isNotNull(code)) {
@@ -289,7 +332,7 @@ const make = Effect.gen(function*() {
           )
         }
 
-        return {
+        return makeHandle({
           pid,
           exitCode,
           isRunning,
@@ -297,21 +340,19 @@ const make = Effect.gen(function*() {
           stdin,
           stdout,
           stderr
-        }
+        })
       }
       case "PipedCommand": {
         const [root, ...pipeline] = flattenCommand(cmd)
         let handle = spawnCommand(root)
         for (const command of pipeline) {
+          const stdinConfig = resolveStdinOption(command.options)
           // TODO: allow configurable pipe from / to
           // https://github.com/sindresorhus/execa/blob/main/docs/api.md#pipeoptions
           const stream = Stream.unwrap(Effect.map(handle, (handle) => handle.stdout))
           handle = spawnCommand(ChildProcess.make(command.command, command.args, {
             ...command.options,
-            stdin: {
-              ...command.options.stdin,
-              stdioOption: stream
-            }
+            stdin: { ...stdinConfig, stream }
           }))
         }
         return yield* handle
@@ -319,22 +360,22 @@ const make = Effect.gen(function*() {
     }
   })
 
-  return ChildProcessExecutor.of({
+  return ChildProcessSpawner.of({
     spawn: spawnCommand
   })
 })
 
 /**
- * Layer providing the NodeChildProcessExecutor implementation.
+ * Layer providing the `NodeChildProcessSpawner` implementation.
  *
  * @since 4.0.0
  * @category Layers
  */
 export const layer: Layer.Layer<
-  ChildProcessExecutor,
+  ChildProcessSpawner,
   never,
   FileSystem.FileSystem | Path.Path
-> = Layer.effect(ChildProcessExecutor, make)
+> = Layer.effect(ChildProcessSpawner, make)
 
 // =============================================================================
 // Internal Helpers
