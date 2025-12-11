@@ -48,29 +48,32 @@ export const repeatOrElse: {
 export const retryOrElse: {
   <A1, E, E1, R1, A2, E2, R2>(
     policy: Schedule.Schedule<A1, NoInfer<E>, E1, R1>,
-    orElse: (e: NoInfer<E | E1>, out: A1) => Effect<A2, E2, R2>
+    orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2, E1 | E2, Exclude<R, Schedule.CurrentMetadata> | R1 | R2>
   <A, E, R, A1, E1, R1, A2, E2, R2>(
     self: Effect<A, E, R>,
     policy: Schedule.Schedule<A1, NoInfer<E>, E1, R1>,
-    orElse: (e: NoInfer<E | E1>, out: A1) => Effect<A2, E2, R2>
+    orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
   ): Effect<A | A2, E1 | E2, Exclude<R, Schedule.CurrentMetadata> | R1 | R2>
 } = dual(3, <A, E, R, A1, E1, R1, A2, E2, R2>(
   self: Effect<A, E, R>,
   policy: Schedule.Schedule<A1, NoInfer<E>, E1, R1>,
-  orElse: (e: NoInfer<E | E1>, out: A1) => Effect<A2, E2, R2>
+  orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
 ): Effect<A | A2, E1 | E2, Exclude<R, Schedule.CurrentMetadata> | R1 | R2> =>
   effect.flatMap(Schedule.toStepWithMetadata(policy), (step) => {
     let meta = Schedule.metadataEmpty()
+    let lastError!: E
     const loop: Effect<A, E1 | Pull.Halt<A1>, Exclude<R, Schedule.CurrentMetadata> | R1> = effect.catch_(
       effect.suspend(() => effect.provideService(self, Schedule.CurrentMetadata, meta)),
-      (error) =>
-        effect.flatMap(step(error), (meta_) => {
+      (error) => {
+        lastError = error
+        return effect.flatMap(step(error), (meta_) => {
           meta = meta_
           return loop
         })
+      }
     )
-    return Pull.catchHalt(loop, (out) => internalCall(() => orElse(meta.input as any, out as A1)))
+    return Pull.catchHalt(loop, (out) => internalCall(() => orElse(lastError, out as A1)))
   }))
 
 /** @internal */
