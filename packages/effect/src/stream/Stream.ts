@@ -3686,7 +3686,7 @@ export const rechunk: {
  * some internal state to control the combining process, with the initial
  * state being specified by `s`.
  *
- * Where possible, prefer `Stream.combineChunks` for a more efficient
+ * Where possible, prefer `Stream.combineArray` for a more efficient
  * implementation.
  *
  * @since 2.0.0
