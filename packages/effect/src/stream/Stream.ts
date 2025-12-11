@@ -1779,7 +1779,8 @@ export const drainFork: {
  *
  * @example
  * ```ts
- * import { Effect, Schedule, Stream } from "effect"
+ * import { Effect, Schedule } from "effect"
+ * import { Stream } from "effect/stream"
  *
  * const stream = Stream.repeat(Stream.succeed(1), Schedule.forever)
  *
@@ -5268,7 +5269,8 @@ export const intersperse: {
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5).pipe(
  *   Stream.intersperseAffixes({
@@ -5314,7 +5316,8 @@ export const intersperseAffixes: {
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
  *
  * const s1 = Stream.make(1, 2, 3)
  * const s2 = Stream.make(4, 5, 6)
@@ -5351,7 +5354,8 @@ export const interleave: {
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
  *
  * const s1 = Stream.make(1, 3, 5, 7, 9)
  * const s2 = Stream.make(2, 4, 6, 8, 10)
