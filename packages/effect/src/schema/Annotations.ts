@@ -431,7 +431,12 @@ export interface MetaRegistry {
   readonly isUint32: {
     readonly _tag: "isUint32"
   }
-  // Number Meta
+  // Numeric Meta
+  readonly isMultipleOf: {
+    readonly _tag: "isMultipleOf"
+    readonly divisor: unknown
+  }
+  // Order Meta
   readonly isGreaterThan: {
     readonly _tag: "isGreaterThan"
     readonly exclusiveMinimum: unknown
@@ -452,10 +457,6 @@ export interface MetaRegistry {
     readonly _tag: "isBetween"
     readonly minimum: unknown
     readonly maximum: unknown
-  }
-  readonly isMultipleOf: {
-    readonly _tag: "isMultipleOf"
-    readonly divisor: unknown
   }
   // Date Meta
   readonly isValidDate: {

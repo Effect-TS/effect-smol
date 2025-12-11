@@ -6595,6 +6595,7 @@ To make the examples easier to follow, we define a helper function that prints f
 
 ```ts
 // utils.ts
+// utils.ts
 import { Exit } from "effect"
 import { Issue, Schema } from "effect/schema"
 import i18next from "i18next"
@@ -6628,7 +6629,7 @@ export function getLogIssues(options?: {
     console.log(
       String(
         Schema.decodeUnknownExit(schema)(input, { errors: "all" }).pipe(
-          Exit.mapError((err) => Issue.makeStandardSchemaV1(options).format(err.issue).issues)
+          Exit.mapError((err) => Issue.makeFormatterStandardSchemaV1(options)(err.issue).issues)
         )
       )
     )
@@ -6639,7 +6640,6 @@ export function getLogIssues(options?: {
 **Example** (Using hooks to translate common messages)
 
 ```ts
-import type { Annotations } from "effect/schema"
 import { Schema } from "effect/schema"
 import { getLogIssues, t } from "./utils.js"
 
@@ -6675,7 +6675,7 @@ const logIssues = getLogIssues({
   },
   // Format custom check errors (like isMinLength or user-defined validations)
   checkHook: (issue) => {
-    const meta = issue.filter.annotations?.meta as Annotations.Meta | undefined
+    const meta = issue.filter.annotations?.meta
     if (meta) {
       switch (meta._tag) {
         case "isMinLength": {
