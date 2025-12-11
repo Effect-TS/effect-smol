@@ -383,11 +383,11 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |         `prepend`          |  Done  |                               |          |
 |         `rechunk`          |  Done  |           `rechunk`           |          |
 |          `repeat`          |  Done  |                               |          |
-|       `repeatEither`       |   -    |                               |          |
-|      `repeatElements`      |   -    |                               |          |
-|    `repeatElementsWith`    |   -    |                               |          |
-|        `repeatWith`        |   -    |                               |          |
-|          `retry`           |   -    |                               |          |
+|       `repeatEither`       |   X    |                               |          |
+|      `repeatElements`      |  Done  |                               |          |
+|    `repeatElementsWith`    |   X    |                               |          |
+|        `repeatWith`        |   X    |                               |          |
+|          `retry`           |  Done  |                               |          |
 |           `scan`           |  Done  |            `scan`             |          |
 |        `scanEffect`        |  Done  |         `scanEffect`          |          |
 |        `scanReduce`        |   X    |                               |          |

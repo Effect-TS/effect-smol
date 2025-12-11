@@ -3465,14 +3465,18 @@ export const catchCause: {
   InDone & InDone1,
   Env | Env1
 > =>
-  fromTransform((upstream, scope) =>
-    Effect.map(toTransform(self)(upstream, scope), (pull) => {
+  fromTransform((upstream, scope) => {
+    let forkedScope = Scope.forkUnsafe(scope)
+    return Effect.map(toTransform(self)(upstream, forkedScope), (pull) => {
       let currentPull: Pull.Pull<OutElem | OutElem1, OutErr1, OutDone | OutDone1, Env | Env1> = pull.pipe(
         Effect.catchCause((cause): Pull.Pull<OutElem1, OutErr1, OutDone | OutDone1, Env1> => {
           if (Pull.isHaltCause(cause)) {
             return Effect.failCause(cause as Cause.Cause<Pull.Halt<OutDone>>)
           }
-          return toTransform(f(cause as Cause.Cause<OutErr>))(upstream, scope).pipe(
+          const toClose = forkedScope
+          forkedScope = Scope.forkUnsafe(scope)
+          return Scope.close(toClose, Exit.failCause(cause)).pipe(
+            Effect.andThen(toTransform(f(cause as Cause.Cause<OutErr>))(upstream, forkedScope)),
             Effect.flatMap((childPull) => {
               currentPull = childPull
               return childPull
@@ -3482,7 +3486,7 @@ export const catchCause: {
       )
       return Effect.suspend(() => currentPull)
     })
-  ))
+  }))
 
 /**
  * @since 4.0.0
@@ -4093,6 +4097,50 @@ export const ignoreCause = <
 >(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
 ): Channel<OutElem, never, OutDone | void, InElem, InErr, InDone, Env> => catchCause(self, () => empty)
+
+/**
+ * Returns a new channel that retries this channel according to the specified
+ * schedule whenever it fails.
+ *
+ * @since 4.0.0
+ * @category utils
+ */
+export const retry: {
+  <SO, OutErr, SE, SR>(
+    schedule: Schedule.Schedule<SO, Types.NoInfer<OutErr>, SE, SR>
+  ): <OutElem, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
+  ) => Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    schedule: Schedule.Schedule<SO, OutErr, SE, SR>
+  ): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  schedule: Schedule.Schedule<SO, OutErr, SE, SR>
+): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR> =>
+  suspend(() => {
+    let step: ((input: OutErr) => Pull.Pull<SO, SE, SO, SR>) | undefined = undefined
+    const withReset = onFirst(self, () => {
+      step = undefined
+      return Effect.void
+    })
+    const loop: Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR> = catch_(
+      withReset,
+      Effect.fnUntraced(
+        function*(error) {
+          if (!step) {
+            step = yield* Schedule.toStepWithSleep(schedule)
+          }
+          yield* step(error)
+          return loop
+        },
+        (effect, error) => Pull.catchHalt(effect, () => Effect.succeed(fail(error))),
+        unwrap
+      )
+    )
+    return loop
+  }))
 
 /**
  * Returns a new channel, which sequentially combines this channel, together
@@ -5190,6 +5238,34 @@ export const onStart: {
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   onStart: Effect.Effect<A, E, R>
 ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> => unwrap(Effect.as(onStart, self)))
+
+/**
+ * @since 4.0.0
+ * @category utils
+ */
+export const onFirst: {
+  <OutElem, A, E, R>(
+    onFirst: (element: Types.NoInfer<OutElem>) => Effect.Effect<A, E, R>
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, A, E, R>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    onFirst: (element: Types.NoInfer<OutElem>) => Effect.Effect<A, E, R>
+  ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, A, E, R>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  onFirst: (element: Types.NoInfer<OutElem>) => Effect.Effect<A, E, R>
+): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
+  transformPull(self, (pull) =>
+    Effect.sync(() => {
+      let isFirst = true
+      const pullFirst = Effect.tap(pull, (element) => {
+        isFirst = false
+        return onFirst(element)
+      })
+      return Effect.suspend(() => isFirst ? pullFirst : pull)
+    })))
 
 /**
  * @since 4.0.0

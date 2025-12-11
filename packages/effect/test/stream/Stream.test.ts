@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-syntax */
 import { assert, describe, it } from "@effect/vitest"
 import { assertExitFailure, assertSuccess, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Cause, Deferred, Duration, Effect, Exit, Fiber, Queue, Ref, Schedule } from "effect"
+import { Cause, Clock, Deferred, Duration, Effect, Exit, Fiber, Queue, Ref, Schedule } from "effect"
 import { Array } from "effect/collections"
 import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/collections/Array"
 import { Filter, Option } from "effect/data"
@@ -2927,7 +2927,7 @@ describe("Stream", () => {
         )
         deepStrictEqual(result, [1, 1, 1, 1, 1])
       }))
-    //
+
     // it.effect("tick", () =>
     //   Effect.gen(function*() {
     //     const fiber = yield* pipe(
@@ -2956,7 +2956,7 @@ describe("Stream", () => {
         const result = yield* Ref.get(ref)
         deepStrictEqual(result, [1, 1])
       }))
-    //
+
     // it.effect("repeat - Schedule.CurrentIterationMetadata", () =>
     //   Effect.gen(function*() {
     //     const ref = yield* (Ref.make(Chunk.empty<undefined | Schedule.IterationMetadata>()))
@@ -3028,6 +3028,200 @@ describe("Stream", () => {
         )
         deepStrictEqual(result, Exit.fail("boom"))
       }))
+
+    it.effect("repeatElements - simple", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make("A", "B", "C"),
+          Stream.repeatElements(Schedule.recurs(1)),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, ["A", "A", "B", "B", "C", "C"])
+      }))
+
+    it.effect("repeatElements - short circuits in a schedule", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make("A", "B", "C"),
+          Stream.repeatElements(Schedule.recurs(1)),
+          Stream.take(4),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, ["A", "A", "B", "B"])
+      }))
+
+    it.effect("repeatElements - short circuits after schedule", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make("A", "B", "C"),
+          Stream.repeatElements(Schedule.recurs(1)),
+          Stream.take(3),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, ["A", "A", "B"])
+      }))
+  })
+
+  describe("retry", () => {
+    it.effect("retry - retries a failing stream", () =>
+      Effect.gen(function*() {
+        const ref = yield* Ref.make(0)
+        const stream = pipe(
+          Stream.fromEffect(Ref.getAndUpdate(ref, (n) => n + 1)),
+          Stream.concat(Stream.fail(Option.none()))
+        )
+        const result = yield* pipe(
+          stream,
+          Stream.retry(Schedule.forever),
+          Stream.take(2),
+          Stream.runCollect
+        )
+        deepStrictEqual(Array.fromIterable(result), [0, 1])
+      }))
+
+    it.effect("retry - cleans up resources before restarting the stream", () =>
+      Effect.gen(function*() {
+        const ref = yield* Ref.make(0)
+        const stream = pipe(
+          Effect.addFinalizer(() => Ref.getAndUpdate(ref, (n) => n + 1)),
+          Effect.as(
+            pipe(
+              Stream.fromEffect(Ref.get(ref)),
+              Stream.concat(Stream.fail(Option.none()))
+            )
+          ),
+          Stream.unwrap
+        )
+        const result = yield* pipe(
+          stream,
+          Stream.retry(Schedule.forever),
+          Stream.take(2),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [0, 1])
+      }))
+
+    it.effect("retry - retries a failing stream according to a schedule", () =>
+      Effect.gen(function*() {
+        const ref = yield* Ref.make(Array.empty<number>())
+        const stream = pipe(
+          Stream.fromEffect(
+            pipe(
+              Clock.currentTimeMillis,
+              Effect.flatMap((n) => Ref.update(ref, Array.prepend(n)))
+            )
+          ),
+          Stream.flatMap(() => Stream.fail(Option.none()))
+        )
+        const fiber = yield* pipe(
+          stream,
+          Stream.retry(Schedule.exponential(Duration.seconds(1))),
+          Stream.take(3),
+          Stream.runDrain,
+          Effect.forkChild
+        )
+        yield* TestClock.adjust(Duration.seconds(1))
+        yield* TestClock.adjust(Duration.seconds(2))
+        yield* Fiber.interrupt(fiber)
+        const result = yield* pipe(Ref.get(ref), Effect.map(Array.map((n) => new Date(n).getSeconds())))
+        deepStrictEqual(Array.fromIterable(result), [3, 1, 0])
+      }))
+
+    it.effect("retry - reset the schedule after a successful pull", () =>
+      Effect.gen(function*() {
+        const times = yield* Ref.make(Array.empty<number>())
+        const ref = yield* Ref.make(0)
+        const effect = pipe(
+          Clock.currentTimeMillis,
+          Effect.flatMap((time) =>
+            pipe(
+              Ref.update(times, Array.prepend(time / 1000)),
+              Effect.andThen(Ref.updateAndGet(ref, (n) => n + 1))
+            )
+          )
+        )
+        const stream = pipe(
+          Stream.fromEffect(effect),
+          Stream.flatMap((attempt) =>
+            attempt === 3 || attempt === 5 ?
+              Stream.succeed(attempt) :
+              Stream.fail(Option.none())
+          ),
+          Stream.forever
+        )
+        const fiber = yield* pipe(
+          stream,
+          Stream.retry(Schedule.exponential(Duration.seconds(1))),
+          Stream.take(2),
+          Stream.runDrain,
+          Effect.forkChild
+        )
+        yield* TestClock.adjust(Duration.seconds(1))
+        yield* TestClock.adjust(Duration.seconds(2))
+        yield* TestClock.adjust(Duration.seconds(1))
+        yield* Fiber.join(fiber)
+        const result = yield* Ref.get(times)
+        deepStrictEqual(result, [4, 3, 3, 1, 0])
+      }))
+
+    // it.effect("retry - Schedule.CurrentIterationMetadata", () =>
+    //   Effect.gen(function*() {
+    //     const iterationMetadata = yield* Ref.make(Array.empty<undefined | Schedule.IterationMetadata>())
+    //     const fiber = yield* pipe(
+    //       Stream.fail(1),
+    //       Stream.catchAll((x) =>
+    //         Effect.gen(function*() {
+    //           const currentIterationMetadata = yield* Schedule.CurrentIterationMetadata
+    //           yield* Ref.update(iterationMetadata, Array.append(currentIterationMetadata))
+    //           return yield* Effect.fail(x)
+    //         })
+    //       ),
+    //       Stream.retry(Schedule.exponential(Duration.seconds(1))),
+    //       Stream.runDrain,
+    //       Effect.forkChild
+    //     )
+    //     yield* TestClock.adjust(Duration.seconds(7))
+    //     yield* Fiber.interrupt(fiber)
+    //     const result = yield* Ref.get(iterationMetadata)
+    //     deepStrictEqual(Array.fromIterable(result), [
+    //       {
+    //         elapsed: Duration.zero,
+    //         elapsedSincePrevious: Duration.zero,
+    //         input: undefined,
+    //         output: undefined,
+    //         now: 0,
+    //         recurrence: 0,
+    //         start: 0
+    //       },
+    //       {
+    //         elapsed: Duration.zero,
+    //         elapsedSincePrevious: Duration.zero,
+    //         input: 1,
+    //         output: Duration.millis(1000),
+    //         now: 0,
+    //         recurrence: 1,
+    //         start: 0
+    //       },
+    //       {
+    //         elapsed: Duration.seconds(1),
+    //         elapsedSincePrevious: Duration.seconds(1),
+    //         input: 1,
+    //         output: Duration.millis(2000),
+    //         now: 1000,
+    //         recurrence: 2,
+    //         start: 0
+    //       },
+    //       {
+    //         elapsed: Duration.seconds(3),
+    //         elapsedSincePrevious: Duration.seconds(2),
+    //         input: 1,
+    //         output: Duration.millis(4000),
+    //         now: 3000,
+    //         recurrence: 3,
+    //         start: 0
+    //       }
+    //     ])
+    //   }))
   })
 })
 

@@ -359,6 +359,26 @@ export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
   }))
 
 /**
+ * A stream that emits void values spaced by the specified duration.
+ *
+ * @since 2.0.0
+ * @category constructors
+ */
+export const tick = (interval: Duration.DurationInput): Stream<void> =>
+  fromPull(Effect.sync(() => {
+    let first = true
+    const effect = Effect.succeed(Arr.of<void>(undefined))
+    const delayed = Effect.delay(effect, interval)
+    return Effect.suspend(() => {
+      if (first) {
+        first = false
+        return effect
+      }
+      return delayed
+    })
+  }))
+
+/**
  * Creates a stream from a pull effect.
  *
  * A pull effect is a low-level representation of a stream that can be used
@@ -964,38 +984,6 @@ export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E,
       (step) => Pull.catchHalt(Effect.map(step(void 0), Arr.of), () => Pull.haltVoid)
     )
   )
-
-/**
- * A stream that emits void values spaced by the specified duration.
- *
- * @example
- * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect/stream"
- *
- * let last = Date.now()
- * const log = (message: string) =>
- *   Effect.sync(() => {
- *     const end = Date.now()
- *     console.log(`${message} after ${end - last}ms`)
- *     last = end
- *   })
- *
- * const stream = Stream.tick("1 seconds").pipe(Stream.tap(() => log("tick")))
- *
- * Effect.runPromise(Stream.runCollect(stream.pipe(Stream.take(5)))).then(console.log)
- * // tick after 4ms
- * // tick after 1003ms
- * // tick after 1001ms
- * // tick after 1002ms
- * // tick after 1002ms
- * // [ undefined, undefined, undefined, undefined, undefined ]
- * ```
- *
- * @since 2.0.0
- * @category constructors
- */
-export const tick = (interval: Duration.DurationInput): Stream<void> => fromEffectRepeat(Effect.sleep(interval))
 
 /**
  * Creates a stream from a PubSub subscription.
@@ -1811,6 +1799,57 @@ export const repeat: {
   self: Stream<A, E, R>,
   schedule: Schedule.Schedule<B, void, E2, R2>
 ): Stream<A, E | E2, R | R2> => fromChannel(Channel.repeat(self.channel, schedule)))
+
+/**
+ * Repeats each element of the stream using the provided schedule. Repetitions
+ * are done in addition to the first execution, which means using
+ * `Schedule.recurs(1)` actually results in the original effect, plus an
+ * additional recurrence, for a total of two repetitions of each value in the
+ * stream.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const repeatElements: {
+  <B, E2, R2>(
+    schedule: Schedule.Schedule<B, unknown, E2, R2>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
+  <A, E, R, B, E2, R2>(
+    self: Stream<A, E, R>,
+    schedule: Schedule.Schedule<B, unknown, E2, R2>
+  ): Stream<A, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, B, E2, R2>(
+    self: Stream<A, E, R>,
+    schedule: Schedule.Schedule<B, unknown, E2, R2>
+  ): Stream<A, E | E2, R | R2> =>
+    fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(upstream, scope) {
+      const pullElement = yield* Channel.toTransform(Channel.flattenArray(self.channel))(upstream, scope)
+      let pullRepeat: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R | R2> | undefined = undefined
+
+      const pull: Pull.Pull<
+        Arr.NonEmptyReadonlyArray<A>,
+        E,
+        void,
+        R | R2
+      > = Effect.gen(function*() {
+        const element = yield* pullElement
+        const chunk = Arr.of(element)
+        const step = yield* Schedule.toStepWithSleep(schedule)
+        pullRepeat = step(element).pipe(
+          Effect.as(chunk),
+          Pull.catchHalt((_) => {
+            pullRepeat = undefined
+            return pull
+          })
+        )
+        return chunk
+      })
+
+      return Effect.suspend(() => pullRepeat ?? pull)
+    })))
+)
 
 /**
  * Repeats this stream forever.
@@ -3238,6 +3277,34 @@ export const ignore = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> => f
  */
 export const ignoreCause = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R> =>
   fromChannel(Channel.ignoreCause(self.channel))
+
+/**
+ * When the stream fails, retry it according to the given schedule
+ *
+ * This retries the entire stream, so will re-execute all of the stream's
+ * acquire operations.
+ *
+ * The schedule is reset as soon as the first element passes through the
+ * stream again.
+ *
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const retry: {
+  <E, X, E2, R2>(
+    policy: Schedule.Schedule<X, NoInfer<E>, E2, R2>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
+  <A, E, R, X, E2, R2>(
+    self: Stream<A, E, R>,
+    policy: Schedule.Schedule<X, NoInfer<E>, E2, R2>
+  ): Stream<A, E | E2, R2 | R>
+} = dual(
+  2,
+  <A, E, R, X, E2, R2>(
+    self: Stream<A, E, R>,
+    policy: Schedule.Schedule<X, NoInfer<E>, E2, R2>
+  ): Stream<A, E | E2, R2 | R> => fromChannel(Channel.retry(self.channel, policy))
+)
 
 /**
  * Takes the specified number of elements from this stream.
