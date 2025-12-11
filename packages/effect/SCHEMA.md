@@ -1880,7 +1880,7 @@ import type { Annotations } from "effect/schema"
 import { Schema } from "effect/schema"
 
 // Create a filter factory for values greater than a given value
-export const deriveGreaterThan = <T>(options: {
+export const makeGreaterThan = <T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMinimum: T) => Annotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
@@ -7260,12 +7260,12 @@ import { Schema } from "effect/schema"
 
 const options = { order: Order.bigint }
 
-const isBetween = Schema.deriveIsBetween(options)
-const isGreaterThan = Schema.deriveIsGreaterThan(options)
-const isGreaterThanOrEqualTo = Schema.deriveIsGreaterThanOrEqualTo(options)
-const isLessThan = Schema.deriveIsLessThan(options)
-const isLessThanOrEqualTo = Schema.deriveIsLessThanOrEqualTo(options)
-const isMultipleOf = Schema.deriveIsMultipleOf({
+const isBetween = Schema.makeIsBetween(options)
+const isGreaterThan = Schema.makeIsGreaterThan(options)
+const isGreaterThanOrEqualTo = Schema.makeIsGreaterThanOrEqualTo(options)
+const isLessThan = Schema.makeIsLessThan(options)
+const isLessThanOrEqualTo = Schema.makeIsLessThanOrEqualTo(options)
+const isMultipleOf = Schema.makeIsMultipleOf({
   remainder: BigInt.remainder,
   zero: 0n
 })

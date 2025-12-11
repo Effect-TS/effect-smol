@@ -1469,11 +1469,11 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
     describe("BigInt Checks", () => {
       const options = { order: Order.bigint, format: (value: bigint) => `${value}n` }
 
-      const isBetween = Schema.deriveIsBetween(options)
-      const isGreaterThan = Schema.deriveIsGreaterThan(options)
-      const isGreaterThanOrEqualTo = Schema.deriveIsGreaterThanOrEqualTo(options)
-      const isLessThan = Schema.deriveIsLessThan(options)
-      const isLessThanOrEqualTo = Schema.deriveIsLessThanOrEqualTo(options)
+      const isBetween = Schema.makeIsBetween(options)
+      const isGreaterThan = Schema.makeIsGreaterThan(options)
+      const isGreaterThanOrEqualTo = Schema.makeIsGreaterThanOrEqualTo(options)
+      const isLessThan = Schema.makeIsLessThan(options)
+      const isLessThanOrEqualTo = Schema.makeIsLessThanOrEqualTo(options)
 
       it("isBetween", async () => {
         const schema = Schema.BigInt.check(isBetween({ minimum: 5n, maximum: 10n }))

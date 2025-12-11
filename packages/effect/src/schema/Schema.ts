@@ -3913,7 +3913,7 @@ export function isFinite(annotations?: Annotations.Filter) {
  * @category Order checks
  * @since 4.0.0
  */
-export function deriveIsGreaterThan<T>(options: {
+export function makeIsGreaterThan<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMinimum: T) => Annotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
@@ -3939,7 +3939,7 @@ export function deriveIsGreaterThan<T>(options: {
  * @category Order checks
  * @since 4.0.0
  */
-export function deriveIsGreaterThanOrEqualTo<T>(options: {
+export function makeIsGreaterThanOrEqualTo<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMinimum: T) => Annotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
@@ -3965,7 +3965,7 @@ export function deriveIsGreaterThanOrEqualTo<T>(options: {
  * @category Order checks
  * @since 4.0.0
  */
-export function deriveIsLessThan<T>(options: {
+export function makeIsLessThan<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMaximum: T) => Annotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
@@ -3991,7 +3991,7 @@ export function deriveIsLessThan<T>(options: {
  * @category Order checks
  * @since 4.0.0
  */
-export function deriveIsLessThanOrEqualTo<T>(options: {
+export function makeIsLessThanOrEqualTo<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMaximum: T) => Annotations.Filter) | undefined
   readonly format?: (value: T) => string | undefined
@@ -4017,7 +4017,7 @@ export function deriveIsLessThanOrEqualTo<T>(options: {
  * @category Order checks
  * @since 4.0.0
  */
-export function deriveIsBetween<T>(deriveOptions: {
+export function makeIsBetween<T>(deriveOptions: {
   readonly order: Order.Order<T>
   readonly annotate?:
     | ((options: {
@@ -4062,7 +4062,7 @@ export function deriveIsBetween<T>(deriveOptions: {
  * @category Numeric checks
  * @since 4.0.0
  */
-export function deriveIsMultipleOf<T>(options: {
+export function makeIsMultipleOf<T>(options: {
   readonly remainder: (input: T, divisor: T) => T
   readonly zero: NoInfer<T>
   readonly annotate?: ((divisor: T) => Annotations.Filter) | undefined
@@ -4100,7 +4100,7 @@ export function deriveIsMultipleOf<T>(options: {
  * @category Number checks
  * @since 4.0.0
  */
-export const isGreaterThan = deriveIsGreaterThan({
+export const isGreaterThan = makeIsGreaterThan({
   order: Order.number,
   annotate: (exclusiveMinimum) => ({
     jsonSchemaConstraint: () => ({ exclusiveMinimum }),
@@ -4129,7 +4129,7 @@ export const isGreaterThan = deriveIsGreaterThan({
  * @category Number checks
  * @since 4.0.0
  */
-export const isGreaterThanOrEqualTo = deriveIsGreaterThanOrEqualTo({
+export const isGreaterThanOrEqualTo = makeIsGreaterThanOrEqualTo({
   order: Order.number,
   annotate: (minimum) => ({
     jsonSchemaConstraint: () => ({ minimum }),
@@ -4157,7 +4157,7 @@ export const isGreaterThanOrEqualTo = deriveIsGreaterThanOrEqualTo({
  * @category Number checks
  * @since 4.0.0
  */
-export const isLessThan = deriveIsLessThan({
+export const isLessThan = makeIsLessThan({
   order: Order.number,
   annotate: (exclusiveMaximum) => ({
     jsonSchemaConstraint: () => ({ exclusiveMaximum }),
@@ -4186,7 +4186,7 @@ export const isLessThan = deriveIsLessThan({
  * @category Number checks
  * @since 4.0.0
  */
-export const isLessThanOrEqualTo = deriveIsLessThanOrEqualTo({
+export const isLessThanOrEqualTo = makeIsLessThanOrEqualTo({
   order: Order.number,
   annotate: (maximum) => ({
     jsonSchemaConstraint: () => ({ maximum }),
@@ -4216,7 +4216,7 @@ export const isLessThanOrEqualTo = deriveIsLessThanOrEqualTo({
  * @category Number checks
  * @since 4.0.0
  */
-export const isBetween = deriveIsBetween({
+export const isBetween = makeIsBetween({
   order: Order.number,
   annotate: (options) => {
     return {
@@ -4261,7 +4261,7 @@ export const isBetween = deriveIsBetween({
  * @category Number checks
  * @since 4.0.0
  */
-export const isMultipleOf = deriveIsMultipleOf({
+export const isMultipleOf = makeIsMultipleOf({
   remainder,
   zero: 0,
   annotate: (divisor) => ({
@@ -4422,7 +4422,7 @@ export function isValidDate(annotations?: Annotations.Filter) {
  * @category Date checks
  * @since 4.0.0
  */
-export const isGreaterThanDate = deriveIsGreaterThan({
+export const isGreaterThanDate = makeIsGreaterThan({
   order: Order.Date,
   annotate: (exclusiveMinimum) => ({
     arbitraryConstraint: {
@@ -4452,7 +4452,7 @@ export const isGreaterThanDate = deriveIsGreaterThan({
  * @category Date checks
  * @since 4.0.0
  */
-export const isGreaterThanOrEqualToDate = deriveIsGreaterThanOrEqualTo({
+export const isGreaterThanOrEqualToDate = makeIsGreaterThanOrEqualTo({
   order: Order.Date,
   annotate: (minimum) => ({
     arbitraryConstraint: {
@@ -4475,7 +4475,7 @@ export const isGreaterThanOrEqualToDate = deriveIsGreaterThanOrEqualTo({
  * @category Date checks
  * @since 4.0.0
  */
-export const isLessThanDate = deriveIsLessThan({
+export const isLessThanDate = makeIsLessThan({
   order: Order.Date,
   annotate: (exclusiveMaximum) => ({
     arbitraryConstraint: {
@@ -4505,7 +4505,7 @@ export const isLessThanDate = deriveIsLessThan({
  * @category Date checks
  * @since 4.0.0
  */
-export const isLessThanOrEqualToDate = deriveIsLessThanOrEqualTo({
+export const isLessThanOrEqualToDate = makeIsLessThanOrEqualTo({
   order: Order.Date,
   annotate: (maximum) => ({
     arbitraryConstraint: {
@@ -4533,7 +4533,7 @@ export const isLessThanOrEqualToDate = deriveIsLessThanOrEqualTo({
  * @category Date checks
  * @since 4.0.0
  */
-export const isBetweenDate = deriveIsBetween({
+export const isBetweenDate = makeIsBetween({
   order: Order.Date,
   annotate: (options) => ({
     arbitraryConstraint: {
@@ -4557,7 +4557,7 @@ export const isBetweenDate = deriveIsBetween({
  * @category BigInt checks
  * @since 4.0.0
  */
-export const isGreaterThanBigInt = deriveIsGreaterThan({
+export const isGreaterThanBigInt = makeIsGreaterThan({
   order: Order.bigint,
   annotate: (exclusiveMinimum) => ({
     arbitraryConstraint: {
@@ -4582,7 +4582,7 @@ export const isGreaterThanBigInt = deriveIsGreaterThan({
  * @category BigInt checks
  * @since 4.0.0
  */
-export const isGreaterThanOrEqualToBigInt = deriveIsGreaterThanOrEqualTo({
+export const isGreaterThanOrEqualToBigInt = makeIsGreaterThanOrEqualTo({
   order: Order.bigint,
   annotate: (minimum) => ({
     arbitraryConstraint: {
@@ -4605,7 +4605,7 @@ export const isGreaterThanOrEqualToBigInt = deriveIsGreaterThanOrEqualTo({
  * @category BigInt checks
  * @since 4.0.0
  */
-export const isLessThanBigInt = deriveIsLessThan({
+export const isLessThanBigInt = makeIsLessThan({
   order: Order.bigint,
   annotate: (exclusiveMaximum) => ({
     arbitraryConstraint: {
@@ -4630,7 +4630,7 @@ export const isLessThanBigInt = deriveIsLessThan({
  * @category BigInt checks
  * @since 4.0.0
  */
-export const isLessThanOrEqualToBigInt = deriveIsLessThanOrEqualTo({
+export const isLessThanOrEqualToBigInt = makeIsLessThanOrEqualTo({
   order: Order.bigint,
   annotate: (maximum) => ({
     arbitraryConstraint: {
@@ -4654,7 +4654,7 @@ export const isLessThanOrEqualToBigInt = deriveIsLessThanOrEqualTo({
  * @category BigInt checks
  * @since 4.0.0
  */
-export const isBetweenBigInt = deriveIsBetween({
+export const isBetweenBigInt = makeIsBetween({
   order: Order.bigint,
   annotate: (options) => ({
     arbitraryConstraint: {
