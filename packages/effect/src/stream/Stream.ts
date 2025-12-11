@@ -34,7 +34,7 @@ import * as Sink from "../stream/Sink.ts"
 import { isString } from "../String.ts"
 import type { ParentSpan, SpanOptions } from "../Tracer.ts"
 import type { TypeLambda } from "../types/HKT.ts"
-import type { Covariant, ExcludeTag, ExtractTag, Tags } from "../types/Types.ts"
+import type { Covariant, ExcludeTag, ExtractTag, NoInfer, Tags } from "../types/Types.ts"
 import type * as Unify from "../types/Unify.ts"
 import type * as Take from "./Take.ts"
 
@@ -1802,6 +1802,31 @@ export const repeat: {
 ): Stream<A, E | E2, R | R2> => fromChannel(Channel.repeat(self.channel, schedule)))
 
 /**
+ * Schedules the output of the stream using the provided `schedule`.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const schedule: {
+  <X, E2, R2, A>(
+    schedule: Schedule.Schedule<X, NoInfer<A>, E2, R2>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
+  <A, E, R, X, E2, R2>(
+    self: Stream<A, E, R>,
+    schedule: Schedule.Schedule<X, NoInfer<A>, E2, R2>
+  ): Stream<A, E | E2, R | R2>
+} = dual(2, <A, E, R, X, E2, R2>(
+  self: Stream<A, E, R>,
+  schedule: Schedule.Schedule<X, NoInfer<A>, E2, R2>
+): Stream<A, E | E2, R | R2> =>
+  self.channel.pipe(
+    Channel.flattenArray,
+    Channel.schedule(schedule),
+    Channel.map(Arr.of),
+    fromChannel
+  ))
+
+/**
  * Repeats each element of the stream using the provided schedule. Repetitions
  * are done in addition to the first execution, which means using
  * `Schedule.recurs(1)` actually results in the original effect, plus an
@@ -1825,31 +1850,35 @@ export const repeatElements: {
     self: Stream<A, E, R>,
     schedule: Schedule.Schedule<B, unknown, E2, R2>
   ): Stream<A, E | E2, R | R2> =>
-    fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(upstream, scope) {
-      const pullElement = yield* Channel.toTransform(Channel.flattenArray(self.channel))(upstream, scope)
-      let pullRepeat: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R | R2> | undefined = undefined
+    fromChannel(Channel.fromTransform((upstream, scope) =>
+      Effect.map(
+        Channel.toTransform(Channel.flattenArray(self.channel))(upstream, scope),
+        (pullElement) => {
+          let pullRepeat: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | E2, void, R | R2> | undefined = undefined
 
-      const pull: Pull.Pull<
-        Arr.NonEmptyReadonlyArray<A>,
-        E,
-        void,
-        R | R2
-      > = Effect.gen(function*() {
-        const element = yield* pullElement
-        const chunk = Arr.of(element)
-        const step = yield* Schedule.toStepWithSleep(schedule)
-        pullRepeat = step(element).pipe(
-          Effect.as(chunk),
-          Pull.catchHalt((_) => {
-            pullRepeat = undefined
-            return pull
+          const pull: Pull.Pull<
+            Arr.NonEmptyReadonlyArray<A>,
+            E,
+            void,
+            R | R2
+          > = Effect.gen(function*() {
+            const element = yield* pullElement
+            const chunk = Arr.of(element)
+            const step = yield* Schedule.toStepWithSleep(schedule)
+            pullRepeat = step(element).pipe(
+              Effect.as(chunk),
+              Pull.catchHalt((_) => {
+                pullRepeat = undefined
+                return pull
+              })
+            )
+            return chunk
           })
-        )
-        return chunk
-      })
 
-      return Effect.suspend(() => pullRepeat ?? pull)
-    })))
+          return Effect.suspend(() => pullRepeat ?? pull)
+        }
+      )
+    ))
 )
 
 /**
@@ -2588,29 +2617,31 @@ export const zipLatestWith: {
 export const raceAll = <S extends ReadonlyArray<Stream<any, any, any>>>(
   ...streams: S
 ): Stream<Success<S[number]>, Error<S[number]>, Services<S[number]>> =>
-  fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
-    let winner:
-      | Pull.Pull<Arr.NonEmptyReadonlyArray<Success<S[number]>>, Error<S[number]>, void, Services<S[number]>>
-      | undefined
-    const race = Effect.raceAll(streams.map((stream) => {
-      const childScope = Scope.forkUnsafe(scope)
-      return Channel.toPullScoped(stream.channel, childScope).pipe(
-        Effect.flatMap((pull) => Effect.zip(Effect.succeed(pull), pull)),
-        Effect.onExit((exit) => {
-          if (exit._tag === "Success") {
-            if (winner) {
-              return Scope.close(childScope, exit)
+  fromChannel(Channel.fromTransform((_, scope) =>
+    Effect.sync(() => {
+      let winner:
+        | Pull.Pull<Arr.NonEmptyReadonlyArray<Success<S[number]>>, Error<S[number]>, void, Services<S[number]>>
+        | undefined
+      const race = Effect.raceAll(streams.map((stream) => {
+        const childScope = Scope.forkUnsafe(scope)
+        return Channel.toPullScoped(stream.channel, childScope).pipe(
+          Effect.flatMap((pull) => Effect.zip(Effect.succeed(pull), pull)),
+          Effect.onExit((exit) => {
+            if (exit._tag === "Success") {
+              if (winner) {
+                return Scope.close(childScope, exit)
+              }
+              winner = exit.value[0]
+              return Effect.void
             }
-            winner = exit.value[0]
-            return Effect.void
-          }
-          return Scope.close(childScope, exit)
-        }),
-        Effect.map(([, chunk]) => chunk)
-      )
-    }))
-    return Effect.suspend(() => winner ?? race)
-  })))
+            return Scope.close(childScope, exit)
+          }),
+          Effect.map(([, chunk]) => chunk)
+        )
+      }))
+      return Effect.suspend(() => winner ?? race)
+    })
+  ))
 
 /**
  * @since 3.7.0

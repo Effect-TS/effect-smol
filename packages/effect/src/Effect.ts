@@ -3185,19 +3185,14 @@ export declare namespace Retry {
  * @category Error handling
  */
 export const retry: {
-  <E, O extends Retry.Options<E>>(
-    options: O
-  ): <A, R>(self: Effect<A, E, R>) => Retry.Return<R, E, A, O>
+  <E, O extends Retry.Options<E>>(options: O): <A, R>(self: Effect<A, E, R>) => Retry.Return<R, E, A, O>
   <B, E, Error, Env>(
     policy: Schedule<B, NoInfer<E>, Error, Env>
   ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | Error, R | Env>
-  <A, E, R, O extends Retry.Options<E>>(
-    self: Effect<A, E, R>,
-    options: O
-  ): Retry.Return<R, E, A, O>
+  <A, E, R, O extends Retry.Options<E>>(self: Effect<A, E, R>, options: O): Retry.Return<R, E, A, O>
   <A, E, R, B, Error, Env>(
     self: Effect<A, E, R>,
-    policy: Schedule<B, E, Error, Env>
+    policy: Schedule<B, NoInfer<E>, Error, Env>
   ): Effect<A, E | Error, R | Env>
 } = internalSchedule.retry
 
@@ -6187,19 +6182,14 @@ export const forever: <Arg extends Effect<any, any, any> | { readonly autoYield?
  * @category repetition / recursion
  */
 export const repeat: {
-  <O extends Repeat.Options<A>, A>(
-    options: O
-  ): <E, R>(self: Effect<A, E, R>) => Repeat.Return<R, E, A, O>
+  <O extends Repeat.Options<A>, A>(options: O): <E, R>(self: Effect<A, E, R>) => Repeat.Return<R, E, A, O>
   <Output, Input, Error, Env>(
-    schedule: Schedule<Output, Input, NoInfer<Error>, Env>
+    schedule: Schedule<Output, NoInfer<Input>, Error, Env>
   ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E | Error, R | Env>
-  <A, E, R, O extends Repeat.Options<A>>(
-    self: Effect<A, E, R>,
-    options: O
-  ): Repeat.Return<R, E, A, O>
+  <A, E, R, O extends Repeat.Options<A>>(self: Effect<A, E, R>, options: O): Repeat.Return<R, E, A, O>
   <Input, E, R, Output, Error, Env>(
     self: Effect<Input, E, R>,
-    schedule: Schedule<Output, Input, NoInfer<Error>, Env>
+    schedule: Schedule<Output, NoInfer<Input>, Error, Env>
   ): Effect<Output, E | Error, R | Env>
 } = internalSchedule.repeat
 

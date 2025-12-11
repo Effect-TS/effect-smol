@@ -3223,6 +3223,37 @@ describe("Stream", () => {
     //     ])
     //   }))
   })
+
+  describe("schedule", () => {
+    it.effect("schedule", () =>
+      Effect.gen(function*() {
+        const start = yield* Clock.currentTimeMillis
+        const fiber = yield* pipe(
+          Stream.range(1, 8),
+          Stream.schedule(Schedule.fixed(Duration.millis(100))),
+          Stream.mapEffect((n) =>
+            pipe(
+              Clock.currentTimeMillis,
+              Effect.map((now) => [n, now - start] as const)
+            )
+          ),
+          Stream.runCollect,
+          Effect.forkChild
+        )
+        yield* TestClock.adjust(Duration.millis(800))
+        const result = yield* Fiber.join(fiber)
+        deepStrictEqual(result, [
+          [1, 100],
+          [2, 200],
+          [3, 300],
+          [4, 400],
+          [5, 500],
+          [6, 600],
+          [7, 700],
+          [8, 800]
+        ])
+      }))
+  })
 })
 
 const grouped = <A>(arr: Array<A>, size: number): Array<NonEmptyArray<A>> => {

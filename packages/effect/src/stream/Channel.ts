@@ -2953,6 +2953,41 @@ export const forever = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
 ): Channel<OutElem, OutErr, never, InElem, InErr, InDone, Env> => concatWith(self, () => forever(self))
 
 /**
+ * @since 4.0.0
+ * @category utils
+ */
+export const schedule: {
+  <SO, OutElem, SE, SR>(
+    schedule: Schedule.Schedule<SO, Types.NoInfer<OutElem>, SE, SR>
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
+  ) => Channel<OutElem, OutErr | SE, OutDone | SO, InElem, InErr, InDone, Env | SR>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    schedule: Schedule.Schedule<SO, OutElem, SE, SR>
+  ): Channel<OutElem, OutErr | SE, OutDone | SO, InElem, InErr, InDone, Env | SR>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  schedule: Schedule.Schedule<SO, OutElem, SE, SR>
+): Channel<OutElem, OutErr | SE, OutDone | SO, InElem, InErr, InDone, Env | SR> =>
+  transformPull(
+    self,
+    (pull, _scope) =>
+      Effect.map(
+        Schedule.toStepWithSleep(schedule),
+        (step) => {
+          const pullWithStep: Pull.Pull<
+            OutElem,
+            OutErr | SE,
+            OutDone | SO,
+            SR
+          > = Effect.tap(pull, step)
+          return pullWithStep
+        }
+      )
+  ))
+
+/**
  * Filters the output elements of a channel using a predicate function.
  * Elements that don't match the predicate are discarded.
  *

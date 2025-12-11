@@ -42,8 +42,9 @@ import { constant, constTrue, dual, identity } from "./Function.ts"
 import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 import { isEffect } from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
+import * as ServiceMap from "./ServiceMap.ts"
 import * as Pull from "./stream/Pull.ts"
-import type { Contravariant, Covariant } from "./types/Types.ts"
+import type { Contravariant, Covariant, Mutable } from "./types/Types.ts"
 
 const TypeId = "~effect/Schedule"
 
@@ -88,6 +89,100 @@ const TypeId = "~effect/Schedule"
 export interface Schedule<out Output, in Input = unknown, out Error = never, out Env = never>
   extends Schedule.Variance<Output, Input, Error, Env>, Pipeable
 {}
+
+/**
+ * Metadata provided to schedule functions containing timing and input information.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schedule } from "effect"
+ * import { Duration } from "effect"
+ * import { Console } from "effect"
+ *
+ * // Custom schedule that uses input metadata
+ * const metadataAwareSchedule = Schedule.spaced("1 second").pipe(
+ *   Schedule.collectWhile((metadata) => {
+ *     console.log(`Attempt ${metadata.recurrence + 1}`)
+ *     console.log(`Started at: ${new Date(metadata.start)}`)
+ *     console.log(`Current time: ${new Date(metadata.now)}`)
+ *     console.log(`Total elapsed: ${metadata.elapsed}ms`)
+ *     console.log(`Since previous: ${metadata.elapsedSincePrevious}ms`)
+ *
+ *     // Stop after 5 attempts or 10 seconds
+ *     return metadata.recurrence < 5 && metadata.elapsed < 10000
+ *   })
+ * )
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.repeat(
+ *     Console.log("Task execution"),
+ *     metadataAwareSchedule
+ *   )
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category Metadata
+ */
+export interface InputMetadata<Input> {
+  readonly input: Input
+  readonly recurrence: number
+  readonly start: number
+  readonly now: number
+  readonly elapsed: number
+  readonly elapsedSincePrevious: number
+}
+
+/**
+ * Extended metadata that includes both input metadata and the output value from the schedule.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Schedule } from "effect"
+ * import { Duration } from "effect"
+ * import { Console } from "effect"
+ *
+ * // Custom schedule that logs metadata including output
+ * const loggingSchedule = Schedule.unfold(0, (n) => n + 1).pipe(
+ *   Schedule.addDelay(() => Duration.millis(100)),
+ *   Schedule.tapOutput((output) => {
+ *     return Console.log(
+ *       `Output: ${output}`
+ *     )
+ *   })
+ * )
+ *
+ * const program = Effect.gen(function* () {
+ *   yield* Effect.repeat(
+ *     Effect.succeed("task completed"),
+ *     loggingSchedule.pipe(Schedule.take(3))
+ *   )
+ * })
+ *
+ * // Output logs will show:
+ * // "Output: 0, Attempt: 1, Elapsed: 0ms, Since previous: 0ms"
+ * // "Output: 1, Attempt: 2, Elapsed: 100ms, Since previous: 100ms"
+ * // "Output: 2, Attempt: 3, Elapsed: 200ms, Since previous: 100ms"
+ * ```
+ *
+ * @since 4.0.0
+ * @category Metadata
+ */
+export interface Metadata<Output = unknown, Input = unknown> extends InputMetadata<Input> {
+  readonly output: Output
+  readonly duration: Duration.Duration
+}
+
+/**
+ * @since 4.0.0
+ * @category Metadata
+ */
+export class CurrentMetadata extends ServiceMap.Service<
+  CurrentMetadata,
+  Metadata
+>()("effect/Schedule/CurrentMetadata") {}
 
 /**
  * The Schedule namespace contains types and utilities for working with schedules.
@@ -194,90 +289,6 @@ export declare namespace Schedule {
     readonly _Error: Covariant<Error>
     readonly _Env: Covariant<Env>
   }
-
-  /**
-   * Metadata provided to schedule functions containing timing and input information.
-   *
-   * @example
-   * ```ts
-   * import { Effect } from "effect"
-   * import { Schedule } from "effect"
-   * import { Duration } from "effect"
-   * import { Console } from "effect"
-   *
-   * // Custom schedule that uses input metadata
-   * const metadataAwareSchedule = Schedule.spaced("1 second").pipe(
-   *   Schedule.collectWhile((metadata) => {
-   *     console.log(`Attempt ${metadata.recurrence + 1}`)
-   *     console.log(`Started at: ${new Date(metadata.start)}`)
-   *     console.log(`Current time: ${new Date(metadata.now)}`)
-   *     console.log(`Total elapsed: ${metadata.elapsed}ms`)
-   *     console.log(`Since previous: ${metadata.elapsedSincePrevious}ms`)
-   *
-   *     // Stop after 5 attempts or 10 seconds
-   *     return metadata.recurrence < 5 && metadata.elapsed < 10000
-   *   })
-   * )
-   *
-   * const program = Effect.gen(function* () {
-   *   yield* Effect.repeat(
-   *     Console.log("Task execution"),
-   *     metadataAwareSchedule
-   *   )
-   * })
-   * ```
-   *
-   * @since 4.0.0
-   * @category Models
-   */
-  export interface InputMetadata<Input> {
-    readonly input: Input
-    readonly recurrence: number
-    readonly start: number
-    readonly now: number
-    readonly elapsed: number
-    readonly elapsedSincePrevious: number
-  }
-
-  /**
-   * Extended metadata that includes both input metadata and the output value from the schedule.
-   *
-   * @example
-   * ```ts
-   * import { Effect } from "effect"
-   * import { Schedule } from "effect"
-   * import { Duration } from "effect"
-   * import { Console } from "effect"
-   *
-   * // Custom schedule that logs metadata including output
-   * const loggingSchedule = Schedule.unfold(0, (n) => n + 1).pipe(
-   *   Schedule.addDelay(() => Duration.millis(100)),
-   *   Schedule.tapOutput((output) => {
-   *     return Console.log(
-   *       `Output: ${output}`
-   *     )
-   *   })
-   * )
-   *
-   * const program = Effect.gen(function* () {
-   *   yield* Effect.repeat(
-   *     Effect.succeed("task completed"),
-   *     loggingSchedule.pipe(Schedule.take(3))
-   *   )
-   * })
-   *
-   * // Output logs will show:
-   * // "Output: 0, Attempt: 1, Elapsed: 0ms, Since previous: 0ms"
-   * // "Output: 1, Attempt: 2, Elapsed: 100ms, Since previous: 100ms"
-   * // "Output: 2, Attempt: 3, Elapsed: 200ms, Since previous: 100ms"
-   * ```
-   *
-   * @since 4.0.0
-   * @category Models
-   */
-  export interface Metadata<Output, Input> extends InputMetadata<Input> {
-    readonly output: Output
-  }
 }
 
 const ScheduleProto = {
@@ -353,7 +364,7 @@ const metadataFn = () => {
   let n = 0
   let previous: number | undefined
   let start: number | undefined
-  return <In>(now: number, input: In): Schedule.InputMetadata<In> => {
+  return <In>(now: number, input: In): InputMetadata<In> => {
     if (start === undefined) start = now
     const elapsed = now - start
     const elapsedSincePrevious = previous === undefined ? 0 : now - previous
@@ -389,7 +400,7 @@ const metadataFn = () => {
  */
 export const fromStepWithMetadata = <Input, Output, EnvX, ErrorX, Error, Env>(
   step: Effect<
-    (options: Schedule.InputMetadata<Input>) => Pull.Pull<[Output, Duration.Duration], ErrorX, Output, EnvX>,
+    (options: InputMetadata<Input>) => Pull.Pull<[Output, Duration.Duration], ErrorX, Output, EnvX>,
     Error,
     Env
   >
@@ -437,6 +448,42 @@ export const toStep = <Output, Input, Error, Env>(
   )
 
 /**
+ * Extracts a step function from a Schedule that provides metadata about each
+ * execution. It will also handle sleeping for the computed delay.
+ *
+ * @since 4.0.0
+ * @category destructors
+ */
+export const toStepWithMetadata = <Output, Input, Error, Env>(
+  schedule: Schedule<Output, Input, Error, Env>
+): Effect<
+  (input: Input) => Pull.Pull<Metadata<Output, Input>, Error, Output, Env>,
+  never,
+  Env
+> =>
+  effect.clockWith((clock) =>
+    effect.map(
+      toStep(schedule),
+      (step) => {
+        const metaFn = metadataFn()
+        return (input) =>
+          effect.suspend(() => {
+            const now = clock.currentTimeMillisUnsafe()
+            return effect.flatMap(
+              step(now, input),
+              ([output, duration]) => {
+                const meta = metaFn(now, input) as Mutable<Metadata<Output, Input>>
+                meta.output = output
+                meta.duration = duration
+                return effect.as(effect.sleep(duration), meta)
+              }
+            )
+          })
+      }
+    )
+  )
+
+/**
  * Extracts a step function from a Schedule that automatically handles sleep delays.
  *
  * @example
@@ -473,16 +520,9 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
   never,
   Env
 > =>
-  effect.clockWith((clock) =>
-    effect.map(
-      toStep(schedule),
-      (step) => (input) =>
-        effect.flatMap(
-          effect.suspend(() => step(clock.currentTimeMillisUnsafe(), input)),
-          ([output, duration]) =>
-            Duration.isZero(duration) ? effect.succeed(output) : effect.as(effect.sleep(duration), output)
-        )
-    )
+  effect.map(
+    toStepWithMetadata(schedule),
+    (step) => (input) => effect.map(step(input), (meta) => meta.output)
   )
 
 /**
@@ -1297,7 +1337,7 @@ export const collectOutputs = <Output, Input, Error, Env>(
 export const collectWhile: {
   <Input, Output, Error2 = never, Env2 = never>(
     predicate: (
-      metadata: Schedule.Metadata<Output, Input>
+      metadata: Metadata<Output, Input>
     ) => boolean | Effect<boolean, Error2, Env2>
   ): <Error, Env>(
     self: Schedule<Output, Input, Error, Env>
@@ -1305,13 +1345,13 @@ export const collectWhile: {
   <Output, Input, Error, Env, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
     predicate: (
-      metadata: Schedule.Metadata<Output, Input>
+      metadata: Metadata<Output, Input>
     ) => boolean | Effect<boolean, Error2, Env2>
   ): Schedule<Array<Output>, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   predicate: (
-    metadata: Schedule.Metadata<Output, Input>
+    metadata: Metadata<Output, Input>
   ) => boolean | Effect<boolean, Error2, Env2>
 ): Schedule<Array<Output>, Input, Error | Error2, Env | Env2> =>
   reduce(while_(self, predicate), () => [] as Array<Output>, (outputs, output) => {
@@ -3087,7 +3127,7 @@ export const unfold = <State, Error = never, Env = never>(
 const while_: {
   <Input, Output, Error2 = never, Env2 = never>(
     predicate: (
-      metadata: Schedule.Metadata<Output, Input>
+      metadata: Metadata<Output, Input>
     ) => boolean | Effect<boolean, Error2, Env2>
   ): <Error, Env>(
     self: Schedule<Output, Input, Error, Env>
@@ -3095,23 +3135,24 @@ const while_: {
   <Output, Input, Error, Env, Error2 = never, Env2 = never>(
     self: Schedule<Output, Input, Error, Env>,
     predicate: (
-      metadata: Schedule.Metadata<Output, Input>
+      metadata: Metadata<Output, Input>
     ) => boolean | Effect<boolean, Error2, Env2>
   ): Schedule<Output, Input, Error | Error2, Env | Env2>
 } = dual(2, <Output, Input, Error, Env, Error2 = never, Env2 = never>(
   self: Schedule<Output, Input, Error, Env>,
   predicate: (
-    metadata: Schedule.Metadata<Output, Input>
+    metadata: Metadata<Output, Input>
   ) => boolean | Effect<boolean, Error2, Env2>
 ): Schedule<Output, Input, Error | Error2, Env | Env2> =>
   fromStep(effect.map(toStep(self), (step) => {
     const meta = metadataFn()
     return (now, input) =>
       effect.flatMap(step(now, input), (result) => {
-        const check = predicate({ ...meta(now, input), output: result[0] })
+        const [output, duration] = result
+        const check = predicate({ ...meta(now, input), output, duration })
         return isEffect(check)
-          ? effect.flatMap(check, (check) => (check ? effect.succeed(result) : Pull.halt(result[0])))
-          : (check ? effect.succeed(result) : Pull.halt(result[0]))
+          ? effect.flatMap(check, (check) => (check ? effect.succeed(result) : Pull.halt(output)))
+          : (check ? effect.succeed(result) : Pull.halt(output))
       })
   })))
 

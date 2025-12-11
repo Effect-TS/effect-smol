@@ -69,7 +69,7 @@ export const repeat = dual<{
     options: O
   ): <E, R>(self: Effect<A, E, R>) => Repeat.Return<R, E, A, O>
   <Output, Input, Error, Env>(
-    schedule: Schedule.Schedule<Output, Input, NoInfer<Error>, Env>
+    schedule: Schedule.Schedule<Output, NoInfer<Input>, Error, Env>
   ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E | Error, R | Env>
 }, {
   <A, E, R, O extends Repeat.Options<A>>(
@@ -78,7 +78,7 @@ export const repeat = dual<{
   ): Repeat.Return<R, E, A, O>
   <Input, E, R, Output, Error, Env>(
     self: Effect<Input, E, R>,
-    schedule: Schedule.Schedule<Output, Input, NoInfer<Error>, Env>
+    schedule: Schedule.Schedule<Output, NoInfer<Input>, Error, Env>
   ): Effect<Output, E | Error, R | Env>
 }>(
   2,
@@ -103,7 +103,7 @@ export const retry = dual<{
   ): Retry.Return<R, E, A, O>
   <A, E, R, B, Error, Env>(
     self: Effect<A, E, R>,
-    policy: Schedule.Schedule<B, E, Error, Env>
+    policy: Schedule.Schedule<B, NoInfer<E>, Error, Env>
   ): Effect<A, E | Error, R | Env>
 }>(
   2,

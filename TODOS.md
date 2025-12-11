@@ -392,8 +392,8 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |        `scanEffect`        |  Done  |         `scanEffect`          |          |
 |        `scanReduce`        |   X    |                               |          |
 |     `scanReduceEffect`     |   X    |                               |          |
-|         `schedule`         |   -    |                               |          |
-|       `scheduleWith`       |   -    |                               |          |
+|         `schedule`         |  Done  |                               |          |
+|       `scheduleWith`       |   X    |                               |          |
 |          `share`           |  Done  |            `share`            |          |
 |         `sliding`          |   -    |                               |          |
 |       `slidingSize`        |   -    |                               |          |
