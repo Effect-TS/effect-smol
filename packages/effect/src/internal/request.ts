@@ -75,7 +75,7 @@ interface Batch {
   readonly entries: Set<Request.Entry<any>>
   readonly delayEffect: Effect<void>
   readonly run: Effect<void, unknown>
-  delayFiber?: Fiber<void, unknown> | undefined
+  fiber?: Fiber<void, unknown> | undefined
 }
 
 const batchPool: Array<Batch> = []
@@ -149,7 +149,7 @@ const addEntry = <A extends Request.Any>(
             if (batchPool.length < 128) {
               newBatch.entrySet.clear()
               newBatch.key = undefined
-              newBatch.delayFiber = undefined
+              newBatch.fiber = undefined
               batchPool.push(newBatch)
             }
             return effect.void
@@ -159,16 +159,15 @@ const addEntry = <A extends Request.Any>(
       batch = newBatch
     }
     batchMap.set(key, batch)
-    batch.delayFiber = effect.runFork(batch.delayEffect, { scheduler: fiber.currentScheduler })
+    batch.fiber = effect.runFork(batch.delayEffect, { scheduler: fiber.currentScheduler })
   }
 
   batch.entrySet.add(entry)
   batch.entries.add(entry)
   if (batch.resolver.collectWhile(batch.entries)) return entry
 
-  batch.delayFiber!.interruptUnsafe(fiber.id)
-  batch.delayFiber = undefined
-  effect.runFork(runBatch(batch), { scheduler: fiber.currentScheduler })
+  batch.fiber!.interruptUnsafe(fiber.id)
+  batch.fiber = effect.runFork(runBatch(batch), { scheduler: fiber.currentScheduler })
   return entry
 }
 
@@ -188,9 +187,7 @@ const removeEntryUnsafe = <A extends Request.Any>(
 
   if (batch.entries.size === 0) {
     batchMap.delete(key)
-    if (batch.delayFiber) {
-      batch.delayFiber.interruptUnsafe()
-    }
+    batch.fiber?.interruptUnsafe()
   }
 }
 
