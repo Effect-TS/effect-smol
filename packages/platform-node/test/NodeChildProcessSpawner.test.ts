@@ -23,9 +23,7 @@ describe("NodeChildProcessSpawner", () => {
     describe("basic spawning", () => {
       it.effect("should spawn a simple command and collect output", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("node", ["--version"])
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make("node", ["--version"])
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -36,9 +34,7 @@ describe("NodeChildProcessSpawner", () => {
 
       it.effect("should spawn echo command", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("echo", ["hello", "world"])
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make("echo", ["hello", "world"])
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -48,9 +44,7 @@ describe("NodeChildProcessSpawner", () => {
 
       it.effect("should spawn with template literal", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make`echo spawned`
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make`echo spawned`
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -62,9 +56,7 @@ describe("NodeChildProcessSpawner", () => {
     describe("cwd option", () => {
       it.effect("should handle command with working directory", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("pwd", [], { cwd: "/tmp" })
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make("pwd", [], { cwd: "/tmp" })
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -75,9 +67,7 @@ describe("NodeChildProcessSpawner", () => {
 
       it.effect("should use cwd with template literal form", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make({ cwd: "/tmp" })`pwd`
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make({ cwd: "/tmp" })`pwd`
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -89,12 +79,10 @@ describe("NodeChildProcessSpawner", () => {
     describe("env option", () => {
       it.effect("should handle environment variables", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("sh", ["-c", "echo $TEST_VAR"], {
+          const handle = yield* ChildProcess.make("sh", ["-c", "echo $TEST_VAR"], {
             env: { TEST_VAR: "test_value" },
             extendEnv: true
           })
-          const handle = yield* ChildProcess.spawn(cmd)
-
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -104,12 +92,10 @@ describe("NodeChildProcessSpawner", () => {
 
       it.effect("should handle multiple environment variables", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("sh", ["-c", "echo $VAR1-$VAR2-$VAR3"], {
+          const handle = yield* ChildProcess.make("sh", ["-c", "echo $VAR1-$VAR2-$VAR3"], {
             env: { VAR1: "one", VAR2: "two", VAR3: "three" },
             extendEnv: true
           })
-          const handle = yield* ChildProcess.spawn(cmd)
-
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -122,9 +108,7 @@ describe("NodeChildProcessSpawner", () => {
       it.effect("should execute with shell when using sh -c", () =>
         Effect.gen(function*() {
           // Use sh -c to test shell expansion without triggering deprecation warning
-          const cmd = ChildProcess.make("sh", ["-c", "echo $HOME"])
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make("sh", ["-c", "echo $HOME"])
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -136,9 +120,7 @@ describe("NodeChildProcessSpawner", () => {
 
       it.effect("should not expand variables without shell", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("echo", ["$HOME"], { shell: false })
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make("echo", ["$HOME"], { shell: false })
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -149,9 +131,7 @@ describe("NodeChildProcessSpawner", () => {
 
       it.effect("should allow piping with shell", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("sh", ["-c", "echo hello | tr a-z A-Z"])
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make("sh", ["-c", "echo hello | tr a-z A-Z"])
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -163,9 +143,7 @@ describe("NodeChildProcessSpawner", () => {
     describe("template literal forms", () => {
       it.effect("should work with template literal form", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make`echo hello`
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make`echo hello`
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -176,9 +154,7 @@ describe("NodeChildProcessSpawner", () => {
       it.effect("should handle string interpolation", () =>
         Effect.gen(function*() {
           const name = "world"
-          const cmd = ChildProcess.make`echo hello ${name}`
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make`echo hello ${name}`
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -189,9 +165,7 @@ describe("NodeChildProcessSpawner", () => {
       it.effect("should handle number interpolation", () =>
         Effect.gen(function*() {
           const count = 42
-          const cmd = ChildProcess.make`echo count is ${count}`
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make`echo count is ${count}`
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -202,9 +176,7 @@ describe("NodeChildProcessSpawner", () => {
       it.effect("should handle array interpolation", () =>
         Effect.gen(function*() {
           const args = ["-l", "-a"]
-          const cmd = ChildProcess.make`ls ${args} /tmp`
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make`ls ${args} /tmp`
           const exitCode = yield* handle.exitCode
           const output = yield* collectStreamOutput(handle.stdout)
 
@@ -217,9 +189,7 @@ describe("NodeChildProcessSpawner", () => {
         Effect.gen(function*() {
           const greeting = "hello"
           const target = "world"
-          const cmd = ChildProcess.make`echo ${greeting} ${target}`
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make`echo ${greeting} ${target}`
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -230,9 +200,7 @@ describe("NodeChildProcessSpawner", () => {
       it.effect("should handle options with template literal", () =>
         Effect.gen(function*() {
           const filename = "test.txt"
-          const cmd = ChildProcess.make({ cwd: "/tmp" })`echo ${filename}`
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make({ cwd: "/tmp" })`echo ${filename}`
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
@@ -244,9 +212,7 @@ describe("NodeChildProcessSpawner", () => {
     describe("stderr streaming", () => {
       it.effect("should capture stderr output", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("sh", ["-c", "echo error message >&2"])
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make("sh", ["-c", "echo error message >&2"])
           const stderr = yield* collectStreamOutput(handle.stderr)
           const exitCode = yield* handle.exitCode
 
@@ -256,9 +222,7 @@ describe("NodeChildProcessSpawner", () => {
 
       it.effect("should capture both stdout and stderr", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("sh", ["-c", "echo stdout; echo stderr >&2"])
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make("sh", ["-c", "echo stdout; echo stderr >&2"])
           const stdout = yield* collectStreamOutput(handle.stdout)
           const stderr = yield* collectStreamOutput(handle.stderr)
           const exitCode = yield* handle.exitCode
@@ -272,19 +236,17 @@ describe("NodeChildProcessSpawner", () => {
     describe("stdout streaming", () => {
       it.effect("should stream stdout", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("echo", ["streaming output"])
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make("echo", ["streaming output"])
           const output = yield* collectStreamOutput(handle.stdout)
+
           assert.strictEqual(output, "streaming output")
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
       it.effect("should stream multiple lines", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("sh", ["-c", "echo line1; echo line2; echo line3"])
-          const handle = yield* ChildProcess.spawn(cmd)
-
+          const handle = yield* ChildProcess.make("sh", ["-c", "echo line1; echo line2; echo line3"])
           const output = yield* collectStreamOutput(handle.stdout)
+
           assert.isTrue(output.includes("line1"))
           assert.isTrue(output.includes("line2"))
           assert.isTrue(output.includes("line3"))
@@ -294,8 +256,7 @@ describe("NodeChildProcessSpawner", () => {
     describe("process control", () => {
       it.effect("should kill a process", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("sleep", ["10"])
-          const handle = yield* ChildProcess.spawn(cmd)
+          const handle = yield* ChildProcess.make("sleep", ["10"])
 
           yield* handle.kill()
 
@@ -306,8 +267,7 @@ describe("NodeChildProcessSpawner", () => {
 
       it.effect("should kill with specific signal", () =>
         Effect.gen(function*() {
-          const cmd = ChildProcess.make("sleep", ["10"])
-          const handle = yield* ChildProcess.spawn(cmd)
+          const handle = yield* ChildProcess.make("sleep", ["10"])
 
           yield* handle.kill({ killSignal: "SIGKILL" })
 
@@ -320,11 +280,9 @@ describe("NodeChildProcessSpawner", () => {
   describe("pipeline spawning", () => {
     it.effect("should spawn a simple pipeline", () =>
       Effect.gen(function*() {
-        const pipeline = ChildProcess.make`echo hello world`.pipe(
+        const handle = yield* ChildProcess.make`echo hello world`.pipe(
           ChildProcess.pipeTo(ChildProcess.make`tr a-z A-Z`)
         )
-        const handle = yield* ChildProcess.spawn(pipeline)
-
         const output = yield* collectStreamOutput(handle.stdout)
         const exitCode = yield* handle.exitCode
 
@@ -334,12 +292,10 @@ describe("NodeChildProcessSpawner", () => {
 
     it.effect("should spawn a three-stage pipeline", () =>
       Effect.gen(function*() {
-        const pipeline = ChildProcess.make`echo hello world`.pipe(
+        const handle = yield* ChildProcess.make`echo hello world`.pipe(
           ChildProcess.pipeTo(ChildProcess.make`tr a-z A-Z`),
           ChildProcess.pipeTo(ChildProcess.make("tr", [" ", "-"]))
         )
-        const handle = yield* ChildProcess.spawn(pipeline)
-
         const output = yield* collectStreamOutput(handle.stdout)
         const exitCode = yield* handle.exitCode
 
@@ -349,11 +305,9 @@ describe("NodeChildProcessSpawner", () => {
 
     it.effect("should pipe grep output", () =>
       Effect.gen(function*() {
-        const pipeline = ChildProcess.make("echo", ["line1\nline2\nline3"]).pipe(
+        const handle = yield* ChildProcess.make("echo", ["line1\nline2\nline3"]).pipe(
           ChildProcess.pipeTo(ChildProcess.make`grep line2`)
         )
-        const handle = yield* ChildProcess.spawn(pipeline)
-
         const output = yield* collectStreamOutput(handle.stdout)
         const exitCode = yield* handle.exitCode
 
@@ -363,11 +317,9 @@ describe("NodeChildProcessSpawner", () => {
 
     it.effect("should handle mixed command forms in pipeline", () =>
       Effect.gen(function*() {
-        const pipeline = ChildProcess.make("echo", ["hello"]).pipe(
+        const handle = yield* ChildProcess.make("echo", ["hello"]).pipe(
           ChildProcess.pipeTo(ChildProcess.make`tr a-z A-Z`)
         )
-        const handle = yield* ChildProcess.spawn(pipeline)
-
         const output = yield* collectStreamOutput(handle.stdout)
         const exitCode = yield* handle.exitCode
 
@@ -379,25 +331,26 @@ describe("NodeChildProcessSpawner", () => {
   describe("error handling", () => {
     it.effect("should return non-zero exit code", () =>
       Effect.gen(function*() {
-        const cmd = ChildProcess.make("sh", ["-c", "exit 1"])
-        const handle = yield* ChildProcess.spawn(cmd)
-
+        const handle = yield* ChildProcess.make("sh", ["-c", "exit 1"])
         const exitCode = yield* handle.exitCode
+
         assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(1))
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
     it.effect("should fail for invalid command", () =>
       Effect.gen(function*() {
-        const cmd = ChildProcess.make("nonexistent-command-12345", [])
-        const exit = yield* Effect.exit(ChildProcess.spawn(cmd))
+        const exit = yield* Effect.exit(
+          ChildProcess.make("nonexistent-command-12345").asEffect()
+        )
 
         assert.isTrue(exit._tag === "Failure")
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
 
     it.effect("should handle spawn error with invalid cwd", () =>
       Effect.gen(function*() {
-        const cmd = ChildProcess.make("echo", ["test"], { cwd: "/nonexistent/directory/path" })
-        const exit = yield* Effect.exit(ChildProcess.spawn(cmd))
+        const exit = yield* Effect.exit(
+          ChildProcess.make("echo", ["test"], { cwd: "/nonexistent/directory/path" }).asEffect()
+        )
 
         assert.isTrue(exit._tag === "Failure")
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
@@ -406,14 +359,14 @@ describe("NodeChildProcessSpawner", () => {
   describe("stdin", () => {
     it.effect("allows providing standard input to a command", () =>
       Effect.gen(function*() {
-        const stdin = Stream.make(Buffer.from("a b c", "utf-8"))
+        const input = "a b c"
+        const stdin = Stream.make(Buffer.from(input, "utf-8"))
         const handle = yield* ChildProcess.make("cat", { stdin })
-
         const output = yield* collectStreamOutput(handle.stdout)
         const exitCode = yield* handle.exitCode
 
         assert.deepStrictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(output, "a b c")
+        assert.strictEqual(output, input)
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
   })
 })

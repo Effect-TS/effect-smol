@@ -20,7 +20,8 @@
  *
  * // Spawn and collect output
  * const program = Effect.gen(function* () {
- *   const handle = yield* ChildProcess.spawn(command)
+ *   // You can `yield*` a command, which calls `ChildProcess.spawn`
+ *   const handle = yield* command
  *   const chunks = yield* Stream.runCollect(handle.stdout)
  *   const exitCode = yield* handle.exitCode
  *   return { chunks, exitCode }
@@ -36,7 +37,7 @@
  *
  * // Spawn the pipeline
  * const pipelineProgram = Effect.gen(function* () {
- *   const handle = yield* ChildProcess.spawn(pipeline)
+ *   const handle = yield* pipeline
  *   const chunks = yield* Stream.runCollect(handle.stdout)
  *   return chunks
  * }).pipe(Effect.scoped, Effect.provide(NodeServices.layer))

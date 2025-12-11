@@ -16,7 +16,8 @@
  *
  * // Spawn and collect output
  * const program = Effect.gen(function* () {
- *   const handle = yield* ChildProcess.spawn(command)
+ *   // You can `yield*` a command, which calls `ChildProcess.spawn`
+ *   const handle = yield* command
  *   const chunks = yield* Stream.runCollect(handle.stdout)
  *   const exitCode = yield* handle.exitCode
  *   return { chunks, exitCode }
@@ -32,7 +33,7 @@
  *
  * // Spawn the pipeline
  * const pipelineProgram = Effect.gen(function* () {
- *   const handle = yield* ChildProcess.spawn(pipeline)
+ *   const handle = yield* pipeline
  *   const chunks = yield* Stream.runCollect(handle.stdout)
  *   return chunks
  * }).pipe(Effect.scoped, Effect.provide(NodeServices.layer))
@@ -45,7 +46,6 @@ import type * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
-import { pipeArguments } from "../../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
 import type * as Scope from "../../Scope.ts"
@@ -501,11 +501,11 @@ const makePipedCommand = (
 export const make: {
   (
     command: string,
-    args?: ReadonlyArray<string>,
     options?: CommandOptions
   ): StandardCommand
   (
     command: string,
+    args: ReadonlyArray<string>,
     options?: CommandOptions
   ): StandardCommand
   (
