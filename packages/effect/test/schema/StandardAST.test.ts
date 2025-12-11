@@ -128,6 +128,43 @@ describe("StandardAST", () => {
           })
         })
       })
+
+      it("contentSchema", () => {
+        assertFromAST(
+          Schema.fromJsonString(Schema.String.annotate({ description: "a" }).check(Schema.isMinLength(1))),
+          {
+            _tag: "String",
+            annotations: undefined,
+            checks: [],
+            contentMediaType: "application/json",
+            contentSchema: {
+              _tag: "String",
+              annotations: { description: "a" },
+              checks: [
+                { _tag: "Filter", meta: { _tag: "isMinLength", minLength: 1 }, annotations: undefined }
+              ]
+            }
+          }
+        )
+        assertFromAST(Schema.fromJsonString(Schema.Struct({ a: Schema.String })), {
+          _tag: "String",
+          annotations: undefined,
+          checks: [],
+          contentMediaType: "application/json",
+          contentSchema: {
+            _tag: "Objects",
+            annotations: undefined,
+            propertySignatures: [{
+              name: "a",
+              type: { _tag: "String", annotations: undefined, checks: [] },
+              isOptional: false,
+              isMutable: false,
+              annotations: undefined
+            }],
+            indexSignatures: []
+          }
+        })
+      })
     })
 
     describe("Number", () => {
@@ -137,6 +174,122 @@ describe("StandardAST", () => {
           _tag: "Number",
           annotations: { description: "a" },
           checks: []
+        })
+      })
+
+      describe("checks", () => {
+        it("isInt", () => {
+          assertFromAST(Schema.Number.check(Schema.isInt()), {
+            _tag: "Number",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isInt" }, annotations: undefined }
+            ]
+          })
+        })
+
+        it("isGreaterThanOrEqualTo", () => {
+          assertFromAST(Schema.Number.check(Schema.isGreaterThanOrEqualTo(10)), {
+            _tag: "Number",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isGreaterThanOrEqualTo", minimum: 10 }, annotations: undefined }
+            ]
+          })
+        })
+
+        it("isLessThanOrEqualTo", () => {
+          assertFromAST(Schema.Number.check(Schema.isLessThanOrEqualTo(10)), {
+            _tag: "Number",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isLessThanOrEqualTo", maximum: 10 }, annotations: undefined }
+            ]
+          })
+        })
+
+        it("isGreaterThan", () => {
+          assertFromAST(Schema.Number.check(Schema.isGreaterThan(10)), {
+            _tag: "Number",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isGreaterThan", exclusiveMinimum: 10 }, annotations: undefined }
+            ]
+          })
+        })
+
+        it("isLessThan", () => {
+          assertFromAST(Schema.Number.check(Schema.isLessThan(10)), {
+            _tag: "Number",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isLessThan", exclusiveMaximum: 10 }, annotations: undefined }
+            ]
+          })
+        })
+
+        it("isMultipleOf", () => {
+          assertFromAST(Schema.Number.check(Schema.isMultipleOf(10)), {
+            _tag: "Number",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isMultipleOf", divisor: 10 }, annotations: undefined }
+            ]
+          })
+        })
+
+        it("isBetween", () => {
+          assertFromAST(Schema.Number.check(Schema.isBetween({ minimum: 1, maximum: 10 })), {
+            _tag: "Number",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isBetween", minimum: 1, maximum: 10 }, annotations: undefined }
+            ]
+          })
+        })
+
+        it("isInt32", () => {
+          assertFromAST(Schema.Number.check(Schema.isInt32()), {
+            _tag: "Number",
+            annotations: undefined,
+            checks: [
+              {
+                _tag: "FilterGroup",
+                annotations: undefined,
+                meta: { _tag: "isInt32" },
+                checks: [
+                  { _tag: "Filter", meta: { _tag: "isInt" }, annotations: undefined },
+                  {
+                    _tag: "Filter",
+                    meta: { _tag: "isBetween", minimum: -2147483648, maximum: 2147483647 },
+                    annotations: undefined
+                  }
+                ]
+              }
+            ]
+          })
+        })
+
+        it("isUint32", () => {
+          assertFromAST(Schema.Number.check(Schema.isUint32()), {
+            _tag: "Number",
+            annotations: undefined,
+            checks: [
+              {
+                _tag: "FilterGroup",
+                meta: { _tag: "isUint32" },
+                annotations: undefined,
+                checks: [
+                  { _tag: "Filter", meta: { _tag: "isInt" }, annotations: undefined },
+                  {
+                    _tag: "Filter",
+                    meta: { _tag: "isBetween", minimum: 0, maximum: 4294967295 },
+                    annotations: undefined
+                  }
+                ]
+              }
+            ]
+          })
         })
       })
     })

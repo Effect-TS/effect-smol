@@ -59,6 +59,14 @@ function makeGuard<T extends AST["_tag"]>(tag: T) {
  * @category Guard
  * @since 4.0.0
  */
+export function isAST(u: unknown): u is AST {
+  return u instanceof Base
+}
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isDeclaration = makeGuard("Declaration")
 
 /**
