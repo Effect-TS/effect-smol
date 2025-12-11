@@ -44,7 +44,7 @@ describe("Schedule", () => {
     it.effect("andThenResult - executes schedules sequentially to completion", () =>
       Effect.gen(function*() {
         const left = Schedule.fixed("500 millis").pipe(
-          Schedule.while(({ recurrence }) => recurrence < 3)
+          Schedule.while(({ attempt }) => attempt <= 3)
         )
         const right = Schedule.fixed("1 second")
         const schedule = Schedule.andThenResult(left, right)
@@ -167,7 +167,7 @@ describe("Schedule", () => {
       Effect.gen(function*() {
         const delays: Array<Duration.Duration> = []
         const schedule = Schedule.windowed("1 seconds").pipe(
-          Schedule.while(({ recurrence }) => recurrence < 5),
+          Schedule.while(({ attempt }) => attempt <= 5),
           Schedule.delays,
           Schedule.map((delay) => {
             delays.push(delay)
