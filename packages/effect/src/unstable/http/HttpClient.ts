@@ -721,7 +721,7 @@ export const retry: {
   ): <R>(self: HttpClient.With<E, R>) => Retry.Return<R, E, O>
   <B, E, ES, R1>(
     policy: Schedule.Schedule<B, NoInfer<E>, ES, R1>
-  ): <R>(self: HttpClient.With<E, R>) => HttpClient.With<E | ES, R1 | R>
+  ): <R>(self: HttpClient.With<E, R>) => HttpClient.With<E | ES, R1 | Exclude<R, Schedule.CurrentMetadata>>
   <E, R, O extends NoExcessProperties<Effect.Retry.Options<E>, O>>(
     self: HttpClient.With<E, R>,
     options: O
@@ -729,13 +729,13 @@ export const retry: {
   <E, R, B, ES, R1>(
     self: HttpClient.With<E, R>,
     policy: Schedule.Schedule<B, E, ES, R1>
-  ): HttpClient.With<E | ES, R1 | R>
+  ): HttpClient.With<E | ES, R1 | Exclude<R, Schedule.CurrentMetadata>>
 } = dual(
   2,
   <E extends E0, E0, ES, R, R1, B>(
     self: HttpClient.With<E, R>,
     policy: Schedule.Schedule<B, E0, ES, R1>
-  ): HttpClient.With<E | ES, R | R1> => transformResponse(self, Effect.retry(policy))
+  ): HttpClient.With<E | ES, Exclude<R, Schedule.CurrentMetadata> | R1> => transformResponse(self, Effect.retry(policy))
 )
 
 /**
@@ -754,7 +754,7 @@ export const retryTransient: {
       readonly schedule?: Schedule.Schedule<B, NoInfer<E>, ES, R1>
       readonly times?: number
     } | Schedule.Schedule<B, NoInfer<E>, ES, R1>
-  ): <R>(self: HttpClient.With<E, R>) => HttpClient.With<E | ES, R1 | R>
+  ): <R>(self: HttpClient.With<E, R>) => HttpClient.With<E | ES, R1 | Exclude<R, Schedule.CurrentMetadata>>
   <E, R, B, ES = never, R1 = never>(
     self: HttpClient.With<E, R>,
     options: {
@@ -762,7 +762,7 @@ export const retryTransient: {
       readonly schedule?: Schedule.Schedule<B, NoInfer<E>, ES, R1>
       readonly times?: number
     } | Schedule.Schedule<B, NoInfer<E>, ES, R1>
-  ): HttpClient.With<E | ES, R1 | R>
+  ): HttpClient.With<E | ES, R1 | Exclude<R, Schedule.CurrentMetadata>>
 } = dual(
   2,
   <E extends E0, E0, R, B, ES = never, R1 = never>(
@@ -772,7 +772,7 @@ export const retryTransient: {
       readonly schedule?: Schedule.Schedule<B, NoInfer<E>, ES, R1>
       readonly times?: number
     } | Schedule.Schedule<B, NoInfer<E>, ES, R1>
-  ): HttpClient.With<E | ES, R | R1> =>
+  ): HttpClient.With<E | ES, Exclude<R, Schedule.CurrentMetadata> | R1> =>
     transformResponse(
       self,
       Effect.retry({

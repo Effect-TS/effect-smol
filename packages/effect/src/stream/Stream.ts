@@ -337,18 +337,18 @@ export const fromEffectRepeat = <A, E, R>(effect: Effect.Effect<A, E, R>): Strea
 export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
   effect: Effect.Effect<A, E, R>,
   schedule: Schedule.Schedule<X, AS, ES, RS>
-): Stream<A, E | ES, R | RS> =>
+): Stream<A, E | ES, Exclude<R, Schedule.CurrentMetadata> | RS> =>
   fromPull(Effect.gen(function*() {
-    const step = yield* Schedule.toStepWithSleep(schedule)
-    let s = yield* effect
+    const step = yield* Schedule.toStepWithMetadata(schedule)
+    let s = yield* Effect.provideService(effect, Schedule.CurrentMetadata, Schedule.metadataEmpty())
     let initial = true
     const pull = Effect.suspend(() => step(s as AS)).pipe(
-      Effect.flatMap(() => effect),
+      Effect.flatMap((meta) => Effect.provideService(effect, Schedule.CurrentMetadata, meta)),
       Effect.map((next) => {
         s = next
         return Arr.of(next)
       })
-    ) as Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | ES, void, R | RS>
+    ) as Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | ES, void, Exclude<R, Schedule.CurrentMetadata> | RS>
     return Effect.suspend(() => {
       if (initial) {
         initial = false
@@ -1794,12 +1794,15 @@ export const drainFork: {
 export const repeat: {
   <B, E2, R2>(
     schedule: Schedule.Schedule<B, void, E2, R2>
-  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
-  <A, E, R, B, E2, R2>(self: Stream<A, E, R>, schedule: Schedule.Schedule<B, void, E2, R2>): Stream<A, E | E2, R | R2>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | Exclude<R, Schedule.CurrentMetadata>>
+  <A, E, R, B, E2, R2>(
+    self: Stream<A, E, R>,
+    schedule: Schedule.Schedule<B, void, E2, R2>
+  ): Stream<A, E | E2, Exclude<R, Schedule.CurrentMetadata> | R2>
 } = dual(2, <A, E, R, B, E2, R2>(
   self: Stream<A, E, R>,
   schedule: Schedule.Schedule<B, void, E2, R2>
-): Stream<A, E | E2, R | R2> => fromChannel(Channel.repeat(self.channel, schedule)))
+): Stream<A, E | E2, Exclude<R, Schedule.CurrentMetadata> | R2> => fromChannel(Channel.repeat(self.channel, schedule)))
 
 /**
  * Schedules the output of the stream using the provided `schedule`.
@@ -2228,9 +2231,17 @@ export const zipWithArray: {
     leftoverRight: ReadonlyArray<AR>
   ]
 ): Stream<A, EL | ER, RL | RR> =>
-  fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
+  fromChannel(Channel.fromTransformBracket(Effect.fnUntraced(function*(_, scope) {
     const pullLeft = yield* Channel.toPullScoped(left.channel, scope)
     const pullRight = yield* Channel.toPullScoped(right.channel, scope)
+    const pullBoth = Effect.gen(function*() {
+      const fiberLeft = yield* Effect.forkIn(pullLeft, scope)
+      const fiberRight = yield* Effect.forkIn(pullRight, scope)
+      return (yield* Fiber.joinAll([fiberLeft, fiberRight])) as [
+        Arr.NonEmptyReadonlyArray<AL>,
+        Arr.NonEmptyReadonlyArray<AR>
+      ]
+    })
 
     type State =
       | { _tag: "PullBoth" }
@@ -2243,10 +2254,12 @@ export const zipWithArray: {
       EL | ER | Pull.Halt,
       RL | RR
     > = Effect.gen(function*() {
-      const result = f(
-        state._tag === "PullRight" ? state.leftArray : yield* pullLeft,
-        state._tag === "PullLeft" ? state.rightArray : yield* pullRight
-      )
+      const [left, right] = state._tag === "PullBoth"
+        ? yield* pullBoth
+        : state._tag === "PullLeft"
+        ? [yield* pullLeft, state.rightArray]
+        : [state.leftArray, yield* pullRight]
+      const result = f(left, right)
       if (Arr.isReadonlyArrayNonEmpty(result[1])) {
         state = { _tag: "PullRight", leftArray: result[1] }
       } else if (Arr.isReadonlyArrayNonEmpty(result[2])) {
@@ -3325,17 +3338,17 @@ export const ignoreCause = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R>
 export const retry: {
   <E, X, E2, R2>(
     policy: Schedule.Schedule<X, NoInfer<E>, E2, R2>
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | Exclude<R, Schedule.CurrentMetadata>>
   <A, E, R, X, E2, R2>(
     self: Stream<A, E, R>,
     policy: Schedule.Schedule<X, NoInfer<E>, E2, R2>
-  ): Stream<A, E | E2, R2 | R>
+  ): Stream<A, E | E2, R2 | Exclude<R, Schedule.CurrentMetadata>>
 } = dual(
   2,
   <A, E, R, X, E2, R2>(
     self: Stream<A, E, R>,
     policy: Schedule.Schedule<X, NoInfer<E>, E2, R2>
-  ): Stream<A, E | E2, R2 | R> => fromChannel(Channel.retry(self.channel, policy))
+  ): Stream<A, E | E2, R2 | Exclude<R, Schedule.CurrentMetadata>> => fromChannel(Channel.retry(self.channel, policy))
 )
 
 /**

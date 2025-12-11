@@ -273,7 +273,16 @@ export const fromTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, E
   Env | EnvX
 > => {
   const self = Object.create(ChannelProto)
-  self.transform = transform
+  self.transform = (upstream: any, scope: Scope.Scope) =>
+    Effect.matchCause(transform(upstream, scope), {
+      onSuccess(pull) {
+        const fiber = Fiber.getCurrent()!
+        return Effect.provideServices(pull, fiber.services)
+      },
+      onFailure(cause) {
+        return Effect.failCause(cause)
+      }
+    })
   return self
 }
 
@@ -891,7 +900,7 @@ export const never: Channel<never, never, never> = fromPull(Effect.succeed(Effec
  * @since 2.0.0
  * @category constructors
  */
-export const fail = <E>(error: E): Channel<never, E, never> => fromPull(Effect.fail(error))
+export const fail = <E>(error: E): Channel<never, E, never> => fromPull(Effect.succeed(Effect.fail(error)))
 
 /**
  * Constructs a channel that fails immediately with the specified lazily
@@ -2917,22 +2926,34 @@ export const repeat: {
     schedule: Schedule.Schedule<SO, Types.NoInfer<OutDone>, SE, SR>
   ): <OutElem, OutErr, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
-  ) => Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
+  ) => Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Exclude<Env, Schedule.CurrentMetadata> | SR>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
     schedule: Schedule.Schedule<SO, OutDone, SE, SR>
-  ): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
+  ): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Exclude<Env, Schedule.CurrentMetadata> | SR>
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   schedule: Schedule.Schedule<SO, OutDone, SE, SR>
-): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR> =>
-  Schedule.toStepWithSleep(schedule).pipe(
+): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Exclude<Env, Schedule.CurrentMetadata> | SR> =>
+  Schedule.toStepWithMetadata(schedule).pipe(
     Effect.map((step) => {
-      const loop: Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR> = concatWith(
-        self,
+      let meta = Schedule.metadataEmpty()
+      const loop: Channel<
+        OutElem,
+        OutErr | SE,
+        OutDone,
+        InElem,
+        InErr,
+        InDone,
+        Exclude<Env, Schedule.CurrentMetadata> | SR
+      > = concatWith(
+        provideServiceEffect(self, Schedule.CurrentMetadata, Effect.sync(() => meta)),
         (done) =>
           step(done).pipe(
-            Effect.as(loop),
+            Effect.map((meta_) => {
+              meta = meta_
+              return loop
+            }),
             Pull.catchHalt(() => Effect.succeed(end(done))),
             unwrap
           )
@@ -3838,7 +3859,11 @@ export const tapError: {
   InErr,
   InDone,
   Env | R
-> => catch_(self, (err) => fromEffectDrain(f(err))))
+> =>
+  transformPull(
+    self,
+    (pull) => Effect.succeed(Effect.tapError(pull, (err) => Pull.isHalt(err) ? Effect.void : f(err)))
+  ))
 
 /**
  * @since 4.0.0
@@ -4145,29 +4170,39 @@ export const retry: {
     schedule: Schedule.Schedule<SO, Types.NoInfer<OutErr>, SE, SR>
   ): <OutElem, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
-  ) => Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
+  ) => Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Exclude<Env, Schedule.CurrentMetadata> | SR>
   <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
     schedule: Schedule.Schedule<SO, OutErr, SE, SR>
-  ): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
+  ): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Exclude<Env, Schedule.CurrentMetadata> | SR>
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   schedule: Schedule.Schedule<SO, OutErr, SE, SR>
-): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR> =>
+): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Exclude<Env, Schedule.CurrentMetadata> | SR> =>
   suspend(() => {
-    let step: ((input: OutErr) => Pull.Pull<SO, SE, SO, SR>) | undefined = undefined
-    const withReset = onFirst(self, () => {
+    let step: ((input: OutErr) => Pull.Pull<Schedule.Metadata<SO, OutErr>, SE, SO, SR>) | undefined = undefined
+    let meta = Schedule.metadataEmpty()
+    const selfWithMeta = provideServiceEffect(self, Schedule.CurrentMetadata, Effect.sync(() => meta))
+    const withReset = onFirst(selfWithMeta, () => {
       step = undefined
       return Effect.void
     })
-    const loop: Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR> = catch_(
+    const loop: Channel<
+      OutElem,
+      OutErr | SE,
+      OutDone,
+      InElem,
+      InErr,
+      InDone,
+      Exclude<Env, Schedule.CurrentMetadata> | SR
+    > = catch_(
       withReset,
       Effect.fnUntraced(
         function*(error) {
           if (!step) {
-            step = yield* Schedule.toStepWithSleep(schedule)
+            step = yield* Schedule.toStepWithMetadata(schedule)
           }
-          yield* step(error)
+          meta = yield* step(error)
           return loop
         },
         (effect, error) => Pull.catchHalt(effect, () => Effect.succeed(fail(error))),
@@ -5489,12 +5524,13 @@ export const provide: {
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   layer: Layer.Layer<A, E, R> | ServiceMap.ServiceMap<A>
 ): Channel<OutElem, OutErr | E, OutDone, InElem, InErr, InDone, Exclude<Env, A> | R> =>
-  fromTransform((upstream, scope) => {
-    const eff = toTransform(self)(upstream, scope)
-    return ServiceMap.isServiceMap(layer)
-      ? Effect.provide(eff, layer)
-      : Effect.flatMap(Layer.buildWithScope(layer, scope), (services) => Effect.provide(eff, services))
-  }))
+  ServiceMap.isServiceMap(layer) ? provideServices(self, layer) : fromTransform(
+    (upstream, scope) =>
+      Effect.flatMap(
+        Layer.buildWithScope(layer, scope),
+        (services) => Effect.provideServices(toTransform(self)(upstream, scope), services)
+      )
+  ))
 
 /**
  * @since 2.0.0
@@ -5567,7 +5603,7 @@ export const withSpan: {
 ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, ParentSpan>> =>
   acquireUseRelease(
     Effect.makeSpan(name, options),
-    (span) => provideServices(self, ParentSpan.serviceMap(span)),
+    (span) => provideService(self, ParentSpan, span),
     (span, exit) => Effect.clockWith((clock) => endSpan(span, exit, clock))
   ))
 
