@@ -254,7 +254,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |     `groupBy`     |  Done  |  `groupBy`   |          |
 |   `groupByKey`    |  Done  | `groupByKey` |          |
 |     `grouped`     |  Done  |              |          |
-|  `groupedWithin`  |   -    |              |          |
+|  `groupedWithin`  |  Done  |              |          |
 
 ### Mapping
 
@@ -382,7 +382,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 | `pipeThroughChannelOrFail` |  Done  |  `pipeThroughChannelOrFail`   |          |
 |         `prepend`          |  Done  |                               |          |
 |         `rechunk`          |  Done  |           `rechunk`           |          |
-|          `repeat`          |   -    |                               |          |
+|          `repeat`          |  Done  |                               |          |
 |       `repeatEither`       |   -    |                               |          |
 |      `repeatElements`      |   -    |                               |          |
 |    `repeatElementsWith`    |   -    |                               |          |

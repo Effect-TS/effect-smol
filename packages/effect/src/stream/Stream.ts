@@ -1786,6 +1786,33 @@ export const drainFork: {
 )
 
 /**
+ * Repeats the entire stream using the specified schedule. The stream will
+ * execute normally, and then repeat again according to the provided schedule.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Schedule, Stream } from "effect"
+ *
+ * const stream = Stream.repeat(Stream.succeed(1), Schedule.forever)
+ *
+ * Effect.runPromise(Stream.runCollect(stream.pipe(Stream.take(5)))).then(console.log)
+ * // { _id: 'Chunk', values: [ 1, 1, 1, 1, 1 ] }
+ * ```
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const repeat: {
+  <B, E2, R2>(
+    schedule: Schedule.Schedule<B, void, E2, R2>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
+  <A, E, R, B, E2, R2>(self: Stream<A, E, R>, schedule: Schedule.Schedule<B, void, E2, R2>): Stream<A, E | E2, R | R2>
+} = dual(2, <A, E, R, B, E2, R2>(
+  self: Stream<A, E, R>,
+  schedule: Schedule.Schedule<B, void, E2, R2>
+): Stream<A, E | E2, R | R2> => fromChannel(Channel.repeat(self.channel, schedule)))
+
+/**
  * Repeats this stream forever.
  *
  * @since 2.0.0
@@ -4620,7 +4647,7 @@ export const aggregateWithin: {
         pullLatch.closeUnsafe()
         return Queue.offer(buffer, arr)
       }),
-      Effect.forever, // don't autoYield to prevent choking the schedule
+      Effect.forever, // don't disable autoYield to prevent choking the schedule
       Queue.into(buffer),
       Effect.forkIn(scope)
     )

@@ -2907,6 +2907,42 @@ export const drain = <
   transformPull(self, (pull) => Effect.succeed(Effect.forever(pull, { autoYield: false })))
 
 /**
+ * Repeats this channel according to the provided schedule.
+ *
+ * @since 4.0.0
+ * @category utils
+ */
+export const repeat: {
+  <SO, OutDone, SE, SR>(
+    schedule: Schedule.Schedule<SO, Types.NoInfer<OutDone>, SE, SR>
+  ): <OutElem, OutErr, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
+  ) => Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    schedule: Schedule.Schedule<SO, OutDone, SE, SR>
+  ): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, SO, SE, SR>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  schedule: Schedule.Schedule<SO, OutDone, SE, SR>
+): Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR> =>
+  Schedule.toStepWithSleep(schedule).pipe(
+    Effect.map((step) => {
+      const loop: Channel<OutElem, OutErr | SE, OutDone, InElem, InErr, InDone, Env | SR> = concatWith(
+        self,
+        (done) =>
+          step(done).pipe(
+            Effect.as(loop),
+            Pull.catchHalt(() => Effect.succeed(end(done))),
+            unwrap
+          )
+      )
+      return loop
+    }),
+    unwrap
+  ))
+
+/**
  * Repeats this channel forever.
  *
  * @since 4.0.0

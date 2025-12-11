@@ -2916,6 +2916,119 @@ describe("Stream", () => {
         deepStrictEqual(result, Exit.fail("fail"))
       }))
   })
+
+  describe("repeat", () => {
+    it.effect("repeat", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1),
+          Stream.repeat(Schedule.recurs(4)),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [1, 1, 1, 1, 1])
+      }))
+    //
+    // it.effect("tick", () =>
+    //   Effect.gen(function*() {
+    //     const fiber = yield* pipe(
+    //       Stream.tick("10 millis"),
+    //       Stream.take(2),
+    //       Stream.runCollect,
+    //       Effect.fork
+    //     )
+    //     yield* (TestClock.adjust(Duration.millis(50)))
+    //     const result = yield* (Fiber.join(fiber))
+    //     deepStrictEqual(Array.from(result), [undefined, undefined])
+    //   }))
+
+    it.effect("repeat - short circuits", () =>
+      Effect.gen(function*() {
+        const ref = yield* Ref.make(Array.empty<number>())
+        const fiber = yield* pipe(
+          Stream.fromEffect(Ref.update(ref, Array.prepend(1))),
+          Stream.repeat(Schedule.spaced(Duration.millis(10))),
+          Stream.take(2),
+          Stream.runDrain,
+          Effect.forkChild
+        )
+        yield* TestClock.adjust(Duration.millis(50))
+        yield* Fiber.join(fiber)
+        const result = yield* Ref.get(ref)
+        deepStrictEqual(result, [1, 1])
+      }))
+    //
+    // it.effect("repeat - Schedule.CurrentIterationMetadata", () =>
+    //   Effect.gen(function*() {
+    //     const ref = yield* (Ref.make(Chunk.empty<undefined | Schedule.IterationMetadata>()))
+    //     const fiber = yield* pipe(
+    //       Stream.fromEffect(
+    //         Schedule.CurrentIterationMetadata.pipe(
+    //           Effect.flatMap((currentIterationMetadata) => Ref.update(ref, Chunk.append(currentIterationMetadata)))
+    //         )
+    //       ),
+    //       Stream.repeat(Schedule.exponential(Duration.millis(10))),
+    //       Stream.runDrain,
+    //       Effect.fork
+    //     )
+    //
+    //     yield* (TestClock.adjust(Duration.millis(70)))
+    //     yield* (Fiber.interrupt(fiber))
+    //     const result = yield* (Ref.get(ref))
+    //     deepStrictEqual(Array.from(result), [
+    //       {
+    //         elapsed: Duration.zero,
+    //         elapsedSincePrevious: Duration.zero,
+    //         input: undefined,
+    //         output: undefined,
+    //         now: 0,
+    //         recurrence: 0,
+    //         start: 0
+    //       },
+    //       {
+    //         elapsed: Duration.zero,
+    //         elapsedSincePrevious: Duration.zero,
+    //         input: undefined,
+    //         output: Duration.millis(10),
+    //         now: 0,
+    //         recurrence: 1,
+    //         start: 0
+    //       },
+    //       {
+    //         elapsed: Duration.millis(10),
+    //         elapsedSincePrevious: Duration.millis(10),
+    //         input: undefined,
+    //         output: Duration.millis(20),
+    //         now: 10,
+    //         recurrence: 2,
+    //         start: 0
+    //       },
+    //       {
+    //         elapsed: Duration.millis(30),
+    //         elapsedSincePrevious: Duration.millis(20),
+    //         input: undefined,
+    //         output: Duration.millis(40),
+    //         now: 30,
+    //         recurrence: 3,
+    //         start: 0
+    //       }
+    //     ])
+    //   }))
+
+    it.effect("repeat - does not swallow errors on a repetition", () =>
+      Effect.gen(function*() {
+        const ref = yield* (Ref.make(0))
+        const result = yield* pipe(
+          Stream.fromEffect(pipe(
+            Ref.getAndUpdate(ref, (n) => n + 1),
+            Effect.flatMap((n) => n <= 2 ? Effect.succeed(n) : Effect.fail("boom"))
+          )),
+          Stream.repeat(Schedule.recurs(3)),
+          Stream.runDrain,
+          Effect.exit
+        )
+        deepStrictEqual(result, Exit.fail("boom"))
+      }))
+  })
 })
 
 const grouped = <A>(arr: Array<A>, size: number): Array<NonEmptyArray<A>> => {
