@@ -139,6 +139,21 @@ export const replicate: {
 } = dual(2, <A>(a: A, n: number): Iterable<A> => makeBy(() => a, { length: n }))
 
 /**
+ * @category constructors
+ * @since 4.0.0
+ */
+export const repeat: {
+  (n: number): <A>(self: Iterable<A>) => Iterable<A>
+  <A>(self: Iterable<A>, n: number): Iterable<A>
+} = dual(2, <A>(self: Iterable<A>, n: number): Iterable<A> => flatten(makeBy(() => self, { length: n })))
+
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export const forever = <A>(self: Iterable<A>): Iterable<A> => repeat(self, Infinity)
+
+/**
  * Takes a record and returns an Iterable of tuples containing its keys and values.
  *
  * @example

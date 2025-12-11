@@ -2613,6 +2613,179 @@ describe("Stream", () => {
         assertSuccess(result, void 0)
       }))
   })
+
+  describe("haltWhen", () => {
+    it.effect("halts after the current element", () =>
+      Effect.gen(function*() {
+        const ref = yield* Ref.make(false)
+        const latch = yield* Deferred.make<void>()
+        const halt = yield* Deferred.make<void>()
+        yield* pipe(
+          Deferred.await(latch),
+          Effect.onInterrupt(() => Ref.set(ref, true)),
+          Stream.fromEffect,
+          Stream.haltWhen(Deferred.await(halt)),
+          Stream.runDrain,
+          Effect.forkChild
+        )
+        yield* Deferred.succeed(halt, void 0)
+        yield* Deferred.succeed(latch, void 0)
+        const result = yield* Ref.get(ref)
+        assert.strictEqual(result, false)
+      }))
+
+    it.effect("propagates errors", () =>
+      Effect.gen(function*() {
+        const halt = yield* Deferred.make<void, string>()
+        yield* Deferred.fail(halt, "fail")
+        const result = yield* pipe(
+          Stream.make(0),
+          Stream.forever,
+          Stream.haltWhen(Deferred.await(halt)),
+          Stream.runDrain,
+          Effect.flip
+        )
+        assert.strictEqual(result, "fail")
+      }))
+  })
+
+  describe("intersperse", () => {
+    it.effect("intersperse - several values", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1, 2, 3, 4),
+          Stream.map(String),
+          Stream.intersperse("."),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, ["1", ".", "2", ".", "3", ".", "4"])
+      }))
+
+    it.effect("intersperseAffixes - several values", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1, 2, 3, 4),
+          Stream.map(String),
+          Stream.intersperseAffixes({ start: "[", middle: ".", end: "]" }),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, ["[", "1", ".", "2", ".", "3", ".", "4", "]"])
+      }))
+
+    it.effect("intersperse - single value", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1),
+          Stream.map(String),
+          Stream.intersperse("."),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, ["1"])
+      }))
+
+    it.effect("intersperseAffixes - single value", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1),
+          Stream.map(String),
+          Stream.intersperseAffixes({ start: "[", middle: ".", end: "]" }),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, ["[", "1", "]"])
+      }))
+
+    it.effect("intersperse - several from repeat effect (ZIO #3729)", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.fromEffectRepeat(Effect.succeed(42)),
+          Stream.map(String),
+          Stream.take(4),
+          Stream.intersperse("."),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, ["42", ".", "42", ".", "42", ".", "42"])
+      }))
+
+    it.effect("intersperse - several from repeat effect chunk single element (ZIO #3729)", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.fromIterableEffectRepeat(Effect.succeed(Array.of(42))),
+          Stream.map(String),
+          Stream.intersperse("."),
+          Stream.take(4),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, ["42", ".", "42", "."])
+      }))
+  })
+
+  describe("interleave", () => {
+    it.effect("interleave", () =>
+      Effect.gen(function*() {
+        const stream1 = Stream.make(2, 3)
+        const stream2 = Stream.make(5, 6, 7)
+        const result = yield* pipe(
+          stream1,
+          Stream.interleave(stream2),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [2, 5, 3, 6, 7])
+      }))
+
+    it.effect("interleaveWith", () =>
+      Effect.gen(function*() {
+        const interleave = (
+          bools: ReadonlyArray<boolean>,
+          numbers1: ReadonlyArray<number>,
+          numbers2: ReadonlyArray<number>
+        ): ReadonlyArray<number> =>
+          pipe(
+            Array.head(bools),
+            Option.map((head) => {
+              if (head) {
+                if (Array.isReadonlyArrayNonEmpty(numbers1)) {
+                  const head = pipe(numbers1, Array.getUnsafe(0))
+                  const tail = pipe(numbers1, Array.drop(1))
+                  return pipe(
+                    interleave(pipe(bools, Array.drop(1)), tail, numbers2),
+                    Array.prepend(head)
+                  )
+                }
+                if (Array.isReadonlyArrayNonEmpty(numbers2)) {
+                  return interleave(pipe(bools, Array.drop(1)), Array.empty<number>(), numbers2)
+                }
+                return Array.empty<number>()
+              }
+              if (Array.isReadonlyArrayNonEmpty(numbers2)) {
+                const head = pipe(numbers2, Array.getUnsafe(0))
+                const tail = pipe(numbers2, Array.drop(1))
+                return pipe(
+                  interleave(pipe(bools, Array.drop(1)), numbers1, tail),
+                  Array.prepend(head)
+                )
+              }
+              if (Array.isReadonlyArrayNonEmpty(numbers1)) {
+                return interleave(pipe(bools, Array.drop(1)), numbers1, Array.empty<number>())
+              }
+              return Array.empty<number>()
+            }),
+            Option.getOrElse(() => Array.empty<number>())
+          )
+        const boolStream = Stream.make(true, true, false, true, false)
+        const stream1 = Stream.make(1, 2, 3, 4, 5)
+        const stream2 = Stream.make(4, 5, 6, 7, 8)
+        const interleavedStream = yield* pipe(
+          stream1,
+          Stream.interleaveWith(stream2, boolStream),
+          Stream.runCollect
+        )
+        const bools = yield* (Stream.runCollect(boolStream))
+        const numbers1 = yield* (Stream.runCollect(stream1))
+        const numbers2 = yield* (Stream.runCollect(stream2))
+        const interleavedChunks = interleave(bools, numbers1, numbers2)
+        deepStrictEqual(interleavedStream, interleavedChunks)
+      }))
+  })
 })
 
 const grouped = <A>(arr: Array<A>, size: number): Array<NonEmptyArray<A>> => {

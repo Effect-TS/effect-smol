@@ -5,6 +5,7 @@
 import * as Cause from "../Cause.ts"
 import { Clock } from "../Clock.ts"
 import * as Arr from "../collections/Array.ts"
+import * as Iterable from "../collections/Iterable.ts"
 import * as MutableHashMap from "../collections/MutableHashMap.ts"
 import * as MutableList from "../collections/MutableList.ts"
 import * as Filter from "../data/Filter.ts"
@@ -4783,6 +4784,204 @@ export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, 
     Channel.pipeTo(Channel.splitLines()),
     fromChannel
   )
+
+/**
+ * Intersperse stream with provided `element`.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5).pipe(Stream.intersperse(0))
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // [
+ * //   1, 0, 2, 0, 3,
+ * //   0, 4, 0, 5
+ * // ]
+ * ```
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const intersperse: {
+  <A2>(element: A2): <A, E, R>(self: Stream<A, E, R>) => Stream<A2 | A, E, R>
+  <A, E, R, A2>(self: Stream<A, E, R>, element: A2): Stream<A | A2, E, R>
+} = dual(2, <A, E, R, A2>(self: Stream<A, E, R>, element: A2): Stream<A | A2, E, R> =>
+  mapArray(self, (arr, i) => {
+    const out: Arr.NonEmptyArray<A | A2> = i === 0 ? [] as any : [element]
+    const lastIndex = arr.length - 1
+    for (let j = 0; j < arr.length; j++) {
+      if (j === lastIndex) {
+        out.push(arr[j])
+      } else {
+        out.push(arr[j], element)
+      }
+    }
+    return out
+  }))
+
+/**
+ * Intersperse the specified element, also adding a prefix and a suffix.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const stream = Stream.make(1, 2, 3, 4, 5).pipe(
+ *   Stream.intersperseAffixes({
+ *     start: "[",
+ *     middle: "-",
+ *     end: "]"
+ *   })
+ * )
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // [
+ * //   '[', 1,   '-', 2,   '-',
+ * //   3,   '-', 4,   '-', 5,
+ * //   ']'
+ * // ]
+ * ```
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const intersperseAffixes: {
+  <A2, A3, A4>(
+    options: { readonly start: A2; readonly middle: A3; readonly end: A4 }
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A2 | A3 | A4 | A, E, R>
+  <A, E, R, A2, A3, A4>(
+    self: Stream<A, E, R>,
+    options: { readonly start: A2; readonly middle: A3; readonly end: A4 }
+  ): Stream<A | A2 | A3 | A4, E, R>
+} = dual(2, <A, E, R, A2, A3, A4>(
+  self: Stream<A, E, R>,
+  options: { readonly start: A2; readonly middle: A3; readonly end: A4 }
+): Stream<A | A2 | A3 | A4, E, R> =>
+  succeed(options.start).pipe(
+    concat(intersperse(self, options.middle)),
+    concat(succeed(options.end))
+  ))
+
+/**
+ * Interleaves this stream and the specified stream deterministically by
+ * alternating pulling values from this stream and the specified stream. When
+ * one stream is exhausted all remaining values in the other stream will be
+ * pulled.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const s1 = Stream.make(1, 2, 3)
+ * const s2 = Stream.make(4, 5, 6)
+ *
+ * const stream = Stream.interleave(s1, s2)
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // { _id: 'Chunk', values: [ 1, 4, 2, 5, 3, 6 ] }
+ * ```
+ * @since 2.0.0
+ * @category utils
+ */
+export const interleave: {
+  <A2, E2, R2>(that: Stream<A2, E2, R2>): <A, E, R>(self: Stream<A, E, R>) => Stream<A2 | A, E2 | E, R2 | R>
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, that: Stream<A2, E2, R2>): Stream<A | A2, E | E2, R | R2>
+} = dual(
+  2,
+  <A, E, R, A2, E2, R2>(self: Stream<A, E, R>, that: Stream<A2, E2, R2>): Stream<A | A2, E | E2, R | R2> =>
+    interleaveWith(
+      self,
+      that,
+      fromIterable(Iterable.forever([true, false]))
+    )
+)
+
+/**
+ * Combines this stream and the specified stream deterministically using the
+ * stream of boolean values `pull` to control which stream to pull from next.
+ * A value of `true` indicates to pull from this stream and a value of `false`
+ * indicates to pull from the specified stream. Only consumes as many elements
+ * as requested by the `pull` stream. If either this stream or the specified
+ * stream are exhausted further requests for values from that stream will be
+ * ignored.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const s1 = Stream.make(1, 3, 5, 7, 9)
+ * const s2 = Stream.make(2, 4, 6, 8, 10)
+ *
+ * const booleanStream = Stream.make(true, false, false).pipe(Stream.forever)
+ *
+ * const stream = Stream.interleaveWith(s1, s2, booleanStream)
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // [
+ * //   1, 2,  4, 3, 6,
+ * //   8, 5, 10, 7, 9
+ * // ]
+ * ```
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const interleaveWith: {
+  <A2, E2, R2, E3, R3>(
+    that: Stream<A2, E2, R2>,
+    decider: Stream<boolean, E3, R3>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A2 | A, E2 | E3 | E, R2 | R3 | R>
+  <A, E, R, A2, E2, R2, E3, R3>(
+    self: Stream<A, E, R>,
+    that: Stream<A2, E2, R2>,
+    decider: Stream<boolean, E3, R3>
+  ): Stream<A | A2, E | E2 | E3, R | R2 | R3>
+} = dual(3, <A, E, R, A2, E2, R2, E3, R3>(
+  self: Stream<A, E, R>,
+  that: Stream<A2, E2, R2>,
+  decider: Stream<boolean, E3, R3>
+): Stream<A | A2, E | E2 | E3, R | R2 | R3> =>
+  fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(upstream, scope) {
+    const pullDecider = yield* Channel.toTransform(Channel.flattenArray(decider.channel))(upstream, scope)
+    const retry = Symbol()
+    type retry = typeof retry
+    let leftDone = false
+    let rightDone = false
+    const pullLeft = (yield* Channel.toTransform(Channel.flattenArray(self.channel))(
+      upstream,
+      scope
+    )).pipe(
+      Pull.catchHalt(() => {
+        leftDone = true
+        return Effect.succeed<retry>(retry)
+      })
+    )
+    const pullRight = (yield* Channel.toTransform(Channel.flattenArray(that.channel))(
+      upstream,
+      scope
+    )).pipe(
+      Pull.catchHalt(() => {
+        rightDone = true
+        return Effect.succeed<retry>(retry)
+      })
+    )
+
+    return Effect.gen(function*() {
+      while (true) {
+        if (leftDone && rightDone) {
+          return yield* Pull.haltVoid
+        }
+        const side = yield* pullDecider
+        if (side && leftDone) continue
+        if (!side && rightDone) continue
+        const elem = yield* (side ? pullLeft : pullRight)
+        if (elem === retry) continue
+        return Arr.of(elem)
+      }
+    })
+  }))))
 
 /**
  * Interrupts the evaluation of this stream when the provided effect

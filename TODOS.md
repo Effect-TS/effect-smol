@@ -362,8 +362,8 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |      `interruptAfter`      |   X    |                               |          |
 |      `interruptWhen`       |  Done  |                               |          |
 |  `interruptWhenDeferred`   |   X    |                               |          |
-|       `intersperse`        |   -    |                               |          |
-|    `intersperseAffixes`    |   -    |                               |          |
+|       `intersperse`        |  Done  |                               |          |
+|    `intersperseAffixes`    |  Done  |                               |          |
 |         `mapBoth`          |   -    |                               |          |
 |          `merge`           |  Done  |                               |          |
 |         `mergeAll`         |   -    |                               |          |
