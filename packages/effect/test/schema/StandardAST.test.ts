@@ -1,77 +1,463 @@
 import { Schema, StandardAST } from "effect/schema"
 import { describe, it } from "vitest"
-import { strictEqual, throws } from "../utils/assert.ts"
-
-function assertCode(schema: Schema.Top, expected: string) {
-  const ast = StandardAST.fromRuntime(schema.ast)
-  strictEqual(StandardAST.toCode(ast), expected)
-}
+import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
 describe("StandardAST", () => {
+  function assertFromAST(schema: Schema.Top, standardAST: StandardAST.StandardAST) {
+    const ast = StandardAST.fromAST(schema.ast)
+    deepStrictEqual(ast, standardAST)
+  }
+
+  describe("fromAST", () => {
+    it("Null", () => {
+      assertFromAST(Schema.Null, { _tag: "Null", annotations: undefined })
+      assertFromAST(Schema.Null.annotate({ description: "a" }), { _tag: "Null", annotations: { description: "a" } })
+    })
+
+    it("Undefined", () => {
+      assertFromAST(Schema.Undefined, { _tag: "Undefined", annotations: undefined })
+      assertFromAST(Schema.Undefined.annotate({ description: "a" }), {
+        _tag: "Undefined",
+        annotations: { description: "a" }
+      })
+    })
+
+    it("Void", () => {
+      assertFromAST(Schema.Void, { _tag: "Void", annotations: undefined })
+      assertFromAST(Schema.Void.annotate({ description: "a" }), { _tag: "Void", annotations: { description: "a" } })
+    })
+
+    it("Never", () => {
+      assertFromAST(Schema.Never, { _tag: "Never", annotations: undefined })
+      assertFromAST(Schema.Never.annotate({ description: "a" }), { _tag: "Never", annotations: { description: "a" } })
+    })
+
+    it("Unknown", () => {
+      assertFromAST(Schema.Unknown, { _tag: "Unknown", annotations: undefined })
+      assertFromAST(Schema.Unknown.annotate({ description: "a" }), {
+        _tag: "Unknown",
+        annotations: { description: "a" }
+      })
+    })
+
+    it("Any", () => {
+      assertFromAST(Schema.Any, { _tag: "Any", annotations: undefined })
+      assertFromAST(Schema.Any.annotate({ description: "a" }), { _tag: "Any", annotations: { description: "a" } })
+    })
+
+    describe("String", () => {
+      it("String", () => {
+        assertFromAST(Schema.String, { _tag: "String", annotations: undefined, checks: [] })
+        assertFromAST(Schema.String.annotate({ description: "a" }), {
+          _tag: "String",
+          annotations: { "description": "a" },
+          checks: []
+        })
+      })
+
+      describe("checks", () => {
+        it("isMinLength", () => {
+          assertFromAST(Schema.String.check(Schema.isMinLength(1)), {
+            _tag: "String",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isMinLength", minLength: 1 }, annotations: undefined }
+            ]
+          })
+          assertFromAST(Schema.String.check(Schema.isMinLength(1, { description: "a" })), {
+            _tag: "String",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isMinLength", minLength: 1 }, annotations: { description: "a" } }
+            ]
+          })
+        })
+
+        it("isMaxLength", () => {
+          assertFromAST(Schema.String.check(Schema.isMaxLength(10)), {
+            _tag: "String",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isMaxLength", maxLength: 10 }, annotations: undefined }
+            ]
+          })
+          assertFromAST(Schema.String.check(Schema.isMaxLength(10, { description: "a" })), {
+            _tag: "String",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isMaxLength", maxLength: 10 }, annotations: { description: "a" } }
+            ]
+          })
+        })
+
+        it("isPattern", () => {
+          assertFromAST(Schema.String.check(Schema.isPattern(new RegExp("a"))), {
+            _tag: "String",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isPattern", regExp: new RegExp("a") }, annotations: undefined }
+            ]
+          })
+          assertFromAST(Schema.String.check(Schema.isPattern(new RegExp("a"), { description: "a" })), {
+            _tag: "String",
+            annotations: undefined,
+            checks: [
+              {
+                _tag: "Filter",
+                meta: { _tag: "isPattern", regExp: new RegExp("a") },
+                annotations: { description: "a" }
+              }
+            ]
+          })
+        })
+
+        it("isLength", () => {
+          assertFromAST(Schema.String.check(Schema.isLength(5)), {
+            _tag: "String",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isLength", length: 5 }, annotations: undefined }
+            ]
+          })
+          assertFromAST(Schema.String.check(Schema.isLength(5, { description: "a" })), {
+            _tag: "String",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isLength", length: 5 }, annotations: { description: "a" } }
+            ]
+          })
+        })
+      })
+    })
+
+    describe("Number", () => {
+      it("Number", () => {
+        assertFromAST(Schema.Number, { _tag: "Number", annotations: undefined, checks: [] })
+        assertFromAST(Schema.Number.annotate({ description: "a" }), {
+          _tag: "Number",
+          annotations: { description: "a" },
+          checks: []
+        })
+      })
+    })
+
+    it("Boolean", () => {
+      assertFromAST(Schema.Boolean, { _tag: "Boolean", annotations: undefined })
+      assertFromAST(Schema.Boolean.annotate({ description: "a" }), {
+        _tag: "Boolean",
+        annotations: { description: "a" }
+      })
+    })
+
+    it("BigInt", () => {
+      assertFromAST(Schema.BigInt, { _tag: "BigInt", annotations: undefined })
+      assertFromAST(Schema.BigInt.annotate({ description: "a" }), {
+        _tag: "BigInt",
+        annotations: { description: "a" }
+      })
+    })
+
+    it("Symbol", () => {
+      assertFromAST(Schema.Symbol, { _tag: "Symbol", annotations: undefined })
+      assertFromAST(Schema.Symbol.annotate({ description: "a" }), {
+        _tag: "Symbol",
+        annotations: { description: "a" }
+      })
+    })
+
+    it("Literal", () => {
+      assertFromAST(Schema.Literal("hello"), { _tag: "Literal", annotations: undefined, literal: "hello" })
+      assertFromAST(Schema.Literal("hello").annotate({ description: "a" }), {
+        _tag: "Literal",
+        annotations: { description: "a" },
+        literal: "hello"
+      })
+    })
+
+    it("UniqueSymbol", () => {
+      assertFromAST(Schema.UniqueSymbol(Symbol.for("test")), {
+        _tag: "UniqueSymbol",
+        annotations: undefined,
+        symbol: Symbol.for("test")
+      })
+      assertFromAST(Schema.UniqueSymbol(Symbol.for("test")).annotate({ description: "a" }), {
+        _tag: "UniqueSymbol",
+        annotations: { description: "a" },
+        symbol: Symbol.for("test")
+      })
+    })
+
+    it("ObjectKeyword", () => {
+      assertFromAST(Schema.ObjectKeyword, { _tag: "ObjectKeyword", annotations: undefined })
+      assertFromAST(Schema.ObjectKeyword.annotate({ description: "a" }), {
+        _tag: "ObjectKeyword",
+        annotations: { description: "a" }
+      })
+    })
+
+    it("Enum", () => {
+      assertFromAST(Schema.Enum({ A: "a", B: "b" }), {
+        _tag: "Enum",
+        annotations: undefined,
+        enums: [["A", "a"], ["B", "b"]]
+      })
+      assertFromAST(Schema.Enum({ A: "a", B: "b" }).annotate({ description: "a" }), {
+        _tag: "Enum",
+        annotations: { description: "a" },
+        enums: [["A", "a"], ["B", "b"]]
+      })
+    })
+
+    it("TemplateLiteral", () => {
+      assertFromAST(Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]), {
+        _tag: "TemplateLiteral",
+        annotations: undefined,
+        parts: [
+          { _tag: "String", annotations: undefined, checks: [] },
+          {
+            _tag: "Literal",
+            annotations: undefined,
+            literal: "-"
+          },
+          { _tag: "Number", annotations: undefined, checks: [] }
+        ]
+      })
+      assertFromAST(
+        Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]).annotate({ description: "a" }),
+        {
+          _tag: "TemplateLiteral",
+          annotations: { description: "a" },
+          parts: [
+            { _tag: "String", annotations: undefined, checks: [] },
+            { _tag: "Literal", annotations: undefined, literal: "-" },
+            { _tag: "Number", annotations: undefined, checks: [] }
+          ]
+        }
+      )
+    })
+
+    describe("Arrays", () => {
+      it("empty tuple", () => {
+        assertFromAST(Schema.Tuple([]), { _tag: "Arrays", annotations: undefined, elements: [], rest: [] })
+        assertFromAST(Schema.Tuple([]).annotate({ description: "a" }), {
+          _tag: "Arrays",
+          annotations: { description: "a" },
+          elements: [],
+          rest: []
+        })
+      })
+    })
+
+    describe("Objects", () => {
+      it("empty struct", () => {
+        assertFromAST(Schema.Struct({}), {
+          _tag: "Objects",
+          annotations: undefined,
+          propertySignatures: [],
+          indexSignatures: []
+        })
+        assertFromAST(Schema.Struct({}).annotate({ description: "a" }), {
+          _tag: "Objects",
+          annotations: { description: "a" },
+          propertySignatures: [],
+          indexSignatures: []
+        })
+      })
+
+      it("properties", () => {
+        assertFromAST(
+          Schema.Struct({
+            a: Schema.String,
+            b: Schema.mutableKey(Schema.String),
+            c: Schema.optionalKey(Schema.String),
+            d: Schema.mutableKey(Schema.optionalKey(Schema.String)),
+            e: Schema.optionalKey(Schema.mutableKey(Schema.String))
+          }),
+          {
+            _tag: "Objects",
+            annotations: undefined,
+            propertySignatures: [
+              {
+                name: "a",
+                type: { _tag: "String", annotations: undefined, checks: [] },
+                isOptional: false,
+                isMutable: false,
+                annotations: undefined
+              },
+              {
+                name: "b",
+                type: { _tag: "String", annotations: undefined, checks: [] },
+                isOptional: false,
+                isMutable: true,
+                annotations: undefined
+              },
+              {
+                name: "c",
+                type: { _tag: "String", annotations: undefined, checks: [] },
+                isOptional: true,
+                isMutable: false,
+                annotations: undefined
+              },
+              {
+                name: "d",
+                type: { _tag: "String", annotations: undefined, checks: [] },
+                isOptional: true,
+                isMutable: true,
+                annotations: undefined
+              },
+              {
+                name: "e",
+                type: { _tag: "String", annotations: undefined, checks: [] },
+                isOptional: true,
+                isMutable: true,
+                annotations: undefined
+              }
+            ],
+            indexSignatures: []
+          }
+        )
+      })
+
+      it("annotateKey", () => {
+        assertFromAST(
+          Schema.Struct({
+            a: Schema.String.annotateKey({ description: "a" })
+          }),
+          {
+            _tag: "Objects",
+            annotations: undefined,
+            propertySignatures: [
+              {
+                name: "a",
+                type: { _tag: "String", annotations: undefined, checks: [] },
+                isOptional: false,
+                isMutable: false,
+                annotations: { description: "a" }
+              }
+            ],
+            indexSignatures: []
+          }
+        )
+      })
+    })
+
+    describe("Union", () => {
+      it("anyOf", () => {
+        assertFromAST(Schema.Union([Schema.String, Schema.Number]), {
+          _tag: "Union",
+          annotations: undefined,
+          types: [
+            { _tag: "String", annotations: undefined, checks: [] },
+            { _tag: "Number", annotations: undefined, checks: [] }
+          ],
+          mode: "anyOf"
+        })
+        assertFromAST(Schema.Union([Schema.String, Schema.Number]).annotate({ description: "a" }), {
+          _tag: "Union",
+          annotations: { description: "a" },
+          types: [
+            { _tag: "String", annotations: undefined, checks: [] },
+            { _tag: "Number", annotations: undefined, checks: [] }
+          ],
+          mode: "anyOf"
+        })
+      })
+
+      it("oneOf", () => {
+        assertFromAST(Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }), {
+          _tag: "Union",
+          annotations: undefined,
+          types: [
+            { _tag: "String", annotations: undefined, checks: [] },
+            { _tag: "Number", annotations: undefined, checks: [] }
+          ],
+          mode: "oneOf"
+        })
+      })
+
+      it("Literals", () => {
+        assertFromAST(Schema.Literals(["a", 1]), {
+          _tag: "Union",
+          annotations: undefined,
+          types: [
+            { _tag: "Literal", annotations: undefined, literal: "a" },
+            { _tag: "Literal", annotations: undefined, literal: 1 }
+          ],
+          mode: "anyOf"
+        })
+      })
+    })
+  })
+
   describe("toCode", () => {
+    function assertToCode(schema: Schema.Top, expected: string) {
+      const ast = StandardAST.fromAST(schema.ast)
+      strictEqual(StandardAST.toCode(ast), expected)
+    }
+
     describe("primitive types", () => {
       it("Null", () => {
-        assertCode(Schema.Null, "Schema.Null")
-        assertCode(Schema.Null.annotate({ "description": "a" }), `Schema.Null.annotate({ "description": "a" })`)
-        assertCode(Schema.Null.annotate({}), "Schema.Null")
+        assertToCode(Schema.Null, "Schema.Null")
+        assertToCode(Schema.Null.annotate({ "description": "a" }), `Schema.Null.annotate({ "description": "a" })`)
+        assertToCode(Schema.Null.annotate({}), "Schema.Null")
       })
 
       it("Undefined", () => {
-        assertCode(Schema.Undefined, "Schema.Undefined")
-        assertCode(
+        assertToCode(Schema.Undefined, "Schema.Undefined")
+        assertToCode(
           Schema.Undefined.annotate({ "description": "b" }),
           `Schema.Undefined.annotate({ "description": "b" })`
         )
       })
 
       it("Void", () => {
-        assertCode(Schema.Void, "Schema.Void")
-        assertCode(Schema.Void.annotate({ "description": "c" }), `Schema.Void.annotate({ "description": "c" })`)
+        assertToCode(Schema.Void, "Schema.Void")
+        assertToCode(Schema.Void.annotate({ "description": "c" }), `Schema.Void.annotate({ "description": "c" })`)
       })
 
       it("Never", () => {
-        assertCode(Schema.Never, "Schema.Never")
-        assertCode(Schema.Never.annotate({ "description": "d" }), `Schema.Never.annotate({ "description": "d" })`)
+        assertToCode(Schema.Never, "Schema.Never")
+        assertToCode(Schema.Never.annotate({ "description": "d" }), `Schema.Never.annotate({ "description": "d" })`)
       })
 
       it("Unknown", () => {
-        assertCode(Schema.Unknown, "Schema.Unknown")
-        assertCode(Schema.Unknown.annotate({ "description": "e" }), `Schema.Unknown.annotate({ "description": "e" })`)
+        assertToCode(Schema.Unknown, "Schema.Unknown")
+        assertToCode(Schema.Unknown.annotate({ "description": "e" }), `Schema.Unknown.annotate({ "description": "e" })`)
       })
 
       it("Any", () => {
-        assertCode(Schema.Any, "Schema.Any")
-        assertCode(Schema.Any.annotate({ "description": "f" }), `Schema.Any.annotate({ "description": "f" })`)
+        assertToCode(Schema.Any, "Schema.Any")
+        assertToCode(Schema.Any.annotate({ "description": "f" }), `Schema.Any.annotate({ "description": "f" })`)
       })
 
       it("String", () => {
-        assertCode(Schema.String, "Schema.String")
-        assertCode(Schema.String.annotate({ "description": "g" }), `Schema.String.annotate({ "description": "g" })`)
+        assertToCode(Schema.String, "Schema.String")
+        assertToCode(Schema.String.annotate({ "description": "g" }), `Schema.String.annotate({ "description": "g" })`)
       })
 
       it("Number", () => {
-        assertCode(Schema.Number, "Schema.Number")
-        assertCode(Schema.Number.annotate({ "description": "h" }), `Schema.Number.annotate({ "description": "h" })`)
+        assertToCode(Schema.Number, "Schema.Number")
+        assertToCode(Schema.Number.annotate({ "description": "h" }), `Schema.Number.annotate({ "description": "h" })`)
       })
 
       it("Boolean", () => {
-        assertCode(Schema.Boolean, "Schema.Boolean")
-        assertCode(Schema.Boolean.annotate({ "description": "i" }), `Schema.Boolean.annotate({ "description": "i" })`)
+        assertToCode(Schema.Boolean, "Schema.Boolean")
+        assertToCode(Schema.Boolean.annotate({ "description": "i" }), `Schema.Boolean.annotate({ "description": "i" })`)
       })
 
       it("BigInt", () => {
-        assertCode(Schema.BigInt, "Schema.BigInt")
-        assertCode(Schema.BigInt.annotate({ "description": "j" }), `Schema.BigInt.annotate({ "description": "j" })`)
+        assertToCode(Schema.BigInt, "Schema.BigInt")
+        assertToCode(Schema.BigInt.annotate({ "description": "j" }), `Schema.BigInt.annotate({ "description": "j" })`)
       })
 
       it("Symbol", () => {
-        assertCode(Schema.Symbol, "Schema.Symbol")
-        assertCode(Schema.Symbol.annotate({ "description": "k" }), `Schema.Symbol.annotate({ "description": "k" })`)
+        assertToCode(Schema.Symbol, "Schema.Symbol")
+        assertToCode(Schema.Symbol.annotate({ "description": "k" }), `Schema.Symbol.annotate({ "description": "k" })`)
       })
 
       it("ObjectKeyword", () => {
-        assertCode(Schema.ObjectKeyword, "Schema.ObjectKeyword")
-        assertCode(
+        assertToCode(Schema.ObjectKeyword, "Schema.ObjectKeyword")
+        assertToCode(
           Schema.ObjectKeyword.annotate({ "description": "l" }),
           `Schema.ObjectKeyword.annotate({ "description": "l" })`
         )
@@ -80,32 +466,32 @@ describe("StandardAST", () => {
 
     describe("Literal", () => {
       it("string literal", () => {
-        assertCode(Schema.Literal("hello"), `Schema.Literal("hello")`)
-        assertCode(
+        assertToCode(Schema.Literal("hello"), `Schema.Literal("hello")`)
+        assertToCode(
           Schema.Literal("hello").annotate({ "description": "m" }),
           `Schema.Literal("hello").annotate({ "description": "m" })`
         )
       })
 
       it("number literal", () => {
-        assertCode(Schema.Literal(42), "Schema.Literal(42)")
-        assertCode(
+        assertToCode(Schema.Literal(42), "Schema.Literal(42)")
+        assertToCode(
           Schema.Literal(42).annotate({ "description": "n" }),
           `Schema.Literal(42).annotate({ "description": "n" })`
         )
       })
 
       it("boolean literal", () => {
-        assertCode(Schema.Literal(true), "Schema.Literal(true)")
-        assertCode(
+        assertToCode(Schema.Literal(true), "Schema.Literal(true)")
+        assertToCode(
           Schema.Literal(true).annotate({ "description": "o" }),
           `Schema.Literal(true).annotate({ "description": "o" })`
         )
       })
 
       it("bigint literal", () => {
-        assertCode(Schema.Literal(100n), "Schema.Literal(100n)")
-        assertCode(
+        assertToCode(Schema.Literal(100n), "Schema.Literal(100n)")
+        assertToCode(
           Schema.Literal(100n).annotate({ "description": "p" }),
           `Schema.Literal(100n).annotate({ "description": "p" })`
         )
@@ -114,12 +500,12 @@ describe("StandardAST", () => {
 
     describe("UniqueSymbol", () => {
       it("should format unique symbol", () => {
-        assertCode(Schema.UniqueSymbol(Symbol.for("test")), `Schema.UniqueSymbol(Symbol.for("test"))`)
+        assertToCode(Schema.UniqueSymbol(Symbol.for("test")), `Schema.UniqueSymbol(Symbol.for("test"))`)
       })
 
       it("should throw error for symbol created without Symbol.for()", () => {
         const sym = Symbol("test")
-        const ast = StandardAST.fromRuntime(Schema.UniqueSymbol(sym).ast)
+        const ast = StandardAST.fromAST(Schema.UniqueSymbol(sym).ast)
         throws(
           () => StandardAST.toCode(ast),
           "Cannot generate code for UniqueSymbol created without Symbol.for()"
@@ -129,14 +515,14 @@ describe("StandardAST", () => {
 
     describe("Enum", () => {
       it("should format enum with string values", () => {
-        assertCode(
+        assertToCode(
           Schema.Enum({
             A: "a",
             B: "b"
           }),
           `Schema.Enum([["A", "a"], ["B", "b"]])`
         )
-        assertCode(
+        assertToCode(
           Schema.Enum({
             A: "a",
             B: "b"
@@ -146,14 +532,14 @@ describe("StandardAST", () => {
       })
 
       it("should format enum with number values", () => {
-        assertCode(
+        assertToCode(
           Schema.Enum({
             One: 1,
             Two: 2
           }),
           `Schema.Enum([["One", 1], ["Two", 2]])`
         )
-        assertCode(
+        assertToCode(
           Schema.Enum({
             One: 1,
             Two: 2
@@ -163,14 +549,14 @@ describe("StandardAST", () => {
       })
 
       it("should format enum with mixed values", () => {
-        assertCode(
+        assertToCode(
           Schema.Enum({
             A: "a",
             One: 1
           }),
           `Schema.Enum([["A", "a"], ["One", 1]])`
         )
-        assertCode(
+        assertToCode(
           Schema.Enum({
             A: "a",
             One: 1
@@ -182,11 +568,11 @@ describe("StandardAST", () => {
 
     describe("TemplateLiteral", () => {
       it("should format template literal", () => {
-        assertCode(
+        assertToCode(
           Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]),
           `Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number])`
         )
-        assertCode(
+        assertToCode(
           Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]).annotate({ "description": "ad" }),
           `Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]).annotate({ "description": "ad" })`
         )
@@ -195,38 +581,38 @@ describe("StandardAST", () => {
 
     describe("Arrays", () => {
       it("empty tuple", () => {
-        assertCode(Schema.Tuple([]), "Schema.Tuple([])")
-        assertCode(
+        assertToCode(Schema.Tuple([]), "Schema.Tuple([])")
+        assertToCode(
           Schema.Tuple([]).annotate({ "description": "t" }),
           `Schema.Tuple([]).annotate({ "description": "t" })`
         )
       })
 
       it("tuple with elements", () => {
-        assertCode(
+        assertToCode(
           Schema.Tuple([Schema.String, Schema.Number]),
           "Schema.Tuple([Schema.String, Schema.Number])"
         )
-        assertCode(
+        assertToCode(
           Schema.Tuple([Schema.String, Schema.Number]).annotate({ "description": "u" }),
           `Schema.Tuple([Schema.String, Schema.Number]).annotate({ "description": "u" })`
         )
       })
 
       it("array with rest only", () => {
-        assertCode(Schema.Array(Schema.String), "Schema.Array(Schema.String)")
-        assertCode(
+        assertToCode(Schema.Array(Schema.String), "Schema.Array(Schema.String)")
+        assertToCode(
           Schema.Array(Schema.String).annotate({ "description": "v" }),
           `Schema.Array(Schema.String).annotate({ "description": "v" })`
         )
       })
 
       it("tuple with rest", () => {
-        assertCode(
+        assertToCode(
           Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]),
           "Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number])"
         )
-        assertCode(
+        assertToCode(
           Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]).annotate({ "description": "w" }),
           `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]).annotate({ "description": "w" })`
         )
@@ -235,22 +621,22 @@ describe("StandardAST", () => {
 
     describe("Objects", () => {
       it("empty struct", () => {
-        assertCode(Schema.Struct({}), "Schema.Struct({  })")
-        assertCode(
+        assertToCode(Schema.Struct({}), "Schema.Struct({  })")
+        assertToCode(
           Schema.Struct({}).annotate({ "description": "x" }),
           `Schema.Struct({  }).annotate({ "description": "x" })`
         )
       })
 
       it("struct with required properties", () => {
-        assertCode(
+        assertToCode(
           Schema.Struct({
             name: Schema.String,
             age: Schema.Number
           }),
           `Schema.Struct({ "name": Schema.String, "age": Schema.Number })`
         )
-        assertCode(
+        assertToCode(
           Schema.Struct({
             name: Schema.String,
             age: Schema.Number
@@ -260,7 +646,7 @@ describe("StandardAST", () => {
       })
 
       it("struct with optional properties", () => {
-        assertCode(
+        assertToCode(
           Schema.Struct({
             name: Schema.String,
             age: Schema.optionalKey(Schema.Number)
@@ -270,7 +656,7 @@ describe("StandardAST", () => {
       })
 
       it("struct with mixed required and optional properties", () => {
-        assertCode(
+        assertToCode(
           Schema.Struct({
             name: Schema.String,
             age: Schema.optionalKey(Schema.Number),
@@ -282,7 +668,7 @@ describe("StandardAST", () => {
 
       it("struct with symbol property key", () => {
         const sym = Symbol.for("test")
-        assertCode(
+        assertToCode(
           Schema.Struct({
             [sym]: Schema.String
           }),
@@ -293,33 +679,33 @@ describe("StandardAST", () => {
 
     describe("Union", () => {
       it("union with anyOf mode (default)", () => {
-        assertCode(
+        assertToCode(
           Schema.Union([Schema.String, Schema.Number]),
           "Schema.Union([Schema.String, Schema.Number])"
         )
-        assertCode(
+        assertToCode(
           Schema.Union([Schema.String, Schema.Number]).annotate({ "description": "z" }),
           `Schema.Union([Schema.String, Schema.Number]).annotate({ "description": "z" })`
         )
       })
 
       it("union with oneOf mode", () => {
-        assertCode(
+        assertToCode(
           Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }),
           `Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" })`
         )
-        assertCode(
+        assertToCode(
           Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }).annotate({ "description": "aa" }),
           `Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }).annotate({ "description": "aa" })`
         )
       })
 
       it("union with multiple types", () => {
-        assertCode(
+        assertToCode(
           Schema.Union([Schema.String, Schema.Number, Schema.Boolean]),
           "Schema.Union([Schema.String, Schema.Number, Schema.Boolean])"
         )
-        assertCode(
+        assertToCode(
           Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).annotate({ "description": "ab" }),
           `Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).annotate({ "description": "ab" })`
         )
@@ -328,7 +714,7 @@ describe("StandardAST", () => {
 
     describe("nested structures", () => {
       it("nested struct", () => {
-        assertCode(
+        assertToCode(
           Schema.Struct({
             user: Schema.Struct({
               name: Schema.String,
@@ -337,7 +723,7 @@ describe("StandardAST", () => {
           }),
           `Schema.Struct({ "user": Schema.Struct({ "name": Schema.String, "age": Schema.Number }) })`
         )
-        assertCode(
+        assertToCode(
           Schema.Struct({
             user: Schema.Struct({
               name: Schema.String,
@@ -349,7 +735,7 @@ describe("StandardAST", () => {
       })
 
       it("union of structs", () => {
-        assertCode(
+        assertToCode(
           Schema.Union([
             Schema.Struct({ type: Schema.Literal("a"), value: Schema.String }),
             Schema.Struct({ type: Schema.Literal("b"), value: Schema.Number })
@@ -359,7 +745,7 @@ describe("StandardAST", () => {
       })
 
       it("tuple with struct elements", () => {
-        assertCode(
+        assertToCode(
           Schema.Tuple([
             Schema.Struct({ name: Schema.String }),
             Schema.Struct({ age: Schema.Number })
