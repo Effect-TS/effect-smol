@@ -5233,7 +5233,8 @@ export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, 
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5).pipe(Stream.intersperse(0))
  *
