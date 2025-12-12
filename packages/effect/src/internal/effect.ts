@@ -4414,9 +4414,6 @@ const filterDisablePropagation = (span: Tracer.AnySpan | undefined): Tracer.AnyS
 }
 
 /** @internal */
-export const spanToTrace = new WeakMap<Tracer.Span, LazyArg<string | undefined>>()
-
-/** @internal */
 export const makeSpanUnsafe = <XA, XE>(
   fiber: Fiber.Fiber<XA, XE>,
   name: string,
