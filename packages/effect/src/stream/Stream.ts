@@ -3819,6 +3819,84 @@ export const rechunk: {
 })
 
 /**
+ * Emits a sliding window of `n` elements.
+ *
+ * ```ts
+ * import { pipe, Stream } from "effect"
+ *
+ * pipe(
+ *   Stream.make(1, 2, 3, 4),
+ *   Stream.sliding(2),
+ *   Stream.runCollect
+ * )
+ * // => Chunk(Chunk(1, 2), Chunk(2, 3), Chunk(3, 4))
+ * ```
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const sliding: {
+  (chunkSize: number): <A, E, R>(self: Stream<A, E, R>) => Stream<Arr.NonEmptyReadonlyArray<A>, E, R>
+  <A, E, R>(self: Stream<A, E, R>, chunkSize: number): Stream<Arr.NonEmptyReadonlyArray<A>, E, R>
+} = dual(
+  2,
+  <A, E, R>(self: Stream<A, E, R>, chunkSize: number): Stream<Arr.NonEmptyReadonlyArray<A>, E, R> =>
+    slidingSize(self, chunkSize, 1)
+)
+
+/**
+ * Like `sliding`, but with a configurable `stepSize` parameter.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const slidingSize: {
+  (chunkSize: number, stepSize: number): <A, E, R>(self: Stream<A, E, R>) => Stream<Arr.NonEmptyReadonlyArray<A>, E, R>
+  <A, E, R>(self: Stream<A, E, R>, chunkSize: number, stepSize: number): Stream<Arr.NonEmptyReadonlyArray<A>, E, R>
+} = dual(
+  3,
+  <A, E, R>(self: Stream<A, E, R>, chunkSize: number, stepSize: number): Stream<Arr.NonEmptyReadonlyArray<A>, E, R> =>
+    transformPull(self, (upstream, _scope) =>
+      Effect.sync(() => {
+        let cause: Cause.Cause<E | Pull.Halt> | null = null
+        const list = MutableList.make<A>()
+        let emitted = false
+        const pull: Pull.Pull<
+          Arr.NonEmptyReadonlyArray<Arr.NonEmptyReadonlyArray<A>>,
+          E | Pull.Halt
+        > = Effect.matchCauseEffect(upstream, {
+          onSuccess(arr) {
+            MutableList.appendAllUnsafe(list, arr)
+            if (list.length < chunkSize) return pull
+            emitted = true
+            const chunks = [] as any as Arr.NonEmptyArray<Arr.NonEmptyReadonlyArray<A>>
+            while (list.length >= chunkSize) {
+              if (chunkSize === stepSize) {
+                chunks.push(MutableList.takeN(list, chunkSize) as any)
+              } else {
+                chunks.push(MutableList.toArrayN(list, chunkSize) as any)
+                if (chunkSize === 1) {
+                  MutableList.take(list)
+                } else {
+                  MutableList.takeNVoid(list, stepSize)
+                }
+              }
+            }
+            return Effect.succeed(chunks)
+          },
+          onFailure(cause_) {
+            if (emitted) MutableList.takeNVoid(list, chunkSize - stepSize)
+            if (list.length === 0) return Effect.failCause(cause_)
+            cause = cause_
+            return Effect.succeed(Arr.of(MutableList.takeAll(list) as any))
+          }
+        })
+
+        return Effect.suspend(() => cause ? Effect.failCause(cause) : pull)
+      }))
+)
+
+/**
  * Combines the elements from this stream and the specified stream by
  * repeatedly applying the function `f` to extract an element using both sides
  * and conceptually "offer" it to the destination stream. `f` can maintain

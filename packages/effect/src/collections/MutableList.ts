@@ -751,6 +751,31 @@ export const take = <A>(self: MutableList<A>): Empty | A => {
 }
 
 /**
+ * @since 4.0.0
+ * @category elements
+ */
+export const toArrayN = <A>(self: MutableList<A>, n: number): Array<A> => {
+  const length = Math.min(n, self.length)
+  const out = new Array<A>(length)
+  let index = 0
+  let bucket = self.head
+  while (bucket) {
+    for (let i = bucket.offset; i < bucket.array.length; i++) {
+      out[index++] = bucket.array[i]
+      if (index === length) return out
+    }
+    bucket = bucket.next
+  }
+  return out
+}
+
+/**
+ * @since 4.0.0
+ * @category elements
+ */
+export const toArray = <A>(self: MutableList<A>): Array<A> => toArrayN(self, self.length)
+
+/**
  * Filters the MutableList in place, keeping only elements that satisfy the predicate.
  * This operation modifies the list and rebuilds its internal structure for efficiency.
  *

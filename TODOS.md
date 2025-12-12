@@ -395,8 +395,8 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |         `schedule`         |  Done  |                               |          |
 |       `scheduleWith`       |   X    |                               |          |
 |          `share`           |  Done  |            `share`            |          |
-|         `sliding`          |   -    |                               |          |
-|       `slidingSize`        |   -    |                               |          |
+|         `sliding`          |  Done  |                               |          |
+|       `slidingSize`        |  Done  |                               |          |
 |           `some`           |   X    |                               |          |
 |        `someOrElse`        |   X    |                               |          |
 |        `someOrFail`        |   X    |                               |          |
