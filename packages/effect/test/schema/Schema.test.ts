@@ -7090,4 +7090,11 @@ Missing key
   at ["c"]`
     )
   })
+
+  it("Suspended schemas cannot be annotated because they are only a way to defer evaluation", () => {
+    throws(
+      () => Schema.suspend(() => Schema.String).annotate({ description: "a" } as never),
+      "Suspended schemas cannot be annotated"
+    )
+  })
 })

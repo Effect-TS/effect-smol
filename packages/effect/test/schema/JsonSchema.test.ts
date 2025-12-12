@@ -2563,49 +2563,6 @@ describe("JsonSchema generation", () => {
         }
         const schema = Schema.Struct({
           a: Schema.String,
-          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema).annotate({ identifier: "A" }))
-        })
-        assertDraft07(schema, {
-          schema: {
-            "type": "object",
-            "properties": {
-              "a": {
-                "type": "string"
-              },
-              "as": {
-                "type": "array",
-                "items": { "$ref": "#/definitions/A" }
-              }
-            },
-            "required": ["a", "as"],
-            "additionalProperties": false
-          },
-          definitions: {
-            "A": {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": "string"
-                },
-                "as": {
-                  "type": "array",
-                  "items": { "$ref": "#/definitions/A" }
-                }
-              },
-              "required": ["a", "as"],
-              "additionalProperties": false
-            }
-          }
-        })
-      })
-
-      it("top annotation", () => {
-        interface A {
-          readonly a: string
-          readonly as: ReadonlyArray<A>
-        }
-        const schema = Schema.Struct({
-          a: Schema.String,
           as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
         }).annotate({ identifier: "A" })
         assertDraft07(
@@ -4050,52 +4007,6 @@ describe("JsonSchema generation", () => {
           })
 
           it("outer annotation", () => {
-            interface A {
-              readonly a: string
-              readonly as: ReadonlyArray<A>
-            }
-            const schema = Schema.Struct({
-              a: Schema.String,
-              as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema).annotate({ identifier: "A" }))
-            })
-            assertDraft07(schema, {
-              schema: {
-                "type": "object",
-                "properties": {
-                  "a": {
-                    "type": "string"
-                  },
-                  "as": {
-                    "type": "array",
-                    "items": { "$ref": "#/definitions/A" }
-                  }
-                },
-                "required": ["a", "as"],
-                "additionalProperties": false
-              },
-              definitions: {
-                "A": {
-                  "type": "object",
-                  "properties": {
-                    "a": {
-                      "type": "string"
-                    },
-                    "as": {
-                      "type": "array",
-                      "items": { "$ref": "#/definitions/A" }
-                    }
-                  },
-                  "required": ["a", "as"],
-                  "additionalProperties": false
-                }
-              }
-            }, {
-              target: "draft-07",
-              referenceStrategy: "skip"
-            })
-          })
-
-          it("top annotation", () => {
             interface A {
               readonly a: string
               readonly as: ReadonlyArray<A>

@@ -2212,6 +2212,9 @@ function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
 
 /** @internal */
 export function annotate<A extends AST>(ast: A, annotations: Annotations.Annotations): A {
+  if (isSuspend(ast)) {
+    throw new Error("Suspended schemas cannot be annotated")
+  }
   if (ast.checks) {
     const last = ast.checks[ast.checks.length - 1]
     return replaceChecks(ast, Arr.append(ast.checks.slice(0, -1), last.annotate(annotations)))

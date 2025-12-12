@@ -1534,4 +1534,8 @@ describe("Schema", () => {
       ]).mapMembers).type.not.toBeCallableWith(Tuple.map(Schema.fieldsAssign({ c: Schema.Number })))
     })
   })
+
+  it("Suspended schemas cannot be annotated because they are only a way to defer evaluation", () => {
+    expect(Schema.suspend(() => Schema.String).annotate).type.not.toBeCallableWith({ description: "a" })
+  })
 })

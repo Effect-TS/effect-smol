@@ -168,50 +168,6 @@ describe("Rewriter", () => {
         }
         const schema = Schema.Struct({
           a: Schema.String,
-          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema).annotate({ identifier: "A" }))
-        })
-        assertJsonSchema(
-          Rewriter.openAi,
-          schema,
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": "string"
-                },
-                "as": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/A"
-                  }
-                }
-              },
-              "required": ["a", "as"],
-              "additionalProperties": false
-            },
-            definitions: {
-              "A": {
-                "type": "object",
-                "properties": {
-                  "a": { "type": "string" },
-                  "as": { "type": "array", "items": { "$ref": "#/$defs/A" } }
-                },
-                "required": ["a", "as"],
-                "additionalProperties": false
-              }
-            }
-          }
-        )
-      })
-
-      it("top annotation", () => {
-        interface A {
-          readonly a: string
-          readonly as: ReadonlyArray<A>
-        }
-        const schema = Schema.Struct({
-          a: Schema.String,
           as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
         }).annotate({ identifier: "A" })
         assertJsonSchema(

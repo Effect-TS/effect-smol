@@ -2537,6 +2537,8 @@ export interface suspend<S extends Top> extends
   >
 {
   readonly "~rebuild.out": this
+  // Suspended schemas cannot be annotated because they are only a way to defer evaluation
+  annotate(annotations: never): this["~rebuild.out"]
 }
 
 /**
