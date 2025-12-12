@@ -16,11 +16,13 @@ const MockExecutorLayer = Layer.succeed(ChildProcessSpawner.ChildProcessSpawner,
     const executable = cmd._tag === "StandardCommand"
       ? cmd.command
       : "templated"
+    const output = new TextEncoder().encode(`mock output for ${executable}`)
     return ChildProcessSpawner.makeHandle({
       pid: ChildProcessSpawner.ProcessId(12345),
       stdin: Sink.forEach<Uint8Array, void, never, never>((_chunk) => Effect.void),
-      stdout: Stream.fromIterable([new TextEncoder().encode(`mock output for ${executable}`)]),
+      stdout: Stream.fromIterable([output]),
       stderr: Stream.fromIterable([new TextEncoder().encode("")]),
+      all: Stream.fromIterable([output]),
       exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(0)),
       isRunning: Effect.succeed(false),
       kill: () => Effect.void,
