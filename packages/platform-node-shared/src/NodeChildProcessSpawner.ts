@@ -262,6 +262,35 @@ const make = Effect.gen(function*() {
     return sink
   })
 
+  /**
+   * Given that `NodeStream.fromReadable` uses `.read` to read data from the
+   * provided `Readable` stream, consumers would race to read data from the
+   * `handle.stdout` and `handle.stderr` streams if they were also simultaneously
+   * reading from the `handle.all` stream.
+   *
+   * To solve this, we leverage the fact that NodeJS `Readable` streams can be
+   * piped to multiple destinations simultaneously. The logic for the solution
+   * is as follows:
+   *
+   *   1. Pipe each original stream to two `PassThrough` streams:
+   *     - One dedicated PassThrough for individual access (.stdout / .stderr)
+   *     - One shared PassThrough for combined access (.all)
+   *   2. Create Effect streams from the PassThrough streams (not the originals)
+   *
+   * **Diagram**
+   *
+   *                                 ┌─────────────┐
+   *                           ┌────►│ passthrough │────► Effect stdout Stream
+   *                           │     └─────────────┘
+   *   childProcess.stdout ────┤
+   *                           │     ┌─────────────┐
+   *                           └────►│ passthrough │────► Effect all Stream
+   *                           ┌────►│             │
+   *   childProcess.stderr ────┤     └─────────────┘
+   *                           │     ┌─────────────┐
+   *                           └────►│ passthrough │────► Effect stderr Stream
+   *                                 └─────────────┘
+   */
   const setupChildOutputStreams = (
     command: ChildProcess.StandardCommand,
     childProcess: NodeChildProcess.ChildProcess,
