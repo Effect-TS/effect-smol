@@ -19,493 +19,633 @@ const collectStreamOutput = (stream: Stream.Stream<Uint8Array, unknown>) =>
   })
 
 describe("NodeChildProcessSpawner", () => {
-  describe("spawn", () => {
-    describe("basic spawning", () => {
-      it.effect("should spawn a simple command and collect output", () =>
-        Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("node", ["--version"])
-          const output = yield* collectStreamOutput(handle.stdout)
-          const exitCode = yield* handle.exitCode
+  it.layer(NodeServices.layer)((it) => {
+    describe("spawn", () => {
+      describe("basic spawning", () => {
+        it.effect("should spawn a simple command and collect output", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("node", ["--version"])
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          // Verify it contains "v" (version string starts with v)
-          assert.isTrue(output.includes("v"))
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            // Verify it contains "v" (version string starts with v)
+            assert.isTrue(output.includes("v"))
+          }).pipe(Effect.scoped))
 
-      it.effect("should spawn echo command", () =>
-        Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("echo", ["hello", "world"])
-          const output = yield* collectStreamOutput(handle.stdout)
-          const exitCode = yield* handle.exitCode
+        it.effect("should spawn echo command", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("echo", ["hello", "world"])
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          assert.strictEqual(output, "hello world")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(output, "hello world")
+          }).pipe(Effect.scoped))
 
-      it.effect("should spawn with template literal", () =>
-        Effect.gen(function*() {
-          const handle = yield* ChildProcess.make`echo spawned`
-          const output = yield* collectStreamOutput(handle.stdout)
-          const exitCode = yield* handle.exitCode
+        it.effect("should spawn with template literal", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make`echo spawned`
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          assert.strictEqual(output, "spawned")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(output, "spawned")
+          }).pipe(Effect.scoped))
+      })
+
+      describe("cwd option", () => {
+        it.effect("should handle command with working directory", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("pwd", [], { cwd: "/tmp" })
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            // On macOS, /tmp is a symlink to /private/tmp
+            assert.isTrue(output.includes("tmp"))
+          }).pipe(Effect.scoped))
+
+        it.effect("should use cwd with template literal form", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make({ cwd: "/tmp" })`pwd`
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.isTrue(output.includes("tmp"))
+          }).pipe(Effect.scoped))
+      })
+
+      describe("env option", () => {
+        it.effect("should handle environment variables", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("sh", ["-c", "echo $TEST_VAR"], {
+              env: { TEST_VAR: "test_value" },
+              extendEnv: true
+            })
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(output, "test_value")
+          }).pipe(Effect.scoped))
+
+        it.effect("should handle multiple environment variables", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("sh", ["-c", "echo $VAR1-$VAR2-$VAR3"], {
+              env: { VAR1: "one", VAR2: "two", VAR3: "three" },
+              extendEnv: true
+            })
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(output, "one-two-three")
+          }).pipe(Effect.scoped))
+      })
+
+      describe("shell option", () => {
+        it.effect("should execute with shell when using sh -c", () =>
+          Effect.gen(function*() {
+            // Use sh -c to test shell expansion without triggering deprecation warning
+            const handle = yield* ChildProcess.make("sh", ["-c", "echo $HOME"])
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            // With shell, $HOME should be expanded
+            assert.isTrue(output.length > 0)
+            assert.isFalse(output.includes("$HOME"))
+          }).pipe(Effect.scoped))
+
+        it.effect("should not expand variables without shell", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("echo", ["$HOME"], { shell: false })
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            // Without shell, $HOME should not be expanded
+            assert.strictEqual(output, "$HOME")
+          }).pipe(Effect.scoped))
+
+        it.effect("should allow piping with shell", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("sh", ["-c", "echo hello | tr a-z A-Z"])
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(output, "HELLO")
+          }).pipe(Effect.scoped))
+      })
+
+      describe("template literal forms", () => {
+        it.effect("should work with template literal form", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make`echo hello`
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(output, "hello")
+          }).pipe(Effect.scoped))
+
+        it.effect("should handle string interpolation", () =>
+          Effect.gen(function*() {
+            const name = "world"
+            const handle = yield* ChildProcess.make`echo hello ${name}`
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(output, "hello world")
+          }).pipe(Effect.scoped))
+
+        it.effect("should handle number interpolation", () =>
+          Effect.gen(function*() {
+            const count = 42
+            const handle = yield* ChildProcess.make`echo count is ${count}`
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(output, "count is 42")
+          }).pipe(Effect.scoped))
+
+        it.effect("should handle array interpolation", () =>
+          Effect.gen(function*() {
+            const args = ["-l", "-a"]
+            const handle = yield* ChildProcess.make`ls ${args} /tmp`
+            const exitCode = yield* handle.exitCode
+            const output = yield* collectStreamOutput(handle.stdout)
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            // Should list files in /tmp with -l -a flags
+            assert.isTrue(output.length > 0)
+          }).pipe(Effect.scoped))
+
+        it.effect("should handle multiple interpolations", () =>
+          Effect.gen(function*() {
+            const greeting = "hello"
+            const target = "world"
+            const handle = yield* ChildProcess.make`echo ${greeting} ${target}`
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(output, "hello world")
+          }).pipe(Effect.scoped))
+
+        it.effect("should handle options with template literal", () =>
+          Effect.gen(function*() {
+            const filename = "test.txt"
+            const handle = yield* ChildProcess.make({ cwd: "/tmp" })`echo ${filename}`
+            const output = yield* collectStreamOutput(handle.stdout)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(output, "test.txt")
+          }).pipe(Effect.scoped))
+      })
+
+      describe("stderr streaming", () => {
+        it.effect("should capture stderr output", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("sh", ["-c", "echo error message >&2"])
+            const stderr = yield* collectStreamOutput(handle.stderr)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(stderr, "error message")
+          }).pipe(Effect.scoped))
+
+        it.effect("should capture both stdout and stderr", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("sh", ["-c", "echo stdout; echo stderr >&2"])
+            const stdout = yield* collectStreamOutput(handle.stdout)
+            const stderr = yield* collectStreamOutput(handle.stderr)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(stdout, "stdout")
+            assert.strictEqual(stderr, "stderr")
+          }).pipe(Effect.scoped))
+
+        it.effect("should handle more stdout than stderr", () =>
+          Effect.gen(function*() {
+            // Process outputs many lines to stdout but only one to stderr
+            const handle = yield* ChildProcess.make(
+              "sh",
+              ["-c", "echo line1; echo line2; echo line3; echo line4; echo line5; echo error >&2"]
+            )
+            const stdout = yield* collectStreamOutput(handle.stdout)
+            const stderr = yield* collectStreamOutput(handle.stderr)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(stdout, ["line1", "line2", "line3", "line4", "line5"].join("\n"))
+            assert.strictEqual(stderr, "error")
+          }).pipe(Effect.scoped))
+
+        it.effect("should handle more stderr than stdout", () =>
+          Effect.gen(function*() {
+            // Process outputs many lines to stderr but only one to stdout
+            const handle = yield* ChildProcess.make(
+              "sh",
+              ["-c", "echo output; echo err1 >&2; echo err2 >&2; echo err3 >&2; echo err4 >&2; echo err5 >&2"]
+            )
+            const stdout = yield* collectStreamOutput(handle.stdout)
+            const stderr = yield* collectStreamOutput(handle.stderr)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(stdout, "output")
+            assert.strictEqual(stderr, ["err1", "err2", "err3", "err4", "err5"].join("\n"))
+          }).pipe(Effect.scoped))
+
+        it.effect("should allow reading only stdout when stderr is empty", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("echo", ["only stdout"])
+            // Read streams in parallel to avoid deadlock when one stream is empty
+            const [stdout, stderr] = yield* Effect.all([
+              collectStreamOutput(handle.stdout),
+              collectStreamOutput(handle.stderr)
+            ], { concurrency: "unbounded" })
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(stdout, "only stdout")
+            assert.strictEqual(stderr, "")
+          }).pipe(Effect.scoped))
+
+        it.effect("should allow reading only stderr when stdout is empty", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("sh", ["-c", "echo only stderr >&2"])
+            // Read streams in parallel to avoid deadlock when one stream is empty
+            const [stdout, stderr] = yield* Effect.all([
+              collectStreamOutput(handle.stdout),
+              collectStreamOutput(handle.stderr)
+            ], { concurrency: "unbounded" })
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(stdout, "")
+            assert.strictEqual(stderr, "only stderr")
+          }).pipe(Effect.scoped))
+      })
+
+      describe("combined output (all)", () => {
+        it.effect("should read interspersed stdout and stderr via .all", () =>
+          Effect.gen(function*() {
+            // Use sleep to force buffer flushes between writes, ensuring
+            // stdout and stderr chunks arrive separately for proper interleaving
+            const handle = yield* ChildProcess.make(
+              "sh",
+              [
+                "-c",
+                [
+                  "echo stdout1; sleep 0.01;",
+                  "echo stderr1 >&2; sleep 0.01;",
+                  "echo stdout2; sleep 0.01;",
+                  "echo stderr2 >&2"
+                ].join(" ")
+              ]
+            )
+            const all = yield* collectStreamOutput(handle.all)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            // With delays forcing buffer flushes, we should see proper interleaving
+            assert.strictEqual(all, ["stdout1", "stderr1", "stdout2", "stderr2"].join("\n"))
+          }).pipe(Effect.scoped))
+
+        it.effect("should capture only stdout via .all when no stderr", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("echo", ["hello from stdout"])
+            const all = yield* collectStreamOutput(handle.all)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(all, "hello from stdout")
+          }).pipe(Effect.scoped))
+
+        it.effect("should capture only stderr via .all when no stdout", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("sh", ["-c", "echo hello from stderr >&2"])
+            const all = yield* collectStreamOutput(handle.all)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(all, "hello from stderr")
+          }).pipe(Effect.scoped))
+
+        it.effect("should handle many lines of interspersed output via .all", () =>
+          Effect.gen(function*() {
+            // Use sleep to force buffer flushes, ensuring interleaved arrival
+            const handle = yield* ChildProcess.make(
+              "sh",
+              ["-c", "for i in 1 2 3 4 5; do echo stdout$i; sleep 0.01; echo stderr$i >&2; sleep 0.01; done"]
+            )
+            const all = yield* collectStreamOutput(handle.all)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            // Verify all lines are present in interleaved order
+            const expected = []
+            for (let i = 1; i <= 5; i++) {
+              expected.push(`stdout${i}`, `stderr${i}`)
+            }
+            assert.strictEqual(all, expected.join("\n"))
+          }).pipe(Effect.scoped))
+
+        it.effect("should allow reading .all independently", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make(
+              "sh",
+              ["-c", "echo out; sleep 0.01; echo err >&2"]
+            )
+            const all = yield* collectStreamOutput(handle.all)
+            const exitCode = yield* handle.exitCode
+
+            assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+            assert.strictEqual(all, ["out", "err"].join("\n"))
+          }).pipe(Effect.scoped))
+      })
+
+      describe("stdout streaming", () => {
+        it.effect("should stream stdout", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("echo", ["streaming output"])
+            const output = yield* collectStreamOutput(handle.stdout)
+
+            assert.strictEqual(output, "streaming output")
+          }).pipe(Effect.scoped))
+
+        it.effect("should stream multiple lines", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("sh", ["-c", "echo line1; echo line2; echo line3"])
+            const output = yield* collectStreamOutput(handle.stdout)
+
+            assert.strictEqual(output, ["line1", "line2", "line3"].join("\n"))
+          }).pipe(Effect.scoped))
+      })
+
+      describe("process control", () => {
+        it.effect("should kill a process", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("sleep", ["10"])
+
+            yield* handle.kill()
+
+            // After killing, exitCode should eventually resolve (with signal error)
+            const exit = yield* Effect.exit(handle.exitCode)
+            assert.isTrue(exit._tag === "Failure")
+          }).pipe(Effect.scoped))
+
+        it.effect("should kill with specific signal", () =>
+          Effect.gen(function*() {
+            const handle = yield* ChildProcess.make("sleep", ["10"])
+
+            yield* handle.kill({ killSignal: "SIGKILL" })
+
+            const exit = yield* Effect.exit(handle.exitCode)
+            assert.isTrue(exit._tag === "Failure")
+          }).pipe(Effect.scoped))
+      })
     })
 
-    describe("cwd option", () => {
-      it.effect("should handle command with working directory", () =>
+    describe("pipeline spawning", () => {
+      it.effect("should spawn a simple pipeline", () =>
         Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("pwd", [], { cwd: "/tmp" })
+          const handle = yield* ChildProcess.make`echo hello world`.pipe(
+            ChildProcess.pipeTo(ChildProcess.make`tr a-z A-Z`)
+          )
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
           assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          // On macOS, /tmp is a symlink to /private/tmp
-          assert.isTrue(output.includes("tmp"))
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+          assert.strictEqual(output, "HELLO WORLD")
+        }).pipe(Effect.scoped))
 
-      it.effect("should use cwd with template literal form", () =>
+      it.effect("should spawn a three-stage pipeline", () =>
         Effect.gen(function*() {
-          const handle = yield* ChildProcess.make({ cwd: "/tmp" })`pwd`
+          const handle = yield* ChildProcess.make`echo hello world`.pipe(
+            ChildProcess.pipeTo(ChildProcess.make`tr a-z A-Z`),
+            ChildProcess.pipeTo(ChildProcess.make("tr", [" ", "-"]))
+          )
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
           assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          assert.isTrue(output.includes("tmp"))
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-    })
+          assert.strictEqual(output, "HELLO-WORLD")
+        }).pipe(Effect.scoped))
 
-    describe("env option", () => {
-      it.effect("should handle environment variables", () =>
+      it.effect("should pipe grep output", () =>
         Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("sh", ["-c", "echo $TEST_VAR"], {
-            env: { TEST_VAR: "test_value" },
-            extendEnv: true
-          })
+          const handle = yield* ChildProcess.make("echo", ["line1\nline2\nline3"]).pipe(
+            ChildProcess.pipeTo(ChildProcess.make`grep line2`)
+          )
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
           assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          assert.strictEqual(output, "test_value")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+          assert.strictEqual(output, "line2")
+        }).pipe(Effect.scoped))
 
-      it.effect("should handle multiple environment variables", () =>
+      it.effect("should handle mixed command forms in pipeline", () =>
         Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("sh", ["-c", "echo $VAR1-$VAR2-$VAR3"], {
-            env: { VAR1: "one", VAR2: "two", VAR3: "three" },
-            extendEnv: true
-          })
-          const output = yield* collectStreamOutput(handle.stdout)
-          const exitCode = yield* handle.exitCode
-
-          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          assert.strictEqual(output, "one-two-three")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-    })
-
-    describe("shell option", () => {
-      it.effect("should execute with shell when using sh -c", () =>
-        Effect.gen(function*() {
-          // Use sh -c to test shell expansion without triggering deprecation warning
-          const handle = yield* ChildProcess.make("sh", ["-c", "echo $HOME"])
-          const output = yield* collectStreamOutput(handle.stdout)
-          const exitCode = yield* handle.exitCode
-
-          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          // With shell, $HOME should be expanded
-          assert.isTrue(output.length > 0)
-          assert.isFalse(output.includes("$HOME"))
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-      it.effect("should not expand variables without shell", () =>
-        Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("echo", ["$HOME"], { shell: false })
-          const output = yield* collectStreamOutput(handle.stdout)
-          const exitCode = yield* handle.exitCode
-
-          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          // Without shell, $HOME should not be expanded
-          assert.strictEqual(output, "$HOME")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-      it.effect("should allow piping with shell", () =>
-        Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("sh", ["-c", "echo hello | tr a-z A-Z"])
+          const handle = yield* ChildProcess.make("echo", ["hello"]).pipe(
+            ChildProcess.pipeTo(ChildProcess.make`tr a-z A-Z`)
+          )
           const output = yield* collectStreamOutput(handle.stdout)
           const exitCode = yield* handle.exitCode
 
           assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(output, "HELLO")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+        }).pipe(Effect.scoped))
     })
 
-    describe("template literal forms", () => {
-      it.effect("should work with template literal form", () =>
+    describe("error handling", () => {
+      it.effect("should return non-zero exit code", () =>
         Effect.gen(function*() {
-          const handle = yield* ChildProcess.make`echo hello`
-          const output = yield* collectStreamOutput(handle.stdout)
+          const handle = yield* ChildProcess.make("sh", ["-c", "exit 1"])
           const exitCode = yield* handle.exitCode
 
-          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          assert.strictEqual(output, "hello")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(1))
+        }).pipe(Effect.scoped))
 
-      it.effect("should handle string interpolation", () =>
+      it.effect("should fail for invalid command", () =>
         Effect.gen(function*() {
-          const name = "world"
-          const handle = yield* ChildProcess.make`echo hello ${name}`
-          const output = yield* collectStreamOutput(handle.stdout)
-          const exitCode = yield* handle.exitCode
+          const exit = yield* Effect.exit(
+            ChildProcess.make("nonexistent-command-12345").asEffect()
+          )
 
-          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          assert.strictEqual(output, "hello world")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+          assert.isTrue(exit._tag === "Failure")
+        }).pipe(Effect.scoped))
 
-      it.effect("should handle number interpolation", () =>
+      it.effect("should handle spawn error with invalid cwd", () =>
         Effect.gen(function*() {
-          const count = 42
-          const handle = yield* ChildProcess.make`echo count is ${count}`
-          const output = yield* collectStreamOutput(handle.stdout)
-          const exitCode = yield* handle.exitCode
+          const exit = yield* Effect.exit(
+            ChildProcess.make("echo", ["test"], { cwd: "/nonexistent/directory/path" }).asEffect()
+          )
 
-          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          assert.strictEqual(output, "count is 42")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-      it.effect("should handle array interpolation", () =>
-        Effect.gen(function*() {
-          const args = ["-l", "-a"]
-          const handle = yield* ChildProcess.make`ls ${args} /tmp`
-          const exitCode = yield* handle.exitCode
-          const output = yield* collectStreamOutput(handle.stdout)
-
-          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          // Should list files in /tmp with -l -a flags
-          assert.isTrue(output.length > 0)
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-      it.effect("should handle multiple interpolations", () =>
-        Effect.gen(function*() {
-          const greeting = "hello"
-          const target = "world"
-          const handle = yield* ChildProcess.make`echo ${greeting} ${target}`
-          const output = yield* collectStreamOutput(handle.stdout)
-          const exitCode = yield* handle.exitCode
-
-          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          assert.strictEqual(output, "hello world")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-      it.effect("should handle options with template literal", () =>
-        Effect.gen(function*() {
-          const filename = "test.txt"
-          const handle = yield* ChildProcess.make({ cwd: "/tmp" })`echo ${filename}`
-          const output = yield* collectStreamOutput(handle.stdout)
-          const exitCode = yield* handle.exitCode
-
-          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          assert.strictEqual(output, "test.txt")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+          assert.isTrue(exit._tag === "Failure")
+        }).pipe(Effect.scoped))
     })
 
-    describe("stderr streaming", () => {
-      it.effect("should capture stderr output", () =>
+    describe("stdin", () => {
+      it.effect("allows providing standard input to a command", () =>
         Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("sh", ["-c", "echo error message >&2"])
-          const stderr = yield* collectStreamOutput(handle.stderr)
+          const input = "a b c"
+          const stdin = Stream.make(Buffer.from(input, "utf-8"))
+          const handle = yield* ChildProcess.make("cat", { stdin })
+          const output = yield* collectStreamOutput(handle.stdout)
+          const exitCode = yield* handle.exitCode
+
+          assert.deepStrictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          assert.strictEqual(output, input)
+        }).pipe(Effect.scoped))
+    })
+
+    describe("additionalFds", () => {
+      it.effect("should read data from an output fd (fd3)", () =>
+        Effect.gen(function*() {
+          // Use a shell script that writes to fd3
+          // The script echoes "hello from fd3" to file descriptor 3
+          const handle = yield* ChildProcess.make("sh", ["-c", "echo 'hello from fd3' >&3"], {
+            additionalFds: { fd3: { type: "output" } }
+          })
+
+          const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
           const exitCode = yield* handle.exitCode
 
           assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-          assert.strictEqual(stderr, "error message")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+          assert.strictEqual(fd3Output, "hello from fd3")
+        }).pipe(Effect.scoped))
 
-      it.effect("should capture both stdout and stderr", () =>
+      it.effect("should write data to an input fd (fd3)", () =>
         Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("sh", ["-c", "echo stdout; echo stderr >&2"])
+          // Use a shell script that reads from fd3 and echoes it to stdout
+          // The script reads from file descriptor 3 and outputs to stdout
+          const inputData = "data from parent"
+          const inputStream = Stream.make(new TextEncoder().encode(inputData))
+
+          const handle = yield* ChildProcess.make("sh", ["-c", "cat <&3"], {
+            additionalFds: {
+              fd3: { type: "input", stream: inputStream }
+            }
+          })
+
+          const stdout = yield* collectStreamOutput(handle.stdout)
+          const exitCode = yield* handle.exitCode
+
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          assert.strictEqual(stdout, inputData)
+        }).pipe(Effect.scoped))
+
+      it.effect("should handle multiple additional fds", () =>
+        Effect.gen(function*() {
+          // Script that writes different messages to fd3 and fd4
+          const handle = yield* ChildProcess.make(
+            "sh",
+            ["-c", "echo 'output on fd3' >&3; echo 'output on fd4' >&4"],
+            {
+              additionalFds: {
+                fd3: { type: "output" },
+                fd4: { type: "output" }
+              }
+            }
+          )
+
+          const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
+          const fd4Output = yield* collectStreamOutput(handle.getOutputFd(4))
+          const exitCode = yield* handle.exitCode
+
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          assert.strictEqual(fd3Output, "output on fd3")
+          assert.strictEqual(fd4Output, "output on fd4")
+        }).pipe(Effect.scoped))
+
+      it.effect("should handle fd gaps (e.g., fd3 and fd5 without fd4)", () =>
+        Effect.gen(function*() {
+          // Script that writes to fd3 and fd5, skipping fd4
+          const handle = yield* ChildProcess.make(
+            "sh",
+            ["-c", "echo 'on fd3' >&3; echo 'on fd5' >&5"],
+            {
+              additionalFds: {
+                fd3: { type: "output" },
+                fd5: { type: "output" }
+              }
+            }
+          )
+
+          const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
+          const fd5Output = yield* collectStreamOutput(handle.getOutputFd(5))
+          const exitCode = yield* handle.exitCode
+
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          assert.strictEqual(fd3Output, "on fd3")
+          assert.strictEqual(fd5Output, "on fd5")
+        }).pipe(Effect.scoped))
+
+      it.effect("should return empty stream for unconfigured output fd", () =>
+        Effect.gen(function*() {
+          const handle = yield* ChildProcess.make("echo", ["test"])
+
+          // fd3 was not configured, should return empty stream
+          const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
+          const exitCode = yield* handle.exitCode
+
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          assert.strictEqual(fd3Output, "")
+        }).pipe(Effect.scoped))
+
+      it.effect("should handle bidirectional communication via separate fds", () =>
+        Effect.gen(function*() {
+          // Script that reads from fd3, transforms it, and writes to fd4
+          const inputData = "hello"
+          const inputStream = Stream.make(new TextEncoder().encode(inputData))
+
+          const handle = yield* ChildProcess.make(
+            "sh",
+            ["-c", "cat <&3 | tr a-z A-Z >&4"],
+            {
+              additionalFds: {
+                fd3: { type: "input", stream: inputStream },
+                fd4: { type: "output" }
+              }
+            }
+          )
+
+          const fd4Output = yield* collectStreamOutput(handle.getOutputFd(4))
+          const exitCode = yield* handle.exitCode
+
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          assert.strictEqual(fd4Output, "HELLO")
+        }).pipe(Effect.scoped))
+
+      it.effect("should work alongside normal stdin/stdout/stderr", () =>
+        Effect.gen(function*() {
+          // Script that uses all standard streams plus fd3
+          const handle = yield* ChildProcess.make(
+            "sh",
+            ["-c", "echo 'stdout'; echo 'stderr' >&2; echo 'fd3' >&3"],
+            { additionalFds: { fd3: { type: "output" } } }
+          )
+
           const stdout = yield* collectStreamOutput(handle.stdout)
           const stderr = yield* collectStreamOutput(handle.stderr)
+          const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
           const exitCode = yield* handle.exitCode
 
           assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
           assert.strictEqual(stdout, "stdout")
           assert.strictEqual(stderr, "stderr")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
+          assert.strictEqual(fd3Output, "fd3")
+        }).pipe(Effect.scoped))
     })
-
-    describe("stdout streaming", () => {
-      it.effect("should stream stdout", () =>
-        Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("echo", ["streaming output"])
-          const output = yield* collectStreamOutput(handle.stdout)
-
-          assert.strictEqual(output, "streaming output")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-      it.effect("should stream multiple lines", () =>
-        Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("sh", ["-c", "echo line1; echo line2; echo line3"])
-          const output = yield* collectStreamOutput(handle.stdout)
-
-          assert.isTrue(output.includes("line1"))
-          assert.isTrue(output.includes("line2"))
-          assert.isTrue(output.includes("line3"))
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-    })
-
-    describe("process control", () => {
-      it.effect("should kill a process", () =>
-        Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("sleep", ["10"])
-
-          yield* handle.kill()
-
-          // After killing, exitCode should eventually resolve (with signal error)
-          const exit = yield* Effect.exit(handle.exitCode)
-          assert.isTrue(exit._tag === "Failure")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-      it.effect("should kill with specific signal", () =>
-        Effect.gen(function*() {
-          const handle = yield* ChildProcess.make("sleep", ["10"])
-
-          yield* handle.kill({ killSignal: "SIGKILL" })
-
-          const exit = yield* Effect.exit(handle.exitCode)
-          assert.isTrue(exit._tag === "Failure")
-        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-    })
-  })
-
-  describe("pipeline spawning", () => {
-    it.effect("should spawn a simple pipeline", () =>
-      Effect.gen(function*() {
-        const handle = yield* ChildProcess.make`echo hello world`.pipe(
-          ChildProcess.pipeTo(ChildProcess.make`tr a-z A-Z`)
-        )
-        const output = yield* collectStreamOutput(handle.stdout)
-        const exitCode = yield* handle.exitCode
-
-        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(output, "HELLO WORLD")
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-    it.effect("should spawn a three-stage pipeline", () =>
-      Effect.gen(function*() {
-        const handle = yield* ChildProcess.make`echo hello world`.pipe(
-          ChildProcess.pipeTo(ChildProcess.make`tr a-z A-Z`),
-          ChildProcess.pipeTo(ChildProcess.make("tr", [" ", "-"]))
-        )
-        const output = yield* collectStreamOutput(handle.stdout)
-        const exitCode = yield* handle.exitCode
-
-        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(output, "HELLO-WORLD")
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-    it.effect("should pipe grep output", () =>
-      Effect.gen(function*() {
-        const handle = yield* ChildProcess.make("echo", ["line1\nline2\nline3"]).pipe(
-          ChildProcess.pipeTo(ChildProcess.make`grep line2`)
-        )
-        const output = yield* collectStreamOutput(handle.stdout)
-        const exitCode = yield* handle.exitCode
-
-        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(output, "line2")
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-    it.effect("should handle mixed command forms in pipeline", () =>
-      Effect.gen(function*() {
-        const handle = yield* ChildProcess.make("echo", ["hello"]).pipe(
-          ChildProcess.pipeTo(ChildProcess.make`tr a-z A-Z`)
-        )
-        const output = yield* collectStreamOutput(handle.stdout)
-        const exitCode = yield* handle.exitCode
-
-        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(output, "HELLO")
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-  })
-
-  describe("error handling", () => {
-    it.effect("should return non-zero exit code", () =>
-      Effect.gen(function*() {
-        const handle = yield* ChildProcess.make("sh", ["-c", "exit 1"])
-        const exitCode = yield* handle.exitCode
-
-        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(1))
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-    it.effect("should fail for invalid command", () =>
-      Effect.gen(function*() {
-        const exit = yield* Effect.exit(
-          ChildProcess.make("nonexistent-command-12345").asEffect()
-        )
-
-        assert.isTrue(exit._tag === "Failure")
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-    it.effect("should handle spawn error with invalid cwd", () =>
-      Effect.gen(function*() {
-        const exit = yield* Effect.exit(
-          ChildProcess.make("echo", ["test"], { cwd: "/nonexistent/directory/path" }).asEffect()
-        )
-
-        assert.isTrue(exit._tag === "Failure")
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-  })
-
-  describe("stdin", () => {
-    it.effect("allows providing standard input to a command", () =>
-      Effect.gen(function*() {
-        const input = "a b c"
-        const stdin = Stream.make(Buffer.from(input, "utf-8"))
-        const handle = yield* ChildProcess.make("cat", { stdin })
-        const output = yield* collectStreamOutput(handle.stdout)
-        const exitCode = yield* handle.exitCode
-
-        assert.deepStrictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(output, input)
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-  })
-
-  describe("additionalFds", () => {
-    it.effect("should read data from an output fd (fd3)", () =>
-      Effect.gen(function*() {
-        // Use a shell script that writes to fd3
-        // The script echoes "hello from fd3" to file descriptor 3
-        const handle = yield* ChildProcess.make("sh", ["-c", "echo 'hello from fd3' >&3"], {
-          additionalFds: { fd3: { type: "output" } }
-        })
-
-        const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
-        const exitCode = yield* handle.exitCode
-
-        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(fd3Output, "hello from fd3")
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-    it.effect("should write data to an input fd (fd3)", () =>
-      Effect.gen(function*() {
-        // Use a shell script that reads from fd3 and echoes it to stdout
-        // The script reads from file descriptor 3 and outputs to stdout
-        const inputData = "data from parent"
-        const inputStream = Stream.make(new TextEncoder().encode(inputData))
-
-        const handle = yield* ChildProcess.make("sh", ["-c", "cat <&3"], {
-          additionalFds: {
-            fd3: { type: "input", stream: inputStream }
-          }
-        })
-
-        const stdout = yield* collectStreamOutput(handle.stdout)
-        const exitCode = yield* handle.exitCode
-
-        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(stdout, inputData)
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-    it.effect("should handle multiple additional fds", () =>
-      Effect.gen(function*() {
-        // Script that writes different messages to fd3 and fd4
-        const handle = yield* ChildProcess.make(
-          "sh",
-          ["-c", "echo 'output on fd3' >&3; echo 'output on fd4' >&4"],
-          {
-            additionalFds: {
-              fd3: { type: "output" },
-              fd4: { type: "output" }
-            }
-          }
-        )
-
-        const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
-        const fd4Output = yield* collectStreamOutput(handle.getOutputFd(4))
-        const exitCode = yield* handle.exitCode
-
-        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(fd3Output, "output on fd3")
-        assert.strictEqual(fd4Output, "output on fd4")
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-    it.effect("should handle fd gaps (e.g., fd3 and fd5 without fd4)", () =>
-      Effect.gen(function*() {
-        // Script that writes to fd3 and fd5, skipping fd4
-        const handle = yield* ChildProcess.make(
-          "sh",
-          ["-c", "echo 'on fd3' >&3; echo 'on fd5' >&5"],
-          {
-            additionalFds: {
-              fd3: { type: "output" },
-              fd5: { type: "output" }
-            }
-          }
-        )
-
-        const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
-        const fd5Output = yield* collectStreamOutput(handle.getOutputFd(5))
-        const exitCode = yield* handle.exitCode
-
-        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(fd3Output, "on fd3")
-        assert.strictEqual(fd5Output, "on fd5")
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-    it.effect("should return empty stream for unconfigured output fd", () =>
-      Effect.gen(function*() {
-        const handle = yield* ChildProcess.make("echo", ["test"])
-
-        // fd3 was not configured, should return empty stream
-        const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
-        const exitCode = yield* handle.exitCode
-
-        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(fd3Output, "")
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-    it.effect("should handle bidirectional communication via separate fds", () =>
-      Effect.gen(function*() {
-        // Script that reads from fd3, transforms it, and writes to fd4
-        const inputData = "hello"
-        const inputStream = Stream.make(new TextEncoder().encode(inputData))
-
-        const handle = yield* ChildProcess.make(
-          "sh",
-          ["-c", "cat <&3 | tr a-z A-Z >&4"],
-          {
-            additionalFds: {
-              fd3: { type: "input", stream: inputStream },
-              fd4: { type: "output" }
-            }
-          }
-        )
-
-        const fd4Output = yield* collectStreamOutput(handle.getOutputFd(4))
-        const exitCode = yield* handle.exitCode
-
-        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(fd4Output, "HELLO")
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
-
-    it.effect("should work alongside normal stdin/stdout/stderr", () =>
-      Effect.gen(function*() {
-        // Script that uses all standard streams plus fd3
-        const handle = yield* ChildProcess.make(
-          "sh",
-          ["-c", "echo 'stdout'; echo 'stderr' >&2; echo 'fd3' >&3"],
-          { additionalFds: { fd3: { type: "output" } } }
-        )
-
-        const stdout = yield* collectStreamOutput(handle.stdout)
-        const stderr = yield* collectStreamOutput(handle.stderr)
-        const fd3Output = yield* collectStreamOutput(handle.getOutputFd(3))
-        const exitCode = yield* handle.exitCode
-
-        assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
-        assert.strictEqual(stdout, "stdout")
-        assert.strictEqual(stderr, "stderr")
-        assert.strictEqual(fd3Output, "fd3")
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)))
   })
 })

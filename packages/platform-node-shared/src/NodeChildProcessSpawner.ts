@@ -20,6 +20,7 @@ import * as ChildProcess from "effect/unstable/process/ChildProcess"
 import type { ChildProcessHandle } from "effect/unstable/process/ChildProcessSpawner"
 import { ChildProcessSpawner, ExitCode, makeHandle, ProcessId } from "effect/unstable/process/ChildProcessSpawner"
 import * as NodeChildProcess from "node:child_process"
+import * as NodeJSStream from "node:stream"
 import { parseTemplates } from "./internal/process.ts"
 import { handleErrnoException } from "./internal/utils.ts"
 import * as NodeSink from "./NodeSink.ts"
@@ -261,31 +262,97 @@ const make = Effect.gen(function*() {
     return sink
   })
 
-  const setupChildOutput = Effect.fnUntraced(function*(
+  const setupChildOutputStreams = (
     command: ChildProcess.StandardCommand,
     childProcess: NodeChildProcess.ChildProcess,
-    config: ChildProcess.StdoutConfig,
-    streamName: "stdout" | "stderr"
-  ) {
-    const nodeStream = childProcess[streamName]
+    stdoutConfig: ChildProcess.StdoutConfig,
+    stderrConfig: ChildProcess.StderrConfig
+  ): {
+    stdout: Stream.Stream<Uint8Array, PlatformError.PlatformError>
+    stderr: Stream.Stream<Uint8Array, PlatformError.PlatformError>
+    all: Stream.Stream<Uint8Array, PlatformError.PlatformError>
+  } => {
+    const nodeStdout = childProcess.stdout
+    const nodeStderr = childProcess.stderr
 
-    // If the child process has a standard output stream, connect it to the
-    // corresponding stream that will be attached to the process handle
-    let stream: Stream.Stream<Uint8Array, PlatformError.PlatformError> = Stream.empty
-    if (Predicate.isNotNull(nodeStream)) {
-      stream = NodeStream.fromReadable({
-        evaluate: () => nodeStream,
-        onError: (error) => toPlatformError(`fromReadable(${streamName})`, toError(error), command)
+    // Create PassThrough streams for individual access to stdout and stderr.
+    // We pipe the original Node.js streams to these PassThroughs so that
+    // the data can be consumed by both the individual streams AND the
+    // combined stream (.all) simultaneously.
+    const stdoutPassThrough = Predicate.isNotNull(nodeStdout)
+      ? new NodeJSStream.PassThrough()
+      : null
+    const stderrPassThrough = Predicate.isNotNull(nodeStderr)
+      ? new NodeJSStream.PassThrough()
+      : null
+
+    // Create PassThrough for combined output (.all)
+    const combinedPassThrough = new NodeJSStream.PassThrough()
+
+    // Track stream endings for the combined stream
+    const totalStreams = (Predicate.isNotNull(nodeStdout) ? 1 : 0) +
+      (Predicate.isNotNull(nodeStderr) ? 1 : 0)
+    let endedCount = 0
+    const onStreamEnd = () => {
+      endedCount++
+      if (endedCount >= totalStreams) {
+        combinedPassThrough.end()
+      }
+    }
+
+    // Pipe stdout to both its own PassThrough and the combined PassThrough
+    if (Predicate.isNotNull(nodeStdout) && Predicate.isNotNull(stdoutPassThrough)) {
+      nodeStdout.pipe(stdoutPassThrough)
+      nodeStdout.pipe(combinedPassThrough, { end: false })
+      nodeStdout.once("end", onStreamEnd)
+    }
+
+    // Pipe stderr to both its own PassThrough and the combined PassThrough
+    if (Predicate.isNotNull(nodeStderr) && Predicate.isNotNull(stderrPassThrough)) {
+      nodeStderr.pipe(stderrPassThrough)
+      nodeStderr.pipe(combinedPassThrough, { end: false })
+      nodeStderr.once("end", onStreamEnd)
+    }
+
+    // Handle edge case: no streams available
+    if (totalStreams === 0) {
+      combinedPassThrough.end()
+    }
+
+    // Create Effect stream for stdout from its PassThrough
+    let stdout: Stream.Stream<Uint8Array, PlatformError.PlatformError> = Stream.empty
+    if (Predicate.isNotNull(stdoutPassThrough)) {
+      stdout = NodeStream.fromReadable({
+        evaluate: () => stdoutPassThrough,
+        onError: (error) => toPlatformError("fromReadable(stdout)", toError(error), command)
       })
+      // Apply user-provided Sink if configured
+      if (Sink.isSink(stdoutConfig.stream)) {
+        stdout = Stream.transduce(stdout, stdoutConfig.stream)
+      }
     }
 
-    // If the user provided a `Sink`, run the output stream through it
-    if (Sink.isSink(config.stream)) {
-      stream = Stream.transduce(stream, config.stream)
+    // Create Effect stream for stderr from its PassThrough
+    let stderr: Stream.Stream<Uint8Array, PlatformError.PlatformError> = Stream.empty
+    if (Predicate.isNotNull(stderrPassThrough)) {
+      stderr = NodeStream.fromReadable({
+        evaluate: () => stderrPassThrough,
+        onError: (error) => toPlatformError("fromReadable(stderr)", toError(error), command)
+      })
+      // Apply user-provided Sink if configured
+      if (Sink.isSink(stderrConfig.stream)) {
+        stderr = Stream.transduce(stderr, stderrConfig.stream)
+      }
     }
 
-    return stream
-  })
+    // Create Effect stream for combined output from the combined PassThrough
+    const all: Stream.Stream<Uint8Array, PlatformError.PlatformError> = NodeStream.fromReadable({
+      evaluate: () => combinedPassThrough,
+      onError: (error) => toPlatformError("fromReadable(all)", toError(error), command)
+    })
+
+    return { stdout, stderr, all }
+  }
 
   const spawn = Effect.fnUntraced(
     function*(
@@ -426,8 +493,7 @@ const make = Effect.gen(function*() {
 
         const pid = ProcessId(childProcess.pid!)
         const stdin = yield* setupChildStdin(command, childProcess, stdinConfig)
-        const stdout = yield* setupChildOutput(command, childProcess, stdoutConfig, "stdout")
-        const stderr = yield* setupChildOutput(command, childProcess, stderrConfig, "stderr")
+        const { all, stderr, stdout } = setupChildOutputStreams(command, childProcess, stdoutConfig, stderrConfig)
         const { getInputFd, getOutputFd } = yield* setupAdditionalFds(command, childProcess, resolvedAdditionalFds)
         const isRunning = Effect.map(Deferred.isDone(exitSignal), (done) => !done)
         const exitCode = Effect.flatMap(Deferred.await(exitSignal), ([code, signal]) => {
@@ -458,6 +524,7 @@ const make = Effect.gen(function*() {
           stdin,
           stdout,
           stderr,
+          all,
           getInputFd,
           getOutputFd
         })

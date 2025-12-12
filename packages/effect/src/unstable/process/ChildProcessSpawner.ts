@@ -83,6 +83,11 @@ export interface ChildProcessHandle {
    */
   readonly stderr: Stream.Stream<Uint8Array, PlatformError.PlatformError>
   /**
+   * A stream which combines and interleaves all messages output by the child
+   * process `stdout` and `stderr` streams.
+   */
+  readonly all: Stream.Stream<Uint8Array, PlatformError.PlatformError>
+  /**
    * Get an input `Sink` for writing to a file descriptor configured via
    * `ChildProcessOptions.additionalFds`.
    *
