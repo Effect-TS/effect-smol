@@ -3186,7 +3186,10 @@ export const mapAccum: {
       a: Types.NoInfer<OutElem>
     ) =>
       | Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E, R>
-      | readonly [state: S, values: ReadonlyArray<B>]
+      | readonly [state: S, values: ReadonlyArray<B>],
+    options?: {
+      readonly onHalt?: ((state: S) => Array<B>) | undefined
+    }
   ): <
     OutErr,
     OutDone,
@@ -3211,31 +3214,51 @@ export const mapAccum: {
       a: Types.NoInfer<OutElem>
     ) =>
       | Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E, R>
-      | readonly [state: S, values: ReadonlyArray<B>]
+      | readonly [state: S, values: ReadonlyArray<B>],
+    options?: {
+      readonly onHalt?: ((state: S) => Array<B>) | undefined
+    }
   ): Channel<B, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
-} = dual(3, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, S, B, E = never, R = never>(
-  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  initial: LazyArg<S>,
-  f: (
-    s: S,
-    a: Types.NoInfer<OutElem>
-  ) =>
-    | Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E, R>
-    | readonly [state: S, values: ReadonlyArray<B>]
-): Channel<B, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
-  fromTransform((upstream, scope) =>
-    Effect.map(toTransform(self)(upstream, scope), (pull) => {
-      let state = initial()
-      let current: ReadonlyArray<B> | undefined
-      let index = 0
-      const pump = Effect.suspend(function loop(): Pull.Pull<B, OutErr | E, OutDone, R> {
-        if (current === undefined) {
-          return Effect.flatMap(
-            Effect.flatMap(pull, (a): Effect.Effect<readonly [state: S, values: ReadonlyArray<B>]> => {
-              const b = f(state, a)
-              return Arr.isArray(b) ? Effect.succeed(b as any) : b as any
-            }),
-            ([newState, values]) => {
+} = dual(
+  (args) => isChannel(args[0]),
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, S, B, E = never, R = never>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    initial: LazyArg<S>,
+    f: (
+      s: S,
+      a: Types.NoInfer<OutElem>
+    ) =>
+      | Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E, R>
+      | readonly [state: S, values: ReadonlyArray<B>],
+    options?: {
+      readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+    }
+  ): Channel<B, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
+    fromTransform((upstream, scope) =>
+      Effect.map(toTransform(self)(upstream, scope), (pull) => {
+        let state = initial()
+        let current: ReadonlyArray<B> | undefined
+        let index = 0
+        let cause: Cause.Cause<OutErr | Pull.Halt<OutDone>> | undefined
+        const pullNext = Effect.matchCauseEffect(pull, {
+          onFailure(cause_) {
+            cause = cause_
+            const b = options?.onHalt && options.onHalt(state)
+            return b && b.length > 0
+              ? Effect.succeed([state, b] as const)
+              : Effect.failCause(cause_)
+          },
+          onSuccess(a): Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E, R> {
+            const b = f(state, a)
+            return Arr.isArray(b)
+              ? Effect.succeed(b as any)
+              : b as any
+          }
+        })
+        const pump = Effect.suspend(function loop(): Pull.Pull<B, OutErr | E, OutDone, R> {
+          if (current === undefined) {
+            if (cause) return Effect.failCause(cause)
+            return Effect.flatMap(pullNext, ([newState, values]) => {
               state = newState
               if (values.length === 0) {
                 return loop()
@@ -3244,19 +3267,19 @@ export const mapAccum: {
               }
               current = values
               return loop()
-            }
-          )
-        }
-        const next = current[index++]
-        if (index >= current.length) {
-          current = undefined
-          index = 0
-        }
-        return Effect.succeed(next)
+            })
+          }
+          const next = current[index++]
+          if (index >= current.length) {
+            current = undefined
+            index = 0
+          }
+          return Effect.succeed(next)
+        })
+        return pump
       })
-      return pump
-    })
-  ))
+    )
+)
 
 /**
  * Statefully transforms a channel by scanning over its output with an accumulator function.

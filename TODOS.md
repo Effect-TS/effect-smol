@@ -400,10 +400,10 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |           `some`           |   X    |                               |          |
 |        `someOrElse`        |   X    |                               |          |
 |        `someOrFail`        |   X    |                               |          |
-|          `split`           |   -    |                               |          |
+|          `split`           |  Done  |                               |          |
 |       `splitOnChunk`       |   X    |                               |          |
 |           `take`           |  Done  |            `take`             |          |
-|        `takeRight`         |   -    |                               |          |
+|        `takeRight`         |  Done  |                               |          |
 |        `takeUntil`         |  Done  |          `takeUntil`          |          |
 |     `takeUntilEffect`      |  Done  |       `takeUntilEffect`       |          |
 |        `takeWhile`         |  Done  |          `takeWhile`          |          |

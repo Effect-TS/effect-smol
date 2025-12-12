@@ -194,6 +194,17 @@ describe("Stream", () => {
         )
         assert.deepStrictEqual(result, [1, 2])
       }))
+
+    it.effect("takeRight", () =>
+      Effect.gen(function*() {
+        const take = 3
+        const stream = Stream.range(1, 5)
+        const { result1, result2 } = yield* (Effect.all({
+          result1: pipe(stream, Stream.takeRight(take), Stream.runCollect),
+          result2: pipe(Stream.runCollect(stream), Effect.map(Array.takeRight(take)))
+        }))
+        deepStrictEqual(result1, result2)
+      }))
   })
 
   describe("pagination", () => {
@@ -3378,6 +3389,63 @@ describe("Stream", () => {
         const result = yield* (Ref.get(ref))
         assert.strictEqual(either, "Ouch")
         deepStrictEqual(result, [[1, 2, 3], [4, 5, 6], [7, 8]])
+      }))
+  })
+
+  describe("split", () => {
+    it.effect("split - should split properly", () =>
+      Effect.gen(function*() {
+        const chunks = Array.make(
+          Array.range(1, 2),
+          Array.range(3, 4),
+          Array.range(5, 6),
+          Array.make(7, 8, 9),
+          Array.of(10)
+        )
+        const { result1, result2 } = yield* (Effect.all({
+          result1: pipe(
+            Stream.range(0, 9),
+            Stream.split((n) => n % 4 === 0 ? n : Filter.fail(n)),
+            Stream.runCollect
+          ),
+          result2: pipe(
+            Stream.fromArrays(...chunks),
+            Stream.split((n) => n % 3 === 0 ? n : Filter.fail(n)),
+            Stream.runCollect
+          )
+        }))
+        deepStrictEqual(
+          result1,
+          [[1, 2, 3], [5, 6, 7], [9]]
+        )
+        deepStrictEqual(
+          result2,
+          [[1, 2], [4, 5], [7, 8], [10]]
+        )
+      }))
+
+    it.effect("split - is equivalent to identity when the predicate is not satisfied", () =>
+      Effect.gen(function*() {
+        const stream = Stream.range(1, 10)
+        const { result1, result2 } = yield* (Effect.all({
+          result1: pipe(stream, Stream.split((n) => n % 11 === 0 ? n : Filter.fail(n)), Stream.runCollect),
+          result2: pipe(
+            Stream.runCollect(stream),
+            Effect.map((chunk) => pipe(Array.of(chunk), Array.filter(Array.isArrayNonEmpty)))
+          )
+        }))
+        deepStrictEqual(result1, [Array.range(1, 10)])
+        deepStrictEqual(result1, result2)
+      }))
+
+    it.effect("split - should output empty chunk when stream is empty", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.empty,
+          Stream.split((n: number) => n % 11 === 0 ? n : Filter.fail(n)),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [])
       }))
   })
 })

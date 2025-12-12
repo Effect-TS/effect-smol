@@ -3381,6 +3381,41 @@ export const take: {
 )
 
 /**
+ * Takes the last specified number of elements from this stream.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Stream } from "effect"
+ *
+ * const stream = Stream.takeRight(Stream.make(1, 2, 3, 4, 5, 6), 3)
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
+ * // { _id: 'Chunk', values: [ 4, 5, 6 ] }
+ * ```
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const takeRight: {
+  (n: number): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<A, E, R>
+} = dual(
+  2,
+  <A, E, R>(self: Stream<A, E, R>, n: number): Stream<A, E, R> =>
+    mapAccumArray(self, MutableList.make<A>, (list, arr) => {
+      MutableList.appendAll(list, arr)
+      if (list.length > n) {
+        MutableList.takeNVoid(list, list.length - n)
+      }
+      return [list, emptyArr]
+    }, {
+      onHalt(list) {
+        return MutableList.takeAll(list)
+      }
+    })
+)
+
+/**
  * Takes all elements of the stream until the specified predicate evaluates to
  * `true`.
  *
@@ -3886,6 +3921,54 @@ export const slidingSize: {
 )
 
 /**
+ * Splits elements based on a filter function.
+ *
+ * ```ts
+ * import { pipe, Stream } from "effect"
+ * import { Filter } from "effect/data/Filter"
+ *
+ * pipe(
+ *   Stream.range(1, 10),
+ *   Stream.split((n) => n % 4 === 0 ? n : Filter.fail(n)),
+ *   Stream.runCollect
+ * )
+ * // => [[1, 2, 3], [5, 6, 7], [9, 10]]
+ * ```
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const split: {
+  <A, B, X>(
+    filter: Filter.Filter<A, B, X>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<Arr.NonEmptyReadonlyArray<X>, E, R>
+  <A, E, R, B, X>(
+    self: Stream<A, E, R>,
+    filter: Filter.Filter<A, B, X>
+  ): Stream<Arr.NonEmptyReadonlyArray<X>, E, R>
+} = dual(2, <A, E, R, B, X>(
+  self: Stream<A, E, R>,
+  filter: Filter.Filter<A, B, X>
+): Stream<Arr.NonEmptyReadonlyArray<X>, E, R> =>
+  mapAccumArray(self, Arr.empty<X>, (acc, arr) => {
+    const out = Arr.empty<Arr.NonEmptyReadonlyArray<X>>()
+    for (let i = 0; i < arr.length; i++) {
+      const result = filter(arr[i])
+      if (Filter.isFail(result)) {
+        acc.push(result.fail)
+      } else if (Arr.isArrayNonEmpty(acc)) {
+        out.push(acc)
+        acc = []
+      }
+    }
+    return [acc, out]
+  }, {
+    onHalt(arr) {
+      return Arr.isArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
+    }
+  }))
+
+/**
  * Combines the elements from this stream and the specified stream by
  * repeatedly applying the function `f` to extract an element using both sides
  * and conceptually "offer" it to the destination stream. `f` can maintain
@@ -3992,28 +4075,49 @@ export const combineArray: {
 export const mapAccum: {
   <S, A, B>(
     initial: LazyArg<S>,
-    f: (s: S, a: A) => readonly [state: S, values: ReadonlyArray<B>]
+    f: (s: S, a: A) => readonly [state: S, values: ReadonlyArray<B>],
+    options?: {
+      readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+    }
   ): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
   <A, E, R, S, B>(
     self: Stream<A, E, R>,
     initial: LazyArg<S>,
-    f: (s: S, a: A) => readonly [state: S, values: ReadonlyArray<B>]
+    f: (s: S, a: A) => readonly [state: S, values: ReadonlyArray<B>],
+    options?: {
+      readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+    }
   ): Stream<B, E, R>
-} = dual(3, <A, E, R, S, B>(
+} = dual((args) => isStream(args[0]), <A, E, R, S, B>(
   self: Stream<A, E, R>,
   initial: LazyArg<S>,
-  f: (s: S, a: A) => readonly [state: S, values: ReadonlyArray<B>]
+  f: (s: S, a: A) => readonly [state: S, values: ReadonlyArray<B>],
+  options?: {
+    readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+  }
 ): Stream<B, E, R> =>
-  fromChannel(Channel.mapAccum(self.channel, initial, (state, arr) => {
-    const acc = Arr.empty<B>()
-    for (let index = 0; index < arr.length; index++) {
-      const [newState, values] = f(state, arr[index])
-      state = newState
-      // eslint-disable-next-line no-restricted-syntax
-      acc.push(...values)
-    }
-    return [state, Arr.isArrayNonEmpty(acc) ? Arr.of(acc) : Arr.empty<Arr.NonEmptyReadonlyArray<B>>()]
-  })))
+  fromChannel(Channel.mapAccum(
+    self.channel,
+    initial,
+    (state, arr) => {
+      const acc = Arr.empty<B>()
+      for (let index = 0; index < arr.length; index++) {
+        const [newState, values] = f(state, arr[index])
+        state = newState
+        // eslint-disable-next-line no-restricted-syntax
+        acc.push(...values)
+      }
+      return [state, Arr.isArrayNonEmpty(acc) ? Arr.of(acc) : emptyArr]
+    },
+    options?.onHalt ?
+      {
+        onHalt(state) {
+          const arr = options.onHalt!(state)
+          return Arr.isReadonlyArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
+        }
+      } :
+      undefined
+  )))
 
 /**
  * @since 2.0.0
@@ -4022,25 +4126,46 @@ export const mapAccum: {
 export const mapAccumArray: {
   <S, A, B>(
     initial: LazyArg<S>,
-    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>]
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>],
+    options?: {
+      readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+    }
   ): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
   <A, E, R, S, B>(
     self: Stream<A, E, R>,
     initial: LazyArg<S>,
-    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>]
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>],
+    options?: {
+      readonly onHalt?: ((state: S) => Array<B>) | undefined
+    }
   ): Stream<B, E, R>
-} = dual(3, <A, E, R, S, B>(
+} = dual((args) => isStream(args[0]), <A, E, R, S, B>(
   self: Stream<A, E, R>,
   initial: LazyArg<S>,
-  f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>]
+  f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => readonly [state: S, values: ReadonlyArray<B>],
+  options?: {
+    readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+  }
 ): Stream<B, E, R> =>
-  fromChannel(Channel.mapAccum(self.channel, initial, (state, arr) => {
-    const [newState, values] = f(state, arr)
-    state = newState
-    return [state, Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : emptyArr]
-  })))
+  fromChannel(Channel.mapAccum(
+    self.channel,
+    initial,
+    (state, arr) => {
+      const [newState, values] = f(state, arr)
+      state = newState
+      return [state, Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : emptyArr]
+    },
+    options?.onHalt ?
+      {
+        onHalt(state) {
+          const arr = options.onHalt!(state)
+          return Arr.isReadonlyArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
+        }
+      } :
+      undefined
+  )))
 
-const emptyArr = Arr.empty<Arr.NonEmptyReadonlyArray<never>>()
+const emptyArr = Arr.empty<never>()
 
 /**
  * @since 2.0.0
@@ -4049,28 +4174,48 @@ const emptyArr = Arr.empty<Arr.NonEmptyReadonlyArray<never>>()
 export const mapAccumEffect: {
   <S, A, B, E2, R2>(
     initial: LazyArg<S>,
-    f: (s: S, a: A) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
+    f: (s: S, a: A) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>,
+    options?: {
+      readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+    }
   ): <E, R>(self: Stream<A, E, R>) => Stream<B, E | E2, R | R2>
   <A, E, R, S, B, E2, R2>(
     self: Stream<A, E, R>,
     initial: LazyArg<S>,
-    f: (s: S, a: A) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
+    f: (s: S, a: A) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>,
+    options?: {
+      readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+    }
   ): Stream<B, E | E2, R | R2>
-} = dual(3, <A, E, R, S, B, E2, R2>(
+} = dual((args) => isStream(args[0]), <A, E, R, S, B, E2, R2>(
   self: Stream<A, E, R>,
   initial: LazyArg<S>,
-  f: (s: S, a: A) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
+  f: (s: S, a: A) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>,
+  options?: {
+    readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+  }
 ): Stream<B, E | E2, R | R2> =>
   self.channel.pipe(
     Channel.flattenArray,
-    Channel.mapAccum(initial, (state, a) =>
-      Effect.map(
-        f(state, a),
-        ([state, values]) => [
-          state,
-          Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : Arr.empty<Arr.NonEmptyReadonlyArray<B>>()
-        ]
-      )),
+    Channel.mapAccum(
+      initial,
+      (state, a) =>
+        Effect.map(
+          f(state, a),
+          ([state, values]) => [
+            state,
+            Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : Arr.empty<Arr.NonEmptyReadonlyArray<B>>()
+          ]
+        ),
+      options?.onHalt ?
+        {
+          onHalt(state) {
+            const arr = options.onHalt!(state)
+            return Arr.isReadonlyArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
+          }
+        } :
+        undefined
+    ),
     fromChannel
   ))
 
@@ -4081,27 +4226,47 @@ export const mapAccumEffect: {
 export const mapAccumArrayEffect: {
   <S, A, B, E2, R2>(
     initial: LazyArg<S>,
-    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>,
+    options?: {
+      readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+    }
   ): <E, R>(self: Stream<A, E, R>) => Stream<B, E | E2, R | R2>
   <A, E, R, S, B, E2, R2>(
     self: Stream<A, E, R>,
     initial: LazyArg<S>,
-    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
+    f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>,
+    options?: {
+      readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+    }
   ): Stream<B, E | E2, R | R2>
-} = dual(3, <A, E, R, S, B, E2, R2>(
+} = dual((args) => isStream(args), <A, E, R, S, B, E2, R2>(
   self: Stream<A, E, R>,
   initial: LazyArg<S>,
-  f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>
+  f: (s: S, a: Arr.NonEmptyReadonlyArray<A>) => Effect.Effect<readonly [state: S, values: ReadonlyArray<B>], E2, R2>,
+  options?: {
+    readonly onHalt?: ((state: S) => ReadonlyArray<B>) | undefined
+  }
 ): Stream<B, E | E2, R | R2> =>
   self.channel.pipe(
-    Channel.mapAccum(initial, (state, a) =>
-      Effect.map(
-        f(state, a),
-        ([state, values]) => [
-          state,
-          Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : emptyArr
-        ]
-      )),
+    Channel.mapAccum(
+      initial,
+      (state, a) =>
+        Effect.map(
+          f(state, a),
+          ([state, values]) => [
+            state,
+            Arr.isReadonlyArrayNonEmpty(values) ? Arr.of(values) : emptyArr
+          ]
+        ),
+      options?.onHalt ?
+        {
+          onHalt(state) {
+            const arr = options.onHalt!(state)
+            return Arr.isReadonlyArrayNonEmpty(arr) ? Arr.of(arr) : emptyArr
+          }
+        } :
+        undefined
+    ),
     fromChannel
   ))
 
