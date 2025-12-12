@@ -424,14 +424,14 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |         Effect 3         | Ported | Effect 4 | Comments |
 | :----------------------: | :----: | :------: | :------: |
 |          `zip`           |  Done  |          |          |
-|         `zipAll`         |   -    |          |          |
-|       `zipAllLeft`       |   -    |          |          |
-|      `zipAllRight`       |   -    |          |          |
+|         `zipAll`         |   X    |          |          |
+|       `zipAllLeft`       |   X    |          |          |
+|      `zipAllRight`       |   X    |          |          |
 |   `zipAllSortedByKey`    |   X    |          |          |
 | `zipAllSortedByKeyLeft`  |   X    |          |          |
 | `zipAllSortedByKeyRight` |   X    |          |          |
 | `zipAllSortedByKeyWith`  |   X    |          |          |
-|       `zipAllWith`       |   -    |          |          |
+|       `zipAllWith`       |   X    |          |          |
 |       `zipFlatten`       |  Done  |          |          |
 |       `zipLatest`        |  Done  |          |          |
 |      `zipLatestAll`      |  Done  |          |          |
@@ -441,9 +441,9 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |        `zipWith`         |  Done  |          |          |
 |     `zipWithChunks`      |  Done  |          |          |
 |      `zipWithIndex`      |  Done  |          |          |
-|      `zipWithNext`       |   -    |          |          |
-|    `zipWithPrevious`     |   -    |          |          |
-| `zipWithPreviousAndNext` |   -    |          |          |
+|      `zipWithNext`       |  Done  |          |          |
+|    `zipWithPrevious`     |  Done  |          |          |
+| `zipWithPreviousAndNext` |  Done  |          |          |
 
 ## Sink
 

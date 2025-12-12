@@ -2471,6 +2471,151 @@ export const zipFlatten: {
 export const zipWithIndex = <A, E, R>(self: Stream<A, E, R>): Stream<[A, number], E, R> => map(self, (a, i) => [a, i])
 
 /**
+ * Zips each element with the next element if present.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * const stream = Stream.zipWithNext(Stream.make(1, 2, 3, 4))
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then((chunk) => console.log(chunk))
+ * // [
+ * //   [ 1, { _id: 'Option', _tag: 'Some', value: 2 } ],
+ * //   [ 2, { _id: 'Option', _tag: 'Some', value: 3 } ],
+ * //   [ 3, { _id: 'Option', _tag: 'Some', value: 4 } ],
+ * //   [ 4, { _id: 'Option', _tag: 'None' } ]
+ * // ]
+ * ```
+ *
+ * @since 2.0.0
+ * @category zipping
+ */
+export const zipWithNext = <A, E, R>(self: Stream<A, E, R>): Stream<[A, Option.Option<A>], E, R> =>
+  mapAccumArray(self, Option.none<A>, (acc, arr) => {
+    let i = 0
+    if (acc._tag === "None") {
+      i = 1
+      acc = Option.some(arr[0]) as Option.Some<A>
+    }
+    const pairs = Arr.empty<[A, Option.Option<A>]>()
+    for (; i < arr.length; i++) {
+      const value = acc.value
+      acc = Option.some(arr[i]) as Option.Some<A>
+      pairs.push([value, acc])
+    }
+    return [acc, pairs]
+  }, {
+    onHalt(state) {
+      return state._tag === "Some" ? [[state.value, Option.none<A>()]] : []
+    }
+  })
+
+/**
+ * Zips each element with the previous element. Initially accompanied by
+ * `None`.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * const stream = Stream.zipWithPrevious(Stream.make(1, 2, 3, 4))
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then((chunk) => console.log(chunk))
+ * // [
+ * //   [ { _id: 'Option', _tag: 'None' }, 1 ],
+ * //   [ { _id: 'Option', _tag: 'Some', value: 1 }, 2 ],
+ * //   [ { _id: 'Option', _tag: 'Some', value: 2 }, 3 ],
+ * //   [ { _id: 'Option', _tag: 'Some', value: 3 }, 4 ]
+ * // ]
+ * ```
+ *
+ * @since 2.0.0
+ * @category zipping
+ */
+export const zipWithPrevious = <A, E, R>(self: Stream<A, E, R>): Stream<[Option.Option<A>, A], E, R> =>
+  mapAccumArray(self, Option.none<A>, (acc, arr) => {
+    const pairs = Arr.empty<[Option.Option<A>, A]>()
+    for (let i = 0; i < arr.length; i++) {
+      const value = arr[i]
+      pairs.push([acc, value])
+      acc = Option.some(arr[i])
+    }
+    return [acc, pairs]
+  })
+
+/**
+ * Zips each element with both the previous and next element.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
+ *
+ * const stream = Stream.zipWithPreviousAndNext(Stream.make(1, 2, 3, 4))
+ *
+ * Effect.runPromise(Stream.runCollect(stream)).then((chunk) => console.log(chunk))
+ * // [
+ * //   [
+ * //     { _id: 'Option', _tag: 'None' },
+ * //     1,
+ * //     { _id: 'Option', _tag: 'Some', value: 2 }
+ * //   ],
+ * //   [
+ * //     { _id: 'Option', _tag: 'Some', value: 1 },
+ * //     2,
+ * //     { _id: 'Option', _tag: 'Some', value: 3 }
+ * //   ],
+ * //   [
+ * //     { _id: 'Option', _tag: 'Some', value: 2 },
+ * //     3,
+ * //     { _id: 'Option', _tag: 'Some', value: 4 }
+ * //   ],
+ * //   [
+ * //     { _id: 'Option', _tag: 'Some', value: 3 },
+ * //     4,
+ * //     { _id: 'Option', _tag: 'None' }
+ * //   ]
+ * // ]
+ * ```
+ *
+ * @since 2.0.0
+ * @category zipping
+ */
+export const zipWithPreviousAndNext = <A, E, R>(
+  self: Stream<A, E, R>
+): Stream<[Option.Option<A>, A, Option.Option<A>], E, R> =>
+  mapAccumArray(self, () => ({
+    prev: Option.none<A>(),
+    current: Option.none<A>()
+  }), (acc, arr) => {
+    let i = 0
+    let current: A
+    if (acc.current._tag === "None") {
+      i = 1
+      current = arr[0]
+      acc.current = Option.some(current)
+    } else {
+      current = acc.current.value
+    }
+    const pairs = Arr.empty<[Option.Option<A>, A, Option.Option<A>]>()
+    for (; i < arr.length; i++) {
+      const element = arr[i]
+      acc.current = Option.some(element) as Option.Some<A>
+      pairs.push([acc.prev, current, acc.current])
+      acc.prev = Option.some(current)
+      current = element
+    }
+    return [acc, pairs]
+  }, {
+    onHalt(acc) {
+      return acc.current._tag === "Some" ? [[acc.prev, acc.current.value, Option.none<A>()]] : []
+    }
+  })
+
+/**
  * @since 2.0.0
  * @category zipping
  */

@@ -3539,6 +3539,149 @@ describe("Stream", () => {
         deepStrictEqual(result, Exit.fail(error))
       }))
   })
+
+  describe("zipWithNext", () => {
+    it.effect("zipWithNext", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1, 2, 3),
+          Stream.zipWithNext,
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [
+          [1, Option.some(2)],
+          [2, Option.some(3)],
+          [3, Option.none()]
+        ])
+      }))
+
+    it.effect("zipWithNext - should work with multiple chunks", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.fromArrays([1], [2], [3]),
+          Stream.zipWithNext,
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [
+          [1, Option.some(2)],
+          [2, Option.some(3)],
+          [3, Option.none()]
+        ])
+      }))
+
+    it.effect("zipWithNext - should work with an empty stream", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.empty,
+          Stream.zipWithNext,
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [])
+      }))
+
+    it.effect("zipWithPrevious - should zip with previous element for a single chunk", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1, 2, 3),
+          Stream.zipWithPrevious,
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [
+          [Option.none(), 1],
+          [Option.some(1), 2],
+          [Option.some(2), 3]
+        ])
+      }))
+
+    it.effect("zipWithPrevious - should work with multiple chunks", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.fromArrays([1], [2], [3]),
+          Stream.zipWithPrevious,
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [
+          [Option.none(), 1],
+          [Option.some(1), 2],
+          [Option.some(2), 3]
+        ])
+      }))
+
+    it.effect("zipWithPrevious - should work with an empty stream", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.empty,
+          Stream.zipWithPrevious,
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [])
+      }))
+
+    it("zipWithPrevious - should output same values as first element plus zipping with init", () =>
+      fc.assert(fc.asyncProperty(fc.array(fc.array(fc.integer())), async (chunks) => {
+        const stream = Stream.fromArrays(...chunks)
+        const { result1, result2 } = await Effect.runPromise(Effect.all({
+          result1: pipe(
+            stream,
+            Stream.zipWithPrevious,
+            Stream.runCollect
+          ),
+          result2: pipe(
+            Stream.make(Option.none()),
+            Stream.concat(pipe(stream, Stream.map(Option.some))),
+            Stream.zip(stream),
+            Stream.runCollect
+          )
+        }))
+        deepStrictEqual(result1, result2)
+      })))
+
+    it.effect("zipWithPreviousAndNext", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1, 2, 3),
+          Stream.zipWithPreviousAndNext,
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [
+          [Option.none(), 1, Option.some(2)],
+          [Option.some(1), 2, Option.some(3)],
+          [Option.some(2), 3, Option.none()]
+        ])
+      }))
+
+    it("zipWithPreviousAndNext - should output same values as zipping with both previous and next element", () =>
+      fc.assert(fc.asyncProperty(fc.array(fc.array(fc.integer()), { minLength: 0, maxLength: 5 }), async (chunks) => {
+        const stream = Stream.fromArrays(...chunks)
+        const previous = pipe(
+          Stream.make(Option.none()),
+          Stream.concat(pipe(stream, Stream.map(Option.some)))
+        )
+        const next = pipe(
+          stream,
+          Stream.drop(1),
+          Stream.map(Option.some),
+          Stream.concat(Stream.make(Option.none()))
+        )
+        const { result1, result2 } = await pipe(
+          Effect.all({
+            result1: pipe(
+              stream,
+              Stream.zipWithPreviousAndNext,
+              Stream.runCollect
+            ),
+            result2: pipe(
+              previous,
+              Stream.zip(stream),
+              Stream.zipFlatten(next),
+              Stream.runCollect
+            )
+          }),
+          Effect.runPromise
+        )
+        deepStrictEqual(result1, result2)
+      })))
+  })
 })
 
 const grouped = <A>(arr: Array<A>, size: number): Array<NonEmptyArray<A>> => {
