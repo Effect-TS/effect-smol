@@ -3,6 +3,7 @@
  */
 import * as Arr from "../collections/Array.ts"
 import { format, formatPropertyKey } from "../data/Formatter.ts"
+import * as RegEx from "../RegExp.ts"
 import * as AnnotationsModule from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Getter from "./Getter.ts"
@@ -704,31 +705,21 @@ export function fromAST(ast: AST.AST): StandardAST {
     switch (ast._tag) {
       case "Suspend": {
         const thunk = ast.thunk()
-        const reference = getIdentifier(ast)
         if (visited.has(thunk)) {
-          if (reference !== undefined) {
-            return {
-              _tag: "Reference",
-              annotations: fromASTAnnotations(ast.annotations),
-              $ref: reference,
-              source: undefined
-            }
-          }
           const thunkReference = getIdentifier(thunk)
           if (thunkReference !== undefined) {
-            return { _tag: "Reference", annotations: undefined, $ref: thunkReference, source: undefined }
+            return {
+              _tag: "Reference",
+              annotations: undefined,
+              $ref: thunkReference,
+              source: undefined
+            }
+          } else {
+            throw new Error("Suspended schema without identifier detected")
           }
-          throw new Error("Circular reference detected")
+        } else {
+          return recur(thunk)
         }
-        if (reference !== undefined) {
-          return {
-            _tag: "Reference",
-            annotations: fromASTAnnotations(ast.annotations),
-            $ref: reference,
-            source: recur(thunk)
-          }
-        }
-        return recur(thunk)
       }
       case "Declaration":
         return {
@@ -848,16 +839,12 @@ function fromASTChecks(
         return undefined
       }
       case "FilterGroup": {
-        const meta = c.annotations?.meta
-        if (meta) {
-          return {
-            _tag: "FilterGroup",
-            meta,
-            annotations: fromASTAnnotations(c.annotations),
-            checks: fromASTChecks(c.checks)
-          }
+        return {
+          _tag: "FilterGroup",
+          meta: c.annotations?.meta,
+          annotations: fromASTAnnotations(c.annotations),
+          checks: fromASTChecks(c.checks)
         }
-        return undefined
       }
     }
   }
@@ -1259,5 +1246,551 @@ function toSchemaChecks(schema: Schema.Top, ast: StandardAST): Schema.Top {
     // TODO: other cases
     default:
       return schema
+  }
+}
+
+/**
+ * Return a Draft 2020-12 JSON Schema Document.
+ *
+ * @since 4.0.0
+ */
+export function toJsonSchema(ast: StandardAST): Schema.JsonSchema.Document {
+  const definitions: Schema.JsonSchema.Definitions = {}
+  const visited = new Map<StandardAST, string>()
+
+  function escapeJsonPointer(identifier: string): string {
+    return identifier.replace(/~/g, "~0").replace(/\//g, "~1")
+  }
+
+  function getIdentifier(ast: StandardAST): string | undefined {
+    return typeof ast.annotations?.identifier === "string" ? ast.annotations.identifier : undefined
+  }
+
+  function flattenArrayJsonSchema(jsonSchema: Schema.JsonSchema): Schema.JsonSchema {
+    if (Object.keys(jsonSchema).length === 1) {
+      if (Array.isArray(jsonSchema.anyOf) && jsonSchema.anyOf.length === 1) {
+        return jsonSchema.anyOf[0]
+      } else if (Array.isArray(jsonSchema.oneOf) && jsonSchema.oneOf.length === 1) {
+        return jsonSchema.oneOf[0]
+      } else if (Array.isArray(jsonSchema.allOf) && jsonSchema.allOf.length === 1) {
+        return jsonSchema.allOf[0]
+      }
+    }
+    return jsonSchema
+  }
+
+  function recur(ast: StandardAST, ignoreIdentifier = false): Schema.JsonSchema {
+    // Handle Reference nodes
+    if (ast._tag === "Reference") {
+      const identifier = ast.$ref
+      if (identifier) {
+        const $ref = { $ref: `#/$defs/${escapeJsonPointer(identifier)}` }
+        if (!Object.hasOwn(definitions, identifier)) {
+          if (ast.source !== undefined) {
+            definitions[identifier] = recur(ast.source, true)
+          } else {
+            // Reference without source - create empty schema
+            definitions[identifier] = {}
+          }
+        }
+        return $ref
+      }
+      // Reference without identifier - recur on source if available
+      if (ast.source !== undefined) {
+        return recur(ast.source, ignoreIdentifier)
+      }
+      return {}
+    }
+
+    // Handle External nodes (unsupported, return empty schema)
+    if (ast._tag === "External") {
+      return {}
+    }
+
+    // Handle identifier annotation for definitions
+    if (!ignoreIdentifier) {
+      const identifier = getIdentifier(ast)
+      if (identifier !== undefined) {
+        const existing = visited.get(ast)
+        if (existing !== undefined) {
+          return { $ref: `#/$defs/${escapeJsonPointer(existing)}` }
+        }
+        visited.set(ast, identifier)
+        if (!Object.hasOwn(definitions, identifier)) {
+          // Recur with ignoreIdentifier=true to avoid infinite loop
+          definitions[identifier] = recur(ast, true)
+        }
+        return { $ref: `#/$defs/${escapeJsonPointer(identifier)}` }
+      }
+    }
+
+    // Base schema conversion
+    let jsonSchema: Schema.JsonSchema = base(ast)
+
+    // Apply annotations
+    jsonSchema = mergeOrAppendJsonSchemaAnnotations(jsonSchema, ast.annotations)
+
+    // Apply checks
+    if ("checks" in ast && ast.checks.length > 0) {
+      jsonSchema = applyChecks(jsonSchema, ast.checks, ast._tag)
+    }
+
+    return jsonSchema
+  }
+
+  function getJsonSchemaAnnotations(
+    annotations: AnnotationsModule.Annotations | undefined
+  ): Schema.JsonSchema | undefined {
+    if (annotations) {
+      const out: Schema.JsonSchema = {}
+      if (typeof annotations.title === "string") {
+        out.title = annotations.title
+      }
+      if (typeof annotations.description === "string") {
+        out.description = annotations.description
+      }
+      if (annotations.default !== undefined) {
+        out.default = annotations.default
+      }
+      if (Array.isArray(annotations.examples)) {
+        out.examples = annotations.examples
+      }
+
+      if (Object.keys(out).length > 0) return out
+    }
+  }
+
+  function hasIntersection(
+    jsonSchema: Schema.JsonSchema,
+    fragment: Schema.JsonSchema
+  ): boolean {
+    return Object.keys(jsonSchema).filter((key) => key !== "type").some((key) => Object.hasOwn(fragment, key))
+  }
+
+  function appendFragment(
+    jsonSchema: Schema.JsonSchema,
+    fragment: Schema.JsonSchema
+  ): Schema.JsonSchema {
+    if ("$ref" in jsonSchema) {
+      return { allOf: [jsonSchema, fragment] }
+    } else {
+      if (hasIntersection(jsonSchema, fragment)) {
+        if (Array.isArray(jsonSchema.allOf)) {
+          return { ...jsonSchema, allOf: [...jsonSchema.allOf, fragment] }
+        } else {
+          return { ...jsonSchema, allOf: [fragment] }
+        }
+      } else {
+        return { ...jsonSchema, ...fragment }
+      }
+    }
+  }
+
+  function mergeOrAppendJsonSchemaAnnotations(
+    jsonSchema: Schema.JsonSchema,
+    annotations: AnnotationsModule.Annotations | undefined
+  ): Schema.JsonSchema {
+    const fragment = getJsonSchemaAnnotations(annotations)
+    if (fragment) {
+      return appendFragment(jsonSchema, fragment)
+    }
+    return jsonSchema
+  }
+
+  function base(ast: StandardAST): Schema.JsonSchema {
+    switch (ast._tag) {
+      case "Null":
+        return { type: "null" }
+      case "Undefined":
+      case "Void":
+      case "Unknown":
+      case "Any":
+        return {}
+      case "Never":
+        return { not: {} }
+      case "String": {
+        const out: Schema.JsonSchema = { type: "string" }
+        if (ast.contentMediaType !== undefined) {
+          out.contentMediaType = ast.contentMediaType
+        }
+        if (ast.contentSchema !== undefined) {
+          out.contentSchema = recur(ast.contentSchema)
+        }
+        return out
+      }
+      case "Number":
+        return { type: "number" }
+      case "Boolean":
+        return { type: "boolean" }
+      case "BigInt":
+        // BigInt is not directly supported in JSON Schema, return empty object
+        return {}
+      case "Symbol":
+      case "UniqueSymbol":
+        // Symbols are not supported in JSON Schema
+        return {}
+      case "Literal": {
+        const literal = ast.literal
+        if (typeof literal === "string") {
+          return { type: "string", enum: [literal] }
+        }
+        if (typeof literal === "number") {
+          return { type: "number", enum: [literal] }
+        }
+        if (typeof literal === "boolean") {
+          return { type: "boolean", enum: [literal] }
+        }
+        // bigint literals are not supported
+        return {}
+      }
+      case "ObjectKeyword":
+        return { anyOf: [{ type: "object" }, { type: "array" }] }
+      case "Enum": {
+        const enumValues = ast.enums.map(([, value]) => value)
+        if (enumValues.length === 0) {
+          return {}
+        }
+        const firstType = typeof enumValues[0]
+        if (enumValues.every((v) => typeof v === firstType)) {
+          return { type: firstType === "string" ? "string" : "number", enum: enumValues }
+        }
+        // Mixed types - use anyOf
+        return {
+          anyOf: enumValues.map((value) =>
+            typeof value === "string"
+              ? { type: "string", enum: [value] }
+              : { type: "number", enum: [value] }
+          )
+        }
+      }
+      case "TemplateLiteral": {
+        // Convert template literal parts to regex pattern using the same logic as AST.getTemplateLiteralRegExp
+        const STRING_PATTERN = "[\\s\\S]*?"
+        const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
+
+        const getPartPattern = (part: StandardAST): string => {
+          switch (part._tag) {
+            case "String":
+              return STRING_PATTERN
+            case "Number":
+              return NUMBER_PATTERN
+            case "Literal": {
+              const literal = part.literal
+              return RegEx.escape(globalThis.String(literal))
+            }
+            case "TemplateLiteral": {
+              // Recursive case for nested template literals
+              return part.parts.map(getPartPattern).join("")
+            }
+            case "Union": {
+              // Union parts in template literals
+              return part.types.map(getPartPattern).join("|")
+            }
+            default:
+              return ""
+          }
+        }
+
+        const pattern = ast.parts.map(getPartPattern).join("")
+        return { type: "string", pattern: `^${pattern}$` }
+      }
+      case "Arrays": {
+        const out: Schema.JsonSchema = { type: "array" }
+        const items: Array<Schema.JsonSchema> = ast.elements.map((e) => recur(e))
+        if (items.length > 0) {
+          out.prefixItems = items
+          out.minItems = items.length
+        }
+        if (ast.rest.length > 0) {
+          out.items = recur(ast.rest[0])
+        } else {
+          // No rest element: no additional items allowed
+          out.items = false
+        }
+        if (out.minItems === 0) {
+          delete out.minItems
+        }
+        return out
+      }
+      case "Objects": {
+        if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
+          return { anyOf: [{ type: "object" }, { type: "array" }] }
+        }
+        const out: Schema.JsonSchema = { type: "object" }
+        const properties: Record<string, Schema.JsonSchema> = {}
+        const required: Array<string> = []
+
+        function containsUndefined(ast: StandardAST): boolean {
+          switch (ast._tag) {
+            case "Undefined":
+              return true
+            case "Union":
+              return ast.types.some(containsUndefined)
+            default:
+              return false
+          }
+        }
+
+        for (const ps of ast.propertySignatures) {
+          const name = typeof ps.name === "string" ? ps.name : globalThis.String(ps.name)
+          properties[name] = recur(ps.type)
+          // Property is required only if it's not explicitly optional AND doesn't contain Undefined
+          if (!ps.isOptional && !containsUndefined(ps.type)) {
+            required.push(name)
+          }
+        }
+
+        if (Object.keys(properties).length > 0) {
+          out.properties = properties
+        }
+        if (required.length > 0) {
+          out.required = required
+        }
+
+        // Handle index signatures
+        if (ast.indexSignatures.length > 0) {
+          // For draft-2020-12, we can use patternProperties or additionalProperties
+          const firstIndex = ast.indexSignatures[0]
+          out.additionalProperties = recur(firstIndex.type)
+        } else {
+          // No index signatures: additional properties are not allowed
+          out.additionalProperties = false
+        }
+
+        return out
+      }
+      case "Union": {
+        const types = ast.types.map((t) => recur(t)).filter((t) => Object.keys(t).length > 0)
+        if (types.length === 0) {
+          return { not: {} }
+        }
+        const result = ast.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
+        return flattenArrayJsonSchema(result)
+      }
+      case "Reference":
+      case "External":
+        // These are handled in recur function
+        return {}
+    }
+  }
+
+  function applyChecks(
+    jsonSchema: Schema.JsonSchema,
+    checks: ReadonlyArray<Check<any>>,
+    astTag: string
+  ): Schema.JsonSchema {
+    let result = jsonSchema
+    for (const check of checks) {
+      result = applyCheck(result, check, astTag)
+    }
+    return result
+  }
+
+  function getCheckConstraintFragment(
+    check: Check<any>,
+    astTag: string
+  ): Schema.JsonSchema {
+    if (check._tag === "FilterGroup") {
+      // Recursively collect constraints from nested FilterGroups
+      const fragments: Array<Schema.JsonSchema> = []
+      for (const c of check.checks) {
+        const fragment = getCheckConstraintFragment(c, astTag)
+        if (Object.keys(fragment).length > 0) {
+          fragments.push(fragment)
+        }
+      }
+      // Merge all fragments
+      let combined: Schema.JsonSchema = {}
+      for (const fragment of fragments) {
+        combined = { ...combined, ...fragment }
+      }
+      return combined
+    }
+
+    const meta = check.meta
+    if (!meta) {
+      return {}
+    }
+
+    const fragment: Schema.JsonSchema = {}
+
+    switch (astTag) {
+      case "String": {
+        switch (meta._tag) {
+          case "isMinLength":
+            fragment.minLength = meta.minLength
+            break
+          case "isMaxLength":
+            fragment.maxLength = meta.maxLength
+            break
+          case "isLength":
+            fragment.minLength = meta.length
+            fragment.maxLength = meta.length
+            break
+          case "isPattern":
+            fragment.pattern = meta.regExp.source
+            break
+          case "isUUID":
+            fragment.format = "uuid"
+            break
+          case "isULID":
+            fragment.pattern = "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+            break
+          case "isBase64":
+            fragment.contentEncoding = "base64"
+            break
+          case "isBase64Url":
+            fragment.contentEncoding = "base64url"
+            break
+        }
+        break
+      }
+      case "Number": {
+        switch (meta._tag) {
+          case "isInt":
+            fragment.type = "integer"
+            break
+          case "isMultipleOf":
+            fragment.multipleOf = meta.divisor
+            break
+          case "isGreaterThanOrEqualTo":
+            fragment.minimum = meta.minimum
+            break
+          case "isLessThanOrEqualTo":
+            fragment.maximum = meta.maximum
+            break
+          case "isGreaterThan":
+            fragment.exclusiveMinimum = meta.exclusiveMinimum
+            break
+          case "isLessThan":
+            fragment.exclusiveMaximum = meta.exclusiveMaximum
+            break
+          case "isBetween":
+            fragment.minimum = meta.minimum
+            fragment.maximum = meta.maximum
+            break
+        }
+        break
+      }
+    }
+
+    return fragment
+  }
+
+  function applyCheck(
+    jsonSchema: Schema.JsonSchema,
+    check: Check<any>,
+    astTag: string
+  ): Schema.JsonSchema {
+    if (check._tag === "FilterGroup") {
+      // Collect all constraint fragments from checks
+      const constraintFragment = getCheckConstraintFragment(check, astTag)
+
+      // Merge with FilterGroup annotations
+      const fragmentWithAnnotations = mergeOrAppendJsonSchemaAnnotations(constraintFragment, check.annotations)
+
+      // If FilterGroup has annotations, always use allOf to keep constraints and annotations together
+      if (check.annotations && Object.keys(fragmentWithAnnotations).length > 0) {
+        return appendFragment(jsonSchema, fragmentWithAnnotations)
+      } else if (Object.keys(constraintFragment).length > 0) {
+        // No annotations, merge constraints directly
+        return appendFragment(jsonSchema, constraintFragment)
+      }
+      return jsonSchema
+    }
+
+    const meta = check.meta
+    if (!meta) {
+      // No meta, just apply annotations
+      const checkAnnotations = getJsonSchemaAnnotations(check.annotations)
+      if (checkAnnotations) {
+        return appendFragment(jsonSchema, checkAnnotations)
+      }
+      return jsonSchema
+    }
+
+    const fragment: Schema.JsonSchema = {}
+
+    switch (astTag) {
+      case "String": {
+        switch (meta._tag) {
+          case "isMinLength":
+            fragment.minLength = meta.minLength
+            break
+          case "isMaxLength":
+            fragment.maxLength = meta.maxLength
+            break
+          case "isLength":
+            fragment.minLength = meta.length
+            fragment.maxLength = meta.length
+            break
+          case "isPattern":
+            fragment.pattern = meta.regExp.source
+            break
+          case "isUUID":
+            fragment.format = "uuid"
+            break
+          case "isULID":
+            fragment.pattern = "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+            break
+          case "isBase64":
+            fragment.contentEncoding = "base64"
+            break
+          case "isBase64Url":
+            fragment.contentEncoding = "base64url"
+            break
+        }
+        break
+      }
+      case "Number": {
+        switch (meta._tag) {
+          case "isInt":
+            fragment.type = "integer"
+            break
+          case "isMultipleOf":
+            fragment.multipleOf = meta.divisor
+            break
+          case "isGreaterThanOrEqualTo":
+            fragment.minimum = meta.minimum
+            break
+          case "isLessThanOrEqualTo":
+            fragment.maximum = meta.maximum
+            break
+          case "isGreaterThan":
+            fragment.exclusiveMinimum = meta.exclusiveMinimum
+            break
+          case "isLessThan":
+            fragment.exclusiveMaximum = meta.exclusiveMaximum
+            break
+          case "isBetween":
+            fragment.minimum = meta.minimum
+            fragment.maximum = meta.maximum
+            break
+        }
+        break
+      }
+    }
+
+    // Merge fragment with check annotations
+    const fragmentWithAnnotations = mergeOrAppendJsonSchemaAnnotations(fragment, check.annotations)
+
+    // If fragment changes the type, merge type at top level and handle annotations separately
+    if ("type" in fragmentWithAnnotations && "type" in jsonSchema && fragmentWithAnnotations.type !== jsonSchema.type) {
+      const { type, ...restFragment } = fragmentWithAnnotations
+      const updatedSchema = { ...jsonSchema, type }
+      if (Object.keys(restFragment).length > 0) {
+        return appendFragment(updatedSchema, restFragment)
+      }
+      return updatedSchema
+    }
+
+    return appendFragment(jsonSchema, fragmentWithAnnotations)
+  }
+
+  const schema = recur(ast)
+  return {
+    source: "draft-2020-12",
+    schema,
+    definitions
   }
 }
