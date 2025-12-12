@@ -467,6 +467,102 @@ describe("NodeChildProcessSpawner", () => {
         }).pipe(Effect.scoped))
     })
 
+    describe("pipeline pipe options", () => {
+      it.effect("should pipe stderr to stdin with { from: 'stderr' }", () =>
+        Effect.gen(function*() {
+          // Command that writes "error" to stderr
+          const handle = yield* ChildProcess.make("sh", ["-c", "echo error >&2"]).pipe(
+            ChildProcess.pipeTo(ChildProcess.make`cat`, { from: "stderr" })
+          )
+          const output = yield* collectStreamOutput(handle.stdout)
+          const exitCode = yield* handle.exitCode
+
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          assert.strictEqual(output, "error")
+        }).pipe(Effect.scoped))
+
+      it.effect("should pipe combined output with { from: 'all' }", () =>
+        Effect.gen(function*() {
+          // Command that writes to both stdout and stderr with small delays
+          const handle = yield* ChildProcess.make("sh", [
+            "-c",
+            "echo out1; sleep 0.01; echo err1 >&2; sleep 0.01; echo out2"
+          ]).pipe(
+            ChildProcess.pipeTo(ChildProcess.make`cat`, { from: "all" })
+          )
+          const output = yield* collectStreamOutput(handle.stdout)
+          const exitCode = yield* handle.exitCode
+
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          assert.strictEqual(output, ["out1", "err1", "out2"].join("\n"))
+        }).pipe(Effect.scoped))
+
+      it.effect("should default to stdout when no options provided", () =>
+        Effect.gen(function*() {
+          // Command that writes to both stdout and stderr
+          const handle = yield* ChildProcess.make("sh", ["-c", "echo stdout; echo stderr >&2"]).pipe(
+            ChildProcess.pipeTo(ChildProcess.make`cat`)
+          )
+          const output = yield* collectStreamOutput(handle.stdout)
+          const exitCode = yield* handle.exitCode
+
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          // Only stdout should be piped (default behavior)
+          assert.strictEqual(output, "stdout")
+        }).pipe(Effect.scoped))
+
+      it.effect("should work with empty options object", () =>
+        Effect.gen(function*() {
+          const handle = yield* ChildProcess.make`echo hello`.pipe(
+            ChildProcess.pipeTo(ChildProcess.make`tr a-z A-Z`, {})
+          )
+          const output = yield* collectStreamOutput(handle.stdout)
+          const exitCode = yield* handle.exitCode
+
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          assert.strictEqual(output, "HELLO")
+        }).pipe(Effect.scoped))
+
+      it.effect("should work with explicit { from: 'stdout' }", () =>
+        Effect.gen(function*() {
+          const handle = yield* ChildProcess.make`echo hello`.pipe(
+            ChildProcess.pipeTo(ChildProcess.make`tr a-z A-Z`, { from: "stdout" })
+          )
+          const output = yield* collectStreamOutput(handle.stdout)
+          const exitCode = yield* handle.exitCode
+
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          assert.strictEqual(output, "HELLO")
+        }).pipe(Effect.scoped))
+
+      it.effect("should work with explicit { to: 'stdin' }", () =>
+        Effect.gen(function*() {
+          const handle = yield* ChildProcess.make`echo hello`.pipe(
+            ChildProcess.pipeTo(ChildProcess.make`tr a-z A-Z`, { to: "stdin" })
+          )
+          const output = yield* collectStreamOutput(handle.stdout)
+          const exitCode = yield* handle.exitCode
+
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          assert.strictEqual(output, "HELLO")
+        }).pipe(Effect.scoped))
+
+      it.effect("should support chained pipes with different options", () =>
+        Effect.gen(function*() {
+          // First pipe: stdout to stdin (default)
+          // Second pipe: from stderr
+          const handle = yield* ChildProcess.make`echo hello`.pipe(
+            ChildProcess.pipeTo(ChildProcess.make("sh", ["-c", "cat; echo error >&2"])),
+            ChildProcess.pipeTo(ChildProcess.make`cat`, { from: "stderr" })
+          )
+          const output = yield* collectStreamOutput(handle.stdout)
+          const exitCode = yield* handle.exitCode
+
+          assert.strictEqual(exitCode, ChildProcessSpawner.ExitCode(0))
+          assert.strictEqual(output, "error")
+        }).pipe(Effect.scoped))
+    })
+
     describe("error handling", () => {
       it.effect("should return non-zero exit code", () =>
         Effect.gen(function*() {

@@ -36,11 +36,12 @@ const toPlatformError = (
   error: NodeJS.ErrnoException,
   command: ChildProcess.Command
 ): PlatformError.PlatformError => {
-  const commands = flattenCommand(command).reduce((acc, curr) => {
-    const command = `${curr.command} ${curr.args.join(" ")}`
-    return acc.length === 0 ? command : `${acc} | ${command}`
+  const { commands } = flattenCommand(command)
+  const commandStr = commands.reduce((acc, curr) => {
+    const cmd = `${curr.command} ${curr.args.join(" ")}`
+    return acc.length === 0 ? cmd : `${acc} | ${cmd}`
   }, "")
-  return handleErrnoException("ChildProcess", method)(error, [commands])
+  return handleErrnoException("ChildProcess", method)(error, [commandStr])
 }
 
 type ExitCodeWithSignal = readonly [code: number | null, signal: NodeJS.Signals | null]
@@ -321,6 +322,7 @@ const make = Effect.gen(function*() {
     // Track stream endings for the combined stream
     const totalStreams = (Predicate.isNotNull(nodeStdout) ? 1 : 0) +
       (Predicate.isNotNull(nodeStderr) ? 1 : 0)
+
     let endedCount = 0
     const onStreamEnd = () => {
       endedCount++
@@ -473,6 +475,34 @@ const make = Effect.gen(function*() {
       })
   }
 
+  /**
+   * Get the appropriate source stream from a process handle based on the
+   * `from` pipe option.
+   */
+  const getSourceStream = (
+    handle: ChildProcessHandle,
+    from: ChildProcess.PipeFromOption | undefined
+  ): Stream.Stream<Uint8Array, PlatformError.PlatformError> => {
+    const fromOption = from ?? "stdout"
+    switch (fromOption) {
+      case "stdout":
+        return handle.stdout
+      case "stderr":
+        return handle.stderr
+      case "all":
+        return handle.all
+      default: {
+        // Handle fd3, fd4, etc.
+        const fd = ChildProcess.parseFdName(fromOption)
+        if (Predicate.isNotUndefined(fd)) {
+          return handle.getOutputFd(fd)
+        }
+        // Fallback to stdout for invalid fd names
+        return handle.stdout
+      }
+    }
+  }
+
   const spawnCommand: (
     command: ChildProcess.Command
   ) => Effect.Effect<
@@ -559,18 +589,53 @@ const make = Effect.gen(function*() {
         })
       }
       case "PipedCommand": {
-        const [root, ...pipeline] = flattenCommand(cmd)
+        const { commands, pipeOptions } = flattenCommand(cmd)
+        const [root, ...pipeline] = commands
+
         let handle = spawnCommand(root)
-        for (const command of pipeline) {
+
+        for (let i = 0; i < pipeline.length; i++) {
+          const command = pipeline[i]
+          const options = pipeOptions[i] ?? {}
           const stdinConfig = resolveStdinOption(command.options)
-          // TODO: allow configurable pipe from / to
-          // https://github.com/sindresorhus/execa/blob/main/docs/api.md#pipeoptions
-          const stream = Stream.unwrap(Effect.map(handle, (handle) => handle.stdout))
-          handle = spawnCommand(ChildProcess.make(command.command, command.args, {
-            ...command.options,
-            stdin: { ...stdinConfig, stream }
-          }))
+
+          // Get the appropriate stream from the source based on `from` option
+          const sourceStream = Stream.unwrap(
+            Effect.map(handle, (h) => getSourceStream(h, options.from))
+          )
+
+          // Determine where to pipe: stdin or custom fd
+          const toOption = options.to ?? "stdin"
+
+          if (toOption === "stdin") {
+            // Pipe to stdin (default behavior)
+            handle = spawnCommand(ChildProcess.make(command.command, command.args, {
+              ...command.options,
+              stdin: { ...stdinConfig, stream: sourceStream }
+            }))
+          } else {
+            // Pipe to custom fd (fd3, fd4, etc.)
+            const fd = ChildProcess.parseFdName(toOption)
+            if (Predicate.isNotUndefined(fd)) {
+              const fdName = ChildProcess.fdName(fd) as `fd${number}`
+              const existingFds = command.options.additionalFds ?? {}
+              handle = spawnCommand(ChildProcess.make(command.command, command.args, {
+                ...command.options,
+                additionalFds: {
+                  ...existingFds,
+                  [fdName]: { type: "input" as const, stream: sourceStream }
+                }
+              }))
+            } else {
+              // Invalid fd name, fall back to stdin
+              handle = spawnCommand(ChildProcess.make(command.command, command.args, {
+                ...command.options,
+                stdin: { ...stdinConfig, stream: sourceStream }
+              }))
+            }
+          }
         }
+
         return yield* handle
       }
     }
@@ -598,43 +663,73 @@ export const layer: Layer.Layer<
 // =============================================================================
 
 /**
- * Flattens a `Command` into an array of `StandardCommand`s.
+ * Result of flattening a pipeline of commands.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export interface FlattenedPipeline {
+  readonly commands: Arr.NonEmptyReadonlyArray<ChildProcess.StandardCommand>
+  readonly pipeOptions: ReadonlyArray<ChildProcess.PipeOptions>
+}
+
+/**
+ * Flattens a `Command` into an array of `StandardCommand`s along with pipe
+ * options for each connection.
  *
  * @since 4.0.0
  * @category Utilities
  */
 export const flattenCommand = (
   command: ChildProcess.Command
-): Arr.NonEmptyReadonlyArray<ChildProcess.StandardCommand> => {
-  const stack: Array<ChildProcess.Command> = [command]
-  const flattened: Array<ChildProcess.StandardCommand> = []
-  while (stack.length > 0) {
-    const current = stack.pop()!
-    switch (current._tag) {
+): FlattenedPipeline => {
+  const commands: Array<ChildProcess.StandardCommand> = []
+  const pipeOptions: Array<ChildProcess.PipeOptions> = []
+
+  const flatten = (cmd: ChildProcess.Command): void => {
+    switch (cmd._tag) {
       case "StandardCommand": {
-        flattened.push(current)
+        commands.push(cmd)
         break
       }
       case "TemplatedCommand": {
         const parsed = parseTemplates(
-          current.templates,
-          current.expressions
+          cmd.templates,
+          cmd.expressions
         )
-        flattened.push(ChildProcess.make(
+        commands.push(ChildProcess.make(
           parsed[0],
           parsed.slice(1),
-          current.options
+          cmd.options
         ))
         break
       }
       case "PipedCommand": {
-        stack.push(current.right)
-        stack.push(current.left)
+        // Recursively flatten left side first
+        flatten(cmd.left)
+        // Store the pipe options for this connection
+        pipeOptions.push(cmd.options)
+        // Then flatten right side
+        flatten(cmd.right)
         break
       }
     }
   }
-  return flattened as any
+
+  flatten(command)
+
+  // The commands array is guaranteed to be non-empty since we always have at
+  // least one command in the input. We validate this at runtime and return a
+  // properly typed tuple.
+  if (commands.length === 0) {
+    // This should never happen given a valid Command input
+    throw new Error("flattenCommand produced empty commands array")
+  }
+
+  const [first, ...rest] = commands
+  const nonEmptyCommands: Arr.NonEmptyReadonlyArray<ChildProcess.StandardCommand> = [first, ...rest]
+
+  return { commands: nonEmptyCommands, pipeOptions }
 }
 //
 // const collectOutput = (

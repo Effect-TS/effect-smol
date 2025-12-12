@@ -131,6 +131,67 @@ export interface PipedCommand extends
   readonly _tag: "PipedCommand"
   readonly left: Command
   readonly right: Command
+  readonly options: PipeOptions
+}
+
+/**
+ * Specifies which stream to pipe from the source subprocess.
+ *
+ * - `"stdout"`: Pipe stdout from the source (default)
+ * - `"stderr"`: Pipe stderr from the source
+ * - `"all"`: Pipe both stdout and stderr interleaved
+ * - `` `fd${number}` ``: Pipe from a custom file descriptor (e.g., `"fd3"`)
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export type PipeFromOption = "stdout" | "stderr" | "all" | `fd${number}`
+
+/**
+ * Specifies which input to pipe to on the destination subprocess.
+ *
+ * - `"stdin"`: Pipe to stdin of the destination (default)
+ * - `` `fd${number}` ``: Pipe to a custom file descriptor (e.g., `"fd3"`)
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export type PipeToOption = "stdin" | `fd${number}`
+
+/**
+ * Options for controlling how commands are piped together.
+ *
+ * @example
+ * ```ts
+ * import { ChildProcess } from "effect/unstable/process"
+ *
+ * // Pipe stderr instead of stdout
+ * const pipeline = ChildProcess.make`my-program`.pipe(
+ *   ChildProcess.pipeTo(ChildProcess.make`grep error`, { from: "stderr" })
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export interface PipeOptions {
+  /**
+   * Which stream to pipe from the source subprocess.
+   *
+   * - `"stdout"` (default): Pipe stdout from the source
+   * - `"stderr"`: Pipe stderr from the source
+   * - `"all"`: Pipe both stdout and stderr interleaved
+   * - `"fd3"`, `"fd4"`, etc.: Pipe from a custom file descriptor
+   */
+  readonly from?: PipeFromOption | undefined
+
+  /**
+   * Which input to pipe to on the destination subprocess.
+   *
+   * - `"stdin"` (default): Pipe to stdin of the destination
+   * - `"fd3"`, `"fd4"`, etc.: Pipe to a custom file descriptor
+   */
+  readonly to?: PipeToOption | undefined
 }
 
 /**
@@ -526,12 +587,14 @@ const makeTemplatedCommand = (
 
 const makePipedCommand = (
   left: Command,
-  right: Command
+  right: Command,
+  options: PipeOptions = {}
 ): PipedCommand =>
   Object.assign(Object.create(Proto), {
     _tag: "PipedCommand",
     left,
-    right
+    right,
+    options
   })
 
 /**
@@ -618,13 +681,26 @@ export const make: {
 /**
  * Pipe the output of one command to the input of another.
  *
+ * By default, pipes `stdout` from the source to `stdin` of the destination.
+ * Use the `options` parameter to customize which streams are connected.
+ *
  * @example
  * ```ts
  * import { ChildProcess } from "effect/unstable/process"
  *
  * // Pipe stdout (default)
- * const pipeline = ChildProcess.make`cat file.txt`.pipe(
+ * const pipeline1 = ChildProcess.make`cat file.txt`.pipe(
  *   ChildProcess.pipeTo(ChildProcess.make`grep pattern`)
+ * )
+ *
+ * // Pipe stderr instead of stdout
+ * const pipeline2 = ChildProcess.make`my-program`.pipe(
+ *   ChildProcess.pipeTo(ChildProcess.make`grep error`, { from: "stderr" })
+ * )
+ *
+ * // Pipe combined stdout and stderr
+ * const pipeline3 = ChildProcess.make`my-program`.pipe(
+ *   ChildProcess.pipeTo(ChildProcess.make`tee output.log`, { from: "all" })
  * )
  * ```
  *
@@ -632,9 +708,12 @@ export const make: {
  * @category Combinators
  */
 export const pipeTo: {
-  (that: Command): (self: Command) => PipedCommand
-  (self: Command, that: Command): PipedCommand
-} = dual(2, (self: Command, that: Command) => makePipedCommand(self, that))
+  (that: Command, options?: PipeOptions): (self: Command) => PipedCommand
+  (self: Command, that: Command, options?: PipeOptions): PipedCommand
+} = dual(
+  (args) => isCommand(args[0]) && isCommand(args[1]),
+  (self: Command, that: Command, options?: PipeOptions) => makePipedCommand(self, that, options ?? {})
+)
 
 /**
  * Spawn a command and return a handle for interaction.
