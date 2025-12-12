@@ -410,12 +410,12 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |      `tapErrorCause`       |  Done  |          `tapCause`           |          |
 |         `throttle`         |  Done  |                               |          |
 |      `throttleEffect`      |  Done  |                               |          |
-|         `timeout`          |   -    |                               |          |
+|         `timeout`          |  Done  |               -               |          |
 |       `timeoutFail`        |  Done  |        `timeoutOrElse`        |          |
 |     `timeoutFailCause`     |   X    |                               |          |
 |        `timeoutTo`         |   X    |                               |          |
 |        `transduce`         |  Done  |          `transduce`          |          |
-|           `when`           |   -    |                               |          |
+|           `when`           |  Done  |                               |          |
 |      `whenCaseEffect`      |   X    |                               |          |
 |        `whenEffect`        |   X    |            `when`             |          |
 

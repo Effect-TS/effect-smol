@@ -1830,6 +1830,25 @@ export const schedule: {
   ))
 
 /**
+ * Ends the stream if it does not produce a value after the specified duration.
+ *
+ * @since 2.0.0
+ * @category utils
+ */
+export const timeout: {
+  (duration: Duration.DurationInput): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R>(self: Stream<A, E, R>, duration: Duration.DurationInput): Stream<A, E, R>
+} = dual(
+  2,
+  <A, E, R>(self: Stream<A, E, R>, duration: Duration.DurationInput): Stream<A, E, R> =>
+    transformPull(self, (pull, _scope) =>
+      Effect.succeed(Effect.timeoutOrElse(pull, {
+        duration,
+        onTimeout: () => Pull.haltVoid
+      })))
+)
+
+/**
  * Repeats each element of the stream using the provided schedule. Repetitions
  * are done in addition to the first execution, which means using
  * `Schedule.recurs(1)` actually results in the original effect, plus an
@@ -2852,6 +2871,32 @@ export const partitionEffect: {
       partition(identity, options)
     )
 )
+
+/**
+ * Returns the specified stream if the given condition is satisfied, otherwise
+ * returns an empty stream.
+ *
+ * @since 2.0.0
+ * @category Filtering
+ */
+export const when: {
+  <EX = never, RX = never>(
+    test: LazyArg<boolean> | Effect.Effect<boolean, EX, RX>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | EX, R | RX>
+  <A, E, R, EX = never, RX = never>(
+    self: Stream<A, E, R>,
+    test: LazyArg<boolean> | Effect.Effect<boolean, EX, RX>
+  ): Stream<A, E | EX, R | RX>
+} = dual(2, <A, E, R, EX = never, RX = never>(
+  self: Stream<A, E, R>,
+  test: LazyArg<boolean> | Effect.Effect<boolean, EX, RX>
+): Stream<A, E | EX, R | RX> => {
+  const effect = Effect.isEffect(test) ? test : Effect.sync(test)
+  return effect.pipe(
+    Effect.map((pass) => pass ? self : empty),
+    unwrap
+  )
+})
 
 /**
  * Peels off enough material from the stream to construct a `Z` using the

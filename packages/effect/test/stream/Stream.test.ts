@@ -5,7 +5,7 @@ import { Cause, Clock, Deferred, Duration, Effect, Exit, Fiber, Queue, Ref, Sche
 import { Array } from "effect/collections"
 import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/collections/Array"
 import { Filter, Option } from "effect/data"
-import { constTrue, constVoid, pipe } from "effect/Function"
+import { constFalse, constTrue, constVoid, pipe } from "effect/Function"
 import { Sink, Stream } from "effect/stream"
 import { TestClock } from "effect/testing"
 import * as fc from "effect/testing/FastCheck"
@@ -3446,6 +3446,97 @@ describe("Stream", () => {
           Stream.runCollect
         )
         deepStrictEqual(result, [])
+      }))
+  })
+
+  describe("timeout", () => {
+    it.effect("timeout - succeed", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.succeed(1),
+          Stream.timeout(Duration.infinity),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [1])
+      }))
+
+    it.effect("timeout - should end the stream", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.range(0, 4),
+          Stream.tap(() => Effect.sleep(Duration.infinity)),
+          Stream.timeout(Duration.zero),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [])
+      }))
+  })
+
+  describe("when", () => {
+    it.effect("when - returns the stream if the condition is satisfied", () =>
+      Effect.gen(function*() {
+        const stream = Stream.make(1, 2, 3, 4, 5)
+        const { result1, result2 } = yield* (Effect.all({
+          result1: pipe(stream, Stream.when(constTrue), Stream.runCollect),
+          result2: Stream.runCollect(stream)
+        }))
+        deepStrictEqual(result1, result2)
+      }))
+
+    it.effect("when - returns an empty stream if the condition is not satisfied", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1, 2, 3, 4, 5),
+          Stream.when(constFalse),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [])
+      }))
+
+    it.effect("when - dies if the condition throws an exception", () =>
+      Effect.gen(function*() {
+        const error = "boom"
+        const result = yield* pipe(
+          Stream.make(1, 2, 3),
+          Stream.when(() => {
+            throw error
+          }),
+          Stream.runDrain,
+          Effect.exit
+        )
+        deepStrictEqual(result, Exit.die(error))
+      }))
+
+    it.effect("when - returns the stream if the effectful condition is satisfied", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1, 2, 3, 4, 5),
+          Stream.when(Effect.succeed(true)),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [1, 2, 3, 4, 5])
+      }))
+
+    it.effect("when - returns an empty stream if the effectful condition is not satisfied", () =>
+      Effect.gen(function*() {
+        const result = yield* pipe(
+          Stream.make(1, 2, 3, 4, 5),
+          Stream.when(Effect.succeed(false)),
+          Stream.runCollect
+        )
+        deepStrictEqual(result, [])
+      }))
+
+    it.effect("when - fails if the effectful condition fails", () =>
+      Effect.gen(function*() {
+        const error = "boom"
+        const result = yield* pipe(
+          Stream.make(1, 2, 3),
+          Stream.when(Effect.fail(error)),
+          Stream.runDrain,
+          Effect.exit
+        )
+        deepStrictEqual(result, Exit.fail(error))
       }))
   })
 })
