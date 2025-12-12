@@ -3430,7 +3430,8 @@ export const take: {
  *
  * @example
  * ```ts
- * import { Effect, Stream } from "effect"
+ * import { Effect } from "effect"
+ * import { Stream } from "effect/stream"
  *
  * const stream = Stream.takeRight(Stream.make(1, 2, 3, 4, 5, 6), 3)
  *
@@ -3969,8 +3970,9 @@ export const slidingSize: {
  * Splits elements based on a filter function.
  *
  * ```ts
- * import { pipe, Stream } from "effect"
- * import { Filter } from "effect/data/Filter"
+ * import { pipe } from "effect"
+ * import { Filter } from "effect/data"
+ * import { Stream } from "effect/stream"
  *
  * pipe(
  *   Stream.range(1, 10),
