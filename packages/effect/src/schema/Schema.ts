@@ -5251,6 +5251,7 @@ export function Option<A extends Top>(value: A): Option<A> {
     },
     {
       expected: "Option",
+      typeConstructor: "Option",
       serializer: ([value]) =>
         link<Option_.Option<A["Encoded"]>>()(
           Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
