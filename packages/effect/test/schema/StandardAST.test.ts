@@ -2,13 +2,206 @@ import { Schema, StandardAST } from "effect/schema"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
-describe("StandardAST", () => {
-  function assertFromAST(schema: Schema.Top, standardAST: StandardAST.StandardAST) {
-    const ast = StandardAST.fromAST(schema.ast)
-    deepStrictEqual(ast, standardAST)
-  }
+type Category = {
+  readonly name: string
+  readonly children: ReadonlyArray<Category>
+}
 
+const TopLevelCategory = Schema.Struct({
+  name: Schema.String,
+  children: Schema.Array(Schema.suspend((): Schema.Codec<Category> => TopLevelCategory))
+}).annotate({ identifier: "Category" })
+
+const OuterCategory = Schema.Struct({
+  name: Schema.String,
+  children: Schema.Array(
+    Schema.suspend((): Schema.Codec<Category> => OuterCategory).annotate({ identifier: "Category" })
+  )
+})
+
+const InnerCategory = Schema.Struct({
+  name: Schema.String,
+  children: Schema.Array(
+    Schema.suspend((): Schema.Codec<Category> => InnerCategory.annotate({ identifier: "Category" }))
+  )
+})
+
+function assertFromAST(schema: Schema.Top, standardAST: StandardAST.StandardAST) {
+  const ast = StandardAST.fromAST(schema.ast)
+  deepStrictEqual(ast, standardAST)
+}
+
+describe("StandardAST", () => {
   describe("fromAST", () => {
+    describe("Suspend", () => {
+      it("non-recursive", () => {
+        assertFromAST(Schema.suspend(() => Schema.String), {
+          _tag: "String",
+          annotations: undefined,
+          checks: []
+        })
+        assertFromAST(Schema.suspend(() => Schema.String.annotate({ identifier: "ID" })), {
+          _tag: "String",
+          annotations: { identifier: "ID" },
+          checks: []
+        })
+        assertFromAST(Schema.suspend(() => Schema.String).annotate({ identifier: "ID" }), {
+          _tag: "Reference",
+          annotations: { identifier: "ID" },
+          $ref: "ID",
+          source: {
+            _tag: "String",
+            annotations: undefined,
+            checks: []
+          }
+        })
+        assertFromAST(
+          Schema.suspend(() => Schema.String.annotate({ description: "a" })).annotate({ identifier: "ID" }),
+          {
+            _tag: "Reference",
+            annotations: { identifier: "ID" },
+            $ref: "ID",
+            source: {
+              _tag: "String",
+              annotations: { description: "a" },
+              checks: []
+            }
+          }
+        )
+      })
+
+      describe("recursive", () => {
+        it("top level identifier", () => {
+          assertFromAST(TopLevelCategory, {
+            _tag: "Objects",
+            annotations: { identifier: "Category" },
+            propertySignatures: [
+              {
+                name: "name",
+                type: { _tag: "String", annotations: undefined, checks: [] },
+                isOptional: false,
+                isMutable: false,
+                annotations: undefined
+              },
+              {
+                name: "children",
+                type: {
+                  _tag: "Arrays",
+                  annotations: undefined,
+                  elements: [],
+                  rest: [{
+                    _tag: "Reference",
+                    annotations: undefined,
+                    $ref: "Category",
+                    source: undefined
+                  }]
+                },
+                isOptional: false,
+                isMutable: false,
+                annotations: undefined
+              }
+            ],
+            indexSignatures: []
+          })
+        })
+
+        it("outer identifier", () => {
+          assertFromAST(OuterCategory, {
+            _tag: "Objects",
+            annotations: undefined,
+            propertySignatures: [
+              {
+                name: "name",
+                type: { _tag: "String", annotations: undefined, checks: [] },
+                isOptional: false,
+                isMutable: false,
+                annotations: undefined
+              },
+              {
+                name: "children",
+                type: {
+                  _tag: "Arrays",
+                  annotations: undefined,
+                  elements: [],
+                  rest: [{
+                    _tag: "Reference",
+                    annotations: { identifier: "Category" },
+                    $ref: "Category",
+                    source: undefined
+                  }]
+                },
+                isOptional: false,
+                isMutable: false,
+                annotations: undefined
+              }
+            ],
+            indexSignatures: []
+          })
+        })
+
+        it("inner identifier", () => {
+          assertFromAST(InnerCategory, {
+            _tag: "Objects",
+            annotations: undefined,
+            propertySignatures: [
+              {
+                name: "name",
+                type: { _tag: "String", annotations: undefined, checks: [] },
+                isOptional: false,
+                isMutable: false,
+                annotations: undefined
+              },
+              {
+                name: "children",
+                type: {
+                  _tag: "Arrays",
+                  annotations: undefined,
+                  elements: [],
+                  rest: [
+                    {
+                      _tag: "Objects",
+                      annotations: { identifier: "Category" },
+                      propertySignatures: [
+                        {
+                          name: "name",
+                          type: { _tag: "String", annotations: undefined, checks: [] },
+                          isOptional: false,
+                          isMutable: false,
+                          annotations: undefined
+                        },
+                        {
+                          name: "children",
+                          type: {
+                            _tag: "Arrays",
+                            annotations: undefined,
+                            elements: [],
+                            rest: [{
+                              _tag: "Reference",
+                              annotations: undefined,
+                              $ref: "Category",
+                              source: undefined
+                            }]
+                          },
+                          isOptional: false,
+                          isMutable: false,
+                          annotations: undefined
+                        }
+                      ],
+                      indexSignatures: []
+                    }
+                  ]
+                },
+                isOptional: false,
+                isMutable: false,
+                annotations: undefined
+              }
+            ],
+            indexSignatures: []
+          })
+        })
+      })
+    })
+
     it("Declaration", () => {
       assertFromAST(Schema.Option(Schema.String), {
         _tag: "External",
@@ -556,14 +749,83 @@ describe("StandardAST", () => {
   })
 
   describe("toCode", () => {
-    function assertToCode(schema: Schema.Top, expected: string) {
+    function assertToCode(schema: Schema.Top, expected: string, resolver?: StandardAST.ToCodeResolver) {
       const ast = StandardAST.fromAST(schema.ast)
-      strictEqual(StandardAST.toCode(ast), expected)
+      strictEqual(StandardAST.toCode(ast, { resolver }), expected)
     }
+
+    const resolver: StandardAST.ToCodeResolver = (node, recur) => {
+      switch (node._tag) {
+        case "External": {
+          const typeConstructor = node.annotations?.typeConstructor
+          if (typeof typeConstructor === "string") {
+            return `Schema.${typeConstructor}(${node.typeParameters.map((p) => recur(p)).join(", ")})`
+          }
+          return `Schema.Unknown`
+        }
+        case "Reference": {
+          const innner = node.source !== undefined ? recur(node.source) : node.$ref
+          const typeAnnotations = node.source !== undefined ? "" : `: Schema.Codec<${node.$ref}>`
+          return `Schema.suspend(()${typeAnnotations} => ${innner})` + StandardAST.toCodeAnnotate(node.annotations)
+        }
+      }
+    }
+
+    describe("Suspend", () => {
+      it("non-recursive", () => {
+        assertToCode(
+          Schema.suspend(() => Schema.String).annotate({ identifier: "ID" }),
+          `Schema.suspend(() => Schema.String).annotate({ "identifier": "ID" })`,
+          resolver
+        )
+        assertToCode(
+          Schema.suspend(() => Schema.String),
+          `Schema.String`,
+          resolver
+        )
+        assertToCode(
+          Schema.suspend(() => Schema.String.annotate({ identifier: "ID" })),
+          `Schema.String.annotate({ "identifier": "ID" })`,
+          resolver
+        )
+        assertToCode(
+          Schema.suspend(() => Schema.String.annotate({ description: "a" })).annotate({ identifier: "ID" }),
+          `Schema.suspend(() => Schema.String.annotate({ "description": "a" })).annotate({ "identifier": "ID" })`,
+          resolver
+        )
+      })
+
+      describe("recursive", () => {
+        it("top level identifier", () => {
+          assertToCode(
+            TopLevelCategory,
+            `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)) }).annotate({ "identifier": "Category" })`,
+            resolver
+          )
+        })
+
+        it("outer identifier", () => {
+          assertToCode(
+            OuterCategory,
+            `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category).annotate({ "identifier": "Category" })) })`,
+            resolver
+          )
+        })
+
+        it("inner identifier", () => {
+          assertToCode(
+            InnerCategory,
+            `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)) }).annotate({ "identifier": "Category" })) })`,
+            resolver
+          )
+        })
+      })
+    })
 
     describe("Declaration", () => {
       it("Option", () => {
-        assertToCode(Schema.Option(Schema.String), "Schema.Option(Schema.String)")
+        assertToCode(Schema.Option(Schema.String), "Schema.Unknown")
+        assertToCode(Schema.Option(Schema.String), "Schema.Option(Schema.String)", resolver)
       })
 
       it("declaration without typeConstructor annotation", () => {

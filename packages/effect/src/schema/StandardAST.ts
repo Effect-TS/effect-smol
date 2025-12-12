@@ -3,7 +3,7 @@
  */
 import * as Arr from "../collections/Array.ts"
 import { format, formatPropertyKey } from "../data/Formatter.ts"
-import type * as AnnotationsModule from "./Annotations.ts"
+import * as AnnotationsModule from "./Annotations.ts"
 import * as AST from "./AST.ts"
 import type * as Getter from "./Getter.ts"
 import * as Schema from "./Schema.ts"
@@ -12,7 +12,10 @@ import * as Schema from "./Schema.ts"
 // specification
 // -----------------------------------------------------------------------------
 
-type ExternalNode = {
+/**
+ * @since 4.0.0
+ */
+export type ExternalNode = {
   readonly _tag: "External"
   readonly annotations?: AnnotationsModule.Annotations | undefined
   readonly typeParameters: ReadonlyArray<StandardAST>
@@ -22,8 +25,19 @@ type ExternalNode = {
 /**
  * @since 4.0.0
  */
+export type ReferenceNode = {
+  readonly _tag: "Reference"
+  readonly annotations?: AnnotationsModule.Annotations | undefined
+  readonly $ref: string
+  readonly source?: StandardAST | undefined
+}
+
+/**
+ * @since 4.0.0
+ */
 export type StandardAST =
   | ExternalNode
+  | ReferenceNode
   | {
     readonly _tag: "Null"
     readonly annotations?: AnnotationsModule.Annotations | undefined
@@ -681,82 +695,124 @@ export const StandardAST = Schema.Union([
  * @since 4.0.0
  */
 export function fromAST(ast: AST.AST): StandardAST {
-  switch (ast._tag) {
-    case "Declaration":
-      return {
-        _tag: "External",
-        annotations: fromASTAnnotations(ast.annotations),
-        typeParameters: ast.typeParameters.map(fromAST),
-        checks: fromASTChecks(ast.checks)
+  const visited = new Set<AST.AST>()
+
+  return recur(ast)
+
+  function recur(ast: AST.AST): StandardAST {
+    visited.add(ast)
+    switch (ast._tag) {
+      case "Suspend": {
+        const thunk = ast.thunk()
+        const reference = getIdentifier(ast)
+        if (visited.has(thunk)) {
+          if (reference !== undefined) {
+            return {
+              _tag: "Reference",
+              annotations: fromASTAnnotations(ast.annotations),
+              $ref: reference,
+              source: undefined
+            }
+          }
+          const thunkReference = getIdentifier(thunk)
+          if (thunkReference !== undefined) {
+            return { _tag: "Reference", annotations: undefined, $ref: thunkReference, source: undefined }
+          }
+          throw new Error("Circular reference detected")
+        }
+        if (reference !== undefined) {
+          return {
+            _tag: "Reference",
+            annotations: fromASTAnnotations(ast.annotations),
+            $ref: reference,
+            source: recur(thunk)
+          }
+        }
+        return recur(thunk)
       }
-    case "Null":
-    case "Undefined":
-    case "Void":
-    case "Never":
-    case "Unknown":
-    case "Any":
-    case "Boolean":
-    case "Symbol":
-      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations) }
-    case "String": {
-      const contentMediaType = ast.annotations?.contentMediaType
-      const contentSchema = ast.annotations?.contentSchema
-      if (typeof contentMediaType === "string" && AST.isAST(contentSchema)) {
+      case "Declaration":
+        return {
+          _tag: "External",
+          annotations: fromASTAnnotations(ast.annotations),
+          typeParameters: ast.typeParameters.map((tp) => recur(tp)),
+          checks: fromASTChecks(ast.checks)
+        }
+      case "Null":
+      case "Undefined":
+      case "Void":
+      case "Never":
+      case "Unknown":
+      case "Any":
+      case "Boolean":
+      case "Symbol":
+        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations) }
+      case "String": {
+        const contentMediaType = ast.annotations?.contentMediaType
+        const contentSchema = ast.annotations?.contentSchema
+        if (typeof contentMediaType === "string" && AST.isAST(contentSchema)) {
+          return {
+            _tag: ast._tag,
+            annotations: undefined,
+            checks: [],
+            contentMediaType,
+            contentSchema: recur(contentSchema)
+          }
+        }
+        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), checks: fromASTChecks(ast.checks) }
+      }
+      case "Number":
+      case "BigInt":
+        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), checks: fromASTChecks(ast.checks) }
+      case "Literal":
+        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), literal: ast.literal }
+      case "UniqueSymbol":
+        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), symbol: ast.symbol }
+      case "ObjectKeyword":
+        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations) }
+      case "Enum":
+        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), enums: ast.enums }
+      case "TemplateLiteral":
         return {
           _tag: ast._tag,
-          annotations: undefined,
-          checks: [],
-          contentMediaType,
-          contentSchema: fromAST(contentSchema)
+          annotations: fromASTAnnotations(ast.annotations),
+          parts: ast.parts.map((p) => recur(p))
         }
-      }
-      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), checks: fromASTChecks(ast.checks) }
+      case "Arrays":
+        return {
+          _tag: ast._tag,
+          annotations: fromASTAnnotations(ast.annotations),
+          elements: ast.elements.map((e) => recur(e)),
+          rest: ast.rest.map((r) => recur(r))
+        }
+      case "Objects":
+        return {
+          _tag: ast._tag,
+          annotations: fromASTAnnotations(ast.annotations),
+          propertySignatures: ast.propertySignatures.map((ps) => ({
+            annotations: fromASTAnnotations(ps.type.context?.annotations),
+            name: ps.name,
+            type: recur(ps.type),
+            isOptional: AST.isOptional(ps.type),
+            isMutable: AST.isMutable(ps.type)
+          })),
+          indexSignatures: ast.indexSignatures.map((is) => ({
+            parameter: recur(is.parameter),
+            type: recur(is.type)
+          }))
+        }
+      case "Union":
+        return {
+          _tag: ast._tag,
+          annotations: fromASTAnnotations(ast.annotations),
+          types: ast.types.map((t) => recur(t)),
+          mode: ast.mode
+        }
     }
-    case "Number":
-    case "BigInt":
-      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), checks: fromASTChecks(ast.checks) }
-    case "Literal":
-      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), literal: ast.literal }
-    case "UniqueSymbol":
-      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), symbol: ast.symbol }
-    case "ObjectKeyword":
-      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations) }
-    case "Enum":
-      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), enums: ast.enums }
-    case "TemplateLiteral":
-      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), parts: ast.parts.map(fromAST) }
-    case "Arrays":
-      return {
-        _tag: ast._tag,
-        annotations: fromASTAnnotations(ast.annotations),
-        elements: ast.elements.map(fromAST),
-        rest: ast.rest.map(fromAST)
-      }
-    case "Objects":
-      return {
-        _tag: ast._tag,
-        annotations: fromASTAnnotations(ast.annotations),
-        propertySignatures: ast.propertySignatures.map((ps) => ({
-          annotations: fromASTAnnotations(ps.type.context?.annotations),
-          name: ps.name,
-          type: fromAST(ps.type),
-          isOptional: AST.isOptional(ps.type),
-          isMutable: AST.isMutable(ps.type)
-        })),
-        indexSignatures: ast.indexSignatures.map((is) => ({
-          parameter: fromAST(is.parameter),
-          type: fromAST(is.type)
-        }))
-      }
-    case "Union":
-      return {
-        _tag: ast._tag,
-        annotations: fromASTAnnotations(ast.annotations),
-        types: ast.types.map(fromAST),
-        mode: ast.mode
-      }
   }
-  throw new globalThis.Error("Unsupported AST: " + ast._tag, { cause: ast })
+}
+
+function getIdentifier(ast: AST.AST): string | undefined {
+  return AnnotationsModule.resolveIdentifier(ast)
 }
 
 const fromASTAnnotationsBlacklist: Set<string> = new Set([
@@ -834,41 +890,47 @@ export function fromJson(u: unknown): StandardAST {
 /**
  * @since 4.0.0
  */
-export type Resolver<T> = (externalNode: ExternalNode) => T
+export type Resolver<I, O> = (node: I, recur: (ast: StandardAST) => O) => O
+
+/**
+ * @since 4.0.0
+ */
+export type ToCodeResolver = Resolver<ExternalNode | ReferenceNode, string>
 
 /**
  * @since 4.0.0
  */
 export function toCode(ast: StandardAST, options?: {
-  readonly resolver?: Resolver<string>
+  readonly resolver?: Resolver<ExternalNode | ReferenceNode, string> | undefined
 }): string {
   const resolver = options?.resolver ?? defaultResolver
 
-  function defaultResolver(externalNode: ExternalNode): string {
-    const typeConstructor = externalNode.annotations?.typeConstructor
-    if (typeof typeConstructor === "string") {
-      return `Schema.${typeConstructor}(${externalNode.typeParameters.map((p) => recur(p)).join(", ")})`
-    }
+  return recur(ast)
+
+  function defaultResolver(): string {
     return `Schema.Unknown`
   }
 
   function recur(ast: StandardAST): string {
-    const out = base(ast) + toCodeAnnotate(ast.annotations)
+    const b = base(ast)
     switch (ast._tag) {
       default:
-        return out
+        return b + toCodeAnnotate(ast.annotations)
+      case "Reference":
       case "External":
+        return b
       case "String":
       case "Number":
       case "BigInt":
-        return out + toCodeChecks(ast.checks)
+        return b + toCodeAnnotate(ast.annotations) + toCodeChecks(ast.checks)
     }
   }
 
   function base(ast: StandardAST): string {
     switch (ast._tag) {
       case "External":
-        return resolver(ast)
+      case "Reference":
+        return resolver(ast, recur)
       case "Null":
       case "Undefined":
       case "Void":
@@ -924,8 +986,6 @@ export function toCode(ast: StandardAST, options?: {
       }
     }
   }
-
-  return recur(ast)
 }
 
 const toCodeAnnotationsBlacklist: Set<string> = new Set([
@@ -943,7 +1003,10 @@ function toCodeAnnotations(annotations: AnnotationsModule.Annotations | undefine
   return `{ ${entries.join(", ")} }`
 }
 
-function toCodeAnnotate(annotations: AnnotationsModule.Annotations | undefined): string {
+/**
+ * @since 4.0.0
+ */
+export function toCodeAnnotate(annotations: AnnotationsModule.Annotations | undefined): string {
   const s = toCodeAnnotations(annotations)
   if (s === "") return ""
   return `.annotate(${s})`
@@ -1068,6 +1131,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(ast: StandardAST): S
 function toSchemaBase(ast: StandardAST): Schema.Top {
   switch (ast._tag) {
     case "External":
+    case "Reference":
       return Schema.Unknown // TODO
     case "Null":
       return Schema.Null
@@ -1192,6 +1256,7 @@ function toSchemaChecks(schema: Schema.Top, ast: StandardAST): Schema.Top {
       }
       return schema
     }
+    // TODO: other cases
     default:
       return schema
   }
