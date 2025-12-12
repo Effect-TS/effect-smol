@@ -94,7 +94,7 @@ export interface AnyId {
  * @since 4.0.0
  * @category models
  */
-export interface KeyClass<
+export interface ServiceClass<
   Self,
   Name extends string,
   Provides,
@@ -161,7 +161,7 @@ export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
  * @since 4.0.0
  * @category models
  */
-export interface AnyKey extends ServiceMap.Service<any, any> {
+export interface AnyService extends ServiceMap.Service<any, any> {
   readonly [TypeId]: typeof TypeId
   readonly error: Schema.Top
   readonly requiredForClient: boolean
@@ -171,7 +171,7 @@ export interface AnyKey extends ServiceMap.Service<any, any> {
  * @since 4.0.0
  * @category models
  */
-export interface AnyKeyWithProps extends ServiceMap.Service<any, RpcMiddleware<any, any, any>> {
+export interface AnyServiceWithProps extends ServiceMap.Service<any, RpcMiddleware<any, any, any>> {
   readonly [TypeId]: typeof TypeId
   readonly error: Schema.Top
   readonly requiredForClient: boolean
@@ -181,7 +181,7 @@ export interface AnyKeyWithProps extends ServiceMap.Service<any, RpcMiddleware<a
  * @since 4.0.0
  * @category tags
  */
-export const Key = <
+export const Service = <
   Self,
   Config extends {
     requires?: any
@@ -197,7 +197,7 @@ export const Key = <
     readonly error?: Error | undefined
     readonly requiredForClient: RequiredForClient | undefined
   } | undefined
-) => KeyClass<
+) => ServiceClass<
   Self,
   Name,
   "provides" extends keyof Config ? Config["provides"] : never,
@@ -217,19 +217,19 @@ export const Key = <
   const creationError = new Err()
   Err.stackTraceLimit = limit
 
-  function KeyClass() {}
-  const KeyClass_ = KeyClass as any as Mutable<AnyKey>
-  Object.setPrototypeOf(KeyClass, Object.getPrototypeOf(ServiceMap.Service<Self, any>(id)))
-  KeyClass.key = id
-  Object.defineProperty(KeyClass, "stack", {
+  function ServiceClass() {}
+  const ServiceClass_ = ServiceClass as any as Mutable<AnyService>
+  Object.setPrototypeOf(ServiceClass, Object.getPrototypeOf(ServiceMap.Service<Self, any>(id)))
+  ServiceClass.key = id
+  Object.defineProperty(ServiceClass, "stack", {
     get() {
       return creationError.stack
     }
   })
-  KeyClass_[TypeId] = TypeId
-  KeyClass_.error = options?.error ?? Schema.Never
-  KeyClass_.requiredForClient = options?.requiredForClient ?? false
-  return KeyClass as any
+  ServiceClass_[TypeId] = TypeId
+  ServiceClass_.error = options?.error ?? Schema.Never
+  ServiceClass_.requiredForClient = options?.requiredForClient ?? false
+  return ServiceClass as any
 }
 
 /**

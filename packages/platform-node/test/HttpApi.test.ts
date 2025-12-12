@@ -621,7 +621,7 @@ const securityQuery = HttpApiSecurity.apiKey({
 
 class CurrentUser extends ServiceMap.Service<CurrentUser, User>()("CurrentUser") {}
 
-class Authorization extends HttpApiMiddleware.Key<Authorization, {
+class Authorization extends HttpApiMiddleware.Service<Authorization, {
   provides: CurrentUser
   requires: never
 }>()("Authorization", {

@@ -45,7 +45,7 @@ export interface RpcGroup<in out R extends Rpc.Any> extends Pipeable {
   /**
    * Add middleware to all the procedures added to the group until this point.
    */
-  middleware<M extends RpcMiddleware.AnyKey>(middleware: M): RpcGroup<Rpc.AddMiddleware<R, M>>
+  middleware<M extends RpcMiddleware.AnyService>(middleware: M): RpcGroup<Rpc.AddMiddleware<R, M>>
 
   /**
    * Add a prefix to the procedures in this group, returning a new group
@@ -241,7 +241,7 @@ const RpcGroupProto = {
       annotations: ServiceMap.makeUnsafe(annotations)
     })
   },
-  middleware(this: RpcGroup<any>, middleware: RpcMiddleware.AnyKey) {
+  middleware(this: RpcGroup<any>, middleware: RpcMiddleware.AnyService) {
     const requests = new Map<string, any>()
     for (const [tag, rpc] of this.requests) {
       requests.set(tag, rpc.middleware(middleware))

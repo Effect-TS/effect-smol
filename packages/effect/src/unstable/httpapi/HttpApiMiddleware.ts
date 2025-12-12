@@ -132,7 +132,7 @@ export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
  * @since 4.0.0
  * @category Schemas
  */
-export type KeyClass<
+export type ServiceClass<
   Self,
   Id extends string,
   Config extends {
@@ -169,7 +169,7 @@ export type KeyClass<
  * @since 4.0.0
  * @category Schemas
  */
-export const Key = <
+export const Service = <
   Self,
   Config extends {
     requires?: any
@@ -185,7 +185,7 @@ export const Key = <
     readonly error?: Error | undefined
     readonly security?: Security | undefined
   } | undefined
-) => KeyClass<Self, Id, {
+) => ServiceClass<Self, Id, {
   requires: "requires" extends keyof Config ? Config["requires"] : never
   provides: "provides" extends keyof Config ? Config["provides"] : never
   error: Error
@@ -204,9 +204,9 @@ export const Key = <
   const creationError = new Err()
   Err.stackTraceLimit = limit
 
-  class Key extends ServiceMap.Service<Self, any>()(id) {}
-  const self = Key as any
-  Object.defineProperty(Key, "stack", {
+  class Service extends ServiceMap.Service<Self, any>()(id) {}
+  const self = Service as any
+  Object.defineProperty(Service, "stack", {
     get() {
       return creationError.stack
     }

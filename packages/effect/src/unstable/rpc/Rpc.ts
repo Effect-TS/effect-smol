@@ -36,7 +36,7 @@ export interface Rpc<
   out Payload extends Schema.Top = Schema.Void,
   out Success extends Schema.Top = Schema.Void,
   out Error extends Schema.Top = Schema.Never,
-  out Middleware extends RpcMiddleware.AnyKey = never,
+  out Middleware extends RpcMiddleware.AnyService = never,
   out Requires = never
 > extends Pipeable {
   new(_: never): {}
@@ -92,7 +92,7 @@ export interface Rpc<
   /**
    * Add an `RpcMiddleware` to this procedure.
    */
-  middleware<M extends RpcMiddleware.AnyKey>(middleware: M): Rpc<
+  middleware<M extends RpcMiddleware.AnyService>(middleware: M): Rpc<
     Tag,
     Payload,
     Success,
@@ -169,7 +169,7 @@ export interface AnyWithProps extends Pipeable {
   readonly successSchema: Schema.Top
   readonly errorSchema: Schema.Top
   readonly annotations: ServiceMap.ServiceMap<never>
-  readonly middlewares: ReadonlySet<RpcMiddleware.AnyKeyWithProps>
+  readonly middlewares: ReadonlySet<RpcMiddleware.AnyServiceWithProps>
   readonly "~requires": any
 }
 
@@ -421,7 +421,7 @@ export type AddError<R extends Any, Error extends Schema.Top> = R extends Rpc<
  * @since 4.0.0
  * @category models
  */
-export type AddMiddleware<R extends Any, Middleware extends RpcMiddleware.AnyKey> = R extends Rpc<
+export type AddMiddleware<R extends Any, Middleware extends RpcMiddleware.AnyService> = R extends Rpc<
   infer _Tag,
   infer _Payload,
   infer _Success,
@@ -619,7 +619,7 @@ const Proto = {
       middlewares: this.middlewares
     })
   },
-  middleware(this: AnyWithProps, middleware: RpcMiddleware.AnyKey) {
+  middleware(this: AnyWithProps, middleware: RpcMiddleware.AnyService) {
     return makeProto({
       _tag: this._tag,
       payloadSchema: this.payloadSchema,
@@ -666,7 +666,7 @@ const makeProto = <
   Payload extends Schema.Top,
   Success extends Schema.Top,
   Error extends Schema.Top,
-  Middleware extends RpcMiddleware.AnyKey,
+  Middleware extends RpcMiddleware.AnyService,
   Requires
 >(options: {
   readonly _tag: Tag

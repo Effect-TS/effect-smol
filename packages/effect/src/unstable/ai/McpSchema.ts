@@ -1807,7 +1807,7 @@ export class McpServerClient extends ServiceMap.Service<McpServerClient, {
  * @since 4.0.0
  * @category middleware
  */
-export class McpServerClientMiddleware extends RpcMiddleware.Key<McpServerClientMiddleware, {
+export class McpServerClientMiddleware extends RpcMiddleware.Service<McpServerClientMiddleware, {
   provides: McpServerClient
 }>()("effect/ai/McpSchema/McpServerClientMiddleware") {}
 
