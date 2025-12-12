@@ -10,7 +10,7 @@ import { NodeInspectSymbol } from "../interfaces/Inspectable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type { StackFrame } from "../References.ts"
 import type * as ServiceMap from "../ServiceMap.ts"
-import type { Equals, NoInfer } from "../types/Types.ts"
+import type { Equals } from "../types/Types.ts"
 import { SingleShotGen } from "../Utils.ts"
 import type { FiberImpl } from "./effect.ts"
 import { version } from "./version.ts"
@@ -216,17 +216,7 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
     this.annotations = annotations
   }
 
-  annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S, options?: {
-    readonly overwrite?: boolean | undefined
-  }): this {
-    if (options?.overwrite !== true && this.annotations.has(tag.key)) {
-      return this
-    }
-    const self = Object.assign(Object.create(Object.getPrototypeOf(this)), this)
-    self.annotations = new Map([...this.annotations, [tag.key, value]])
-    return self
-  }
-  annotateMerge(
+  annotate(
     annotations: ServiceMap.ServiceMap<never>,
     options?: { readonly overwrite?: boolean | undefined }
   ): this {
@@ -343,35 +333,6 @@ export const causeDie = (defect: unknown): Cause.Cause<never> => new CauseImpl([
 
 /** @internal */
 export const causeAnnotate: {
-  <I, S>(
-    key: ServiceMap.Service<I, S>,
-    value: NoInfer<S>,
-    options?: {
-      readonly overwrite?: boolean | undefined
-    }
-  ): <E>(self: Cause.Cause<E>) => Cause.Cause<E>
-  <E, I, S>(
-    self: Cause.Cause<E>,
-    key: ServiceMap.Service<I, S>,
-    value: NoInfer<S>,
-    options?: {
-      readonly overwrite?: boolean | undefined
-    }
-  ): Cause.Cause<E>
-} = dual(
-  (args) => isCause(args[0]),
-  <E, I, S>(
-    self: Cause.Cause<E>,
-    key: ServiceMap.Service<I, S>,
-    value: NoInfer<S>,
-    options?: {
-      readonly overwrite?: boolean | undefined
-    }
-  ): Cause.Cause<E> => new CauseImpl(self.failures.map((f) => f.annotate(key, value, options)))
-)
-
-/** @internal */
-export const causeAnnotateMerge: {
   (
     annotations: ServiceMap.ServiceMap<never>,
     options?: {
@@ -395,7 +356,7 @@ export const causeAnnotateMerge: {
     }
   ): Cause.Cause<E> => {
     if (annotations.mapUnsafe.size === 0) return self
-    return new CauseImpl(self.failures.map((f) => f.annotateMerge(annotations, options)))
+    return new CauseImpl(self.failures.map((f) => f.annotate(annotations, options)))
   }
 )
 
@@ -585,7 +546,7 @@ export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = 
     let cause = this[args]
     let annotated = false
     if (fiber.currentStackFrame) {
-      cause = causeAnnotate(cause, StackTraceKey, fiber.currentStackFrame)
+      cause = causeAnnotate(cause, { mapUnsafe: new Map([[StackTraceKey.key, fiber.currentStackFrame]]) } as any)
       annotated = true
     }
     let cont = fiber.getCont(contE)

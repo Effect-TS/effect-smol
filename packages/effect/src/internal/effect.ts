@@ -44,7 +44,6 @@ import type { Primitive } from "./core.ts"
 import {
   args,
   causeAnnotate,
-  causeAnnotateMerge,
   causeEmpty,
   causeFail,
   causeFromFailures,
@@ -70,7 +69,7 @@ import {
   makePrimitive,
   makePrimitiveProto,
   NoSuchElementError,
-  StackTraceKey,
+  StackTraceKey as CauseStackTrace,
   TaggedError,
   withFiber,
   Yield
@@ -394,7 +393,7 @@ const cleanErrorStack = (
 }
 
 const addStackAnnotations = (stack: string, annotations: ReadonlyMap<string, unknown>) => {
-  const frame = annotations?.get(StackTraceKey.key) as StackFrame | undefined
+  const frame = annotations?.get(CauseStackTrace.key) as StackFrame | undefined
   if (frame) {
     stack = `${stack}\n${currentStackTrace(frame)}`
   }
@@ -555,10 +554,10 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
     }
     let cause = causeInterrupt(fiberId)
     if (this.currentStackFrame) {
-      cause = causeAnnotate(cause, StackTraceKey, this.currentStackFrame)
+      cause = causeAnnotate(cause, ServiceMap.make(CauseStackTrace, this.currentStackFrame))
     }
     if (annotations) {
-      cause = causeAnnotateMerge(cause, annotations)
+      cause = causeAnnotate(cause, annotations)
     }
     this._interruptedCause = this._interruptedCause
       ? causeMerge(this._interruptedCause, cause)
@@ -686,7 +685,7 @@ const fiberMiddleware = {
 const fiberStackAnnotations = (fiber: Fiber.Fiber<any, any>) => {
   if (!fiber.currentStackFrame) return undefined
   const annotations = new Map<string, unknown>()
-  annotations.set(StackTraceKey.key, fiber.currentStackFrame)
+  annotations.set(CauseStackTrace.key, fiber.currentStackFrame)
   return ServiceMap.makeUnsafe(annotations)
 }
 

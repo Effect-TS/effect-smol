@@ -229,10 +229,7 @@ export declare namespace Cause {
     readonly [FailureTypeId]: typeof FailureTypeId
     readonly _tag: Tag
     readonly annotations: ReadonlyMap<string, unknown>
-    annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S, options?: {
-      readonly overwrite?: boolean | undefined
-    }): this
-    annotateMerge(annotations: ServiceMap.ServiceMap<never>, options?: {
+    annotate(annotations: ServiceMap.ServiceMap<never> | ReadonlyMap<string, unknown>, options?: {
       readonly overwrite?: boolean | undefined
     }): this
   }
@@ -928,34 +925,20 @@ export interface UnknownError extends YieldableError {
 export const UnknownError: new(cause: unknown, message?: string) => UnknownError = effect.UnknownError
 
 /**
- * Adds annotations to a `Cause` using a `ServiceMap.Service` to store metadata
+ * Adds annotations to a `Cause` using a `ServiceMap` to store metadata
  * that can be retrieved later for debugging or tracing purposes.
- *
- * @example
- * ```ts
- * import { Cause, ServiceMap } from "effect"
- *
- * // Define a custom annotation key
- * class UserId extends ServiceMap.Service<UserId, string>()("UserId") {}
- *
- * // Create a cause and add an annotation
- * const originalCause = Cause.fail("Something went wrong")
- * const annotatedCause = Cause.annotate(originalCause, UserId, "user123")
- * ```
  *
  * @category Annotations
  * @since 4.0.0
  */
 export const annotate: {
-  <I, S>(
-    key: ServiceMap.Service<I, S>,
-    value: NoInfer<S>,
+  (
+    annotations: ServiceMap.ServiceMap<never>,
     options?: { readonly overwrite?: boolean | undefined }
   ): <E>(self: Cause<E>) => Cause<E>
-  <E, I, S>(
+  <E>(
     self: Cause<E>,
-    key: ServiceMap.Service<I, S>,
-    value: NoInfer<S>,
+    annotations: ServiceMap.ServiceMap<never>,
     options?: { readonly overwrite?: boolean | undefined }
   ): Cause<E>
 } = core.causeAnnotate
