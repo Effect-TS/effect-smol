@@ -408,10 +408,14 @@ export interface CommandOptions extends KillOptions {
    */
   readonly stderr?: CommandOutput | StderrConfig | undefined
   /**
-   * Additional file descriptors beyond stdin/stdout/stderr.
+   * Additional file descriptors to expose to the child process beyond `stdin` /
+   * `stdout` / `stderr`.
    *
-   * Keys must be in the format "fd3", "fd4", etc. (fd index >= 3).
-   * The FD index is determined by the numeric suffix.
+   * Keys must be in the format `"fd3"`, `"fd4"`, etc. with a file descriptor
+   * index >= 3.
+   *
+   * The file descriptor index is determined by the numeric suffix (i.e. `fd3`
+   * has a file descriptor index of 3).
    *
    * @example
    * ```ts
@@ -432,7 +436,7 @@ export interface CommandOptions extends KillOptions {
    * })
    * ```
    */
-  readonly additionalFds?: Record<string, AdditionalFdConfig> | undefined
+  readonly additionalFds?: Record<`fd${number}`, AdditionalFdConfig> | undefined
 }
 
 /**
