@@ -26,14 +26,14 @@ class Unauthorized extends Schema.ErrorClass<Unauthorized>("Unauthorized")({
   _tag: Schema.tag("Unauthorized")
 }) {}
 
-class AuthMiddleware extends RpcMiddleware.Key<AuthMiddleware, {
+class AuthMiddleware extends RpcMiddleware.Service<AuthMiddleware, {
   provides: CurrentUser
 }>()("AuthMiddleware", {
   error: Unauthorized,
   requiredForClient: true
 }) {}
 
-class TimingMiddleware extends RpcMiddleware.Key<TimingMiddleware>()("TimingMiddleware") {}
+class TimingMiddleware extends RpcMiddleware.Service<TimingMiddleware>()("TimingMiddleware") {}
 
 class GetUser extends Rpc.make("GetUser", {
   success: User,
