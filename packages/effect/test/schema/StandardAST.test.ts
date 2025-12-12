@@ -9,6 +9,17 @@ describe("StandardAST", () => {
   }
 
   describe("fromAST", () => {
+    it("Declaration", () => {
+      assertFromAST(Schema.Option(Schema.String), {
+        _tag: "External",
+        annotations: { typeConstructor: "Option" },
+        typeParameters: [
+          { _tag: "String", annotations: undefined, checks: [] }
+        ],
+        checks: []
+      })
+    })
+
     it("Null", () => {
       assertFromAST(Schema.Null, { _tag: "Null", annotations: undefined })
       assertFromAST(Schema.Null.annotate({ description: "a" }), { _tag: "Null", annotations: { description: "a" } })
@@ -131,39 +142,26 @@ describe("StandardAST", () => {
 
       it("contentSchema", () => {
         assertFromAST(
-          Schema.fromJsonString(Schema.String.annotate({ description: "a" }).check(Schema.isMinLength(1))),
+          Schema.encodedCodec(Schema.fromJsonString(Schema.Struct({ a: Schema.String }))),
           {
             _tag: "String",
             annotations: undefined,
             checks: [],
             contentMediaType: "application/json",
             contentSchema: {
-              _tag: "String",
-              annotations: { description: "a" },
-              checks: [
-                { _tag: "Filter", meta: { _tag: "isMinLength", minLength: 1 }, annotations: undefined }
-              ]
+              _tag: "Objects",
+              annotations: undefined,
+              propertySignatures: [{
+                name: "a",
+                type: { _tag: "String", annotations: undefined, checks: [] },
+                isOptional: false,
+                isMutable: false,
+                annotations: undefined
+              }],
+              indexSignatures: []
             }
           }
         )
-        assertFromAST(Schema.fromJsonString(Schema.Struct({ a: Schema.String })), {
-          _tag: "String",
-          annotations: undefined,
-          checks: [],
-          contentMediaType: "application/json",
-          contentSchema: {
-            _tag: "Objects",
-            annotations: undefined,
-            propertySignatures: [{
-              name: "a",
-              type: { _tag: "String", annotations: undefined, checks: [] },
-              isOptional: false,
-              isMutable: false,
-              annotations: undefined
-            }],
-            indexSignatures: []
-          }
-        })
       })
     })
 
@@ -302,11 +300,26 @@ describe("StandardAST", () => {
       })
     })
 
-    it("BigInt", () => {
-      assertFromAST(Schema.BigInt, { _tag: "BigInt", annotations: undefined })
-      assertFromAST(Schema.BigInt.annotate({ description: "a" }), {
-        _tag: "BigInt",
-        annotations: { description: "a" }
+    describe("BigInt", () => {
+      it("BigInt", () => {
+        assertFromAST(Schema.BigInt, { _tag: "BigInt", annotations: undefined, checks: [] })
+        assertFromAST(Schema.BigInt.annotate({ description: "a" }), {
+          _tag: "BigInt",
+          annotations: { description: "a" },
+          checks: []
+        })
+      })
+
+      describe("checks", () => {
+        it("isGreaterThanOrEqualTo", () => {
+          assertFromAST(Schema.BigInt.check(Schema.isGreaterThanOrEqualToBigInt(10n)), {
+            _tag: "BigInt",
+            annotations: undefined,
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isGreaterThanOrEqualTo", minimum: 10n }, annotations: undefined }
+            ]
+          })
+        })
       })
     })
 
@@ -548,105 +561,138 @@ describe("StandardAST", () => {
       strictEqual(StandardAST.toCode(ast), expected)
     }
 
-    describe("primitive types", () => {
-      it("Null", () => {
-        assertToCode(Schema.Null, "Schema.Null")
-        assertToCode(Schema.Null.annotate({ "description": "a" }), `Schema.Null.annotate({ "description": "a" })`)
-        assertToCode(Schema.Null.annotate({}), "Schema.Null")
+    describe("Declaration", () => {
+      it("Option", () => {
+        assertToCode(Schema.Option(Schema.String), "Schema.Option(Schema.String)")
       })
 
-      it("Undefined", () => {
-        assertToCode(Schema.Undefined, "Schema.Undefined")
-        assertToCode(
-          Schema.Undefined.annotate({ "description": "b" }),
-          `Schema.Undefined.annotate({ "description": "b" })`
-        )
+      it("declaration without typeConstructor annotation", () => {
+        const schema = Schema.instanceOf(URL)
+        assertFromAST(schema, { _tag: "External", annotations: undefined, typeParameters: [], checks: [] })
+        assertToCode(schema, "Schema.Unknown")
       })
+    })
 
-      it("Void", () => {
-        assertToCode(Schema.Void, "Schema.Void")
-        assertToCode(Schema.Void.annotate({ "description": "c" }), `Schema.Void.annotate({ "description": "c" })`)
-      })
+    it("Null", () => {
+      assertToCode(Schema.Null, "Schema.Null")
+      assertToCode(Schema.Null.annotate({ "description": "a" }), `Schema.Null.annotate({ "description": "a" })`)
+      assertToCode(Schema.Null.annotate({}), "Schema.Null")
+    })
 
-      it("Never", () => {
-        assertToCode(Schema.Never, "Schema.Never")
-        assertToCode(Schema.Never.annotate({ "description": "d" }), `Schema.Never.annotate({ "description": "d" })`)
-      })
+    it("Undefined", () => {
+      assertToCode(Schema.Undefined, "Schema.Undefined")
+      assertToCode(
+        Schema.Undefined.annotate({ "description": "a" }),
+        `Schema.Undefined.annotate({ "description": "a" })`
+      )
+    })
 
-      it("Unknown", () => {
-        assertToCode(Schema.Unknown, "Schema.Unknown")
-        assertToCode(Schema.Unknown.annotate({ "description": "e" }), `Schema.Unknown.annotate({ "description": "e" })`)
-      })
+    it("Void", () => {
+      assertToCode(Schema.Void, "Schema.Void")
+      assertToCode(Schema.Void.annotate({ "description": "a" }), `Schema.Void.annotate({ "description": "a" })`)
+    })
 
-      it("Any", () => {
-        assertToCode(Schema.Any, "Schema.Any")
-        assertToCode(Schema.Any.annotate({ "description": "f" }), `Schema.Any.annotate({ "description": "f" })`)
-      })
+    it("Never", () => {
+      assertToCode(Schema.Never, "Schema.Never")
+      assertToCode(Schema.Never.annotate({ "description": "a" }), `Schema.Never.annotate({ "description": "a" })`)
+    })
 
+    it("Unknown", () => {
+      assertToCode(Schema.Unknown, "Schema.Unknown")
+      assertToCode(Schema.Unknown.annotate({ "description": "a" }), `Schema.Unknown.annotate({ "description": "a" })`)
+    })
+
+    it("Any", () => {
+      assertToCode(Schema.Any, "Schema.Any")
+      assertToCode(Schema.Any.annotate({ "description": "a" }), `Schema.Any.annotate({ "description": "a" })`)
+    })
+
+    describe("String", () => {
       it("String", () => {
         assertToCode(Schema.String, "Schema.String")
-        assertToCode(Schema.String.annotate({ "description": "g" }), `Schema.String.annotate({ "description": "g" })`)
       })
 
-      it("Number", () => {
-        assertToCode(Schema.Number, "Schema.Number")
-        assertToCode(Schema.Number.annotate({ "description": "h" }), `Schema.Number.annotate({ "description": "h" })`)
+      it("String & annotations", () => {
+        assertToCode(Schema.String.annotate({ "description": "a" }), `Schema.String.annotate({ "description": "a" })`)
       })
 
-      it("Boolean", () => {
-        assertToCode(Schema.Boolean, "Schema.Boolean")
-        assertToCode(Schema.Boolean.annotate({ "description": "i" }), `Schema.Boolean.annotate({ "description": "i" })`)
+      it("String & check", () => {
+        assertToCode(Schema.String.check(Schema.isMinLength(1)), "Schema.String.check(Schema.isMinLength(1))")
       })
 
-      it("BigInt", () => {
-        assertToCode(Schema.BigInt, "Schema.BigInt")
-        assertToCode(Schema.BigInt.annotate({ "description": "j" }), `Schema.BigInt.annotate({ "description": "j" })`)
-      })
-
-      it("Symbol", () => {
-        assertToCode(Schema.Symbol, "Schema.Symbol")
-        assertToCode(Schema.Symbol.annotate({ "description": "k" }), `Schema.Symbol.annotate({ "description": "k" })`)
-      })
-
-      it("ObjectKeyword", () => {
-        assertToCode(Schema.ObjectKeyword, "Schema.ObjectKeyword")
+      it("String & annotations & check", () => {
         assertToCode(
-          Schema.ObjectKeyword.annotate({ "description": "l" }),
-          `Schema.ObjectKeyword.annotate({ "description": "l" })`
+          Schema.String.annotate({ "description": "a" }).check(Schema.isMinLength(1)),
+          `Schema.String.annotate({ "description": "a" }).check(Schema.isMinLength(1))`
         )
       })
+
+      it("String & check & annotations", () => {
+        assertToCode(
+          Schema.String.check(Schema.isMinLength(1, { description: "a" })),
+          `Schema.String.check(Schema.isMinLength(1, { "description": "a" }))`
+        )
+      })
+    })
+
+    it("Number", () => {
+      assertToCode(Schema.Number, "Schema.Number")
+      assertToCode(Schema.Number.annotate({ "description": "a" }), `Schema.Number.annotate({ "description": "a" })`)
+    })
+
+    it("Boolean", () => {
+      assertToCode(Schema.Boolean, "Schema.Boolean")
+      assertToCode(Schema.Boolean.annotate({ "description": "a" }), `Schema.Boolean.annotate({ "description": "a" })`)
+    })
+
+    it("BigInt", () => {
+      assertToCode(Schema.BigInt, "Schema.BigInt")
+      assertToCode(Schema.BigInt.annotate({ "description": "a" }), `Schema.BigInt.annotate({ "description": "a" })`)
+    })
+
+    it("Symbol", () => {
+      assertToCode(Schema.Symbol, "Schema.Symbol")
+      assertToCode(Schema.Symbol.annotate({ "description": "a" }), `Schema.Symbol.annotate({ "description": "a" })`)
+    })
+
+    it("ObjectKeyword", () => {
+      assertToCode(Schema.ObjectKeyword, "Schema.ObjectKeyword")
+      assertToCode(
+        Schema.ObjectKeyword.annotate({ "description": "a" }),
+        `Schema.ObjectKeyword.annotate({ "description": "a" })`
+      )
     })
 
     describe("Literal", () => {
       it("string literal", () => {
         assertToCode(Schema.Literal("hello"), `Schema.Literal("hello")`)
         assertToCode(
-          Schema.Literal("hello").annotate({ "description": "m" }),
-          `Schema.Literal("hello").annotate({ "description": "m" })`
+          Schema.Literal("hello").annotate({ "description": "a" }),
+          `Schema.Literal("hello").annotate({ "description": "a" })`
         )
       })
 
       it("number literal", () => {
         assertToCode(Schema.Literal(42), "Schema.Literal(42)")
         assertToCode(
-          Schema.Literal(42).annotate({ "description": "n" }),
-          `Schema.Literal(42).annotate({ "description": "n" })`
+          Schema.Literal(42).annotate({ "description": "a" }),
+          `Schema.Literal(42).annotate({ "description": "a" })`
         )
       })
 
       it("boolean literal", () => {
         assertToCode(Schema.Literal(true), "Schema.Literal(true)")
         assertToCode(
-          Schema.Literal(true).annotate({ "description": "o" }),
-          `Schema.Literal(true).annotate({ "description": "o" })`
+          Schema.Literal(true).annotate({ "description": "a" }),
+          `Schema.Literal(true).annotate({ "description": "a" })`
         )
       })
 
       it("bigint literal", () => {
         assertToCode(Schema.Literal(100n), "Schema.Literal(100n)")
         assertToCode(
-          Schema.Literal(100n).annotate({ "description": "p" }),
-          `Schema.Literal(100n).annotate({ "description": "p" })`
+          Schema.Literal(100n).annotate({ "description": "a" }),
+          `Schema.Literal(100n).annotate({ "description": "a" })`
         )
       })
     })

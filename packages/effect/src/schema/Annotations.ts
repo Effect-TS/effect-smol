@@ -339,9 +339,11 @@ export interface Issue extends Annotations {
 }
 
 /**
+ * This MUST NOT be extended with custom meta.
+ *
  * @since 4.0.0
  */
-export interface MetaRegistry {
+export interface BuiltInMetaRegistry {
   // String Meta
   readonly isNumberString: {
     readonly _tag: "isNumberString"
@@ -531,6 +533,59 @@ export interface MetaRegistry {
     readonly _tag: "isSize"
     readonly size: number
   }
+}
+
+/**
+ * @since 4.0.0
+ */
+export type BuiltInMeta = BuiltInMetaRegistry[keyof BuiltInMetaRegistry]
+
+/**
+ * This MAY be extended with custom meta.
+ *
+ * @since 4.0.0
+ */
+export interface MetaRegistry extends BuiltInMetaRegistry {}
+
+/**
+ * @since 4.0.0
+ */
+export type isGreaterThan<T> = {
+  readonly _tag: "isGreaterThan"
+  readonly exclusiveMinimum: T
+}
+
+/**
+ * @since 4.0.0
+ */
+export type isGreaterThanOrEqualTo<T> = {
+  readonly _tag: "isGreaterThanOrEqualTo"
+  readonly minimum: T
+}
+
+/**
+ * @since 4.0.0
+ */
+export type isLessThan<T> = {
+  readonly _tag: "isLessThan"
+  readonly exclusiveMaximum: T
+}
+
+/**
+ * @since 4.0.0
+ */
+export type isLessThanOrEqualTo<T> = {
+  readonly _tag: "isLessThanOrEqualTo"
+  readonly maximum: T
+}
+
+/**
+ * @since 4.0.0
+ */
+export type isBetween<T> = {
+  readonly _tag: "isBetween"
+  readonly minimum: T
+  readonly maximum: T
 }
 
 /**

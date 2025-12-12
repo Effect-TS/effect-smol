@@ -12,18 +12,18 @@ import * as Schema from "./Schema.ts"
 // specification
 // -----------------------------------------------------------------------------
 
-type StandardString = {
-  readonly _tag: "String"
+type ExternalNode = {
+  readonly _tag: "External"
   readonly annotations?: AnnotationsModule.Annotations | undefined
-  readonly checks: ReadonlyArray<Check<StringMeta>>
-  readonly contentMediaType?: string | undefined
-  readonly contentSchema?: StandardAST | undefined
+  readonly typeParameters: ReadonlyArray<StandardAST>
+  readonly checks: ReadonlyArray<Check<DateCheckMeta>>
 }
 
 /**
  * @since 4.0.0
  */
 export type StandardAST =
+  | ExternalNode
   | {
     readonly _tag: "Null"
     readonly annotations?: AnnotationsModule.Annotations | undefined
@@ -48,11 +48,17 @@ export type StandardAST =
     readonly _tag: "Any"
     readonly annotations?: AnnotationsModule.Annotations | undefined
   }
-  | StandardString
+  | {
+    readonly _tag: "String"
+    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly checks: ReadonlyArray<Check<StringCheckMeta>>
+    readonly contentMediaType?: string | undefined
+    readonly contentSchema?: StandardAST | undefined
+  }
   | {
     readonly _tag: "Number"
     readonly annotations?: AnnotationsModule.Annotations | undefined
-    readonly checks: ReadonlyArray<Check<NumberMeta>>
+    readonly checks: ReadonlyArray<Check<NumberCheckMeta>>
   }
   | {
     readonly _tag: "Boolean"
@@ -61,6 +67,7 @@ export type StandardAST =
   | {
     readonly _tag: "BigInt"
     readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly checks: ReadonlyArray<Check<BigIntCheckMeta>>
   }
   | {
     readonly _tag: "Symbol"
@@ -112,7 +119,50 @@ export type StandardAST =
 /**
  * @since 4.0.0
  */
-export type StringMeta = AnnotationsModule.MetaRegistry[
+export type PropertySignature = {
+  readonly name: PropertyKey
+  readonly type: StandardAST
+  readonly isOptional: boolean
+  readonly isMutable: boolean
+  readonly annotations?: AnnotationsModule.Annotations | undefined
+}
+
+/**
+ * @since 4.0.0
+ */
+export type IndexSignature = {
+  readonly parameter: StandardAST
+  readonly type: StandardAST
+}
+
+/**
+ * @since 4.0.0
+ */
+export type Check<T> = Filter<T> | FilterGroup<T>
+
+/**
+ * @since 4.0.0
+ */
+export type Filter<M> = {
+  readonly _tag: "Filter"
+  readonly annotations?: AnnotationsModule.Annotations | undefined
+  readonly meta: M
+}
+
+/**
+ * @since 4.0.0
+ */
+export type FilterGroup<M> = {
+  readonly _tag: "FilterGroup"
+  readonly meta: M | undefined
+  readonly annotations?: AnnotationsModule.Annotations | undefined
+  readonly checks: ReadonlyArray<Check<M>>
+}
+
+/**
+ * @since 4.0.0
+ */
+export type StringCheckMeta = AnnotationsModule.BuiltInMetaRegistry[
   | "isNumberString"
   | "isBigIntString"
   | "isSymbolString"
@@ -137,85 +187,46 @@ export type StringMeta = AnnotationsModule.MetaRegistry[
 /**
  * @since 4.0.0
  */
-export type NumberMeta = AnnotationsModule.MetaRegistry[
-  | "isInt"
-  | "isGreaterThanOrEqualTo"
-  | "isLessThanOrEqualTo"
-  | "isGreaterThan"
-  | "isLessThan"
-  | "isBetween"
-  | "isMultipleOf"
-  | "isInt32"
-  | "isUint32"
-  | "isFinite"
-]
+export type NumberCheckMeta =
+  | AnnotationsModule.BuiltInMetaRegistry[
+    | "isInt"
+    | "isInt32"
+    | "isUint32"
+    | "isFinite"
+    | "isMultipleOf"
+  ]
+  | AnnotationsModule.isGreaterThanOrEqualTo<number>
+  | AnnotationsModule.isLessThanOrEqualTo<number>
+  | AnnotationsModule.isGreaterThan<number>
+  | AnnotationsModule.isLessThan<number>
+  | AnnotationsModule.isBetween<number>
 
 /**
  * @since 4.0.0
  */
-export type Filter<M> = {
-  readonly _tag: "Filter"
-  readonly annotations?: AnnotationsModule.Annotations | undefined
-  readonly meta: M
-}
+export type BigIntCheckMeta =
+  | AnnotationsModule.isGreaterThanOrEqualTo<bigint>
+  | AnnotationsModule.isLessThanOrEqualTo<bigint>
+  | AnnotationsModule.isGreaterThan<bigint>
+  | AnnotationsModule.isLessThan<bigint>
+  | AnnotationsModule.isBetween<bigint>
 
 /**
  * @since 4.0.0
  */
-export type FilterGroup<M> = {
-  readonly _tag: "FilterGroup"
-  readonly meta: M | undefined
-  readonly annotations?: AnnotationsModule.Annotations | undefined
-  readonly checks: ReadonlyArray<Check<M>>
-}
-
-/**
- * @since 4.0.0
- */
-export type Check<T> = Filter<T> | FilterGroup<T>
-
-/**
- * @since 4.0.0
- */
-export type PropertySignature = {
-  readonly name: PropertyKey
-  readonly type: StandardAST
-  readonly isOptional: boolean
-  readonly isMutable: boolean
-  readonly annotations?: AnnotationsModule.Annotations | undefined
-}
-
-/**
- * @since 4.0.0
- */
-export type IndexSignature = {
-  readonly parameter: StandardAST
-  readonly type: StandardAST
-}
+export type DateCheckMeta =
+  | AnnotationsModule.BuiltInMetaRegistry["isValidDate"]
+  | AnnotationsModule.isGreaterThanOrEqualTo<number>
+  | AnnotationsModule.isLessThanOrEqualTo<number>
+  | AnnotationsModule.isGreaterThan<number>
+  | AnnotationsModule.isLessThan<number>
+  | AnnotationsModule.isBetween<number>
 
 // -----------------------------------------------------------------------------
 // schemas
 // -----------------------------------------------------------------------------
 
-function makeCheck<T>(schema: Schema.Codec<T>) {
-  const Check$ = Schema.suspend((): Schema.Codec<Check<T>> => Check)
-  const Check = Schema.Union([
-    Schema.Struct({
-      _tag: Schema.tag("Filter"),
-      annotations: Schema.optional(Annotations),
-      meta: schema
-    }),
-    Schema.Struct({
-      _tag: Schema.tag("FilterGroup"),
-      annotations: Schema.optional(Annotations),
-      meta: Schema.UndefinedOr(schema),
-      checks: Schema.TupleWithRest(Schema.Tuple([Check$, Check$]), [Check$])
-    })
-  ])
-  return Check
-}
-
-const StandardAST$ = Schema.suspend((): Schema.Codec<StandardAST, unknown> => StandardAST)
+const StandardAST$ref = Schema.suspend((): Schema.Codec<StandardAST, unknown> => StandardAST)
 
 type PrimitiveTree = Getter.Tree<null | number | boolean | bigint | symbol | string>
 
@@ -401,6 +412,24 @@ const StringMeta = Schema.Union([
   IsLength
 ])
 
+function makeCheck<T>(schema: Schema.Codec<T>) {
+  const Check$ref = Schema.suspend((): Schema.Codec<Check<T>> => Check)
+  const Check = Schema.Union([
+    Schema.Struct({
+      _tag: Schema.tag("Filter"),
+      annotations: Schema.optional(Annotations),
+      meta: schema
+    }),
+    Schema.Struct({
+      _tag: Schema.tag("FilterGroup"),
+      annotations: Schema.optional(Annotations),
+      meta: Schema.UndefinedOr(schema),
+      checks: Schema.TupleWithRest(Schema.Tuple([Check$ref, Check$ref]), [Check$ref])
+    })
+  ])
+  return Check
+}
+
 /**
  * @since 4.0.0
  */
@@ -409,31 +438,11 @@ export const String = Schema.Struct({
   annotations: Schema.optional(Annotations),
   checks: Schema.Array(makeCheck(StringMeta)),
   contentMediaType: Schema.optional(Schema.String),
-  contentSchema: Schema.optional(StandardAST$)
+  contentSchema: Schema.optional(StandardAST$ref)
 }).annotate({ identifier: "String" })
 
 const IsInt = Schema.Struct({
   _tag: Schema.tag("isInt")
-})
-
-const IsGreaterThanOrEqualTo = Schema.Struct({
-  _tag: Schema.tag("isGreaterThanOrEqualTo"),
-  minimum: Schema.Number
-})
-
-const IsLessThanOrEqualTo = Schema.Struct({
-  _tag: Schema.tag("isLessThanOrEqualTo"),
-  maximum: Schema.Number
-})
-
-const IsGreaterThan = Schema.Struct({
-  _tag: Schema.tag("isGreaterThan"),
-  exclusiveMinimum: Schema.Number
-})
-
-const IsLessThan = Schema.Struct({
-  _tag: Schema.tag("isLessThan"),
-  exclusiveMaximum: Schema.Number
 })
 
 const IsMultipleOf = Schema.Struct({
@@ -453,16 +462,44 @@ const IsFinite = Schema.Struct({
   _tag: Schema.tag("isFinite")
 })
 
+function makeIsGreaterThanOrEqualTo<S extends Schema.Top>(minimum: S) {
+  return Schema.Struct({
+    _tag: Schema.tag("isGreaterThanOrEqualTo"),
+    minimum
+  })
+}
+
+function makeIsLessThanOrEqualTo<S extends Schema.Top>(maximum: S) {
+  return Schema.Struct({
+    _tag: Schema.tag("isLessThanOrEqualTo"),
+    maximum
+  })
+}
+
+function makeIsGreaterThan<S extends Schema.Top>(exclusiveMinimum: S) {
+  return Schema.Struct({
+    _tag: Schema.tag("isGreaterThan"),
+    exclusiveMinimum
+  })
+}
+
+function makeIsLessThan<S extends Schema.Top>(exclusiveMaximum: S) {
+  return Schema.Struct({
+    _tag: Schema.tag("isLessThan"),
+    exclusiveMaximum
+  })
+}
+
 const NumberMeta = Schema.Union([
   IsInt,
-  IsGreaterThanOrEqualTo,
-  IsLessThanOrEqualTo,
-  IsGreaterThan,
-  IsLessThan,
   IsMultipleOf,
   IsInt32,
   IsUint32,
-  IsFinite
+  IsFinite,
+  makeIsGreaterThanOrEqualTo(Schema.Number),
+  makeIsLessThanOrEqualTo(Schema.Number),
+  makeIsGreaterThan(Schema.Number),
+  makeIsLessThan(Schema.Number)
 ])
 
 /**
@@ -482,12 +519,20 @@ export const Boolean = Schema.Struct({
   annotations: Schema.optional(Annotations)
 }).annotate({ identifier: "Boolean" })
 
+const BigIntMeta = Schema.Union([
+  makeIsGreaterThanOrEqualTo(Schema.BigInt),
+  makeIsLessThanOrEqualTo(Schema.BigInt),
+  makeIsGreaterThan(Schema.BigInt),
+  makeIsLessThan(Schema.BigInt)
+])
+
 /**
  * @since 4.0.0
  */
 export const BigInt = Schema.Struct({
   _tag: Schema.tag("BigInt"),
-  annotations: Schema.optional(Annotations)
+  annotations: Schema.optional(Annotations),
+  checks: Schema.Array(makeCheck(BigIntMeta))
 }).annotate({ identifier: "BigInt" })
 
 /**
@@ -551,7 +596,7 @@ export const Enum = Schema.Struct({
 export const TemplateLiteral = Schema.Struct({
   _tag: Schema.tag("TemplateLiteral"),
   annotations: Schema.optional(Annotations),
-  parts: Schema.Array(StandardAST$)
+  parts: Schema.Array(StandardAST$ref)
 }).annotate({ identifier: "TemplateLiteral" })
 
 /**
@@ -560,8 +605,8 @@ export const TemplateLiteral = Schema.Struct({
 export const Arrays = Schema.Struct({
   _tag: Schema.tag("Arrays"),
   annotations: Schema.optional(Annotations),
-  elements: Schema.Array(StandardAST$),
-  rest: Schema.Array(StandardAST$)
+  elements: Schema.Array(StandardAST$ref),
+  rest: Schema.Array(StandardAST$ref)
 }).annotate({ identifier: "Arrays" })
 
 /**
@@ -570,7 +615,7 @@ export const Arrays = Schema.Struct({
 export const PropertySignature = Schema.Struct({
   annotations: Schema.optional(Annotations),
   name: Schema.PropertyKey,
-  type: StandardAST$,
+  type: StandardAST$ref,
   isOptional: Schema.Boolean,
   isMutable: Schema.Boolean
 }).annotate({ identifier: "PropertySignature" })
@@ -579,8 +624,8 @@ export const PropertySignature = Schema.Struct({
  * @since 4.0.0
  */
 export const IndexSignature = Schema.Struct({
-  parameter: StandardAST$,
-  type: StandardAST$
+  parameter: StandardAST$ref,
+  type: StandardAST$ref
 }).annotate({ identifier: "IndexSignature" })
 
 /**
@@ -599,7 +644,7 @@ export const Objects = Schema.Struct({
 export const Union = Schema.Struct({
   _tag: Schema.tag("Union"),
   annotations: Schema.optional(Annotations),
-  types: Schema.Array(StandardAST$),
+  types: Schema.Array(StandardAST$ref),
   mode: Schema.Literals(["anyOf", "oneOf"])
 }).annotate({ identifier: "Union" })
 
@@ -628,10 +673,6 @@ export const StandardAST = Schema.Union([
   Union
 ]).annotate({ identifier: "AST" })
 
-const serializerJson = Schema.toSerializerJson(StandardAST)
-const encodeUnknownSync = Schema.encodeUnknownSync(serializerJson)
-const decodeUnknownSync = Schema.decodeUnknownSync(serializerJson)
-
 // -----------------------------------------------------------------------------
 // APIs
 // -----------------------------------------------------------------------------
@@ -639,32 +680,15 @@ const decodeUnknownSync = Schema.decodeUnknownSync(serializerJson)
 /**
  * @since 4.0.0
  */
-export type JsonValue = Getter.Tree<null | string | number | boolean>
-
-/**
- * @since 4.0.0
- */
-export function toJson<S extends Schema.Top>(schema: S): JsonValue {
-  return encodeUnknownSync(fromAST(schema.ast)) as JsonValue
-}
-
-const keyBlacklist: ReadonlyArray<string> = [
-  "arbitraryConstraint",
-  "serializerJson",
-  "serializer",
-  "expected",
-  "meta",
-  "~structural"
-]
-
-/**
- * @since 4.0.0
- */
 export function fromAST(ast: AST.AST): StandardAST {
-  const contentSchema = getContentSchema(ast)
-  if (contentSchema) return contentSchema
-
   switch (ast._tag) {
+    case "Declaration":
+      return {
+        _tag: "External",
+        annotations: fromASTAnnotations(ast.annotations),
+        typeParameters: ast.typeParameters.map(fromAST),
+        checks: fromASTChecks(ast.checks)
+      }
     case "Null":
     case "Undefined":
     case "Void":
@@ -672,35 +696,46 @@ export function fromAST(ast: AST.AST): StandardAST {
     case "Unknown":
     case "Any":
     case "Boolean":
-    case "BigInt":
     case "Symbol":
       return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations) }
     case "String": {
-      return { _tag: ast._tag, annotations: ast.annotations, checks: fromASTChecks(ast.checks) }
+      const contentMediaType = ast.annotations?.contentMediaType
+      const contentSchema = ast.annotations?.contentSchema
+      if (typeof contentMediaType === "string" && AST.isAST(contentSchema)) {
+        return {
+          _tag: ast._tag,
+          annotations: undefined,
+          checks: [],
+          contentMediaType,
+          contentSchema: fromAST(contentSchema)
+        }
+      }
+      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), checks: fromASTChecks(ast.checks) }
     }
     case "Number":
-      return { _tag: ast._tag, annotations: ast.annotations, checks: fromASTChecks(ast.checks) }
+    case "BigInt":
+      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), checks: fromASTChecks(ast.checks) }
     case "Literal":
-      return { _tag: ast._tag, annotations: ast.annotations, literal: ast.literal }
+      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), literal: ast.literal }
     case "UniqueSymbol":
-      return { _tag: ast._tag, annotations: ast.annotations, symbol: ast.symbol }
+      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), symbol: ast.symbol }
     case "ObjectKeyword":
-      return { _tag: ast._tag, annotations: ast.annotations }
+      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations) }
     case "Enum":
-      return { _tag: ast._tag, annotations: ast.annotations, enums: ast.enums }
+      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), enums: ast.enums }
     case "TemplateLiteral":
-      return { _tag: ast._tag, annotations: ast.annotations, parts: ast.parts.map(fromAST) }
+      return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), parts: ast.parts.map(fromAST) }
     case "Arrays":
       return {
         _tag: ast._tag,
-        annotations: ast.annotations,
+        annotations: fromASTAnnotations(ast.annotations),
         elements: ast.elements.map(fromAST),
         rest: ast.rest.map(fromAST)
       }
     case "Objects":
       return {
         _tag: ast._tag,
-        annotations: ast.annotations,
+        annotations: fromASTAnnotations(ast.annotations),
         propertySignatures: ast.propertySignatures.map((ps) => ({
           annotations: fromASTAnnotations(ps.type.context?.annotations),
           name: ps.name,
@@ -714,44 +749,31 @@ export function fromAST(ast: AST.AST): StandardAST {
         }))
       }
     case "Union":
-      return { _tag: ast._tag, annotations: ast.annotations, types: ast.types.map(fromAST), mode: ast.mode }
+      return {
+        _tag: ast._tag,
+        annotations: fromASTAnnotations(ast.annotations),
+        types: ast.types.map(fromAST),
+        mode: ast.mode
+      }
   }
   throw new globalThis.Error("Unsupported AST: " + ast._tag, { cause: ast })
 }
 
-function getEncodedString(ast: AST.AST): AST.String | undefined {
-  if (ast.encoding) {
-    const to = ast.encoding[ast.encoding.length - 1].to
-    const out = getEncodedString(to)
-    if (out) return out
-    if (AST.isString(to)) return to
-  }
-  return undefined
-}
-
-function getContentSchema(ast: AST.AST): StandardString | undefined {
-  const to = getEncodedString(ast)
-  if (to) {
-    const contentMediaType = to.annotations?.contentMediaType
-    const contentSchema = to.annotations?.contentSchema
-    if (typeof contentMediaType === "string" && AST.isAST(contentSchema)) {
-      return {
-        _tag: "String",
-        annotations: undefined,
-        checks: [],
-        contentMediaType,
-        contentSchema: fromAST(contentSchema)
-      }
-    }
-  }
-}
+const fromASTAnnotationsBlacklist: Set<string> = new Set([
+  "arbitraryConstraint",
+  "serializerJson",
+  "serializer",
+  "expected",
+  "meta",
+  "~structural"
+])
 
 function fromASTAnnotations(
   annotations: AnnotationsModule.Annotations | undefined
 ): AnnotationsModule.Annotations | undefined {
   if (!annotations) return undefined
   const entries = Object.entries(annotations).filter(([key, value]) =>
-    !keyBlacklist.includes(key) && typeof value !== "function"
+    !fromASTAnnotationsBlacklist.has(key) && typeof value !== "function"
   )
   return entries.length === 0 ? undefined : Object.fromEntries(entries)
 }
@@ -786,101 +808,332 @@ function fromASTChecks(
   return checks.map(getCheck).filter((c) => c !== undefined)
 }
 
+const serializerJson = Schema.toSerializerJson(StandardAST)
+const encodeUnknownSync = Schema.encodeUnknownSync(serializerJson)
+const decodeUnknownSync = Schema.decodeUnknownSync(serializerJson)
+
 /**
  * @since 4.0.0
  */
-export function fromJson<S extends Schema.Top = Schema.Top>(u: unknown): S {
-  return toRuntimeSchema(decodeUnknownSync(u)) as S
+export type JsonValue = Getter.Tree<null | string | number | boolean>
+
+/**
+ * @since 4.0.0
+ */
+export function toJson(ast: StandardAST): JsonValue {
+  return encodeUnknownSync(ast) as JsonValue
 }
 
 /**
  * @since 4.0.0
  */
-export function toCode(ast: StandardAST): string {
-  return toCodeBase(ast) + toCodeAnnotations(ast.annotations)
+export function fromJson(u: unknown): StandardAST {
+  return decodeUnknownSync(u)
 }
 
-function toCodeBase(ast: StandardAST): string {
-  switch (ast._tag) {
-    case "Null":
-    case "Undefined":
-    case "Void":
-    case "Never":
-    case "Unknown":
-    case "Any":
-    case "String":
-    case "Number":
-    case "Boolean":
-    case "BigInt":
-    case "Symbol":
-      return `Schema.${ast._tag}`
-    case "Literal":
-      return `Schema.Literal(${format(ast.literal)})`
-    case "UniqueSymbol": {
-      const key = globalThis.Symbol.keyFor(ast.symbol)
-      if (key === undefined) {
-        throw new Error("Cannot generate code for UniqueSymbol created without Symbol.for()")
-      }
-      return `Schema.UniqueSymbol(Symbol.for(${format(key)}))`
+/**
+ * @since 4.0.0
+ */
+export type Resolver<T> = (externalNode: ExternalNode) => T
+
+/**
+ * @since 4.0.0
+ */
+export function toCode(ast: StandardAST, options?: {
+  readonly resolver?: Resolver<string>
+}): string {
+  const resolver = options?.resolver ?? defaultResolver
+
+  function defaultResolver(externalNode: ExternalNode): string {
+    const typeConstructor = externalNode.annotations?.typeConstructor
+    if (typeof typeConstructor === "string") {
+      return `Schema.${typeConstructor}(${externalNode.typeParameters.map((p) => recur(p)).join(", ")})`
     }
-    case "ObjectKeyword":
-      return "Schema.ObjectKeyword"
-    case "Enum":
-      return `Schema.Enum([${ast.enums.map(([key, value]) => `[${format(key)}, ${format(value)}]`).join(", ")}])`
-    case "TemplateLiteral":
-      return `Schema.TemplateLiteral([${ast.parts.map((p) => toCode(p)).join(", ")}])`
-    case "Arrays": {
-      if (ast.elements.length === 0 && ast.rest.length === 0) {
-        return "Schema.Tuple([])"
-      }
-      if (ast.elements.length === 0 && ast.rest.length > 0) {
-        const rest = ast.rest.map((r) => toCode(r)).join(", ")
-        return `Schema.Array(${rest})`
-      }
-      if (ast.rest.length === 0) {
-        const elements = ast.elements.map((e) => toCode(e)).join(", ")
-        return `Schema.Tuple([${elements}])`
-      }
-      const elements = ast.elements.map((e) => toCode(e)).join(", ")
-      const rest = ast.rest.map((r) => toCode(r)).join(", ")
-      return `Schema.TupleWithRest(Schema.Tuple([${elements}]), [${rest}])`
-    }
-    case "Objects": {
-      const propertySignatures = ast.propertySignatures.map((p) =>
-        `${formatPropertyKey(p.name)}: ${toCodeIsOptional(p.isOptional, toCode(p.type))}`
-      ).join(", ")
-      return `Schema.Struct({ ${propertySignatures} })`
-    }
-    case "Union": {
-      const mode = ast.mode === "anyOf" ? "" : `, { mode: "oneOf" }`
-      return `Schema.Union([${ast.types.map((t) => toCode(t)).join(", ")}]${mode})`
+    return `Schema.Unknown`
+  }
+
+  function recur(ast: StandardAST): string {
+    const out = base(ast) + toCodeAnnotate(ast.annotations)
+    switch (ast._tag) {
+      default:
+        return out
+      case "External":
+      case "String":
+      case "Number":
+      case "BigInt":
+        return out + toCodeChecks(ast.checks)
     }
   }
+
+  function base(ast: StandardAST): string {
+    switch (ast._tag) {
+      case "External":
+        return resolver(ast)
+      case "Null":
+      case "Undefined":
+      case "Void":
+      case "Never":
+      case "Unknown":
+      case "Any":
+      case "String":
+      case "Number":
+      case "Boolean":
+      case "BigInt":
+      case "Symbol":
+        return `Schema.${ast._tag}`
+      case "Literal":
+        return `Schema.Literal(${format(ast.literal)})`
+      case "UniqueSymbol": {
+        const key = globalThis.Symbol.keyFor(ast.symbol)
+        if (key === undefined) {
+          throw new Error("Cannot generate code for UniqueSymbol created without Symbol.for()")
+        }
+        return `Schema.UniqueSymbol(Symbol.for(${format(key)}))`
+      }
+      case "ObjectKeyword":
+        return "Schema.ObjectKeyword"
+      case "Enum":
+        return `Schema.Enum([${ast.enums.map(([key, value]) => `[${format(key)}, ${format(value)}]`).join(", ")}])`
+      case "TemplateLiteral":
+        return `Schema.TemplateLiteral([${ast.parts.map((p) => recur(p)).join(", ")}])`
+      case "Arrays": {
+        if (ast.elements.length === 0 && ast.rest.length === 0) {
+          return "Schema.Tuple([])"
+        }
+        if (ast.elements.length === 0 && ast.rest.length > 0) {
+          const rest = ast.rest.map((r) => recur(r)).join(", ")
+          return `Schema.Array(${rest})`
+        }
+        if (ast.rest.length === 0) {
+          const elements = ast.elements.map((e) => recur(e)).join(", ")
+          return `Schema.Tuple([${elements}])`
+        }
+        const elements = ast.elements.map((e) => recur(e)).join(", ")
+        const rest = ast.rest.map((r) => recur(r)).join(", ")
+        return `Schema.TupleWithRest(Schema.Tuple([${elements}]), [${rest}])`
+      }
+      case "Objects": {
+        const propertySignatures = ast.propertySignatures.map((p) =>
+          `${formatPropertyKey(p.name)}: ${toCodeIsOptional(p.isOptional, recur(p.type))}`
+        ).join(", ")
+        return `Schema.Struct({ ${propertySignatures} })`
+      }
+      case "Union": {
+        const mode = ast.mode === "anyOf" ? "" : `, { mode: "oneOf" }`
+        return `Schema.Union([${ast.types.map((t) => recur(t)).join(", ")}]${mode})`
+      }
+    }
+  }
+
+  return recur(ast)
 }
 
+const toCodeAnnotationsBlacklist: Set<string> = new Set([
+  "typeConstructor"
+])
+
 function toCodeAnnotations(annotations: AnnotationsModule.Annotations | undefined): string {
-  if (!annotations || Object.keys(annotations).length === 0) return ""
-  const entries = Object.entries(annotations).map(([key, value]) => {
-    return `${formatPropertyKey(key)}: ${format(value)}`
-  }).join(", ")
-  return `.annotate({ ${entries} })`
+  if (!annotations) return ""
+  const entries: Array<string> = []
+  for (const [key, value] of Object.entries(annotations)) {
+    if (toCodeAnnotationsBlacklist.has(key)) continue
+    entries.push(`${formatPropertyKey(key)}: ${format(value)}`)
+  }
+  if (entries.length === 0) return ""
+  return `{ ${entries.join(", ")} }`
+}
+
+function toCodeAnnotate(annotations: AnnotationsModule.Annotations | undefined): string {
+  const s = toCodeAnnotations(annotations)
+  if (s === "") return ""
+  return `.annotate(${s})`
 }
 
 function toCodeIsOptional(isOptional: boolean, code: string): string {
   return isOptional ? `Schema.optionalKey(${code})` : code
 }
 
+function toCodeChecks(checks: ReadonlyArray<Check<AnnotationsModule.BuiltInMeta>>): string {
+  if (checks.length === 0) return ""
+  return `.check(${checks.map((c) => toCodeCheck(c)).join(", ")})`
+}
+
+function toCodeCheck(check: Check<AnnotationsModule.BuiltInMeta>): string {
+  switch (check._tag) {
+    case "Filter":
+      return toCodeFilter(check)
+    case "FilterGroup": {
+      const a = toCodeAnnotations(check.annotations)
+      const ca = a === "" ? "" : `, ${a}`
+      return `Schema.makeFilterGroup([${check.checks.map((c) => toCodeCheck(c)).join(", ")}]${ca})`
+    }
+  }
+}
+
+function toCodeFilter(filter: Filter<AnnotationsModule.BuiltInMeta>): string {
+  const a = toCodeAnnotations(filter.annotations)
+  const ca = a === "" ? "" : `, ${a}`
+  switch (filter.meta._tag) {
+    case "isNumberString":
+      return `Schema.isNumberString(${toCodeRegExp(filter.meta.regExp)}${ca})`
+    case "isBigIntString":
+      return `Schema.isBigIntString(${toCodeRegExp(filter.meta.regExp)}${ca})`
+    case "isSymbolString":
+      return `Schema.isSymbolString(${toCodeRegExp(filter.meta.regExp)}${ca})`
+    case "isMinLength":
+      return `Schema.isMinLength(${filter.meta.minLength}${ca})`
+    case "isMaxLength":
+      return `Schema.isMaxLength(${filter.meta.maxLength}${ca})`
+    case "isLength":
+      return `Schema.isLength(${filter.meta.length}${ca})`
+    case "isPattern":
+      return `Schema.isPattern(${toCodeRegExp(filter.meta.regExp)}${ca})`
+    case "isTrimmed":
+      return `Schema.isTrimmed(${ca})`
+    case "isUUID":
+      return `Schema.isUUID(${filter.meta.version}${ca})`
+    case "isULID":
+      return `Schema.isULID(${ca})`
+    case "isBase64":
+      return `Schema.isBase64(${ca})`
+    case "isBase64Url":
+      return `Schema.isBase64Url(${ca})`
+    case "isStartsWith":
+      return `Schema.isStartsWith(${filter.meta.startsWith}${ca})`
+    case "isEndsWith":
+      return `Schema.isEndsWith(${filter.meta.endsWith}${ca})`
+    case "isIncludes":
+      return `Schema.isIncludes(${filter.meta.includes}${ca})`
+    case "isUppercased":
+      return `Schema.isUppercased(${ca})`
+    case "isLowercased":
+      return `Schema.isLowercased(${ca})`
+    case "isCapitalized":
+      return `Schema.isCapitalized(${ca})`
+    case "isUncapitalized":
+      return `Schema.isUncapitalized(${ca})`
+    case "isFinite":
+      return `Schema.isFinite(${ca})`
+    case "isInt":
+      return `Schema.isInt(${ca})`
+    case "isInt32":
+      return `Schema.isInt32(${ca})`
+    case "isUint32":
+      return `Schema.isUint32(${ca})`
+    case "isMultipleOf":
+      return `Schema.isMultipleOf(${filter.meta.divisor}${ca})`
+    case "isGreaterThan":
+      return `Schema.isGreaterThan(${filter.meta.exclusiveMinimum}${ca})`
+    case "isGreaterThanOrEqualTo":
+      return `Schema.isGreaterThanOrEqualTo(${filter.meta.minimum}${ca})`
+    case "isLessThan":
+      return `Schema.isLessThan(${filter.meta.exclusiveMaximum}${ca})`
+    case "isLessThanOrEqualTo":
+      return `Schema.isLessThanOrEqualTo(${filter.meta.maximum}${ca})`
+    case "isBetween":
+      return `Schema.isBetween(${filter.meta.minimum}, ${filter.meta.maximum}${ca})`
+    case "isValidDate":
+      return `Schema.isValidDate(${ca})`
+    case "isMinProperties":
+      return `Schema.isMinProperties(${filter.meta.minProperties}${ca})`
+    case "isMaxProperties":
+      return `Schema.isMaxProperties(${filter.meta.maxProperties}${ca})`
+    case "isPropertiesLength":
+      return `Schema.isPropertiesLength(${filter.meta.length}${ca})`
+    case "isUnique":
+      return `Schema.isUnique(${a})`
+    case "isMinSize":
+      return `Schema.isMinSize(${filter.meta.minSize}${ca})`
+    case "isMaxSize":
+      return `Schema.isMaxSize(${filter.meta.maxSize}${ca})`
+    case "isSize":
+      return `Schema.isSize(${filter.meta.size}${ca})`
+  }
+}
+
+function toCodeRegExp(regExp: RegExp): string {
+  return `new RegExp(${format(regExp.source)}, ${format(regExp.flags)})`
+}
+
 /**
  * @since 4.0.0
  */
-export function toRuntimeSchema(ast: StandardAST): Schema.Top {
-  let out = toRuntimeSchemaBase(ast)
+export function toSchema<S extends Schema.Top = Schema.Top>(ast: StandardAST): S {
+  let out = toSchemaBase(ast)
   if (ast.annotations) out = out.annotate(ast.annotations)
-  out = toRuntimeSchemaChecks(out, ast)
-  return out
+  out = toSchemaChecks(out, ast)
+  return out as S
 }
 
-function toRuntimeSchemaChecks(schema: Schema.Top, ast: StandardAST): Schema.Top {
+function toSchemaBase(ast: StandardAST): Schema.Top {
+  switch (ast._tag) {
+    case "External":
+      return Schema.Unknown // TODO
+    case "Null":
+      return Schema.Null
+    case "Undefined":
+      return Schema.Undefined
+    case "Void":
+      return Schema.Void
+    case "Never":
+      return Schema.Never
+    case "Unknown":
+      return Schema.Unknown
+    case "Any":
+      return Schema.Any
+    case "String":
+      return Schema.String
+    case "Number":
+      return Schema.Number
+    case "Boolean":
+      return Schema.Boolean
+    case "BigInt":
+      return Schema.BigInt
+    case "Symbol":
+      return Schema.Symbol
+    case "Literal":
+      return Schema.Literal(ast.literal)
+    case "UniqueSymbol":
+      return Schema.UniqueSymbol(ast.symbol)
+    case "ObjectKeyword":
+      return Schema.ObjectKeyword
+    case "Enum":
+      return Schema.Enum(Object.fromEntries(ast.enums))
+    case "TemplateLiteral": {
+      const parts = ast.parts.map(toSchema) as any // TODO: Fix this
+      return Schema.TemplateLiteral(parts)
+    }
+    case "Arrays": {
+      if (ast.elements.length === 0 && ast.rest.length === 0) {
+        return Schema.Tuple([])
+      }
+      if (ast.elements.length === 0 && ast.rest.length > 0) {
+        return Schema.Array(toSchema(ast.rest[0]))
+      }
+      if (ast.rest.length === 0) {
+        const elements = ast.elements.map(toSchema) as any
+        return Schema.Tuple(elements)
+      }
+      const elements = ast.elements.map(toSchema) as any
+      const rest = ast.rest.map(toSchema) as any
+      return Schema.TupleWithRest(Schema.Tuple(elements), rest)
+    }
+    case "Objects": {
+      const fields: Record<PropertyKey, Schema.Top> = {}
+      for (const ps of ast.propertySignatures) {
+        const schema = toSchema(ps.type)
+        fields[ps.name] = ps.isOptional ? Schema.optionalKey(schema) : schema
+      }
+      const out = Schema.Struct(fields)
+      // TODO: Handle index signatures
+      return out
+    }
+    case "Union":
+      return Schema.Union(ast.types.map(toSchema), { mode: ast.mode })
+  }
+}
+
+function toSchemaChecks(schema: Schema.Top, ast: StandardAST): Schema.Top {
   switch (ast._tag) {
     case "String": {
       if (ast.checks) {
@@ -941,71 +1194,5 @@ function toRuntimeSchemaChecks(schema: Schema.Top, ast: StandardAST): Schema.Top
     }
     default:
       return schema
-  }
-}
-
-function toRuntimeSchemaBase(ast: StandardAST): Schema.Top {
-  switch (ast._tag) {
-    case "Null":
-      return Schema.Null
-    case "Undefined":
-      return Schema.Undefined
-    case "Void":
-      return Schema.Void
-    case "Never":
-      return Schema.Never
-    case "Unknown":
-      return Schema.Unknown
-    case "Any":
-      return Schema.Any
-    case "String":
-      return Schema.String
-    case "Number":
-      return Schema.Number
-    case "Boolean":
-      return Schema.Boolean
-    case "BigInt":
-      return Schema.BigInt
-    case "Symbol":
-      return Schema.Symbol
-    case "Literal":
-      return Schema.Literal(ast.literal)
-    case "UniqueSymbol":
-      return Schema.UniqueSymbol(ast.symbol)
-    case "ObjectKeyword":
-      return Schema.ObjectKeyword
-    case "Enum":
-      return Schema.Enum(Object.fromEntries(ast.enums))
-    case "TemplateLiteral": {
-      const parts = ast.parts.map(toRuntimeSchema) as any // TODO: Fix this
-      return Schema.TemplateLiteral(parts)
-    }
-    case "Arrays": {
-      if (ast.elements.length === 0 && ast.rest.length === 0) {
-        return Schema.Tuple([])
-      }
-      if (ast.elements.length === 0 && ast.rest.length > 0) {
-        return Schema.Array(toRuntimeSchema(ast.rest[0]))
-      }
-      if (ast.rest.length === 0) {
-        const elements = ast.elements.map(toRuntimeSchema) as any
-        return Schema.Tuple(elements)
-      }
-      const elements = ast.elements.map(toRuntimeSchema) as any
-      const rest = ast.rest.map(toRuntimeSchema) as any
-      return Schema.TupleWithRest(Schema.Tuple(elements), rest)
-    }
-    case "Objects": {
-      const fields: Record<PropertyKey, Schema.Top> = {}
-      for (const ps of ast.propertySignatures) {
-        const schema = toRuntimeSchema(ps.type)
-        fields[ps.name] = ps.isOptional ? Schema.optionalKey(schema) : schema
-      }
-      const out = Schema.Struct(fields)
-      // TODO: Handle index signatures
-      return out
-    }
-    case "Union":
-      return Schema.Union(ast.types.map(toRuntimeSchema), { mode: ast.mode })
   }
 }
