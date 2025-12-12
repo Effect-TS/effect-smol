@@ -5,32 +5,34 @@ export interface ErrorWithStackTraceLimit {
 }
 
 /** @internal */
-export const addSpanStackTrace = <A extends Tracer.TraceOptions>(
+export const spanStackFrame = <A extends Tracer.TraceOptions>(
   options: A | undefined
-): A => {
+): (() => string | undefined) | undefined => {
   if (options?.captureStackTrace === false) {
-    return options
+    return undefined
   } else if (options?.captureStackTrace !== undefined && typeof options.captureStackTrace !== "boolean") {
-    return options
+    return options.captureStackTrace
   }
   const limit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
   ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = 3
   const traceError = new Error()
   ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = limit
-  let cache: false | string = false
-  return {
-    ...options,
-    captureStackTrace: () => {
-      if (cache !== false) {
-        return cache
-      }
-      if (traceError.stack !== undefined) {
-        const stack = traceError.stack.split("\n")
-        if (stack[3] !== undefined) {
-          cache = stack[3].trim()
-          return cache
-        }
-      }
-    }
-  } as A
+  return spanCleaner(() => traceError.stack)
 }
+
+/** @internal */
+export const makeStackCleaner = (line: number) => (stack: () => string | undefined): () => string | undefined => {
+  let cache: string | undefined
+  return () => {
+    if (cache !== undefined) return cache
+    const trace = stack()
+    if (!trace) return undefined
+    const lines = trace.split("\n")
+    if (lines[line] !== undefined) {
+      cache = lines[line].trim()
+      return cache
+    }
+  }
+}
+
+const spanCleaner = makeStackCleaner(3)

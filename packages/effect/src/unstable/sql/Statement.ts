@@ -1224,7 +1224,7 @@ const StatementProto: Omit<
     this: StatementImpl<any>,
     fiber: Fiber.Fiber<any, any>
   ): Effect.Effect<ReadonlyArray<any>, SqlError> {
-    const span = internalEffect.makeSpanUnsafe(fiber, "sql.execute", { kind: "client", captureStackTrace: false })
+    const span = internalEffect.makeSpanUnsafe(fiber, "sql.execute", { kind: "client" })
     const clock = fiber.getRef(Clock)
     return Effect.onExit(
       this.withConnectionSpan(

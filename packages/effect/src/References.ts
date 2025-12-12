@@ -11,7 +11,7 @@
  * @since 4.0.0
  */
 import type { ReadonlyRecord } from "./data/Record.ts"
-import { constTrue } from "./Function.ts"
+import { constTrue, constUndefined } from "./Function.ts"
 import type { LogLevel } from "./LogLevel.ts"
 import { MaxOpsBeforeYield } from "./Scheduler.ts"
 import * as ServiceMap from "./ServiceMap.ts"
@@ -114,6 +114,24 @@ export {
    */
   Scheduler
 } from "./Scheduler.ts"
+
+/**
+ * @since 4.0.0
+ * @category references
+ */
+export interface StackFrame {
+  readonly name: string
+  readonly stack: () => string | undefined
+  readonly parent: StackFrame | undefined
+}
+
+/**
+ * @since 4.0.0
+ * @category references
+ */
+export const CurrentStackFrame = ServiceMap.Reference<StackFrame | undefined>("effect/References/CurrentStackFrame", {
+  defaultValue: constUndefined
+})
 
 /**
  * Reference for controlling whether tracing is enabled globally. When set to false,

@@ -46,8 +46,8 @@ import type { Inspectable } from "./interfaces/Inspectable.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
+import type { StackFrame } from "./References.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import type { Span } from "./Tracer.ts"
 import type { NoInfer } from "./types/Types.ts"
 
 /**
@@ -230,6 +230,9 @@ export declare namespace Cause {
     readonly _tag: Tag
     readonly annotations: ReadonlyMap<string, unknown>
     annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S, options?: {
+      readonly overwrite?: boolean | undefined
+    }): this
+    annotateMerge(annotations: ServiceMap.ServiceMap<never>, options?: {
       readonly overwrite?: boolean | undefined
     }): this
   }
@@ -974,12 +977,12 @@ export const failureAnnotations: <E>(self: Failure<E>) => ServiceMap.ServiceMap<
 export const annotations: <E>(self: Cause<E>) => ServiceMap.ServiceMap<never> = effect.causeAnnotations
 
 /**
- * Represents the span captured at the point of failure.
+ * Represents the stack frame captured at the point of failure.
  *
  * @category Annotations
  * @since 4.0.0
  */
-export class CurrentSpan extends ServiceMap.Service<CurrentSpan, Span>()("effect/Cause/CurrentSpan") {}
+export class StackTrace extends ServiceMap.Service<StackTrace, StackFrame>()("effect/Cause/StackTrace") {}
 
 /**
  * Represents the span captured at the point of interruption.
@@ -987,22 +990,6 @@ export class CurrentSpan extends ServiceMap.Service<CurrentSpan, Span>()("effect
  * @category Annotations
  * @since 4.0.0
  */
-export class InterruptorSpan extends ServiceMap.Service<InterruptorSpan, Span>()("effect/Cause/InterruptorSpan") {}
-
-/**
- * Represents the trace captured at the point an Effect.fn was called.
- *
- * @category Annotations
- * @since 4.0.0
- */
-export class FnCallsiteTrace extends ServiceMap.Service<FnCallsiteTrace, Error>()("effect/Cause/FnCallsiteTrace") {}
-
-/**
- * Represents the trace captured at the point an Effect.fn was defined.
- *
- * @category Annotations
- * @since 4.0.0
- */
-export class FnDefinitionTrace extends ServiceMap.Service<FnDefinitionTrace, Error>()(
-  "effect/Cause/FnDefinitionTrace"
-) {}
+export class InterruptorStackTrace
+  extends ServiceMap.Service<InterruptorStackTrace, StackFrame>()("effect/Cause/InterruptorStackTrace")
+{}

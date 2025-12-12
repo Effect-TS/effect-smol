@@ -27,7 +27,9 @@ import {
   CurrentLogAnnotations,
   CurrentLogLevel,
   CurrentLogSpans,
+  CurrentStackFrame,
   MinimumLogLevel,
+  type StackFrame,
   TracerEnabled,
   TracerSpanAnnotations,
   TracerSpanLinks
@@ -42,6 +44,7 @@ import type { Primitive } from "./core.ts"
 import {
   args,
   causeAnnotate,
+  causeAnnotateMerge,
   causeEmpty,
   causeFail,
   causeFromFailures,
@@ -50,7 +53,6 @@ import {
   contA,
   contAll,
   contE,
-  CurrentSpanKey,
   Die,
   evaluate,
   exitDie,
@@ -62,19 +64,20 @@ import {
   FailureBase,
   failureIsDie,
   failureIsFail,
-  InterruptorSpanKey,
+  InterruptorStackTrace,
   isCause,
   isEffect,
   makePrimitive,
   makePrimitiveProto,
   NoSuchElementError,
+  StackTraceKey,
   TaggedError,
   withFiber,
   Yield
 } from "./core.ts"
 import * as doNotation from "./doNotation.ts"
 import * as InternalMetric from "./metric.ts"
-import { addSpanStackTrace, type ErrorWithStackTraceLimit } from "./tracer.ts"
+import { type ErrorWithStackTraceLimit, makeStackCleaner, spanStackFrame } from "./tracer.ts"
 import { version } from "./version.ts"
 
 // ----------------------------------------------------------------------------
@@ -99,17 +102,6 @@ export class Interrupt extends FailureBase<"Interrupt"> implements Cause.Interru
       _tag: "Interrupt",
       fiberId: this.fiberId
     }
-  }
-  annotate<I, S>(key: ServiceMap.Service<I, S>, value: S, options?: {
-    readonly overwrite?: boolean | undefined
-  }): this {
-    if (options?.overwrite !== true && this.annotations.has(key.key)) {
-      return this
-    }
-    return new Interrupt(
-      this.fiberId,
-      new Map([...this.annotations, [key.key, value]])
-    ) as this
   }
   [Equal.symbol](that: any): boolean {
     return (
@@ -402,19 +394,9 @@ const cleanErrorStack = (
 }
 
 const addStackAnnotations = (stack: string, annotations: ReadonlyMap<string, unknown>) => {
-  const callsiteStack = (annotations?.get(callsiteErrorKey.key) as Error | undefined)?.stack
-  if (callsiteStack) {
-    stack = `${stack}\n${callsiteStack.split("\n")[2]}`
-  }
-
-  const defStack = (annotations?.get(defErrorKey.key) as Error | undefined)?.stack
-  if (defStack) {
-    stack = `${stack}\n${defStack.split("\n")[2]}`
-  }
-
-  const span = annotations?.get(CurrentSpanKey.key) as Tracer.Span | undefined
-  if (span) {
-    stack = `${stack}\n${currentSpanStack(span)}`
+  const frame = annotations?.get(StackTraceKey.key) as StackFrame | undefined
+  if (frame) {
+    stack = `${stack}\n${currentStackTrace(frame)}`
   }
   return stack
 }
@@ -423,19 +405,19 @@ const interruptCauseStack = (error: Error, interrupts: Array<Cause.Interrupt>): 
   const out: Array<string> = [`${error.name}: ${error.message}`]
   for (const current of interrupts) {
     const fiberId = current.fiberId !== undefined ? `#${current.fiberId}` : "unknown"
-    const span = current.annotations.get(InterruptorSpanKey.key) as Tracer.Span | undefined
+    const frame = current.annotations.get(InterruptorStackTrace.key) as StackFrame | undefined
     out.push(`    at fiber (${fiberId})`)
-    if (span) out.push(currentSpanStack(span))
+    if (frame) out.push(currentStackTrace(frame))
   }
   return out.join("\n")
 }
 
-const currentSpanStack = (span: Tracer.Span): string => {
+const currentStackTrace = (frame: StackFrame): string => {
   const out: Array<string> = []
-  let current: Tracer.AnySpan | undefined = span
+  let current: StackFrame | undefined = frame
   let i = 0
-  while (current && current._tag === "Span" && i < 10) {
-    const stack = spanToTrace.get(current)?.()
+  while (current && i < 10) {
+    const stack = current.stack()
     if (stack) {
       const locationMatchAll = stack.matchAll(locationRegExp)
       let match = false
@@ -547,6 +529,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   currentScheduler!: Scheduler.Scheduler
   currentTracerContext: Tracer.Tracer["context"]
   currentSpan: Tracer.AnySpan | undefined
+  currentStackFrame: StackFrame | undefined
   runtimeMetrics: Metric.FiberRuntimeMetricsService | undefined
   maxOpsBeforeYield!: number
 
@@ -566,16 +549,16 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
       }
     }
   }
-  interruptUnsafe(fiberId?: number | undefined, span?: Tracer.Span | undefined): void {
+  interruptUnsafe(fiberId?: number | undefined, annotations?: ServiceMap.ServiceMap<never> | undefined): void {
     if (this._exit) {
       return
     }
     let cause = causeInterrupt(fiberId)
-    if (this.currentSpanLocal) {
-      cause = causeAnnotate(cause, CurrentSpanKey, this.currentSpan as Tracer.Span)
+    if (this.currentStackFrame) {
+      cause = causeAnnotate(cause, StackTraceKey, this.currentStackFrame)
     }
-    if (span) {
-      cause = causeAnnotate(cause, InterruptorSpanKey, span)
+    if (annotations) {
+      cause = causeAnnotateMerge(cause, annotations)
     }
     this._interruptedCause = this._interruptedCause
       ? causeMerge(this._interruptedCause, cause)
@@ -683,6 +666,7 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
     this.services = services
     this.currentScheduler = this.getRef(Scheduler.Scheduler)
     this.currentSpan = services.mapUnsafe.get(Tracer.ParentSpanKey)
+    this.currentStackFrame = services.mapUnsafe.get(CurrentStackFrame.key)
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
     this.runtimeMetrics = services.mapUnsafe.get(InternalMetric.FiberRuntimeMetricsKey)
     const currentTracer = services.mapUnsafe.get(Tracer.TracerKey)
@@ -697,6 +681,13 @@ const fiberMiddleware = {
   interruptChildren: undefined as
     | ((fiber: FiberImpl) => Effect.Effect<void> | undefined)
     | undefined
+}
+
+const fiberStackAnnotations = (fiber: Fiber.Fiber<any, any>) => {
+  if (!fiber.currentStackFrame) return undefined
+  const annotations = new Map<string, unknown>()
+  annotations.set(StackTraceKey.key, fiber.currentStackFrame)
+  return ServiceMap.makeUnsafe(annotations)
 }
 
 const fiberInterruptChildren = (fiber: FiberImpl) => {
@@ -802,7 +793,7 @@ export const fiberInterruptAs: {
   <A, E>(self: Fiber.Fiber<A, E>, fiberId: number): Effect.Effect<void>
 } = dual(2, <A, E>(self: Fiber.Fiber<A, E>, fiberId: number): Effect.Effect<void> =>
   withFiber((parent) => {
-    self.interruptUnsafe(fiberId, parent.currentSpanLocal)
+    self.interruptUnsafe(fiberId, fiberStackAnnotations(parent))
     return asVoid(fiberAwait(self))
   }))
 
@@ -811,9 +802,9 @@ export const fiberInterruptAll = <A extends Iterable<Fiber.Fiber<any, any>>>(
   fibers: A
 ): Effect.Effect<void> =>
   withFiber((parent) => {
-    const span = parent.currentSpanLocal
+    const annotations = fiberStackAnnotations(parent)
     for (const fiber of fibers) {
-      fiber.interruptUnsafe(parent.id, span)
+      fiber.interruptUnsafe(parent.id, annotations)
     }
     return asVoid(fiberAwaitAll(fibers))
   })
@@ -827,8 +818,8 @@ export const fiberInterruptAllAs: {
   fiberId: number
 ): Effect.Effect<void> =>
   withFiber((parent) => {
-    const span = parent.currentSpanLocal
-    for (const fiber of fibers) fiber.interruptUnsafe(fiberId, span)
+    const annotations = fiberStackAnnotations(parent)
+    for (const fiber of fibers) fiber.interruptUnsafe(fiberId, annotations)
     return asVoid(fiberAwaitAll(fibers))
   }))
 
@@ -1094,6 +1085,8 @@ export const fnUntraced: Effect.fn.Gen = (
     }
 }
 
+const fnStackCleaner = makeStackCleaner(2)
+
 /** @internal */
 export const fn: Effect.fn.Gen & Effect.fn.NonGen = (
   body: Function,
@@ -1119,26 +1112,17 @@ export const fn: Effect.fn.Gen & Effect.fn.NonGen = (
     globalThis.Error.stackTraceLimit = 2
     const callError = new globalThis.Error()
     globalThis.Error.stackTraceLimit = prevLimit
-    return catchCause(
-      result,
-      (cause) =>
-        failCause(causeFromFailures(
-          cause.failures.map((f) =>
-            f
-              .annotate(defErrorKey, defError)
-              .annotate(callsiteErrorKey, callError)
-          )
-        ))
-    )
+    return updateService(result, CurrentStackFrame, (prev) => ({
+      name: "Effect.fn",
+      stack: fnStackCleaner(() => callError.stack),
+      parent: {
+        name: "Effect.fn (definition)",
+        stack: fnStackCleaner(() => defError.stack),
+        parent: prev
+      }
+    }))
   }
 }
-
-const defErrorKey = ServiceMap.Service<Error>(
-  "effect/Cause/FnDefinitionTrace" satisfies typeof Cause.FnDefinitionTrace.key
-)
-const callsiteErrorKey = ServiceMap.Service<Error>(
-  "effect/Cause/FnCallsiteTrace" satisfies typeof Cause.FnCallsiteTrace.key
-)
 
 /** @internal */
 export const fnUntracedEager: Effect.fn.Gen = (
@@ -3701,7 +3685,7 @@ export const forEach: {
       ? undefined
       : new Array(length)
     let index = 0
-    const span = parent.currentSpanLocal
+    const annotations = fiberStackAnnotations(parent)
 
     return callback((resume) => {
       const fibers = new Set<Fiber.Fiber<unknown, unknown>>()
@@ -3732,7 +3716,7 @@ export const forEach: {
                   length = index
                   // eslint-disable-next-line no-restricted-syntax
                   failures.push(...exit.cause.failures)
-                  fibers.forEach((fiber) => fiber.interruptUnsafe(parent.id, span))
+                  fibers.forEach((fiber) => fiber.interruptUnsafe(parent.id, annotations))
                 } else {
                   for (const f of exit.cause.failures) {
                     if (f._tag === "Interrupt") continue
@@ -3754,7 +3738,7 @@ export const forEach: {
             failed = true
             length = index
             failures.push(new Die(err))
-            fibers.forEach((fiber) => fiber.interruptUnsafe(parent.id, span))
+            fibers.forEach((fiber) => fiber.interruptUnsafe(parent.id, annotations))
           }
         }
         pumping = false
@@ -4020,7 +4004,7 @@ export const forkIn: {
           scopeAddFinalizerUnsafe(scope, key, finalizer)
           fiber.addObserver(() => scopeRemoveFinalizerUnsafe(scope, key))
         } else {
-          fiber.interruptUnsafe(parent.id, parent.currentSpanLocal)
+          fiber.interruptUnsafe(parent.id, fiberStackAnnotations(parent))
         }
       }
       return succeed(fiber)
@@ -4437,11 +4421,11 @@ export const spanToTrace = new WeakMap<Tracer.Span, LazyArg<string | undefined>>
 export const makeSpanUnsafe = <XA, XE>(
   fiber: Fiber.Fiber<XA, XE>,
   name: string,
-  options: Tracer.SpanOptions
+  options: Tracer.SpanOptionsNoTrace | undefined
 ) => {
   const disablePropagation = !fiber.getRef(TracerEnabled) ||
-    (options.context && ServiceMap.get(options.context, Tracer.DisablePropagation))
-  const parent = options.parent ?? (options.root ? undefined : filterDisablePropagation(fiber.currentSpan))
+    (options?.context && ServiceMap.get(options.context, Tracer.DisablePropagation))
+  const parent = options?.parent ?? (options?.root ? undefined : filterDisablePropagation(fiber.currentSpan))
 
   let span: Tracer.Span
 
@@ -4450,7 +4434,7 @@ export const makeSpanUnsafe = <XA, XE>(
       name,
       parent,
       context: ServiceMap.add(
-        options.context ?? ServiceMap.empty(),
+        options?.context ?? ServiceMap.empty(),
         Tracer.DisablePropagation,
         true
       )
@@ -4461,31 +4445,27 @@ export const makeSpanUnsafe = <XA, XE>(
     const annotationsFromEnv = fiber.getRef(TracerSpanAnnotations)
     const linksFromEnv = fiber.getRef(TracerSpanLinks)
 
-    const links = options.links !== undefined ?
+    const links = options?.links !== undefined ?
       [...linksFromEnv, ...options.links] :
       linksFromEnv
 
     span = tracer.span(
       name,
       parent,
-      options.context ?? ServiceMap.empty(),
+      options?.context ?? ServiceMap.empty(),
       links,
       clock.currentTimeNanosUnsafe(),
-      options.kind ?? "internal"
+      options?.kind ?? "internal"
     )
 
     for (const [key, value] of Object.entries(annotationsFromEnv)) {
       span.attribute(key, value)
     }
-    if (options.attributes !== undefined) {
+    if (options?.attributes !== undefined) {
       for (const [key, value] of Object.entries(options.attributes)) {
         span.attribute(key, value)
       }
     }
-  }
-
-  if (typeof options.captureStackTrace === "function") {
-    spanToTrace.set(span, options.captureStackTrace)
   }
 
   return span
@@ -4495,21 +4475,17 @@ export const makeSpanUnsafe = <XA, XE>(
 export const makeSpan = (
   name: string,
   options?: Tracer.SpanOptions
-): Effect.Effect<Tracer.Span> => {
-  options = addSpanStackTrace(options)
-  return withFiber((fiber) => succeed(makeSpanUnsafe(fiber, name, options)))
-}
+): Effect.Effect<Tracer.Span> => withFiber((fiber) => succeed(makeSpanUnsafe(fiber, name, options)))
 
 /** @internal */
 export const makeSpanScoped = (
   name: string,
-  options?: Tracer.SpanOptions | undefined
-): Effect.Effect<Tracer.Span, never, Scope.Scope> => {
-  options = addSpanStackTrace(options)
-  return uninterruptible(
+  options?: Tracer.SpanOptionsNoTrace | undefined
+): Effect.Effect<Tracer.Span, never, Scope.Scope> =>
+  uninterruptible(
     withFiber((fiber) => {
       const scope = ServiceMap.getUnsafe(fiber.services, scopeTag)
-      const span = makeSpanUnsafe(fiber, name, options)
+      const span = makeSpanUnsafe(fiber, name, options ?? {})
       const clock = fiber.getRef(ClockRef)
       return as(
         scopeAddFinalizerExit(scope, (exit) => endSpan(span, exit, clock)),
@@ -4517,7 +4493,6 @@ export const makeSpanScoped = (
       )
     })
   )
-}
 
 /** @internal */
 export const withSpanScoped: {
@@ -4533,20 +4508,30 @@ export const withSpanScoped: {
 } = function() {
   const dataFirst = typeof arguments[0] !== "string"
   const name = dataFirst ? arguments[1] : arguments[0]
-  const options = addSpanStackTrace(dataFirst ? arguments[2] : arguments[1])
+  const options = dataFirst ? arguments[2] : arguments[1]
+  const provideStackFrame = provideSpanStackFrame(name, spanStackFrame(options))
   if (dataFirst) {
     const self = arguments[0]
     return flatMap(
-      makeSpanScoped(name, addSpanStackTrace(options)),
-      (span) => withParentSpan(self, span)
+      makeSpanScoped(name, options),
+      (span) => withParentSpan(provideStackFrame(self), span)
     )
   }
   return (self: Effect.Effect<any, any, any>) =>
     flatMap(
-      makeSpanScoped(name, addSpanStackTrace(options)),
-      (span) => withParentSpan(self, span)
+      makeSpanScoped(name, options),
+      (span) => withParentSpan(provideStackFrame(self), span)
     )
 } as any
+
+const provideSpanStackFrame = (name: string, stack: (() => string | undefined) | undefined) =>
+  stack ?
+    updateService(CurrentStackFrame, (parent) => ({
+      name,
+      stack,
+      parent
+    })) :
+    identity
 
 /** @internal */
 export const spanAnnotations: Effect.Effect<Readonly<Record<string, unknown>>> = TracerSpanAnnotations.asEffect()
@@ -4587,7 +4572,7 @@ export const useSpan: {
   <A, E, R>(name: string, evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
   <A, E, R>(
     name: string,
-    options: Tracer.SpanOptions,
+    options: Tracer.SpanOptionsNoTrace,
     evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R>
   ): Effect.Effect<A, E, R>
 } = <A, E, R>(
@@ -4597,7 +4582,7 @@ export const useSpan: {
     evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R>
   ]
 ): Effect.Effect<A, E, R> => {
-  const options = addSpanStackTrace(args.length === 1 ? undefined : args[0])
+  const options = args.length === 1 ? undefined : args[0]
   const evaluate: (span: Tracer.Span) => Effect.Effect<A, E, R> = args[args.length - 1]
   return withFiber((fiber) => {
     const span = makeSpanUnsafe(fiber, name, options)
@@ -4630,18 +4615,18 @@ export const withSpan: {
 } = function() {
   const dataFirst = typeof arguments[0] !== "string"
   const name = dataFirst ? arguments[1] : arguments[0]
+  const provideStackFrame = provideSpanStackFrame(name, spanStackFrame(arguments[2]))
   if (dataFirst) {
     const self = arguments[0]
-    return useSpan(name, addSpanStackTrace(arguments[2]), (span) => withParentSpan(self, span))
+    return useSpan(name, arguments[2], (span) => withParentSpan(provideStackFrame(self), span))
   }
   const fnArg = typeof arguments[1] === "function" ? arguments[1] : undefined
-  const traceOptions = addSpanStackTrace(arguments[2])
-  const partialOptions = fnArg ? traceOptions : { ...traceOptions, ...arguments[1] }
+  const options = fnArg ? undefined : arguments[1]
   return (self: Effect.Effect<any, any, any>, ...args: any) =>
     useSpan(
       name,
-      fnArg ? { ...partialOptions, ...fnArg(...args) } : partialOptions,
-      (span) => withParentSpan(self, span)
+      fnArg ? fnArg(...args) : options,
+      (span) => withParentSpan(provideStackFrame(self), span)
     )
 } as any
 

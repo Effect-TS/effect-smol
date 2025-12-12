@@ -145,8 +145,7 @@ export const tracer: <E, R>(
     const nameGenerator = fiber.getRef(SpanNameGenerator)
     const span = internalEffect.makeSpanUnsafe(fiber, nameGenerator(request), {
       parent: TraceContext.fromHeaders(request.headers),
-      kind: "server",
-      captureStackTrace: false
+      kind: "server"
     })
     const prevSpan = ServiceMap.getOption(fiber.services, ParentSpan)
     fiber.setServices(ServiceMap.add(fiber.services, ParentSpan, span))

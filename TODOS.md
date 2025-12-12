@@ -12,7 +12,7 @@ Releases are snapshot only
 - [x] Port SubscriptionRef
 - [ ] RateLimiter with persistence
 - [x] Reduce nesting of modules
-- [ ] Effect.fn call site trace
+- [x] Effect.fn call site trace
 
 ## Beta
 

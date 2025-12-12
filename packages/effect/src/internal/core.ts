@@ -8,8 +8,8 @@ import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { NodeInspectSymbol } from "../interfaces/Inspectable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
+import type { StackFrame } from "../References.ts"
 import type * as ServiceMap from "../ServiceMap.ts"
-import type { Span } from "../Tracer.ts"
 import type { Equals, NoInfer } from "../types/Types.ts"
 import { SingleShotGen } from "../Utils.ts"
 import type { FiberImpl } from "./effect.ts"
@@ -216,7 +216,30 @@ export abstract class FailureBase<Tag extends string> implements Cause.Cause.Fai
     this.annotations = annotations
   }
 
-  abstract annotate<I, S>(this: any, tag: ServiceMap.Service<I, S>, value: S): this
+  annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S, options?: {
+    readonly overwrite?: boolean | undefined
+  }): this {
+    if (options?.overwrite !== true && this.annotations.has(tag.key)) {
+      return this
+    }
+    const self = Object.assign(Object.create(Object.getPrototypeOf(this)), this)
+    self.annotations = new Map([...this.annotations, [tag.key, value]])
+    return self
+  }
+  annotateMerge(
+    annotations: ServiceMap.ServiceMap<never>,
+    options?: { readonly overwrite?: boolean | undefined }
+  ): this {
+    if (annotations.mapUnsafe.size === 0) return this
+    const newAnnotations = new Map(this.annotations)
+    annotations.mapUnsafe.forEach((value, key) => {
+      if (options?.overwrite !== true && newAnnotations.has(key)) return
+      newAnnotations.set(key, value)
+    })
+    const self = Object.assign(Object.create(Object.getPrototypeOf(this)), this)
+    self.annotations = newAnnotations
+    return self
+  }
 
   pipe() {
     return pipeArguments(this, arguments)
@@ -256,17 +279,6 @@ export class Fail<E> extends FailureBase<"Fail"> implements Cause.Fail<E> {
       _tag: "Fail",
       error: this.error
     }
-  }
-  annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S, options?: {
-    readonly overwrite?: boolean | undefined
-  }): this {
-    if (options?.overwrite !== true && this.annotations.has(tag.key)) {
-      return this
-    }
-    return new Fail(
-      this.error,
-      new Map([...this.annotations, [tag.key, value]])
-    ) as this
   }
   [Equal.symbol](that: any): boolean {
     return (
@@ -312,17 +324,6 @@ export class Die extends FailureBase<"Die"> implements Cause.Die {
       defect: this.defect
     }
   }
-  annotate<I, S>(tag: ServiceMap.Service<I, S>, value: S, options?: {
-    readonly overwrite?: boolean | undefined
-  }): this {
-    if (options?.overwrite !== true && this.annotations.has(tag.key)) {
-      return this
-    }
-    return new Die(
-      this.defect,
-      new Map([...this.annotations, [tag.key, value]])
-    ) as this
-  }
   [Equal.symbol](that: any): boolean {
     return (
       failureIsDie(that) &&
@@ -367,6 +368,35 @@ export const causeAnnotate: {
       readonly overwrite?: boolean | undefined
     }
   ): Cause.Cause<E> => new CauseImpl(self.failures.map((f) => f.annotate(key, value, options)))
+)
+
+/** @internal */
+export const causeAnnotateMerge: {
+  (
+    annotations: ServiceMap.ServiceMap<never>,
+    options?: {
+      readonly overwrite?: boolean | undefined
+    }
+  ): <E>(self: Cause.Cause<E>) => Cause.Cause<E>
+  <E>(
+    self: Cause.Cause<E>,
+    annotations: ServiceMap.ServiceMap<never>,
+    options?: {
+      readonly overwrite?: boolean | undefined
+    }
+  ): Cause.Cause<E>
+} = dual(
+  (args) => isCause(args[0]),
+  <E>(
+    self: Cause.Cause<E>,
+    annotations: ServiceMap.ServiceMap<never>,
+    options?: {
+      readonly overwrite?: boolean | undefined
+    }
+  ): Cause.Cause<E> => {
+    if (annotations.mapUnsafe.size === 0) return self
+    return new CauseImpl(self.failures.map((f) => f.annotateMerge(annotations, options)))
+  }
 )
 
 /** @internal */
@@ -538,14 +568,14 @@ export const exitSucceed: <A>(a: A) => Exit.Exit<A> = makeExit({
 })
 
 /** @internal */
-export const CurrentSpanKey = {
-  key: "effect/Cause/CurrentSpan" satisfies typeof Cause.CurrentSpan.key
-} as ServiceMap.Service<Cause.CurrentSpan, Span>
+export const StackTraceKey = {
+  key: "effect/Cause/StackTrace" satisfies typeof Cause.StackTrace.key
+} as ServiceMap.Service<Cause.StackTrace, StackFrame>
 
 /** @internal */
-export const InterruptorSpanKey = {
-  key: "effect/Cause/InterruptorSpan" satisfies typeof Cause.InterruptorSpan.key
-} as ServiceMap.Service<Cause.InterruptorSpan, Span>
+export const InterruptorStackTrace = {
+  key: "effect/Cause/InterruptorStackTrace" satisfies typeof Cause.InterruptorStackTrace.key
+} as ServiceMap.Service<Cause.InterruptorStackTrace, StackFrame>
 
 /** @internal */
 export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = makeExit({
@@ -554,8 +584,8 @@ export const exitFailCause: <E>(cause: Cause.Cause<E>) => Exit.Exit<never, E> = 
   [evaluate](fiber) {
     let cause = this[args]
     let annotated = false
-    if (fiber.currentSpan && fiber.currentSpan._tag === "Span") {
-      cause = causeAnnotate(cause, CurrentSpanKey, fiber.currentSpan)
+    if (fiber.currentStackFrame) {
+      cause = causeAnnotate(cause, StackTraceKey, fiber.currentStackFrame)
       annotated = true
     }
     let cont = fiber.getCont(contE)

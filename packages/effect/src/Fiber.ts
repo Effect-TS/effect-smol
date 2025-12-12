@@ -80,10 +80,11 @@ import type { Exit } from "./Exit.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as effect from "./internal/effect.ts"
 import { version } from "./internal/version.ts"
+import type { StackFrame } from "./References.ts"
 import type { Scheduler } from "./Scheduler.ts"
 import type { Scope } from "./Scope.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
-import type { AnySpan, Span } from "./Tracer.ts"
+import type { AnySpan } from "./Tracer.ts"
 import type { Covariant } from "./types/Types.ts"
 
 const TypeId = `~effect/Fiber/${version}`
@@ -124,9 +125,13 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   setServices(services: ServiceMap.ServiceMap<never>): void
   readonly currentScheduler: Scheduler
   readonly currentSpan?: AnySpan | undefined
+  readonly currentStackFrame?: StackFrame | undefined
   readonly maxOpsBeforeYield: number
   readonly addObserver: (cb: (exit: Exit<A, E>) => void) => () => void
-  readonly interruptUnsafe: (fiberId?: number | undefined, span?: Span | undefined) => void
+  readonly interruptUnsafe: (
+    fiberId?: number | undefined,
+    annotations?: ServiceMap.ServiceMap<never> | undefined
+  ) => void
   readonly pollUnsafe: () => Exit<A, E> | undefined
 }
 

@@ -20,7 +20,7 @@ describe("Effect", () => {
     })
   })
   describe("tracing", () => {
-    it.effect("failCause captures current span", () =>
+    it.effect("failCause captures stack frame", () =>
       Effect.gen(function*() {
         const cause = yield* Effect.failCause(Cause.die(new Error("boom"))).pipe(
           Effect.withSpan("test span"),
@@ -28,8 +28,8 @@ describe("Effect", () => {
           Effect.flip
         )
         const annotations = Cause.annotations(cause)
-        const span = ServiceMap.getUnsafe(annotations, Cause.CurrentSpan)
-        assert.strictEqual(span.name, "test span")
+        const trace = ServiceMap.getUnsafe(annotations, Cause.StackTrace)
+        assert.strictEqual(trace.name, "test span")
       }))
   })
 
