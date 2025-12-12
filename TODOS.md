@@ -5,7 +5,7 @@ Releases are snapshot only
 - [x] Port Channel apis
 - [ ] Port Stream / Sink apis
 - [x] Port worker modules
-- [ ] Port command execution modules
+- [x] Port command execution modules
 - [ ] Port platform-browser
 - [x] Add CLI modules
 - [ ] Add opentelemetry package
