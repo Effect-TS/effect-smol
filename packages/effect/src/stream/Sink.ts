@@ -480,7 +480,12 @@ export const fromEffect = <A, E, R>(
  * @since 2.0.0
  * @category constructors
  */
-export const drain: Sink<void, unknown> = fromChannel(Channel.drain(Channel.identity()) as any)
+export const drain: Sink<void, unknown> = fromTransform((upstream) =>
+  Effect.succeed(Pull.catchHalt(
+    Effect.forever(upstream, { autoYield: false }),
+    () => endVoid
+  ))
+)
 
 /**
  * A sink that folds its inputs with the provided function, termination
