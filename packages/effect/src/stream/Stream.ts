@@ -3821,17 +3821,6 @@ export const rechunk: {
 /**
  * Emits a sliding window of `n` elements.
  *
- * ```ts
- * import { pipe, Stream } from "effect"
- *
- * pipe(
- *   Stream.make(1, 2, 3, 4),
- *   Stream.sliding(2),
- *   Stream.runCollect
- * )
- * // => Chunk(Chunk(1, 2), Chunk(2, 3), Chunk(3, 4))
- * ```
- *
  * @since 2.0.0
  * @category utils
  */
