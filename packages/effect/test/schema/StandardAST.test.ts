@@ -1,3 +1,4 @@
+import { Formatter, Option } from "effect/data"
 import { Schema, StandardAST } from "effect/schema"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
@@ -62,8 +63,7 @@ describe("StandardAST", () => {
                   rest: [{
                     _tag: "Reference",
                     annotations: undefined,
-                    $ref: "Category",
-                    source: undefined
+                    $ref: "Category"
                   }]
                 },
                 isOptional: false,
@@ -114,8 +114,7 @@ describe("StandardAST", () => {
                             rest: [{
                               _tag: "Reference",
                               annotations: undefined,
-                              $ref: "Category",
-                              source: undefined
+                              $ref: "Category"
                             }]
                           },
                           isOptional: false,
@@ -685,12 +684,12 @@ describe("StandardAST", () => {
   })
 
   describe("toCode", () => {
-    function assertToCode(schema: Schema.Top, expected: string, resolver?: StandardAST.ToCodeResolver) {
+    function assertToCode(schema: Schema.Top, expected: string, resolver?: StandardAST.Resolver<string>) {
       const ast = StandardAST.fromAST(schema.ast)
       strictEqual(StandardAST.toCode(ast, { resolver }), expected)
     }
 
-    const resolver: StandardAST.ToCodeResolver = (node, recur) => {
+    const resolver: StandardAST.Resolver<string> = (node, recur) => {
       switch (node._tag) {
         case "External": {
           const typeConstructor = node.annotations?.typeConstructor
@@ -699,11 +698,9 @@ describe("StandardAST", () => {
           }
           return `Schema.Unknown`
         }
-        case "Reference": {
-          const innner = node.source !== undefined ? recur(node.source) : node.$ref
-          const typeAnnotations = node.source !== undefined ? "" : `: Schema.Codec<${node.$ref}>`
-          return `Schema.suspend(()${typeAnnotations} => ${innner})` + StandardAST.toCodeAnnotate(node.annotations)
-        }
+        case "Reference":
+          return `Schema.suspend((): Schema.Codec<${node.$ref}> => ${node.$ref})` +
+            StandardAST.toCodeAnnotate(node.annotations)
       }
     }
 
@@ -1716,14 +1713,10 @@ describe("StandardAST", () => {
           {
             _tag: "Reference",
             annotations: undefined,
-            $ref: "MyType",
-            source: undefined
+            $ref: "MyType"
           },
           {
-            schema: { $ref: "#/$defs/MyType" },
-            definitions: {
-              MyType: {}
-            }
+            schema: { $ref: "#/$defs/MyType" }
           }
         )
       })
@@ -1919,6 +1912,57 @@ describe("StandardAST", () => {
           }
         )
       })
+    })
+  })
+
+  describe("toFormatter", () => {
+    function assertToFormatter<T>(schema: Schema.Schema<T>, t: T, expected: string) {
+      const ast = StandardAST.fromAST(schema.ast)
+      const formatter = StandardAST.toFormatter(ast, {
+        onBefore: (ast) => {
+          switch (ast._tag) {
+            case "Boolean":
+              return Option.some((b: boolean) => b ? "True" : "False")
+            default:
+              return Option.none()
+          }
+        },
+        resolver: (ast, recur) => {
+          switch (ast._tag) {
+            case "External": {
+              if (ast.annotations?.typeConstructor === "Option") {
+                const value = recur(ast.typeParameters[0])
+                return (o: Option.Option<unknown>) =>
+                  Option.match(o, {
+                    onSome: (t) => `some(${value(t)})`,
+                    onNone: () => "none()"
+                  })
+              }
+              return Formatter.format
+            }
+            default:
+              return Formatter.format
+          }
+        }
+      })
+      strictEqual(formatter(t), expected)
+    }
+
+    it("Boolean", () => {
+      assertToFormatter(Schema.Boolean, true, "True")
+    })
+
+    it("Option(Boolean)", () => {
+      assertToFormatter(Schema.Option(Schema.Boolean), Option.some(true), `some(True)`)
+      assertToFormatter(Schema.Option(Schema.Boolean), Option.none(), `none()`)
+    })
+
+    it("Option(Option(Boolean))", () => {
+      assertToFormatter(
+        Schema.Option(Schema.Option(Schema.Boolean)),
+        Option.some(Option.some(true)),
+        `some(some(True))`
+      )
     })
   })
 })
