@@ -14,7 +14,8 @@ import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Sink from "../../stream/Sink.ts"
 import type * as Stream from "../../stream/Stream.ts"
-import type { Command, KillOptions } from "./ChildProcess.ts"
+import type { Command, Encoding, KillOptions } from "./ChildProcess.ts"
+import * as ChildProcess from "./ChildProcess.ts"
 
 /**
  * @since 4.0.0

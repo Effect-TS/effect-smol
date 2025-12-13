@@ -457,6 +457,19 @@ export interface CommandOptions extends KillOptions {
    */
   readonly shell?: boolean | string | undefined
   /**
+   * If set to `true`, the child process will run independently of the parent
+   * process.
+   *
+   * The specific behavior of this option depends upon the platform. For
+   * example, the NodeJS documentation outlines the differences between Windows
+   * and non-Windows platforms.
+   *
+   * See https://nodejs.org/api/child_process.html#child_process_options_detached.
+   *
+   * Defaults to `true` on non-Windows platforms and `false` on Windows platforms.
+   */
+  readonly detached?: boolean | undefined
+  /**
    * Configuration options for the standard input stream for the child process.
    */
   readonly stdin?: CommandInput | StdinConfig | undefined
