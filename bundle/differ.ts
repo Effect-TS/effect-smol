@@ -6,4 +6,4 @@ const schema = Schema.Struct({
   price: Schema.Number
 })
 
-Schema.makeDifferJsonPatch(schema)
+Schema.toDifferJsonPatch(schema)
