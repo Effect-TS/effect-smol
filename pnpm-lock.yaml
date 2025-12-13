@@ -272,10 +272,17 @@ importers:
         version: 1.1.0(typescript@5.9.3)
 
   packages/platform-browser:
+    dependencies:
+      multipasta:
+        specifier: ^0.2.7
+        version: 0.2.7
     devDependencies:
       effect:
         specifier: workspace:^
         version: link:../effect
+      mock-xmlhttprequest:
+        specifier: ^8.4.1
+        version: 8.4.1
 
   packages/platform-bun:
     dependencies:
@@ -4547,6 +4554,10 @@ packages:
   mock-socket@9.3.1:
     resolution: {integrity: sha512-qxBgB7Qa2sEQgHFjj0dSigq7fX4k6Saisd5Nelwp2q8mlbAFh5dHV9JTTlF8viYJLSSWgMCZFUom8PJcMNBoJw==}
     engines: {node: '>= 8'}
+
+  mock-xmlhttprequest@8.4.1:
+    resolution: {integrity: sha512-2ORxRN+h40+3/Ylw9LKOtYGfQIoX6grGQlmbvMKqaeZ5/l7oeMvqdJxyG/ax3Poy7VbqMTADI6BwTmO7u10Wrw==}
+    engines: {node: '>=16.0.0'}
 
   module-definition@5.0.1:
     resolution: {integrity: sha512-kvw3B4G19IXk+BOXnYq/D/VeO9qfHaapMeuS7w7sNUqmGaA6hywdFHMi+VWeR9wUScXM7XjoryTffCZ5B0/8IA==}
@@ -10510,6 +10521,8 @@ snapshots:
       ufo: 1.6.1
 
   mock-socket@9.3.1: {}
+
+  mock-xmlhttprequest@8.4.1: {}
 
   module-definition@5.0.1:
     dependencies:
