@@ -1,5 +1,5 @@
 import { Formatter, Option, Record as Rec } from "effect/data"
-import { Schema, StandardAST } from "effect/schema"
+import { Schema, Standard } from "effect/schema"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
@@ -20,19 +20,19 @@ const InnerCategory = Schema.Struct({
   )
 })
 
-describe("StandardAST", () => {
+describe("Standard", () => {
   describe("toJson", () => {
     function assertToJson(
       schema: Schema.Top,
       expected: {
-        readonly ast: StandardAST.JsonValue
-        readonly definitions?: Record<string, StandardAST.JsonValue>
+        readonly ast: Standard.JsonValue
+        readonly definitions?: Record<string, Standard.JsonValue>
       }
     ) {
-      const document = StandardAST.fromAST(schema.ast)
-      deepStrictEqual(StandardAST.toJson(document.ast), expected.ast)
-      const ast = StandardAST.toJson(document.ast)
-      const definitions = Rec.map(document.definitions, StandardAST.toJson)
+      const document = Standard.fromAST(schema.ast)
+      deepStrictEqual(Standard.toJson(document.ast), expected.ast)
+      const ast = Standard.toJson(document.ast)
+      const definitions = Rec.map(document.definitions, Standard.toJson)
       deepStrictEqual({ ast, definitions }, { ast: expected.ast, definitions: expected.definitions ?? {} })
     }
 
@@ -708,12 +708,12 @@ describe("StandardAST", () => {
   })
 
   describe("toCode", () => {
-    function assertToCode(schema: Schema.Top, expected: string, resolver?: StandardAST.Resolver<string>) {
-      const document = StandardAST.fromAST(schema.ast)
-      strictEqual(StandardAST.toCode(document, { resolver }), expected)
+    function assertToCode(schema: Schema.Top, expected: string, resolver?: Standard.Resolver<string>) {
+      const document = Standard.fromAST(schema.ast)
+      strictEqual(Standard.toCode(document, { resolver }), expected)
     }
 
-    const resolver: StandardAST.Resolver<string> = (node, recur) => {
+    const resolver: Standard.Resolver<string> = (node, recur) => {
       switch (node._tag) {
         case "External": {
           const typeConstructor = node.annotations?.typeConstructor
@@ -724,7 +724,7 @@ describe("StandardAST", () => {
         }
         case "Reference":
           return `Schema.suspend((): Schema.Codec<${node.$ref}> => ${node.$ref})` +
-            StandardAST.toCodeAnnotate(node.annotations)
+            Standard.toCodeAnnotate(node.annotations)
       }
     }
 
@@ -903,9 +903,9 @@ describe("StandardAST", () => {
 
       it("should throw error for symbol created without Symbol.for()", () => {
         const sym = Symbol("test")
-        const document = StandardAST.fromAST(Schema.UniqueSymbol(sym).ast)
+        const document = Standard.fromAST(Schema.UniqueSymbol(sym).ast)
         throws(
-          () => StandardAST.toCode(document),
+          () => Standard.toCode(document),
           "Cannot generate code for UniqueSymbol created without Symbol.for()"
         )
       })
@@ -1156,13 +1156,13 @@ describe("StandardAST", () => {
 
   describe("toJsonSchema", () => {
     function assertToJsonSchema(
-      documentOrSchema: StandardAST.Document | Schema.Top,
+      documentOrSchema: Standard.Document | Schema.Top,
       expected: { schema: object; definitions?: Record<string, object> }
     ) {
       const astDocument = Schema.isSchema(documentOrSchema)
-        ? StandardAST.fromAST(documentOrSchema.ast)
+        ? Standard.fromAST(documentOrSchema.ast)
         : documentOrSchema
-      const jsonDocument = StandardAST.toJsonSchema(astDocument)
+      const jsonDocument = Standard.toJsonSchema(astDocument)
       strictEqual(jsonDocument.source, "draft-2020-12")
       deepStrictEqual(jsonDocument.schema, expected.schema)
       deepStrictEqual(jsonDocument.definitions, expected.definitions ?? {})
@@ -1732,7 +1732,7 @@ describe("StandardAST", () => {
 
     describe("Reference", () => {
       it("with identifier without source", () => {
-        // This case is harder to represent with Schema, so we keep StandardAST
+        // This case is harder to represent with Schema, so we keep Standard
         assertToJsonSchema(
           {
             ast: {
@@ -1829,7 +1829,7 @@ describe("StandardAST", () => {
     describe("External", () => {
       it("should return empty schema", () => {
         // External nodes are typically from instanceOf or other declarations
-        // Keep StandardAST for this edge case
+        // Keep Standard for this edge case
         assertToJsonSchema(
           {
             ast: {
@@ -1945,8 +1945,8 @@ describe("StandardAST", () => {
 
   describe("toFormatter", () => {
     function assertToFormatter<T>(schema: Schema.Schema<T>, t: T, expected: string) {
-      const ast = StandardAST.fromAST(schema.ast).ast
-      const formatter = StandardAST.toFormatter(ast, {
+      const ast = Standard.fromAST(schema.ast).ast
+      const formatter = Standard.toFormatter(ast, {
         onBefore: (ast) => {
           switch (ast._tag) {
             case "Boolean":
