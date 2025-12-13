@@ -2,7 +2,9 @@
  * @since 4.0.0
  */
 import * as Arr from "../collections/Array.ts"
+import type { Formatter } from "../data/Formatter.ts"
 import { format, formatPropertyKey } from "../data/Formatter.ts"
+import * as Option from "../data/Option.ts"
 import * as RegEx from "../RegExp.ts"
 import * as AnnotationsModule from "./Annotations.ts"
 import * as AST from "./AST.ts"
@@ -30,7 +32,6 @@ export type ReferenceNode = {
   readonly _tag: "Reference"
   readonly annotations?: AnnotationsModule.Annotations | undefined
   readonly $ref: string
-  readonly source?: StandardAST | undefined
 }
 
 /**
@@ -706,13 +707,12 @@ export function fromAST(ast: AST.AST): StandardAST {
       case "Suspend": {
         const thunk = ast.thunk()
         if (visited.has(thunk)) {
-          const thunkReference = getIdentifier(thunk)
+          const thunkReference = AnnotationsModule.resolveIdentifier(thunk)
           if (thunkReference !== undefined) {
             return {
               _tag: "Reference",
               annotations: undefined,
-              $ref: thunkReference,
-              source: undefined
+              $ref: thunkReference
             }
           } else {
             throw new Error("Suspended schema without identifier detected")
@@ -802,10 +802,6 @@ export function fromAST(ast: AST.AST): StandardAST {
   }
 }
 
-function getIdentifier(ast: AST.AST): string | undefined {
-  return AnnotationsModule.resolveIdentifier(ast)
-}
-
 const fromASTAnnotationsBlacklist: Set<string> = new Set([
   "arbitraryConstraint",
   "serializerJson",
@@ -877,18 +873,13 @@ export function fromJson(u: unknown): StandardAST {
 /**
  * @since 4.0.0
  */
-export type Resolver<I, O> = (node: I, recur: (ast: StandardAST) => O) => O
-
-/**
- * @since 4.0.0
- */
-export type ToCodeResolver = Resolver<ExternalNode | ReferenceNode, string>
+export type Resolver<O> = (ast: ExternalNode | ReferenceNode, recur: (ast: StandardAST) => O) => O
 
 /**
  * @since 4.0.0
  */
 export function toCode(ast: StandardAST, options?: {
-  readonly resolver?: Resolver<ExternalNode | ReferenceNode, string> | undefined
+  readonly resolver?: Resolver<string> | undefined
 }): string {
   const resolver = options?.resolver ?? defaultResolver
 
@@ -1258,55 +1249,13 @@ export function toJsonSchema(ast: StandardAST): Schema.JsonSchema.Document {
   const definitions: Schema.JsonSchema.Definitions = {}
   const visited = new Map<StandardAST, string>()
 
-  function escapeJsonPointer(identifier: string): string {
-    return identifier.replace(/~/g, "~0").replace(/\//g, "~1")
-  }
-
-  function getIdentifier(ast: StandardAST): string | undefined {
-    return typeof ast.annotations?.identifier === "string" ? ast.annotations.identifier : undefined
-  }
-
-  function flattenArrayJsonSchema(jsonSchema: Schema.JsonSchema): Schema.JsonSchema {
-    if (Object.keys(jsonSchema).length === 1) {
-      if (Array.isArray(jsonSchema.anyOf) && jsonSchema.anyOf.length === 1) {
-        return jsonSchema.anyOf[0]
-      } else if (Array.isArray(jsonSchema.oneOf) && jsonSchema.oneOf.length === 1) {
-        return jsonSchema.oneOf[0]
-      } else if (Array.isArray(jsonSchema.allOf) && jsonSchema.allOf.length === 1) {
-        return jsonSchema.allOf[0]
-      }
-    }
-    return jsonSchema
+  return {
+    source: "draft-2020-12",
+    schema: recur(ast),
+    definitions
   }
 
   function recur(ast: StandardAST, ignoreIdentifier = false): Schema.JsonSchema {
-    // Handle Reference nodes
-    if (ast._tag === "Reference") {
-      const identifier = ast.$ref
-      if (identifier) {
-        const $ref = { $ref: `#/$defs/${escapeJsonPointer(identifier)}` }
-        if (!Object.hasOwn(definitions, identifier)) {
-          if (ast.source !== undefined) {
-            definitions[identifier] = recur(ast.source, true)
-          } else {
-            // Reference without source - create empty schema
-            definitions[identifier] = {}
-          }
-        }
-        return $ref
-      }
-      // Reference without identifier - recur on source if available
-      if (ast.source !== undefined) {
-        return recur(ast.source, ignoreIdentifier)
-      }
-      return {}
-    }
-
-    // Handle External nodes (unsupported, return empty schema)
-    if (ast._tag === "External") {
-      return {}
-    }
-
     // Handle identifier annotation for definitions
     if (!ignoreIdentifier) {
       const identifier = getIdentifier(ast)
@@ -1324,77 +1273,21 @@ export function toJsonSchema(ast: StandardAST): Schema.JsonSchema.Document {
       }
     }
 
-    // Base schema conversion
-    let jsonSchema: Schema.JsonSchema = base(ast)
-
-    // Apply annotations
-    jsonSchema = mergeOrAppendJsonSchemaAnnotations(jsonSchema, ast.annotations)
-
-    // Apply checks
-    if ("checks" in ast && ast.checks.length > 0) {
-      jsonSchema = applyChecks(jsonSchema, ast.checks, ast._tag)
-    }
-
-    return jsonSchema
-  }
-
-  function getJsonSchemaAnnotations(
-    annotations: AnnotationsModule.Annotations | undefined
-  ): Schema.JsonSchema | undefined {
-    if (annotations) {
-      const out: Schema.JsonSchema = {}
-      if (typeof annotations.title === "string") {
-        out.title = annotations.title
+    switch (ast._tag) {
+      case "External": {
+        return {} // TODO
       }
-      if (typeof annotations.description === "string") {
-        out.description = annotations.description
-      }
-      if (annotations.default !== undefined) {
-        out.default = annotations.default
-      }
-      if (Array.isArray(annotations.examples)) {
-        out.examples = annotations.examples
-      }
-
-      if (Object.keys(out).length > 0) return out
-    }
-  }
-
-  function hasIntersection(
-    jsonSchema: Schema.JsonSchema,
-    fragment: Schema.JsonSchema
-  ): boolean {
-    return Object.keys(jsonSchema).filter((key) => key !== "type").some((key) => Object.hasOwn(fragment, key))
-  }
-
-  function appendFragment(
-    jsonSchema: Schema.JsonSchema,
-    fragment: Schema.JsonSchema
-  ): Schema.JsonSchema {
-    if ("$ref" in jsonSchema) {
-      return { allOf: [jsonSchema, fragment] }
-    } else {
-      if (hasIntersection(jsonSchema, fragment)) {
-        if (Array.isArray(jsonSchema.allOf)) {
-          return { ...jsonSchema, allOf: [...jsonSchema.allOf, fragment] }
-        } else {
-          return { ...jsonSchema, allOf: [fragment] }
+      case "Reference":
+        return { $ref: `#/$defs/${escapeJsonPointer(ast.$ref)}` }
+      default: {
+        let jsonSchema: Schema.JsonSchema = base(ast)
+        jsonSchema = mergeJsonSchemaAnnotations(jsonSchema, ast.annotations)
+        if ((ast._tag === "String" || ast._tag === "Number") && ast.checks.length > 0) {
+          jsonSchema = applyChecks(jsonSchema, ast.checks, ast._tag)
         }
-      } else {
-        return { ...jsonSchema, ...fragment }
+        return jsonSchema
       }
     }
-  }
-
-  function mergeOrAppendJsonSchemaAnnotations(
-    jsonSchema: Schema.JsonSchema,
-    annotations: AnnotationsModule.Annotations | undefined
-  ): Schema.JsonSchema {
-    const fragment = getJsonSchemaAnnotations(annotations)
-    if (fragment) {
-      return appendFragment(jsonSchema, fragment)
-    }
-    return jsonSchema
   }
 
   function base(ast: StandardAST): Schema.JsonSchema {
@@ -1405,6 +1298,9 @@ export function toJsonSchema(ast: StandardAST): Schema.JsonSchema.Document {
       case "Void":
       case "Unknown":
       case "Any":
+      case "BigInt":
+      case "Symbol":
+      case "UniqueSymbol":
         return {}
       case "Never":
         return { not: {} }
@@ -1422,13 +1318,6 @@ export function toJsonSchema(ast: StandardAST): Schema.JsonSchema.Document {
         return { type: "number" }
       case "Boolean":
         return { type: "boolean" }
-      case "BigInt":
-        // BigInt is not directly supported in JSON Schema, return empty object
-        return {}
-      case "Symbol":
-      case "UniqueSymbol":
-        // Symbols are not supported in JSON Schema
-        return {}
       case "Literal": {
         const literal = ast.literal
         if (typeof literal === "string") {
@@ -1464,33 +1353,6 @@ export function toJsonSchema(ast: StandardAST): Schema.JsonSchema.Document {
         }
       }
       case "TemplateLiteral": {
-        // Convert template literal parts to regex pattern using the same logic as AST.getTemplateLiteralRegExp
-        const STRING_PATTERN = "[\\s\\S]*?"
-        const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
-
-        const getPartPattern = (part: StandardAST): string => {
-          switch (part._tag) {
-            case "String":
-              return STRING_PATTERN
-            case "Number":
-              return NUMBER_PATTERN
-            case "Literal": {
-              const literal = part.literal
-              return RegEx.escape(globalThis.String(literal))
-            }
-            case "TemplateLiteral": {
-              // Recursive case for nested template literals
-              return part.parts.map(getPartPattern).join("")
-            }
-            case "Union": {
-              // Union parts in template literals
-              return part.types.map(getPartPattern).join("|")
-            }
-            default:
-              return ""
-          }
-        }
-
         const pattern = ast.parts.map(getPartPattern).join("")
         return { type: "string", pattern: `^${pattern}$` }
       }
@@ -1519,17 +1381,6 @@ export function toJsonSchema(ast: StandardAST): Schema.JsonSchema.Document {
         const out: Schema.JsonSchema = { type: "object" }
         const properties: Record<string, Schema.JsonSchema> = {}
         const required: Array<string> = []
-
-        function containsUndefined(ast: StandardAST): boolean {
-          switch (ast._tag) {
-            case "Undefined":
-              return true
-            case "Union":
-              return ast.types.some(containsUndefined)
-            default:
-              return false
-          }
-        }
 
         for (const ps of ast.propertySignatures) {
           const name = typeof ps.name === "string" ? ps.name : globalThis.String(ps.name)
@@ -1573,224 +1424,377 @@ export function toJsonSchema(ast: StandardAST): Schema.JsonSchema.Document {
         return {}
     }
   }
+}
 
-  function applyChecks(
-    jsonSchema: Schema.JsonSchema,
-    checks: ReadonlyArray<Check<any>>,
-    astTag: string
-  ): Schema.JsonSchema {
-    let result = jsonSchema
-    for (const check of checks) {
-      result = applyCheck(result, check, astTag)
+function escapeJsonPointer(identifier: string): string {
+  return identifier.replace(/~/g, "~0").replace(/\//g, "~1")
+}
+
+function getJsonSchemaAnnotations(
+  annotations: AnnotationsModule.Annotations | undefined
+): Schema.JsonSchema | undefined {
+  if (annotations) {
+    const out: Schema.JsonSchema = {}
+    if (typeof annotations.title === "string") {
+      out.title = annotations.title
     }
-    return result
+    if (typeof annotations.description === "string") {
+      out.description = annotations.description
+    }
+    if (annotations.default !== undefined) {
+      out.default = annotations.default
+    }
+    if (Array.isArray(annotations.examples)) {
+      out.examples = annotations.examples
+    }
+
+    if (Object.keys(out).length > 0) return out
+  }
+}
+
+function mergeJsonSchemaAnnotations(
+  jsonSchema: Schema.JsonSchema,
+  annotations: AnnotationsModule.Annotations | undefined
+): Schema.JsonSchema {
+  const a = getJsonSchemaAnnotations(annotations)
+  if (a) {
+    return combineJsonSchema(jsonSchema, a)
+  }
+  return jsonSchema
+}
+
+function combineJsonSchema(a: Schema.JsonSchema, b: Schema.JsonSchema): Schema.JsonSchema {
+  if ("$ref" in a) {
+    return { allOf: [a, b] }
+  } else {
+    const hasIntersection = Object.keys(a).filter((key) => key !== "type").some((key) => Object.hasOwn(b, key))
+    if (hasIntersection) {
+      if (Array.isArray(a.allOf)) {
+        return { ...a, allOf: [...a.allOf, b] }
+      } else {
+        return { ...a, allOf: [b] }
+      }
+    } else {
+      return { ...a, ...b }
+    }
+  }
+}
+
+function flattenArrayJsonSchema(js: Schema.JsonSchema): Schema.JsonSchema {
+  if (Object.keys(js).length === 1) {
+    if (Array.isArray(js.anyOf) && js.anyOf.length === 1) {
+      return js.anyOf[0]
+    } else if (Array.isArray(js.oneOf) && js.oneOf.length === 1) {
+      return js.oneOf[0]
+    } else if (Array.isArray(js.allOf) && js.allOf.length === 1) {
+      return js.allOf[0]
+    }
+  }
+  return js
+}
+
+function getIdentifier(ast: StandardAST): string | undefined {
+  return typeof ast.annotations?.identifier === "string" ? ast.annotations.identifier : undefined
+}
+
+function applyChecks(
+  jsonSchema: Schema.JsonSchema,
+  checks: ReadonlyArray<Check<any>>,
+  astTag: "String" | "Number"
+): Schema.JsonSchema {
+  let result = jsonSchema
+  for (const check of checks) {
+    result = applyCheck(result, check, astTag)
+  }
+  return result
+}
+
+function getCheckConstraintFragment(
+  check: Check<any>,
+  astTag: "String" | "Number"
+): Schema.JsonSchema {
+  if (check._tag === "FilterGroup") {
+    // Recursively collect constraints from nested FilterGroups
+    const fragments: Array<Schema.JsonSchema> = []
+    for (const c of check.checks) {
+      const fragment = getCheckConstraintFragment(c, astTag)
+      if (Object.keys(fragment).length > 0) {
+        fragments.push(fragment)
+      }
+    }
+    // Merge all fragments
+    let combined: Schema.JsonSchema = {}
+    for (const fragment of fragments) {
+      combined = { ...combined, ...fragment }
+    }
+    return combined
   }
 
-  function getCheckConstraintFragment(
-    check: Check<any>,
-    astTag: string
-  ): Schema.JsonSchema {
-    if (check._tag === "FilterGroup") {
-      // Recursively collect constraints from nested FilterGroups
-      const fragments: Array<Schema.JsonSchema> = []
-      for (const c of check.checks) {
-        const fragment = getCheckConstraintFragment(c, astTag)
-        if (Object.keys(fragment).length > 0) {
-          fragments.push(fragment)
-        }
-      }
-      // Merge all fragments
-      let combined: Schema.JsonSchema = {}
-      for (const fragment of fragments) {
-        combined = { ...combined, ...fragment }
-      }
-      return combined
-    }
-
-    const meta = check.meta
-    if (!meta) {
-      return {}
-    }
-
-    const fragment: Schema.JsonSchema = {}
-
-    switch (astTag) {
-      case "String": {
-        switch (meta._tag) {
-          case "isMinLength":
-            fragment.minLength = meta.minLength
-            break
-          case "isMaxLength":
-            fragment.maxLength = meta.maxLength
-            break
-          case "isLength":
-            fragment.minLength = meta.length
-            fragment.maxLength = meta.length
-            break
-          case "isPattern":
-            fragment.pattern = meta.regExp.source
-            break
-          case "isUUID":
-            fragment.format = "uuid"
-            break
-          case "isULID":
-            fragment.pattern = "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
-            break
-          case "isBase64":
-            fragment.contentEncoding = "base64"
-            break
-          case "isBase64Url":
-            fragment.contentEncoding = "base64url"
-            break
-        }
-        break
-      }
-      case "Number": {
-        switch (meta._tag) {
-          case "isInt":
-            fragment.type = "integer"
-            break
-          case "isMultipleOf":
-            fragment.multipleOf = meta.divisor
-            break
-          case "isGreaterThanOrEqualTo":
-            fragment.minimum = meta.minimum
-            break
-          case "isLessThanOrEqualTo":
-            fragment.maximum = meta.maximum
-            break
-          case "isGreaterThan":
-            fragment.exclusiveMinimum = meta.exclusiveMinimum
-            break
-          case "isLessThan":
-            fragment.exclusiveMaximum = meta.exclusiveMaximum
-            break
-          case "isBetween":
-            fragment.minimum = meta.minimum
-            fragment.maximum = meta.maximum
-            break
-        }
-        break
-      }
-    }
-
-    return fragment
+  const meta = check.meta
+  if (!meta) {
+    return {}
   }
 
-  function applyCheck(
-    jsonSchema: Schema.JsonSchema,
-    check: Check<any>,
-    astTag: string
-  ): Schema.JsonSchema {
-    if (check._tag === "FilterGroup") {
-      // Collect all constraint fragments from checks
-      const constraintFragment = getCheckConstraintFragment(check, astTag)
+  const fragment: Schema.JsonSchema = {}
 
-      // Merge with FilterGroup annotations
-      const fragmentWithAnnotations = mergeOrAppendJsonSchemaAnnotations(constraintFragment, check.annotations)
-
-      // If FilterGroup has annotations, always use allOf to keep constraints and annotations together
-      if (check.annotations && Object.keys(fragmentWithAnnotations).length > 0) {
-        return appendFragment(jsonSchema, fragmentWithAnnotations)
-      } else if (Object.keys(constraintFragment).length > 0) {
-        // No annotations, merge constraints directly
-        return appendFragment(jsonSchema, constraintFragment)
+  switch (astTag) {
+    case "String": {
+      switch (meta._tag) {
+        case "isMinLength":
+          fragment.minLength = meta.minLength
+          break
+        case "isMaxLength":
+          fragment.maxLength = meta.maxLength
+          break
+        case "isLength":
+          fragment.minLength = meta.length
+          fragment.maxLength = meta.length
+          break
+        case "isPattern":
+          fragment.pattern = meta.regExp.source
+          break
+        case "isUUID":
+          fragment.format = "uuid"
+          break
+        case "isULID":
+          fragment.pattern = "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+          break
+        case "isBase64":
+          fragment.contentEncoding = "base64"
+          break
+        case "isBase64Url":
+          fragment.contentEncoding = "base64url"
+          break
       }
-      return jsonSchema
+      break
     }
-
-    const meta = check.meta
-    if (!meta) {
-      // No meta, just apply annotations
-      const checkAnnotations = getJsonSchemaAnnotations(check.annotations)
-      if (checkAnnotations) {
-        return appendFragment(jsonSchema, checkAnnotations)
+    case "Number": {
+      switch (meta._tag) {
+        case "isInt":
+          fragment.type = "integer"
+          break
+        case "isMultipleOf":
+          fragment.multipleOf = meta.divisor
+          break
+        case "isGreaterThanOrEqualTo":
+          fragment.minimum = meta.minimum
+          break
+        case "isLessThanOrEqualTo":
+          fragment.maximum = meta.maximum
+          break
+        case "isGreaterThan":
+          fragment.exclusiveMinimum = meta.exclusiveMinimum
+          break
+        case "isLessThan":
+          fragment.exclusiveMaximum = meta.exclusiveMaximum
+          break
+        case "isBetween":
+          fragment.minimum = meta.minimum
+          fragment.maximum = meta.maximum
+          break
       }
-      return jsonSchema
+      break
     }
-
-    const fragment: Schema.JsonSchema = {}
-
-    switch (astTag) {
-      case "String": {
-        switch (meta._tag) {
-          case "isMinLength":
-            fragment.minLength = meta.minLength
-            break
-          case "isMaxLength":
-            fragment.maxLength = meta.maxLength
-            break
-          case "isLength":
-            fragment.minLength = meta.length
-            fragment.maxLength = meta.length
-            break
-          case "isPattern":
-            fragment.pattern = meta.regExp.source
-            break
-          case "isUUID":
-            fragment.format = "uuid"
-            break
-          case "isULID":
-            fragment.pattern = "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
-            break
-          case "isBase64":
-            fragment.contentEncoding = "base64"
-            break
-          case "isBase64Url":
-            fragment.contentEncoding = "base64url"
-            break
-        }
-        break
-      }
-      case "Number": {
-        switch (meta._tag) {
-          case "isInt":
-            fragment.type = "integer"
-            break
-          case "isMultipleOf":
-            fragment.multipleOf = meta.divisor
-            break
-          case "isGreaterThanOrEqualTo":
-            fragment.minimum = meta.minimum
-            break
-          case "isLessThanOrEqualTo":
-            fragment.maximum = meta.maximum
-            break
-          case "isGreaterThan":
-            fragment.exclusiveMinimum = meta.exclusiveMinimum
-            break
-          case "isLessThan":
-            fragment.exclusiveMaximum = meta.exclusiveMaximum
-            break
-          case "isBetween":
-            fragment.minimum = meta.minimum
-            fragment.maximum = meta.maximum
-            break
-        }
-        break
-      }
-    }
-
-    // Merge fragment with check annotations
-    const fragmentWithAnnotations = mergeOrAppendJsonSchemaAnnotations(fragment, check.annotations)
-
-    // If fragment changes the type, merge type at top level and handle annotations separately
-    if ("type" in fragmentWithAnnotations && "type" in jsonSchema && fragmentWithAnnotations.type !== jsonSchema.type) {
-      const { type, ...restFragment } = fragmentWithAnnotations
-      const updatedSchema = { ...jsonSchema, type }
-      if (Object.keys(restFragment).length > 0) {
-        return appendFragment(updatedSchema, restFragment)
-      }
-      return updatedSchema
-    }
-
-    return appendFragment(jsonSchema, fragmentWithAnnotations)
   }
 
-  const schema = recur(ast)
-  return {
-    source: "draft-2020-12",
-    schema,
-    definitions
+  return fragment
+}
+
+function applyCheck(
+  jsonSchema: Schema.JsonSchema,
+  check: Check<any>,
+  _tag: "String" | "Number"
+): Schema.JsonSchema {
+  if (check._tag === "FilterGroup") {
+    // Collect all constraint fragments from checks
+    const constraintFragment = getCheckConstraintFragment(check, _tag)
+
+    // Merge with FilterGroup annotations
+    const fragmentWithAnnotations = mergeJsonSchemaAnnotations(constraintFragment, check.annotations)
+
+    // If FilterGroup has annotations, always use allOf to keep constraints and annotations together
+    if (check.annotations && Object.keys(fragmentWithAnnotations).length > 0) {
+      return combineJsonSchema(jsonSchema, fragmentWithAnnotations)
+    } else if (Object.keys(constraintFragment).length > 0) {
+      // No annotations, merge constraints directly
+      return combineJsonSchema(jsonSchema, constraintFragment)
+    }
+    return jsonSchema
+  }
+
+  const meta = check.meta
+  if (!meta) {
+    // No meta, just apply annotations
+    const checkAnnotations = getJsonSchemaAnnotations(check.annotations)
+    if (checkAnnotations) {
+      return combineJsonSchema(jsonSchema, checkAnnotations)
+    }
+    return jsonSchema
+  }
+
+  const fragment: Schema.JsonSchema = {}
+
+  switch (_tag) {
+    case "String": {
+      switch (meta._tag) {
+        case "isMinLength":
+          fragment.minLength = meta.minLength
+          break
+        case "isMaxLength":
+          fragment.maxLength = meta.maxLength
+          break
+        case "isLength":
+          fragment.minLength = meta.length
+          fragment.maxLength = meta.length
+          break
+        case "isPattern":
+          fragment.pattern = meta.regExp.source
+          break
+        case "isUUID":
+          fragment.format = "uuid"
+          break
+        case "isULID":
+          fragment.pattern = "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+          break
+        case "isBase64":
+          fragment.contentEncoding = "base64"
+          break
+        case "isBase64Url":
+          fragment.contentEncoding = "base64url"
+          break
+      }
+      break
+    }
+    case "Number": {
+      switch (meta._tag) {
+        case "isInt":
+          fragment.type = "integer"
+          break
+        case "isMultipleOf":
+          fragment.multipleOf = meta.divisor
+          break
+        case "isGreaterThanOrEqualTo":
+          fragment.minimum = meta.minimum
+          break
+        case "isLessThanOrEqualTo":
+          fragment.maximum = meta.maximum
+          break
+        case "isGreaterThan":
+          fragment.exclusiveMinimum = meta.exclusiveMinimum
+          break
+        case "isLessThan":
+          fragment.exclusiveMaximum = meta.exclusiveMaximum
+          break
+        case "isBetween":
+          fragment.minimum = meta.minimum
+          fragment.maximum = meta.maximum
+          break
+      }
+      break
+    }
+  }
+
+  // Merge fragment with check annotations
+  const fragmentWithAnnotations = mergeJsonSchemaAnnotations(fragment, check.annotations)
+
+  // If fragment changes the type, merge type at top level and handle annotations separately
+  if ("type" in fragmentWithAnnotations && "type" in jsonSchema && fragmentWithAnnotations.type !== jsonSchema.type) {
+    const { type, ...restFragment } = fragmentWithAnnotations
+    const updatedSchema = { ...jsonSchema, type }
+    if (Object.keys(restFragment).length > 0) {
+      return combineJsonSchema(updatedSchema, restFragment)
+    }
+    return updatedSchema
+  }
+
+  return combineJsonSchema(jsonSchema, fragmentWithAnnotations)
+}
+
+function containsUndefined(ast: StandardAST): boolean {
+  switch (ast._tag) {
+    case "Undefined":
+      return true
+    case "Union":
+      return ast.types.some(containsUndefined)
+    default:
+      return false
+  }
+}
+
+function getPartPattern(part: StandardAST): string {
+  switch (part._tag) {
+    case "String":
+      return AST.STRING_PATTERN
+    case "Number":
+      return AST.NUMBER_PATTERN
+    case "Literal":
+      return RegEx.escape(globalThis.String(part.literal))
+    case "TemplateLiteral":
+      return part.parts.map(getPartPattern).join("")
+    case "Union":
+      return part.types.map(getPartPattern).join("|")
+    default:
+      throw new Error("Unsupported part", { cause: part })
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function toFormatter(ast: StandardAST, options?: {
+  readonly resolver?: Resolver<Formatter<any>> | undefined
+  readonly onBefore?: (ast: StandardAST, recur: (ast: StandardAST) => Formatter<any>) => Option.Option<Formatter<any>>
+}): Formatter<unknown> {
+  const resolver = options?.resolver ?? defaultResolver
+
+  return recur(ast)
+
+  function defaultResolver(): Formatter<unknown> {
+    return format
+  }
+
+  function recur(ast: StandardAST): Formatter<unknown> {
+    if (options?.onBefore) {
+      const onBefore = options.onBefore(ast, recur)
+      if (Option.isSome(onBefore)) {
+        return onBefore.value
+      }
+    }
+    return on(ast)
+  }
+
+  function on(ast: StandardAST): Formatter<unknown> {
+    switch (ast._tag) {
+      case "Void":
+        return () => "void"
+      case "Never":
+        return () => "never"
+      case "External":
+      case "Reference":
+        return resolver(ast, recur)
+      case "Null":
+      case "Undefined":
+      case "Unknown":
+      case "Any":
+      case "String":
+      case "Number":
+      case "Boolean":
+      case "BigInt":
+      case "Symbol":
+      case "Literal":
+      case "UniqueSymbol":
+      case "ObjectKeyword":
+      case "Enum":
+      case "TemplateLiteral":
+      case "Arrays":
+      case "Union":
+        return format
+      case "Objects": {
+        if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
+          return format
+        }
+        return format
+      }
+    }
   }
 }

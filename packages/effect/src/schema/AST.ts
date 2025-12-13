@@ -2529,12 +2529,14 @@ const templateLiteralPartFromString = serializer((ast) => {
 
 /**
  * any string, including newlines
+ * @internal
  */
-const STRING_PATTERN = "[\\s\\S]*?"
+export const STRING_PATTERN = "[\\s\\S]*?"
 /**
  * floating point or integer, with optional exponent
+ * @internal
  */
-const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
+export const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 
 const isNumberStringRegExp = new globalThis.RegExp(`(?:${NUMBER_PATTERN}|Infinity|-Infinity|NaN)`)
 
