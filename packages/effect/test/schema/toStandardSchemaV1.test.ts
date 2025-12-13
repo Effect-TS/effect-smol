@@ -103,22 +103,22 @@ const AsyncString = Schema.String.pipe(Schema.decode({
 
 const AsyncNonEmptyString = AsyncString.check(Schema.isNonEmpty())
 
-describe("asStandardSchemaV1", () => {
+describe("toStandardSchemaV1", () => {
   it("should return a schema", () => {
     const schema = Schema.FiniteFromString
-    const standardSchema = Schema.asStandardSchemaV1(schema)
+    const standardSchema = Schema.toStandardSchemaV1(schema)
     assertTrue(Schema.isSchema(standardSchema))
   })
 
   it("should support both standards", () => {
     const schema = Schema.String
-    const both = Schema.asStandardJSONSchemaV1(Schema.asStandardSchemaV1(schema))
+    const both = Schema.toStandardJSONSchemaV1(Schema.toStandardSchemaV1(schema))
     expectSyncSuccess(both, "a", "a")
   })
 
   it("sync decoding", () => {
     const schema = Schema.NonEmptyString
-    const standardSchema = Schema.asStandardSchemaV1(schema)
+    const standardSchema = Schema.toStandardSchemaV1(schema)
     expectSyncSuccess(standardSchema, "a", "a")
     expectSyncFailure(standardSchema, null, [
       {
@@ -136,7 +136,7 @@ describe("asStandardSchemaV1", () => {
 
   it("async decoding", async () => {
     const schema = AsyncNonEmptyString
-    const standardSchema = Schema.asStandardSchemaV1(schema)
+    const standardSchema = Schema.toStandardSchemaV1(schema)
     await expectAsyncSuccess(standardSchema, "a", "a")
     expectSyncFailure(standardSchema, null, [
       {
@@ -167,7 +167,7 @@ describe("asStandardSchemaV1", () => {
       }))
 
       const schema = DepString
-      const standardSchema = Schema.asStandardSchemaV1(schema as any)
+      const standardSchema = Schema.toStandardSchemaV1(schema as any)
       expectSyncFailure(standardSchema, 1, (issues) => {
         strictEqual(issues.length, 1)
         deepStrictEqual(issues[0].path, undefined)
@@ -188,7 +188,7 @@ describe("asStandardSchemaV1", () => {
       }))
 
       const schema = DepString
-      const standardSchema = Schema.asStandardSchemaV1(schema as any)
+      const standardSchema = Schema.toStandardSchemaV1(schema as any)
       expectSyncFailure(standardSchema, 1, (issues) => {
         strictEqual(issues.length, 1)
         deepStrictEqual(issues[0].path, undefined)
@@ -202,7 +202,7 @@ describe("asStandardSchemaV1", () => {
       a: Schema.NonEmptyString,
       b: Schema.NonEmptyString
     })
-    const standardSchema = Schema.asStandardSchemaV1(schema)
+    const standardSchema = Schema.toStandardSchemaV1(schema)
     expectSyncSuccess(standardSchema, { a: "a", b: "b" }, { a: "a", b: "b" })
     expectSyncFailure(standardSchema, null, [
       {
@@ -239,7 +239,7 @@ describe("asStandardSchemaV1", () => {
       a: Schema.NonEmptyString,
       b: Schema.NonEmptyString
     })
-    const standardSchema = Schema.asStandardSchemaV1(schema, { parseOptions: { errors: "first" } })
+    const standardSchema = Schema.toStandardSchemaV1(schema, { parseOptions: { errors: "first" } })
     expectSyncFailure(standardSchema, { a: "", b: "" }, [
       {
         message: `Expected a value with a length of at least 1, got ""`,
@@ -254,7 +254,7 @@ describe("asStandardSchemaV1", () => {
         tags: Schema.Array(Schema.NonEmptyString).check(Schema.isMinLength(3))
       })
 
-      const standardSchema = Schema.asStandardSchemaV1(schema)
+      const standardSchema = Schema.toStandardSchemaV1(schema)
       expectSyncFailure(standardSchema, { tags: ["a", ""] }, [{
         message: `Expected a value with a length of at least 1, got ""`,
         path: ["tags", 1]
@@ -269,7 +269,7 @@ describe("asStandardSchemaV1", () => {
     describe("String", () => {
       it("String & annotation", () => {
         const schema = Schema.String.annotate({ message: "Custom message" })
-        const standardSchema = Schema.asStandardSchemaV1(schema)
+        const standardSchema = Schema.toStandardSchemaV1(schema)
         expectSyncFailure(standardSchema, null, [
           {
             message: "Custom message",
@@ -280,7 +280,7 @@ describe("asStandardSchemaV1", () => {
 
       it("String & annotation & isNonEmpty", () => {
         const schema = Schema.String.annotate({ message: "Custom message" }).check(Schema.isNonEmpty())
-        const standardSchema = Schema.asStandardSchemaV1(schema)
+        const standardSchema = Schema.toStandardSchemaV1(schema)
         expectSyncFailure(standardSchema, null, [
           {
             message: "Custom message",
@@ -291,7 +291,7 @@ describe("asStandardSchemaV1", () => {
 
       it("String & isNonEmpty & annotation", () => {
         const schema = Schema.String.check(Schema.isNonEmpty()).annotate({ message: "Custom message" })
-        const standardSchema = Schema.asStandardSchemaV1(schema)
+        const standardSchema = Schema.toStandardSchemaV1(schema)
         expectSyncFailure(standardSchema, null, [
           {
             message: "Expected string, got null",
@@ -308,7 +308,7 @@ describe("asStandardSchemaV1", () => {
 
       it("String & isNonEmpty(annotation)", () => {
         const schema = Schema.String.check(Schema.isNonEmpty({ message: "Custom message" }))
-        const standardSchema = Schema.asStandardSchemaV1(schema)
+        const standardSchema = Schema.toStandardSchemaV1(schema)
         expectSyncFailure(standardSchema, null, [
           {
             message: "Expected string, got null",
@@ -327,7 +327,7 @@ describe("asStandardSchemaV1", () => {
         const schema = Schema.String.annotate({ message: "Custom message" }).check(Schema.isNonEmpty()).annotate({
           message: "Custom message 2"
         })
-        const standardSchema = Schema.asStandardSchemaV1(schema)
+        const standardSchema = Schema.toStandardSchemaV1(schema)
         expectSyncFailure(standardSchema, null, [
           {
             message: "Custom message",
@@ -346,7 +346,7 @@ describe("asStandardSchemaV1", () => {
         const schema = Schema.String.annotate({ message: "Custom message" }).check(
           Schema.isNonEmpty({ message: "Custom message 2" })
         )
-        const standardSchema = Schema.asStandardSchemaV1(schema)
+        const standardSchema = Schema.toStandardSchemaV1(schema)
         expectSyncFailure(standardSchema, null, [
           {
             message: "Custom message",
@@ -365,7 +365,7 @@ describe("asStandardSchemaV1", () => {
         const schema = Schema.String.annotate({ message: "Custom message" })
           .check(Schema.isNonEmpty({ message: "Custom message 2" }))
           .check(Schema.isMaxLength(2, { message: "Custom message 3" }))
-        const standardSchema = Schema.asStandardSchemaV1(schema)
+        const standardSchema = Schema.toStandardSchemaV1(schema)
         expectSyncFailure(standardSchema, null, [
           {
             message: "Custom message",
@@ -392,7 +392,7 @@ describe("asStandardSchemaV1", () => {
         const schema = Schema.Struct({
           a: Schema.String.annotateKey({ messageMissingKey: "Custom message" })
         })
-        const standardSchema = Schema.asStandardSchemaV1(schema)
+        const standardSchema = Schema.toStandardSchemaV1(schema)
         expectSyncFailure(standardSchema, {}, [
           {
             message: "Custom message",
@@ -405,7 +405,7 @@ describe("asStandardSchemaV1", () => {
         const schema = Schema.Struct({
           a: Schema.String
         }).annotate({ messageUnexpectedKey: "Custom message" })
-        const standardSchema = Schema.asStandardSchemaV1(schema, {
+        const standardSchema = Schema.toStandardSchemaV1(schema, {
           parseOptions: { onExcessProperty: "error" }
         })
         expectSyncFailure(standardSchema, { a: "a", b: "b" }, [
@@ -422,7 +422,7 @@ describe("asStandardSchemaV1", () => {
         const schema = Schema.Tuple([
           Schema.String.annotateKey({ messageMissingKey: "Custom message" })
         ])
-        const standardSchema = Schema.asStandardSchemaV1(schema)
+        const standardSchema = Schema.toStandardSchemaV1(schema)
         expectSyncFailure(standardSchema, [], [
           {
             message: "Custom message",
@@ -435,7 +435,7 @@ describe("asStandardSchemaV1", () => {
         const schema = Schema.Tuple([
           Schema.String
         ]).annotate({ messageUnexpectedKey: "Custom message" })
-        const standardSchema = Schema.asStandardSchemaV1(schema, {
+        const standardSchema = Schema.toStandardSchemaV1(schema, {
           parseOptions: { onExcessProperty: "error" }
         })
         expectSyncFailure(standardSchema, ["a", "b"], [
@@ -450,7 +450,7 @@ describe("asStandardSchemaV1", () => {
     describe("Union", () => {
       it("Literals", () => {
         const schema = Schema.Literals(["a", "b"]).annotate({ message: "Custom message" })
-        const standardSchema = Schema.asStandardSchemaV1(schema)
+        const standardSchema = Schema.toStandardSchemaV1(schema)
         expectSyncFailure(standardSchema, null, [
           {
             message: "Custom message",
@@ -470,7 +470,7 @@ describe("asStandardSchemaV1", () => {
   describe("treeLeafHook & verboseCheckHook", () => {
     it("String", () => {
       const schema = Schema.String
-      const standardSchema = Schema.asStandardSchemaV1(schema, {
+      const standardSchema = Schema.toStandardSchemaV1(schema, {
         leafHook: Issue.defaultLeafHook
       })
       expectSyncFailure(standardSchema, null, [
@@ -483,7 +483,7 @@ describe("asStandardSchemaV1", () => {
 
     it("NonEmptyString", () => {
       const schema = Schema.NonEmptyString
-      const standardSchema = Schema.asStandardSchemaV1(schema, {
+      const standardSchema = Schema.toStandardSchemaV1(schema, {
         leafHook: Issue.defaultLeafHook
       })
       expectSyncFailure(standardSchema, "", [

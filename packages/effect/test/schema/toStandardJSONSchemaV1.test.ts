@@ -19,16 +19,16 @@ function standardConvertToJSONSchemaOutput(
   })
 }
 
-describe("asStandardJSONSchemaV1", () => {
+describe("toStandardJSONSchemaV1", () => {
   it("should return a schema", () => {
     const schema = Schema.FiniteFromString
-    const standardSchema = Schema.asStandardJSONSchemaV1(schema)
+    const standardSchema = Schema.toStandardJSONSchemaV1(schema)
     assertTrue(Schema.isSchema(standardSchema))
   })
 
   it("should support both standards", () => {
     const schema = Schema.String
-    const both = Schema.asStandardSchemaV1(Schema.asStandardJSONSchemaV1(schema))
+    const both = Schema.toStandardSchemaV1(Schema.toStandardJSONSchemaV1(schema))
     deepStrictEqual(standardConvertToJSONSchemaInput(both), {
       "type": "string"
     })
@@ -36,7 +36,7 @@ describe("asStandardJSONSchemaV1", () => {
 
   it("should return the input JSON Schema", () => {
     const schema = Schema.FiniteFromString
-    const standardJSONSchema = Schema.asStandardJSONSchemaV1(schema)
+    const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
     deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
       "type": "string"
     })
@@ -44,7 +44,7 @@ describe("asStandardJSONSchemaV1", () => {
 
   it("should return the output JSON Schema", () => {
     const schema = Schema.FiniteFromString
-    const standardJSONSchema = Schema.asStandardJSONSchemaV1(schema)
+    const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
     deepStrictEqual(standardConvertToJSONSchemaOutput(standardJSONSchema), {
       "type": "number"
     })
@@ -52,7 +52,7 @@ describe("asStandardJSONSchemaV1", () => {
 
   it("a schema with identifier", () => {
     const schema = Schema.String.annotate({ identifier: "ID" })
-    const standardJSONSchema = Schema.asStandardJSONSchemaV1(schema)
+    const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
     deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
       "$ref": "#/definitions/ID",
       "definitions": {
@@ -72,7 +72,7 @@ describe("asStandardJSONSchemaV1", () => {
       a: Schema.String,
       as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
     }).annotate({ identifier: "A" })
-    const standardJSONSchema = Schema.asStandardJSONSchemaV1(schema)
+    const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
     deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
       "$ref": "#/definitions/A",
       "definitions": {

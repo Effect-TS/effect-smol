@@ -16,7 +16,7 @@ describe("Equivalence generation", () => {
   it("Never", () => {
     throws(
       () =>
-        Schema.makeEquivalence(Schema.Struct({
+        Schema.toEquivalence(Schema.Struct({
           a: Schema.Never
         })),
       `Unsupported AST Never
@@ -24,7 +24,7 @@ describe("Equivalence generation", () => {
     )
     throws(
       () =>
-        Schema.makeEquivalence(Schema.Tuple([
+        Schema.toEquivalence(Schema.Tuple([
           Schema.Never
         ])),
       `Unsupported AST Never
@@ -34,7 +34,7 @@ describe("Equivalence generation", () => {
 
   it("String", () => {
     const schema = Schema.String
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
     assertTrue(equivalence("a", "a"))
     assertFalse(equivalence("a", "b"))
   })
@@ -42,26 +42,26 @@ describe("Equivalence generation", () => {
   describe("Tuple", () => {
     it("should fail on non-array inputs", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number])
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertFalse(equivalence(["a", 1], null as never))
     })
 
     it("empty", () => {
       const schema = Schema.Tuple([])
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(equivalence([], []))
     })
 
     it("required elements", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Number])
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(equivalence(["a", 1], ["a", 1]))
       assertFalse(equivalence(["a", 1], ["b", 1]))
     })
 
     it("optionalKey elements", () => {
       const schema = Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)])
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(equivalence(["a", 1], ["a", 1]))
       assertTrue(equivalence(["a"], ["a"]))
       assertFalse(equivalence(["a", 1], ["b", 1]))
@@ -70,7 +70,7 @@ describe("Equivalence generation", () => {
 
     it("optional elements", () => {
       const schema = Schema.Tuple([Schema.String, Schema.optional(Schema.Number)])
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(equivalence(["a", 1], ["a", 1]))
       assertTrue(equivalence(["a"], ["a"]))
       assertTrue(equivalence(["a", undefined], ["a", undefined]))
@@ -82,7 +82,7 @@ describe("Equivalence generation", () => {
 
   it("Array", () => {
     const schema = Schema.Array(Schema.String)
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
     assertTrue(equivalence(["a", "b", "c"], ["a", "b", "c"]))
     assertFalse(equivalence(["a", "b", "c"], ["a", "b", "d"]))
     assertFalse(equivalence(["a", "b", "c"], ["a", "b"]))
@@ -91,7 +91,7 @@ describe("Equivalence generation", () => {
 
   it("TupleWithRest", () => {
     const schema = Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.String, Schema.Number])
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
     assertTrue(equivalence(["a", 1, 2], ["a", 1, 2]))
     assertTrue(equivalence(["a", 1, "b", 2], ["a", 1, "b", 2]))
 
@@ -106,13 +106,13 @@ describe("Equivalence generation", () => {
   describe("Struct", () => {
     it("should fail on non-record inputs", () => {
       const schema = Schema.Struct({ a: Schema.String })
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertFalse(equivalence({ a: "a" }, 1 as never))
     })
 
     it("empty", () => {
       const schema = Schema.Struct({})
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       const a = {}
       assertTrue(equivalence(a, a))
       assertTrue(equivalence({}, {})) // Now supports structural equality
@@ -123,7 +123,7 @@ describe("Equivalence generation", () => {
         a: Schema.String,
         b: Schema.Number
       })
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(equivalence({ a: "a", b: 1 }, { a: "a", b: 1 }))
       assertFalse(equivalence({ a: "a", b: 1 }, { a: "b", b: 1 }))
       assertFalse(equivalence({ a: "a", b: 1 }, { a: "a", b: 2 }))
@@ -136,7 +136,7 @@ describe("Equivalence generation", () => {
         [a]: Schema.String,
         [b]: Schema.Number
       })
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(
         equivalence({ [a]: "a", [b]: 1 }, { [a]: "a", [b]: 1 })
       )
@@ -153,7 +153,7 @@ describe("Equivalence generation", () => {
         a: Schema.String,
         b: Schema.optionalKey(Schema.Number)
       })
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(equivalence({ a: "a", b: 1 }, { a: "a", b: 1 }))
       assertTrue(equivalence({ a: "a" }, { a: "a" }))
       assertFalse(equivalence({ a: "a" }, { a: "b" }))
@@ -166,7 +166,7 @@ describe("Equivalence generation", () => {
         a: Schema.String,
         b: Schema.optional(Schema.Number)
       })
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(equivalence({ a: "a", b: 1 }, { a: "a", b: 1 }))
       assertTrue(equivalence({ a: "a" }, { a: "a" }))
       assertTrue(equivalence({ a: "a", b: undefined }, { a: "a", b: undefined }))
@@ -180,7 +180,7 @@ describe("Equivalence generation", () => {
   describe("Record", () => {
     it("Record(String, Number)", () => {
       const schema = Schema.Record(Schema.String, Schema.Number)
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(equivalence({ a: 1, b: 2 }, { a: 1, b: 2 }))
       assertFalse(equivalence({ a: 1, b: 2 }, { a: 1, b: 3 }))
       assertFalse(equivalence({ a: 1, b: 2 }, { a: 2, b: 2 }))
@@ -190,7 +190,7 @@ describe("Equivalence generation", () => {
 
     it("Record(String, Number)", () => {
       const schema = Schema.Record(Schema.String, Schema.UndefinedOr(Schema.Number))
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(equivalence({ a: 1, b: undefined }, { a: 1, b: undefined }))
       assertFalse(equivalence({ a: 1, b: undefined }, { a: 1 }))
       assertFalse(equivalence({ a: 1 }, { a: 1, b: undefined }))
@@ -201,7 +201,7 @@ describe("Equivalence generation", () => {
       const b = Symbol.for("b")
       const c = Symbol.for("c")
       const schema = Schema.Record(Schema.Symbol, Schema.Number)
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(
         equivalence({ [a]: 1, [b]: 2 }, { [a]: 1, [b]: 2 })
       )
@@ -237,7 +237,7 @@ describe("Equivalence generation", () => {
         a: Schema.String,
         as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
       })
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(equivalence({ a: "a", as: [] }, { a: "a", as: [] }))
       assertFalse(equivalence({ a: "a", as: [] }, { a: "b", as: [] }))
       assertFalse(equivalence({ a: "a", as: [{ a: "a", as: [] }] }, { a: "a", as: [] }))
@@ -270,7 +270,7 @@ describe("Equivalence generation", () => {
       })
 
       const schema = Operation
-      const equivalence = Schema.makeEquivalence(schema)
+      const equivalence = Schema.toEquivalence(schema)
       assertTrue(
         equivalence({
           type: "operation",
@@ -328,21 +328,21 @@ describe("Equivalence generation", () => {
 
   it("Date", () => {
     const schema = Schema.Date
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
     assertTrue(equivalence(new Date(0), new Date(0)))
     assertFalse(equivalence(new Date(0), new Date(1)))
   })
 
   it("URL", () => {
     const schema = Schema.URL
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
     assertTrue(equivalence(new URL("https://example.com"), new URL("https://example.com")))
     assertFalse(equivalence(new URL("https://example.com"), new URL("https://example.org")))
   })
 
   it("RegExp", () => {
     const schema = Schema.RegExp
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
     assertTrue(equivalence(new RegExp("a"), new RegExp("a")))
     assertTrue(equivalence(new RegExp("a", "i"), new RegExp("a", "i")))
     assertFalse(equivalence(new RegExp("a"), new RegExp("b")))
@@ -351,14 +351,14 @@ describe("Equivalence generation", () => {
 
   it("Redacted(String)", () => {
     const schema = Schema.Redacted(Schema.String)
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
     assertTrue(equivalence(Redacted.make("a"), Redacted.make("a")))
     assertFalse(equivalence(Redacted.make("a"), Redacted.make("b")))
   })
 
   it("Option(Modulo2)", () => {
     const schema = Schema.Option(Modulo2)
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
 
     assertTrue(equivalence(Option.none(), Option.none()))
     assertTrue(equivalence(Option.some(0), Option.some(2)))
@@ -371,7 +371,7 @@ describe("Equivalence generation", () => {
 
   it("Result(Modulo2, Modulo3)", () => {
     const schema = Schema.Result(Modulo2, Modulo3)
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
 
     assertTrue(equivalence(Result.succeed(0), Result.succeed(2)))
     assertTrue(equivalence(Result.succeed(1), Result.succeed(3)))
@@ -385,7 +385,7 @@ describe("Equivalence generation", () => {
 
   it("ReadonlySet(Modulo2)", () => {
     const schema = Schema.ReadonlySet(Modulo2)
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
 
     assertTrue(equivalence(new Set(), new Set()))
     assertTrue(equivalence(new Set([0]), new Set([0])))
@@ -399,7 +399,7 @@ describe("Equivalence generation", () => {
 
   it("ReadonlyMap(Modulo2, Modulo3)", () => {
     const schema = Schema.ReadonlyMap(Modulo2, Modulo3)
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
 
     assertTrue(equivalence(new Map(), new Map()))
     assertTrue(equivalence(new Map([[0, 1]]), new Map([[0, 1]])))
@@ -415,7 +415,7 @@ describe("Equivalence generation", () => {
 
   it("Duration", () => {
     const schema = Schema.Duration
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
     assertTrue(equivalence(Duration.millis(1), Duration.millis(1)))
     assertFalse(equivalence(Duration.millis(1), Duration.millis(2)))
     assertTrue(equivalence(Duration.nanos(1n), Duration.nanos(1n)))
@@ -426,7 +426,7 @@ describe("Equivalence generation", () => {
 
   it("DateTimeUtc", () => {
     const schema = Schema.DateTimeUtc
-    const equivalence = Schema.makeEquivalence(schema)
+    const equivalence = Schema.toEquivalence(schema)
     assertTrue(
       equivalence(DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"), DateTime.makeUnsafe("2021-01-01T00:00:00.000Z"))
     )
@@ -441,7 +441,7 @@ describe("Equivalence generation", () => {
         const schema = Schema.String.pipe(
           Schema.overrideEquivalence(() => Equivalence.make((a, b) => a.substring(0, 1) === b.substring(0, 1)))
         )
-        const equivalence = Schema.makeEquivalence(schema)
+        const equivalence = Schema.toEquivalence(schema)
         assertTrue(equivalence("ab", "ac"))
       })
 
@@ -449,7 +449,7 @@ describe("Equivalence generation", () => {
         const schema = Schema.String.check(Schema.isMinLength(1)).pipe(
           Schema.overrideEquivalence(() => Equivalence.make((a, b) => a.substring(0, 1) === b.substring(0, 1)))
         )
-        const equivalence = Schema.makeEquivalence(schema)
+        const equivalence = Schema.toEquivalence(schema)
         assertTrue(equivalence("ab", "ac"))
       })
     })

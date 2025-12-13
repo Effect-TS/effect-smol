@@ -467,7 +467,7 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  *   age: Schema.Number.check(Schema.isBetween({ minimum: 0, maximum: 150 }))
  * })
  *
- * const standardSchema = Schema.asStandardSchemaV1(PersonSchema, {
+ * const standardSchema = Schema.toStandardSchemaV1(PersonSchema, {
  *   leafHook
  * })
  *
@@ -488,7 +488,7 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  * @category Standard Schema
  * @since 4.0.0
  */
-export function asStandardSchemaV1<
+export function toStandardSchemaV1<
   S extends Top & { readonly DecodingServices: never }
 >(
   self: S,
@@ -556,9 +556,9 @@ function getDefinitionsNamespace(target: JsonSchema.Target): string {
   }
 }
 
-function makeStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Target): JsonSchema {
+function toBaseStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Target): JsonSchema {
   if (isTarget(target)) {
-    const { definitions, schema } = makeJsonSchema(self, { target })
+    const { definitions, schema } = toJsonSchema(self, { target })
     if (Object.keys(definitions).length > 0) {
       schema[getDefinitionsNamespace(target)] = definitions
     }
@@ -576,13 +576,13 @@ function makeStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Target
  * @since 4.0.0
  * @experimental
  */
-export function asStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSchemaV1<S["Encoded"], S["Type"]> & S {
+export function toStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSchemaV1<S["Encoded"], S["Type"]> & S {
   const jsonSchema: StandardJSONSchemaV1.Props<S["Encoded"], S["Type"]>["jsonSchema"] = {
     input(options) {
-      return makeStandardJSONSchemaV1(self, options.target)
+      return toBaseStandardJSONSchemaV1(self, options.target)
     },
     output(options) {
-      return makeStandardJSONSchemaV1(typeCodec(self), options.target)
+      return toBaseStandardJSONSchemaV1(typeCodec(self), options.target)
     }
   }
   if ("~standard" in self) {
@@ -2288,13 +2288,13 @@ export interface UniqueArray<S extends Top> extends Array$<S> {}
  * Returns a new array schema that ensures all elements are unique.
  *
  * The equivalence used to determine uniqueness is the one provided by
- * `Schema.makeEquivalence(item)`.
+ * `Schema.toEquivalence(item)`.
  *
  * @category Constructors
  * @since 4.0.0
  */
 export function UniqueArray<S extends Top>(item: S): UniqueArray<S> {
-  return Array(item).check(isUnique(makeEquivalence(item)))
+  return Array(item).check(isUnique(toEquivalence(item)))
 }
 
 /**
@@ -3142,7 +3142,7 @@ export function getTag(tag: PropertyKey, ast: AST.AST): PropertyKey | undefined 
  * @since 4.0.0
  * @experimental
  */
-export type asTaggedUnion<
+export type toTaggedUnion<
   Tag extends PropertyKey,
   Members extends ReadonlyArray<Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>
 > = Union<Members> & TaggedUnionUtils<Tag, Members>
@@ -3151,10 +3151,10 @@ export type asTaggedUnion<
  * @since 4.0.0
  * @experimental
  */
-export function asTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
+export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
   return <const Members extends ReadonlyArray<Top & { readonly Type: { readonly [K in Tag]: PropertyKey } }>>(
     self: Union<Members>
-  ): asTaggedUnion<Tag, Members> => {
+  ): toTaggedUnion<Tag, Members> => {
     const cases: Record<PropertyKey, unknown> = {}
     const guards: Record<PropertyKey, (u: unknown) => boolean> = {}
     const isAnyOf = (keys: ReadonlyArray<PropertyKey>) => (value: Members[number]["Type"]) => keys.includes(value[tag])
@@ -3237,7 +3237,7 @@ export function TaggedUnion<const CasesByTag extends Record<string, Struct.Field
     members.push(cases[key] = TaggedStruct(key, casesByTag[key]))
   }
   const union = Union(members)
-  const { guards, isAnyOf, match } = asTaggedUnion("_tag")(union)
+  const { guards, isAnyOf, match } = toTaggedUnion("_tag")(union)
   return makeProto(union.ast, { cases, isAnyOf, guards, match })
 }
 
@@ -6361,7 +6361,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {}
  * const original = Schema.Struct({ a: Schema.String })
  * const schema = Schema.fromJsonString(original)
  *
- * const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-2020-12" })
+ * const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-2020-12" })
  *
  * console.log(JSON.stringify(jsonSchema, null, 2))
  * // Output:
@@ -7278,7 +7278,7 @@ export type LazyArbitrary<T> = (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
  * @category Arbitrary
  * @since 4.0.0
  */
-export function makeArbitraryLazy<S extends Top>(schema: S): LazyArbitrary<S["Type"]> {
+export function toArbitraryLazy<S extends Top>(schema: S): LazyArbitrary<S["Type"]> {
   const lawc = InternalArbitrary.memoized(schema.ast)
   return (fc) => lawc(fc, {})
 }
@@ -7287,8 +7287,8 @@ export function makeArbitraryLazy<S extends Top>(schema: S): LazyArbitrary<S["Ty
  * @category Arbitrary
  * @since 4.0.0
  */
-export function makeArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["Type"]> {
-  return makeArbitraryLazy(schema)(FastCheck)
+export function toArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["Type"]> {
+  return toArbitraryLazy(schema)(FastCheck)
 }
 
 // -----------------------------------------------------------------------------
@@ -7473,7 +7473,7 @@ export function overrideEquivalence<S extends Top>(equivalence: () => Equivalenc
  * @category Equivalence
  * @since 4.0.0
  */
-export function makeEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> {
+export function toEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> {
   return InternalEquivalence.memoized(schema.ast)
 }
 
@@ -7484,7 +7484,7 @@ export function makeEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T
 /**
  * @since 4.0.0
  */
-export interface MakeJsonSchemaOptions {
+export interface ToJsonSchemaOptions {
   /**
    * The target of the JSON Schema.
    */
@@ -7591,7 +7591,7 @@ export function getMetaSchemaUri(target: JsonSchema.Source) {
  * @category JsonSchema
  * @since 4.0.0
  */
-export function makeJsonSchema<S extends Top>(schema: S, options: MakeJsonSchemaOptions): JsonSchema.Document {
+export function toJsonSchema<S extends Top>(schema: S, options: ToJsonSchemaOptions): JsonSchema.Document {
   return InternalJsonSchema.make(schema, options)
 }
 
@@ -7672,7 +7672,7 @@ type XmlEncoderOptions = {
  * @category Serializer
  * @since 4.0.0
  */
-export function makeEncoderXml<T, E, RD, RE>(
+export function toEncoderXml<T, E, RD, RE>(
   codec: Codec<T, E, RD, RE>,
   options?: XmlEncoderOptions
 ) {
@@ -8073,7 +8073,7 @@ const parseTagName = (name: string): { safe: string; changed: boolean } => {
  * @category Optic
  * @since 4.0.0
  */
-export function makeIso<S extends Top>(schema: S): Optic_.Iso<S["Type"], S["Iso"]> {
+export function toIso<S extends Top>(schema: S): Optic_.Iso<S["Type"], S["Iso"]> {
   const serializer = toSerializerIso(schema)
   return Optic_.makeIso(Parser.encodeSync(serializer), Parser.decodeSync(serializer))
 }
@@ -8082,7 +8082,7 @@ export function makeIso<S extends Top>(schema: S): Optic_.Iso<S["Type"], S["Iso"
  * @category Optic
  * @since 4.0.0
  */
-export function makeIsoSource<S extends Top>(_: S): Optic_.Iso<S["Type"], S["Type"]> {
+export function toIsoSource<S extends Top>(_: S): Optic_.Iso<S["Type"], S["Type"]> {
   return Optic_.id()
 }
 
@@ -8175,7 +8175,7 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  * @category JsonPatch Differ
  * @since 4.0.0
  */
-export function makeDifferJsonPatch<T, E>(codec: Codec<T, E>): Differ<T, JsonPatch> {
+export function toDifferJsonPatch<T, E>(codec: Codec<T, E>): Differ<T, JsonPatch> {
   const serializer = toSerializerJson(codec)
   const get = Parser.encodeSync(serializer)
   const set = Parser.decodeSync(serializer)

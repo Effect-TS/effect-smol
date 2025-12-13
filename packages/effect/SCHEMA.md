@@ -56,7 +56,7 @@ Ultimately, the intent is to eliminate the need for two separate paths like in v
 ### 7. Data Types Beyond Plain Structs
 
 - **Opaque structs & classes** – wrap a `Struct` in a class for nominal typing; `Schema.Class` when you need methods/constructors/equality.
-- **Tagged structs / tagged unions** helpers (`Schema.TaggedStruct`, `Schema.TaggedUnion`, `Schema.asTaggedUnion`) with auto‑generated guards, matchers, helpers.
+- **Tagged structs / tagged unions** helpers (`Schema.TaggedStruct`, `Schema.TaggedUnion`, `Schema.toTaggedUnion`) with auto‑generated guards, matchers, helpers.
 
 ### 8. Tooling
 
@@ -683,7 +683,7 @@ console.log(
 
 ## 🆕 XML Encoder
 
-`Schema.makeEncoderXml` lets you serialize values to XML.
+`Schema.toEncoderXml` lets you serialize values to XML.
 It uses the `toSerializerStringTree` serializer internally.
 
 **Example**
@@ -704,7 +704,7 @@ const schema = Schema.Struct({
 })
 
 // const encoder: (t: {...}) => Effect<string, Schema.SchemaError, never>
-const xmlEncoder = Schema.makeEncoderXml(schema)
+const xmlEncoder = Schema.toEncoderXml(schema)
 
 console.log(
   Effect.runSync(
@@ -4307,7 +4307,7 @@ const original = Schema.Union([
 ])
 
 // Enrich the union with tag-based utilities
-const tagged = original.pipe(Schema.asTaggedUnion("type"))
+const tagged = original.pipe(Schema.toTaggedUnion("type"))
 ```
 
 This helper has some advantages over a dedicated constructor:
@@ -5037,7 +5037,7 @@ import { Schema } from "effect/schema"
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
 // Generate a draft-07 JSON Schema
-const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
+const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5070,7 +5070,7 @@ import { Schema } from "effect/schema"
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
 // Generate a draft-2020-12 JSON Schema
-const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-2020-12" })
+const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-2020-12" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5105,7 +5105,7 @@ const schema = Schema.Struct({
   a: Schema.BigInt
 })
 
-Schema.makeJsonSchema(schema, { target: "draft-07" })
+Schema.toJsonSchema(schema, { target: "draft-07" })
 /*
 throws:
 Error: Unsupported schema BigInt
@@ -5134,7 +5134,7 @@ const schema = Schema.NonEmptyString.annotate({
   examples: ["alice", "bob"]
 })
 
-const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
+const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5172,7 +5172,7 @@ const schema = Schema.NonEmptyString.annotate({
   examples: ["alice", "", "bob"] // the empty string is invalid
 })
 
-const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
+const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5205,7 +5205,7 @@ const schema = Schema.Struct({
   a: Schema.UndefinedOr(Schema.Number) // 'a' may be undefined
 })
 
-const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
+const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5234,7 +5234,7 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.Tuple([Schema.UndefinedOr(Schema.Number)]) // first element may be undefined
 
-const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
+const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5265,7 +5265,7 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.instanceOf(URL)
 
-Schema.makeJsonSchema(schema, { target: "draft-07" })
+Schema.toJsonSchema(schema, { target: "draft-07" })
 // Error: Unsupported schema Declaration
 ```
 
@@ -5280,7 +5280,7 @@ const schema = Schema.instanceOf(URL, {
   })
 })
 
-const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
+const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5308,7 +5308,7 @@ import { Schema } from "effect/schema"
 
 const schema = Schema.String.check(Schema.isMinLength(1))
 
-const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
+const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5334,7 +5334,7 @@ const schema = Schema.String.check(
   Schema.isMaxLength(2, { description: "description2" })
 )
 
-const jsonSchema = Schema.makeJsonSchema(schema, { target: "draft-07" })
+const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5378,7 +5378,7 @@ const schema = Schema.String.check(
   })
 )
 
-const jsonSchema = Schema.makeJsonSchemaDraft07(schema)
+const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-07" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5412,7 +5412,7 @@ const original = Schema.Struct({ a: Schema.String })
 // but its content must be valid JSON matching 'original'
 const schema = Schema.fromJsonString(original)
 
-const jsonSchema = Schema.makeJsonSchemaDraft2020_12(schema)
+const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-2020-12" })
 
 console.log(JSON.stringify(jsonSchema, null, 2))
 /*
@@ -5457,7 +5457,8 @@ const schema = Schema.Struct({
   a: Schema.optionalKey(Schema.NonEmptyString)
 })
 
-const document = Schema.makeJsonSchemaDraft2020_12(schema, {
+const document = Schema.toJsonSchema(schema, {
+  target: "draft-2020-12",
   referenceStrategy: "skip-top-level",
   generateDescriptions: true
 })
@@ -6085,7 +6086,7 @@ import { FastCheck } from "effect/testing"
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
 // Create Arbitrary<readonly [string, number]>
-const arb = Schema.makeArbitrary(schema)
+const arb = Schema.toArbitrary(schema)
 
 // Sample 10 values from the arbitrary
 console.log(FastCheck.sample(arb, 10))
@@ -6115,7 +6116,7 @@ import { Schema } from "effect/schema"
 import { FastCheck } from "effect/testing"
 
 // Create a factory that needs FastCheck passed in at call time
-const lazyArb = Schema.makeArbitraryLazy(Schema.String)
+const lazyArb = Schema.toArbitraryLazy(Schema.String)
 
 // Later, provide FastCheck (and an optional context) to get the Arbitrary<string>
 const arb = lazyArb(FastCheck, {}) // same result as make(...)
@@ -6150,7 +6151,7 @@ const URL = Schema.instanceOf(globalThis.URL, {
     () => (fc) => fc.webUrl().map((s) => new globalThis.URL(s))
 })
 
-console.log(FastCheck.sample(Schema.makeArbitrary(URL), 3))
+console.log(FastCheck.sample(Schema.toArbitrary(URL), 3))
 /*
 Example Output:
 [
@@ -6191,7 +6192,7 @@ import { Schema } from "effect/schema"
 import { FastCheck } from "effect/testing"
 
 // Default number schema (no override)
-console.log(FastCheck.sample(Schema.makeArbitrary(Schema.Number), 3))
+console.log(FastCheck.sample(Schema.toArbitrary(Schema.Number), 3))
 /*
 Example Output:
 [
@@ -6206,7 +6207,7 @@ const schema = Schema.Number.annotate({
   arbitrary: () => (fc) => fc.integer({ min: 10, max: 20 }) // custom generator
 })
 
-console.log(FastCheck.sample(Schema.makeArbitrary(schema), 3))
+console.log(FastCheck.sample(Schema.toArbitrary(schema), 3))
 /*
 Example Output:
 [ 12, 12, 18 ]
@@ -6237,7 +6238,7 @@ const isNonEmpty = Schema.makeFilter((s: string) => s.length > 0, {
 
 const schema = Schema.String.check(isNonEmpty)
 
-console.log(FastCheck.sample(Schema.makeArbitrary(schema), 3))
+console.log(FastCheck.sample(Schema.toArbitrary(schema), 3))
 /*
 Example Output:
 [ 'R|I6', 'q#" Z', 'qc= f' ]
@@ -6296,7 +6297,7 @@ const FullName = Schema.Struct({
 })
 
 /** Build and sample an Arbitrary for the composed schema */
-console.log(JSON.stringify(FastCheck.sample(Schema.makeArbitrary(FullName), 3), null, 2))
+console.log(JSON.stringify(FastCheck.sample(Schema.toArbitrary(FullName), 3), null, 2))
 /*
 Example Output:
 [
@@ -6331,7 +6332,7 @@ const schema = Schema.Struct({
   b: Schema.Number
 })
 
-const equivalence = Schema.makeEquivalence(schema)
+const equivalence = Schema.toEquivalence(schema)
 ```
 
 ### Declarations
@@ -6349,7 +6350,7 @@ const schema = Schema.instanceOf(MyClass, {
   equivalence: () => (x, y) => x.a === y.a
 })
 
-const equivalence = Schema.makeEquivalence(schema)
+const equivalence = Schema.toEquivalence(schema)
 ```
 
 ### Overrides
@@ -6367,7 +6368,7 @@ const schema = Schema.Struct({
   b: Schema.Number
 }).pipe(Schema.overrideEquivalence(() => Equivalence.make((x, y) => x.a === y.a)))
 
-const equivalence = Schema.makeEquivalence(schema)
+const equivalence = Schema.toEquivalence(schema)
 ```
 
 ## Generating an Optic from a Schema
@@ -6419,7 +6420,7 @@ class B extends Schema.Class<B>("B")({ a: A }) {}
 
 // Automatically generate an Iso from the schema of B
 // const iso: Iso<B, { readonly a: { readonly s: string } }>
-const iso = Schema.makeIso(B)
+const iso = Schema.toIso(B)
 
 const _s = iso.key("a").key("s")
 
@@ -6444,7 +6445,7 @@ const schema = Schema.Struct({
 })
 
 // Build a differ tied to the schema
-const differ = Schema.makeDifferJsonPatch(schema)
+const differ = Schema.toDifferJsonPatch(schema)
 
 // Prepare two values to compare
 const oldValue = { id: 1, name: "a", price: 1 }
@@ -6476,7 +6477,7 @@ import { Schema } from "effect/schema"
 class A extends Schema.Class<A>("A")({ n: Schema.Number }) {}
 class B extends Schema.Class<B>("B")({ a: A }) {}
 
-const differ = Schema.makeDifferJsonPatch(B)
+const differ = Schema.toDifferJsonPatch(B)
 
 const oldValue = new B({ a: new A({ n: 0 }) })
 const newValue = new B({ a: new A({ n: 1 }) })
@@ -6509,7 +6510,7 @@ This approach keeps patches independent from TypeScript types and uses the schem
 
 ### StandardSchemaV1 formatter
 
-The StandardSchemaV1 formatter is is used by `Schema.asStandardSchemaV1` and will return a `StandardSchemaV1.FailureResult` object:
+The StandardSchemaV1 formatter is is used by `Schema.toStandardSchemaV1` and will return a `StandardSchemaV1.FailureResult` object:
 
 ```ts
 export interface FailureResult {
@@ -6890,7 +6891,7 @@ export default function App() {
       age: ""
     } satisfies (typeof schema)["Encoded"],
     validators: {
-      onChangeAsync: Schema.asStandardSchemaV1(schema),
+      onChangeAsync: Schema.toStandardSchemaV1(schema),
 
       // Final guard before submit:
       // - decode the entire form
@@ -7002,7 +7003,7 @@ import { Schema } from "effect/schema"
 // ----------------------------------------------------
 
 function encodingJsonSchema<T, E, RD>(schema: Schema.Codec<T, E, RD, never>) {
-  return Schema.asStandardSchemaV1(
+  return Schema.toStandardSchemaV1(
     Schema.flip(Schema.toSerializerJson(schema)).annotate({
       direction: "encoding"
     })
@@ -7010,20 +7011,18 @@ function encodingJsonSchema<T, E, RD>(schema: Schema.Codec<T, E, RD, never>) {
 }
 
 function decodingJsonSchema<T, E, RE>(schema: Schema.Codec<T, E, never, RE>) {
-  return Schema.asStandardSchemaV1(Schema.toSerializerJson(schema))
+  return Schema.toStandardSchemaV1(Schema.toSerializerJson(schema))
 }
 
 function decodingStringSchema<T, E, RE>(schema: Schema.Codec<T, E, never, RE>) {
-  return Schema.asStandardSchemaV1(Schema.toSerializerStringTree(schema))
+  return Schema.toStandardSchemaV1(Schema.toSerializerStringTree(schema))
 }
 
 function mapJsonSchema(schema: Schema.Top) {
-  return Schema.makeJsonSchemaOpenApi3_1(
-    schema.ast.annotations?.direction === "encoding" ? Schema.flip(schema) : schema,
-    {
-      referenceStrategy: "skip"
-    }
-  ).schema
+  return Schema.toJsonSchema(schema.ast.annotations?.direction === "encoding" ? Schema.flip(schema) : schema, {
+    target: "draft-2020-12", // or "draft-07"
+    referenceStrategy: "skip"
+  }).schema
 }
 
 // ----------------------------------------------------

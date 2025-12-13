@@ -1118,7 +1118,7 @@ export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): Schema
       additionalProperties: false
     }
   }
-  const document = Schema.makeJsonSchema(schema, {
+  const document = Schema.toJsonSchema(schema, {
     target: "draft-2020-12",
     referenceStrategy: "skip"
   })

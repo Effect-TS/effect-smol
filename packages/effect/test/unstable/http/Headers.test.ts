@@ -6,7 +6,7 @@ import { assertSuccess } from "../../utils/assert.ts"
 describe("Headers", () => {
   describe("HeadersSchema", () => {
     it("serializer annotation", () => {
-      const _Accept = Schema.makeIso(Headers.HeadersSchema).at("Accept")
+      const _Accept = Schema.toIso(Headers.HeadersSchema).at("Accept")
       const headers = Headers.fromRecordUnsafe({
         "Accept": "application/json, text/plain, */*",
         "Cache-Control": "no-cache"

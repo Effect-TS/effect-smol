@@ -81,7 +81,7 @@ export class Asserts<S extends Schema.Top> {
   }) {
     const decodeUnknownEffect = Parser.decodeUnknownEffect(this.schema)
     const encodeEffect = Parser.encodeEffect(this.schema)
-    const arbitrary = Schema.makeArbitrary(this.schema)
+    const arbitrary = Schema.toArbitrary(this.schema)
     return FastCheck.assert(
       FastCheck.asyncProperty(arbitrary, async (t) => {
         const r = await Effect.runPromise(
@@ -127,7 +127,7 @@ export class Asserts<S extends Schema.Top> {
       }) {
         const params = options?.params
         const is = Schema.is(schema)
-        const arb = Schema.makeArbitrary(schema)
+        const arb = Schema.toArbitrary(schema)
         FastCheck.assert(FastCheck.property(arb, (a) => is(a)), { numRuns: 20, ...params })
       }
     }

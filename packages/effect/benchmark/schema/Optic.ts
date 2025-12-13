@@ -44,7 +44,7 @@ const user = User.makeUnsafe({
   }
 })
 
-const iso = Schema.makeIso(User).key("profile").key("address").key("street")
+const iso = Schema.toIso(User).key("profile").key("address").key("street")
 const optic = Optic.id<typeof User["Type"]>().key("profile").key("address").key("street")
 
 bench

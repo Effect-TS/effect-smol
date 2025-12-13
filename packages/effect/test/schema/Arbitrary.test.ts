@@ -6,7 +6,7 @@ import { describe, it } from "vitest"
 import { deepStrictEqual, throws } from "../utils/assert.ts"
 
 function assertUnsupportedSchema(schema: Schema.Top, message: string) {
-  throws(() => Schema.makeArbitrary(schema), message)
+  throws(() => Schema.toArbitrary(schema), message)
 }
 
 function assertFragments(schema: Schema.Schema<any>, ctx: Annotations.Arbitrary.Context) {
@@ -867,7 +867,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("UniqueArray", () => {
-      const comparator = Schema.makeEquivalence(Schema.String)
+      const comparator = Schema.toEquivalence(Schema.String)
       assertFragments(Schema.UniqueArray(Schema.String), {
         constraints: {
           array: {

@@ -8,7 +8,7 @@ import { errorWithPath } from "./errors.ts"
 /** @internal */
 export function make<S extends Schema.Top>(
   schema: S,
-  options: Schema.MakeJsonSchemaOptions
+  options: Schema.ToJsonSchemaOptions
 ): Schema.JsonSchema.Document {
   const target = options.target
   const definitions = options.definitions ?? {}
@@ -35,7 +35,7 @@ export function make<S extends Schema.Top>(
   }
 }
 
-interface RecurOptions extends Schema.MakeJsonSchemaOptions {
+interface RecurOptions extends Schema.ToJsonSchemaOptions {
   readonly target: Schema.JsonSchema.Target
   readonly additionalProperties: true | false | Schema.JsonSchema
   readonly definitions: Record<string, Schema.JsonSchema>

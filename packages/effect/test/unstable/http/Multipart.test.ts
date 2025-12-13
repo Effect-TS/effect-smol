@@ -6,7 +6,7 @@ import { deepStrictEqual } from "node:assert"
 describe("Multipart", () => {
   describe("FileSchema", () => {
     it("jsonSchema", () => {
-      const document = Schema.makeJsonSchema(Multipart.FileSchema, { target: "draft-07" })
+      const document = Schema.toJsonSchema(Multipart.FileSchema, { target: "draft-07" })
       deepStrictEqual(document, {
         source: "draft-07",
         schema: {

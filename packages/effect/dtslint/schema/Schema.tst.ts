@@ -1466,7 +1466,7 @@ describe("Schema", () => {
       ),
       encode: Getter.passthrough()
     }))
-    expect(Schema.asStandardSchemaV1).type.not.toBeCallableWith(DepString)
+    expect(Schema.toStandardSchemaV1).type.not.toBeCallableWith(DepString)
   })
 
   describe("fromBrand", () => {

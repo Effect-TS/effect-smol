@@ -99,10 +99,10 @@ describe("Union", () => {
           Schema.TaggedStruct("B", { b: Schema.FiniteFromString })
         ])
 
-        expect(original.pipe).type.toBeCallableWith(Schema.asTaggedUnion("_tag"))
-        expect(original.pipe).type.not.toBeCallableWith(Schema.asTaggedUnion("a"))
+        expect(original.pipe).type.toBeCallableWith(Schema.toTaggedUnion("_tag"))
+        expect(original.pipe).type.not.toBeCallableWith(Schema.toTaggedUnion("a"))
 
-        const schema = original.pipe(Schema.asTaggedUnion("_tag"))
+        const schema = original.pipe(Schema.toTaggedUnion("_tag"))
 
         expect(Schema.revealCodec(schema)).type.toBe<
           Schema.Codec<

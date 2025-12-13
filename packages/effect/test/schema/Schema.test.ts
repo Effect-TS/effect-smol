@@ -6329,7 +6329,7 @@ error message 2`
             Schema.Struct({ _tag: Schema.Literal(1), c: Schema.Boolean }),
             Schema.Struct({ _tag: Schema.Literal("D"), d: Schema.Date })
           ])
-        ]).pipe(Schema.asTaggedUnion("_tag"))
+        ]).pipe(Schema.toTaggedUnion("_tag"))
 
         // cases
         deepStrictEqual(schema.cases.A, schema.members[0])
@@ -6400,7 +6400,7 @@ error message 2`
         const schema = Schema.Union([
           Schema.Struct({ _tag: Schema.tag("A"), type: Schema.tag("TypeA"), a: Schema.String }),
           Schema.Struct({ _tag: Schema.tag("B"), type: Schema.tag("TypeB"), b: Schema.FiniteFromString })
-        ]).pipe(Schema.asTaggedUnion("type"))
+        ]).pipe(Schema.toTaggedUnion("type"))
 
         // cases
         deepStrictEqual(schema.cases.TypeA, schema.members[0])

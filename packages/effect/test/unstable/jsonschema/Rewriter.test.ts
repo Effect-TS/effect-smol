@@ -11,7 +11,7 @@ function assertJsonSchema(
     readonly definitions?: Record<string, Schema.JsonSchema> | undefined
     readonly traces?: Array<string> | undefined
   },
-  options?: Schema.MakeJsonSchemaOptions
+  options?: Schema.ToJsonSchemaOptions
 ) {
   const traces: Array<string> = []
   const tracer: Rewriter.Tracer = {
@@ -20,7 +20,7 @@ function assertJsonSchema(
     }
   }
   const document = rewriter(
-    Schema.makeJsonSchema(schema, {
+    Schema.toJsonSchema(schema, {
       target: "draft-2020-12",
       generateDescriptions: true,
       referenceStrategy: "skip-top-level",

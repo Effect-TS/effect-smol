@@ -6,4 +6,4 @@ const schema = Schema.Struct({
   c: Schema.Array(Schema.String)
 })
 
-Schema.makeJsonSchemaDraft07(schema)
+Schema.toJsonSchema(schema, { target: "draft-07" })

@@ -2133,14 +2133,14 @@ describe("Serializers", () => {
     })
   })
 
-  describe("makeEncoderXml", () => {
+  describe("toEncoderXml", () => {
     async function assertXml<T, E, RD>(schema: Schema.Codec<T, E, RD>, value: T, expected: string) {
-      const serializer = Schema.makeEncoderXml(Schema.toSerializerStringTree(schema))
+      const serializer = Schema.toEncoderXml(Schema.toSerializerStringTree(schema))
       strictEqual(await Effect.runPromise(serializer(value)), expected)
     }
 
     async function assertXmlFailure<T, E, RD>(schema: Schema.Codec<T, E, RD>, value: T, message: string) {
-      const serializer = Schema.makeEncoderXml(Schema.toSerializerStringTree(schema))
+      const serializer = Schema.toEncoderXml(Schema.toSerializerStringTree(schema))
       const r = await serializer(value).pipe(
         Effect.mapError((err) => err.issue.toString()),
         Effect.result,
@@ -2274,7 +2274,7 @@ describe("Serializers", () => {
     })
 
     it("Array with custom item name", async () => {
-      const serializer = Schema.makeEncoderXml(Schema.toSerializerStringTree(Schema.Array(Schema.Number)), {
+      const serializer = Schema.toEncoderXml(Schema.toSerializerStringTree(Schema.Array(Schema.Number)), {
         arrayItemName: "number"
       })
       strictEqual(
@@ -2478,14 +2478,14 @@ line2</root>`
     })
 
     it("XML Encoder Options - rootName", async () => {
-      const serializer = Schema.makeEncoderXml(Schema.toSerializerStringTree(Schema.String), {
+      const serializer = Schema.toEncoderXml(Schema.toSerializerStringTree(Schema.String), {
         rootName: "custom"
       })
       strictEqual(await Effect.runPromise(serializer("test")), "<custom>test</custom>")
     })
 
     it("XML Encoder Options - pretty: false", async () => {
-      const serializer = Schema.makeEncoderXml(
+      const serializer = Schema.toEncoderXml(
         Schema.toSerializerStringTree(Schema.Struct({
           a: Schema.Number,
           b: Schema.String
@@ -2498,7 +2498,7 @@ line2</root>`
     })
 
     it("XML Encoder Options - custom indent", async () => {
-      const serializer = Schema.makeEncoderXml(
+      const serializer = Schema.toEncoderXml(
         Schema.toSerializerStringTree(Schema.Struct({
           a: Schema.Number
         })),
@@ -2515,7 +2515,7 @@ line2</root>`
     })
 
     it("XML Encoder Options - sortKeys: false", async () => {
-      const serializer = Schema.makeEncoderXml(
+      const serializer = Schema.toEncoderXml(
         Schema.toSerializerStringTree(Schema.Struct({
           z: Schema.Number,
           a: Schema.Number,
@@ -2539,7 +2539,7 @@ line2</root>`
       const obj: any = { name: "test" }
       obj.self = obj
 
-      const serializer = Schema.makeEncoderXml(Schema.toSerializerStringTree(Schema.Any))
+      const serializer = Schema.toEncoderXml(Schema.toSerializerStringTree(Schema.Any))
       try {
         await Effect.runPromise(serializer(obj))
         throw new Error("Expected error")

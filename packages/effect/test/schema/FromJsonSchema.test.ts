@@ -8,11 +8,11 @@ function assertRoundtrip(input: {
   readonly source?: Schema.JsonSchema.Target | undefined
 }) {
   const source = input.source ?? "draft-07"
-  const document = Schema.makeJsonSchema(input.schema, { target: source })
+  const document = Schema.toJsonSchema(input.schema, { target: source })
   const output = FromJsonSchema.generate(document.schema, { source })
   const fn = new Function("Schema", `return ${output.code}`)
   const generated = fn(Schema)
-  const codedocument = Schema.makeJsonSchema(generated, { target: source })
+  const codedocument = Schema.toJsonSchema(generated, { target: source })
   deepStrictEqual(codedocument, document)
   deepStrictEqual(FromJsonSchema.generate(codedocument.schema, { source }), output)
 }
@@ -3102,7 +3102,7 @@ describe("FromJsonSchema", () => {
       }).annotate({ identifier: "Operation" })
 
       {
-        const document = Schema.makeJsonSchema(Operation, { target: "draft-07" })
+        const document = Schema.toJsonSchema(Operation, { target: "draft-07" })
         strictEqual(
           generate(document.definitions, [document.schema]),
           `// Definitions
@@ -3117,7 +3117,7 @@ const schema1 = Operation;`
         )
       }
       {
-        const document = Schema.makeJsonSchema(Expression, { target: "draft-07" })
+        const document = Schema.toJsonSchema(Expression, { target: "draft-07" })
         strictEqual(
           generate(document.definitions, [document.schema]),
           `// Definitions
@@ -3141,7 +3141,7 @@ const schema1 = Expression;`
           }).annotate({ identifier: "B" })
         }).annotate({ identifier: "A" })
       })
-      const document = Schema.makeJsonSchema(schema, { target: "draft-07" })
+      const document = Schema.toJsonSchema(schema, { target: "draft-07" })
       strictEqual(
         generate(document.definitions, [document.schema]),
         `// Definitions

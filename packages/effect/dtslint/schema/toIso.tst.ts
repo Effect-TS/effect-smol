@@ -8,24 +8,24 @@ class Value extends Schema.Class<Value, { readonly brand: unique symbol }>("Valu
   a: Schema.ValidDate
 }) {}
 
-describe("makeIso", () => {
+describe("toIso", () => {
   it("Class", () => {
     const schema = Value
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<Optic.Iso<Value, { readonly a: Date }>>()
   })
 
   it("typeCodec(Class)", () => {
     const schema = Schema.typeCodec(Value)
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<Optic.Iso<Value, { readonly a: Date }>>()
   })
 
   it("encodedCodec(Class)", () => {
     const schema = Schema.encodedCodec(Value)
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<Optic.Iso<{ readonly a: Date }, { readonly a: Date }>>()
   })
@@ -33,7 +33,7 @@ describe("makeIso", () => {
   describe("brand", () => {
     it("Number & positive", () => {
       const schema = Schema.Number.check(Schema.isGreaterThan(0)).pipe(Schema.brand<"positive">())
-      const optic = Schema.makeIso(schema)
+      const optic = Schema.toIso(schema)
 
       expect(optic).type.toBe<Optic.Iso<number & Brand.Brand<"positive">, number & Brand.Brand<"positive">>>()
     })
@@ -41,7 +41,7 @@ describe("makeIso", () => {
 
   it("Tuple", () => {
     const schema = Schema.Tuple([Value, Schema.optionalKey(Value)])
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<
       Optic.Iso<
@@ -53,14 +53,14 @@ describe("makeIso", () => {
 
   it("Array", () => {
     const schema = Schema.Array(Value)
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<Optic.Iso<ReadonlyArray<Value>, ReadonlyArray<{ readonly a: Date }>>>()
   })
 
   it("NonEmptyArray", () => {
     const schema = Schema.NonEmptyArray(Value)
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBeAssignableTo<
       Optic.Iso<
@@ -85,7 +85,7 @@ describe("makeIso", () => {
 
   it("TupleWithRest", () => {
     const schema = Schema.TupleWithRest(Schema.Tuple([Value]), [Value, Value])
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBeAssignableTo<
       Optic.Iso<
@@ -115,7 +115,7 @@ describe("makeIso", () => {
       c: Schema.optionalKey(Value),
       d: Schema.mutableKey(Schema.optionalKey(Value))
     })
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<
       Optic.Iso<{
@@ -134,7 +134,7 @@ describe("makeIso", () => {
 
   it("Record", () => {
     const schema = Schema.Record(Schema.String, Value)
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<
       Optic.Iso<{ readonly [x: string]: Value }, { readonly [x: string]: { readonly a: Date } }>
@@ -146,7 +146,7 @@ describe("makeIso", () => {
       Schema.Struct({ a: Value }),
       [Schema.Record(Schema.String, Value)]
     )
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<
       Optic.Iso<
@@ -158,7 +158,7 @@ describe("makeIso", () => {
 
   it("Union", () => {
     const schema = Schema.Union([Schema.String, Value])
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<Optic.Iso<string | Value, string | { readonly a: Date }>>()
   })
@@ -176,7 +176,7 @@ describe("makeIso", () => {
       a: Value,
       as: Schema.Array(Schema.suspend((): Schema.Optic<A, AIso> => schema))
     })
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<
       Optic.Iso<{
@@ -193,14 +193,14 @@ describe("makeIso", () => {
 
   it("flip(schema)", () => {
     const schema = Schema.flip(Value)
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<Optic.Iso<{ readonly a: Date }, { readonly a: Date }>>()
   })
 
   it("flip(flip(schema))", () => {
     const schema = Schema.flip(Schema.flip(Value))
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<Optic.Iso<Value, { readonly a: Date }>>()
   })
@@ -208,14 +208,14 @@ describe("makeIso", () => {
   it("Opaque", () => {
     class Value extends Schema.Opaque<Value>()(Schema.Struct({ a: Schema.Date })) {}
     const schema = Value
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<Optic.Iso<Value, { readonly a: Date }>>()
   })
 
   it("Option", () => {
     const schema = Schema.Option(Value)
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<
       Optic.Iso<
@@ -234,7 +234,7 @@ describe("makeIso", () => {
 
   it("CauseFailure", () => {
     const schema = Schema.CauseFailure(Value, Value)
-    const optic = Schema.makeIso(schema)
+    const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<
       Optic.Iso<
@@ -260,7 +260,7 @@ describe("makeIso", () => {
 
 it("Cause", () => {
   const schema = Schema.Cause(Value, Value)
-  const optic = Schema.makeIso(schema)
+  const optic = Schema.toIso(schema)
 
   expect(optic).type.toBe<
     Optic.Iso<Cause.Cause<Value>, ReadonlyArray<Schema.CauseFailureIso<typeof Value, typeof Value>>>
@@ -269,14 +269,14 @@ it("Cause", () => {
 
 it("Error", () => {
   const schema = Schema.Error
-  const optic = Schema.makeIso(schema)
+  const optic = Schema.toIso(schema)
 
   expect(optic).type.toBe<Optic.Iso<Error, Error>>()
 })
 
 it("Exit", () => {
   const schema = Schema.Exit(Value, Schema.Error, Schema.Defect)
-  const optic = Schema.makeIso(schema)
+  const optic = Schema.toIso(schema)
 
   expect(optic).type.toBe<
     Optic.Iso<Exit.Exit<Value, Error>, Schema.ExitIso<typeof Value, Schema.Error, Schema.Defect>>
@@ -285,7 +285,7 @@ it("Exit", () => {
 
 it("ReadonlyMap", () => {
   const schema = Schema.ReadonlyMap(Schema.String, Value)
-  const optic = Schema.makeIso(schema)
+  const optic = Schema.toIso(schema)
 
   expect(optic).type.toBe<
     Optic.Iso<ReadonlyMap<string, Value>, ReadonlyArray<readonly [string, { readonly a: Date }]>>
@@ -302,7 +302,7 @@ it("getNativeClassSchema", () => {
     }
   }
   const schema = Util.getNativeClassSchema(Err, { encoding: Props })
-  const optic = Schema.makeIso(schema)
+  const optic = Schema.toIso(schema)
 
   expect(optic).type.toBe<
     Optic.Iso<Err, { readonly message: string }>
