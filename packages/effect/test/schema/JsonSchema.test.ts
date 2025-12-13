@@ -3900,21 +3900,19 @@ describe("JsonSchema generation", () => {
     describe("topLevelReferenceStrategy", () => {
       describe(`"skip"`, () => {
         it("String", () => {
-          const definitions = {}
           assertDraft07(
             Schema.String.annotate({ identifier: "ID" }),
             {
               schema: {
                 "type": "string"
-              }
+              },
+              definitions: {}
             },
             {
               target: "draft-07",
-              referenceStrategy: "skip",
-              definitions
+              referenceStrategy: "skip"
             }
           )
-          deepStrictEqual(definitions, {})
         })
 
         it("nested identifiers", () => {

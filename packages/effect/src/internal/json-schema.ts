@@ -11,7 +11,7 @@ export function make<S extends Schema.Top>(
   options: Schema.ToJsonSchemaOptions
 ): Schema.JsonSchema.Document {
   const target = options.target
-  const definitions = options.definitions ?? {}
+  const definitions = {}
   const additionalProperties = options.additionalProperties ?? false
   const referenceStrategy = options.referenceStrategy ?? "keep"
   const generateDescriptions = options.generateDescriptions ?? false

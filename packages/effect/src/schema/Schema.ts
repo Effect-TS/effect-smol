@@ -7490,12 +7490,6 @@ export interface ToJsonSchemaOptions {
    */
   readonly target: JsonSchema.Target
   /**
-   * A record of definitions which are included in the schema.
-   *
-   * Defaults to the empty object `{}`.
-   */
-  readonly definitions?: Record<string, JsonSchema> | undefined
-  /**
    * Controls how additional properties are handled while resolving the JSON
    * schema.
    *
