@@ -5,10 +5,11 @@ import * as Arr from "../collections/Array.ts"
 import type { Formatter } from "../data/Formatter.ts"
 import { format, formatPropertyKey } from "../data/Formatter.ts"
 import * as Option from "../data/Option.ts"
+import * as Rec from "../data/Record.ts"
 import * as RegEx from "../RegExp.ts"
-import * as AnnotationsModule from "./Annotations.ts"
+import * as Annotations from "./Annotations.ts"
 import * as AST from "./AST.ts"
-import type * as Getter from "./Getter.ts"
+import * as Getter from "./Getter.ts"
 import * as Schema from "./Schema.ts"
 
 // -----------------------------------------------------------------------------
@@ -20,7 +21,7 @@ import * as Schema from "./Schema.ts"
  */
 export type ExternalNode = {
   readonly _tag: "External"
-  readonly annotations?: AnnotationsModule.Annotations | undefined
+  readonly annotations?: Annotations.Annotations | undefined
   readonly typeParameters: ReadonlyArray<StandardAST>
   readonly checks: ReadonlyArray<Check<DateCheckMeta>>
 }
@@ -30,7 +31,7 @@ export type ExternalNode = {
  */
 export type ReferenceNode = {
   readonly _tag: "Reference"
-  readonly annotations?: AnnotationsModule.Annotations | undefined
+  readonly annotations?: Annotations.Annotations | undefined
   readonly $ref: string
 }
 
@@ -42,92 +43,92 @@ export type StandardAST =
   | ReferenceNode
   | {
     readonly _tag: "Null"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
   }
   | {
     readonly _tag: "Undefined"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
   }
   | {
     readonly _tag: "Void"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
   }
   | {
     readonly _tag: "Never"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
   }
   | {
     readonly _tag: "Unknown"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
   }
   | {
     readonly _tag: "Any"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
   }
   | {
     readonly _tag: "String"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
     readonly checks: ReadonlyArray<Check<StringCheckMeta>>
     readonly contentMediaType?: string | undefined
     readonly contentSchema?: StandardAST | undefined
   }
   | {
     readonly _tag: "Number"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
     readonly checks: ReadonlyArray<Check<NumberCheckMeta>>
   }
   | {
     readonly _tag: "Boolean"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
   }
   | {
     readonly _tag: "BigInt"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
     readonly checks: ReadonlyArray<Check<BigIntCheckMeta>>
   }
   | {
     readonly _tag: "Symbol"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
   }
   | {
     readonly _tag: "Literal"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
     readonly literal: string | number | boolean | bigint
   }
   | {
     readonly _tag: "UniqueSymbol"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
     readonly symbol: symbol
   }
   | {
     readonly _tag: "ObjectKeyword"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
   }
   | {
     readonly _tag: "Enum"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
     readonly enums: ReadonlyArray<readonly [string, string | number]>
   }
   | {
     readonly _tag: "TemplateLiteral"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
     readonly parts: ReadonlyArray<StandardAST>
   }
   | {
     readonly _tag: "Arrays"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
     readonly elements: ReadonlyArray<StandardAST>
     readonly rest: ReadonlyArray<StandardAST>
   }
   | {
     readonly _tag: "Objects"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
     readonly propertySignatures: ReadonlyArray<PropertySignature>
     readonly indexSignatures: ReadonlyArray<IndexSignature>
   }
   | {
     readonly _tag: "Union"
-    readonly annotations?: AnnotationsModule.Annotations | undefined
+    readonly annotations?: Annotations.Annotations | undefined
     readonly types: ReadonlyArray<StandardAST>
     readonly mode: "anyOf" | "oneOf"
   }
@@ -140,7 +141,7 @@ export type PropertySignature = {
   readonly type: StandardAST
   readonly isOptional: boolean
   readonly isMutable: boolean
-  readonly annotations?: AnnotationsModule.Annotations | undefined
+  readonly annotations?: Annotations.Annotations | undefined
 }
 
 /**
@@ -161,7 +162,7 @@ export type Check<T> = Filter<T> | FilterGroup<T>
  */
 export type Filter<M> = {
   readonly _tag: "Filter"
-  readonly annotations?: AnnotationsModule.Annotations | undefined
+  readonly annotations?: Annotations.Annotations | undefined
   readonly meta: M
 }
 
@@ -171,14 +172,14 @@ export type Filter<M> = {
 export type FilterGroup<M> = {
   readonly _tag: "FilterGroup"
   readonly meta: M | undefined
-  readonly annotations?: AnnotationsModule.Annotations | undefined
+  readonly annotations?: Annotations.Annotations | undefined
   readonly checks: ReadonlyArray<Check<M>>
 }
 
 /**
  * @since 4.0.0
  */
-export type StringCheckMeta = AnnotationsModule.BuiltInMetaRegistry[
+export type StringCheckMeta = Annotations.BuiltInMetaRegistry[
   | "isNumberString"
   | "isBigIntString"
   | "isSymbolString"
@@ -204,39 +205,39 @@ export type StringCheckMeta = AnnotationsModule.BuiltInMetaRegistry[
  * @since 4.0.0
  */
 export type NumberCheckMeta =
-  | AnnotationsModule.BuiltInMetaRegistry[
+  | Annotations.BuiltInMetaRegistry[
     | "isInt"
     | "isInt32"
     | "isUint32"
     | "isFinite"
     | "isMultipleOf"
   ]
-  | AnnotationsModule.isGreaterThanOrEqualTo<number>
-  | AnnotationsModule.isLessThanOrEqualTo<number>
-  | AnnotationsModule.isGreaterThan<number>
-  | AnnotationsModule.isLessThan<number>
-  | AnnotationsModule.isBetween<number>
+  | Annotations.isGreaterThanOrEqualTo<number>
+  | Annotations.isLessThanOrEqualTo<number>
+  | Annotations.isGreaterThan<number>
+  | Annotations.isLessThan<number>
+  | Annotations.isBetween<number>
 
 /**
  * @since 4.0.0
  */
 export type BigIntCheckMeta =
-  | AnnotationsModule.isGreaterThanOrEqualTo<bigint>
-  | AnnotationsModule.isLessThanOrEqualTo<bigint>
-  | AnnotationsModule.isGreaterThan<bigint>
-  | AnnotationsModule.isLessThan<bigint>
-  | AnnotationsModule.isBetween<bigint>
+  | Annotations.isGreaterThanOrEqualTo<bigint>
+  | Annotations.isLessThanOrEqualTo<bigint>
+  | Annotations.isGreaterThan<bigint>
+  | Annotations.isLessThan<bigint>
+  | Annotations.isBetween<bigint>
 
 /**
  * @since 4.0.0
  */
 export type DateCheckMeta =
-  | AnnotationsModule.BuiltInMetaRegistry["isValidDate"]
-  | AnnotationsModule.isGreaterThanOrEqualTo<number>
-  | AnnotationsModule.isLessThanOrEqualTo<number>
-  | AnnotationsModule.isGreaterThan<number>
-  | AnnotationsModule.isLessThan<number>
-  | AnnotationsModule.isBetween<number>
+  | Annotations.BuiltInMetaRegistry["isValidDate"]
+  | Annotations.isGreaterThanOrEqualTo<number>
+  | Annotations.isLessThanOrEqualTo<number>
+  | Annotations.isGreaterThan<number>
+  | Annotations.isLessThan<number>
+  | Annotations.isBetween<number>
 
 // -----------------------------------------------------------------------------
 // schemas
@@ -262,17 +263,46 @@ export const PrimitiveTree = Schema.Union([
   Schema.Record(Schema.String, PrimitiveTree$)
 ])
 
+const toJsonBlacklist: Set<string> = new Set([
+  "arbitrary",
+  "arbitraryConstraint",
+  "jsonSchema",
+  "jsonSchemaConstraint",
+  "equivalence",
+  "formatter",
+  "serializerJson",
+  "serializer",
+  "expected",
+  "meta",
+  "~structural",
+  "contentMediaType",
+  "contentSchema"
+])
+
 /**
  * @since 4.0.0
  */
-export const Annotations = Schema.Record(Schema.String, Schema.Unknown)
+export const UnknownAnnotations = Schema.Record(Schema.String, Schema.Unknown).pipe(
+  Schema.encodeTo(Schema.Record(Schema.String, PrimitiveTree), {
+    decode: Getter.passthrough(),
+    encode: Getter.transformOptional(Option.flatMap((r) => {
+      const out: Record<string, unknown> = {}
+      for (const [k, v] of Object.entries(r)) {
+        if (!toJsonBlacklist.has(k)) {
+          out[k] = v
+        }
+      }
+      return Rec.isRecordEmpty(out) ? Option.none() : Option.some(out as any)
+    }))
+  })
+)
 
 /**
  * @since 4.0.0
  */
 export const Null = Schema.Struct({
   _tag: Schema.tag("Null"),
-  annotations: Schema.optional(Annotations)
+  annotations: Schema.optionalKey(UnknownAnnotations)
 }).annotate({ identifier: "Null" })
 
 /**
@@ -280,7 +310,7 @@ export const Null = Schema.Struct({
  */
 export const Undefined = Schema.Struct({
   _tag: Schema.tag("Undefined"),
-  annotations: Schema.optional(Annotations)
+  annotations: Schema.optionalKey(UnknownAnnotations)
 }).annotate({ identifier: "Undefined" })
 
 /**
@@ -288,7 +318,7 @@ export const Undefined = Schema.Struct({
  */
 export const Void = Schema.Struct({
   _tag: Schema.tag("Void"),
-  annotations: Schema.optional(Annotations)
+  annotations: Schema.optionalKey(UnknownAnnotations)
 }).annotate({ identifier: "Void" })
 
 /**
@@ -296,7 +326,7 @@ export const Void = Schema.Struct({
  */
 export const Never = Schema.Struct({
   _tag: Schema.tag("Never"),
-  annotations: Schema.optional(Annotations)
+  annotations: Schema.optionalKey(UnknownAnnotations)
 }).annotate({ identifier: "Never" })
 
 /**
@@ -304,7 +334,7 @@ export const Never = Schema.Struct({
  */
 export const Unknown = Schema.Struct({
   _tag: Schema.tag("Unknown"),
-  annotations: Schema.optional(Annotations)
+  annotations: Schema.optionalKey(UnknownAnnotations)
 }).annotate({ identifier: "Unknown" })
 
 /**
@@ -312,7 +342,7 @@ export const Unknown = Schema.Struct({
  */
 export const Any = Schema.Struct({
   _tag: Schema.tag("Any"),
-  annotations: Schema.optional(Annotations)
+  annotations: Schema.optionalKey(UnknownAnnotations)
 }).annotate({ identifier: "Any" })
 
 const IsNumberString = Schema.Struct({
@@ -433,12 +463,12 @@ function makeCheck<T>(schema: Schema.Codec<T>) {
   const Check = Schema.Union([
     Schema.Struct({
       _tag: Schema.tag("Filter"),
-      annotations: Schema.optional(Annotations),
+      annotations: Schema.optionalKey(UnknownAnnotations),
       meta: schema
     }),
     Schema.Struct({
       _tag: Schema.tag("FilterGroup"),
-      annotations: Schema.optional(Annotations),
+      annotations: Schema.optionalKey(UnknownAnnotations),
       meta: Schema.UndefinedOr(schema),
       checks: Schema.TupleWithRest(Schema.Tuple([Check$ref, Check$ref]), [Check$ref])
     })
@@ -451,7 +481,7 @@ function makeCheck<T>(schema: Schema.Codec<T>) {
  */
 export const String = Schema.Struct({
   _tag: Schema.tag("String"),
-  annotations: Schema.optional(Annotations),
+  annotations: Schema.optionalKey(UnknownAnnotations),
   checks: Schema.Array(makeCheck(StringMeta)),
   contentMediaType: Schema.optional(Schema.String),
   contentSchema: Schema.optional(StandardAST$ref)
@@ -506,6 +536,14 @@ function makeIsLessThan<S extends Schema.Top>(exclusiveMaximum: S) {
   })
 }
 
+function makeIsBetween<S extends Schema.Top>(minimum: S, maximum: S) {
+  return Schema.Struct({
+    _tag: Schema.tag("isBetween"),
+    minimum,
+    maximum
+  })
+}
+
 const NumberMeta = Schema.Union([
   IsInt,
   IsMultipleOf,
@@ -515,7 +553,8 @@ const NumberMeta = Schema.Union([
   makeIsGreaterThanOrEqualTo(Schema.Number),
   makeIsLessThanOrEqualTo(Schema.Number),
   makeIsGreaterThan(Schema.Number),
-  makeIsLessThan(Schema.Number)
+  makeIsLessThan(Schema.Number),
+  makeIsBetween(Schema.Number, Schema.Number)
 ])
 
 /**
@@ -523,7 +562,7 @@ const NumberMeta = Schema.Union([
  */
 export const Number = Schema.Struct({
   _tag: Schema.tag("Number"),
-  annotations: Schema.optional(Annotations),
+  annotations: Schema.optionalKey(UnknownAnnotations),
   checks: Schema.Array(makeCheck(NumberMeta))
 }).annotate({ identifier: "Number" })
 
@@ -532,14 +571,15 @@ export const Number = Schema.Struct({
  */
 export const Boolean = Schema.Struct({
   _tag: Schema.tag("Boolean"),
-  annotations: Schema.optional(Annotations)
+  annotations: Schema.optionalKey(UnknownAnnotations)
 }).annotate({ identifier: "Boolean" })
 
 const BigIntMeta = Schema.Union([
   makeIsGreaterThanOrEqualTo(Schema.BigInt),
   makeIsLessThanOrEqualTo(Schema.BigInt),
   makeIsGreaterThan(Schema.BigInt),
-  makeIsLessThan(Schema.BigInt)
+  makeIsLessThan(Schema.BigInt),
+  makeIsBetween(Schema.BigInt, Schema.BigInt)
 ])
 
 /**
@@ -547,7 +587,7 @@ const BigIntMeta = Schema.Union([
  */
 export const BigInt = Schema.Struct({
   _tag: Schema.tag("BigInt"),
-  annotations: Schema.optional(Annotations),
+  annotations: Schema.optionalKey(UnknownAnnotations),
   checks: Schema.Array(makeCheck(BigIntMeta))
 }).annotate({ identifier: "BigInt" })
 
@@ -556,7 +596,7 @@ export const BigInt = Schema.Struct({
  */
 export const Symbol = Schema.Struct({
   _tag: Schema.tag("Symbol"),
-  annotations: Schema.optional(Annotations)
+  annotations: Schema.optionalKey(UnknownAnnotations)
 }).annotate({ identifier: "Symbol" })
 
 /**
@@ -574,7 +614,7 @@ export const LiteralValue = Schema.Union([
  */
 export const Literal = Schema.Struct({
   _tag: Schema.tag("Literal"),
-  annotations: Schema.optional(Annotations),
+  annotations: Schema.optionalKey(UnknownAnnotations),
   literal: LiteralValue
 }).annotate({ identifier: "Literal" })
 
@@ -583,7 +623,7 @@ export const Literal = Schema.Struct({
  */
 export const UniqueSymbol = Schema.Struct({
   _tag: Schema.tag("UniqueSymbol"),
-  annotations: Schema.optional(Annotations),
+  annotations: Schema.optionalKey(UnknownAnnotations),
   symbol: Schema.Symbol
 }).annotate({ identifier: "UniqueSymbol" })
 
@@ -592,7 +632,7 @@ export const UniqueSymbol = Schema.Struct({
  */
 export const ObjectKeyword = Schema.Struct({
   _tag: Schema.tag("ObjectKeyword"),
-  annotations: Schema.optional(Annotations)
+  annotations: Schema.optionalKey(UnknownAnnotations)
 }).annotate({ identifier: "ObjectKeyword" })
 
 /**
@@ -600,7 +640,7 @@ export const ObjectKeyword = Schema.Struct({
  */
 export const Enum = Schema.Struct({
   _tag: Schema.tag("Enum"),
-  annotations: Schema.optional(Annotations),
+  annotations: Schema.optionalKey(UnknownAnnotations),
   enums: Schema.Array(
     Schema.Tuple([Schema.String, Schema.Union([Schema.String, Schema.Number])])
   )
@@ -611,7 +651,7 @@ export const Enum = Schema.Struct({
  */
 export const TemplateLiteral = Schema.Struct({
   _tag: Schema.tag("TemplateLiteral"),
-  annotations: Schema.optional(Annotations),
+  annotations: Schema.optionalKey(UnknownAnnotations),
   parts: Schema.Array(StandardAST$ref)
 }).annotate({ identifier: "TemplateLiteral" })
 
@@ -620,7 +660,7 @@ export const TemplateLiteral = Schema.Struct({
  */
 export const Arrays = Schema.Struct({
   _tag: Schema.tag("Arrays"),
-  annotations: Schema.optional(Annotations),
+  annotations: Schema.optionalKey(UnknownAnnotations),
   elements: Schema.Array(StandardAST$ref),
   rest: Schema.Array(StandardAST$ref)
 }).annotate({ identifier: "Arrays" })
@@ -629,7 +669,7 @@ export const Arrays = Schema.Struct({
  * @since 4.0.0
  */
 export const PropertySignature = Schema.Struct({
-  annotations: Schema.optional(Annotations),
+  annotations: Schema.optionalKey(UnknownAnnotations),
   name: Schema.PropertyKey,
   type: StandardAST$ref,
   isOptional: Schema.Boolean,
@@ -649,7 +689,7 @@ export const IndexSignature = Schema.Struct({
  */
 export const Objects = Schema.Struct({
   _tag: Schema.tag("Objects"),
-  annotations: Schema.optional(Annotations),
+  annotations: Schema.optionalKey(UnknownAnnotations),
   propertySignatures: Schema.Array(PropertySignature),
   indexSignatures: Schema.Array(IndexSignature)
 }).annotate({ identifier: "Objects" })
@@ -659,10 +699,43 @@ export const Objects = Schema.Struct({
  */
 export const Union = Schema.Struct({
   _tag: Schema.tag("Union"),
-  annotations: Schema.optional(Annotations),
+  annotations: Schema.optionalKey(UnknownAnnotations),
   types: Schema.Array(StandardAST$ref),
   mode: Schema.Literals(["anyOf", "oneOf"])
 }).annotate({ identifier: "Union" })
+
+/**
+ * @since 4.0.0
+ */
+export const Reference = Schema.Struct({
+  _tag: Schema.tag("Reference"),
+  annotations: Schema.optionalKey(UnknownAnnotations),
+  $ref: Schema.String
+}).annotate({ identifier: "Reference" })
+
+/**
+ * @since 4.0.0
+ */
+const DateMeta = Schema.Union([
+  Schema.Struct({
+    _tag: Schema.tag("isValidDate")
+  }),
+  makeIsGreaterThanOrEqualTo(Schema.Number),
+  makeIsLessThanOrEqualTo(Schema.Number),
+  makeIsGreaterThan(Schema.Number),
+  makeIsLessThan(Schema.Number),
+  makeIsBetween(Schema.Number, Schema.Number)
+])
+
+/**
+ * @since 4.0.0
+ */
+export const External = Schema.Struct({
+  _tag: Schema.tag("External"),
+  annotations: Schema.optionalKey(UnknownAnnotations),
+  typeParameters: Schema.Array(StandardAST$ref),
+  checks: Schema.Array(makeCheck(DateMeta))
+}).annotate({ identifier: "External" })
 
 /**
  * @since 4.0.0
@@ -686,7 +759,9 @@ export const StandardAST = Schema.Union([
   TemplateLiteral,
   Arrays,
   Objects,
-  Union
+  Union,
+  Reference,
+  External
 ]).annotate({ identifier: "AST" })
 
 // -----------------------------------------------------------------------------
@@ -696,23 +771,49 @@ export const StandardAST = Schema.Union([
 /**
  * @since 4.0.0
  */
-export function fromAST(ast: AST.AST): StandardAST {
+export type Document = {
+  readonly ast: StandardAST
+  readonly definitions: Record<string, StandardAST>
+}
+
+/**
+ * @since 4.0.0
+ */
+export function fromAST(ast: AST.AST): Document {
   const visited = new Set<AST.AST>()
+  const definitions: Record<string, StandardAST> = {}
 
-  return recur(ast)
+  return {
+    ast: recur(ast),
+    definitions
+  }
 
-  function recur(ast: AST.AST): StandardAST {
+  function recur(ast: AST.AST, ignoreIdentifier = false): StandardAST {
+    if (!ignoreIdentifier) {
+      const $ref = Annotations.resolveIdentifier(ast)
+      if ($ref !== undefined) {
+        definitions[$ref] = recur(ast, true)
+        return { _tag: "Reference", $ref }
+      }
+    }
+    const out: StandardAST = on(ast)
+    if (ast.annotations) {
+      return { ...out, annotations: ast.annotations }
+    }
+    return out
+  }
+
+  function on(ast: AST.AST): StandardAST {
     visited.add(ast)
     switch (ast._tag) {
       case "Suspend": {
         const thunk = ast.thunk()
         if (visited.has(thunk)) {
-          const thunkReference = AnnotationsModule.resolveIdentifier(thunk)
-          if (thunkReference !== undefined) {
+          const $ref = Annotations.resolveIdentifier(thunk)
+          if ($ref !== undefined) {
             return {
               _tag: "Reference",
-              annotations: undefined,
-              $ref: thunkReference
+              $ref
             }
           } else {
             throw new Error("Suspended schema without identifier detected")
@@ -724,7 +825,6 @@ export function fromAST(ast: AST.AST): StandardAST {
       case "Declaration":
         return {
           _tag: "External",
-          annotations: fromASTAnnotations(ast.annotations),
           typeParameters: ast.typeParameters.map((tp) => recur(tp)),
           checks: fromASTChecks(ast.checks)
         }
@@ -736,56 +836,54 @@ export function fromAST(ast: AST.AST): StandardAST {
       case "Any":
       case "Boolean":
       case "Symbol":
-        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations) }
+        return { _tag: ast._tag }
       case "String": {
         const contentMediaType = ast.annotations?.contentMediaType
         const contentSchema = ast.annotations?.contentSchema
         if (typeof contentMediaType === "string" && AST.isAST(contentSchema)) {
           return {
             _tag: ast._tag,
-            annotations: undefined,
             checks: [],
             contentMediaType,
             contentSchema: recur(contentSchema)
           }
         }
-        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), checks: fromASTChecks(ast.checks) }
+        return { _tag: ast._tag, checks: fromASTChecks(ast.checks) }
       }
       case "Number":
       case "BigInt":
-        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), checks: fromASTChecks(ast.checks) }
+        return { _tag: ast._tag, checks: fromASTChecks(ast.checks) }
       case "Literal":
-        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), literal: ast.literal }
+        return { _tag: ast._tag, literal: ast.literal }
       case "UniqueSymbol":
-        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), symbol: ast.symbol }
+        return { _tag: ast._tag, symbol: ast.symbol }
       case "ObjectKeyword":
-        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations) }
+        return { _tag: ast._tag }
       case "Enum":
-        return { _tag: ast._tag, annotations: fromASTAnnotations(ast.annotations), enums: ast.enums }
+        return { _tag: ast._tag, enums: ast.enums }
       case "TemplateLiteral":
-        return {
-          _tag: ast._tag,
-          annotations: fromASTAnnotations(ast.annotations),
-          parts: ast.parts.map((p) => recur(p))
-        }
+        return { _tag: ast._tag, parts: ast.parts.map((p) => recur(p)) }
       case "Arrays":
         return {
           _tag: ast._tag,
-          annotations: fromASTAnnotations(ast.annotations),
           elements: ast.elements.map((e) => recur(e)),
           rest: ast.rest.map((r) => recur(r))
         }
       case "Objects":
         return {
           _tag: ast._tag,
-          annotations: fromASTAnnotations(ast.annotations),
-          propertySignatures: ast.propertySignatures.map((ps) => ({
-            annotations: fromASTAnnotations(ps.type.context?.annotations),
-            name: ps.name,
-            type: recur(ps.type),
-            isOptional: AST.isOptional(ps.type),
-            isMutable: AST.isMutable(ps.type)
-          })),
+          propertySignatures: ast.propertySignatures.map((ps) => {
+            const out: PropertySignature = {
+              name: ps.name,
+              type: recur(ps.type),
+              isOptional: AST.isOptional(ps.type),
+              isMutable: AST.isMutable(ps.type)
+            }
+            if (ps.type.context?.annotations) {
+              return { ...out, annotations: ps.type.context.annotations }
+            }
+            return out
+          }),
           indexSignatures: ast.indexSignatures.map((is) => ({
             parameter: recur(is.parameter),
             type: recur(is.type)
@@ -794,31 +892,11 @@ export function fromAST(ast: AST.AST): StandardAST {
       case "Union":
         return {
           _tag: ast._tag,
-          annotations: fromASTAnnotations(ast.annotations),
           types: ast.types.map((t) => recur(t)),
           mode: ast.mode
         }
     }
   }
-}
-
-const fromASTAnnotationsBlacklist: Set<string> = new Set([
-  "arbitraryConstraint",
-  "serializerJson",
-  "serializer",
-  "expected",
-  "meta",
-  "~structural"
-])
-
-function fromASTAnnotations(
-  annotations: AnnotationsModule.Annotations | undefined
-): AnnotationsModule.Annotations | undefined {
-  if (!annotations) return undefined
-  const entries = Object.entries(annotations).filter(([key, value]) =>
-    !fromASTAnnotationsBlacklist.has(key) && typeof value !== "function"
-  )
-  return entries.length === 0 ? undefined : Object.fromEntries(entries)
 }
 
 function fromASTChecks(
@@ -830,17 +908,24 @@ function fromASTChecks(
       case "Filter": {
         const meta = c.annotations?.meta
         if (meta) {
-          return { _tag: "Filter", meta, annotations: fromASTAnnotations(c.annotations) }
+          const out: Check<any> = { _tag: "Filter", meta }
+          if (c.annotations) {
+            return { ...out, annotations: c.annotations }
+          }
+          return out
         }
         return undefined
       }
       case "FilterGroup": {
-        return {
+        const out: Check<any> = {
           _tag: "FilterGroup",
           meta: c.annotations?.meta,
-          annotations: fromASTAnnotations(c.annotations),
           checks: fromASTChecks(c.checks)
         }
+        if (c.annotations) {
+          return { ...out, annotations: c.annotations }
+        }
+        return out
       }
     }
   }
@@ -878,11 +963,16 @@ export type Resolver<O> = (ast: ExternalNode | ReferenceNode, recur: (ast: Stand
 /**
  * @since 4.0.0
  */
-export function toCode(ast: StandardAST, options?: {
+export function toCode(document: Document, options?: {
   readonly resolver?: Resolver<string> | undefined
 }): string {
   const resolver = options?.resolver ?? defaultResolver
+  const ast = document.ast
 
+  if (ast._tag === "Reference") {
+    const definition = document.definitions[ast.$ref]
+    if (definition !== undefined) return recur(definition)
+  }
   return recur(ast)
 
   function defaultResolver(): string {
@@ -890,7 +980,7 @@ export function toCode(ast: StandardAST, options?: {
   }
 
   function recur(ast: StandardAST): string {
-    const b = base(ast)
+    const b = on(ast)
     switch (ast._tag) {
       default:
         return b + toCodeAnnotate(ast.annotations)
@@ -904,7 +994,7 @@ export function toCode(ast: StandardAST, options?: {
     }
   }
 
-  function base(ast: StandardAST): string {
+  function on(ast: StandardAST): string {
     switch (ast._tag) {
       case "External":
       case "Reference":
@@ -967,10 +1057,11 @@ export function toCode(ast: StandardAST, options?: {
 }
 
 const toCodeAnnotationsBlacklist: Set<string> = new Set([
+  ...toJsonBlacklist,
   "typeConstructor"
 ])
 
-function toCodeAnnotations(annotations: AnnotationsModule.Annotations | undefined): string {
+function toCodeAnnotations(annotations: Annotations.Annotations | undefined): string {
   if (!annotations) return ""
   const entries: Array<string> = []
   for (const [key, value] of Object.entries(annotations)) {
@@ -984,7 +1075,7 @@ function toCodeAnnotations(annotations: AnnotationsModule.Annotations | undefine
 /**
  * @since 4.0.0
  */
-export function toCodeAnnotate(annotations: AnnotationsModule.Annotations | undefined): string {
+export function toCodeAnnotate(annotations: Annotations.Annotations | undefined): string {
   const s = toCodeAnnotations(annotations)
   if (s === "") return ""
   return `.annotate(${s})`
@@ -994,12 +1085,12 @@ function toCodeIsOptional(isOptional: boolean, code: string): string {
   return isOptional ? `Schema.optionalKey(${code})` : code
 }
 
-function toCodeChecks(checks: ReadonlyArray<Check<AnnotationsModule.BuiltInMeta>>): string {
+function toCodeChecks(checks: ReadonlyArray<Check<Annotations.BuiltInMeta>>): string {
   if (checks.length === 0) return ""
   return `.check(${checks.map((c) => toCodeCheck(c)).join(", ")})`
 }
 
-function toCodeCheck(check: Check<AnnotationsModule.BuiltInMeta>): string {
+function toCodeCheck(check: Check<Annotations.BuiltInMeta>): string {
   switch (check._tag) {
     case "Filter":
       return toCodeFilter(check)
@@ -1011,7 +1102,7 @@ function toCodeCheck(check: Check<AnnotationsModule.BuiltInMeta>): string {
   }
 }
 
-function toCodeFilter(filter: Filter<AnnotationsModule.BuiltInMeta>): string {
+function toCodeFilter(filter: Filter<Annotations.BuiltInMeta>): string {
   const a = toCodeAnnotations(filter.annotations)
   const ca = a === "" ? "" : `, ${a}`
   switch (filter.meta._tag) {
@@ -1245,53 +1336,28 @@ function toSchemaChecks(schema: Schema.Top, ast: StandardAST): Schema.Top {
  *
  * @since 4.0.0
  */
-export function toJsonSchema(ast: StandardAST): Schema.JsonSchema.Document {
-  const definitions: Schema.JsonSchema.Definitions = {}
-  const visited = new Map<StandardAST, string>()
-
+export function toJsonSchema(document: Document): Schema.JsonSchema.Document {
   return {
     source: "draft-2020-12",
-    schema: recur(ast),
-    definitions
+    schema: recur(document.ast),
+    definitions: Rec.map(document.definitions, (d) => recur(d))
   }
 
-  function recur(ast: StandardAST, ignoreIdentifier = false): Schema.JsonSchema {
-    // Handle identifier annotation for definitions
-    if (!ignoreIdentifier) {
-      const identifier = getIdentifier(ast)
-      if (identifier !== undefined) {
-        const existing = visited.get(ast)
-        if (existing !== undefined) {
-          return { $ref: `#/$defs/${escapeJsonPointer(existing)}` }
-        }
-        visited.set(ast, identifier)
-        if (!Object.hasOwn(definitions, identifier)) {
-          // Recur with ignoreIdentifier=true to avoid infinite loop
-          definitions[identifier] = recur(ast, true)
-        }
-        return { $ref: `#/$defs/${escapeJsonPointer(identifier)}` }
-      }
+  function recur(ast: StandardAST): Schema.JsonSchema {
+    let jsonSchema: Schema.JsonSchema = on(ast)
+    jsonSchema = mergeJsonSchemaAnnotations(jsonSchema, ast.annotations)
+    if ((ast._tag === "String" || ast._tag === "Number") && ast.checks.length > 0) {
+      jsonSchema = applyChecks(jsonSchema, ast.checks, ast._tag)
     }
+    return jsonSchema
+  }
 
+  function on(ast: StandardAST): Schema.JsonSchema {
     switch (ast._tag) {
-      case "External": {
+      case "External":
         return {} // TODO
-      }
       case "Reference":
         return { $ref: `#/$defs/${escapeJsonPointer(ast.$ref)}` }
-      default: {
-        let jsonSchema: Schema.JsonSchema = base(ast)
-        jsonSchema = mergeJsonSchemaAnnotations(jsonSchema, ast.annotations)
-        if ((ast._tag === "String" || ast._tag === "Number") && ast.checks.length > 0) {
-          jsonSchema = applyChecks(jsonSchema, ast.checks, ast._tag)
-        }
-        return jsonSchema
-      }
-    }
-  }
-
-  function base(ast: StandardAST): Schema.JsonSchema {
-    switch (ast._tag) {
       case "Null":
         return { type: "null" }
       case "Undefined":
@@ -1418,10 +1484,6 @@ export function toJsonSchema(ast: StandardAST): Schema.JsonSchema.Document {
         const result = ast.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
         return flattenArrayJsonSchema(result)
       }
-      case "Reference":
-      case "External":
-        // These are handled in recur function
-        return {}
     }
   }
 }
@@ -1431,7 +1493,7 @@ function escapeJsonPointer(identifier: string): string {
 }
 
 function getJsonSchemaAnnotations(
-  annotations: AnnotationsModule.Annotations | undefined
+  annotations: Annotations.Annotations | undefined
 ): Schema.JsonSchema | undefined {
   if (annotations) {
     const out: Schema.JsonSchema = {}
@@ -1454,7 +1516,7 @@ function getJsonSchemaAnnotations(
 
 function mergeJsonSchemaAnnotations(
   jsonSchema: Schema.JsonSchema,
-  annotations: AnnotationsModule.Annotations | undefined
+  annotations: Annotations.Annotations | undefined
 ): Schema.JsonSchema {
   const a = getJsonSchemaAnnotations(annotations)
   if (a) {
@@ -1491,10 +1553,6 @@ function flattenArrayJsonSchema(js: Schema.JsonSchema): Schema.JsonSchema {
     }
   }
   return js
-}
-
-function getIdentifier(ast: StandardAST): string | undefined {
-  return typeof ast.annotations?.identifier === "string" ? ast.annotations.identifier : undefined
 }
 
 function applyChecks(
