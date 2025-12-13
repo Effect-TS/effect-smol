@@ -54,6 +54,11 @@ export * as Schema from "./Schema.ts"
 
 /**
  * @since 4.0.0
+ */
+export * as StandardAST from "./StandardAST.ts"
+
+/**
+ * @since 4.0.0
  * @experimental
  */
 export * as StandardSchema from "./StandardSchema.ts"

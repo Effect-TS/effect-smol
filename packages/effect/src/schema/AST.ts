@@ -59,6 +59,14 @@ function makeGuard<T extends AST["_tag"]>(tag: T) {
  * @category Guard
  * @since 4.0.0
  */
+export function isAST(u: unknown): u is AST {
+  return u instanceof Base
+}
+
+/**
+ * @category Guard
+ * @since 4.0.0
+ */
 export const isDeclaration = makeGuard("Declaration")
 
 /**
@@ -301,6 +309,7 @@ export type Checks = readonly [Check<any>, ...Array<Check<any>>]
  * @since 4.0.0
  */
 export abstract class Base {
+  abstract readonly _tag: string
   readonly annotations: Annotations.Annotations | undefined
   readonly checks: Checks | undefined
   readonly encoding: Encoding | undefined
@@ -316,6 +325,9 @@ export abstract class Base {
     this.checks = checks
     this.encoding = encoding
     this.context = context
+  }
+  toString() {
+    return `<${this._tag}>`
   }
 }
 
@@ -2347,6 +2359,11 @@ export function isOptional(ast: AST): boolean {
   return ast.context?.isOptional ?? false
 }
 
+/** @internal */
+export function isMutable(ast: AST): boolean {
+  return ast.context?.isMutable ?? false
+}
+
 /**
  * @since 4.0.0
  */
@@ -2511,12 +2528,14 @@ const templateLiteralPartFromString = serializer((ast) => {
 
 /**
  * any string, including newlines
+ * @internal
  */
-const STRING_PATTERN = "[\\s\\S]*?"
+export const STRING_PATTERN = "[\\s\\S]*?"
 /**
  * floating point or integer, with optional exponent
+ * @internal
  */
-const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
+export const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 
 const isNumberStringRegExp = new globalThis.RegExp(`(?:${NUMBER_PATTERN}|Infinity|-Infinity|NaN)`)
 

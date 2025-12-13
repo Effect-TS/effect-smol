@@ -4268,6 +4268,10 @@ export const isMultipleOf = makeIsMultipleOf({
   zero: 0,
   annotate: (divisor) => ({
     expected: `a value that is a multiple of ${divisor}`,
+    meta: {
+      _tag: "isMultipleOf",
+      divisor
+    },
     jsonSchemaConstraint: () => ({ multipleOf: Math.abs(divisor) })
   })
 })
@@ -5247,6 +5251,7 @@ export function Option<A extends Top>(value: A): Option<A> {
     },
     {
       expected: "Option",
+      typeConstructor: "Option",
       serializer: ([value]) =>
         link<Option_.Option<A["Encoded"]>>()(
           Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
