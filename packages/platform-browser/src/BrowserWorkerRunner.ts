@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Deferred from "effect/Deferred"
@@ -22,7 +22,7 @@ if (typeof self !== "undefined" && "onconnect" in self) {
 }
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category constructors
  */
 export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatform["Service"] => ({
@@ -149,7 +149,7 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
 })
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category layers
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.sync(WorkerRunner.WorkerRunnerPlatform)(() =>
@@ -157,7 +157,7 @@ export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.sync(
 )
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category layers
  */
 export const layerMessagePort = (port: MessagePort | Window): Layer.Layer<WorkerRunner.WorkerRunnerPlatform> =>

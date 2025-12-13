@@ -1,5 +1,5 @@
 /**
- * @since 1.0.0
+ * @since 4.0.0
  */
 import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
@@ -9,7 +9,7 @@ import * as Worker from "effect/unstable/workers/Worker"
 import { WorkerError } from "effect/unstable/workers/WorkerError"
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category layers
  */
 export const layer = (
@@ -21,7 +21,7 @@ export const layer = (
   )
 
 /**
- * @since 1.0.0
+ * @since 4.0.0
  * @category layers
  */
 export const layerPlatform: Layer.Layer<Worker.WorkerPlatform> = Layer.succeed(Worker.WorkerPlatform)(
