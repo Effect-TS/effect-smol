@@ -6,4 +6,4 @@ const schema = Schema.Struct({
   c: Schema.Array(Schema.String)
 })
 
-Schema.makeFormatter(schema)
+Schema.toFormatter(schema)

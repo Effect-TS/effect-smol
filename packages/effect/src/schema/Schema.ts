@@ -7310,61 +7310,51 @@ export function overrideFormatter<S extends Top>(formatter: () => Formatter<S["T
   }
 }
 
-type FormatterOverride<A extends AST.AST> = (ast: A, visit: (ast: AST.AST) => Formatter<any>) => Formatter<any>
-
 /**
  * @category Formatter
  * @since 4.0.0
  */
-export function makeFormatterCompiler(options: {
-  readonly onDeclaration?:
-    | FormatterOverride<AST.Declaration>
+export function toFormatter<T>(schema: Schema<T>, options?: {
+  readonly onBefore?:
+    | ((ast: AST.AST, recur: (ast: AST.AST) => Formatter<any>) => Formatter<any> | undefined)
     | undefined
-  readonly onNull?: FormatterOverride<AST.Null> | undefined
-  readonly onUndefined?: FormatterOverride<AST.Undefined> | undefined
-  readonly onVoid?: FormatterOverride<AST.Void> | undefined
-  readonly onNever?: FormatterOverride<AST.Never> | undefined
-  readonly onUnknown?: FormatterOverride<AST.Unknown> | undefined
-  readonly onAny?: FormatterOverride<AST.Any> | undefined
-  readonly onString?: FormatterOverride<AST.String> | undefined
-  readonly onNumber?: FormatterOverride<AST.Number> | undefined
-  readonly onBoolean?: FormatterOverride<AST.Boolean> | undefined
-  readonly onSymbol?: FormatterOverride<AST.Symbol> | undefined
-  readonly onBigInt?: FormatterOverride<AST.BigInt> | undefined
-  readonly onUniqueSymbol?: FormatterOverride<AST.UniqueSymbol> | undefined
-  readonly onObjectKeyword?: FormatterOverride<AST.ObjectKeyword> | undefined
-  readonly onEnum?: FormatterOverride<AST.Enum> | undefined
-  readonly onLiteral?: FormatterOverride<AST.Literal> | undefined
-  readonly onTemplateLiteral?: FormatterOverride<AST.TemplateLiteral> | undefined
-  readonly onArrays?: FormatterOverride<AST.Arrays> | undefined
-  readonly onObjects?: FormatterOverride<AST.Objects> | undefined
-  readonly onUnion?:
-    | ((
-      ast: AST.Union,
-      visit: (ast: AST.AST) => Formatter<any>,
-      getCandidates: (input: unknown) => ReadonlyArray<AST.AST>
-    ) => Formatter<any>)
-    | undefined
-  readonly onSuspend?: FormatterOverride<AST.Suspend> | undefined
-}): <T>(schema: Schema<T>) => Formatter<T> {
-  const visit = memoize((ast: AST.AST): (t: any) => string => {
+}): Formatter<T> {
+  return recur(schema.ast)
+
+  function recur(ast: AST.AST): Formatter<T> {
     // ---------------------------------------------
     // handle annotation
     // ---------------------------------------------
-    const annotation = Annotations.resolve(ast)?.["formatter"] as
-      | Annotations.Formatter.Override<any, ReadonlyArray<any>>
-      | undefined
-    if (annotation) {
-      return annotation(AST.isDeclaration(ast) ? ast.typeParameters.map(visit) : [])
+    const annotation = Annotations.resolve(ast)?.["formatter"]
+    if (typeof annotation === "function") {
+      return annotation(AST.isDeclaration(ast) ? ast.typeParameters.map(recur) : [])
     }
+    // ---------------------------------------------
+    // handle onBefore
+    // ---------------------------------------------
+    if (options?.onBefore) {
+      const onBefore = options.onBefore(ast, recur)
+      if (onBefore !== undefined) {
+        return onBefore
+      }
+    }
+    // ---------------------------------------------
+    // handle base case
+    // ---------------------------------------------
+    return on(ast)
+  }
+
+  function on(ast: AST.AST): Formatter<any> {
     switch (ast._tag) {
+      default:
+        return format
       case "Never":
-        if (options.onNever) return options.onNever(ast, visit)
-        throw new globalThis.Error("required `formatter` annotation", { cause: ast })
+        return () => "never"
+      case "Void":
+        return () => "void"
       case "Arrays": {
-        if (options.onArrays) return options.onArrays(ast, visit)
-        const elements = ast.elements.map(visit)
-        const rest = ast.rest.map(visit)
+        const elements = ast.elements.map(recur)
+        const rest = ast.rest.map(recur)
         return (t) => {
           const out: Array<string> = []
           let i = 0
@@ -7401,9 +7391,8 @@ export function makeFormatterCompiler(options: {
         }
       }
       case "Objects": {
-        if (options.onObjects) return options.onObjects(ast, visit)
-        const propertySignatures = ast.propertySignatures.map((ps) => visit(ps.type))
-        const indexSignatures = ast.indexSignatures.map((is) => visit(is.type))
+        const propertySignatures = ast.propertySignatures.map((ps) => recur(ps.type))
+        const indexSignatures = ast.indexSignatures.map((is) => recur(is.type))
         if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
           return format
         }
@@ -7441,42 +7430,25 @@ export function makeFormatterCompiler(options: {
       }
       case "Union": {
         const getCandidates = (t: any) => AST.getCandidates(t, ast.types)
-        if (options.onUnion) return options.onUnion(ast, visit, getCandidates)
         return (t) => {
           const candidates = getCandidates(t)
           const refinements = candidates.map(Parser.refinement)
           for (let i = 0; i < candidates.length; i++) {
             const is = refinements[i]
             if (is(t)) {
-              return visit(candidates[i])(t)
+              return recur(candidates[i])(t)
             }
           }
           return format(t)
         }
       }
       case "Suspend": {
-        if (options.onSuspend) return options.onSuspend(ast, visit)
-        const get = AST.memoizeThunk(() => visit(ast.thunk()))
+        const get = AST.memoizeThunk(() => recur(ast.thunk()))
         return (t) => get()(t)
       }
-      case "Void":
-        if (options.onVoid) return options.onVoid(ast, visit)
-        return () => "void"
-      default: {
-        const handler: any = options[`on${ast._tag}`]
-        if (handler) return handler(ast, visit)
-        return format
-      }
     }
-  })
-  return (schema) => visit(schema.ast)
+  }
 }
-
-/**
- * @category Formatter
- * @since 4.0.0
- */
-export const makeFormatter = makeFormatterCompiler({})
 
 // -----------------------------------------------------------------------------
 // Equivalence APIs
