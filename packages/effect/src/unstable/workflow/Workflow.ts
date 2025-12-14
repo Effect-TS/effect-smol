@@ -526,7 +526,7 @@ const AnyOrVoid = Schema.Union([Schema.Any, Schema.Void])
  * @since 4.0.0
  * @category Result
  */
-export const ResultEncoded: Schema.Codec<ResultEncoded<any, any>> = Schema.encodedCodec(
+export const ResultEncoded: Schema.Codec<ResultEncoded<any, any>> = Schema.toEncoded(
   Schema.toCodecJson(
     Result({
       success: AnyOrVoid,

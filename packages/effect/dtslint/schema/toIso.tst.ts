@@ -17,14 +17,14 @@ describe("toIso", () => {
   })
 
   it("typeCodec(Class)", () => {
-    const schema = Schema.typeCodec(Value)
+    const schema = Schema.toType(Value)
     const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<Optic.Iso<Value, { readonly a: Date }>>()
   })
 
   it("encodedCodec(Class)", () => {
-    const schema = Schema.encodedCodec(Value)
+    const schema = Schema.toEncoded(Value)
     const optic = Schema.toIso(schema)
 
     expect(optic).type.toBe<Optic.Iso<{ readonly a: Date }, { readonly a: Date }>>()

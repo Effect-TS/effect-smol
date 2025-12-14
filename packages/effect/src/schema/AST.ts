@@ -631,7 +631,7 @@ export class TemplateLiteral extends Base {
     super(annotations, checks, encoding, context)
     const encodedParts: Array<TemplateLiteralPart> = []
     for (const part of parts) {
-      const encoded = encodedAST(part)
+      const encoded = toEncoded(part)
       if (isTemplateLiteralPart(encoded)) {
         encodedParts.push(encoded)
       } else {
@@ -1104,7 +1104,7 @@ export function getIndexSignatureKeys(
   input: { readonly [x: PropertyKey]: unknown },
   parameter: AST
 ): ReadonlyArray<PropertyKey> {
-  const p = encodedAST(parameter)
+  const p = toEncoded(parameter)
   switch (p._tag) {
     case "TemplateLiteral": {
       const regExp = getTemplateLiteralRegExp(p)
@@ -1629,7 +1629,7 @@ function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
 
   idx = {}
   for (const a of types) {
-    const encoded = encodedAST(a)
+    const encoded = toEncoded(a)
     if (isNever(encoded)) continue
 
     const types = getCandidateTypes(encoded)
@@ -1660,7 +1660,7 @@ function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
 
 function filterLiterals(input: any) {
   return (ast: AST) => {
-    const encoded = encodedAST(ast)
+    const encoded = toEncoded(ast)
     return encoded._tag === "Literal" ?
       encoded.literal === input
       : encoded._tag === "UniqueSymbol" ?
@@ -1782,7 +1782,7 @@ export class Union<A extends AST = AST> extends Base {
   getExpected(getExpected: (ast: AST) => string): string {
     if (this.types.length === 0) return "never"
     const expected = this.types.map((type) => {
-      const encoded = encodedAST(type)
+      const encoded = toEncoded(type)
       switch (encoded._tag) {
         case "Arrays": {
           const literals = encoded.elements.filter(isLiteral)
@@ -2159,7 +2159,7 @@ export function decodingMiddleware(
   ast: AST,
   middleware: Transformation.Middleware<any, any, any, any, any, any>
 ): AST {
-  return appendTransformation(ast, middleware, typeAST(ast))
+  return appendTransformation(ast, middleware, toType(ast))
 }
 
 /** @internal */
@@ -2167,7 +2167,7 @@ export function encodingMiddleware(
   ast: AST,
   middleware: Transformation.Middleware<any, any, any, any, any, any>
 ): AST {
-  return appendTransformation(encodedAST(ast), middleware, ast)
+  return appendTransformation(toEncoded(ast), middleware, ast)
 }
 
 function appendTransformation<A extends AST>(
@@ -2350,19 +2350,19 @@ export function isOptional(ast: AST): boolean {
 /**
  * @since 4.0.0
  */
-export const typeAST = memoize(<A extends AST>(ast: A): A => {
+export const toType = memoize(<A extends AST>(ast: A): A => {
   if (ast.encoding) {
-    return typeAST(replaceEncoding(ast, undefined))
+    return toType(replaceEncoding(ast, undefined))
   }
   const out: any = ast
-  return out.recur?.(typeAST) ?? out
+  return out.recur?.(toType) ?? out
 })
 
 /**
  * @since 4.0.0
  */
-export const encodedAST = memoize((ast: AST): AST => {
-  return typeAST(flip(ast))
+export const toEncoded = memoize((ast: AST): AST => {
+  return toType(flip(ast))
 })
 
 function flipEncoding(ast: AST, encoding: Encoding): AST {

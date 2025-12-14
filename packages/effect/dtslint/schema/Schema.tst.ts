@@ -251,13 +251,13 @@ describe("Schema", () => {
       })
     })
 
-    it("typeCodec", () => {
-      const schema = Schema.typeCodec(Schema.FiniteFromString)
+    it("toType", () => {
+      const schema = Schema.toType(Schema.FiniteFromString)
       expect(schema.makeUnsafe).type.toBe<MakeUnsafe<number, number>>()
     })
 
-    it("encodedCodec", () => {
-      const schema = Schema.encodedCodec(Schema.FiniteFromString)
+    it("toEncoded", () => {
+      const schema = Schema.toEncoded(Schema.FiniteFromString)
       expect(schema.makeUnsafe).type.toBe<MakeUnsafe<string, string>>()
     })
 
@@ -360,15 +360,15 @@ describe("Schema", () => {
 
   describe("typeCodec", () => {
     it("ast type", () => {
-      const schema = Schema.typeCodec(Schema.FiniteFromString)
+      const schema = Schema.toType(Schema.FiniteFromString)
       expect(schema.ast).type.toBe<AST.Number>()
     })
 
     it("revealCodec + annotate", () => {
-      const schema = Schema.typeCodec(Schema.FiniteFromString)
+      const schema = Schema.toType(Schema.FiniteFromString)
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<number, number, never, never>>()
-      expect(schema).type.toBe<Schema.typeCodec<Schema.FiniteFromString>>()
-      expect(schema.annotate({})).type.toBe<Schema.typeCodec<Schema.FiniteFromString>>()
+      expect(schema).type.toBe<Schema.toType<Schema.FiniteFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.toType<Schema.FiniteFromString>>()
     })
   })
 
@@ -379,10 +379,10 @@ describe("Schema", () => {
     })
 
     it("revealCodec + annotate", () => {
-      const schema = Schema.encodedCodec(Schema.FiniteFromString)
+      const schema = Schema.toEncoded(Schema.FiniteFromString)
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<string, string, never, never>>()
-      expect(schema).type.toBe<Schema.encodedCodec<Schema.FiniteFromString>>()
-      expect(schema.annotate({})).type.toBe<Schema.encodedCodec<Schema.FiniteFromString>>()
+      expect(schema).type.toBe<Schema.toEncoded<Schema.FiniteFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.toEncoded<Schema.FiniteFromString>>()
     })
   })
 
@@ -1419,8 +1419,8 @@ describe("Schema", () => {
           readonly b: Schema.String
         }>,
         Schema.Struct<{
-          readonly c: Schema.encodedCodec<Schema.FiniteFromString>
-          readonly b: Schema.encodedCodec<Schema.String>
+          readonly c: Schema.toEncoded<Schema.FiniteFromString>
+          readonly b: Schema.toEncoded<Schema.String>
         }>
       >
     >()

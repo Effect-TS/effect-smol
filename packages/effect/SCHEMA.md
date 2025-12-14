@@ -7424,8 +7424,8 @@ v4
 ```ts
 import { Schema } from "effect/schema"
 
-// encodedCodec<Schema.String>
-const schema = Schema.encodedCodec(Schema.String)
+// toEncoded<Schema.String>
+const schema = Schema.toEncoded(Schema.String)
 ```
 
 ### typeSchema
@@ -7444,8 +7444,8 @@ v4
 ```ts
 import { Schema } from "effect/schema"
 
-// typeCodec<Schema.String>
-const schema = Schema.typeCodec(Schema.String)
+// toType<Schema.String>
+const schema = Schema.toType(Schema.String)
 ```
 
 ### Decoding / Encoding API Renames
@@ -7476,14 +7476,14 @@ The following APIs have been removed:
 
 v4
 
-Use `Schema.decode*` + `Schema.typeCodec` instead.
+Use `Schema.decode*` + `Schema.toType` instead.
 
 **Example** (Migrating from `validateSync`)
 
 ```ts
 import { Schema } from "effect/schema"
 
-const validateSync = Schema.decodeSync(Schema.typeCodec(Schema.String))
+const validateSync = Schema.decodeSync(Schema.toType(Schema.String))
 ```
 
 Reason: the "validate" term was confusing for the users that don't know the difference between validation and decoding.
@@ -7940,7 +7940,7 @@ import { Getter, Schema } from "effect/schema"
 function f<S extends Schema.Top>(schema: S, defaultValue: () => S["Type"]) {
   return Schema.Struct({
     a: Schema.optional(schema).pipe(
-      Schema.decodeTo(Schema.typeCodec(schema), {
+      Schema.decodeTo(Schema.toType(schema), {
         decode: Getter.withDefault(defaultValue),
         encode: Getter.required()
       })
@@ -7971,7 +7971,7 @@ import { Getter, Schema } from "effect/schema"
 function f<S extends Schema.Top>(schema: S, defaultValue: () => S["Type"]) {
   return Schema.Struct({
     a: Schema.optionalKey(schema).pipe(
-      Schema.decodeTo(Schema.typeCodec(schema), {
+      Schema.decodeTo(Schema.toType(schema), {
         decode: Getter.withDefault(defaultValue),
         encode: Getter.required()
       })
@@ -8003,7 +8003,7 @@ import { Getter, Schema } from "effect/schema"
 function f<S extends Schema.Top>(schema: S) {
   return Schema.Struct({
     a: Schema.optional(Schema.NullOr(schema)).pipe(
-      Schema.decodeTo(Schema.optional(Schema.typeCodec(schema)), {
+      Schema.decodeTo(Schema.optional(Schema.toType(schema)), {
         decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
         encode: Getter.passthrough()
       })
@@ -8035,7 +8035,7 @@ import { Getter, Schema } from "effect/schema"
 function f<S extends Schema.Top>(schema: S) {
   return Schema.Struct({
     a: Schema.optionalKey(Schema.NullOr(schema)).pipe(
-      Schema.decodeTo(Schema.optionalKey(Schema.typeCodec(schema)), {
+      Schema.decodeTo(Schema.optionalKey(Schema.toType(schema)), {
         decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
         encode: Getter.passthrough()
       })
@@ -8067,7 +8067,7 @@ import { Getter, Schema } from "effect/schema"
 function f<S extends Schema.Top>(schema: S, defaultValue: () => S["Type"]) {
   return Schema.Struct({
     a: Schema.optional(Schema.NullOr(schema)).pipe(
-      Schema.decodeTo(Schema.UndefinedOr(Schema.typeCodec(schema)), {
+      Schema.decodeTo(Schema.UndefinedOr(Schema.toType(schema)), {
         decode: Getter.transformOptional((o) =>
           o.pipe(Option.filter(Predicate.isNotNull), Option.orElseSome(defaultValue))
         ),
@@ -8101,7 +8101,7 @@ import { Getter, Schema } from "effect/schema"
 function f<S extends Schema.Top>(schema: S, defaultValue: () => S["Type"]) {
   return Schema.Struct({
     a: Schema.optionalKey(Schema.NullOr(schema)).pipe(
-      Schema.decodeTo(Schema.typeCodec(schema), {
+      Schema.decodeTo(Schema.toType(schema), {
         decode: Getter.transformOptional((o) =>
           o.pipe(Option.filter(Predicate.isNotNull), Option.orElseSome(defaultValue))
         ),
@@ -8240,9 +8240,9 @@ console.log(Schema.encodeSync(manual)("a"))
 function pluck<P extends PropertyKey>(key: P) {
   return <S extends Schema.Top>(
     schema: Schema.Struct<{ [K in P]: S }>
-  ): Schema.decodeTo<Schema.typeCodec<S>, Schema.Struct<{ [K in P]: S }>> => {
+  ): Schema.decodeTo<Schema.toType<S>, Schema.Struct<{ [K in P]: S }>> => {
     return schema.mapFields(Struct.pick([key])).pipe(
-      Schema.decodeTo(Schema.typeCodec(schema.fields[key]), {
+      Schema.decodeTo(Schema.toType(schema.fields[key]), {
         decode: Getter.transform((whole: any) => whole[key]),
         encode: Getter.transform((value) => ({ [key]: value }) as any)
       })

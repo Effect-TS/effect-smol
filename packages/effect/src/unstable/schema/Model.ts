@@ -235,7 +235,7 @@ export const Sensitive = <S extends Schema.Top>(schema: S): Sensitive<S> =>
  * @category optional
  */
 export interface optionalOption<S extends Schema.Top>
-  extends Schema.decodeTo<Schema.Option<Schema.typeCodec<S>>, Schema.optionalKey<Schema.NullOr<S>>>
+  extends Schema.decodeTo<Schema.Option<Schema.toType<S>>, Schema.optionalKey<Schema.NullOr<S>>>
 {}
 
 /**
@@ -245,7 +245,7 @@ export interface optionalOption<S extends Schema.Top>
 export const optionalOption = <S extends Schema.Top>(schema: S): optionalOption<S> =>
   Schema.optionalKey(Schema.NullOr(schema)).pipe(
     Schema.decodeTo(
-      Schema.Option(Schema.typeCodec(schema)),
+      Schema.Option(Schema.toType(schema)),
       Transformation.transformOptional<Option.Option<S["Type"]>, S["Type"] | null>({
         decode: (oe) => oe.pipe(Option.filter(Predicate.isNotNull), Option.some),
         encode: Option.flatten

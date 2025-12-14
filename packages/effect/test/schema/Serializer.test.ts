@@ -757,7 +757,7 @@ describe("Serializers", () => {
         class A extends Schema.Class<A>("A")(Schema.Struct({
           a: Schema.Finite
         })) {}
-        const asserts = new TestSchema.Asserts(Schema.toCodecJson(Schema.typeCodec(A)))
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(Schema.toType(A)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new A({ a: 0 }), { a: 0 })
@@ -770,7 +770,7 @@ describe("Serializers", () => {
         class E extends Schema.ErrorClass<E>("E")({
           a: Schema.Finite
         }) {}
-        const asserts = new TestSchema.Asserts(Schema.toCodecJson(Schema.typeCodec(E)))
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(Schema.toType(E)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new E({ a: 0 }), { a: 0 })
@@ -1932,7 +1932,7 @@ describe("Serializers", () => {
         class A extends Schema.Class<A>("A")(Schema.Struct({
           a: Schema.Finite
         })) {}
-        const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(Schema.typeCodec(A)))
+        const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(Schema.toType(A)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new A({ a: 0 }), { a: "0" })
@@ -1945,7 +1945,7 @@ describe("Serializers", () => {
         class E extends Schema.ErrorClass<E>("E")({
           a: Schema.Finite
         }) {}
-        const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(Schema.typeCodec(E)))
+        const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(Schema.toType(E)))
 
         const encoding = asserts.encoding()
         await encoding.succeed(new E({ a: 0 }), { a: "0" })

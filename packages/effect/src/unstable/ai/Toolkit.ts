@@ -271,7 +271,7 @@ const Proto = {
           const handler = services.mapUnsafe.get(tool.id)! as Tool.Handler<any>
           const decodeParameters = Schema.decodeUnknownEffect(tool.parametersSchema) as any
           const resultSchema = Schema.Union([tool.successSchema, tool.failureSchema])
-          const decodeResult = Schema.decodeUnknownEffect(Schema.typeCodec(resultSchema)) as any
+          const decodeResult = Schema.decodeUnknownEffect(Schema.toType(resultSchema)) as any
           const encodeResult = Schema.encodeUnknownEffect(resultSchema) as any
           schemas = {
             services: handler.services,

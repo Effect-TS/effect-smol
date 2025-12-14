@@ -47,7 +47,7 @@ const recurDefaults = memoize((ast: AST.AST): AST.AST => {
  * @since 4.0.0
  */
 export function makeEffect<S extends Schema.Top>(schema: S) {
-  const ast = recurDefaults(AST.typeAST(schema.ast))
+  const ast = recurDefaults(AST.toType(schema.ast))
   const parser = run<S["Type"], never>(ast)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): Effect.Effect<S["Type"], Issue.Issue> => {
     return parser(input, options?.parseOptions)
@@ -82,7 +82,7 @@ export function is<S extends Schema.Top & { readonly DecodingServices: never }>(
 
 /** @internal */
 export function refinement<T>(ast: AST.AST) {
-  const parser = asExit(run<T, never>(AST.typeAST(ast)))
+  const parser = asExit(run<T, never>(AST.toType(ast)))
   return <I>(input: I): input is I & T => {
     return Exit.isSuccess(parser(input, AST.defaultParseOptions))
   }
@@ -95,7 +95,7 @@ export function refinement<T>(ast: AST.AST) {
 export function asserts<S extends Schema.Top & { readonly DecodingServices: never }>(
   schema: S
 ) {
-  const parser = asExit(run<S["Type"], never>(AST.typeAST(schema.ast)))
+  const parser = asExit(run<S["Type"], never>(AST.toType(schema.ast)))
   return <I>(input: I): asserts input is I & S["Type"] => {
     const exit = parser(input, AST.defaultParseOptions)
     if (Exit.isFailure(exit)) {

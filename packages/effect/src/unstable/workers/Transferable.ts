@@ -90,7 +90,7 @@ export const getterAddAll = <A>(
  */
 export interface Transferable<S extends Schema.Top> extends
   Schema.decodeTo<
-    Schema.typeCodec<S["~rebuild.out"]>,
+    Schema.toType<S["~rebuild.out"]>,
     S["~rebuild.out"]
   >
 {}

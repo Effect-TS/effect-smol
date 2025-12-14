@@ -251,7 +251,7 @@ describe("Struct", () => {
       const schema = Schema.Struct({
         a: Schema.FiniteFromString,
         b: Schema.Number
-      }).mapFields(Struct.map(Schema.typeCodec))
+      }).mapFields(Struct.map(Schema.toType))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -263,7 +263,7 @@ describe("Struct", () => {
       >()
       expect(schema).type.toBe<
         Schema.Struct<
-          { readonly a: Schema.typeCodec<Schema.FiniteFromString>; readonly b: Schema.typeCodec<Schema.Number> }
+          { readonly a: Schema.toType<Schema.FiniteFromString>; readonly b: Schema.toType<Schema.Number> }
         >
       >()
     })
@@ -272,7 +272,7 @@ describe("Struct", () => {
       const schema = Schema.Struct({
         a: Schema.FiniteFromString,
         b: Schema.Number
-      }).mapFields(Struct.map(Schema.encodedCodec))
+      }).mapFields(Struct.map(Schema.toEncoded))
 
       expect(Schema.revealCodec(schema)).type.toBe<
         Schema.Codec<
@@ -284,7 +284,7 @@ describe("Struct", () => {
       >()
       expect(schema).type.toBe<
         Schema.Struct<
-          { readonly a: Schema.encodedCodec<Schema.FiniteFromString>; readonly b: Schema.encodedCodec<Schema.Number> }
+          { readonly a: Schema.toEncoded<Schema.FiniteFromString>; readonly b: Schema.toEncoded<Schema.Number> }
         >
       >()
     })

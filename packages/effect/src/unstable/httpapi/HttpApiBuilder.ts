@@ -732,7 +732,7 @@ export function normalizeUrlParams(
   params: ReadonlyRecord<string, string | Array<string>>,
   ast: AST.AST
 ): ReadonlyRecord<string, string | Array<string>> {
-  const encodedAST = AST.encodedAST(ast)
+  const encodedAST = AST.toEncoded(ast)
   const out: Record<string, string | Array<string>> = {}
   for (const key in params) {
     const value = params[key]

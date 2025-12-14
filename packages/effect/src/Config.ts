@@ -377,12 +377,12 @@ const recur: (
  * @since 4.0.0
  */
 export function schema<T, E>(codec: Schema.Codec<T, E>, path?: string | ConfigProvider.Path): Config<T> {
-  const serializer = Schema.toCodecStringTree(codec)
-  const decodeUnknownEffect = Parser.decodeUnknownEffect(serializer)
-  const serializerEncodedAST = AST.encodedAST(serializer.ast)
+  const serializerStringTree = Schema.toCodecStringTree(codec)
+  const decodeUnknownEffect = Parser.decodeUnknownEffect(serializerStringTree)
+  const serializerEncoded = AST.toEncoded(serializerStringTree.ast)
   const defaultPath = typeof path === "string" ? [path] : path ?? []
   return make((provider) =>
-    recur(serializerEncodedAST, provider, defaultPath).pipe(
+    recur(serializerEncoded, provider, defaultPath).pipe(
       Effect.flatMapEager((tree) =>
         decodeUnknownEffect(tree).pipe(Effect.mapErrorEager((issue) =>
           new Schema.SchemaError(defaultPath.length > 0 ? new Issue.Pointer(defaultPath, issue) : issue)

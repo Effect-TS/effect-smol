@@ -48,16 +48,16 @@ describe("Optic generation", () => {
       })
     })
 
-    it("typeCodec(Class)", () => {
-      const schema = Schema.typeCodec(Value)
+    it("toType(Class)", () => {
+      const schema = Schema.toType(Value)
       const optic = Schema.toIso(schema).key("a")
       const modify = optic.modify(addOne)
 
       deepStrictEqual(modify(Value.makeUnsafe({ a: new Date(0) })), Value.makeUnsafe({ a: new Date(1) }))
     })
 
-    it("encodedCodec(Class)", () => {
-      const schema = Schema.encodedCodec(Value)
+    it("toEncoded(Class)", () => {
+      const schema = Schema.toEncoded(Value)
       const optic = Schema.toIso(schema).key("a")
       const modify = optic.modify(addOne)
 

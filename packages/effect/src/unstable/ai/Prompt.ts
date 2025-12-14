@@ -86,9 +86,9 @@ const constEmptyObject = () => ({})
  * @since 4.0.0
  * @category models
  */
-export const ProviderOptions: Schema.typeCodec<
+export const ProviderOptions: Schema.toType<
   Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>
-> = Schema.typeCodec(
+> = Schema.toType(
   Schema.Record(Schema.String, Schema.UndefinedOr(Response.JsonValue))
 )
 
@@ -300,7 +300,7 @@ export const TextPart: Schema.Struct<{
   readonly text: Schema.String
   readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
   readonly options: Schema.withDecodingDefault<
-    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -375,7 +375,7 @@ export const ReasoningPart: Schema.Struct<{
   readonly text: Schema.String
   readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
   readonly options: Schema.withDecodingDefault<
-    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -480,7 +480,7 @@ export const FilePart: Schema.Struct<{
   readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
   readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
   readonly options: Schema.withDecodingDefault<
-    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -587,7 +587,7 @@ export const ToolCallPart: Schema.Struct<{
   readonly providerExecuted: Schema.withDecodingDefault<Schema.Boolean>
   readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
   readonly options: Schema.withDecodingDefault<
-    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -699,7 +699,7 @@ export const ToolResultPart: Schema.Struct<{
   readonly result: Schema.Unknown
   readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
   readonly options: Schema.withDecodingDefault<
-    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
   >
 }> = Schema.Struct({
   ...BasePart.fields,
@@ -836,13 +836,13 @@ export type MessageConstructorParams<M extends Message> = Omit<M, typeof Message
  */
 export const ContentFromString: Schema.decodeTo<
   Schema.NonEmptyArray<
-    Schema.typeCodec<
+    Schema.toType<
       Schema.Struct<{
         readonly type: Schema.Literal<"text">
         readonly text: Schema.String
         readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
         readonly options: Schema.withDecodingDefault<
-          Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+          Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
         >
       }>
     >
@@ -850,7 +850,7 @@ export const ContentFromString: Schema.decodeTo<
   Schema.String
 > = Schema.String.pipe(
   Schema.decodeTo(
-    Schema.NonEmptyArray(Schema.typeCodec(TextPart)),
+    Schema.NonEmptyArray(Schema.toType(TextPart)),
     SchemaTransformation.transform({
       decode: (text) => Arr.of(makePart("text", { text })) as Arr.NonEmptyReadonlyArray<TextPart>,
       encode: (content) => content[0].text
@@ -918,7 +918,7 @@ export const SystemMessage: Schema.Struct<{
   readonly content: Schema.String
   readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
   readonly options: Schema.withDecodingDefault<
-    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
   >
 }> = Schema.Struct({
   ...BaseMessage.fields,
@@ -1028,13 +1028,13 @@ export const UserMessage: Schema.Struct<{
     readonly [
       Schema.decodeTo<
         Schema.NonEmptyArray<
-          Schema.typeCodec<
+          Schema.toType<
             Schema.Struct<{
               readonly type: Schema.Literal<"text">
               readonly text: Schema.String
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
               >
             }>
           >
@@ -1051,7 +1051,7 @@ export const UserMessage: Schema.Struct<{
               readonly text: Schema.String
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
               >
             }>,
             Schema.Struct<{
@@ -1061,7 +1061,7 @@ export const UserMessage: Schema.Struct<{
               readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
               >
             }>
           ]
@@ -1071,7 +1071,7 @@ export const UserMessage: Schema.Struct<{
   >
   readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
   readonly options: Schema.withDecodingDefault<
-    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
   >
 }> = Schema.Struct({
   ...BaseMessage.fields,
@@ -1195,13 +1195,13 @@ export const AssistantMessage: Schema.Struct<{
     readonly [
       Schema.decodeTo<
         Schema.NonEmptyArray<
-          Schema.typeCodec<
+          Schema.toType<
             Schema.Struct<{
               readonly type: Schema.Literal<"text">
               readonly text: Schema.String
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
               >
             }>
           >
@@ -1218,7 +1218,7 @@ export const AssistantMessage: Schema.Struct<{
               readonly text: Schema.String
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
               >
             }>,
             Schema.Struct<{
@@ -1228,7 +1228,7 @@ export const AssistantMessage: Schema.Struct<{
               readonly data: Schema.Union<readonly [Schema.String, Schema.Uint8Array, Schema.URL]>
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
               >
             }>,
             Schema.Struct<{
@@ -1236,7 +1236,7 @@ export const AssistantMessage: Schema.Struct<{
               readonly text: Schema.String
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
               >
             }>,
             Schema.Struct<{
@@ -1247,7 +1247,7 @@ export const AssistantMessage: Schema.Struct<{
               readonly providerExecuted: Schema.withDecodingDefault<Schema.Boolean>
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
               >
             }>,
             Schema.Struct<{
@@ -1258,7 +1258,7 @@ export const AssistantMessage: Schema.Struct<{
               readonly result: Schema.Unknown
               readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
               readonly options: Schema.withDecodingDefault<
-                Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+                Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
               >
             }>
           ]
@@ -1268,7 +1268,7 @@ export const AssistantMessage: Schema.Struct<{
   >
   readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
   readonly options: Schema.withDecodingDefault<
-    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
   >
 }> = Schema.Struct({
   ...BaseMessage.fields,
@@ -1388,13 +1388,13 @@ export const ToolMessage: Schema.Struct<{
       readonly result: Schema.Unknown
       readonly "~effect/ai/Prompt/Part": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Part">>
       readonly options: Schema.withDecodingDefault<
-        Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+        Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
       >
     }>
   >
   readonly "~effect/ai/Prompt/Message": Schema.withDecodingDefaultKey<Schema.Literal<"~effect/ai/Prompt/Message">>
   readonly options: Schema.withDecodingDefault<
-    Schema.typeCodec<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
+    Schema.toType<Schema.Record$<Schema.String, Schema.UndefinedOr<Schema.Schema<Response.JsonValue>>>>
   >
 }> = Schema.Struct({
   ...BaseMessage.fields,
@@ -1500,7 +1500,7 @@ export interface PromptEncoded {
  * @category schemas
  */
 export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
-  content: Schema.Array(Schema.encodedCodec(Message))
+  content: Schema.Array(Schema.toEncoded(Message))
 }).pipe(
   Schema.decodeTo(
     Schema.declare((u) => isPrompt(u), { identifier: "Prompt" }),

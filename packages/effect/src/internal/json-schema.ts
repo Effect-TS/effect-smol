@@ -67,7 +67,7 @@ function recur(
     const identifier = getIdentifier(ast)
     if (identifier !== undefined) {
       const $ref = { $ref: getPointer(target) + escapeJsonPointer(identifier) }
-      const encoded = AST.encodedAST(ast)
+      const encoded = AST.toEncoded(ast)
       if (Object.hasOwn(options.definitions, identifier)) {
         if (AST.isSuspend(ast) || encodedMap.get(encoded) === identifier) {
           return $ref
@@ -109,7 +109,7 @@ function recur(
   // handle encoding
   // ---------------------------------------------
   if (ast.encoding) {
-    return recur(AST.encodedAST(ast), path, options, ignoreIdentifier, ignoreAnnotation)
+    return recur(AST.toEncoded(ast), path, options, ignoreIdentifier, ignoreAnnotation)
   }
   let out = flattenArrayJsonSchema(base(ast, path, options, false))
   // ---------------------------------------------
@@ -420,7 +420,7 @@ function getAnnotation(
 }
 
 function isOptional(ast: AST.AST): boolean {
-  const encoded = AST.encodedAST(ast)
+  const encoded = AST.toEncoded(ast)
   return AST.isOptional(encoded) || AST.containsUndefined(encoded)
 }
 

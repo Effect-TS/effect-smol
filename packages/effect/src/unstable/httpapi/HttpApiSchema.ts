@@ -35,7 +35,7 @@ const resolveHttpApiStatus = Annotations.resolveAt<number>("httpApiStatus")
 
 /** @internal */
 export function isVoidEncoded(ast: AST.AST): boolean {
-  ast = AST.encodedAST(ast)
+  ast = AST.toEncoded(ast)
   switch (ast._tag) {
     case "Void":
       return true
@@ -192,7 +192,7 @@ export const Empty = (status: number): Schema.Void => Schema.Void.annotate({ htt
  */
 export interface asEmpty<
   S extends Schema.Top
-> extends Schema.decodeTo<Schema.typeCodec<S>, Schema.Void> {}
+> extends Schema.decodeTo<Schema.toType<S>, Schema.Void> {}
 
 /**
  * @since 4.0.0
@@ -221,7 +221,7 @@ export const asEmpty: {
   ): asEmpty<S> =>
     Schema.Void.annotate(self.ast.annotations ?? {}).pipe(
       Schema.decodeTo(
-        Schema.typeCodec(self),
+        Schema.toType(self),
         Transformation.transform({
           decode: options.decode,
           encode: constVoid

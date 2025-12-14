@@ -582,7 +582,7 @@ export function toStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSche
       return toBaseStandardJSONSchemaV1(self, options.target)
     },
     output(options) {
-      return toBaseStandardJSONSchemaV1(typeCodec(self), options.target)
+      return toBaseStandardJSONSchemaV1(toType(self), options.target)
     }
   }
   if ("~standard" in self) {
@@ -1018,14 +1018,14 @@ export const readonlyKey = Struct_.lambda<readonlyKeyLambda>((self) => self.sche
 /**
  * @since 4.0.0
  */
-export interface typeCodec<S extends Top> extends
+export interface toType<S extends Top> extends
   Bottom<
     S["Type"],
     S["Type"],
     never,
     never,
     S["ast"],
-    typeCodec<S>,
+    toType<S>,
     S["~type.make.in"],
     S["Iso"],
     S["~type.parameters"],
@@ -1040,27 +1040,27 @@ export interface typeCodec<S extends Top> extends
   readonly "~rebuild.out": this
 }
 
-interface typeCodecLambda extends Lambda {
-  <S extends Top>(self: S): typeCodec<S>
-  readonly "~lambda.out": this["~lambda.in"] extends Top ? typeCodec<this["~lambda.in"]> : never
+interface toTypeLambda extends Lambda {
+  <S extends Top>(self: S): toType<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? toType<this["~lambda.in"]> : never
 }
 
 /**
  * @since 4.0.0
  */
-export const typeCodec = Struct_.lambda<typeCodecLambda>((schema) => makeProto(AST.typeAST(schema.ast), { schema }))
+export const toType = Struct_.lambda<toTypeLambda>((schema) => makeProto(AST.toType(schema.ast), { schema }))
 
 /**
  * @since 4.0.0
  */
-export interface encodedCodec<S extends Top> extends
+export interface toEncoded<S extends Top> extends
   Bottom<
     S["Encoded"],
     S["Encoded"],
     never,
     never,
     AST.AST,
-    encodedCodec<S>,
+    toEncoded<S>,
     S["Encoded"],
     S["Encoded"],
     ReadonlyArray<Top>,
@@ -1075,17 +1075,15 @@ export interface encodedCodec<S extends Top> extends
   readonly "~rebuild.out": this
 }
 
-interface encodedCodecLambda extends Lambda {
-  <S extends Top>(self: S): encodedCodec<S>
-  readonly "~lambda.out": this["~lambda.in"] extends Top ? encodedCodec<this["~lambda.in"]> : never
+interface toEncodedLambda extends Lambda {
+  <S extends Top>(self: S): toEncoded<S>
+  readonly "~lambda.out": this["~lambda.in"] extends Top ? toEncoded<this["~lambda.in"]> : never
 }
 
 /**
  * @since 4.0.0
  */
-export const encodedCodec = Struct_.lambda<encodedCodecLambda>((schema) =>
-  makeProto(AST.encodedAST(schema.ast), { schema })
-)
+export const toEncoded = Struct_.lambda<toEncodedLambda>((schema) => makeProto(AST.toEncoded(schema.ast), { schema }))
 
 const FlipTypeId = "~effect/schema/Schema/flip"
 
@@ -1694,7 +1692,7 @@ export function encodeKeys<
       {
         [
           K in keyof S["fields"] as K extends keyof M ? M[K] extends PropertyKey ? M[K] : K : K
-        ]: encodedCodec<S["fields"][K]>
+        ]: toEncoded<S["fields"][K]>
       }
     >
   > {
@@ -1702,7 +1700,7 @@ export function encodeKeys<
     const reverseMapping: any = {}
     for (const k in self.fields) {
       if (Object.hasOwn(mapping, k)) {
-        fields[mapping[k]!] = encodedCodec(self.fields[k])
+        fields[mapping[k]!] = toEncoded(self.fields[k])
         reverseMapping[mapping[k]!] = k
       } else {
         fields[k] = self.fields[k]
@@ -1730,8 +1728,8 @@ export function extendTo<S extends Struct<Struct.Fields>, const Fields extends S
 ) {
   return (
     self: S
-  ): decodeTo<Struct<Simplify<{ [K in keyof S["fields"]]: typeCodec<S["fields"][K]> } & Fields>>, S> => {
-    const f = Record_.map(self.fields, typeCodec)
+  ): decodeTo<Struct<Simplify<{ [K in keyof S["fields"]]: toType<S["fields"][K]> } & Fields>>, S> => {
+    const f = Record_.map(self.fields, toType)
     const to = Struct({ ...f, ...fields })
     return self.pipe(decodeTo(
       to,
@@ -2851,8 +2849,8 @@ export function decode<S extends Top, RD = never, RE = never>(transformation: {
   readonly decode: Getter.Getter<S["Type"], S["Type"], RD>
   readonly encode: Getter.Getter<S["Type"], S["Type"], RE>
 }) {
-  return (self: S): decodeTo<typeCodec<S>, S, RD, RE> => {
-    return self.pipe(decodeTo(typeCodec(self), transformation))
+  return (self: S): decodeTo<toType<S>, S, RD, RE> => {
+    return self.pipe(decodeTo(toType(self), transformation))
   }
 }
 
@@ -2890,8 +2888,8 @@ export function encode<S extends Top, RD = never, RE = never>(transformation: {
   readonly decode: Getter.Getter<S["Encoded"], S["Encoded"], RD>
   readonly encode: Getter.Getter<S["Encoded"], S["Encoded"], RE>
 }) {
-  return (self: S): decodeTo<S, encodedCodec<S>, RD, RE> => {
-    return encodedCodec(self).pipe(decodeTo(self, transformation))
+  return (self: S): decodeTo<S, toEncoded<S>, RD, RE> => {
+    return toEncoded(self).pipe(decodeTo(self, transformation))
   }
 }
 
@@ -2949,7 +2947,7 @@ export function withConstructorDefault<S extends Top & WithoutConstructorDefault
 /**
  * @since 4.0.0
  */
-export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optionalKey<encodedCodec<S>>> {}
+export interface withDecodingDefaultKey<S extends Top> extends decodeTo<S, optionalKey<toEncoded<S>>> {}
 
 /**
  * @since 4.0.0
@@ -2973,7 +2971,7 @@ export function withDecodingDefaultKey<S extends Top>(
 ) {
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
   return (self: S): withDecodingDefaultKey<S> => {
-    return optionalKey(encodedCodec(self)).pipe(decodeTo(self, {
+    return optionalKey(toEncoded(self)).pipe(decodeTo(self, {
       decode: Getter.withDefault(defaultValue),
       encode
     }))
@@ -2983,7 +2981,7 @@ export function withDecodingDefaultKey<S extends Top>(
 /**
  * @since 4.0.0
  */
-export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional<encodedCodec<S>>> {}
+export interface withDecodingDefault<S extends Top> extends decodeTo<S, optional<toEncoded<S>>> {}
 
 /**
  * **Options**
@@ -3000,7 +2998,7 @@ export function withDecodingDefault<S extends Top>(
 ) {
   const encode = options?.encodingStrategy === "omit" ? Getter.omit() : Getter.passthrough()
   return (self: S): withDecodingDefault<S> => {
-    return optional(encodedCodec(self)).pipe(decodeTo(self, {
+    return optional(toEncoded(self)).pipe(decodeTo(self, {
       decode: Getter.withDefault(defaultValue),
       encode
     }))
@@ -3167,7 +3165,7 @@ export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
         const value = getTag(tag, ast)
         if (value) {
           cases[value] = schema
-          guards[value] = is(typeCodec(schema))
+          guards[value] = is(toType(schema))
         }
       } else {
         throw new globalThis.Error("No literal found")
@@ -5276,7 +5274,7 @@ export function Option<A extends Top>(value: A): Option<A> {
 /**
  * @since 4.0.0
  */
-export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<typeCodec<S>>, NullOr<S>> {}
+export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<toType<S>>, NullOr<S>> {}
 
 /**
  * Decodes a nullable, required value `T` to a required `Option<T>` value.
@@ -5294,7 +5292,7 @@ export interface OptionFromNullOr<S extends Top> extends decodeTo<Option<typeCod
  */
 export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> {
   return NullOr(schema).pipe(decodeTo(
-    Option(typeCodec(schema)),
+    Option(toType(schema)),
     Transformation.optionFromNullOr()
   ))
 }
@@ -5302,7 +5300,7 @@ export function OptionFromNullOr<S extends Top>(schema: S): OptionFromNullOr<S> 
 /**
  * @since 4.0.0
  */
-export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<typeCodec<S>>, optionalKey<S>> {}
+export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<toType<S>>, optionalKey<S>> {}
 
 /**
  * Decodes an optional value `A` to a required `Option<A>` value.
@@ -5320,7 +5318,7 @@ export interface OptionFromOptionalKey<S extends Top> extends decodeTo<Option<ty
  */
 export function OptionFromOptionalKey<S extends Top>(schema: S): OptionFromOptionalKey<S> {
   return optionalKey(schema).pipe(decodeTo(
-    Option(typeCodec(schema)),
+    Option(toType(schema)),
     Transformation.optionFromOptionalKey()
   ))
 }
@@ -5328,7 +5326,7 @@ export function OptionFromOptionalKey<S extends Top>(schema: S): OptionFromOptio
 /**
  * @since 4.0.0
  */
-export interface OptionFromOptional<S extends Top> extends decodeTo<Option<typeCodec<S>>, optional<S>> {}
+export interface OptionFromOptional<S extends Top> extends decodeTo<Option<toType<S>>, optional<S>> {}
 
 /**
  * Decodes an optional or `undefined` value `A` to an required `Option<A>`
@@ -5348,7 +5346,7 @@ export interface OptionFromOptional<S extends Top> extends decodeTo<Option<typeC
  */
 export function OptionFromOptional<S extends Top>(schema: S): OptionFromOptional<S> {
   return optional(schema).pipe(decodeTo(
-    Option(typeCodec(schema)),
+    Option(toType(schema)),
     Transformation.optionFromOptional<any>()
   ))
 }
@@ -7606,7 +7604,7 @@ export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T,
  * @since 4.0.0
  */
 export function toCodecIsoOptic<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
-  return make(serializerIsoOptic(AST.typeAST(schema.ast)))
+  return make(serializerIsoOptic(AST.toType(schema.ast)))
 }
 
 /**
@@ -7766,13 +7764,13 @@ function makeReorder(getPriority: (ast: AST.AST) => number) {
     // Create a map of original indices for O(1) lookup
     const indexMap = new Map<AST.AST, number>()
     for (let i = 0; i < types.length; i++) {
-      indexMap.set(AST.encodedAST(types[i]), i)
+      indexMap.set(AST.toEncoded(types[i]), i)
     }
 
     // Create a sorted copy of the types array
     const sortedTypes = [...types].sort((a, b) => {
-      a = AST.encodedAST(a)
-      b = AST.encodedAST(b)
+      a = AST.toEncoded(a)
+      b = AST.toEncoded(b)
       const pa = getPriority(a)
       const pb = getPriority(b)
       if (pa !== pb) return pa - pb
@@ -7809,7 +7807,7 @@ function serializerJsonBase(ast: AST.AST): AST.AST {
       const getLink = ast.annotations?.serializerJson ?? ast.annotations?.serializer
       if (Predicate.isFunction(getLink)) {
         const tps = AST.isDeclaration(ast)
-          ? ast.typeParameters.map((tp) => make(serializerJson(AST.encodedAST(tp))))
+          ? ast.typeParameters.map((tp) => make(serializerJson(AST.toEncoded(tp))))
           : []
         const link = getLink(tps)
         const to = serializerJson(link.to)
@@ -7928,7 +7926,7 @@ function serializerTree(
       const getLink = ast.annotations?.serializerJson ?? ast.annotations?.serializer
       if (Predicate.isFunction(getLink)) {
         const tps = AST.isDeclaration(ast)
-          ? ast.typeParameters.map((tp) => make(recur(AST.encodedAST(tp))))
+          ? ast.typeParameters.map((tp) => make(recur(AST.toEncoded(tp))))
           : []
         const link = getLink(tps)
         const to = recur(link.to)

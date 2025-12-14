@@ -13,7 +13,7 @@ describe("v3 -> v4 migration tests", () => {
       function f<S extends Schema.Top>(schema: S, defaultValue: () => S["Type"]) {
         return Schema.Struct({
           a: Schema.optional(schema).pipe(
-            Schema.decodeTo(Schema.typeCodec(schema), {
+            Schema.decodeTo(Schema.toType(schema), {
               decode: Getter.withDefault(defaultValue),
               encode: Getter.required()
             })
@@ -52,7 +52,7 @@ describe("v3 -> v4 migration tests", () => {
       function f<S extends Schema.Top>(schema: S, defaultValue: () => S["Type"]) {
         return Schema.Struct({
           a: Schema.optionalKey(schema).pipe(
-            Schema.decodeTo(Schema.typeCodec(schema), {
+            Schema.decodeTo(Schema.toType(schema), {
               decode: Getter.withDefault(defaultValue),
               encode: Getter.required()
             })
@@ -95,7 +95,7 @@ describe("v3 -> v4 migration tests", () => {
       function f<S extends Schema.Top>(schema: S) {
         return Schema.Struct({
           a: Schema.optional(Schema.NullOr(schema)).pipe(
-            Schema.decodeTo(Schema.optional(Schema.typeCodec(schema)), {
+            Schema.decodeTo(Schema.optional(Schema.toType(schema)), {
               decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
               encode: Getter.passthrough()
             })
@@ -132,7 +132,7 @@ describe("v3 -> v4 migration tests", () => {
       function f<S extends Schema.Top>(schema: S) {
         return Schema.Struct({
           a: Schema.optionalKey(Schema.NullOr(schema)).pipe(
-            Schema.decodeTo(Schema.optionalKey(Schema.typeCodec(schema)), {
+            Schema.decodeTo(Schema.optionalKey(Schema.toType(schema)), {
               decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
               encode: Getter.passthrough()
             })
@@ -172,7 +172,7 @@ describe("v3 -> v4 migration tests", () => {
       function f<S extends Schema.Top>(schema: S, defaultValue: () => S["Type"]) {
         return Schema.Struct({
           a: Schema.optional(Schema.NullOr(schema)).pipe(
-            Schema.decodeTo(Schema.UndefinedOr(Schema.typeCodec(schema)), {
+            Schema.decodeTo(Schema.UndefinedOr(Schema.toType(schema)), {
               decode: Getter.transformOptional((o) =>
                 o.pipe(Option.filter(Predicate.isNotNull), Option.orElseSome(defaultValue))
               ),
@@ -210,7 +210,7 @@ describe("v3 -> v4 migration tests", () => {
       function f<S extends Schema.Top>(schema: S, defaultValue: () => S["Type"]) {
         return Schema.Struct({
           a: Schema.optionalKey(Schema.NullOr(schema)).pipe(
-            Schema.decodeTo(Schema.typeCodec(schema), {
+            Schema.decodeTo(Schema.toType(schema), {
               decode: Getter.transformOptional((o) =>
                 o.pipe(Option.filter(Predicate.isNotNull), Option.orElseSome(defaultValue))
               ),
