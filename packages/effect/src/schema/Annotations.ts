@@ -98,11 +98,11 @@ export interface Bottom<T, TypeParameters extends ReadonlyArray<Schema.Top>> ext
    * Optional metadata used to identify or extend the filter with custom data.
    */
   readonly meta?: Meta | undefined
-  readonly jsonSchema?:
-    | JsonSchema.Override<TypeParameters>
+  readonly toJsonSchema?:
+    | JsonSchema.ToJsonSchema<TypeParameters>
     | undefined
-  readonly arbitrary?:
-    | Arbitrary.Override<T, TypeParameters>
+  readonly toArbitrary?:
+    | Arbitrary.ToArbitrary<T, TypeParameters>
     | undefined
 }
 
@@ -131,22 +131,19 @@ export declare namespace TypeParameters {
 export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top> = readonly []>
   extends Bottom<T, TypeParameters>
 {
-  /** Used by both JSON and ISO serializers */
-  readonly serializer?:
+  readonly "toCodec*"?:
     | ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link)
     | undefined
-  /** Used only by JSON serializers */
-  readonly serializerJson?:
+  readonly toCodecJson?:
     | ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link)
     | undefined
-  /** Used only by ISO serializers */
-  readonly serializerIso?:
+  readonly toCodecIsoOptic?:
     | ((typeParameters: TypeParameters.Type<TypeParameters>) => AST.Link)
     | undefined
-  readonly jsonSchema?: JsonSchema.Override<TypeParameters> | undefined
-  readonly arbitrary?: Arbitrary.Override<T, TypeParameters> | undefined
-  readonly equivalence?: Equivalence.Override<T, TypeParameters> | undefined
-  readonly formatter?: Formatter.Override<T, TypeParameters> | undefined
+  readonly toJsonSchema?: JsonSchema.ToJsonSchema<TypeParameters> | undefined
+  readonly toArbitrary?: Arbitrary.ToArbitrary<T, TypeParameters> | undefined
+  readonly toEquivalence?: Equivalence.ToEquivalence<T, TypeParameters> | undefined
+  readonly toFormatter?: Formatter.ToFormatter<T, TypeParameters> | undefined
   /**
    * Used to collect sentinels from a Declaration AST.
    *
@@ -174,11 +171,11 @@ export interface Filter extends Documentation {
    * Optional metadata used to identify or extend the filter with custom data.
    */
   readonly meta?: Meta | undefined
-  readonly jsonSchemaConstraint?:
-    | JsonSchema.Constraint
+  readonly toJsonSchemaConstraint?:
+    | JsonSchema.ToJsonSchemaConstraint
     | undefined
-  readonly arbitraryConstraint?:
-    | Arbitrary.Constraint
+  readonly toArbitraryConstraint?:
+    | Arbitrary.ToArbitraryConstraint
     | undefined
   /**
    * Marks the filter as *structural*, meaning it applies to the shape or
@@ -228,7 +225,7 @@ export declare namespace Arbitrary {
   /**
    * @since 4.0.0
    */
-  export interface Constraint {
+  export interface ToArbitraryConstraint {
     readonly string?: StringConstraints | undefined
     readonly number?: NumberConstraints | undefined
     readonly bigint?: BigIntConstraints | undefined
@@ -246,13 +243,13 @@ export declare namespace Arbitrary {
      * suspends, so implementations should try to avoid excessive recursion.
      */
     readonly isSuspend?: boolean | undefined
-    readonly constraints?: Arbitrary.Constraint | undefined
+    readonly constraints?: Arbitrary.ToArbitraryConstraint | undefined
   }
 
   /**
    * @since 4.0.0
    */
-  export interface Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
+  export interface ToArbitrary<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
     (
       /* Arbitraries for any type parameters of the schema (if present) */
       typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
@@ -267,7 +264,7 @@ export declare namespace Formatter {
   /**
    * @since 4.0.0
    */
-  export interface Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
+  export interface ToFormatter<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
     (
       /* Formatters for any type parameters of the schema (if present) */
       typeParameters: { readonly [K in keyof TypeParameters]: Formatter<TypeParameters[K]["Type"]> }
@@ -282,7 +279,7 @@ export declare namespace Equivalence {
   /**
    * @since 4.0.0
    */
-  export interface Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
+  export interface ToEquivalence<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
     (
       /* Equivalences for any type parameters of the schema (if present) */
       typeParameters: { readonly [K in keyof TypeParameters]: Equivalence<TypeParameters[K]["Type"]> }
@@ -307,7 +304,7 @@ export declare namespace JsonSchema {
   /**
    * @since 4.0.0
    */
-  export interface Constraint {
+  export interface ToJsonSchemaConstraint {
     (context: ConstraintContext): Schema.JsonSchema | undefined
   }
 
@@ -328,7 +325,7 @@ export declare namespace JsonSchema {
   /**
    * @since 4.0.0
    */
-  export interface Override<TypeParameters extends ReadonlyArray<Schema.Top>> {
+  export interface ToJsonSchema<TypeParameters extends ReadonlyArray<Schema.Top>> {
     (context: Context<TypeParameters>): Schema.JsonSchema
   }
 }

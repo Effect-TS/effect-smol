@@ -472,7 +472,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
       },
       {
         title: "Complete",
-        serializerJson: ([exit]) =>
+        toCodecJson: ([exit]) =>
           Schema.link<Complete<Success["Encoded"], Error["Encoded"]>>()(
             Schema.Struct({
               _tag: Schema.Literal("Complete"),

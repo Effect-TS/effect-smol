@@ -194,7 +194,7 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
       },
       {
         title: "Chunk",
-        serializerJson: ([success]) =>
+        toCodecJson: ([success]) =>
           Schema.link<Chunk<Rpc.Any>>()(
             Schema.Struct({
               _tag: Schema.Literal("Chunk"),
@@ -280,7 +280,7 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
       },
       {
         title: "WithExit",
-        serializerJson: ([exit]) =>
+        toCodecJson: ([exit]) =>
           Schema.link<WithExit<Rpc.Any>>()(
             Schema.Struct({
               _tag: Schema.Literal("WithExit"),

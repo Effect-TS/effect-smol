@@ -75,9 +75,9 @@ type FastCheckConstraint =
 
 function merge(
   _tag: "string" | "number" | "bigint" | "array" | "date",
-  constraints: Annotations.Arbitrary.Constraint,
+  constraints: Annotations.Arbitrary.ToArbitraryConstraint,
   constraint: FastCheckConstraint
-): Annotations.Arbitrary.Constraint {
+): Annotations.Arbitrary.ToArbitraryConstraint {
   const c = constraints[_tag]
   return {
     ...constraints,
@@ -93,7 +93,7 @@ const constraintsKeys = {
   date: null
 }
 
-function isConstraintKey(key: string): key is keyof Annotations.Arbitrary.Constraint {
+function isConstraintKey(key: string): key is keyof Annotations.Arbitrary.ToArbitraryConstraint {
   return key in constraintsKeys
 }
 
@@ -101,9 +101,11 @@ function isConstraintKey(key: string): key is keyof Annotations.Arbitrary.Constr
 export function constraintContext(
   filters: Array<AST.Filter<any>>
 ): (ctx: Annotations.Arbitrary.Context) => Annotations.Arbitrary.Context {
-  const annotations = filters.map((filter) => filter.annotations?.arbitraryConstraint).filter(Predicate.isNotUndefined)
+  const annotations = filters.map((filter) => filter.annotations?.toArbitraryConstraint).filter(
+    Predicate.isNotUndefined
+  )
   return (ctx) => {
-    const constraints = annotations.reduce((acc: Annotations.Arbitrary.Constraint, c) => {
+    const constraints = annotations.reduce((acc: Annotations.Arbitrary.ToArbitraryConstraint, c) => {
       const keys = Object.keys(c)
       for (const key of keys) {
         if (isConstraintKey(key)) {
@@ -148,8 +150,8 @@ function recur(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWit
   // ---------------------------------------------
   // handle Override annotation
   // ---------------------------------------------
-  const annotation = Annotations.resolve(ast)?.arbitrary as
-    | Annotations.Arbitrary.Override<any, ReadonlyArray<Schema.Top>>
+  const annotation = Annotations.resolve(ast)?.toArbitrary as
+    | Annotations.Arbitrary.ToArbitrary<any, ReadonlyArray<Schema.Top>>
     | undefined
   if (annotation) {
     const typeParameters = AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => recur(tp, path)) : []

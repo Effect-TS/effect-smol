@@ -119,7 +119,7 @@ describe("Serializers", () => {
       it("should apply the construction process to the provided link in the serializer annotation", async () => {
         const schema = Schema.Struct({
           a: Schema.Date.annotate({
-            serializer: () =>
+            "toCodec*": () =>
               Schema.link<Date>()(
                 Schema.Date,
                 Transformation.passthrough()
@@ -150,7 +150,7 @@ describe("Serializers", () => {
             MyError,
             {
               title: "MyError",
-              serializer: () =>
+              "toCodec*": () =>
                 Schema.link<MyError>()(
                   Schema.String,
                   Transformation.transform({
@@ -186,7 +186,7 @@ describe("Serializers", () => {
               MyError,
               {
                 title: "MyError",
-                serializer: () =>
+                "toCodec*": () =>
                   Schema.link<MyError>()(
                     MyError.Props,
                     Transformation.transform({

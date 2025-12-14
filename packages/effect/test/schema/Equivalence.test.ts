@@ -5,11 +5,11 @@ import { describe, it } from "vitest"
 import { assertFalse, assertTrue, throws } from "../utils/assert.ts"
 
 const Modulo2 = Schema.Number.annotate({
-  equivalence: (): Equivalence.Equivalence<number> => Equivalence.make((a, b) => a % 2 === b % 2)
+  toEquivalence: (): Equivalence.Equivalence<number> => Equivalence.make((a, b) => a % 2 === b % 2)
 })
 
 const Modulo3 = Schema.Number.annotate({
-  equivalence: (): Equivalence.Equivalence<number> => Equivalence.make((a, b) => a % 3 === b % 3)
+  toEquivalence: (): Equivalence.Equivalence<number> => Equivalence.make((a, b) => a % 3 === b % 3)
 })
 
 describe("Equivalence generation", () => {
@@ -436,10 +436,10 @@ describe("Equivalence generation", () => {
   })
 
   describe("Annotations", () => {
-    describe("Override annotation", () => {
+    describe("overrideToEquivalence", () => {
       it("String", () => {
         const schema = Schema.String.pipe(
-          Schema.overrideEquivalence(() => Equivalence.make((a, b) => a.substring(0, 1) === b.substring(0, 1)))
+          Schema.overrideToEquivalence(() => Equivalence.make((a, b) => a.substring(0, 1) === b.substring(0, 1)))
         )
         const equivalence = Schema.toEquivalence(schema)
         assertTrue(equivalence("ab", "ac"))
@@ -447,7 +447,7 @@ describe("Equivalence generation", () => {
 
       it("String & isMinLength(1)", () => {
         const schema = Schema.String.check(Schema.isMinLength(1)).pipe(
-          Schema.overrideEquivalence(() => Equivalence.make((a, b) => a.substring(0, 1) === b.substring(0, 1)))
+          Schema.overrideToEquivalence(() => Equivalence.make((a, b) => a.substring(0, 1) === b.substring(0, 1)))
         )
         const equivalence = Schema.toEquivalence(schema)
         assertTrue(equivalence("ab", "ac"))

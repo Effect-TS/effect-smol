@@ -43,7 +43,7 @@ describe("Arbitrary generation", () => {
   it("should pass constraints to the override annotation", () => {
     let constraints: Annotations.Arbitrary.NumberConstraints | undefined
     const schema = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 100 })).annotate({
-      arbitrary: () => (fc, ctx) => {
+      toArbitrary: () => (fc, ctx) => {
         constraints = ctx.constraints?.number
         return fc.float(constraints)
       }

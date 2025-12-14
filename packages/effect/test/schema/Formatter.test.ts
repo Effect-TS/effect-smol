@@ -487,16 +487,16 @@ describe("Formatter generation", () => {
   })
 
   describe("Annotations", () => {
-    describe("Override annotation", () => {
+    describe("overrideToFormatter", () => {
       it("String", () => {
-        const schema = Schema.String.pipe(Schema.overrideFormatter(() => (s) => s.toUpperCase()))
+        const schema = Schema.String.pipe(Schema.overrideToFormatter(() => (s) => s.toUpperCase()))
         const format = Schema.toFormatter(schema)
         strictEqual(format("a"), "A")
       })
 
       it("String & isMinLength(1)", () => {
         const schema = Schema.String.check(Schema.isMinLength(1)).pipe(
-          Schema.overrideFormatter(() => (s) => s.toUpperCase())
+          Schema.overrideToFormatter(() => (s) => s.toUpperCase())
         )
         const format = Schema.toFormatter(schema)
         strictEqual(format("a"), "A")

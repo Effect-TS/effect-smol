@@ -228,7 +228,7 @@ describe("Differ generation", () => {
 
     it("roundtrip", () => {
       roundtrip(Schema.Any.annotate({
-        arbitrary: () => (fc) => fc.json()
+        toArbitrary: () => (fc) => fc.json()
       }))
       roundtrip(Schema.String)
       roundtrip(Schema.Number)

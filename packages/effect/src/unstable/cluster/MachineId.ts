@@ -10,7 +10,7 @@ import * as Schema from "../../schema/Schema.ts"
 export const MachineId = Schema.Int.pipe(
   Schema.brand<"~effect/cluster/MachineId">(),
   Schema.annotate({
-    formatter: () => (machineId: string) => `MachineId(${machineId})`
+    toFormatter: () => (machineId: string) => `MachineId(${machineId})`
   })
 )
 

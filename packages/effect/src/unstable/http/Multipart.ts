@@ -154,7 +154,7 @@ export const FileSchema: FileSchema = Schema.declare(
   isPersistedFile,
   {
     identifier: "PersistedFile",
-    jsonSchema: () => ({
+    toJsonSchema: () => ({
       "type": "string",
       "format": "binary"
     })

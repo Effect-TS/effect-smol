@@ -409,14 +409,16 @@ function getConstraint<T>(
   target: Schema.JsonSchema.Target,
   type?: Schema.JsonSchema.Type
 ): Schema.JsonSchema | undefined {
-  const annotation = check.annotations?.jsonSchemaConstraint as Annotations.JsonSchema.Constraint | undefined
+  const annotation = check.annotations?.toJsonSchemaConstraint as
+    | Annotations.JsonSchema.ToJsonSchemaConstraint
+    | undefined
   if (annotation) return annotation({ target, type })
 }
 
 function getAnnotation(
   annotations: Annotations.Annotations | undefined
-): Annotations.JsonSchema.Override<ReadonlyArray<Schema.Top>> | undefined {
-  return annotations?.jsonSchema as any
+): Annotations.JsonSchema.ToJsonSchema<ReadonlyArray<Schema.Top>> | undefined {
+  return annotations?.toJsonSchema as any
 }
 
 function isOptional(ast: AST.AST): boolean {

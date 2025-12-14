@@ -22,13 +22,11 @@ function addTwo(date: Date): Date {
 }
 
 describe("Optic generation", () => {
-  describe("override", () => {
-    it("override", () => {
-      const schema = Schema.URL.pipe(Schema.overrideIso(Schema.String, Transformation.urlFromString))
-      const optic = Schema.toIso(schema)
-      const modify = optic.modify((s) => s + "test")
-      deepStrictEqual(modify(new URL("https://example.com")), new URL("https://example.com/test"))
-    })
+  it("overrideToCodecIsoOptic", () => {
+    const schema = Schema.URL.pipe(Schema.overrideToCodecIsoOptic(Schema.String, Transformation.urlFromString))
+    const optic = Schema.toIso(schema)
+    const modify = optic.modify((s) => s + "test")
+    deepStrictEqual(modify(new URL("https://example.com")), new URL("https://example.com/test"))
   })
 
   describe("makeIso", () => {

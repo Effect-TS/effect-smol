@@ -44,7 +44,7 @@ export const CookiesSchema: CookiesSchema = Schema.declare(
   isCookies,
   {
     title: "Cookies",
-    serializerJson: () =>
+    toCodecJson: () =>
       Schema.link<Cookies>()(
         Schema.Array(Schema.String),
         Transformation.transform({
@@ -52,7 +52,7 @@ export const CookiesSchema: CookiesSchema = Schema.declare(
           encode: (cookies) => toSetCookieHeaders(cookies)
         })
       ),
-    serializerIso: () =>
+    toCodecIsoOptic: () =>
       Schema.link<Cookies>()(
         Schema.Record(Schema.String, CookieSchema),
         Transformation.transform({

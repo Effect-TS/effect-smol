@@ -2067,12 +2067,12 @@ export function isPattern(regExp: globalThis.RegExp, annotations?: Annotations.F
     (s: string) => regExp.test(s),
     Annotations.combine({
       expected: `a string matching the RegExp ${source}`,
-      jsonSchemaConstraint: () => ({ pattern: regExp.source }),
+      toJsonSchemaConstraint: () => ({ pattern: regExp.source }),
       meta: {
         _tag: "isPattern",
         regExp
       },
-      arbitraryConstraint: {
+      toArbitraryConstraint: {
         string: {
           patterns: [regExp.source]
         }

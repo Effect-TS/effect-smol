@@ -414,7 +414,7 @@ export const withEncoding: {
     },
     ...(options.kind === "Uint8Array" ?
       {
-        jsonSchema: () => ({
+        toJsonSchema: () => ({
           "type": "string",
           "format": "binary"
         })

@@ -16,8 +16,8 @@ function recur(ast: AST.AST, path: ReadonlyArray<PropertyKey>): Equivalence.Equi
   // ---------------------------------------------
   // handle annotations
   // ---------------------------------------------
-  const annotation = Annotations.resolve(ast)?.["equivalence"] as
-    | Annotations.Equivalence.Override<any, ReadonlyArray<any>>
+  const annotation = Annotations.resolve(ast)?.["toEquivalence"] as
+    | Annotations.Equivalence.ToEquivalence<any, ReadonlyArray<any>>
     | undefined
   if (annotation) {
     return annotation(AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => recur(tp, path)) : [])

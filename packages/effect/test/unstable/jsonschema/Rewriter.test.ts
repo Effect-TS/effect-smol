@@ -677,7 +677,7 @@ describe("Rewriter", () => {
         Schema.Struct({
           a: Schema.String.annotate({
             description: "description",
-            jsonSchema: () => ({
+            toJsonSchema: () => ({
               const: "a"
             })
           })
