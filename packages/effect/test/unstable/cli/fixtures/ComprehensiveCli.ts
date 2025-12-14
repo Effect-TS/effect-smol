@@ -381,6 +381,7 @@ const appWithService = Command.make("app-nested", {
   )
 
 // Main command with global options
+// Note: No handler on root command - running with no args should show help
 export const ComprehensiveCli = Command.make("mycli", {
   // Global options available to all subcommands
   debug: Flag.boolean("debug").pipe(
@@ -396,15 +397,10 @@ export const ComprehensiveCli = Command.make("mycli", {
     Flag.withAlias("q"),
     Flag.withDescription("Suppress non-error output")
   )
-}, (config) =>
-  logAction("mycli", {
-    debug: config.debug,
-    config: config.config,
-    quiet: config.quiet
-  })).pipe(
-    Command.withDescription("A comprehensive CLI tool demonstrating all features"),
-    Command.withSubcommands([admin, copy, move, remove, build, git, testRequired, testFailing, app, appWithService])
-  )
+}).pipe(
+  Command.withDescription("A comprehensive CLI tool demonstrating all features"),
+  Command.withSubcommands([admin, copy, move, remove, build, git, testRequired, testFailing, app, appWithService])
+)
 
 export const run = Command.runWith(ComprehensiveCli, {
   version: "1.0.0"

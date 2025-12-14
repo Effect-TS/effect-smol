@@ -814,5 +814,19 @@ describe("Command", () => {
         const actions = yield* TestActions.getActions
         assert.strictEqual(actions.length, 0)
       }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("should print help when invoked with no arguments", () =>
+      Effect.gen(function*() {
+        yield* Cli.run([])
+
+        // Check that help text was shown to stdout
+        const stdout = yield* TestConsole.logLines
+        assert.isTrue(stdout.some((line) => String(line).includes("DESCRIPTION")))
+        assert.isTrue(stdout.some((line) => String(line).includes("comprehensive CLI tool")))
+
+        // Handler should NOT have run
+        const actions = yield* TestActions.getActions
+        assert.strictEqual(actions.length, 0)
+      }).pipe(Effect.provide(TestLayer)))
   })
 })
