@@ -18,18 +18,18 @@ import * as Schema from "./Schema.ts"
 /**
  * @since 4.0.0
  */
-export interface External {
-  readonly _tag: "External"
+export interface Declaration {
+  readonly _tag: "Declaration"
   readonly annotations?: Annotations.Annotations | undefined
   readonly typeParameters: ReadonlyArray<StandardSchema>
-  readonly checks: ReadonlyArray<Check<DateCheckMeta>>
+  readonly checks: ReadonlyArray<Check<DateMeta>>
 }
 
 /**
  * @since 4.0.0
  */
-export interface Reference {
-  readonly _tag: "Reference"
+export interface Suspend {
+  readonly _tag: "Suspend"
   readonly annotations?: Annotations.Annotations | undefined
   readonly $ref: string
 }
@@ -88,7 +88,7 @@ export interface Any {
 export interface String {
   readonly _tag: "String"
   readonly annotations?: Annotations.Annotations | undefined
-  readonly checks: ReadonlyArray<Check<StringCheckMeta>>
+  readonly checks: ReadonlyArray<Check<StringMeta>>
   readonly contentMediaType?: string | undefined
   readonly contentSchema?: StandardSchema | undefined
 }
@@ -99,7 +99,7 @@ export interface String {
 export interface Number {
   readonly _tag: "Number"
   readonly annotations?: Annotations.Annotations | undefined
-  readonly checks: ReadonlyArray<Check<NumberCheckMeta>>
+  readonly checks: ReadonlyArray<Check<NumberMeta>>
 }
 
 /**
@@ -116,7 +116,7 @@ export interface Boolean {
 export interface BigInt {
   readonly _tag: "BigInt"
   readonly annotations?: Annotations.Annotations | undefined
-  readonly checks: ReadonlyArray<Check<BigIntCheckMeta>>
+  readonly checks: ReadonlyArray<Check<BigIntMeta>>
 }
 
 /**
@@ -232,8 +232,8 @@ export interface IndexSignature {
  * @since 4.0.0
  */
 export type StandardSchema =
-  | External
-  | Reference
+  | Declaration
+  | Suspend
   | Null
   | Undefined
   | Void
@@ -280,7 +280,7 @@ export interface FilterGroup<M> {
 /**
  * @since 4.0.0
  */
-export type StringCheckMeta = Annotations.BuiltInMetaRegistry[
+export type StringMeta = Annotations.BuiltInMetaRegistry[
   | "isNumberString"
   | "isBigIntString"
   | "isSymbolString"
@@ -305,7 +305,7 @@ export type StringCheckMeta = Annotations.BuiltInMetaRegistry[
 /**
  * @since 4.0.0
  */
-export type NumberCheckMeta = Annotations.BuiltInMetaRegistry[
+export type NumberMeta = Annotations.BuiltInMetaRegistry[
   | "isInt"
   | "isFinite"
   | "isMultipleOf"
@@ -319,7 +319,7 @@ export type NumberCheckMeta = Annotations.BuiltInMetaRegistry[
 /**
  * @since 4.0.0
  */
-export type BigIntCheckMeta = Annotations.BuiltInMetaRegistry[
+export type BigIntMeta = Annotations.BuiltInMetaRegistry[
   | "isGreaterThanOrEqualToBigInt"
   | "isLessThanOrEqualToBigInt"
   | "isGreaterThanBigInt"
@@ -330,7 +330,7 @@ export type BigIntCheckMeta = Annotations.BuiltInMetaRegistry[
 /**
  * @since 4.0.0
  */
-export type DateCheckMeta = Annotations.BuiltInMetaRegistry[
+export type DateMeta = Annotations.BuiltInMetaRegistry[
   | "isValidDate"
   | "isGreaterThanDate"
   | "isGreaterThanOrEqualToDate"
@@ -351,7 +351,7 @@ export type Document = {
 // schemas
 // -----------------------------------------------------------------------------
 
-const StandardSchema$ref = Schema.suspend((): Schema.Codec<StandardSchema, unknown> => StandardSchema$)
+const Schema$ref = Schema.suspend((): Schema.Codec<StandardSchema, unknown> => Schema$)
 
 type PrimitiveTree = Getter.Tree<null | number | boolean | bigint | symbol | string>
 
@@ -369,7 +369,11 @@ export const PrimitiveTree$ = Schema.Union([
   Schema.String,
   Schema.Array(PrimitiveTree$ref),
   Schema.Record(Schema.String, PrimitiveTree$ref)
-])
+]).annotate({
+  identifier: "PrimitiveTree",
+  description: "A tree of primitive values",
+  title: "PrimitiveTree"
+})
 
 const toJsonBlacklist: Set<string> = new Set([
   "toArbitrary",
@@ -406,7 +410,7 @@ export const Annotations$ = Schema.Record(Schema.String, Schema.Unknown).pipe(
       return Rec.isRecordEmpty(out) ? Option.none() : Option.some(out)
     }))
   })
-)
+).annotate({ identifier: "Annotations", title: "Annotations" })
 
 /**
  * @since 4.0.0
@@ -414,7 +418,7 @@ export const Annotations$ = Schema.Record(Schema.String, Schema.Unknown).pipe(
 export const Null$ = Schema.Struct({
   _tag: Schema.tag("Null"),
   annotations: Schema.optionalKey(Annotations$)
-}).annotate({ identifier: "Null" })
+}).annotate({ identifier: "Null", title: "Null" })
 
 /**
  * @since 4.0.0
@@ -422,7 +426,7 @@ export const Null$ = Schema.Struct({
 export const Undefined$ = Schema.Struct({
   _tag: Schema.tag("Undefined"),
   annotations: Schema.optionalKey(Annotations$)
-}).annotate({ identifier: "Undefined" })
+}).annotate({ identifier: "Undefined", title: "Undefined" })
 
 /**
  * @since 4.0.0
@@ -430,7 +434,7 @@ export const Undefined$ = Schema.Struct({
 export const Void$ = Schema.Struct({
   _tag: Schema.tag("Void"),
   annotations: Schema.optionalKey(Annotations$)
-}).annotate({ identifier: "Void" })
+}).annotate({ identifier: "Void", title: "Void" })
 
 /**
  * @since 4.0.0
@@ -438,7 +442,7 @@ export const Void$ = Schema.Struct({
 export const Never$ = Schema.Struct({
   _tag: Schema.tag("Never"),
   annotations: Schema.optionalKey(Annotations$)
-}).annotate({ identifier: "Never" })
+}).annotate({ identifier: "Never", title: "Never" })
 
 /**
  * @since 4.0.0
@@ -446,7 +450,7 @@ export const Never$ = Schema.Struct({
 export const Unknown$ = Schema.Struct({
   _tag: Schema.tag("Unknown"),
   annotations: Schema.optionalKey(Annotations$)
-}).annotate({ identifier: "Unknown" })
+}).annotate({ identifier: "Unknown", title: "Unknown" })
 
 /**
  * @since 4.0.0
@@ -454,100 +458,112 @@ export const Unknown$ = Schema.Struct({
 export const Any$ = Schema.Struct({
   _tag: Schema.tag("Any"),
   annotations: Schema.optionalKey(Annotations$)
-}).annotate({ identifier: "Any" })
+}).annotate({ identifier: "Any", title: "Any" })
 
 const IsNumberString$ = Schema.Struct({
   _tag: Schema.tag("isNumberString"),
   regExp: Schema.RegExp
-})
+}).annotate({ identifier: "IsNumberString", description: "a string that is a number", title: "IsNumberString" })
 
 const IsBigIntString$ = Schema.Struct({
   _tag: Schema.tag("isBigIntString"),
   regExp: Schema.RegExp
-})
+}).annotate({ identifier: "IsBigIntString", description: "a string that is a big int", title: "IsBigIntString" })
 
 const IsSymbolString$ = Schema.Struct({
   _tag: Schema.tag("isSymbolString"),
   regExp: Schema.RegExp
-})
+}).annotate({ identifier: "IsSymbolString", description: "a string that is a symbol", title: "IsSymbolString" })
 
 const IsTrimmed$ = Schema.Struct({
   _tag: Schema.tag("isTrimmed")
-})
+}).annotate({ identifier: "IsTrimmed", description: "a trimmed string", title: "IsTrimmed" })
 
 const IsUUID$ = Schema.Struct({
   _tag: Schema.tag("isUUID"),
   regExp: Schema.RegExp,
   version: Schema.UndefinedOr(Schema.Literals([1, 2, 3, 4, 5, 6, 7, 8]))
-})
+}).annotate({ identifier: "IsUUID", description: "a UUID string", title: "IsUUID" })
 
 const IsULID$ = Schema.Struct({
   _tag: Schema.tag("isULID"),
   regExp: Schema.RegExp
-})
+}).annotate({ identifier: "IsULID", description: "a ULID string", title: "IsULID" })
 
 const IsBase64$ = Schema.Struct({
   _tag: Schema.tag("isBase64"),
   regExp: Schema.RegExp
-})
+}).annotate({ identifier: "IsBase64", description: "a base64 encoded string", title: "IsBase64" })
 
 const IsBase64Url$ = Schema.Struct({
   _tag: Schema.tag("isBase64Url"),
   regExp: Schema.RegExp
-})
+}).annotate({ identifier: "IsBase64Url", description: "a base64url encoded string", title: "IsBase64Url" })
 
 const IsStartsWith$ = Schema.Struct({
   _tag: Schema.tag("isStartsWith"),
   startsWith: Schema.String
+}).annotate({
+  identifier: "IsStartsWith",
+  description: "a string that starts with the given string",
+  title: "IsStartsWith"
 })
 
 const IsEndsWith$ = Schema.Struct({
   _tag: Schema.tag("isEndsWith"),
   endsWith: Schema.String
-})
+}).annotate({ identifier: "IsEndsWith", description: "a string that ends with the given string", title: "IsEndsWith" })
 
 const IsIncludes$ = Schema.Struct({
   _tag: Schema.tag("isIncludes"),
   includes: Schema.String
-})
+}).annotate({ identifier: "IsIncludes", description: "a string that includes the given string", title: "IsIncludes" })
 
 const IsUppercased$ = Schema.Struct({
   _tag: Schema.tag("isUppercased")
-})
+}).annotate({ identifier: "IsUppercased", description: "a string that is uppercased", title: "IsUppercased" })
 
 const IsLowercased$ = Schema.Struct({
   _tag: Schema.tag("isLowercased")
-})
+}).annotate({ identifier: "IsLowercased", description: "a string that is lowercased", title: "IsLowercased" })
 
 const IsCapitalized$ = Schema.Struct({
   _tag: Schema.tag("isCapitalized")
-})
+}).annotate({ identifier: "IsCapitalized", description: "a string that is capitalized", title: "IsCapitalized" })
 
 const IsUncapitalized$ = Schema.Struct({
   _tag: Schema.tag("isUncapitalized")
-})
+}).annotate({ identifier: "IsUncapitalized", description: "a string that is uncapitalized", title: "IsUncapitalized" })
 
 const IsMinLength$ = Schema.Struct({
   _tag: Schema.tag("isMinLength"),
   minLength: Schema.Number
+}).annotate({
+  identifier: "IsMinLength",
+  description: "a string that is at least the given length",
+  title: "IsMinLength"
 })
 
 const IsMaxLength$ = Schema.Struct({
   _tag: Schema.tag("isMaxLength"),
   maxLength: Schema.Number
+}).annotate({
+  identifier: "IsMaxLength",
+  description: "a string that is at most the given length",
+  title: "IsMaxLength"
 })
 
 const IsPattern$ = Schema.Struct({
   _tag: Schema.tag("isPattern"),
   regExp: Schema.RegExp
-})
+}).annotate({ identifier: "IsPattern", description: "a string that matches the given pattern", title: "IsPattern" })
 
 const IsLength$ = Schema.Struct({
   _tag: Schema.tag("isLength"),
   length: Schema.Number
-})
+}).annotate({ identifier: "IsLength", description: "a string that is the given length", title: "IsLength" })
 
-const StringMeta = Schema.Union([
+const StringMeta$ = Schema.Union([
   IsNumberString$,
   IsBigIntString$,
   IsSymbolString$,
@@ -567,22 +583,34 @@ const StringMeta = Schema.Union([
   IsMaxLength$,
   IsPattern$,
   IsLength$
-])
+]).annotate({ identifier: "StringMeta", description: "all built-in meta info for a string", title: "StringMeta" })
 
-function makeCheck<T>(schema: Schema.Codec<T>) {
+function makeCheck<T>(meta: Schema.Codec<T>, identifier: string) {
   const Check$ref = Schema.suspend((): Schema.Codec<Check<T>> => Check)
   const Check = Schema.Union([
     Schema.Struct({
       _tag: Schema.tag("Filter"),
       annotations: Schema.optionalKey(Annotations$),
-      meta: schema
+      meta
+    }).annotate({
+      identifier: `${identifier}Filter`,
+      description: `a single filter for a ${identifier}`,
+      title: `${identifier}Filter`
     }),
     Schema.Struct({
       _tag: Schema.tag("FilterGroup"),
       annotations: Schema.optionalKey(Annotations$),
-      checks: Schema.TupleWithRest(Schema.Tuple([Check$ref, Check$ref]), [Check$ref])
+      checks: Schema.NonEmptyArray(Check$ref)
+    }).annotate({
+      identifier: `${identifier}FilterGroup`,
+      description: `a group of checks for a ${identifier}`,
+      title: `${identifier}FilterGroup`
     })
-  ])
+  ]).annotate({
+    identifier: `${identifier}Check`,
+    description: `Checks for a ${identifier}`,
+    title: `${identifier}Check`
+  })
   return Check
 }
 
@@ -592,49 +620,69 @@ function makeCheck<T>(schema: Schema.Codec<T>) {
 export const String$ = Schema.Struct({
   _tag: Schema.tag("String"),
   annotations: Schema.optionalKey(Annotations$),
-  checks: Schema.Array(makeCheck(StringMeta)),
+  checks: Schema.Array(makeCheck(StringMeta$, "String")),
   contentMediaType: Schema.optional(Schema.String),
-  contentSchema: Schema.optional(StandardSchema$ref)
-}).annotate({ identifier: "String" })
+  contentSchema: Schema.optional(Schema$ref)
+}).annotate({ identifier: "String", title: "String" })
 
 const IsInt$ = Schema.Struct({
   _tag: Schema.tag("isInt")
-})
+}).annotate({ identifier: "IsInt", description: "a number that is an integer", title: "IsInt" })
 
 const IsMultipleOf$ = Schema.Struct({
   _tag: Schema.tag("isMultipleOf"),
   divisor: Schema.Number
+}).annotate({
+  identifier: "IsMultipleOf",
+  description: "a number that is a multiple of the given number",
+  title: "IsMultipleOf"
 })
 
 const IsFinite$ = Schema.Struct({
   _tag: Schema.tag("isFinite")
-})
+}).annotate({ identifier: "IsFinite", description: "a number that is finite", title: "IsFinite" })
 
 const IsGreaterThan$ = Schema.Struct({
   _tag: Schema.tag("isGreaterThan"),
   exclusiveMinimum: Schema.Number
+}).annotate({
+  identifier: "IsGreaterThan",
+  description: "a number that is greater than the given number",
+  title: "IsGreaterThan"
 })
 
 const IsGreaterThanOrEqualTo$ = Schema.Struct({
   _tag: Schema.tag("isGreaterThanOrEqualTo"),
   minimum: Schema.Number
+}).annotate({
+  identifier: "IsGreaterThanOrEqualTo",
+  description: "a number that is greater than or equal to the given number",
+  title: "IsGreaterThanOrEqualTo"
 })
 
 const IsLessThan$ = Schema.Struct({
   _tag: Schema.tag("isLessThan"),
   exclusiveMaximum: Schema.Number
+}).annotate({
+  identifier: "IsLessThan",
+  description: "a number that is less than the given number",
+  title: "IsLessThan"
 })
 
 const IsLessThanOrEqualTo$ = Schema.Struct({
   _tag: Schema.tag("isLessThanOrEqualTo"),
   maximum: Schema.Number
+}).annotate({
+  identifier: "IsLessThanOrEqualTo",
+  description: "a number that is less than or equal to the given number",
+  title: "IsLessThanOrEqualTo"
 })
 
 const IsBetween$ = Schema.Struct({
   _tag: Schema.tag("isBetween"),
   minimum: Schema.Number,
   maximum: Schema.Number
-})
+}).annotate({ identifier: "IsBetween", description: "a number that is between the given numbers", title: "IsBetween" })
 
 const NumberMeta$ = Schema.Union([
   IsInt$,
@@ -645,7 +693,7 @@ const NumberMeta$ = Schema.Union([
   IsLessThan$,
   IsLessThanOrEqualTo$,
   IsBetween$
-])
+]).annotate({ identifier: "NumberMeta", description: "all built-in meta info for a number", title: "NumberMeta" })
 
 /**
  * @since 4.0.0
@@ -653,8 +701,8 @@ const NumberMeta$ = Schema.Union([
 export const Number$ = Schema.Struct({
   _tag: Schema.tag("Number"),
   annotations: Schema.optionalKey(Annotations$),
-  checks: Schema.Array(makeCheck(NumberMeta$))
-}).annotate({ identifier: "Number" })
+  checks: Schema.Array(makeCheck(NumberMeta$, "Number"))
+}).annotate({ identifier: "Number", title: "Number" })
 
 /**
  * @since 4.0.0
@@ -662,32 +710,52 @@ export const Number$ = Schema.Struct({
 export const Boolean$ = Schema.Struct({
   _tag: Schema.tag("Boolean"),
   annotations: Schema.optionalKey(Annotations$)
-}).annotate({ identifier: "Boolean" })
+}).annotate({ identifier: "Boolean", title: "Boolean" })
 
 const IsGreaterThanBigInt$ = Schema.Struct({
   _tag: Schema.tag("isGreaterThanBigInt"),
   exclusiveMinimum: Schema.BigInt
+}).annotate({
+  identifier: "IsGreaterThanBigInt",
+  description: "a big int that is greater than the given big int",
+  title: "IsGreaterThanBigInt"
 })
 
 const IsGreaterThanOrEqualToBigInt$ = Schema.Struct({
   _tag: Schema.tag("isGreaterThanOrEqualToBigInt"),
   minimum: Schema.BigInt
+}).annotate({
+  identifier: "IsGreaterThanOrEqualToBigInt",
+  description: "a big int that is greater than or equal to the given big int",
+  title: "IsGreaterThanOrEqualToBigInt"
 })
 
 const IsLessThanBigInt$ = Schema.Struct({
   _tag: Schema.tag("isLessThanBigInt"),
   exclusiveMaximum: Schema.BigInt
+}).annotate({
+  identifier: "IsLessThanBigInt",
+  description: "a big int that is less than the given big int",
+  title: "IsLessThanBigInt"
 })
 
 const IsLessThanOrEqualToBigInt$ = Schema.Struct({
   _tag: Schema.tag("isLessThanOrEqualToBigInt"),
   maximum: Schema.BigInt
+}).annotate({
+  identifier: "IsLessThanOrEqualToBigInt",
+  description: "a big int that is less than or equal to the given big int",
+  title: "IsLessThanOrEqualToBigInt"
 })
 
 const IsBetweenBigInt$ = Schema.Struct({
   _tag: Schema.tag("isBetweenBigInt"),
   minimum: Schema.BigInt,
   maximum: Schema.BigInt
+}).annotate({
+  identifier: "IsBetweenBigInt",
+  description: "a big int that is between the given big ints",
+  title: "IsBetweenBigInt"
 })
 
 const BigIntMeta$ = Schema.Union([
@@ -696,7 +764,7 @@ const BigIntMeta$ = Schema.Union([
   IsLessThanBigInt$,
   IsLessThanOrEqualToBigInt$,
   IsBetweenBigInt$
-])
+]).annotate({ identifier: "BigIntMeta", description: "all built-in meta info for a big int", title: "BigIntMeta" })
 
 /**
  * @since 4.0.0
@@ -704,8 +772,8 @@ const BigIntMeta$ = Schema.Union([
 export const BigInt$ = Schema.Struct({
   _tag: Schema.tag("BigInt"),
   annotations: Schema.optionalKey(Annotations$),
-  checks: Schema.Array(makeCheck(BigIntMeta$))
-}).annotate({ identifier: "BigInt" })
+  checks: Schema.Array(makeCheck(BigIntMeta$, "BigInt"))
+}).annotate({ identifier: "BigInt", title: "BigInt" })
 
 /**
  * @since 4.0.0
@@ -713,7 +781,7 @@ export const BigInt$ = Schema.Struct({
 export const Symbol$ = Schema.Struct({
   _tag: Schema.tag("Symbol"),
   annotations: Schema.optionalKey(Annotations$)
-}).annotate({ identifier: "Symbol" })
+}).annotate({ identifier: "Symbol", title: "Symbol" })
 
 /**
  * @since 4.0.0
@@ -723,7 +791,7 @@ export const LiteralValue$ = Schema.Union([
   Schema.Number,
   Schema.Boolean,
   Schema.BigInt
-])
+]).annotate({ identifier: "LiteralValue", description: "a literal value", title: "LiteralValue" })
 
 /**
  * @since 4.0.0
@@ -732,7 +800,7 @@ export const Literal$ = Schema.Struct({
   _tag: Schema.tag("Literal"),
   annotations: Schema.optionalKey(Annotations$),
   literal: LiteralValue$
-}).annotate({ identifier: "Literal" })
+}).annotate({ identifier: "Literal", title: "Literal" })
 
 /**
  * @since 4.0.0
@@ -741,7 +809,7 @@ export const UniqueSymbol$ = Schema.Struct({
   _tag: Schema.tag("UniqueSymbol"),
   annotations: Schema.optionalKey(Annotations$),
   symbol: Schema.Symbol
-}).annotate({ identifier: "UniqueSymbol" })
+}).annotate({ identifier: "UniqueSymbol", title: "UniqueSymbol" })
 
 /**
  * @since 4.0.0
@@ -749,7 +817,7 @@ export const UniqueSymbol$ = Schema.Struct({
 export const ObjectKeyword$ = Schema.Struct({
   _tag: Schema.tag("ObjectKeyword"),
   annotations: Schema.optionalKey(Annotations$)
-}).annotate({ identifier: "ObjectKeyword" })
+}).annotate({ identifier: "ObjectKeyword", title: "ObjectKeyword" })
 
 /**
  * @since 4.0.0
@@ -760,7 +828,7 @@ export const Enum$ = Schema.Struct({
   enums: Schema.Array(
     Schema.Tuple([Schema.String, Schema.Union([Schema.String, Schema.Number])])
   )
-}).annotate({ identifier: "Enum" })
+}).annotate({ identifier: "Enum", title: "Enum" })
 
 /**
  * @since 4.0.0
@@ -768,16 +836,16 @@ export const Enum$ = Schema.Struct({
 export const TemplateLiteral$ = Schema.Struct({
   _tag: Schema.tag("TemplateLiteral"),
   annotations: Schema.optionalKey(Annotations$),
-  parts: Schema.Array(StandardSchema$ref)
-}).annotate({ identifier: "TemplateLiteral" })
+  parts: Schema.Array(Schema$ref)
+}).annotate({ identifier: "TemplateLiteral", title: "TemplateLiteral" })
 
 /**
  * @since 4.0.0
  */
 export const Element$ = Schema.Struct({
   isOptional: Schema.Boolean,
-  ast: StandardSchema$ref
-}).annotate({ identifier: "Element" })
+  ast: Schema$ref
+}).annotate({ identifier: "Element", description: "an element of a tuple", title: "Element" })
 
 /**
  * @since 4.0.0
@@ -786,8 +854,8 @@ export const Arrays$ = Schema.Struct({
   _tag: Schema.tag("Arrays"),
   annotations: Schema.optionalKey(Annotations$),
   elements: Schema.Array(Element$),
-  rest: Schema.Array(StandardSchema$ref)
-}).annotate({ identifier: "Arrays" })
+  rest: Schema.Array(Schema$ref)
+}).annotate({ identifier: "Arrays", title: "Arrays" })
 
 /**
  * @since 4.0.0
@@ -795,18 +863,22 @@ export const Arrays$ = Schema.Struct({
 export const PropertySignature$ = Schema.Struct({
   annotations: Schema.optionalKey(Annotations$),
   name: Schema.PropertyKey,
-  type: StandardSchema$ref,
+  type: Schema$ref,
   isOptional: Schema.Boolean,
   isMutable: Schema.Boolean
-}).annotate({ identifier: "PropertySignature" })
+}).annotate({
+  identifier: "PropertySignature",
+  description: "a property signature of an object",
+  title: "PropertySignature"
+})
 
 /**
  * @since 4.0.0
  */
 export const IndexSignature$ = Schema.Struct({
-  parameter: StandardSchema$ref,
-  type: StandardSchema$ref
-}).annotate({ identifier: "IndexSignature" })
+  parameter: Schema$ref,
+  type: Schema$ref
+}).annotate({ identifier: "IndexSignature", description: "an index signature of an object", title: "IndexSignature" })
 
 /**
  * @since 4.0.0
@@ -816,7 +888,7 @@ export const Objects$ = Schema.Struct({
   annotations: Schema.optionalKey(Annotations$),
   propertySignatures: Schema.Array(PropertySignature$),
   indexSignatures: Schema.Array(IndexSignature$)
-}).annotate({ identifier: "Objects" })
+}).annotate({ identifier: "Objects", title: "Objects" })
 
 /**
  * @since 4.0.0
@@ -824,47 +896,67 @@ export const Objects$ = Schema.Struct({
 export const Union$ = Schema.Struct({
   _tag: Schema.tag("Union"),
   annotations: Schema.optionalKey(Annotations$),
-  types: Schema.Array(StandardSchema$ref),
+  types: Schema.Array(Schema$ref),
   mode: Schema.Literals(["anyOf", "oneOf"])
-}).annotate({ identifier: "Union" })
+}).annotate({ identifier: "Union", title: "Union" })
 
 /**
  * @since 4.0.0
  */
-export const Reference$ = Schema.Struct({
-  _tag: Schema.tag("Reference"),
+export const Suspend$ = Schema.Struct({
+  _tag: Schema.tag("Suspend"),
   annotations: Schema.optionalKey(Annotations$),
   $ref: Schema.String
-}).annotate({ identifier: "Reference" })
+}).annotate({ identifier: "Suspend", title: "Suspend" })
 
 const IsValidDate$ = Schema.Struct({
   _tag: Schema.tag("isValidDate")
-})
+}).annotate({ identifier: "IsValidDate", description: "a date that is a valid date", title: "IsValidDate" })
 
 const IsGreaterThanDate$ = Schema.Struct({
   _tag: Schema.tag("isGreaterThanDate"),
   exclusiveMinimum: Schema.Date
+}).annotate({
+  identifier: "IsGreaterThanDate",
+  description: "a date that is greater than the given date",
+  title: "IsGreaterThanDate"
 })
 
 const IsGreaterThanOrEqualToDate$ = Schema.Struct({
   _tag: Schema.tag("isGreaterThanOrEqualToDate"),
   minimum: Schema.Date
+}).annotate({
+  identifier: "IsGreaterThanOrEqualToDate",
+  description: "a date that is greater than or equal to the given date",
+  title: "IsGreaterThanOrEqualToDate"
 })
 
 const IsLessThanDate$ = Schema.Struct({
   _tag: Schema.tag("isLessThanDate"),
   exclusiveMaximum: Schema.Date
+}).annotate({
+  identifier: "IsLessThanDate",
+  description: "a date that is less than the given date",
+  title: "IsLessThanDate"
 })
 
 const IsLessThanOrEqualToDate$ = Schema.Struct({
   _tag: Schema.tag("isLessThanOrEqualToDate"),
   maximum: Schema.Date
+}).annotate({
+  identifier: "IsLessThanOrEqualToDate",
+  description: "a date that is less than or equal to the given date",
+  title: "IsLessThanOrEqualToDate"
 })
 
 const IsBetweenDate$ = Schema.Struct({
   _tag: Schema.tag("isBetweenDate"),
   minimum: Schema.Date,
   maximum: Schema.Date
+}).annotate({
+  identifier: "IsBetweenDate",
+  description: "a date that is between the given dates",
+  title: "IsBetweenDate"
 })
 
 /**
@@ -877,22 +969,22 @@ const DateMeta$ = Schema.Union([
   IsLessThanDate$,
   IsLessThanOrEqualToDate$,
   IsBetweenDate$
-])
+]).annotate({ identifier: "DateMeta", description: "all built-in meta info for a date", title: "DateMeta" })
 
 /**
  * @since 4.0.0
  */
-export const External$ = Schema.Struct({
-  _tag: Schema.tag("External"),
+export const Declaration$ = Schema.Struct({
+  _tag: Schema.tag("Declaration"),
   annotations: Schema.optionalKey(Annotations$),
-  typeParameters: Schema.Array(StandardSchema$ref),
-  checks: Schema.Array(makeCheck(DateMeta$))
-}).annotate({ identifier: "External" })
+  typeParameters: Schema.Array(Schema$ref),
+  checks: Schema.Array(makeCheck(DateMeta$, "Date"))
+}).annotate({ identifier: "Declaration", title: "Declaration" })
 
 /**
  * @since 4.0.0
  */
-export const StandardSchema$ = Schema.Union([
+export const Schema$ = Schema.Union([
   Null$,
   Undefined$,
   Void$,
@@ -912,17 +1004,17 @@ export const StandardSchema$ = Schema.Union([
   Arrays$,
   Objects$,
   Union$,
-  Reference$,
-  External$
-]).annotate({ identifier: "AST" })
+  Suspend$,
+  Declaration$
+]).annotate({ identifier: "Schema", title: "Schema" })
 
 /**
  * @since 4.0.0
  */
 export const Document$ = Schema.Struct({
-  schema: StandardSchema$,
-  definitions: Schema.Record(Schema.String, StandardSchema$)
-}).annotate({ identifier: "Document" })
+  schema: Schema$,
+  definitions: Schema.Record(Schema.String, Schema$)
+}).annotate({ identifier: "Document", title: "Document" })
 
 // -----------------------------------------------------------------------------
 // APIs
@@ -945,7 +1037,7 @@ export function fromAST(ast: AST.AST): Document {
       const $ref = Annotations.resolveIdentifier(ast)
       if ($ref !== undefined) {
         definitions[$ref] = recur(ast, true)
-        return { _tag: "Reference", $ref }
+        return { _tag: "Suspend", $ref }
       }
     }
     const out: StandardSchema = on(ast)
@@ -963,9 +1055,9 @@ export function fromAST(ast: AST.AST): Document {
         if (visited.has(thunk)) {
           const $ref = Annotations.resolveIdentifier(thunk)
           if ($ref !== undefined) {
-            return { _tag: "Reference", $ref }
+            return { _tag: "Suspend", $ref }
           } else {
-            throw new Error("Suspended schema without identifier detected")
+            throw new Error("Suspended schema without identifier detected", { cause: ast })
           }
         } else {
           return recur(thunk)
@@ -973,7 +1065,7 @@ export function fromAST(ast: AST.AST): Document {
       }
       case "Declaration":
         return {
-          _tag: "External",
+          _tag: "Declaration",
           typeParameters: ast.typeParameters.map((tp) => recur(tp)),
           checks: fromASTChecks(ast.checks)
         }
@@ -1117,14 +1209,14 @@ export function fromJson(u: unknown): Document {
 /**
  * @since 4.0.0
  */
-export type Resolver<O> = (node: External | Reference, recur: (schema: StandardSchema) => O) => O
+export type Resolver<O> = (node: Declaration | Suspend, recur: (schema: StandardSchema) => O) => O
 
 /**
  * @since 4.0.0
  */
 export const toSchemaDefaultResolver: Resolver<Schema.Top> = (node, recur) => {
   switch (node._tag) {
-    case "External": {
+    case "Declaration": {
       switch (node.annotations?.typeConstructor) {
         default:
           throw new Error(`Unknown type constructor: ${node.annotations?.typeConstructor}`)
@@ -1132,7 +1224,7 @@ export const toSchemaDefaultResolver: Resolver<Schema.Top> = (node, recur) => {
           return Schema.Option(recur(node.typeParameters[0]))
       }
     }
-    case "Reference":
+    case "Suspend":
       throw new Error(`Reference to unknown schema: ${node.$ref}`)
   }
 }
@@ -1186,7 +1278,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
   function resolveReference(identifier: string): Schema.Top {
     const definition = document.definitions[identifier]
     if (definition === undefined) {
-      return resolver({ _tag: "Reference", $ref: identifier }, recur)
+      return resolver({ _tag: "Suspend", $ref: identifier }, recur)
     }
 
     const slot = getSlot(identifier)
@@ -1217,9 +1309,9 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
 
   function on(schema: StandardSchema): Schema.Top {
     switch (schema._tag) {
-      case "External":
+      case "Declaration":
         return resolver(schema, recur)
-      case "Reference":
+      case "Suspend":
         return resolveReference(schema.$ref)
       case "Null":
         return Schema.Null
@@ -1302,7 +1394,7 @@ function toSchemaChecks(top: Schema.Top, schema: StandardSchema): Schema.Top {
     case "String":
     case "Number":
     case "BigInt":
-    case "External": {
+    case "Declaration": {
       const checks = schema.checks.map(toSchemaCheck)
       return Arr.isArrayNonEmpty(checks) ? top.check(...checks) : top
     }
@@ -1451,9 +1543,9 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document {
 
   function on(schema: StandardSchema): Schema.JsonSchema {
     switch (schema._tag) {
-      case "External":
+      case "Declaration":
         return {} // TODO
-      case "Reference":
+      case "Suspend":
         return { $ref: `#/$defs/${escapeJsonPointer(schema.$ref)}` }
       case "Null":
         return { type: "null" }
@@ -1650,7 +1742,7 @@ function flattenArrayJsonSchema(js: Schema.JsonSchema): Schema.JsonSchema {
 
 function checkToJsonSchemaFragment(
   check: Check<any>,
-  tag: "String" | "Number"
+  tag: "String" | "Number" | "BigInt"
 ): Schema.JsonSchema {
   if (check._tag === "FilterGroup") {
     const merged = check.checks
@@ -1668,58 +1760,84 @@ function checkToJsonSchemaFragment(
   const meta = check.meta
   const fragment: Schema.JsonSchema = {}
 
-  if (tag === "String") {
-    switch (meta._tag) {
-      case "isMinLength":
-        fragment.minLength = meta.minLength
-        break
-      case "isMaxLength":
-        fragment.maxLength = meta.maxLength
-        break
-      case "isLength":
-        fragment.minLength = meta.length
-        fragment.maxLength = meta.length
-        break
-      case "isPattern":
-        fragment.pattern = meta.regExp.source
-        break
-      case "isUUID":
-        fragment.format = "uuid"
-        break
-      case "isULID":
-        fragment.pattern = "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
-        break
-      case "isBase64":
-        fragment.contentEncoding = "base64"
-        break
-      case "isBase64Url":
-        fragment.contentEncoding = "base64url"
-        break
+  switch (tag) {
+    case "String": {
+      switch (meta._tag) {
+        case "isMinLength":
+          fragment.minLength = meta.minLength
+          break
+        case "isMaxLength":
+          fragment.maxLength = meta.maxLength
+          break
+        case "isLength":
+          fragment.minLength = meta.length
+          fragment.maxLength = meta.length
+          break
+        case "isPattern":
+          fragment.pattern = meta.regExp.source
+          break
+        case "isUUID":
+          fragment.format = "uuid"
+          break
+        case "isULID":
+          fragment.pattern = "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+          break
+        case "isBase64":
+          fragment.contentEncoding = "base64"
+          break
+        case "isBase64Url":
+          fragment.contentEncoding = "base64url"
+          break
+      }
+      break
     }
-  } else {
-    switch (meta._tag) {
-      case "isInt":
-        fragment.type = "integer"
-        break
-      case "isMultipleOf":
-        fragment.multipleOf = meta.divisor
-        break
-      case "isGreaterThanOrEqualTo":
-        fragment.minimum = meta.minimum
-        break
-      case "isLessThanOrEqualTo":
-        fragment.maximum = meta.maximum
-        break
-      case "isGreaterThan":
-        fragment.exclusiveMinimum = meta.exclusiveMinimum
-        break
-      case "isLessThan":
-        fragment.exclusiveMaximum = meta.exclusiveMaximum
-        break
-      case "isBetween":
-        fragment.minimum = meta.minimum
-        fragment.maximum = meta.maximum
-        break
+    case "Number": {
+      switch (meta._tag) {
+        case "isInt":
+          fragment.type = "integer"
+          break
+        case "isMultipleOf":
+          fragment.multipleOf = meta.divisor
+          break
+        case "isGreaterThanOrEqualTo":
+          fragment.minimum = meta.minimum
+          break
+        case "isLessThanOrEqualTo":
+          fragment.maximum = meta.maximum
+          break
+        case "isGreaterThan":
+          fragment.exclusiveMinimum = meta.exclusiveMinimum
+          break
+        case "isLessThan":
+          fragment.exclusiveMaximum = meta.exclusiveMaximum
+          break
+        case "isBetween":
+          fragment.minimum = meta.minimum
+          fragment.maximum = meta.maximum
+          break
+      }
+      break
+    }
+    case "BigInt": {
+      switch (meta._tag) {
+        case "isGreaterThanOrEqualToBigInt":
+          fragment.minimum = meta.minimum
+          break
+        case "isLessThanOrEqualToBigInt":
+          fragment.maximum = meta.maximum
+          break
+        case "isGreaterThanBigInt":
+          fragment.exclusiveMinimum = meta.exclusiveMinimum
+          break
+        case "isLessThanBigInt":
+          fragment.exclusiveMaximum = meta.exclusiveMaximum
+          break
+        case "isBetweenBigInt":
+          fragment.minimum = meta.minimum
+          fragment.maximum = meta.maximum
+          break
+      }
+      break
     }
   }
 
@@ -1729,7 +1847,7 @@ function checkToJsonSchemaFragment(
 function applyChecks(
   jsonSchema: Schema.JsonSchema,
   checks: ReadonlyArray<Check<any>>,
-  tag: "String" | "Number"
+  tag: "String" | "Number" | "BigInt"
 ): Schema.JsonSchema {
   return checks.reduce((acc, check) => {
     const fragment = checkToJsonSchemaFragment(check, tag)
@@ -1782,14 +1900,14 @@ function getPartPattern(part: StandardSchema): string {
  */
 export const toCodeDefaultResolver: Resolver<string> = (node, recur) => {
   switch (node._tag) {
-    case "External": {
+    case "Declaration": {
       const typeConstructor = node.annotations?.typeConstructor
       if (typeof typeConstructor === "string") {
         return `Schema.${typeConstructor}(${node.typeParameters.map((p) => recur(p)).join(", ")})`
       }
       return `Schema.Unknown`
     }
-    case "Reference":
+    case "Suspend":
       throw new Error(`Reference to unknown schema: ${node.$ref}`)
   }
 }
@@ -1801,21 +1919,21 @@ export function toCode(document: Document, options?: {
   readonly resolver?: Resolver<string> | undefined
 }): string {
   const resolver = options?.resolver ?? toCodeDefaultResolver
-  const ast = document.schema
+  const schema = document.schema
 
-  if (ast._tag === "Reference") {
-    const definition = document.definitions[ast.$ref]
+  if (schema._tag === "Suspend") {
+    const definition = document.definitions[schema.$ref]
     if (definition !== undefined) return recur(definition)
   }
-  return recur(ast)
+  return recur(schema)
 
   function recur(schema: StandardSchema): string {
     const b = on(schema)
     switch (schema._tag) {
       default:
         return b + toCodeAnnotate(schema.annotations)
-      case "External":
-      case "Reference":
+      case "Declaration":
+      case "Suspend":
         return b
       case "String":
       case "Number":
@@ -1826,9 +1944,9 @@ export function toCode(document: Document, options?: {
 
   function on(schema: StandardSchema): string {
     switch (schema._tag) {
-      case "External":
+      case "Declaration":
         return resolver(schema, recur)
-      case "Reference": {
+      case "Suspend": {
         if (schema.$ref in document.definitions) {
           return `Schema.suspend((): Schema.Codec<${schema.$ref}> => ${schema.$ref})`
         }
@@ -2054,4 +2172,47 @@ function toCodeFilter(filter: Filter<Annotations.BuiltInMeta>): string {
 
 function toCodeRegExp(regExp: RegExp): string {
   return `new RegExp(${format(regExp.source)}, ${format(regExp.flags)})`
+}
+
+/**
+ * @since 4.0.0
+ */
+export function toJsonSchemaTarget(
+  document: Schema.JsonSchema.Document,
+  target: Exclude<Schema.JsonSchema.Target, "draft-2020-12">
+): Schema.JsonSchema.Document {
+  return {
+    source: target,
+    schema: recur(document.schema),
+    definitions: Rec.map(document.definitions, (d) => recur(d))
+  }
+
+  function recur(schema: Schema.JsonSchema): Schema.JsonSchema {
+    switch (target) {
+      case "draft-07": {
+        return schema
+      }
+      case "openapi-3.1": {
+        return replaceRefs(schema)
+      }
+    }
+  }
+
+  function replaceRefs(value: unknown): any {
+    if (Array.isArray(value)) {
+      return value.map(replaceRefs)
+    } else if (typeof value === "object" && value !== null) {
+      const result: Record<string, unknown> = {}
+      for (const [key, val] of Object.entries(value)) {
+        if (key === "$ref" && typeof val === "string") {
+          result[key] = val.replace(/#\/\$defs\//g, "#/components/schemas/")
+        } else {
+          result[key] = replaceRefs(val)
+        }
+      }
+      return result
+    } else {
+      return value
+    }
+  }
 }

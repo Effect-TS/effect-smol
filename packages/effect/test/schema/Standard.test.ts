@@ -44,7 +44,7 @@ describe("Standard", () => {
         })
         assertToJson(Schema.suspend(() => Schema.String.annotate({ identifier: "ID" })), {
           schema: {
-            _tag: "Reference",
+            _tag: "Suspend",
             $ref: "ID"
           },
           definitions: {
@@ -68,8 +68,8 @@ describe("Standard", () => {
             _tag: "Union",
             mode: "anyOf",
             types: [
-              { _tag: "Reference", $ref: "inner" },
-              { _tag: "Reference", $ref: "inner" }
+              { _tag: "Suspend", $ref: "inner" },
+              { _tag: "Suspend", $ref: "inner" }
             ]
           },
           definitions: {
@@ -89,7 +89,7 @@ describe("Standard", () => {
         it("outer identifier", () => {
           assertToJson(OuterCategory, {
             schema: {
-              _tag: "Reference",
+              _tag: "Suspend",
               $ref: "Category"
             },
             definitions: {
@@ -109,7 +109,7 @@ describe("Standard", () => {
                       _tag: "Arrays",
                       elements: [],
                       rest: [{
-                        _tag: "Reference",
+                        _tag: "Suspend",
                         $ref: "Category"
                       }]
                     },
@@ -141,7 +141,7 @@ describe("Standard", () => {
                     elements: [],
                     rest: [
                       {
-                        _tag: "Reference",
+                        _tag: "Suspend",
                         $ref: "Category"
                       }
                     ]
@@ -170,7 +170,7 @@ describe("Standard", () => {
                       elements: [],
                       rest: [
                         {
-                          _tag: "Reference",
+                          _tag: "Suspend",
                           $ref: "Category"
                         }
                       ]
@@ -190,7 +190,7 @@ describe("Standard", () => {
     it("Declaration", () => {
       assertToJson(Schema.Option(Schema.String), {
         schema: {
-          _tag: "External",
+          _tag: "Declaration",
           annotations: { typeConstructor: "Option" },
           typeParameters: [
             { _tag: "String", checks: [] }
@@ -1821,13 +1821,13 @@ describe("Standard", () => {
       })
     })
 
-    describe("Reference", () => {
+    describe("Suspend", () => {
       it("with identifier without source", () => {
         // This case is harder to represent with Schema, so we keep Standard
         assertToJsonSchema(
           {
             schema: {
-              _tag: "Reference",
+              _tag: "Suspend",
               $ref: "MyType"
             },
             definitions: {}
@@ -1917,14 +1917,14 @@ describe("Standard", () => {
       })
     })
 
-    describe("External", () => {
+    describe("Declaration", () => {
       it("should return empty schema", () => {
         // External nodes are typically from instanceOf or other declarations
         // Keep Standard for this edge case
         assertToJsonSchema(
           {
             schema: {
-              _tag: "External",
+              _tag: "Declaration",
               typeParameters: [],
               checks: []
             },
