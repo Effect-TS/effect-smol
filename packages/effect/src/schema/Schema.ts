@@ -3367,7 +3367,7 @@ export const makeFilter: <T>(
  * @since 4.0.0
  */
 export function makeFilterGroup<T>(
-  checks: readonly [AST.Check<T>, AST.Check<T>, ...Array<AST.Check<T>>],
+  checks: readonly [AST.Check<T>, ...Array<AST.Check<T>>],
   annotations: Annotations.Filter | undefined = undefined
 ): AST.FilterGroup<T> {
   return new AST.FilterGroup(checks, annotations)

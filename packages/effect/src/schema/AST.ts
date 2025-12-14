@@ -1927,11 +1927,11 @@ export class Filter<in E> extends Pipeable.Class {
  */
 export class FilterGroup<in E> extends Pipeable.Class {
   readonly _tag = "FilterGroup"
-  readonly checks: readonly [Check<E>, Check<E>, ...Array<Check<E>>]
+  readonly checks: readonly [Check<E>, ...Array<Check<E>>]
   readonly annotations: Annotations.Filter | undefined
 
   constructor(
-    checks: readonly [Check<E>, Check<E>, ...Array<Check<E>>],
+    checks: readonly [Check<E>, ...Array<Check<E>>],
     annotations: Annotations.Filter | undefined = undefined
   ) {
     super()
