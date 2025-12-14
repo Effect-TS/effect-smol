@@ -20,6 +20,11 @@ const InnerCategory = Schema.Struct({
   )
 })
 
+function assertToCode(schema: Schema.Top, expected: string, resolver?: Standard.Resolver<string>) {
+  const document = Standard.fromAST(schema.ast)
+  strictEqual(Standard.toCode(document, { resolver }), expected)
+}
+
 describe("Standard", () => {
   describe("toJson", () => {
     function assertToJson(
@@ -51,6 +56,34 @@ describe("Standard", () => {
               _tag: "String",
               annotations: { identifier: "ID" },
               checks: []
+            }
+          }
+        })
+      })
+
+      it("does not treat reusing the same suspended thunk result as recursion", () => {
+        const inner = Schema.Struct({ a: Schema.String }).annotate({ identifier: "inner" })
+        const shared = Schema.suspend(() => inner)
+
+        const schema = Schema.Union([shared, shared])
+
+        assertToJson(schema, {
+          ast: {
+            _tag: "Union",
+            mode: "anyOf",
+            types: [
+              { _tag: "Reference", $ref: "inner" },
+              { _tag: "Reference", $ref: "inner" }
+            ]
+          },
+          definitions: {
+            inner: {
+              _tag: "Objects",
+              annotations: { identifier: "inner" },
+              propertySignatures: [
+                { name: "a", type: { _tag: "String", checks: [] }, isOptional: false, isMutable: false }
+              ],
+              indexSignatures: []
             }
           }
         })
@@ -305,7 +338,7 @@ describe("Standard", () => {
 
       it("contentSchema", () => {
         assertToJson(
-          Schema.encodedCodec(Schema.fromJsonString(Schema.Struct({ a: Schema.String }))),
+          Schema.toEncoded(Schema.fromJsonString(Schema.Struct({ a: Schema.String }))),
           {
             ast: {
               _tag: "String",
@@ -708,11 +741,6 @@ describe("Standard", () => {
   })
 
   describe("toCode", () => {
-    function assertToCode(schema: Schema.Top, expected: string, resolver?: Standard.Resolver<string>) {
-      const document = Standard.fromAST(schema.ast)
-      strictEqual(Standard.toCode(document, { resolver }), expected)
-    }
-
     const resolver: Standard.Resolver<string> = (node, recur) => {
       switch (node._tag) {
         case "External": {
@@ -1151,6 +1179,88 @@ describe("Standard", () => {
           `Schema.Tuple([Schema.Struct({ "name": Schema.String }), Schema.Struct({ "age": Schema.Number })])`
         )
       })
+    })
+  })
+
+  describe("toSchema", () => {
+    function assertToSchema(schema: Schema.Top, expected: string) {
+      const document = Standard.fromAST(schema.ast)
+      const toSchema = Standard.toSchema(document.ast)
+      assertToCode(toSchema, expected)
+    }
+
+    it("String", () => {
+      assertToSchema(Schema.String, "Schema.String")
+    })
+
+    it("Struct", () => {
+      assertToSchema(
+        Schema.Struct({}),
+        `Schema.Struct({  })`
+      )
+      assertToSchema(
+        Schema.Struct({ a: Schema.String }),
+        `Schema.Struct({ "a": Schema.String })`
+      )
+      assertToSchema(
+        Schema.Struct({ a: Schema.optionalKey(Schema.String) }),
+        `Schema.Struct({ "a": Schema.optionalKey(Schema.String) })`
+      )
+      assertToSchema(
+        Schema.Struct({ a: Schema.mutableKey(Schema.String) }),
+        `Schema.Struct({ "a": Schema.mutableKey(Schema.String) })`
+      )
+      assertToSchema(
+        Schema.Struct({ a: Schema.optionalKey(Schema.mutableKey(Schema.String)) }),
+        `Schema.Struct({ "a": Schema.mutableKey(Schema.optionalKey(Schema.String)) })`
+      )
+    })
+
+    it("Record", () => {
+      assertToSchema(
+        Schema.Record(Schema.String, Schema.Number),
+        `Schema.Record(Schema.String, Schema.Number)`
+      )
+    })
+
+    it("StructWithRest", () => {
+      assertToSchema(
+        Schema.StructWithRest(Schema.Struct({ a: Schema.String }), [Schema.Record(Schema.String, Schema.Number)]),
+        `Schema.StructWithRest(Schema.Struct({ "a": Schema.String }), [Schema.Record(Schema.String, Schema.Number)])`
+      )
+    })
+
+    it("Tuple", () => {
+      assertToSchema(
+        Schema.Tuple([]),
+        `Schema.Tuple([])`
+      )
+      assertToSchema(
+        Schema.Tuple([Schema.String, Schema.Number]),
+        `Schema.Tuple([Schema.String, Schema.Number])`
+      )
+      assertToSchema(
+        Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)]),
+        `Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)])`
+      )
+    })
+
+    it("Array", () => {
+      assertToSchema(
+        Schema.Array(Schema.String),
+        `Schema.Array(Schema.String)`
+      )
+    })
+
+    it("TupleWithRest", () => {
+      assertToSchema(
+        Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]),
+        `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number])`
+      )
+      assertToSchema(
+        Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number, Schema.Boolean]),
+        `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number, Schema.Boolean])`
+      )
     })
   })
 
@@ -1709,7 +1819,7 @@ describe("Standard", () => {
     describe("String contentSchema", () => {
       it("with contentMediaType and contentSchema", () => {
         assertToJsonSchema(
-          Schema.encodedCodec(
+          Schema.toEncoded(
             Schema.fromJsonString(Schema.Struct({ a: Schema.String }))
           ),
           {

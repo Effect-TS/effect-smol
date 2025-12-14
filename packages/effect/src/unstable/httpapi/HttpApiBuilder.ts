@@ -681,9 +681,9 @@ const toResponseSchema = (getStatus: (ast: AST.AST) => number) => {
     // TODO: See if we can use the Serializer module here
     // const encoding = HttpApiSchema.getEncoding(schema.ast)
     // const serialized = encoding.kind === "Json"
-    //   ? Schema.toSerializerJson(schema)
+    //   ? Schema.toCodecJson(schema)
     //   : encoding.kind === "UrlParams"
-    //   ? Schema.toSerializerStringTree(schema)
+    //   ? Schema.toCodecStringTree(schema)
     //   : schema
     const transform = HttpServerResponseSchema.pipe(
       Schema.decodeTo(schema, responseTransformation(getStatus, schema))

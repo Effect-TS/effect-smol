@@ -175,10 +175,18 @@ export interface TemplateLiteral {
 /**
  * @since 4.0.0
  */
+export interface Element {
+  readonly isOptional: boolean
+  readonly ast: AST
+}
+
+/**
+ * @since 4.0.0
+ */
 export interface Arrays {
   readonly _tag: "Arrays"
   readonly annotations?: Annotations.Annotations | undefined
-  readonly elements: ReadonlyArray<AST>
+  readonly elements: ReadonlyArray<Element>
   readonly rest: ReadonlyArray<AST>
 }
 
@@ -359,14 +367,15 @@ export const PrimitiveTree$ = Schema.Union([
 ])
 
 const toJsonBlacklist: Set<string> = new Set([
-  "arbitrary",
-  "arbitraryConstraint",
-  "jsonSchema",
-  "jsonSchemaConstraint",
-  "equivalence",
-  "formatter",
-  "serializerJson",
-  "serializer",
+  "toArbitrary",
+  "toArbitraryConstraint",
+  "toJsonSchema",
+  "toJsonSchemaConstraint",
+  "toEquivalence",
+  "toFormatter",
+  "toCodec*",
+  "toCodecJson",
+  "toCodecIso",
   "expected",
   "meta",
   "~structural",
@@ -755,10 +764,18 @@ export const TemplateLiteral$ = Schema.Struct({
 /**
  * @since 4.0.0
  */
+export const Element$ = Schema.Struct({
+  isOptional: Schema.Boolean,
+  ast: AST$ref
+}).annotate({ identifier: "Element" })
+
+/**
+ * @since 4.0.0
+ */
 export const Arrays$ = Schema.Struct({
   _tag: Schema.tag("Arrays"),
   annotations: Schema.optionalKey(Annotations$),
-  elements: Schema.Array(AST$ref),
+  elements: Schema.Array(Element$),
   rest: Schema.Array(AST$ref)
 }).annotate({ identifier: "Arrays" })
 
@@ -963,7 +980,7 @@ export function fromAST(ast: SchemaAST.AST): Document {
       case "Arrays":
         return {
           _tag: ast._tag,
-          elements: ast.elements.map((e) => recur(e)),
+          elements: ast.elements.map((e) => ({ isOptional: SchemaAST.isOptional(e), ast: recur(e) })),
           rest: ast.rest.map((r) => recur(r))
         }
       case "Objects":
@@ -1029,7 +1046,7 @@ function fromASTChecks(
   return checks.map(getCheck).filter((c) => c !== undefined)
 }
 
-const serializerJson = Schema.toSerializerJson(AST$)
+const serializerJson = Schema.toCodecJson(AST$)
 const encodeUnknownSync = Schema.encodeUnknownSync(serializerJson)
 const decodeUnknownSync = Schema.decodeUnknownSync(serializerJson)
 
@@ -1124,26 +1141,30 @@ export function toCode(document: Document, options?: {
       case "TemplateLiteral":
         return `Schema.TemplateLiteral([${ast.parts.map((p) => recur(p)).join(", ")}])`
       case "Arrays": {
-        if (ast.elements.length === 0 && ast.rest.length === 0) {
-          return "Schema.Tuple([])"
+        const elements = ast.elements.map((e) => toCodeIsOptional(e.isOptional, recur(e.ast)))
+        const rest = ast.rest.map((r) => recur(r))
+        if (Arr.isArrayNonEmpty(rest)) {
+          if (elements.length === 0 && rest.length === 1) {
+            return `Schema.Array(${rest[0]})`
+          }
+          return `Schema.TupleWithRest(Schema.Tuple([${elements.join(", ")}]), [${rest.join(", ")}])`
         }
-        if (ast.elements.length === 0 && ast.rest.length > 0) {
-          const rest = ast.rest.map((r) => recur(r)).join(", ")
-          return `Schema.Array(${rest})`
-        }
-        if (ast.rest.length === 0) {
-          const elements = ast.elements.map((e) => recur(e)).join(", ")
-          return `Schema.Tuple([${elements}])`
-        }
-        const elements = ast.elements.map((e) => recur(e)).join(", ")
-        const rest = ast.rest.map((r) => recur(r)).join(", ")
-        return `Schema.TupleWithRest(Schema.Tuple([${elements}]), [${rest}])`
+        return `Schema.Tuple([${elements.join(", ")}])`
       }
       case "Objects": {
         const propertySignatures = ast.propertySignatures.map((p) =>
-          `${formatPropertyKey(p.name)}: ${toCodeIsOptional(p.isOptional, recur(p.type))}`
-        ).join(", ")
-        return `Schema.Struct({ ${propertySignatures} })`
+          `${formatPropertyKey(p.name)}: ${toCodeIsMutable(p.isMutable, toCodeIsOptional(p.isOptional, recur(p.type)))}`
+        )
+        const indexSignatures = ast.indexSignatures.map((i) => `Schema.Record(${recur(i.parameter)}, ${recur(i.type)})`)
+        if (Arr.isArrayNonEmpty(indexSignatures)) {
+          if (propertySignatures.length === 0 && indexSignatures.length === 1) {
+            return indexSignatures[0]
+          }
+          return `Schema.StructWithRest(Schema.Struct({ ${propertySignatures.join(", ")} }), [${
+            indexSignatures.join(", ")
+          }])`
+        }
+        return `Schema.Struct({ ${propertySignatures.join(", ")} })`
       }
       case "Union": {
         const mode = ast.mode === "anyOf" ? "" : `, { mode: "oneOf" }`
@@ -1180,6 +1201,10 @@ export function toCodeAnnotate(annotations: Annotations.Annotations | undefined)
 
 function toCodeIsOptional(isOptional: boolean, code: string): string {
   return isOptional ? `Schema.optionalKey(${code})` : code
+}
+
+function toCodeIsMutable(isMutable: boolean, code: string): string {
+  return isMutable ? `Schema.mutableKey(${code})` : code
 }
 
 function toCodeChecks(checks: ReadonlyArray<Check<Annotations.BuiltInMeta>>): string {
@@ -1288,78 +1313,92 @@ function toCodeRegExp(regExp: RegExp): string {
  * @since 4.0.0
  */
 export function toSchema<S extends Schema.Top = Schema.Top>(ast: AST): S {
-  let out = toSchemaBase(ast)
-  if (ast.annotations) out = out.annotate(ast.annotations)
-  out = toSchemaChecks(out, ast)
-  return out as S
-}
+  return recur(ast) as S
 
-function toSchemaBase(ast: AST): Schema.Top {
-  switch (ast._tag) {
-    case "External":
-    case "Reference":
-      return Schema.Unknown // TODO
-    case "Null":
-      return Schema.Null
-    case "Undefined":
-      return Schema.Undefined
-    case "Void":
-      return Schema.Void
-    case "Never":
-      return Schema.Never
-    case "Unknown":
-      return Schema.Unknown
-    case "Any":
-      return Schema.Any
-    case "String":
-      return Schema.String
-    case "Number":
-      return Schema.Number
-    case "Boolean":
-      return Schema.Boolean
-    case "BigInt":
-      return Schema.BigInt
-    case "Symbol":
-      return Schema.Symbol
-    case "Literal":
-      return Schema.Literal(ast.literal)
-    case "UniqueSymbol":
-      return Schema.UniqueSymbol(ast.symbol)
-    case "ObjectKeyword":
-      return Schema.ObjectKeyword
-    case "Enum":
-      return Schema.Enum(Object.fromEntries(ast.enums))
-    case "TemplateLiteral": {
-      const parts = ast.parts.map(toSchema) as any // TODO: Fix this
-      return Schema.TemplateLiteral(parts)
-    }
-    case "Arrays": {
-      if (ast.elements.length === 0 && ast.rest.length === 0) {
-        return Schema.Tuple([])
+  function recur(ast: AST): Schema.Top {
+    let out = on(ast)
+    if (ast.annotations) out = out.annotate(ast.annotations)
+    out = toSchemaChecks(out, ast)
+    return out
+  }
+
+  function on(ast: AST): Schema.Top {
+    switch (ast._tag) {
+      case "External":
+      case "Reference":
+        return Schema.Unknown // TODO
+      case "Null":
+        return Schema.Null
+      case "Undefined":
+        return Schema.Undefined
+      case "Void":
+        return Schema.Void
+      case "Never":
+        return Schema.Never
+      case "Unknown":
+        return Schema.Unknown
+      case "Any":
+        return Schema.Any
+      case "String":
+        return Schema.String
+      case "Number":
+        return Schema.Number
+      case "Boolean":
+        return Schema.Boolean
+      case "BigInt":
+        return Schema.BigInt
+      case "Symbol":
+        return Schema.Symbol
+      case "Literal":
+        return Schema.Literal(ast.literal)
+      case "UniqueSymbol":
+        return Schema.UniqueSymbol(ast.symbol)
+      case "ObjectKeyword":
+        return Schema.ObjectKeyword
+      case "Enum":
+        return Schema.Enum(Object.fromEntries(ast.enums))
+      case "TemplateLiteral": {
+        const parts = ast.parts.map(recur) as Schema.TemplateLiteral.Parts
+        return Schema.TemplateLiteral(parts)
       }
-      if (ast.elements.length === 0 && ast.rest.length > 0) {
-        return Schema.Array(toSchema(ast.rest[0]))
-      }
-      if (ast.rest.length === 0) {
-        const elements = ast.elements.map(toSchema) as any
+      case "Arrays": {
+        const elements = ast.elements.map((e) => {
+          const schema = recur(e.ast)
+          return e.isOptional ? Schema.optionalKey(schema) : schema
+        })
+        const rest = ast.rest.map(recur)
+        if (Arr.isArrayNonEmpty(rest)) {
+          if (ast.elements.length === 0 && ast.rest.length === 1) {
+            return Schema.Array(rest[0])
+          }
+          return Schema.TupleWithRest(Schema.Tuple(elements), rest)
+        }
         return Schema.Tuple(elements)
       }
-      const elements = ast.elements.map(toSchema) as any
-      const rest = ast.rest.map(toSchema) as any
-      return Schema.TupleWithRest(Schema.Tuple(elements), rest)
-    }
-    case "Objects": {
-      const fields: Record<PropertyKey, Schema.Top> = {}
-      for (const ps of ast.propertySignatures) {
-        const schema = toSchema(ps.type)
-        fields[ps.name] = ps.isOptional ? Schema.optionalKey(schema) : schema
+      case "Objects": {
+        const fields: Record<PropertyKey, Schema.Top> = {}
+        for (const ps of ast.propertySignatures) {
+          const schema = recur(ps.type)
+          fields[ps.name] = ps.isOptional ?
+            ps.isMutable ? Schema.mutableKey(Schema.optionalKey(schema)) : Schema.optionalKey(schema) :
+            ps.isMutable ?
+            Schema.mutableKey(schema)
+            : schema
+        }
+        const indexSignatures = ast.indexSignatures.map((is) =>
+          Schema.Record(recur(is.parameter) as Schema.Record.Key, recur(is.type))
+        )
+        if (Arr.isArrayNonEmpty(indexSignatures)) {
+          if (ast.propertySignatures.length === 0 && indexSignatures.length === 1) {
+            return indexSignatures[0]
+          }
+          return Schema.StructWithRest(Schema.Struct(fields), indexSignatures)
+        }
+        return Schema.Struct(fields)
       }
-      const out = Schema.Struct(fields)
-      // TODO: Handle index signatures
-      return out
+      case "Union":
+        return Schema.Union(ast.types.map(recur), { mode: ast.mode })
     }
-    case "Union":
-      return Schema.Union(ast.types.map(toSchema), { mode: ast.mode })
   }
 }
 
@@ -1521,10 +1560,14 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document {
       }
       case "Arrays": {
         const out: Schema.JsonSchema = { type: "array" }
-        const items: Array<Schema.JsonSchema> = ast.elements.map((e) => recur(e))
+        let minItems = ast.elements.length
+        const items: Array<Schema.JsonSchema> = ast.elements.map((e) => {
+          if (e.isOptional) minItems--
+          return recur(e.ast)
+        })
         if (items.length > 0) {
           out.prefixItems = items
-          out.minItems = items.length
+          out.minItems = minItems
         }
         if (ast.rest.length > 0) {
           out.items = recur(ast.rest[0])
@@ -1652,217 +1695,105 @@ function flattenArrayJsonSchema(js: Schema.JsonSchema): Schema.JsonSchema {
   return js
 }
 
+function checkToJsonSchemaFragment(
+  check: Check<any>,
+  tag: "String" | "Number"
+): Schema.JsonSchema {
+  if (check._tag === "FilterGroup") {
+    const merged = check.checks
+      .map((c) => checkToJsonSchemaFragment(c, tag))
+      .filter((js) => Object.keys(js).length > 0)
+      .reduce<Schema.JsonSchema>((acc, js) => combineJsonSchema(acc, js), {})
+
+    return mergeJsonSchemaAnnotations(merged, check.annotations)
+  }
+
+  if (!check.meta) {
+    return getJsonSchemaAnnotations(check.annotations) ?? {}
+  }
+
+  const meta = check.meta
+  const fragment: Schema.JsonSchema = {}
+
+  if (tag === "String") {
+    switch (meta._tag) {
+      case "isMinLength":
+        fragment.minLength = meta.minLength
+        break
+      case "isMaxLength":
+        fragment.maxLength = meta.maxLength
+        break
+      case "isLength":
+        fragment.minLength = meta.length
+        fragment.maxLength = meta.length
+        break
+      case "isPattern":
+        fragment.pattern = meta.regExp.source
+        break
+      case "isUUID":
+        fragment.format = "uuid"
+        break
+      case "isULID":
+        fragment.pattern = "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
+        break
+      case "isBase64":
+        fragment.contentEncoding = "base64"
+        break
+      case "isBase64Url":
+        fragment.contentEncoding = "base64url"
+        break
+    }
+  } else {
+    switch (meta._tag) {
+      case "isInt":
+        fragment.type = "integer"
+        break
+      case "isMultipleOf":
+        fragment.multipleOf = meta.divisor
+        break
+      case "isGreaterThanOrEqualTo":
+        fragment.minimum = meta.minimum
+        break
+      case "isLessThanOrEqualTo":
+        fragment.maximum = meta.maximum
+        break
+      case "isGreaterThan":
+        fragment.exclusiveMinimum = meta.exclusiveMinimum
+        break
+      case "isLessThan":
+        fragment.exclusiveMaximum = meta.exclusiveMaximum
+        break
+      case "isBetween":
+        fragment.minimum = meta.minimum
+        fragment.maximum = meta.maximum
+        break
+    }
+  }
+
+  return mergeJsonSchemaAnnotations(fragment, check.annotations)
+}
+
 function applyChecks(
   jsonSchema: Schema.JsonSchema,
   checks: ReadonlyArray<Check<any>>,
-  astTag: "String" | "Number"
+  tag: "String" | "Number"
 ): Schema.JsonSchema {
-  let result = jsonSchema
-  for (const check of checks) {
-    result = applyCheck(result, check, astTag)
-  }
-  return result
-}
+  return checks.reduce((acc, check) => {
+    const fragment = checkToJsonSchemaFragment(check, tag)
+    if (Object.keys(fragment).length === 0) return acc
 
-function getCheckConstraintFragment(
-  check: Check<any>,
-  astTag: "String" | "Number"
-): Schema.JsonSchema {
-  if (check._tag === "FilterGroup") {
-    // Recursively collect constraints from nested FilterGroups
-    const fragments: Array<Schema.JsonSchema> = []
-    for (const c of check.checks) {
-      const fragment = getCheckConstraintFragment(c, astTag)
-      if (Object.keys(fragment).length > 0) {
-        fragments.push(fragment)
-      }
+    if (
+      typeof acc.type === "string" &&
+      typeof fragment.type === "string" &&
+      fragment.type !== acc.type
+    ) {
+      const { type, ...rest } = fragment
+      const updated = { ...acc, type }
+      return Object.keys(rest).length > 0 ? combineJsonSchema(updated, rest) : updated
     }
-    // Merge all fragments
-    let combined: Schema.JsonSchema = {}
-    for (const fragment of fragments) {
-      combined = { ...combined, ...fragment }
-    }
-    return combined
-  }
 
-  const meta = check.meta
-  if (!meta) {
-    return {}
-  }
-
-  const fragment: Schema.JsonSchema = {}
-
-  switch (astTag) {
-    case "String": {
-      switch (meta._tag) {
-        case "isMinLength":
-          fragment.minLength = meta.minLength
-          break
-        case "isMaxLength":
-          fragment.maxLength = meta.maxLength
-          break
-        case "isLength":
-          fragment.minLength = meta.length
-          fragment.maxLength = meta.length
-          break
-        case "isPattern":
-          fragment.pattern = meta.regExp.source
-          break
-        case "isUUID":
-          fragment.format = "uuid"
-          break
-        case "isULID":
-          fragment.pattern = "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
-          break
-        case "isBase64":
-          fragment.contentEncoding = "base64"
-          break
-        case "isBase64Url":
-          fragment.contentEncoding = "base64url"
-          break
-      }
-      break
-    }
-    case "Number": {
-      switch (meta._tag) {
-        case "isInt":
-          fragment.type = "integer"
-          break
-        case "isMultipleOf":
-          fragment.multipleOf = meta.divisor
-          break
-        case "isGreaterThanOrEqualTo":
-          fragment.minimum = meta.minimum
-          break
-        case "isLessThanOrEqualTo":
-          fragment.maximum = meta.maximum
-          break
-        case "isGreaterThan":
-          fragment.exclusiveMinimum = meta.exclusiveMinimum
-          break
-        case "isLessThan":
-          fragment.exclusiveMaximum = meta.exclusiveMaximum
-          break
-        case "isBetween":
-          fragment.minimum = meta.minimum
-          fragment.maximum = meta.maximum
-          break
-      }
-      break
-    }
-  }
-
-  return fragment
-}
-
-function applyCheck(
-  jsonSchema: Schema.JsonSchema,
-  check: Check<any>,
-  _tag: "String" | "Number"
-): Schema.JsonSchema {
-  if (check._tag === "FilterGroup") {
-    // Collect all constraint fragments from checks
-    const constraintFragment = getCheckConstraintFragment(check, _tag)
-
-    // Merge with FilterGroup annotations
-    const fragmentWithAnnotations = mergeJsonSchemaAnnotations(constraintFragment, check.annotations)
-
-    // If FilterGroup has annotations, always use allOf to keep constraints and annotations together
-    if (check.annotations && Object.keys(fragmentWithAnnotations).length > 0) {
-      return combineJsonSchema(jsonSchema, fragmentWithAnnotations)
-    } else if (Object.keys(constraintFragment).length > 0) {
-      // No annotations, merge constraints directly
-      return combineJsonSchema(jsonSchema, constraintFragment)
-    }
-    return jsonSchema
-  }
-
-  const meta = check.meta
-  if (!meta) {
-    // No meta, just apply annotations
-    const checkAnnotations = getJsonSchemaAnnotations(check.annotations)
-    if (checkAnnotations) {
-      return combineJsonSchema(jsonSchema, checkAnnotations)
-    }
-    return jsonSchema
-  }
-
-  const fragment: Schema.JsonSchema = {}
-
-  switch (_tag) {
-    case "String": {
-      switch (meta._tag) {
-        case "isMinLength":
-          fragment.minLength = meta.minLength
-          break
-        case "isMaxLength":
-          fragment.maxLength = meta.maxLength
-          break
-        case "isLength":
-          fragment.minLength = meta.length
-          fragment.maxLength = meta.length
-          break
-        case "isPattern":
-          fragment.pattern = meta.regExp.source
-          break
-        case "isUUID":
-          fragment.format = "uuid"
-          break
-        case "isULID":
-          fragment.pattern = "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
-          break
-        case "isBase64":
-          fragment.contentEncoding = "base64"
-          break
-        case "isBase64Url":
-          fragment.contentEncoding = "base64url"
-          break
-      }
-      break
-    }
-    case "Number": {
-      switch (meta._tag) {
-        case "isInt":
-          fragment.type = "integer"
-          break
-        case "isMultipleOf":
-          fragment.multipleOf = meta.divisor
-          break
-        case "isGreaterThanOrEqualTo":
-          fragment.minimum = meta.minimum
-          break
-        case "isLessThanOrEqualTo":
-          fragment.maximum = meta.maximum
-          break
-        case "isGreaterThan":
-          fragment.exclusiveMinimum = meta.exclusiveMinimum
-          break
-        case "isLessThan":
-          fragment.exclusiveMaximum = meta.exclusiveMaximum
-          break
-        case "isBetween":
-          fragment.minimum = meta.minimum
-          fragment.maximum = meta.maximum
-          break
-      }
-      break
-    }
-  }
-
-  // Merge fragment with check annotations
-  const fragmentWithAnnotations = mergeJsonSchemaAnnotations(fragment, check.annotations)
-
-  // If fragment changes the type, merge type at top level and handle annotations separately
-  if ("type" in fragmentWithAnnotations && "type" in jsonSchema && fragmentWithAnnotations.type !== jsonSchema.type) {
-    const { type, ...restFragment } = fragmentWithAnnotations
-    const updatedSchema = { ...jsonSchema, type }
-    if (Object.keys(restFragment).length > 0) {
-      return combineJsonSchema(updatedSchema, restFragment)
-    }
-    return updatedSchema
-  }
-
-  return combineJsonSchema(jsonSchema, fragmentWithAnnotations)
+    return combineJsonSchema(acc, fragment)
+  }, jsonSchema)
 }
 
 function containsUndefined(ast: AST): boolean {
