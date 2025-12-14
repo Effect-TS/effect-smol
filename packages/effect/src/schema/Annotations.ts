@@ -137,7 +137,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
   readonly toCodecJson?:
     | ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link)
     | undefined
-  readonly toCodecIsoOptic?:
+  readonly toCodecIso?:
     | ((typeParameters: TypeParameters.Type<TypeParameters>) => AST.Link)
     | undefined
   readonly toJsonSchema?: JsonSchema.ToJsonSchema<TypeParameters> | undefined

@@ -371,7 +371,7 @@ const _b: Lens<{
     readonly b: number;
 }, number>
 */
-const _b = Schema.makeIso(schema).key("b")
+const _b = Schema.toIso(schema).key("b")
 
 console.log(_b.replace(2, { a: "a", b: 1 }))
 // { a: 'a', b: 2 }

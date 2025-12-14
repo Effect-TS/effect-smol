@@ -22,14 +22,14 @@ function addTwo(date: Date): Date {
 }
 
 describe("Optic generation", () => {
-  it("overrideToCodecIsoOptic", () => {
-    const schema = Schema.URL.pipe(Schema.overrideToCodecIsoOptic(Schema.String, Transformation.urlFromString))
+  it("overrideToCodecIso", () => {
+    const schema = Schema.URL.pipe(Schema.overrideToCodecIso(Schema.String, Transformation.urlFromString))
     const optic = Schema.toIso(schema)
     const modify = optic.modify((s) => s + "test")
     deepStrictEqual(modify(new URL("https://example.com")), new URL("https://example.com/test"))
   })
 
-  describe("makeIso", () => {
+  describe("toIso", () => {
     describe("Class", () => {
       it("Class", () => {
         class A extends Schema.Class<A>("A")({ value: Value }) {}
@@ -87,7 +87,7 @@ describe("Optic generation", () => {
     it("Array", () => {
       const schema = Schema.Array(Value)
       const optic = Schema.toIso(schema)
-      const item = Schema.makeIsoFocus(Value).key("a")
+      const item = Schema.toIsoFocus(Value).key("a")
       const modify = optic.modify((as) => as.map(item.modify(addOne)))
 
       deepStrictEqual(modify([Value.makeUnsafe({ a: new Date(0) })]), [Value.makeUnsafe({ a: new Date(1) })])
@@ -96,7 +96,7 @@ describe("Optic generation", () => {
     it("NonEmptyArray", () => {
       const schema = Schema.NonEmptyArray(Value)
       const optic = Schema.toIso(schema)
-      const item = Schema.makeIsoFocus(Value).key("a")
+      const item = Schema.toIsoFocus(Value).key("a")
       const modify = optic.modify(([a, ...rest]) => [item.modify(addOne)(a), ...rest.map(item.modify(addTwo))])
 
       deepStrictEqual(
@@ -116,7 +116,7 @@ describe("Optic generation", () => {
     it("TupleWithRest", () => {
       const schema = Schema.TupleWithRest(Schema.Tuple([Value]), [Value])
       const optic = Schema.toIso(schema)
-      const item = Schema.makeIsoFocus(Value).key("a")
+      const item = Schema.toIsoFocus(Value).key("a")
       const modify = optic.modify((
         [value, ...rest]
       ) => [item.modify(addOne)(value), ...rest.map((r) => item.modify(addTwo)(r))])
@@ -166,7 +166,7 @@ describe("Optic generation", () => {
     it("Record", () => {
       const schema = Schema.Record(Schema.String, Value)
       const optic = Schema.toIso(schema)
-      const item = Schema.makeIsoFocus(Value).key("a")
+      const item = Schema.toIsoFocus(Value).key("a")
       const modify = optic.modify((rec) => Record.map(rec, item.modify(addOne)))
 
       deepStrictEqual(
@@ -187,7 +187,7 @@ describe("Optic generation", () => {
         [Schema.Record(Schema.String, Value)]
       )
       const optic = Schema.toIso(schema)
-      const item = Schema.makeIsoFocus(Value).key("a")
+      const item = Schema.toIsoFocus(Value).key("a")
       const modify = optic.modify(({ a, ...rest }) => ({
         a: item.modify(addOne)(a),
         ...Record.map(rest, item.modify(addTwo))
@@ -202,7 +202,7 @@ describe("Optic generation", () => {
     it("Union", () => {
       const schema = Schema.Union([Schema.String, Value])
       const optic = Schema.toIso(schema)
-      const item = Schema.makeIsoFocus(Value).key("a")
+      const item = Schema.toIsoFocus(Value).key("a")
       const modify = optic.modify((x) => Predicate.isString(x) ? x : item.modify(addOne)(x))
 
       deepStrictEqual(modify("a"), "a")
@@ -223,7 +223,7 @@ describe("Optic generation", () => {
         as: Schema.Array(Schema.suspend((): Schema.Optic<A, AIso> => schema))
       })
       const optic = Schema.toIso(schema)
-      const item = Schema.makeIsoFocus(Value).key("a")
+      const item = Schema.toIsoFocus(Value).key("a")
       const f = ({ a, as }: AIso): AIso => ({
         a: item.modify(addOne)(a),
         as: as.map(f)
@@ -301,7 +301,7 @@ describe("Optic generation", () => {
     it("Cause", () => {
       const schema = Schema.Cause(Value, Value)
       const optic = Schema.toIso(schema)
-      const failure = Schema.makeIsoFocus(Schema.CauseFailure(Value, Value)).tag("Fail").key("error").key("a")
+      const failure = Schema.toIsoFocus(Schema.CauseFailure(Value, Value)).tag("Fail").key("error").key("a")
       const modify = optic.modify((failures) => failures.map(failure.modify(addOne)))
 
       deepStrictEqual(
@@ -332,7 +332,7 @@ describe("Optic generation", () => {
     it("ReadonlySet", () => {
       const schema = Schema.ReadonlySet(Value)
       const optic = Schema.toIso(schema)
-      const item = Schema.makeIsoFocus(Value).key("a")
+      const item = Schema.toIsoFocus(Value).key("a")
       const modify = optic.modify((as) => as.map(item.modify(addOne)))
 
       deepStrictEqual(
@@ -344,7 +344,7 @@ describe("Optic generation", () => {
     it("ReadonlyMap", () => {
       const schema = Schema.ReadonlyMap(Schema.String, Value)
       const optic = Schema.toIso(schema)
-      const entry = Schema.makeIsoFocus(Schema.Tuple([Schema.String, Value])).key("1").key("a")
+      const entry = Schema.toIsoFocus(Schema.Tuple([Schema.String, Value])).key("1").key("a")
       const modify = optic.modify((entries) => entries.map(([key, value]) => entry.modify(addOne)([key, value])))
 
       deepStrictEqual(

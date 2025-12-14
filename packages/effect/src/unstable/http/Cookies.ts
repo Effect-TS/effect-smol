@@ -52,7 +52,7 @@ export const CookiesSchema: CookiesSchema = Schema.declare(
           encode: (cookies) => toSetCookieHeaders(cookies)
         })
       ),
-    toCodecIsoOptic: () =>
+    toCodecIso: () =>
       Schema.link<Cookies>()(
         Schema.Record(Schema.String, CookieSchema),
         Transformation.transform({

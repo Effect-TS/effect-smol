@@ -740,7 +740,7 @@ console.log(
 
 ## ISO Serializer
 
-The ISO serializer (`toCodecIsoOptic`) converts schemas to their `Iso` representation. This is useful when you want to build isomorphic transformations or optics.
+The ISO serializer (`toCodecIso`) converts schemas to their `Iso` representation. This is useful when you want to build isomorphic transformations or optics.
 
 **Example** (Using the ISO serializer with a Class)
 
@@ -753,7 +753,7 @@ class Person extends Schema.Class<Person>("Person")({
   age: Schema.Number
 }) {}
 
-const isoSerializer = Schema.toCodecIsoOptic(Person)
+const isoSerializer = Schema.toCodecIso(Person)
 
 // The Iso type represents the "focus" of the schema.
 // For Class schemas, the Iso type is the struct representation
@@ -936,7 +936,7 @@ Choose the serializer that matches your use case:
 
 - **`toCodecJson`**: For JSON APIs, storage, and general serialization
 - **`toCodecStringTree`**: For form data and string-only systems
-- **`toCodecIsoOptic`**: For isomorphic transformations and optics
+- **`toCodecIso`**: For isomorphic transformations and optics
 
 ## Common Patterns
 
@@ -6177,7 +6177,7 @@ interface Context {
   readonly constraints?: Annotation.Constraints["constraints"] | undefined
 }
 
-export interface Override<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
+export interface ToArbitrary<T, TypeParameters extends ReadonlyArray<Schema.Top>> {
   (
     /* Arbitraries for any type parameters of the schema (if present) */
     typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
@@ -6204,7 +6204,7 @@ Example Output:
 
 // Add an override to restrict numbers to integers 10..20
 const schema = Schema.Number.annotate({
-  arbitrary: () => (fc) => fc.integer({ min: 10, max: 20 }) // custom generator
+  toArbitrary: () => (fc) => fc.integer({ min: 10, max: 20 }) // custom generator
 })
 
 console.log(FastCheck.sample(Schema.toArbitrary(schema), 3))
@@ -6263,7 +6263,7 @@ import { FastCheck } from "effect/testing"
  */
 function fake<A>(
   gen: (f: typeof faker, ctx: Annotations.Arbitrary.Context) => A
-): Annotations.Arbitrary.Override<A, readonly []> {
+): Annotations.Arbitrary.ToArbitrary<A, readonly []> {
   return () => (fc, ctx) =>
     fc.nat().map((seed) => {
       faker.seed(seed)
@@ -6273,15 +6273,15 @@ function fake<A>(
 
 /** Leaf fields use Faker through the `arbitrary` override */
 const FirstName = Schema.String.annotate({
-  arbitrary: fake((f) => f.person.firstName())
+  toArbitrary: fake((f) => f.person.firstName())
 })
 
 const LastName = Schema.String.annotate({
-  arbitrary: fake((f) => f.person.lastName())
+  toArbitrary: fake((f) => f.person.lastName())
 })
 
 const Age = Schema.Int.check(Schema.isBetween({ minimum: 18, maximum: 80 })).annotate({
-  arbitrary: fake((f, ctx) => {
+  toArbitrary: fake((f, ctx) => {
     // Use the constraints from the schema to generate a random age
     const min = ctx.constraints?.number?.min ?? 0
     const max = ctx.constraints?.number?.max ?? Number.MAX_SAFE_INTEGER
@@ -6347,7 +6347,7 @@ class MyClass {
 }
 
 const schema = Schema.instanceOf(MyClass, {
-  equivalence: () => (x, y) => x.a === y.a
+  toEquivalence: () => (x, y) => x.a === y.a
 })
 
 const equivalence = Schema.toEquivalence(schema)
@@ -6355,7 +6355,7 @@ const equivalence = Schema.toEquivalence(schema)
 
 ### Overrides
 
-You can override the derived equivalence for a schema using `ToEquivalence.override`. This is useful when the default derivation does not fit your requirements.
+You can override the derived equivalence for a schema using `overrideToEquivalence`. This is useful when the default derivation does not fit your requirements.
 
 **Example** (Overriding equivalence for a struct)
 
@@ -6366,7 +6366,7 @@ import { Schema } from "effect/schema"
 const schema = Schema.Struct({
   a: Schema.String,
   b: Schema.Number
-}).pipe(Schema.overrideEquivalence(() => Equivalence.make((x, y) => x.a === y.a)))
+}).pipe(Schema.overrideToEquivalence(() => Equivalence.make((x, y) => x.a === y.a)))
 
 const equivalence = Schema.toEquivalence(schema)
 ```
