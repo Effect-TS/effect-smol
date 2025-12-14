@@ -29,7 +29,7 @@ Ultimately, the intent is to eliminate the need for two separate paths like in v
 
 ### 3. Encoding / Decoding
 
-- **Default JSON codec generator**: `Schema.toSerializerJson(schema)` does round‑trip‑safe network serialization (Maps → pairs, Options → arrays, Dates → ISO strings, etc.).
+- **Default JSON codec generator**: `Schema.toCodecJson(schema)` does round‑trip‑safe network serialization (Maps → pairs, Options → arrays, Dates → ISO strings, etc.).
 - **Explicit helpers**: `Schema.UnknownFromJsonString`, `Schema.fromJsonString`.
 
 ### 4. Schema Algebra Goodies
@@ -272,7 +272,7 @@ const DateSchema = Schema.Date
 // Encoded: Date (same as Type in this case)
 
 // After applying serializer
-const SerializedDate = Schema.toSerializerJson(DateSchema)
+const SerializedDate = Schema.toCodecJson(DateSchema)
 // Type: Date (preserved)
 // Encoded: unknown (represents any JSON-safe value)
 // At runtime, Date will be encoded as a string, but the type is `unknown`
@@ -327,7 +327,7 @@ import { Schema } from "effect/schema"
 const schema = Schema.ReadonlySet(Schema.Date)
 
 // Ask for a JSON-capable schema
-const serializer = Schema.toSerializerJson(schema)
+const serializer = Schema.toCodecJson(schema)
 
 // A sample value to send
 const data = new Set([new Date("2021-01-01"), new Date("2021-01-02")])
@@ -362,7 +362,7 @@ This schema automatically picks JSON formats based on its parts:
 
 ### How `toSerializerJson` Works
 
-When you call `Schema.toSerializerJson(schema)`, the library:
+When you call `Schema.toCodecJson(schema)`, the library:
 
 1. **Walks the AST**: Recursively traverses the schema's abstract syntax tree
 2. **Finds annotations**: Looks for `serializerJson` or `serializer` annotations
@@ -384,7 +384,7 @@ const PersonSchema = Schema.Struct({
   tags: Schema.ReadonlySet(Schema.String)
 })
 
-const serializer = Schema.toSerializerJson(PersonSchema)
+const serializer = Schema.toCodecJson(PersonSchema)
 
 const person = {
   name: "John",
@@ -503,7 +503,7 @@ const DateFromEpochMillis = Schema.Date.pipe(
 const schema = Schema.ReadonlySet(DateFromEpochMillis)
 
 // Request a JSON-capable schema
-const serializer = Schema.toSerializerJson(schema)
+const serializer = Schema.toCodecJson(schema)
 
 const data = new Set([new Date("2021-01-01"), new Date("2021-01-02")])
 
@@ -545,7 +545,7 @@ const PersonSchema = Schema.instanceOf(Person, {
     )
 })
 
-const serializer = Schema.toSerializerJson(PersonSchema)
+const serializer = Schema.toCodecJson(PersonSchema)
 
 const person = new Person("John", 30)
 
@@ -599,7 +599,7 @@ const schema = Schema.Struct({
   createdAt: Schema.Date
 })
 
-const json = Schema.toSerializerJson(schema)
+const json = Schema.toCodecJson(schema)
 const stringTree = Schema.toSerializerStringTree(schema)
 
 const value = {
@@ -797,7 +797,7 @@ const schema = Schema.Struct({
   timestamp: Schema.Date
 })
 
-const serializer = Schema.toSerializerJson(schema)
+const serializer = Schema.toCodecJson(schema)
 
 const data = {
   users: [
@@ -832,7 +832,7 @@ console.log(JSON.stringify(serialized, null, 2))
 
 ### Priority: Custom Encodings vs Serializers
 
-`Schema.toSerializerJson` respects **explicit encodings** you add to a schema. If you choose a custom representation, that choice takes priority over default serializers.
+`Schema.toCodecJson` respects **explicit encodings** you add to a schema. If you choose a custom representation, that choice takes priority over default serializers.
 
 **Example** (Custom encoding takes priority over default Date handling)
 
@@ -856,7 +856,7 @@ const schema = Schema.Struct({
   date2: Schema.Date
 })
 
-const serializer = Schema.toSerializerJson(schema)
+const serializer = Schema.toCodecJson(schema)
 
 const data = { date1: new Date("2021-01-01"), date2: new Date("2021-01-01") }
 
@@ -873,7 +873,7 @@ When sending data over the network, use serializers to support round-trip conver
 
 ```ts
 // ✅ Good: Use serializer for network - supports round-trip conversion
-const serializer = Schema.toSerializerJson(mySchema)
+const serializer = Schema.toCodecJson(mySchema)
 
 // First encode to a JSON-safe value
 const encoded = Schema.encodeUnknownSync(serializer)(data)
@@ -922,7 +922,7 @@ Let serializers handle nested structures automatically:
 const schema = Schema.Struct({
   dates: Schema.Array(Schema.Date)
 })
-const serializer = Schema.toSerializerJson(schema)
+const serializer = Schema.toCodecJson(schema)
 
 // ❌ Bad: Manual transformation for each field
 const manual = {
@@ -955,7 +955,7 @@ const UserSchema = Schema.Struct({
 })
 
 // Create serializer for network usage
-const UserSerializer = Schema.toSerializerJson(UserSchema)
+const UserSerializer = Schema.toCodecJson(UserSchema)
 
 // Encode for sending
 const sendUser = (user: (typeof UserSchema)["Type"]) =>
@@ -1024,7 +1024,7 @@ const StorageSchema = Schema.Struct({
   lastUpdated: Schema.Date
 })
 
-const storageSerializer = Schema.toSerializerJson(StorageSchema)
+const storageSerializer = Schema.toCodecJson(StorageSchema)
 
 // Save to localStorage
 const save = (data: (typeof StorageSchema)["Type"]) =>
@@ -2943,7 +2943,7 @@ class Person extends Schema.Opaque<Person>()(
   })
 ) {
   // Create a custom serializer using the class itself
-  static readonly serializer = Schema.toSerializerJson(this)
+  static readonly serializer = Schema.toCodecJson(this)
 }
 
 console.log(
@@ -6770,7 +6770,7 @@ if (r._tag === "Failure") {
   const failures = r.cause.failures
   if (failures[0]?._tag === "Fail") {
     const failureResult = Issue.makeStandardSchemaV1().format(failures[0].error)
-    const serializer = Schema.toSerializerJson(Schema.StandardSchemaV1FailureResult)
+    const serializer = Schema.toCodecJson(Schema.StandardSchemaV1FailureResult)
     console.dir(Schema.encodeSync(serializer)(failureResult), { depth: null })
   }
 }
@@ -7004,14 +7004,14 @@ import { Schema } from "effect/schema"
 
 function encodingJsonSchema<T, E, RD>(schema: Schema.Codec<T, E, RD, never>) {
   return Schema.toStandardSchemaV1(
-    Schema.flip(Schema.toSerializerJson(schema)).annotate({
+    Schema.flip(Schema.toCodecJson(schema)).annotate({
       direction: "encoding"
     })
   )
 }
 
 function decodingJsonSchema<T, E, RE>(schema: Schema.Codec<T, E, never, RE>) {
-  return Schema.toStandardSchemaV1(Schema.toSerializerJson(schema))
+  return Schema.toStandardSchemaV1(Schema.toCodecJson(schema))
 }
 
 function decodingStringSchema<T, E, RE>(schema: Schema.Codec<T, E, never, RE>) {

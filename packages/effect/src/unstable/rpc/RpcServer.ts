@@ -502,11 +502,11 @@ export const make: <Rpcs extends Rpc.Any>(
       const entry = services.mapUnsafe.get(rpc.key) as Rpc.Handler<Rpcs["_tag"]>
       const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
       schemas = {
-        decode: Schema.decodeUnknownEffect(Schema.toSerializerJson(rpc.payloadSchema)) as any,
+        decode: Schema.decodeUnknownEffect(Schema.toCodecJson(rpc.payloadSchema)) as any,
         encodeChunk: Schema.encodeUnknownEffect(
-          Schema.toSerializerJson(Schema.Array(streamSchemas ? streamSchemas.success : Schema.Any))
+          Schema.toCodecJson(Schema.Array(streamSchemas ? streamSchemas.success : Schema.Any))
         ) as any,
-        encodeExit: Schema.encodeUnknownEffect(Schema.toSerializerJson(Rpc.exitSchema(rpc as any))) as any,
+        encodeExit: Schema.encodeUnknownEffect(Schema.toCodecJson(Rpc.exitSchema(rpc as any))) as any,
         services: entry.services
       }
       schemasCache.set(rpc, schemas)

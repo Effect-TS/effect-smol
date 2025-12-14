@@ -583,7 +583,7 @@ const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
     message: Message.IncomingRequest<Rpcs>,
     rpc: Rpc.AnyWithProps
   ) {
-    const payload = yield* Schema.decodeEffect(Schema.toSerializerJson(rpc.payloadSchema))(message.envelope.payload)
+    const payload = yield* Schema.decodeEffect(Schema.toCodecJson(rpc.payloadSchema))(message.envelope.payload)
     const lastSentReply = message.lastSentReply !== undefined
       ? yield* Schema.decodeEffect(Reply.Reply(rpc))(message.lastSentReply)
       : undefined

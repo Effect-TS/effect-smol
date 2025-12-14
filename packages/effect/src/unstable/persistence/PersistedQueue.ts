@@ -108,7 +108,7 @@ export const makeFactory = Effect.gen(function*() {
       readonly name: string
       readonly schema: S
     }) {
-      const jsonSchema = Schema.toSerializerJson(options.schema)
+      const jsonSchema = Schema.toCodecJson(options.schema)
       const encodeUnknown = Schema.encodeUnknownEffect(jsonSchema)
       const decodeUnknown = Schema.decodeUnknownEffect(jsonSchema)
 

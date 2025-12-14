@@ -7597,7 +7597,7 @@ export function toJsonSchema<S extends Top>(schema: S, options: ToJsonSchemaOpti
  * @category Serializer
  * @since 4.0.0
  */
-export function toSerializerJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
+export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
   return make(serializerJson(schema.ast))
 }
 
@@ -8166,8 +8166,8 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  * @category JsonPatch Differ
  * @since 4.0.0
  */
-export function toDifferJsonPatch<T, E>(codec: Codec<T, E>): Differ<T, JsonPatch> {
-  const serializer = toSerializerJson(codec)
+export function toDifferJsonPatch<T, E>(schema: Codec<T, E>): Differ<T, JsonPatch> {
+  const serializer = toCodecJson(schema)
   const get = Parser.encodeSync(serializer)
   const set = Parser.decodeSync(serializer)
   return {

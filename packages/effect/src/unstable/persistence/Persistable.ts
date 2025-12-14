@@ -177,7 +177,7 @@ export const serializeExit = <A extends Schema.Top, E extends Schema.Top>(
   self: Persistable<A, E>,
   exit: Exit.Exit<A["Type"], E["Type"]>
 ): Effect.Effect<unknown, Schema.SchemaError, A["EncodingServices"] | E["EncodingServices"]> => {
-  const schema = Schema.toSerializerJson(exitSchema(self))
+  const schema = Schema.toCodecJson(exitSchema(self))
   return Schema.encodeEffect(schema)(exit)
 }
 
@@ -193,6 +193,6 @@ export const deserializeExit = <A extends Schema.Top, E extends Schema.Top>(
   Schema.SchemaError,
   A["DecodingServices"] | E["DecodingServices"]
 > => {
-  const schema = Schema.toSerializerJson(exitSchema(self))
+  const schema = Schema.toCodecJson(exitSchema(self))
   return Schema.decodeEffect(schema)(encoded)
 }

@@ -77,9 +77,9 @@ export const make = <
     successSchema,
     errorSchema,
     exitSchema: Schema.Exit(
-      Schema.toSerializerJson(successSchema),
-      Schema.toSerializerJson(errorSchema),
-      Schema.toSerializerJson(Schema.Defect)
+      Schema.toCodecJson(successSchema),
+      Schema.toCodecJson(errorSchema),
+      Schema.toCodecJson(Schema.Defect)
     ) as any,
     withActivityAttempt: Effect.gen(function*() {
       const attempt = yield* CurrentAttempt

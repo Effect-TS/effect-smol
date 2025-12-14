@@ -323,7 +323,7 @@ export const Reply = <R extends Rpc.Any>(
   if (schemaCache.has(rpc)) {
     return schemaCache.get(rpc) as any
   }
-  const schema = Schema.toSerializerJson(Schema.Union([WithExit.schema(rpc), Chunk.schema(rpc)]))
+  const schema = Schema.toCodecJson(Schema.Union([WithExit.schema(rpc), Chunk.schema(rpc)]))
   schemaCache.set(rpc, schema)
   return schema as any
 }

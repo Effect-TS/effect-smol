@@ -75,7 +75,7 @@ export const schemaJson = <
   schema: Schema.Codec<A, I, RD, RE>,
   options?: ParseOptions | undefined
 ) => {
-  const decode = Schema.decodeEffect(Schema.toSerializerJson(schema).annotate({ options }))
+  const decode = Schema.decodeEffect(Schema.toCodecJson(schema).annotate({ options }))
   return (
     self: HttpClientResponse
   ): Effect.Effect<A, Schema.SchemaError | Error.ResponseError, RD> =>
