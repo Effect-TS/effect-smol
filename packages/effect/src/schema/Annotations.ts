@@ -150,6 +150,7 @@ export interface Declaration<T, TypeParameters extends ReadonlyArray<Schema.Top>
    * @internal
    */
   readonly "~sentinels"?: ReadonlyArray<AST.Sentinel> | undefined
+  readonly typeConstructor?: string | undefined
 }
 
 /** @internal */
@@ -424,12 +425,6 @@ export interface BuiltInMetaRegistry {
   readonly isInt: {
     readonly _tag: "isInt"
   }
-  readonly isInt32: {
-    readonly _tag: "isInt32"
-  }
-  readonly isUint32: {
-    readonly _tag: "isUint32"
-  }
   readonly isMultipleOf: {
     readonly _tag: "isMultipleOf"
     readonly divisor: number
@@ -546,47 +541,6 @@ export type BuiltInMeta = BuiltInMetaRegistry[keyof BuiltInMetaRegistry]
  * @since 4.0.0
  */
 export interface MetaRegistry extends BuiltInMetaRegistry {}
-
-/**
- * @since 4.0.0
- */
-export type isGreaterThan<T> = {
-  readonly _tag: "isGreaterThan"
-  readonly exclusiveMinimum: T
-}
-
-/**
- * @since 4.0.0
- */
-export type isGreaterThanOrEqualTo<T> = {
-  readonly _tag: "isGreaterThanOrEqualTo"
-  readonly minimum: T
-}
-
-/**
- * @since 4.0.0
- */
-export type isLessThan<T> = {
-  readonly _tag: "isLessThan"
-  readonly exclusiveMaximum: T
-}
-
-/**
- * @since 4.0.0
- */
-export type isLessThanOrEqualTo<T> = {
-  readonly _tag: "isLessThanOrEqualTo"
-  readonly maximum: T
-}
-
-/**
- * @since 4.0.0
- */
-export type isBetween<T> = {
-  readonly _tag: "isBetween"
-  readonly minimum: T
-  readonly maximum: T
-}
 
 /**
  * @since 4.0.0

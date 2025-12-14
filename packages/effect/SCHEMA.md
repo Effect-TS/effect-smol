@@ -6506,31 +6506,33 @@ The idea is simple: if you have a `Schema` for a type `T`, you can serialize any
 
 This approach keeps patches independent from TypeScript types and uses the schema as the guardrail when turning JSON back into `T`.
 
-## MetaSchema
+## Standard Representation
 
-The `MetaSchema` module provides a way to encode and decode schemas to and from JSON. This is useful for sending schemas over the wire or storing them on disk.
+The `Standard` module provides a way to encode and decode schemas to and from JSON. This is useful for sending schemas over the wire or storing them on disk.
 
 **Example** (Encoding and decoding a schema)
 
 ```ts
-import { MetaSchema, Schema } from "effect/schema"
+import { Schema, Standard } from "effect/schema"
 
 const schema = Schema.Struct({
   a: Schema.String.annotate({
     description: "my description",
-    custom: { version: [1, 0, 0] } // custom annotation
+    customAnnotation: 1n
   })
 })
 
-// Encode the schema into a JSON-compatible representation.
-const json = MetaSchema.encode(schema)
+// Encode the schema into standard Document (includes the AST and definitions).
+const document = Standard.fromAST(schema.ast)
+
+// Encode the standard AST into a JSON-compatible representation.
+const json = Standard.toJson(document.ast)
 
 // This output is safe to send over the network or store on disk.
 console.log(JSON.stringify(json, null, 2))
 /*
 {
   "_tag": "Objects",
-  "annotations": null,
   "propertySignatures": [
     {
       "name": "a",
@@ -6538,14 +6540,9 @@ console.log(JSON.stringify(json, null, 2))
         "_tag": "String",
         "annotations": {
           "description": "my description",
-          "custom": {
-            "version": [
-              1,
-              0,
-              0
-            ]
-          }
-        }
+          "customAnnotation": "1"
+        },
+        "checks": []
       },
       "isOptional": false,
       "isMutable": false
@@ -6555,18 +6552,15 @@ console.log(JSON.stringify(json, null, 2))
 }
 */
 
-/*
-Decode the JSON representation back into a runtime schema.
-The type argument keeps the decoded schema aligned with the original schema type.
-const decoded: Schema.Struct<{
-  readonly a: Schema.String
-}>
-*/
-const decoded = MetaSchema.decode<typeof schema>(json)
+// Decode the JSON-compatible representation back into a standard AST.
+const decodedAST = Standard.fromJson(json)
+
+// Convert the standard AST into a runtime schema.
+const decodedSchema = Standard.toSchema<typeof schema>(decodedAST)
 
 // You can read annotations from the decoded schema, since they were preserved through the round trip.
-console.log(decoded.fields.a.ast.annotations)
-// { description: 'my description', custom: { version: [ 1, 0, 0 ] } }
+console.log(decodedSchema.fields.a.ast.annotations)
+// { description: 'my description', customAnnotation: 1n }
 ```
 
 ## Formatters

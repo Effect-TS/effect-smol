@@ -1,4 +1,3 @@
-import { Formatter, Option, Record as Rec } from "effect/data"
 import { Schema, Standard } from "effect/schema"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
@@ -30,24 +29,21 @@ describe("Standard", () => {
     function assertToJson(
       schema: Schema.Top,
       expected: {
-        readonly ast: Standard.JsonValue
-        readonly definitions?: Record<string, Standard.JsonValue>
+        readonly schema: Standard.JsonStandardSchema
+        readonly definitions?: Record<string, Standard.JsonStandardSchema>
       }
     ) {
       const document = Standard.fromAST(schema.ast)
-      deepStrictEqual(Standard.toJson(document.ast), expected.ast)
-      const ast = Standard.toJson(document.ast)
-      const definitions = Rec.map(document.definitions, Standard.toJson)
-      deepStrictEqual({ ast, definitions }, { ast: expected.ast, definitions: expected.definitions ?? {} })
+      deepStrictEqual(Standard.toJson(document), { definitions: {}, ...expected })
     }
 
     describe("Suspend", () => {
       it("non-recursive", () => {
         assertToJson(Schema.suspend(() => Schema.String), {
-          ast: { _tag: "String", checks: [] }
+          schema: { _tag: "String", checks: [] }
         })
         assertToJson(Schema.suspend(() => Schema.String.annotate({ identifier: "ID" })), {
-          ast: {
+          schema: {
             _tag: "Reference",
             $ref: "ID"
           },
@@ -68,7 +64,7 @@ describe("Standard", () => {
         const schema = Schema.Union([shared, shared])
 
         assertToJson(schema, {
-          ast: {
+          schema: {
             _tag: "Union",
             mode: "anyOf",
             types: [
@@ -92,7 +88,7 @@ describe("Standard", () => {
       describe("recursive", () => {
         it("outer identifier", () => {
           assertToJson(OuterCategory, {
-            ast: {
+            schema: {
               _tag: "Reference",
               $ref: "Category"
             },
@@ -129,7 +125,7 @@ describe("Standard", () => {
 
         it("inner identifier", () => {
           assertToJson(InnerCategory, {
-            ast: {
+            schema: {
               _tag: "Objects",
               propertySignatures: [
                 {
@@ -193,7 +189,7 @@ describe("Standard", () => {
 
     it("Declaration", () => {
       assertToJson(Schema.Option(Schema.String), {
-        ast: {
+        schema: {
           _tag: "External",
           annotations: { typeConstructor: "Option" },
           typeParameters: [
@@ -205,59 +201,59 @@ describe("Standard", () => {
     })
 
     it("Null", () => {
-      assertToJson(Schema.Null, { ast: { _tag: "Null" } })
+      assertToJson(Schema.Null, { schema: { _tag: "Null" } })
       assertToJson(Schema.Null.annotate({ description: "a" }), {
-        ast: { _tag: "Null", annotations: { description: "a" } }
+        schema: { _tag: "Null", annotations: { description: "a" } }
       })
     })
 
     it("Undefined", () => {
-      assertToJson(Schema.Undefined, { ast: { _tag: "Undefined" } })
+      assertToJson(Schema.Undefined, { schema: { _tag: "Undefined" } })
       assertToJson(Schema.Undefined.annotate({ description: "a" }), {
-        ast: { _tag: "Undefined", annotations: { description: "a" } }
+        schema: { _tag: "Undefined", annotations: { description: "a" } }
       })
     })
 
     it("Void", () => {
-      assertToJson(Schema.Void, { ast: { _tag: "Void" } })
+      assertToJson(Schema.Void, { schema: { _tag: "Void" } })
       assertToJson(Schema.Void.annotate({ description: "a" }), {
-        ast: { _tag: "Void", annotations: { description: "a" } }
+        schema: { _tag: "Void", annotations: { description: "a" } }
       })
     })
 
     it("Never", () => {
-      assertToJson(Schema.Never, { ast: { _tag: "Never" } })
+      assertToJson(Schema.Never, { schema: { _tag: "Never" } })
       assertToJson(Schema.Never.annotate({ description: "a" }), {
-        ast: { _tag: "Never", annotations: { description: "a" } }
+        schema: { _tag: "Never", annotations: { description: "a" } }
       })
     })
 
     it("Unknown", () => {
-      assertToJson(Schema.Unknown, { ast: { _tag: "Unknown" } })
+      assertToJson(Schema.Unknown, { schema: { _tag: "Unknown" } })
       assertToJson(Schema.Unknown.annotate({ description: "a" }), {
-        ast: { _tag: "Unknown", annotations: { description: "a" } }
+        schema: { _tag: "Unknown", annotations: { description: "a" } }
       })
     })
 
     it("Any", () => {
-      assertToJson(Schema.Any, { ast: { _tag: "Any" } })
+      assertToJson(Schema.Any, { schema: { _tag: "Any" } })
       assertToJson(Schema.Any.annotate({ description: "a" }), {
-        ast: { _tag: "Any", annotations: { description: "a" } }
+        schema: { _tag: "Any", annotations: { description: "a" } }
       })
     })
 
     describe("String", () => {
       it("String", () => {
-        assertToJson(Schema.String, { ast: { _tag: "String", checks: [] } })
+        assertToJson(Schema.String, { schema: { _tag: "String", checks: [] } })
         assertToJson(Schema.String.annotate({ description: "a" }), {
-          ast: { _tag: "String", annotations: { "description": "a" }, checks: [] }
+          schema: { _tag: "String", annotations: { "description": "a" }, checks: [] }
         })
       })
 
       describe("checks", () => {
         it("isMinLength", () => {
           assertToJson(Schema.String.check(Schema.isMinLength(1)), {
-            ast: {
+            schema: {
               _tag: "String",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isMinLength", minLength: 1 } }
@@ -265,7 +261,7 @@ describe("Standard", () => {
             }
           })
           assertToJson(Schema.String.check(Schema.isMinLength(1, { description: "a" })), {
-            ast: {
+            schema: {
               _tag: "String",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isMinLength", minLength: 1 }, annotations: { description: "a" } }
@@ -276,7 +272,7 @@ describe("Standard", () => {
 
         it("isMaxLength", () => {
           assertToJson(Schema.String.check(Schema.isMaxLength(10)), {
-            ast: {
+            schema: {
               _tag: "String",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isMaxLength", maxLength: 10 } }
@@ -284,7 +280,7 @@ describe("Standard", () => {
             }
           })
           assertToJson(Schema.String.check(Schema.isMaxLength(10, { description: "a" })), {
-            ast: {
+            schema: {
               _tag: "String",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isMaxLength", maxLength: 10 }, annotations: { description: "a" } }
@@ -295,7 +291,7 @@ describe("Standard", () => {
 
         it("isPattern", () => {
           assertToJson(Schema.String.check(Schema.isPattern(new RegExp("a"))), {
-            ast: {
+            schema: {
               _tag: "String",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isPattern", regExp: { source: "a", flags: "" } } }
@@ -303,7 +299,7 @@ describe("Standard", () => {
             }
           })
           assertToJson(Schema.String.check(Schema.isPattern(new RegExp("a"), { description: "a" })), {
-            ast: {
+            schema: {
               _tag: "String",
               checks: [
                 {
@@ -318,7 +314,7 @@ describe("Standard", () => {
 
         it("isLength", () => {
           assertToJson(Schema.String.check(Schema.isLength(5)), {
-            ast: {
+            schema: {
               _tag: "String",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isLength", length: 5 } }
@@ -326,7 +322,7 @@ describe("Standard", () => {
             }
           })
           assertToJson(Schema.String.check(Schema.isLength(5, { description: "a" })), {
-            ast: {
+            schema: {
               _tag: "String",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isLength", length: 5 }, annotations: { description: "a" } }
@@ -340,7 +336,7 @@ describe("Standard", () => {
         assertToJson(
           Schema.toEncoded(Schema.fromJsonString(Schema.Struct({ a: Schema.String }))),
           {
-            ast: {
+            schema: {
               _tag: "String",
               checks: [],
               contentMediaType: "application/json",
@@ -362,16 +358,16 @@ describe("Standard", () => {
 
     describe("Number", () => {
       it("Number", () => {
-        assertToJson(Schema.Number, { ast: { _tag: "Number", checks: [] } })
+        assertToJson(Schema.Number, { schema: { _tag: "Number", checks: [] } })
         assertToJson(Schema.Number.annotate({ description: "a" }), {
-          ast: { _tag: "Number", annotations: { description: "a" }, checks: [] }
+          schema: { _tag: "Number", annotations: { description: "a" }, checks: [] }
         })
       })
 
       describe("checks", () => {
         it("isInt", () => {
           assertToJson(Schema.Number.check(Schema.isInt()), {
-            ast: {
+            schema: {
               _tag: "Number",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isInt" } }
@@ -382,7 +378,7 @@ describe("Standard", () => {
 
         it("isGreaterThanOrEqualTo", () => {
           assertToJson(Schema.Number.check(Schema.isGreaterThanOrEqualTo(10)), {
-            ast: {
+            schema: {
               _tag: "Number",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isGreaterThanOrEqualTo", minimum: 10 } }
@@ -393,7 +389,7 @@ describe("Standard", () => {
 
         it("isLessThanOrEqualTo", () => {
           assertToJson(Schema.Number.check(Schema.isLessThanOrEqualTo(10)), {
-            ast: {
+            schema: {
               _tag: "Number",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isLessThanOrEqualTo", maximum: 10 } }
@@ -404,7 +400,7 @@ describe("Standard", () => {
 
         it("isGreaterThan", () => {
           assertToJson(Schema.Number.check(Schema.isGreaterThan(10)), {
-            ast: {
+            schema: {
               _tag: "Number",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isGreaterThan", exclusiveMinimum: 10 } }
@@ -415,7 +411,7 @@ describe("Standard", () => {
 
         it("isLessThan", () => {
           assertToJson(Schema.Number.check(Schema.isLessThan(10)), {
-            ast: {
+            schema: {
               _tag: "Number",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isLessThan", exclusiveMaximum: 10 } }
@@ -426,7 +422,7 @@ describe("Standard", () => {
 
         it("isMultipleOf", () => {
           assertToJson(Schema.Number.check(Schema.isMultipleOf(10)), {
-            ast: {
+            schema: {
               _tag: "Number",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isMultipleOf", divisor: 10 } }
@@ -437,7 +433,7 @@ describe("Standard", () => {
 
         it("isBetween", () => {
           assertToJson(Schema.Number.check(Schema.isBetween({ minimum: 1, maximum: 10 })), {
-            ast: {
+            schema: {
               _tag: "Number",
               checks: [
                 { _tag: "Filter", meta: { _tag: "isBetween", minimum: 1, maximum: 10 } }
@@ -448,12 +444,11 @@ describe("Standard", () => {
 
         it("isInt32", () => {
           assertToJson(Schema.Number.check(Schema.isInt32()), {
-            ast: {
+            schema: {
               _tag: "Number",
               checks: [
                 {
                   _tag: "FilterGroup",
-                  meta: { _tag: "isInt32" },
                   checks: [
                     { _tag: "Filter", meta: { _tag: "isInt" } },
                     { _tag: "Filter", meta: { _tag: "isBetween", minimum: -2147483648, maximum: 2147483647 } }
@@ -466,12 +461,11 @@ describe("Standard", () => {
 
         it("isUint32", () => {
           assertToJson(Schema.Number.check(Schema.isUint32()), {
-            ast: {
+            schema: {
               _tag: "Number",
               checks: [
                 {
                   _tag: "FilterGroup",
-                  meta: { _tag: "isUint32" },
                   checks: [
                     { _tag: "Filter", meta: { _tag: "isInt" } },
                     {
@@ -488,27 +482,27 @@ describe("Standard", () => {
     })
 
     it("Boolean", () => {
-      assertToJson(Schema.Boolean, { ast: { _tag: "Boolean" } })
+      assertToJson(Schema.Boolean, { schema: { _tag: "Boolean" } })
       assertToJson(Schema.Boolean.annotate({ description: "a" }), {
-        ast: { _tag: "Boolean", annotations: { description: "a" } }
+        schema: { _tag: "Boolean", annotations: { description: "a" } }
       })
     })
 
     describe("BigInt", () => {
       it("BigInt", () => {
-        assertToJson(Schema.BigInt, { ast: { _tag: "BigInt", checks: [] } })
+        assertToJson(Schema.BigInt, { schema: { _tag: "BigInt", checks: [] } })
         assertToJson(Schema.BigInt.annotate({ description: "a" }), {
-          ast: { _tag: "BigInt", annotations: { description: "a" }, checks: [] }
+          schema: { _tag: "BigInt", annotations: { description: "a" }, checks: [] }
         })
       })
 
       describe("checks", () => {
         it("isGreaterThanOrEqualTo", () => {
           assertToJson(Schema.BigInt.check(Schema.isGreaterThanOrEqualToBigInt(10n)), {
-            ast: {
+            schema: {
               _tag: "BigInt",
               checks: [
-                { _tag: "Filter", meta: { _tag: "isGreaterThanOrEqualTo", minimum: "10" } }
+                { _tag: "Filter", meta: { _tag: "isGreaterThanOrEqualToBigInt", minimum: "10" } }
               ]
             }
           })
@@ -517,47 +511,47 @@ describe("Standard", () => {
     })
 
     it("Symbol", () => {
-      assertToJson(Schema.Symbol, { ast: { _tag: "Symbol" } })
+      assertToJson(Schema.Symbol, { schema: { _tag: "Symbol" } })
       assertToJson(Schema.Symbol.annotate({ description: "a" }), {
-        ast: { _tag: "Symbol", annotations: { description: "a" } }
+        schema: { _tag: "Symbol", annotations: { description: "a" } }
       })
     })
 
     it("Literal", () => {
-      assertToJson(Schema.Literal("hello"), { ast: { _tag: "Literal", literal: "hello" } })
+      assertToJson(Schema.Literal("hello"), { schema: { _tag: "Literal", literal: "hello" } })
       assertToJson(Schema.Literal("hello").annotate({ description: "a" }), {
-        ast: { _tag: "Literal", annotations: { description: "a" }, literal: "hello" }
+        schema: { _tag: "Literal", annotations: { description: "a" }, literal: "hello" }
       })
     })
 
     it("UniqueSymbol", () => {
       assertToJson(Schema.UniqueSymbol(Symbol.for("test")), {
-        ast: { _tag: "UniqueSymbol", symbol: `Symbol(test)` }
+        schema: { _tag: "UniqueSymbol", symbol: `Symbol(test)` }
       })
       assertToJson(Schema.UniqueSymbol(Symbol.for("test")).annotate({ description: "a" }), {
-        ast: { _tag: "UniqueSymbol", annotations: { description: "a" }, symbol: `Symbol(test)` }
+        schema: { _tag: "UniqueSymbol", annotations: { description: "a" }, symbol: `Symbol(test)` }
       })
     })
 
     it("ObjectKeyword", () => {
-      assertToJson(Schema.ObjectKeyword, { ast: { _tag: "ObjectKeyword" } })
+      assertToJson(Schema.ObjectKeyword, { schema: { _tag: "ObjectKeyword" } })
       assertToJson(Schema.ObjectKeyword.annotate({ description: "a" }), {
-        ast: { _tag: "ObjectKeyword", annotations: { description: "a" } }
+        schema: { _tag: "ObjectKeyword", annotations: { description: "a" } }
       })
     })
 
     it("Enum", () => {
       assertToJson(Schema.Enum({ A: "a", B: "b" }), {
-        ast: { _tag: "Enum", enums: [["A", "a"], ["B", "b"]] }
+        schema: { _tag: "Enum", enums: [["A", "a"], ["B", "b"]] }
       })
       assertToJson(Schema.Enum({ A: "a", B: "b" }).annotate({ description: "a" }), {
-        ast: { _tag: "Enum", annotations: { description: "a" }, enums: [["A", "a"], ["B", "b"]] }
+        schema: { _tag: "Enum", annotations: { description: "a" }, enums: [["A", "a"], ["B", "b"]] }
       })
     })
 
     it("TemplateLiteral", () => {
       assertToJson(Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]), {
-        ast: {
+        schema: {
           _tag: "TemplateLiteral",
           parts: [
             { _tag: "String", checks: [] },
@@ -572,7 +566,7 @@ describe("Standard", () => {
       assertToJson(
         Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]).annotate({ description: "a" }),
         {
-          ast: {
+          schema: {
             _tag: "TemplateLiteral",
             annotations: { description: "a" },
             parts: [
@@ -587,9 +581,9 @@ describe("Standard", () => {
 
     describe("Arrays", () => {
       it("empty tuple", () => {
-        assertToJson(Schema.Tuple([]), { ast: { _tag: "Arrays", elements: [], rest: [] } })
+        assertToJson(Schema.Tuple([]), { schema: { _tag: "Arrays", elements: [], rest: [] } })
         assertToJson(Schema.Tuple([]).annotate({ description: "a" }), {
-          ast: { _tag: "Arrays", annotations: { description: "a" }, elements: [], rest: [] }
+          schema: { _tag: "Arrays", annotations: { description: "a" }, elements: [], rest: [] }
         })
       })
     })
@@ -597,14 +591,14 @@ describe("Standard", () => {
     describe("Objects", () => {
       it("empty struct", () => {
         assertToJson(Schema.Struct({}), {
-          ast: {
+          schema: {
             _tag: "Objects",
             propertySignatures: [],
             indexSignatures: []
           }
         })
         assertToJson(Schema.Struct({}).annotate({ description: "a" }), {
-          ast: {
+          schema: {
             _tag: "Objects",
             annotations: { description: "a" },
             propertySignatures: [],
@@ -623,7 +617,7 @@ describe("Standard", () => {
             e: Schema.optionalKey(Schema.mutableKey(Schema.String))
           }),
           {
-            ast: {
+            schema: {
               _tag: "Objects",
               propertySignatures: [
                 {
@@ -669,7 +663,7 @@ describe("Standard", () => {
             a: Schema.String.annotateKey({ description: "a" })
           }),
           {
-            ast: {
+            schema: {
               _tag: "Objects",
               propertySignatures: [
                 {
@@ -690,7 +684,7 @@ describe("Standard", () => {
     describe("Union", () => {
       it("anyOf", () => {
         assertToJson(Schema.Union([Schema.String, Schema.Number]), {
-          ast: {
+          schema: {
             _tag: "Union",
             types: [
               { _tag: "String", checks: [] },
@@ -700,7 +694,7 @@ describe("Standard", () => {
           }
         })
         assertToJson(Schema.Union([Schema.String, Schema.Number]).annotate({ description: "a" }), {
-          ast: {
+          schema: {
             _tag: "Union",
             annotations: { description: "a" },
             types: [
@@ -714,7 +708,7 @@ describe("Standard", () => {
 
       it("oneOf", () => {
         assertToJson(Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }), {
-          ast: {
+          schema: {
             _tag: "Union",
             types: [
               { _tag: "String", checks: [] },
@@ -727,7 +721,7 @@ describe("Standard", () => {
 
       it("Literals", () => {
         assertToJson(Schema.Literals(["a", 1]), {
-          ast: {
+          schema: {
             _tag: "Union",
             types: [
               { _tag: "Literal", literal: "a" },
@@ -1183,10 +1177,25 @@ describe("Standard", () => {
   })
 
   describe("toSchema", () => {
+    const resolver: Standard.Resolver<string> = (node, recur) => {
+      switch (node._tag) {
+        case "External": {
+          const typeConstructor = node.annotations?.typeConstructor
+          if (typeof typeConstructor === "string") {
+            return `Schema.${typeConstructor}(${node.typeParameters.map((p) => recur(p)).join(", ")})`
+          }
+          return `Schema.Unknown`
+        }
+        case "Reference":
+          return `Schema.suspend((): Schema.Codec<${node.$ref}> => ${node.$ref})` +
+            Standard.toCodeAnnotate(node.annotations)
+      }
+    }
+
     function assertToSchema(schema: Schema.Top, expected: string) {
       const document = Standard.fromAST(schema.ast)
-      const toSchema = Standard.toSchema(document.ast)
-      assertToCode(toSchema, expected)
+      const toSchema = Standard.toSchema(document)
+      assertToCode(toSchema, expected, resolver)
     }
 
     it("String", () => {
@@ -1260,6 +1269,13 @@ describe("Standard", () => {
       assertToSchema(
         Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number, Schema.Boolean]),
         `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number, Schema.Boolean])`
+      )
+    })
+
+    it("Suspend", () => {
+      assertToSchema(
+        OuterCategory,
+        `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)) }).annotate({ "identifier": "Category" })`
       )
     })
   })
@@ -1845,7 +1861,7 @@ describe("Standard", () => {
         // This case is harder to represent with Schema, so we keep Standard
         assertToJsonSchema(
           {
-            ast: {
+            schema: {
               _tag: "Reference",
               $ref: "MyType"
             },
@@ -1942,7 +1958,7 @@ describe("Standard", () => {
         // Keep Standard for this edge case
         assertToJsonSchema(
           {
-            ast: {
+            schema: {
               _tag: "External",
               typeParameters: [],
               checks: []
@@ -2050,57 +2066,6 @@ describe("Standard", () => {
           }
         )
       })
-    })
-  })
-
-  describe("toFormatter", () => {
-    function assertToFormatter<T>(schema: Schema.Schema<T>, t: T, expected: string) {
-      const ast = Standard.fromAST(schema.ast).ast
-      const formatter = Standard.toFormatter(ast, {
-        onBefore: (ast) => {
-          switch (ast._tag) {
-            case "Boolean":
-              return Option.some((b: boolean) => b ? "True" : "False")
-            default:
-              return Option.none()
-          }
-        },
-        resolver: (ast, recur) => {
-          switch (ast._tag) {
-            case "External": {
-              if (ast.annotations?.typeConstructor === "Option") {
-                const value = recur(ast.typeParameters[0])
-                return (o: Option.Option<unknown>) =>
-                  Option.match(o, {
-                    onSome: (t) => `some(${value(t)})`,
-                    onNone: () => "none()"
-                  })
-              }
-              return Formatter.format
-            }
-            default:
-              return Formatter.format
-          }
-        }
-      })
-      strictEqual(formatter(t), expected)
-    }
-
-    it("Boolean", () => {
-      assertToFormatter(Schema.Boolean, true, "True")
-    })
-
-    it("Option(Boolean)", () => {
-      assertToFormatter(Schema.Option(Schema.Boolean), Option.some(true), `some(True)`)
-      assertToFormatter(Schema.Option(Schema.Boolean), Option.none(), `none()`)
-    })
-
-    it("Option(Option(Boolean))", () => {
-      assertToFormatter(
-        Schema.Option(Schema.Option(Schema.Boolean)),
-        Option.some(Option.some(true)),
-        `some(some(True))`
-      )
     })
   })
 })

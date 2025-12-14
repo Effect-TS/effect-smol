@@ -4353,9 +4353,6 @@ export function isInt32(annotations?: Annotations.Filter) {
         ctx.target === "openapi-3.1" ?
           { format: "int32" } :
           undefined,
-      meta: {
-        _tag: "isInt32"
-      },
       ...annotations
     }
   )
@@ -4390,9 +4387,6 @@ export function isUint32(annotations?: Annotations.Filter) {
         ctx.target === "openapi-3.1" ?
           { format: "uint32" } :
           undefined,
-      meta: {
-        _tag: "isUint32"
-      },
       ...annotations
     }
   )
