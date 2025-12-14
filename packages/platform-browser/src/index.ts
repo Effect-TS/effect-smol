@@ -36,3 +36,8 @@ export * as BrowserWorkerRunner from "./BrowserWorkerRunner.ts"
  * @since 4.0.0
  */
 export * as Clipboard from "./Clipboard.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as Geolocation from "./Geolocation.ts"
