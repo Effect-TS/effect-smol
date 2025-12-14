@@ -7643,9 +7643,9 @@ export function toSerializerStringTree<T, E, RD, RE>(
   options?: { readonly keepDeclarations?: boolean | undefined }
 ): Codec<T, unknown, RD, RE> {
   if (options?.keepDeclarations === true) {
-    return make(serializerEnsureArray(serializerStringTreeKeepDeclarations(schema.ast)))
+    return make(toSerializerEnsureArray(serializerStringTreeKeepDeclarations(schema.ast)))
   } else {
-    return make(serializerEnsureArray(serializerStringTree(schema.ast)))
+    return make(toSerializerEnsureArray(serializerStringTree(schema.ast)))
   }
 }
 
@@ -7674,6 +7674,91 @@ export function toEncoderXml<T, E, RD, RE>(
   const serialize = encodeEffect(toSerializerStringTree(codec))
   return (t: T): Effect.Effect<string, SchemaError, RE> =>
     serialize(t).pipe(Effect.map((stringTree) => stringTreeToXml(stringTree, { rootName, ...options })))
+}
+
+function stringTreeToXml(value: StringTree, options: XmlEncoderOptions): string {
+  const rootName = options.rootName ?? "root"
+  const arrayItemName = options.arrayItemName ?? "item"
+  const pretty = options.pretty ?? true
+  const indent = options.indent ?? "  "
+  const sortKeys = options.sortKeys ?? true
+
+  const seen = new Set<object>()
+  const lines: Array<string> = []
+
+  recur(rootName, value, 0)
+  return lines.join(pretty ? "\n" : "")
+
+  function push(depth: number, text: string): void {
+    lines.push(pretty ? indent.repeat(depth) + text : text)
+  }
+
+  function recur(tagName: string, node: StringTree, depth: number, originalNameForMeta?: string): void {
+    const { attrs, safe } = xml.tagInfo(tagName, originalNameForMeta)
+
+    if (node === undefined) {
+      push(depth, `<${safe}${attrs}/>`)
+    } else if (typeof node === "string") {
+      push(depth, `<${safe}${attrs}>${xml.escapeText(node)}</${safe}>`)
+    } else if (typeof node !== "object" || node === null) {
+      push(depth, `<${safe}${attrs}>${xml.escapeText(format(node))}</${safe}>`)
+    } else {
+      if (seen.has(node)) throw new globalThis.Error("Cycle detected while serializing to XML.", { cause: node })
+      seen.add(node)
+      try {
+        if (globalThis.Array.isArray(node)) {
+          if (node.length === 0) {
+            push(depth, `<${safe}${attrs}/>`)
+            return
+          }
+          push(depth, `<${safe}${attrs}>`)
+          for (const item of node) recur(arrayItemName, item, depth + 1)
+          push(depth, `</${safe}>`)
+          return
+        }
+
+        const obj = node as Record<string, StringTree>
+        const keys = Object.keys(obj)
+        if (sortKeys) keys.sort()
+
+        if (keys.length === 0) {
+          push(depth, `<${safe}${attrs}/>`)
+          return
+        }
+
+        push(depth, `<${safe}${attrs}>`)
+        for (const k of keys) {
+          recur(xml.parseTagName(k).safe, obj[k], depth + 1, k)
+        }
+        push(depth, `</${safe}>`)
+      } finally {
+        seen.delete(node)
+      }
+    }
+  }
+}
+
+const xml = {
+  escapeText(s: string): string {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  },
+  escapeAttribute(s: string): string {
+    return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  },
+  parseTagName(name: string): { safe: string; changed: boolean } {
+    const original = name
+    let safe = name
+    if (!/^[A-Za-z_]/.test(safe)) safe = "_" + safe
+    safe = safe.replace(/[^A-Za-z0-9._-]/g, "_")
+    if (/^xml/i.test(safe)) safe = "_" + safe
+    return { safe, changed: safe !== original }
+  },
+  tagInfo(name: string, original?: string): { safe: string; attrs: string } {
+    const { changed, safe } = xml.parseTagName(name)
+    const needsMeta = changed || (original && original !== name)
+    const attrs = needsMeta ? ` data-name="${xml.escapeAttribute(original ?? name)}"` : ""
+    return { safe, attrs }
+  }
 }
 
 function makeReorder(getPriority: (ast: AST.AST) => number) {
@@ -7932,24 +8017,11 @@ const serializerStringTreeKeepDeclarations = AST.serializer((ast) => {
 
 const SERIALIZER_ENSURE_ARRAY = "~effect/schema/Schema/SERIALIZER_ENSURE_ARRAY"
 
-function serializerEnsureArrayBase(ast: AST.AST): AST.AST {
-  switch (ast._tag) {
-    case "Declaration":
-    case "Arrays":
-    case "Objects":
-    case "Union":
-    case "Suspend":
-      return ast.recur(serializerEnsureArray)
-    default:
-      return ast
-  }
-}
-
-const serializerEnsureArray = AST.serializer((ast) => {
+const toSerializerEnsureArray = AST.serializer((ast) => {
   if (AST.isUnion(ast) && ast.annotations?.[SERIALIZER_ENSURE_ARRAY]) {
     return ast
   }
-  const out = serializerEnsureArrayBase(ast)
+  const out = onSerializerEnsureArray(ast)
   if (AST.isArrays(out)) {
     const ensure = new AST.Union(
       [
@@ -7971,92 +8043,17 @@ const serializerEnsureArray = AST.serializer((ast) => {
   return out
 })
 
-function stringTreeToXml(value: StringTree, options: XmlEncoderOptions): string {
-  const opts: { [P in keyof XmlEncoderOptions]-?: Exclude<XmlEncoderOptions[P], undefined> } = {
-    rootName: options.rootName ?? "root",
-    arrayItemName: options.arrayItemName ?? "item",
-    pretty: options.pretty ?? true,
-    indent: options.indent ?? "  ",
-    sortKeys: options.sortKeys ?? true
+function onSerializerEnsureArray(ast: AST.AST): AST.AST {
+  switch (ast._tag) {
+    default:
+      return ast
+    case "Declaration":
+    case "Arrays":
+    case "Objects":
+    case "Union":
+    case "Suspend":
+      return ast.recur(toSerializerEnsureArray)
   }
-
-  const seen = new Set<{ readonly [x: string]: StringTree } | ReadonlyArray<StringTree>>()
-  const lines: Array<string> = []
-  const push = (depth: number, text: string) => lines.push(opts.pretty ? opts.indent.repeat(depth) + text : text)
-
-  const tagInfo = (name: string, original?: string) => {
-    const { changed, safe } = parseTagName(name)
-    const needsMeta = changed || (original && original !== name)
-    const attrs = needsMeta ? ` data-name="${escapeAttribute(original ?? name)}"` : ""
-    return { safe, attrs }
-  }
-
-  const render = (tagName: string, node: StringTree, depth: number, originalNameForMeta?: string): void => {
-    if (node === undefined) {
-      const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
-      push(depth, `<${safe}${attrs}/>`)
-      return
-    }
-
-    if (typeof node === "string") {
-      const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
-      push(depth, `<${safe}${attrs}>${escapeText(node)}</${safe}>`)
-      return
-    }
-
-    if (seen.has(node)) throw new globalThis.Error("Cycle detected while serializing to XML.", { cause: node })
-    seen.add(node)
-    try {
-      // this try / catch is necessary because if there are cycles, the encoder will throw an error
-      if (globalThis.Array.isArray(node)) {
-        const { attrs, safe: safeParent } = tagInfo(tagName, originalNameForMeta)
-        if (node.length === 0) {
-          push(depth, `<${safeParent}${attrs}/>`)
-        } else {
-          push(depth, `<${safeParent}${attrs}>`)
-          for (const item of node) render(opts.arrayItemName, item, depth + 1)
-          push(depth, `</${safeParent}>`)
-        }
-      } else if (Predicate.isObject(node)) {
-        const obj = node as { readonly [x: string]: StringTree }
-        const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
-        const keys = Object.keys(obj)
-        if (opts.sortKeys) keys.sort()
-        if (keys.length === 0) {
-          push(depth, `<${safe}${attrs}/>`)
-          return
-        }
-        push(depth, `<${safe}${attrs}>`)
-        for (const k of keys) {
-          const { safe: childSafe } = parseTagName(k)
-          render(childSafe, obj[k], depth + 1, k)
-        }
-        push(depth, `</${safe}>`)
-      } else {
-        const { attrs, safe } = tagInfo(tagName, originalNameForMeta)
-        push(depth, `<${safe}${attrs}>${escapeText(format(node))}</${safe}>`)
-      }
-    } finally {
-      seen.delete(node)
-    }
-  }
-
-  render(opts.rootName, value, 0)
-  return opts.pretty ? lines.join("\n") : lines.join("")
-}
-
-const escapeText = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-
-const escapeAttribute = (s: string): string =>
-  s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-
-const parseTagName = (name: string): { safe: string; changed: boolean } => {
-  const original = name
-  let safe = name
-  if (!/^[A-Za-z_]/.test(safe)) safe = "_" + safe
-  safe = safe.replace(/[^A-Za-z0-9._-]/g, "_")
-  if (/^xml/i.test(safe)) safe = "_" + safe
-  return { safe, changed: safe !== original }
 }
 
 // -----------------------------------------------------------------------------
