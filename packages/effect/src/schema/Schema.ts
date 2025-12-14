@@ -7605,8 +7605,8 @@ export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T,
  * @category Serializer
  * @since 4.0.0
  */
-export function toSerializerIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
-  return make(serializerIso(AST.typeAST(schema.ast)))
+export function toCodecIsoOptic<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
+  return make(serializerIsoOptic(AST.typeAST(schema.ast)))
 }
 
 /**
@@ -7877,8 +7877,8 @@ function serializerIsoBase(ast: AST.AST): AST.AST {
     case "Declaration": {
       const getLink = ast.annotations?.serializerIso ?? ast.annotations?.serializer
       if (Predicate.isFunction(getLink)) {
-        const link = getLink(ast.typeParameters.map((tp) => make(serializerIso(tp))))
-        const to = serializerIso(link.to)
+        const link = getLink(ast.typeParameters.map((tp) => make(serializerIsoOptic(tp))))
+        const to = serializerIsoOptic(link.to)
         return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
       }
       return ast
@@ -7887,12 +7887,12 @@ function serializerIsoBase(ast: AST.AST): AST.AST {
     case "Objects":
     case "Union":
     case "Suspend":
-      return ast.recur(serializerIso)
+      return ast.recur(serializerIsoOptic)
   }
   return ast
 }
 
-const serializerIso = memoize((ast: AST.AST): AST.AST => {
+const serializerIsoOptic = memoize((ast: AST.AST): AST.AST => {
   const out = serializerIsoBase(ast)
   if (out !== ast && AST.isOptional(ast)) {
     return AST.optionalKeyLastLink(out)
@@ -8065,7 +8065,7 @@ function onSerializerEnsureArray(ast: AST.AST): AST.AST {
  * @since 4.0.0
  */
 export function toIso<S extends Top>(schema: S): Optic_.Iso<S["Type"], S["Iso"]> {
-  const serializer = toSerializerIso(schema)
+  const serializer = toCodecIsoOptic(schema)
   return Optic_.makeIso(Parser.encodeSync(serializer), Parser.decodeSync(serializer))
 }
 

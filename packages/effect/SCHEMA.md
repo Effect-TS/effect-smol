@@ -740,7 +740,7 @@ console.log(
 
 ## ISO Serializer
 
-The ISO serializer (`toSerializerIso`) converts schemas to their `Iso` representation. This is useful when you want to build isomorphic transformations or optics.
+The ISO serializer (`toCodecIsoOptic`) converts schemas to their `Iso` representation. This is useful when you want to build isomorphic transformations or optics.
 
 **Example** (Using the ISO serializer with a Class)
 
@@ -753,7 +753,7 @@ class Person extends Schema.Class<Person>("Person")({
   age: Schema.Number
 }) {}
 
-const isoSerializer = Schema.toSerializerIso(Person)
+const isoCodec = Schema.toCodecIsoOptic(Person)
 
 // The Iso type represents the "focus" of the schema.
 // For Class schemas, the Iso type is the struct representation
@@ -763,11 +763,11 @@ const isoSerializer = Schema.toSerializerIso(Person)
 
 const person = new Person({ name: "John", age: 30 })
 
-const serialized = Schema.encodeUnknownSync(isoSerializer)(person)
+const serialized = Schema.encodeUnknownSync(isoCodec)(person)
 console.log(serialized)
 // { name: 'John', age: 30 }
 
-const deserialized = Schema.decodeUnknownSync(isoSerializer)(serialized)
+const deserialized = Schema.decodeUnknownSync(isoCodec)(serialized)
 console.log(deserialized)
 // Person { name: 'John', age: 30 }
 ```
@@ -936,7 +936,7 @@ Choose the serializer that matches your use case:
 
 - **`toSerializerJson`**: For JSON APIs, storage, and general serialization
 - **`toSerializerStringTree`**: For form data and string-only systems
-- **`toSerializerIso`**: For isomorphic transformations and optics
+- **`toCodecIsoOptic`**: For isomorphic transformations and optics
 
 ## Common Patterns
 
