@@ -428,36 +428,77 @@ export interface MetaRegistry {
   readonly isUint32: {
     readonly _tag: "isUint32"
   }
-  // Numeric Meta
   readonly isMultipleOf: {
     readonly _tag: "isMultipleOf"
-    readonly divisor: unknown
+    readonly divisor: number
   }
-  // Order Meta
   readonly isGreaterThan: {
     readonly _tag: "isGreaterThan"
-    readonly exclusiveMinimum: unknown
+    readonly exclusiveMinimum: number
   }
   readonly isGreaterThanOrEqualTo: {
     readonly _tag: "isGreaterThanOrEqualTo"
-    readonly minimum: unknown
+    readonly minimum: number
   }
   readonly isLessThan: {
     readonly _tag: "isLessThan"
-    readonly exclusiveMaximum: unknown
+    readonly exclusiveMaximum: number
   }
   readonly isLessThanOrEqualTo: {
     readonly _tag: "isLessThanOrEqualTo"
-    readonly maximum: unknown
+    readonly maximum: number
   }
   readonly isBetween: {
     readonly _tag: "isBetween"
-    readonly minimum: unknown
-    readonly maximum: unknown
+    readonly minimum: number
+    readonly maximum: number
+  }
+  // BigInt Meta
+  readonly isGreaterThanBigInt: {
+    readonly _tag: "isGreaterThanBigInt"
+    readonly exclusiveMinimum: bigint
+  }
+  readonly isGreaterThanOrEqualToBigInt: {
+    readonly _tag: "isGreaterThanOrEqualToBigInt"
+    readonly minimum: bigint
+  }
+  readonly isLessThanBigInt: {
+    readonly _tag: "isLessThanBigInt"
+    readonly exclusiveMaximum: bigint
+  }
+  readonly isLessThanOrEqualToBigInt: {
+    readonly _tag: "isLessThanOrEqualToBigInt"
+    readonly maximum: bigint
+  }
+  readonly isBetweenBigInt: {
+    readonly _tag: "isBetweenBigInt"
+    readonly minimum: bigint
+    readonly maximum: bigint
   }
   // Date Meta
   readonly isValidDate: {
     readonly _tag: "isValidDate"
+  }
+  readonly isGreaterThanDate: {
+    readonly _tag: "isGreaterThanDate"
+    readonly exclusiveMinimum: Date
+  }
+  readonly isGreaterThanOrEqualToDate: {
+    readonly _tag: "isGreaterThanOrEqualToDate"
+    readonly minimum: Date
+  }
+  readonly isLessThanDate: {
+    readonly _tag: "isLessThanDate"
+    readonly exclusiveMaximum: Date
+  }
+  readonly isLessThanOrEqualToDate: {
+    readonly _tag: "isLessThanOrEqualToDate"
+    readonly maximum: Date
+  }
+  readonly isBetweenDate: {
+    readonly _tag: "isBetweenDate"
+    readonly minimum: Date
+    readonly maximum: Date
   }
   // Objects Meta
   readonly isMinProperties: {

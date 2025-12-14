@@ -3938,10 +3938,6 @@ export function makeIsGreaterThan<T>(options: {
       (input) => greaterThan(input, exclusiveMinimum),
       {
         expected: `a value greater than ${fmt(exclusiveMinimum)}`,
-        meta: {
-          _tag: "isGreaterThan",
-          exclusiveMinimum
-        },
         ...options.annotate?.(exclusiveMinimum),
         ...annotations
       }
@@ -3965,10 +3961,6 @@ export function makeIsGreaterThanOrEqualTo<T>(options: {
       (input) => greaterThanOrEqualTo(input, minimum),
       {
         expected: `a value greater than or equal to ${fmt(minimum)}`,
-        meta: {
-          _tag: "isGreaterThanOrEqualTo",
-          minimum
-        },
         ...options.annotate?.(minimum),
         ...annotations
       }
@@ -3992,10 +3984,6 @@ export function makeIsLessThan<T>(options: {
       (input) => lessThan(input, exclusiveMaximum),
       {
         expected: `a value less than ${fmt(exclusiveMaximum)}`,
-        meta: {
-          _tag: "isLessThan",
-          exclusiveMaximum
-        },
         ...options.annotate?.(exclusiveMaximum),
         ...annotations
       }
@@ -4019,10 +4007,6 @@ export function makeIsLessThanOrEqualTo<T>(options: {
       (input) => lessThanOrEqualTo(input, maximum),
       {
         expected: `a value less than or equal to ${fmt(maximum)}`,
-        meta: {
-          _tag: "isLessThanOrEqualTo",
-          maximum
-        },
         ...options.annotate?.(maximum),
         ...annotations
       }
@@ -4065,10 +4049,6 @@ export function makeIsBetween<T>(deriveOptions: {
         expected: `a value between ${fmt(options.minimum)}${options.exclusiveMinimum ? " (excluded)" : ""} and ${
           fmt(options.maximum)
         }${options.exclusiveMaximum ? " (excluded)" : ""}`,
-        meta: {
-          _tag: "isBetween",
-          ...options
-        },
         ...deriveOptions.annotate?.(options),
         ...annotations
       }
@@ -4092,10 +4072,6 @@ export function makeIsMultipleOf<T>(options: {
       (input) => options.remainder(input, divisor) === options.zero,
       {
         expected: `a value that is a multiple of ${fmt(divisor)}`,
-        meta: {
-          _tag: "isMultipleOf",
-          divisor
-        },
         ...options.annotate?.(divisor),
         ...annotations
       }
@@ -4123,6 +4099,10 @@ export const isGreaterThan = makeIsGreaterThan({
   order: Order.number,
   annotate: (exclusiveMinimum) => ({
     toJsonSchemaConstraint: () => ({ exclusiveMinimum }),
+    meta: {
+      _tag: "isGreaterThan",
+      exclusiveMinimum
+    },
     toArbitraryConstraint: {
       number: {
         min: exclusiveMinimum,
@@ -4152,6 +4132,10 @@ export const isGreaterThanOrEqualTo = makeIsGreaterThanOrEqualTo({
   order: Order.number,
   annotate: (minimum) => ({
     toJsonSchemaConstraint: () => ({ minimum }),
+    meta: {
+      _tag: "isGreaterThanOrEqualTo",
+      minimum
+    },
     toArbitraryConstraint: {
       number: {
         min: minimum
@@ -4180,6 +4164,10 @@ export const isLessThan = makeIsLessThan({
   order: Order.number,
   annotate: (exclusiveMaximum) => ({
     toJsonSchemaConstraint: () => ({ exclusiveMaximum }),
+    meta: {
+      _tag: "isLessThan",
+      exclusiveMaximum
+    },
     toArbitraryConstraint: {
       number: {
         max: exclusiveMaximum,
@@ -4209,6 +4197,10 @@ export const isLessThanOrEqualTo = makeIsLessThanOrEqualTo({
   order: Order.number,
   annotate: (maximum) => ({
     toJsonSchemaConstraint: () => ({ maximum }),
+    meta: {
+      _tag: "isLessThanOrEqualTo",
+      maximum
+    },
     toArbitraryConstraint: {
       number: {
         max: maximum
@@ -4253,6 +4245,10 @@ export const isBetween = makeIsBetween({
         }
         return out
       },
+      meta: {
+        _tag: "isBetween",
+        ...options
+      },
       toArbitraryConstraint: {
         number: {
           min: options.minimum,
@@ -4285,6 +4281,10 @@ export const isMultipleOf = makeIsMultipleOf({
   zero: 0,
   annotate: (divisor) => ({
     expected: `a value that is a multiple of ${divisor}`,
+    meta: {
+      _tag: "isMultipleOf",
+      divisor
+    },
     toJsonSchemaConstraint: () => ({ multipleOf: Math.abs(divisor) })
   })
 })
@@ -4448,6 +4448,10 @@ export function isValidDate(annotations?: Annotations.Filter) {
 export const isGreaterThanDate = makeIsGreaterThan({
   order: Order.Date,
   annotate: (exclusiveMinimum) => ({
+    meta: {
+      _tag: "isGreaterThanDate",
+      exclusiveMinimum
+    },
     toArbitraryConstraint: {
       date: {
         min: exclusiveMinimum,
@@ -4478,6 +4482,10 @@ export const isGreaterThanDate = makeIsGreaterThan({
 export const isGreaterThanOrEqualToDate = makeIsGreaterThanOrEqualTo({
   order: Order.Date,
   annotate: (minimum) => ({
+    meta: {
+      _tag: "isGreaterThanOrEqualToDate",
+      minimum
+    },
     toArbitraryConstraint: {
       date: {
         min: minimum
@@ -4501,6 +4509,10 @@ export const isGreaterThanOrEqualToDate = makeIsGreaterThanOrEqualTo({
 export const isLessThanDate = makeIsLessThan({
   order: Order.Date,
   annotate: (exclusiveMaximum) => ({
+    meta: {
+      _tag: "isLessThanDate",
+      exclusiveMaximum
+    },
     toArbitraryConstraint: {
       date: {
         max: exclusiveMaximum,
@@ -4531,6 +4543,10 @@ export const isLessThanDate = makeIsLessThan({
 export const isLessThanOrEqualToDate = makeIsLessThanOrEqualTo({
   order: Order.Date,
   annotate: (maximum) => ({
+    meta: {
+      _tag: "isLessThanOrEqualToDate",
+      maximum
+    },
     toArbitraryConstraint: {
       date: {
         max: maximum
@@ -4559,6 +4575,10 @@ export const isLessThanOrEqualToDate = makeIsLessThanOrEqualTo({
 export const isBetweenDate = makeIsBetween({
   order: Order.Date,
   annotate: (options) => ({
+    meta: {
+      _tag: "isBetweenDate",
+      ...options
+    },
     toArbitraryConstraint: {
       date: {
         min: options.minimum,
@@ -4583,6 +4603,10 @@ export const isBetweenDate = makeIsBetween({
 export const isGreaterThanBigInt = makeIsGreaterThan({
   order: Order.bigint,
   annotate: (exclusiveMinimum) => ({
+    meta: {
+      _tag: "isGreaterThanBigInt",
+      exclusiveMinimum
+    },
     toArbitraryConstraint: {
       bigint: {
         min: exclusiveMinimum,
@@ -4608,6 +4632,10 @@ export const isGreaterThanBigInt = makeIsGreaterThan({
 export const isGreaterThanOrEqualToBigInt = makeIsGreaterThanOrEqualTo({
   order: Order.bigint,
   annotate: (minimum) => ({
+    meta: {
+      _tag: "isGreaterThanOrEqualToBigInt",
+      minimum
+    },
     toArbitraryConstraint: {
       bigint: {
         min: minimum
@@ -4631,6 +4659,10 @@ export const isGreaterThanOrEqualToBigInt = makeIsGreaterThanOrEqualTo({
 export const isLessThanBigInt = makeIsLessThan({
   order: Order.bigint,
   annotate: (exclusiveMaximum) => ({
+    meta: {
+      _tag: "isLessThanBigInt",
+      exclusiveMaximum
+    },
     toArbitraryConstraint: {
       bigint: {
         max: exclusiveMaximum,
@@ -4656,6 +4688,10 @@ export const isLessThanBigInt = makeIsLessThan({
 export const isLessThanOrEqualToBigInt = makeIsLessThanOrEqualTo({
   order: Order.bigint,
   annotate: (maximum) => ({
+    meta: {
+      _tag: "isLessThanOrEqualToBigInt",
+      maximum
+    },
     toArbitraryConstraint: {
       bigint: {
         max: maximum
@@ -4680,6 +4716,10 @@ export const isLessThanOrEqualToBigInt = makeIsLessThanOrEqualTo({
 export const isBetweenBigInt = makeIsBetween({
   order: Order.bigint,
   annotate: (options) => ({
+    meta: {
+      _tag: "isBetweenBigInt",
+      ...options
+    },
     toArbitraryConstraint: {
       bigint: {
         min: options.minimum,
