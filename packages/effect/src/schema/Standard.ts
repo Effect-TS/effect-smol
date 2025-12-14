@@ -963,10 +963,7 @@ export function fromAST(ast: AST.AST): Document {
         if (visited.has(thunk)) {
           const $ref = Annotations.resolveIdentifier(thunk)
           if ($ref !== undefined) {
-            return {
-              _tag: "Reference",
-              $ref
-            }
+            return { _tag: "Reference", $ref }
           } else {
             throw new Error("Suspended schema without identifier detected")
           }
@@ -1120,23 +1117,23 @@ export function fromJson(u: unknown): Document {
 /**
  * @since 4.0.0
  */
-export type Resolver<O> = (ast: External | Reference, recur: (ast: StandardSchema) => O) => O
+export type Resolver<O> = (node: External | Reference, recur: (schema: StandardSchema) => O) => O
 
 /**
  * @since 4.0.0
  */
-export const toSchemaDefaultResolver: Resolver<Schema.Top> = (ast, recur) => {
-  switch (ast._tag) {
+export const toSchemaDefaultResolver: Resolver<Schema.Top> = (node, recur) => {
+  switch (node._tag) {
     case "External": {
-      switch (ast.annotations?.typeConstructor) {
+      switch (node.annotations?.typeConstructor) {
         default:
-          return Schema.Unknown
+          throw new Error(`Unknown type constructor: ${node.annotations?.typeConstructor}`)
         case "Option":
-          return Schema.Option(recur(ast.typeParameters[0]))
+          return Schema.Option(recur(node.typeParameters[0]))
       }
     }
     case "Reference":
-      return Schema.Unknown
+      throw new Error(`Reference to unknown schema: ${node.$ref}`)
   }
 }
 
@@ -1177,7 +1174,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
       value: undefined,
       ref: Schema.suspend(() => {
         if (slot.value === undefined) {
-          throw new Error(`Unresolved reference: ${identifier}`)
+          return Schema.Unknown
         }
         return slot.value
       })
@@ -1218,12 +1215,12 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
     }
   }
 
-  function on(node: StandardSchema): Schema.Top {
-    switch (node._tag) {
+  function on(schema: StandardSchema): Schema.Top {
+    switch (schema._tag) {
       case "External":
-        return resolver(node, recur)
+        return resolver(schema, recur)
       case "Reference":
-        return resolveReference(node.$ref)
+        return resolveReference(schema.$ref)
       case "Null":
         return Schema.Null
       case "Undefined":
@@ -1247,25 +1244,25 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
       case "Symbol":
         return Schema.Symbol
       case "Literal":
-        return Schema.Literal(node.literal)
+        return Schema.Literal(schema.literal)
       case "UniqueSymbol":
-        return Schema.UniqueSymbol(node.symbol)
+        return Schema.UniqueSymbol(schema.symbol)
       case "ObjectKeyword":
         return Schema.ObjectKeyword
       case "Enum":
-        return Schema.Enum(Object.fromEntries(node.enums))
+        return Schema.Enum(Object.fromEntries(schema.enums))
       case "TemplateLiteral": {
-        const parts = node.parts.map(recur) as Schema.TemplateLiteral.Parts
+        const parts = schema.parts.map(recur) as Schema.TemplateLiteral.Parts
         return Schema.TemplateLiteral(parts)
       }
       case "Arrays": {
-        const elements = node.elements.map((e) => {
+        const elements = schema.elements.map((e) => {
           const s = recur(e.ast)
           return e.isOptional ? Schema.optionalKey(s) : s
         })
-        const rest = node.rest.map(recur)
+        const rest = schema.rest.map(recur)
         if (Arr.isArrayNonEmpty(rest)) {
-          if (node.elements.length === 0 && node.rest.length === 1) {
+          if (schema.elements.length === 0 && schema.rest.length === 1) {
             return Schema.Array(rest[0])
           }
           return Schema.TupleWithRest(Schema.Tuple(elements), rest)
@@ -1275,18 +1272,18 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
       case "Objects": {
         const fields: Record<PropertyKey, Schema.Top> = {}
 
-        for (const ps of node.propertySignatures) {
+        for (const ps of schema.propertySignatures) {
           const s = recur(ps.type)
           const withOptional = ps.isOptional ? Schema.optionalKey(s) : s
           fields[ps.name] = ps.isMutable ? Schema.mutableKey(withOptional) : withOptional
         }
 
-        const indexSignatures = node.indexSignatures.map((is) =>
+        const indexSignatures = schema.indexSignatures.map((is) =>
           Schema.Record(recur(is.parameter) as Schema.Record.Key, recur(is.type))
         )
 
         if (Arr.isArrayNonEmpty(indexSignatures)) {
-          if (node.propertySignatures.length === 0 && indexSignatures.length === 1) {
+          if (schema.propertySignatures.length === 0 && indexSignatures.length === 1) {
             return indexSignatures[0]
           }
           return Schema.StructWithRest(Schema.Struct(fields), indexSignatures)
@@ -1295,22 +1292,22 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
         return Schema.Struct(fields)
       }
       case "Union":
-        return Schema.Union(node.types.map(recur), { mode: node.mode })
+        return Schema.Union(schema.types.map(recur), { mode: schema.mode })
     }
   }
 }
 
-function toSchemaChecks(schema: Schema.Top, ast: StandardSchema): Schema.Top {
-  switch (ast._tag) {
+function toSchemaChecks(top: Schema.Top, schema: StandardSchema): Schema.Top {
+  switch (schema._tag) {
     case "String":
     case "Number":
     case "BigInt":
     case "External": {
-      const checks = ast.checks.map(toSchemaCheck)
-      return Arr.isArrayNonEmpty(checks) ? schema.check(...checks) : schema
+      const checks = schema.checks.map(toSchemaCheck)
+      return Arr.isArrayNonEmpty(checks) ? top.check(...checks) : top
     }
     default:
-      return schema
+      return top
   }
 }
 
@@ -1452,12 +1449,12 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document {
     return jsonSchema
   }
 
-  function on(ast: StandardSchema): Schema.JsonSchema {
-    switch (ast._tag) {
+  function on(schema: StandardSchema): Schema.JsonSchema {
+    switch (schema._tag) {
       case "External":
         return {} // TODO
       case "Reference":
-        return { $ref: `#/$defs/${escapeJsonPointer(ast.$ref)}` }
+        return { $ref: `#/$defs/${escapeJsonPointer(schema.$ref)}` }
       case "Null":
         return { type: "null" }
       case "Undefined":
@@ -1472,11 +1469,11 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document {
         return { not: {} }
       case "String": {
         const out: Schema.JsonSchema = { type: "string" }
-        if (ast.contentMediaType !== undefined) {
-          out.contentMediaType = ast.contentMediaType
+        if (schema.contentMediaType !== undefined) {
+          out.contentMediaType = schema.contentMediaType
         }
-        if (ast.contentSchema !== undefined) {
-          out.contentSchema = recur(ast.contentSchema)
+        if (schema.contentSchema !== undefined) {
+          out.contentSchema = recur(schema.contentSchema)
         }
         return out
       }
@@ -1485,7 +1482,7 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document {
       case "Boolean":
         return { type: "boolean" }
       case "Literal": {
-        const literal = ast.literal
+        const literal = schema.literal
         if (typeof literal === "string") {
           return { type: "string", enum: [literal] }
         }
@@ -1501,7 +1498,7 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document {
       case "ObjectKeyword":
         return { anyOf: [{ type: "object" }, { type: "array" }] }
       case "Enum": {
-        const enumValues = ast.enums.map(([, value]) => value)
+        const enumValues = schema.enums.map(([, value]) => value)
         if (enumValues.length === 0) {
           return {}
         }
@@ -1519,13 +1516,13 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document {
         }
       }
       case "TemplateLiteral": {
-        const pattern = ast.parts.map(getPartPattern).join("")
+        const pattern = schema.parts.map(getPartPattern).join("")
         return { type: "string", pattern: `^${pattern}$` }
       }
       case "Arrays": {
         const out: Schema.JsonSchema = { type: "array" }
-        let minItems = ast.elements.length
-        const items: Array<Schema.JsonSchema> = ast.elements.map((e) => {
+        let minItems = schema.elements.length
+        const items: Array<Schema.JsonSchema> = schema.elements.map((e) => {
           if (e.isOptional) minItems--
           return recur(e.ast)
         })
@@ -1533,8 +1530,8 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document {
           out.prefixItems = items
           out.minItems = minItems
         }
-        if (ast.rest.length > 0) {
-          out.items = recur(ast.rest[0])
+        if (schema.rest.length > 0) {
+          out.items = recur(schema.rest[0])
         } else {
           // No rest element: no additional items allowed
           out.items = false
@@ -1545,14 +1542,14 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document {
         return out
       }
       case "Objects": {
-        if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
+        if (schema.propertySignatures.length === 0 && schema.indexSignatures.length === 0) {
           return { anyOf: [{ type: "object" }, { type: "array" }] }
         }
         const out: Schema.JsonSchema = { type: "object" }
         const properties: Record<string, Schema.JsonSchema> = {}
         const required: Array<string> = []
 
-        for (const ps of ast.propertySignatures) {
+        for (const ps of schema.propertySignatures) {
           const name = typeof ps.name === "string" ? ps.name : globalThis.String(ps.name)
           properties[name] = recur(ps.type)
           // Property is required only if it's not explicitly optional AND doesn't contain Undefined
@@ -1569,9 +1566,9 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document {
         }
 
         // Handle index signatures
-        if (ast.indexSignatures.length > 0) {
+        if (schema.indexSignatures.length > 0) {
           // For draft-2020-12, we can use patternProperties or additionalProperties
-          const firstIndex = ast.indexSignatures[0]
+          const firstIndex = schema.indexSignatures[0]
           out.additionalProperties = recur(firstIndex.type)
         } else {
           // No index signatures: additional properties are not allowed
@@ -1581,11 +1578,11 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document {
         return out
       }
       case "Union": {
-        const types = ast.types.map((t) => recur(t)).filter((t) => Object.keys(t).length > 0)
+        const types = schema.types.map((t) => recur(t)).filter((t) => Object.keys(t).length > 0)
         if (types.length === 0) {
           return { not: {} }
         }
-        const result = ast.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
+        const result = schema.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
         return flattenArrayJsonSchema(result)
       }
     }
@@ -1752,12 +1749,12 @@ function applyChecks(
   }, jsonSchema)
 }
 
-function containsUndefined(ast: StandardSchema): boolean {
-  switch (ast._tag) {
+function containsUndefined(schema: StandardSchema): boolean {
+  switch (schema._tag) {
     case "Undefined":
       return true
     case "Union":
-      return ast.types.some(containsUndefined)
+      return schema.types.some(containsUndefined)
     default:
       return false
   }
@@ -1783,10 +1780,27 @@ function getPartPattern(part: StandardSchema): string {
 /**
  * @since 4.0.0
  */
+export const toCodeDefaultResolver: Resolver<string> = (node, recur) => {
+  switch (node._tag) {
+    case "External": {
+      const typeConstructor = node.annotations?.typeConstructor
+      if (typeof typeConstructor === "string") {
+        return `Schema.${typeConstructor}(${node.typeParameters.map((p) => recur(p)).join(", ")})`
+      }
+      return `Schema.Unknown`
+    }
+    case "Reference":
+      throw new Error(`Reference to unknown schema: ${node.$ref}`)
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
 export function toCode(document: Document, options?: {
   readonly resolver?: Resolver<string> | undefined
 }): string {
-  const resolver = options?.resolver ?? defaultResolver
+  const resolver = options?.resolver ?? toCodeDefaultResolver
   const ast = document.schema
 
   if (ast._tag === "Reference") {
@@ -1795,30 +1809,31 @@ export function toCode(document: Document, options?: {
   }
   return recur(ast)
 
-  function defaultResolver(): string {
-    return `Schema.Unknown`
-  }
-
-  function recur(ast: StandardSchema): string {
-    const b = on(ast)
-    switch (ast._tag) {
+  function recur(schema: StandardSchema): string {
+    const b = on(schema)
+    switch (schema._tag) {
       default:
-        return b + toCodeAnnotate(ast.annotations)
-      case "Reference":
+        return b + toCodeAnnotate(schema.annotations)
       case "External":
+      case "Reference":
         return b
       case "String":
       case "Number":
       case "BigInt":
-        return b + toCodeAnnotate(ast.annotations) + toCodeChecks(ast.checks)
+        return b + toCodeAnnotate(schema.annotations) + toCodeChecks(schema.checks)
     }
   }
 
-  function on(ast: StandardSchema): string {
-    switch (ast._tag) {
+  function on(schema: StandardSchema): string {
+    switch (schema._tag) {
       case "External":
-      case "Reference":
-        return resolver(ast, recur)
+        return resolver(schema, recur)
+      case "Reference": {
+        if (schema.$ref in document.definitions) {
+          return `Schema.suspend((): Schema.Codec<${schema.$ref}> => ${schema.$ref})`
+        }
+        return resolver(schema, recur)
+      }
       case "Null":
       case "Undefined":
       case "Void":
@@ -1830,11 +1845,11 @@ export function toCode(document: Document, options?: {
       case "Boolean":
       case "BigInt":
       case "Symbol":
-        return `Schema.${ast._tag}`
+        return `Schema.${schema._tag}`
       case "Literal":
-        return `Schema.Literal(${format(ast.literal)})`
+        return `Schema.Literal(${format(schema.literal)})`
       case "UniqueSymbol": {
-        const key = globalThis.Symbol.keyFor(ast.symbol)
+        const key = globalThis.Symbol.keyFor(schema.symbol)
         if (key === undefined) {
           throw new Error("Cannot generate code for UniqueSymbol created without Symbol.for()")
         }
@@ -1843,12 +1858,12 @@ export function toCode(document: Document, options?: {
       case "ObjectKeyword":
         return "Schema.ObjectKeyword"
       case "Enum":
-        return `Schema.Enum([${ast.enums.map(([key, value]) => `[${format(key)}, ${format(value)}]`).join(", ")}])`
+        return `Schema.Enum([${schema.enums.map(([key, value]) => `[${format(key)}, ${format(value)}]`).join(", ")}])`
       case "TemplateLiteral":
-        return `Schema.TemplateLiteral([${ast.parts.map((p) => recur(p)).join(", ")}])`
+        return `Schema.TemplateLiteral([${schema.parts.map((p) => recur(p)).join(", ")}])`
       case "Arrays": {
-        const elements = ast.elements.map((e) => toCodeIsOptional(e.isOptional, recur(e.ast)))
-        const rest = ast.rest.map((r) => recur(r))
+        const elements = schema.elements.map((e) => toCodeIsOptional(e.isOptional, recur(e.ast)))
+        const rest = schema.rest.map((r) => recur(r))
         if (Arr.isArrayNonEmpty(rest)) {
           if (elements.length === 0 && rest.length === 1) {
             return `Schema.Array(${rest[0]})`
@@ -1858,10 +1873,12 @@ export function toCode(document: Document, options?: {
         return `Schema.Tuple([${elements.join(", ")}])`
       }
       case "Objects": {
-        const propertySignatures = ast.propertySignatures.map((p) =>
+        const propertySignatures = schema.propertySignatures.map((p) =>
           `${formatPropertyKey(p.name)}: ${toCodeIsMutable(p.isMutable, toCodeIsOptional(p.isOptional, recur(p.type)))}`
         )
-        const indexSignatures = ast.indexSignatures.map((i) => `Schema.Record(${recur(i.parameter)}, ${recur(i.type)})`)
+        const indexSignatures = schema.indexSignatures.map((i) =>
+          `Schema.Record(${recur(i.parameter)}, ${recur(i.type)})`
+        )
         if (Arr.isArrayNonEmpty(indexSignatures)) {
           if (propertySignatures.length === 0 && indexSignatures.length === 1) {
             return indexSignatures[0]
@@ -1873,8 +1890,8 @@ export function toCode(document: Document, options?: {
         return `Schema.Struct({ ${propertySignatures.join(", ")} })`
       }
       case "Union": {
-        const mode = ast.mode === "anyOf" ? "" : `, { mode: "oneOf" }`
-        return `Schema.Union([${ast.types.map((t) => recur(t)).join(", ")}]${mode})`
+        const mode = schema.mode === "anyOf" ? "" : `, { mode: "oneOf" }`
+        return `Schema.Union([${schema.types.map((t) => recur(t)).join(", ")}]${mode})`
       }
     }
   }

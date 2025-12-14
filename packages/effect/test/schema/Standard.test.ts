@@ -735,32 +735,15 @@ describe("Standard", () => {
   })
 
   describe("toCode", () => {
-    const resolver: Standard.Resolver<string> = (node, recur) => {
-      switch (node._tag) {
-        case "External": {
-          const typeConstructor = node.annotations?.typeConstructor
-          if (typeof typeConstructor === "string") {
-            return `Schema.${typeConstructor}(${node.typeParameters.map((p) => recur(p)).join(", ")})`
-          }
-          return `Schema.Unknown`
-        }
-        case "Reference":
-          return `Schema.suspend((): Schema.Codec<${node.$ref}> => ${node.$ref})` +
-            Standard.toCodeAnnotate(node.annotations)
-      }
-    }
-
     describe("Suspend", () => {
       it("non-recursive", () => {
         assertToCode(
           Schema.suspend(() => Schema.String),
-          `Schema.String`,
-          resolver
+          `Schema.String`
         )
         assertToCode(
           Schema.suspend(() => Schema.String.annotate({ identifier: "ID" })),
-          `Schema.String.annotate({ "identifier": "ID" })`,
-          resolver
+          `Schema.String.annotate({ "identifier": "ID" })`
         )
       })
 
@@ -768,16 +751,14 @@ describe("Standard", () => {
         it("outer identifier", () => {
           assertToCode(
             OuterCategory,
-            `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)) }).annotate({ "identifier": "Category" })`,
-            resolver
+            `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)) }).annotate({ "identifier": "Category" })`
           )
         })
 
         it("inner identifier", () => {
           assertToCode(
             InnerCategory,
-            `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)) })`,
-            resolver
+            `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)) })`
           )
         })
       })
@@ -785,8 +766,7 @@ describe("Standard", () => {
 
     describe("Declaration", () => {
       it("Option", () => {
-        assertToCode(Schema.Option(Schema.String), "Schema.Unknown")
-        assertToCode(Schema.Option(Schema.String), "Schema.Option(Schema.String)", resolver)
+        assertToCode(Schema.Option(Schema.String), "Schema.Option(Schema.String)")
       })
 
       it("declaration without typeConstructor annotation", () => {
@@ -1177,25 +1157,10 @@ describe("Standard", () => {
   })
 
   describe("toSchema", () => {
-    const resolver: Standard.Resolver<string> = (node, recur) => {
-      switch (node._tag) {
-        case "External": {
-          const typeConstructor = node.annotations?.typeConstructor
-          if (typeof typeConstructor === "string") {
-            return `Schema.${typeConstructor}(${node.typeParameters.map((p) => recur(p)).join(", ")})`
-          }
-          return `Schema.Unknown`
-        }
-        case "Reference":
-          return `Schema.suspend((): Schema.Codec<${node.$ref}> => ${node.$ref})` +
-            Standard.toCodeAnnotate(node.annotations)
-      }
-    }
-
     function assertToSchema(schema: Schema.Top, expected: string) {
       const document = Standard.fromAST(schema.ast)
       const toSchema = Standard.toSchema(document)
-      assertToCode(toSchema, expected, resolver)
+      assertToCode(toSchema, expected)
     }
 
     it("String", () => {
