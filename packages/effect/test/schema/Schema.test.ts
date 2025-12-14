@@ -6,7 +6,7 @@ import { TestSchema } from "effect/testing"
 import { produce } from "immer"
 import { deepStrictEqual, fail, ok, strictEqual } from "node:assert"
 import { describe, it } from "vitest"
-import { assertFalse, assertGetter, assertInclude, assertTrue, throws } from "../utils/assert.ts"
+import { assertFalse, assertInclude, assertTrue, throws } from "../utils/assert.ts"
 
 const isDeno = "Deno" in globalThis
 
@@ -6784,88 +6784,6 @@ describe("Getter", () => {
 })
 
 describe("Check", () => {
-  describe("Filter", () => {
-    describe("annotate", () => {
-      it("should keep getters", () => {
-        const filter = Schema.isNonEmpty().annotate({
-          get title() {
-            return "value"
-          }
-        })
-        const annotations = filter.annotations
-        assertGetter(annotations, "title", "value")
-      })
-
-      it("should preserve existing getters when merging", () => {
-        const filter = Schema.isNonEmpty()
-          .annotate({
-            a: "a",
-            get b() {
-              return "b"
-            },
-            get c() {
-              return "c"
-            }
-          })
-          .annotate({
-            get c() {
-              return "c2"
-            },
-            get d() {
-              return "d"
-            }
-          })
-
-        const annotations = filter.annotations
-        strictEqual(annotations?.a, "a")
-        assertGetter(annotations, "b", "b")
-        assertGetter(annotations, "c", "c2")
-        assertGetter(annotations, "d", "d")
-      })
-    })
-  })
-
-  describe("FilterGroup", () => {
-    describe("annotate", () => {
-      it("should keep getters", () => {
-        const filter = Schema.isInt32().annotate({
-          get title() {
-            return "value"
-          }
-        })
-        const annotations = filter.annotations
-        assertGetter(annotations, "title", "value")
-      })
-
-      it("should preserve existing getters when merging", () => {
-        const filter = Schema.isInt32()
-          .annotate({
-            a: "a",
-            get b() {
-              return "b"
-            },
-            get c() {
-              return "c"
-            }
-          })
-          .annotate({
-            get c() {
-              return "c2"
-            },
-            get d() {
-              return "d"
-            }
-          })
-
-        const annotations = filter.annotations
-        strictEqual(annotations?.a, "a")
-        assertGetter(annotations, "b", "b")
-        assertGetter(annotations, "c", "c2")
-        assertGetter(annotations, "d", "d")
-      })
-    })
-  })
-
   it("isNumberString", async () => {
     const schema = Schema.String.check(Schema.isNumberString())
 

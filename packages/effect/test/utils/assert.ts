@@ -172,17 +172,3 @@ export function assertExitSuccess<A, E>(
 ): asserts exit is Exit.Success<A, never> {
   deepStrictEqual(exit, Exit.succeed(expected))
 }
-
-export function assertGetter(object: unknown, key: string, value: unknown) {
-  const descriptor = Object.getOwnPropertyDescriptor(object, key)
-  // For getters, value should be undefined and get should be a function
-  strictEqual(descriptor?.value, undefined)
-  assertTrue(Predicate.isFunction(descriptor?.get))
-  strictEqual(descriptor?.configurable, true)
-  strictEqual(descriptor?.enumerable, true)
-
-  // Test that calling the getter returns the expected value
-  if (descriptor?.get) {
-    strictEqual(descriptor.get.call(object), value)
-  }
-}

@@ -551,27 +551,3 @@ export const getExpected = memoize((ast: AST.AST): string => {
 export function resolveInto<S extends Schema.Top>(schema: S): S["~annotate.in"] | undefined {
   return resolve(schema.ast)
 }
-
-/**
- * Merges annotations while preserving getters from both objects.
- *
- * @internal
- */
-export function combine<A extends Annotations>(existing: A, incoming: A | undefined): A
-export function combine<A extends Annotations>(existing: A | undefined, incoming: A): A
-export function combine<A extends Annotations>(existing: A | undefined, incoming: A | undefined): A | undefined
-export function combine<A extends Annotations>(existing: A | undefined, incoming: A | undefined): A | undefined {
-  if (!existing) return incoming
-  if (!incoming) return existing
-
-  const out: any = {}
-  // Apply existing descriptors first
-  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(existing))) {
-    Object.defineProperty(out, key, descriptor)
-  }
-  // Apply incoming descriptors (this will override existing ones)
-  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(incoming))) {
-    Object.defineProperty(out, key, descriptor)
-  }
-  return out
-}

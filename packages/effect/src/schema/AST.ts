@@ -17,7 +17,7 @@ import * as Pipeable from "../interfaces/Pipeable.ts"
 import { effectIsExit } from "../internal/effect.ts"
 import * as internalRecord from "../internal/record.ts"
 import * as RegEx from "../RegExp.ts"
-import * as Annotations from "./Annotations.ts"
+import type * as Annotations from "./Annotations.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
 import type * as Parser from "./Parser.ts"
@@ -1909,7 +1909,7 @@ export class Filter<in E> extends Pipeable.Class {
     this.aborted = aborted
   }
   annotate(annotations: Annotations.Filter): Filter<E> {
-    return new Filter(this.run, Annotations.combine(this.annotations, annotations), this.aborted)
+    return new Filter(this.run, { ...this.annotations, ...annotations }, this.aborted)
   }
   abort(): Filter<E> {
     return new Filter(this.run, this.annotations, true)
@@ -1939,7 +1939,7 @@ export class FilterGroup<in E> extends Pipeable.Class {
     this.annotations = annotations
   }
   annotate(annotations: Annotations.Filter): FilterGroup<E> {
-    return new FilterGroup(this.checks, Annotations.combine(this.annotations, annotations))
+    return new FilterGroup(this.checks, { ...this.annotations, ...annotations })
   }
   and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
   and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
@@ -2024,7 +2024,7 @@ export function makeRefinedByGuard<T extends E, E>(
 export function isNotUndefined<A>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<Exclude<A, undefined>, A>(
     Predicate.isNotUndefined,
-    Annotations.combine({ expected: "a value other than `undefined`" }, annotations)
+    { expected: "a value other than `undefined`", ...annotations }
   )
 }
 
@@ -2032,7 +2032,7 @@ export function isNotUndefined<A>(annotations?: Annotations.Filter) {
 export function isSome<A>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<Option.Some<A>, Option.Option<A>>(
     Option.isSome,
-    Annotations.combine({ expected: "a Some value" }, annotations)
+    { expected: "a Some value", ...annotations }
   )
 }
 
@@ -2040,7 +2040,7 @@ export function isSome<A>(annotations?: Annotations.Filter) {
 export function isNone<A>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<Option.None<A>, Option.Option<A>>(
     Option.isNone,
-    Annotations.combine({ expected: "a None value" }, annotations)
+    { expected: "a None value", ...annotations }
   )
 }
 
@@ -2048,7 +2048,7 @@ export function isNone<A>(annotations?: Annotations.Filter) {
 export function isResultSuccess<A, E>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<Result.Success<A, E>, Result.Result<A, E>>(
     Result.isSuccess,
-    Annotations.combine({ expected: "a Result.Success value" }, annotations)
+    { expected: "a Result.Success value", ...annotations }
   )
 }
 
@@ -2056,7 +2056,7 @@ export function isResultSuccess<A, E>(annotations?: Annotations.Filter) {
 export function isResultFailure<A, E>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<Result.Failure<A, E>, Result.Result<A, E>>(
     Result.isFailure,
-    Annotations.combine({ expected: "a Result.Failure value" }, annotations)
+    { expected: "a Result.Failure value", ...annotations }
   )
 }
 
@@ -2065,7 +2065,7 @@ export function isPattern(regExp: globalThis.RegExp, annotations?: Annotations.F
   const source = regExp.source
   return makeFilter(
     (s: string) => regExp.test(s),
-    Annotations.combine({
+    {
       expected: `a string matching the RegExp ${source}`,
       toJsonSchemaConstraint: () => ({ pattern: regExp.source }),
       meta: {
@@ -2076,8 +2076,9 @@ export function isPattern(regExp: globalThis.RegExp, annotations?: Annotations.F
         string: {
           patterns: [regExp.source]
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -2210,7 +2211,7 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations.Annotat
     return replaceChecks(ast, Arr.append(ast.checks.slice(0, -1), last.annotate(annotations)))
   }
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.annotations.value = Annotations.combine(d.annotations.value, annotations)
+    d.annotations.value = { ...d.annotations.value, ...annotations }
   })
 }
 
@@ -2221,7 +2222,7 @@ export function annotateKey<A extends AST>(ast: A, annotations: Annotations.Key<
       ast.context.isOptional,
       ast.context.isMutable,
       ast.context.defaultValue,
-      Annotations.combine(ast.context.annotations, annotations)
+      { ...ast.context.annotations, ...annotations }
     ) :
     new Context(false, false, undefined, annotations)
   return replaceContext(ast, context)
@@ -2524,13 +2525,14 @@ const isNumberStringRegExp = new globalThis.RegExp(`(?:${NUMBER_PATTERN}|Infinit
 export function isNumberString(annotations?: Annotations.Filter) {
   return isPattern(
     isNumberStringRegExp,
-    Annotations.combine({
+    {
       expected: "a string representing a number",
       meta: {
         _tag: "isNumberString",
         regExp: isNumberStringRegExp
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -2550,13 +2552,14 @@ const isBigIntStringRegExp = new globalThis.RegExp(BIGINT_PATTERN)
 export function isBigIntString(annotations?: Annotations.Filter) {
   return isPattern(
     isBigIntStringRegExp,
-    Annotations.combine({
+    {
       expected: "a string representing a bigint",
       meta: {
         _tag: "isBigIntString",
         regExp: isBigIntStringRegExp
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -2598,13 +2601,14 @@ const symbolToString = new Link(
 export function isSymbolString(annotations?: Annotations.Filter) {
   return isPattern(
     isSymbolStringRegExp,
-    Annotations.combine({
+    {
       expected: "a string representing a symbol",
       meta: {
         _tag: "isSymbolString",
         regExp: isSymbolStringRegExp
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 

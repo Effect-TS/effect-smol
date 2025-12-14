@@ -3394,7 +3394,7 @@ const TRIMMED_PATTERN = "^\\S[\\s\\S]*\\S$|^\\S$|^$"
 export function isTrimmed(annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => s.trim() === s,
-    Annotations.combine({
+    {
       expected: "a string with no leading or trailing whitespace",
       toJsonSchemaConstraint: () => ({ pattern: TRIMMED_PATTERN }),
       meta: {
@@ -3404,8 +3404,9 @@ export function isTrimmed(annotations?: Annotations.Filter) {
         string: {
           patterns: [TRIMMED_PATTERN]
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -3517,7 +3518,7 @@ export function isUUID(version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | undefined, annot
   const regExp = getUUIDRegExp(version)
   return isPattern(
     regExp,
-    Annotations.combine({
+    {
       expected: version ? `a UUID v${version}` : "a UUID",
       meta: {
         _tag: "isUUID",
@@ -3527,8 +3528,9 @@ export function isUUID(version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | undefined, annot
       toJsonSchemaConstraint: () => ({
         pattern: regExp.source,
         format: "uuid"
-      })
-    }, annotations)
+      }),
+      ...annotations
+    }
   )
 }
 
@@ -3553,12 +3555,13 @@ export function isULID(annotations?: Annotations.Filter) {
   const regExp = /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
   return isPattern(
     regExp,
-    Annotations.combine({
+    {
       meta: {
         _tag: "isULID",
         regExp
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -3582,13 +3585,14 @@ export function isBase64(annotations?: Annotations.Filter) {
   const regExp = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
   return isPattern(
     regExp,
-    Annotations.combine({
+    {
       expected: "a base64 encoded string",
       meta: {
         _tag: "isBase64",
         regExp
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -3613,13 +3617,14 @@ export function isBase64Url(annotations?: Annotations.Filter) {
   const regExp = /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
   return isPattern(
     regExp,
-    Annotations.combine({
+    {
       expected: "a base64url encoded string",
       meta: {
         _tag: "isBase64Url",
         regExp
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -3643,7 +3648,7 @@ export function isStartsWith(startsWith: string, annotations?: Annotations.Filte
   const formatted = JSON.stringify(startsWith)
   return makeFilter(
     (s: string) => s.startsWith(startsWith),
-    Annotations.combine({
+    {
       expected: `a string starting with ${formatted}`,
       toJsonSchemaConstraint: () => ({ pattern: `^${startsWith}` }),
       meta: {
@@ -3654,8 +3659,9 @@ export function isStartsWith(startsWith: string, annotations?: Annotations.Filte
         string: {
           patterns: [`^${startsWith}`]
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -3679,7 +3685,7 @@ export function isEndsWith(endsWith: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(endsWith)
   return makeFilter(
     (s: string) => s.endsWith(endsWith),
-    Annotations.combine({
+    {
       expected: `a string ending with ${formatted}`,
       toJsonSchemaConstraint: () => ({ pattern: `${endsWith}$` }),
       meta: {
@@ -3690,8 +3696,9 @@ export function isEndsWith(endsWith: string, annotations?: Annotations.Filter) {
         string: {
           patterns: [`${endsWith}$`]
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -3715,7 +3722,7 @@ export function isIncludes(includes: string, annotations?: Annotations.Filter) {
   const formatted = JSON.stringify(includes)
   return makeFilter(
     (s: string) => s.includes(includes),
-    Annotations.combine({
+    {
       expected: `a string including ${formatted}`,
       toJsonSchemaConstraint: () => ({ pattern: includes }),
       meta: {
@@ -3726,8 +3733,9 @@ export function isIncludes(includes: string, annotations?: Annotations.Filter) {
         string: {
           patterns: [includes]
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -3752,7 +3760,7 @@ const UPPERCASED_PATTERN = "^[^a-z]*$"
 export function isUppercased(annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => s.toUpperCase() === s,
-    Annotations.combine({
+    {
       expected: "a string with all characters in uppercase",
       toJsonSchemaConstraint: () => ({ pattern: UPPERCASED_PATTERN }),
       meta: {
@@ -3762,8 +3770,9 @@ export function isUppercased(annotations?: Annotations.Filter) {
         string: {
           patterns: [UPPERCASED_PATTERN]
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -3788,7 +3797,7 @@ const LOWERCASED_PATTERN = "^[^A-Z]*$"
 export function isLowercased(annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => s.toLowerCase() === s,
-    Annotations.combine({
+    {
       expected: "a string with all characters in lowercase",
       toJsonSchemaConstraint: () => ({ pattern: LOWERCASED_PATTERN }),
       meta: {
@@ -3798,8 +3807,9 @@ export function isLowercased(annotations?: Annotations.Filter) {
         string: {
           patterns: [LOWERCASED_PATTERN]
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -3824,7 +3834,7 @@ const CAPITALIZED_PATTERN = "^[^a-z]?.*$"
 export function isCapitalized(annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => s.charAt(0).toUpperCase() === s.charAt(0),
-    Annotations.combine({
+    {
       expected: "a string with the first character in uppercase",
       toJsonSchemaConstraint: () => ({ pattern: CAPITALIZED_PATTERN }),
       meta: {
@@ -3834,8 +3844,9 @@ export function isCapitalized(annotations?: Annotations.Filter) {
         string: {
           patterns: [CAPITALIZED_PATTERN]
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -3860,7 +3871,7 @@ const UNCAPITALIZED_PATTERN = "^[^A-Z]?.*$"
 export function isUncapitalized(annotations?: Annotations.Filter) {
   return makeFilter(
     (s: string) => s.charAt(0).toLowerCase() === s.charAt(0),
-    Annotations.combine({
+    {
       expected: "a string with the first character in lowercase",
       toJsonSchemaConstraint: () => ({ pattern: UNCAPITALIZED_PATTERN }),
       meta: {
@@ -3870,8 +3881,9 @@ export function isUncapitalized(annotations?: Annotations.Filter) {
         string: {
           patterns: [UNCAPITALIZED_PATTERN]
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -3894,7 +3906,7 @@ export function isUncapitalized(annotations?: Annotations.Filter) {
 export function isFinite(annotations?: Annotations.Filter) {
   return makeFilter(
     (n: number) => globalThis.Number.isFinite(n),
-    Annotations.combine({
+    {
       expected: "a finite number",
       meta: {
         _tag: "isFinite"
@@ -3904,8 +3916,9 @@ export function isFinite(annotations?: Annotations.Filter) {
           noDefaultInfinity: true,
           noNaN: true
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -3923,14 +3936,15 @@ export function makeIsGreaterThan<T>(options: {
   return (exclusiveMinimum: T, annotations?: Annotations.Filter) => {
     return makeFilter<T>(
       (input) => greaterThan(input, exclusiveMinimum),
-      Annotations.combine({
+      {
         expected: `a value greater than ${fmt(exclusiveMinimum)}`,
         meta: {
           _tag: "isGreaterThan",
           exclusiveMinimum
         },
-        ...options.annotate?.(exclusiveMinimum)
-      }, annotations)
+        ...options.annotate?.(exclusiveMinimum),
+        ...annotations
+      }
     )
   }
 }
@@ -3949,14 +3963,15 @@ export function makeIsGreaterThanOrEqualTo<T>(options: {
   return (minimum: T, annotations?: Annotations.Filter) => {
     return makeFilter<T>(
       (input) => greaterThanOrEqualTo(input, minimum),
-      Annotations.combine({
+      {
         expected: `a value greater than or equal to ${fmt(minimum)}`,
         meta: {
           _tag: "isGreaterThanOrEqualTo",
           minimum
         },
-        ...options.annotate?.(minimum)
-      }, annotations)
+        ...options.annotate?.(minimum),
+        ...annotations
+      }
     )
   }
 }
@@ -3975,14 +3990,15 @@ export function makeIsLessThan<T>(options: {
   return (exclusiveMaximum: T, annotations?: Annotations.Filter) => {
     return makeFilter<T>(
       (input) => lessThan(input, exclusiveMaximum),
-      Annotations.combine({
+      {
         expected: `a value less than ${fmt(exclusiveMaximum)}`,
         meta: {
           _tag: "isLessThan",
           exclusiveMaximum
         },
-        ...options.annotate?.(exclusiveMaximum)
-      }, annotations)
+        ...options.annotate?.(exclusiveMaximum),
+        ...annotations
+      }
     )
   }
 }
@@ -4001,14 +4017,15 @@ export function makeIsLessThanOrEqualTo<T>(options: {
   return (maximum: T, annotations?: Annotations.Filter) => {
     return makeFilter<T>(
       (input) => lessThanOrEqualTo(input, maximum),
-      Annotations.combine({
+      {
         expected: `a value less than or equal to ${fmt(maximum)}`,
         meta: {
           _tag: "isLessThanOrEqualTo",
           maximum
         },
-        ...options.annotate?.(maximum)
-      }, annotations)
+        ...options.annotate?.(maximum),
+        ...annotations
+      }
     )
   }
 }
@@ -4044,7 +4061,7 @@ export function makeIsBetween<T>(deriveOptions: {
     const lte = options.exclusiveMaximum ? lessThan : lessThanOrEqualTo
     return makeFilter<T>(
       (input) => gte(input, options.minimum) && lte(input, options.maximum),
-      Annotations.combine({
+      {
         expected: `a value between ${fmt(options.minimum)}${options.exclusiveMinimum ? " (excluded)" : ""} and ${
           fmt(options.maximum)
         }${options.exclusiveMaximum ? " (excluded)" : ""}`,
@@ -4052,8 +4069,9 @@ export function makeIsBetween<T>(deriveOptions: {
           _tag: "isBetween",
           ...options
         },
-        ...deriveOptions.annotate?.(options)
-      }, annotations)
+        ...deriveOptions.annotate?.(options),
+        ...annotations
+      }
     )
   }
 }
@@ -4072,14 +4090,15 @@ export function makeIsMultipleOf<T>(options: {
     const fmt = options.format ?? format
     return makeFilter<T>(
       (input) => options.remainder(input, divisor) === options.zero,
-      Annotations.combine({
+      {
         expected: `a value that is a multiple of ${fmt(divisor)}`,
         meta: {
           _tag: "isMultipleOf",
           divisor
         },
-        ...options.annotate?.(divisor)
-      }, annotations)
+        ...options.annotate?.(divisor),
+        ...annotations
+      }
     )
   }
 }
@@ -4289,7 +4308,7 @@ export const isMultipleOf = makeIsMultipleOf({
 export function isInt(annotations?: Annotations.Filter) {
   return makeFilter(
     (n: number) => globalThis.Number.isSafeInteger(n),
-    Annotations.combine({
+    {
       expected: "an integer",
       toJsonSchemaConstraint: () => ({ type: "integer" }),
       meta: {
@@ -4299,8 +4318,9 @@ export function isInt(annotations?: Annotations.Filter) {
         number: {
           isInteger: true
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -4327,7 +4347,7 @@ export function isInt32(annotations?: Annotations.Filter) {
       isInt(annotations),
       isBetween({ minimum: -2147483648, maximum: 2147483647 })
     ],
-    Annotations.combine({
+    {
       expected: "a 32-bit integer",
       toJsonSchemaConstraint: (ctx) =>
         ctx.target === "openapi-3.1" ?
@@ -4335,8 +4355,9 @@ export function isInt32(annotations?: Annotations.Filter) {
           undefined,
       meta: {
         _tag: "isInt32"
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -4363,7 +4384,7 @@ export function isUint32(annotations?: Annotations.Filter) {
       isInt(),
       isBetween({ minimum: 0, maximum: 4294967295 })
     ],
-    Annotations.combine({
+    {
       expected: "a 32-bit unsigned integer",
       toJsonSchemaConstraint: (ctx) =>
         ctx.target === "openapi-3.1" ?
@@ -4371,8 +4392,9 @@ export function isUint32(annotations?: Annotations.Filter) {
           undefined,
       meta: {
         _tag: "isUint32"
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -4396,7 +4418,7 @@ export function isUint32(annotations?: Annotations.Filter) {
 export function isValidDate(annotations?: Annotations.Filter) {
   return makeFilter<globalThis.Date>(
     (date) => !isNaN(date.getTime()),
-    Annotations.combine({
+    {
       expected: "a valid date",
       meta: {
         _tag: "isValidDate"
@@ -4405,8 +4427,9 @@ export function isValidDate(annotations?: Annotations.Filter) {
         date: {
           noInvalidDate: true
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -4688,7 +4711,7 @@ export function isMinLength(minLength: number, annotations?: Annotations.Filter)
   minLength = Math.max(0, Math.floor(minLength))
   return makeFilter<{ readonly length: number }>(
     (input) => input.length >= minLength,
-    Annotations.combine({
+    {
       expected: `a value with a length of at least ${minLength}`,
       toJsonSchemaConstraint: (ctx) => {
         switch (ctx.type) {
@@ -4710,8 +4733,9 @@ export function isMinLength(minLength: number, annotations?: Annotations.Filter)
         array: {
           minLength
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -4758,7 +4782,7 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
   maxLength = Math.max(0, Math.floor(maxLength))
   return makeFilter<{ readonly length: number }>(
     (input) => input.length <= maxLength,
-    Annotations.combine({
+    {
       expected: `a value with a length of at most ${maxLength}`,
       toJsonSchemaConstraint: (ctx) => {
         switch (ctx.type) {
@@ -4780,8 +4804,9 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
         array: {
           maxLength
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -4808,7 +4833,7 @@ export function isLength(length: number, annotations?: Annotations.Filter) {
   length = Math.max(0, Math.floor(length))
   return makeFilter<{ readonly length: number }>(
     (input) => input.length === length,
-    Annotations.combine({
+    {
       expected: `a value with a length of ${length}`,
       toJsonSchemaConstraint: (ctx) => {
         switch (ctx.type) {
@@ -4832,8 +4857,9 @@ export function isLength(length: number, annotations?: Annotations.Filter) {
           minLength: length,
           maxLength: length
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -4859,7 +4885,7 @@ export function isMinSize(minSize: number, annotations?: Annotations.Filter) {
   minSize = Math.max(0, Math.floor(minSize))
   return makeFilter<{ readonly size: number }>(
     (input) => input.size >= minSize,
-    Annotations.combine({
+    {
       expected: `a value with a size of at least ${minSize}`,
       meta: {
         _tag: "isMinSize",
@@ -4870,8 +4896,9 @@ export function isMinSize(minSize: number, annotations?: Annotations.Filter) {
         array: {
           minLength: minSize
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -4897,7 +4924,7 @@ export function isMaxSize(maxSize: number, annotations?: Annotations.Filter) {
   maxSize = Math.max(0, Math.floor(maxSize))
   return makeFilter<{ readonly size: number }>(
     (input) => input.size <= maxSize,
-    Annotations.combine({
+    {
       expected: `a value with a size of at most ${maxSize}`,
       meta: {
         _tag: "isMaxSize",
@@ -4908,8 +4935,9 @@ export function isMaxSize(maxSize: number, annotations?: Annotations.Filter) {
         array: {
           maxLength: maxSize
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -4935,7 +4963,7 @@ export function isSize(size: number, annotations?: Annotations.Filter) {
   size = Math.max(0, Math.floor(size))
   return makeFilter<{ readonly size: number }>(
     (input) => input.size === size,
-    Annotations.combine({
+    {
       expected: `a value with a size of ${size}`,
       meta: {
         _tag: "isSize",
@@ -4947,8 +4975,9 @@ export function isSize(size: number, annotations?: Annotations.Filter) {
           minLength: size,
           maxLength: size
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -4975,7 +5004,7 @@ export function isMinProperties(minProperties: number, annotations?: Annotations
   minProperties = Math.max(0, Math.floor(minProperties))
   return makeFilter<object>(
     (input) => Reflect.ownKeys(input).length >= minProperties,
-    Annotations.combine({
+    {
       expected: `an object with at least ${minProperties} properties`,
       toJsonSchemaConstraint: () => ({ minProperties }),
       meta: {
@@ -4987,8 +5016,9 @@ export function isMinProperties(minProperties: number, annotations?: Annotations
         array: {
           minLength: minProperties
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -5014,7 +5044,7 @@ export function isMaxProperties(maxProperties: number, annotations?: Annotations
   maxProperties = Math.max(0, Math.floor(maxProperties))
   return makeFilter<object>(
     (input) => Reflect.ownKeys(input).length <= maxProperties,
-    Annotations.combine({
+    {
       expected: `an object with at most ${maxProperties} properties`,
       toJsonSchemaConstraint: () => ({ maxProperties }),
       meta: {
@@ -5026,8 +5056,9 @@ export function isMaxProperties(maxProperties: number, annotations?: Annotations
         array: {
           maxLength: maxProperties
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -5054,7 +5085,7 @@ export function isPropertiesLength(length: number, annotations?: Annotations.Fil
   length = Math.max(0, Math.floor(length))
   return makeFilter<object>(
     (input) => Reflect.ownKeys(input).length === length,
-    Annotations.combine({
+    {
       expected: `an object with exactly ${length} properties`,
       toJsonSchemaConstraint: () => ({ minProperties: length, maxProperties: length }),
       meta: {
@@ -5067,8 +5098,9 @@ export function isPropertiesLength(length: number, annotations?: Annotations.Fil
           minLength: length,
           maxLength: length
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -5092,7 +5124,7 @@ export function isUnique<T>(equivalence?: Equivalence.Equivalence<T>, annotation
   equivalence = equivalence ?? Equal.equivalence()
   return makeFilter<ReadonlyArray<T>>(
     (input) => Arr.dedupeWith(input, equivalence).length === input.length,
-    Annotations.combine({
+    {
       expected: "an array with unique items",
       toJsonSchemaConstraint: () => ({ uniqueItems: true }),
       meta: {
@@ -5103,8 +5135,9 @@ export function isUnique<T>(equivalence?: Equivalence.Equivalence<T>, annotation
         array: {
           comparator: equivalence
         }
-      }
-    }, annotations)
+      },
+      ...annotations
+    }
   )
 }
 
@@ -5145,7 +5178,7 @@ export const isNotUndefined: <A>(annotations?: Annotations.Filter) => AST.Refine
 export function isNotNull<A>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<Exclude<A, null>, A>(
     Predicate.isNotNull,
-    Annotations.combine({ expected: "a value other than `null`" }, annotations)
+    { expected: "a value other than `null`", ...annotations }
   )
 }
 
@@ -5168,10 +5201,7 @@ export function isNotNull<A>(annotations?: Annotations.Filter) {
 export function isNotNullish<A>(annotations?: Annotations.Filter) {
   return makeRefinedByGuard<NonNullable<A>, A>(
     Predicate.isNotNullish,
-    Annotations.combine(
-      { expected: "a value other than `null` or `undefined  `" },
-      annotations
-    )
+    { expected: "a value other than `null` or `undefined  `", ...annotations }
   )
 }
 
@@ -7136,21 +7166,18 @@ function getClassSchemaFactory<S extends Top>(
               Effect.succeed(input) :
               Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
           },
-          Annotations.combine({
+          {
             identifier,
             [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
-            "toCodec*": ([from]) => new AST.Link(from.ast, transformation),
-            toArbitrary: ([from]) => () => from.map((args) => new self(args)),
-            toFormatter: ([from]) => (t: Self) => `${self.identifier}(${from(t)})`
-          }, annotations)
+            "toCodec*": ([from]: readonly [Codec<S["Encoded"]>]) => new AST.Link(from.ast, transformation),
+            toArbitrary: ([from]: readonly [FastCheck.Arbitrary<S["Type"]>]) => () =>
+              from.map((args) => new self(args)),
+            toFormatter: ([from]: readonly [Formatter<S["Type"]>]) => (t: Self) => `${self.identifier}(${from(t)})`,
+            ...annotations
+          }
         )
       )
-      memo = from.pipe(
-        decodeTo(
-          to,
-          getClassTransformation(self)
-        )
-      )
+      memo = from.pipe(decodeTo(to, getClassTransformation(self)))
     }
     return memo
   }
