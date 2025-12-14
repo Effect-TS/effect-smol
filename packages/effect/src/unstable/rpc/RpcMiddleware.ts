@@ -11,7 +11,17 @@ import type { Headers } from "../http/Headers.ts"
 import type * as Rpc from "./Rpc.ts"
 import type { Request, RequestId } from "./RpcMessage.ts"
 
-const TypeId = "~effect/rpc/RpcMiddleware"
+/**
+ * @since 4.0.0
+ * @category Type IDs
+ */
+export type TypeId = "~effect/rpc/RpcMiddleware"
+
+/**
+ * @since 4.0.0
+ * @category Type IDs
+ */
+export const TypeId: TypeId = "~effect/rpc/RpcMiddleware"
 
 /**
  * @since 4.0.0
@@ -42,14 +52,14 @@ export interface SuccessValue {
  * @since 4.0.0
  * @category models
  */
-export interface RpcMiddlewareClient<R = never> {
+export interface RpcMiddlewareClient<E, CE, R> {
   (
     options: {
       readonly rpc: Rpc.AnyWithProps
       readonly request: Request<Rpc.Any>
-      readonly next: (request: Request<Rpc.Any>) => Effect.Effect<SuccessValue, unhandled>
+      readonly next: (request: Request<Rpc.Any>) => Effect.Effect<SuccessValue, unhandled | E>
     }
-  ): Effect.Effect<SuccessValue, unhandled, R>
+  ): Effect.Effect<SuccessValue, unhandled | E | CE, R>
 }
 
 /**
@@ -87,6 +97,7 @@ export interface AnyId {
     readonly provides: any
     readonly requires: any
     readonly error: Schema.Top
+    readonly clientError: any
   }
 }
 
@@ -99,18 +110,21 @@ export interface ServiceClass<
   Name extends string,
   Provides,
   E extends Schema.Top,
+  ClientError,
   Requires
-> extends ServiceMap.Service<Self, RpcMiddleware<Provides, E, Requires>> {
-  new(_: never): ServiceMap.ServiceClass.Shape<Name, RpcMiddleware<Provides, E, Requires>> & {
+> extends ServiceMap.Service<Self, RpcMiddleware<Provides, E["Type"], Requires>> {
+  new(_: never): ServiceMap.ServiceClass.Shape<Name, RpcMiddleware<Provides, E["Type"], Requires>> & {
     readonly [TypeId]: {
       readonly error: E
       readonly provides: Provides
       readonly requires: Requires
+      readonly clientError: ClientError
     }
   }
   readonly [TypeId]: typeof TypeId
   readonly error: E
   readonly requiredForClient: boolean
+  readonly "~ClientError": ClientError
 }
 
 /**
@@ -165,6 +179,7 @@ export interface AnyService extends ServiceMap.Service<any, any> {
   readonly [TypeId]: typeof TypeId
   readonly error: Schema.Top
   readonly requiredForClient: boolean
+  readonly "~ClientError": any
 }
 
 /**
@@ -175,6 +190,7 @@ export interface AnyServiceWithProps extends ServiceMap.Service<any, RpcMiddlewa
   readonly [TypeId]: typeof TypeId
   readonly error: Schema.Top
   readonly requiredForClient: boolean
+  readonly "~ClientError": any
 }
 
 /**
@@ -186,7 +202,8 @@ export const Service = <
   Config extends {
     requires?: any
     provides?: any
-  } = { requires: never; provides: never }
+    clientError?: any
+  } = { requires: never; provides: never; clientError: never }
 >(): <
   const Name extends string,
   Error extends Schema.Top = Schema.Never,
@@ -202,6 +219,7 @@ export const Service = <
   Name,
   "provides" extends keyof Config ? Config["provides"] : never,
   Error,
+  "clientError" extends keyof Config ? Config["clientError"] : never,
   "requires" extends keyof Config ? Config["requires"] : never
 > =>
 (
@@ -236,9 +254,11 @@ export const Service = <
  * @since 4.0.0
  * @category client
  */
-export const layerClient = <Id, S, R, EX = never, RX = never>(
+export const layerClient = <Id extends AnyId, S, R, EX = never, RX = never>(
   tag: ServiceMap.Service<Id, S>,
-  service: RpcMiddlewareClient<R> | Effect.Effect<RpcMiddlewareClient<R>, EX, RX>
+  service:
+    | RpcMiddlewareClient<Id[TypeId]["error"]["Type"], Id[TypeId]["clientError"], R>
+    | Effect.Effect<RpcMiddlewareClient<Id[TypeId]["error"]["Type"], Id[TypeId]["clientError"], R>, EX, RX>
 ): Layer.Layer<ForClient<Id>, EX, R | Exclude<RX, Scope>> =>
   Layer.effectServices(Effect.gen(function*() {
     const services = (yield* Effect.services<R | Scope>()).pipe(

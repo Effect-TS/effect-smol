@@ -115,7 +115,10 @@ export declare namespace RpcClient {
       infer _Middleware,
       infer _Requires
     > ? [_Success] extends [RpcSchema.Stream<infer _A, infer _E>] ? AsQueue extends true ? Effect.Effect<
-            Queue.Dequeue<_A["Type"], _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"] | Queue.Done>,
+            Queue.Dequeue<
+              _A["Type"],
+              _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"] | _Middleware["~ClientError"] | Queue.Done
+            >,
             never,
             | Scope.Scope
             | _Payload["EncodingServices"]
@@ -125,7 +128,7 @@ export declare namespace RpcClient {
           >
         : Stream.Stream<
           _A["Type"],
-          _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"],
+          _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"] | _Middleware["~ClientError"],
           | _Payload["EncodingServices"]
           | _Success["DecodingServices"]
           | _Error["DecodingServices"]
@@ -133,7 +136,10 @@ export declare namespace RpcClient {
         >
       : Effect.Effect<
         Discard extends true ? void : _Success["Type"],
-        Discard extends true ? E : _Error["Type"] | E | _Middleware["error"]["Type"],
+        | (Discard extends true ? never : _Error["Type"])
+        | E
+        | _Middleware["error"]["Type"]
+        | _Middleware["~ClientError"],
         | _Payload["EncodingServices"]
         | _Success["DecodingServices"]
         | _Error["DecodingServices"]
@@ -172,7 +178,10 @@ export declare namespace RpcClient {
     infer _Middleware,
     infer _Requires
   > ? [_Success] extends [RpcSchema.Stream<infer _A, infer _E>] ? AsQueue extends true ? Effect.Effect<
-          Queue.Dequeue<_A["Type"], _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"]>,
+          Queue.Dequeue<
+            _A["Type"],
+            _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"] | _Middleware["~ClientError"]
+          >,
           never,
           | Scope.Scope
           | _Payload["EncodingServices"]
@@ -182,7 +191,7 @@ export declare namespace RpcClient {
         >
       : Stream.Stream<
         _A["Type"],
-        _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"],
+        _E["Type"] | _Error["Type"] | E | _Middleware["error"]["Type"] | _Middleware["~ClientError"],
         | _Payload["EncodingServices"]
         | _Success["DecodingServices"]
         | _Error["DecodingServices"]
@@ -190,7 +199,7 @@ export declare namespace RpcClient {
       >
     : Effect.Effect<
       Discard extends true ? void : _Success["Type"],
-      Discard extends true ? E : _Error["Type"] | E | _Middleware["error"]["Type"],
+      (Discard extends true ? never : _Error["Type"]) | E | _Middleware["error"]["Type"] | _Middleware["~ClientError"],
       | _Payload["EncodingServices"]
       | _Success["DecodingServices"]
       | _Error["DecodingServices"]
@@ -500,7 +509,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     send: (request: Request<Rpcs>) => Effect.Effect<any, E>,
     request: Request<Rpcs>
   ) => Effect.Effect<any, E> => {
-    const middlewares: Array<RpcMiddleware.RpcMiddlewareClient> = []
+    const middlewares: Array<RpcMiddleware.RpcMiddlewareClient<any, any, any>> = []
     for (const tag of rpc.middlewares.values()) {
       const middleware = services.mapUnsafe.get(`${tag.key}/Client`)
       if (!middleware) continue
