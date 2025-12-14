@@ -13,7 +13,7 @@ export const testLayer = <E>(layer: Layer.Layer<KeyValueStore.KeyValueStore, E>)
   afterEach(() =>
     run(Effect.gen(function*() {
       const kv = yield* (KeyValueStore.KeyValueStore)
-      yield* (kv.clear)
+      yield* kv.clear
     }))
   )
 

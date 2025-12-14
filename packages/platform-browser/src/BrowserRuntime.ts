@@ -23,7 +23,7 @@ export const runMain: {
     }
   ): void
 } = makeRunMain(({ fiber }) => {
-  addEventListener("beforeunload", () => {
-    fiber.unsafeInterruptAsFork(fiber.id)
+  globalThis.addEventListener("beforeunload", () => {
+    fiber.interruptUnsafe(fiber.id)
   })
 })

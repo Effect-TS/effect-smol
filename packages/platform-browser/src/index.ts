@@ -15,6 +15,11 @@ export * as BrowserKeyValueStore from "./BrowserKeyValueStore.ts"
 /**
  * @since 4.0.0
  */
+export * as BrowserRuntime from "./BrowserRuntime.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as BrowserSocket from "./BrowserSocket.ts"
 
 /**
