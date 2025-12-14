@@ -56,73 +56,188 @@ jobs:
           deno-version: v2.5.x
       - run: deno check .
 
-  bundle:
-    name: Bundle
+  # Phase 1: Build both branches and generate matrix
+  bundle-setup:
+    name: Bundle Setup
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
-      pull-requests: write
     timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.matrix.outputs.files }}
+      base-sha: ${{ steps.base-sha.outputs.sha }}
+      cache-hit: ${{ steps.cache-base.outputs.cache-hit }}
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
           node-version: 24.10.0
+
+      - name: Get base commit SHA
+        id: base-sha
+        run: echo "sha=${{ github.event.pull_request.base.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Generate matrix
+        id: matrix
+        run: echo "files=$(./scripts/bundle-matrix.sh)" >> $GITHUB_OUTPUT
+
+      - name: Restore base build cache
+        id: cache-base
+        uses: actions/cache@v4
+        with:
+          path: base-dist
+          key: bundle-build-${{ steps.base-sha.outputs.sha }}
+
       - name: Clone base ref
+        if: steps.cache-base.outputs.cache-hit != 'true'
         uses: actions/checkout@v4
         with:
           path: base
-          ref: ${{ github.event.pull_request.base.ref }}
-      - name: Build
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Build base
+        if: steps.cache-base.outputs.cache-hit != 'true'
         run: |
-          pnpm build &
-          cd base && pnpm install && pnpm build &
-          wait
-      - name: Compare bundle size
-        id: bundle
-        shell: bash
-        run: |
-          mkdir -p tmp/bundle
-          mkdir -p tmp/bundle-base
+          cd base && pnpm install && pnpm build
+          mkdir -p ../base-dist
+          cp -r packages/*/dist ../base-dist/ 2>/dev/null || true
+          cp -r bundle ../base-dist/
+          cp rollup.config.js ../base-dist/
+          cp package.json ../base-dist/
+          cp pnpm-lock.yaml ../base-dist/
+          cp -r node_modules ../base-dist/ 2>/dev/null || true
 
-          for filename in bundle/*.ts; do
-            pnpm rollup -c rollup.config.js "${filename}" | gzip | wc -c > "tmp/bundle/$(basename "${filename}")" &
-            pnpm rollup -c rollup.config.js "base/${filename}" | gzip | wc -c > "tmp/bundle-base/$(basename "${filename}")" &
-          done
-          wait
+      - name: Build current
+        run: pnpm build
 
-          output="| File Name | Current Size | Previous Size | Difference |"
-          output+="\n|:----------|:------------:|:-------------:|:----------:|"
-          for filename in bundle/*.ts; do
-            current=$(cat "tmp/bundle/$(basename "${filename}")")
-            previous=$([[ -f "base/${filename}" ]] && cat "tmp/bundle-base/$(basename "${filename}")" || echo 0)
-            line="$(awk -v filename=${filename} -v current="${current}" -v previous="${previous}" '
-              BEGIN {
-                if (previous == 0) previous = current
-                diff = current - previous
-                diff_pct = (diff / previous) * 100
-                current_kb = sprintf("%\047.2f", current / 1000)
-                previous_kb = sprintf("%\047.2f", previous / 1000)
-                diff_kb = sprintf("%\047.2f", diff / 1000)
-                printf "| `%s` | %s KB | %s KB | %s%s KB (%s%.2f%%) |\n",
-                  filename,
-                  current_kb,
-                  previous_kb,
-                  (diff > 0 ? "+" : ""), diff_kb,
-                  (diff_pct > 0 ? "+" : ""), diff_pct
-            }')"
-            output+="\n${line}"
-          done
-
-          echo -e $output >> stats.txt
-      - name: Upload stats artifact
-        if: github.event_name == 'pull_request'
+      - name: Upload current build
         uses: actions/upload-artifact@v4
         with:
-          path: stats.txt
+          name: current-build
+          path: |
+            packages/*/dist
+            bundle
+            scripts/bundle-size.sh
+            rollup.config.js
+            package.json
+            pnpm-lock.yaml
+          retention-days: 1
+
+      - name: Upload base build
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-build
+          path: base-dist
+          retention-days: 1
+
+  # Phase 2: Parallel bundle size calculation
+  bundle-size:
+    name: Bundle ${{ matrix.file }}
+    needs: bundle-setup
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        file: ${{ fromJson(needs.bundle-setup.outputs.matrix) }}
+    steps:
+      - uses: pnpm/action-setup@v3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.10.0
+
+      - name: Download current build
+        uses: actions/download-artifact@v4
+        with:
+          name: current-build
+          path: current
+
+      - name: Download base build
+        uses: actions/download-artifact@v4
+        with:
+          name: base-build
+          path: base
+
+      - name: Install dependencies
+        working-directory: current
+        run: pnpm install --frozen-lockfile
+
+      - name: Calculate bundle sizes
+        id: size
+        run: |
+          chmod +x current/scripts/bundle-size.sh
+          current_size=$(./current/scripts/bundle-size.sh "${{ matrix.file }}" ./current)
+
+          if [[ -f "base/bundle/${{ matrix.file }}.ts" ]]; then
+            cp current/scripts/bundle-size.sh base/scripts/ 2>/dev/null || mkdir -p base/scripts && cp current/scripts/bundle-size.sh base/scripts/
+            cd base && pnpm install --frozen-lockfile 2>/dev/null || true && cd ..
+            base_size=$(./base/scripts/bundle-size.sh "${{ matrix.file }}" ./base)
+          else
+            base_size=$current_size
+          fi
+
+          echo "current=$current_size" >> $GITHUB_OUTPUT
+          echo "base=$base_size" >> $GITHUB_OUTPUT
+
+      - name: Write result file
+        run: echo "${{ matrix.file }},${{ steps.size.outputs.current }},${{ steps.size.outputs.base }}" > ${{ matrix.file }}.csv
+
+      - name: Upload size result
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-size-${{ matrix.file }}
+          path: ${{ matrix.file }}.csv
+          retention-days: 1
+
+  # Phase 3: Aggregate results and post PR comment
+  bundle-report:
+    name: Bundle Report
+    needs: [bundle-setup, bundle-size]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+
+      - name: Download all size results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bundle-size-*
+          path: results
+          merge-multiple: true
+
+      - name: Generate report
+        run: |
+          ./scripts/bundle-report.sh results \
+            "${{ needs.bundle-setup.outputs.base-sha }}" \
+            "${{ needs.bundle-setup.outputs.cache-hit }}" \
+            > bundle-report.md
+
+      - name: Find existing comment
+        uses: peter-evans/find-comment@v3
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '📦 Bundle Size Report'
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: bundle-report.md
+          edit-mode: replace
 
   test:
     name: Test
