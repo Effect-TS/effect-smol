@@ -6,7 +6,7 @@ Releases are snapshot only
 - [ ] Port Stream / Sink apis
 - [x] Port worker modules
 - [x] Port command execution modules
-- [ ] Port platform-browser
+- [x] Port platform-browser
 - [x] Add CLI modules
 - [ ] Add opentelemetry package
 - [x] Port SubscriptionRef
