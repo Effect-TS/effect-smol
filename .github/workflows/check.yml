@@ -97,19 +97,34 @@ jobs:
           path: base
           ref: ${{ github.event.pull_request.base.sha }}
 
-      - name: Build base
+      # When cache miss: build base and current in parallel
+      - name: Build base and current (parallel)
         if: steps.cache-base.outputs.cache-hit != 'true'
         run: |
-          cd base && pnpm install && pnpm build
-          mkdir -p ../base-dist
-          cp -r packages/*/dist ../base-dist/ 2>/dev/null || true
-          cp -r bundle ../base-dist/
-          cp rollup.config.js ../base-dist/
-          cp package.json ../base-dist/
-          cp pnpm-lock.yaml ../base-dist/
-          cp -r node_modules ../base-dist/ 2>/dev/null || true
+          # Build current in background
+          pnpm build &
+          current_pid=$!
 
+          # Build base in background
+          (
+            cd base && pnpm install && pnpm build
+            mkdir -p ../base-dist
+            cp -r packages/*/dist ../base-dist/ 2>/dev/null || true
+            cp -r bundle ../base-dist/
+            cp rollup.config.js ../base-dist/
+            cp package.json ../base-dist/
+            cp pnpm-lock.yaml ../base-dist/
+            cp -r node_modules ../base-dist/ 2>/dev/null || true
+          ) &
+          base_pid=$!
+
+          # Wait for both builds to complete
+          wait $current_pid || exit 1
+          wait $base_pid || exit 1
+
+      # When cache hit: only build current
       - name: Build current
+        if: steps.cache-base.outputs.cache-hit == 'true'
         run: pnpm build
 
       - name: Upload current build
@@ -146,11 +161,6 @@ jobs:
       matrix:
         file: ${{ fromJson(needs.bundle-setup.outputs.matrix) }}
     steps:
-      - uses: pnpm/action-setup@v3
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24.10.0
-
       - name: Download current build
         uses: actions/download-artifact@v4
         with:
@@ -163,6 +173,14 @@ jobs:
           name: base-build
           path: base
 
+      # Setup pnpm after downloading artifacts so package.json is available
+      - uses: pnpm/action-setup@v3
+        with:
+          package_json_file: current/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.10.0
+
       - name: Install dependencies
         working-directory: current
         run: pnpm install --frozen-lockfile
@@ -174,7 +192,7 @@ jobs:
           current_size=$(./current/scripts/bundle-size.sh "${{ matrix.file }}" ./current)
 
           if [[ -f "base/bundle/${{ matrix.file }}.ts" ]]; then
-            cp current/scripts/bundle-size.sh base/scripts/ 2>/dev/null || mkdir -p base/scripts && cp current/scripts/bundle-size.sh base/scripts/
+            mkdir -p base/scripts && cp current/scripts/bundle-size.sh base/scripts/
             cd base && pnpm install --frozen-lockfile 2>/dev/null || true && cd ..
             base_size=$(./base/scripts/bundle-size.sh "${{ matrix.file }}" ./base)
           else
