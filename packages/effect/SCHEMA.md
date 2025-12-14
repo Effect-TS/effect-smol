@@ -314,9 +314,9 @@ export const Date = Schema.instanceOf(globalThis.Date, {
 
 ## Using Serializers
 
-### Basic Usage: `toSerializerJson`
+### Basic Usage: `toCodecJson`
 
-The most common serializer is `toSerializerJson`, which converts a schema into a JSON-capable version.
+The most common serializer is `toCodecJson`, which converts a schema into a JSON-capable version.
 
 **Example** (Round-tripping a `ReadonlySet<Date>` through JSON)
 
@@ -360,7 +360,7 @@ This schema automatically picks JSON formats based on its parts:
 >
 > The default JSON formats aim for portability and round-trip behavior. They may not match domain-specific formats used by public APIs.
 
-### How `toSerializerJson` Works
+### How `toCodecJson` Works
 
 When you call `Schema.toCodecJson(schema)`, the library:
 
@@ -600,7 +600,7 @@ const schema = Schema.Struct({
 })
 
 const json = Schema.toCodecJson(schema)
-const stringTree = Schema.toSerializerStringTree(schema)
+const stringTree = Schema.toCodecStringTree(schema)
 
 const value = {
   name: "John",
@@ -647,7 +647,7 @@ const schema = Schema.Struct({
   b: Schema.Number
 })
 
-const stringTree = Schema.toSerializerStringTree(schema)
+const stringTree = Schema.toCodecStringTree(schema)
 
 console.log(
   Schema.encodeUnknownSync(stringTree)({
@@ -670,7 +670,7 @@ const schema = Schema.Struct({
   b: Schema.Number
 })
 
-const stringTree = Schema.toSerializerStringTree(schema, { keepDeclarations: true })
+const stringTree = Schema.toCodecStringTree(schema, { keepDeclarations: true })
 
 console.log(
   Schema.encodeUnknownSync(stringTree)({
@@ -684,7 +684,7 @@ console.log(
 ## 🆕 XML Encoder
 
 `Schema.toEncoderXml` lets you serialize values to XML.
-It uses the `toSerializerStringTree` serializer internally.
+It uses the `toCodecStringTree` serializer internally.
 
 **Example**
 
@@ -753,7 +753,7 @@ class Person extends Schema.Class<Person>("Person")({
   age: Schema.Number
 }) {}
 
-const isoCodec = Schema.toCodecIsoOptic(Person)
+const isoSerializer = Schema.toCodecIsoOptic(Person)
 
 // The Iso type represents the "focus" of the schema.
 // For Class schemas, the Iso type is the struct representation
@@ -763,11 +763,11 @@ const isoCodec = Schema.toCodecIsoOptic(Person)
 
 const person = new Person({ name: "John", age: 30 })
 
-const serialized = Schema.encodeUnknownSync(isoCodec)(person)
+const serialized = Schema.encodeUnknownSync(isoSerializer)(person)
 console.log(serialized)
 // { name: 'John', age: 30 }
 
-const deserialized = Schema.decodeUnknownSync(isoCodec)(serialized)
+const deserialized = Schema.decodeUnknownSync(isoSerializer)(serialized)
 console.log(deserialized)
 // Person { name: 'John', age: 30 }
 ```
@@ -778,7 +778,7 @@ ISO serializers are mainly used internally for building optics and reusable tran
 
 ### Serializer Composition
 
-Serializers compose automatically through nested structures. When you call `toSerializerJson` on a complex schema, it recursively applies serialization to all nested fields.
+Serializers compose automatically through nested structures. When you call `toCodecJson` on a complex schema, it recursively applies serialization to all nested fields.
 
 **Example** (Complex nested structure)
 
@@ -934,8 +934,8 @@ const manual = {
 
 Choose the serializer that matches your use case:
 
-- **`toSerializerJson`**: For JSON APIs, storage, and general serialization
-- **`toSerializerStringTree`**: For form data and string-only systems
+- **`toCodecJson`**: For JSON APIs, storage, and general serialization
+- **`toCodecStringTree`**: For form data and string-only systems
 - **`toCodecIsoOptic`**: For isomorphic transformations and optics
 
 ## Common Patterns
@@ -994,7 +994,7 @@ const FormSchema = Schema.Struct({
 })
 
 // Use StringTree for form data (everything becomes a string)
-const formSerializer = Schema.toSerializerStringTree(FormSchema)
+const formSerializer = Schema.toCodecStringTree(FormSchema)
 
 // Convert to URLSearchParams for submission
 const toFormData = (data: (typeof FormSchema)["Type"]) => {
@@ -4926,7 +4926,7 @@ console.log(String(Schema.decodeUnknownExit(schema)(formData)))
 // Success({"a":"1","b":{"c":"2","d":"3"}})
 ```
 
-If you want to decode values that are not strings, use `Schema.toSerializerStringTree` with the `keepDeclarations: true` option. This serializer preserves values such as numbers and `Blob` objects when compatible with the schema.
+If you want to decode values that are not strings, use `Schema.toCodecStringTree` with the `keepDeclarations: true` option. This serializer preserves values such as numbers and `Blob` objects when compatible with the schema.
 
 **Example** (Parsing non-string values)
 
@@ -4934,7 +4934,7 @@ If you want to decode values that are not strings, use `Schema.toSerializerStrin
 import { Schema } from "effect/schema"
 
 const schema = Schema.fromFormData(
-  Schema.toSerializerStringTree(
+  Schema.toCodecStringTree(
     Schema.Struct({
       a: Schema.Int
     }),
@@ -5000,7 +5000,7 @@ console.log(String(Schema.decodeUnknownExit(schema)(urlSearchParams)))
 // Success({"a":"1","b":{"c":"2","d":"3"}})
 ```
 
-If you want to decode values that are not strings, use `Schema.toSerializerStringTree` with the `keepDeclarations: true` option. This serializer preserves values such as numbers or declarations when compatible with the schema.
+If you want to decode values that are not strings, use `Schema.toCodecStringTree` with the `keepDeclarations: true` option. This serializer preserves values such as numbers or declarations when compatible with the schema.
 
 **Example** (Parsing non-string values)
 
@@ -5008,7 +5008,7 @@ If you want to decode values that are not strings, use `Schema.toSerializerStrin
 import { Schema } from "effect/schema"
 
 const schema = Schema.fromURLSearchParams(
-  Schema.toSerializerStringTree(
+  Schema.toCodecStringTree(
     Schema.Struct({
       a: Schema.Int
     }),
@@ -7015,7 +7015,7 @@ function decodingJsonSchema<T, E, RE>(schema: Schema.Codec<T, E, never, RE>) {
 }
 
 function decodingStringSchema<T, E, RE>(schema: Schema.Codec<T, E, never, RE>) {
-  return Schema.toStandardSchemaV1(Schema.toSerializerStringTree(schema))
+  return Schema.toStandardSchemaV1(Schema.toCodecStringTree(schema))
 }
 
 function mapJsonSchema(schema: Schema.Top) {

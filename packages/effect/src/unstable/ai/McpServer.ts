@@ -1024,7 +1024,7 @@ const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: Readonly
   if (schemas.length > 0) {
     const arr: Array<Schema.Top> = []
     for (let i = 0; i < schemas.length; i++) {
-      const schema = Schema.toSerializerStringTree(schemas[i])
+      const schema = Schema.toCodecStringTree(schemas[i])
       const segment = segments[i + 1]
       const key = String(i)
       arr.push(schema)

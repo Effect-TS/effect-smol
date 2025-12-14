@@ -1,7 +1,7 @@
 import * as Effect from "#dist/effect/Effect"
 import * as Schema from "#dist/effect/schema/Schema"
 
-const schema = Schema.toSerializerStringTree(Schema.Struct({
+const schema = Schema.toCodecStringTree(Schema.Struct({
   a: Schema.String,
   b: Schema.optional(Schema.FiniteFromString),
   c: Schema.Array(Schema.String)

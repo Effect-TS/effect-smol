@@ -6479,7 +6479,7 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {}
  * ```
  *
  * If you want to decode values that are not strings, use
- * `Schema.toSerializerStringTree` with the `keepDeclarations: true` option.
+ * `Schema.toCodecStringTree` with the `keepDeclarations: true` option.
  * This serializer preserves values such as numbers and `Blob` objects when
  * compatible with the schema.
  *
@@ -6489,7 +6489,7 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {}
  * import { Schema } from "effect/schema"
  *
  * const schema = Schema.fromFormData(
- *   Schema.toSerializerStringTree(
+ *   Schema.toCodecStringTree(
  *     Schema.Struct({
  *       a: Schema.Int
  *     }),
@@ -6575,7 +6575,7 @@ export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearc
  * ```
  *
  * If you want to decode values that are not strings, use
- * `Schema.toSerializerStringTree`. This serializer preserves values such as
+ * `Schema.toCodecStringTree`. This serializer preserves values such as
  * numbers when compatible with the schema.
  *
  * **Example** (Parsing non-string values)
@@ -6584,7 +6584,7 @@ export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearc
  * import { Schema } from "effect/schema"
  *
  * const schema = Schema.fromURLSearchParams(
- *   Schema.toSerializerStringTree(
+ *   Schema.toCodecStringTree(
  *     Schema.Struct({
  *       a: Schema.Int
  *     })
@@ -7633,19 +7633,19 @@ export type StringTree = Getter.Tree<string | undefined>
  * @category Serializer
  * @since 4.0.0
  */
-export function toSerializerStringTree<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, StringTree, RD, RE>
-export function toSerializerStringTree<T, E, RD, RE>(
+export function toCodecStringTree<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, StringTree, RD, RE>
+export function toCodecStringTree<T, E, RD, RE>(
   schema: Codec<T, E, RD, RE>,
   options: { readonly keepDeclarations: true }
 ): Codec<T, unknown, RD, RE>
-export function toSerializerStringTree<T, E, RD, RE>(
+export function toCodecStringTree<T, E, RD, RE>(
   schema: Codec<T, E, RD, RE>,
   options?: { readonly keepDeclarations?: boolean | undefined }
 ): Codec<T, unknown, RD, RE> {
   if (options?.keepDeclarations === true) {
-    return make(toSerializerEnsureArray(serializerStringTreeKeepDeclarations(schema.ast)))
+    return make(toCodecEnsureArray(serializerStringTreeKeepDeclarations(schema.ast)))
   } else {
-    return make(toSerializerEnsureArray(serializerStringTree(schema.ast)))
+    return make(toCodecEnsureArray(serializerStringTree(schema.ast)))
   }
 }
 
@@ -7671,7 +7671,7 @@ export function toEncoderXml<T, E, RD, RE>(
   options?: XmlEncoderOptions
 ) {
   const rootName = Annotations.resolveIdentifier(codec.ast) ?? Annotations.resolveTitle(codec.ast)
-  const serialize = encodeEffect(toSerializerStringTree(codec))
+  const serialize = encodeEffect(toCodecStringTree(codec))
   return (t: T): Effect.Effect<string, SchemaError, RE> =>
     serialize(t).pipe(Effect.map((stringTree) => stringTreeToXml(stringTree, { rootName, ...options })))
 }
@@ -8017,7 +8017,7 @@ const serializerStringTreeKeepDeclarations = AST.serializer((ast) => {
 
 const SERIALIZER_ENSURE_ARRAY = "~effect/schema/Schema/SERIALIZER_ENSURE_ARRAY"
 
-const toSerializerEnsureArray = AST.serializer((ast) => {
+const toCodecEnsureArray = AST.serializer((ast) => {
   if (AST.isUnion(ast) && ast.annotations?.[SERIALIZER_ENSURE_ARRAY]) {
     return ast
   }
@@ -8052,7 +8052,7 @@ function onSerializerEnsureArray(ast: AST.AST): AST.AST {
     case "Objects":
     case "Union":
     case "Suspend":
-      return ast.recur(toSerializerEnsureArray)
+      return ast.recur(toCodecEnsureArray)
   }
 }
 
