@@ -547,7 +547,7 @@ export const make = (
         }
         return Effect.useSpan(
           fiber.getRef(SpanNameGenerator)(request),
-          { kind: "client", captureStackTrace: false },
+          { kind: "client" },
           (span) => {
             span.attribute("http.request.method", request.method)
             span.attribute("server.address", url.origin)
@@ -571,7 +571,7 @@ export const make = (
               : request
             return Effect.uninterruptibleMask((restore) =>
               restore(f(request, url, controller.signal, fiber as any)).pipe(
-                Effect.withParentSpan(span),
+                Effect.withParentSpan(span, { captureStackTrace: false }),
                 Effect.matchCauseEffect({
                   onSuccess: (response) => {
                     span.attribute("http.response.status_code", response.status)

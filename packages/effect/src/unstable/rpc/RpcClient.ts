@@ -406,7 +406,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
           }
           entries.set(id, entry)
           fiber = send.pipe(
-            span ? Effect.withParentSpan(span) : identity,
+            span ? Effect.withParentSpan(span, { captureStackTrace: false }) : identity,
             Effect.runForkWith(parentFiber.services)
           )
           fiber.addObserver((exit) => {
@@ -493,7 +493,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
         headers: Headers.merge(fiber.getRef(CurrentHeaders), headers)
       }
     ).pipe(
-      span ? Effect.withParentSpan(span) : identity,
+      span ? Effect.withParentSpan(span, { captureStackTrace: false }) : identity,
       Effect.catchCause((error) => Queue.failCause(queue, error)),
       Effect.interruptible,
       Effect.forkIn(scope, { startImmediately: true })
