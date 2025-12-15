@@ -1115,23 +1115,17 @@ export function fromJson(u: unknown): Document {
 /**
  * @since 4.0.0
  */
-export type Resolver<O> = (node: Declaration | Suspend, recur: (schema: StandardSchema) => O) => O
+export type Reviver<T> = (declaration: Declaration, recur: (schema: StandardSchema) => T) => T
 
 /**
  * @since 4.0.0
  */
-export const toSchemaDefaultResolver: Resolver<Schema.Top> = (node, recur) => {
-  switch (node._tag) {
-    case "Declaration": {
-      switch (node.annotations?.typeConstructor) {
-        default:
-          throw new Error(`Unknown type constructor: ${node.annotations?.typeConstructor}`)
-        case "Option":
-          return Schema.Option(recur(node.typeParameters[0]))
-      }
-    }
-    case "Suspend":
-      throw new Error(`Reference to unknown schema: ${node.$ref}`)
+export const toSchemaDefaultReviver: Reviver<Schema.Top> = (declaration, recur) => {
+  switch (declaration.annotations?.typeConstructor) {
+    default:
+      throw new Error(`Unknown type constructor: ${declaration.annotations?.typeConstructor}`)
+    case "Option":
+      return Schema.Option(recur(declaration.typeParameters[0]))
   }
 }
 
@@ -1140,9 +1134,9 @@ export const toSchemaDefaultResolver: Resolver<Schema.Top> = (node, recur) => {
  */
 export function toSchema<S extends Schema.Top = Schema.Top>(
   document: Document,
-  options?: { resolver?: Resolver<Schema.Top> | undefined }
+  options?: { readonly reviver?: Reviver<Schema.Top> | undefined }
 ): S {
-  const resolver = options?.resolver ?? toSchemaDefaultResolver
+  const reviver = options?.reviver ?? toSchemaDefaultReviver
 
   type Slot = {
     // 0 = not started, 1 = building, 2 = done
@@ -1184,7 +1178,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
   function resolveReference(identifier: string): Schema.Top {
     const definition = document.definitions[identifier]
     if (definition === undefined) {
-      return resolver({ _tag: "Suspend", $ref: identifier }, recur)
+      throw new Error(`Reference to unknown schema: ${identifier}`)
     }
 
     const slot = getSlot(identifier)
@@ -1216,7 +1210,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
   function on(schema: StandardSchema): Schema.Top {
     switch (schema._tag) {
       case "Declaration":
-        return resolver(schema, recur)
+        return reviver(schema, recur)
       case "Suspend":
         return resolveReference(schema.$ref)
       case "Null":
@@ -1297,6 +1291,8 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
 
 function toSchemaChecks(top: Schema.Top, schema: StandardSchema): Schema.Top {
   switch (schema._tag) {
+    default:
+      return top
     case "String":
     case "Number":
     case "BigInt":
@@ -1304,8 +1300,6 @@ function toSchemaChecks(top: Schema.Top, schema: StandardSchema): Schema.Top {
       const checks = schema.checks.map(toSchemaCheck)
       return Arr.isArrayNonEmpty(checks) ? top.check(...checks) : top
     }
-    default:
-      return top
   }
 }
 
@@ -1804,27 +1798,21 @@ function getPartPattern(part: StandardSchema): string {
 /**
  * @since 4.0.0
  */
-export const toCodeDefaultResolver: Resolver<string> = (node, recur) => {
-  switch (node._tag) {
-    case "Declaration": {
-      const typeConstructor = node.annotations?.typeConstructor
-      if (typeof typeConstructor === "string") {
-        return `Schema.${typeConstructor}(${node.typeParameters.map((p) => recur(p)).join(", ")})`
-      }
-      return `Schema.Unknown`
-    }
-    case "Suspend":
-      throw new Error(`Reference to unknown schema: ${node.$ref}`)
+export const toCodeDefaultReviver: Reviver<string> = (declaration, recur) => {
+  const typeConstructor = declaration.annotations?.typeConstructor
+  if (typeof typeConstructor === "string") {
+    return `Schema.${typeConstructor}(${declaration.typeParameters.map((p) => recur(p)).join(", ")})`
   }
+  return `Schema.Unknown`
 }
 
 /**
  * @since 4.0.0
  */
 export function toCode(document: Document, options?: {
-  readonly resolver?: Resolver<string> | undefined
+  readonly reviver?: Reviver<string> | undefined
 }): string {
-  const resolver = options?.resolver ?? toCodeDefaultResolver
+  const reviver = options?.reviver ?? toCodeDefaultReviver
   const schema = document.schema
 
   if (schema._tag === "Suspend") {
@@ -1851,12 +1839,12 @@ export function toCode(document: Document, options?: {
   function on(schema: StandardSchema): string {
     switch (schema._tag) {
       case "Declaration":
-        return resolver(schema, recur)
+        return reviver(schema, recur)
       case "Suspend": {
         if (schema.$ref in document.definitions) {
           return `Schema.suspend((): Schema.Codec<${schema.$ref}> => ${schema.$ref})`
         }
-        return resolver(schema, recur)
+        throw new Error(`Reference to unknown schema: ${schema.$ref}`)
       }
       case "Null":
       case "Undefined":

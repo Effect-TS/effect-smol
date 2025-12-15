@@ -19,17 +19,17 @@ const InnerCategory = Schema.Struct({
   )
 })
 
-function assertToCode(schema: Schema.Top, expected: string, resolver?: Standard.Resolver<string>) {
+function assertToCode(schema: Schema.Top, expected: string, reviver?: Standard.Reviver<string>) {
   const document = Standard.fromAST(schema.ast)
-  strictEqual(Standard.toCode(document, { resolver }), expected)
+  strictEqual(Standard.toCode(document, { reviver }), expected)
 }
 
-function assertRoundtrip(schema: Schema.Top, expected: string, resolver?: Standard.Resolver<string>) {
+function assertRoundtrip(schema: Schema.Top, expected: string, reviver?: Standard.Reviver<string>) {
   // Test direct roundtrip: Schema → Standard Document → Schema
   const document = Standard.fromAST(schema.ast)
   // Json Roundtrip: Standard Document → JSON → Standard Document
   const jsonDocument = Standard.toJson(document)
-  strictEqual(Standard.toCode(document, { resolver }), expected)
+  strictEqual(Standard.toCode(document, { reviver }), expected)
   deepStrictEqual(
     Standard.toJson(Standard.fromAST(Standard.toSchema(Standard.fromJson(jsonDocument)).ast)),
     jsonDocument
