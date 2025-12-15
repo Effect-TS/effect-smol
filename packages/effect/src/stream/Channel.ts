@@ -5531,9 +5531,9 @@ export const provideServiceEffect: {
   service: Effect.Effect<NoInfer<S>, ES, RS>
 ): Channel<OutElem, OutErr | ES, OutDone, InElem, InErr, InDone, Exclude<Env, I> | RS> =>
   fromTransform((upstream, scope) =>
-    Effect.map(
-      Effect.provideServiceEffect(toTransform(self)(upstream, scope), key, service),
-      Effect.provideServiceEffect(key, service)
+    Effect.flatMap(
+      service,
+      (s) => toTransform(provideService(self, key, s))(upstream, scope)
     )
   ))
 
@@ -5585,10 +5585,10 @@ export const updateServices: {
   f: (services: ServiceMap.ServiceMap<R2>) => ServiceMap.ServiceMap<Env>
 ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R2> =>
   fromTransform((upstream, scope) =>
-    Effect.map(
-      Effect.updateServices(toTransform(self)(upstream, scope), f),
-      Effect.updateServices(f)
-    )
+    Effect.servicesWith((services) => {
+      const toProvide = f(services)
+      return toTransform(provideServices(self, toProvide))(upstream, scope)
+    })
   ))
 
 /**

@@ -14,7 +14,7 @@ import { hasProperty, isTagged } from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import * as Duration from "../Duration.ts"
 import * as Effect from "../Effect.ts"
-import { type ExecutionPlan } from "../ExecutionPlan.ts"
+import * as ExecutionPlan from "../ExecutionPlan.ts"
 import * as Exit from "../Exit.ts"
 import * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
@@ -3558,17 +3558,17 @@ export const retry: {
  */
 export const withExecutionPlan: {
   <Input, R2, Provides, PolicyE>(
-    policy: ExecutionPlan<{ provides: Provides; input: Input; error: PolicyE; requirements: R2 }>,
+    policy: ExecutionPlan.ExecutionPlan<{ provides: Provides; input: Input; error: PolicyE; requirements: R2 }>,
     options?: { readonly preventFallbackOnPartialStream?: boolean | undefined }
   ): <A, E extends Input, R>(self: Stream<A, E, R>) => Stream<A, E | PolicyE, R2 | Exclude<R, Provides>>
   <A, E extends Input, R, R2, Input, Provides, PolicyE>(
     self: Stream<A, E, R>,
-    policy: ExecutionPlan<{ provides: Provides; input: Input; error: PolicyE; requirements: R2 }>,
+    policy: ExecutionPlan.ExecutionPlan<{ provides: Provides; input: Input; error: PolicyE; requirements: R2 }>,
     options?: { readonly preventFallbackOnPartialStream?: boolean | undefined }
   ): Stream<A, E | PolicyE, R2 | Exclude<R, Provides>>
 } = dual((args) => isStream(args[0]), <A, E extends Input, R, R2, Input, Provides, PolicyE>(
   self: Stream<A, E, R>,
-  policy: ExecutionPlan<{
+  policy: ExecutionPlan.ExecutionPlan<{
     provides: Provides
     input: Input
     error: PolicyE
@@ -3581,18 +3581,32 @@ export const withExecutionPlan: {
   suspend(() => {
     const preventFallbackOnPartialStream = options?.preventFallbackOnPartialStream ?? false
     let i = 0
+    let meta: ExecutionPlan.Metadata = {
+      attempt: 0,
+      stepIndex: 0
+    }
+    const provideMeta = provideServiceEffect(
+      ExecutionPlan.CurrentMetadata,
+      Effect.sync(() => {
+        meta = {
+          attempt: meta.attempt + 1,
+          stepIndex: i
+        }
+        return meta
+      })
+    )
     let lastError = Option.none<E | PolicyE>()
     const loop: Stream<
       A,
       E | PolicyE,
       R2 | Exclude<R, Provides>
     > = suspend(() => {
-      const step = policy.steps[i++]
+      const step = policy.steps[i]
       if (!step) {
         return fail(Option.getOrThrow(lastError))
       }
 
-      let nextStream: Stream<A, E | PolicyE, R2 | Exclude<R, Provides>> = provide(self, step.provide)
+      let nextStream: Stream<A, E | PolicyE, R2 | Exclude<R, Provides>> = provideMeta(provide(self, step.provide))
       let receivedElements = false
 
       if (Option.isSome(lastError)) {
@@ -3607,7 +3621,8 @@ export const withExecutionPlan: {
         })
         nextStream = retry(nextStream, internalExecutionPlan.scheduleFromStep(step, false) as any)
       } else {
-        nextStream = retry(nextStream, internalExecutionPlan.scheduleFromStep(step, true) as any)
+        const schedule = internalExecutionPlan.scheduleFromStep(step, true)
+        nextStream = schedule ? retry(nextStream, schedule as any) : nextStream
       }
 
       return catch_(
@@ -3618,6 +3633,7 @@ export const withExecutionPlan: {
           }) :
           nextStream,
         (error) => {
+          i++
           if (preventFallbackOnPartialStream && receivedElements) {
             return fail(error)
           }

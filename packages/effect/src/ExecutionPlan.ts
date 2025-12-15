@@ -4,12 +4,13 @@
 import type { NonEmptyReadonlyArray } from "./collections/Array.ts"
 import * as Predicate from "./data/Predicate.ts"
 import type * as Effect from "./Effect.ts"
+import { constant } from "./Function.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { pipeArguments } from "./interfaces/Pipeable.ts"
 import * as effect from "./internal/effect.ts"
 import * as Layer from "./Layer.ts"
 import type * as Schedule from "./Schedule.ts"
-import type * as ServiceMap from "./ServiceMap.ts"
+import * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * @since 3.16.0
@@ -297,3 +298,23 @@ export const merge = <const Plans extends NonEmptyReadonlyArray<ExecutionPlan<an
   error: Plans[number] extends ExecutionPlan<infer T> ? T["error"] : never
   requirements: Plans[number] extends ExecutionPlan<infer T> ? T["requirements"] : never
 }> => makeProto(plans.flatMap((plan) => plan.steps) as any)
+
+/**
+ * @since 4.0.0
+ * @category Metadata
+ */
+export interface Metadata {
+  readonly attempt: number
+  readonly stepIndex: number
+}
+
+/**
+ * @since 4.0.0
+ * @category Metadata
+ */
+export const CurrentMetadata = ServiceMap.Reference<Metadata>("effect/ExecutionPlan/CurrentMetadata", {
+  defaultValue: constant({
+    attempt: 0,
+    stepIndex: 0
+  })
+})

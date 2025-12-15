@@ -1,6 +1,6 @@
 import * as Result from "../data/Result.ts"
 import type { Effect } from "../Effect.ts"
-import type * as Api from "../ExecutionPlan.ts"
+import * as Api from "../ExecutionPlan.ts"
 import { dual } from "../Function.ts"
 import * as Schedule from "../Schedule.ts"
 import * as effect from "./effect.ts"
@@ -45,13 +45,27 @@ export const withExecutionPlan: {
 ) =>
   effect.suspend(() => {
     let i = 0
+    let meta: Api.Metadata = {
+      attempt: 0,
+      stepIndex: 0
+    }
+    const provideMeta = effect.provideServiceEffect(
+      Api.CurrentMetadata,
+      effect.sync(() => {
+        meta = {
+          attempt: meta.attempt + 1,
+          stepIndex: i
+        }
+        return meta
+      })
+    )
     let result: Result.Result<A, any> | undefined
     return effect.flatMap(
       effect.whileLoop({
         while: () => i < plan.steps.length && (result === undefined || Result.isFailure(result)),
         body() {
           const step = plan.steps[i]
-          let nextEffect: Effect<A, any, any> = internalLayer.provide(self, step.provide as any)
+          let nextEffect: Effect<A, any, any> = provideMeta(internalLayer.provide(self, step.provide as any))
           if (result) {
             let attempted = false
             const wrapped = nextEffect
@@ -63,7 +77,8 @@ export const withExecutionPlan: {
             })
             nextEffect = internalSchedule.retry(nextEffect, scheduleFromStep(step, false)!)
           } else {
-            nextEffect = internalSchedule.retry(nextEffect, scheduleFromStep(step, true))
+            const schedule = scheduleFromStep(step, true)
+            nextEffect = schedule ? internalSchedule.retry(nextEffect, schedule) : nextEffect
           }
           return effect.result(nextEffect)
         },
@@ -93,7 +108,7 @@ export const scheduleFromStep = <Provides, In, PlanE, PlanR>(
       while: step.while
     })
   } else if (step.attempts === 1 || !(step.schedule || step.attempts)) {
-    return scheduleZero
+    return undefined
   }
   return internalSchedule.buildFromOptions({
     schedule: step.schedule,
@@ -103,4 +118,3 @@ export const scheduleFromStep = <Provides, In, PlanE, PlanR>(
 }
 
 const scheduleOnce = Schedule.recurs(1)
-const scheduleZero = Schedule.recurs(0)

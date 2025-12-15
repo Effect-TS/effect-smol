@@ -52,7 +52,12 @@ describe("ExecutionPlan", () => {
       Effect.gen(function*() {
         const stream = Stream.unwrap(Effect.map(Service.asEffect(), (_) => _.stream))
         const items = Array.empty<number>()
+        const metadata = Array.empty<ExecutionPlan.Metadata>()
         const result = yield* stream.pipe(
+          Stream.onStart(ExecutionPlan.CurrentMetadata.use((meta) => {
+            metadata.push(meta)
+            return Effect.void
+          })),
           Stream.withExecutionPlan(Plan),
           Stream.runForEach((n) =>
             Effect.sync(() => {
@@ -62,6 +67,16 @@ describe("ExecutionPlan", () => {
           Effect.exit
         )
         deepStrictEqual(items, [1, 2, 3])
+        deepStrictEqual(metadata, [{
+          attempt: 1,
+          stepIndex: 0
+        }, {
+          attempt: 2,
+          stepIndex: 1
+        }, {
+          attempt: 3,
+          stepIndex: 2
+        }])
         assertTrue(Exit.isSuccess(result))
       }))
 
