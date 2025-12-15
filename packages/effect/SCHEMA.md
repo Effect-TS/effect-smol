@@ -6510,6 +6510,22 @@ This approach keeps patches independent from TypeScript types and uses the schem
 
 The `Standard` module provides a way to encode and decode schemas to and from JSON. This is useful for sending schemas over the wire or storing them on disk.
 
+```mermaid
+flowchart TD
+    Schema -->|fromAST|StandardAST{"Standard.Document: { schema, definitions }"}
+    JS["JSONSchema (draft-07, draft-2020-12, openapi-3.0, openapi-3.1)"] -->|normalize|NJS
+    NJS --> |denormalize|JS
+    NJS["JSON Schema (draft-2020-12)"] -->|fromJsonSchema|StandardAST
+    StandardAST --> |toJson|JSON
+    JSON --> |fromJson|StandardAST
+    StandardAST --> |toJsonSchema|NJS
+    StandardAST --> |toSchema|Schema
+    StandardAST --> |toCode|Code["{ code, types: { Type, Encoded, DecodingServices, EncodingServices }, imports }"]
+    Schema --> |toArbitrary|Arbitrary
+    Schema --> |toEquivalence|Equivalence
+    Schema --> |toFormatter|Formatter
+```
+
 **Example** (Encoding and decoding a schema)
 
 ```ts
