@@ -14,8 +14,8 @@ import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../stream/Stream.ts"
 import * as HttpBody from "./HttpBody.ts"
 import { type HttpMiddleware, tracer } from "./HttpMiddleware.ts"
+import { causeResponse, clientAbortFiberId, RequestError } from "./HttpServerError.ts"
 import type { HttpServerError } from "./HttpServerError.ts"
-import { causeResponse, clientAbortFiberId } from "./HttpServerError.ts"
 import { HttpServerRequest } from "./HttpServerRequest.ts"
 import * as Request from "./HttpServerRequest.ts"
 import type { HttpServerResponse } from "./HttpServerResponse.ts"
@@ -216,7 +216,7 @@ export const withPreResponseHandler: {
  * @since 4.0.0
  * @category conversions
  */
-export const toWebHandlerWith = <Provided, R, ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>>(
+export const toWebHandlerWith = <Provided, R = never, ReqR = Exclude<R, Provided | Scope.Scope | HttpServerRequest>>(
   services: ServiceMap.ServiceMap<Provided>
 ) =>
 <E>(
@@ -345,4 +345,35 @@ export const toWebHandlerLayer = <E, R, Provided, LE, ReqR = Exclude<R, Provided
   toWebHandlerLayerWith(layer, {
     ...options,
     toHandler: () => Effect.succeed(self)
+  })
+
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const fromWebHandler = (
+  handler: (request: Request) => Promise<Response>
+): Effect.Effect<HttpServerResponse, HttpServerError, HttpServerRequest> =>
+  Effect.callback((resume, signal) => {
+    const fiber = Fiber.getCurrent()!
+    const request = ServiceMap.getUnsafe(fiber.services, HttpServerRequest)
+    const requestResult = Request.toWebResult(request, {
+      signal,
+      services: fiber.services
+    })
+    if (requestResult._tag === "Failure") {
+      return resume(Effect.fail(requestResult.failure))
+    }
+    handler(requestResult.success).then(
+      (response) => resume(Effect.succeed(Response.fromWeb(response))),
+      (cause) =>
+        resume(Effect.fail(
+          new RequestError({
+            cause,
+            request,
+            reason: "InternalError",
+            description: "HttpApp.fromWebHandler: Error in handler"
+          })
+        ))
+    )
   })

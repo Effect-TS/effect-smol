@@ -23,7 +23,7 @@ export type HttpServerError = RequestError | ResponseError
  * @category error
  */
 export class RequestError extends Data.TaggedError("HttpServerError")<{
-  readonly reason: "RequestParseError" | "RouteNotFound"
+  readonly reason: "RequestParseError" | "RouteNotFound" | "InternalError"
   readonly request: Request.HttpServerRequest
   readonly description?: string
   readonly cause?: unknown
@@ -42,7 +42,15 @@ export class RequestError extends Data.TaggedError("HttpServerError")<{
    * @since 4.0.0
    */
   [Respondable.TypeId]() {
-    return Effect.succeed(Response.empty({ status: this.reason === "RouteNotFound" ? 404 : 400 }))
+    return Effect.succeed(
+      Response.empty({
+        status: this.reason === "InternalError"
+          ? 500
+          : this.reason === "RouteNotFound"
+          ? 404
+          : 400
+      })
+    )
   }
 
   get methodAndUrl() {

@@ -3,6 +3,7 @@
  */
 import type * as Arr from "../../collections/Array.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
+import * as Result from "../../data/Result.ts"
 import * as Effect from "../../Effect.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
@@ -17,7 +18,7 @@ import * as Socket from "../socket/Socket.ts"
 import * as Cookies from "./Cookies.ts"
 import * as Headers from "./Headers.ts"
 import * as HttpIncomingMessage from "./HttpIncomingMessage.ts"
-import type { HttpMethod } from "./HttpMethod.ts"
+import { hasBody, type HttpMethod } from "./HttpMethod.ts"
 import { type HttpServerError, RequestError } from "./HttpServerError.ts"
 import * as Multipart from "./Multipart.ts"
 import * as UrlParams from "./UrlParams.ts"
@@ -490,3 +491,52 @@ export const toURL = (self: HttpServerRequest): URL | undefined => {
     return undefined
   }
 }
+
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const toWebResult = (self: HttpServerRequest, options?: {
+  readonly signal?: AbortSignal | undefined
+  readonly services?: ServiceMap.ServiceMap<never> | undefined
+}): Result.Result<Request, RequestError> => {
+  if (self.source instanceof Request) {
+    return Result.succeed(self.source)
+  }
+  const url = toURL(self)
+  if (url === undefined) {
+    return Result.fail(
+      new RequestError({
+        request: self,
+        reason: "RequestParseError",
+        description: "Invalid URL"
+      })
+    )
+  }
+  const requestInit: RequestInit = {
+    method: self.method,
+    headers: self.headers
+  }
+  if (options?.signal) {
+    requestInit.signal = options.signal
+  }
+  if (hasBody(self.method)) {
+    requestInit.body = Stream.toReadableStreamWith(self.stream, options?.services ?? ServiceMap.empty())
+    ;(requestInit as any).duplex = "half"
+  }
+  return Result.succeed(new Request(url, requestInit))
+}
+
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const toWeb = (self: HttpServerRequest, options?: {
+  readonly signal?: AbortSignal | undefined
+}): Effect.Effect<Request, RequestError> =>
+  Effect.servicesWith((services) =>
+    toWebResult(self, {
+      services,
+      signal: options?.signal
+    }).asEffect()
+  )

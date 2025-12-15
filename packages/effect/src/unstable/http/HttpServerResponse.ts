@@ -81,7 +81,9 @@ export const empty = (
 ): HttpServerResponse =>
   makeResponse({
     status: options?.status ?? 204,
-    statusText: options?.statusText
+    statusText: options?.statusText,
+    headers: options?.headers ? Headers.fromInput(options.headers) : undefined,
+    cookies: options?.cookies
   })
 
 /**
@@ -784,6 +786,32 @@ const makeResponse = (options: {
     self.headers = newHeaders
   } else {
     self.headers = options.headers ?? Headers.empty
+  }
+  return self
+}
+
+/**
+ * @since 4.0.0
+ * @category conversions
+ */
+export const fromWeb = (response: Response): HttpServerResponse => {
+  const headers = new globalThis.Headers(response.headers)
+  const setCookieHeaders = headers.getSetCookie()
+  headers.delete("set-cookie")
+  let self = empty({
+    status: response.status,
+    statusText: response.statusText,
+    headers: headers as any,
+    cookies: Cookies.fromSetCookie(setCookieHeaders)
+  })
+  if (response.body) {
+    self = setBody(
+      self,
+      Body.stream(Stream.fromReadableStream({
+        evaluate: () => response.body!,
+        onError: (e) => e
+      }))
+    )
   }
   return self
 }
