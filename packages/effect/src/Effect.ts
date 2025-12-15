@@ -75,12 +75,14 @@ import type { Option } from "./data/Option.ts"
 import type * as Predicate from "./data/Predicate.ts"
 import type * as Result from "./data/Result.ts"
 import * as Duration from "./Duration.ts"
+import type { ExecutionPlan } from "./ExecutionPlan.ts"
 import * as Exit from "./Exit.ts"
 import type { Fiber } from "./Fiber.ts"
 import { constant, dual, type LazyArg } from "./Function.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as core from "./internal/core.ts"
 import * as internal from "./internal/effect.ts"
+import * as internalExecutionPlan from "./internal/executionPlan.ts"
 import * as internalLayer from "./internal/layer.ts"
 import * as internalRequest from "./internal/request.ts"
 import * as internalSchedule from "./internal/schedule.ts"
@@ -91,7 +93,7 @@ import * as Metric from "./Metric.ts"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.ts"
 import type * as Request from "./Request.ts"
 import type { RequestResolver } from "./RequestResolver.ts"
-import type { CurrentMetadata, Schedule } from "./Schedule.ts"
+import type { Schedule } from "./Schedule.ts"
 import type { Scheduler } from "./Scheduler.ts"
 import type { Scope } from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
@@ -3097,7 +3099,7 @@ export declare namespace Retry {
       until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R>
     } ? E
       : never),
-    | Exclude<R, CurrentMetadata>
+    | R
     | (O extends { schedule: Schedule<infer _O, infer _I, infer _E1, infer R> } ? R
       : never)
     | (O extends {
@@ -3188,12 +3190,12 @@ export const retry: {
   <E, O extends Retry.Options<E>>(options: O): <A, R>(self: Effect<A, E, R>) => Retry.Return<R, E, A, O>
   <B, E, Error, Env>(
     policy: Schedule<B, NoInfer<E>, Error, Env>
-  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | Error, Exclude<R, CurrentMetadata> | Env>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | Error, R | Env>
   <A, E, R, O extends Retry.Options<E>>(self: Effect<A, E, R>, options: O): Retry.Return<R, E, A, O>
   <A, E, R, B, Error, Env>(
     self: Effect<A, E, R>,
     policy: Schedule<B, NoInfer<E>, Error, Env>
-  ): Effect<A, E | Error, Exclude<R, CurrentMetadata> | Env>
+  ): Effect<A, E | Error, R | Env>
 } = internalSchedule.retry
 
 /**
@@ -3255,12 +3257,12 @@ export const retryOrElse: {
   <A1, E, E1, R1, A2, E2, R2>(
     policy: Schedule<A1, NoInfer<E>, E1, R1>,
     orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
-  ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2, E1 | E2, Exclude<R, CurrentMetadata> | R1 | R2>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2, E1 | E2, R | R1 | R2>
   <A, E, R, A1, E1, R1, A2, E2, R2>(
     self: Effect<A, E, R>,
     policy: Schedule<A1, NoInfer<E>, E1, R1>,
     orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
-  ): Effect<A | A2, E1 | E2, Exclude<R, CurrentMetadata> | R1 | R2>
+  ): Effect<A | A2, E1 | E2, R | R1 | R2>
 } = internalSchedule.retryOrElse
 
 /**
@@ -3330,6 +3332,25 @@ export const sandbox: <A, E, R>(
 export const ignore: <A, E, R>(
   self: Effect<A, E, R>
 ) => Effect<void, never, R> = internal.ignore
+
+/**
+ * Apply an `ExecutionPlan` to the effect, which allows you to fallback to
+ * different resources in case of failure.
+ *
+ * @since 3.16.0
+ * @category Error handling
+ */
+export const withExecutionPlan: {
+  <Input, Provides, PlanE, PlanR>(
+    plan: ExecutionPlan<{ provides: Provides; input: Input; error: PlanE; requirements: PlanR }>
+  ): <A, E extends Input, R>(
+    effect: Effect<A, E, R>
+  ) => Effect<A, E | PlanE, Exclude<R, Provides> | PlanR>
+  <A, E extends Input, R, Provides, Input, PlanE, PlanR>(
+    effect: Effect<A, E, R>,
+    plan: ExecutionPlan<{ provides: Provides; input: Input; error: PlanE; requirements: PlanR }>
+  ): Effect<A, E | PlanE, Exclude<R, Provides> | PlanR>
+} = internalExecutionPlan.withExecutionPlan
 
 // -----------------------------------------------------------------------------
 // Fallback
@@ -6046,7 +6067,7 @@ export declare namespace Repeat {
       until: (...args: Array<any>) => Effect<infer _A, infer E, infer _R>
     } ? E
       : never),
-    | Exclude<R, CurrentMetadata>
+    | R
     | (O extends { schedule: Schedule<infer _O, infer _I, infer _E, infer R> } ? R
       : never)
     | (O extends {
@@ -6185,12 +6206,12 @@ export const repeat: {
   <O extends Repeat.Options<A>, A>(options: O): <E, R>(self: Effect<A, E, R>) => Repeat.Return<R, E, A, O>
   <Output, Input, Error, Env>(
     schedule: Schedule<Output, NoInfer<Input>, Error, Env>
-  ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E | Error, Exclude<R, CurrentMetadata> | Env>
+  ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E | Error, R | Env>
   <A, E, R, O extends Repeat.Options<A>>(self: Effect<A, E, R>, options: O): Repeat.Return<R, E, A, O>
   <Input, E, R, Output, Error, Env>(
     self: Effect<Input, E, R>,
     schedule: Schedule<Output, NoInfer<Input>, Error, Env>
-  ): Effect<Output, E | Error, Exclude<R, CurrentMetadata> | Env>
+  ): Effect<Output, E | Error, R | Env>
 } = internalSchedule.repeat
 
 /**
@@ -6364,15 +6385,15 @@ export const replicateEffect: {
 export const schedule: {
   <Output, Error, Env>(
     schedule: Schedule<Output, unknown, Error, Env>
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<Output, E, Exclude<R, CurrentMetadata> | Env>
+  ): <A, E, R>(self: Effect<A, E, R>) => Effect<Output, E, R | Env>
   <A, E, R, Output, Error, Env>(
     self: Effect<A, E, R>,
     schedule: Schedule<Output, unknown, Error, Env>
-  ): Effect<Output, E, Exclude<R, CurrentMetadata> | Env>
+  ): Effect<Output, E, R | Env>
 } = dual(2, <A, E, R, Output, Error, Env>(
   self: Effect<A, E, R>,
   schedule: Schedule<Output, unknown, Error, Env>
-): Effect<Output, E, Exclude<R, CurrentMetadata> | Env> => scheduleFrom(self, undefined, schedule))
+): Effect<Output, E, R | Env> => scheduleFrom(self, undefined, schedule))
 
 /**
  * Runs an effect repeatedly according to a schedule, starting from a specified
@@ -6419,12 +6440,12 @@ export const scheduleFrom: {
   <Input, Output, Error, Env>(
     initial: Input,
     schedule: Schedule<Output, Input, Error, Env>
-  ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E, Exclude<R, CurrentMetadata> | Env>
+  ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E, R | Env>
   <Input, E, R, Output, Error, Env>(
     self: Effect<Input, E, R>,
     initial: Input,
     schedule: Schedule<Output, Input, Error, Env>
-  ): Effect<Output, E, Exclude<R, CurrentMetadata> | Env>
+  ): Effect<Output, E, R | Env>
 } = internalSchedule.scheduleFrom
 
 // -----------------------------------------------------------------------------

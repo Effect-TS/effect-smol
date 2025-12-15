@@ -432,6 +432,11 @@ export * as Duration from "./Duration.ts"
 export * as Effect from "./Effect.ts"
 
 /**
+ * @since 3.16.0
+ */
+export * as ExecutionPlan from "./ExecutionPlan.ts"
+
+/**
  * The `Exit` type represents the result of running an Effect computation.
  * An `Exit<A, E>` can either be:
  * - `Success`: Contains a value of type `A`

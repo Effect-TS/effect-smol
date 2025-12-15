@@ -14,12 +14,14 @@ import { hasProperty, isTagged } from "../data/Predicate.ts"
 import * as Result from "../data/Result.ts"
 import * as Duration from "../Duration.ts"
 import * as Effect from "../Effect.ts"
+import { type ExecutionPlan } from "../ExecutionPlan.ts"
 import * as Exit from "../Exit.ts"
 import * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
 import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
+import * as internalExecutionPlan from "../internal/executionPlan.ts"
 import { addSpanStackTrace } from "../internal/tracer.ts"
 import type * as Layer from "../Layer.ts"
 import type * as PubSub from "../PubSub.ts"
@@ -338,10 +340,10 @@ export const fromEffectRepeat = <A, E, R>(effect: Effect.Effect<A, E, R>): Strea
 export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
   effect: Effect.Effect<A, E, R>,
   schedule: Schedule.Schedule<X, AS, ES, RS>
-): Stream<A, E | ES, Exclude<R, Schedule.CurrentMetadata> | RS> =>
+): Stream<A, E | ES, R | RS> =>
   fromPull(Effect.gen(function*() {
     const step = yield* Schedule.toStepWithMetadata(schedule)
-    let s = yield* Effect.provideService(effect, Schedule.CurrentMetadata, Schedule.metadataEmpty())
+    let s = yield* Effect.provideService(effect, Schedule.CurrentMetadata, Schedule.CurrentMetadata.defaultValue())
     let initial = true
     const pull = Effect.suspend(() => step(s as AS)).pipe(
       Effect.flatMap((meta) => Effect.provideService(effect, Schedule.CurrentMetadata, meta)),
@@ -349,7 +351,7 @@ export const fromEffectSchedule = <A, E, R, X, AS extends A, ES, RS>(
         s = next
         return Arr.of(next)
       })
-    ) as Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | ES, void, Exclude<R, Schedule.CurrentMetadata> | RS>
+    ) as Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E | ES, void, R | RS>
     return Effect.suspend(() => {
       if (initial) {
         initial = false
@@ -1795,15 +1797,15 @@ export const drainFork: {
 export const repeat: {
   <B, E2, R2>(
     schedule: Schedule.Schedule<B, void, E2, R2>
-  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | Exclude<R, Schedule.CurrentMetadata>>
+  ): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
   <A, E, R, B, E2, R2>(
     self: Stream<A, E, R>,
     schedule: Schedule.Schedule<B, void, E2, R2>
-  ): Stream<A, E | E2, Exclude<R, Schedule.CurrentMetadata> | R2>
+  ): Stream<A, E | E2, R | R2>
 } = dual(2, <A, E, R, B, E2, R2>(
   self: Stream<A, E, R>,
   schedule: Schedule.Schedule<B, void, E2, R2>
-): Stream<A, E | E2, Exclude<R, Schedule.CurrentMetadata> | R2> => fromChannel(Channel.repeat(self.channel, schedule)))
+): Stream<A, E | E2, R | R2> => fromChannel(Channel.repeat(self.channel, schedule)))
 
 /**
  * Schedules the output of the stream using the provided `schedule`.
@@ -3529,18 +3531,103 @@ export const ignoreCause = <A, E, R>(self: Stream<A, E, R>): Stream<A, never, R>
 export const retry: {
   <E, X, E2, R2>(
     policy: Schedule.Schedule<X, NoInfer<E>, E2, R2>
-  ): <A, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | Exclude<R, Schedule.CurrentMetadata>>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A, E | E2, R2 | R>
   <A, E, R, X, E2, R2>(
     self: Stream<A, E, R>,
     policy: Schedule.Schedule<X, NoInfer<E>, E2, R2>
-  ): Stream<A, E | E2, R2 | Exclude<R, Schedule.CurrentMetadata>>
+  ): Stream<A, E | E2, R2 | R>
 } = dual(
   2,
   <A, E, R, X, E2, R2>(
     self: Stream<A, E, R>,
     policy: Schedule.Schedule<X, NoInfer<E>, E2, R2>
-  ): Stream<A, E | E2, R2 | Exclude<R, Schedule.CurrentMetadata>> => fromChannel(Channel.retry(self.channel, policy))
+  ): Stream<A, E | E2, R2 | R> => fromChannel(Channel.retry(self.channel, policy))
 )
+
+/**
+ * Apply an `ExecutionPlan` to the stream, which allows you to fallback to
+ * different resources in case of failure.
+ *
+ * If you have a stream that could fail with partial results, you can use
+ * the `preventFallbackOnPartialStream` option to prevent contamination of
+ * the final stream with partial results.
+ *
+ * @since 3.16.0
+ * @category Error handling
+ * @experimental
+ */
+export const withExecutionPlan: {
+  <Input, R2, Provides, PolicyE>(
+    policy: ExecutionPlan<{ provides: Provides; input: Input; error: PolicyE; requirements: R2 }>,
+    options?: { readonly preventFallbackOnPartialStream?: boolean | undefined }
+  ): <A, E extends Input, R>(self: Stream<A, E, R>) => Stream<A, E | PolicyE, R2 | Exclude<R, Provides>>
+  <A, E extends Input, R, R2, Input, Provides, PolicyE>(
+    self: Stream<A, E, R>,
+    policy: ExecutionPlan<{ provides: Provides; input: Input; error: PolicyE; requirements: R2 }>,
+    options?: { readonly preventFallbackOnPartialStream?: boolean | undefined }
+  ): Stream<A, E | PolicyE, R2 | Exclude<R, Provides>>
+} = dual((args) => isStream(args[0]), <A, E extends Input, R, R2, Input, Provides, PolicyE>(
+  self: Stream<A, E, R>,
+  policy: ExecutionPlan<{
+    provides: Provides
+    input: Input
+    error: PolicyE
+    requirements: R2
+  }>,
+  options?: {
+    readonly preventFallbackOnPartialStream?: boolean | undefined
+  }
+): Stream<A, E | PolicyE, R2 | Exclude<R, Provides>> =>
+  suspend(() => {
+    const preventFallbackOnPartialStream = options?.preventFallbackOnPartialStream ?? false
+    let i = 0
+    let lastError = Option.none<E | PolicyE>()
+    const loop: Stream<
+      A,
+      E | PolicyE,
+      R2 | Exclude<R, Provides>
+    > = suspend(() => {
+      const step = policy.steps[i++]
+      if (!step) {
+        return fail(Option.getOrThrow(lastError))
+      }
+
+      let nextStream: Stream<A, E | PolicyE, R2 | Exclude<R, Provides>> = provide(self, step.provide)
+      let receivedElements = false
+
+      if (Option.isSome(lastError)) {
+        const error = lastError.value
+        let attempted = false
+        const wrapped = nextStream
+        // ensure the schedule is applied at least once
+        nextStream = suspend(() => {
+          if (attempted) return wrapped
+          attempted = true
+          return fail(error)
+        })
+        nextStream = retry(nextStream, internalExecutionPlan.scheduleFromStep(step, false) as any)
+      } else {
+        nextStream = retry(nextStream, internalExecutionPlan.scheduleFromStep(step, true) as any)
+      }
+
+      return catch_(
+        preventFallbackOnPartialStream ?
+          onFirst(nextStream, (_) => {
+            receivedElements = true
+            return Effect.void
+          }) :
+          nextStream,
+        (error) => {
+          if (preventFallbackOnPartialStream && receivedElements) {
+            return fail(error)
+          }
+          lastError = Option.some(error)
+          return loop
+        }
+      )
+    })
+    return loop
+  }))
 
 /**
  * Takes the specified number of elements from this stream.
@@ -6018,6 +6105,23 @@ export const onStart: {
   self: Stream<A, E, R>,
   onStart: Effect.Effect<X, EX, RX>
 ): Stream<A, E | EX, R | RX> => fromChannel(Channel.onStart(self.channel, onStart)))
+
+/**
+ * @since 4.0.0
+ * @category utils
+ */
+export const onFirst: {
+  <A, X, EX, RX>(
+    onFirst: (element: NoInfer<A>) => Effect.Effect<X, EX, RX>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<A, E | EX, R | RX>
+  <A, E, R, X, EX, RX>(
+    self: Stream<A, E, R>,
+    onFirst: (element: NoInfer<A>) => Effect.Effect<X, EX, RX>
+  ): Stream<A, E | EX, R | RX>
+} = dual(2, <A, E, R, X, EX, RX>(
+  self: Stream<A, E, R>,
+  onFirst: (element: NoInfer<A>) => Effect.Effect<X, EX, RX>
+): Stream<A, E | EX, R | RX> => fromChannel(Channel.onFirst(self.channel, (arr) => onFirst(arr[0]))))
 
 /**
  * @since 4.0.0

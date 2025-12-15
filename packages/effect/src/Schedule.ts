@@ -179,24 +179,17 @@ export interface Metadata<Output = unknown, Input = unknown> extends InputMetada
  * @since 4.0.0
  * @category Metadata
  */
-export class CurrentMetadata extends ServiceMap.Service<
-  CurrentMetadata,
-  Metadata
->()("effect/Schedule/CurrentMetadata") {}
-
-/**
- * @since 4.0.0
- * @category Metadata
- */
-export const metadataEmpty = <Output = unknown, Input = unknown>(): Metadata<Output, Input> => ({
-  input: undefined as Input,
-  output: undefined as Output,
-  duration: Duration.zero,
-  attempt: 0,
-  start: 0,
-  now: 0,
-  elapsed: 0,
-  elapsedSincePrevious: 0
+export const CurrentMetadata = ServiceMap.Reference<Metadata>("effect/Schedule/CurrentMetadata", {
+  defaultValue: constant({
+    input: undefined,
+    output: undefined,
+    duration: Duration.zero,
+    attempt: 0,
+    start: 0,
+    now: 0,
+    elapsed: 0,
+    elapsedSincePrevious: 0
+  })
 })
 
 /**

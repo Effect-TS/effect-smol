@@ -14,19 +14,19 @@ export const repeatOrElse: {
     orElse: (error: E | E2, meta: Option.Option<Schedule.Metadata<B, A>>) => Effect<B, E3, R3>
   ): <R>(
     self: Effect<A, E, R>
-  ) => Effect<B, E3, Exclude<R, Schedule.CurrentMetadata> | R2 | R3>
+  ) => Effect<B, E3, R | R2 | R3>
   <A, E, R, R2, B, E2, E3, R3>(
     self: Effect<A, E, R>,
     schedule: Schedule.Schedule<B, A, E2, R2>,
     orElse: (error: E | E2, meta: Option.Option<Schedule.Metadata<B, A>>) => Effect<B, E3, R3>
-  ): Effect<B, E3, Exclude<R, Schedule.CurrentMetadata> | R2 | R3>
+  ): Effect<B, E3, R | R2 | R3>
 } = dual(3, <A, E, R, R2, B, E2, E3, R3>(
   self: Effect<A, E, R>,
   schedule: Schedule.Schedule<B, A, E2, R2>,
   orElse: (error: E | E2, meta: Option.Option<Schedule.Metadata<B, A>>) => Effect<B, E3, R3>
-): Effect<B, E3, Exclude<R, Schedule.CurrentMetadata> | R2 | R3> =>
+): Effect<B, E3, R | R2 | R3> =>
   effect.flatMap(Schedule.toStepWithMetadata(schedule), (step) => {
-    let meta = Schedule.metadataEmpty()
+    let meta = Schedule.CurrentMetadata.defaultValue()
     return effect.catch_(
       effect.forever(
         effect.tap(
@@ -49,21 +49,21 @@ export const retryOrElse: {
   <A1, E, E1, R1, A2, E2, R2>(
     policy: Schedule.Schedule<A1, NoInfer<E>, E1, R1>,
     orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
-  ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2, E1 | E2, Exclude<R, Schedule.CurrentMetadata> | R1 | R2>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2, E1 | E2, R | R1 | R2>
   <A, E, R, A1, E1, R1, A2, E2, R2>(
     self: Effect<A, E, R>,
     policy: Schedule.Schedule<A1, NoInfer<E>, E1, R1>,
     orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
-  ): Effect<A | A2, E1 | E2, Exclude<R, Schedule.CurrentMetadata> | R1 | R2>
+  ): Effect<A | A2, E1 | E2, R | R1 | R2>
 } = dual(3, <A, E, R, A1, E1, R1, A2, E2, R2>(
   self: Effect<A, E, R>,
   policy: Schedule.Schedule<A1, NoInfer<E>, E1, R1>,
   orElse: (e: NoInfer<E>, out: A1) => Effect<A2, E2, R2>
-): Effect<A | A2, E1 | E2, Exclude<R, Schedule.CurrentMetadata> | R1 | R2> =>
+): Effect<A | A2, E1 | E2, R | R1 | R2> =>
   effect.flatMap(Schedule.toStepWithMetadata(policy), (step) => {
-    let meta = Schedule.metadataEmpty()
+    let meta = Schedule.CurrentMetadata.defaultValue()
     let lastError!: E
-    const loop: Effect<A, E1 | Pull.Halt<A1>, Exclude<R, Schedule.CurrentMetadata> | R1> = effect.catch_(
+    const loop: Effect<A, E1 | Pull.Halt<A1>, R | R1> = effect.catch_(
       effect.suspend(() => effect.provideService(self, Schedule.CurrentMetadata, meta)),
       (error) => {
         lastError = error
@@ -83,7 +83,7 @@ export const repeat = dual<{
   ): <E, R>(self: Effect<A, E, R>) => Repeat.Return<R, E, A, O>
   <Output, Input, Error, Env>(
     schedule: Schedule.Schedule<Output, NoInfer<Input>, Error, Env>
-  ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E | Error, Exclude<R, Schedule.CurrentMetadata> | Env>
+  ): <E, R>(self: Effect<Input, E, R>) => Effect<Output, E | Error, R | Env>
 }, {
   <A, E, R, O extends Repeat.Options<A>>(
     self: Effect<A, E, R>,
@@ -92,7 +92,7 @@ export const repeat = dual<{
   <Input, E, R, Output, Error, Env>(
     self: Effect<Input, E, R>,
     schedule: Schedule.Schedule<Output, NoInfer<Input>, Error, Env>
-  ): Effect<Output, E | Error, Exclude<R, Schedule.CurrentMetadata> | Env>
+  ): Effect<Output, E | Error, R | Env>
 }>(
   2,
   (self: Effect<any, any, any>, options: Repeat.Options<any> | Schedule.Schedule<any, any, any, any>) =>
@@ -108,7 +108,7 @@ export const retry = dual<{
   ) => Retry.Return<R, E, A, O>
   <B, E, Error, Env>(
     policy: Schedule.Schedule<B, NoInfer<E>, Error, Env>
-  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | Error, Exclude<R, Schedule.CurrentMetadata> | Env>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | Error, R | Env>
 }, {
   <A, E, R, O extends Retry.Options<E>>(
     self: Effect<A, E, R>,
@@ -117,7 +117,7 @@ export const retry = dual<{
   <A, E, R, B, Error, Env>(
     self: Effect<A, E, R>,
     policy: Schedule.Schedule<B, NoInfer<E>, Error, Env>
-  ): Effect<A, E | Error, Exclude<R, Schedule.CurrentMetadata> | Env>
+  ): Effect<A, E | Error, R | Env>
 }>(
   2,
   (self: Effect<any, any, any>, options: Retry.Options<any> | Schedule.Schedule<any, any, any, any>) =>
@@ -131,19 +131,19 @@ export const scheduleFrom = dual<
     schedule: Schedule.Schedule<Output, Input, Error, Env>
   ) => <E, R>(
     self: Effect<Input, E, R>
-  ) => Effect<Output, E, Exclude<R, Schedule.CurrentMetadata> | Env>,
+  ) => Effect<Output, E, R | Env>,
   <Input, E, R, Output, Error, Env>(
     self: Effect<Input, E, R>,
     initial: Input,
     schedule: Schedule.Schedule<Output, Input, Error, Env>
-  ) => Effect<Output, E, Exclude<R, Schedule.CurrentMetadata> | Env>
+  ) => Effect<Output, E, R | Env>
 >(3, <Input, E, R, Output, Error, Env>(
   self: Effect<Input, E, R>,
   initial: Input,
   schedule: Schedule.Schedule<Output, Input, Error, Env>
-): Effect<Output, E, Exclude<R, Schedule.CurrentMetadata> | Env> =>
+): Effect<Output, E, R | Env> =>
   effect.flatMap(Schedule.toStepWithMetadata(schedule), (step) => {
-    let meta = Schedule.metadataEmpty()
+    let meta = Schedule.CurrentMetadata.defaultValue()
     const selfWithMeta = effect.suspend(() => effect.provideService(self, Schedule.CurrentMetadata, meta))
     return effect.catch_(
       effect.flatMap(
@@ -157,7 +157,7 @@ export const scheduleFrom = dual<
             step(meta_) {
               meta = meta_
             }
-          }) as Effect<never, E, Exclude<R, Schedule.CurrentMetadata> | Env>
+          }) as Effect<never, E, R | Env>
         }
       ),
       (error) => Pull.isHalt(error) ? effect.succeed(error.leftover as Output) : effect.fail(error as E)
@@ -165,7 +165,9 @@ export const scheduleFrom = dual<
   }))
 
 const passthroughForever = Schedule.passthrough(Schedule.forever)
-const buildFromOptions = <Input>(options: {
+
+/** @internal */
+export const buildFromOptions = <Input>(options: {
   schedule?: Schedule.Schedule<any, Input, any, any> | undefined
   while?: ((input: Input) => boolean | Effect<boolean, any, any>) | undefined
   until?: ((input: Input) => boolean | Effect<boolean, any, any>) | undefined
