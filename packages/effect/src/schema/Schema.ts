@@ -7697,8 +7697,8 @@ export declare namespace JsonSchema {
   /**
    * @since 4.0.0
    */
-  export interface Document {
-    readonly source: Source
+  export interface Document<S extends Source = Source> {
+    readonly source: S
     readonly schema: JsonSchema
     readonly definitions: Definitions
   }
@@ -8286,9 +8286,9 @@ export function overrideToCodecIso<S extends Top, Iso>(
  * @since 4.0.0
  */
 export type JsonPatchOperation =
-  | { op: "add"; path: string; value: unknown } // path may end with "-" to append to arrays
+  | { op: "add"; path: string; value: JsonValue } // path may end with "-" to append to arrays
   | { op: "remove"; path: string }
-  | { op: "replace"; path: string; value: unknown }
+  | { op: "replace"; path: string; value: JsonValue }
 
 /**
  * A JSON Patch document is an array of operations
@@ -8303,7 +8303,7 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  * @since 4.0.0
  */
 export function toDifferJsonPatch<T, E>(schema: Codec<T, E>): Differ<T, JsonPatch> {
-  const serializer = toCodecJson(schema)
+  const serializer = toCodecJson(schema) as Codec<T, JsonValue, never, never> // TODO: remove this cast
   const get = Parser.encodeSync(serializer)
   const set = Parser.decodeSync(serializer)
   return {
@@ -8349,6 +8349,12 @@ export type StringTree = Tree<string | undefined>
  * @since 4.0.0
  */
 export type JsonValue = Tree<null | number | boolean | string>
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export interface JsonObject extends TreeRecord<null | number | boolean | string> {}
 
 /**
  * @category Tree

@@ -6,8 +6,12 @@ function prefixPathInPlace(op: Schema.JsonPatchOperation, parent: string): void 
   op.path = op.path === "" ? parent : parent + op.path
 }
 
+function isTreeRecord<A>(value: Schema.Tree<A>): value is Schema.TreeRecord<A> {
+  return Predicate.isObject(value)
+}
+
 /** @internal */
-export function getJsonPatch(oldValue: unknown, newValue: unknown): Schema.JsonPatch {
+export function getJsonPatch(oldValue: Schema.JsonValue, newValue: Schema.JsonValue): Schema.JsonPatch {
   if (Object.is(oldValue, newValue)) return []
   const patches: Array<Schema.JsonPatchOperation> = []
   if (Array.isArray(oldValue) && Array.isArray(newValue)) {
@@ -35,7 +39,7 @@ export function getJsonPatch(oldValue: unknown, newValue: unknown): Schema.JsonP
     for (let i = len1; i < len2; i++) {
       patches.push({ op: "add", path: `/${i}`, value: newValue[i] })
     }
-  } else if (Predicate.isObject(oldValue) && Predicate.isObject(newValue)) {
+  } else if (isTreeRecord(oldValue) && isTreeRecord(newValue)) {
     // Get all keys from both objects
     const keys1 = Object.keys(oldValue)
     const keys2 = Object.keys(newValue)
@@ -69,7 +73,7 @@ export function getJsonPatch(oldValue: unknown, newValue: unknown): Schema.JsonP
 }
 
 /** @internal */
-export function applyJsonPatch(patch: Schema.JsonPatch, oldValue: unknown): unknown {
+export function applyJsonPatch(patch: Schema.JsonPatch, oldValue: Schema.JsonValue): Schema.JsonValue {
   let doc = oldValue
 
   for (const op of patch) {
@@ -114,7 +118,7 @@ function toIndex(token: string): number {
 }
 
 // Read value at pointer ("" is root). Returns undefined if path walks into undefined.
-function getAt(doc: unknown, pointer: string): unknown {
+function getAt(doc: Schema.JsonValue, pointer: string): Schema.JsonValue | undefined {
   if (pointer === "") return doc
   const tokens = tokenize(pointer)
   let cur: any = doc
@@ -133,7 +137,7 @@ function getAt(doc: unknown, pointer: string): unknown {
 
 // "add" may create a missing member; for arrays supports "-" to append. Throws
 // if parent is not a container or (array) index is out of bounds.
-function addAt(doc: unknown, pointer: string, val: unknown): unknown {
+function addAt(doc: Schema.JsonValue, pointer: string, val: Schema.JsonValue): Schema.JsonValue {
   if (pointer === "") return val
 
   const tokens = tokenize(pointer)
@@ -150,7 +154,7 @@ function addAt(doc: unknown, pointer: string, val: unknown): unknown {
   }
 
   if (parent && typeof parent === "object") {
-    const updated = { ...(parent as Record<string, unknown>) }
+    const updated = { ...(parent as Schema.JsonObject) }
     updated[lastToken] = val
     return setParent(doc, parentPath, updated)
   }
@@ -161,9 +165,14 @@ function addAt(doc: unknown, pointer: string, val: unknown): unknown {
 // "replace" and "remove" require the target to exist (RFC 6902). "-" is not
 // valid here; only concrete array indices are accepted. Removing the root ("")
 // is not supported; root replace returns provided value as-is.
-function setAt(doc: unknown, pointer: string, val: unknown, mode: "replace" | "remove"): unknown {
+function setAt(
+  doc: Schema.JsonValue,
+  pointer: string,
+  val: Schema.JsonValue | undefined,
+  mode: "replace" | "remove"
+): Schema.JsonValue {
   if (pointer === "") {
-    if (mode === "remove") throw new Error(`Removing the root document ("") is not supported.`)
+    if (mode === "remove" || val === undefined) throw new Error("Unsupported operation at the root")
     return val
   }
 
@@ -188,9 +197,9 @@ function setAt(doc: unknown, pointer: string, val: unknown, mode: "replace" | "r
     if (!Object.hasOwn(parent as object, lastToken)) {
       throw new Error(`Property "${lastToken}" does not exist at "${pointer}".`)
     }
-    const updated = { ...(parent as Record<string, unknown>) }
+    const updated = { ...(parent as Schema.JsonObject) }
     if (mode === "remove") delete updated[lastToken]
-    else updated[lastToken] = val
+    else updated[lastToken] = val!
     return setParent(doc, parentPath, updated)
   }
 
@@ -199,7 +208,7 @@ function setAt(doc: unknown, pointer: string, val: unknown, mode: "replace" | "r
 
 // Immutably write an updated parent back into the document. Throws if parent
 // is not a container or index is out of bounds.
-function setParent(doc: unknown, parentPointer: string, newParent: unknown): unknown {
+function setParent(doc: Schema.JsonValue, parentPointer: string, newParent: Schema.JsonValue): Schema.JsonValue {
   if (parentPointer === "" || parentPointer === "/") return newParent
 
   const tokens = tokenize(parentPointer)
@@ -226,7 +235,7 @@ function setParent(doc: unknown, parentPointer: string, newParent: unknown): unk
   }
 
   // rebuild unchanged
-  let acc: unknown = newParent
+  let acc: Schema.JsonValue = newParent
   for (let i = stack.length - 1; i >= 0; i--) {
     const { container, token } = stack[i]
     if (Array.isArray(container)) {
@@ -234,7 +243,7 @@ function setParent(doc: unknown, parentPointer: string, newParent: unknown): unk
       copy[token as number] = acc
       acc = copy
     } else {
-      const copy = { ...(container as Record<string, unknown>) }
+      const copy = { ...(container as Schema.JsonObject) }
       copy[token as string] = acc
       acc = copy
     }
