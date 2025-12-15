@@ -435,7 +435,9 @@ const makeCancel = (pool: Pg.Pool, client: Pg.PoolClient) => {
  * @category layers
  * @since 1.0.0
  */
-export const layerConfig = (
+export const layerConfig: (
+  config: Config.Wrap<PgClientConfig>
+) => Layer.Layer<PgClient | Client.SqlClient, Config.ConfigError | SqlError> = (
   config: Config.Wrap<PgClientConfig>
 ): Layer.Layer<PgClient | Client.SqlClient, Config.ConfigError | SqlError> =>
   Layer.effectServices(

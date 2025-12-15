@@ -54,7 +54,9 @@
   },
   "scripts": {
     "codegen": "build-utils prepare-v4",
-    "build": "tsc -b tsconfig.build.json && babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
+    "build": "tsc -b tsconfig.build.json && pnpm babel",
+    "build:tsgo": "tsgo -b tsconfig.build.json && pnpm babel",
+    "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
     "coverage": "vitest --coverage"

@@ -328,7 +328,9 @@ export const ClickhouseSettings: ServiceMap.Reference<
  * @category layers
  * @since 1.0.0
  */
-export const layerConfig = (
+export const layerConfig: (
+  config: Config.Wrap<ClickhouseClientConfig>
+) => Layer.Layer<ClickhouseClient | Client.SqlClient, Config.ConfigError | SqlError> = (
   config: Config.Wrap<ClickhouseClientConfig>
 ): Layer.Layer<ClickhouseClient | Client.SqlClient, Config.ConfigError | SqlError> =>
   Layer.effectServices(

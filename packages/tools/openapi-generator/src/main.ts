@@ -1,5 +1,6 @@
 import * as Console from "effect/Console"
 import * as Effect from "effect/Effect"
+import type * as CliError from "effect/unstable/cli/CliError"
 import * as Command from "effect/unstable/cli/Command"
 import * as Flag from "effect/unstable/cli/Flag"
 import * as OpenApiGenerator from "./OpenApiGenerator.ts"
@@ -33,6 +34,6 @@ const root = Command.make("openapigen", { spec, typeOnly, name }).pipe(
   )
 )
 
-export const run = Command.run(root, {
+export const run: Effect.Effect<void, CliError.CliError, Command.Environment> = Command.run(root, {
   version: "0.0.0"
 })

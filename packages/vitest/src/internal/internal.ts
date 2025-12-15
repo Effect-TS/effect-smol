@@ -100,6 +100,7 @@ const makeTester = <R>(
           fc.assert(
             // @ts-ignore
             fc.asyncProperty(...arbs, (...as) => run(ctx, [as as any, ctx], self)),
+            // @ts-ignore
             isObject(timeout) ? timeout?.fastCheck : {}
           )
       )
@@ -125,6 +126,7 @@ const makeTester = <R>(
           fc.asyncProperty(arbs, (...as) =>
             // @ts-ignore
             run(ctx, [as[0] as any, ctx], self)),
+          // @ts-ignore
           isObject(timeout) ? timeout?.fastCheck : {}
         )
     )

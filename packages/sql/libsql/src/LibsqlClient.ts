@@ -296,7 +296,9 @@ export const make = (
  * @category layers
  * @since 1.0.0
  */
-export const layerConfig = (
+export const layerConfig: (
+  config: Config.Wrap<LibsqlClientConfig>
+) => Layer.Layer<LibsqlClient | Client.SqlClient, Config.ConfigError> = (
   config: Config.Wrap<LibsqlClientConfig>
 ): Layer.Layer<LibsqlClient | Client.SqlClient, Config.ConfigError> =>
   Layer.effectServices(

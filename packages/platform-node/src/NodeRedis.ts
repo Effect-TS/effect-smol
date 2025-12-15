@@ -62,7 +62,9 @@ export const layer = (
  * @since 1.0.0
  * @category Layers
  */
-export const layerConfig = (
+export const layerConfig: (
+  options: Config.Wrap<IoRedis.RedisOptions>
+) => Layer.Layer<Redis.Redis | NodeRedis, Config.ConfigError> = (
   options: Config.Wrap<IoRedis.RedisOptions>
 ): Layer.Layer<Redis.Redis | NodeRedis, Config.ConfigError> =>
   Layer.effectServices(

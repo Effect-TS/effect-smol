@@ -429,7 +429,9 @@ export const make = (
  * @category layers
  * @since 1.0.0
  */
-export const layerConfig = (
+export const layerConfig: (
+  config: Config.Wrap<MssqlClientConfig>
+) => Layer.Layer<Client.SqlClient | MssqlClient, Config.ConfigError | SqlError> = (
   config: Config.Wrap<MssqlClientConfig>
 ): Layer.Layer<Client.SqlClient | MssqlClient, Config.ConfigError | SqlError> =>
   Layer.effectServices(

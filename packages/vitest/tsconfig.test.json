@@ -10,8 +10,8 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@effect/vitest": ["src/index.ts"],
-      "@effect/vitest/*": ["src/*/index.ts", "src/*.ts"]
+      "@effect/vitest": ["./src/index.ts"],
+      "@effect/vitest/*": ["./src/*/index.ts", "./src/*.ts"]
     },
     "types": ["node"],
     "plugins": [

@@ -10,8 +10,8 @@
     "erasableSyntaxOnly": false,
     "baseUrl": ".",
     "paths": {
-      "@effect/openapi-generator": ["src/index.ts"],
-      "@effect/openapi-generator/*": ["src/*/index.ts", "src/*.ts"]
+      "@effect/openapi-generator": ["./src/index.ts"],
+      "@effect/openapi-generator/*": ["./src/*/index.ts", "./src/*.ts"]
     },
     "types": ["node"],
     "plugins": [
