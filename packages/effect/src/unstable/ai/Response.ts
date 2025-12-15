@@ -431,33 +431,17 @@ export type ToolResultParts<Tools extends Record<string, Tool.Any>> = {
  * @since 4.0.0
  * @category models
  */
-export type JsonValue = string | number | boolean | JsonObject | JsonArray
-
-/**
- * @since 4.0.0
- * @category models
- */
-export interface JsonObject {
-  [x: string]: JsonValue
-}
-
-/**
- * @since 4.0.0
- * @category models
- */
-export interface JsonArray extends Array<JsonValue> {}
+export type JsonValue = Schema.MutableTree<string | number | boolean>
 
 /**
  * @since 4.0.0
  * @category schemas
  */
-export const JsonValue: Schema.Codec<JsonValue> = Schema.Union([
+export const JsonValue: Schema.Codec<JsonValue> = Schema.MutableTree(Schema.Union([
   Schema.String,
   Schema.Number,
-  Schema.Boolean,
-  Schema.mutable(Schema.Array(Schema.suspend(() => JsonValue))),
-  Schema.Record(Schema.String, Schema.mutableKey(Schema.suspend(() => JsonValue)))
-])
+  Schema.Boolean
+]))
 
 /**
  * Schema for provider-specific metadata which can be attached to response parts.

@@ -14,6 +14,7 @@ import * as Str from "../String.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 import * as Issue from "./Issue.ts"
+import type * as Schema from "./Schema.ts"
 
 /**
  * @category model
@@ -336,24 +337,10 @@ type ParseJsonOptions = {
 }
 
 /**
- * The type that is guaranteed to return from `JSON.parse` if no reviver is
- * passed.
- *
- * @since 4.0.0
- */
-export type MutableJsonValue =
-  | null
-  | string
-  | number
-  | boolean
-  | { [x: string]: MutableJsonValue }
-  | Array<MutableJsonValue>
-
-/**
  * @category Json
  * @since 4.0.0
  */
-export function parseJson<E extends string>(): Getter<MutableJsonValue, E>
+export function parseJson<E extends string>(): Getter<Schema.MutableJsonValue, E>
 export function parseJson<E extends string>(options: ParseJsonOptions): Getter<unknown, E>
 export function parseJson<E extends string>(options?: ParseJsonOptions | undefined): Getter<unknown, E> {
   return onSome((input) =>
@@ -566,7 +553,7 @@ export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Gette
  * @category FormData
  * @since 4.0.0
  */
-export function decodeFormData(): Getter<TreeRecord<string | Blob>, FormData> {
+export function decodeFormData(): Getter<Schema.TreeRecord<string | Blob>, FormData> {
   return transform((input) => makeTreeRecord(Array.from(input.entries())))
 }
 
@@ -595,7 +582,7 @@ export function encodeFormData(): Getter<FormData, unknown> {
  * @category URLSearchParams
  * @since 4.0.0
  */
-export function decodeURLSearchParams(): Getter<TreeRecord<string>, URLSearchParams> {
+export function decodeURLSearchParams(): Getter<Schema.TreeRecord<string>, URLSearchParams> {
   return transform((input) => makeTreeRecord(Array.from(input.entries())))
 }
 
@@ -613,22 +600,6 @@ export function encodeURLSearchParams(): Getter<URLSearchParams, unknown> {
     return new URLSearchParams()
   })
 }
-
-// -----------------------------------------------------------------------------
-// Tree and TreeRecord
-// -----------------------------------------------------------------------------
-
-/**
- * @category Tree
- * @since 4.0.0
- */
-export type Tree<A> = A | TreeRecord<A> | ReadonlyArray<Tree<A>>
-
-/**
- * @category Tree
- * @since 4.0.0
- */
-export interface TreeRecord<A> extends Record<string, Tree<A>> {}
 
 const INDEX_REGEXP = /^\d+$/
 
@@ -680,7 +651,7 @@ function bracketPathToTokens(bracketPath: string): Array<string | number> {
  */
 export function makeTreeRecord<A>(
   bracketPathEntries: ReadonlyArray<readonly [bracketPath: string, value: A]>
-): TreeRecord<A> {
+): Schema.TreeRecord<A> {
   const out: any = {}
   bracketPathEntries.forEach(([key, value]) => {
     const tokens = bracketPathToTokens(key)

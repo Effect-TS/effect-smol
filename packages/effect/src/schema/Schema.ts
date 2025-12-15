@@ -7743,12 +7743,6 @@ export function toCodecIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]>
 }
 
 /**
- * @category Serializer
- * @since 4.0.0
- */
-export type StringTree = Getter.Tree<string | undefined>
-
-/**
  * The StringTree serializer converts **every leaf value to a string**, while
  * preserving the original structure.
  *
@@ -8313,4 +8307,106 @@ export function toDifferJsonPatch<T, E>(schema: Codec<T, E>): Differ<T, JsonPatc
       return Object.is(patched, value) ? oldValue : set(patched)
     }
   }
+}
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export type Tree<A> = A | TreeRecord<A> | ReadonlyArray<Tree<A>>
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export interface TreeRecord<A> {
+  readonly [x: string]: Tree<A>
+}
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export type PrimitiveTree = Tree<null | number | boolean | bigint | symbol | string>
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export type StringTree = Tree<string | undefined>
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export type JsonValue = Tree<null | number | boolean | string>
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export function Tree<S extends Top>(
+  schema: S
+): Codec<Tree<S["Type"]>, Tree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> {
+  const Tree$ref = suspend(() => Tree)
+  const Tree: Codec<Tree<S["Type"]>, Tree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> = Union([
+    schema,
+    Array(Tree$ref),
+    Record(String, Tree$ref)
+  ])
+  return Tree
+}
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export const JsonValue: Codec<JsonValue> = Tree(Union([Null, Number, Boolean, String]))
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export const PrimitiveTree: Codec<PrimitiveTree> = Tree(Union([Null, Number, Boolean, BigInt, Symbol, String]))
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export type MutableTree<A> = A | MutableTreeRecord<A> | Array<MutableTree<A>>
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export interface MutableTreeRecord<A> {
+  [x: string]: MutableTree<A>
+}
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export type MutableJsonValue = MutableTree<null | number | boolean | string>
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export const MutableJsonValue: Codec<MutableJsonValue> = MutableTree(Union([Null, Number, Boolean, String]))
+
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export function MutableTree<S extends Top>(
+  schema: S
+): Codec<MutableTree<S["Type"]>, MutableTree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> {
+  const MutableTree$ref = suspend(() => MutableTree)
+  const MutableTree: Codec<Tree<S["Type"]>, Tree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> = Union([
+    schema,
+    mutable(Array(MutableTree$ref)),
+    Record(String, mutableKey(MutableTree$ref))
+  ])
+  return MutableTree
 }
