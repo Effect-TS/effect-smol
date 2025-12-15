@@ -1,5 +1,5 @@
 /**
- * @since 4.0.0
+ * @since 1.0.0
  */
 import type * as Layer from "effect/Layer"
 import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
@@ -9,8 +9,8 @@ import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
  *
  * Values are stored between sessions.
  *
- * @since 4.0.0
- * @category models
+ * @since 1.0.0
+ * @category Layers
  */
 export const layerLocalStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyValueStore.layerStorage(() =>
   globalThis.localStorage
@@ -21,8 +21,8 @@ export const layerLocalStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyVa
  *
  * Values are stored only for the current session.
  *
- * @since 4.0.0
- * @category models
+ * @since 1.0.0
+ * @category Layers
  */
 export const layerSessionStorage: Layer.Layer<KeyValueStore.KeyValueStore> = KeyValueStore.layerStorage(() =>
   globalThis.sessionStorage

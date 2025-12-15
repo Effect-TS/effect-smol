@@ -1,5 +1,5 @@
 /**
- * @since 4.0.0
+ * @since 1.0.0
  */
 import * as Data from "effect/data/Data"
 import * as Effect from "effect/Effect"
@@ -10,7 +10,7 @@ const TypeId = "~@effect/platform-browser/Clipboard"
 const ErrorTypeId = "~@effect/platform-browser/Clipboard/ClipboardError"
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Models
  */
 export interface Clipboard {
@@ -24,7 +24,7 @@ export interface Clipboard {
 }
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Errors
  */
 export class ClipboardError extends Data.TaggedError("ClipboardError")<{
@@ -35,13 +35,13 @@ export class ClipboardError extends Data.TaggedError("ClipboardError")<{
 }
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Service
  */
 export const Clipboard: ServiceMap.Service<Clipboard, Clipboard> = ServiceMap.Service<Clipboard>(TypeId)
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Constructors
  */
 export const make = (
@@ -57,7 +57,7 @@ export const make = (
 /**
  * A layer that directly interfaces with the navigator.clipboard api
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category Layers
  */
 export const layer: Layer.Layer<Clipboard> = Layer.succeed(

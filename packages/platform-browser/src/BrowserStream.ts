@@ -1,5 +1,5 @@
 /**
- * @since 4.0.0
+ * @since 1.0.0
  */
 
 import * as Stream from "effect/stream/Stream"
@@ -10,7 +10,7 @@ import * as Stream from "effect/stream/Stream"
  * By default, the underlying buffer is unbounded in size. You can customize the
  * buffer size an object as the second argument with the `bufferSize` field.
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category Streams
  */
 export const fromEventListenerWindow = <K extends keyof WindowEventMap>(
@@ -29,7 +29,7 @@ export const fromEventListenerWindow = <K extends keyof WindowEventMap>(
  * By default, the underlying buffer is unbounded in size. You can customize the
  * buffer size an object as the second argument with the `bufferSize` field.
  *
- * @since 4.0.0
+ * @since 1.0.0
  * @category Streams
  */
 export const fromEventListenerDocument = <K extends keyof DocumentEventMap>(

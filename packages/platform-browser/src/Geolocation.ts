@@ -1,5 +1,5 @@
 /**
- * @since 4.0.0
+ * @since 1.0.0
  */
 import * as Data from "effect/data/Data"
 import * as Result from "effect/data/Result"
@@ -13,7 +13,7 @@ const TypeId = "~@effect/platform-browser/Geolocation"
 const ErrorTypeId = "~@effect/platform-browser/Geolocation/GeolocationError"
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Models
  */
 export interface Geolocation {
@@ -31,13 +31,13 @@ export interface Geolocation {
 }
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Service
  */
 export const Geolocation: ServiceMap.Service<Geolocation, Geolocation> = ServiceMap.Service<Geolocation>(TypeId)
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Errors
  */
 export class GeolocationError extends Data.TaggedError("GeolocationError")<{
@@ -82,7 +82,7 @@ const makeQueue = (
   )
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Layers
  */
 export const layer: Layer.Layer<Geolocation> = Layer.succeed(
@@ -105,7 +105,7 @@ export const layer: Layer.Layer<Geolocation> = Layer.succeed(
 )
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Accessors
  */
 export const watchPosition = (

@@ -1,5 +1,5 @@
 /**
- * @since 4.0.0
+ * @since 1.0.0
  */
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
@@ -25,17 +25,17 @@ import * as HeaderParser from "multipasta/HeadersParser"
 
 export {
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    * @category Fetch
    */
   Fetch,
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    * @category Fetch
    */
   layer as layerFetch,
   /**
-   * @since 4.0.0
+   * @since 1.0.0
    * @category Fetch
    */
   RequestInit
@@ -46,13 +46,13 @@ export {
 // =============================================================================
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Models
  */
 export type XHRResponseType = "arraybuffer" | "text"
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category References
  */
 export const CurrentXHRResponseType: ServiceMap.Reference<XHRResponseType> = ServiceMap.Reference(
@@ -61,7 +61,7 @@ export const CurrentXHRResponseType: ServiceMap.Reference<XHRResponseType> = Ser
 )
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category References
  */
 export const withXHRArrayBuffer = <A, E, R>(
@@ -74,7 +74,7 @@ export const withXHRArrayBuffer = <A, E, R>(
   )
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Services
  */
 export class XMLHttpRequest extends ServiceMap.Service<
@@ -371,7 +371,7 @@ class ClientResponseImpl extends IncomingMessageImpl<HttpClientError.ResponseErr
 }
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Layers
  */
 export const layerXMLHttpRequest: Layer.Layer<HttpClient.HttpClient> = HttpClient.layerMergedServices(

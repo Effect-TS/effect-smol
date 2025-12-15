@@ -1,5 +1,5 @@
 /**
- * @since 4.0.0
+ * @since 1.0.0
  */
 import * as Cause from "effect/Cause"
 import * as Deferred from "effect/Deferred"
@@ -22,8 +22,8 @@ if (typeof self !== "undefined" && "onconnect" in self) {
 }
 
 /**
- * @since 4.0.0
- * @category constructors
+ * @since 1.0.0
+ * @category Constructors
  */
 export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatform["Service"] => ({
   start: Effect.fnUntraced(function*<O = unknown, I = unknown>() {
@@ -149,16 +149,16 @@ export const make = (self: MessagePort | Window): WorkerRunner.WorkerRunnerPlatf
 })
 
 /**
- * @since 4.0.0
- * @category layers
+ * @since 1.0.0
+ * @category Layers
  */
 export const layer: Layer.Layer<WorkerRunner.WorkerRunnerPlatform> = Layer.sync(WorkerRunner.WorkerRunnerPlatform)(() =>
   make(self)
 )
 
 /**
- * @since 4.0.0
- * @category layers
+ * @since 1.0.0
+ * @category Layers
  */
 export const layerMessagePort = (port: MessagePort | Window): Layer.Layer<WorkerRunner.WorkerRunnerPlatform> =>
   Layer.succeed(WorkerRunner.WorkerRunnerPlatform)(make(port))

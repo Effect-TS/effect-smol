@@ -1,11 +1,11 @@
 /**
- * @since 4.0.0
+ * @since 1.0.0
  */
 import type * as Effect from "effect/Effect"
 import { makeRunMain, type Teardown } from "effect/Runtime"
 
 /**
- * @since 4.0.0
+ * @since 1.0.0
  * @category Runtime
  */
 export const runMain: {
