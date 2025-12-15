@@ -85,44 +85,47 @@ export class XMLHttpRequest extends ServiceMap.Service<
 const makeXhrRequest = () => new globalThis.XMLHttpRequest()
 
 const makeXmlHttpRequest = HttpClient.make(
-  Effect.fnUntraced(function*(request, url, signal, fiber) {
-    const xhr = ServiceMap.getOrElse(
-      fiber.services,
-      XMLHttpRequest,
-      () => makeXhrRequest
-    )()
-    signal.addEventListener("abort", () => {
-      xhr.abort()
-      xhr.onreadystatechange = null
-    }, { once: true })
-    xhr.open(request.method, url.toString(), true)
-    xhr.responseType = fiber.getRef(CurrentXHRResponseType)
-    Object.entries(request.headers).forEach(([k, v]) => {
-      xhr.setRequestHeader(k, v)
+  (request, url, signal, fiber) =>
+    Effect.suspend(() => {
+      const xhr = ServiceMap.getOrElse(
+        fiber.services,
+        XMLHttpRequest,
+        () => makeXhrRequest
+      )()
+      signal.addEventListener("abort", () => {
+        xhr.abort()
+        xhr.onreadystatechange = null
+      }, { once: true })
+      xhr.open(request.method, url.toString(), true)
+      xhr.responseType = fiber.getRef(CurrentXHRResponseType)
+      Object.entries(request.headers).forEach(([k, v]) => {
+        xhr.setRequestHeader(k, v)
+      })
+      return Effect.andThen(
+        sendBody(xhr, request),
+        Effect.callback<ClientResponseImpl, HttpClientError.RequestError>((resume) => {
+          let sent = false
+          const onChange = () => {
+            if (!sent && xhr.readyState >= 2) {
+              sent = true
+              resume(Effect.succeed(new ClientResponseImpl(request, xhr)))
+            }
+          }
+          xhr.onreadystatechange = onChange
+          xhr.onerror = (_event) => {
+            resume(Effect.fail(
+              new HttpClientError.RequestError({
+                request,
+                reason: "Transport",
+                cause: xhr.statusText
+              })
+            ))
+          }
+          onChange()
+          return Effect.void
+        })
+      )
     })
-    yield* sendBody(xhr, request)
-    return yield* Effect.callback<ClientResponseImpl, HttpClientError.RequestError>((resume) => {
-      let sent = false
-      const onChange = () => {
-        if (!sent && xhr.readyState >= 2) {
-          sent = true
-          resume(Effect.succeed(new ClientResponseImpl(request, xhr)))
-        }
-      }
-      xhr.onreadystatechange = onChange
-      xhr.onerror = (_event) => {
-        resume(Effect.fail(
-          new HttpClientError.RequestError({
-            request,
-            reason: "Transport",
-            cause: xhr.statusText
-          })
-        ))
-      }
-      onChange()
-      return Effect.void
-    })
-  })
 )
 
 const sendBody = (
