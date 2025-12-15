@@ -312,7 +312,7 @@ export const toWebHandlerLayerWith = <
       const services = yield* (options.memoMap
         ? Layer.buildWithMemoMap(layer, options.memoMap, scope)
         : Layer.buildWithScope(layer, scope))
-      return handlerCache = toWebHandlerWith(services)(
+      return handlerCache = toWebHandlerWith<Provided, R>(services)(
         yield* options.toHandler(services),
         options.middleware
       ) as any
