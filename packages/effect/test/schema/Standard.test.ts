@@ -2128,4 +2128,107 @@ describe("Standard", () => {
       })
     })
   })
+
+  describe("rewriters", () => {
+    function assertJsonDocument(
+      schema: Schema.Top,
+      target: Exclude<Schema.JsonSchema.Target, "draft-2020-12">,
+      expected: {
+        readonly schema: Schema.JsonSchema
+        readonly definitions?: Record<string, Schema.JsonSchema>
+      }
+    ) {
+      const document = Standard.fromAST(schema.ast)
+      const jsonSchemaDocument = Standard.toJsonSchema(document)
+      deepStrictEqual(rewrite(jsonSchemaDocument), {
+        source: target,
+        schema: expected.schema,
+        definitions: expected.definitions ?? {}
+      })
+
+      function rewrite(jsonSchemaDocument: Schema.JsonSchema.Document) {
+        switch (target) {
+          case "draft-07":
+            return Standard.rewriteToDraft07(jsonSchemaDocument)
+          case "openapi-3.1":
+            return Standard.rewriteToOpenApi3_1(jsonSchemaDocument)
+        }
+      }
+    }
+
+    describe("draft-07", () => {
+      it("should rewrite $ref references", () => {
+        assertJsonDocument(
+          Schema.Struct({ a: Schema.String }).annotate({ identifier: "A" }),
+          "draft-07",
+          {
+            schema: { $ref: "#/definitions/A" },
+            definitions: {
+              A: {
+                type: "object",
+                properties: {
+                  a: { type: "string" }
+                },
+                required: ["a"],
+                additionalProperties: false
+              }
+            }
+          }
+        )
+      })
+
+      it("should keep items if there are no prefixItems", () => {
+        assertJsonDocument(
+          Schema.Array(Schema.String),
+          "draft-07",
+          {
+            schema: {
+              type: "array",
+              items: { type: "string" }
+            }
+          }
+        )
+      })
+
+      it("should rewrite prefixItems to items and items to additionalItems", () => {
+        assertJsonDocument(
+          Schema.Tuple([Schema.String, Schema.Number]),
+          "draft-07",
+          {
+            schema: {
+              type: "array",
+              items: [
+                { type: "string" },
+                { type: "number" }
+              ],
+              minItems: 2,
+              additionalItems: false
+            }
+          }
+        )
+      })
+    })
+
+    describe("openapi-3.1", () => {
+      it("should rewrite $ref references", () => {
+        assertJsonDocument(
+          Schema.Struct({ a: Schema.String }).annotate({ identifier: "A" }),
+          "openapi-3.1",
+          {
+            schema: { $ref: "#/components/schemas/A" },
+            definitions: {
+              A: {
+                type: "object",
+                properties: {
+                  a: { type: "string" }
+                },
+                required: ["a"],
+                additionalProperties: false
+              }
+            }
+          }
+        )
+      })
+    })
+  })
 })

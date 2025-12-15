@@ -2069,44 +2069,61 @@ function toCodeRegExp(regExp: RegExp): string {
 }
 
 /**
- * @since 4.0.0
+ * @internal
  */
-export function toJsonSchemaTarget(
-  document: Schema.JsonSchema.Document,
-  target: Exclude<Schema.JsonSchema.Target, "draft-2020-12">
-): Schema.JsonSchema.Document {
-  return {
-    source: target,
-    schema: recur(document.schema),
-    definitions: Rec.map(document.definitions, (d) => recur(d))
-  }
-
-  function recur(schema: Schema.JsonSchema): Schema.JsonSchema {
-    switch (target) {
-      case "draft-07": {
-        return schema
-      }
-      case "openapi-3.1": {
-        return replaceRefs(schema)
-      }
-    }
-  }
-
-  function replaceRefs(value: unknown): any {
-    if (Array.isArray(value)) {
-      return value.map(replaceRefs)
-    } else if (typeof value === "object" && value !== null) {
-      const result: Record<string, unknown> = {}
-      for (const [key, val] of Object.entries(value)) {
-        if (key === "$ref" && typeof val === "string") {
-          result[key] = val.replace(/#\/\$defs\//g, "#/components/schemas/")
-        } else {
-          result[key] = replaceRefs(val)
+export function rewriteToDraft07(document: Schema.JsonSchema.Document): Schema.JsonSchema.Document {
+  function rewrite(u: unknown): any {
+    if (Array.isArray(u)) {
+      return u.map(rewrite)
+    } else if (typeof u === "object" && u !== null) {
+      if ("$ref" in u || "prefixItems" in u) {
+        const out: Schema.JsonSchema = { ...u }
+        if ("$ref" in out && typeof out.$ref === "string") {
+          out.$ref = out.$ref.replace(/#\/\$defs\//g, "#/definitions/")
         }
+        if ("prefixItems" in out) {
+          if ("items" in out) {
+            out.additionalItems = out.items
+            delete out.items
+          }
+          out.items = out.prefixItems
+          delete out.prefixItems
+        }
+        return out
       }
-      return result
+      return u
     } else {
-      return value
+      return u
     }
+  }
+  return {
+    source: "draft-07",
+    schema: rewrite(document.schema),
+    definitions: Rec.map(document.definitions, (d) => rewrite(d))
+  }
+}
+
+/**
+ * @internal
+ */
+export function rewriteToOpenApi3_1(document: Schema.JsonSchema.Document): Schema.JsonSchema.Document {
+  function rewrite(u: unknown): any {
+    if (Array.isArray(u)) {
+      return u.map(rewrite)
+    } else if (typeof u === "object" && u !== null) {
+      if ("$ref" in u && typeof u.$ref === "string") {
+        const out: Schema.JsonSchema = { ...u }
+        out.$ref = u.$ref.replace(/#\/\$defs\//g, "#/components/schemas/")
+        return out
+      }
+      return u
+    } else {
+      return u
+    }
+  }
+  return {
+    source: "openapi-3.1",
+    schema: rewrite(document.schema),
+    definitions: Rec.map(document.definitions, (d) => rewrite(d))
   }
 }
