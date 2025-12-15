@@ -2,8 +2,8 @@
  * @since 1.0.0
  */
 import * as Data from "effect/data/Data"
-import * as Result from "effect/data/Result"
 import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
 import * as Queue from "effect/Queue"
 import * as ServiceMap from "effect/ServiceMap"
@@ -58,19 +58,19 @@ const makeQueue = (
     }
     | undefined
 ) =>
-  Queue.sliding<Result.Result<GeolocationPosition, GeolocationError>>(options?.bufferSize ?? 16).pipe(
+  Queue.sliding<GeolocationPosition, GeolocationError>(options?.bufferSize ?? 16).pipe(
     Effect.tap((queue) =>
       Effect.acquireRelease(
         Effect.sync(() =>
           navigator.geolocation.watchPosition(
-            (position) => Queue.offerUnsafe(queue, Result.succeed(position)),
+            (position) => Queue.offerUnsafe(queue, position),
             (cause) => {
               if (cause.code === cause.PERMISSION_DENIED) {
-                const result = Result.fail(new GeolocationError({ reason: "PermissionDenied", cause }))
-                Queue.offerUnsafe(queue, result)
+                const error = new GeolocationError({ reason: "PermissionDenied", cause })
+                Queue.doneUnsafe(queue, Exit.fail(error))
               } else if (cause.code === cause.TIMEOUT) {
-                const result = Result.fail(new GeolocationError({ reason: "Timeout", cause }))
-                Queue.offerUnsafe(queue, result)
+                const error = new GeolocationError({ reason: "Timeout", cause })
+                Queue.doneUnsafe(queue, Exit.fail(error))
               }
             },
             options
@@ -92,14 +92,12 @@ export const layer: Layer.Layer<Geolocation> = Layer.succeed(
     getCurrentPosition: (options) =>
       makeQueue(options).pipe(
         Effect.flatMap(Queue.take),
-        Effect.flatMap(Effect.fromResult),
         Effect.scoped
       ),
     watchPosition: (options) =>
       makeQueue(options).pipe(
         Effect.map(Stream.fromQueue),
-        Stream.unwrap,
-        Stream.mapEffect(Effect.fromResult)
+        Stream.unwrap
       )
   })
 )
