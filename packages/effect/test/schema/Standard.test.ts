@@ -24,18 +24,113 @@ function assertToCode(schema: Schema.Top, expected: string, resolver?: Standard.
   strictEqual(Standard.toCode(document, { resolver }), expected)
 }
 
+function assertRoundtrip(schema: Schema.Top, expected: string, resolver?: Standard.Resolver<string>) {
+  // Test direct roundtrip: Schema → Standard Document → Schema
+  const document = Standard.fromAST(schema.ast)
+  // Json Roundtrip: Standard Document → JSON → Standard Document
+  const jsonDocument = Standard.toJson(document)
+  strictEqual(Standard.toCode(document, { resolver }), expected)
+  deepStrictEqual(
+    Standard.toJson(Standard.fromAST(Standard.toSchema(Standard.fromJson(jsonDocument)).ast)),
+    jsonDocument
+  )
+}
+
 describe("Standard", () => {
+  describe("roundtrip", () => {
+    it("should roundtrip primitive schemas", () => {
+      assertRoundtrip(Schema.String, "Schema.String")
+      assertRoundtrip(Schema.Number, "Schema.Number")
+      assertRoundtrip(Schema.Boolean, "Schema.Boolean")
+      assertRoundtrip(Schema.BigInt, "Schema.BigInt")
+      assertRoundtrip(Schema.Null, "Schema.Null")
+      assertRoundtrip(Schema.Undefined, "Schema.Undefined")
+      assertRoundtrip(Schema.Void, "Schema.Void")
+      assertRoundtrip(Schema.Never, "Schema.Never")
+      assertRoundtrip(Schema.Unknown, "Schema.Unknown")
+      assertRoundtrip(Schema.Any, "Schema.Any")
+    })
+
+    it("should roundtrip schemas with annotations", () => {
+      assertRoundtrip(
+        Schema.String.annotate({ description: "test" }),
+        `Schema.String.annotate({ "description": "test" })`
+      )
+      assertRoundtrip(
+        Schema.Number.annotate({ description: "test" }),
+        `Schema.Number.annotate({ "description": "test" })`
+      )
+    })
+
+    it("should roundtrip schemas with checks", () => {
+      assertRoundtrip(
+        Schema.String.check(Schema.isMinLength(5)),
+        "Schema.String.check(Schema.isMinLength(5))"
+      )
+      assertRoundtrip(
+        Schema.Number.check(Schema.isGreaterThan(10)),
+        "Schema.Number.check(Schema.isGreaterThan(10))"
+      )
+      assertRoundtrip(
+        Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10)),
+        "Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10))"
+      )
+    })
+
+    it("should roundtrip complex schemas", () => {
+      assertRoundtrip(
+        Schema.Struct({
+          name: Schema.String,
+          age: Schema.Number,
+          active: Schema.Boolean
+        }),
+        `Schema.Struct({ "name": Schema.String, "age": Schema.Number, "active": Schema.Boolean })`
+      )
+      assertRoundtrip(
+        Schema.Struct({
+          name: Schema.String,
+          age: Schema.optionalKey(Schema.Number),
+          tags: Schema.Array(Schema.String)
+        }),
+        `Schema.Struct({ "name": Schema.String, "age": Schema.optionalKey(Schema.Number), "tags": Schema.Array(Schema.String) })`
+      )
+      assertRoundtrip(Schema.Union([Schema.String, Schema.Number]), "Schema.Union([Schema.String, Schema.Number])")
+      assertRoundtrip(Schema.Tuple([Schema.String, Schema.Number]), "Schema.Tuple([Schema.String, Schema.Number])")
+      assertRoundtrip(Schema.Array(Schema.String), "Schema.Array(Schema.String)")
+      assertRoundtrip(Schema.Record(Schema.String, Schema.Number), "Schema.Record(Schema.String, Schema.Number)")
+    })
+
+    it("should roundtrip schemas with identifiers", () => {
+      assertRoundtrip(
+        OuterCategory,
+        `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)) }).annotate({ "identifier": "Category" })`
+      )
+      assertRoundtrip(
+        InnerCategory,
+        `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)) })`
+      )
+    })
+  })
+
   describe("toJson", () => {
     function assertToJson(
       schema: Schema.Top,
       expected: {
-        readonly schema: Standard.JsonStandardSchema
-        readonly definitions?: Record<string, Standard.JsonStandardSchema>
+        readonly schema: Schema.JsonSchema
+        readonly definitions?: Record<string, Schema.JsonSchema>
       }
     ) {
       const document = Standard.fromAST(schema.ast)
       deepStrictEqual(Standard.toJson(document), { definitions: {}, ...expected })
     }
+
+    it("should throw if there are duplicate identifiers", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.annotate({ identifier: "a" }),
+        b: Schema.String.annotate({ identifier: "a" })
+      })
+      throws(() => Standard.fromAST(schema.ast), "Duplicate identifier: a")
+    })
 
     describe("Suspend", () => {
       it("non-recursive", () => {

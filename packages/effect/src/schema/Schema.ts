@@ -7583,7 +7583,7 @@ export interface ToJsonSchemaOptions {
 /**
  * @since 4.0.0
  */
-export type JsonSchema = {
+export interface JsonSchema {
   [x: string]: unknown
 }
 
