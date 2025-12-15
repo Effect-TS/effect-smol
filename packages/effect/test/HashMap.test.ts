@@ -343,24 +343,55 @@ describe("HashMap", () => {
   })
 
   describe("mutation helpers", () => {
-    it("mutate", () => {
+    it("mutate allows in-place modifications", () => {
       const map1 = HashMap.make(["a", 1])
       const map2 = HashMap.mutate(map1, (mutable) => {
         HashMap.set(mutable, "b", 2)
         HashMap.set(mutable, "c", 3)
       })
-      // In this implementation, mutate doesn't provide true mutation
-      // It applies operations and returns a new map
+      // Original should be unchanged
       expect(HashMap.size(map1)).toBe(1)
-      expect(HashMap.size(map2)).toBe(1) // mutate function doesn't modify the mutable reference
+      // Mutated map should have all entries
+      expect(HashMap.size(map2)).toBe(3)
+      expect(HashMap.get(map2, "a")).toEqual(Option.some(1))
+      expect(HashMap.get(map2, "b")).toEqual(Option.some(2))
+      expect(HashMap.get(map2, "c")).toEqual(Option.some(3))
     })
 
-    it("beginMutation and endMutation", () => {
+    it("beginMutation creates distinct mutable instance", () => {
       const map1 = HashMap.make(["a", 1])
       const mutable = HashMap.beginMutation(map1)
+
+      // Should be different instances
+      expect(map1).not.toBe(mutable)
+
+      // Mutations on mutable should not affect original
+      HashMap.set(mutable, "b", 2)
+      expect(HashMap.size(map1)).toBe(1)
+      expect(HashMap.size(mutable)).toBe(2)
+
+      // endMutation returns same instance
       const immutable = HashMap.endMutation(mutable)
-      expect(map1).toBe(mutable)
       expect(mutable).toBe(immutable)
+    })
+
+    it("mutations are isolated from original", () => {
+      const original = HashMap.make(["a", 1], ["b", 2])
+      const mutated = HashMap.mutate(original, (m) => {
+        HashMap.set(m, "a", 100)
+        HashMap.remove(m, "b")
+        HashMap.set(m, "c", 3)
+      })
+
+      // Original unchanged
+      expect(HashMap.get(original, "a")).toEqual(Option.some(1))
+      expect(HashMap.get(original, "b")).toEqual(Option.some(2))
+      expect(HashMap.has(original, "c")).toBe(false)
+
+      // Mutated has changes
+      expect(HashMap.get(mutated, "a")).toEqual(Option.some(100))
+      expect(HashMap.has(mutated, "b")).toBe(false)
+      expect(HashMap.get(mutated, "c")).toEqual(Option.some(3))
     })
   })
 
