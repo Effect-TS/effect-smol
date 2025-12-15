@@ -74,6 +74,7 @@ import { constant, constTrue, constVoid, dual, identity as identity_ } from "../
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import { endSpan } from "../internal/effect.ts"
+import { addSpanStackTrace } from "../internal/tracer.ts"
 import * as Layer from "../Layer.ts"
 import * as PubSub from "../PubSub.ts"
 import * as Queue from "../Queue.ts"
@@ -5634,7 +5635,18 @@ export const withSpan: {
     name: string,
     options?: SpanOptions
   ): Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, Exclude<R, ParentSpan>>
-} = dual((args) => isChannel(args[0]), <OutElem, OutErr, OutDone, InElem, InErr, InDone, R>(
+} = function() {
+  const dataFirst = isChannel(arguments[0])
+  const name = dataFirst ? arguments[1] : arguments[0]
+  const options = addSpanStackTrace(dataFirst ? arguments[2] : arguments[1])
+  if (dataFirst) {
+    const self = arguments[0]
+    return withSpanImpl(self, name, options)
+  }
+  return (self: any) => withSpanImpl(self, name, options)
+} as any
+
+const withSpanImpl = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R>(
   self: Channel<OutElem, InElem, OutErr, InErr, OutDone, InDone, R>,
   name: string,
   options?: SpanOptions
@@ -5643,7 +5655,7 @@ export const withSpan: {
     Effect.makeSpan(name, options),
     (span) => provideService(self, ParentSpan, span),
     (span, exit) => Effect.clockWith((clock) => endSpan(span, exit, clock))
-  ))
+  )
 
 /**
  * @since 4.0.0

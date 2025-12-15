@@ -5,19 +5,22 @@ export interface ErrorWithStackTraceLimit {
 }
 
 /** @internal */
-export const spanStackFrame = <A extends Tracer.TraceOptions>(
+export const addSpanStackTrace = <A extends Tracer.TraceOptions>(
   options: A | undefined
-): (() => string | undefined) | undefined => {
+): A => {
   if (options?.captureStackTrace === false) {
-    return undefined
+    return options
   } else if (options?.captureStackTrace !== undefined && typeof options.captureStackTrace !== "boolean") {
-    return options.captureStackTrace
+    return options
   }
   const limit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
   ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = 3
   const traceError = new Error()
   ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = limit
-  return spanCleaner(() => traceError.stack)
+  return {
+    ...options,
+    captureStackTrace: spanCleaner(() => traceError.stack)
+  } as A
 }
 
 /** @internal */

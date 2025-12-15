@@ -20,6 +20,7 @@ import type { LazyArg } from "../Function.ts"
 import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
+import { addSpanStackTrace } from "../internal/tracer.ts"
 import type * as Layer from "../Layer.ts"
 import type * as PubSub from "../PubSub.ts"
 import * as Queue from "../Queue.ts"
@@ -6181,11 +6182,16 @@ export const updateService: {
 export const withSpan: {
   (name: string, options?: SpanOptions): <A, E, R>(self: Stream<A, E, R>) => Stream<A, E, Exclude<R, ParentSpan>>
   <A, E, R>(self: Stream<A, E, R>, name: string, options?: SpanOptions): Stream<A, E, Exclude<R, ParentSpan>>
-} = dual(
-  (args) => isStream(args[0]),
-  <A, E, R>(self: Stream<A, E, R>, name: string, options?: SpanOptions): Stream<A, E, Exclude<R, ParentSpan>> =>
-    fromChannel(Channel.withSpan(self.channel, name, options))
-)
+} = function() {
+  const dataFirst = isStream(arguments[0])
+  const name = dataFirst ? arguments[1] : arguments[0]
+  const options = addSpanStackTrace(dataFirst ? arguments[1] : arguments[2])
+  if (dataFirst) {
+    const self = arguments[0] as Stream<any, any, any>
+    return fromChannel(Channel.withSpan(self.channel, name, options))
+  }
+  return (self: Stream<any, any, any>) => fromChannel(Channel.withSpan(self.channel, name, options))
+} as any
 
 /**
  * @since 4.0.0

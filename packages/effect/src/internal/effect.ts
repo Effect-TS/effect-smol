@@ -13,7 +13,7 @@ import type * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"
 import type * as Fiber from "../Fiber.ts"
 import type { LazyArg } from "../Function.ts"
-import { constant, constFalse, constTrue, constVoid, dual, identity } from "../Function.ts"
+import { constant, constFalse, constTrue, constUndefined, constVoid, dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { toJson } from "../interfaces/Inspectable.ts"
@@ -76,7 +76,7 @@ import {
 } from "./core.ts"
 import * as doNotation from "./doNotation.ts"
 import * as InternalMetric from "./metric.ts"
-import { type ErrorWithStackTraceLimit, makeStackCleaner, spanStackFrame } from "./tracer.ts"
+import { addSpanStackTrace, type ErrorWithStackTraceLimit, makeStackCleaner } from "./tracer.ts"
 import { version } from "./version.ts"
 
 // ----------------------------------------------------------------------------
@@ -4504,30 +4504,29 @@ export const withSpanScoped: {
 } = function() {
   const dataFirst = typeof arguments[0] !== "string"
   const name = dataFirst ? arguments[1] : arguments[0]
-  const options = dataFirst ? arguments[2] : arguments[1]
-  const provideStackFrame = provideSpanStackFrame(name, spanStackFrame(options))
+  const options = addSpanStackTrace(dataFirst ? arguments[2] : arguments[1])
   if (dataFirst) {
     const self = arguments[0]
     return flatMap(
       makeSpanScoped(name, options),
-      (span) => withParentSpan(provideStackFrame(self), span)
+      (span) => withParentSpan(self, span, options)
     )
   }
   return (self: Effect.Effect<any, any, any>) =>
     flatMap(
       makeSpanScoped(name, options),
-      (span) => withParentSpan(provideStackFrame(self), span)
+      (span) => withParentSpan(self, span, options)
     )
 } as any
 
-const provideSpanStackFrame = (name: string, stack: (() => string | undefined) | undefined) =>
-  stack ?
-    updateService(CurrentStackFrame, (parent) => ({
-      name,
-      stack,
-      parent
-    })) :
-    identity
+const provideSpanStackFrame = (name: string, stack: (() => string | undefined) | undefined) => {
+  stack = typeof stack === "function" ? stack : constUndefined
+  return updateService(CurrentStackFrame, (parent) => ({
+    name,
+    stack,
+    parent
+  }))
+}
 
 /** @internal */
 export const spanAnnotations: Effect.Effect<Readonly<Record<string, unknown>>> = TracerSpanAnnotations.asEffect()
@@ -4590,11 +4589,33 @@ export const useSpan: {
   })
 }
 
+const provideParentSpan = provideService(Tracer.ParentSpan)
+
 /** @internal */
 export const withParentSpan: {
-  (value: Tracer.AnySpan): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
-  <A, E, R>(self: Effect.Effect<A, E, R>, value: Tracer.AnySpan): Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
-} = provideService(Tracer.ParentSpan)
+  (
+    value: Tracer.AnySpan,
+    options?: Tracer.TraceOptions
+  ): <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
+  <A, E, R>(
+    self: Effect.Effect<A, E, R>,
+    value: Tracer.AnySpan,
+    options?: Tracer.TraceOptions
+  ): Effect.Effect<A, E, Exclude<R, Tracer.ParentSpan>>
+} = function() {
+  const dataFirst = isEffect(arguments[0])
+  const span: Tracer.AnySpan = dataFirst ? arguments[1] : arguments[0]
+  let options = dataFirst ? arguments[2] : arguments[1]
+  let provideStackFrame: <A, E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R> = identity
+  if (span._tag === "Span") {
+    options = addSpanStackTrace(options)
+    provideStackFrame = provideSpanStackFrame(span.name, options?.captureStackTrace)
+  }
+  if (dataFirst) {
+    return provideParentSpan(provideStackFrame(arguments[0]), span)
+  }
+  return (self: Effect.Effect<any, any, any>) => provideParentSpan(provideStackFrame(self), span)
+} as any
 
 /** @internal */
 export const withSpan: {
@@ -4611,10 +4632,10 @@ export const withSpan: {
 } = function() {
   const dataFirst = typeof arguments[0] !== "string"
   const name = dataFirst ? arguments[1] : arguments[0]
-  const provideStackFrame = provideSpanStackFrame(name, spanStackFrame(arguments[2]))
+  const traceOptions = addSpanStackTrace(arguments[2])
   if (dataFirst) {
     const self = arguments[0]
-    return useSpan(name, arguments[2], (span) => withParentSpan(provideStackFrame(self), span))
+    return useSpan(name, arguments[2], (span) => withParentSpan(self, span, traceOptions))
   }
   const fnArg = typeof arguments[1] === "function" ? arguments[1] : undefined
   const options = fnArg ? undefined : arguments[1]
@@ -4622,7 +4643,7 @@ export const withSpan: {
     useSpan(
       name,
       fnArg ? fnArg(...args) : options,
-      (span) => withParentSpan(provideStackFrame(self), span)
+      (span) => withParentSpan(self, span, traceOptions)
     )
 } as any
 

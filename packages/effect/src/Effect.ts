@@ -6746,7 +6746,7 @@ export const linkSpans: {
  * @since 2.0.0
  * @category Tracing
  */
-export const makeSpan: (name: string, options?: SpanOptions) => Effect<Span> = internal.makeSpan
+export const makeSpan: (name: string, options?: SpanOptionsNoTrace) => Effect<Span> = internal.makeSpan
 
 /**
  * Create a new span for tracing, and automatically close it when the Scope
@@ -6774,7 +6774,7 @@ export const makeSpan: (name: string, options?: SpanOptions) => Effect<Span> = i
  */
 export const makeSpanScoped: (
   name: string,
-  options?: SpanOptions | undefined
+  options?: SpanOptionsNoTrace | undefined
 ) => Effect<Span, never, Scope> = internal.makeSpanScoped
 
 /**
@@ -6800,15 +6800,8 @@ export const makeSpanScoped: (
  * @category Tracing
  */
 export const useSpan: {
-  <A, E, R>(
-    name: string,
-    evaluate: (span: Span) => Effect<A, E, R>
-  ): Effect<A, E, R>
-  <A, E, R>(
-    name: string,
-    options: SpanOptions,
-    evaluate: (span: Span) => Effect<A, E, R>
-  ): Effect<A, E, R>
+  <A, E, R>(name: string, evaluate: (span: Span) => Effect<A, E, R>): Effect<A, E, R>
+  <A, E, R>(name: string, options: SpanOptionsNoTrace, evaluate: (span: Span) => Effect<A, E, R>): Effect<A, E, R>
 } = internal.useSpan
 
 /**
@@ -6901,13 +6894,8 @@ export const withSpanScoped: {
  * @category Tracing
  */
 export const withParentSpan: {
-  (
-    value: AnySpan
-  ): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, ParentSpan>>
-  <A, E, R>(
-    self: Effect<A, E, R>,
-    value: AnySpan
-  ): Effect<A, E, Exclude<R, ParentSpan>>
+  (value: AnySpan, options?: TraceOptions): <A, E, R>(self: Effect<A, E, R>) => Effect<A, E, Exclude<R, ParentSpan>>
+  <A, E, R>(self: Effect<A, E, R>, value: AnySpan, options?: TraceOptions): Effect<A, E, Exclude<R, ParentSpan>>
 } = internal.withParentSpan
 
 // -----------------------------------------------------------------------------

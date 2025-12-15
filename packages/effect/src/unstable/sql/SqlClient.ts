@@ -193,7 +193,7 @@ export const makeWithTransaction = <I, S>(options: {
   Effect.uninterruptibleMask((restore) =>
     Effect.useSpan(
       "sql.transaction",
-      { kind: "client", captureStackTrace: false },
+      { kind: "client" },
       (span) =>
         Effect.withFiber<A, E | SqlError, R>((fiber) => {
           for (const [key, value] of options.spanAttributes) {

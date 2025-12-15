@@ -329,7 +329,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
           )
         return disableTracing ? onRequest(undefined) : Effect.useSpan(
           `${spanPrefix}.${rpc._tag}`,
-          { captureStackTrace: false, attributes: options.spanAttributes },
+          { attributes: options.spanAttributes },
           onRequest
         )
       }
@@ -441,7 +441,6 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any, E, const Flatten extend
     }
 
     const span = disableTracing ? undefined : yield* Effect.makeSpanScoped(`${spanPrefix}.${rpc._tag}`, {
-      captureStackTrace: false,
       attributes: options.spanAttributes
     })
     const fiber = Fiber.getCurrent()!

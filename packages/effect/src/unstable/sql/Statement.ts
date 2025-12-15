@@ -1134,7 +1134,7 @@ const StatementProto: Omit<
   ): Effect.Effect<XA, E | SqlError> {
     return Effect.useSpan(
       "sql.execute",
-      { kind: "client", captureStackTrace: false },
+      { kind: "client" },
       (span) =>
         this.withConnectionSpan(
           operation,
@@ -1185,7 +1185,7 @@ const StatementProto: Omit<
   get stream(): Stream.Stream<any, SqlError> {
     const self = this as StatementImpl<any>
     return Stream.unwrap(Effect.flatMap(
-      Effect.makeSpanScoped("sql.execute", { kind: "client", captureStackTrace: false }),
+      Effect.makeSpanScoped("sql.execute", { kind: "client" }),
       (span) =>
         withStatement(self, span, (statement) => {
           const [sql, params] = statement.compile()

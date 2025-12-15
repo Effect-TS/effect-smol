@@ -608,7 +608,6 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
       Effect.useSpan(
         "LanguageModel.generateText",
         {
-          captureStackTrace: false,
           attributes: {
             concurrency: options.concurrency,
             toolChoice: options.toolChoice
@@ -637,7 +636,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
               method: "generateText",
               error
             }))),
-          (effect, span) => Effect.withParentSpan(effect, span),
+          (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
           Effect.provideService(IdGenerator, idGenerator)
         )
       ) as any
@@ -656,7 +655,6 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
       return Effect.useSpan(
         "LanguageModel.generateObject",
         {
-          captureStackTrace: false,
           attributes: {
             objectName,
             concurrency: options.concurrency,
@@ -689,7 +687,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
               method: "generateText",
               error
             }))),
-          (effect, span) => Effect.withParentSpan(effect, span),
+          (effect, span) => Effect.withParentSpan(effect, span, { captureStackTrace: false }),
           Effect.provideService(IdGenerator, idGenerator)
         )
       ) as any
@@ -708,7 +706,6 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         Options extends NoExcessProperties<GenerateTextOptions<Tools>, Options>
       >(options: Options & GenerateTextOptions<Tools>) {
         const span = yield* Effect.makeSpanScoped("LanguageModel.streamText", {
-          captureStackTrace: false,
           attributes: { concurrency: options.concurrency, toolChoice: options.toolChoice }
         })
 
