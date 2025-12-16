@@ -1554,12 +1554,12 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
       case "Arrays": {
         const out: Schema.JsonSchema = { type: "array" }
         let minItems = schema.elements.length
-        const items: Array<Schema.JsonSchema> = schema.elements.map((e) => {
-          if (e.isOptional) minItems--
+        const prefixItems: Array<Schema.JsonSchema> = schema.elements.map((e) => {
+          if (e.isOptional || containsUndefined(e.type)) minItems--
           return recur(e.type)
         })
-        if (items.length > 0) {
-          out.prefixItems = items
+        if (prefixItems.length > 0) {
+          out.prefixItems = prefixItems
           out.minItems = minItems
         }
         if (schema.rest.length > 0) {
@@ -2124,9 +2124,9 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
     if (Predicate.isObject(u)) {
       const normalized = normalizeJsonSchemaInput(u)
       const out = on(normalized)
-      const annotations = collectAnnotations(normalized)
-      if (annotations !== undefined) {
-        out.annotations = annotations
+      const a = collectAnnotations(normalized)
+      if (a !== undefined) {
+        out.annotations = a
       }
       if (Array.isArray(normalized.allOf)) {
         const allOf = normalized.allOf.map(recur)
@@ -2274,7 +2274,8 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
 
   function collectArraysChecks(s: Schema.JsonSchema): Array<Check<ArraysMeta>> {
     const checks: Array<Check<ArraysMeta>> = []
-    if (typeof s.minItems === "number") {
+    const elementsLength = Array.isArray(s.prefixItems) ? s.prefixItems.length : 0
+    if (typeof s.minItems === "number" && s.minItems > elementsLength) {
       checks.push({
         _tag: "Filter",
         meta: { _tag: "isMinLength", minLength: s.minItems },
@@ -2299,17 +2300,15 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
   }
 
   function collectElements(s: Schema.JsonSchema): Array<Element> {
-    const elements: Array<Element> = []
     if (Array.isArray(s.prefixItems)) {
-      for (const item of s.prefixItems) {
-        elements.push({ type: recur(item), isOptional: false })
-      }
+      const minItems = typeof s.minItems === "number" ? s.minItems : s.prefixItems.length
+      return s.prefixItems.map((item, index) => ({ type: recur(item), isOptional: index >= minItems }))
     }
-    return elements
+    return []
   }
 
   function collectRest(s: Schema.JsonSchema): Array<StandardSchema> {
-    if (s.items !== undefined) {
+    if (s.items !== undefined && s.items !== false) {
       return [recur(s.items)]
     }
     return []
@@ -2327,8 +2326,14 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
       []
   }
 
-  function collectIndexSignatures(_s: Schema.JsonSchema): Array<IndexSignature> {
+  function collectIndexSignatures(s: Schema.JsonSchema): Array<IndexSignature> {
     const indexSignatures: Array<IndexSignature> = []
+    if (Predicate.isObject(s.additionalProperties)) {
+      indexSignatures.push({
+        parameter: { _tag: "String", checks: [] },
+        type: recur(s.additionalProperties)
+      })
+    }
     return indexSignatures
   }
 }
