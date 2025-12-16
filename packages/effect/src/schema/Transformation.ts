@@ -43,11 +43,14 @@ export class Middleware<in out T, in out E, RDE, RDT, RET, REE> {
   }
 }
 
+const TypeId = "~effect/schema/Transformation"
+
 /**
  * @category model
  * @since 4.0.0
  */
 export class Transformation<in out T, in out E, RD = never, RE = never> {
+  readonly [TypeId] = TypeId
   readonly _tag = "Transformation"
   readonly decode: Getter.Getter<T, E, RD>
   readonly encode: Getter.Getter<E, T, RE>
@@ -73,12 +76,19 @@ export class Transformation<in out T, in out E, RD = never, RE = never> {
 /**
  * @since 4.0.0
  */
+export function isTransformation(u: unknown): u is Transformation<any, any, unknown, unknown> {
+  return Predicate.hasProperty(u, TypeId)
+}
+
+/**
+ * @since 4.0.0
+ */
 export const make = <T, E, RD = never, RE = never>(options: {
   readonly decode: Getter.Getter<T, E, RD>
   readonly encode: Getter.Getter<E, T, RE>
 }): Transformation<T, E, RD, RE> => {
-  if (options instanceof Transformation) {
-    return options
+  if (isTransformation(options)) {
+    return options as any
   }
   return new Transformation(options.decode, options.encode)
 }
