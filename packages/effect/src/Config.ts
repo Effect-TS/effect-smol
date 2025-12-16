@@ -203,7 +203,7 @@ export const withDefault: {
   <A, const A2>(self: Config<A>, defaultValue: LazyArg<A2>): Config<A | A2>
 } = dual(2, <A, const A2>(self: Config<A>, defaultValue: LazyArg<A2>): Config<A | A2> => {
   return orElse(self, (err) => {
-    if (err.cause instanceof Schema.SchemaError) {
+    if (Schema.isSchemaError(err.cause)) {
       const issue = err.cause.issue
       if (isMissingDataOnly(issue)) {
         return succeed(defaultValue())

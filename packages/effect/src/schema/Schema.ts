@@ -420,6 +420,13 @@ export class SchemaError {
   }
 }
 
+/**
+ * @since 4.0.0
+ */
+export function isSchemaError(u: unknown): u is SchemaError {
+  return u instanceof SchemaError
+}
+
 function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): StandardSchemaV1.Result<A> {
   return Exit_.isSuccess(exit) ? exit.value : {
     issues: [{ message: Cause_.pretty(exit.cause) }]
@@ -7200,7 +7207,11 @@ function makeClass<
     }
 
     static readonly [TypeId] = TypeId
-    readonly [ClassTypeId] = ClassTypeId
+
+    get [ClassTypeId]() {
+      return ClassTypeId
+    }
+
     static readonly [immerable] = true
 
     declare static readonly "~rebuild.out": decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>
