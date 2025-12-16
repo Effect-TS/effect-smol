@@ -1,3 +1,5 @@
+import { Exit } from "effect"
+import { Option } from "effect/data"
 import { describe, expect, it, vi } from "vitest"
 
 const SCHEMA_MODULE_PATH = "../../src/schema/Schema.ts"
@@ -38,6 +40,19 @@ describe("HMR", () => {
     const schema = mod2.Unknown
 
     expect(isSchema(schema)).toBe(true)
+  })
+
+  it("isSchemaError", async () => {
+    const mod1: any = await vi.importActual(SCHEMA_MODULE_PATH)
+    vi.resetModules()
+    const mod2: any = await vi.importActual(SCHEMA_MODULE_PATH)
+
+    const exit = mod1.decodeUnknownExit(mod1.String)(null)
+    expect(Exit.isFailure(exit)).toBe(true)
+    const o: any = Exit.getError(exit)
+    expect(Option.isSome(o)).toBe(true)
+    const schemaError = o.value
+    expect(mod2.isSchemaError(schemaError)).toBe(true)
   })
 
   it("Schema.Class", async () => {

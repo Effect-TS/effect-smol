@@ -395,6 +395,8 @@ export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   return codec
 }
 
+const SchemaErrorTypeId = "~effect/schema/Schema/SchemaError"
+
 /**
  * A `SchemaError` is returned when schema decoding or encoding fails.
  *
@@ -406,6 +408,7 @@ export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
  * @since 4.0.0
  */
 export class SchemaError {
+  readonly [SchemaErrorTypeId] = SchemaErrorTypeId
   readonly _tag = "SchemaError"
   readonly name: string = "SchemaError"
   readonly issue: Issue.Issue
@@ -424,7 +427,7 @@ export class SchemaError {
  * @since 4.0.0
  */
 export function isSchemaError(u: unknown): u is SchemaError {
-  return u instanceof SchemaError
+  return Predicate.hasProperty(u, SchemaErrorTypeId)
 }
 
 function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): StandardSchemaV1.Result<A> {
