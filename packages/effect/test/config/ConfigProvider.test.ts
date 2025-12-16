@@ -1,8 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
-import { ConfigProvider, Effect, Layer, Result } from "effect"
-import { FileSystem, Path } from "effect/platform"
-import { SystemError } from "effect/platform/PlatformError"
+import { ConfigProvider, Effect, FileSystem, Layer, Path, PlatformError, Result } from "effect"
 
 async function assertSuccess(
   provider: ConfigProvider.ConfigProvider,
@@ -522,7 +520,7 @@ A=1`)
           return Effect.succeed(files[path])
         }
         return Effect.fail(
-          new SystemError({
+          new PlatformError.SystemError({
             module: "FileSystem",
             reason: "NotFound",
             method: "readFileString"
@@ -532,7 +530,7 @@ A=1`)
       readDirectory(_path) {
         // For the test, we only have files, no directories
         return Effect.fail(
-          new SystemError({
+          new PlatformError.SystemError({
             module: "FileSystem",
             reason: "NotFound",
             method: "readDirectory"

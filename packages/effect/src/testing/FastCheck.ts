@@ -48,8 +48,8 @@
  *   (a, b) => {
  *     const result = a + b
  *     return result.length === a.length + b.length &&
- *            result.startsWith(a) &&
- *            result.endsWith(b)
+ *       result.startsWith(a) &&
+ *       result.endsWith(b)
  *   }
  * )
  *
@@ -72,9 +72,9 @@
  *   personArbitrary,
  *   (person) => {
  *     return person.name.length > 0 &&
- *            person.age >= 0 &&
- *            person.age <= 120 &&
- *            person.email.includes("@")
+ *       person.age >= 0 &&
+ *       person.age <= 120 &&
+ *       person.email.includes("@")
  *   }
  * )
  *

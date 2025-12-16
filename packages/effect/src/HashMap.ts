@@ -19,7 +19,6 @@ const TypeId = internal.HashMapTypeId
  * @example
  * ```ts
  * import * as HashMap from "effect/HashMap"
- * import * as Option from "effect/Option"
  *
  * // Create a HashMap
  * const map = HashMap.make(["a", 1], ["b", 2], ["c", 3])
@@ -50,7 +49,6 @@ export interface HashMap<out Key, out Value> extends Iterable<[Key, Value]>, Equ
  * @example
  * ```ts
  * import * as HashMap from "effect/HashMap"
- * import * as Option from "effect/Option"
  *
  * // Create a concrete HashMap for type extraction
  * const inventory = HashMap.make(
@@ -59,8 +57,8 @@ export interface HashMap<out Key, out Value> extends Iterable<[Key, Value]>, Equ
  * )
  *
  * // Extract types for reuse
- * type ProductId = HashMap.HashMap.Key<typeof inventory>     // string
- * type Product = HashMap.HashMap.Value<typeof inventory>     // { quantity: number, price: number }
+ * type ProductId = HashMap.HashMap.Key<typeof inventory> // string
+ * type Product = HashMap.HashMap.Value<typeof inventory> // { quantity: number, price: number }
  * type InventoryEntry = HashMap.HashMap.Entry<typeof inventory> // [string, Product]
  *
  * // Use extracted types in functions
@@ -295,7 +293,6 @@ export const isEmpty: <K, V>(self: HashMap<K, V>) => boolean = internal.isEmpty
  * @example
  * ```ts
  * import * as HashMap from "effect/HashMap"
- * import * as Option from "effect/Option"
  *
  * const map = HashMap.make(["a", 1], ["b", 2])
  *
@@ -320,9 +317,8 @@ export const get: {
  *
  * @example
  * ```ts
+ * import { Hash } from "effect"
  * import * as HashMap from "effect/HashMap"
-import { Hash } from "effect"
- * import * as Option from "effect/Option"
  *
  * // Useful when implementing custom equality for complex keys
  * const userMap = HashMap.make(
@@ -422,8 +418,8 @@ export const has: {
  *
  * @example
  * ```ts
+ * import { Hash } from "effect"
  * import * as HashMap from "effect/HashMap"
-import { Hash } from "effect"
  *
  * // Create a map with case-sensitive keys
  * const userMap = HashMap.make(
@@ -455,9 +451,9 @@ export const hasHash: {
  * ```ts
  * import * as HashMap from "effect/HashMap"
  *
- * const hm = HashMap.make([1, 'a'])
- * HashMap.hasBy(hm, (value, key) => value === 'a' && key === 1) // -> true
- * HashMap.hasBy(hm, (value) => value === 'b') // -> false
+ * const hm = HashMap.make([1, "a"])
+ * HashMap.hasBy(hm, (value, key) => value === "a" && key === 1) // -> true
+ * HashMap.hasBy(hm, (value) => value === "b") // -> false
  * ```
  *
  * @since 3.16.0
@@ -550,7 +546,7 @@ export const values: <K, V>(self: HashMap<K, V>) => IterableIterator<V> = intern
  * console.log(totalSalary) // 260000
  *
  * // Filter by department
- * const engineers = allEmployees.filter(emp => emp.department === "engineering")
+ * const engineers = allEmployees.filter((emp) => emp.department === "engineering")
  * console.log(engineers.length) // 2
  * ```
  *
@@ -612,7 +608,7 @@ export const entries: <K, V>(self: HashMap<K, V>) => IterableIterator<[K, V]> = 
  *
  * // Sort by score (descending)
  * const leaderboard = scoreEntries
- *   .sort(([,a], [,b]) => b - a)
+ *   .sort(([, a], [, b]) => b - a)
  *   .map(([player, score], rank) => `${rank + 1}. ${player}: ${score}`)
  *
  * console.log(leaderboard)
@@ -770,8 +766,8 @@ export const modifyAt: {
  *
  * @example
  * ```ts
+ * import { Hash } from "effect"
  * import * as HashMap from "effect/HashMap"
-import { Hash } from "effect"
  * import * as Option from "effect/Option"
  *
  * // Useful when working with precomputed hashes for performance
@@ -786,13 +782,23 @@ import { Hash } from "effect"
  *   Option.isSome(current) ? Option.some(current.value + 1) : Option.some(1)
  *
  * // Use cached hash for efficient updates in loops
- * const updated = HashMap.modifyHash(counters, metricKey, cachedHash, incrementCounter)
+ * const updated = HashMap.modifyHash(
+ *   counters,
+ *   metricKey,
+ *   cachedHash,
+ *   incrementCounter
+ * )
  * console.log(HashMap.get(updated, "downloads")) // Option.some(101)
  *
  * // Add new metric with precomputed hash
  * const newMetric = "clicks"
  * const clicksHash = Hash.string(newMetric)
- * const withClicks = HashMap.modifyHash(updated, newMetric, clicksHash, incrementCounter)
+ * const withClicks = HashMap.modifyHash(
+ *   updated,
+ *   newMetric,
+ *   clicksHash,
+ *   incrementCounter
+ * )
  * console.log(HashMap.get(withClicks, "clicks")) // Option.some(1)
  * ```
  *
@@ -952,8 +958,9 @@ export const map: {
  * import * as HashMap from "effect/HashMap"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2])
- * const map2 = HashMap.flatMap(map1, (value, key) =>
- *   HashMap.make([key + "1", value], [key + "2", value * 2])
+ * const map2 = HashMap.flatMap(
+ *   map1,
+ *   (value, key) => HashMap.make([key + "1", value], [key + "2", value * 2])
  * )
  *
  * console.log(HashMap.size(map2)) // 4
@@ -1074,8 +1081,9 @@ export const compact: <K, A>(self: HashMap<K, Option<A>>) => HashMap<K, A> = int
  * import * as Option from "effect/Option"
  *
  * const map1 = HashMap.make(["a", 1], ["b", 2], ["c", 3], ["d", 4])
- * const map2 = HashMap.filterMap(map1, (value) =>
- *   value % 2 === 0 ? Option.some(value * 2) : Option.none()
+ * const map2 = HashMap.filterMap(
+ *   map1,
+ *   (value) => value % 2 === 0 ? Option.some(value * 2) : Option.none()
  * )
  *
  * console.log(HashMap.size(map2)) // 2

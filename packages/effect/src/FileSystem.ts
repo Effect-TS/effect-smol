@@ -9,11 +9,9 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
- * import { FileSystem  } from "effect/platform"
+ * import { Console, Effect, FileSystem } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
  *   // Create a directory
@@ -37,19 +35,19 @@
  *
  * @since 4.0.0
  */
-import * as Arr from "../Array.ts"
-import * as Brand from "../Brand.ts"
-import * as Effect from "../Effect.ts"
-import { pipe } from "../Function.ts"
-import * as Layer from "../Layer.ts"
-import * as Pull from "../Pull.ts"
-import type { Scope } from "../Scope.ts"
-import * as ServiceMap from "../ServiceMap.ts"
-import * as Sink from "../Sink.ts"
-import * as Stream from "../Stream.ts"
-import * as UndefinedOr from "../UndefinedOr.ts"
+import * as Arr from "./Array.ts"
+import * as Brand from "./Brand.ts"
+import * as Effect from "./Effect.ts"
+import { pipe } from "./Function.ts"
+import * as Layer from "./Layer.ts"
 import type { PlatformError } from "./PlatformError.ts"
 import { BadArgument, SystemError } from "./PlatformError.ts"
+import * as Pull from "./Pull.ts"
+import type { Scope } from "./Scope.ts"
+import * as ServiceMap from "./ServiceMap.ts"
+import * as Sink from "./Sink.ts"
+import * as Stream from "./Stream.ts"
+import * as UndefinedOr from "./UndefinedOr.ts"
 
 const TypeId = "~effect/platform/FileSystem"
 
@@ -62,17 +60,15 @@ const TypeId = "~effect/platform/FileSystem"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
- * import { FileSystem  } from "effect/platform"
+ * import { Console, Effect, FileSystem } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
  *   // Basic file operations
  *   const exists = yield* fs.exists("./config.json")
  *   if (!exists) {
- *     yield* fs.writeFileString("./config.json", '{"env": "development"}')
+ *     yield* fs.writeFileString("./config.json", "{\"env\": \"development\"}")
  *   }
  *
  *   // Directory operations
@@ -379,8 +375,7 @@ export interface FileSystem {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { FileSystem  } from "effect/platform"
+ * import { Effect, FileSystem } from "effect"
  *
  * // Create sizes using the Size constructor
  * const smallFile = FileSystem.Size(1024) // 1 KB
@@ -388,7 +383,7 @@ export interface FileSystem {
  *
  * // Use with file operations
  * const truncateToSize = (path: string, size: FileSystem.Size) =>
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const fs = yield* FileSystem.FileSystem
  *     return fs.truncate(path, size)
  *   })
@@ -408,14 +403,13 @@ export type Size = Brand.Branded<bigint, "Size">
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { FileSystem  } from "effect/platform"
+ * import { Effect, FileSystem } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
  *   // All of these are valid SizeInput values
- *   yield* fs.truncate("file1.txt", 1024)        // number
+ *   yield* fs.truncate("file1.txt", 1024) // number
  *   yield* fs.truncate("file2.txt", BigInt(2048)) // bigint
  *   yield* fs.truncate("file3.txt", FileSystem.Size(4096)) // Size
  * })
@@ -435,8 +429,7 @@ export type SizeInput = bigint | number | Size
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { FileSystem  } from "effect/platform"
+ * import { Effect, FileSystem } from "effect"
  *
  * // From number
  * const size1 = FileSystem.Size(1024)
@@ -450,7 +443,7 @@ export type SizeInput = bigint | number | Size
  *
  * // Use in file operations
  * const readChunk = (path: string, chunkSize: number) =>
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const fs = yield* FileSystem.FileSystem
  *     return fs.stream(path, {
  *       chunkSize: FileSystem.Size(chunkSize)
@@ -471,10 +464,9 @@ export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? byte
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { FileSystem  } from "effect/platform"
+ * import { Effect, FileSystem } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
  *   // Create a 64 KiB buffer size for streaming
@@ -502,10 +494,9 @@ export const KiB = (n: number): Size => Size(n * 1024)
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { FileSystem  } from "effect/platform"
+ * import { Effect, FileSystem } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
  *   // Set a 10 MiB chunk size for large file operations
@@ -537,11 +528,9 @@ export const MiB = (n: number): Size => Size(n * 1024 * 1024)
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
- * import { FileSystem  } from "effect/platform"
+ * import { Console, Effect, FileSystem } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
  *   // Check available space before creating large files
@@ -569,11 +558,9 @@ export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
- * import { FileSystem  } from "effect/platform"
+ * import { Console, Effect, FileSystem } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
  *   // Check if we're dealing with very large files
@@ -608,11 +595,9 @@ const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
- * import { FileSystem  } from "effect/platform"
+ * import { Console, Effect, FileSystem } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
  *   // For extremely large data processing scenarios
@@ -624,7 +609,7 @@ const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
  *   // Such large files would require specialized streaming
  *   const stream = fs.stream("massive-dataset.bin", {
  *     chunkSize: FileSystem.GiB(1), // 1 GiB chunks
- *     offset: FileSystem.TiB(100)   // Start from 100 TiB offset
+ *     offset: FileSystem.TiB(100) // Start from 100 TiB offset
  *   })
  * })
  * ```
@@ -653,10 +638,9 @@ export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { FileSystem  } from "effect/platform"
+ * import { Effect, FileSystem } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
  *   // Open for reading only
@@ -696,11 +680,10 @@ export type OpenFlag =
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { FileSystem  } from "effect/platform"
+ * import { Effect, FileSystem } from "effect"
  *
  * // Access the FileSystem service
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
  *   const exists = yield* fs.exists("./data.txt")
@@ -711,10 +694,17 @@ export type OpenFlag =
  * })
  *
  * // Provide a custom FileSystem implementation
- * declare const platformImpl: Omit<FileSystem.FileSystem, "exists" | "readFileString" | "stream" | "sink" | "writeFileString">
+ * declare const platformImpl: Omit<
+ *   FileSystem.FileSystem,
+ *   "exists" | "readFileString" | "stream" | "sink" | "writeFileString"
+ * >
  * const customFs = FileSystem.make(platformImpl)
  *
- * const withCustomFs = Effect.provideService(program, FileSystem.FileSystem, customFs)
+ * const withCustomFs = Effect.provideService(
+ *   program,
+ *   FileSystem.FileSystem,
+ *   customFs
+ * )
  * ```
  *
  * @since 4.0.0
@@ -828,34 +818,39 @@ const notFound = (method: string, path: string) =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { FileSystem, PlatformError  } from "effect/platform"
+ * import { Effect, FileSystem, PlatformError } from "effect"
  *
  * // Create a test filesystem that only allows reading specific files
  * const testFs = FileSystem.makeNoop({
  *   readFileString: (path) => {
  *     if (path === "test-config.json") {
- *       return Effect.succeed('{"test": true}')
+ *       return Effect.succeed("{\"test\": true}")
  *     }
- *     return Effect.fail(new PlatformError.SystemError({
- *       module: "FileSystem",
- *       method: "readFileString",
- *       reason: "NotFound",
- *       description: "File not found",
- *       pathOrDescriptor: path
- *     }))
+ *     return Effect.fail(
+ *       new PlatformError.SystemError({
+ *         module: "FileSystem",
+ *         method: "readFileString",
+ *         reason: "NotFound",
+ *         description: "File not found",
+ *         pathOrDescriptor: path
+ *       })
+ *     )
  *   },
  *   exists: (path) => Effect.succeed(path === "test-config.json")
  * })
  *
  * // Use in tests
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const content = yield* testFs.readFileString("test-config.json")
  *   // Will succeed with mocked content
  * })
  *
  * // Test with the no-op filesystem
- * const testProgram = Effect.provideService(program, FileSystem.FileSystem, testFs)
+ * const testProgram = Effect.provideService(
+ *   program,
+ *   FileSystem.FileSystem,
+ *   testFs
+ * )
  * ```
  *
  * @since 4.0.0
@@ -962,9 +957,7 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { FileSystem } from "effect/platform"
+ * import { Effect, FileSystem } from "effect"
  *
  * // Create a test layer with specific behaviors
  * const testLayer = FileSystem.layerNoop({
@@ -972,7 +965,7 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
  *   exists: () => Effect.succeed(true)
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *   const content = yield* fs.readFileString("any-file.txt")
  *   return content
@@ -1014,16 +1007,14 @@ export const isFile = (u: unknown): u is File => typeof u === "object" && u !== 
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
- * import { FileSystem } from "effect/platform"
+ * import { Console, Effect, FileSystem } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
  *   // Open a file and work with the handle
  *   yield* Effect.scoped(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const file = yield* fs.open("./data.txt", { flag: "r+" })
  *
  *       // Get file information
@@ -1105,11 +1096,9 @@ export declare namespace File {
    *
    * @example
    * ```ts
-   * import { Effect } from "effect"
-   * import { Console } from "effect"
-   * import { FileSystem } from "effect/platform"
+   * import { Console, Effect, FileSystem } from "effect"
    *
-   * const program = Effect.gen(function* () {
+   * const program = Effect.gen(function*() {
    *   const fs = yield* FileSystem.FileSystem
    *
    *   const info: FileSystem.File.Info = yield* fs.stat("./data.txt")
@@ -1237,9 +1226,7 @@ export declare namespace WatchEvent {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { FileSystem } from "effect/platform"
+ * import { Effect, FileSystem, Stream } from "effect"
  *
  * // Custom watch backend implementation
  * const customWatchBackend = {
@@ -1250,7 +1237,7 @@ export declare namespace WatchEvent {
  * }
  *
  * // Provide custom watch backend
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fs = yield* FileSystem.FileSystem
  *
  *   // File watching will use the custom backend

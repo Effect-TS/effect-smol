@@ -1,8 +1,7 @@
 import { NodeFileSystem } from "@effect/platform-node"
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { describe, expect, it } from "@effect/vitest"
-import { Effect, Layer } from "effect"
-import { FileSystem } from "effect/platform"
+import { Effect, FileSystem, Layer } from "effect"
 import {
   Runner,
   RunnerAddress,

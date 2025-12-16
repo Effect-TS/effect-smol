@@ -39,7 +39,10 @@ const TypeId = "~effect/collections/MutableHashSet"
  * import { MutableHashSet } from "effect"
  *
  * // Create a mutable hash set
- * const set: MutableHashSet.MutableHashSet<string> = MutableHashSet.make("apple", "banana")
+ * const set: MutableHashSet.MutableHashSet<string> = MutableHashSet.make(
+ *   "apple",
+ *   "banana"
+ * )
  *
  * // Add elements
  * MutableHashSet.add(set, "cherry")

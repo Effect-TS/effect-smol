@@ -41,8 +41,7 @@ const TxHashMapProto = {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
+ * import { Effect, Option } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -335,8 +334,7 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): Effect.E
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
+ * import { Effect, Option } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -731,8 +729,7 @@ export const modify: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
+ * import { Effect, Option } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -793,8 +790,7 @@ export const modifyAt: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
+ * import { Effect, Option } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -907,8 +903,7 @@ export const entries = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<readon
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { HashMap } from "effect"
+ * import { Effect, HashMap } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -949,8 +944,7 @@ export const snapshot = <K, V>(self: TxHashMap<K, V>): Effect.Effect<HashMap.Has
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { HashMap } from "effect"
+ * import { Effect, HashMap } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -1161,8 +1155,7 @@ export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V> => {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Hash } from "effect"
+ * import { Effect, Hash } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -1208,8 +1201,7 @@ export const getHash: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Hash } from "effect"
+ * import { Effect, Hash } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -1463,8 +1455,7 @@ export const reduce: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
+ * import { Effect, Option } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -1876,8 +1867,7 @@ export const flatMap: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
+ * import { Effect, Option } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {

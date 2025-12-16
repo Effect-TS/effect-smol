@@ -462,7 +462,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  *   readonly _: unique symbol
  * }
  * const Users = ServiceMap.Service<Users, {
- *    getAll: Effect.Effect<Array<unknown>>
+ *   getAll: Effect.Effect<Array<unknown>>
  * }>("Users")
  *
  * Effect.gen(function*() {
@@ -470,7 +470,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  *   const run = yield* FiberSet.runtime(set)<Users>()
  *
  *   // run some effects and add the fibers to the set
- *   run(Effect.andThen(Users.asEffect(), _ => _.getAll))
+ *   run(Effect.andThen(Users.asEffect(), (_) => _.getAll))
  * }).pipe(
  *   Effect.scoped // The fibers will be interrupted when the scope is closed
  * )
@@ -574,8 +574,7 @@ export const runtimePromise = <A, E>(self: FiberSet<A, E>): <R = never>() => Eff
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { FiberSet } from "effect"
+ * import { Effect, FiberSet } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const set = yield* FiberSet.make()
@@ -604,13 +603,13 @@ export const size = <A, E>(self: FiberSet<A, E>): Effect.Effect<number> =>
  * ```ts
  * import { Effect, FiberSet } from "effect"
  *
- * Effect.gen(function* () {
+ * Effect.gen(function*() {
  *   const set = yield* FiberSet.make()
  *   yield* FiberSet.add(set, Effect.runFork(Effect.fail("error")))
  *
  *   // parent fiber will fail with "error"
  *   yield* FiberSet.join(set)
- * });
+ * })
  * ```
  *
  * @since 2.0.0

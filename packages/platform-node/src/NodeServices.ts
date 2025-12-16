@@ -1,10 +1,10 @@
 /**
  * @since 1.0.0
  */
+import type { FileSystem } from "effect/FileSystem"
 import * as Layer from "effect/Layer"
-import type { FileSystem } from "effect/platform/FileSystem"
-import type { Path } from "effect/platform/Path"
-import type { Terminal } from "effect/platform/Terminal"
+import type { Path } from "effect/Path"
+import type { Terminal } from "effect/Terminal"
 import type { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
 import * as NodeChildProcessSpawner from "./NodeChildProcessSpawner.ts"
 import * as NodeFileSystem from "./NodeFileSystem.ts"

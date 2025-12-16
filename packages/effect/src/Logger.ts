@@ -74,8 +74,7 @@
  * ## Batched Logging
  *
  * ```ts
- * import { Effect, Logger } from "effect"
- * import { Duration } from "effect"
+ * import { Duration, Effect, Logger } from "effect"
  *
  * const batchedLogger = Logger.batched(Logger.formatJson, {
  *   window: Duration.seconds(5),
@@ -104,6 +103,7 @@ import type * as Cause from "./Cause.ts"
 import type * as Duration from "./Duration.ts"
 import type * as Effect from "./Effect.ts"
 import type * as Fiber from "./Fiber.ts"
+import * as FileSystem from "./FileSystem.ts"
 import * as Formatter from "./Formatter.ts"
 import { dual } from "./Function.ts"
 import { isEffect, withFiber } from "./internal/core.ts"
@@ -111,8 +111,7 @@ import * as effect from "./internal/effect.ts"
 import * as Layer from "./Layer.ts"
 import type * as LogLevel from "./LogLevel.ts"
 import type { Pipeable } from "./Pipeable.ts"
-import * as FileSystem from "./platform/FileSystem.ts"
-import type { PlatformError } from "./platform/PlatformError.ts"
+import type { PlatformError } from "./PlatformError.ts"
 import * as Predicate from "./Predicate.ts"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.ts"
 import type * as Scope from "./Scope.ts"
@@ -819,8 +818,7 @@ export const formatJson = map(formatStructured, Formatter.formatJson)
  *
  * @example
  * ```ts
- * import { Effect, Logger } from "effect"
- * import { Duration } from "effect"
+ * import { Duration, Effect, Logger } from "effect"
  *
  * // Create a batched logger that flushes every 5 seconds
  * const batchedLogger = Logger.batched(Logger.formatJson, {
@@ -1217,8 +1215,7 @@ export const layer = <
  * @example
  * ```ts
  * import { NodeFileSystem } from "@effect/platform-node"
- * import { Effect, Logger } from "effect"
- * import { Duration } from "effect"
+ * import { Duration, Effect, Logger } from "effect"
  *
  * // Basic file logging
  * const basicFileLogger = Effect.gen(function*() {

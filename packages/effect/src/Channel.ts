@@ -31,7 +31,6 @@
  * @example
  * ```ts
  * import { Channel } from "effect"
- * import { Effect } from "effect"
  *
  * // Simple channel that outputs numbers
  * const numberChannel = Channel.succeed(42)
@@ -45,7 +44,6 @@
  * @example
  * ```ts
  * import { Channel } from "effect"
- * import { Effect } from "effect"
  *
  * // Channel from an array of values
  * const arrayChannel = Channel.fromArray([1, 2, 3, 4, 5])
@@ -133,7 +131,7 @@ export const isChannel = (
  *
  * @example
  * ```ts
- * import { Channel } from "effect"
+ * import type { Channel } from "effect"
  *
  * // A channel that outputs numbers and requires no environment
  * type NumberChannel = Channel.Channel<number>
@@ -143,12 +141,12 @@ export const isChannel = (
  *
  * // A channel with all type parameters specified
  * type FullChannel = Channel.Channel<
- *   string,        // OutElem - output elements
- *   Error,         // OutErr - output errors
- *   number,        // OutDone - completion value
- *   number,        // InElem - input elements
- *   string,        // InErr - input errors
- *   boolean,       // InDone - input completion
+ *   string, // OutElem - output elements
+ *   Error, // OutErr - output errors
+ *   number, // OutDone - completion value
+ *   number, // InElem - input elements
+ *   string, // InErr - input errors
+ *   boolean, // InDone - input completion
  *   { db: string } // Env - required environment
  * >
  * ```
@@ -248,8 +246,7 @@ const ChannelProto = {
  *
  * @example
  * ```ts
- * import { Channel } from "effect"
- * import { Effect } from "effect"
+ * import { Channel, Effect } from "effect"
  *
  * const channel = Channel.fromTransform((upstream, scope) =>
  *   Effect.succeed(upstream)
@@ -284,16 +281,17 @@ export const fromTransform = <OutElem, OutErr, OutDone, InElem, InErr, InDone, E
  *
  * @example
  * ```ts
- * import { Channel } from "effect"
- * import { Effect } from "effect"
+ * import { Channel, Effect } from "effect"
  *
  * // Transform a channel by modifying its pull behavior
  * const originalChannel = Channel.fromIterable([1, 2, 3])
  *
- * const transformedChannel = Channel.transformPull(originalChannel, (pull, scope) =>
- *   Effect.succeed(
- *     Effect.map(pull, (value) => value * 2)
- *   )
+ * const transformedChannel = Channel.transformPull(
+ *   originalChannel,
+ *   (pull, scope) =>
+ *     Effect.succeed(
+ *       Effect.map(pull, (value) => value * 2)
+ *     )
  * )
  * // Outputs: 2, 4, 6
  * ```
@@ -336,8 +334,7 @@ export const transformPull = <
  *
  * @example
  * ```ts
- * import { Channel } from "effect"
- * import { Effect } from "effect"
+ * import { Channel, Effect } from "effect"
  *
  * const channel = Channel.fromPull(
  *   Effect.succeed(Effect.succeed(42))
@@ -443,8 +440,7 @@ const asyncQueue = <A, E = never, R = never>(
  *
  * @example
  * ```ts
- * import { Channel } from "effect"
- * import { Queue } from "effect"
+ * import { Channel, Queue } from "effect"
  *
  * const channel = Channel.callback<number>((queue) => {
  *   Queue.offer(queue, 1)
@@ -470,8 +466,7 @@ export const callback = <A, E = never, R = never>(
  *
  * @example
  * ```ts
- * import { Channel } from "effect"
- * import { Effect, Queue } from "effect"
+ * import { Channel, Effect, Queue } from "effect"
  *
  * const channel = Channel.callbackArray<number>(Effect.fn(function*(queue) {
  *   yield* Queue.offer(queue, 1)
@@ -516,8 +511,7 @@ export const suspend = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Channel } from "effect"
+ * import { Channel, Effect } from "effect"
  *
  * const channel = Channel.acquireUseRelease(
  *   Effect.succeed("resource"),
@@ -552,8 +546,7 @@ export const acquireUseRelease = <A, E, R, OutElem, OutErr, OutDone, InElem, InE
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Channel } from "effect"
+ * import { Channel, Effect } from "effect"
  *
  * const channel = Channel.acquireRelease(
  *   Effect.succeed("resource"),
@@ -632,8 +625,7 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Channel<A> =>
  *
  * @example
  * ```ts
- * import { Channel } from "effect"
- * import { Chunk } from "effect"
+ * import { Channel, Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3)
  * const channel = Channel.fromChunk(chunk)
@@ -651,7 +643,6 @@ export const fromChunk = <A>(chunk: Chunk.Chunk<A>): Channel<A> => fromArray(Chu
  * @example
  * ```ts
  * import { Channel } from "effect"
- * import { Effect } from "effect"
  *
  * // Create a channel from a simple iterator
  * const numberIterator = (): Iterator<number, string> => {
@@ -678,8 +669,8 @@ export const fromChunk = <A>(chunk: Chunk.Chunk<A>): Channel<A> => fromArray(Chu
  * function* fibonacci(): Generator<number, void, unknown> {
  *   let a = 0, b = 1
  *   for (let i = 0; i < 5; i++) {
- *     yield a;
- *     [a, b] = [b, a + b]
+ *     yield a
+ *     ;[a, b] = [b, a + b]
  *   }
  * }
  *
@@ -842,7 +833,6 @@ export const empty: Channel<never> = fromPull(Effect.succeed(Pull.haltVoid))
  * @example
  * ```ts
  * import { Channel } from "effect"
- * import { Effect } from "effect"
  *
  * // Create a channel that never completes
  * const neverChannel = Channel.never
@@ -869,7 +859,6 @@ export const never: Channel<never, never, never> = fromPull(Effect.succeed(Effec
  * @example
  * ```ts
  * import { Channel } from "effect"
- * import { Effect } from "effect"
  *
  * // Create a channel that fails with a string error
  * const failedChannel = Channel.fail("Something went wrong")
@@ -931,8 +920,7 @@ export const failSync = <E>(evaluate: LazyArg<E>): Channel<never, E, never> => f
  *
  * @example
  * ```ts
- * import { Cause } from "effect"
- * import { Channel } from "effect"
+ * import { Cause, Channel } from "effect"
  *
  * // Create a channel that fails with a simple cause
  * const simpleCause = Cause.fail("Simple error")
@@ -958,8 +946,7 @@ export const failCause = <E>(cause: Cause.Cause<E>): Channel<never, E, never> =>
  *
  * @example
  * ```ts
- * import { Cause } from "effect"
- * import { Channel } from "effect"
+ * import { Cause, Channel } from "effect"
  *
  * // Create a channel that fails with a lazily computed cause
  * const failedChannel = Channel.failCauseSync(() => {
@@ -1011,9 +998,7 @@ export const die = (defect: unknown): Channel<never, never, never> => failCause(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data, Effect } from "effect"
  *
  * class DatabaseError extends Data.TaggedError("DatabaseError")<{
  *   readonly message: string
@@ -1027,14 +1012,14 @@ export const die = (defect: unknown): Channel<never, never, never> => failCause(
  * // Create a channel from an effect that might fail
  * const fetchUserChannel = Channel.fromEffect(
  *   Effect.tryPromise({
- *     try: () => fetch("/api/user").then(res => res.json()),
+ *     try: () => fetch("/api/user").then((res) => res.json()),
  *     catch: (error) => new DatabaseError({ message: String(error) })
  *   })
  * )
  *
  * // Channel from effect with async computation
  * const asyncChannel = Channel.fromEffect(
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     yield* Effect.sleep("100 millis")
  *     return "Async result"
  *   })
@@ -1082,16 +1067,13 @@ export const fromEffectTake = <A, E, Done, E2, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { Queue } from "effect"
+ * import { Channel, Data, Effect, Queue } from "effect"
  *
  * class QueueError extends Data.TaggedError("QueueError")<{
  *   readonly reason: string
  * }> {}
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a bounded queue
  *   const queue = yield* Queue.bounded<string, QueueError>(10)
  *
@@ -1108,7 +1090,7 @@ export const fromEffectTake = <A, E, Done, E2, R>(
  * })
  *
  * // Sliding queue example
- * const slidingProgram = Effect.gen(function* () {
+ * const slidingProgram = Effect.gen(function*() {
  *   const slidingQueue = yield* Queue.sliding<number, QueueError>(5)
  *   yield* Queue.offerAll(slidingQueue, [1, 2, 3, 4, 5, 6])
  *   return Channel.fromQueue(slidingQueue)
@@ -1127,16 +1109,13 @@ export const fromQueue = <A, E>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { Queue } from "effect"
+ * import { Channel, Data, Effect, Queue } from "effect"
  *
  * class ProcessingError extends Data.TaggedError("ProcessingError")<{
  *   readonly stage: string
  * }> {}
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a queue for batch processing
  *   const queue = yield* Queue.bounded<number, ProcessingError>(100)
  *
@@ -1152,13 +1131,14 @@ export const fromQueue = <A, E>(
  * })
  *
  * // High-throughput processing example
- * const batchProcessor = Effect.gen(function* () {
+ * const batchProcessor = Effect.gen(function*() {
  *   const dataQueue = yield* Queue.dropping<string, ProcessingError>(1000)
  *   const batchChannel = Channel.fromQueueArray(dataQueue)
  *
  *   // Process data in batches for better performance
- *   return Channel.map(batchChannel, (batch) =>
- *     batch.map(item => item.toUpperCase())
+ *   return Channel.map(
+ *     batchChannel,
+ *     (batch) => batch.map((item) => item.toUpperCase())
  *   )
  * })
  * ```
@@ -1182,16 +1162,13 @@ export const identity = <Elem, Err, Done>(): Channel<Elem, Err, Done, Elem, Err,
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { PubSub } from "effect"
+ * import { Channel, Data, Effect, PubSub } from "effect"
  *
  * class SubscriptionError extends Data.TaggedError("SubscriptionError")<{
  *   readonly reason: string
  * }> {}
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a PubSub
  *   const pubsub = yield* PubSub.bounded<string>(32)
  *
@@ -1212,7 +1189,7 @@ export const identity = <Elem, Err, Done>(): Channel<Elem, Err, Done, Elem, Err,
  * })
  *
  * // Real-time notifications example
- * const notificationChannel = Effect.gen(function* () {
+ * const notificationChannel = Effect.gen(function*() {
  *   const eventBus = yield* PubSub.unbounded<{ type: string; payload: any }>()
  *   const userSubscription = yield* PubSub.subscribe(eventBus)
  *
@@ -1239,16 +1216,13 @@ export const fromSubscription = <A>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { PubSub } from "effect"
+ * import { Channel, Data, Effect, PubSub } from "effect"
  *
  * class StreamError extends Data.TaggedError("StreamError")<{
  *   readonly message: string
  * }> {}
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<number>(16)
  *   const subscription = yield* PubSub.subscribe(pubsub)
  *
@@ -1268,16 +1242,13 @@ export const fromSubscription = <A>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { PubSub } from "effect"
+ * import { Channel, Data, Effect, PubSub } from "effect"
  *
  * class BatchProcessingError extends Data.TaggedError("BatchProcessingError")<{
  *   readonly reason: string
  * }> {}
  *
- * const batchProcessor = Effect.gen(function* () {
+ * const batchProcessor = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(32)
  *   const subscription = yield* PubSub.subscribe(pubsub)
  *
@@ -1287,7 +1258,7 @@ export const fromSubscription = <A>(
  *   // Transform to process each batch
  *   const processedChannel = Channel.map(batchChannel, (batch) => {
  *     console.log(`Processing batch of ${batch.length} items:`, batch)
- *     return batch.map(item => item.toUpperCase())
+ *     return batch.map((item) => item.toUpperCase())
  *   })
  *
  *   return processedChannel
@@ -1296,17 +1267,16 @@ export const fromSubscription = <A>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { PubSub } from "effect"
+ * import { Channel, Data, Effect, PubSub } from "effect"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
  *   readonly cause: string
  * }> {}
  *
- * const metricsAggregator = Effect.gen(function* () {
- *   const metricsPubSub = yield* PubSub.bounded<{ timestamp: number; value: number }>(100)
+ * const metricsAggregator = Effect.gen(function*() {
+ *   const metricsPubSub = yield* PubSub.bounded<
+ *     { timestamp: number; value: number }
+ *   >(100)
  *   const subscription = yield* PubSub.subscribe(metricsPubSub)
  *
  *   // Create a channel that collects metrics in chunks
@@ -1314,7 +1284,7 @@ export const fromSubscription = <A>(
  *
  *   // Transform to calculate aggregate statistics
  *   const aggregatedChannel = Channel.map(metricsChannel, (metrics) => {
- *     const values = metrics.map(m => m.value)
+ *     const values = metrics.map((m) => m.value)
  *     const sum = values.reduce((a, b) => a + b, 0)
  *     const avg = sum / values.length
  *     const min = Math.min(...values)
@@ -1353,16 +1323,13 @@ export const fromSubscriptionArray = <A>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { PubSub } from "effect"
+ * import { Channel, Data, Effect, PubSub } from "effect"
  *
  * class StreamError extends Data.TaggedError("StreamError")<{
  *   readonly message: string
  * }> {}
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<number>(16)
  *
  *   // Create a channel that reads individual values
@@ -1380,16 +1347,13 @@ export const fromSubscriptionArray = <A>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { PubSub } from "effect"
+ * import { Channel, Data, Effect, PubSub } from "effect"
  *
  * class NotificationError extends Data.TaggedError("NotificationError")<{
  *   readonly reason: string
  * }> {}
  *
- * const notificationService = Effect.gen(function* () {
+ * const notificationService = Effect.gen(function*() {
  *   const notificationPubSub = yield* PubSub.bounded<string>(50)
  *
  *   // Create a channel for real-time notifications
@@ -1408,10 +1372,7 @@ export const fromSubscriptionArray = <A>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { PubSub } from "effect"
+ * import { Channel, Data, Effect, PubSub } from "effect"
  *
  * class EventProcessingError extends Data.TaggedError("EventProcessingError")<{
  *   readonly eventType: string
@@ -1424,7 +1385,7 @@ export const fromSubscriptionArray = <A>(
  *   readonly timestamp: number
  * }
  *
- * const eventProcessor = Effect.gen(function* () {
+ * const eventProcessor = Effect.gen(function*() {
  *   const eventPubSub = yield* PubSub.bounded<DomainEvent>(100)
  *
  *   // Create a channel for processing domain events
@@ -1465,16 +1426,13 @@ export const fromPubSub = <A>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { PubSub } from "effect"
+ * import { Channel, Data, Effect, PubSub } from "effect"
  *
  * class BatchError extends Data.TaggedError("BatchError")<{
  *   readonly message: string
  * }> {}
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<number>(16)
  *
  *   // Create a channel that reads arrays of values
@@ -1493,10 +1451,7 @@ export const fromPubSub = <A>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { PubSub } from "effect"
+ * import { Channel, Data, Effect, PubSub } from "effect"
  *
  * class OrderProcessingError extends Data.TaggedError("OrderProcessingError")<{
  *   readonly orderId: string
@@ -1510,7 +1465,7 @@ export const fromPubSub = <A>(
  *   readonly total: number
  * }
  *
- * const orderBatchProcessor = Effect.gen(function* () {
+ * const orderBatchProcessor = Effect.gen(function*() {
  *   const orderPubSub = yield* PubSub.bounded<Order>(100)
  *
  *   // Create a channel that processes orders in batches
@@ -1519,7 +1474,9 @@ export const fromPubSub = <A>(
  *   // Transform to process each batch of orders
  *   const processedChannel = Channel.map(orderChannel, (orderBatch) => {
  *     const totalRevenue = orderBatch.reduce((sum, order) => sum + order.total, 0)
- *     const customerCount = new Set(orderBatch.map(order => order.customerId)).size
+ *     const customerCount = new Set(orderBatch.map((order) =>
+ *       order.customerId
+ *     )).size
  *
  *     return {
  *       batchSize: orderBatch.length,
@@ -1536,10 +1493,7 @@ export const fromPubSub = <A>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { PubSub } from "effect"
+ * import { Channel, Data, Effect, PubSub } from "effect"
  *
  * class LogProcessingError extends Data.TaggedError("LogProcessingError")<{
  *   readonly batchId: string
@@ -1553,7 +1507,7 @@ export const fromPubSub = <A>(
  *   readonly source: string
  * }
  *
- * const logAggregator = Effect.gen(function* () {
+ * const logAggregator = Effect.gen(function*() {
  *   const logPubSub = yield* PubSub.bounded<LogEntry>(500)
  *
  *   // Create a channel that collects logs in batches
@@ -1561,13 +1515,13 @@ export const fromPubSub = <A>(
  *
  *   // Transform to analyze log batches
  *   const analysisChannel = Channel.map(logChannel, (logBatch) => {
- *     const errorCount = logBatch.filter(log => log.level === "error").length
- *     const warnCount = logBatch.filter(log => log.level === "warn").length
- *     const infoCount = logBatch.filter(log => log.level === "info").length
+ *     const errorCount = logBatch.filter((log) => log.level === "error").length
+ *     const warnCount = logBatch.filter((log) => log.level === "warn").length
+ *     const infoCount = logBatch.filter((log) => log.level === "info").length
  *
  *     const timeRange = {
- *       start: Math.min(...logBatch.map(log => log.timestamp)),
- *       end: Math.max(...logBatch.map(log => log.timestamp))
+ *       start: Math.min(...logBatch.map((log) => log.timestamp)),
+ *       end: Math.max(...logBatch.map((log) => log.timestamp))
  *     }
  *
  *     return {
@@ -1577,7 +1531,7 @@ export const fromPubSub = <A>(
  *       warnCount,
  *       infoCount,
  *       timeRange,
- *       sources: [...new Set(logBatch.map(log => log.source))]
+ *       sources: [...new Set(logBatch.map((log) => log.source))]
  *     }
  *   })
  *
@@ -1651,9 +1605,7 @@ export const fromAsyncIterableArray = <A, D, E>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class TransformError extends Data.TaggedError("TransformError")<{
  *   readonly reason: string
@@ -1775,9 +1727,7 @@ const concurrencyIsSequential = (
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data, Effect } from "effect"
  *
  * class NetworkError extends Data.TaggedError("NetworkError")<{
  *   readonly url: string
@@ -1792,20 +1742,22 @@ const concurrencyIsSequential = (
  *
  * const fetchDataChannel = Channel.mapEffect(
  *   urlsChannel,
- *   (url) => Effect.tryPromise({
- *     try: () => fetch(url).then(res => res.json()),
- *     catch: () => new NetworkError({ url })
- *   })
+ *   (url) =>
+ *     Effect.tryPromise({
+ *       try: () => fetch(url).then((res) => res.json()),
+ *       catch: () => new NetworkError({ url })
+ *     })
  * )
  *
  * // Concurrent processing with options
  * const numbersChannel = Channel.fromIterable([1, 2, 3, 4, 5])
  * const processedChannel = Channel.mapEffect(
  *   numbersChannel,
- *   (n) => Effect.gen(function* () {
- *     yield* Effect.sleep("100 millis") // Simulate async work
- *     return n * n
- *   }),
+ *   (n) =>
+ *     Effect.gen(function*() {
+ *       yield* Effect.sleep("100 millis") // Simulate async work
+ *       return n * n
+ *     }),
  *   { concurrency: 3, unordered: true }
  * )
  * ```
@@ -2038,10 +1990,7 @@ export const mapInputError: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Console } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Console, Data } from "effect"
  *
  * class LogError extends Data.TaggedError("LogError")<{
  *   readonly message: string
@@ -2051,8 +2000,9 @@ export const mapInputError: {
  * const numberChannel = Channel.fromIterable([1, 2, 3])
  *
  * // Tap into each output element to perform side effects
- * const tappedChannel = Channel.tap(numberChannel, (n) =>
- *   Console.log(`Processing number: ${n}`)
+ * const tappedChannel = Channel.tap(
+ *   numberChannel,
+ *   (n) => Console.log(`Processing number: ${n}`)
  * )
  *
  * // The channel still outputs the same elements but logs each one
@@ -2099,9 +2049,7 @@ export const tap: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class ProcessError extends Data.TaggedError("ProcessError")<{
  *   readonly cause: string
@@ -2111,8 +2059,10 @@ export const tap: {
  * const numberChannel = Channel.fromIterable([1, 2, 3])
  *
  * // FlatMap each number to create new channels
- * const flatMappedChannel = Channel.flatMap(numberChannel, (n) =>
- *   Channel.fromIterable(Array.from({ length: n }, (_, i) => `item-${n}-${i}`))
+ * const flatMappedChannel = Channel.flatMap(
+ *   numberChannel,
+ *   (n) =>
+ *     Channel.fromIterable(Array.from({ length: n }, (_, i) => `item-${n}-${i}`))
  * )
  *
  * // Flattens nested channels into a single stream
@@ -2304,9 +2254,7 @@ const flatMapConcurrent = <
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class ConcatError extends Data.TaggedError("ConcatError")<{
  *   readonly reason: string
@@ -2314,9 +2262,7 @@ const flatMapConcurrent = <
  *
  * // Create a channel that outputs numbers and terminates with sum
  * const numberChannel = Channel.fromIterable([1, 2, 3]).pipe(
- *   Channel.concatWith((sum: void) =>
- *     Channel.succeed(`Completed processing`)
- *   )
+ *   Channel.concatWith((sum: void) => Channel.succeed(`Completed processing`))
  * )
  *
  * // Concatenates additional channel based on completion value
@@ -2420,9 +2366,7 @@ export const concatWith: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class ConcatError extends Data.TaggedError("ConcatError")<{
  *   readonly reason: string
@@ -2727,9 +2671,7 @@ export const orElseIfEmpty: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class FlattenError extends Data.TaggedError("FlattenError")<{
  *   readonly cause: string
@@ -2783,9 +2725,7 @@ export const flatten = <
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class FlattenError extends Data.TaggedError("FlattenError")<{
  *   readonly message: string
@@ -2872,7 +2812,6 @@ export const flattenTake = <
  * @example
  * ```ts
  * import { Channel } from "effect"
- * import { Effect } from "effect"
  *
  * // Create a channel that outputs values
  * const sourceChannel = Channel.fromIterable([1, 2, 3, 4, 5])
@@ -3008,7 +2947,6 @@ export const schedule: {
  * @example
  * ```ts
  * import { Channel } from "effect"
- * import { Effect } from "effect"
  *
  * // Create a channel with mixed numbers
  * const numbersChannel = Channel.fromIterable([1, 2, 3, 4, 5, 6, 7, 8])
@@ -3019,7 +2957,8 @@ export const schedule: {
  *
  * // Filter with type refinement
  * const mixedChannel = Channel.fromIterable([1, "hello", 2, "world", 3])
- * const numbersOnlyChannel = Channel.filter(mixedChannel,
+ * const numbersOnlyChannel = Channel.filter(
+ *   mixedChannel,
  *   (value): value is number => typeof value === "number"
  * )
  * // Outputs: 1, 2, 3 (all typed as numbers)
@@ -3062,9 +3001,7 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Array } from "effect"
- * import { Filter } from "effect"
- * import { Channel } from "effect"
+ * import { Array, Channel, Filter } from "effect"
  *
  * const nonEmptyArrayFilter: Filter.Filter<
  *   Array<number>,
@@ -3147,8 +3084,7 @@ export const filterArrayEffect: {
  *
  * @example
  * ```ts
- * import { Channel } from "effect"
- * import { Effect } from "effect"
+ * import { Channel, Effect } from "effect"
  *
  * // Create a channel with numbers
  * const numbersChannel = Channel.fromIterable([1, 2, 3, 4])
@@ -3169,10 +3105,11 @@ export const filterArrayEffect: {
  * const asyncMapAccum = Channel.mapAccum(
  *   numbersChannel,
  *   () => "",
- *   (acc, value) => Effect.gen(function* () {
- *     const newAcc = acc + value.toString()
- *     return [newAcc, [`${value}-processed`, newAcc]] as const
- *   })
+ *   (acc, value) =>
+ *     Effect.gen(function*() {
+ *       const newAcc = acc + value.toString()
+ *       return [newAcc, [`${value}-processed`, newAcc]] as const
+ *     })
  * )
  * ```
  *
@@ -3289,7 +3226,6 @@ export const mapAccum: {
  * @example
  * ```ts
  * import { Channel } from "effect"
- * import { Effect } from "effect"
  *
  * // Create a channel with numbers
  * const numbersChannel = Channel.fromIterable([1, 2, 3, 4, 5])
@@ -3301,8 +3237,10 @@ export const mapAccum: {
  *
  * // Scan with string concatenation
  * const wordsChannel = Channel.fromIterable(["hello", "world", "from", "effect"])
- * const sentenceChannel = Channel.scan(wordsChannel, "", (sentence, word) =>
- *   sentence === "" ? word : `${sentence} ${word}`
+ * const sentenceChannel = Channel.scan(
+ *   wordsChannel,
+ *   "",
+ *   (sentence, word) => sentence === "" ? word : `${sentence} ${word}`
  * )
  * // Outputs: "", "hello", "hello world", "hello world from", "hello world from effect"
  * ```
@@ -3345,9 +3283,7 @@ export const scan: {
  *
  * @example
  * ```ts
- * import { Channel } from "effect"
- * import { Effect } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data, Effect } from "effect"
  *
  * class ScanError extends Data.TaggedError("ScanError")<{
  *   readonly reason: string
@@ -3360,11 +3296,12 @@ export const scan: {
  * const asyncScanChannel = Channel.scanEffect(
  *   numbersChannel,
  *   "",
- *   (acc, value) => Effect.gen(function* () {
- *     // Simulate async work
- *     yield* Effect.sleep("10 millis")
- *     return acc + value.toString()
- *   })
+ *   (acc, value) =>
+ *     Effect.gen(function*() {
+ *       // Simulate async work
+ *       yield* Effect.sleep("10 millis")
+ *       return acc + value.toString()
+ *     })
  * )
  * // Outputs: "", "1", "12", "123", "1234"
  *
@@ -3435,9 +3372,7 @@ export const scanEffect: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Cause, Channel, Data } from "effect"
  *
  * class ProcessError extends Data.TaggedError("ProcessError")<{
  *   readonly reason: string
@@ -3448,7 +3383,9 @@ export const scanEffect: {
  * }> {}
  *
  * // Create a failing channel
- * const failingChannel = Channel.fail(new ProcessError({ reason: "network error" }))
+ * const failingChannel = Channel.fail(
+ *   new ProcessError({ reason: "network error" })
+ * )
  *
  * // Catch the cause and provide recovery
  * const recoveredChannel = Channel.catchCause(failingChannel, (cause) => {
@@ -4106,9 +4043,7 @@ export const mapError: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class ValidationError extends Data.TaggedError("ValidationError")<{
  *   readonly field: string
@@ -4237,9 +4172,7 @@ export const retry: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class SwitchError extends Data.TaggedError("SwitchError")<{
  *   readonly reason: string
@@ -4249,8 +4182,9 @@ export const retry: {
  * const numberChannel = Channel.fromIterable([1, 2, 3])
  *
  * // Switch to new channels based on each value
- * const switchedChannel = Channel.switchMap(numberChannel, (n) =>
- *   Channel.fromIterable([`value-${n}`])
+ * const switchedChannel = Channel.switchMap(
+ *   numberChannel,
+ *   (n) => Channel.fromIterable([`value-${n}`])
  * )
  *
  * // Outputs: "value-1", "value-2", "value-3"
@@ -4356,9 +4290,7 @@ export const switchMap: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class MergeAllError extends Data.TaggedError("MergeAllError")<{
  *   readonly reason: string
@@ -4525,13 +4457,13 @@ export const mergeAll: {
  *
  * @example
  * ```ts
- * import { Channel } from "effect"
+ * import type { Channel } from "effect"
  *
  * // Different halt strategies for channel merging
- * const leftFirst: Channel.HaltStrategy = "left"   // Stop when left channel halts
- * const rightFirst: Channel.HaltStrategy = "right"  // Stop when right channel halts
- * const both: Channel.HaltStrategy = "both"         // Stop when both channels halt
- * const either: Channel.HaltStrategy = "either"     // Stop when either channel halts
+ * const leftFirst: Channel.HaltStrategy = "left" // Stop when left channel halts
+ * const rightFirst: Channel.HaltStrategy = "right" // Stop when right channel halts
+ * const both: Channel.HaltStrategy = "both" // Stop when both channels halt
+ * const either: Channel.HaltStrategy = "either" // Stop when either channel halts
  * ```
  *
  * @since 2.0.0
@@ -4545,9 +4477,7 @@ export type HaltStrategy = "left" | "right" | "both" | "either"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class MergeError extends Data.TaggedError("MergeError")<{
  *   readonly source: string
@@ -4863,9 +4793,7 @@ export const encodeText = <Err, Done>(): Channel<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class PipeError extends Data.TaggedError("PipeError")<{
  *   readonly stage: string
@@ -4912,9 +4840,7 @@ export const pipeTo: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class SourceError extends Data.TaggedError("SourceError")<{
  *   readonly code: number
@@ -4975,10 +4901,7 @@ export const pipeToOrFail: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { Scope } from "effect"
+ * import { Channel, Data, Effect } from "effect"
  *
  * class UnwrapError extends Data.TaggedError("UnwrapError")<{
  *   readonly reason: string
@@ -5027,9 +4950,7 @@ export const scoped = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data, Effect } from "effect"
  *
  * class EmbedError extends Data.TaggedError("EmbedError")<{
  *   readonly stage: string
@@ -5039,8 +4960,9 @@ export const scoped = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
  * const baseChannel = Channel.fromIterable([1, 2, 3])
  *
  * // Embed input handling - simplified example
- * const embeddedChannel = Channel.embedInput(baseChannel, (_upstream) =>
- *   Effect.void
+ * const embeddedChannel = Channel.embedInput(
+ *   baseChannel,
+ *   (_upstream) => Effect.void
  * )
  * ```
  *
@@ -5261,10 +5183,7 @@ export const onError: {
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Channel } from "effect"
- * import { Console } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Console, Data, Exit } from "effect"
  *
  * class ExitError extends Data.TaggedError("ExitError")<{
  *   readonly stage: string
@@ -5384,10 +5303,7 @@ export const onEnd: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Console } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Console, Data } from "effect"
  *
  * class EnsureError extends Data.TaggedError("EnsureError")<{
  *   readonly operation: string
@@ -5397,7 +5313,8 @@ export const onEnd: {
  * const dataChannel = Channel.fromIterable([1, 2, 3])
  *
  * // Ensure cleanup always runs
- * const channelWithCleanup = Channel.ensuring(dataChannel,
+ * const channelWithCleanup = Channel.ensuring(
+ *   dataChannel,
  *   Console.log("Cleanup executed regardless of success or failure")
  * )
  * ```
@@ -5853,9 +5770,7 @@ export const bindTo: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class CountError extends Data.TaggedError("CountError")<{
  *   readonly reason: string
@@ -5882,9 +5797,7 @@ export const runCount = <OutElem, OutErr, OutDone, Env>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class DrainError extends Data.TaggedError("DrainError")<{
  *   readonly stage: string
@@ -5892,7 +5805,10 @@ export const runCount = <OutElem, OutErr, OutDone, Env>(
  *
  * // Create a channel that outputs elements and completes with a result
  * const resultChannel = Channel.fromIterable([1, 2, 3])
- * const completedChannel = Channel.concatWith(resultChannel, () => Channel.succeed("completed"))
+ * const completedChannel = Channel.concatWith(
+ *   resultChannel,
+ *   () => Channel.succeed("completed")
+ * )
  *
  * // Drain all elements and get only the final result
  * const drainEffect = Channel.runDrain(completedChannel)
@@ -5912,10 +5828,7 @@ export const runDrain = <OutElem, OutErr, OutDone, Env>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Console } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Console, Data } from "effect"
  *
  * class ForEachError extends Data.TaggedError("ForEachError")<{
  *   readonly element: unknown
@@ -5925,8 +5838,9 @@ export const runDrain = <OutElem, OutErr, OutDone, Env>(
  * const numbersChannel = Channel.fromIterable([1, 2, 3])
  *
  * // Run forEach to log each element
- * const forEachEffect = Channel.runForEach(numbersChannel, (n) =>
- *   Console.log(`Processing: ${n}`)
+ * const forEachEffect = Channel.runForEach(
+ *   numbersChannel,
+ *   (n) => Console.log(`Processing: ${n}`)
  * )
  *
  * // Logs: "Processing: 1", "Processing: 2", "Processing: 3"
@@ -5987,9 +5901,7 @@ export const runForEachWhile: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class CollectError extends Data.TaggedError("CollectError")<{
  *   readonly reason: string
@@ -6073,9 +5985,7 @@ export const runLast = <OutElem, OutErr, OutDone, Env>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class FoldError extends Data.TaggedError("FoldError")<{
  *   readonly operation: string
@@ -6171,10 +6081,7 @@ export const runFoldEffect: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { Scope } from "effect"
+ * import { Channel, Data, Effect } from "effect"
  *
  * class PullError extends Data.TaggedError("PullError")<{
  *   readonly step: string
@@ -6222,10 +6129,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { Scope } from "effect"
+ * import { Channel, Data, Effect, Scope } from "effect"
  *
  * class ScopedPullError extends Data.TaggedError("ScopedPullError")<{
  *   readonly reason: string
@@ -6235,7 +6139,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
  * const numbersChannel = Channel.fromIterable([1, 2, 3])
  *
  * // Convert to Pull with explicit scope
- * const scopedPullEffect = Effect.gen(function* () {
+ * const scopedPullEffect = Effect.gen(function*() {
  *   const scope = yield* Scope.make()
  *   const pull = yield* Channel.toPullScoped(numbersChannel, scope)
  *   return pull
@@ -6315,10 +6219,7 @@ export const runIntoQueueArray: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Channel } from "effect"
- * import { Data } from "effect"
- * import { Queue } from "effect"
+ * import { Channel, Data } from "effect"
  *
  * class QueueError extends Data.TaggedError("QueueError")<{
  *   readonly operation: string

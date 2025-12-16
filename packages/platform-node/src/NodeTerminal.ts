@@ -4,8 +4,8 @@
 import * as NodeTerminal from "@effect/platform-node-shared/NodeTerminal"
 import type { Effect } from "effect/Effect"
 import type { Layer } from "effect/Layer"
-import type { Terminal, UserInput } from "effect/platform/Terminal"
 import type { Scope } from "effect/Scope"
+import type { Terminal, UserInput } from "effect/Terminal"
 
 /**
  * @since 1.0.0

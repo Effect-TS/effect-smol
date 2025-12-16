@@ -11,12 +11,12 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
+import type * as FileSystem from "../../FileSystem.ts"
 import type { LazyArg } from "../../Function.ts"
 import { dual, identity } from "../../Function.ts"
 import * as Option from "../../Option.ts"
+import type * as Path from "../../Path.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
-import type * as FileSystem from "../../platform/FileSystem.ts"
-import type * as Path from "../../platform/Path.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
@@ -230,7 +230,7 @@ export const isParam = (u: unknown): u is Param<any, ParamKind> => Predicate.has
  * const nameParam = Param.string(Param.flagKind, "name")
  * const optionalParam = Param.optional(nameParam)
  *
- * console.log(Param.isSingle(nameParam))    // true
+ * console.log(Param.isSingle(nameParam)) // true
  * console.log(Param.isSingle(optionalParam)) // false
  * ```
  *
@@ -693,7 +693,9 @@ export const fileText = <Kind extends ParamKind>(kind: Kind, name: string): Para
  * const config = Param.fileParse(Param.flagKind, "config")
  *
  * // Will use the JSON parser
- * const jsonConfig = Param.fileParse(Param.flagKind, "json-config", { format: "json" })
+ * const jsonConfig = Param.fileParse(Param.flagKind, "json-config", {
+ *   format: "json"
+ * })
  * ```
  *
  * @since 4.0.0
@@ -846,7 +848,7 @@ const FLAG_DASH_REGEXP = /^-+/
  * // Also works on composed params:
  * const count = Param.integer(Param.flagKind, "count").pipe(
  *   Param.optional,
- *   Param.withAlias("-c")  // finds the underlying Single and adds alias
+ *   Param.withAlias("-c") // finds the underlying Single and adds alias
  * )
  * ```
  *
@@ -906,7 +908,7 @@ export const withDescription: {
  * // @internal - this module is not exported publicly
  *
  * const port = Param.integer(Param.flagKind, "port").pipe(
- *   Param.map(n => ({ port: n, url: `http://localhost:${n}` }))
+ *   Param.map((n) => ({ port: n, url: `http://localhost:${n}` }))
  * )
  * ```
  *
@@ -939,18 +941,20 @@ export const map: {
  * import * as Param from "effect/unstable/cli/Param"
  *
  * // @internal - this module is not exported publicly
- * import { CliError } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { CliError } from "effect/unstable/cli"
  *
  * const validatedEmail = Param.string(Param.flagKind, "email").pipe(
- *   Param.mapEffect(email =>
+ *   Param.mapEffect((email) =>
  *     email.includes("@")
  *       ? Effect.succeed(email)
- *       : Effect.fail(new CliError.InvalidValue({
- *         option: "email",
- *         value: email,
- *         expected: "valid email format"
- *       }))
+ *       : Effect.fail(
+ *         new CliError.InvalidValue({
+ *           option: "email",
+ *           value: email,
+ *           expected: "valid email format"
+ *         })
+ *       )
  *   )
  * )
  * ```
@@ -996,8 +1000,9 @@ export const mapEffect: {
  *
  * const parsedJson = Param.string(Param.flagKind, "config").pipe(
  *   Param.mapTryCatch(
- *     str => JSON.parse(str),
- *     error => `Invalid JSON: ${error instanceof Error ? error.message : String(error)}`
+ *     (str) => JSON.parse(str),
+ *     (error) =>
+ *       `Invalid JSON: ${error instanceof Error ? error.message : String(error)}`
  *   )
  * )
  * ```
@@ -1164,13 +1169,13 @@ export type VariadicParamOptions = {
  * // Variadic with minimum count
  * const inputs = Param.variadic(
  *   Param.string(Param.flagKind, "input"),
- *   { min: 1 }  // at least 1 required
+ *   { min: 1 } // at least 1 required
  * )
  *
  * // Variadic with both min and max
  * const limited = Param.variadic(Param.string(Param.flagKind, "item"), {
  *   min: 2, // at least 2 times
- *   max: 2, // at most 5 times
+ *   max: 2 // at most 5 times
  * })
  * ```
  *
@@ -1380,8 +1385,8 @@ export const filterMap: {
  *
  * const evenNumber = Param.integer(Param.flagKind, "num").pipe(
  *   Param.filter(
- *     n => n % 2 === 0,
- *     n => `Expected even number, got ${n}`
+ *     (n) => n % 2 === 0,
+ *     (n) => `Expected even number, got ${n}`
  *   )
  * )
  * ```
@@ -1419,7 +1424,10 @@ export const filter: {
  *
  * const port = Param.integer(Param.flagKind, "port").pipe(
  *   Param.withMetavar("PORT"),
- *   Param.filter(p => p >= 1 && p <= 65535, () => "Port must be between 1 and 65535")
+ *   Param.filter(
+ *     (p) => p >= 1 && p <= 65535,
+ *     () => "Port must be between 1 and 65535"
+ *   )
  * )
  * ```
  *

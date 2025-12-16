@@ -20,8 +20,7 @@ const TypeId = "~effect/RcRef"
  * @category models
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcRef } from "effect"
+ * import { Effect, RcRef } from "effect"
  *
  * // Create an RcRef for a database connection
  * const createConnectionRef = (connectionString: string) =>
@@ -33,7 +32,7 @@ const TypeId = "~effect/RcRef"
  *   })
  *
  * // Use the RcRef in multiple operations
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const connectionRef = yield* createConnectionRef("postgres://localhost")
  *
  *   // Multiple gets will share the same connection
@@ -94,8 +93,7 @@ export declare namespace RcRef {
  * @category constructors
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcRef } from "effect"
+ * import { Effect, RcRef } from "effect"
  *
  * Effect.gen(function*() {
  *   const ref = yield* RcRef.make({
@@ -136,10 +134,9 @@ export const make: <A, E, R>(
  * @category combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcRef } from "effect"
+ * import { Effect, RcRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create an RcRef with a resource
  *   const ref = yield* RcRef.make({
  *     acquire: Effect.acquireRelease(

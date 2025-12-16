@@ -21,24 +21,27 @@
  * @example
  * ```ts
  * import { Effect, Match } from "effect"
- * import { AiError } from "effect/unstable/ai"
+ * import type { AiError } from "effect/unstable/ai"
  *
  * const handleAiError = Match.type<AiError.AiError>().pipe(
- *   Match.tag("HttpRequestError", (err) =>
- *     Effect.logError(`Request failed: ${err.message}`)
+ *   Match.tag(
+ *     "HttpRequestError",
+ *     (err) => Effect.logError(`Request failed: ${err.message}`)
  *   ),
- *   Match.tag("HttpResponseError", (err) =>
- *     Effect.logError(`Response error (${err.response.status}): ${err.message}`)
+ *   Match.tag(
+ *     "HttpResponseError",
+ *     (err) =>
+ *       Effect.logError(`Response error (${err.response.status}): ${err.message}`)
  *   ),
- *   Match.tag("MalformedInput", (err) =>
- *     Effect.logError(`Invalid input: ${err.message}`)
+ *   Match.tag(
+ *     "MalformedInput",
+ *     (err) => Effect.logError(`Invalid input: ${err.message}`)
  *   ),
- *   Match.tag("MalformedOutput", (err) =>
- *     Effect.logError(`Invalid output: ${err.message}`)
+ *   Match.tag(
+ *     "MalformedOutput",
+ *     (err) => Effect.logError(`Invalid output: ${err.message}`)
  *   ),
- *   Match.orElse((err) =>
- *     Effect.logError(`Unknown error: ${err.message}`)
- *   )
+ *   Match.orElse((err) => Effect.logError(`Unknown error: ${err.message}`))
  * )
  * ```
  *
@@ -47,7 +50,7 @@
  * import { Effect } from "effect"
  * import { AiError } from "effect/unstable/ai"
  *
- * const aiOperation = Effect.gen(function* () {
+ * const aiOperation = Effect.gen(function*() {
  *   // Some AI operation that might fail
  *   return yield* new AiError.HttpRequestError({
  *     module: "OpenAI",
@@ -86,11 +89,11 @@ export * as AiError from "./AiError.ts"
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
- * import { Chat, LanguageModel } from "effect/unstable/ai"
+ * import { Effect } from "effect"
+ * import { Chat } from "effect/unstable/ai"
  *
  * // Create a new chat session
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const chat = yield* Chat.empty
  *
  *   // Send a message and get response
@@ -106,19 +109,16 @@ export * as AiError from "./AiError.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { Chat, LanguageModel } from "effect/unstable/ai"
+ * import { Effect, Stream } from "effect"
+ * import { Chat } from "effect/unstable/ai"
  *
  * // Streaming chat with tool support
- * const streamingChat = Effect.gen(function* () {
+ * const streamingChat = Effect.gen(function*() {
  *   const chat = yield* Chat.empty
  *
  *   yield* chat.streamText({
  *     prompt: "Generate a creative story"
- *   }).pipe(Stream.runForEach((part) =>
- *     Effect.sync(() => console.log(part))
- *   ))
+ *   }).pipe(Stream.runForEach((part) => Effect.sync(() => console.log(part))))
  * })
  * ```
  *
@@ -135,11 +135,11 @@ export * as Chat from "./Chat.ts"
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
+ * import { Effect } from "effect"
  * import { IdGenerator } from "effect/unstable/ai"
  *
  * // Using the default ID generator
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const idGen = yield* IdGenerator.IdGenerator
  *   const toolCallId = yield* idGen.generateId()
  *   console.log(toolCallId) // "id_A7xK9mP2qR5tY8uV"
@@ -152,7 +152,7 @@ export * as Chat from "./Chat.ts"
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
+ * import { Effect } from "effect"
  * import { IdGenerator } from "effect/unstable/ai"
  *
  * // Creating a custom ID generator for AI tool calls
@@ -163,7 +163,7 @@ export * as Chat from "./Chat.ts"
  *   size: 12
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const idGen = yield* IdGenerator.IdGenerator
  *   const id = yield* idGen.generateId()
  *   console.log(id) // "tool_call-A7XK9MP2QR5T"
@@ -191,7 +191,7 @@ export * as IdGenerator from "./IdGenerator.ts"
  * import { LanguageModel } from "effect/unstable/ai"
  *
  * // Basic text generation
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateText({
  *     prompt: "Explain quantum computing"
  *   })
@@ -214,7 +214,7 @@ export * as IdGenerator from "./IdGenerator.ts"
  *   email: Schema.String
  * })
  *
- * const extractContact = Effect.gen(function* () {
+ * const extractContact = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateObject({
  *     prompt: "Extract contact: John Doe, john@example.com",
  *     schema: ContactSchema
@@ -248,14 +248,15 @@ export * as McpServer from "./McpServer.ts"
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
- * import { Model, LanguageModel } from "effect/unstable/ai"
+ * import type { Layer } from "effect"
+ * import { Effect } from "effect"
+ * import { LanguageModel, Model } from "effect/unstable/ai"
  *
  * declare const myAnthropicLayer: Layer.Layer<LanguageModel.LanguageModel>
  *
  * const anthropicModel = Model.make("anthropic", myAnthropicLayer)
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateText({
  *     prompt: "Hello, world!"
  *   })
@@ -366,7 +367,7 @@ export * as Response from "./Response.ts"
  * import { Telemetry } from "effect/unstable/ai"
  *
  * // Add telemetry attributes to a span
- * const addTelemetry = Effect.gen(function* () {
+ * const addTelemetry = Effect.gen(function*() {
  *   const span = yield* Effect.currentSpan
  *
  *   Telemetry.addGenAIAnnotations(span, {
@@ -399,10 +400,10 @@ export * as Telemetry from "./Telemetry.ts"
  *
  * @example
  * ```ts
- * import { Tokenizer, Prompt } from "effect/unstable/ai"
  * import { Effect } from "effect"
+ * import { Tokenizer } from "effect/unstable/ai"
  *
- * const tokenizeText = Effect.gen(function* () {
+ * const tokenizeText = Effect.gen(function*() {
  *   const tokenizer = yield* Tokenizer.Tokenizer
  *   const tokens = yield* tokenizer.tokenize("Hello, world!")
  *   console.log(`Token count: ${tokens.length}`)
@@ -412,11 +413,11 @@ export * as Telemetry from "./Telemetry.ts"
  *
  * @example
  * ```ts
- * import { Tokenizer, Prompt } from "effect/unstable/ai"
  * import { Effect } from "effect"
+ * import { Tokenizer } from "effect/unstable/ai"
  *
  * // Truncate a prompt to fit within token limits
- * const truncatePrompt = Effect.gen(function* () {
+ * const truncatePrompt = Effect.gen(function*() {
  *   const tokenizer = yield* Tokenizer.Tokenizer
  *   const longPrompt = "This is a very long prompt..."
  *   const truncated = yield* tokenizer.truncate(longPrompt, 100)
@@ -467,7 +468,7 @@ export * as Tool from "./Tool.ts"
  * ```ts
  * import { Effect } from "effect"
  * import { Schema } from "effect/schema"
- * import { Toolkit, Tool } from "effect/unstable/ai"
+ * import { Tool, Toolkit } from "effect/unstable/ai"
  *
  * // Create individual tools
  * const GetCurrentTime = Tool.make("GetCurrentTime", {
@@ -489,10 +490,11 @@ export * as Tool from "./Tool.ts"
  *
  * const MyToolkitLayer = MyToolkit.toLayer({
  *   GetCurrentTime: () => Effect.succeed(Date.now()),
- *   GetWeather: ({ location }) => Effect.succeed({
- *     temperature: 72,
- *     condition: "sunny"
- *   })
+ *   GetWeather: ({ location }) =>
+ *     Effect.succeed({
+ *       temperature: 72,
+ *       condition: "sunny"
+ *     })
  * })
  * ```
  *

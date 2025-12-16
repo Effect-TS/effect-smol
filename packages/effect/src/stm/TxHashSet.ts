@@ -381,8 +381,7 @@ export const remove: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Equal, Hash } from "effect"
+ * import { Effect, Equal, Hash } from "effect"
  * import { TxHashSet } from "effect/stm"
  *
  * const program = Effect.gen(function*() {

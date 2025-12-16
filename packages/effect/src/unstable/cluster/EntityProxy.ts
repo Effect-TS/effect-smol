@@ -20,10 +20,15 @@ const clientErrors = [
  * Derives an `RpcGroup` from an `Entity`.
  *
  * ```ts
- * import { ClusterSchema, Entity, EntityProxy, EntityProxyServer } from "effect/unstable/cluster"
- * import { Rpc, RpcServer } from "effect/unstable/rpc"
- * import { Schema } from "effect/schema"
  * import { Layer } from "effect"
+ * import { Schema } from "effect/schema"
+ * import {
+ *   ClusterSchema,
+ *   Entity,
+ *   EntityProxy,
+ *   EntityProxyServer
+ * } from "effect/unstable/cluster"
+ * import { Rpc, RpcServer } from "effect/unstable/rpc"
  *
  * export const Counter = Entity.make("Counter", [
  *   Rpc.make("Increment", {
@@ -128,11 +133,16 @@ const entityIdPath = Schema.Struct({
  * Derives an `HttpApiGroup` from an `Entity`.
  *
  * ```ts
- * import { ClusterSchema, Entity, EntityProxy, EntityProxyServer } from "effect/unstable/cluster"
+ * import { Layer } from "effect"
+ * import { Schema } from "effect/schema"
+ * import {
+ *   ClusterSchema,
+ *   Entity,
+ *   EntityProxy,
+ *   EntityProxyServer
+ * } from "effect/unstable/cluster"
  * import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi"
  * import { Rpc } from "effect/unstable/rpc"
- * import { Schema } from "effect/schema"
- * import { Layer } from "effect"
  *
  * export const Counter = Entity.make("Counter", [
  *   Rpc.make("Increment", {

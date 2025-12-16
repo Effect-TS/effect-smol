@@ -2,10 +2,10 @@ import * as Array from "effect/Array"
 import * as Console from "effect/Console"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import * as Terminal from "effect/platform/Terminal"
 import * as Queue from "effect/Queue"
 import type * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
+import * as Terminal from "effect/Terminal"
 
 // =============================================================================
 // Models

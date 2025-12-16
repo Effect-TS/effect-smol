@@ -357,7 +357,7 @@ export const getAndIncrement = (self: MutableRef<number>): number => getAndUpdat
  * console.log(previousValue) // "new"
  *
  * // Useful for atomic swaps in algorithms
- * const buffer = MutableRef.make<string[]>(["a", "b", "c"])
+ * const buffer = MutableRef.make<Array<string>>(["a", "b", "c"])
  * const oldBuffer = MutableRef.getAndSet(buffer, [])
  * console.log(oldBuffer) // ["a", "b", "c"]
  * console.log(MutableRef.get(buffer)) // []
@@ -410,7 +410,7 @@ export const getAndSet: {
  * console.log(result) // Previous value before increment
  *
  * // Useful for implementing atomic operations
- * const list = MutableRef.make<number[]>([1, 2, 3])
+ * const list = MutableRef.make<Array<number>>([1, 2, 3])
  * const oldList = MutableRef.getAndUpdate(list, (arr) => [...arr, 4])
  * console.log(oldList) // [1, 2, 3]
  * console.log(MutableRef.get(list)) // [1, 2, 3, 4]
@@ -525,10 +525,10 @@ export const incrementAndGet = (self: MutableRef<number>): number => updateAndGe
  * console.log(MutableRef.get(ref)) // "new value"
  *
  * // Useful for state management
- * const state = MutableRef.make<'idle' | 'loading' | 'success' | 'error'>('idle')
- * MutableRef.set(state, 'loading')
+ * const state = MutableRef.make<"idle" | "loading" | "success" | "error">("idle")
+ * MutableRef.set(state, "loading")
  * // ... perform async operation
- * MutableRef.set(state, 'success')
+ * MutableRef.set(state, "success")
  * ```
  *
  * @since 2.0.0
@@ -625,7 +625,7 @@ export const setAndGet: {
  * console.log(MutableRef.get(counter)) // 24
  *
  * // Array operations
- * const list = MutableRef.make<number[]>([1, 2, 3])
+ * const list = MutableRef.make<Array<number>>([1, 2, 3])
  * MutableRef.update(list, (arr) => [...arr, 4])
  * console.log(MutableRef.get(list)) // [1, 2, 3, 4]
  * ```
@@ -677,8 +677,8 @@ export const update: {
  * console.log(`New score: ${newScore}`) // "New score: 150"
  *
  * // Array transformations
- * const list = MutableRef.make<number[]>([1, 2, 3])
- * const newList = MutableRef.updateAndGet(list, (arr) => arr.map(x => x * 2))
+ * const list = MutableRef.make<Array<number>>([1, 2, 3])
+ * const newList = MutableRef.updateAndGet(list, (arr) => arr.map((x) => x * 2))
  * console.log(newList) // [2, 4, 6]
  * console.log(MutableRef.get(list)) // [2, 4, 6]
  * ```
@@ -720,7 +720,7 @@ export const updateAndGet: {
  * const darkMode = MutableRef.make(false)
  * const toggleDarkMode = () => {
  *   MutableRef.toggle(darkMode)
- *   console.log(`Dark mode: ${MutableRef.get(darkMode) ? 'ON' : 'OFF'}`)
+ *   console.log(`Dark mode: ${MutableRef.get(darkMode) ? "ON" : "OFF"}`)
  * }
  *
  * toggleDarkMode() // "Dark mode: ON"

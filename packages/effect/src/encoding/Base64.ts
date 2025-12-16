@@ -67,8 +67,8 @@ const encodeUint8Array = (bytes: Uint8Array) => {
  *
  * @example
  * ```ts
- * import { Base64 } from "effect/encoding"
  * import { Result } from "effect"
+ * import { Base64 } from "effect/encoding"
  *
  * const result = Base64.decode("SGVsbG8=")
  * if (Result.isSuccess(result)) {
@@ -137,8 +137,8 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
  *
  * @example
  * ```ts
- * import { Base64 } from "effect/encoding"
  * import { Result } from "effect"
+ * import { Base64 } from "effect/encoding"
  *
  * const result = Base64.decodeString("aGVsbG8=")
  * if (Result.isSuccess(result)) {

@@ -9,7 +9,7 @@
  *
  * @example
  * ```ts
- * import * as HelpDoc from "effect/unstable/cli/HelpDoc"
+ * import type * as HelpDoc from "effect/unstable/cli/HelpDoc"
  *
  * const deployCommandHelp: HelpDoc.HelpDoc = {
  *   description: "Deploy your application to the cloud",
@@ -78,7 +78,7 @@ export interface HelpDoc {
  *
  * @example
  * ```ts
- * import { HelpDoc } from "effect/unstable/cli"
+ * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const verboseFlag: HelpDoc.FlagDoc = {
  *   name: "verbose",
@@ -132,7 +132,7 @@ export interface FlagDoc {
  *
  * @example
  * ```ts
- * import { HelpDoc } from "effect/unstable/cli"
+ * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const deploySubcommand: HelpDoc.SubcommandDoc = {
  *   name: "deploy",
@@ -173,7 +173,7 @@ export interface SubcommandDoc {
  *
  * @example
  * ```ts
- * import { HelpDoc } from "effect/unstable/cli"
+ * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const sourceArg: HelpDoc.ArgDoc = {
  *   name: "source",

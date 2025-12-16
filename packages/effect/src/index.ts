@@ -161,7 +161,6 @@ export * as Cause from "./Cause.ts"
  * @example
  * ```ts
  * import { Channel } from "effect"
- * import { Effect } from "effect"
  *
  * // Simple channel that outputs numbers
  * const numberChannel = Channel.succeed(42)
@@ -175,7 +174,6 @@ export * as Cause from "./Cause.ts"
  * @example
  * ```ts
  * import { Channel } from "effect"
- * import { Effect } from "effect"
  *
  * // Channel from an array of values
  * const arrayChannel = Channel.fromArray([1, 2, 3, 4, 5])
@@ -252,12 +250,11 @@ export * as ChannelSchema from "./ChannelSchema.ts"
  *
  * @example
  * ```ts
- * import { Chunk } from "effect"
-import { Effect } from "effect"
+ * import { Chunk, Effect } from "effect"
  *
  * // Working with Effects
  * const processChunk = (chunk: Chunk.Chunk<number>) =>
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const mapped = Chunk.map(chunk, (n) => n * 2)
  *     const filtered = Chunk.filter(mapped, (n) => n > 5)
  *     return Chunk.toReadonlyArray(filtered)
@@ -461,17 +458,15 @@ export * as DateTime from "./DateTime.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Deferred } from "effect"
- * import { Fiber } from "effect"
+ * import { Deferred, Effect, Fiber } from "effect"
  *
  * // Basic usage: coordinate between fibers
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const deferred = yield* Deferred.make<string, never>()
  *
  *   // Fiber 1: waits for the value
  *   const waiter = yield* Effect.forkChild(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const value = yield* Deferred.await(deferred)
  *       console.log("Received:", value)
  *       return value
@@ -480,7 +475,7 @@ export * as DateTime from "./DateTime.ts"
  *
  *   // Fiber 2: sets the value after a delay
  *   const setter = yield* Effect.forkChild(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Effect.sleep("1 second")
  *       yield* Deferred.succeed(deferred, "Hello from setter!")
  *     })
@@ -492,15 +487,15 @@ export * as DateTime from "./DateTime.ts"
  * })
  *
  * // Producer-consumer pattern
- * const producerConsumer = Effect.gen(function* () {
- *   const buffer = yield* Deferred.make<number[], never>()
+ * const producerConsumer = Effect.gen(function*() {
+ *   const buffer = yield* Deferred.make<Array<number>, never>()
  *
- *   const producer = Effect.gen(function* () {
+ *   const producer = Effect.gen(function*() {
  *     const data = [1, 2, 3, 4, 5]
  *     yield* Deferred.succeed(buffer, data)
  *   })
  *
- *   const consumer = Effect.gen(function* () {
+ *   const consumer = Effect.gen(function*() {
  *     const data = yield* Deferred.await(buffer)
  *     return data.reduce((sum, n) => sum + n, 0)
  *   })
@@ -560,14 +555,13 @@ export * as Duration from "./Duration.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * // Creating a simple effect
  * const hello = Effect.succeed("Hello, World!")
  *
  * // Composing effects
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const message = yield* hello
  *   yield* Console.log(message)
  *   return message.length
@@ -588,7 +582,7 @@ export * as Duration from "./Duration.ts"
  *     : Effect.succeed(a / b)
  *
  * // Error handling
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const result = yield* divide(10, 2)
  *   console.log("Result:", result) // Result: 5
  *   return result
@@ -628,8 +622,7 @@ export * as Equal from "./Equal.ts"
  *
  * @example
  * ```ts
- * import { Equivalence } from "effect"
- * import { Array } from "effect"
+ * import { Array, Equivalence } from "effect"
  *
  * // Case-insensitive string equivalence
  * const caseInsensitive = Equivalence.make<string>((a, b) =>
@@ -695,15 +688,13 @@ export * as Exit from "./Exit.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
- * import { Fiber } from "effect"
+ * import { Console, Effect, Fiber } from "effect"
  *
  * // Basic fiber operations
- * const basicExample = Effect.gen(function* () {
+ * const basicExample = Effect.gen(function*() {
  *   // Fork an effect to run concurrently
  *   const fiber = yield* Effect.forkChild(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Effect.sleep("2 seconds")
  *       yield* Console.log("Background task completed")
  *       return "background result"
@@ -720,7 +711,7 @@ export * as Exit from "./Exit.ts"
  * })
  *
  * // Joining multiple fibers
- * const joinExample = Effect.gen(function* () {
+ * const joinExample = Effect.gen(function*() {
  *   const task1 = Effect.delay(Effect.succeed("task1"), "1 second")
  *   const task2 = Effect.delay(Effect.succeed("task2"), "2 seconds")
  *
@@ -735,9 +726,9 @@ export * as Exit from "./Exit.ts"
  * })
  *
  * // Parallel execution with structured concurrency
- * const parallelExample = Effect.gen(function* () {
- *   const tasks = [1, 2, 3, 4, 5].map(n =>
- *     Effect.gen(function* () {
+ * const parallelExample = Effect.gen(function*() {
+ *   const tasks = [1, 2, 3, 4, 5].map((n) =>
+ *     Effect.gen(function*() {
  *       yield* Effect.sleep(`${n * 100} millis`)
  *       return n * n
  *     })
@@ -767,6 +758,45 @@ export * as FiberMap from "./FiberMap.ts"
  * @since 2.0.0
  */
 export * as FiberSet from "./FiberSet.ts"
+
+/**
+ * This module provides a comprehensive file system abstraction that supports both synchronous
+ * and asynchronous file operations through Effect. It includes utilities for file I/O, directory
+ * management, permissions, timestamps, and file watching with proper error handling.
+ *
+ * The `FileSystem` interface provides a cross-platform abstraction over file system operations,
+ * allowing you to work with files and directories in a functional, composable way. All operations
+ * return `Effect` values that can be composed, transformed, and executed safely.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, FileSystem } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const fs = yield* FileSystem.FileSystem
+ *
+ *   // Create a directory
+ *   yield* fs.makeDirectory("./temp", { recursive: true })
+ *
+ *   // Write a file
+ *   yield* fs.writeFileString("./temp/hello.txt", "Hello, World!")
+ *
+ *   // Read the file back
+ *   const content = yield* fs.readFileString("./temp/hello.txt")
+ *   yield* Console.log("File content:", content)
+ *
+ *   // Get file information
+ *   const stats = yield* fs.stat("./temp/hello.txt")
+ *   yield* Console.log("File size:", stats.size)
+ *
+ *   // Clean up
+ *   yield* fs.remove("./temp", { recursive: true })
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ */
+export * as FileSystem from "./FileSystem.ts"
 
 /**
  * @since 4.0.0
@@ -873,8 +903,8 @@ export * as Inspectable from "./Inspectable.ts"
  *
  * // Create iterables
  * const numbers = Iterable.range(1, 5)
- * const doubled = Iterable.map(numbers, x => x * 2)
- * const filtered = Iterable.filter(doubled, x => x > 5)
+ * const doubled = Iterable.map(numbers, (x) => x * 2)
+ * const filtered = Iterable.filter(doubled, (x) => x > 5)
  *
  * console.log(Array.from(filtered)) // [6, 8, 10]
  *
@@ -990,8 +1020,7 @@ export * as LayerMap from "./LayerMap.ts"
  * ## Batched Logging
  *
  * ```ts
- * import { Effect, Logger } from "effect"
- * import { Duration } from "effect"
+ * import { Duration, Effect, Logger } from "effect"
  *
  * const batchedLogger = Logger.batched(Logger.formatJson, {
  *   window: Duration.seconds(5),
@@ -1457,7 +1486,13 @@ export * as MutableRef from "./MutableRef.ts"
  * }
  *
  * // Using Array.make to create non-empty arrays
- * const numbers = Array.make(1, 2, 3, 4, 5) as unknown as NonEmptyIterable.NonEmptyIterable<number>
+ * const numbers = Array.make(
+ *   1,
+ *   2,
+ *   3,
+ *   4,
+ *   5
+ * ) as unknown as NonEmptyIterable.NonEmptyIterable<number>
  * const firstNumber = processNonEmpty(numbers) // number
  *
  * // Regular arrays can be asserted as NonEmptyIterable when known to be non-empty
@@ -1477,16 +1512,19 @@ export * as MutableRef from "./MutableRef.ts"
  * ## Working with Different Iterable Types
  *
  * ```ts
- * import { pipe } from "effect"
- * import * as NonEmptyIterable from "effect/NonEmptyIterable"
  * import { Array } from "effect"
- * import * as Chunk from "effect/Chunk"
  *
  * // Creating non-empty arrays
- * const nonEmptyArray = Array.make(1, 2, 3) as unknown as NonEmptyIterable.NonEmptyIterable<number>
+ * const nonEmptyArray = Array.make(
+ *   1,
+ *   2,
+ *   3
+ * ) as unknown as NonEmptyIterable.NonEmptyIterable<number>
  *
  * // Working with strings (assert as NonEmptyIterable when known to be non-empty)
- * const nonEmptyString = "hello" as unknown as NonEmptyIterable.NonEmptyIterable<string>
+ * const nonEmptyString = "hello" as unknown as NonEmptyIterable.NonEmptyIterable<
+ *   string
+ * >
  * const [firstChar] = NonEmptyIterable.unprepend(nonEmptyString)
  * console.log(firstChar) // "h"
  *
@@ -1510,17 +1548,18 @@ export * as MutableRef from "./MutableRef.ts"
  *   }
  * }
  *
- * const [firstFib, restFib] = NonEmptyIterable.unprepend(fibonacci() as unknown as NonEmptyIterable.NonEmptyIterable<number>)
+ * const [firstFib, restFib] = NonEmptyIterable.unprepend(
+ *   fibonacci() as unknown as NonEmptyIterable.NonEmptyIterable<number>
+ * )
  * console.log(firstFib) // 1
  * ```
  *
  * ## Integration with Effect Arrays
  *
  * ```ts
- * import { pipe } from "effect"
- * import * as NonEmptyIterable from "effect/NonEmptyIterable"
- * import { Array } from "effect"
- * import * as Chunk from "effect/Chunk"
+ * import { Array, pipe } from "effect"
+ * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
  * // Many Array functions work with NonEmptyIterable
  * declare const nonEmptyData: NonEmptyIterable.NonEmptyIterable<number>
@@ -1528,8 +1567,8 @@ export * as MutableRef from "./MutableRef.ts"
  * const processData = pipe(
  *   nonEmptyData,
  *   Array.fromIterable,
- *   Array.map(x => x * 2),
- *   Array.filter(x => x > 5),
+ *   Array.map((x) => x * 2),
+ *   Array.filter((x) => x > 5)
  *   // Result is a regular array since filtering might make it empty
  * )
  *
@@ -1537,7 +1576,7 @@ export * as MutableRef from "./MutableRef.ts"
  * const doubledData = pipe(
  *   nonEmptyData,
  *   Array.fromIterable,
- *   Array.map(x => x * 2)
+ *   Array.map((x) => x * 2)
  *   // This would still be non-empty if the source was non-empty
  * )
  * ```
@@ -1648,9 +1687,19 @@ export * as Order from "./Order.ts"
 export * as Ordering from "./Ordering.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as Path from "./Path.ts"
+
+/**
  * @since 2.0.0
  */
 export * as Pipeable from "./Pipeable.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as PlatformError from "./PlatformError.ts"
 
 /**
  * @since 2.0.0
@@ -1684,9 +1733,7 @@ export * as PrimaryKey from "./PrimaryKey.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Scope } from "effect"
- * import { PubSub } from "effect"
+ * import { Effect, PubSub } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.bounded<string>(10)
@@ -1723,8 +1770,7 @@ export * as Pull from "./Pull.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Effect, Queue } from "effect"
  *
  * // Creating a bounded queue with capacity 10
  * const program = Effect.gen(function*() {
@@ -1760,7 +1806,7 @@ export * as Queue from "./Queue.ts"
  * ```ts
  * import { Effect, Random } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const randomFloat = yield* Random.next
  *   console.log("Random float:", randomFloat)
  *
@@ -1822,16 +1868,15 @@ export * as Reducer from "./Reducer.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a ref with initial value
  *   const counter = yield* Ref.make(0)
  *
  *   // Atomic operations
- *   yield* Ref.update(counter, n => n + 1)
- *   yield* Ref.update(counter, n => n * 2)
+ *   yield* Ref.update(counter, (n) => n + 1)
+ *   yield* Ref.update(counter, (n) => n * 2)
  *
  *   const value = yield* Ref.get(counter)
  *   console.log(value) // 2
@@ -1903,14 +1948,12 @@ export * as Result from "./Result.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Runtime } from "effect"
- * import { Fiber } from "effect"
+ * import { Effect, Fiber, Runtime } from "effect"
  *
  * // Create a main runner for Node.js
  * const runMain = Runtime.makeRunMain((options) => {
- *   process.on('SIGINT', () => Effect.runFork(Fiber.interrupt(options.fiber)))
- *   process.on('SIGTERM', () => Effect.runFork(Fiber.interrupt(options.fiber)))
+ *   process.on("SIGINT", () => Effect.runFork(Fiber.interrupt(options.fiber)))
+ *   process.on("SIGTERM", () => Effect.runFork(Fiber.interrupt(options.fiber)))
  *
  *   options.fiber.addObserver((exit) => {
  *     options.teardown(exit, (code) => process.exit(code))
@@ -1936,9 +1979,7 @@ export * as Runtime from "./Runtime.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Duration } from "effect"
+ * import { Effect, Schedule } from "effect"
  *
  * // Retry with exponential backoff
  * const retryPolicy = Schedule.exponential("100 millis", 2.0)
@@ -2052,6 +2093,11 @@ export * as SynchronizedRef from "./SynchronizedRef.ts"
  * @since 2.0.0
  */
 export * as Take from "./Take.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as Terminal from "./Terminal.ts"
 
 /**
  * @since 2.0.0

@@ -42,7 +42,8 @@ const TypeId = "~effect/collections/MutableHashMap"
  * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * // Create a mutable hash map with string keys and number values
- * const map: MutableHashMap.MutableHashMap<string, number> = MutableHashMap.empty()
+ * const map: MutableHashMap.MutableHashMap<string, number> = MutableHashMap
+ *   .empty()
  *
  * // Add some data
  * MutableHashMap.set(map, "count", 42)
@@ -164,7 +165,7 @@ export const make: <Entries extends Array<readonly [any, any]>>(
  * console.log(MutableHashMap.size(map)) // 3
  *
  * // Works with any iterable
- * const fromMap = MutableHashMap.fromIterable(new Map([['x', 10], ['y', 20]]))
+ * const fromMap = MutableHashMap.fromIterable(new Map([["x", 10], ["y", 20]]))
  * console.log(MutableHashMap.get(fromMap, "x")) // Some(10)
  * ```
  *
@@ -185,7 +186,6 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
  * @example
  * ```ts
  * import * as MutableHashMap from "effect/MutableHashMap"
- * import * as Option from "effect/Option"
  *
  * const map = MutableHashMap.make(["key1", 42], ["key2", 100])
  *
@@ -273,7 +273,7 @@ export const keys = <K, V>(self: MutableHashMap<K, V>): Iterable<K> => self.back
  * console.log(total) // 6
  *
  * // Filter values
- * const largeValues = allValues.filter(value => value > 1)
+ * const largeValues = allValues.filter((value) => value > 1)
  * console.log(largeValues) // [2, 3]
  * ```
  *
@@ -479,14 +479,18 @@ export const modify: {
  * const map = MutableHashMap.make(["count", 5])
  *
  * // Update existing key
- * MutableHashMap.modifyAt(map, "count", (option) =>
- *   Option.map(option, (n) => n * 2)
+ * MutableHashMap.modifyAt(
+ *   map,
+ *   "count",
+ *   (option) => Option.map(option, (n) => n * 2)
  * )
  * console.log(MutableHashMap.get(map, "count")) // Some(10)
  *
  * // Add new key
- * MutableHashMap.modifyAt(map, "new", (option) =>
- *   Option.isNone(option) ? Option.some(42) : option
+ * MutableHashMap.modifyAt(
+ *   map,
+ *   "new",
+ *   (option) => Option.isNone(option) ? Option.some(42) : option
  * )
  * console.log(MutableHashMap.get(map, "new")) // Some(42)
  *
@@ -495,8 +499,10 @@ export const modify: {
  * console.log(MutableHashMap.has(map, "count")) // false
  *
  * // Conditional update
- * MutableHashMap.modifyAt(map, "new", (option) =>
- *   Option.filter(option, (n) => n > 50) // Remove if <= 50
+ * MutableHashMap.modifyAt(
+ *   map,
+ *   "new",
+ *   (option) => Option.filter(option, (n) => n > 50) // Remove if <= 50
  * )
  * console.log(MutableHashMap.has(map, "new")) // false (42 <= 50)
  * ```

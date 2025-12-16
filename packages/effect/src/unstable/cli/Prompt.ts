@@ -5,18 +5,18 @@ import * as Arr from "../../Array.ts"
 import type { NoSuchElementError } from "../../Cause.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
+import * as FileSystem from "../../FileSystem.ts"
 import * as Filter from "../../Filter.ts"
 import { dual, pipe } from "../../Function.ts"
 import { YieldableProto } from "../../internal/core.ts"
 import * as EffectNumber from "../../Number.ts"
 import * as Option from "../../Option.ts"
+import * as Path from "../../Path.ts"
 import * as Pipeable from "../../Pipeable.ts"
-import * as FileSystem from "../../platform/FileSystem.ts"
-import * as Path from "../../platform/Path.ts"
-import * as Terminal from "../../platform/Terminal.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
 import * as Redacted from "../../Redacted.ts"
+import * as Terminal from "../../Terminal.ts"
 import type { Covariant } from "../../types/Types.ts"
 import * as Ansi from "./internal/ansi.ts"
 import type * as Primitive from "./Primitive.ts"
@@ -545,8 +545,8 @@ export declare namespace All {
  * **Example**
  *
  * ```ts
- * import { Prompt } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Prompt } from "effect/unstable/cli"
  *
  * const username = Prompt.text({
  *   message: "Enter your username: "

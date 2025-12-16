@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
+import type * as FileSystem from "../../FileSystem.ts"
 import type * as Inspectable from "../../Inspectable.ts"
-import type * as FileSystem from "../../platform/FileSystem.ts"
 import { hasProperty } from "../../Predicate.ts"
 import { redact } from "../../Redactable.ts"
 import type { ParseOptions } from "../../schema/AST.ts"

@@ -25,10 +25,10 @@
  * - Errors accumulate rather than throwing exceptions
  */
 import * as Effect from "../../../Effect.ts"
+import type { FileSystem } from "../../../FileSystem.ts"
 import type { LogLevel } from "../../../LogLevel.ts"
 import * as Option from "../../../Option.ts"
-import type { FileSystem } from "../../../platform/FileSystem.ts"
-import type { Path } from "../../../platform/Path.ts"
+import type { Path } from "../../../Path.ts"
 import * as CliError from "../CliError.ts"
 import type { Command, ParsedTokens } from "../Command.ts"
 import * as Param from "../Param.ts"

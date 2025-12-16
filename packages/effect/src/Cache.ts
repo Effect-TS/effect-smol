@@ -67,9 +67,7 @@ const TypeId = "~effect/Cache"
  *
  * @example
  * ```ts
- * import { Cache, Effect } from "effect"
- * import { Data } from "effect"
- * import { Duration } from "effect"
+ * import { Cache, Data, Duration, Effect } from "effect"
  *
  * // Cache with complex key types and TTL
  * class UserId extends Data.Class<{ id: number }> {}

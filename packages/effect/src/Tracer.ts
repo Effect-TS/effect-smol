@@ -11,12 +11,19 @@ import * as ServiceMap from "./ServiceMap.ts"
  * @category models
  * @example
  * ```ts
+ * import type { ServiceMap } from "effect"
  * import { Tracer } from "effect"
- * import { ServiceMap } from "effect"
  *
  * // Create a custom tracer implementation
  * const customTracer: Tracer.Tracer = {
- *   span: (name: string, parent: Tracer.AnySpan | undefined, context: ServiceMap.ServiceMap<never>, links: ReadonlyArray<Tracer.SpanLink>, startTime: bigint, kind: Tracer.SpanKind) => {
+ *   span: (
+ *     name: string,
+ *     parent: Tracer.AnySpan | undefined,
+ *     context: ServiceMap.ServiceMap<never>,
+ *     links: ReadonlyArray<Tracer.SpanLink>,
+ *     startTime: bigint,
+ *     kind: Tracer.SpanKind
+ *   ) => {
  *     console.log(`Creating span: ${name}`)
  *     return new Tracer.NativeSpan(name, parent, context, links, startTime, kind)
  *   },
@@ -49,8 +56,8 @@ export interface Tracer {
  * @category models
  * @example
  * ```ts
+ * import type { Tracer } from "effect"
  * import { Exit } from "effect"
- * import { Tracer } from "effect"
  *
  * // Started span status
  * const startedStatus: Tracer.SpanStatus = {
@@ -82,8 +89,7 @@ export type SpanStatus = {
  * @category models
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Tracer } from "effect"
+ * import { Effect, Tracer } from "effect"
  *
  * // Function that accepts any span type
  * const logSpan = (span: Tracer.AnySpan) => {
@@ -118,11 +124,10 @@ export const ParentSpanKey = "effect/Tracer/ParentSpan"
  * @category tags
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Tracer } from "effect"
+ * import { Effect, Tracer } from "effect"
  *
  * // Access the parent span from the context
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const parentSpan = yield* Effect.service(Tracer.ParentSpan)
  *   console.log(`Parent span: ${parentSpan.spanId}`)
  * })
@@ -135,8 +140,7 @@ export class ParentSpan extends ServiceMap.Service<ParentSpan, AnySpan>()(Parent
  * @category models
  * @example
  * ```ts
- * import { Tracer } from "effect"
- * import { ServiceMap } from "effect"
+ * import type { ServiceMap, Tracer } from "effect"
  *
  * // Create an external span from another tracing system
  * const externalSpan: Tracer.ExternalSpan = {
@@ -163,8 +167,8 @@ export interface ExternalSpan {
  * @category models
  * @example
  * ```ts
+ * import type { Tracer } from "effect"
  * import { Effect } from "effect"
- * import { Tracer } from "effect"
  *
  * // Create an effect with span options
  * const options: Tracer.SpanOptions = {
@@ -207,8 +211,8 @@ export interface TraceOptions {
  * @category models
  * @example
  * ```ts
+ * import type { Tracer } from "effect"
  * import { Effect } from "effect"
- * import { Tracer } from "effect"
  *
  * // Different span kinds for different operations
  * const serverSpan = Effect.withSpan("handle-request", {
@@ -264,8 +268,7 @@ export interface Span {
  * @category models
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Tracer } from "effect"
+ * import { Effect, Tracer } from "effect"
  *
  * // Create a span link to connect spans
  * const externalSpan = Tracer.externalSpan({
@@ -294,8 +297,6 @@ export interface SpanLink {
  * @example
  * ```ts
  * import { Tracer } from "effect"
- * import { ServiceMap } from "effect"
- * import { Option } from "effect"
  *
  * // Create a custom tracer with logging
  * const loggingTracer = Tracer.make({
@@ -317,8 +318,7 @@ export const make = (options: Tracer): Tracer => options
  * @category constructors
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Tracer } from "effect"
+ * import { Effect, Tracer } from "effect"
  *
  * // Create an external span from another tracing system
  * const span = Tracer.externalSpan({
@@ -353,11 +353,10 @@ export const externalSpan = (
  * @category references
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Tracer } from "effect"
+ * import { Effect, Tracer } from "effect"
  *
  * // Disable span propagation for a specific effect
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.log("This will not propagate parent span")
  * }).pipe(
  *   Effect.provideService(Tracer.DisablePropagation, true)
@@ -380,17 +379,16 @@ export const TracerKey = "effect/Tracer"
  * @category references
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Tracer } from "effect"
+ * import { Effect, Tracer } from "effect"
  *
  * // Access the current tracer from the context
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const tracer = yield* Effect.service(Tracer.Tracer)
  *   console.log("Using current tracer")
  * })
  *
  * // Or use the built-in tracer effect
- * const tracerEffect = Effect.gen(function* () {
+ * const tracerEffect = Effect.gen(function*() {
  *   const tracer = yield* Effect.tracer
  *   console.log("Current tracer obtained")
  * })
@@ -416,9 +414,7 @@ export const Tracer: ServiceMap.Reference<Tracer> = ServiceMap.Reference<Tracer>
  * @category native tracer
  * @example
  * ```ts
- * import { Tracer } from "effect"
- * import { ServiceMap } from "effect"
- * import { Option } from "effect"
+ * import { ServiceMap, Tracer } from "effect"
  *
  * // Create a native span directly
  * const span = new Tracer.NativeSpan(

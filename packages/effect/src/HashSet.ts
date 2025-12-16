@@ -212,15 +212,15 @@ export const add: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import * as HashSet from "effect/HashSet" // false
+ *
+ * // Works with any type that implements Equal
+ * import { Equal, Hash } from "effect"
  *
  * const set = HashSet.make("apple", "banana", "cherry")
  *
  * console.log(HashSet.has(set, "apple")) // true
- * console.log(HashSet.has(set, "grape")) // false
- *
- * // Works with any type that implements Equal
- * import { Equal, Hash } from "effect"
+ * console.log(HashSet.has(set, "grape"))
  *
  * class Person implements Equal.Equal {
  *   constructor(readonly name: string) {}
@@ -434,14 +434,14 @@ export const isSubset: {
  * import * as HashSet from "effect/HashSet"
  *
  * const numbers = HashSet.make(1, 2, 3)
- * const doubled = HashSet.map(numbers, n => n * 2)
+ * const doubled = HashSet.map(numbers, (n) => n * 2)
  *
  * console.log(Array.from(doubled).sort()) // [2, 4, 6]
  * console.log(HashSet.size(doubled)) // 3
  *
  * // Mapping can reduce size if function produces duplicates
  * const strings = HashSet.make("apple", "banana", "cherry")
- * const lengths = HashSet.map(strings, s => s.length)
+ * const lengths = HashSet.map(strings, (s) => s.length)
  * console.log(Array.from(lengths).sort()) // [5, 6] (apple=5, banana=6, cherry=6)
  * ```
  *
@@ -464,7 +464,7 @@ export const map: {
  * import * as HashSet from "effect/HashSet"
  *
  * const numbers = HashSet.make(1, 2, 3, 4, 5, 6)
- * const evens = HashSet.filter(numbers, n => n % 2 === 0)
+ * const evens = HashSet.filter(numbers, (n) => n % 2 === 0)
  *
  * console.log(Array.from(evens).sort()) // [2, 4, 6]
  * console.log(HashSet.size(evens)) // 3
@@ -498,11 +498,11 @@ export const filter: {
  *
  * const numbers = HashSet.make(1, 2, 3, 4, 5)
  *
- * console.log(HashSet.some(numbers, n => n > 3)) // true
- * console.log(HashSet.some(numbers, n => n > 10)) // false
+ * console.log(HashSet.some(numbers, (n) => n > 3)) // true
+ * console.log(HashSet.some(numbers, (n) => n > 10)) // false
  *
  * const empty = HashSet.empty<number>()
- * console.log(HashSet.some(empty, n => n > 0)) // false
+ * console.log(HashSet.some(empty, (n) => n > 0)) // false
  * ```
  *
  * @since 2.0.0
@@ -525,11 +525,11 @@ export const some: {
  *
  * const numbers = HashSet.make(2, 4, 6, 8)
  *
- * console.log(HashSet.every(numbers, n => n % 2 === 0)) // true
- * console.log(HashSet.every(numbers, n => n > 5)) // false
+ * console.log(HashSet.every(numbers, (n) => n % 2 === 0)) // true
+ * console.log(HashSet.every(numbers, (n) => n > 5)) // false
  *
  * const empty = HashSet.empty<number>()
- * console.log(HashSet.every(empty, n => n > 0)) // true (vacuously true)
+ * console.log(HashSet.every(empty, (n) => n > 0)) // true (vacuously true)
  * ```
  *
  * @since 2.0.0

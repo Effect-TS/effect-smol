@@ -77,16 +77,16 @@ export const make: <A>(value: A) => Effect.Effect<SubscriptionRef<A>> = Effect.f
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream, SubscriptionRef } from "effect"
+ * import { Effect, Stream, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(0)
  *
  *   const stream = SubscriptionRef.changes(ref)
  *
- *   const fiber = yield* Stream.runForEach(stream, (value) =>
- *     Effect.sync(() => console.log("Value:", value))
+ *   const fiber = yield* Stream.runForEach(
+ *     stream,
+ *     (value) => Effect.sync(() => console.log("Value:", value))
  *   ).pipe(Effect.forkScoped)
  *
  *   yield* SubscriptionRef.set(ref, 1)
@@ -117,10 +117,9 @@ export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(42)
  *
  *   const value = SubscriptionRef.getUnsafe(ref)
@@ -138,10 +137,9 @@ export const getUnsafe = <A>(self: SubscriptionRef<A>): A => self.backing.ref.cu
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(42)
  *
  *   const value = yield* SubscriptionRef.get(ref)
@@ -160,10 +158,9 @@ export const get = <A>(self: SubscriptionRef<A>): Effect.Effect<A> => Effect.syn
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
  *   const oldValue = yield* SubscriptionRef.getAndSet(ref, 20)
@@ -192,10 +189,9 @@ export const getAndSet: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
  *   const oldValue = yield* SubscriptionRef.getAndUpdate(ref, (n) => n * 2)
@@ -226,14 +222,14 @@ export const getAndUpdate: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
- *   const oldValue = yield* SubscriptionRef.getAndUpdateEffect(ref, (n) =>
- *     Effect.succeed(n + 5)
+ *   const oldValue = yield* SubscriptionRef.getAndUpdateEffect(
+ *     ref,
+ *     (n) => Effect.succeed(n + 5)
  *   )
  *   console.log("Old value:", oldValue)
  *
@@ -267,15 +263,14 @@ export const getAndUpdateEffect: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, Option, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
- *   const oldValue = yield* SubscriptionRef.getAndUpdateSome(ref, (n) =>
- *     n > 5 ? Option.some(n * 2) : Option.none()
+ *   const oldValue = yield* SubscriptionRef.getAndUpdateSome(
+ *     ref,
+ *     (n) => n > 5 ? Option.some(n * 2) : Option.none()
  *   )
  *   console.log("Old value:", oldValue)
  *
@@ -311,11 +306,9 @@ export const getAndUpdateSome: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, Option, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
  *   const oldValue = yield* SubscriptionRef.getAndUpdateSomeEffect(
@@ -361,10 +354,9 @@ export const getAndUpdateSomeEffect: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
  *   const result = yield* SubscriptionRef.modify(ref, (n) => [
@@ -401,14 +393,14 @@ export const modify: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
- *   const result = yield* SubscriptionRef.modifyEffect(ref, (n) =>
- *     Effect.succeed([`Doubled from ${n}`, n * 2] as const)
+ *   const result = yield* SubscriptionRef.modifyEffect(
+ *     ref,
+ *     (n) => Effect.succeed([`Doubled from ${n}`, n * 2] as const)
  *   )
  *   console.log(result)
  *
@@ -447,15 +439,15 @@ export const modifyEffect: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, Option, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
- *   const result = yield* SubscriptionRef.modifySome(ref, (n) =>
- *     n > 5 ? ["Updated", Option.some(n * 2)] : ["Not updated", Option.none()]
+ *   const result = yield* SubscriptionRef.modifySome(
+ *     ref,
+ *     (n) =>
+ *       n > 5 ? ["Updated", Option.some(n * 2)] : ["Not updated", Option.none()]
  *   )
  *   console.log(result)
  *
@@ -495,19 +487,19 @@ export const modifySome: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, Option, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
- *   const result = yield* SubscriptionRef.modifySomeEffect(ref, (n) =>
- *     Effect.succeed(
- *       n > 5
- *         ? (["Updated", Option.some(n + 5)] as const)
- *         : (["Not updated", Option.none()] as const)
- *     )
+ *   const result = yield* SubscriptionRef.modifySomeEffect(
+ *     ref,
+ *     (n) =>
+ *       Effect.succeed(
+ *         n > 5
+ *           ? (["Updated", Option.some(n + 5)] as const)
+ *           : (["Not updated", Option.none()] as const)
+ *       )
  *   )
  *   console.log(result)
  *
@@ -548,10 +540,9 @@ export const modifySomeEffect: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(0)
  *
  *   yield* SubscriptionRef.set(ref, 42)
@@ -579,10 +570,9 @@ export const set: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(0)
  *
  *   const newValue = yield* SubscriptionRef.setAndGet(ref, 42)
@@ -608,10 +598,9 @@ export const setAndGet: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
  *   yield* SubscriptionRef.update(ref, (n) => n * 2)
@@ -640,15 +629,12 @@ export const update: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
- *   yield* SubscriptionRef.updateEffect(ref, (n) =>
- *     Effect.succeed(n + 5)
- *   )
+ *   yield* SubscriptionRef.updateEffect(ref, (n) => Effect.succeed(n + 5))
  *
  *   const value = yield* SubscriptionRef.get(ref)
  *   console.log(value)
@@ -679,10 +665,9 @@ export const updateEffect: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
  *   const newValue = yield* SubscriptionRef.updateAndGet(ref, (n) => n * 2)
@@ -710,14 +695,14 @@ export const updateAndGet: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
- *   const newValue = yield* SubscriptionRef.updateAndGetEffect(ref, (n) =>
- *     Effect.succeed(n + 5)
+ *   const newValue = yield* SubscriptionRef.updateAndGetEffect(
+ *     ref,
+ *     (n) => Effect.succeed(n + 5)
  *   )
  *   console.log("New value:", newValue)
  * })
@@ -748,15 +733,14 @@ export const updateAndGetEffect: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, Option, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
- *   yield* SubscriptionRef.updateSome(ref, (n) =>
- *     n > 5 ? Option.some(n * 2) : Option.none()
+ *   yield* SubscriptionRef.updateSome(
+ *     ref,
+ *     (n) => n > 5 ? Option.some(n * 2) : Option.none()
  *   )
  *
  *   const value = yield* SubscriptionRef.get(ref)
@@ -790,15 +774,14 @@ export const updateSome: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, Option, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
- *   yield* SubscriptionRef.updateSomeEffect(ref, (n) =>
- *     Effect.succeed(n > 5 ? Option.some(n + 3) : Option.none())
+ *   yield* SubscriptionRef.updateSomeEffect(
+ *     ref,
+ *     (n) => Effect.succeed(n > 5 ? Option.some(n + 3) : Option.none())
  *   )
  *
  *   const value = yield* SubscriptionRef.get(ref)
@@ -839,15 +822,14 @@ export const updateSomeEffect: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, Option, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
- *   const newValue = yield* SubscriptionRef.updateSomeAndGet(ref, (n) =>
- *     n > 5 ? Option.some(n * 2) : Option.none()
+ *   const newValue = yield* SubscriptionRef.updateSomeAndGet(
+ *     ref,
+ *     (n) => n > 5 ? Option.some(n * 2) : Option.none()
  *   )
  *   console.log("New value:", newValue)
  * })
@@ -880,11 +862,9 @@ export const updateSomeAndGet: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
- * import { SubscriptionRef } from "effect"
+ * import { Effect, Option, SubscriptionRef } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref = yield* SubscriptionRef.make(10)
  *
  *   const newValue = yield* SubscriptionRef.updateSomeAndGetEffect(

@@ -8,9 +8,7 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Duration } from "effect"
+ * import { Effect, Schedule } from "effect"
  *
  * // Retry with exponential backoff
  * const retryPolicy = Schedule.exponential("100 millis", 2.0)
@@ -53,9 +51,7 @@ const TypeId = "~effect/Schedule"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Basic retry schedule - retry up to 3 times with exponential backoff
  * const retrySchedule = Schedule.exponential("100 millis").pipe(
@@ -63,13 +59,13 @@ const TypeId = "~effect/Schedule"
  * )
  *
  * // Basic repeat schedule - repeat every 30 seconds forever
- * const repeatSchedule: Schedule.Schedule<number, unknown, never> =
- *   Schedule.spaced("30 seconds")
+ * const repeatSchedule: Schedule.Schedule<number, unknown, never> = Schedule
+ *   .spaced("30 seconds")
  *
  * // Advanced schedule with custom logic
  * const smartRetry = Schedule.exponential("1 second")
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Using retry schedule
  *   const result1 = yield* Effect.retry(
  *     Effect.fail("temporary error"),
@@ -95,10 +91,7 @@ export interface Schedule<out Output, in Input = unknown, out Error = never, out
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Duration } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Custom schedule that uses input metadata
  * const metadataAwareSchedule = Schedule.spaced("1 second").pipe(
@@ -114,7 +107,7 @@ export interface Schedule<out Output, in Input = unknown, out Error = never, out
  *   })
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
  *     Console.log("Task execution"),
  *     metadataAwareSchedule
@@ -139,10 +132,7 @@ export interface InputMetadata<Input> {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Duration } from "effect"
- * import { Console } from "effect"
+ * import { Console, Duration, Effect, Schedule } from "effect"
  *
  * // Custom schedule that logs metadata including output
  * const loggingSchedule = Schedule.unfold(0, (n) => n + 1).pipe(
@@ -154,7 +144,7 @@ export interface InputMetadata<Input> {
  *   })
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
  *     Effect.succeed("task completed"),
  *     loggingSchedule.pipe(Schedule.take(3))
@@ -197,9 +187,7 @@ export const CurrentMetadata = ServiceMap.Reference<Metadata>("effect/Schedule/C
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Duration } from "effect"
+ * import { Duration, Effect, Schedule } from "effect"
  *
  * // Usage of the Schedule namespace for creating schedules
  *
@@ -208,11 +196,11 @@ export const CurrentMetadata = ServiceMap.Reference<Metadata>("effect/Schedule/C
  *   Schedule.addDelay((n) => Duration.millis(n * 100))
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 3) {
  *         yield* Effect.fail(`Attempt ${attempt} failed`)
@@ -233,9 +221,7 @@ export declare namespace Schedule {
    *
    * @example
    * ```ts
-   * import { Effect } from "effect"
    * import { Schedule } from "effect"
-   * import { Duration } from "effect"
    *
    * // Understanding Schedule variance:
    * // - Output: covariant (can be a subtype)
@@ -244,18 +230,17 @@ export declare namespace Schedule {
    * // - Env: covariant (can be a subtype)
    *
    * // Schedule that produces strings, accepts any input
-   * const stringSchedule =
-   *   Schedule.spaced("1 second").pipe(Schedule.map(() => "tick"))
+   * const stringSchedule = Schedule.spaced("1 second").pipe(
+   *   Schedule.map(() => "tick")
+   * )
    *
    * // Schedule that only accepts Error inputs
-   * const errorSchedule =
-   *   Schedule.exponential("100 millis").pipe(
-   *     Schedule.take(5)
-   *   )
+   * const errorSchedule = Schedule.exponential("100 millis").pipe(
+   *   Schedule.take(5)
+   * )
    *
    * // Schedule requiring a service environment
-   * const serviceSchedule =
-   *   Schedule.spaced("5 seconds")
+   * const serviceSchedule = Schedule.spaced("5 seconds")
    * ```
    *
    * @since 2.0.0
@@ -276,11 +261,17 @@ export declare namespace Schedule {
    * // This internal interface is used for type variance annotations
    *
    * // Example showing variance relationships:
-   * interface Animal { name: string }
-   * interface Dog extends Animal { breed: string }
+   * interface Animal {
+   *   name: string
+   * }
+   * interface Dog extends Animal {
+   *   breed: string
+   * }
    *
    * // Output is covariant - more specific types can be substituted
-   * const stringSchedule = Schedule.spaced("1 second").pipe(Schedule.map(() => "output"))
+   * const stringSchedule = Schedule.spaced("1 second").pipe(
+   *   Schedule.map(() => "output")
+   * )
    *
    * // Input is contravariant - more general types can be accepted
    * const numberSchedule = Schedule.exponential("100 millis")
@@ -336,7 +327,6 @@ export const isSchedule = (u: unknown): u is Schedule<unknown, never, unknown, u
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
  * import { Schedule } from "effect"
  *
  * // fromStep is an advanced function for creating custom schedules
@@ -386,8 +376,7 @@ const metadataFn = () => {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
+ * import { Effect, Schedule } from "effect"
  *
  * // fromStepWithMetadata is an advanced function for creating schedules
  * // that need access to execution metadata like timing and recurrence count
@@ -423,13 +412,12 @@ export const fromStepWithMetadata = <Input, Output, EnvX, ErrorX, Error, Env>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
+ * import { Effect, Schedule } from "effect"
  *
  * // Extract step function from an existing schedule
  * const schedule = Schedule.exponential("100 millis").pipe(Schedule.take(3))
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const stepFn = yield* Schedule.toStep(schedule)
  *
  *   // Use the step function directly for custom logic
@@ -496,13 +484,12 @@ export const toStepWithMetadata = <Output, Input, Error, Env>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
+ * import { Effect, Schedule } from "effect"
  *
  * // Convert schedule to step function with automatic sleeping
  * const schedule = Schedule.spaced("1 second").pipe(Schedule.take(3))
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const stepWithSleep = yield* Schedule.toStepWithSleep(schedule)
  *
  *   // Each call will automatically sleep for the scheduled delay
@@ -539,9 +526,7 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Add random jitter to schedule delays
  * const jitteredSchedule = Schedule.addDelay(
@@ -553,14 +538,16 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  *   }
  * )
  *
- * const jitterProgram = Effect.gen(function* () {
+ * const jitterProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log(`Task executed at ${new Date().toISOString()}`)
  *       return "jittered task"
  *     }),
  *     jitteredSchedule.pipe(
- *       Schedule.tapOutput((delay) => Console.log(`Base delay with jitter applied`))
+ *       Schedule.tapOutput((delay) =>
+ *         Console.log(`Base delay with jitter applied`)
+ *       )
  *     )
  *   )
  * })
@@ -575,14 +562,16 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  *   }
  * )
  *
- * const adaptiveProgram = Effect.gen(function* () {
+ * const adaptiveProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Adaptive delay task")
  *       return "adaptive"
  *     }),
  *     adaptiveSchedule.pipe(
- *       Schedule.tapOutput((count) => Console.log(`Execution ${count + 1} with adaptive delay`))
+ *       Schedule.tapOutput((count) =>
+ *         Console.log(`Execution ${count + 1} with adaptive delay`)
+ *       )
  *     )
  *   )
  * })
@@ -598,9 +587,9 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  *   }
  * )
  *
- * const dynamicProgram = Effect.gen(function* () {
+ * const dynamicProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Dynamic delay task")
  *       return "dynamic"
  *     }),
@@ -621,9 +610,9 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  *   }
  * )
  *
- * const resultProgram = Effect.gen(function* () {
+ * const resultProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Result-based delay task")
  *       return Math.random()
  *     }),
@@ -642,11 +631,11 @@ export const toStepWithSleep = <Output, Input, Error, Env>(
  *   }
  * )
  *
- * const retryProgram = Effect.gen(function* () {
+ * const retryProgram = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   const result = yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 5) {
  *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
@@ -692,9 +681,7 @@ export const addDelay: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // First retry 3 times quickly, then switch to slower retries
  * const quickRetries = Schedule.exponential("100 millis").pipe(
@@ -706,10 +693,10 @@ export const addDelay: {
  *
  * const combinedRetries = Schedule.andThen(quickRetries, slowRetries)
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   let attempt = 0
  *   yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       yield* Console.log(`Attempt ${attempt}`)
  *       if (attempt < 6) {
@@ -752,10 +739,7 @@ export const andThen: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Result } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Result, Schedule } from "effect"
  *
  * // Track which phase of the schedule we're in
  * const phaseTracker = Schedule.andThenResult(
@@ -763,9 +747,9 @@ export const andThen: {
  *   Schedule.spaced("500 millis").pipe(Schedule.take(2))
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Task executed")
  *       return "task-result"
  *     }),
@@ -835,9 +819,7 @@ export const andThenResult: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Both schedules must want to continue for the combined schedule to continue
  * const timeLimit = Schedule.spaced("1 second").pipe(Schedule.take(5)) // max 5 times
@@ -847,9 +829,9 @@ export const andThenResult: {
  * const bothSchedule = Schedule.both(timeLimit, attemptLimit)
  * // Outputs: [time_result, attempt_count] tuple
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const results = yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log(`Task executed at ${new Date().toISOString()}`)
  *       return "task completed"
  *     }),
@@ -870,11 +852,11 @@ export const andThenResult: {
  * // Will use the slower (maximum) delay and stop when first schedule exhausts
  * const conservativeSchedule = Schedule.both(fastSchedule, slowSchedule)
  *
- * const retryProgram = Effect.gen(function* () {
+ * const retryProgram = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   const result = yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       yield* Console.log(`Retry attempt ${attempt}`)
  *
@@ -920,9 +902,7 @@ export const both: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Combine two schedules, keeping left output
  * const leftSchedule = Schedule.exponential("100 millis").pipe(
@@ -932,9 +912,9 @@ export const both: {
  *
  * const combined = Schedule.bothLeft(leftSchedule, rightSchedule)
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Task executed")
  *       return "task-done"
  *     }),
@@ -968,9 +948,7 @@ export const bothLeft: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Combine two schedules, keeping right output
  * const leftSchedule = Schedule.exponential("100 millis").pipe(
@@ -982,9 +960,9 @@ export const bothLeft: {
  *
  * const combined = Schedule.bothRight(leftSchedule, rightSchedule)
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Task executed")
  *       return "task-done"
  *     }),
@@ -1019,9 +997,7 @@ export const bothRight: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Combine two schedules with custom output combination
  * const leftSchedule = Schedule.exponential("100 millis").pipe(
@@ -1037,9 +1013,9 @@ export const bothRight: {
  *   (left, right) => `${left}-${right}`
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Task executed")
  *       return "task-result"
  *     }),
@@ -1098,9 +1074,7 @@ export const bothWith: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Compose a quick retry phase followed by slower retry phase
  * const fastRetries = Schedule.exponential("100 millis").pipe(
@@ -1115,11 +1089,11 @@ export const bothWith: {
  * const composedRetry = Schedule.compose(fastRetries, slowRetries)
  * // Outputs: [number_from_fast_phase, number_from_slow_phase]
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   const result = yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       yield* Console.log(`Attempt ${attempt}`)
  *
@@ -1176,19 +1150,17 @@ export const compose: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Collect all inputs passed to the schedule
  * const inputCollector = Schedule.collectInputs(
  *   Schedule.spaced("100 millis")
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   let counter = 0
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       counter++
  *       yield* Console.log(`Iteration ${counter}`)
  *       return `result-${counter}`
@@ -1211,18 +1183,16 @@ export const collectInputs = <Output, Input, Error, Env>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Collect all outputs from the schedule
  * const outputCollector = Schedule.collectOutputs(
  *   Schedule.recurs(4)
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Task executed")
  *       return "task-result"
  *     }),
@@ -1244,9 +1214,7 @@ export const collectOutputs = <Output, Input, Error, Env>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Collect outputs while under time limit
  * const collectForTime = Schedule.collectWhile(
@@ -1254,9 +1222,9 @@ export const collectOutputs = <Output, Input, Error, Env>(
  *   (metadata) => metadata.elapsed < 3000 // Stop after 3 seconds
  * )
  *
- * const timeBasedProgram = Effect.gen(function* () {
+ * const timeBasedProgram = Effect.gen(function*() {
  *   const results = yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const value = Math.floor(Math.random() * 100)
  *       yield* Console.log(`Generated value: ${value}`)
  *       return value
@@ -1264,7 +1232,9 @@ export const collectOutputs = <Output, Input, Error, Env>(
  *     collectForTime
  *   )
  *
- *   yield* Console.log(`Collected ${results.length} values: [${results.join(", ")}]`)
+ *   yield* Console.log(
+ *     `Collected ${results.length} values: [${results.join(", ")}]`
+ *   )
  * })
  *
  * // Collect outputs while condition is met
@@ -1276,11 +1246,11 @@ export const collectOutputs = <Output, Input, Error, Env>(
  *   }
  * )
  *
- * const conditionalProgram = Effect.gen(function* () {
+ * const conditionalProgram = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   const delays = yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       yield* Console.log(`Retry attempt ${attempt}`)
  *       return `${Date.now()}`
@@ -1295,16 +1265,18 @@ export const collectOutputs = <Output, Input, Error, Env>(
  * const collectWithCheck = Schedule.collectWhile(
  *   Schedule.fixed("1 second"),
  *   (metadata) =>
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const shouldContinue = metadata.attempt < 5
- *       yield* Console.log(`Check ${metadata.attempt}: continue = ${shouldContinue}`)
+ *       yield* Console.log(
+ *         `Check ${metadata.attempt}: continue = ${shouldContinue}`
+ *       )
  *       return shouldContinue
  *     })
  * )
  *
- * const effectfulProgram = Effect.gen(function* () {
+ * const effectfulProgram = Effect.gen(function*() {
  *   const timestamps = yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const now = new Date().toISOString()
  *       yield* Console.log(`Task at ${now}`)
  *       return now
@@ -1324,9 +1296,9 @@ export const collectOutputs = <Output, Input, Error, Env>(
  *   }
  * )
  *
- * const samplingProgram = Effect.gen(function* () {
+ * const samplingProgram = Effect.gen(function*() {
  *   const samples = yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const sample = Math.random() * 100
  *       yield* Console.log(`Sample: ${sample.toFixed(1)}`)
  *       return sample
@@ -1335,7 +1307,9 @@ export const collectOutputs = <Output, Input, Error, Env>(
  *   )
  *
  *   const average = samples.reduce((sum, s) => sum + s, 0) / samples.length
- *   yield* Console.log(`Collected ${samples.length} samples, average: ${average.toFixed(1)}`)
+ *   yield* Console.log(
+ *     `Collected ${samples.length} samples, average: ${average.toFixed(1)}`
+ *   )
  * })
  * ```
  *
@@ -1373,16 +1347,14 @@ export const collectWhile: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Run every minute
  * const everyMinute = Schedule.cron("* * * * *")
  *
- * const minutelyProgram = Effect.gen(function* () {
+ * const minutelyProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log(`Minutely task at ${new Date().toISOString()}`)
  *       return "minute"
  *     }),
@@ -1398,9 +1370,9 @@ export const collectWhile: {
  * // Run every day at 2:30 AM
  * const dailyBackup = Schedule.cron("30 2 * * *")
  *
- * const backupProgram = Effect.gen(function* () {
+ * const backupProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Running daily backup...")
  *       // Simulate backup process
  *       yield* Effect.sleep("2 seconds")
@@ -1416,9 +1388,9 @@ export const collectWhile: {
  * // Run every Monday at 9:00 AM with timezone
  * const weeklyReport = Schedule.cron("0 9 * * 1", "America/New_York")
  *
- * const reportProgram = Effect.gen(function* () {
+ * const reportProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Generating weekly report...")
  *       const report = {
  *         week: Math.floor(Date.now() / (7 * 24 * 60 * 60 * 1000)),
@@ -1434,9 +1406,9 @@ export const collectWhile: {
  * // Run every 15 minutes during business hours (9 AM - 5 PM)
  * const businessHoursCheck = Schedule.cron("0,15,30,45 9-17 * * 1-5")
  *
- * const businessProgram = Effect.gen(function* () {
+ * const businessProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Business hours health check...")
  *       const status = Math.random() > 0.1 ? "healthy" : "degraded"
  *       yield* Console.log(`System status: ${status}`)
@@ -1451,9 +1423,9 @@ export const collectWhile: {
  * // Run on specific days of the month
  * const monthlyInvoice = Schedule.cron("0 10 1,15 * *") // 1st and 15th at 10 AM
  *
- * const invoiceProgram = Effect.gen(function* () {
+ * const invoiceProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Processing monthly invoices...")
  *       const invoiceCount = Math.floor(Math.random() * 100) + 50
  *       yield* Console.log(`Processed ${invoiceCount} invoices`)
@@ -1470,9 +1442,9 @@ export const collectWhile: {
  *   )
  * )
  *
- * const robustProgram = Effect.gen(function* () {
+ * const robustProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Complex scheduled task...")
  *       // Simulate occasional failures
  *       if (Math.random() < 0.3) {
@@ -1482,7 +1454,9 @@ export const collectWhile: {
  *     }),
  *     complexCron.pipe(Schedule.take(3))
  *   ).pipe(
- *     Effect.catch((error: unknown) => Console.log(`Cron task error: ${String(error)}`))
+ *     Effect.catch((error: unknown) =>
+ *       Console.log(`Cron task error: ${String(error)}`)
+ *     )
  *   )
  * })
  * ```
@@ -1508,18 +1482,16 @@ export const cron: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Extract delays from an exponential backoff schedule
  * const exponentialDelays = Schedule.delays(
  *   Schedule.exponential("100 millis").pipe(Schedule.take(5))
  * )
  *
- * const delayProgram = Effect.gen(function* () {
+ * const delayProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Task executed")
  *       return "task result"
  *     }),
@@ -1536,13 +1508,11 @@ export const cron: {
  *   Schedule.fibonacci("200 millis").pipe(Schedule.take(8))
  * )
  *
- * const fibDelayProgram = Effect.gen(function* () {
+ * const fibDelayProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
  *     Console.log("Fibonacci task"),
  *     fibonacciDelays.pipe(
- *       Schedule.tapOutput((delay) =>
- *         Console.log(`Fibonacci delay: ${delay}`)
- *       )
+ *       Schedule.tapOutput((delay) => Console.log(`Fibonacci delay: ${delay}`))
  *     )
  *   )
  * })
@@ -1552,7 +1522,7 @@ export const cron: {
  *   Schedule.spaced("1 second").pipe(Schedule.take(3))
  * ).pipe(
  *   Schedule.tapOutput((delay) =>
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log(`Recorded delay: ${delay}`)
  *       // In real applications, might send to metrics system
  *     })
@@ -1566,16 +1536,14 @@ export const cron: {
  *
  * const adaptiveDelays = Schedule.delays(adaptiveSchedule)
  *
- * const adaptiveProgram = Effect.gen(function* () {
+ * const adaptiveProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Adaptive task execution")
  *       return Date.now()
  *     }),
  *     adaptiveDelays.pipe(
- *       Schedule.tapOutput((delay) =>
- *         Console.log(`Adaptive delay: ${delay}`)
- *       )
+ *       Schedule.tapOutput((delay) => Console.log(`Adaptive delay: ${delay}`))
  *     )
  *   )
  * })
@@ -1610,18 +1578,16 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Run a task for exactly 5 seconds, regardless of how many iterations
  * const fiveSecondSchedule = Schedule.during("5 seconds")
  *
- * const timedProgram = Effect.gen(function* () {
+ * const timedProgram = Effect.gen(function*() {
  *   const startTime = Date.now()
  *
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const elapsed = Date.now() - startTime
  *       yield* Console.log(`Task executed after ${elapsed}ms`)
  *       yield* Effect.sleep("500 millis") // Each task takes 500ms
@@ -1646,11 +1612,11 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  * // Burst execution within time window
  * const burstWindow = Schedule.during("3 seconds")
  *
- * const burstProgram = Effect.gen(function* () {
+ * const burstProgram = Effect.gen(function*() {
  *   yield* Console.log("Starting burst execution...")
  *
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log(`Burst task at ${new Date().toISOString()}`)
  *       return Math.random()
  *     }),
@@ -1665,11 +1631,11 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
  *   Schedule.both(Schedule.during("30 seconds"))
  * )
  *
- * const retryProgram = Effect.gen(function* () {
+ * const retryProgram = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   const result = yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       yield* Console.log(`Retry attempt ${attempt}`)
  *
@@ -1701,9 +1667,7 @@ export const during = (duration: Duration.DurationInput): Schedule<Duration.Dura
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Either continues as long as at least one schedule wants to continue
  * const timeBasedSchedule = Schedule.spaced("2 seconds").pipe(Schedule.take(3))
@@ -1713,9 +1677,9 @@ export const during = (duration: Duration.DurationInput): Schedule<Duration.Dura
  * const eitherSchedule = Schedule.either(timeBasedSchedule, countBasedSchedule)
  * // Outputs: [time_result, count_result] tuple
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const results = yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log(`Task executed at ${new Date().toISOString()}`)
  *       return "task completed"
  *     }),
@@ -1730,17 +1694,19 @@ export const during = (duration: Duration.DurationInput): Schedule<Duration.Dura
  * })
  *
  * // Either with different delay strategies
- * const aggressiveRetry = Schedule.exponential("100 millis").pipe(Schedule.take(3))
+ * const aggressiveRetry = Schedule.exponential("100 millis").pipe(
+ *   Schedule.take(3)
+ * )
  * const fallbackRetry = Schedule.fixed("5 seconds").pipe(Schedule.take(2))
  *
  * // Will use the more aggressive retry until it's exhausted, then fallback
  * const combinedRetry = Schedule.either(aggressiveRetry, fallbackRetry)
  *
- * const retryProgram = Effect.gen(function* () {
+ * const retryProgram = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   const result = yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       yield* Console.log(`Retry attempt ${attempt}`)
  *
@@ -1786,9 +1752,7 @@ export const either: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Combine two schedules with either semantics, keeping left output
  * const primarySchedule = Schedule.exponential("100 millis").pipe(
@@ -1801,9 +1765,9 @@ export const either: {
  *
  * const combined = Schedule.eitherLeft(primarySchedule, backupSchedule)
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Task executed")
  *       return "task-done"
  *     }),
@@ -1837,9 +1801,7 @@ export const eitherLeft: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Combine two schedules with either semantics, keeping right output
  * const primarySchedule = Schedule.exponential("100 millis").pipe(
@@ -1852,9 +1814,9 @@ export const eitherLeft: {
  *
  * const combined = Schedule.eitherRight(primarySchedule, backupSchedule)
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Task executed")
  *       return "task-done"
  *     }),
@@ -1889,9 +1851,7 @@ export const eitherRight: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Combine schedules with either semantics and custom combination
  * const primarySchedule = Schedule.exponential("100 millis").pipe(
@@ -1908,9 +1868,9 @@ export const eitherRight: {
  *   (primary, fallback) => `${primary}+${fallback}`
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Task executed")
  *       return "task-result"
  *     }),
@@ -1982,10 +1942,7 @@ export const eitherWith: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Duration } from "effect"
- * import { Console } from "effect"
+ * import { Console, Duration, Effect, Schedule } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
@@ -2015,9 +1972,7 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Basic exponential backoff with default factor of 2
  * const basicExponential = Schedule.exponential("100 millis")
@@ -2032,11 +1987,11 @@ export const elapsed: Schedule<Duration.Duration> = fromStepWithMetadata(
  *   Schedule.compose(Schedule.recurs(5))
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   const result = yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 4) {
  *         yield* Console.log(`Attempt ${attempt} failed, retrying...`)
@@ -2074,20 +2029,18 @@ export const exponential = (
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Basic fibonacci schedule starting with 100ms
  * const fibSchedule = Schedule.fibonacci("100 millis")
  * // Delays: 100ms, 100ms, 200ms, 300ms, 500ms, 800ms, 1300ms, ...
  *
  * // Retry with fibonacci backoff for gradual increase
- * const retryWithFib = Effect.gen(function* () {
+ * const retryWithFib = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   const result = yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       yield* Console.log(`Attempt ${attempt}`)
  *
@@ -2099,9 +2052,7 @@ export const exponential = (
  *     }),
  *     Schedule.fibonacci("50 millis").pipe(
  *       Schedule.compose(Schedule.recurs(6)), // Maximum 6 retries
- *       Schedule.tapOutput((delay) =>
- *         Console.log(`Next retry in ${delay}`)
- *       )
+ *       Schedule.tapOutput((delay) => Console.log(`Next retry in ${delay}`))
  *     )
  *   )
  *
@@ -2109,7 +2060,7 @@ export const exponential = (
  * })
  *
  * // Heartbeat with fibonacci intervals (starts fast, gets slower)
- * const adaptiveHeartbeat = Effect.gen(function* () {
+ * const adaptiveHeartbeat = Effect.gen(function*() {
  *   yield* Console.log(`Heartbeat at ${new Date().toISOString()}`)
  *   return "pulse"
  * }).pipe(
@@ -2121,7 +2072,7 @@ export const exponential = (
  * )
  *
  * // Fibonacci vs exponential comparison
- * const compareSchedules = Effect.gen(function* () {
+ * const compareSchedules = Effect.gen(function*() {
  *   yield* Console.log("=== Fibonacci Delays ===")
  *   // 100ms, 100ms, 200ms, 300ms, 500ms, 800ms
  *
@@ -2164,15 +2115,13 @@ export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Durati
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Fixed interval schedule - runs exactly every 1 second
  * const everySecond = Schedule.fixed("1 second")
  *
  * // Health check that runs at fixed intervals
- * const healthCheck = Effect.gen(function* () {
+ * const healthCheck = Effect.gen(function*() {
  *   yield* Console.log(`Health check at ${new Date().toISOString()}`)
  *   yield* Effect.sleep("200 millis") // simulate health check work
  *   return "healthy"
@@ -2184,7 +2133,7 @@ export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Durati
  * // - fixed: maintains constant rate regardless of action duration
  * // - spaced: waits for the duration AFTER each action completes
  *
- * const longRunningTask = Effect.gen(function* () {
+ * const longRunningTask = Effect.gen(function*() {
  *   yield* Console.log("Task started")
  *   yield* Effect.sleep("1.5 seconds") // Longer than interval
  *   yield* Console.log("Task completed")
@@ -2202,7 +2151,7 @@ export const fibonacci = (one: Duration.DurationInput): Schedule<Duration.Durati
  *   Effect.repeat(Schedule.spaced("1 second").pipe(Schedule.take(3)))
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.log("=== Fixed Schedule Demo ===")
  *   yield* fixedSchedule
  *
@@ -2232,9 +2181,7 @@ export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Transform schedule output from number to string
  * const countSchedule = Schedule.recurs(5).pipe(
@@ -2255,13 +2202,15 @@ export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
  *   }))
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const results = yield* Effect.repeat(
  *     Effect.succeed("task completed"),
  *     structuredSchedule.pipe(
  *       Schedule.take(8),
  *       Schedule.tapOutput((info) =>
- *         Console.log(`${info.phase} phase - iteration ${info.iteration} at ${info.timestamp}`)
+ *         Console.log(
+ *           `${info.phase} phase - iteration ${info.iteration} at ${info.timestamp}`
+ *         )
  *       )
  *     )
  *   )
@@ -2272,7 +2221,7 @@ export const fixed = (interval: Duration.DurationInput): Schedule<number> => {
  * // Map with effectful transformation
  * const effectfulMap = Schedule.fixed("2 seconds").pipe(
  *   Schedule.map((count) =>
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log(`Processing count: ${count}`)
  *       return count * 10
  *     })
@@ -2324,10 +2273,7 @@ export const map: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Duration } from "effect"
- * import { Console } from "effect"
+ * import { Console, Duration, Effect, Schedule } from "effect"
  *
  * // Modify delays based on output - increase delay on high iteration counts
  * const adaptiveDelay = Schedule.recurs(10).pipe(
@@ -2337,10 +2283,10 @@ export const map: {
  *   })
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   let counter = 0
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       counter++
  *       yield* Console.log(`Attempt ${counter}`)
  *       return counter
@@ -2392,19 +2338,17 @@ export const modifyDelay: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Create a schedule that outputs the inputs instead of original outputs
  * const inputSchedule = Schedule.passthrough(
  *   Schedule.exponential("100 millis").pipe(Schedule.take(3))
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   let counter = 0
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       counter++
  *       yield* Console.log(`Task ${counter} executed`)
  *       return `result-${counter}`
@@ -2433,19 +2377,17 @@ export const passthrough = <Output, Input, Error, Env>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Basic recurs - retry at most 3 times
  * const maxThreeAttempts = Schedule.recurs(3)
  *
  * // Retry a failing operation at most 5 times
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   const result = yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       yield* Console.log(`Attempt ${attempt}`)
  *
@@ -2467,7 +2409,7 @@ export const passthrough = <Output, Input, Error, Env>(
  * )
  *
  * // Repeat an effect exactly 10 times
- * const exactlyTenTimes = Effect.gen(function* () {
+ * const exactlyTenTimes = Effect.gen(function*() {
  *   yield* Console.log("Executing task...")
  *   return Math.random()
  * }).pipe(
@@ -2492,9 +2434,7 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ at
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Sum up execution counts from a counter schedule
  * const sumSchedule = Schedule.reduce(
@@ -2503,9 +2443,9 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ at
  *   (sum, count) => sum + count // Add each count to the sum
  * )
  *
- * const sumProgram = Effect.gen(function* () {
+ * const sumProgram = Effect.gen(function*() {
  *   const finalSum = yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Task executed")
  *       return "task"
  *     }),
@@ -2520,20 +2460,22 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ at
  * // Build a history of execution times
  * const historySchedule = Schedule.reduce(
  *   Schedule.spaced("1 second").pipe(Schedule.take(4)),
- *   () => [] as number[], // Initial empty array
+ *   () => [] as Array<number>, // Initial empty array
  *   (history, executionNumber) => [...history, Date.now()]
  * )
  *
- * const historyProgram = Effect.gen(function* () {
+ * const historyProgram = Effect.gen(function*() {
  *   const timeline = yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Recording timestamp...")
  *       return "recorded"
  *     }),
  *     historySchedule
  *   )
  *
- *   yield* Console.log(`Execution timeline: ${timeline.length} timestamps recorded`)
+ *   yield* Console.log(
+ *     `Execution timeline: ${timeline.length} timestamps recorded`
+ *   )
  * })
  *
  * // Accumulate metrics with effectful combination
@@ -2551,9 +2493,9 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ at
  *   }
  * )
  *
- * const metricsProgram = Effect.gen(function* () {
+ * const metricsProgram = Effect.gen(function*() {
  *   const finalMetrics = yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Processing...")
  *       return "processed"
  *     }),
@@ -2562,7 +2504,9 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ at
  *
  *   const average = finalMetrics.total / finalMetrics.count
  *   yield* Console.log(`Final metrics: ${finalMetrics.count} executions`)
- *   yield* Console.log(`Average delay: ${average.toFixed(1)}ms, Max delay: ${finalMetrics.max}ms`)
+ *   yield* Console.log(
+ *     `Average delay: ${average.toFixed(1)}ms, Max delay: ${finalMetrics.max}ms`
+ *   )
  * })
  *
  * // Build configuration state over time
@@ -2576,15 +2520,17 @@ export const recurs = (times: number): Schedule<number> => while_(forever, ({ at
  *   })
  * )
  *
- * const configProgram = Effect.gen(function* () {
+ * const configProgram = Effect.gen(function*() {
  *   const finalConfig = yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Updating configuration...")
  *       return "updated"
  *     }),
  *     configBuilder.pipe(
  *       Schedule.tapOutput((config) =>
- *         Console.log(`Config: retries=${config.retries}, timeout=${config.timeout}ms`)
+ *         Console.log(
+ *           `Config: retries=${config.retries}, timeout=${config.timeout}ms`
+ *         )
  *       )
  *     )
  *   )
@@ -2642,22 +2588,20 @@ export const reduce: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Basic spaced schedule - runs every 2 seconds
  * const everyTwoSeconds = Schedule.spaced("2 seconds")
  *
  * // Heartbeat that runs indefinitely with fixed spacing
- * const heartbeat = Effect.gen(function* () {
+ * const heartbeat = Effect.gen(function*() {
  *   yield* Console.log(`Heartbeat at ${new Date().toISOString()}`)
  * }).pipe(
  *   Effect.repeat(everyTwoSeconds)
  * )
  *
  * // Limited repeat - run only 5 times with 1-second spacing
- * const limitedTask = Effect.gen(function* () {
+ * const limitedTask = Effect.gen(function*() {
  *   yield* Console.log("Executing scheduled task...")
  *   yield* Effect.sleep("500 millis") // simulate work
  *   return "Task completed"
@@ -2672,7 +2616,7 @@ export const reduce: {
  *   Schedule.compose(Schedule.recurs(5)) // at most 5 times
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.log("Starting spaced execution...")
  *
  *   yield* Effect.repeat(
@@ -2699,9 +2643,7 @@ export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Log retry errors for debugging
  * const errorLoggingSchedule = Schedule.exponential("100 millis").pipe(
@@ -2711,11 +2653,11 @@ export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
  *   )
  * )
  *
- * const retryProgram = Effect.gen(function* () {
+ * const retryProgram = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   const result = yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 4) {
  *         yield* Effect.fail(new Error(`Network timeout on attempt ${attempt}`))
@@ -2732,7 +2674,7 @@ export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
  * const inputMonitoringSchedule = Schedule.spaced("1 second").pipe(
  *   Schedule.take(5),
  *   Schedule.tapInput((input: unknown) =>
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log(`Processing input at ${new Date().toISOString()}`)
  *       yield* Console.log(`Input type: ${typeof input}`)
  *       // In real applications, might send metrics to monitoring system
@@ -2744,8 +2686,8 @@ export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
  * const validatingSchedule = Schedule.fixed("500 millis").pipe(
  *   Schedule.take(4),
  *   Schedule.tapInput((input: any) =>
- *     Effect.gen(function* () {
- *       if (typeof input === 'object' && input !== null) {
+ *     Effect.gen(function*() {
+ *       if (typeof input === "object" && input !== null) {
  *         yield* Console.log(`Valid object input: ${JSON.stringify(input)}`)
  *       } else {
  *         yield* Console.log(`Warning: Non-object input received: ${input}`)
@@ -2754,9 +2696,9 @@ export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
  *   )
  * )
  *
- * const validationProgram = Effect.gen(function* () {
+ * const validationProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Task with validation")
  *       return { data: Math.random(), timestamp: Date.now() }
  *     }),
@@ -2768,7 +2710,7 @@ export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
  * const alertingSchedule = Schedule.exponential("200 millis").pipe(
  *   Schedule.take(6),
  *   Schedule.tapInput((error: Error) =>
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       if (String(error).includes("critical")) {
  *         yield* Console.log(`🚨 CRITICAL ERROR: ${String(error)}`)
  *         // In real applications, might trigger alerts or notifications
@@ -2779,26 +2721,32 @@ export const spaced = (duration: Duration.DurationInput): Schedule<number> => {
  *   )
  * )
  *
- * const alertProgram = Effect.gen(function* () {
+ * const alertProgram = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       const isCritical = attempt === 3
- *       const errorType = isCritical ? "critical database failure" : "temporary network issue"
+ *       const errorType = isCritical
+ *         ? "critical database failure"
+ *         : "temporary network issue"
  *       yield* Effect.fail(new Error(errorType))
  *     }),
  *     alertingSchedule
  *   ).pipe(
- *     Effect.catch((error: unknown) => Console.log(`All retries exhausted: ${String(error)}`))
+ *     Effect.catch((error: unknown) =>
+ *       Console.log(`All retries exhausted: ${String(error)}`)
+ *     )
  *   )
  * })
  *
  * // Chain multiple input taps for different purposes
  * const comprehensiveSchedule = Schedule.fibonacci("100 millis").pipe(
  *   Schedule.take(5),
- *   Schedule.tapInput((error: Error) => Console.log(`Error occurred: ${error.name}`)),
+ *   Schedule.tapInput((error: Error) =>
+ *     Console.log(`Error occurred: ${error.name}`)
+ *   ),
  *   Schedule.tapInput((error: Error) =>
  *     String(error).length > 20
  *       ? Console.log("📝 Long error message detected")
@@ -2836,23 +2784,19 @@ export const tapInput: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Log schedule outputs for debugging/monitoring
  * const monitoredSchedule = Schedule.exponential("100 millis").pipe(
  *   Schedule.take(5),
- *   Schedule.tapOutput((delay) =>
- *     Console.log(`Next delay will be: ${delay}`)
- *   )
+ *   Schedule.tapOutput((delay) => Console.log(`Next delay will be: ${delay}`))
  * )
  *
- * const retryProgram = Effect.gen(function* () {
+ * const retryProgram = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   const result = yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       if (attempt < 4) {
  *         yield* Effect.fail(new Error(`Attempt ${attempt} failed`))
@@ -2869,7 +2813,7 @@ export const tapInput: {
  * const metricsSchedule = Schedule.spaced("1 second").pipe(
  *   Schedule.take(10),
  *   Schedule.tapOutput((executionCount) =>
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       // Simulate metrics collection
  *       yield* Console.log(`Recording metric: execution_count=${executionCount}`)
  *       // In real code, this might send to monitoring system
@@ -2881,7 +2825,7 @@ export const tapInput: {
  * const alertingSchedule = Schedule.fibonacci("200 millis").pipe(
  *   Schedule.take(8),
  *   Schedule.tapOutput((delay) =>
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const delayMs = delay.toString()
  *       if (delayMs.includes("1000")) { // Alert on delays >= 1 second
  *         yield* Console.log(`🚨 High delay detected: ${delay}`)
@@ -2890,9 +2834,9 @@ export const tapInput: {
  *   )
  * )
  *
- * const healthCheckProgram = Effect.gen(function* () {
+ * const healthCheckProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Performing health check...")
  *       // Simulate health check
  *       return Math.random() > 0.7 ? "healthy" : "degraded"
@@ -2942,18 +2886,16 @@ export const tapOutput: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Limit an infinite schedule to run only 5 times
  * const limitedHeartbeat = Schedule.spaced("1 second").pipe(
  *   Schedule.take(5) // Will stop after 5 executions
  * )
  *
- * const heartbeatProgram = Effect.gen(function* () {
+ * const heartbeatProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log(`Heartbeat at ${new Date().toISOString()}`)
  *       return "pulse"
  *     }),
@@ -2968,11 +2910,11 @@ export const tapOutput: {
  *   Schedule.take(3) // At most 3 retry attempts
  * )
  *
- * const retryProgram = Effect.gen(function* () {
+ * const retryProgram = Effect.gen(function*() {
  *   let attempt = 0
  *
  *   const result = yield* Effect.retry(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       attempt++
  *       yield* Console.log(`Attempt ${attempt}`)
  *
@@ -2987,7 +2929,9 @@ export const tapOutput: {
  *
  *   yield* Console.log(`Result: ${result}`)
  * }).pipe(
- *   Effect.catch((error: unknown) => Console.log(`Failed after limited retries: ${String(error)}`))
+ *   Effect.catch((error: unknown) =>
+ *     Console.log(`Failed after limited retries: ${String(error)}`)
+ *   )
  * )
  *
  * // Combine take with other schedule operations
@@ -2996,9 +2940,9 @@ export const tapOutput: {
  *   Schedule.map((count) => `Sample #${count + 1}`)
  * )
  *
- * const samplingProgram = Effect.gen(function* () {
+ * const samplingProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const value = Math.random()
  *       yield* Console.log(`Sampled value: ${value.toFixed(3)}`)
  *       return value
@@ -3032,17 +2976,15 @@ export const take: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Counter schedule that increments by 1 each time
  * const counterSchedule = Schedule.unfold(0, (n) => n + 1)
  * // Outputs: 0, 1, 2, 3, 4, 5, ...
  *
- * const countingProgram = Effect.gen(function* () {
+ * const countingProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Task executed")
  *       return "done"
  *     }),
@@ -3057,7 +2999,7 @@ export const take: {
  * const fibonacciSchedule = Schedule.unfold([0, 1], ([a, b]) => [b, a + b])
  * // Outputs: [0,1], [1,1], [1,2], [2,3], [3,5], [5,8], ...
  *
- * const fibProgram = Effect.gen(function* () {
+ * const fibProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
  *     Console.log("Fibonacci step"),
  *     fibonacciSchedule.pipe(
@@ -3068,37 +3010,45 @@ export const take: {
  * })
  *
  * // Effectful unfold - exponential backoff with state
- * const exponentialState = Schedule.unfold(100, (delayMs) =>
- *   Effect.gen(function* () {
- *     yield* Console.log(`Current delay: ${delayMs}ms`)
- *     return Math.min(delayMs * 2, 5000) // Cap at 5 seconds
- *   })
+ * const exponentialState = Schedule.unfold(
+ *   100,
+ *   (delayMs) =>
+ *     Effect.gen(function*() {
+ *       yield* Console.log(`Current delay: ${delayMs}ms`)
+ *       return Math.min(delayMs * 2, 5000) // Cap at 5 seconds
+ *     })
  * )
  *
  * // Random jitter schedule
- * const jitteredSchedule = Schedule.unfold(1000, (baseDelay) =>
- *   Effect.gen(function* () {
- *     const jitter = Math.random() * 200 - 100 // ±100ms jitter
- *     const nextDelay = Math.max(100, baseDelay + jitter)
- *     yield* Console.log(`Jittered delay: ${nextDelay.toFixed(0)}ms`)
- *     return nextDelay
- *   })
+ * const jitteredSchedule = Schedule.unfold(
+ *   1000,
+ *   (baseDelay) =>
+ *     Effect.gen(function*() {
+ *       const jitter = Math.random() * 200 - 100 // ±100ms jitter
+ *       const nextDelay = Math.max(100, baseDelay + jitter)
+ *       yield* Console.log(`Jittered delay: ${nextDelay.toFixed(0)}ms`)
+ *       return nextDelay
+ *     })
  * )
  *
  * // State machine schedule
  * type State = "init" | "warming" | "active" | "cooling"
  * const stateMachineSchedule = Schedule.unfold("init" as State, (state) => {
  *   switch (state) {
- *     case "init": return "warming"
- *     case "warming": return "active"
- *     case "active": return "cooling"
- *     case "cooling": return "active"
+ *     case "init":
+ *       return "warming"
+ *     case "warming":
+ *       return "active"
+ *     case "active":
+ *       return "cooling"
+ *     case "cooling":
+ *       return "active"
  *   }
  * })
  *
- * const stateMachineProgram = Effect.gen(function* () {
+ * const stateMachineProgram = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("State machine step")
  *       return "step"
  *     }),
@@ -3193,16 +3143,14 @@ export {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // Execute tasks at regular intervals aligned to window boundaries
  * const windowSchedule = Schedule.windowed("5 seconds")
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const now = new Date().toISOString()
  *       yield* Console.log(`Window task executed at: ${now}`)
  *       return "window-task"
@@ -3233,16 +3181,14 @@ export const windowed = (interval: Duration.DurationInput): Schedule<number> => 
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * // A schedule that runs forever with no delay
  * const infiniteSchedule = Schedule.forever
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.repeat(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log("Running forever...")
  *       return "continuous-task"
  *     }),
@@ -3292,7 +3238,6 @@ export const satisfiesInputType = <T>() =>
  * @example
  * ```ts
  * import { Schedule } from "effect"
- * import { Duration } from "effect"
  *
  * // satisfiesOutputType is a type-level function for compile-time constraints
  * // It ensures that a schedule's output type matches the specified type
@@ -3317,8 +3262,7 @@ export const satisfiesOutputType = <T>() =>
  *
  * @example
  * ```ts
- * import { Schedule } from "effect"
- * import { Data } from "effect"
+ * import { Data, Schedule } from "effect"
  *
  * // Create a custom error using Data.TaggedError
  * class CustomError extends Data.TaggedError("CustomError")<{

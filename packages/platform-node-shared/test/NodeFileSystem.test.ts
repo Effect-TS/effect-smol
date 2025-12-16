@@ -2,7 +2,7 @@ import * as NodeFileSystem from "@effect/platform-node-shared/NodeFileSystem"
 import { assert, describe, expect, it } from "@effect/vitest"
 import { Array, Option } from "effect"
 import * as Effect from "effect/Effect"
-import * as Fs from "effect/platform/FileSystem"
+import * as Fs from "effect/FileSystem"
 import * as Stream from "effect/Stream"
 
 const runPromise = <E, A>(self: Effect.Effect<A, E, Fs.FileSystem>) =>

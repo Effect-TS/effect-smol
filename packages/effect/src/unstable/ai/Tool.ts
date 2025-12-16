@@ -353,8 +353,8 @@ export interface ProviderDefined<
  *   })
  * })
  *
- * console.log(Tool.isUserDefined(UserDefinedTool))      // true
- * console.log(Tool.isUserDefined(ProviderDefinedTool))  // false
+ * console.log(Tool.isUserDefined(UserDefinedTool)) // true
+ * console.log(Tool.isUserDefined(ProviderDefinedTool)) // false
  * ```
  *
  * @since 4.0.0
@@ -397,8 +397,8 @@ export const isUserDefined = (u: unknown): u is Tool<string, any, any> =>
  *   })
  * })
  *
- * console.log(Tool.isUserDefined(UserDefinedTool))      // false
- * console.log(Tool.isUserDefined(ProviderDefinedTool))  // true
+ * console.log(Tool.isUserDefined(UserDefinedTool)) // false
+ * console.log(Tool.isUserDefined(ProviderDefinedTool)) // true
  * ```
  *
  * @since 4.0.0

@@ -881,9 +881,9 @@ export const mapEdges = <N, E, T extends Kind = "directed">(
  *   const a = Graph.addNode(mutable, "A")
  *   const b = Graph.addNode(mutable, "B")
  *   const c = Graph.addNode(mutable, "C")
- *   Graph.addEdge(mutable, a, b, 1)  // A -> B
- *   Graph.addEdge(mutable, b, c, 2)  // B -> C
- *   Graph.reverse(mutable)           // Now B -> A, C -> B
+ *   Graph.addEdge(mutable, a, b, 1) // A -> B
+ *   Graph.addEdge(mutable, b, c, 2) // B -> C
+ *   Graph.reverse(mutable) // Now B -> A, C -> B
  * })
  *
  * const edge0 = Graph.getEdge(graph, 0)
@@ -943,8 +943,10 @@ export const reverse = <N, E, T extends Kind = "directed">(
  *   Graph.addEdge(mutable, b, c, 2)
  *
  *   // Keep only "active" nodes and transform to uppercase
- *   Graph.filterMapNodes(mutable, (data) =>
- *     data === "active" ? Option.some(data.toUpperCase()) : Option.none()
+ *   Graph.filterMapNodes(
+ *     mutable,
+ *     (data) =>
+ *       data === "active" ? Option.some(data.toUpperCase()) : Option.none()
  *   )
  * })
  *
@@ -996,8 +998,9 @@ export const filterMapNodes = <N, E, T extends Kind = "directed">(
  *   Graph.addEdge(mutable, c, a, 25)
  *
  *   // Keep only edges with weight >= 10 and double their weight
- *   Graph.filterMapEdges(mutable, (data) =>
- *     data >= 10 ? Option.some(data * 2) : Option.none()
+ *   Graph.filterMapEdges(
+ *     mutable,
+ *     (data) => data >= 10 ? Option.some(data * 2) : Option.none()
  *   )
  * })
  *
@@ -1646,7 +1649,7 @@ export const neighborsDirected: {
  *
  * @example
  * ```ts
- * import * as Graph from "effect/Graph"
+ * import type * as Graph from "effect/Graph"
  *
  * // Basic options with custom labels
  * const basicOptions: Graph.GraphVizOptions<string, number> = {
@@ -1776,7 +1779,7 @@ export const toGraphViz: {
  *
  * @example
  * ```ts
- * import * as Graph from "effect/Graph"
+ * import type * as Graph from "effect/Graph"
  *
  * // Shape selector function for different node types
  * const shapeSelector = (nodeData: string): Graph.MermaidNodeShape => {
@@ -1816,7 +1819,7 @@ export type MermaidNodeShape =
  *
  * @example
  * ```ts
- * import * as Graph from "effect/Graph"
+ * import type * as Graph from "effect/Graph"
  *
  * // Horizontal workflow diagram
  * const horizontalOptions: Graph.MermaidOptions<string, string> = {
@@ -1856,7 +1859,7 @@ export type MermaidDirection =
  *
  * @example
  * ```ts
- * import * as Graph from "effect/Graph"
+ * import type * as Graph from "effect/Graph"
  *
  * // Force flowchart format (even for undirected graphs)
  * const flowchartOptions: Graph.MermaidOptions<string, string> = {
@@ -1893,7 +1896,7 @@ export type MermaidDiagramType =
  *
  * @example
  * ```ts
- * import * as Graph from "effect/Graph"
+ * import type * as Graph from "effect/Graph"
  *
  * // Basic options with custom labels
  * const basicOptions: Graph.MermaidOptions<string, number> = {
@@ -2026,7 +2029,7 @@ const formatMermaidNode = (
  * import * as Graph from "effect/Graph"
  *
  * // Undirected graph with custom labels and direction
- * const socialGraph = Graph.undirected<{name: string}, string>((mutable) => {
+ * const socialGraph = Graph.undirected<{ name: string }, string>((mutable) => {
  *   const alice = Graph.addNode(mutable, { name: "Alice" })
  *   const bob = Graph.addNode(mutable, { name: "Bob" })
  *   const charlie = Graph.addNode(mutable, { name: "Charlie" })
@@ -2053,25 +2056,38 @@ const formatMermaidNode = (
  * import * as Graph from "effect/Graph"
  *
  * // Advanced styling with node shapes for flowchart
- * const workflow = Graph.directed<{type: string, name: string}, string>((mutable) => {
- *   const start = Graph.addNode(mutable, { type: "start", name: "Begin" })
- *   const process = Graph.addNode(mutable, { type: "process", name: "Process Data" })
- *   const decision = Graph.addNode(mutable, { type: "decision", name: "Valid?" })
- *   const end = Graph.addNode(mutable, { type: "end", name: "Complete" })
- *   Graph.addEdge(mutable, start, process, "")
- *   Graph.addEdge(mutable, process, decision, "")
- *   Graph.addEdge(mutable, decision, end, "yes")
- * })
+ * const workflow = Graph.directed<{ type: string; name: string }, string>(
+ *   (mutable) => {
+ *     const start = Graph.addNode(mutable, { type: "start", name: "Begin" })
+ *     const process = Graph.addNode(mutable, {
+ *       type: "process",
+ *       name: "Process Data"
+ *     })
+ *     const decision = Graph.addNode(mutable, {
+ *       type: "decision",
+ *       name: "Valid?"
+ *     })
+ *     const end = Graph.addNode(mutable, { type: "end", name: "Complete" })
+ *     Graph.addEdge(mutable, start, process, "")
+ *     Graph.addEdge(mutable, process, decision, "")
+ *     Graph.addEdge(mutable, decision, end, "yes")
+ *   }
+ * )
  *
  * const mermaid = Graph.toMermaid(workflow, {
  *   nodeLabel: (node) => node.name,
  *   nodeShape: (node) => {
  *     switch (node.type) {
- *       case "start": return "stadium"
- *       case "process": return "rectangle"
- *       case "decision": return "diamond"
- *       case "end": return "stadium"
- *       default: return "rectangle"
+ *       case "start":
+ *         return "stadium"
+ *       case "process":
+ *         return "rectangle"
+ *       case "decision":
+ *         return "diamond"
+ *       case "end":
+ *         return "stadium"
+ *       default:
+ *         return "rectangle"
  *     }
  *   }
  * })
@@ -2098,10 +2114,26 @@ const formatMermaidNode = (
  * }
  *
  * const dependencyGraph = Graph.directed<Dependency, string>((mutable) => {
- *   const app = Graph.addNode(mutable, { name: "MyApp", version: "1.0.0", type: "library" })
- *   const react = Graph.addNode(mutable, { name: "React", version: "18.0.0", type: "framework" })
- *   const lodash = Graph.addNode(mutable, { name: "Lodash", version: "4.17.0", type: "library" })
- *   const webpack = Graph.addNode(mutable, { name: "Webpack", version: "5.0.0", type: "tool" })
+ *   const app = Graph.addNode(mutable, {
+ *     name: "MyApp",
+ *     version: "1.0.0",
+ *     type: "library"
+ *   })
+ *   const react = Graph.addNode(mutable, {
+ *     name: "React",
+ *     version: "18.0.0",
+ *     type: "framework"
+ *   })
+ *   const lodash = Graph.addNode(mutable, {
+ *     name: "Lodash",
+ *     version: "4.17.0",
+ *     type: "library"
+ *   })
+ *   const webpack = Graph.addNode(mutable, {
+ *     name: "Webpack",
+ *     version: "5.0.0",
+ *     type: "tool"
+ *   })
  *
  *   Graph.addEdge(mutable, app, react, "depends on")
  *   Graph.addEdge(mutable, app, lodash, "depends on")
@@ -2111,8 +2143,12 @@ const formatMermaidNode = (
  * const dependencyDiagram = Graph.toMermaid(dependencyGraph, {
  *   nodeLabel: (dep) => `${dep.name}\\nv${dep.version}`,
  *   edgeLabel: (edge) => edge,
- *   nodeShape: (dep) => dep.type === "framework" ? "hexagon" :
- *                      dep.type === "tool" ? "diamond" : "rectangle",
+ *   nodeShape: (dep) =>
+ *     dep.type === "framework" ?
+ *       "hexagon" :
+ *       dep.type === "tool"
+ *       ? "diamond"
+ *       : "rectangle",
  *   direction: "TB"
  * })
  *
@@ -2207,10 +2243,14 @@ export const toMermaid: {
  * })
  *
  * // Follow outgoing edges (normal direction)
- * const outgoingNodes = Array.from(Graph.indices(Graph.dfs(graph, { start: [0], direction: "outgoing" })))
+ * const outgoingNodes = Array.from(
+ *   Graph.indices(Graph.dfs(graph, { start: [0], direction: "outgoing" }))
+ * )
  *
  * // Follow incoming edges (reverse direction)
- * const incomingNodes = Array.from(Graph.indices(Graph.dfs(graph, { start: [1], direction: "incoming" })))
+ * const incomingNodes = Array.from(
+ *   Graph.indices(Graph.dfs(graph, { start: [1], direction: "incoming" }))
+ * )
  * ```
  *
  * @since 4.0.0
@@ -2656,7 +2696,6 @@ export interface DijkstraConfig<E> {
  * @example
  * ```ts
  * import { Graph } from "effect"
- * import * as Option from "effect/Option"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -3000,23 +3039,25 @@ export interface AstarConfig<E, N> {
  * ```ts
  * import { Graph } from "effect"
  *
- * const graph = Graph.directed<{x: number, y: number}, number>((mutable) => {
- *   const a = Graph.addNode(mutable, {x: 0, y: 0})
- *   const b = Graph.addNode(mutable, {x: 1, y: 0})
- *   const c = Graph.addNode(mutable, {x: 2, y: 0})
+ * const graph = Graph.directed<{ x: number; y: number }, number>((mutable) => {
+ *   const a = Graph.addNode(mutable, { x: 0, y: 0 })
+ *   const b = Graph.addNode(mutable, { x: 1, y: 0 })
+ *   const c = Graph.addNode(mutable, { x: 2, y: 0 })
  *   Graph.addEdge(mutable, a, b, 1)
  *   Graph.addEdge(mutable, b, c, 1)
  * })
  *
  * // Manhattan distance heuristic
- * const heuristic = (nodeData: {x: number, y: number}, targetData: {x: number, y: number}) =>
- *   Math.abs(nodeData.x - targetData.x) + Math.abs(nodeData.y - targetData.y)
+ * const heuristic = (
+ *   nodeData: { x: number; y: number },
+ *   targetData: { x: number; y: number }
+ * ) => Math.abs(nodeData.x - targetData.x) + Math.abs(nodeData.y - targetData.y)
  *
  * const result = Graph.astar(graph, {
  *   source: 0,
  *   target: 2,
  *   cost: (edgeData) => edgeData,
- *   heuristic: heuristic
+ *   heuristic
  * })
  *
  * if (result !== undefined) {
@@ -3213,7 +3254,7 @@ export interface BellmanFordConfig<E> {
  *   const a = Graph.addNode(mutable, "A")
  *   const b = Graph.addNode(mutable, "B")
  *   const c = Graph.addNode(mutable, "C")
- *   Graph.addEdge(mutable, a, b, -1)  // Negative weight allowed
+ *   Graph.addEdge(mutable, a, b, -1) // Negative weight allowed
  *   Graph.addEdge(mutable, b, c, 3)
  *   Graph.addEdge(mutable, a, c, 5)
  * })
@@ -3432,7 +3473,9 @@ export class Walker<T, N> implements Iterable<[T, N]> {
    * console.log(values) // ["A", "B"]
    *
    * // Map to custom objects
-   * const custom = Array.from(dfs.visit((index, data) => ({ id: index, name: data })))
+   * const custom = Array.from(
+   *   dfs.visit((index, data) => ({ id: index, name: data }))
+   * )
    * console.log(custom) // [{ id: 0, name: "A" }, { id: 1, name: "B" }]
    * ```
    *
@@ -3466,7 +3509,9 @@ export class Walker<T, N> implements Iterable<[T, N]> {
      * console.log(values) // ["A", "B"]
      *
      * // Map to custom objects
-     * const custom = Array.from(dfs.visit((index, data) => ({ id: index, name: data })))
+     * const custom = Array.from(
+     *   dfs.visit((index, data) => ({ id: index, name: data }))
+     * )
      * console.log(custom) // [{ id: 0, name: "A" }, { id: 1, name: "B" }]
      * ```
      *
@@ -4121,9 +4166,9 @@ export interface ExternalsConfig {
  * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
- *   const source = Graph.addNode(mutable, "source")     // 0 - no incoming
- *   const middle = Graph.addNode(mutable, "middle")     // 1 - has both
- *   const sink = Graph.addNode(mutable, "sink")         // 2 - no outgoing
+ *   const source = Graph.addNode(mutable, "source") // 0 - no incoming
+ *   const middle = Graph.addNode(mutable, "middle") // 1 - has both
+ *   const sink = Graph.addNode(mutable, "sink") // 2 - no outgoing
  *   const isolated = Graph.addNode(mutable, "isolated") // 3 - no edges
  *
  *   Graph.addEdge(mutable, source, middle, 1)
@@ -4131,11 +4176,15 @@ export interface ExternalsConfig {
  * })
  *
  * // Nodes with no outgoing edges (sinks + isolated)
- * const sinks = Array.from(Graph.indices(Graph.externals(graph, { direction: "outgoing" })))
+ * const sinks = Array.from(
+ *   Graph.indices(Graph.externals(graph, { direction: "outgoing" }))
+ * )
  * console.log(sinks) // [2, 3]
  *
  * // Nodes with no incoming edges (sources + isolated)
- * const sources = Array.from(Graph.indices(Graph.externals(graph, { direction: "incoming" })))
+ * const sources = Array.from(
+ *   Graph.indices(Graph.externals(graph, { direction: "incoming" }))
+ * )
  * console.log(sources) // [0, 3]
  * ```
  *

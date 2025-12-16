@@ -4,12 +4,12 @@
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
-import * as PlatformError from "effect/platform/PlatformError"
-import * as Terminal from "effect/platform/Terminal"
+import * as PlatformError from "effect/PlatformError"
 import * as Predicate from "effect/Predicate"
 import * as Queue from "effect/Queue"
 import * as RcRef from "effect/RcRef"
 import type * as Scope from "effect/Scope"
+import * as Terminal from "effect/Terminal"
 import * as readline from "node:readline"
 
 /**

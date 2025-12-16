@@ -366,8 +366,7 @@ const CronParseErrorTypeId = "~effect/time/Cron/CronParseError"
  *
  * @example
  * ```ts
- * import { Cron } from "effect"
- * import { Result } from "effect"
+ * import { Cron, Result } from "effect"
  *
  * const result = Cron.parse("invalid expression")
  * if (Result.isFailure(result)) {
@@ -400,8 +399,7 @@ export class CronParseError extends Data.TaggedError("CronParseError")<{
  *
  * @example
  * ```ts
- * import { Cron } from "effect"
- * import { Result } from "effect"
+ * import { Cron, Result } from "effect"
  *
  * const result = Cron.parse("invalid cron expression")
  * if (Result.isFailure(result)) {
@@ -425,8 +423,7 @@ export const isCronParseError = (u: unknown): u is CronParseError => hasProperty
  *
  * @example
  * ```ts
- * import { Cron } from "effect"
- * import { Result } from "effect"
+ * import { Cron, Result } from "effect"
  * import * as assert from "node:assert"
  *
  * // At 04:00 on every day-of-month from 8 through 14.
@@ -511,8 +508,7 @@ export const parseUnsafe = (cron: string, tz?: DateTime.TimeZone | string): Cron
  *
  * @example
  * ```ts
- * import { Cron } from "effect"
- * import { Result } from "effect"
+ * import { Cron, Result } from "effect"
  *
  * const cron = Result.getOrThrow(Cron.parse("0 0 4 8-14 * *"))
  *
@@ -578,8 +574,7 @@ const daysInMonth = (date: Date): number =>
  *
  * @example
  * ```ts
- * import { Cron } from "effect"
- * import { Result } from "effect"
+ * import { Cron, Result } from "effect"
  *
  * const cron = Result.getOrThrow(Cron.parse("0 0 4 8-14 * *"))
  *
@@ -727,8 +722,7 @@ export const next = (cron: Cron, now?: DateTime.DateTime.Input): Date => {
  *
  * @example
  * ```ts
- * import { Cron } from "effect"
- * import { Result } from "effect"
+ * import { Cron, Result } from "effect"
  *
  * const cron = Result.getOrThrow(Cron.parse("0 0 9 * * 1-5")) // 9 AM weekdays
  *

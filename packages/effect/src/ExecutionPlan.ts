@@ -34,9 +34,9 @@ export const isExecutionPlan = (u: unknown): u is ExecutionPlan<any> => Predicat
  * A `ExecutionPlan` can be used with `Effect.withExecutionPlan` or `Stream.withExecutionPlan`, allowing you to provide different resources for each step of execution until the effect succeeds or the plan is exhausted.
  *
  * ```ts
- * import type { LanguageModel } from "effect/unstable/ai"
  * import type { Layer } from "effect"
  * import { Effect, ExecutionPlan, Schedule } from "effect"
+ * import type { LanguageModel } from "effect/unstable/ai"
  *
  * declare const layerBad: Layer.Layer<LanguageModel.LanguageModel>
  * declare const layerGood: Layer.Layer<LanguageModel.LanguageModel>
@@ -124,9 +124,9 @@ export type ConfigBase = {
  * Create an `ExecutionPlan`, which can be used with `Effect.withExecutionPlan` or `Stream.withExecutionPlan`, allowing you to provide different resources for each step of execution until the effect succeeds or the plan is exhausted.
  *
  * ```ts
- * import type { LanguageModel } from "effect/unstable/ai"
  * import type { Layer } from "effect"
  * import { Effect, ExecutionPlan, Schedule } from "effect"
+ * import type { LanguageModel } from "effect/unstable/ai"
  *
  * declare const layerBad: Layer.Layer<LanguageModel.LanguageModel>
  * declare const layerGood: Layer.Layer<LanguageModel.LanguageModel>

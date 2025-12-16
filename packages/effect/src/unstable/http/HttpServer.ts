@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
+import * as FileSystem from "../../FileSystem.ts"
 import { dual } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
-import * as FileSystem from "../../platform/FileSystem.ts"
-import * as Path from "../../platform/Path.ts"
+import * as Path from "../../Path.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Etag from "./Etag.ts"

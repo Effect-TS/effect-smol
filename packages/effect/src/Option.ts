@@ -100,12 +100,14 @@ export interface Some<out A> extends Pipeable, Inspectable, Yieldable<Option<A>,
 /**
  * @example
  * ```ts
- * import { Option } from "effect"
- * import * as Unify from "effect/types/Unify"
+ * import type { Option } from "effect"
+ * import type * as Unify from "effect/types/Unify"
  *
  * // Internal unification interface used by the Effect library
  * // for type-level operations with Option types
- * type ExampleUnify = Option.OptionUnify<{ [Unify.typeSymbol]?: Option.Option<string> }>
+ * type ExampleUnify = Option.OptionUnify<
+ *   { [Unify.typeSymbol]?: Option.Option<string> }
+ * >
  * ```
  *
  * @category Models
@@ -118,7 +120,7 @@ export interface OptionUnify<A extends { [Unify.typeSymbol]?: any }> {
 /**
  * @example
  * ```ts
- * import { Option } from "effect"
+ * import type { Option } from "effect"
  *
  * // Namespace containing utility types for Option
  * type StringOption = Option.Option<string>
@@ -134,7 +136,7 @@ export declare namespace Option {
    *
    * @example
    * ```ts
-   * import { Option } from "effect"
+   * import type { Option } from "effect"
    *
    * // Declare an Option holding a string
    * declare const myOption: Option.Option<string>
@@ -155,7 +157,7 @@ export declare namespace Option {
 /**
  * @example
  * ```ts
- * import { Option } from "effect"
+ * import type { Option } from "effect"
  *
  * // Internal interface for type unification behavior
  * // Used by the Effect library's type system
@@ -170,7 +172,7 @@ export interface OptionUnifyIgnore {}
 /**
  * @example
  * ```ts
- * import { Option } from "effect"
+ * import type { Option } from "effect"
  *
  * // Type lambda interface for higher-kinded types with Option
  * // Used internally by the Effect library's type system
@@ -463,8 +465,7 @@ export const fromIterable = <A>(collection: Iterable<A>): Option<A> => {
  *
  * @example
  * ```ts
- * import { Result } from "effect"
- * import { Option } from "effect"
+ * import { Option, Result } from "effect"
  *
  * console.log(Option.getSuccess(Result.succeed("ok")))
  * // Output: { _id: 'Option', _tag: 'Some', value: 'ok' }
@@ -498,8 +499,7 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
  *
  * @example
  * ```ts
- * import { Result } from "effect"
- * import { Option } from "effect"
+ * import { Option, Result } from "effect"
  *
  * console.log(Option.getFailure(Result.succeed("ok")))
  * // Output: { _id: 'Option', _tag: 'None' }
@@ -659,7 +659,6 @@ export const orElseSome: {
  *
  * @example
  * ```ts
- * import { Result } from "effect"
  * import { Option } from "effect"
  *
  * const primary = Option.some("primary")
@@ -921,14 +920,16 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Option } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
- *   Option.getOrThrowWith(Option.some(1), () => new Error('Unexpected None')),
+ *   Option.getOrThrowWith(Option.some(1), () => new Error("Unexpected None")),
  *   1
  * )
- * assert.throws(() => Option.getOrThrowWith(Option.none(), () => new Error('Unexpected None')))
+ * assert.throws(() =>
+ *   Option.getOrThrowWith(Option.none(), () => new Error("Unexpected None"))
+ * )
  * ```
  *
  * @see {@link getOrThrow} for a version that throws a default error.
@@ -959,8 +960,8 @@ export const getOrThrowWith: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Option } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Option.getOrThrow(Option.some(1)), 1)
  * assert.throws(() => Option.getOrThrow(Option.none()))
@@ -1262,12 +1263,18 @@ export const andThen: {
  *   }
  * }
  *
- * const employee1: Employee = { company: { address: { street: { name: "high street" } } } }
+ * const employee1: Employee = {
+ *   company: { address: { street: { name: "high street" } } }
+ * }
  *
  * // Extracting a deeply nested property
  * console.log(
  *   Option.some(employee1)
- *     .pipe(Option.flatMapNullishOr((employee) => employee.company?.address?.street?.name))
+ *     .pipe(
+ *       Option.flatMapNullishOr((employee) =>
+ *         employee.company?.address?.street?.name
+ *       )
+ *     )
  * )
  * // Output: { _id: 'Option', _tag: 'Some', value: 'high street' }
  *
@@ -1276,7 +1283,11 @@ export const andThen: {
  * // Property does not exist
  * console.log(
  *   Option.some(employee2)
- *     .pipe(Option.flatMapNullishOr((employee) => employee.company?.address?.street?.name))
+ *     .pipe(
+ *       Option.flatMapNullishOr((employee) =>
+ *         employee.company?.address?.street?.name
+ *       )
+ *     )
  * )
  * // Output: { _id: 'Option', _tag: 'None' }
  * ```
@@ -1418,9 +1429,11 @@ export const zipLeft: {
  * ```ts
  * import { Option } from "effect"
  *
- * const parse = (s: string): Option.Option<number> => isNaN(Number(s)) ? Option.none() : Option.some(Number(s))
+ * const parse = (s: string): Option.Option<number> =>
+ *   isNaN(Number(s)) ? Option.none() : Option.some(Number(s))
  *
- * const double = (n: number): Option.Option<number> => n > 0 ? Option.some(n * 2) : Option.none()
+ * const double = (n: number): Option.Option<number> =>
+ *   n > 0 ? Option.some(n * 2) : Option.none()
  *
  * const parseAndDouble = Option.composeK(parse, double)
  *
@@ -1460,7 +1473,8 @@ export const composeK: {
  * ```ts
  * import { Option } from "effect"
  *
- * const getInteger = (n: number) => Number.isInteger(n) ? Option.some(n) : Option.none()
+ * const getInteger = (n: number) =>
+ *   Number.isInteger(n) ? Option.some(n) : Option.none()
  *
  * console.log(Option.tap(Option.none(), getInteger))
  * // Output: { _id: 'Option', _tag: 'None' }
@@ -1730,8 +1744,7 @@ export const ap: {
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Option } from "effect"
+ * import { Option, pipe } from "effect"
  *
  * const iterable = [Option.some(1), Option.none(), Option.some(2), Option.none()]
  *
@@ -1808,8 +1821,7 @@ export const toArray = <A>(self: Option<A>): Array<A> => isNone(self) ? [] : [se
  *
  * @example
  * ```ts
- * import { Result } from "effect"
- * import { Option } from "effect"
+ * import { Option, Result } from "effect"
  *
  * const parseNumber = (s: string): Result.Result<number, string> => {
  *   const n = Number(s)
@@ -1853,7 +1865,10 @@ export const partitionMap: {
  *
  * // Transform and filter numbers
  * const transformEven = (n: Option.Option<number>): Option.Option<string> =>
- *   Option.filterMap(n, (n) => (n % 2 === 0 ? Option.some(`Even: ${n}`) : Option.none()))
+ *   Option.filterMap(
+ *     n,
+ *     (n) => (n % 2 === 0 ? Option.some(`Even: ${n}`) : Option.none())
+ *   )
  *
  * console.log(transformEven(Option.none()))
  * // Output: { _id: 'Option', _tag: 'None' }
@@ -1934,7 +1949,7 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Option, Equivalence } from "effect"
+ * import { Equivalence, Option } from "effect"
  *
  * const isEquivalent = Option.getEquivalence(Equivalence.strict<number>())
  *
@@ -2103,7 +2118,7 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  *
  * @example
  * ```ts
- * import { Option, Equivalence } from "effect"
+ * import { Equivalence, Option } from "effect"
  *
  * const contains = Option.containsWith(Equivalence.strict<number>())
  *
@@ -2225,9 +2240,7 @@ export const exists: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Option } from "effect"
+ * import { Option, pipe } from "effect"
  *
  * const result = pipe(
  *   Option.Do,
@@ -2277,9 +2290,7 @@ export {
    *
    * @example
    * ```ts
-   * import * as assert from "node:assert"
-   * import { pipe } from "effect"
-   * import { Option } from "effect"
+   * import { Option, pipe } from "effect"
    *
    * const result = pipe(
    *   Option.Do,
@@ -2314,9 +2325,7 @@ export {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Option } from "effect"
+ * import { Option, pipe } from "effect"
  *
  * const result = pipe(
  *   Option.Do,
@@ -2360,9 +2369,7 @@ export const bind: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Option } from "effect"
+ * import { Option, pipe } from "effect"
  *
  * const result = pipe(
  *   Option.Do,
@@ -2396,7 +2403,7 @@ export const Do: Option<{}> = some({})
  * const maybeName: Option.Option<string> = Option.some("John")
  * const maybeAge: Option.Option<number> = Option.some(25)
  *
- * const person = Option.gen(function* () {
+ * const person = Option.gen(function*() {
  *   const name = (yield* maybeName).toUpperCase()
  *   const age = yield* maybeAge
  *   return { name, age }

@@ -42,8 +42,8 @@ export const Array = globalThis.Array
  *
  * @example
  * ```ts
- * import type { Kind } from "effect/types/HKT"
  * import type { ReadonlyArrayTypeLambda } from "effect/Array"
+ * import type { Kind } from "effect/types/HKT"
  *
  * // Create a ReadonlyArray type using the type lambda
  * type NumberArray = Kind<ReadonlyArrayTypeLambda, never, never, never, number>
@@ -62,7 +62,7 @@ export interface ReadonlyArrayTypeLambda extends TypeLambda {
  *
  * @example
  * ```ts
- * import { Array } from "effect"
+ * import type { Array } from "effect"
  *
  * const nonEmpty: Array.NonEmptyReadonlyArray<number> = [1, 2, 3]
  * const head = nonEmpty[0] // 1 (guaranteed to exist)
@@ -78,7 +78,7 @@ export type NonEmptyReadonlyArray<A> = readonly [A, ...Array<A>]
  *
  * @example
  * ```ts
- * import { Array } from "effect"
+ * import type { Array } from "effect"
  *
  * const nonEmpty: Array.NonEmptyArray<number> = [1, 2, 3]
  * nonEmpty.push(4) // Mutable operations are allowed
@@ -132,7 +132,7 @@ export const allocate = <A = never>(n: number): Array<A | undefined> => new Arra
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.makeBy(5, n => n * 2)
+ * const result = Array.makeBy(5, (n) => n * 2)
  * console.log(result) // [0, 2, 4, 6, 8]
  * ```
  *
@@ -436,7 +436,7 @@ export const prependAll: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.append([1, 2, 3], 4);
+ * const result = Array.append([1, 2, 3], 4)
  * console.log(result) // [1, 2, 3, 4]
  * ```
  *
@@ -483,7 +483,7 @@ export const appendAll: {
  * @example
  *
  * ```ts
- * import { Array } from "effect";
+ * import { Array } from "effect"
  *
  * const result = Array.scan([1, 2, 3, 4], 0, (acc, value) => acc + value)
  * console.log(result) // [0, 1, 3, 6, 10]
@@ -519,7 +519,7 @@ export const scan: {
  * @example
  *
  * ```ts
- * import { Array } from "effect";
+ * import { Array } from "effect"
  *
  * const result = Array.scanRight([1, 2, 3, 4], 0, (acc, value) => acc + value)
  * console.log(result) // [10, 9, 7, 4, 0]
@@ -716,7 +716,7 @@ export const getUnsafe: {
  * @example
  *
  * ```ts
- * import { Array } from "effect";
+ * import { Array } from "effect"
  *
  * const result = Array.unprepend([1, 2, 3, 4])
  * console.log(result) // [1, [2, 3, 4]]
@@ -735,7 +735,7 @@ export const unprepend = <A>(
  * @example
  *
  * ```ts
- * import { Array } from "effect";
+ * import { Array } from "effect"
  *
  * const result = Array.unappend([1, 2, 3, 4])
  * console.log(result) // [[1, 2, 3], 4]
@@ -952,7 +952,7 @@ export const takeRight: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.takeWhile([1, 3, 2, 4, 1, 2], x => x < 4)
+ * const result = Array.takeWhile([1, 3, 2, 4, 1, 2], (x) => x < 4)
  * console.log(result) // [1, 3, 2]
  *
  * // Explanation:
@@ -1004,7 +1004,7 @@ const spanIndex = <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.span([1, 3, 2, 4, 5], x => x % 2 === 1)
+ * const result = Array.span([1, 3, 2, 4, 5], (x) => x % 2 === 1)
  * console.log(result) // [[1, 3], [2, 4, 5]]
  * ```
  *
@@ -1085,7 +1085,7 @@ export const dropRight: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.dropWhile([1, 2, 3, 4, 5], x => x < 4)
+ * const result = Array.dropWhile([1, 2, 3, 4, 5], (x) => x < 4)
  * console.log(result) // [4, 5]
  * ```
  *
@@ -1111,7 +1111,7 @@ export const dropWhile: {
  *
  * Array.findFirstIndex(
  *   [5, 3, 8, 9],
- *   x => x > 5
+ *   (x) => x > 5
  * ) // 2
  * ```
  *
@@ -1141,7 +1141,7 @@ export const findFirstIndex: {
  *
  * Array.findLastIndex(
  *   [1, 3, 8, 9],
- *   x => x < 5
+ *   (x) => x < 5
  * ) // 1
  * ```
  *
@@ -1169,7 +1169,7 @@ export const findLastIndex: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.findFirst([1, 2, 3, 4, 5], x => x > 3)
+ * const result = Array.findFirst([1, 2, 3, 4, 5], (x) => x > 3)
  * console.log(result) // Option.some(4)
  * ```
  *
@@ -1194,7 +1194,7 @@ export const findFirst: {
  * ```ts
  * import { Array } from "effect"
  *
- * Array.findFirstWithIndex([1, 2, 3, 4, 5], x => x > 3) // [4, 3]
+ * Array.findFirstWithIndex([1, 2, 3, 4, 5], (x) => x > 3) // [4, 3]
  * ```
  *
  * @category elements
@@ -1239,7 +1239,7 @@ export const findFirstWithIndex: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.findLast([1, 2, 3, 4, 5], n => n % 2 === 0)
+ * const result = Array.findLast([1, 2, 3, 4, 5], (n) => n % 2 === 0)
  * console.log(result) // Option.some(4)
  * ```
  *
@@ -1286,7 +1286,7 @@ export const findLast: {
  * ```ts
  * import { Array } from "effect"
  *
- * Array.insertAt(['a', 'b', 'c', 'e'], 3, 'd') // ['a', 'b', 'c', 'd', 'e']
+ * Array.insertAt(["a", "b", "c", "e"], 3, "d") // ['a', 'b', 'c', 'd', 'e']
  * ```
  *
  * @category elements
@@ -1432,8 +1432,7 @@ export const reverse = <S extends Iterable<any>>(
  *
  * @example
  * ```ts
- * import { Array } from "effect"
- * import { Order } from "effect"
+ * import { Array, Order } from "effect"
  *
  * const result = Array.sort([3, 1, 4, 1, 5], Order.number)
  * console.log(result) // [1, 1, 3, 4, 5]
@@ -1462,8 +1461,7 @@ export const sort: {
  * @example
  *
  * ```ts
- * import { Array } from "effect"
- * import { Order } from "effect"
+ * import { Array, Order } from "effect"
  *
  * const result = Array.sortWith(["aaa", "b", "cc"], (s) => s.length, Order.number)
  * console.log(result) // ["b", "cc", "aaa"]
@@ -1498,9 +1496,7 @@ export const sortWith: {
  * @example
  *
  * ```ts
- * import { pipe } from "effect"
- * import { Array } from "effect"
- * import { Order } from "effect"
+ * import { Array, Order, pipe } from "effect"
  *
  * const users = [
  *   { name: "Alice", age: 30 },
@@ -1556,7 +1552,7 @@ export const sortBy = <S extends Iterable<any>>(
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.zip([1, 2, 3], ['a', 'b'])
+ * const result = Array.zip([1, 2, 3], ["a", "b"])
  * console.log(result) // [[1, 'a'], [2, 'b']]
  * ```
  *
@@ -1687,7 +1683,7 @@ export const intersperse: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.modifyHeadNonEmpty([1, 2, 3], n => n * 10)
+ * const result = Array.modifyHeadNonEmpty([1, 2, 3], (n) => n * 10)
  * console.log(result) // [10, 2, 3]
  * ```
  *
@@ -1736,7 +1732,7 @@ export const setHeadNonEmpty: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.modifyLastNonEmpty([1, 2, 3], n => n * 2)
+ * const result = Array.modifyLastNonEmpty([1, 2, 3], (n) => n * 2)
  * console.log(result) // [1, 2, 6]
  * ```
  *
@@ -1784,7 +1780,7 @@ export const setLastNonEmpty: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.rotate(['a', 'b', 'c', 'd'], 2)
+ * const result = Array.rotate(["a", "b", "c", "d"], 2)
  * console.log(result) // ['c', 'd', 'a', 'b']
  * ```
  *
@@ -1819,8 +1815,7 @@ export const rotate: {
  * @example
  *
  * ```ts
- * import { pipe } from "effect"
- * import { Array } from "effect"
+ * import { Array, pipe } from "effect"
  *
  * const isEquivalent = (a: number, b: number) => a === b
  * const containsNumber = Array.containsWith(isEquivalent)
@@ -1852,10 +1847,9 @@ const _equivalence = Equal.equivalence()
  * @example
  *
  * ```ts
- * import { pipe } from "effect"
- * import { Array } from "effect"
+ * import { Array, pipe } from "effect"
  *
- * const result = pipe(['a', 'b', 'c', 'd'], Array.contains('c'))
+ * const result = pipe(["a", "b", "c", "d"], Array.contains("c"))
  * console.log(result) // true
  * ```
  *
@@ -1877,7 +1871,10 @@ export const contains: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.chop([1, 2, 3, 4, 5], (as): [number, Array<number>] => [as[0] * 2, as.slice(1)])
+ * const result = Array.chop(
+ *   [1, 2, 3, 4, 5],
+ *   (as): [number, Array<number>] => [as[0] * 2, as.slice(1)]
+ * )
  * console.log(result) // [2, 4, 6, 8, 10]
  *
  * // Explanation:
@@ -2009,7 +2006,7 @@ export const split: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.splitWhere([1, 2, 3, 4, 5], n => n > 3)
+ * const result = Array.splitWhere([1, 2, 3, 4, 5], (n) => n > 3)
  * console.log(result) // [[1, 2, 3], [4, 5]]
  * ```
  *
@@ -2169,7 +2166,10 @@ export const window: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.groupWith(["a", "a", "b", "b", "b", "c", "a"], (x, y) => x === y)
+ * const result = Array.groupWith(
+ *   ["a", "a", "b", "b", "b", "c", "a"],
+ *   (x, y) => x === y
+ * )
  * console.log(result) // [["a", "a"], ["b", "b", "b"], ["c"], ["a"]]
  * ```
  *
@@ -2232,7 +2232,7 @@ export const group: <A>(self: NonEmptyReadonlyArray<A>) => NonEmptyArray<NonEmpt
  *   { name: "Charlie", group: "A" }
  * ]
  *
- * const result = Array.groupBy(people, person => person.group)
+ * const result = Array.groupBy(people, (person) => person.group)
  * console.log(result)
  * // {
  * //  A: [{ name: "Alice", group: "A" }, { name: "Charlie", group: "A" }],
@@ -2399,7 +2399,10 @@ export const intersection: {
  *
  * const array1 = [1, 2, 3]
  * const array2 = [2, 3, 4]
- * const difference = Array.differenceWith<number>((a, b) => a === b)(array1, array2)
+ * const difference = Array.differenceWith<number>((a, b) => a === b)(
+ *   array1,
+ *   array2
+ * )
  * console.log(difference) // [1]
  * ```
  *
@@ -2475,7 +2478,7 @@ export const of = <A>(a: A): NonEmptyArray<A> => [a]
  *
  * @example
  * ```ts
- * import { Array } from "effect"
+ * import type { Array } from "effect"
  *
  * type ElementType = Array.ReadonlyArray.Infer<ReadonlyArray<string>>
  * // ElementType is string
@@ -2491,7 +2494,7 @@ export const of = <A>(a: A): NonEmptyArray<A> => [a]
  * import type { Array } from "effect"
  *
  * // Using ReadonlyArray utility types
- * type ElementType = Array.ReadonlyArray.Infer<readonly string[]>
+ * type ElementType = Array.ReadonlyArray.Infer<ReadonlyArray<string>>
  * type WithNumber = Array.ReadonlyArray.With<readonly [string], number>
  * ```
  *
@@ -2506,7 +2509,7 @@ export declare namespace ReadonlyArray {
    * ```ts
    * import type { Array } from "effect"
    *
-   * type StringArrayType = Array.ReadonlyArray.Infer<readonly string[]>
+   * type StringArrayType = Array.ReadonlyArray.Infer<ReadonlyArray<string>>
    * // StringArrayType is string
    * ```
    *
@@ -2541,7 +2544,11 @@ export declare namespace ReadonlyArray {
    * ```ts
    * import type { Array } from "effect"
    *
-   * type Result = Array.ReadonlyArray.OrNonEmpty<readonly [number], readonly string[], number>
+   * type Result = Array.ReadonlyArray.OrNonEmpty<
+   *   readonly [number],
+   *   ReadonlyArray<string>,
+   *   number
+   * >
    * // Result is NonEmptyArray<number>
    * ```
    *
@@ -2563,7 +2570,11 @@ export declare namespace ReadonlyArray {
    * ```ts
    * import type { Array } from "effect"
    *
-   * type Result = Array.ReadonlyArray.AndNonEmpty<readonly [number], readonly [string], boolean>
+   * type Result = Array.ReadonlyArray.AndNonEmpty<
+   *   readonly [number],
+   *   readonly [string],
+   *   boolean
+   * >
    * // Result is NonEmptyArray<boolean>
    * ```
    *
@@ -2585,7 +2596,7 @@ export declare namespace ReadonlyArray {
    * ```ts
    * import type { Array } from "effect"
    *
-   * type Nested = readonly (readonly number[])[]
+   * type Nested = ReadonlyArray<ReadonlyArray<number>>
    * type Flattened = Array.ReadonlyArray.Flatten<Nested>
    * // Flattened is Array<number>
    * ```
@@ -2606,7 +2617,7 @@ export declare namespace ReadonlyArray {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.map([1, 2, 3], x => x * 2)
+ * const result = Array.map([1, 2, 3], (x) => x * 2)
  * console.log(result) // [2, 4, 6]
  * ```
  *
@@ -2627,7 +2638,7 @@ export const map: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.flatMap([1, 2, 3], x => [x, x * 2])
+ * const result = Array.flatMap([1, 2, 3], (x) => [x, x * 2])
  * console.log(result) // [1, 2, 2, 4, 3, 6]
  * ```
  *
@@ -2688,9 +2699,10 @@ export const flatten: <S extends ReadonlyArray<ReadonlyArray<any>>>(self: S) => 
  * import { Array } from "effect"
  * import * as Option from "effect/Option"
  *
- * const evenSquares = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none()
+ * const evenSquares = (x: number) =>
+ *   x % 2 === 0 ? Option.some(x * x) : Option.none()
  *
- * const result = Array.filterMap([1, 2, 3, 4, 5], evenSquares);
+ * const result = Array.filterMap([1, 2, 3, 4, 5], evenSquares)
  * console.log(result) // [4, 16]
  * ```
  *
@@ -2726,7 +2738,8 @@ export const filterMap: {
  * import { Array } from "effect"
  * import * as Option from "effect/Option"
  *
- * const toSquareTillOdd = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none()
+ * const toSquareTillOdd = (x: number) =>
+ *   x % 2 === 0 ? Option.some(x * x) : Option.none()
  *
  * const result = Array.filterMapWhile([2, 4, 5], toSquareTillOdd)
  * console.log(result) // [4, 16]
@@ -2762,13 +2775,13 @@ export const filterMapWhile: {
  * @example
  *
  * ```ts
- * import { Array } from "effect"
- * import { Result } from "effect";
+ * import { Array, Result } from "effect"
  *
  * const isEven = (x: number) => x % 2 === 0
  *
- * const result = Array.partitionMap([1, 2, 3, 4, 5], x =>
- *   isEven(x) ? Result.succeed(x) : Result.fail(x)
+ * const result = Array.partitionMap(
+ *   [1, 2, 3, 4, 5],
+ *   (x) => isEven(x) ? Result.succeed(x) : Result.fail(x)
  * )
  * console.log(result)
  * // [
@@ -2851,10 +2864,13 @@ export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
  * @example
  *
  * ```ts
- * import { Array } from "effect"
- * import { Result } from "effect"
+ * import { Array, Result } from "effect"
  *
- * const result = Array.getFailures([Result.succeed(1), Result.fail("err"), Result.succeed(2)])
+ * const result = Array.getFailures([
+ *   Result.succeed(1),
+ *   Result.fail("err"),
+ *   Result.succeed(2)
+ * ])
  * console.log(result) // ["err"]
  * ```
  *
@@ -2880,10 +2896,13 @@ export const getFailures = <T extends Iterable<Result.Result<any, any>>>(
  * @example
  *
  * ```ts
- * import { Array } from "effect"
- * import { Result } from "effect"
+ * import { Array, Result } from "effect"
  *
- * const result = Array.getSuccesses([Result.succeed(1), Result.fail("err"), Result.succeed(2)])
+ * const result = Array.getSuccesses([
+ *   Result.succeed(1),
+ *   Result.fail("err"),
+ *   Result.succeed(2)
+ * ])
  * console.log(result) // [1, 2]
  * ```
  *
@@ -2910,7 +2929,7 @@ export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.filter([1, 2, 3, 4], x => x % 2 === 0)
+ * const result = Array.filter([1, 2, 3, 4], (x) => x % 2 === 0)
  * console.log(result) // [2, 4]
  * ```
  *
@@ -2944,7 +2963,7 @@ export const filter: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.partition([1, 2, 3, 4], n => n % 2 === 0)
+ * const result = Array.partition([1, 2, 3, 4], (n) => n % 2 === 0)
  * console.log(result) // [[1, 3], [2, 4]]
  * ```
  *
@@ -2985,8 +3004,7 @@ export const partition: {
  *
  * @example
  * ```ts
- * import { Array } from "effect"
- * import { Result } from "effect"
+ * import { Array, Result } from "effect"
  *
  * const results = [Result.succeed(1), Result.fail("error"), Result.succeed(2)]
  * const [failures, successes] = Array.separate(results)
@@ -3148,7 +3166,10 @@ export const liftNullishOr = <A extends Array<unknown>, B>(
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.flatMapNullishOr([1, 2, 3], n => (n % 2 === 0 ? null : n))
+ * const result = Array.flatMapNullishOr(
+ *   [1, 2, 3],
+ *   (n) => (n % 2 === 0 ? null : n)
+ * )
  * console.log(result) // [1, 3]
  *
  * // Explanation:
@@ -3176,11 +3197,12 @@ export const flatMapNullishOr: {
  * @example
  *
  * ```ts
- * import { Array } from "effect"
- * import { Result } from "effect"
+ * import { Array, Result } from "effect"
  *
  * const parseNumber = (s: string): Result.Result<number, Error> =>
- *   isNaN(Number(s)) ? Result.fail(new Error("Not a number")) : Result.succeed(Number(s))
+ *   isNaN(Number(s))
+ *     ? Result.fail(new Error("Not a number"))
+ *     : Result.succeed(Number(s))
  *
  * const liftedParseNumber = Array.liftResult(parseNumber)
  *
@@ -3214,10 +3236,10 @@ export const liftResult = <A extends Array<unknown>, E, B>(
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.every([2, 4, 6], x => x % 2 === 0)
+ * const result = Array.every([2, 4, 6], (x) => x % 2 === 0)
  * console.log(result) // true
  *
- * const result2 = Array.every([2, 3, 6], x => x % 2 === 0)
+ * const result2 = Array.every([2, 3, 6], (x) => x % 2 === 0)
  * console.log(result2) // false
  * ```
  *
@@ -3244,10 +3266,10 @@ export const every: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.some([1, 3, 4], x => x % 2 === 0)
+ * const result = Array.some([1, 3, 4], (x) => x % 2 === 0)
  * console.log(result) // true
  *
- * const result2 = Array.some([1, 3, 5], x => x % 2 === 0)
+ * const result2 = Array.some([1, 3, 5], (x) => x % 2 === 0)
  * console.log(result2) // false
  * ```
  *
@@ -3273,7 +3295,7 @@ export const some: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.extend([1, 2, 3], as => as.length)
+ * const result = Array.extend([1, 2, 3], (as) => as.length)
  * console.log(result) // [3, 2, 1]
  *
  * // Explanation:
@@ -3300,8 +3322,7 @@ export const extend: {
  * @example
  *
  * ```ts
- * import { Array } from "effect"
- * import { Order } from "effect"
+ * import { Array, Order } from "effect"
  *
  * const result = Array.min([3, 1, 2], Order.number)
  * console.log(result) // 1
@@ -3321,8 +3342,7 @@ export const min: {
  * @example
  *
  * ```ts
- * import { Array } from "effect"
- * import { Order } from "effect"
+ * import { Array, Order } from "effect"
  *
  * const result = Array.max([3, 1, 2], Order.number)
  * console.log(result) // 3
@@ -3343,7 +3363,7 @@ export const max: {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.unfold(1, n => n <= 5 ? [n, n + 1] : undefined)
+ * const result = Array.unfold(1, (n) => n <= 5 ? [n, n + 1] : undefined)
  * console.log(result) // [1, 2, 3, 4, 5]
  * ```
  *
@@ -3370,8 +3390,7 @@ export const unfold = <B, A>(b: B, f: (b: B) => readonly [A, B] | undefined): Ar
  *
  * @example
  * ```ts
- * import { Array } from "effect"
- * import { Order } from "effect"
+ * import { Array, Order } from "effect"
  *
  * const arrayOrder = Array.getOrder(Order.number)
  * console.log(arrayOrder([1, 2], [1, 3])) // -1 (first is less than second)
@@ -3409,7 +3428,7 @@ export const getEquivalence: <A>(
  * ```ts
  * import { Array } from "effect"
  *
- * Array.forEach([1, 2, 3], n => console.log(n)) // 1, 2, 3
+ * Array.forEach([1, 2, 3], (n) => console.log(n)) // 1, 2, 3
  * ```
  *
  * @category elements
@@ -3657,8 +3676,7 @@ export const cartesian: {
  * @example
  *
  * ```ts
- * import { pipe } from "effect"
- * import { Array } from "effect"
+ * import { Array, pipe } from "effect"
  *
  * const doResult = pipe(
  *   Array.Do,
@@ -3671,12 +3689,12 @@ export const cartesian: {
  *
  * // equivalent
  * const x = [1, 3, 5],
- *       y = [2, 4, 6],
- *       result = [];
- * for(let i = 0; i < x.length; i++) {
- *   for(let j = 0; j < y.length; j++) {
- *     const _x = x[i], _y = y[j];
- *     if(_x < _y) result.push([_x, _y] as const)
+ *   y = [2, 4, 6],
+ *   result = []
+ * for (let i = 0; i < x.length; i++) {
+ *   for (let j = 0; j < y.length; j++) {
+ *     const _x = x[i], _y = y[j]
+ *     if (_x < _y) result.push([_x, _y] as const)
  *   }
  * }
  * ```
@@ -3707,8 +3725,7 @@ export const Do: ReadonlyArray<{}> = of({})
  * @example
  *
  * ```ts
- * import { pipe } from "effect"
- * import { Array } from "effect"
+ * import { Array, pipe } from "effect"
  *
  * const doResult = pipe(
  *   Array.Do,
@@ -3721,12 +3738,12 @@ export const Do: ReadonlyArray<{}> = of({})
  *
  * // equivalent
  * const x = [1, 3, 5],
- *       y = [2, 4, 6],
- *       result = [];
- * for(let i = 0; i < x.length; i++) {
- *   for(let j = 0; j < y.length; j++) {
- *     const _x = x[i], _y = y[j];
- *     if(_x < _y) result.push([_x, _y] as const)
+ *   y = [2, 4, 6],
+ *   result = []
+ * for (let i = 0; i < x.length; i++) {
+ *   for (let j = 0; j < y.length; j++) {
+ *     const _x = x[i], _y = y[j]
+ *     if (_x < _y) result.push([_x, _y] as const)
  *   }
  * }
  * ```
@@ -3769,8 +3786,7 @@ export const bind: {
  * @example
  *
  * ```ts
- * import { pipe } from "effect"
- * import { Array } from "effect"
+ * import { Array, pipe } from "effect"
  *
  * const doResult = pipe(
  *   Array.Do,
@@ -3783,12 +3799,12 @@ export const bind: {
  *
  * // equivalent
  * const x = [1, 3, 5],
- *       y = [2, 4, 6],
- *       result = [];
- * for(let i = 0; i < x.length; i++) {
- *   for(let j = 0; j < y.length; j++) {
- *     const _x = x[i], _y = y[j];
- *     if(_x < _y) result.push([_x, _y] as const)
+ *   y = [2, 4, 6],
+ *   result = []
+ * for (let i = 0; i < x.length; i++) {
+ *   for (let j = 0; j < y.length; j++) {
+ *     const _x = x[i], _y = y[j]
+ *     if (_x < _y) result.push([_x, _y] as const)
  *   }
  * }
  * ```
@@ -3835,8 +3851,7 @@ export {
    * @example
    *
    * ```ts
-   * import { pipe } from "effect"
-   * import { Array } from "effect"
+   * import { Array, pipe } from "effect"
    *
    * const doResult = pipe(
    *   Array.Do,
@@ -3849,15 +3864,14 @@ export {
    *
    * // equivalent
    * const x = [1, 3, 5],
-   *       y = [2, 4, 6],
-   *       result = [];
-   * for(let i = 0; i < x.length; i++) {
-   *   for(let j = 0; j < y.length; j++) {
-   *     const _x = x[i], _y = y[j];
-   *     if(_x < _y) result.push([_x, _y] as const)
+   *   y = [2, 4, 6],
+   *   result = []
+   * for (let i = 0; i < x.length; i++) {
+   *   for (let j = 0; j < y.length; j++) {
+   *     const _x = x[i], _y = y[j]
+   *     if (_x < _y) result.push([_x, _y] as const)
    *   }
    * }
-   *
    * ```
    *
    * @see {@link bindTo}
@@ -3898,7 +3912,7 @@ export function getReducerConcat<A>(): Reducer.Reducer<Array<A>> {
  * ```ts
  * import { Array } from "effect"
  *
- * const result = Array.countBy([1, 2, 3, 4, 5], n => n % 2 === 0)
+ * const result = Array.countBy([1, 2, 3, 4, 5], (n) => n % 2 === 0)
  * console.log(result) // 2
  * ```
  *

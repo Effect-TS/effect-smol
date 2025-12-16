@@ -198,7 +198,7 @@ export declare namespace Cause {
   /**
    * @example
    * ```ts
-   * import { Cause } from "effect"
+   * import type { Cause } from "effect"
    *
    * type ErrorType = Cause.Cause.Error<Cause.Cause<string>>
    * // type ErrorType = string
@@ -238,7 +238,7 @@ export declare namespace Cause {
 /**
  * @example
  * ```ts
- * import { Cause } from "effect"
+ * import type { Cause } from "effect"
  *
  * type StringFailureError = Cause.Failure.Error<Cause.Failure<string>>
  * // type StringFailureError = string
@@ -251,7 +251,7 @@ export declare namespace Failure {
   /**
    * @example
    * ```ts
-   * import { Cause } from "effect"
+   * import type { Cause } from "effect"
    *
    * type ErrorType = Cause.Failure.Error<Cause.Failure<string>>
    * // type ErrorType = string
@@ -618,7 +618,7 @@ export const pretty: <E>(cause: Cause<E>) => string = effect.causePretty
  * const error = new Cause.NoSuchElementError("Item not found")
  *
  * // Can be used directly in Effect.gen
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* error // This will fail with the error
  * })
  *
@@ -662,7 +662,9 @@ export const NoSuchElementErrorTypeId: "~effect/Cause/NoSuchElementError" = core
  * ```ts
  * import { Cause } from "effect"
  *
- * const error: Cause.NoSuchElementError = new Cause.NoSuchElementError("Element not found")
+ * const error: Cause.NoSuchElementError = new Cause.NoSuchElementError(
+ *   "Element not found"
+ * )
  * console.log(error._tag) // "NoSuchElementError"
  * console.log(error.message) // "Element not found"
  * console.log(Cause.isNoSuchElementError(error)) // true
@@ -778,7 +780,9 @@ export const isIllegalArgumentError: (u: unknown) => u is IllegalArgumentError =
  * ```ts
  * import { Cause } from "effect"
  *
- * const error: Cause.IllegalArgumentError = new Cause.IllegalArgumentError("Invalid argument")
+ * const error: Cause.IllegalArgumentError = new Cause.IllegalArgumentError(
+ *   "Invalid argument"
+ * )
  * console.log(error._tag) // "IllegalArgumentError"
  * console.log(error.message) // "Invalid argument"
  * console.log(Cause.isIllegalArgumentError(error)) // true
@@ -836,7 +840,9 @@ export const ExceededCapacityErrorTypeId: "~effect/Cause/ExceededCapacityError" 
  * ```ts
  * import { Cause } from "effect"
  *
- * const error: Cause.ExceededCapacityError = new Cause.ExceededCapacityError("Capacity exceeded")
+ * const error: Cause.ExceededCapacityError = new Cause.ExceededCapacityError(
+ *   "Capacity exceeded"
+ * )
  * console.log(error._tag) // "ExceededCapacityError"
  * console.log(error.message) // "Capacity exceeded"
  * console.log(Cause.isExceededCapacityError(error)) // true
@@ -894,7 +900,10 @@ export const isUnknownError: (u: unknown) => u is UnknownError = effect.isUnknow
  * ```ts
  * import { Cause } from "effect"
  *
- * const error: Cause.UnknownError = new Cause.UnknownError("original cause", "Unknown error occurred")
+ * const error: Cause.UnknownError = new Cause.UnknownError(
+ *   "original cause",
+ *   "Unknown error occurred"
+ * )
  * console.log(error._tag) // "UnknownError"
  * console.log(error.message) // "Unknown error occurred"
  * console.log(Cause.isUnknownError(error)) // true

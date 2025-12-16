@@ -33,7 +33,13 @@
  * }
  *
  * // Using Array.make to create non-empty arrays
- * const numbers = Array.make(1, 2, 3, 4, 5) as unknown as NonEmptyIterable.NonEmptyIterable<number>
+ * const numbers = Array.make(
+ *   1,
+ *   2,
+ *   3,
+ *   4,
+ *   5
+ * ) as unknown as NonEmptyIterable.NonEmptyIterable<number>
  * const firstNumber = processNonEmpty(numbers) // number
  *
  * // Regular arrays can be asserted as NonEmptyIterable when known to be non-empty
@@ -53,16 +59,19 @@
  * ## Working with Different Iterable Types
  *
  * ```ts
- * import { pipe } from "effect"
- * import * as NonEmptyIterable from "effect/NonEmptyIterable"
  * import { Array } from "effect"
- * import * as Chunk from "effect/Chunk"
  *
  * // Creating non-empty arrays
- * const nonEmptyArray = Array.make(1, 2, 3) as unknown as NonEmptyIterable.NonEmptyIterable<number>
+ * const nonEmptyArray = Array.make(
+ *   1,
+ *   2,
+ *   3
+ * ) as unknown as NonEmptyIterable.NonEmptyIterable<number>
  *
  * // Working with strings (assert as NonEmptyIterable when known to be non-empty)
- * const nonEmptyString = "hello" as unknown as NonEmptyIterable.NonEmptyIterable<string>
+ * const nonEmptyString = "hello" as unknown as NonEmptyIterable.NonEmptyIterable<
+ *   string
+ * >
  * const [firstChar] = NonEmptyIterable.unprepend(nonEmptyString)
  * console.log(firstChar) // "h"
  *
@@ -86,17 +95,18 @@
  *   }
  * }
  *
- * const [firstFib, restFib] = NonEmptyIterable.unprepend(fibonacci() as unknown as NonEmptyIterable.NonEmptyIterable<number>)
+ * const [firstFib, restFib] = NonEmptyIterable.unprepend(
+ *   fibonacci() as unknown as NonEmptyIterable.NonEmptyIterable<number>
+ * )
  * console.log(firstFib) // 1
  * ```
  *
  * ## Integration with Effect Arrays
  *
  * ```ts
- * import { pipe } from "effect"
- * import * as NonEmptyIterable from "effect/NonEmptyIterable"
- * import { Array } from "effect"
- * import * as Chunk from "effect/Chunk"
+ * import { Array, pipe } from "effect"
+ * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
  * // Many Array functions work with NonEmptyIterable
  * declare const nonEmptyData: NonEmptyIterable.NonEmptyIterable<number>
@@ -104,8 +114,8 @@
  * const processData = pipe(
  *   nonEmptyData,
  *   Array.fromIterable,
- *   Array.map(x => x * 2),
- *   Array.filter(x => x > 5),
+ *   Array.map((x) => x * 2),
+ *   Array.filter((x) => x > 5)
  *   // Result is a regular array since filtering might make it empty
  * )
  *
@@ -113,7 +123,7 @@
  * const doubledData = pipe(
  *   nonEmptyData,
  *   Array.fromIterable,
- *   Array.map(x => x * 2)
+ *   Array.map((x) => x * 2)
  *   // This would still be non-empty if the source was non-empty
  * )
  * ```
@@ -128,7 +138,7 @@
  *
  * @example
  * ```ts
- * import * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
  * // The symbol is used internally for type branding
  * declare const data: NonEmptyIterable<number>
@@ -161,9 +171,9 @@ export declare const nonEmpty: unique symbol
  *
  * @example
  * ```ts
- * import * as NonEmptyIterable from "effect/NonEmptyIterable"
  * import { Array } from "effect"
  * import * as Chunk from "effect/Chunk"
+ * import * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
  * // Function that requires non-empty data
  * function getFirst<A>(data: NonEmptyIterable.NonEmptyIterable<A>): A {
@@ -173,13 +183,20 @@ export declare const nonEmpty: unique symbol
  * }
  *
  * // Works with any non-empty iterable
- * const numbers = Array.make(1, 2, 3) as unknown as NonEmptyIterable.NonEmptyIterable<number>
+ * const numbers = Array.make(
+ *   1,
+ *   2,
+ *   3
+ * ) as unknown as NonEmptyIterable.NonEmptyIterable<number>
  * const firstNumber = getFirst(numbers) // 1
  *
  * const chars = "hello" as unknown as NonEmptyIterable.NonEmptyIterable<string>
  * const firstChar = getFirst(chars) // "h"
  *
- * const entries = new Map([["a", 1], ["b", 2]]) as unknown as NonEmptyIterable.NonEmptyIterable<[string, number]>
+ * const entries = new Map([["a", 1], [
+ *   "b",
+ *   2
+ * ]]) as unknown as NonEmptyIterable.NonEmptyIterable<[string, number]>
  * const firstEntry = getFirst(entries) // ["a", 1]
  *
  * // Custom generator
@@ -188,7 +205,11 @@ export declare const nonEmpty: unique symbol
  *   yield 2
  *   yield 1
  * }
- * const firstCount = getFirst(Chunk.fromIterable(countdown()) as unknown as NonEmptyIterable.NonEmptyIterable<number>) // 3
+ * const firstCount = getFirst(
+ *   Chunk.fromIterable(
+ *     countdown()
+ *   ) as unknown as NonEmptyIterable.NonEmptyIterable<number>
+ * ) // 3
  * ```
  *
  * @category model
@@ -210,17 +231,25 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
  *
  * @example
  * ```ts
- * import * as NonEmptyIterable from "effect/NonEmptyIterable"
  * import { Array } from "effect"
  * import * as Chunk from "effect/Chunk"
+ * import * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
  * // Helper to make iterator iterable for Array.from
  * const iteratorToIterable = <T>(iterator: Iterator<T>): Iterable<T> => ({
- *   [Symbol.iterator]() { return iterator }
+ *   [Symbol.iterator]() {
+ *     return iterator
+ *   }
  * })
  *
  * // With NonEmptyArray from Array.make (cast to NonEmptyIterable)
- * const numbers = Array.make(1, 2, 3, 4, 5) as unknown as NonEmptyIterable.NonEmptyIterable<number>
+ * const numbers = Array.make(
+ *   1,
+ *   2,
+ *   3,
+ *   4,
+ *   5
+ * ) as unknown as NonEmptyIterable.NonEmptyIterable<number>
  * const [first, rest] = NonEmptyIterable.unprepend(numbers)
  * console.log(first) // 1
  * console.log(globalThis.Array.from(iteratorToIterable(rest))) // [2, 3, 4, 5]
@@ -232,13 +261,20 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
  * console.log(globalThis.Array.from(iteratorToIterable(restChars)).join("")) // "ello"
  *
  * // With Sets (assert when known to be non-empty)
- * const uniqueNumbers = new Set([10, 20, 30]) as unknown as NonEmptyIterable.NonEmptyIterable<number>
+ * const uniqueNumbers = new Set([
+ *   10,
+ *   20,
+ *   30
+ * ]) as unknown as NonEmptyIterable.NonEmptyIterable<number>
  * const [firstUnique, restUnique] = NonEmptyIterable.unprepend(uniqueNumbers)
  * console.log(firstUnique) // 10 (or any element, Set order is not guaranteed)
  * console.log(globalThis.Array.from(iteratorToIterable(restUnique))) // [20, 30] (in some order)
  *
  * // With Maps (assert when known to be non-empty)
- * const keyValuePairs = new Map([["a", 1], ["b", 2], ["c", 3]]) as unknown as NonEmptyIterable.NonEmptyIterable<[string, number]>
+ * const keyValuePairs = new Map([["a", 1], ["b", 2], [
+ *   "c",
+ *   3
+ * ]]) as unknown as NonEmptyIterable.NonEmptyIterable<[string, number]>
  * const [firstPair, restPairs] = NonEmptyIterable.unprepend(keyValuePairs)
  * console.log(firstPair) // ["a", 1]
  * console.log(globalThis.Array.from(iteratorToIterable(restPairs))) // [["b", 2], ["c", 3]]
@@ -255,7 +291,9 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
  *   }
  * }
  *
- * const generator = Chunk.fromIterable(fibonacci()) as unknown as NonEmptyIterable.NonEmptyIterable<number>
+ * const generator = Chunk.fromIterable(
+ *   fibonacci()
+ * ) as unknown as NonEmptyIterable.NonEmptyIterable<number>
  * const [firstFib, restFib] = NonEmptyIterable.unprepend(generator)
  * console.log(firstFib) // 1
  * console.log(globalThis.Array.from(iteratorToIterable(restFib))) // [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]
@@ -270,7 +308,11 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
  *   let result = f(initial, first)
  *
  *   // Convert iterator to iterable for iteration
- *   const iterable = { [Symbol.iterator]() { return rest } }
+ *   const iterable = {
+ *     [Symbol.iterator]() {
+ *       return rest
+ *     }
+ *   }
  *   for (const item of iterable) {
  *     result = f(result, item)
  *   }
@@ -278,7 +320,12 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
  *   return result
  * }
  *
- * const data = Array.make(1, 2, 3, 4) as unknown as NonEmptyIterable.NonEmptyIterable<number>
+ * const data = Array.make(
+ *   1,
+ *   2,
+ *   3,
+ *   4
+ * ) as unknown as NonEmptyIterable.NonEmptyIterable<number>
  * const sum = reduceNonEmpty(data, (acc, x) => acc + x, 0) // 10
  * ```
  *

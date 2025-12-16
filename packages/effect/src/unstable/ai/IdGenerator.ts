@@ -7,11 +7,11 @@
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
+ * import { Effect } from "effect"
  * import { IdGenerator } from "effect/unstable/ai"
  *
  * // Using the default ID generator
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const idGen = yield* IdGenerator.IdGenerator
  *   const toolCallId = yield* idGen.generateId()
  *   console.log(toolCallId) // "id_A7xK9mP2qR5tY8uV"
@@ -24,7 +24,7 @@
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
+ * import { Effect } from "effect"
  * import { IdGenerator } from "effect/unstable/ai"
  *
  * // Creating a custom ID generator for AI tool calls
@@ -35,7 +35,7 @@
  *   size: 12
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const idGen = yield* IdGenerator.IdGenerator
  *   const id = yield* idGen.generateId()
  *   console.log(id) // "tool_call-A7XK9MP2QR5T"
@@ -64,7 +64,7 @@ import * as ServiceMap from "../../ServiceMap.ts"
  * import { Effect } from "effect"
  * import { IdGenerator } from "effect/unstable/ai"
  *
- * const useIdGenerator = Effect.gen(function* () {
+ * const useIdGenerator = Effect.gen(function*() {
  *   const idGenerator = yield* IdGenerator.IdGenerator
  *   const newId = yield* idGenerator.generateId()
  *   return newId
@@ -88,14 +88,14 @@ export class IdGenerator extends ServiceMap.Service<IdGenerator, Service>()(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { IdGenerator } from "effect/unstable/ai"
+ * import type { IdGenerator } from "effect/unstable/ai"
  *
  * // Custom implementation
  * const customService: IdGenerator.Service = {
  *   generateId: () => Effect.succeed(`custom_${Date.now()}`)
  * }
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const id = yield* customService.generateId()
  *   console.log(id) // "custom_1234567890"
  *   return id
@@ -114,7 +114,7 @@ export interface Service {
  *
  * @example
  * ```ts
- * import { IdGenerator } from "effect/unstable/ai"
+ * import type { IdGenerator } from "effect/unstable/ai"
  *
  * // Configuration for tool call IDs
  * const toolCallOptions: IdGenerator.MakeOptions = {
@@ -183,10 +183,10 @@ const makeGenerator = ({
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
+ * import { Effect } from "effect"
  * import { IdGenerator } from "effect/unstable/ai"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const id = yield* IdGenerator.defaultIdGenerator.generateId()
  *   console.log(id) // "id_A7xK9mP2qR5tY8uV"
  *   return id
@@ -219,7 +219,7 @@ export const defaultIdGenerator: Service = {
  * import { Effect } from "effect"
  * import { IdGenerator } from "effect/unstable/ai"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a generator for AI assistant message IDs
  *   const messageIdGen = yield* IdGenerator.make({
  *     alphabet: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ",
@@ -247,12 +247,14 @@ export const defaultIdGenerator: Service = {
  *   size: 8
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const generator = yield* invalidConfig
  *   return generator
- * }).pipe(Effect.catch(error =>
- *   Effect.succeed(`Configuration error: ${error.message}`)
- * ))
+ * }).pipe(
+ *   Effect.catch((error) =>
+ *     Effect.succeed(`Configuration error: ${error.message}`)
+ *   )
+ * )
  * ```
  *
  * @since 4.0.0
@@ -286,7 +288,7 @@ export const make = Effect.fnUntraced(function*({
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
+ * import { Effect } from "effect"
  * import { IdGenerator } from "effect/unstable/ai"
  *
  * // Create a layer for generating AI tool call IDs
@@ -297,7 +299,7 @@ export const make = Effect.fnUntraced(function*({
  *   size: 12
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const idGen = yield* IdGenerator.IdGenerator
  *   const toolCallId = yield* idGen.generateId()
  *   console.log(toolCallId) // "tool_call_A7XK9MP2QR5T"

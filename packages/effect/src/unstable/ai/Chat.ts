@@ -9,11 +9,11 @@
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
- * import { Chat, LanguageModel } from "effect/unstable/ai"
+ * import { Effect } from "effect"
+ * import { Chat } from "effect/unstable/ai"
  *
  * // Create a new chat session
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const chat = yield* Chat.empty
  *
  *   // Send a message and get response
@@ -29,19 +29,16 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { Chat, LanguageModel } from "effect/unstable/ai"
+ * import { Effect, Stream } from "effect"
+ * import { Chat } from "effect/unstable/ai"
  *
  * // Streaming chat with tool support
- * const streamingChat = Effect.gen(function* () {
+ * const streamingChat = Effect.gen(function*() {
  *   const chat = yield* Chat.empty
  *
  *   yield* chat.streamText({
  *     prompt: "Generate a creative story"
- *   }).pipe(Stream.runForEach((part) =>
- *     Effect.sync(() => console.log(part))
- *   ))
+ *   }).pipe(Stream.runForEach((part) => Effect.sync(() => console.log(part))))
  * })
  * ```
  *
@@ -79,7 +76,7 @@ import type * as Tool from "./Tool.ts"
  * import { Effect } from "effect"
  * import { Chat } from "effect/unstable/ai"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const chat = yield* Chat.empty
  *   const response = yield* chat.generateText({
  *     prompt: "Explain quantum computing in simple terms"
@@ -113,7 +110,7 @@ export interface Service {
    * import { Effect, Ref } from "effect"
    * import { Chat } from "effect/unstable/ai"
    *
-   * const inspectHistory = Effect.gen(function* () {
+   * const inspectHistory = Effect.gen(function*() {
    *   const chat = yield* Chat.empty
    *   const currentHistory = yield* Ref.get(chat.history)
    *   console.log("Current conversation:", currentHistory)
@@ -134,7 +131,7 @@ export interface Service {
    * import { Effect } from "effect"
    * import { Chat } from "effect/unstable/ai"
    *
-   * const saveChat = Effect.gen(function* () {
+   * const saveChat = Effect.gen(function*() {
    *   const chat = yield* Chat.empty
    *   yield* chat.generateText({ prompt: "Hello!" })
    *
@@ -158,16 +155,14 @@ export interface Service {
    * import { Effect } from "effect"
    * import { Chat } from "effect/unstable/ai"
    *
-   * const backupChat = Effect.gen(function* () {
+   * const backupChat = Effect.gen(function*() {
    *   const chat = yield* Chat.empty
    *
    *   yield* chat.generateText({ prompt: "Explain photosynthesis" })
    *
    *   const jsonBackup = yield* chat.exportJson
    *
-   *   yield* Effect.sync(() =>
-   *     localStorage.setItem("chat-backup", jsonBackup)
-   *   )
+   *   yield* Effect.sync(() => localStorage.setItem("chat-backup", jsonBackup))
    *
    *   return jsonBackup
    * })
@@ -187,7 +182,7 @@ export interface Service {
    * import { Effect } from "effect"
    * import { Chat } from "effect/unstable/ai"
    *
-   * const chatWithAI = Effect.gen(function* () {
+   * const chatWithAI = Effect.gen(function*() {
    *   const chat = yield* Chat.empty
    *
    *   const response1 = yield* chat.generateText({
@@ -195,7 +190,7 @@ export interface Service {
    *   })
    *
    *   const response2 = yield* chat.generateText({
-   *     prompt: "What's the population of that city?",
+   *     prompt: "What's the population of that city?"
    *   })
    *
    *   return [response1.content, response2.content]
@@ -219,11 +214,10 @@ export interface Service {
    *
    * @example
    * ```ts
-   * import { Console, Effect } from "effect"
-   * import { Stream } from "effect"
+   * import { Effect, Stream } from "effect"
    * import { Chat } from "effect/unstable/ai"
    *
-   * const streamingChat = Effect.gen(function* () {
+   * const streamingChat = Effect.gen(function*() {
    *   const chat = yield* Chat.empty
    *
    *   const stream = yield* chat.streamText({
@@ -233,8 +227,7 @@ export interface Service {
    *   yield* Stream.runForEach(stream, (part) =>
    *     part.type === "text-delta"
    *       ? Effect.sync(() => process.stdout.write(part.delta))
-   *       : Effect.void
-   *   )
+   *       : Effect.void)
    * })
    * ```
    */
@@ -266,7 +259,7 @@ export interface Service {
    *   phone: Schema.optional(Schema.String)
    * })
    *
-   * const extractContact = Effect.gen(function* () {
+   * const extractContact = Effect.gen(function*() {
    *   const chat = yield* Chat.empty
    *
    *   const contact = yield* chat.generateObject({
@@ -313,7 +306,7 @@ const encodeHistoryJson = Schema.encodeUnknownEffect(Schema.fromJsonString(Promp
  * import { Effect } from "effect"
  * import { Chat } from "effect/unstable/ai"
  *
- * const freshChat = Effect.gen(function* () {
+ * const freshChat = Effect.gen(function*() {
  *   const chat = yield* Chat.empty
  *
  *   const response = yield* chat.generateText({
@@ -444,9 +437,9 @@ export const empty: Effect.Effect<Service> = Effect.gen(function*() {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chat, Prompt } from "effect/unstable/ai"
+ * import { Chat } from "effect/unstable/ai"
  *
- * const chatWithSystemPrompt = Effect.gen(function* () {
+ * const chatWithSystemPrompt = Effect.gen(function*() {
  *   const chat = yield* Chat.fromPrompt([{
  *     role: "system",
  *     content: "You are a helpful assistant specialized in mathematics."
@@ -463,14 +456,23 @@ export const empty: Effect.Effect<Service> = Effect.gen(function*() {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chat, Prompt } from "effect/unstable/ai"
+ * import { Chat } from "effect/unstable/ai"
  *
  * // Initialize with conversation history
- * const existingChat = Effect.gen(function* () {
+ * const existingChat = Effect.gen(function*() {
  *   const chat = yield* Chat.fromPrompt([
- *     { role: "user", content: [{ type: "text", text: "What's the weather like?" }] },
- *     { role: "assistant", content: [{ type: "text", text: "I don't have access to weather data." }] },
- *     { role: "user", content: [{ type: "text", text: "Can you help me with coding?" }] }
+ *     {
+ *       role: "user",
+ *       content: [{ type: "text", text: "What's the weather like?" }]
+ *     },
+ *     {
+ *       role: "assistant",
+ *       content: [{ type: "text", text: "I don't have access to weather data." }]
+ *     },
+ *     {
+ *       role: "user",
+ *       content: [{ type: "text", text: "Can you help me with coding?" }]
+ *     }
  *   ])
  *
  *   const response = yield* chat.generateText({
@@ -506,7 +508,7 @@ export const fromPrompt = Effect.fnUntraced(
  *
  * declare const loadFromDatabase: (sessionId: string) => Effect.Effect<unknown>
  *
- * const restoreChat = Effect.gen(function* () {
+ * const restoreChat = Effect.gen(function*() {
  *   // Assume we have previously exported data
  *   const savedData = yield* loadFromDatabase("chat-session-123")
  *
@@ -545,7 +547,7 @@ export const fromExport = (data: unknown): Effect.Effect<
  * import { Effect } from "effect"
  * import { Chat } from "effect/unstable/ai"
  *
- * const restoreFromJson = Effect.gen(function* () {
+ * const restoreFromJson = Effect.gen(function*() {
  *   // Load JSON from localStorage or file system
  *   const jsonData = localStorage.getItem("my-chat-backup")
  *   if (!jsonData) return yield* Chat.empty

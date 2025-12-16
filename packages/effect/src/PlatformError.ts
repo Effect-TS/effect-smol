@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../Data.ts"
+import * as Data from "./Data.ts"
 
 const TypeId = "~effect/platform/PlatformError"
 

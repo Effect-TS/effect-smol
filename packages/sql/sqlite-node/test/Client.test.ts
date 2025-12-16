@@ -1,8 +1,7 @@
 import { NodeFileSystem } from "@effect/platform-node"
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect } from "effect"
-import { FileSystem } from "effect/platform"
+import { Effect, FileSystem } from "effect"
 import { Reactivity } from "effect/unstable/reactivity"
 
 const makeClient = Effect.gen(function*() {

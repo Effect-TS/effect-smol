@@ -15,8 +15,8 @@ const TypeId = "~effect/cli/CliError"
  *
  * @example
  * ```ts
- * import { CliError } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { CliError } from "effect/unstable/cli"
  *
  * const handleError = (error: unknown) => {
  *   if (CliError.isCliError(error)) {
@@ -27,7 +27,7 @@ const TypeId = "~effect/cli/CliError"
  * }
  *
  * // Example usage in error handling
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const result = yield* Effect.try({
  *     try: () => ({ success: true }),
  *     catch: (error) => error
@@ -46,8 +46,7 @@ export const isCliError = (u: unknown): u is CliError => Predicate.hasProperty(u
  *
  * @example
  * ```ts
- * import { CliError } from "effect/unstable/cli"
- * import { Effect } from "effect"
+ * import type { CliError } from "effect/unstable/cli"
  *
  * const handleCliError = (error: CliError.CliError): void => {
  *   switch (error._tag) {
@@ -88,8 +87,8 @@ export type CliError =
  *
  * @example
  * ```ts
- * import { CliError } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { CliError } from "effect/unstable/cli"
  *
  * // Creating an unrecognized option error
  * const unrecognizedError = new CliError.UnrecognizedOption({
@@ -106,7 +105,7 @@ export type CliError =
  * //    --force"
  *
  * // In CLI parsing context
- * const parseCommand = Effect.gen(function* () {
+ * const parseCommand = Effect.gen(function*() {
  *   // If parsing encounters unknown flag
  *   return yield* Effect.fail(unrecognizedError)
  * })
@@ -186,8 +185,8 @@ export class DuplicateOption extends Schema.ErrorClass(`${TypeId}/DuplicateOptio
  *
  * @example
  * ```ts
- * import { CliError } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { CliError } from "effect/unstable/cli"
  *
  * const missingOptionError = new CliError.MissingOption({
  *   option: "api-key"
@@ -197,13 +196,14 @@ export class DuplicateOption extends Schema.ErrorClass(`${TypeId}/DuplicateOptio
  * // "Missing required flag: --api-key"
  *
  * // In validation context
- * const validateRequiredOptions = (options: Record<string, string | undefined>) => Effect.gen(function* () {
- *   const apiKey = options["api-key"]
- *   if (!apiKey) {
- *     return yield* Effect.fail(missingOptionError)
- *   }
- *   return apiKey
- * })
+ * const validateRequiredOptions = (options: Record<string, string | undefined>) =>
+ *   Effect.gen(function*() {
+ *     const apiKey = options["api-key"]
+ *     if (!apiKey) {
+ *       return yield* Effect.fail(missingOptionError)
+ *     }
+ *     return apiKey
+ *   })
  * ```
  *
  * @since 4.0.0
@@ -231,8 +231,8 @@ export class MissingOption extends Schema.ErrorClass(`${TypeId}/MissingOption`)(
  *
  * @example
  * ```ts
- * import { CliError } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { CliError } from "effect/unstable/cli"
  *
  * const missingArgError = new CliError.MissingArgument({
  *   argument: "target"
@@ -242,12 +242,13 @@ export class MissingOption extends Schema.ErrorClass(`${TypeId}/MissingOption`)(
  * // "Missing required argument: target"
  *
  * // In argument parsing
- * const parseArguments = (args: string[]) => Effect.gen(function* () {
- *   if (args.length === 0) {
- *     return yield* Effect.fail(missingArgError)
- *   }
- *   return args[0]
- * })
+ * const parseArguments = (args: Array<string>) =>
+ *   Effect.gen(function*() {
+ *     if (args.length === 0) {
+ *       return yield* Effect.fail(missingArgError)
+ *     }
+ *     return args[0]
+ *   })
  * ```
  *
  * @since 4.0.0
@@ -275,8 +276,8 @@ export class MissingArgument extends Schema.ErrorClass(`${TypeId}/MissingArgumen
  *
  * @example
  * ```ts
- * import { CliError } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { CliError } from "effect/unstable/cli"
  *
  * const invalidValueError = new CliError.InvalidValue({
  *   option: "port",
@@ -288,13 +289,14 @@ export class MissingArgument extends Schema.ErrorClass(`${TypeId}/MissingArgumen
  * // "Invalid value for flag --port: "abc123". Expected: integer between 1 and 65535"
  *
  * // In value validation
- * const validatePortValue = (value: string) => Effect.gen(function* () {
- *   const port = Number(value)
- *   if (isNaN(port) || port < 1 || port > 65535) {
- *     return yield* Effect.fail(invalidValueError)
- *   }
- *   return port
- * })
+ * const validatePortValue = (value: string) =>
+ *   Effect.gen(function*() {
+ *     const port = Number(value)
+ *     if (isNaN(port) || port < 1 || port > 65535) {
+ *       return yield* Effect.fail(invalidValueError)
+ *     }
+ *     return port
+ *   })
  * ```
  *
  * @since 4.0.0
@@ -324,8 +326,8 @@ export class InvalidValue extends Schema.ErrorClass(`${TypeId}/InvalidValue`)({
  *
  * @example
  * ```ts
- * import { CliError } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { CliError } from "effect/unstable/cli"
  *
  * const unknownSubcommandError = new CliError.UnknownSubcommand({
  *   subcommand: "deplyo", // typo
@@ -341,13 +343,14 @@ export class InvalidValue extends Schema.ErrorClass(`${TypeId}/InvalidValue`)({
  * //    destroy"
  *
  * // In subcommand parsing
- * const parseSubcommand = (subcommand: string) => Effect.gen(function* () {
- *   const validCommands = ["deploy", "destroy", "status"]
- *   if (!validCommands.includes(subcommand)) {
- *     return yield* Effect.fail(unknownSubcommandError)
- *   }
- *   return subcommand
- * })
+ * const parseSubcommand = (subcommand: string) =>
+ *   Effect.gen(function*() {
+ *     const validCommands = ["deploy", "destroy", "status"]
+ *     if (!validCommands.includes(subcommand)) {
+ *       return yield* Effect.fail(unknownSubcommandError)
+ *     }
+ *     return subcommand
+ *   })
  * ```
  *
  * @since 4.0.0
@@ -383,8 +386,8 @@ export class UnknownSubcommand extends Schema.ErrorClass(`${TypeId}/UnknownSubco
  *
  * @example
  * ```ts
- * import { CliError } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { CliError } from "effect/unstable/cli"
  *
  * const showHelpIndicator = new CliError.ShowHelp({
  *   commandPath: ["myapp", "deploy", "production"]
@@ -394,12 +397,13 @@ export class UnknownSubcommand extends Schema.ErrorClass(`${TypeId}/UnknownSubco
  * // "Help requested"
  *
  * // In help flag handling
- * const handleHelpFlag = (hasHelpFlag: boolean) => Effect.gen(function* () {
- *   if (hasHelpFlag) {
- *     return yield* Effect.fail(showHelpIndicator)
- *   }
- *   return "continuing with command"
- * })
+ * const handleHelpFlag = (hasHelpFlag: boolean) =>
+ *   Effect.gen(function*() {
+ *     if (hasHelpFlag) {
+ *       return yield* Effect.fail(showHelpIndicator)
+ *     }
+ *     return "continuing with command"
+ *   })
  *
  * // In error handling
  * const handleCliErrors = (error: CliError.CliError): void => {
@@ -436,8 +440,8 @@ export class ShowHelp extends Schema.ErrorClass(`${TypeId}/ShowHelp`)({
  *
  * @example
  * ```ts
- * import { CliError } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { CliError } from "effect/unstable/cli"
  *
  * // Wrapping user errors
  * const userError = new CliError.UserError({
@@ -445,7 +449,7 @@ export class ShowHelp extends Schema.ErrorClass(`${TypeId}/ShowHelp`)({
  * })
  *
  * // In command handler
- * const deployCommand = Effect.gen(function* () {
+ * const deployCommand = Effect.gen(function*() {
  *   const result = yield* Effect.try({
  *     try: () => ({ deployed: true }),
  *     catch: (error) => new CliError.UserError({ cause: error })

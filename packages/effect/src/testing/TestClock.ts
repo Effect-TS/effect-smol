@@ -23,12 +23,9 @@ import * as Order from "../Order.ts"
  * For example, here is how we can test `Effect.timeout` using `TestClock`:
  *
  * ```ts
- * import * as assert from "node:assert"
- * import { Duration } from "effect"
- * import { Effect, pipe } from "effect"
- * import { Option } from "effect"
- * import { Fiber } from "effect"
+ * import { Effect, Fiber, Option, pipe } from "effect"
  * import { TestClock } from "effect/testing"
+ * import * as assert from "node:assert"
  *
  * Effect.gen(function*() {
  *   const fiber = yield* pipe(
@@ -348,7 +345,6 @@ export const make = Effect.fnUntraced(function*(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Layer } from "effect"
  * import { TestClock } from "effect/testing"
  *
  * // Create a TestClock layer
@@ -386,9 +382,7 @@ export const layer: (options?: TestClock.Options) => Layer.Layer<TestClock> = La
  *   )
  *
  *   // Adjust time using the TestClock instance
- *   yield* TestClock.testClockWith((testClock) =>
- *     testClock.adjust("2 hours")
- *   )
+ *   yield* TestClock.testClockWith((testClock) => testClock.adjust("2 hours"))
  *
  *   console.log(currentTime) // Initial time
  * })
@@ -440,8 +434,7 @@ export const adjust = (duration: Duration.DurationInput): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Duration } from "effect"
- * import { Effect } from "effect"
+ * import { Duration, Effect } from "effect"
  * import { TestClock } from "effect/testing"
  *
  * const program = Effect.gen(function*() {
@@ -474,8 +467,7 @@ export const setTime = (timestamp: number): Effect.Effect<void> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Clock } from "effect"
+ * import { Clock, Effect } from "effect"
  * import { TestClock } from "effect/testing"
  *
  * const program = Effect.gen(function*() {

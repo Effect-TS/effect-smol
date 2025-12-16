@@ -17,24 +17,27 @@
  * @example
  * ```ts
  * import { Effect, Match } from "effect"
- * import { AiError } from "effect/unstable/ai"
+ * import type { AiError } from "effect/unstable/ai"
  *
  * const handleAiError = Match.type<AiError.AiError>().pipe(
- *   Match.tag("HttpRequestError", (err) =>
- *     Effect.logError(`Request failed: ${err.message}`)
+ *   Match.tag(
+ *     "HttpRequestError",
+ *     (err) => Effect.logError(`Request failed: ${err.message}`)
  *   ),
- *   Match.tag("HttpResponseError", (err) =>
- *     Effect.logError(`Response error (${err.response.status}): ${err.message}`)
+ *   Match.tag(
+ *     "HttpResponseError",
+ *     (err) =>
+ *       Effect.logError(`Response error (${err.response.status}): ${err.message}`)
  *   ),
- *   Match.tag("MalformedInput", (err) =>
- *     Effect.logError(`Invalid input: ${err.message}`)
+ *   Match.tag(
+ *     "MalformedInput",
+ *     (err) => Effect.logError(`Invalid input: ${err.message}`)
  *   ),
- *   Match.tag("MalformedOutput", (err) =>
- *     Effect.logError(`Invalid output: ${err.message}`)
+ *   Match.tag(
+ *     "MalformedOutput",
+ *     (err) => Effect.logError(`Invalid output: ${err.message}`)
  *   ),
- *   Match.orElse((err) =>
- *     Effect.logError(`Unknown error: ${err.message}`)
- *   )
+ *   Match.orElse((err) => Effect.logError(`Unknown error: ${err.message}`))
  * )
  * ```
  *
@@ -43,7 +46,7 @@
  * import { Effect } from "effect"
  * import { AiError } from "effect/unstable/ai"
  *
- * const aiOperation = Effect.gen(function* () {
+ * const aiOperation = Effect.gen(function*() {
  *   // Some AI operation that might fail
  *   return yield* new AiError.HttpRequestError({
  *     module: "OpenAI",
@@ -95,7 +98,7 @@ const TypeId = "~effect/unstable/ai/AiError" as const
  * })
  *
  * console.log(AiError.isAiError(someError)) // false
- * console.log(AiError.isAiError(aiError))   // true
+ * console.log(AiError.isAiError(aiError)) // true
  * ```
  *
  * @since 4.0.0
@@ -115,7 +118,7 @@ export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, 
  *
  * @example
  * ```ts
- * import { AiError } from "effect/unstable/ai"
+ * import type { AiError } from "effect/unstable/ai"
  *
  * const requestDetails: typeof AiError.HttpRequestDetails.Type = {
  *   method: "POST",
@@ -149,7 +152,7 @@ export const HttpRequestDetails = Schema.Struct({
  * import { Effect } from "effect"
  * import { AiError } from "effect/unstable/ai"
  *
- * const handleNetworkError = Effect.gen(function* () {
+ * const handleNetworkError = Effect.gen(function*() {
  *   const error = new AiError.HttpRequestError({
  *     module: "OpenAI",
  *     method: "createCompletion",
@@ -194,7 +197,7 @@ export class HttpRequestError extends Schema.ErrorClass<HttpRequestError>(
    * @example
    * ```ts
    * import { AiError } from "effect/unstable/ai"
-   * import { HttpClientError } from "effect/unstable/http"
+   * import type { HttpClientError } from "effect/unstable/http"
    *
    * declare const platformError: HttpClientError.RequestError
    *
@@ -274,7 +277,7 @@ export class HttpRequestError extends Schema.ErrorClass<HttpRequestError>(
  *
  * @example
  * ```ts
- * import { AiError } from "effect/unstable/ai"
+ * import type { AiError } from "effect/unstable/ai"
  *
  * const responseDetails: typeof AiError.HttpResponseDetails.Type = {
  *   status: 429,
@@ -353,7 +356,7 @@ export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
    * @example
    * ```ts
    * import { AiError } from "effect/unstable/ai"
-   * import { Headers, HttpClientError } from "effect/unstable/http"
+   * import type { HttpClientError } from "effect/unstable/http"
    *
    * declare const platformError: HttpClientError.ResponseError
    *
@@ -520,7 +523,7 @@ export class MalformedInput extends Schema.ErrorClass<MalformedInput>(
  *
  * const parseResponse = (data: unknown) =>
  *   Schema.decodeUnknownEffect(ResponseSchema)(data).pipe(
- *     Effect.mapError(schemaError =>
+ *     Effect.mapError((schemaError) =>
  *       new AiError.MalformedOutput({
  *         module: "OpenAI",
  *         method: "completion",
@@ -619,12 +622,14 @@ export class MalformedOutput extends Schema.ErrorClass<MalformedOutput>(
  *     // Some operation that might throw
  *     throw new Error("Unexpected network issue")
  *   } catch (cause) {
- *     return Effect.fail(new AiError.UnknownError({
- *       module: "ChatService",
- *       method: "sendMessage",
- *       description: "An unexpected error occurred during message processing",
- *       cause
- *     }))
+ *     return Effect.fail(
+ *       new AiError.UnknownError({
+ *         module: "ChatService",
+ *         method: "sendMessage",
+ *         description: "An unexpected error occurred during message processing",
+ *         cause
+ *       })
+ *     )
  *   }
  * }
  *
@@ -677,25 +682,24 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
  *
  * @example
  * ```ts
- * import { Effect, Match } from "effect"
- * import { AiError } from "effect/unstable/ai"
+ * import { Match } from "effect"
+ * import type { AiError } from "effect/unstable/ai"
  *
  * const handleAnyAiError = Match.type<AiError.AiError>().pipe(
- *   Match.tag("HttpRequestError", (err) =>
- *     `Network error: ${err.reason}`
+ *   Match.tag("HttpRequestError", (err) => `Network error: ${err.reason}`),
+ *   Match.tag(
+ *     "HttpResponseError",
+ *     (err) => `Server error: HTTP ${err.response.status}`
  *   ),
- *   Match.tag("HttpResponseError", (err) =>
- *     `Server error: HTTP ${err.response.status}`
+ *   Match.tag(
+ *     "MalformedInput",
+ *     (err) => `Invalid input: ${err.description || "Data validation failed"}`
  *   ),
- *   Match.tag("MalformedInput", (err) =>
- *     `Invalid input: ${err.description || "Data validation failed"}`
+ *   Match.tag(
+ *     "MalformedOutput",
+ *     (err) => `Invalid response: ${err.description || "Response parsing failed"}`
  *   ),
- *   Match.tag("MalformedOutput", (err) =>
- *     `Invalid response: ${err.description || "Response parsing failed"}`
- *   ),
- *   Match.orElse((err) =>
- *     `Unknown error: ${err.message}`
- *   )
+ *   Match.orElse((err) => `Unknown error: ${err.message}`)
  * )
  * ```
  *
@@ -719,21 +723,23 @@ export type AiError =
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { AiError } from "effect/unstable/ai"
  * import { Schema } from "effect/schema"
+ * import { AiError } from "effect/unstable/ai"
  *
  * const parseAiError = (data: unknown) =>
  *   Schema.decodeUnknownEffect(AiError.AiError)(data).pipe(
- *     Effect.map(error => {
+ *     Effect.map((error) => {
  *       console.log(`Parsed AI error: ${error._tag}`)
  *       return error
  *     }),
  *     Effect.catch(() =>
- *       Effect.succeed(new AiError.UnknownError({
- *         module: "Parser",
- *         method: "parseAiError",
- *         description: "Failed to parse error data"
- *       }))
+ *       Effect.succeed(
+ *         new AiError.UnknownError({
+ *           module: "Parser",
+ *           method: "parseAiError",
+ *           description: "Failed to parse error data"
+ *         })
+ *       )
  *     )
  *   )
  * ```

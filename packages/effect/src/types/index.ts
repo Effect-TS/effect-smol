@@ -16,7 +16,7 @@
  *
  * @example
  * ```ts
- * import { HKT } from "effect/types"
+ * import type { HKT } from "effect/types"
  *
  * // Define a TypeLambda for Array
  * interface ArrayTypeLambda extends HKT.TypeLambda {
@@ -29,7 +29,10 @@
  *
  * // Define a TypeClass that works with any HKT
  * interface Functor<F extends HKT.TypeLambda> extends HKT.TypeClass<F> {
- *   map<A, B>(fa: HKT.Kind<F, never, never, never, A>, f: (a: A) => B): HKT.Kind<F, never, never, never, B>
+ *   map<A, B>(
+ *     fa: HKT.Kind<F, never, never, never, A>,
+ *     f: (a: A) => B
+ *   ): HKT.Kind<F, never, never, never, B>
  * }
  * ```
  *

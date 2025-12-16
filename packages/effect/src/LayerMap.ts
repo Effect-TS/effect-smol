@@ -17,10 +17,7 @@ const TypeId = "~effect/LayerMap"
  * @category Models
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
- * import { LayerMap } from "effect"
+ * import { Effect, Layer, LayerMap, ServiceMap } from "effect"
  *
  * // Define a service key
  * const DatabaseService = ServiceMap.Service<{
@@ -35,7 +32,7 @@ const TypeId = "~effect/LayerMap"
  * )
  *
  * // Use the LayerMap
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const layerMap = yield* createDatabaseLayerMap
  *
  *   // Get a layer for a specific environment
@@ -82,9 +79,7 @@ export interface LayerMap<in out K, in out I, in out E = never> {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer, ServiceMap } from "effect"
- * import { LayerMap, Scope } from "effect"
+ * import { Effect, Layer, LayerMap, ServiceMap } from "effect"
  *
  * // Define a service key
  * const DatabaseService = ServiceMap.Service<{
@@ -92,11 +87,12 @@ export interface LayerMap<in out K, in out I, in out E = never> {
  * }>("Database")
  *
  * // Create a LayerMap that provides different database configurations
- * const program = Effect.gen(function* () {
- *   const layerMap = yield* LayerMap.make((env: string) =>
- *     Layer.succeed(DatabaseService)({
- *       query: (sql) => Effect.succeed(`${env}: ${sql}`)
- *     }),
+ * const program = Effect.gen(function*() {
+ *   const layerMap = yield* LayerMap.make(
+ *     (env: string) =>
+ *       Layer.succeed(DatabaseService)({
+ *         query: (sql) => Effect.succeed(`${env}: ${sql}`)
+ *       }),
  *     { idleTimeToLive: "5 seconds" }
  *   )
  *
@@ -105,7 +101,7 @@ export interface LayerMap<in out K, in out I, in out E = never> {
  *
  *   // Use the layer to provide the service
  *   const result = yield* Effect.provide(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const db = yield* DatabaseService
  *       return yield* db.query("SELECT * FROM users")
  *     }),
@@ -161,9 +157,7 @@ export const make: <
  * @category Constructors
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { LayerMap } from "effect"
- * import { Layer, ServiceMap } from "effect"
+ * import { Effect, Layer, LayerMap, ServiceMap } from "effect"
  *
  * // Define service keys
  * const DevDatabase = ServiceMap.Service<{
@@ -185,7 +179,7 @@ export const make: <
  * } as const
  *
  * // Create a LayerMap from the record
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const layerMap = yield* LayerMap.fromRecord(layers, {
  *     idleTimeToLive: "10 seconds"
  *   })
@@ -275,11 +269,7 @@ export interface TagClass<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { ServiceMap } from "effect"
- * import { Console } from "effect"
- * import { LayerMap } from "effect"
+ * import { Console, Effect, Layer, LayerMap, ServiceMap } from "effect"
  *
  * // Define a service key
  * const Greeter = ServiceMap.Service<{
@@ -299,7 +289,7 @@ export interface TagClass<
  * }) {}
  *
  * // Usage
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Access and use the Greeter service
  *   const greeter = yield* Greeter
  *   yield* Console.log(yield* greeter.greet)

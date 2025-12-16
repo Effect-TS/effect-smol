@@ -2,11 +2,11 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
+import type * as FileSystem from "../../FileSystem.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../Inspectable.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
-import type * as FileSystem from "../../platform/FileSystem.ts"
-import type * as PlatformError from "../../platform/PlatformError.ts"
+import type * as PlatformError from "../../PlatformError.ts"
 import { hasProperty } from "../../Predicate.ts"
 import { redact } from "../../Redactable.ts"
 import * as Redacted from "../../Redacted.ts"

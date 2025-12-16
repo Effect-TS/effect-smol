@@ -38,7 +38,7 @@ import * as Reducer_ from "./Reducer.ts"
  *
  * @example
  * ```ts
- * import { Ordering } from "effect"
+ * import type { Ordering } from "effect"
  *
  * // Custom comparison function
  * const compareNumbers = (a: number, b: number): Ordering.Ordering => {
@@ -49,7 +49,7 @@ import * as Reducer_ from "./Reducer.ts"
  *
  * console.log(compareNumbers(5, 10)) // -1 (5 < 10)
  * console.log(compareNumbers(10, 5)) // 1 (10 > 5)
- * console.log(compareNumbers(5, 5))  // 0 (5 == 5)
+ * console.log(compareNumbers(5, 5)) // 0 (5 == 5)
  *
  * // Using with string comparison
  * const compareStrings = (a: string, b: string): Ordering.Ordering => {
@@ -71,9 +71,9 @@ export type Ordering = -1 | 0 | 1
  * import { Ordering } from "effect"
  *
  * // Basic reversal
- * console.log(Ordering.reverse(1))  // -1 (greater becomes less)
+ * console.log(Ordering.reverse(1)) // -1 (greater becomes less)
  * console.log(Ordering.reverse(-1)) // 1 (less becomes greater)
- * console.log(Ordering.reverse(0))  // 0 (equal stays equal)
+ * console.log(Ordering.reverse(0)) // 0 (equal stays equal)
  *
  * // Creating descending sort from ascending comparison
  * const compareNumbers = (a: number, b: number): Ordering.Ordering =>
@@ -83,7 +83,7 @@ export type Ordering = -1 | 0 | 1
  *   Ordering.reverse(compareNumbers(a, b))
  *
  * const numbers = [3, 1, 4, 1, 5]
- * numbers.sort(compareNumbers)    // [1, 1, 3, 4, 5] (ascending)
+ * numbers.sort(compareNumbers) // [1, 1, 3, 4, 5] (ascending)
  * numbers.sort(compareDescending) // [5, 4, 3, 1, 1] (descending)
  *
  * // Useful for toggling sort direction
@@ -103,14 +103,14 @@ export const reverse = (o: Ordering): Ordering => (o === -1 ? 1 : o === 1 ? -1 :
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Ordering } from "effect"
  * import { constant } from "effect/Function"
+ * import * as assert from "node:assert"
  *
  * const toMessage = Ordering.match({
- *   onLessThan: constant('less than'),
- *   onEqual: constant('equal'),
- *   onGreaterThan: constant('greater than')
+ *   onLessThan: constant("less than"),
+ *   onEqual: constant("equal"),
+ *   onGreaterThan: constant("greater than")
  * })
  *
  * assert.deepStrictEqual(toMessage(-1), "less than")

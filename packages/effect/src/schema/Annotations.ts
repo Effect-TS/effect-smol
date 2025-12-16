@@ -26,7 +26,9 @@ import type * as Schema from "./Schema.ts"
  * // Extend the Annotations interface with a custom `version` annotation
  * declare module "effect/schema/Annotations" {
  *   interface Annotations {
- *     readonly version?: readonly [major: number, minor: number, patch: number] | undefined
+ *     readonly version?:
+ *       | readonly [major: number, minor: number, patch: number]
+ *       | undefined
  *   }
  * }
  *

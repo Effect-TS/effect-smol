@@ -1,7 +1,6 @@
 import { NodeHttpServer } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Array, DateTime, Effect, Filter, Layer, Redacted, Ref, ServiceMap, Stream, Struct } from "effect"
-import { FileSystem } from "effect/platform"
+import { Array, DateTime, Effect, FileSystem, Filter, Layer, Redacted, Ref, ServiceMap, Stream, Struct } from "effect"
 import { Getter, Schema, Transformation } from "effect/schema"
 import {
   Cookies,

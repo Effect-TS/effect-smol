@@ -30,7 +30,9 @@ const ServiceTypeId = "~effect/ServiceMap/Service" as const
  * import { ServiceMap } from "effect"
  *
  * // Define an identifier for a database service
- * const Database = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
+ * const Database = ServiceMap.Service<{ query: (sql: string) => string }>(
+ *   "Database"
+ * )
  *
  * // The key can be used to store and retrieve services
  * const services = ServiceMap.make(Database, { query: (sql) => `Result: ${sql}` })
@@ -215,7 +217,9 @@ const ReferenceTypeId = "~effect/ServiceMap/Reference" as const
  *
  * // Define a reference with a default value
  * const LoggerRef: ServiceMap.Reference<{ log: (msg: string) => void }> =
- *   ServiceMap.Reference("Logger", { defaultValue: () => ({ log: (msg: string) => console.log(msg) }) })
+ *   ServiceMap.Reference("Logger", {
+ *     defaultValue: () => ({ log: (msg: string) => console.log(msg) })
+ *   })
  *
  * // The reference can be used without explicit provision
  * const serviceMap = ServiceMap.empty()
@@ -254,7 +258,7 @@ export declare namespace Service {
   /**
    * @example
    * ```ts
-   * import { ServiceMap } from "effect"
+   * import type { ServiceMap } from "effect"
    *
    * // Variance interface is used internally for type inference
    * type MyVariance = ServiceMap.Service.Variance<"MyId", { value: number }>
@@ -292,7 +296,9 @@ export declare namespace Service {
    * ```ts
    * import { ServiceMap } from "effect"
    *
-   * const Database = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
+   * const Database = ServiceMap.Service<{ query: (sql: string) => string }>(
+   *   "Database"
+   * )
    *
    * // Extract the service shape from the service
    * type DatabaseService = ServiceMap.Service.Shape<typeof Database>
@@ -309,7 +315,9 @@ export declare namespace Service {
    * ```ts
    * import { ServiceMap } from "effect"
    *
-   * const Database = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
+   * const Database = ServiceMap.Service<{ query: (sql: string) => string }>(
+   *   "Database"
+   * )
    *
    * // Extract the identifier type from a key
    * type DatabaseId = ServiceMap.Service.Identifier<typeof Database>
@@ -331,9 +339,13 @@ const TypeId = "~effect/ServiceMap" as const
  *
  * // Create a service map with multiple services
  * const Logger = ServiceMap.Service<{ log: (msg: string) => void }>("Logger")
- * const Database = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
+ * const Database = ServiceMap.Service<{ query: (sql: string) => string }>(
+ *   "Database"
+ * )
  *
- * const services = ServiceMap.make(Logger, { log: (msg: string) => console.log(msg) })
+ * const services = ServiceMap.make(Logger, {
+ *   log: (msg: string) => console.log(msg)
+ * })
  *   .pipe(ServiceMap.add(Database, { query: (sql) => `Result: ${sql}` }))
  * ```
  *
@@ -405,8 +417,8 @@ const Proto: Omit<ServiceMap<never>, "mapUnsafe"> = {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.strictEqual(ServiceMap.isServiceMap(ServiceMap.empty()), true)
  * ```
@@ -421,8 +433,8 @@ export const isServiceMap = (u: unknown): u is ServiceMap<never> => hasProperty(
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.strictEqual(ServiceMap.isService(ServiceMap.Service("Service")), true)
  * ```
@@ -437,10 +449,12 @@ export const isService = (u: unknown): u is Service<any, any> => hasProperty(u, 
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
+ * import * as assert from "node:assert"
  *
- * const LoggerRef = ServiceMap.Reference("Logger", { defaultValue: () => ({ log: (msg: string) => console.log(msg) }) })
+ * const LoggerRef = ServiceMap.Reference("Logger", {
+ *   defaultValue: () => ({ log: (msg: string) => console.log(msg) })
+ * })
  *
  * assert.strictEqual(ServiceMap.isReference(LoggerRef), true)
  * assert.strictEqual(ServiceMap.isReference(ServiceMap.Service("Key")), false)
@@ -456,8 +470,8 @@ export const isReference = (u: unknown): u is Reference<any> => hasProperty(u, R
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.strictEqual(ServiceMap.isServiceMap(ServiceMap.empty()), true)
  * ```
@@ -473,8 +487,8 @@ const emptyServiceMap = makeUnsafe(new Map())
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
+ * import * as assert from "node:assert"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  *
@@ -496,9 +510,7 @@ export const make = <I, S>(
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { ServiceMap } from "effect"
+ * import { pipe, ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
@@ -571,16 +583,24 @@ export const addOrOmit: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
+ * import * as assert from "node:assert"
  *
  * const Logger = ServiceMap.Service<{ log: (msg: string) => void }>("Logger")
- * const Database = ServiceMap.Service<{ query: (sql: string) => string }>("Database")
+ * const Database = ServiceMap.Service<{ query: (sql: string) => string }>(
+ *   "Database"
+ * )
  *
- * const services = ServiceMap.make(Logger, { log: (msg: string) => console.log(msg) })
+ * const services = ServiceMap.make(Logger, {
+ *   log: (msg: string) => console.log(msg)
+ * })
  *
  * const logger = ServiceMap.getOrElse(services, Logger, () => ({ log: () => {} }))
- * const database = ServiceMap.getOrElse(services, Database, () => ({ query: () => "fallback" }))
+ * const database = ServiceMap.getOrElse(
+ *   services,
+ *   Database,
+ *   () => ({ query: () => "fallback" })
+ * )
  *
  * assert.deepStrictEqual(logger, { log: (msg: string) => console.log(msg) })
  * assert.deepStrictEqual(database, { query: () => "fallback" })
@@ -624,8 +644,8 @@ export const getOrUndefined: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
+ * import * as assert from "node:assert"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
@@ -661,9 +681,7 @@ export const getUnsafe: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { ServiceMap } from "effect"
+ * import { pipe, ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
@@ -687,8 +705,8 @@ export const get: {
 /**
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
+ * import * as assert from "node:assert"
  *
  * const LoggerRef = ServiceMap.Reference("Logger", {
  *   defaultValue: () => ({ log: (msg: string) => console.log(msg) })
@@ -750,16 +768,18 @@ const serviceNotFoundError = (service: Service<any, any>) => {
  *
  * @example
  * ```ts
+ * import { Option, ServiceMap } from "effect"
  * import * as assert from "node:assert"
- * import { ServiceMap } from "effect"
- * import { Option } from "effect"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
  *
  * const Services = ServiceMap.make(Port, { PORT: 8080 })
  *
- * assert.deepStrictEqual(ServiceMap.getOption(Services, Port), Option.some({ PORT: 8080 }))
+ * assert.deepStrictEqual(
+ *   ServiceMap.getOption(Services, Port),
+ *   Option.some({ PORT: 8080 })
+ * )
  * assert.deepStrictEqual(ServiceMap.getOption(Services, Timeout), Option.none())
  * ```
  *
@@ -784,8 +804,8 @@ export const getOption: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
+ * import * as assert from "node:assert"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
@@ -818,8 +838,8 @@ export const merge: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
+ * import * as assert from "node:assert"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
@@ -829,7 +849,11 @@ export const merge: {
  * const secondServiceMap = ServiceMap.make(Timeout, { TIMEOUT: 5000 })
  * const thirdServiceMap = ServiceMap.make(Host, { HOST: "localhost" })
  *
- * const Services = ServiceMap.mergeAll(firstServiceMap, secondServiceMap, thirdServiceMap)
+ * const Services = ServiceMap.mergeAll(
+ *   firstServiceMap,
+ *   secondServiceMap,
+ *   thirdServiceMap
+ * )
  *
  * assert.deepStrictEqual(ServiceMap.get(Services, Port), { PORT: 8080 })
  * assert.deepStrictEqual(ServiceMap.get(Services, Timeout), { TIMEOUT: 5000 })
@@ -858,10 +882,7 @@ export const mergeAll = <T extends Array<unknown>>(
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { ServiceMap } from "effect"
- * import { Option } from "effect"
+ * import { Option, pipe, ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
@@ -873,7 +894,10 @@ export const mergeAll = <T extends Array<unknown>>(
  *
  * const Services = pipe(someServiceMap, ServiceMap.pick(Port))
  *
- * assert.deepStrictEqual(ServiceMap.getOption(Services, Port), Option.some({ PORT: 8080 }))
+ * assert.deepStrictEqual(
+ *   ServiceMap.getOption(Services, Port),
+ *   Option.some({ PORT: 8080 })
+ * )
  * assert.deepStrictEqual(ServiceMap.getOption(Services, Timeout), Option.none())
  * ```
  *
@@ -897,10 +921,7 @@ export const pick = <S extends ReadonlyArray<Service<any, any>>>(
 /**
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { ServiceMap } from "effect"
- * import { Option } from "effect"
+ * import { Option, pipe, ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
@@ -912,7 +933,10 @@ export const pick = <S extends ReadonlyArray<Service<any, any>>>(
  *
  * const Services = pipe(someServiceMap, ServiceMap.omit(Timeout))
  *
- * assert.deepStrictEqual(ServiceMap.getOption(Services, Port), Option.some({ PORT: 8080 }))
+ * assert.deepStrictEqual(
+ *   ServiceMap.getOption(Services, Port),
+ *   Option.some({ PORT: 8080 })
+ * )
  * assert.deepStrictEqual(ServiceMap.getOption(Services, Timeout), Option.none())
  * ```
  *
@@ -942,9 +966,6 @@ export const omit = <S extends ReadonlyArray<Service<any, any>>>(
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { ServiceMap } from "effect"
- *
  * // Create a reference with a default value
  * const LoggerRef = ServiceMap.Reference("Logger", {
  *   defaultValue: () => ({ log: (msg: string) => console.log(msg) })
@@ -955,7 +976,9 @@ export const omit = <S extends ReadonlyArray<Service<any, any>>>(
  * const logger = ServiceMap.get(services, LoggerRef)
  *
  * // You can also override the default value
- * const customServices = ServiceMap.make(LoggerRef, { log: (msg) => `Custom: ${msg}` })
+ * const customServices = ServiceMap.make(LoggerRef, {
+ *   log: (msg) => `Custom: ${msg}`
+ * })
  * const customLogger = ServiceMap.get(customServices, LoggerRef)
  * ```
  *

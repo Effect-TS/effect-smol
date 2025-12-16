@@ -26,8 +26,7 @@ const TypeId = "~effect/RcMap"
  * @category models
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcMap } from "effect"
+ * import { Effect, RcMap } from "effect"
  *
  * Effect.gen(function*() {
  *   // Create an RcMap that manages database connections
@@ -69,7 +68,7 @@ export interface RcMap<in out K, in out A, in out E = never> extends Pipeable {
  * @category Models
  * @example
  * ```ts
- * import { RcMap } from "effect"
+ * import type { RcMap } from "effect"
  *
  * // State is a union type that can be either:
  * declare const openState: RcMap.State.Open<string, number, never>
@@ -95,7 +94,7 @@ export type State<K, A, E> = State.Open<K, A, E> | State.Closed
  * @category Models
  * @example
  * ```ts
- * import { RcMap } from "effect"
+ * import type { RcMap } from "effect"
  *
  * // The State namespace contains types for RcMap internal state:
  * // - Open: Contains the active resource map
@@ -116,8 +115,8 @@ export declare namespace State {
    * @category Models
    * @example
    * ```ts
+   * import type { RcMap } from "effect"
    * import * as MutableHashMap from "effect/MutableHashMap"
-   * import { RcMap } from "effect"
    *
    * // State.Open contains the active resource map
    * declare const openState: RcMap.State.Open<string, number, never>
@@ -143,7 +142,7 @@ export declare namespace State {
    * @category Models
    * @example
    * ```ts
-   * import { RcMap } from "effect"
+   * import type { RcMap } from "effect"
    *
    * // State.Closed indicates the RcMap is shut down
    * declare const closedState: RcMap.State.Closed
@@ -167,11 +166,7 @@ export declare namespace State {
    * @category Models
    * @example
    * ```ts
-   * import { Effect } from "effect"
-   * import { Deferred } from "effect"
-   * import { Fiber } from "effect"
-   * import { RcMap } from "effect"
-   * import { Scope } from "effect"
+   * import type { RcMap } from "effect"
    *
    * // Entry contains all metadata for a resource in the map
    * declare const entry: RcMap.State.Entry<string, never>
@@ -237,8 +232,7 @@ const makeUnsafe = <K, A, E>(options: {
  * @category models
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcMap } from "effect"
+ * import { Effect, RcMap } from "effect"
  *
  * Effect.gen(function*() {
  *   const map = yield* RcMap.make({
@@ -315,8 +309,7 @@ export const make: {
  * @category combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcMap } from "effect"
+ * import { Effect, RcMap } from "effect"
  *
  * Effect.gen(function*() {
  *   const map = yield* RcMap.make({
@@ -431,8 +424,7 @@ const release = <K, A, E>(self: RcMap<K, A, E>, key: K, entry: State.Entry<A, E>
  * @category combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcMap } from "effect"
+ * import { Effect, RcMap } from "effect"
  *
  * Effect.gen(function*() {
  *   const map = yield* RcMap.make({
@@ -464,8 +456,7 @@ export const keys = <K, A, E>(self: RcMap<K, A, E>): Effect.Effect<Iterable<K>> 
  * @category combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcMap } from "effect"
+ * import { Effect, RcMap } from "effect"
  *
  * Effect.gen(function*() {
  *   const map = yield* RcMap.make({
@@ -530,8 +521,7 @@ export const has: {
  * @category combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { RcMap } from "effect"
+ * import { Effect, RcMap } from "effect"
  *
  * Effect.gen(function*() {
  *   const map = yield* RcMap.make({

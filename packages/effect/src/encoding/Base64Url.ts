@@ -33,8 +33,8 @@ const encodeUint8Array = (data: Uint8Array) =>
  *
  * @example
  * ```ts
- * import { Base64Url } from "effect/encoding"
  * import { Result } from "effect"
+ * import { Base64Url } from "effect/encoding"
  *
  * const result = Base64Url.decode("SGVsbG8_")
  * if (Result.isSuccess(result)) {
@@ -82,8 +82,8 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
  *
  * @example
  * ```ts
- * import { Base64Url } from "effect/encoding"
  * import { Result } from "effect"
+ * import { Base64Url } from "effect/encoding"
  *
  * const result = Base64Url.decodeString("aGVsbG8_")
  * if (Result.isSuccess(result)) {

@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import * as Effect from "../Effect.ts"
-import { identity } from "../Function.ts"
-import * as Layer from "../Layer.ts"
-import * as ServiceMap from "../ServiceMap.ts"
+import * as Effect from "./Effect.ts"
+import { identity } from "./Function.ts"
+import * as Layer from "./Layer.ts"
 import { BadArgument } from "./PlatformError.ts"
+import * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * @since 4.0.0
@@ -17,10 +17,9 @@ export const TypeId = "~effect/platform/Path"
  * @category model
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Path } from "effect/platform"
+ * import { Effect, Path } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const path = yield* Path.Path
  *
  *   // Use various path operations
@@ -71,11 +70,10 @@ export interface Path {
  * @category namespace
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Path } from "effect/platform"
+ * import { Effect, Path } from "effect"
  *
  * // Access types and utilities in the Path namespace
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const path = yield* Path.Path
  *
  *   // Parse a path and get a Path.Parsed object
@@ -100,10 +98,9 @@ export declare namespace Path {
    * @category model
    * @example
    * ```ts
-   * import { Effect } from "effect"
-   * import { Path } from "effect/platform"
+   * import { Effect, Path } from "effect"
    *
-   * const program = Effect.gen(function* () {
+   * const program = Effect.gen(function*() {
    *   const path = yield* Path.Path
    *
    *   // Parse a path into its components
@@ -141,9 +138,7 @@ export declare namespace Path {
  * @category tag
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { Path } from "effect/platform"
+ * import { Effect, Layer, Path } from "effect"
  *
  * // Create a custom path implementation
  * const customPath: Path.Path = {
@@ -151,7 +146,9 @@ export declare namespace Path {
  *   sep: "/",
  *   basename: (path: string, suffix?: string) => {
  *     const base = path.split("/").pop() || ""
- *     return suffix && base.endsWith(suffix) ? base.slice(0, -suffix.length) : base
+ *     return suffix && base.endsWith(suffix)
+ *       ? base.slice(0, -suffix.length)
+ *       : base
  *   },
  *   dirname: (path: string) => path.split("/").slice(0, -1).join("/") || "/",
  *   extname: (path: string) => {
@@ -184,7 +181,7 @@ export declare namespace Path {
  * // Provide the path service
  * const customPathLayer = Layer.succeed(Path.Path)(customPath)
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const path = yield* Path.Path
  *   const joined = path.join("home", "user", "file.txt")
  *   console.log(joined) // "home/user/file.txt"

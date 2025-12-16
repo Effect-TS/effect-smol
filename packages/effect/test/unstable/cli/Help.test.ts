@@ -1,6 +1,5 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Effect, Layer } from "effect"
-import { FileSystem, Path } from "effect/platform"
+import { Effect, FileSystem, Layer, Path } from "effect"
 import { TestConsole } from "effect/testing"
 import { CliOutput } from "effect/unstable/cli"
 import * as Cli from "./fixtures/ComprehensiveCli.ts"

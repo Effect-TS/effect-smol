@@ -10,16 +10,15 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { ChildProcess } from "effect/unstable/process"
  * import { NodeServices } from "@effect/platform-node"
+ * import { Effect, Stream } from "effect"
+ * import { ChildProcess } from "effect/unstable/process"
  *
  * // Build a command
  * const command = ChildProcess.make`echo "hello world"`
  *
  * // Spawn and collect output
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // You can `yield*` a command, which calls `ChildProcess.spawn`
  *   const handle = yield* command
  *   const chunks = yield* Stream.runCollect(handle.stdout)
@@ -36,7 +35,7 @@
  * )
  *
  * // Spawn the pipeline
- * const pipelineProgram = Effect.gen(function* () {
+ * const pipelineProgram = Effect.gen(function*() {
  *   const handle = yield* pipeline
  *   const chunks = yield* Stream.runCollect(handle.stdout)
  *   return chunks

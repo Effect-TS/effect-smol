@@ -6,16 +6,15 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { ChildProcess } from "effect/unstable/process"
  * import { NodeServices } from "@effect/platform-node"
+ * import { Effect, Stream } from "effect"
+ * import { ChildProcess } from "effect/unstable/process"
  *
  * // Build a command
  * const command = ChildProcess.make`echo "hello world"`
  *
  * // Spawn and collect output
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // You can `yield*` a command, which calls `ChildProcess.spawn`
  *   const handle = yield* command
  *   const chunks = yield* Stream.runCollect(handle.stdout)
@@ -32,7 +31,7 @@
  * )
  *
  * // Spawn the pipeline
- * const pipelineProgram = Effect.gen(function* () {
+ * const pipelineProgram = Effect.gen(function*() {
  *   const handle = yield* pipeline
  *   const chunks = yield* Stream.runCollect(handle.stdout)
  *   return chunks
@@ -46,7 +45,7 @@ import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import type { Pipeable } from "../../Pipeable.ts"
-import type * as PlatformError from "../../platform/PlatformError.ts"
+import type * as PlatformError from "../../PlatformError.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as Sink from "../../Sink.ts"
@@ -740,12 +739,11 @@ export const pipeTo: {
  *
  * @example
  * ```ts
- * import { Console, Effect } from "effect"
- * import { Stream } from "effect"
- * import { ChildProcess } from "effect/unstable/process"
  * import { NodeServices } from "@effect/platform-node"
+ * import { Console, Effect, Stream } from "effect"
+ * import { ChildProcess } from "effect/unstable/process"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const cmd = ChildProcess.make`long-running-process`
  *   const handle = yield* ChildProcess.spawn(cmd)
  *

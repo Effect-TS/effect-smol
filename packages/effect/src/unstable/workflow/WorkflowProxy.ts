@@ -13,10 +13,14 @@ import type * as Workflow from "./Workflow.ts"
  * Derives an `RpcGroup` from a list of workflows.
  *
  * ```ts
- * import { RpcServer } from "effect/unstable/rpc"
- * import { Workflow, WorkflowProxy, WorkflowProxyServer } from "effect/unstable/workflow"
- * import { Schema } from "effect/schema"
  * import { Layer } from "effect"
+ * import { Schema } from "effect/schema"
+ * import { RpcServer } from "effect/unstable/rpc"
+ * import {
+ *   Workflow,
+ *   WorkflowProxy,
+ *   WorkflowProxyServer
+ * } from "effect/unstable/workflow"
  *
  * const EmailWorkflow = Workflow.make({
  *   name: "EmailWorkflow",
@@ -90,10 +94,14 @@ export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
  * Derives an `HttpApiGroup` from a list of workflows.
  *
  * ```ts
- * import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi"
- * import { Workflow, WorkflowProxy, WorkflowProxyServer } from "effect/unstable/workflow"
- * import { Schema } from "effect/schema"
  * import { Layer } from "effect"
+ * import { Schema } from "effect/schema"
+ * import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi"
+ * import {
+ *   Workflow,
+ *   WorkflowProxy,
+ *   WorkflowProxyServer
+ * } from "effect/unstable/workflow"
  *
  * const EmailWorkflow = Workflow.make({
  *   name: "EmailWorkflow",
@@ -115,7 +123,9 @@ export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
  * // Use WorkflowProxyServer.layerHttpApi to create a layer that implements the
  * // workflows HttpApiGroup
  * const ApiLayer = HttpApiBuilder.layer(MyApi).pipe(
- *   Layer.provide(WorkflowProxyServer.layerHttpApi(MyApi, "workflows", myWorkflows))
+ *   Layer.provide(
+ *     WorkflowProxyServer.layerHttpApi(MyApi, "workflows", myWorkflows)
+ *   )
  * )
  * ```
  *

@@ -253,7 +253,7 @@ export type PartConstructorParams<P extends Part> = Omit<P, typeof PartTypeId | 
  * import { Prompt } from "effect/unstable/ai"
  *
  * const textPart: Prompt.TextPart = Prompt.makePart("text", {
- *   text: "Hello, how can I help you today?",
+ *   text: "Hello, how can I help you today?"
  * })
  * ```
  *
@@ -328,7 +328,8 @@ export const textPart = (params: PartConstructorParams<TextPart>): TextPart => m
  * import { Prompt } from "effect/unstable/ai"
  *
  * const reasoningPart: Prompt.ReasoningPart = Prompt.makePart("reasoning", {
- *   text: "Let me think step by step: First I need to understand the user's question...",
+ *   text:
+ *     "Let me think step by step: First I need to understand the user's question..."
  * })
  * ```
  *
@@ -513,7 +514,7 @@ export const filePart = (params: PartConstructorParams<FilePart>): FilePart => m
  *   id: "call_123",
  *   name: "get_weather",
  *   params: { city: "San Francisco", units: "celsius" },
- *   providerExecuted: false,
+ *   providerExecuted: false
  * })
  * ```
  *
@@ -871,7 +872,7 @@ export const ContentFromString: Schema.decodeTo<
  *
  * const systemMessage: Prompt.SystemMessage = Prompt.makeMessage("system", {
  *   content: "You are a helpful assistant specialized in mathematics. " +
- *    "Always show your work step by step."
+ *     "Always show your work step by step."
  * })
  * ```
  *
@@ -1101,31 +1102,35 @@ export const userMessage = (params: MessageConstructorParams<UserMessage>): User
  * ```ts
  * import { Prompt } from "effect/unstable/ai"
  *
- * const assistantMessage: Prompt.AssistantMessage = Prompt.makeMessage("assistant", {
- *   content: [
- *     Prompt.makePart("text", {
- *       text: "The user is asking about the weather. I should use the weather tool."
- *     }),
- *     Prompt.makePart("tool-call", {
- *       id: "call_123",
- *       name: "get_weather",
- *       params: { city: "San Francisco" },
- *       providerExecuted: false
- *     }),
- *     Prompt.makePart("tool-result", {
- *       id: "call_123",
- *       name: "get_weather",
- *       isFailure: false,
- *       result: {
- *         temperature: 72,
- *         condition: "sunny"
- *       }
- *     }),
- *     Prompt.makePart("text", {
- *       text: "The weather in San Francisco is currently 72°F and sunny."
- *     })
- *   ]
- * })
+ * const assistantMessage: Prompt.AssistantMessage = Prompt.makeMessage(
+ *   "assistant",
+ *   {
+ *     content: [
+ *       Prompt.makePart("text", {
+ *         text:
+ *           "The user is asking about the weather. I should use the weather tool."
+ *       }),
+ *       Prompt.makePart("tool-call", {
+ *         id: "call_123",
+ *         name: "get_weather",
+ *         params: { city: "San Francisco" },
+ *         providerExecuted: false
+ *       }),
+ *       Prompt.makePart("tool-result", {
+ *         id: "call_123",
+ *         name: "get_weather",
+ *         isFailure: false,
+ *         result: {
+ *           temperature: 72,
+ *           condition: "sunny"
+ *         }
+ *       }),
+ *       Prompt.makePart("text", {
+ *         text: "The weather in San Francisco is currently 72°F and sunny."
+ *       })
+ *     ]
+ *   }
+ * )
  * ```
  *
  * @since 4.0.0
@@ -1535,7 +1540,7 @@ export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
  *
  * @example
  * ```ts
- * import { Prompt } from "effect/unstable/ai"
+ * import type { Prompt } from "effect/unstable/ai"
  *
  * // String input - creates a user message
  * const stringInput: Prompt.RawInput = "Hello, world!"

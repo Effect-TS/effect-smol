@@ -542,7 +542,7 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  *   readonly _: unique symbol
  * }
  * const Users = ServiceMap.Service<Users, {
- *    getAll: Effect.Effect<Array<unknown>>
+ *   getAll: Effect.Effect<Array<unknown>>
  * }>("Users")
  *
  * Effect.gen(function*() {
@@ -550,10 +550,10 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  *   const run = yield* FiberHandle.runtime(handle)<Users>()
  *
  *   // run an effect and set the fiber in the handle
- *   run(Effect.andThen(Users.asEffect(), _ => _.getAll))
+ *   run(Effect.andThen(Users.asEffect(), (_) => _.getAll))
  *
  *   // this will interrupt the previous fiber
- *   run(Effect.andThen(Users.asEffect(), _ => _.getAll))
+ *   run(Effect.andThen(Users.asEffect(), (_) => _.getAll))
  * }).pipe(
  *   Effect.scoped // The fiber will be interrupted when the scope is closed
  * )
@@ -679,13 +679,13 @@ export const runtimePromise = <A, E>(self: FiberHandle<A, E>): <R = never>() => 
  * ```ts
  * import { Effect, FiberHandle } from "effect"
  *
- * Effect.gen(function* () {
+ * Effect.gen(function*() {
  *   const handle = yield* FiberHandle.make()
  *   yield* FiberHandle.set(handle, Effect.runFork(Effect.fail("error")))
  *
  *   // parent fiber will fail with "error"
  *   yield* FiberHandle.join(handle)
- * });
+ * })
  * ```
  *
  * @since 2.0.0

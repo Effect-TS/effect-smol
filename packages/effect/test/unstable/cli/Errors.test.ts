@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer } from "effect"
-import { FileSystem, Path } from "effect/platform"
+import { Effect, FileSystem, Layer, Path } from "effect"
 import { CliError, CliOutput, Command, Flag } from "effect/unstable/cli"
 import { toImpl } from "effect/unstable/cli/internal/command"
 import * as Lexer from "effect/unstable/cli/internal/lexer"

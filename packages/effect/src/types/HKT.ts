@@ -12,7 +12,7 @@
  *
  * @example
  * ```ts
- * import { HKT } from "effect/types"
+ * import type { HKT } from "effect/types"
  *
  * // Define a TypeLambda for Array
  * interface ArrayTypeLambda extends HKT.TypeLambda {
@@ -25,7 +25,10 @@
  *
  * // Define a TypeClass that works with any HKT
  * interface Functor<F extends HKT.TypeLambda> extends HKT.TypeClass<F> {
- *   map<A, B>(fa: HKT.Kind<F, never, never, never, A>, f: (a: A) => B): HKT.Kind<F, never, never, never, B>
+ *   map<A, B>(
+ *     fa: HKT.Kind<F, never, never, never, A>,
+ *     f: (a: A) => B
+ *   ): HKT.Kind<F, never, never, never, B>
  * }
  * ```
  *
@@ -42,7 +45,7 @@ import type * as Types from "../types/Types.ts"
  *
  * @example
  * ```ts
- * import { HKT } from "effect/types"
+ * import type { HKT } from "effect/types"
  *
  * interface MyTypeClass<F extends HKT.TypeLambda> extends HKT.TypeClass<F> {
  *   // TypeClass methods here
@@ -66,7 +69,7 @@ export declare const URI: unique symbol
  *
  * @example
  * ```ts
- * import { HKT } from "effect/types"
+ * import type { HKT } from "effect/types"
  *
  * // Define a Functor type class
  * interface Functor<F extends HKT.TypeLambda> extends HKT.TypeClass<F> {
@@ -107,8 +110,8 @@ export interface TypeClass<F extends TypeLambda> {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { HKT } from "effect/types"
+ * import type { Effect } from "effect"
+ * import type { HKT } from "effect/types"
  *
  * // TypeLambda for Array<A>
  * interface ArrayTypeLambda extends HKT.TypeLambda {
@@ -149,9 +152,8 @@ export interface TypeLambda {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
- * import { HKT } from "effect/types"
+ * import type { Effect, Option } from "effect"
+ * import type { HKT } from "effect/types"
  *
  * // Define TypeLambdas
  * interface OptionTypeLambda extends HKT.TypeLambda {
@@ -166,11 +168,23 @@ export interface TypeLambda {
  * type OptionString = HKT.Kind<OptionTypeLambda, never, never, never, string>
  * // Result: Option.Option<string>
  *
- * type EffectStringNumberBoolean = HKT.Kind<EffectTypeLambda, never, number, boolean, string>
+ * type EffectStringNumberBoolean = HKT.Kind<
+ *   EffectTypeLambda,
+ *   never,
+ *   number,
+ *   boolean,
+ *   string
+ * >
  * // Result: Effect.Effect<string, number, boolean>
  *
  * // TypeLambdas enable generic programming over type constructors
- * type StringType<F extends HKT.TypeLambda> = HKT.Kind<F, never, never, never, string>
+ * type StringType<F extends HKT.TypeLambda> = HKT.Kind<
+ *   F,
+ *   never,
+ *   never,
+ *   never,
+ *   string
+ * >
  * ```
  *
  * @since 2.0.0

@@ -654,7 +654,9 @@ export const is = Parser.is
  * ```ts
  * import { Schema } from "effect/schema"
  *
- * const assertString: (u: unknown) => asserts u is string = Schema.asserts(Schema.String)
+ * const assertString: (u: unknown) => asserts u is string = Schema.asserts(
+ *   Schema.String
+ * )
  *
  * // This will pass silently (no return value)
  * try {
@@ -1480,6 +1482,7 @@ export interface UniqueSymbol<sym extends symbol>
  *
  * ```ts
  * import { Schema } from "effect/schema"
+ *
  * const a = Symbol.for("a")
  * const schema = Schema.UniqueSymbol(a)
  * ```
@@ -1669,8 +1672,8 @@ interface fieldsAssign<NewFields extends Struct.Fields> extends Lambda {
  * **Example** (Adding fields to a union of structs)
  *
  * ```ts
- * import { Schema } from "effect/schema"
  * import { Tuple } from "effect"
+ * import { Schema } from "effect/schema"
  *
  * // Add a new field to all members of a union of structs
  * const schema = Schema.Union([
@@ -2842,14 +2845,14 @@ export interface compose<To extends Top, From extends Top> extends decodeTo<To, 
  * **Example** (String to Number with transformation)
  *
  * ```ts
- * import { Schema, Transformation, Getter } from "effect/schema"
+ * import { Getter, Schema } from "effect/schema"
  *
  * const NumberFromString = Schema.String.pipe(
  *   Schema.decodeTo(
  *     Schema.Number,
  *     {
- *       decode: Getter.transform(s => Number(s)),
- *       encode: Getter.transform(n => String(n))
+ *       decode: Getter.transform((s) => Number(s)),
+ *       encode: Getter.transform((n) => String(n))
  *     }
  *   )
  * )
@@ -2912,12 +2915,12 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
  * **Example** (Trimming string values during encoding/decoding)
  *
  * ```ts
- * import { Schema, Getter } from "effect/schema"
+ * import { Getter, Schema } from "effect/schema"
  *
  * const Trimmed = Schema.String.pipe(
  *   Schema.decode({
- *     decode: Getter.transform(s => s.trim()),
- *     encode: Getter.transform(s => s.trim())
+ *     decode: Getter.transform((s) => s.trim()),
+ *     encode: Getter.transform((s) => s.trim())
  *   })
  * )
  *

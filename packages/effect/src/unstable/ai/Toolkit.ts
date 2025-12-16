@@ -7,7 +7,7 @@
  * ```ts
  * import { Effect } from "effect"
  * import { Schema } from "effect/schema"
- * import { Toolkit, Tool } from "effect/unstable/ai"
+ * import { Tool, Toolkit } from "effect/unstable/ai"
  *
  * // Create individual tools
  * const GetCurrentTime = Tool.make("GetCurrentTime", {
@@ -29,10 +29,11 @@
  *
  * const MyToolkitLayer = MyToolkit.toLayer({
  *   GetCurrentTime: () => Effect.succeed(Date.now()),
- *   GetWeather: ({ location }) => Effect.succeed({
- *     temperature: 72,
- *     condition: "sunny"
- *   })
+ *   GetWeather: ({ location }) =>
+ *     Effect.succeed({
+ *       temperature: 72,
+ *       condition: "sunny"
+ *     })
  * })
  * ```
  *
@@ -61,7 +62,7 @@ const TypeId = "~effect/ai/Toolkit" as const
  * ```ts
  * import { Effect } from "effect"
  * import { Schema } from "effect/schema"
- * import { Toolkit, Tool } from "effect/unstable/ai"
+ * import { Tool, Toolkit } from "effect/unstable/ai"
  *
  * // Create individual tools
  * const GetCurrentTime = Tool.make("GetCurrentTime", {
@@ -83,10 +84,11 @@ const TypeId = "~effect/ai/Toolkit" as const
  *
  * const MyToolkitLayer = MyToolkit.toLayer({
  *   GetCurrentTime: () => Effect.succeed(Date.now()),
- *   GetWeather: ({ location }) => Effect.succeed({
- *     temperature: 72,
- *     condition: "sunny"
- *   })
+ *   GetWeather: ({ location }) =>
+ *     Effect.succeed({
+ *       temperature: 72,
+ *       condition: "sunny"
+ *     })
  * })
  * ```
  *
@@ -397,7 +399,7 @@ export const empty: Toolkit<{}> = makeProto({})
  * @example
  * ```ts
  * import { Schema } from "effect/schema"
- * import { Toolkit, Tool } from "effect/unstable/ai"
+ * import { Tool, Toolkit } from "effect/unstable/ai"
  *
  * const GetCurrentTime = Tool.make("GetCurrentTime", {
  *   description: "Get the current timestamp",
@@ -464,7 +466,7 @@ export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
  *
  * @example
  * ```ts
- * import { Toolkit, Tool } from "effect/unstable/ai"
+ * import { Tool, Toolkit } from "effect/unstable/ai"
  *
  * const mathToolkit = Toolkit.make(
  *   Tool.make("add"),
@@ -482,7 +484,7 @@ export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
  *
  * @example
  * ```ts
- * import { Toolkit, Tool } from "effect/unstable/ai"
+ * import { Tool, Toolkit } from "effect/unstable/ai"
  *
  * // Incremental toolkit building
  * const baseToolkit = Toolkit.make(Tool.make("base_tool"))

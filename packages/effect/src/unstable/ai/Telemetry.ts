@@ -10,7 +10,7 @@
  * import { Telemetry } from "effect/unstable/ai"
  *
  * // Add telemetry attributes to a span
- * const addTelemetry = Effect.gen(function* () {
+ * const addTelemetry = Effect.gen(function*() {
  *   const span = yield* Effect.currentSpan
  *
  *   Telemetry.addGenAIAnnotations(span, {
@@ -241,14 +241,17 @@ export type WellKnownSystem =
  *
  * @example
  * ```ts
- * import { Telemetry } from "effect/unstable/ai"
+ * import type { Telemetry } from "effect/unstable/ai"
  *
  * type RequestAttrs = {
  *   modelName: string
  *   maxTokens: number
  * }
  *
- * type PrefixedAttrs = Telemetry.AttributesWithPrefix<RequestAttrs, "gen_ai.request">
+ * type PrefixedAttrs = Telemetry.AttributesWithPrefix<
+ *   RequestAttrs,
+ *   "gen_ai.request"
+ * >
  * // Results in: {
  * //   "gen_ai.request.model_name": string
  * //   "gen_ai.request.max_tokens": number
@@ -270,11 +273,11 @@ export type AttributesWithPrefix<Attributes extends Record<string, any>, Prefix 
  *
  * @example
  * ```ts
- * import { Telemetry } from "effect/unstable/ai"
+ * import type { Telemetry } from "effect/unstable/ai"
  *
- * type Formatted1 = Telemetry.FormatAttributeName<"modelName">    // "model_name"
- * type Formatted2 = Telemetry.FormatAttributeName<"maxTokens">    // "max_tokens"
- * type Formatted3 = Telemetry.FormatAttributeName<"temperature">  // "temperature"
+ * type Formatted1 = Telemetry.FormatAttributeName<"modelName"> // "model_name"
+ * type Formatted2 = Telemetry.FormatAttributeName<"maxTokens"> // "max_tokens"
+ * type Formatted3 = Telemetry.FormatAttributeName<"temperature"> // "temperature"
  * ```
  *
  * @since 4.0.0
@@ -294,7 +297,8 @@ export type FormatAttributeName<T extends string | number | symbol> = T extends 
  *
  * @example
  * ```ts
- * import { String, Tracer } from "effect"
+ * import type { Tracer } from "effect"
+ * import { String } from "effect"
  * import { Telemetry } from "effect/unstable/ai"
  *
  * const addCustomAttributes = Telemetry.addSpanAttributes(
@@ -356,7 +360,7 @@ const addSpanUsageAttributes = addSpanAttributes("gen_ai.usage", String.camelToS
  *
  * @example
  * ```ts
- * import { Telemetry } from "effect/unstable/ai"
+ * import type { Telemetry } from "effect/unstable/ai"
  *
  * const telemetryOptions: Telemetry.GenAITelemetryAttributeOptions = {
  *   system: "openai",
@@ -419,7 +423,7 @@ export type GenAITelemetryAttributeOptions = BaseAttributes & {
  * import { Effect } from "effect"
  * import { Telemetry } from "effect/unstable/ai"
  *
- * const directUsage = Effect.gen(function* () {
+ * const directUsage = Effect.gen(function*() {
  *   const span = yield* Effect.currentSpan
  *
  *   Telemetry.addGenAIAnnotations(span, {
@@ -453,13 +457,14 @@ export const addGenAIAnnotations: {
  *
  * @example
  * ```ts
- * import { Telemetry } from "effect/unstable/ai"
+ * import type { Telemetry } from "effect/unstable/ai"
  *
- * const customTransformer: Telemetry.SpanTransformer = ({ span, response }) => {
+ * const customTransformer: Telemetry.SpanTransformer = ({ response, span }) => {
  *   // Add custom attributes based on the response
- *   const textParts = response.filter(part => part.type === "text")
- *   const totalTextLength = textParts.reduce((sum, part) =>
- *     sum + (part.type === "text" ? part.text.length : 0), 0
+ *   const textParts = response.filter((part) => part.type === "text")
+ *   const totalTextLength = textParts.reduce(
+ *     (sum, part) => sum + (part.type === "text" ? part.text.length : 0),
+ *     0
  *   )
  *   span.attribute("total_text_length", totalTextLength)
  * }

@@ -30,8 +30,8 @@ export const symbol = "~effect/interfaces/Equal"
  *
  *   [Equal.symbol](that: Equal.Equal): boolean {
  *     return that instanceof Coordinate &&
- *            this.x === that.x &&
- *            this.y === that.y
+ *       this.x === that.x &&
+ *       this.y === that.y
  *   }
  *
  *   [Hash.symbol](): number {
@@ -345,8 +345,7 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  *
  * @example
  * ```ts
- * import { Equal } from "effect"
- * import { Array } from "effect"
+ * import { Array, Equal } from "effect"
  *
  * const eq = Equal.equivalence<number>()
  * const result = Array.dedupeWith([1, 2, 2, 3, 1], eq)

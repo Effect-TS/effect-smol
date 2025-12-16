@@ -30,9 +30,9 @@ const TypeId = "~effect/Sink"
  *
  * @example
  * ```ts
+ * import { Effect } from "effect"
  * import * as Sink from "effect/Sink"
  * import * as Stream from "effect/Stream"
- * import { Effect } from "effect"
  *
  * // Create a simple sink that always succeeds with a value
  * const sink: Sink.Sink<number> = Sink.succeed(42)
@@ -76,8 +76,8 @@ const endVoid = Pull.halt([void 0] as End<void, never>)
  *
  * @example
  * ```ts
- * import type * as Sink from "effect/Sink"
  * import type { Effect } from "effect"
+ * import type * as Sink from "effect/Sink"
  * import type * as Unify from "effect/types/Unify"
  *
  * // SinkUnify helps unify Sink and Effect types
@@ -208,7 +208,7 @@ const SinkProto = {
  * const sink = Sink.never
  * const notStream = { data: [1, 2, 3] }
  *
- * console.log(Sink.isSink(sink))    // true
+ * console.log(Sink.isSink(sink)) // true
  * console.log(Sink.isSink(notStream)) // false
  * ```
  *
@@ -258,7 +258,6 @@ export const fromTransform = <L, In, E, A, R, EX, RX>(
  * @example
  * ```ts
  * import { Sink } from "effect"
- * import { Channel } from "effect"
  *
  * // Create a sink and extract its channel
  * const sink = Sink.succeed(42)
@@ -277,9 +276,7 @@ export const toChannel = <A, In, L, E, R>(
  *
  * @example
  * ```ts
- * import { Sink } from "effect"
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Sink, Stream } from "effect"
  *
  * // Create a sink that always yields the same value
  * const sink = Sink.succeed(42)
@@ -320,9 +317,7 @@ export const suspend = <A, In, L, E, R>(evaluate: LazyArg<Sink<A, In, L, E, R>>)
  *
  * @example
  * ```ts
- * import { Sink } from "effect"
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Sink, Stream } from "effect"
  *
  * // Create a sink that always fails
  * const sink = Sink.fail(new Error("Sink failed"))
@@ -345,9 +340,7 @@ export const fail = <E>(e: E): Sink<never, unknown, never, E> => fromChannel(Cha
  *
  * @example
  * ```ts
- * import { Sink } from "effect"
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Sink, Stream } from "effect"
  *
  * // Create a sink that fails with a lazy error
  * const sink = Sink.failSync(() => new Error("Lazy error"))
@@ -371,9 +364,7 @@ export const failSync = <E>(evaluate: LazyArg<E>): Sink<never, unknown, never, E
  *
  * @example
  * ```ts
- * import { Sink } from "effect"
- * import { Stream } from "effect"
- * import { Effect, Cause } from "effect"
+ * import { Cause, Effect, Sink, Stream } from "effect"
  *
  * // Create a sink that fails with a specific cause
  * const sink = Sink.failCause(Cause.fail(new Error("Custom cause")))
@@ -397,9 +388,7 @@ export const failCause = <E>(cause: Cause.Cause<E>): Sink<never, unknown, never,
  *
  * @example
  * ```ts
- * import { Sink } from "effect"
- * import { Stream } from "effect"
- * import { Effect, Cause } from "effect"
+ * import { Cause, Effect, Sink, Stream } from "effect"
  *
  * // Create a sink that fails with a lazy cause
  * const sink = Sink.failCauseSync(() => Cause.fail(new Error("Lazy cause")))
@@ -425,9 +414,7 @@ export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Sink<never,
  *
  * @example
  * ```ts
- * import { Sink } from "effect"
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Sink, Stream } from "effect"
  *
  * // Create a sink that dies with a defect
  * const sink = Sink.die(new Error("Defect error"))
@@ -1045,9 +1032,7 @@ export const collectAllFilterEffect = <In, Out, X, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
- * import { Sink, Stream } from "effect"
+ * import { Console, Effect, Sink, Stream } from "effect"
  *
  * // Create a sink that logs each item
  * const sink = Sink.forEach((item: number) => Console.log(`Processing: ${item}`))
@@ -1076,13 +1061,13 @@ export const forEach = <In, X, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
- * import { Sink, Stream } from "effect"
+ * import { Console, Effect, Sink, Stream } from "effect"
  *
  * // Create a sink that processes chunks
- * const sink = Sink.forEachArray((chunk: readonly number[]) =>
- *   Console.log(`Processing chunk of ${chunk.length} items: [${chunk.join(", ")}]`)
+ * const sink = Sink.forEachArray((chunk: ReadonlyArray<number>) =>
+ *   Console.log(
+ *     `Processing chunk of ${chunk.length} items: [${chunk.join(", ")}]`
+ *   )
  * )
  *
  * // Use it with a stream
@@ -1114,12 +1099,12 @@ export const forEachArray = <In, X, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
- * import { Sink, Stream } from "effect"
+ * import { Console, Effect, Sink, Stream } from "effect"
  *
  * // Create a sink from an effect that produces a sink
- * const sinkEffect = Effect.succeed(Sink.forEach((item: number) => Console.log(`Item: ${item}`)))
+ * const sinkEffect = Effect.succeed(
+ *   Sink.forEach((item: number) => Console.log(`Item: ${item}`))
+ * )
  * const sink = Sink.unwrap(sinkEffect)
  *
  * // Use it with a stream

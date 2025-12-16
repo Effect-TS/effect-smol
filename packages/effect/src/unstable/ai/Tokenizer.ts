@@ -8,10 +8,10 @@
  *
  * @example
  * ```ts
- * import { Tokenizer, Prompt } from "effect/unstable/ai"
  * import { Effect } from "effect"
+ * import { Tokenizer } from "effect/unstable/ai"
  *
- * const tokenizeText = Effect.gen(function* () {
+ * const tokenizeText = Effect.gen(function*() {
  *   const tokenizer = yield* Tokenizer.Tokenizer
  *   const tokens = yield* tokenizer.tokenize("Hello, world!")
  *   console.log(`Token count: ${tokens.length}`)
@@ -21,11 +21,11 @@
  *
  * @example
  * ```ts
- * import { Tokenizer, Prompt } from "effect/unstable/ai"
  * import { Effect } from "effect"
+ * import { Tokenizer } from "effect/unstable/ai"
  *
  * // Truncate a prompt to fit within token limits
- * const truncatePrompt = Effect.gen(function* () {
+ * const truncatePrompt = Effect.gen(function*() {
  *   const tokenizer = yield* Tokenizer.Tokenizer
  *   const longPrompt = "This is a very long prompt..."
  *   const truncated = yield* tokenizer.truncate(longPrompt, 100)
@@ -49,10 +49,10 @@ import * as Prompt from "./Prompt.ts"
  *
  * @example
  * ```ts
- * import { Tokenizer } from "effect/unstable/ai"
  * import { Effect } from "effect"
+ * import { Tokenizer } from "effect/unstable/ai"
  *
- * const useTokenizer = Effect.gen(function* () {
+ * const useTokenizer = Effect.gen(function*() {
  *   const tokenizer = yield* Tokenizer.Tokenizer
  *   const tokens = yield* tokenizer.tokenize("Hello, world!")
  *   return tokens.length
@@ -76,11 +76,12 @@ export class Tokenizer extends ServiceMap.Service<Tokenizer, Service>()(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Tokenizer, Prompt } from "effect/unstable/ai"
+ * import type { Tokenizer } from "effect/unstable/ai"
+ * import { Prompt } from "effect/unstable/ai"
  *
  * const customTokenizer: Tokenizer.Service = {
  *   tokenize: (input) =>
- *     Effect.succeed(input.toString().split(' ').map((_, i) => i)),
+ *     Effect.succeed(input.toString().split(" ").map((_, i) => i)),
  *   truncate: (input, maxTokens) =>
  *     Effect.succeed(Prompt.make(input.toString().slice(0, maxTokens * 5)))
  * }
@@ -124,19 +125,19 @@ export interface Service {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Tokenizer, Prompt } from "effect/unstable/ai"
+ * import { Tokenizer } from "effect/unstable/ai"
  *
  * // Simple word-based tokenizer
  * const wordTokenizer = Tokenizer.make({
  *   tokenize: (prompt) =>
  *     Effect.succeed(
  *       prompt.content
- *         .flatMap(msg =>
+ *         .flatMap((msg) =>
  *           typeof msg.content === "string"
- *             ? msg.content.split(' ')
- *             : msg.content.flatMap(part =>
- *                 part.type === "text" ? part.text.split(' ') : []
- *               )
+ *             ? msg.content.split(" ")
+ *             : msg.content.flatMap((part) =>
+ *               part.type === "text" ? part.text.split(" ") : []
+ *             )
  *         )
  *         .map((_, index) => index)
  *     )

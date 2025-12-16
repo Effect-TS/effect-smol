@@ -7,7 +7,7 @@
  * ```ts
  * import { Effect, Random } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const randomFloat = yield* Random.next
  *   console.log("Random float:", randomFloat)
  *
@@ -33,7 +33,7 @@ import * as ServiceMap from "./ServiceMap.ts"
  * ```ts
  * import { Effect, Random } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const float = yield* Random.next
  *   const integer = yield* Random.nextInt
  *   const inRange = yield* Random.nextIntBetween(1, 100)
@@ -74,7 +74,7 @@ const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effec
  * ```ts
  * import { Effect, Random } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const randomDouble = yield* Random.next
  *   console.log("Random double:", randomDouble)
  * })
@@ -93,7 +93,7 @@ export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe(
  * ```ts
  * import { Effect, Random } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const randomInt = yield* Random.nextInt
  *   console.log("Random integer:", randomInt)
  * })
@@ -111,7 +111,7 @@ export const nextInt: Effect.Effect<number> = randomWith((r) => r.nextIntUnsafe(
  * ```ts
  * import { Effect, Random } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const randomDouble = yield* Random.nextBetween(0, 1)
  *   console.log("Random double: ", randomDouble)
  * })
@@ -133,7 +133,7 @@ export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
  * ```ts
  * import { Effect, Random } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const diceRoll1 = yield* Random.nextIntBetween(1, 6)
  *   const diceRoll2 = yield* Random.nextIntBetween(1, 6, {
  *     halfOpen: true
@@ -163,7 +163,7 @@ export const nextIntBetween = (min: number, max: number, options?: {
  * ```ts
  * import { Effect, Random } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const uuid = yield* Random.nextUUIDv4
  *   console.log("UUID:", uuid)
  * })
@@ -208,7 +208,7 @@ export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
  * ```ts
  * import { Effect, Random } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const value1 = yield* Random.next
  *   const value2 = yield* Random.next
  *   console.log(value1, value2)

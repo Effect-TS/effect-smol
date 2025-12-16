@@ -1,6 +1,6 @@
 import { NodeRuntime, NodeServices } from "@effect/platform-node"
 import { Array, Cause, Effect, Filter, Stream } from "effect"
-import { FileSystem, Path } from "effect/platform"
+import { FileSystem, Path } from "effect"
 import * as ChildProcess from "node:child_process"
 
 const exec = (command: string, options?: ChildProcess.ExecOptions) =>

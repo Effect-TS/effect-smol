@@ -97,7 +97,7 @@ export declare namespace Redacted {
  * const secret = Redacted.make("my-secret")
  * const plainString = "not-secret"
  *
- * console.log(Redacted.isRedacted(secret))      // true
+ * console.log(Redacted.isRedacted(secret)) // true
  * console.log(Redacted.isRedacted(plainString)) // false
  * ```
  *
@@ -160,8 +160,8 @@ const Proto = {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Redacted } from "effect"
+ * import * as assert from "node:assert"
  *
  * const API_KEY = Redacted.make("1234567890")
  *
@@ -186,8 +186,8 @@ export const value = <T>(self: Redacted<T>): T => {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Redacted } from "effect"
+ * import * as assert from "node:assert"
  *
  * const API_KEY = Redacted.make("1234567890")
  *
@@ -195,7 +195,10 @@ export const value = <T>(self: Redacted<T>): T => {
  *
  * Redacted.wipeUnsafe(API_KEY)
  *
- * assert.throws(() => Redacted.value(API_KEY), new Error("Unable to get redacted value"))
+ * assert.throws(
+ *   () => Redacted.value(API_KEY),
+ *   new Error("Unable to get redacted value")
+ * )
  * ```
  *
  * @since 3.3.0
@@ -210,9 +213,7 @@ export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redactedRegistry.de
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { Equivalence } from "effect"
- * import { Redacted } from "effect"
+ * import { Equivalence, Redacted } from "effect"
  *
  * const API_KEY1 = Redacted.make("1234567890")
  * const API_KEY2 = Redacted.make("1-34567890")

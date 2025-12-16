@@ -148,7 +148,7 @@ export interface ResultUnifyIgnore {}
  *
  * @example
  * ```ts
- * import { Result } from "effect"
+ * import type { Result } from "effect"
  *
  * // This interface allows Result to work with higher-kinded type utilities
  * declare const resultTypeLambda: Result.ResultTypeLambda
@@ -260,8 +260,8 @@ export {
    *
    * @example
    * ```ts
-   * import * as assert from "node:assert"
    * import { Result } from "effect"
+   * import * as assert from "node:assert"
    *
    * const result = Result.void
    * assert.deepStrictEqual(result, Result.succeed(undefined))
@@ -280,11 +280,17 @@ export {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect"
+ * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(Result.fromNullishOr(1, () => 'fallback'), Result.succeed(1))
- * assert.deepStrictEqual(Result.fromNullishOr(null, () => 'fallback'), Result.fail('fallback'))
+ * assert.deepStrictEqual(
+ *   Result.fromNullishOr(1, () => "fallback"),
+ *   Result.succeed(1)
+ * )
+ * assert.deepStrictEqual(
+ *   Result.fromNullishOr(null, () => "fallback"),
+ *   Result.fail("fallback")
+ * )
  * ```
  *
  * @category Constructors
@@ -302,12 +308,17 @@ export const fromNullishOr: {
 /**
  * @example
  * ```ts
+ * import { Option, Result } from "effect"
  * import * as assert from "node:assert"
- * import { Result } from "effect"
- * import { Option } from "effect"
  *
- * assert.deepStrictEqual(Result.fromOption(Option.some(1), () => 'error'), Result.succeed(1))
- * assert.deepStrictEqual(Result.fromOption(Option.none(), () => 'error'), Result.fail('error'))
+ * assert.deepStrictEqual(
+ *   Result.fromOption(Option.some(1), () => "error"),
+ *   Result.succeed(1)
+ * )
+ * assert.deepStrictEqual(
+ *   Result.fromOption(Option.none(), () => "error"),
+ *   Result.fail("error")
+ * )
  * ```
  *
  * @category Constructors
@@ -354,10 +365,10 @@ export {
    *
    * @example
    * ```ts
-   * import * as assert from "node:assert"
    * import { Result } from "effect"
+   * import * as assert from "node:assert"
    *
-   * const success = Result.try(() => JSON.parse('{"name": "John"}'))
+   * const success = Result.try(() => JSON.parse("{\"name\": \"John\"}"))
    * assert.deepStrictEqual(success, Result.succeed({ name: "John" }))
    *
    * const failure = Result.try(() => JSON.parse("invalid json"))
@@ -375,8 +386,8 @@ export {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Result.isResult(Result.succeed(1)), true)
  * assert.deepStrictEqual(Result.isResult(Result.fail("a")), true)
@@ -393,8 +404,8 @@ export const isResult: (input: unknown) => input is Result<unknown, unknown> = r
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Result.isFailure(Result.succeed(1)), false)
  * assert.deepStrictEqual(Result.isFailure(Result.fail("a")), true)
@@ -410,8 +421,8 @@ export const isFailure: <A, E>(self: Result<A, E>) => self is Failure<A, E> = re
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Result.isSuccess(Result.succeed(1)), true)
  * assert.deepStrictEqual(Result.isSuccess(Result.fail("a")), false)
@@ -427,12 +438,14 @@ export const isSuccess: <A, E>(self: Result<A, E>) => self is Success<A, E> = re
  *
  * @example
  * ```ts
+ * import { Option, Result } from "effect"
  * import * as assert from "node:assert"
- * import { Result } from "effect"
- * import { Option } from "effect"
  *
- * assert.deepStrictEqual(Result.getSuccess(Result.succeed('ok')), Option.some('ok'))
- * assert.deepStrictEqual(Result.getSuccess(Result.fail('err')), Option.none())
+ * assert.deepStrictEqual(
+ *   Result.getSuccess(Result.succeed("ok")),
+ *   Option.some("ok")
+ * )
+ * assert.deepStrictEqual(Result.getSuccess(Result.fail("err")), Option.none())
  * ```
  *
  * @category Getters
@@ -445,12 +458,14 @@ export const getSuccess: <A, E>(self: Result<A, E>) => Option<A> = result.getSuc
  *
  * @example
  * ```ts
+ * import { Option, Result } from "effect"
  * import * as assert from "node:assert"
- * import { Result } from "effect"
- * import { Option } from "effect"
  *
- * assert.deepStrictEqual(Result.getFailure(Result.succeed('ok')), Option.none())
- * assert.deepStrictEqual(Result.getFailure(Result.fail('err')), Option.some('err'))
+ * assert.deepStrictEqual(Result.getFailure(Result.succeed("ok")), Option.none())
+ * assert.deepStrictEqual(
+ *   Result.getFailure(Result.fail("err")),
+ *   Option.some("err")
+ * )
  * ```
  *
  * @category Getters
@@ -464,8 +479,7 @@ export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFai
  * **Example**
  *
  * ```ts
- * import { Result } from "effect"
- * import { Equivalence } from "effect"
+ * import { Equivalence, Result } from "effect"
  *
  * const stringEquivalence = Equivalence.strict<string>()
  * const numberEquivalence = Equivalence.strict<number>()
@@ -501,9 +515,7 @@ export const getEquivalence = <A, E>(
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
+ * import { pipe, Result } from "effect"
  *
  * const success = pipe(
  *   Result.succeed(1),
@@ -549,9 +561,7 @@ export const mapBoth: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
+ * import { pipe, Result } from "effect"
  *
  * const success = pipe(
  *   Result.succeed(1),
@@ -583,9 +593,7 @@ export const mapError: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
+ * import { pipe, Result } from "effect"
  *
  * const success = pipe(
  *   Result.succeed(1),
@@ -619,18 +627,23 @@ export const map: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
+ * import { pipe, Result } from "effect"
  *
- * const onFailure  = (strings: ReadonlyArray<string>): string => `strings: ${strings.join(', ')}`
+ * const onFailure = (strings: ReadonlyArray<string>): string =>
+ *   `strings: ${strings.join(", ")}`
  *
  * const onSuccess = (value: number): string => `Ok: ${value}`
  *
- * assert.deepStrictEqual(pipe(Result.succeed(1), Result.match({ onFailure, onSuccess })), 'Ok: 1')
  * assert.deepStrictEqual(
- *   pipe(Result.fail(['string 1', 'string 2']), Result.match({ onFailure, onSuccess })),
- *   'strings: string 1, string 2'
+ *   pipe(Result.succeed(1), Result.match({ onFailure, onSuccess })),
+ *   "Ok: 1"
+ * )
+ * assert.deepStrictEqual(
+ *   pipe(
+ *     Result.fail(["string 1", "string 2"]),
+ *     Result.match({ onFailure, onSuccess })
+ *   ),
+ *   "strings: string 1, string 2"
  * )
  * ```
  *
@@ -660,23 +673,22 @@ export const match: {
  *
  * @example
  * ```ts
+ * import { pipe, Result } from "effect"
  * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
  *
  * const isPositive = (n: number): boolean => n > 0
  *
  * assert.deepStrictEqual(
  *   pipe(
  *     1,
- *     Result.liftPredicate(isPositive, n => `${n} is not positive`)
+ *     Result.liftPredicate(isPositive, (n) => `${n} is not positive`)
  *   ),
  *   Result.succeed(1)
  * )
  * assert.deepStrictEqual(
  *   pipe(
  *     0,
- *     Result.liftPredicate(isPositive, n => `${n} is not positive`)
+ *     Result.liftPredicate(isPositive, (n) => `${n} is not positive`)
  *   ),
  *   Result.fail("0 is not positive")
  * )
@@ -713,23 +725,22 @@ export const liftPredicate: {
  *
  * @example
  * ```ts
+ * import { pipe, Result } from "effect"
  * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
  *
  * const isPositive = (n: number): boolean => n > 0
  *
  * assert.deepStrictEqual(
  *   pipe(
  *     Result.succeed(1),
- *     Result.filterOrFail(isPositive, n => `${n} is not positive`)
+ *     Result.filterOrFail(isPositive, (n) => `${n} is not positive`)
  *   ),
  *   Result.succeed(1)
  * )
  * assert.deepStrictEqual(
  *   pipe(
  *     Result.succeed(0),
- *     Result.filterOrFail(isPositive, n => `${n} is not positive`)
+ *     Result.filterOrFail(isPositive, (n) => `${n} is not positive`)
  *   ),
  *   Result.fail("0 is not positive")
  * )
@@ -764,8 +775,8 @@ export const filterOrFail: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const success = Result.succeed(42)
  * assert.deepStrictEqual(Result.merge(success), 42)
@@ -784,11 +795,17 @@ export const merge: <A, E>(self: Result<A, E>) => E | A = match({ onFailure: ide
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect"
+ * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(Result.getOrElse(Result.succeed(1), (error) => error + "!"), 1)
- * assert.deepStrictEqual(Result.getOrElse(Result.fail("not a number"), (error) => error + "!"), "not a number!")
+ * assert.deepStrictEqual(
+ *   Result.getOrElse(Result.succeed(1), (error) => error + "!"),
+ *   1
+ * )
+ * assert.deepStrictEqual(
+ *   Result.getOrElse(Result.fail("not a number"), (error) => error + "!"),
+ *   "not a number!"
+ * )
  * ```
  *
  * @category Getters
@@ -808,8 +825,8 @@ export const getOrElse: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Result.getOrNull(Result.succeed(1)), 1)
  * assert.deepStrictEqual(Result.getOrNull(Result.fail("a")), null)
@@ -825,8 +842,8 @@ export const getOrNull: <A, E>(self: Result<A, E>) => A | null = getOrElse(const
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Result.getOrUndefined(Result.succeed(1)), 1)
  * assert.deepStrictEqual(Result.getOrUndefined(Result.fail("a")), undefined)
@@ -846,10 +863,13 @@ export const getOrUndefined: <A, E>(self: Result<A, E>) => A | undefined = getOr
  * ```ts
  * import { Result } from "effect"
  *
- * Result.getOrThrowWith(Result.succeed(1), () => new Error('Unexpected Err'))
+ * Result.getOrThrowWith(Result.succeed(1), () => new Error("Unexpected Err"))
  * // => 1
  *
- * Result.getOrThrowWith(Result.fail("error"), (err) => new Error(`Unexpected Err: ${err}`))
+ * Result.getOrThrowWith(
+ *   Result.fail("error"),
+ *   (err) => new Error(`Unexpected Err: ${err}`)
+ * )
  * // => throws new Error('Unexpected Err: error')
  * ```
  *
@@ -874,8 +894,8 @@ export const getOrThrowWith: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Result.getOrThrow(Result.succeed(1)), 1)
  * assert.throws(() => Result.getOrThrow(Result.fail("error")))
@@ -893,9 +913,7 @@ export const getOrThrow: <A, E>(self: Result<A, E>) => A = getOrThrowWith(identi
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
+ * import { pipe, Result } from "effect"
  *
  * const success = pipe(
  *   Result.succeed(1),
@@ -927,14 +945,15 @@ export const orElse: {
  *
  * @example
  * ```ts
+ * import { pipe, Result } from "effect"
  * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
  *
  * const parseAndDouble = (s: string) =>
  *   pipe(
  *     Result.try(() => parseInt(s)),
- *     Result.flatMap(n => n > 0 ? Result.succeed(n * 2) : Result.fail("not positive"))
+ *     Result.flatMap((n) =>
+ *       n > 0 ? Result.succeed(n * 2) : Result.fail("not positive")
+ *     )
  *   )
  *
  * assert.deepStrictEqual(parseAndDouble("5"), Result.succeed(10))
@@ -958,19 +977,18 @@ export const flatMap: {
  *
  * @example
  * ```ts
+ * import { pipe, Result } from "effect"
  * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
  *
  * const success = pipe(
  *   Result.succeed(1),
- *   Result.andThen(n => Result.succeed(n + 1))
+ *   Result.andThen((n) => Result.succeed(n + 1))
  * )
  * assert.deepStrictEqual(success, Result.succeed(2))
  *
  * const failure = pipe(
  *   Result.fail("error"),
- *   Result.andThen(n => Result.succeed(n + 1))
+ *   Result.andThen((n) => Result.succeed(n + 1))
  * )
  * assert.deepStrictEqual(failure, Result.fail("error"))
  * ```
@@ -1008,12 +1026,21 @@ export const andThen: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect"
+ * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(Result.all([Result.succeed(1), Result.succeed(2)]), Result.succeed([1, 2]))
- * assert.deepStrictEqual(Result.all({ right: Result.succeed(1), b: Result.succeed("hello") }), Result.succeed({ right: 1, b: "hello" }))
- * assert.deepStrictEqual(Result.all({ right: Result.succeed(1), b: Result.fail("error") }), Result.fail("error"))
+ * assert.deepStrictEqual(
+ *   Result.all([Result.succeed(1), Result.succeed(2)]),
+ *   Result.succeed([1, 2])
+ * )
+ * assert.deepStrictEqual(
+ *   Result.all({ right: Result.succeed(1), b: Result.succeed("hello") }),
+ *   Result.succeed({ right: 1, b: "hello" })
+ * )
+ * assert.deepStrictEqual(
+ *   Result.all({ right: Result.succeed(1), b: Result.fail("error") }),
+ *   Result.fail("error")
+ * )
  * ```
  *
  * @category Sequencing
@@ -1061,8 +1088,8 @@ export const all: <const I extends Iterable<Result<any, any>> | Record<string, R
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const success = Result.succeed(42)
  * assert.deepStrictEqual(Result.flip(success), Result.fail(42))
@@ -1082,10 +1109,10 @@ export const flip = <A, E>(self: Result<A, E>): Result<E, A> =>
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Result } from "effect"
+ * import * as assert from "node:assert"
  *
- * const program = Result.gen(function* () {
+ * const program = Result.gen(function*() {
  *   const a = yield* Result.succeed(1)
  *   const b = yield* Result.succeed(2)
  *   return a + b
@@ -1133,9 +1160,7 @@ export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
+ * import { pipe, Result } from "effect"
  *
  * const result = pipe(
  *   Result.Do,
@@ -1167,9 +1192,7 @@ export const Do: Result<{}> = succeed({})
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
+ * import { pipe, Result } from "effect"
  *
  * const result = pipe(
  *   Result.Do,
@@ -1211,9 +1234,7 @@ export const bind: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
+ * import { pipe, Result } from "effect"
  *
  * const result = pipe(
  *   Result.Do,
@@ -1261,9 +1282,7 @@ export {
    *
    * @example
    * ```ts
-   * import * as assert from "node:assert"
-   * import { pipe } from "effect"
-   * import { Result } from "effect"
+   * import { pipe, Result } from "effect"
    *
    * const result = pipe(
    *   Result.Do,
@@ -1272,7 +1291,6 @@ export {
    *   Result.let("sum", ({ x, y }) => x + y)
    * )
    * assert.deepStrictEqual(result, Result.succeed({ x: 2, y: 3, sum: 5 }))
-   *
    * ```
    * @category Do Notation
    * @since 4.0.0
@@ -1292,9 +1310,7 @@ export {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Result } from "effect"
- * import { Option } from "effect"
+ * import { Option, Result } from "effect"
  *
  * //      ┌─── Option<Result<number, never>>
  * //      ▼
@@ -1319,8 +1335,7 @@ export const transposeOption = <A = never, E = never>(
  *
  * @example
  * ```ts
- * import { Result } from "effect"
- * import { Option } from "effect"
+ * import { Option, Result } from "effect"
  *
  * const parseNumber = (s: string) =>
  *   isNaN(Number(s)) ? Result.fail("Invalid number") : Result.succeed(Number(s))
@@ -1356,9 +1371,7 @@ export const transposeMapOption = dual<
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { Result } from "effect"
- * import { Option } from "effect"
+ * import { Option, Result } from "effect"
  *
  * const result = Result.succeedNone
  * assert.deepStrictEqual(result, Result.succeed(Option.none()))
@@ -1374,9 +1387,7 @@ export const succeedNone = succeed(option_.none)
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
- * import { Result } from "effect"
- * import { Option } from "effect"
+ * import { Option, Result } from "effect"
  *
  * const result = Result.succeedSome(42)
  * assert.deepStrictEqual(result, Result.succeed(Option.some(42)))
@@ -1392,14 +1403,15 @@ export const succeedSome = <A, E = never>(a: A): Result<Option<A>, E> => succeed
  *
  * @example
  * ```ts
+ * import { pipe, Result } from "effect"
  * import * as assert from "node:assert"
- * import { pipe } from "effect"
- * import { Result } from "effect"
  *
  * let sideEffect = 0
  * const success = pipe(
  *   Result.succeed(42),
- *   Result.tap(n => { sideEffect = n })
+ *   Result.tap((n) => {
+ *     sideEffect = n
+ *   })
  * )
  *
  * assert.deepStrictEqual(success, Result.succeed(42))

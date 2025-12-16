@@ -621,8 +621,7 @@ export const offer: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -726,8 +725,7 @@ export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
+ * import { Effect, Option } from "effect"
  * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function*() {

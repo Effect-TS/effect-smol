@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
+import type * as FileSystem from "../../FileSystem.ts"
 import * as Layer from "../../Layer.ts"
-import type * as FileSystem from "../../platform/FileSystem.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Body from "./HttpBody.ts"
 

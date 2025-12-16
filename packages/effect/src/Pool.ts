@@ -142,16 +142,16 @@ export const make = <A, E, R>(options: {
  * By default, the `timeToLiveStrategy` is set to "usage".
  *
  * ```ts skip-type-checking
- * import { createConnection } from "mysql2";
  * import { Duration, Effect, Pool } from "effect"
+ * import { createConnection } from "mysql2"
  *
  * const acquireDBConnection = Effect.acquireRelease(
- *   Effect.sync(() => createConnection('mysql://...')),
- *   (connection) => Effect.sync(() => connection.end(() => {})),
+ *   Effect.sync(() => createConnection("mysql://...")),
+ *   (connection) => Effect.sync(() => connection.end(() => {}))
  * )
  *
  * const connectionPool = Effect.flatMap(
- *  Pool.makeWithTTL({
+ *   Pool.makeWithTTL({
  *     acquire: acquireDBConnection,
  *     min: 10,
  *     max: 20,

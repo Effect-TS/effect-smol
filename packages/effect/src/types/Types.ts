@@ -18,14 +18,14 @@ type TupleOf_<T, N extends number, R extends Array<unknown>> = `${N}` extends `-
  *
  * @example
  * ```ts
- * import { TupleOf } from "effect/types/Types"
+ * import type { TupleOf } from "effect/types/Types"
  *
  * // A tuple with exactly 3 numbers
- * const example1: TupleOf<3, number> = [1, 2, 3]; // valid
+ * const example1: TupleOf<3, number> = [1, 2, 3] // valid
  * // @ts-expect-error
- * const example2: TupleOf<3, number> = [1, 2]; // invalid
+ * const example2: TupleOf<3, number> = [1, 2] // invalid
  * // @ts-expect-error
- * const example3: TupleOf<3, number> = [1, 2, 3, 4]; // invalid
+ * const example3: TupleOf<3, number> = [1, 2, 3, 4] // invalid
  * ```
  *
  * @category tuples
@@ -44,13 +44,13 @@ export type TupleOf<N extends number, T> = N extends N ? number extends N ? Arra
  *
  * @example
  * ```ts
- * import { TupleOfAtLeast } from "effect/types/Types"
+ * import type { TupleOfAtLeast } from "effect/types/Types"
  *
  * // A tuple with at least 3 numbers
- * const example1: TupleOfAtLeast<3, number> = [1, 2, 3]; // valid
- * const example2: TupleOfAtLeast<3, number> = [1, 2, 3, 4, 5]; // valid
+ * const example1: TupleOfAtLeast<3, number> = [1, 2, 3] // valid
+ * const example2: TupleOfAtLeast<3, number> = [1, 2, 3, 4, 5] // valid
  * // @ts-expect-error
- * const example3: TupleOfAtLeast<3, number> = [1, 2]; // invalid
+ * const example3: TupleOfAtLeast<3, number> = [1, 2] // invalid
  * ```
  *
  * @category tuples
@@ -64,7 +64,7 @@ export type TupleOfAtLeast<N extends number, T> = [...TupleOf<N, T>, ...Array<T>
  * ```ts
  * import type { Types } from "effect/types"
  *
- * type Res = Types.Tags<string | { _tag: "a" } | { _tag: "b" } > // "a" | "b"
+ * type Res = Types.Tags<string | { _tag: "a" } | { _tag: "b" }> // "a" | "b"
  * ```
  *
  * @category types
@@ -93,7 +93,10 @@ export type ExcludeTag<E, K extends string> = Exclude<E, { readonly _tag: K }>
  * ```ts
  * import type { Types } from "effect/types"
  *
- * type Res = Types.ExtractTag<{ _tag: "a", a: number } | { _tag: "b", b: number }, "b"> // { _tag: "b", b: number }
+ * type Res = Types.ExtractTag<
+ *   { _tag: "a"; a: number } | { _tag: "b"; b: number },
+ *   "b"
+ * > // { _tag: "b", b: number }
  * ```
  *
  * @category types
@@ -194,7 +197,8 @@ export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof 
  * @example
  * ```ts
  * import type { Types } from "effect/types"
- * type MergeLeft = Types.MergeLeft<{ a: number, b: number; }, { a: string }> // { a: number; b: number; }
+ *
+ * type MergeLeft = Types.MergeLeft<{ a: number; b: number }, { a: string }> // { a: number; b: number; }
  * ```
  *
  * @since 2.0.0
@@ -208,7 +212,8 @@ export type MergeLeft<Source, Target> = MergeRight<Target, Source>
  * @example
  * ```ts
  * import type { Types } from "effect/types"
- * type MergeRight = Types.MergeRight<{ a: number, b: number; }, { a: string }> // { a: string; b: number; }
+ *
+ * type MergeRight = Types.MergeRight<{ a: number; b: number }, { a: string }> // { a: string; b: number; }
  * ```
  *
  * @since 2.0.0
@@ -228,7 +233,10 @@ export type MergeRight<Target, Source> = Simplify<
  * ```ts
  * import type { Types } from "effect/types"
  *
- * type Result = Types.MergeRecord<{ a: number, b: number }, { a: string, c: boolean }> // { a: number; b: number; c: boolean }
+ * type Result = Types.MergeRecord<
+ *   { a: number; b: number },
+ *   { a: string; c: boolean }
+ * > // { a: number; b: number; c: boolean }
  * ```
  *
  * @since 2.0.0
@@ -284,8 +292,8 @@ export type Mutable<T> = {
  * import type { Types } from "effect/types"
  *
  * type DeepMutableStruct = Types.DeepMutable<{
- *   readonly a: string;
- *   readonly b: readonly string[]
+ *   readonly a: string
+ *   readonly b: ReadonlyArray<string>
  * }>
  * // { a: string; b: string[] }
  * ```

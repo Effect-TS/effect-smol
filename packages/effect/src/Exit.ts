@@ -144,7 +144,7 @@ export const succeed: <A>(a: A) => Exit<A> = core.exitSucceed
  *
  * @example
  * ```ts
- * import { Exit, Cause } from "effect"
+ * import { Cause, Exit } from "effect"
  *
  * const cause = Cause.fail("Something went wrong")
  * const exit = Exit.failCause(cause)
@@ -408,10 +408,10 @@ export const match: {
  * const success = Exit.succeed(42)
  * const failure = Exit.fail("error")
  *
- * const doubled = Exit.map(success, x => x * 2)
+ * const doubled = Exit.map(success, (x) => x * 2)
  * console.log(doubled) // Exit.succeed(84)
  *
- * const stillFailure = Exit.map(failure, x => x * 2)
+ * const stillFailure = Exit.map(failure, (x) => x * 2)
  * console.log(stillFailure) // Exit.fail("error")
  * ```
  *

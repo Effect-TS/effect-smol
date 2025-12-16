@@ -16,10 +16,10 @@ import * as Toml from "toml"
 import * as Yaml from "yaml"
 import * as Config from "../../Config.ts"
 import * as Effect from "../../Effect.ts"
+import * as FileSystem from "../../FileSystem.ts"
 import { format } from "../../Formatter.ts"
 import { identity } from "../../Function.ts"
-import * as FileSystem from "../../platform/FileSystem.ts"
-import * as Path from "../../platform/Path.ts"
+import * as Path from "../../Path.ts"
 import * as Redacted from "../../Redacted.ts"
 import type { Formatter } from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
@@ -33,11 +33,11 @@ const TypeId = "~effect/cli/Primitive"
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Primitive } from "effect/unstable/cli"
  *
  * // Using built-in primitives
- * const parseString = Effect.gen(function* () {
+ * const parseString = Effect.gen(function*() {
  *   const stringResult = yield* Primitive.string.parse("hello")
  *   const numberResult = yield* Primitive.integer.parse("42")
  *   const boolResult = yield* Primitive.boolean.parse("true")
@@ -46,7 +46,7 @@ const TypeId = "~effect/cli/Primitive"
  * })
  *
  * // All primitives provide parsing functionality
- * const parseDate = Effect.gen(function* () {
+ * const parseDate = Effect.gen(function*() {
  *   const dateResult = yield* Primitive.date.parse("2023-12-25")
  *   const pathResult = yield* Primitive.path("file", true).parse("./package.json")
  *   return { dateResult, pathResult }
@@ -120,10 +120,10 @@ const makeSchemaPrimitive = <T, E>(
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Primitive } from "effect/unstable/cli"
  *
- * const parseBoolean = Effect.gen(function* () {
+ * const parseBoolean = Effect.gen(function*() {
  *   const result1 = yield* Primitive.boolean.parse("true")
  *   console.log(result1) // true
  *
@@ -151,10 +151,10 @@ export const boolean: Primitive<boolean> = makeSchemaPrimitive(
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Primitive } from "effect/unstable/cli"
  *
- * const parseFloat = Effect.gen(function* () {
+ * const parseFloat = Effect.gen(function*() {
  *   const result1 = yield* Primitive.float.parse("3.14")
  *   console.log(result1) // 3.14
  *
@@ -179,10 +179,10 @@ export const float: Primitive<number> = makeSchemaPrimitive(
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Primitive } from "effect/unstable/cli"
  *
- * const parseInteger = Effect.gen(function* () {
+ * const parseInteger = Effect.gen(function*() {
  *   const result1 = yield* Primitive.integer.parse("42")
  *   console.log(result1) // 42
  *
@@ -207,10 +207,10 @@ export const integer: Primitive<number> = makeSchemaPrimitive(
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Primitive } from "effect/unstable/cli"
  *
- * const parseDate = Effect.gen(function* () {
+ * const parseDate = Effect.gen(function*() {
  *   const result1 = yield* Primitive.date.parse("2023-12-25")
  *   console.log(result1) // Date object for December 25, 2023
  *
@@ -235,10 +235,10 @@ export const date: Primitive<Date> = makeSchemaPrimitive(
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Primitive } from "effect/unstable/cli"
  *
- * const parseString = Effect.gen(function* () {
+ * const parseString = Effect.gen(function*() {
  *   const result1 = yield* Primitive.string.parse("hello world")
  *   console.log(result1) // "hello world"
  *
@@ -260,8 +260,8 @@ export const string: Primitive<string> = makePrimitive("String", (value) => Effe
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Primitive } from "effect/unstable/cli"
  *
  * type LogLevel = "debug" | "info" | "warn" | "error"
  *
@@ -272,7 +272,7 @@ export const string: Primitive<string> = makePrimitive("String", (value) => Effe
  *   ["error", "error"]
  * ])
  *
- * const parseLogLevel = Effect.gen(function* () {
+ * const parseLogLevel = Effect.gen(function*() {
  *   const result1 = yield* logLevelPrimitive.parse("info")
  *   console.log(result1) // "info"
  *
@@ -303,7 +303,6 @@ export const choice = <A>(
  * @example
  * ```ts
  * import { Primitive } from "effect/unstable/cli"
- * import { Effect } from "effect"
  *
  * // Only accept files
  * const filePath = Primitive.path("file", true)
@@ -325,10 +324,10 @@ export type PathType = "file" | "directory" | "either"
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Primitive } from "effect/unstable/cli"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Parse a file path that must exist
  *   const filePrimitive = Primitive.path("file", true)
  *   const filePath = yield* filePrimitive.parse("./package.json")
@@ -397,8 +396,7 @@ export const path = (
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Redacted } from "effect"
+ * import { Effect, Redacted } from "effect"
  * import { Primitive } from "effect/unstable/cli"
  *
  * const parseRedacted = Effect.gen(function*() {
@@ -421,10 +419,10 @@ export const redacted: Primitive<Redacted.Redacted<string>> = makePrimitive(
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Primitive } from "effect/unstable/cli"
  *
- * const readConfigFile = Effect.gen(function* () {
+ * const readConfigFile = Effect.gen(function*() {
  *   const content = yield* Primitive.fileText.parse("./config.json")
  *   console.log(content) // File contents as string
  *
@@ -501,12 +499,12 @@ const fileParsers: Record<string, (content: string) => unknown> = {
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Primitive } from "effect/unstable/cli"
  *
  * const tomlFilePrimitive = Primitive.fileParse({ format: "toml" })
  *
- * const loadConfig = Effect.gen(function* () {
+ * const loadConfig = Effect.gen(function*() {
  *   const config = yield* tomlFilePrimitive.parse("./config.toml")
  *   console.log(config) // { name: "my-app", version: "1.0.0", port: 3000 }
  *   return config
@@ -552,9 +550,9 @@ export type FileSchemaOptions = Struct.Simplify<
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
  * import { Schema } from "effect/schema"
+ * import { Primitive } from "effect/unstable/cli"
  *
  * const ConfigSchema = Schema.Struct({
  *   name: Schema.String,
@@ -598,10 +596,10 @@ export const fileSchema = <A>(
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Primitive } from "effect/unstable/cli"
  *
- * const parseKeyValue = Effect.gen(function* () {
+ * const parseKeyValue = Effect.gen(function*() {
  *   const result1 = yield* Primitive.keyValuePair.parse("name=john")
  *   console.log(result1) // { name: "john" }
  *
@@ -642,10 +640,10 @@ export const keyValuePair: Primitive<Record<string, string>> = makePrimitive(
  *
  * @example
  * ```ts
- * import { Primitive } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Primitive } from "effect/unstable/cli"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // This will always fail - useful for boolean flags
  *   const result = yield* Primitive.none.parse("any-value")
  * })

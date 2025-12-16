@@ -22,14 +22,13 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * // Creating a simple effect
  * const hello = Effect.succeed("Hello, World!")
  *
  * // Composing effects
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const message = yield* hello
  *   yield* Console.log(message)
  *   return message.length
@@ -50,7 +49,7 @@
  *     : Effect.succeed(a / b)
  *
  * // Error handling
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const result = yield* divide(10, 2)
  *   console.log("Result:", result) // Result: 5
  *   return result
@@ -149,7 +148,7 @@ const TypeId = core.EffectTypeId
  * const risky = Effect.fail(new Error("Something went wrong"))
  *
  * // Effects can be composed using generator functions
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const value = yield* success
  *   console.log(value) // 42
  *   return value * 2
@@ -180,8 +179,8 @@ export interface Effect<out A, out E = never, out R = never> extends Pipeable, Y
  * const effect1 = Effect.succeed(10)
  * const effect2 = Effect.succeed(20)
  *
- * const program = Effect.gen(function* () {
- *   const a = yield* effect1  // yields the Effect which implements Yieldable
+ * const program = Effect.gen(function*() {
+ *   const a = yield* effect1 // yields the Effect which implements Yieldable
  *   const b = yield* effect2
  *   return a + b
  * })
@@ -218,7 +217,7 @@ export abstract class YieldableClass<A, E = never, R = never> implements Yieldab
  * @since 2.0.0
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import type { Effect } from "effect"
  *
  * // EffectUnify is used internally for type unification
  * // It enables automatic unification of Effect types in unions
@@ -237,7 +236,7 @@ export interface EffectUnify<A extends { [Unify.typeSymbol]?: any }> {
  * @since 2.0.0
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import type { Effect } from "effect"
  *
  * // EffectUnifyIgnore is used internally to control type unification
  * // It prevents certain types from being unified with Effect types
@@ -252,7 +251,7 @@ export interface EffectUnifyIgnore {
  * @since 2.0.0
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import type { Effect } from "effect"
  *
  * // EffectTypeLambda is used for higher-kinded type operations
  * // It defines the type structure for Effect in higher-kinded contexts
@@ -278,7 +277,7 @@ export interface Variance<A, E, R> {
  * @category models
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import type { Effect } from "effect"
  *
  * // Extract the success type from an Effect
  * declare const myEffect: Effect.Effect<string, Error, never>
@@ -293,7 +292,7 @@ export type Success<T> = T extends Effect<infer _A, infer _E, infer _R> ? _A
  * @category models
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import type { Effect } from "effect"
  *
  * // Extract the error type from an Effect
  * declare const myEffect: Effect.Effect<string, Error, never>
@@ -308,7 +307,7 @@ export type Error<T> = T extends Effect<infer _A, infer _E, infer _R> ? _E
  * @category models
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import type { Effect } from "effect"
  *
  * // Extract the context/services type from an Effect
  * declare const myEffect: Effect.Effect<string, Error, { database: string }>
@@ -334,10 +333,10 @@ export declare namespace Yieldable {
    * @category models
    * @example
    * ```ts
-   * import { Effect } from "effect"
+   * import type { Effect } from "effect"
    *
    * // Extract the success type from a Yieldable
-   * type SuccessType = Effect.Yieldable.Success<Effect.Effect<string>>  // string
+   * type SuccessType = Effect.Yieldable.Success<Effect.Effect<string>> // string
    * ```
    */
   export type Success<T> = T extends Yieldable<infer _Self, infer _A, infer _E, infer _R> ? _A
@@ -368,7 +367,7 @@ export const isEffect = (u: unknown): u is Effect<any, any, any> => typeof u ===
  * import { Effect } from "effect"
  *
  * // Effects are iterable and work with generator functions
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const effect: Effect.Effect<number, never, never> = Effect.succeed(42)
  *
  *   // The effect's iterator is used internally by yield*
@@ -440,7 +439,7 @@ export declare namespace All {
    * @category models
    * @example
    * ```ts
-   * import { Effect } from "effect"
+   * import type { Effect } from "effect"
    *
    * // ReturnIterable computes the return type for Effect.all with iterables
    * type EffectArray = Array<Effect.Effect<number, string, never>>
@@ -459,10 +458,13 @@ export declare namespace All {
    * @category models
    * @example
    * ```ts
-   * import { Effect } from "effect"
+   * import type { Effect } from "effect"
    *
    * // ReturnTuple computes the return type for Effect.all with tuples
-   * type EffectTuple = [Effect.Effect<string, Error, never>, Effect.Effect<number, Error, never>]
+   * type EffectTuple = [
+   *   Effect.Effect<string, Error, never>,
+   *   Effect.Effect<number, Error, never>
+   * ]
    * type Result = Effect.All.ReturnTuple<EffectTuple, false>
    * // Result: Effect<[string, number], Error, never>
    * ```
@@ -495,10 +497,13 @@ export declare namespace All {
    * @category models
    * @example
    * ```ts
-   * import { Effect } from "effect"
+   * import type { Effect } from "effect"
    *
    * // ReturnObject computes the return type for Effect.all with objects
-   * type EffectRecord = { a: Effect.Effect<string, Error, never>, b: Effect.Effect<number, Error, never> }
+   * type EffectRecord = {
+   *   a: Effect.Effect<string, Error, never>
+   *   b: Effect.Effect<number, Error, never>
+   * }
    * type Result = Effect.All.ReturnObject<EffectRecord, false>
    * // Result: Effect<{ a: string, b: number }, Error, never>
    * ```
@@ -527,12 +532,12 @@ export declare namespace All {
    * @category models
    * @example
    * ```ts
-   * import { Effect } from "effect"
+   * import type { Effect } from "effect"
    *
    * // IsDiscard checks if options have discard flag set to true
    * type DiscardOptions = { discard: true }
    * type NoDiscardOptions = { discard: false }
-   * type WithDiscard = Effect.All.IsDiscard<DiscardOptions>     // true
+   * type WithDiscard = Effect.All.IsDiscard<DiscardOptions> // true
    * type WithoutDiscard = Effect.All.IsDiscard<NoDiscardOptions> // false
    * ```
    */
@@ -546,7 +551,7 @@ export declare namespace All {
    * @category models
    * @example
    * ```ts
-   * import { Effect } from "effect"
+   * import type { Effect } from "effect"
    *
    * // Return determines the result type based on input and options
    * type EffectArray = Array<Effect.Effect<number, string, never>>
@@ -616,8 +621,7 @@ export declare namespace All {
  *
  * @example Combining Effects in Tuples
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const tupleOfEffects = [
  *   Effect.succeed(42).pipe(Effect.tap(Console.log)),
@@ -637,8 +641,7 @@ export declare namespace All {
  *
  * @example Combining Effects in Iterables
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const iterableOfEffects: Iterable<Effect.Effect<number>> = [1, 2, 3].map(
  *   (n) => Effect.succeed(n).pipe(Effect.tap(Console.log))
@@ -658,8 +661,7 @@ export declare namespace All {
  *
  * @example Combining Effects in Structs
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const structOfEffects = {
  *   a: Effect.succeed(42).pipe(Effect.tap(Console.log)),
@@ -679,8 +681,7 @@ export declare namespace All {
  *
  * @example Combining Effects in Records
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const recordOfEffects: Record<string, Effect.Effect<number>> = {
  *   key1: Effect.succeed(1).pipe(Effect.tap(Console.log)),
@@ -700,8 +701,7 @@ export declare namespace All {
  *
  * @example Short-Circuiting Behavior
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const program = Effect.all([
  *   Effect.succeed("Task1").pipe(Effect.tap(Console.log)),
@@ -768,8 +768,10 @@ export const all: <
  * import { Effect } from "effect"
  * import { Console } from "effect"
  *
- * const result = Effect.forEach([1, 2, 3, 4, 5], (n, index) =>
- *   Console.log(`Currently at index ${index}`).pipe(Effect.as(n * 2))
+ * const result = Effect.forEach(
+ *   [1, 2, 3, 4, 5],
+ *   (n, index) =>
+ *     Console.log(`Currently at index ${index}`).pipe(Effect.as(n * 2))
  * )
  *
  * Effect.runPromise(result).then(console.log)
@@ -1289,7 +1291,7 @@ export const never: Effect<never> = internal.never
  *
  * const fetchDiscountRate = Effect.promise(() => Promise.resolve(5))
  *
- * export const program = Effect.gen(function* () {
+ * export const program = Effect.gen(function*() {
  *   const transactionAmount = yield* fetchTransactionAmount
  *   const discountRate = yield* fetchDiscountRate
  *   const discountedAmount = yield* applyDiscount(
@@ -1512,7 +1514,7 @@ export {
    *   })
    *
    * // Success case
-   * Effect.runPromise(parseJSON('{"name": "Alice"}')).then(console.log)
+   * Effect.runPromise(parseJSON("{\"name\": \"Alice\"}")).then(console.log)
    * // Output: { name: "Alice" }
    *
    * // Failure case
@@ -1547,7 +1549,7 @@ export {
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   console.log("Before yield")
  *   yield* Effect.yieldNow
  *   console.log("After yield")
@@ -1568,7 +1570,7 @@ export const yieldNow: Effect<void> = internal.yieldNow
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   console.log("High priority task")
  *   yield* Effect.yieldNowWith(10) // Higher priority
  *   console.log("Continued after yield")
@@ -1613,8 +1615,7 @@ export const withFiber: <A, E = never, R = never>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Result } from "effect"
+ * import { Effect, Result } from "effect"
  *
  * const success = Result.succeed(42)
  * const failure = Result.fail("Something went wrong")
@@ -1637,8 +1638,7 @@ export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect<A, E> = i
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
+ * import { Effect, Option } from "effect"
  *
  * const some = Option.some(42)
  * const none = Option.none()
@@ -1676,7 +1676,7 @@ export const fromNullishOr: <A>(value: A) => Effect<NonNullable<A>, Cause.NoSuch
  * import * as Option from "effect/Option"
  *
  * // Option is yieldable in Effect
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const value = yield* Effect.fromYieldable(Option.some(42))
  *   return value * 2
  * })
@@ -1728,7 +1728,7 @@ export const fromYieldable: <Self extends Yieldable.Any, A, E, R>(
  *
  * @example
  * ```ts
- * import { pipe, Effect } from "effect"
+ * import { Effect, pipe } from "effect"
  *
  * // Function to apply a discount safely to a transaction amount
  * const applyDiscount = (
@@ -1810,7 +1810,7 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  *
  * @example Applying a Discount Based on Fetched Amount
  * ```ts
- * import { pipe, Effect } from "effect"
+ * import { Effect, pipe } from "effect"
  *
  * // Function to apply a discount safely to a transaction amount
  * const applyDiscount = (
@@ -1994,7 +1994,6 @@ export const tap: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Result } from "effect"
  *
  * const success = Effect.succeed(42)
  * const failure = Effect.fail("Something went wrong")
@@ -2055,7 +2054,7 @@ export const option: <A, E, R>(self: Effect<A, E, R>) => Effect<Option<A>, never
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
+ * import { Effect } from "effect"
  *
  * const success = Effect.succeed(42)
  * const failure = Effect.fail("Something went wrong")
@@ -2104,7 +2103,7 @@ export const exit: <A, E, R>(
  *
  * @example Adding a Service Charge
  * ```ts
- * import { pipe, Effect } from "effect"
+ * import { Effect, pipe } from "effect"
  *
  * const addServiceCharge = (amount: number) => amount + 1
  *
@@ -2140,7 +2139,7 @@ export const map: {
  * @example
  * ```ts
  * // Title: Replacing a Value
- * import { pipe, Effect } from "effect"
+ * import { Effect, pipe } from "effect"
  *
  * // Replaces the value 5 with the constant "new value"
  * const program = pipe(Effect.succeed(5), Effect.as("new value"))
@@ -2165,7 +2164,6 @@ export const as: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import * as Option from "effect/Option"
  *
  * const program = Effect.asSome(Effect.succeed(42))
  *
@@ -2434,8 +2432,10 @@ export {
  *
  * declare const task: Effect.Effect<string, NetworkError | ValidationError>
  *
- * const program = Effect.catchTag(task, "NetworkError", (error) =>
- *   Effect.succeed(`Recovered from network error: ${error.message}`)
+ * const program = Effect.catchTag(
+ *   task,
+ *   "NetworkError",
+ *   (error) => Effect.succeed(`Recovered from network error: ${error.message}`)
  * )
  * ```
  *
@@ -2472,8 +2472,7 @@ export const catchTag: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Data } from "effect"
+ * import { Data, Effect } from "effect"
  *
  * // Define tagged error types
  * class ValidationError extends Data.TaggedError("ValidationError")<{
@@ -2489,7 +2488,8 @@ export const catchTag: {
  *
  * // Handle multiple error types at once
  * const handled = Effect.catchTags(program, {
- *   ValidationError: (error) => Effect.succeed(`Validation failed: ${error.message}`),
+ *   ValidationError: (error) =>
+ *     Effect.succeed(`Validation failed: ${error.message}`),
  *   NetworkError: (error) => Effect.succeed(`Network error: ${error.statusCode}`)
  * })
  * ```
@@ -2566,8 +2566,7 @@ export const catchTags: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Console } from "effect"
+ * import { Cause, Console, Effect } from "effect"
  *
  * // An effect that might fail in different ways
  * const program = Effect.die("Something went wrong")
@@ -2621,8 +2620,7 @@ export const catchCause: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * // An effect that might throw an unexpected error (defect)
  * const program = Effect.sync(() => {
@@ -2669,7 +2667,8 @@ export const catchDefect: {
  * const program = Effect.fail(42)
  *
  * // Recover only from specific error values
- * const recovered = Effect.catchFilter(program,
+ * const recovered = Effect.catchFilter(
+ *   program,
  *   (error) => error === 42,
  *   (error) => Effect.succeed(`Recovered from error: ${error}`)
  * )
@@ -2699,8 +2698,7 @@ export const catchFilter: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Console } from "effect"
+ * import { Cause, Console, Effect } from "effect"
  *
  * const httpRequest = Effect.fail("Network Error")
  *
@@ -2708,10 +2706,11 @@ export const catchFilter: {
  * const program = Effect.catchCauseFilter(
  *   httpRequest,
  *   (cause) => Cause.hasFail(cause),
- *   (failure, cause) => Effect.gen(function* () {
- *     yield* Console.log(`Caught network error: ${Cause.squash(cause)}`)
- *     return "Fallback response"
- *   })
+ *   (failure, cause) =>
+ *     Effect.gen(function*() {
+ *       yield* Console.log(`Caught network error: ${Cause.squash(cause)}`)
+ *       return "Fallback response"
+ *     })
  * )
  *
  * Effect.runPromise(program).then(console.log)
@@ -2864,15 +2863,15 @@ export const orDie: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R> = in
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * // Simulate a task that fails with an error
  * const task: Effect.Effect<number, string> = Effect.fail("NetworkError")
  *
  * // Use tapError to log the error message when the task fails
- * const tapping = Effect.tapError(task, (error) =>
- *   Console.log(`expected error: ${error}`)
+ * const tapping = Effect.tapError(
+ *   task,
+ *   (error) => Console.log(`expected error: ${error}`)
  * )
  *
  * Effect.runFork(tapping)
@@ -2904,13 +2903,13 @@ export const tapError: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Console } from "effect"
+ * import { Cause, Console, Effect } from "effect"
  *
  * const task = Effect.fail("Something went wrong")
  *
- * const program = Effect.tapCause(task, (cause) =>
- *   Console.log(`Logging cause: ${Cause.squash(cause)}`)
+ * const program = Effect.tapCause(
+ *   task,
+ *   (cause) => Console.log(`Logging cause: ${Cause.squash(cause)}`)
  * )
  *
  * Effect.runPromiseExit(program).then(console.log)
@@ -2940,8 +2939,7 @@ export const tapCause: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Console } from "effect"
+ * import { Cause, Console, Effect } from "effect"
  *
  * const task = Effect.fail("Network timeout")
  *
@@ -2949,8 +2947,7 @@ export const tapCause: {
  * const program = Effect.tapCauseFilter(
  *   task,
  *   (cause) => Cause.hasFail(cause),
- *   (_, cause) =>
- *     Console.log(`Logging failure cause: ${Cause.squash(cause)}`)
+ *   (_, cause) => Console.log(`Logging failure cause: ${Cause.squash(cause)}`)
  * )
  *
  * Effect.runPromiseExit(program).then(console.log)
@@ -2991,15 +2988,15 @@ export const tapCauseFilter: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * // Simulate a task that fails with a recoverable error
  * const task1: Effect.Effect<number, string> = Effect.fail("NetworkError")
  *
  * // tapDefect won't log anything because NetworkError is not a defect
- * const tapping1 = Effect.tapDefect(task1, (cause) =>
- *   Console.log(`defect: ${cause}`)
+ * const tapping1 = Effect.tapDefect(
+ *   task1,
+ *   (cause) => Console.log(`defect: ${cause}`)
  * )
  *
  * Effect.runFork(tapping1)
@@ -3011,8 +3008,9 @@ export const tapCauseFilter: {
  * )
  *
  * // Log the defect using tapDefect
- * const tapping2 = Effect.tapDefect(task2, (cause) =>
- *   Console.log(`defect: ${cause}`)
+ * const tapping2 = Effect.tapDefect(
+ *   task2,
+ *   (cause) => Console.log(`defect: ${cause}`)
  * )
  *
  * Effect.runFork(tapping2)
@@ -3062,7 +3060,7 @@ export const eventually: <A, E, R>(self: Effect<A, E, R>) => Effect<A, never, R>
  * @category Error handling
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import type { Effect } from "effect"
  *
  * // Retry namespace contains types for retry operations
  * declare const effect: Effect.Effect<string, Error, never>
@@ -3076,7 +3074,7 @@ export declare namespace Retry {
    * @category Error handling
    * @example
    * ```ts
-   * import { Effect } from "effect"
+   * import type { Effect } from "effect"
    *
    * // Return type for retry operations with specific options
    * declare const options: Effect.Retry.Options<Error>
@@ -3118,8 +3116,7 @@ export declare namespace Retry {
    * @category Error handling
    * @example
    * ```ts
-   * import { Effect } from "effect"
-   * import { Schedule } from "effect"
+   * import type { Effect, Schedule } from "effect"
    *
    * // Options for configuring retry behavior
    * const retryOptions: Effect.Retry.Options<Error> = {
@@ -3160,8 +3157,7 @@ export declare namespace Retry {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
+ * import { Effect, Schedule } from "effect"
  *
  * let attempt = 0
  * const task = Effect.callback<string, Error>((resume) => {
@@ -3218,12 +3214,10 @@ export const retry: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * let attempt = 0
- * const networkRequest = Effect.gen(function* () {
+ * const networkRequest = Effect.gen(function*() {
  *   attempt++
  *   yield* Console.log(`Network attempt ${attempt}`)
  *   if (attempt < 3) {
@@ -3236,10 +3230,11 @@ export const retry: {
  * const program = Effect.retryOrElse(
  *   networkRequest,
  *   Schedule.recurs(2),
- *   (error, retryCount) => Effect.gen(function* () {
- *     yield* Console.log(`All ${retryCount} retries failed, using cache`)
- *     return "Cached data"
- *   })
+ *   (error, retryCount) =>
+ *     Effect.gen(function*() {
+ *       yield* Console.log(`All ${retryCount} retries failed, using cache`)
+ *       return "Cached data"
+ *     })
  * )
  *
  * Effect.runPromise(program).then(console.log)
@@ -3280,12 +3275,12 @@ export const retryOrElse: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
+ * import { Cause, Effect } from "effect"
  *
  * const task = Effect.fail("Something went wrong")
  *
  * // Sandbox exposes the full cause as the error type
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const result = yield* Effect.flip(Effect.sandbox(task))
  *   return `Caught cause: ${Cause.squash(result)}`
  * })
@@ -3429,7 +3424,7 @@ export const orElseSucceed: {
  * ```ts
  * import { Effect } from "effect"
  *
- * const task = Effect.gen(function* () {
+ * const task = Effect.gen(function*() {
  *   console.log("Start processing...")
  *   yield* Effect.sleep("2 seconds") // Simulates a delay in processing
  *   console.log("Processing complete.")
@@ -3490,7 +3485,7 @@ export const timeout: {
  * ```ts
  * import { Effect } from "effect"
  *
- * const task = Effect.gen(function* () {
+ * const task = Effect.gen(function*() {
  *   console.log("Start processing...")
  *   yield* Effect.sleep("2 seconds") // Simulates a delay in processing
  *   console.log("Processing complete.")
@@ -3534,10 +3529,9 @@ export const timeoutOption: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
- * const slowQuery = Effect.gen(function* () {
+ * const slowQuery = Effect.gen(function*() {
  *   yield* Console.log("Starting database query...")
  *   yield* Effect.sleep("5 seconds")
  *   return "Database result"
@@ -3546,10 +3540,11 @@ export const timeoutOption: {
  * // Use cached data as fallback when timeout is reached
  * const program = Effect.timeoutOrElse(slowQuery, {
  *   duration: "2 seconds",
- *   onTimeout: () => Effect.gen(function* () {
- *     yield* Console.log("Query timed out, using cached data")
- *     return "Cached result"
- *   })
+ *   onTimeout: () =>
+ *     Effect.gen(function*() {
+ *       yield* Console.log("Query timed out, using cached data")
+ *       return "Cached result"
+ *     })
  * })
  *
  * Effect.runPromise(program).then(console.log)
@@ -3582,8 +3577,7 @@ export const timeoutOrElse: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const program = Effect.delay(
  *   Console.log("Delayed message"),
@@ -3613,10 +3607,9 @@ export const delay: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Console.log("Start")
  *   yield* Effect.sleep("2 seconds")
  *   yield* Console.log("End")
@@ -3681,8 +3674,7 @@ export const timed: <A, E, R>(self: Effect<A, E, R>) => Effect<[duration: Durati
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Duration } from "effect"
+ * import { Duration, Effect } from "effect"
  *
  * // Multiple effects with different delays
  * const effect1 = Effect.delay(Effect.succeed("Fast"), Duration.millis(100))
@@ -3720,8 +3712,7 @@ export const raceAll: <Eff extends Effect<any, any, any>>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Duration } from "effect"
+ * import { Duration, Effect } from "effect"
  *
  * // Multiple effects with different delays and potential failures
  * const effect1 = Effect.delay(Effect.succeed("First"), Duration.millis(200))
@@ -3795,8 +3786,7 @@ export const raceFirst: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Filter } from "effect"
+ * import { Effect, Filter } from "effect"
  *
  * const isEven = (n: number) => Effect.succeed(n % 2 === 0 ? n : Filter.fail(n))
  *
@@ -3827,8 +3817,7 @@ export const filter: <A, B, X, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Filter } from "effect"
+ * import { Effect, Filter } from "effect"
  *
  * // An effect that produces a number
  * const program = Effect.succeed(5)
@@ -3869,8 +3858,7 @@ export const filterOrElse: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Filter } from "effect"
+ * import { Effect, Filter } from "effect"
  *
  * // An effect that produces a number
  * const program = Effect.succeed(5)
@@ -3929,9 +3917,7 @@ export const filterOrFail: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import * as Option from "effect/Option"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const shouldLog = true
  *
@@ -4051,7 +4037,7 @@ export const match: {
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const result = yield* Effect.matchEager(Effect.succeed(42), {
  *     onFailure: (error) => `Failed: ${error}`,
  *     onSuccess: (value) => `Success: ${value}`
@@ -4096,7 +4082,7 @@ export const matchEager: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
+ * import { Cause, Effect } from "effect"
  *
  * const task = Effect.fail("Something went wrong")
  *
@@ -4206,15 +4192,14 @@ export const matchCauseEffectEager: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
+ * import { Cause, Console, Effect } from "effect"
  * import * as Filter from "effect/Filter"
- * import { Console } from "effect"
  *
  * const task = Effect.fail(new Error("Task failed"))
  *
  * const program = Effect.matchCauseEffect(task, {
  *   onFailure: (cause) =>
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       if (Cause.hasFail(cause)) {
  *         const error = Cause.filterError(cause)
  *         if (Filter.isPass(error)) {
@@ -4227,7 +4212,7 @@ export const matchCauseEffectEager: {
  *       }
  *     }),
  *   onSuccess: (value) =>
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Console.log(`Success: ${value}`)
  *       return `processed ${value}`
  *     })
@@ -4399,8 +4384,7 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  *
  * @example
  * ```ts
- * import { Console, Effect, ServiceMap } from "effect"
- * import { Option } from "effect"
+ * import { Console, Effect, Option, ServiceMap } from "effect"
  *
  * const Logger = ServiceMap.Service<{
  *   log: (msg: string) => void
@@ -4409,7 +4393,7 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  *   query: (sql: string) => string
  * }>("Database")
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const allServices = yield* Effect.services()
  *
  *   // Check if specific services are available
@@ -4440,8 +4424,7 @@ export const services: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = int
  *
  * @example
  * ```ts
- * import { Console, Effect, ServiceMap } from "effect"
- * import { Option } from "effect"
+ * import { Console, Effect, Option, ServiceMap } from "effect"
  *
  * const Logger = ServiceMap.Service<{
  *   log: (msg: string) => void
@@ -4455,13 +4438,13 @@ export const services: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = int
  *   const hasCache = Option.isSome(cacheOption)
  *
  *   if (hasCache) {
- *     return Effect.gen(function* () {
+ *     return Effect.gen(function*() {
  *       const cache = yield* Effect.service(Cache)
  *       yield* Console.log("Using cached data")
  *       return cache.get("user:123") || "default"
  *     })
  *   } else {
- *     return Effect.gen(function* () {
+ *     return Effect.gen(function*() {
  *       yield* Console.log("No cache available, using fallback")
  *       return "fallback data"
  *     })
@@ -4497,7 +4480,7 @@ export const servicesWith: <R, A, E, R2>(
  *   query: (sql: string) => Effect.succeed(`Result for: ${sql}`)
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const db = yield* Database
  *   return yield* db.query("SELECT * FROM users")
  * })
@@ -4573,7 +4556,7 @@ export const provide: {
  *   .pipe(ServiceMap.add(Database, { query: () => "result" }))
  *
  * // An effect that requires both services
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const logger = yield* Effect.service(Logger)
  *   const db = yield* Effect.service(Database)
  *   logger.log("Querying database")
@@ -4609,7 +4592,7 @@ export const provideServices: {
  *
  * const Database = ServiceMap.Service<Database>("Database")
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const db = yield* Effect.service(Database)
  *   return yield* db.query("SELECT * FROM users")
  * })
@@ -4632,8 +4615,7 @@ export const service: <I, S>(service: ServiceMap.Service<I, S>) => Effect<S, nev
  *
  * @example
  * ```ts
- * import { Effect, ServiceMap } from "effect"
- * import { Option } from "effect"
+ * import { Effect, Option, ServiceMap } from "effect"
  *
  * // Define a service key
  * const Logger = ServiceMap.Service<{
@@ -4641,7 +4623,7 @@ export const service: <I, S>(service: ServiceMap.Service<I, S>) => Effect<S, nev
  * }>("Logger")
  *
  * // Use serviceOption to optionally access the logger
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const maybeLogger = yield* Effect.serviceOption(Logger)
  *
  *   if (Option.isSome(maybeLogger)) {
@@ -4717,7 +4699,7 @@ export const updateServices: {
  * // Define a counter service
  * const Counter = ServiceMap.Service<{ count: number }>("Counter")
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const updatedCounter = yield* Effect.service(Counter)
  *   yield* Console.log(`Updated count: ${updatedCounter.count}`)
  *   return updatedCounter.count
@@ -4765,10 +4747,11 @@ export const updateService: {
  *
  * // Define a service for configuration
  * const Config = ServiceMap.Service<{
- *   apiUrl: string; timeout: number
+ *   apiUrl: string
+ *   timeout: number
  * }>("Config")
  *
- * const fetchData = Effect.gen(function* () {
+ * const fetchData = Effect.gen(function*() {
  *   const config = yield* Effect.service(Config)
  *   yield* Console.log(`Fetching from: ${config.apiUrl}`)
  *   yield* Console.log(`Timeout: ${config.timeout}ms`)
@@ -4830,7 +4813,7 @@ export const provideService: {
  * const Database = ServiceMap.Service<DatabaseConnection>("Database")
  *
  * // Effect that creates a database connection
- * const createConnection = Effect.gen(function* () {
+ * const createConnection = Effect.gen(function*() {
  *   yield* Console.log("Establishing database connection...")
  *   yield* Effect.sleep("100 millis") // Simulate connection time
  *   yield* Console.log("Database connected!")
@@ -4839,13 +4822,17 @@ export const provideService: {
  *   }
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const db = yield* Effect.service(Database)
  *   return yield* db.query("SELECT * FROM users")
  * })
  *
  * // Provide the service through an effect
- * const withDatabase = Effect.provideServiceEffect(program, Database, createConnection)
+ * const withDatabase = Effect.provideServiceEffect(
+ *   program,
+ *   Database,
+ *   createConnection
+ * )
  *
  * Effect.runPromise(withDatabase).then(console.log)
  * // Output:
@@ -4880,15 +4867,16 @@ export const provideServiceEffect: {
  * ```ts
  * import { Console, Effect } from "effect"
  *
- * const task = (id: number) => Effect.gen(function* () {
- *   yield* Console.log(`Task ${id} starting`)
- *   yield* Effect.sleep("100 millis")
- *   yield* Console.log(`Task ${id} completed`)
- *   return id
- * })
+ * const task = (id: number) =>
+ *   Effect.gen(function*() {
+ *     yield* Console.log(`Task ${id} starting`)
+ *     yield* Effect.sleep("100 millis")
+ *     yield* Console.log(`Task ${id} completed`)
+ *     return id
+ *   })
  *
  * // Run tasks with limited concurrency (max 2 at a time)
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const tasks = [1, 2, 3, 4, 5].map(task)
  *   return yield* Effect.all(tasks, { concurrency: 2 })
  * }).pipe(
@@ -4922,9 +4910,9 @@ export const withConcurrency: {
  *
  * @example
  * ```ts
- * import { Console, Effect, Scope } from "effect"
+ * import { Console, Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const currentScope = yield* Effect.scope
  *   yield* Console.log("Got scope for resource management")
  *
@@ -4957,8 +4945,7 @@ export const scope: Effect<Scope, never, Scope> = internal.scope
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const resource = Effect.acquireRelease(
  *   Console.log("Acquiring resource").pipe(Effect.as("resource")),
@@ -4966,7 +4953,7 @@ export const scope: Effect<Scope, never, Scope> = internal.scope
  * )
  *
  * const program = Effect.scoped(
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const res = yield* resource
  *     yield* Console.log(`Using ${res}`)
  *     return res
@@ -4991,12 +4978,10 @@ export const scoped: <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Scope } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Scope } from "effect"
  *
  * const program = Effect.scopedWith((scope) =>
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     yield* Console.log("Inside scoped context")
  *
  *     // Manually add a finalizer to the scope
@@ -5045,8 +5030,7 @@ export const scopedWith: <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Exit } from "effect"
  *
  * // Simulate a resource that needs cleanup
  * interface FileHandle {
@@ -5055,21 +5039,25 @@ export const scopedWith: <A, E, R>(
  * }
  *
  * // Acquire a file handle
- * const acquire = Effect.gen(function* () {
+ * const acquire = Effect.gen(function*() {
  *   yield* Console.log("Opening file")
  *   return { path: "/tmp/file.txt", content: "file content" }
  * })
  *
  * // Release the file handle
  * const release = (handle: FileHandle, exit: Exit.Exit<unknown, unknown>) =>
- *   Console.log(`Closing file ${handle.path} with exit: ${Exit.isSuccess(exit) ? "success" : "failure"}`)
+ *   Console.log(
+ *     `Closing file ${handle.path} with exit: ${
+ *       Exit.isSuccess(exit) ? "success" : "failure"
+ *     }`
+ *   )
  *
  * // Create a scoped resource
  * const resource = Effect.acquireRelease(acquire, release)
  *
  * // Use the resource within a scope
  * const program = Effect.scoped(
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const handle = yield* resource
  *     yield* Console.log(`Using file: ${handle.path}`)
  *     return handle.content
@@ -5110,8 +5098,7 @@ export const acquireRelease: <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Exit } from "effect"
  *
  * interface Database {
  *   readonly connection: string
@@ -5120,7 +5107,7 @@ export const acquireRelease: <A, E, R>(
  *
  * const program = Effect.acquireUseRelease(
  *   // Acquire - connect to database
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     yield* Console.log("Connecting to database...")
  *     return {
  *       connection: "db://localhost:5432",
@@ -5128,20 +5115,22 @@ export const acquireRelease: <A, E, R>(
  *     }
  *   }),
  *   // Use - perform database operations
- *   (db) => Effect.gen(function* () {
- *     yield* Console.log(`Connected to ${db.connection}`)
- *     const result = yield* db.query("SELECT * FROM users")
- *     yield* Console.log(`Query result: ${result}`)
- *     return result
- *   }),
+ *   (db) =>
+ *     Effect.gen(function*() {
+ *       yield* Console.log(`Connected to ${db.connection}`)
+ *       const result = yield* db.query("SELECT * FROM users")
+ *       yield* Console.log(`Query result: ${result}`)
+ *       return result
+ *     }),
  *   // Release - close database connection
- *   (db, exit) => Effect.gen(function* () {
- *     if (Exit.isSuccess(exit)) {
- *       yield* Console.log(`Closing connection to ${db.connection} (success)`)
- *     } else {
- *       yield* Console.log(`Closing connection to ${db.connection} (failure)`)
- *     }
- *   })
+ *   (db, exit) =>
+ *     Effect.gen(function*() {
+ *       if (Exit.isSuccess(exit)) {
+ *         yield* Console.log(`Closing connection to ${db.connection} (success)`)
+ *       } else {
+ *         yield* Console.log(`Closing connection to ${db.connection} (failure)`)
+ *       }
+ *     })
  * )
  *
  * Effect.runPromise(program)
@@ -5172,11 +5161,10 @@ export const acquireUseRelease: <Resource, E, R, A, E2, R2, E3, R3>(
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Exit } from "effect"
  *
  * const program = Effect.scoped(
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     // Add a finalizer that runs when the scope closes
  *     yield* Effect.addFinalizer((exit) =>
  *       Console.log(
@@ -5220,10 +5208,9 @@ export const addFinalizer: <R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
- * const task = Effect.gen(function* () {
+ * const task = Effect.gen(function*() {
  *   yield* Console.log("Task started")
  *   yield* Effect.sleep("1 second")
  *   yield* Console.log("Task completed")
@@ -5263,13 +5250,13 @@ export const ensuring: {
  *
  * @example
  * ```ts
- * import { Effect, Cause } from "effect"
- * import { Console } from "effect"
+ * import { Cause, Console, Effect } from "effect"
  *
  * const task = Effect.fail(new Error("Something went wrong"))
  *
- * const program = Effect.onError(task, (cause) =>
- *   Console.log(`Cleanup on error: ${Cause.squash(cause)}`)
+ * const program = Effect.onError(
+ *   task,
+ *   (cause) => Console.log(`Cleanup on error: ${Cause.squash(cause)}`)
  * )
  *
  * Effect.runPromise(program).catch(console.error)
@@ -5316,8 +5303,7 @@ export const onErrorFilter: {
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Exit } from "effect"
  *
  * const task = Effect.succeed(42)
  *
@@ -5326,8 +5312,7 @@ export const onErrorFilter: {
  *     Exit.isSuccess(exit)
  *       ? `Task succeeded with: ${exit.value}`
  *       : `Task failed: ${Exit.isFailure(exit) ? exit.cause : "interrupted"}`
- *   )
- * )
+ *   ))
  *
  * Effect.runPromise(program).then(console.log)
  * // Output:
@@ -5407,8 +5392,7 @@ export const onExitFilter: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * let i = 1
  * const expensiveTask = Effect.promise<string>(() => {
@@ -5420,7 +5404,7 @@ export const onExitFilter: {
  *   })
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   console.log("non-cached version:")
  *   yield* expensiveTask.pipe(Effect.andThen(Console.log))
  *   yield* expensiveTask.pipe(Effect.andThen(Console.log))
@@ -5482,8 +5466,7 @@ export const cached: <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * let i = 1
  * const expensiveTask = Effect.promise<string>(() => {
@@ -5495,7 +5478,7 @@ export const cached: <A, E, R>(self: Effect<A, E, R>) => Effect<Effect<A, E, R>>
  *   })
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const cached = yield* Effect.cachedWithTTL(expensiveTask, "150 millis")
  *   yield* cached.pipe(Effect.andThen(Console.log))
  *   yield* cached.pipe(Effect.andThen(Console.log))
@@ -5554,8 +5537,7 @@ export const cachedWithTTL: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * let i = 1
  * const expensiveTask = Effect.promise<string>(() => {
@@ -5567,7 +5549,7 @@ export const cachedWithTTL: {
  *   })
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const [cached, invalidate] = yield* Effect.cachedInvalidateWithTTL(
  *     expensiveTask,
  *     "1 hour"
@@ -5606,7 +5588,7 @@ export const cachedInvalidateWithTTL: {
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.interrupt
  *   yield* Effect.succeed("This won't execute")
  * })
@@ -5648,13 +5630,12 @@ export const interruptible: <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Fiber } from "effect"
  *
  * const task = Effect.forever(Effect.succeed("working..."))
  *
- * const program = Effect.onInterrupt(task,
+ * const program = Effect.onInterrupt(
+ *   task,
  *   Console.log("Task was interrupted, cleaning up...")
  * )
  *
@@ -5682,11 +5663,9 @@ export const onInterrupt: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Fiber } from "effect"
  *
- * const criticalTask = Effect.gen(function* () {
+ * const criticalTask = Effect.gen(function*() {
  *   yield* Console.log("Starting critical section...")
  *   yield* Effect.sleep("2 seconds")
  *   yield* Console.log("Critical section completed")
@@ -5712,17 +5691,16 @@ export const uninterruptible: <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const program = Effect.uninterruptibleMask((restore) =>
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     yield* Console.log("Uninterruptible phase...")
  *     yield* Effect.sleep("1 second")
  *
  *     // Restore interruptibility for this part
  *     yield* restore(
- *       Effect.gen(function* () {
+ *       Effect.gen(function*() {
  *         yield* Console.log("Interruptible phase...")
  *         yield* Effect.sleep("2 seconds")
  *       })
@@ -5749,17 +5727,16 @@ export const uninterruptibleMask: <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const program = Effect.interruptibleMask((restore) =>
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     yield* Console.log("Interruptible phase...")
  *     yield* Effect.sleep("1 second")
  *
  *     // Make this part uninterruptible
  *     yield* restore(
- *       Effect.gen(function* () {
+ *       Effect.gen(function*() {
  *         yield* Console.log("Uninterruptible phase...")
  *         yield* Effect.sleep("2 seconds")
  *       })
@@ -5791,7 +5768,7 @@ export const interruptibleMask: <A, E, R>(
  * import { Effect } from "effect"
  *
  * // Create and use a semaphore for controlling concurrent access
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* Effect.makeSemaphore(2)
  *
  *   return yield* semaphore.withPermits(1)(
@@ -5875,7 +5852,7 @@ export interface Semaphore {
  *
  * const task = (id: number) =>
  *   semaphore.withPermits(1)(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       yield* Effect.log(`Task ${id} started`)
  *       yield* Effect.sleep("1 second")
  *       yield* Effect.log(`Task ${id} completed`)
@@ -5884,7 +5861,11 @@ export interface Semaphore {
  *
  * // Only 3 tasks can run concurrently
  * const program = Effect.all([
- *   task(1), task(2), task(3), task(4), task(5)
+ *   task(1),
+ *   task(2),
+ *   task(3),
+ *   task(4),
+ *   task(5)
  * ], { concurrency: "unbounded" })
  * ```
  *
@@ -5900,12 +5881,12 @@ export const makeSemaphoreUnsafe: (permits: number) => Semaphore = internal.make
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const semaphore = yield* Effect.makeSemaphore(2)
  *
  *   const task = (id: number) =>
  *     semaphore.withPermits(1)(
- *       Effect.gen(function* () {
+ *       Effect.gen(function*() {
  *         yield* Effect.log(`Task ${id} acquired permit`)
  *         yield* Effect.sleep("1 second")
  *         yield* Effect.log(`Task ${id} releasing permit`)
@@ -5934,7 +5915,7 @@ export const makeSemaphore: (permits: number) => Effect<Semaphore> = internal.ma
  * import { Effect } from "effect"
  *
  * // Create and use a latch for coordination between fibers
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const latch = yield* Effect.makeLatch()
  *
  *   // Wait for the latch to be opened
@@ -5970,13 +5951,13 @@ export interface Latch {
  *
  * const latch = Effect.makeLatchUnsafe(false)
  *
- * const waiter = Effect.gen(function* () {
+ * const waiter = Effect.gen(function*() {
  *   yield* Effect.log("Waiting for latch to open...")
  *   yield* latch.await
  *   yield* Effect.log("Latch opened! Continuing...")
  * })
  *
- * const opener = Effect.gen(function* () {
+ * const opener = Effect.gen(function*() {
  *   yield* Effect.sleep("2 seconds")
  *   yield* Effect.log("Opening latch...")
  *   yield* latch.open
@@ -5997,16 +5978,16 @@ export const makeLatchUnsafe: (open?: boolean | undefined) => Latch = internal.m
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const latch = yield* Effect.makeLatch(false)
  *
- *   const waiter = Effect.gen(function* () {
+ *   const waiter = Effect.gen(function*() {
  *     yield* Effect.log("Waiting for latch to open...")
  *     yield* latch.await
  *     yield* Effect.log("Latch opened! Continuing...")
  *   })
  *
- *   const opener = Effect.gen(function* () {
+ *   const opener = Effect.gen(function*() {
  *     yield* Effect.sleep("2 seconds")
  *     yield* Effect.log("Opening latch...")
  *     yield* latch.open
@@ -6030,7 +6011,7 @@ export const makeLatch: (open?: boolean | undefined) => Effect<Latch> = internal
  * @category repetition / recursion
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import type { Effect } from "effect"
  *
  * // Repeat namespace contains types for repeating operations
  * declare const effect: Effect.Effect<string, Error, never>
@@ -6044,7 +6025,7 @@ export declare namespace Repeat {
    * @category repetition / recursion
    * @example
    * ```ts
-   * import { Effect } from "effect"
+   * import type { Effect } from "effect"
    *
    * // Return type for repeat operations with specific options
    * declare const options: Effect.Repeat.Options<string>
@@ -6086,8 +6067,7 @@ export declare namespace Repeat {
    * @category repetition / recursion
    * @example
    * ```ts
-   * import { Effect } from "effect"
-   * import { Schedule } from "effect"
+   * import type { Effect, Schedule } from "effect"
    *
    * // Options for configuring repeat behavior
    * const repeatOptions: Effect.Repeat.Options<number> = {
@@ -6110,11 +6090,9 @@ export declare namespace Repeat {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Fiber } from "effect"
  *
- * const task = Effect.gen(function* () {
+ * const task = Effect.gen(function*() {
  *   yield* Console.log("Task running...")
  *   yield* Effect.sleep("1 second")
  * })
@@ -6123,7 +6101,7 @@ export declare namespace Repeat {
  * const program = Effect.forever(task)
  *
  * // Run for 5 seconds then interrupt
- * const timedProgram = Effect.gen(function* () {
+ * const timedProgram = Effect.gen(function*() {
  *   const fiber = yield* Effect.forkChild(program)
  *   yield* Effect.sleep("5 seconds")
  *   yield* Fiber.interrupt(fiber)
@@ -6234,13 +6212,11 @@ export const repeat: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  * import * as Option from "effect/Option"
- * import { Console } from "effect"
  *
  * let attempt = 0
- * const task = Effect.gen(function* () {
+ * const task = Effect.gen(function*() {
  *   attempt++
  *   if (attempt <= 2) {
  *     yield* Console.log(`Attempt ${attempt} failed`)
@@ -6255,7 +6231,9 @@ export const repeat: {
  *   Schedule.recurs(3),
  *   (error, attempts) =>
  *     Console.log(
- *       `Final failure: ${error}, after ${Option.getOrElse(attempts, () => 0)} attempts`
+ *       `Final failure: ${error}, after ${
+ *         Option.getOrElse(attempts, () => 0)
+ *       } attempts`
  *     ).pipe(Effect.map(() => 0))
  * )
  * ```
@@ -6353,11 +6331,9 @@ export const replicateEffect: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
- * const task = Effect.gen(function* () {
+ * const task = Effect.gen(function*() {
  *   yield* Console.log("Task executing...")
  *   return Math.random()
  * })
@@ -6412,12 +6388,10 @@ export const schedule: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schedule } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Schedule } from "effect"
  *
  * const task = (input: number) =>
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     yield* Console.log(`Processing: ${input}`)
  *     return input + 1
  *   })
@@ -6459,7 +6433,7 @@ export const scheduleFrom: {
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const currentTracer = yield* Effect.tracer
  *   yield* Effect.log(`Using tracer: ${currentTracer}`)
  *   return "operation completed"
@@ -6478,7 +6452,7 @@ export const tracer: Effect<Tracer> = internal.tracer
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.log("Using tracer")
  *   return "completed"
  * })
@@ -6523,7 +6497,7 @@ export const withTracerEnabled: {
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.log("Doing some work...")
  *   return "result"
  * })
@@ -6568,7 +6542,7 @@ export const annotateSpans: {
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.annotateCurrentSpan("userId", "123")
  *   yield* Effect.annotateCurrentSpan({
  *     operation: "user-lookup",
@@ -6596,7 +6570,7 @@ export const annotateCurrentSpan: {
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const span = yield* Effect.currentSpan
  *   yield* Effect.log(`Current span: ${span}`)
  *   return "done"
@@ -6617,13 +6591,13 @@ export const currentSpan: Effect<Span, Cause.NoSuchElementError> = internal.curr
  * ```ts
  * import { Effect } from "effect"
  *
- * const childOperation = Effect.gen(function* () {
+ * const childOperation = Effect.gen(function*() {
  *   const parentSpan = yield* Effect.currentParentSpan
  *   yield* Effect.log(`Parent span: ${parentSpan}`)
  *   return "child completed"
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.withSpan(childOperation, "child-span")
  *   return "parent completed"
  * })
@@ -6643,7 +6617,7 @@ export const currentParentSpan: Effect<AnySpan, Cause.NoSuchElementError> = inte
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Add some annotations to the current span
  *   yield* Effect.annotateCurrentSpan("userId", "123")
  *   yield* Effect.annotateCurrentSpan("operation", "data-processing")
@@ -6675,7 +6649,7 @@ export const spanAnnotations: Effect<Readonly<Record<string, unknown>>> = intern
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Get the current span links
  *   const links = yield* Effect.spanLinks
  *   console.log(`Current span has ${links.length} links`)
@@ -6708,7 +6682,7 @@ export const spanLinks: Effect<ReadonlyArray<SpanLink>> = internal.spanLinks
  * )
  *
  * // Link the child span to the parent span
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const parentSpan = yield* Effect.currentSpan
  *   const result = yield* childEffect.pipe(
  *     Effect.linkSpans(parentSpan, { relationship: "follows" })
@@ -6722,7 +6696,7 @@ export const spanLinks: Effect<ReadonlyArray<SpanLink>> = internal.spanLinks
  * import { Effect } from "effect"
  *
  * // Link multiple spans
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const span1 = yield* Effect.currentSpan
  *   const span2 = yield* Effect.currentSpan
  *
@@ -6757,7 +6731,7 @@ export const linkSpans: {
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const span = yield* Effect.makeSpan("my-operation")
  *   yield* Effect.log("Operation in progress")
  *   return "completed"
@@ -6781,7 +6755,7 @@ export const makeSpan: (name: string, options?: SpanOptionsNoTrace) => Effect<Sp
  * import { Effect } from "effect"
  *
  * const program = Effect.scoped(
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const span = yield* Effect.makeSpanScoped("scoped-operation")
  *     yield* Effect.log("Working...")
  *     return "done"
@@ -6809,11 +6783,13 @@ export const makeSpanScoped: (
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.useSpan("user-operation", (span) =>
- *   Effect.gen(function* () {
- *     yield* Effect.log("Processing user data")
- *     return "success"
- *   })
+ * const program = Effect.useSpan(
+ *   "user-operation",
+ *   (span) =>
+ *     Effect.gen(function*() {
+ *       yield* Effect.log("Processing user data")
+ *       return "success"
+ *     })
  * )
  * ```
  *
@@ -6832,7 +6808,7 @@ export const useSpan: {
  * ```ts
  * import { Effect } from "effect"
  *
- * const task = Effect.gen(function* () {
+ * const task = Effect.gen(function*() {
  *   yield* Effect.log("Executing task")
  *   return "result"
  * })
@@ -6871,7 +6847,7 @@ export const withSpan: {
  * import { Effect } from "effect"
  *
  * const program = Effect.scoped(
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const task = Effect.log("Working...")
  *     yield* Effect.withSpanScoped(task, "scoped-task")
  *     return "completed"
@@ -6903,7 +6879,7 @@ export const withSpanScoped: {
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const span = yield* Effect.makeSpan("parent-span")
  *   const childTask = Effect.log("Child operation")
  *   yield* Effect.withParentSpan(childTask, span)
@@ -6985,16 +6961,15 @@ export const requestUnsafe: <A extends Request.Any>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Fiber } from "effect"
+ * import { Effect, Fiber } from "effect"
  *
- * const longRunningTask = Effect.gen(function* () {
+ * const longRunningTask = Effect.gen(function*() {
  *   yield* Effect.sleep("2 seconds")
  *   yield* Effect.log("Task completed")
  *   return "result"
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fiber = yield* Effect.forkChild(longRunningTask)
  *   yield* Effect.log("Task forked, continuing...")
  *   const result = yield* Fiber.join(fiber)
@@ -7026,16 +7001,14 @@ export const forkChild: <
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Scope } from "effect"
- * import { Fiber } from "effect"
  *
- * const task = Effect.gen(function* () {
+ * const task = Effect.gen(function*() {
  *   yield* Effect.sleep("10 seconds")
  *   return "completed"
  * })
  *
  * const program = Effect.scoped(
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const scope = yield* Effect.scope
  *     const fiber = yield* Effect.forkIn(task, scope)
  *     yield* Effect.sleep("1 second")
@@ -7072,16 +7045,15 @@ export const forkIn: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Fiber } from "effect"
  *
- * const backgroundTask = Effect.gen(function* () {
+ * const backgroundTask = Effect.gen(function*() {
  *   yield* Effect.sleep("5 seconds")
  *   yield* Effect.log("Background task completed")
  *   return "result"
  * })
  *
  * const program = Effect.scoped(
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const fiber = yield* Effect.forkScoped(backgroundTask)
  *     yield* Effect.log("Task forked in scope")
  *     yield* Effect.sleep("1 second")
@@ -7116,16 +7088,15 @@ export const forkScoped: <
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Fiber } from "effect"
  *
- * const daemonTask = Effect.gen(function* () {
+ * const daemonTask = Effect.gen(function*() {
  *   while (true) {
  *     yield* Effect.sleep("1 second")
  *     yield* Effect.log("Daemon running...")
  *   }
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const fiber = yield* Effect.forkDetach(daemonTask)
  *   yield* Effect.log("Daemon started")
  *   yield* Effect.sleep("3 seconds")
@@ -7179,7 +7150,7 @@ export const fiberId: Effect<number> = internal.fiberId
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.sleep("2 seconds")
  *   return "completed"
  * })
@@ -7263,7 +7234,7 @@ export const runFork: <A, E>(effect: Effect<A, E, never>, options?: RunOptions |
  *   log: (message) => console.log(message)
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const logger = yield* Logger
  *   logger.log("Hello from service!")
  *   return "done"
@@ -7355,7 +7326,7 @@ export const runPromise: <A, E>(
  *   apiUrl: "https://api.example.com"
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const config = yield* Config
  *   return `Connecting to ${config.apiUrl}`
  * })
@@ -7439,7 +7410,7 @@ export const runPromiseExit: <A, E>(
  *   query: (sql) => `Result for: ${sql}`
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const db = yield* Database
  *   return db.query("SELECT * FROM users")
  * })
@@ -7535,7 +7506,7 @@ export const runSync: <A, E>(effect: Effect<A, E>) => A = internal.runSync
  *   add: (a, b) => a + b
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const math = yield* MathService
  *   return math.add(2, 3)
  * })
@@ -7634,7 +7605,7 @@ export const runSyncExit: <A, E>(effect: Effect<A, E>) => Exit.Exit<A, E> = inte
  *   log: (msg: string) => void
  * }>("Logger")
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const logger = yield* Effect.service(Logger)
  *   logger.log("Computing result...")
  *   return 42
@@ -7673,7 +7644,7 @@ export const runSyncExitWith: <R>(
  * @category Function
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import type { Effect } from "effect"
  *
  * // fn namespace contains utilities for function-based effects
  * // This namespace provides utilities for creating function effects
@@ -10025,8 +9996,7 @@ export const fn: fn.Gen & fn.NonGen = internal.fn
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect } from "effect"
  *
  * const program = Effect.clockWith((clock) =>
  *   clock.currentTimeMillis.pipe(
@@ -10065,7 +10035,7 @@ export const logWithLevel: (level?: LogLevel) => (...message: ReadonlyArray<any>
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.log("Starting computation")
  *   const result = 2 + 2
  *   yield* Effect.log("Result:", result)
@@ -10093,7 +10063,7 @@ export const log: (...message: ReadonlyArray<any>) => Effect<void> = internal.lo
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   try {
  *     // Simulate a critical system failure
  *     throw new Error("System memory exhausted")
@@ -10122,7 +10092,7 @@ export const logFatal: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.logWarning("API rate limit approaching")
  *   yield* Effect.logWarning("Retries remaining:", 2, "Operation:", "fetchData")
  *
@@ -10152,9 +10122,14 @@ export const logWarning: (...message: ReadonlyArray<any>) => Effect<void> = inte
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.logError("Database connection failed")
- *   yield* Effect.logError("Error code:", 500, "Message:", "Internal server error")
+ *   yield* Effect.logError(
+ *     "Error code:",
+ *     500,
+ *     "Message:",
+ *     "Internal server error"
+ *   )
  *
  *   // Can be used with error objects
  *   const error = new Error("Something went wrong")
@@ -10180,7 +10155,7 @@ export const logError: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.logInfo("Application starting up")
  *   yield* Effect.logInfo("Config loaded:", "production", "Port:", 3000)
  *
@@ -10208,7 +10183,7 @@ export const logInfo: (...message: ReadonlyArray<any>) => Effect<void> = interna
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.logDebug("Debug mode enabled")
  *
  *   const userInput = { name: "Alice", age: 30 }
@@ -10237,7 +10212,7 @@ export const logDebug: (...message: ReadonlyArray<any>) => Effect<void> = intern
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.logTrace("Entering function processData")
  *
  *   // Trace detailed execution flow
@@ -10267,15 +10242,14 @@ export const logTrace: (...message: ReadonlyArray<any>) => Effect<void> = intern
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Logger } from "effect"
+ * import { Effect, Logger } from "effect"
  *
  * // Create a custom logger that logs to the console
  * const customLogger = Logger.make(({ message }) =>
  *   Effect.sync(() => console.log(`[CUSTOM]: ${message}`))
  * )
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.log("This will go to both default and custom logger")
  *   return "completed"
  * })
@@ -10312,7 +10286,7 @@ export const withLogger = dual<
  * ```ts
  * import { Effect } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Effect.log("Starting operation")
  *   yield* Effect.log("Processing data")
  *   yield* Effect.log("Operation completed")
@@ -10379,14 +10353,14 @@ export const annotateLogs = dual<
  * ```ts
  * import { Effect } from "effect"
  *
- * const databaseOperation = Effect.gen(function* () {
+ * const databaseOperation = Effect.gen(function*() {
  *   yield* Effect.log("Connecting to database")
  *   yield* Effect.log("Executing query")
  *   yield* Effect.log("Processing results")
  *   return "data"
  * })
  *
- * const httpRequest = Effect.gen(function* () {
+ * const httpRequest = Effect.gen(function*() {
  *   yield* Effect.log("Making HTTP request")
  *   const data = yield* Effect.withLogSpan(databaseOperation, "db-operation")
  *   yield* Effect.log("Sending response")
@@ -10427,8 +10401,7 @@ export const withLogSpan = dual<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Metric } from "effect"
+ * import { Effect, Metric } from "effect"
  *
  * const counter = Metric.counter("effect_executions", {
  *   description: "Counts effect executions"
@@ -10447,8 +10420,7 @@ export const withLogSpan = dual<
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Metric } from "effect"
+ * import { Effect, Exit, Metric } from "effect"
  *
  * // Track different exit types with custom mapping
  * const exitTracker = Metric.frequency("exit_types", {
@@ -10508,8 +10480,7 @@ export const track: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Metric } from "effect"
+ * import { Effect, Metric } from "effect"
  *
  * const successCounter = Metric.counter("successes").pipe(
  *   Metric.withConstantInput(1)
@@ -10527,8 +10498,7 @@ export const track: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Metric } from "effect"
+ * import { Effect, Metric } from "effect"
  *
  * // Track successful request sizes
  * const requestSizeGauge = Metric.gauge("request_size_bytes")
@@ -10585,8 +10555,7 @@ export const trackSuccesses: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Metric } from "effect"
+ * import { Effect, Metric } from "effect"
  *
  * const errorCounter = Metric.counter("errors").pipe(
  *   Metric.withConstantInput(1)
@@ -10604,8 +10573,7 @@ export const trackSuccesses: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Metric } from "effect"
+ * import { Effect, Metric } from "effect"
  *
  * // Track error types using frequency metric
  * const errorTypeFrequency = Metric.frequency("error_types")
@@ -10662,8 +10630,7 @@ export const trackErrors: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Metric } from "effect"
+ * import { Effect, Metric } from "effect"
  *
  * const defectCounter = Metric.counter("defects").pipe(
  *   Metric.withConstantInput(1)
@@ -10681,8 +10648,7 @@ export const trackErrors: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Metric } from "effect"
+ * import { Effect, Metric } from "effect"
  *
  * // Track defect types using frequency metric
  * const defectTypeFrequency = Metric.frequency("defect_types")
@@ -10739,9 +10705,7 @@ export const trackDefects: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Metric } from "effect"
- * import { Duration } from "effect"
+ * import { Effect, Metric } from "effect"
  *
  * const executionTimer = Metric.timer("execution_time")
  *
@@ -10757,9 +10721,7 @@ export const trackDefects: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Metric } from "effect"
- * import { Duration } from "effect"
+ * import { Duration, Effect, Metric } from "effect"
  *
  * // Track execution time in milliseconds using custom mapping
  * const durationGauge = Metric.gauge("execution_millis")
@@ -10830,7 +10792,7 @@ export const trackDuration: {
  * import { Effect } from "effect"
  *
  * // Transaction class for software transactional memory operations
- * const txEffect = Effect.gen(function* () {
+ * const txEffect = Effect.gen(function*() {
  *   const tx = yield* Effect.Transaction
  *   // Use transaction for coordinated state changes
  *   return "Transaction complete"
@@ -10874,12 +10836,12 @@ export class Transaction extends ServiceMap.Service<
  * import { Effect } from "effect"
  * import { TxRef } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref1 = yield* TxRef.make(0)
  *   const ref2 = yield* TxRef.make(0)
  *
  *   // All operations within atomic block succeed or fail together
- *   yield* Effect.atomic(Effect.gen(function* () {
+ *   yield* Effect.atomic(Effect.gen(function*() {
  *     yield* TxRef.set(ref1, 10)
  *     yield* TxRef.set(ref2, 20)
  *     const sum = (yield* TxRef.get(ref1)) + (yield* TxRef.get(ref2))
@@ -10907,7 +10869,7 @@ export const atomic = <A, E, R>(
  * import { TxRef } from "effect/stm"
  *
  * const program = Effect.atomicWith((txState) =>
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const ref = yield* TxRef.make(0)
  *
  *     // Access transaction state for debugging
@@ -10966,22 +10928,22 @@ export const atomicWith = <A, E, R>(
  * import { Effect } from "effect"
  * import { TxRef } from "effect/stm"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const ref1 = yield* TxRef.make(0)
  *   const ref2 = yield* TxRef.make(100)
  *
  *   // Nested atomic transaction - ref1 will be part of outer transaction
- *   yield* Effect.atomic(Effect.gen(function* () {
+ *   yield* Effect.atomic(Effect.gen(function*() {
  *     yield* TxRef.set(ref1, 10)
  *
  *     // This atomic operation composes with the parent
- *     yield* Effect.atomic(Effect.gen(function* () {
+ *     yield* Effect.atomic(Effect.gen(function*() {
  *       yield* TxRef.set(ref1, 20) // Part of same transaction
  *     }))
  *   }))
  *
  *   // Isolated transaction - ref2 will be in its own transaction
- *   yield* Effect.transaction(Effect.gen(function* () {
+ *   yield* Effect.transaction(Effect.gen(function*() {
  *     yield* TxRef.set(ref2, 200)
  *   }))
  *
@@ -11010,7 +10972,7 @@ export const transaction = <A, E, R>(
  * import { TxRef } from "effect/stm"
  *
  * const program = Effect.transactionWith((txState) =>
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const ref = yield* TxRef.make(0)
  *
  *     // This transaction is isolated - it has its own journal
@@ -11023,7 +10985,7 @@ export const transaction = <A, E, R>(
  *
  * // Even when nested in another atomic block, this transaction is isolated
  * const nestedProgram = Effect.atomic(
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const result = yield* program // Runs in its own isolated transaction
  *     return result
  *   })
@@ -11173,7 +11135,10 @@ export const retryTransaction: Effect<never, never, Transaction> = flatMap(
  * import { Effect } from "effect"
  *
  * // Effectify namespace contains utilities for converting callback-based APIs
- * declare function readFile(path: string, cb: (err: Error | null, data?: string) => void): void
+ * declare function readFile(
+ *   path: string,
+ *   cb: (err: Error | null, data?: string) => void
+ * ): void
  * const effectReadFile = Effect.effectify(readFile)
  * // Converts callback-based functions to Effect-based functions
  * ```
@@ -11192,10 +11157,13 @@ export declare namespace Effectify {
    * @category Effectify
    * @example
    * ```ts
-   * import { Effect } from "effect"
+   * import type { Effect } from "effect"
    *
    * // Effectify type converts callback-based function types to Effect-based types
-   * type CallbackFn = (x: number, cb: (err: Error | null, result?: string) => void) => void
+   * type CallbackFn = (
+   *   x: number,
+   *   cb: (err: Error | null, result?: string) => void
+   * ) => void
    * type EffectFn = Effect.Effectify.Effectify<CallbackFn, Error>
    * // Result: (x: number) => Effect<string, Error>
    * ```
@@ -11347,10 +11315,13 @@ export declare namespace Effectify {
    * @since 4.0.0
    * @example
    * ```ts
-   * import { Effect } from "effect"
+   * import type { Effect } from "effect"
    *
    * // EffectifyError extracts error types from callback-based function types
-   * type CallbackFn = (x: number, cb: (err: Error | null, result?: string) => void) => void
+   * type CallbackFn = (
+   *   x: number,
+   *   cb: (err: Error | null, result?: string) => void
+   * ) => void
    * type ErrorType = Effect.Effectify.EffectifyError<CallbackFn>
    * // Result: Error | null
    * ```
@@ -11605,11 +11576,11 @@ export const satisfiesServicesType = <R>() => <A, E, R2 extends R>(effect: Effec
  *
  * // For resolved effects, the mapping is applied immediately
  * const resolved = Effect.succeed(5)
- * const mapped = Effect.mapEager(resolved, n => n * 2) // Applied eagerly
+ * const mapped = Effect.mapEager(resolved, (n) => n * 2) // Applied eagerly
  *
  * // For pending effects, behaves like regular map
  * const pending = Effect.delay(Effect.succeed(5), "100 millis")
- * const mappedPending = Effect.mapEager(pending, n => n * 2) // Uses regular map
+ * const mappedPending = Effect.mapEager(pending, (n) => n * 2) // Uses regular map
  * ```
  *
  * @since 4.0.0
@@ -11646,7 +11617,10 @@ export const mapEager: {
  *
  * // For pending effects, behaves like regular mapError
  * const pending = Effect.delay(Effect.fail("error"), "100 millis")
- * const mappedPending = Effect.mapErrorEager(pending, (err: string) => `mapped: ${err}`) // Uses regular mapError
+ * const mappedPending = Effect.mapErrorEager(
+ *   pending,
+ *   (err: string) => `mapped: ${err}`
+ * ) // Uses regular mapError
  * ```
  *
  * @since 4.0.0
@@ -11726,11 +11700,14 @@ export const mapBothEager: {
  *
  * // For resolved effects, the flatMap is applied immediately
  * const resolved = Effect.succeed(5)
- * const flatMapped = Effect.flatMapEager(resolved, n => Effect.succeed(n * 2)) // Applied eagerly
+ * const flatMapped = Effect.flatMapEager(resolved, (n) => Effect.succeed(n * 2)) // Applied eagerly
  *
  * // For pending effects, behaves like regular flatMap
  * const pending = Effect.delay(Effect.succeed(5), "100 millis")
- * const flatMappedPending = Effect.flatMapEager(pending, n => Effect.succeed(n * 2)) // Uses regular flatMap
+ * const flatMappedPending = Effect.flatMapEager(
+ *   pending,
+ *   (n) => Effect.succeed(n * 2)
+ * ) // Uses regular flatMap
  * ```
  *
  * @since 4.0.0
@@ -11763,20 +11740,23 @@ export const flatMapEager: {
  *
  * // For resolved failure effects, the catch function is applied immediately
  * const failed = Effect.fail("original error")
- * const recovered = Effect.catchEager(failed, (err: string) =>
- *   Effect.succeed(`recovered from: ${err}`)
+ * const recovered = Effect.catchEager(
+ *   failed,
+ *   (err: string) => Effect.succeed(`recovered from: ${err}`)
  * ) // Applied eagerly
  *
  * // For success effects, returns success as-is
  * const success = Effect.succeed(42)
- * const unchanged = Effect.catchEager(success, (err: string) =>
- *   Effect.succeed(`recovered from: ${err}`)
+ * const unchanged = Effect.catchEager(
+ *   success,
+ *   (err: string) => Effect.succeed(`recovered from: ${err}`)
  * ) // Returns success as-is
  *
  * // For pending effects, behaves like regular catch
  * const pending = Effect.delay(Effect.fail("error"), "100 millis")
- * const recoveredPending = Effect.catchEager(pending, (err: string) =>
- *   Effect.succeed(`recovered from: ${err}`)
+ * const recoveredPending = Effect.catchEager(
+ *   pending,
+ *   (err: string) => Effect.succeed(`recovered from: ${err}`)
  * ) // Uses regular catch
  * ```
  *

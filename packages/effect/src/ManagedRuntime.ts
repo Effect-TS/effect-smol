@@ -135,18 +135,14 @@ export interface ManagedRuntime<in R, out ER> {
  * @category runtime class
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Layer } from "effect"
- * import { Console } from "effect"
- * import { ServiceMap } from "effect"
- * import { ManagedRuntime } from "effect"
+ * import { Console, Effect, Layer, ManagedRuntime, ServiceMap } from "effect"
  *
- * class Notifications extends ServiceMap.Service< Notifications, {
+ * class Notifications extends ServiceMap.Service<Notifications, {
  *   readonly notify: (message: string) => Effect.Effect<void>
  * }>()("Notifications") {
  *   static layer = Layer.succeed(this)({
  *     notify: (message) => Console.log(message)
- *  })
+ *   })
  * }
  *
  * async function main() {

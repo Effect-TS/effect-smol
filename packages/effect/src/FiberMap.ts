@@ -27,10 +27,10 @@ const TypeId = "~effect/FiberMap"
  *
  * @example
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Effect, FiberMap } from "effect"
  *
  * // Create a FiberMap with string keys
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add some fibers to the map
@@ -62,9 +62,9 @@ export interface FiberMap<in out K, out A = unknown, out E = unknown>
 /**
  * @example
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Effect, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   console.log(FiberMap.isFiberMap(map)) // true
@@ -114,7 +114,7 @@ const makeUnsafe = <K, A = unknown, E = unknown>(
  *
  * @example
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Effect, FiberMap } from "effect"
  *
  * Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
@@ -158,7 +158,7 @@ export const make = <K, A = unknown, E = unknown>(): Effect.Effect<FiberMap<K, A
  * ```ts
  * import { Effect, Fiber, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const run = yield* FiberMap.makeRuntime<never, string>()
  *
  *   // Run effects and get back fibers
@@ -200,9 +200,9 @@ export const makeRuntime = <R, K, E = unknown, A = unknown>(): Effect.Effect<
  *
  * @example
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Effect, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const run = yield* FiberMap.makeRuntimePromise<never, string>()
  *
  *   // Run effects and get back promises
@@ -252,7 +252,7 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * ```ts
  * import { Effect, Fiber, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Create a fiber and add it to the map
@@ -342,7 +342,7 @@ export const setUnsafe: {
  * ```ts
  * import { Effect, Fiber, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Create a fiber and add it to the map using Effect
@@ -393,7 +393,7 @@ export const set: {
  * ```ts
  * import { Effect, Fiber, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add a fiber to the map
@@ -431,7 +431,7 @@ export const getUnsafe: {
  * ```ts
  * import { Effect, Fiber, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add a fiber to the map
@@ -464,9 +464,9 @@ export const get: {
  *
  * @example
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Effect, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add a fiber to the map
@@ -496,9 +496,9 @@ export const hasUnsafe: {
  *
  * @example
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Effect, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add a fiber to the map
@@ -529,9 +529,9 @@ export const has: {
  *
  * @example
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Effect, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add some fibers to the map
@@ -578,9 +578,9 @@ export const remove: {
  *
  * @example
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Effect, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add some fibers to the map
@@ -626,7 +626,7 @@ const constInterruptedFiber = (function() {
  * ```ts
  * import { Effect, Fiber, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Run effects and add the fibers to the map
@@ -708,7 +708,7 @@ const runImpl = <K, A, E, R, XE extends E, XA extends A>(
  *   readonly _: unique symbol
  * }
  * const Users = ServiceMap.Service<Users, {
- *    getAll: Effect.Effect<Array<unknown>>
+ *   getAll: Effect.Effect<Array<unknown>>
  * }>("Users")
  *
  * Effect.gen(function*() {
@@ -716,8 +716,8 @@ const runImpl = <K, A, E, R, XE extends E, XA extends A>(
  *   const run = yield* FiberMap.runtime(map)<Users>()
  *
  *   // run some effects and add the fibers to the map
- *   run("effect-a", Effect.andThen(Users.asEffect(), _ => _.getAll))
- *   run("effect-b", Effect.andThen(Users.asEffect(), _ => _.getAll))
+ *   run("effect-a", Effect.andThen(Users.asEffect(), (_) => _.getAll))
+ *   run("effect-b", Effect.andThen(Users.asEffect(), (_) => _.getAll))
  * }).pipe(
  *   Effect.scoped // The fibers will be interrupted when the scope is closed
  * )
@@ -774,9 +774,9 @@ export const runtime: <K, A, E>(
  *
  * @example
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Effect, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *   const runPromise = yield* FiberMap.runtimePromise(map)<never>()
  *
@@ -836,9 +836,9 @@ export const runtimePromise = <K, A, E>(self: FiberMap<K, A, E>): <R = never>() 
  *
  * @example
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Effect, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   console.log(yield* FiberMap.size(map)) // 0
@@ -863,15 +863,15 @@ export const size = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<number> =>
  *
  * @example
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Effect, FiberMap } from "effect"
  *
- * Effect.gen(function* () {
+ * Effect.gen(function*() {
  *   const map = yield* FiberMap.make()
  *   yield* FiberMap.set(map, "a", Effect.runFork(Effect.fail("error")))
  *
  *   // parent fiber will fail with "error"
  *   yield* FiberMap.join(map)
- * });
+ * })
  * ```
  *
  * @since 2.0.0
@@ -886,9 +886,9 @@ export const join = <K, A, E>(self: FiberMap<K, A, E>): Effect.Effect<void, E> =
  *
  * @example
  * ```ts
- * import { Effect, Fiber, FiberMap } from "effect"
+ * import { Effect, FiberMap } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const map = yield* FiberMap.make<string>()
  *
  *   // Add some fibers that will complete after a delay

@@ -14,7 +14,7 @@
  * import { LanguageModel } from "effect/unstable/ai"
  *
  * // Basic text generation
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateText({
  *     prompt: "Explain quantum computing"
  *   })
@@ -37,7 +37,7 @@
  *   email: Schema.String
  * })
  *
- * const extractContact = Effect.gen(function* () {
+ * const extractContact = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateObject({
  *     prompt: "Extract contact: John Doe, john@example.com",
  *     schema: ContactSchema
@@ -84,7 +84,7 @@ import * as Toolkit from "./Toolkit.ts"
  * import { Effect } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const model = yield* LanguageModel.LanguageModel
  *   const response = yield* model.generateText({
  *     prompt: "What is machine learning?"
@@ -268,7 +268,7 @@ export type ToolChoice<Tools extends string> = "auto" | "none" | "required" | {
  * import { Effect } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateText({
  *     prompt: "Explain photosynthesis"
  *   })
@@ -378,7 +378,7 @@ export class GenerateTextResponse<Tools extends Record<string, Tool.Any>> {
  *   email: Schema.String
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateObject({
  *     prompt: "Create user: John Doe, john@example.com",
  *     schema: UserSchema
@@ -905,7 +905,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
  * import { Effect } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateText({
  *     prompt: "Write a haiku about programming",
  *     toolChoice: "none"
@@ -945,9 +945,10 @@ export const generateText = <
  *   location: Schema.String
  * })
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateObject({
- *     prompt: "Extract event info: Tech Conference on March 15th in San Francisco",
+ *     prompt:
+ *       "Extract event info: Tech Conference on March 15th in San Francisco",
  *     schema: EventSchema,
  *     objectName: "event"
  *   })
@@ -981,8 +982,7 @@ export const generateObject = <
  *
  * @example
  * ```ts
- * import { Console, Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
  *
  * const program = LanguageModel.streamText({

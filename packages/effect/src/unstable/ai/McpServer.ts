@@ -448,10 +448,10 @@ export const layer = (options: {
  *
  * @example
  * ```ts
+ * import { NodeRuntime, NodeSink, NodeStream } from "@effect/platform-node"
  * import { Effect, Layer, Logger } from "effect"
  * import { Schema } from "effect/schema"
  * import { McpSchema, McpServer } from "effect/unstable/ai"
- * import { NodeRuntime, NodeSink, NodeStream } from "@effect/platform-node"
  *
  * const idParam = McpSchema.param("id", Schema.Number)
  *
@@ -477,7 +477,8 @@ export const layer = (options: {
  *   completion: {
  *     flightNumber: () => Effect.succeed(["FL123", "FL456", "FL789"])
  *   },
- *   content: ({ flightNumber }) => Effect.succeed(`Get the booking details for flight number: ${flightNumber}`)
+ *   content: ({ flightNumber }) =>
+ *     Effect.succeed(`Get the booking details for flight number: ${flightNumber}`)
  * })
  *
  * // Merge all the resources and prompts into a single server layer

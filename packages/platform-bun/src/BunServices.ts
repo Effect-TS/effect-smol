@@ -1,10 +1,10 @@
 /**
  * @since 1.0.0
  */
+import type { FileSystem } from "effect/FileSystem"
 import * as Layer from "effect/Layer"
-import type { FileSystem } from "effect/platform/FileSystem"
-import type { Path } from "effect/platform/Path"
-import type { Terminal } from "effect/platform/Terminal"
+import type { Path } from "effect/Path"
+import type { Terminal } from "effect/Terminal"
 import * as BunFileSystem from "./BunFileSystem.ts"
 import * as BunPath from "./BunPath.ts"
 import * as BunTerminal from "./BunTerminal.ts"

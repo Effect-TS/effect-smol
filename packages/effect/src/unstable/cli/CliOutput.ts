@@ -44,7 +44,8 @@ export interface Formatter {
    *
    * @example
    * ```ts
-   * import { CliOutput, HelpDoc } from "effect/unstable/cli"
+   * import type { HelpDoc } from "effect/unstable/cli"
+   * import { CliOutput } from "effect/unstable/cli"
    *
    * const helpDoc: HelpDoc = {
    *   usage: "myapp [options] <file>",
@@ -84,8 +85,8 @@ export interface Formatter {
    *
    * @example
    * ```ts
-   * import { CliOutput, CliError } from "effect/unstable/cli"
    * import * as Data from "effect/Data"
+   * import { CliOutput } from "effect/unstable/cli"
    *
    * class InvalidOption extends Data.TaggedError("InvalidOption")<{
    *   readonly message: string
@@ -106,8 +107,8 @@ export interface Formatter {
    *
    * @example
    * ```ts
-   * import { CliOutput, CliError } from "effect/unstable/cli"
    * import * as Data from "effect/Data"
+   * import { CliOutput } from "effect/unstable/cli"
    *
    * class ValidationError extends Data.TaggedError("ValidationError")<{
    *   readonly message: string
@@ -158,12 +159,15 @@ export interface Formatter {
    *
    * @example
    * ```ts
-   * import { CliOutput, CliError } from "effect/unstable/cli"
+   * import { CliError, CliOutput } from "effect/unstable/cli"
    *
    * const formatter = CliOutput.defaultFormatter({ colors: false })
    *
    * const errors = [
-   *   new CliError.UnrecognizedOption({ option: "--foo", suggestions: ["--force"] }),
+   *   new CliError.UnrecognizedOption({
+   *     option: "--foo",
+   *     suggestions: ["--force"]
+   *   }),
    *   new CliError.UnrecognizedOption({ option: "--bar", suggestions: [] }),
    *   new CliError.MissingOption({ option: "--required" })
    * ]
@@ -183,11 +187,11 @@ export interface Formatter {
  *
  * @example
  * ```ts
- * import { CliOutput } from "effect/unstable/cli"
  * import * as Effect from "effect/Effect"
+ * import { CliOutput } from "effect/unstable/cli"
  *
  * // Access the formatter service
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const formatter = yield* CliOutput.Formatter
  *
  *   // Format version information
@@ -214,16 +218,16 @@ export const Formatter: ServiceMap.Reference<Formatter> = ServiceMap.Reference(
  *
  * @example
  * ```ts
- * import { CliOutput } from "effect/unstable/cli"
- * import * as Effect from "effect/Effect"
  * import * as Console from "effect/Console"
+ * import * as Effect from "effect/Effect"
+ * import { CliOutput } from "effect/unstable/cli"
  *
  * // Create a custom formatter without colors
  * const noColorFormatter = CliOutput.defaultFormatter({ colors: false })
  * const NoColorLayer = CliOutput.layer(noColorFormatter)
  *
  * // Create a program that uses the custom formatter
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const formatter = yield* CliOutput.Formatter
  *   const versionText = formatter.formatVersion("my-cli", "1.0.0")
  *   yield* Console.log(`Using custom formatter: ${versionText}`)
@@ -235,7 +239,8 @@ export const Formatter: ServiceMap.Reference<Formatter> = ServiceMap.Reference(
  * const jsonFormatter: CliOutput.Formatter = {
  *   formatHelpDoc: (doc) => JSON.stringify(doc, null, 2),
  *   formatCliError: (error) => JSON.stringify({ error: error.message }),
- *   formatError: (error) => JSON.stringify({ type: "error", message: error.message }),
+ *   formatError: (error) =>
+ *     JSON.stringify({ type: "error", message: error.message }),
  *   formatVersion: (name, version) => JSON.stringify({ name, version }),
  *   formatErrors: (errors) => JSON.stringify(errors.map((error) => error.message))
  * }

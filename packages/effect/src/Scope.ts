@@ -29,11 +29,9 @@ const CloseableTypeId = effect.ScopeCloseableTypeId
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
- * import { Scope } from "effect"
+ * import { Effect, Exit, Scope } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const scope = yield* Scope.make("sequential")
  *
  *   // Scope has a strategy and state
@@ -60,11 +58,9 @@ export interface Scope {
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
- * import { Scope } from "effect"
+ * import { Console, Effect, Exit, Scope } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const scope = yield* Scope.make()
  *
  *   // Add a finalizer
@@ -88,11 +84,10 @@ export interface Closeable extends Scope {
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Scope } from "effect"
+ * import { Effect, Exit, Scope } from "effect"
  *
  * // Example of checking scope states
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const scope = yield* Scope.make()
  *
  *   // When open, the scope accepts finalizers
@@ -119,7 +114,6 @@ export namespace State {
    *
    * @example
    * ```ts
-   * import { Effect, Exit } from "effect"
    * import { Scope } from "effect"
    *
    * const scope = Scope.makeUnsafe()
@@ -143,7 +137,6 @@ export namespace State {
    *
    * @example
    * ```ts
-   * import { Effect, Exit } from "effect"
    * import { Scope } from "effect"
    *
    * const scope = Scope.makeUnsafe()
@@ -168,10 +161,9 @@ export namespace State {
    *
    * @example
    * ```ts
-   * import { Effect, Exit } from "effect"
-   * import { Scope } from "effect"
+   * import { Effect, Exit, Scope } from "effect"
    *
-   * const program = Effect.gen(function* () {
+   * const program = Effect.gen(function*() {
    *   const scope = yield* Scope.make()
    *
    *   // Close the scope
@@ -199,10 +191,9 @@ export namespace State {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Scope } from "effect"
+ * import { Effect, Scope } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Access the scope from the context
  *   const scope = yield* Scope.Scope
  *
@@ -224,11 +215,9 @@ export const Scope: ServiceMap.Service<Scope, Scope> = effect.scopeTag
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
- * import { Scope } from "effect"
+ * import { Console, Effect, Exit, Scope } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Create a scope with sequential cleanup
  *   const scope = yield* Scope.make("sequential")
  *
@@ -254,15 +243,13 @@ export const make: (finalizerStrategy?: "sequential" | "parallel") => Effect<Clo
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
- * import { Scope } from "effect"
+ * import { Console, Effect, Exit, Scope } from "effect"
  *
  * // Create a scope immediately
  * const scope = Scope.makeUnsafe("sequential")
  *
  * // Use it in an Effect program
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   yield* Scope.addFinalizer(scope, Console.log("Cleanup"))
  *   yield* Scope.close(scope, Exit.void)
  * })
@@ -279,19 +266,17 @@ export const makeUnsafe: (finalizerStrategy?: "sequential" | "parallel") => Clos
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Console } from "effect"
- * import { Scope } from "effect"
+ * import { Console, Effect, Scope } from "effect"
  *
  * // An effect that requires a Scope
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const scope = yield* Scope.Scope
  *   yield* Scope.addFinalizer(scope, Console.log("Cleanup"))
  *   yield* Console.log("Working...")
  * })
  *
  * // Provide a scope to the program
- * const withScope = Effect.gen(function* () {
+ * const withScope = Effect.gen(function*() {
  *   const scope = yield* Scope.make()
  *   yield* Scope.provide(scope)(program)
  * })
@@ -311,16 +296,20 @@ export const provide: {
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
- * import { Scope } from "effect"
+ * import { Console, Effect, Exit, Scope } from "effect"
  *
- * const withResource = Effect.gen(function* () {
+ * const withResource = Effect.gen(function*() {
  *   const scope = yield* Scope.make()
  *
  *   // Add a finalizer for cleanup
- *   yield* Scope.addFinalizerExit(scope, (exit) =>
- *     Console.log(`Cleaning up resource. Exit: ${Exit.isSuccess(exit) ? "Success" : "Failure"}`)
+ *   yield* Scope.addFinalizerExit(
+ *     scope,
+ *     (exit) =>
+ *       Console.log(
+ *         `Cleaning up resource. Exit: ${
+ *           Exit.isSuccess(exit) ? "Success" : "Failure"
+ *         }`
+ *       )
  *   )
  *
  *   // Use the resource
@@ -344,11 +333,9 @@ export const addFinalizerExit: (scope: Scope, finalizer: (exit: Exit<any, any>) 
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
- * import { Scope } from "effect"
+ * import { Console, Effect, Exit, Scope } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const scope = yield* Scope.make()
  *
  *   // Add simple finalizers
@@ -375,11 +362,9 @@ export const addFinalizer: (scope: Scope, finalizer: Effect<unknown>) => Effect<
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
- * import { Scope } from "effect"
+ * import { Console, Effect, Exit, Scope } from "effect"
  *
- * const nestedScopes = Effect.gen(function* () {
+ * const nestedScopes = Effect.gen(function*() {
  *   const parentScope = yield* Scope.make("sequential")
  *
  *   // Add finalizer to parent
@@ -411,11 +396,9 @@ export const fork: (
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
- * import { Scope } from "effect"
+ * import { Console, Effect, Exit, Scope } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const parentScope = Scope.makeUnsafe("sequential")
  *   const childScope = Scope.forkUnsafe(parentScope, "parallel")
  *
@@ -441,11 +424,9 @@ export const forkUnsafe: (scope: Scope, finalizerStrategy?: "sequential" | "para
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
- * import { Scope } from "effect"
+ * import { Console, Effect, Exit, Scope } from "effect"
  *
- * const resourceManagement = Effect.gen(function* () {
+ * const resourceManagement = Effect.gen(function*() {
  *   const scope = yield* Scope.make("sequential")
  *
  *   // Add multiple finalizers

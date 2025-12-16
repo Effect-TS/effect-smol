@@ -39,8 +39,8 @@ const encodeUint8Array = (bytes: Uint8Array) => {
  *
  * @example
  * ```ts
- * import { Hex } from "effect/encoding"
  * import { Result } from "effect"
+ * import { Hex } from "effect/encoding"
  *
  * const result = Hex.decode("48656c6c6f")
  * if (Result.isSuccess(result)) {
@@ -91,8 +91,8 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
  *
  * @example
  * ```ts
- * import { Hex } from "effect/encoding"
  * import { Result } from "effect"
+ * import { Hex } from "effect/encoding"
  *
  * const result = Hex.decodeString("68656c6c6f")
  * if (Result.isSuccess(result)) {

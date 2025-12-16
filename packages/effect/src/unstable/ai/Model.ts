@@ -8,14 +8,15 @@
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
- * import { Model, LanguageModel } from "effect/unstable/ai"
+ * import type { Layer } from "effect"
+ * import { Effect } from "effect"
+ * import { LanguageModel, Model } from "effect/unstable/ai"
  *
  * declare const myAnthropicLayer: Layer.Layer<LanguageModel.LanguageModel>
  *
  * const anthropicModel = Model.make("anthropic", myAnthropicLayer)
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const response = yield* LanguageModel.generateText({
  *     prompt: "Hello, world!"
  *   })
@@ -105,13 +106,14 @@ const Proto = {
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
- * import { Model, LanguageModel } from "effect/unstable/ai"
+ * import type { Layer } from "effect"
+ * import { Effect } from "effect"
+ * import { LanguageModel, Model } from "effect/unstable/ai"
  *
  * declare const bedrockLayer: Layer.Layer<LanguageModel.LanguageModel>
  *
  * // Model automatically provides ProviderName service
- * const checkProviderAndGenerate = Effect.gen(function* () {
+ * const checkProviderAndGenerate = Effect.gen(function*() {
  *   const provider = yield* Model.ProviderName
  *
  *   console.log(`Generating with: ${provider}`)

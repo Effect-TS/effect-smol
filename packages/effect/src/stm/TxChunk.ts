@@ -32,8 +32,7 @@ const TypeId = "~effect/transactions/TxChunk"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -98,8 +97,7 @@ const TxChunkProto = {
  * @category Constructors
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -158,8 +156,7 @@ export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
  * @category Constructors
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -222,8 +219,7 @@ export const makeUnsafe = <A>(ref: TxRef.TxRef<Chunk.Chunk<A>>): TxChunk<A> => {
  * @category Combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -266,8 +262,7 @@ export const modify: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -299,8 +294,7 @@ export const update: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -329,8 +323,7 @@ export const get = <A>(self: TxChunk<A>): Effect.Effect<Chunk.Chunk<A>> => TxRef
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -361,8 +354,7 @@ export const set: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -395,8 +387,7 @@ export const append: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -511,8 +502,7 @@ export const isNonEmpty = <A>(self: TxChunk<A>): Effect.Effect<boolean> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -542,8 +532,7 @@ export const take: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -573,8 +562,7 @@ export const drop: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -609,8 +597,7 @@ export const slice: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -644,8 +631,7 @@ export const map: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -682,8 +668,7 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -719,8 +704,7 @@ export const appendAll: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -758,8 +742,7 @@ export const prependAll: {
  * @category Combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Chunk } from "effect"
+ * import { Chunk, Effect } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {

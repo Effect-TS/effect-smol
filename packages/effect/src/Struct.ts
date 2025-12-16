@@ -68,8 +68,7 @@ export type Assign<T, U> = keyof T & keyof U extends never ? T & U : Omit<T, key
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Struct } from "effect"
+ * import { pipe, Struct } from "effect"
  *
  * console.log(pipe({ a: 1, b: 2 }, Struct.get("a")))
  * // 1
@@ -113,8 +112,7 @@ export const keys = <S extends object>(self: S): Array<(keyof S) & string> =>
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Struct } from "effect"
+ * import { pipe, Struct } from "effect"
  *
  * console.log(pipe({ a: "a", b: 1, c: true }, Struct.pick(["a", "b"])))
  * // { a: "a", b: 1 }
@@ -138,8 +136,7 @@ export const pick: {
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Struct } from "effect"
+ * import { pipe, Struct } from "effect"
  *
  * console.log(pipe({ a: "a", b: 1, c: true }, Struct.omit(["c"])))
  * // { a: "a", b: 1 }
@@ -165,8 +162,7 @@ export const omit: {
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Struct } from "effect"
+ * import { pipe, Struct } from "effect"
  *
  * console.log(pipe({ a: "a", b: 1 }, Struct.assign({ b: 2, c: 3 })))
  * // { a: "a", b: 2, c: 3 }
@@ -198,12 +194,11 @@ type Evolved<S, E> = Simplify<
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Struct } from "effect"
+ * import { pipe, Struct } from "effect"
  *
  * console.log(
  *   pipe(
- *     { a: 'a', b: 1, c: 3 },
+ *     { a: "a", b: 1, c: 3 },
  *     Struct.evolve({
  *       a: (a) => a.length,
  *       b: (b) => b * 2
@@ -237,8 +232,7 @@ type KeyEvolved<S, E> = Simplify<
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Struct } from "effect"
+ * import { pipe, Struct } from "effect"
  *
  * const result = pipe(
  *   { a: 1, b: 2 },
@@ -281,8 +275,7 @@ type EntryEvolved<S, E> = {
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Struct } from "effect"
+ * import { pipe, Struct } from "effect"
  *
  * const result = pipe(
  *   { a: 1, b: 2 },
@@ -313,8 +306,7 @@ export const evolveEntries: {
  *
  * @example
  * ```ts
- * import { pipe } from "effect"
- * import { Struct } from "effect"
+ * import { pipe, Struct } from "effect"
  *
  * const result = pipe(
  *   { a: 1, b: 2, c: 3 },
@@ -347,17 +339,21 @@ export const renameKeys: {
  *
  * @example
  * ```ts
- * import { Struct, Equivalence } from "effect"
+ * import { Equivalence, Struct } from "effect"
  *
  * const PersonEquivalence = Struct.getEquivalence({
  *   name: Equivalence.strict<string>(),
  *   age: Equivalence.strict<number>()
  * })
  *
- * console.log(PersonEquivalence({ name: "John", age: 25 }, { name: "John", age: 25 }))
+ * console.log(
+ *   PersonEquivalence({ name: "John", age: 25 }, { name: "John", age: 25 })
+ * )
  * // true
  *
- * console.log(PersonEquivalence({ name: "John", age: 25 }, { name: "John", age: 40 }))
+ * console.log(
+ *   PersonEquivalence({ name: "John", age: 25 }, { name: "John", age: 40 })
+ * )
  * // false
  * ```
  *
@@ -374,8 +370,8 @@ export const getEquivalence = Equivalence.struct
  * @example
  * ```ts
  * import { Struct } from "effect"
- * import * as S from "effect/String"
  * import * as N from "effect/Number"
+ * import * as S from "effect/String"
  *
  * const PersonOrder = Struct.getOrder({
  *   name: S.Order,
@@ -399,7 +395,7 @@ export const getOrder = order.struct
  *
  * @example
  * ```ts
- * import { Struct } from "effect"
+ * import type { Struct } from "effect"
  *
  * // Lambda is used internally for type-level operations
  * type MyLambda = Struct.Lambda
@@ -457,8 +453,6 @@ export const lambda = <L extends (a: any) => any>(
  *
  * @example
  * ```ts
- * import { Struct } from "effect"
- *
  * // Used with lambda functions for type-level operations
  * const struct = { a: 1, b: 2, c: 3 }
  * // Map transforms all values using the provided lambda
@@ -487,8 +481,6 @@ export const map: {
  *
  * @example
  * ```ts
- * import { Struct } from "effect"
- *
  * // Used with lambda functions for selective transformation
  * const struct = { a: 1, b: 2, c: 3 }
  * const keys = ["a", "c"]
@@ -526,8 +518,6 @@ export const mapPick: {
  *
  * @example
  * ```ts
- * import { Struct } from "effect"
- *
  * // Used with lambda functions for selective omission
  * const struct = { a: 1, b: 2, c: 3 }
  * const keysToOmit = ["b"]
@@ -600,8 +590,7 @@ function buildStruct<
  * **Example**
  *
  * ```ts
- * import { Struct } from "effect"
- * import { Number, String } from "effect"
+ * import { Number, String, Struct } from "effect"
  *
  * const C = Struct.getCombiner<{ readonly n: number; readonly s: string }>({
  *   n: Number.ReducerSum,
@@ -646,8 +635,7 @@ export function getCombiner<A>(
  * **Example**
  *
  * ```ts
- * import { Struct } from "effect"
- * import { Number, String } from "effect"
+ * import { Number, String, Struct } from "effect"
  *
  * const R = Struct.getReducer<{ readonly n: number; readonly s: string }>({
  *   n: Number.ReducerSum,

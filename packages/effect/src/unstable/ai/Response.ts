@@ -587,7 +587,7 @@ export type ConstructorParams<Part extends AnyPart> =
  * import { Response } from "effect/unstable/ai"
  *
  * const textPart: Response.TextPart = Response.makePart("text", {
- *   text: "The answer to your question is 42.",
+ *   text: "The answer to your question is 42."
  * })
  * ```
  *
@@ -846,7 +846,8 @@ export const TextEndPart: Schema.Struct<{
  * import { Response } from "effect/unstable/ai"
  *
  * const reasoningPart: Response.ReasoningPart = Response.makePart("reasoning", {
- *   text: "Let me think step by step: First I need to analyze the user's question...",
+ *   text:
+ *     "Let me think step by step: First I need to analyze the user's question..."
  * })
  * ```
  *
@@ -1358,7 +1359,7 @@ export const ToolParamsEndPart: Schema.Struct<{
  *   id: "call_123",
  *   name: "get_weather",
  *   params: { city: "San Francisco", units: "celsius" },
- *   providerExecuted: false,
+ *   providerExecuted: false
  * })
  * ```
  *
@@ -1781,7 +1782,7 @@ export const toolResultPart = <const Params extends ConstructorParams<ToolResult
  *
  * const imagePart: Response.FilePart = Response.makePart("file", {
  *   mediaType: "image/jpeg",
- *   data: new Uint8Array([1, 2, 3]),
+ *   data: new Uint8Array([1, 2, 3])
  * })
  * ```
  *
@@ -2046,14 +2047,16 @@ export const UrlSourcePart: Schema.Struct<{
  * @example
  * ```ts
  * import { DateTime } from "effect"
- * import { Option } from "effect"
  * import { Response } from "effect/unstable/ai"
  *
- * const metadataPart: Response.ResponseMetadataPart = Response.makePart("response-metadata", {
- *   id: "resp_123",
- *   modelId: "gpt-4",
- *   timestamp: DateTime.nowUnsafe()
- * })
+ * const metadataPart: Response.ResponseMetadataPart = Response.makePart(
+ *   "response-metadata",
+ *   {
+ *     id: "resp_123",
+ *     modelId: "gpt-4",
+ *     timestamp: DateTime.nowUnsafe()
+ *   }
+ * )
  * ```
  *
  * @since 4.0.0

@@ -2,9 +2,9 @@
  * @since 1.0.0
  */
 import * as Effect from "effect/Effect"
+import type * as FileSystem from "effect/FileSystem"
 import * as Inspectable from "effect/Inspectable"
-import type * as FileSystem from "effect/platform/FileSystem"
-import type * as Path from "effect/platform/Path"
+import type * as Path from "effect/Path"
 import type * as Scope from "effect/Scope"
 import * as Stream from "effect/Stream"
 import * as Multipart from "effect/unstable/http/Multipart"

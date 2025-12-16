@@ -176,17 +176,17 @@ export const random: <A extends object>(self: A) => number = (self) => {
  *
  * @example
  * ```ts
- * import { Hash } from "effect"
+ * import { Hash } from "effect" // combined hash value
+ *
+ * // Can also be used with pipe
+ * import { pipe } from "effect"
  *
  * const hash1 = Hash.hash("hello")
  * const hash2 = Hash.hash("world")
  *
  * // Combine two hash values
  * const combined = Hash.combine(hash2)(hash1)
- * console.log(combined) // combined hash value
- *
- * // Can also be used with pipe
- * import { pipe } from "effect"
+ * console.log(combined)
  * const result = pipe(hash1, Hash.combine(hash2))
  * ```
  *

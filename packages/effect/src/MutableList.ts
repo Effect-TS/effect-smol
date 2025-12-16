@@ -95,7 +95,7 @@ export interface MutableList<in out A> {
  * const createProcessor = <T>(): {
  *   queue: MutableList.MutableList<T>
  *   add: (item: T) => void
- *   process: () => T[]
+ *   process: () => Array<T>
  * } => {
  *   const queue = MutableList.make<T>()
  *   return {
@@ -123,7 +123,9 @@ export declare namespace MutableList {
    * MutableList.append(list, 2)
    *
    * // Access bucket information (for debugging or advanced usage)
-   * const inspectBucket = (bucket: MutableList.MutableList.Bucket<number> | undefined) => {
+   * const inspectBucket = (
+   *   bucket: MutableList.MutableList.Bucket<number> | undefined
+   * ) => {
    *   if (bucket) {
    *     console.log("Bucket array:", bucket.array)
    *     console.log("Bucket offset:", bucket.offset)
@@ -196,7 +198,9 @@ export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
  * const list = MutableList.make<number>()
  *
  * // Type-safe handling of empty results
- * const takeAndDouble = (queue: MutableList.MutableList<number>): number | null => {
+ * const takeAndDouble = (
+ *   queue: MutableList.MutableList<number>
+ * ): number | null => {
  *   const item: number | MutableList.Empty = MutableList.take(queue)
  *
  *   if (item === MutableList.Empty) {
@@ -213,7 +217,9 @@ export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
  * console.log(takeAndDouble(list)) // 10
  *
  * // Type guard function
- * const isEmpty = (result: number | MutableList.Empty): result is MutableList.Empty => {
+ * const isEmpty = (
+ *   result: number | MutableList.Empty
+ * ): result is MutableList.Empty => {
  *   return result === MutableList.Empty
  * }
  *
@@ -451,7 +457,10 @@ export const prependAllUnsafe = <A>(self: MutableList<A>, messages: ReadonlyArra
  *
  * // Useful for bulk loading
  * const bulkList = MutableList.make<number>()
- * const count = MutableList.appendAll(bulkList, Array.from({ length: 1000 }, (_, i) => i))
+ * const count = MutableList.appendAll(
+ *   bulkList,
+ *   Array.from({ length: 1000 }, (_, i) => i)
+ * )
  * console.log(count) // 1000
  * ```
  *
@@ -676,7 +685,10 @@ export const takeNVoid = <A>(self: MutableList<A>, n: number): void => {
  * console.log("Queue is now empty:", queue.length === 0)
  *
  * // Drain pattern for processing
- * function drainAndProcess<T>(list: MutableList.MutableList<T>, processor: (items: T[]) => void) {
+ * function drainAndProcess<T>(
+ *   list: MutableList.MutableList<T>,
+ *   processor: (items: Array<T>) => void
+ * ) {
  *   if (list.length > 0) {
  *     const items = MutableList.takeAll(list)
  *     processor(items)
@@ -721,7 +733,10 @@ export const takeAll = <A>(self: MutableList<A>): Array<A> => takeN(self, self.l
  * }
  *
  * // Consumer pattern
- * function processNext<T>(queue: MutableList.MutableList<T>, processor: (item: T) => void): boolean {
+ * function processNext<T>(
+ *   queue: MutableList.MutableList<T>,
+ *   processor: (item: T) => void
+ * ): boolean {
  *   const item = MutableList.take(queue)
  *   if (item !== MutableList.Empty) {
  *     processor(item)
@@ -803,7 +818,7 @@ export const toArray = <A>(self: MutableList<A>): Array<A> => toArrayN(self, sel
  * console.log(MutableList.takeAll(indexed)) // ["a", "c", "e"]
  *
  * // Real-world example: filtering a log queue
- * const logs = MutableList.make<{ level: string, message: string }>()
+ * const logs = MutableList.make<{ level: string; message: string }>()
  * MutableList.appendAll(logs, [
  *   { level: "INFO", message: "App started" },
  *   { level: "ERROR", message: "Connection failed" },
@@ -862,7 +877,7 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
  * console.log(list.length) // 2
  *
  * // Real-world example: removing completed tasks
- * const tasks = MutableList.make<{ id: number, status: string }>()
+ * const tasks = MutableList.make<{ id: number; status: string }>()
  * MutableList.appendAll(tasks, [
  *   { id: 1, status: "pending" },
  *   { id: 2, status: "completed" },

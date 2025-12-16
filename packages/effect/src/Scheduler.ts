@@ -16,7 +16,6 @@ import * as ServiceMap from "./ServiceMap.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
  * import type { Fiber } from "effect"
  * import type { Scheduler } from "effect/Scheduler"
  *
@@ -205,14 +204,14 @@ export class MixedScheduler implements Scheduler {
  * import { MaxOpsBeforeYield } from "effect/Scheduler"
  *
  * // Configure a fiber to yield more frequently
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   // Get current max ops setting (default is 2048)
  *   const currentMax = yield* MaxOpsBeforeYield
  *   yield* Effect.log(`Default max ops before yield: ${currentMax}`)
  *
  *   // Run with reduced max ops for more frequent yielding
  *   return yield* Effect.provideService(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const maxOps = yield* MaxOpsBeforeYield
  *       yield* Effect.log(`Max ops before yield: ${maxOps}`)
  *
@@ -231,19 +230,21 @@ export class MixedScheduler implements Scheduler {
  * })
  *
  * // Configure for high-performance scenarios
- * const highPerformanceProgram = Effect.gen(function* () {
+ * const highPerformanceProgram = Effect.gen(function*() {
  *   // Run with increased max ops for better performance (less yielding)
  *   return yield* Effect.provideService(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const maxOps = yield* MaxOpsBeforeYield
  *       yield* Effect.log(`High-performance max ops: ${maxOps}`)
  *
  *       // Run multiple concurrent tasks
- *       const tasks = Array.from({ length: 100 }, (_, i) =>
- *         Effect.gen(function* () {
- *           yield* Effect.sleep(`${i * 10} millis`)
- *           return `Task ${i} completed`
- *         })
+ *       const tasks = Array.from(
+ *         { length: 100 },
+ *         (_, i) =>
+ *           Effect.gen(function*() {
+ *             yield* Effect.sleep(`${i * 10} millis`)
+ *             return `Task ${i} completed`
+ *           })
  *       )
  *
  *       return yield* Effect.all(tasks, { concurrency: "unbounded" })
@@ -254,21 +255,21 @@ export class MixedScheduler implements Scheduler {
  * })
  *
  * // Configure for fair scheduling
- * const fairSchedulingProgram = Effect.gen(function* () {
+ * const fairSchedulingProgram = Effect.gen(function*() {
  *   // Run with lower max ops for more frequent yielding
  *   return yield* Effect.provideService(
- *     Effect.gen(function* () {
+ *     Effect.gen(function*() {
  *       const maxOps = yield* MaxOpsBeforeYield
  *       yield* Effect.log(`Fair scheduling max ops: ${maxOps}`)
  *
- *       const longRunningTask = Effect.gen(function* () {
+ *       const longRunningTask = Effect.gen(function*() {
  *         for (let i = 0; i < 1000; i++) {
  *           yield* Effect.sync(() => Math.random())
  *         }
  *         return "Long task completed"
  *       })
  *
- *       const quickTask = Effect.gen(function* () {
+ *       const quickTask = Effect.gen(function*() {
  *         yield* Effect.sleep("10 millis")
  *         return "Quick task completed"
  *       })

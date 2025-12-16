@@ -1,6 +1,5 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Effect, Layer, Option, Ref, Result } from "effect"
-import { FileSystem, Path, PlatformError } from "effect/platform"
+import { Effect, FileSystem, Layer, Option, Path, PlatformError, Ref, Result } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
 import * as MockTerminal from "./services/MockTerminal.ts"

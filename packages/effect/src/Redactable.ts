@@ -22,8 +22,8 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Inspectable/r
  *
  * @example
  * ```ts
+ * import type { ServiceMap } from "effect"
  * import { Redactable } from "effect"
- * import { ServiceMap } from "effect"
  *
  * class SensitiveData implements Redactable.Redactable {
  *   constructor(private secret: string) {}

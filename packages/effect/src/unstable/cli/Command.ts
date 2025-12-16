@@ -3,15 +3,15 @@
  */
 import * as Console from "../../Console.ts"
 import * as Effect from "../../Effect.ts"
+import type * as FileSystem from "../../FileSystem.ts"
 import { dual } from "../../Function.ts"
 import type * as Layer from "../../Layer.ts"
+import type * as Path from "../../Path.ts"
 import type { Pipeable } from "../../Pipeable.ts"
-import type * as FileSystem from "../../platform/FileSystem.ts"
-import type * as Path from "../../platform/Path.ts"
-import type * as Terminal from "../../platform/Terminal.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as References from "../../References.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
+import type * as Terminal from "../../Terminal.ts"
 import type { Simplify } from "../../types/Types.ts"
 import * as CliError from "./CliError.ts"
 import * as CliOutput from "./CliOutput.ts"
@@ -46,7 +46,9 @@ import * as Prompt from "./Prompt.ts"
  * import { Argument, Command, Flag } from "effect/unstable/cli"
  *
  * // Simple command with no configuration
- * const version: Command.Command<"version", {}, never, never> = Command.make("version")
+ * const version: Command.Command<"version", {}, never, never> = Command.make(
+ *   "version"
+ * )
  *
  * // Command with flags and arguments
  * const deploy: Command.Command<
@@ -114,8 +116,8 @@ export declare namespace Command {
    *
    * @example
    * ```ts
-   * import type * as CliCommand from "effect/unstable/cli/Command"
    * import { Argument, Flag } from "effect/unstable/cli"
+   * import type * as CliCommand from "effect/unstable/cli/Command"
    *
    * // Simple flat configuration
    * const simpleConfig: CliCommand.Command.Config = {
@@ -162,8 +164,8 @@ export declare namespace Command {
      *
      * @example
      * ```ts
+     * import { Flag } from "effect/unstable/cli"
      * import type * as CliCommand from "effect/unstable/cli/Command"
-     * import { Argument, Flag } from "effect/unstable/cli"
      *
      * const config = {
      *   name: Flag.string("name"),
@@ -243,8 +245,8 @@ export type Error<C> = C extends Command<
  *
  * @example
  * ```ts
+ * import { Console, Effect } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
  *
  * const parent = Command.make("app", {
  *   verbose: Flag.boolean("verbose"),
@@ -260,8 +262,7 @@ export type Error<C> = C extends Command<
  *     yield* Console.log(`Verbose: ${parentConfig.verbose}`)
  *     yield* Console.log(`Config: ${parentConfig.config}`)
  *     yield* Console.log(`Target: ${config.target}`)
- *   })
- * )
+ *   }))
  *
  * const app = parent.pipe(Command.withSubcommands([child]))
  * // Usage: app --verbose --config prod.json deploy --target staging
@@ -304,8 +305,8 @@ export interface ParsedTokens {
  *
  * @example
  * ```ts
- * import { Command, Flag, Argument } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
+ * import { Console, Effect } from "effect"
+ * import { Argument, Command, Flag } from "effect/unstable/cli"
  *
  * // Simple command with no configuration
  * const version = Command.make("version")
@@ -318,7 +319,9 @@ export interface ParsedTokens {
  *
  * // Command with nested configuration
  * const deploy = Command.make("deploy", {
- *   environment: Flag.string("env").pipe(Flag.withDescription("Target environment")),
+ *   environment: Flag.string("env").pipe(
+ *     Flag.withDescription("Target environment")
+ *   ),
  *   server: {
  *     host: Flag.string("host").pipe(Flag.withDefault("localhost")),
  *     port: Flag.integer("port").pipe(Flag.withDefault(3000))
@@ -340,8 +343,7 @@ export interface ParsedTokens {
  *     }
  *
  *     yield* Console.log("Deployment completed successfully")
- *   })
- * )
+ *   }))
  * ```
  *
  * @since 4.0.0
@@ -382,8 +384,8 @@ export const make: {
  *
  * @example
  * ```ts
+ * import { Console } from "effect"
  * import { Command, Prompt } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
  *
  * const setup = Command.prompt(
  *   "setup",
@@ -420,8 +422,7 @@ export const prompt = <Name extends string, A, E, R>(
  *
  * @example
  * ```ts
- * import { Command, Flag } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
+ * import { Console } from "effect"
  *
  * // Command without initial handler
  * const greet = Command.make("greet", {
@@ -430,9 +431,7 @@ export const prompt = <Name extends string, A, E, R>(
  *
  * // Add handler later
  * const greetWithHandler = greet.pipe(
- *   Command.withHandler((config) =>
- *     Console.log(`Hello, ${config.name}!`)
- *   )
+ *   Command.withHandler((config) => Console.log(`Hello, ${config.name}!`))
  * )
  * ```
  *
@@ -463,8 +462,8 @@ export const withHandler: {
  *
  * @example
  * ```ts
+ * import { Console, Effect } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
  *
  * // Parent command with global flags
  * const git = Command.make("git", {
@@ -476,13 +475,12 @@ export const withHandler: {
  *   repository: Flag.string("repo")
  * }, (config) =>
  *   Effect.gen(function*() {
- *     const parent = yield* git  // Access parent's parsed config
+ *     const parent = yield* git // Access parent's parsed config
  *     if (parent.verbose) {
  *       yield* Console.log("Verbose mode enabled")
  *     }
  *     yield* Console.log(`Cloning ${config.repository}`)
- *   })
- * )
+ *   }))
  *
  * const app = git.pipe(Command.withSubcommands([clone]))
  * // Usage: git --verbose clone --repo github.com/foo/bar
@@ -596,18 +594,17 @@ type ExtractSubcommandContext<T extends ReadonlyArray<Command<any, any, any, any
  *
  * @example
  * ```ts
+ * import { Console, Effect } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
  *
  * const deploy = Command.make("deploy", {
  *   environment: Flag.string("env")
  * }, (config) =>
  *   Effect.gen(function*() {
  *     yield* Console.log(`Deploying to ${config.environment}`)
- *   })
- * ).pipe(
- *   Command.withDescription("Deploy the application to a specified environment")
- * )
+ *   })).pipe(
+ *     Command.withDescription("Deploy the application to a specified environment")
+ *   )
  * ```
  *
  * @since 4.0.0
@@ -645,9 +642,8 @@ const mapHandler = <Name extends string, Input, E, R, E2, R2>(
  *
  * @example
  * ```ts
+ * import { Effect, FileSystem, PlatformError } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
- * import { Effect, Layer } from "effect"
- * import { FileSystem, PlatformError } from "effect/platform"
  *
  * const deploy = Command.make("deploy", {
  *   env: Flag.string("env")
@@ -655,21 +651,22 @@ const mapHandler = <Name extends string, Input, E, R, E2, R2>(
  *   Effect.gen(function*() {
  *     const fs = yield* FileSystem.FileSystem
  *     // Use fs...
- *   })
- * ).pipe(
- *   // Provide FileSystem based on the --env flag
- *   Command.provide((config) =>
- *     config.env === "local"
- *       ? FileSystem.layerNoop({})
- *       : FileSystem.layerNoop({
+ *   })).pipe(
+ *     // Provide FileSystem based on the --env flag
+ *     Command.provide((config) =>
+ *       config.env === "local"
+ *         ? FileSystem.layerNoop({})
+ *         : FileSystem.layerNoop({
  *           access: () =>
- *             Effect.fail(new PlatformError.BadArgument({
- *               module: "FileSystem",
- *               method: "access"
- *             }))
+ *             Effect.fail(
+ *               new PlatformError.BadArgument({
+ *                 module: "FileSystem",
+ *                 method: "access"
+ *               })
+ *             )
  *         })
+ *     )
  *   )
- * )
  * ```
  *
  * @since 4.0.0
@@ -797,16 +794,15 @@ const showHelp = <Name extends string, Input, E, R>(
  *
  * @example
  * ```ts
+ * import { Console, Effect } from "effect"
  * import { Command, Flag } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
  *
  * const greetCommand = Command.make("greet", {
  *   name: Flag.string("name")
  * }, (config) =>
  *   Effect.gen(function*() {
  *     yield* Console.log(`Hello, ${config.name}!`)
- *   })
- * )
+ *   }))
  *
  * // Automatically gets args from process.argv
  * const program = Command.run(greetCommand, {
@@ -844,8 +840,8 @@ export const run: {
  *
  * @example
  * ```ts
- * import { Command, Flag, Argument } from "effect/unstable/cli"
- * import { Effect, Console } from "effect"
+ * import { Console, Effect } from "effect"
+ * import { Command, Flag } from "effect/unstable/cli"
  *
  * const greet = Command.make("greet", {
  *   name: Flag.string("name"),
@@ -855,8 +851,7 @@ export const run: {
  *     for (let i = 0; i < config.count; i++) {
  *       yield* Console.log(`Hello, ${config.name}!`)
  *     }
- *   })
- * )
+ *   }))
  *
  * // Test with specific arguments
  * const testProgram = Effect.gen(function*() {

@@ -62,15 +62,14 @@ const TypeId = "~effect/Stream"
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * // Create a stream that emits numbers 1, 2, 3
  * const stream: Stream.Stream<number> = Stream.make(1, 2, 3)
  *
  * // Transform the stream and run it
  * const program = stream.pipe(
- *   Stream.map(n => n * 2),
+ *   Stream.map((n) => n * 2),
  *   Stream.runCollect
  * )
  *
@@ -93,8 +92,7 @@ export interface Stream<out A, out E = never, out R = never> extends Variance<A,
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * // StreamUnify helps unify Stream and Effect types
  * declare const stream: Stream.Stream<number>
@@ -136,8 +134,8 @@ export interface StreamUnifyIgnore extends Effect.EffectUnifyIgnore {
  *
  * @example
  * ```ts
- * import type { Kind } from "effect/types/HKT"
  * import type { StreamTypeLambda } from "effect/Stream"
+ * import type { Kind } from "effect/types/HKT"
  *
  * // Create a Stream type using the type lambda
  * type NumberStream = Kind<StreamTypeLambda, never, string, never, number>
@@ -178,7 +176,7 @@ export interface VarianceStruct<out A, out E, out R> {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import type { Stream } from "effect"
  *
  * type NumberStream = Stream.Stream<number, string, never>
  * type SuccessType = Stream.Success<NumberStream>
@@ -195,7 +193,7 @@ export type Success<T extends Stream<any, any, any>> = [T] extends [Stream<infer
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import type { Stream } from "effect"
  *
  * type NumberStream = Stream.Stream<number, string, never>
  * type ErrorType = Stream.Error<NumberStream>
@@ -212,9 +210,11 @@ export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
+ * import type { Stream } from "effect"
  *
- * interface Database { query: (sql: string) => unknown }
+ * interface Database {
+ *   query: (sql: string) => unknown
+ * }
  * type NumberStream = Stream.Stream<number, string, { db: Database }>
  * type Services = Stream.Services<NumberStream>
  * // Services is { db: Database }
@@ -242,7 +242,7 @@ const streamVariance = {
  * const stream = Stream.make(1, 2, 3)
  * const notStream = { data: [1, 2, 3] }
  *
- * console.log(Stream.isStream(stream))    // true
+ * console.log(Stream.isStream(stream)) // true
  * console.log(Stream.isStream(notStream)) // false
  * ```
  *
@@ -288,8 +288,7 @@ export type HaltStrategy = Channel.HaltStrategy
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Channel } from "effect"
+ * import { Channel, Stream } from "effect"
  *
  * const myChannel = Channel.succeed([1, 2, 3] as const)
  * const stream = Stream.fromChannel(myChannel)
@@ -389,8 +388,7 @@ export const tick = (interval: Duration.DurationInput): Stream<void> =>
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const pullEffect = Effect.succeed(Effect.succeed([1, 2, 3] as const))
  * const stream = Stream.fromPull(pullEffect)
@@ -408,8 +406,7 @@ export const fromPull = <A, E, R, EX, RX>(
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const originalStream = Stream.make(1, 2, 3)
  *
@@ -498,9 +495,7 @@ export const toChannel = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Effect, Queue, Stream } from "effect"
  *
  * const stream = Stream.callback<number>((queue) => {
  *   // Emit values to the stream
@@ -530,8 +525,7 @@ export const callback = <A, E = never, R = never>(
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const emptyStream = Stream.empty
  *
@@ -552,7 +546,6 @@ export const empty: Stream<never> = fromChannel(Channel.empty)
  * @example
  * ```ts
  * import { Stream } from "effect"
- * import { Effect } from "effect"
  *
  * // A Stream with a single number
  * const stream = Stream.succeed(3)
@@ -571,8 +564,7 @@ export const succeed = <A>(value: A): Stream<A> => fromChannel(Channel.succeed(A
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
  *
@@ -592,8 +584,7 @@ export const make = <const As extends ReadonlyArray<any>>(...values: As): Stream
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.sync(() => Math.random())
  *
@@ -613,8 +604,7 @@ export const sync = <A>(evaluate: LazyArg<A>): Stream<A> => fromChannel(Channel.
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const lazyStream = Stream.suspend(() => {
  *   console.log("Creating stream...")
@@ -636,8 +626,7 @@ export const suspend = <A, E, R>(stream: LazyArg<Stream<A, E, R>>): Stream<A, E,
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.fail("Uh oh!")
  *
@@ -662,8 +651,7 @@ export const fail = <E>(error: E): Stream<never, E> => fromChannel(Channel.fail(
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.failSync(() => new Error("Something went wrong"))
  *
@@ -684,9 +672,7 @@ export const failSync = <E>(evaluate: LazyArg<E>): Stream<never, E> => fromChann
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { Cause } from "effect"
+ * import { Cause, Effect, Stream } from "effect"
  *
  * const cause = Cause.fail("Database connection failed")
  * const stream = Stream.failCause(cause)
@@ -711,9 +697,7 @@ export const die = (defect: unknown): Stream<never> => fromChannel(Channel.die(d
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { Cause } from "effect"
+ * import { Cause, Effect, Stream } from "effect"
  *
  * const stream = Stream.failCauseSync(() =>
  *   Cause.fail("Connection timeout after retries")
@@ -738,8 +722,7 @@ export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Stream<neve
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * function* numbers() {
  *   yield 1
@@ -764,7 +747,6 @@ export const fromIteratorSucceed = <A>(iterator: IterableIterator<A>, maxChunkSi
  * @example
  * ```ts
  * import { Stream } from "effect"
- * import { Effect } from "effect"
  *
  * const numbers = [1, 2, 3]
  *
@@ -811,8 +793,7 @@ export const fromIterableEffectRepeat = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const numbers = [1, 2, 3, 4, 5]
  * const stream = Stream.fromArray(numbers)
@@ -857,11 +838,9 @@ export const fromArrays = <Arr extends ReadonlyArray<ReadonlyArray<any>>>(
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
- * import { Queue } from "effect"
+ * import { Effect, Queue, Stream } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.unbounded<number>()
  *   yield* Queue.offer(queue, 1)
  *   yield* Queue.offer(queue, 2)
@@ -884,11 +863,9 @@ export const fromQueue = <A, E>(queue: Queue.Dequeue<A, E>): Stream<A, Exclude<E
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { PubSub } from "effect"
+ * import { Effect, PubSub, Stream } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.unbounded<number>()
  *
  *   // Publish some values
@@ -919,7 +896,6 @@ export const fromPubSubTake = <A, E>(pubsub: PubSub.PubSub<Take.Take<A, E>>): St
  * @example
  * ```ts
  * import { Stream } from "effect"
- * import { Effect } from "effect"
  *
  * const readableStream = new ReadableStream({
  *   start(controller) {
@@ -993,11 +969,9 @@ export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E,
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { PubSub } from "effect"
+ * import { Effect, PubSub, Stream } from "effect"
  *
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const pubsub = yield* PubSub.unbounded<number>()
  *   const subscription = yield* PubSub.subscribe(pubsub)
  *
@@ -1058,7 +1032,6 @@ export interface EventListener<A> {
  * @example
  * ```ts
  * import { Stream } from "effect"
- * import { Effect } from "effect"
  *
  * // In a browser environment
  * const clickStream = Stream.fromEventListener(document, "click")
@@ -1097,12 +1070,13 @@ export const fromEventListener = <A = unknown>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.unfold(1, (n) => Effect.succeed([n, n + 1]))
  *
- * Effect.runPromise(Stream.runCollect(stream.pipe(Stream.take(5)))).then(console.log)
+ * Effect.runPromise(Stream.runCollect(stream.pipe(Stream.take(5)))).then(
+ *   console.log
+ * )
  * // [ 1, 2, 3, 4, 5 ]
  * ```
  *
@@ -1127,16 +1101,16 @@ export const unfold = <S, A, E, R>(
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  * import * as Option from "effect/Option"
  *
  * const stream = Stream.paginate(0, (n: number) =>
- *   Effect.succeed([
- *     [n],
- *     n < 3 ? Option.some(n + 1) : Option.none<number>()
- *   ] as const)
- * )
+ *   Effect.succeed(
+ *     [
+ *       [n],
+ *       n < 3 ? Option.some(n + 1) : Option.none<number>()
+ *     ] as const
+ *   ))
  *
  * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
  * ```
@@ -1176,13 +1150,14 @@ export const paginate = <S, A, E = never, R = never>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * // An infinite Stream of numbers starting from 1 and incrementing
  * const stream = Stream.iterate(1, (n) => n + 1)
  *
- * Effect.runPromise(Stream.runCollect(stream.pipe(Stream.take(10)))).then(console.log)
+ * Effect.runPromise(Stream.runCollect(stream.pipe(Stream.take(10)))).then(
+ *   console.log
+ * )
  * // [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
  * ```
  *
@@ -1202,7 +1177,6 @@ export const iterate = <A>(value: A, next: (value: A) => A): Stream<A> =>
  * @example
  * ```ts
  * import { Stream } from "effect"
- * import { Effect } from "effect"
  *
  * const stream = Stream.range(1, 5)
  *
@@ -1240,7 +1214,6 @@ export const range = (
  * @example
  * ```ts
  * import { Stream } from "effect"
- * import { Effect } from "effect"
  *
  * // A stream that never emits values or completes
  * const neverStream = Stream.never
@@ -1260,8 +1233,7 @@ export const never: Stream<never> = fromChannel(Channel.never)
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const effectThatCreatesStream = Effect.succeed(
  *   Stream.make(1, 2, 3)
@@ -1293,7 +1265,6 @@ export const scoped = <A, E, R>(
  * @example
  * ```ts
  * import { Stream } from "effect"
- * import { Effect } from "effect"
  *
  * const stream = Stream.fromArray([1, 2, 3]).pipe(Stream.map((n) => n + 1))
  *
@@ -1362,15 +1333,13 @@ export const mapArray: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
  *
  * const mappedStream = stream.pipe(
- *   Stream.mapEffect(n =>
- *     Effect.gen(function* () {
+ *   Stream.mapEffect((n) =>
+ *     Effect.gen(function*() {
  *       yield* Console.log(`Processing: ${n}`)
  *       return n * 2
  *     })
@@ -1481,9 +1450,7 @@ export const result = <A, E, R>(self: Stream<A, E, R>): Stream<Result.Result<A, 
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { Console } from "effect"
+ * import { Console, Stream } from "effect"
  *
  * const stream = Stream.fromArray([1, 2, 3]).pipe(
  *   Stream.tap((n) => Console.log(`before mapping: ${n}`)),
@@ -1653,13 +1620,12 @@ export const tapSink: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
  *
  * const flatMapped = stream.pipe(
- *   Stream.flatMap(n => Stream.make(n, n * 2))
+ *   Stream.flatMap((n) => Stream.make(n, n * 2))
  * )
  *
  * const program = flatMapped.pipe(Stream.runCollect)
@@ -1705,8 +1671,7 @@ export const flatMap: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const streamOfStreams = Stream.make(
  *   Stream.make(1, 2),
@@ -1782,12 +1747,13 @@ export const drainFork: {
  *
  * @example
  * ```ts
- * import { Effect, Schedule } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Schedule, Stream } from "effect"
  *
  * const stream = Stream.repeat(Stream.succeed(1), Schedule.forever)
  *
- * Effect.runPromise(Stream.runCollect(stream.pipe(Stream.take(5)))).then(console.log)
+ * Effect.runPromise(Stream.runCollect(stream.pipe(Stream.take(5)))).then(
+ *   console.log
+ * )
  * // { _id: 'Chunk', values: [ 1, 1, 1, 1, 1 ] }
  * ```
  *
@@ -1942,8 +1908,7 @@ export const flattenTake = <A, E, E2, R>(self: Stream<Take.Take<A, E>, E2, R>): 
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream1 = Stream.make(1, 2, 3)
  * const stream2 = Stream.make(4, 5, 6)
@@ -2162,8 +2127,7 @@ export const crossWith: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream1 = Stream.make(1, 2, 3, 4, 5, 6)
  * const stream2 = Stream.make("a", "b", "c")
@@ -2303,8 +2267,7 @@ export const zipWithArray: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream1 = Stream.make(1, 2, 3)
  * const stream2 = Stream.make("a", "b", "c")
@@ -2337,8 +2300,7 @@ export const zip: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream1 = Stream.make(1, 2, 3, 4)
  * const stream2 = Stream.make("a", "b")
@@ -2379,8 +2341,7 @@ export const zipLeft: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream1 = Stream.make(1, 2)
  * const stream2 = Stream.make("a", "b", "c", "d")
@@ -2421,10 +2382,13 @@ export const zipRight: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
- * const stream1 = Stream.make([1, "a"] as const, [2, "b"] as const, [3, "c"] as const)
+ * const stream1 = Stream.make(
+ *   [1, "a"] as const,
+ *   [2, "b"] as const,
+ *   [3, "c"] as const
+ * )
  * const stream2 = Stream.make("x", "y", "z")
  *
  * const zipped = Stream.zipFlatten(stream1, stream2)
@@ -2457,8 +2421,7 @@ export const zipFlatten: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make("a", "b", "c", "d")
  *
@@ -2478,8 +2441,7 @@ export const zipWithIndex = <A, E, R>(self: Stream<A, E, R>): Stream<[A, number]
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.zipWithNext(Stream.make(1, 2, 3, 4))
  *
@@ -2521,8 +2483,7 @@ export const zipWithNext = <A, E, R>(self: Stream<A, E, R>): Stream<[A, Option.O
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.zipWithPrevious(Stream.make(1, 2, 3, 4))
  *
@@ -2554,8 +2515,7 @@ export const zipWithPrevious = <A, E, R>(self: Stream<A, E, R>): Stream<[Option.
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.zipWithPreviousAndNext(Stream.make(1, 2, 3, 4))
  *
@@ -2672,8 +2632,7 @@ export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const s1 = Stream.make(1, 2, 3)
  * const s2 = Stream.make("a", "b", "c", "d")
@@ -2686,8 +2645,7 @@ export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * // Combining sensor readings with timestamps
  * const temperatures = Stream.make(20.5, 21.0, 20.8, 22.1)
@@ -2731,8 +2689,7 @@ export const zipLatest: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const numbers = Stream.make(1, 2, 3)
  * const multipliers = Stream.make(10, 20, 30)
@@ -2749,8 +2706,7 @@ export const zipLatest: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * // Combining first and last names
  * const firstNames = Stream.make("Alice", "Bob", "Charlie")
@@ -3154,9 +3110,7 @@ export const bufferArray: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { Cause } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const failingStream = Stream.make(1, 2).pipe(
  *   Stream.concat(Stream.fail("Oops!")),
@@ -3405,9 +3359,7 @@ export const mapError: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { Cause } from "effect"
+ * import { Cause, Stream } from "effect"
  *
  * const failingStream = Stream.fail("NetworkError")
  *
@@ -3485,7 +3437,6 @@ export const orElseSucceed: {
  * @example
  * ```ts
  * import { Stream } from "effect"
- * import { Effect } from "effect"
  *
  * const failingStream = Stream.fail("This will become a defect")
  * const stream = Stream.orDie(failingStream)
@@ -3650,8 +3601,7 @@ export const withExecutionPlan: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  *
@@ -3679,8 +3629,7 @@ export const take: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.takeRight(Stream.make(1, 2, 3, 4, 5, 6), 3)
  *
@@ -3716,21 +3665,20 @@ export const takeRight: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5, 6)
  *
  * // Take until we find a number greater than 3
  * const taken = stream.pipe(
- *   Stream.takeUntil(n => n > 3)
+ *   Stream.takeUntil((n) => n > 3)
  * )
  *
  * Effect.runPromise(Stream.runCollect(taken)).then(console.log)
  *
  * // Exclude the element that satisfies the predicate
  * const takenExclusive = stream.pipe(
- *   Stream.takeUntil(n => n > 3, { excludeLast: true })
+ *   Stream.takeUntil((n) => n > 3, { excludeLast: true })
  * )
  *
  * Effect.runPromise(Stream.runCollect(takenExclusive)).then(console.log)
@@ -3777,13 +3725,10 @@ export const takeUntil: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
- * const result = Stream.takeUntilEffect(stream, (n) =>
- *   Effect.succeed(n === 3)
- * )
+ * const result = Stream.takeUntilEffect(stream, (n) => Effect.succeed(n === 3))
  *
  * Effect.runPromise(Stream.runCollect(result)).then(console.log)
  * ```
@@ -3836,8 +3781,7 @@ export const takeUntilEffect: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5, 6)
  * const result = Stream.takeWhile(stream, (n) => n < 4)
@@ -3865,13 +3809,10 @@ export const takeWhile: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
- * const result = Stream.takeWhileEffect(stream, (n) =>
- *   Effect.succeed(n < 4)
- * )
+ * const result = Stream.takeWhileEffect(stream, (n) => Effect.succeed(n < 4))
  *
  * Effect.runPromise(Stream.runCollect(result)).then(console.log)
  * ```
@@ -3902,8 +3843,7 @@ export const takeWhileEffect: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  * const result = Stream.drop(stream, 2)
@@ -4076,8 +4016,7 @@ export const dropRight: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  * const chunked = Stream.chunks(stream)
@@ -4219,9 +4158,7 @@ export const slidingSize: {
  * Splits elements based on a filter function.
  *
  * ```ts
- * import { pipe } from "effect"
- * import { Filter } from "effect"
- * import { Stream } from "effect"
+ * import { Filter, pipe, Stream } from "effect"
  *
  * pipe(
  *   Stream.range(1, 10),
@@ -4719,8 +4656,7 @@ export const debounce: {
  *
  * @example
  * ```ts
- * import { Effect, Schedule } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Schedule, Stream } from "effect"
  *
  * // Using the "shape" strategy to delay elements
  * const stream = Stream.fromSchedule(Schedule.spaced("50 millis")).pipe(
@@ -4877,8 +4813,7 @@ const throttleShapeEffect = <A, E, R, E2, R2>(
  *
  * @example
  * ```ts
- * import { Effect, Schedule } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Schedule, Stream } from "effect"
  *
  * // Rate limiting a stream to 1 element per 100ms using array length as cost
  * const stream = Stream.fromSchedule(Schedule.spaced("50 millis")).pipe(
@@ -5441,9 +5376,8 @@ export const share: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream, Channel } from "effect"
- * import { Console } from "effect"
+ * import type { Channel } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * // Create a channel that processes chunks - this is a conceptual example
  * // In practice, this function is primarily used with specialized channels
@@ -5451,10 +5385,10 @@ export const share: {
  * // encoding/decoding, or platform-specific transformations.
  *
  * declare const transformChannel: Channel.Channel<
- *   readonly [string, ...string[]],
+ *   readonly [string, ...Array<string>],
  *   never,
  *   unknown,
- *   readonly [number, ...number[]],
+ *   readonly [number, ...Array<number>],
  *   never,
  *   unknown,
  *   never
@@ -5463,19 +5397,17 @@ export const share: {
  * const program = Stream.make(1, 2, 3).pipe(
  *   Stream.pipeThroughChannel(transformChannel),
  *   Stream.runCollect,
- *   Effect.flatMap(result => Console.log(result))
+ *   Effect.flatMap((result) => Console.log(result))
  * )
  * ```
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream, Channel } from "effect"
- * import { Console } from "effect"
+ * import { Channel, Console, Effect, Stream } from "effect"
  *
  * // Practical example: combining two channels with pipeTo
  * declare const sourceChannel: Channel.Channel<
- *   readonly [number, ...number[]],
+ *   readonly [number, ...Array<number>],
  *   never,
  *   void,
  *   unknown,
@@ -5484,10 +5416,10 @@ export const share: {
  *   never
  * >
  * declare const transformChannel: Channel.Channel<
- *   readonly [string, ...string[]],
+ *   readonly [string, ...Array<string>],
  *   never,
  *   unknown,
- *   readonly [number, ...number[]],
+ *   readonly [number, ...Array<number>],
  *   never,
  *   void,
  *   never
@@ -5498,7 +5430,7 @@ export const share: {
  * const program = Stream.empty.pipe(
  *   Stream.pipeThroughChannel(combinedChannel),
  *   Stream.runCollect,
- *   Effect.flatMap(result => Console.log(result))
+ *   Effect.flatMap((result) => Console.log(result))
  * )
  * ```
  *
@@ -5528,16 +5460,15 @@ export const pipeThroughChannel: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream, Channel } from "effect"
- * import { Console } from "effect"
+ * import type { Channel } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * // Channel that might fail during processing
  * declare const transformChannel: Channel.Channel<
- *   readonly [string, ...string[]],
+ *   readonly [string, ...Array<string>],
  *   "ChannelError",
  *   unknown,
- *   readonly [number, ...number[]],
+ *   readonly [number, ...Array<number>],
  *   never,
  *   unknown,
  *   never
@@ -5546,26 +5477,27 @@ export const pipeThroughChannel: {
  * const program = Stream.make(1, 2, 3).pipe(
  *   Stream.pipeThroughChannelOrFail(transformChannel),
  *   Stream.runCollect,
- *   Effect.flatMap(result => Console.log(result))
+ *   Effect.flatMap((result) => Console.log(result))
  * )
  * ```
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream, Channel } from "effect"
- * import { Console } from "effect"
+ * import type { Channel } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * // Demonstrate error preservation: both stream and channel can fail
  * const failingStream = Stream.make(1, 2, 3).pipe(
- *   Stream.flatMap(n => n === 2 ? Stream.fail("StreamError" as const) : Stream.succeed(n))
+ *   Stream.flatMap((n) =>
+ *     n === 2 ? Stream.fail("StreamError" as const) : Stream.succeed(n)
+ *   )
  * )
  *
  * declare const numericTransformChannel: Channel.Channel<
- *   readonly [string, ...string[]],
+ *   readonly [string, ...Array<string>],
  *   "ChannelError",
  *   unknown,
- *   readonly [number, ...number[]],
+ *   readonly [number, ...Array<number>],
  *   "StreamError",
  *   unknown,
  *   never
@@ -5739,8 +5671,7 @@ export const changesWithEffect: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const encoder = new TextEncoder()
  * const stream = Stream.make(
@@ -5772,8 +5703,7 @@ export const decodeText: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make("Hello", " ", "World")
  * const encoded = Stream.encodeText(stream)
@@ -5805,8 +5735,7 @@ export const splitLines = <E, R>(self: Stream<string, E, R>): Stream<string, E, 
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5).pipe(Stream.intersperse(0))
  *
@@ -5842,8 +5771,7 @@ export const intersperse: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5).pipe(
  *   Stream.intersperseAffixes({
@@ -5889,8 +5817,7 @@ export const intersperseAffixes: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const s1 = Stream.make(1, 2, 3)
  * const s2 = Stream.make(4, 5, 6)
@@ -5927,8 +5854,7 @@ export const interleave: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const s1 = Stream.make(1, 3, 5, 7, 9)
  * const s2 = Stream.make(2, 4, 6, 8, 10)
@@ -6050,9 +5976,7 @@ export const haltWhen: {
  *
  * @example
  * ```ts
- * import { Effect, Exit } from "effect"
- * import { Console } from "effect"
- * import { Stream } from "effect"
+ * import { Console, Effect, Exit, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3).pipe(
  *   Stream.onExit((exit) =>
@@ -6429,8 +6353,7 @@ export const bindTo: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream, Sink } from "effect"
+ * import { Effect, Sink, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  * const collectSink = Sink.succeed(42)
@@ -6466,8 +6389,7 @@ export const run: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  *
@@ -6497,8 +6419,7 @@ export const runCollect = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Array<
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  *
@@ -6611,14 +6532,13 @@ export const runLast = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<Option.Op
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
  *
- * const program = Stream.runForEach(stream, (n) =>
- *   Console.log(`Processing: ${n}`)
+ * const program = Stream.runForEach(
+ *   stream,
+ *   (n) => Console.log(`Processing: ${n}`)
  * )
  *
  * Effect.runPromise(program)
@@ -6689,13 +6609,12 @@ export const runForEachWhile: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
- * const result = Stream.runForEachArray(stream, (chunk) =>
- *   Console.log(`Processing chunk: ${chunk.join(", ")}`)
+ * const result = Stream.runForEachArray(
+ *   stream,
+ *   (chunk) => Console.log(`Processing chunk: ${chunk.join(", ")}`)
  * )
  *
  * Effect.runPromise(result)
@@ -6723,9 +6642,7 @@ export const runForEachArray: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Stream } from "effect"
- * import { Console } from "effect"
+ * import { Console, Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3).pipe(
  *   Stream.mapEffect((n) => Console.log(`Processing: ${n}`))
@@ -6750,13 +6667,11 @@ export const runDrain = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<void, E,
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
- * import { Scope } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3)
  * const program = Effect.scoped(
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const pull = yield* Stream.toPull(stream)
  *     const chunk1 = yield* pull
  *     console.log(chunk1) // [1, 2, 3]
@@ -6779,8 +6694,7 @@ export const toPull = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make("Hello", " ", "World", "!")
  * const result = Stream.mkString(stream)
@@ -6806,8 +6720,7 @@ export const mkString = <E, R>(self: Stream<string, E, R>): Effect.Effect<string
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { ServiceMap } from "effect"
+ * import { ServiceMap, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  * const readableStream = Stream.toReadableStreamWith(stream, ServiceMap.empty())
@@ -6918,13 +6831,12 @@ export const toReadableStream: {
  *
  * @example
  * ```ts
- * import { Stream } from "effect"
- * import { Effect } from "effect"
+ * import { Effect, Stream } from "effect"
  *
  * const stream = Stream.make(1, 2, 3, 4, 5)
  * const readableStreamEffect = Stream.toReadableStreamEffect(stream)
  *
- * Effect.runPromise(readableStreamEffect).then(rs =>
+ * Effect.runPromise(readableStreamEffect).then((rs) =>
  *   console.log(rs instanceof ReadableStream) // true
  * )
  * ```

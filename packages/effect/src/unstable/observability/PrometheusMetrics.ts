@@ -39,7 +39,7 @@ import * as HttpServerResponse from "../http/HttpServerResponse.ts"
  *
  * @example
  * ```ts
- * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
+ * import type * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
  *
  * // Convert camelCase to snake_case
  * const mapper: PrometheusMetrics.MetricNameMapper = (name) =>
@@ -168,9 +168,6 @@ export const formatUnsafe = (
  *
  * @example
  * ```ts
- * import { Effect, Layer } from "effect"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpServer from "effect/unstable/http/HttpServer"
  * import * as PrometheusMetrics from "effect/unstable/observability/PrometheusMetrics"
  *
  * // Create a layer that adds /metrics endpoint to the router

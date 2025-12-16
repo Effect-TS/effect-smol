@@ -7,16 +7,15 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a ref with initial value
  *   const counter = yield* Ref.make(0)
  *
  *   // Atomic operations
- *   yield* Ref.update(counter, n => n + 1)
- *   yield* Ref.update(counter, n => n * 2)
+ *   yield* Ref.update(counter, (n) => n + 1)
+ *   yield* Ref.update(counter, (n) => n * 2)
  *
  *   const value = yield* Ref.get(counter)
  *   console.log(value) // 2
@@ -47,8 +46,7 @@ const TypeId = "~effect/Ref"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a ref with initial value
@@ -59,7 +57,7 @@ const TypeId = "~effect/Ref"
  *   console.log(value) // 0
  *
  *   // Update the value atomically
- *   yield* Ref.update(counter, n => n + 1)
+ *   yield* Ref.update(counter, (n) => n + 1)
  *
  *   // Read the updated value
  *   const newValue = yield* Ref.get(counter)
@@ -86,8 +84,7 @@ export declare namespace Ref {
    *
    * @example
    * ```ts
-   * import { Effect } from "effect"
-   * import { Ref } from "effect"
+   * import { Effect, Ref } from "effect"
    *
    * // This interface defines the invariant nature of Ref's type parameter
    * // A Ref<A> is both a producer and consumer of A
@@ -95,8 +92,8 @@ export declare namespace Ref {
    *   const ref = yield* Ref.make(42)
    *
    *   // Ref is invariant - it can both produce and consume numbers
-   *   const value = yield* Ref.get(ref)  // produces number
-   *   yield* Ref.set(ref, value + 1)     // consumes number
+   *   const value = yield* Ref.get(ref) // produces number
+   *   yield* Ref.set(ref, value + 1) // consumes number
    * })
    * ```
    *
@@ -161,8 +158,7 @@ export const makeUnsafe = <A>(value: A): Ref<A> => {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* Ref.make(42)
@@ -181,8 +177,7 @@ export const make = <A>(value: A): Effect.Effect<Ref<A>> => Effect.sync(() => ma
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* Ref.make(42)
@@ -201,8 +196,7 @@ export const get = <A>(self: Ref<A>) => Effect.sync(() => self.ref.current)
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* Ref.make(0)
@@ -235,8 +229,7 @@ export const set = dual<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* Ref.make("initial")
@@ -270,14 +263,13 @@ export const getAndSet = dual<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(10)
  *
  *   // Get current value and update it atomically
- *   const previous = yield* Ref.getAndUpdate(counter, n => n * 2)
+ *   const previous = yield* Ref.getAndUpdate(counter, (n) => n * 2)
  *   console.log(previous) // 10
  *
  *   const current = yield* Ref.get(counter)
@@ -307,16 +299,16 @@ export const getAndUpdate = dual<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  * import * as Option from "effect/Option"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
  *
  *   // Only update if value is greater than 3
- *   const previous1 = yield* Ref.getAndUpdateSome(counter, n =>
- *     n > 3 ? Option.some(n * 2) : Option.none()
+ *   const previous1 = yield* Ref.getAndUpdateSome(
+ *     counter,
+ *     (n) => n > 3 ? Option.some(n * 2) : Option.none()
  *   )
  *   console.log(previous1) // 5
  *
@@ -324,8 +316,9 @@ export const getAndUpdate = dual<
  *   console.log(current1) // 10
  *
  *   // Try to update again (won't update since 10 > 3 is true but let's say condition is n < 3)
- *   const previous2 = yield* Ref.getAndUpdateSome(counter, n =>
- *     n < 3 ? Option.some(n * 2) : Option.none()
+ *   const previous2 = yield* Ref.getAndUpdateSome(
+ *     counter,
+ *     (n) => n < 3 ? Option.some(n * 2) : Option.none()
  *   )
  *   console.log(previous2) // 10
  *
@@ -357,8 +350,7 @@ export const getAndUpdateSome = dual<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref = yield* Ref.make(10)
@@ -397,16 +389,15 @@ export const setAndGet = dual<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(10)
  *
  *   // Modify the ref and return some computation result
- *   const result = yield* Ref.modify(counter, n => [
+ *   const result = yield* Ref.modify(counter, (n) => [
  *     `Previous value was ${n}`, // Return value
- *     n * 2                      // New ref value
+ *     n * 2 // New ref value
  *   ])
  *
  *   console.log(result) // "Previous value was 10"
@@ -419,8 +410,8 @@ export const setAndGet = dual<
  * const program2 = Effect.gen(function*() {
  *   const state = yield* Ref.make({ count: 0, total: 0 })
  *
- *   const incremented = yield* Ref.modify(state, s => [
- *     s.count,                           // Return previous count
+ *   const incremented = yield* Ref.modify(state, (s) => [
+ *     s.count, // Return previous count
  *     { count: s.count + 1, total: s.total + s.count + 1 } // New state
  *   ])
  *
@@ -450,8 +441,7 @@ export const modify = dual<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  * import * as Option from "effect/Option"
  *
  * const program = Effect.gen(function*() {
@@ -460,9 +450,10 @@ export const modify = dual<
  *   // Only modify if value is greater than 3
  *   const result1 = yield* Ref.modifySome(
  *     counter,
- *     n => n > 3
- *       ? [`incremented ${n}`, Option.some(n + 10)]
- *       : ["no change", Option.none()]
+ *     (n) =>
+ *       n > 3
+ *         ? [`incremented ${n}`, Option.some(n + 10)]
+ *         : ["no change", Option.none()]
  *   )
  *
  *   console.log(result1) // "incremented 5"
@@ -473,9 +464,10 @@ export const modify = dual<
  *   // Try to modify with a condition that fails
  *   const result2 = yield* Ref.modifySome(
  *     counter,
- *     n => n < 10
- *       ? [`decremented ${n}`, Option.some(n - 5)]
- *       : ["no change", Option.none()]
+ *     (n) =>
+ *       n < 10
+ *         ? [`decremented ${n}`, Option.some(n - 5)]
+ *         : ["no change", Option.none()]
  *   )
  *
  *   console.log(result2) // "no change"
@@ -510,14 +502,13 @@ export const modifySome: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
  *
  *   // Update the value
- *   yield* Ref.update(counter, n => n * 2)
+ *   yield* Ref.update(counter, (n) => n * 2)
  *
  *   const value = yield* Ref.get(counter)
  *   console.log(value) // 10
@@ -548,14 +539,13 @@ export const update = dual<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
  *
  *   // Update and get the new value in one operation
- *   const newValue = yield* Ref.updateAndGet(counter, n => n * 3)
+ *   const newValue = yield* Ref.updateAndGet(counter, (n) => n * 3)
  *   console.log(newValue) // 15
  *
  *   // Verify the ref contains the new value
@@ -580,16 +570,16 @@ export const updateAndGet = dual<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  * import * as Option from "effect/Option"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
  *
  *   // Only update if value is even
- *   yield* Ref.updateSome(counter, n =>
- *     n % 2 === 0 ? Option.some(n * 2) : Option.none()
+ *   yield* Ref.updateSome(
+ *     counter,
+ *     (n) => n % 2 === 0 ? Option.some(n * 2) : Option.none()
  *   )
  *
  *   let current = yield* Ref.get(counter)
@@ -597,8 +587,9 @@ export const updateAndGet = dual<
  *
  *   // Set to even number and try again
  *   yield* Ref.set(counter, 6)
- *   yield* Ref.updateSome(counter, n =>
- *     n % 2 === 0 ? Option.some(n * 2) : Option.none()
+ *   yield* Ref.updateSome(
+ *     counter,
+ *     (n) => n % 2 === 0 ? Option.some(n * 2) : Option.none()
  *   )
  *
  *   current = yield* Ref.get(counter)
@@ -629,22 +620,23 @@ export const updateSome = dual<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Ref } from "effect"
+ * import { Effect, Ref } from "effect"
  * import * as Option from "effect/Option"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(10)
  *
  *   // Only update if value is greater than 5
- *   const result1 = yield* Ref.updateSomeAndGet(counter, n =>
- *     n > 5 ? Option.some(n / 2) : Option.none()
+ *   const result1 = yield* Ref.updateSomeAndGet(
+ *     counter,
+ *     (n) => n > 5 ? Option.some(n / 2) : Option.none()
  *   )
  *   console.log(result1) // 5 (updated and returned)
  *
  *   // Try to update again with same condition
- *   const result2 = yield* Ref.updateSomeAndGet(counter, n =>
- *     n > 5 ? Option.some(n / 2) : Option.none()
+ *   const result2 = yield* Ref.updateSomeAndGet(
+ *     counter,
+ *     (n) => n > 5 ? Option.some(n / 2) : Option.none()
  *   )
  *   console.log(result2) // 5 (unchanged because 5 is not > 5)
  * })

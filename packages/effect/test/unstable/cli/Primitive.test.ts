@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, Redacted } from "effect"
-import { FileSystem, Path, PlatformError } from "effect/platform"
+import { Effect, FileSystem, Layer, Path, PlatformError, Redacted } from "effect"
 import { Primitive } from "effect/unstable/cli"
 
 const FileSystemLayer = FileSystem.layerNoop({})

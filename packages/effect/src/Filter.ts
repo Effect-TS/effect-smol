@@ -20,11 +20,10 @@ import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./types/Types.ts"
  * import { Filter } from "effect"
  *
  * // A filter that only passes positive numbers
- * const positiveFilter: Filter.Filter<number> = (n) =>
- *   n > 0 ? n : Filter.fail(n)
+ * const positiveFilter: Filter.Filter<number> = (n) => n > 0 ? n : Filter.fail(n)
  *
- * console.log(positiveFilter(5))   // 5
- * console.log(positiveFilter(-3))  // fail
+ * console.log(positiveFilter(5)) // 5
+ * console.log(positiveFilter(-3)) // fail
  * ```
  *
  * @since 4.0.0
@@ -42,15 +41,20 @@ export interface Filter<in Input, out Pass = Input, out Fail = Input> {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Filter } from "effect"
+ * import { Effect, Filter } from "effect"
  *
  * // An effectful filter that validates user data
  * type User = { id: string; isActive: boolean }
  * type ValidationError = { message: string }
  *
- * const validateUser: Filter.FilterEffect<string, User, User, ValidationError, never> = (id) =>
- *   Effect.gen(function* () {
+ * const validateUser: Filter.FilterEffect<
+ *   string,
+ *   User,
+ *   User,
+ *   ValidationError,
+ *   never
+ * > = (id) =>
+ *   Effect.gen(function*() {
  *     // Simple validation logic
  *     const user: User = { id, isActive: id.length > 0 }
  *     return user.isActive ? user : Filter.fail(user)
@@ -121,17 +125,15 @@ export type WithoutFail<A> = Exclude<A, fail<any>>
  * import { Filter } from "effect"
  *
  * // Create a filter for positive numbers
- * const positiveFilter = Filter.make((n: number) =>
- *   n > 0 ? n : Filter.fail(n)
- * )
+ * const positiveFilter = Filter.make((n: number) => n > 0 ? n : Filter.fail(n))
  *
  * // Create a filter that transforms strings to uppercase
  * const uppercaseFilter = Filter.make((s: string) =>
  *   s.length > 0 ? s.toUpperCase() : Filter.fail(s)
  * )
  *
- * console.log(positiveFilter(5))     // 5
- * console.log(positiveFilter(-1))    // `fail`
+ * console.log(positiveFilter(5)) // 5
+ * console.log(positiveFilter(-1)) // `fail`
  * console.log(uppercaseFilter("hi")) // "HI"
  * ```
  *
@@ -151,19 +153,18 @@ export const make = <Input, Pass, Fail>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Filter } from "effect"
+ * import { Effect, Filter } from "effect"
  *
  * // Create an effectful filter that validates async
  * const asyncValidate = Filter.makeEffect((id: string) =>
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const isValid = yield* Effect.succeed(id.length > 0) // Simple validation
  *     return isValid ? id : Filter.fail(id)
  *   })
  * )
  *
  * // Use in Effect context
- * const program = Effect.gen(function* () {
+ * const program = Effect.gen(function*() {
  *   const result = yield* asyncValidate("user123")
  *   console.log(result) // "user123" or fail
  * })
@@ -230,12 +231,14 @@ export {
  * const nonEmptyStrings = Filter.fromPredicate((s: string) => s.length > 0)
  *
  * // Type refinement
- * const isString = Filter.fromPredicate((x: unknown): x is string => typeof x === "string")
+ * const isString = Filter.fromPredicate((x: unknown): x is string =>
+ *   typeof x === "string"
+ * )
  *
- * console.log(positiveNumbers(5))    // 5
- * console.log(positiveNumbers(-1))   // fail
- * console.log(isString("hello"))     // "hello" (typed as string)
- * console.log(isString(42))          // fail
+ * console.log(positiveNumbers(5)) // 5
+ * console.log(positiveNumbers(-1)) // fail
+ * console.log(isString("hello")) // "hello" (typed as string)
+ * console.log(isString(42)) // fail
  * ```
  *
  * @since 4.0.0
@@ -292,14 +295,14 @@ export const toPredicate = <A, Pass, Fail>(
  * ```ts
  * import { Filter } from "effect"
  *
- * console.log(Filter.string("hello"))  // "hello"
- * console.log(Filter.string(42))       // fail
- * console.log(Filter.string(true))     // fail
- * console.log(Filter.string(null))     // fail
+ * console.log(Filter.string("hello")) // "hello"
+ * console.log(Filter.string(42)) // fail
+ * console.log(Filter.string(true)) // fail
+ * console.log(Filter.string(null)) // fail
  *
  * // Use with arrays of mixed types
  * const mixed = ["a", 1, "b", true, "c"]
- * const strings = mixed.map(Filter.string).filter(x => Filter.isPass(x))
+ * const strings = mixed.map(Filter.string).filter((x) => Filter.isPass(x))
  * console.log(strings) // ["a", "b", "c"]
  * ```
  *
@@ -350,11 +353,11 @@ export const instanceOf =
  * ```ts
  * import { Filter } from "effect"
  *
- * console.log(Filter.number(42))       // 42
- * console.log(Filter.number(3.14))     // 3.14
- * console.log(Filter.number("42"))     // fail
- * console.log(Filter.number(true))     // fail
- * console.log(Filter.number(NaN))      // fail
+ * console.log(Filter.number(42)) // 42
+ * console.log(Filter.number(3.14)) // 3.14
+ * console.log(Filter.number("42")) // fail
+ * console.log(Filter.number(true)) // fail
+ * console.log(Filter.number(NaN)) // fail
  *
  * // Extract numbers from mixed array
  * const mixed = [1, "2", 3, true, 4.5]
@@ -362,14 +365,19 @@ export const instanceOf =
  * console.log(numbers) // [1, 3, 4.5]
  *
  * // Use with array filtering
- * const data: unknown[] = [10, "hello", 20, null, 30.5, "world"]
- * const numbersOnly = data.filter(item => Filter.isPass(Filter.number(item))) as number[]
+ * const data: Array<unknown> = [10, "hello", 20, null, 30.5, "world"]
+ * const numbersOnly = data.filter((item) =>
+ *   Filter.isPass(Filter.number(item))
+ * ) as Array<number>
  * console.log(numbersOnly) // [10, 20, 30.5]
  *
  * // Combine with other filters
- * const positiveNumbers = Filter.compose(Filter.number, Filter.fromPredicate((n: number) => n > 0))
- * console.log(positiveNumbers(5))   // 5
- * console.log(positiveNumbers(-1))  // fail
+ * const positiveNumbers = Filter.compose(
+ *   Filter.number,
+ *   Filter.fromPredicate((n: number) => n > 0)
+ * )
+ * console.log(positiveNumbers(5)) // 5
+ * console.log(positiveNumbers(-1)) // fail
  * console.log(positiveNumbers("5")) // fail
  * ```
  *
@@ -524,8 +532,8 @@ export const zipWith: {
  * // Combine into tuple
  * const positiveAndEven = Filter.zip(positiveNumbers, evenNumbers)
  *
- * console.log(positiveAndEven(4))  // [4, 4] (both filters pass)
- * console.log(positiveAndEven(3))  // fail (not even)
+ * console.log(positiveAndEven(4)) // [4, 4] (both filters pass)
+ * console.log(positiveAndEven(3)) // fail (not even)
  * console.log(positiveAndEven(-2)) // fail (not positive)
  *
  * // Different types
@@ -571,8 +579,8 @@ export const zip: {
  * // Validate both conditions but return the original number
  * const positiveEven = Filter.andLeft(positiveNumbers, evenNumbers)
  *
- * console.log(positiveEven(4))  // 4 (both conditions met, returns left result)
- * console.log(positiveEven(3))  // fail (not even)
+ * console.log(positiveEven(4)) // 4 (both conditions met, returns left result)
+ * console.log(positiveEven(3)) // fail (not even)
  * console.log(positiveEven(-2)) // fail (not positive)
  *
  * // Useful for validation pipelines
@@ -617,12 +625,14 @@ export const andLeft: {
  * // Validate positive but return doubled value
  * const positiveDoubled = Filter.andRight(positiveNumbers, doubleNumbers)
  *
- * console.log(positiveDoubled(5))  // 10 (positive, returns doubled)
+ * console.log(positiveDoubled(5)) // 10 (positive, returns doubled)
  * console.log(positiveDoubled(-3)) // fail (not positive)
  *
  * // Sequential transformations
  * const nonEmpty = Filter.fromPredicate((s: string) => s.length > 0)
- * const uppercase = Filter.make((s: string) => s.length > 0 ? s.toUpperCase() : Filter.fail(s))
+ * const uppercase = Filter.make((s: string) =>
+ *   s.length > 0 ? s.toUpperCase() : Filter.fail(s)
+ * )
  * const transform = Filter.andRight(nonEmpty, uppercase)
  * console.log(transform("hello")) // "HELLO"
  * ```
@@ -667,9 +677,9 @@ export const andRight: {
  * // Compose: unknown -> string -> uppercase string
  * const stringToUpper = Filter.compose(stringFilter, nonEmptyUpper)
  *
- * console.log(stringToUpper("hello"))  // "HELLO"
- * console.log(stringToUpper(""))       // fail (empty string)
- * console.log(stringToUpper(123))      // fail (not a string)
+ * console.log(stringToUpper("hello")) // "HELLO"
+ * console.log(stringToUpper("")) // fail (empty string)
+ * console.log(stringToUpper(123)) // fail (not a string)
  *
  * // Multi-stage number processing
  * const positiveFilter = Filter.fromPredicate((n: number) => n > 0)

@@ -1360,11 +1360,17 @@ export type RoundingMode =
  *
  * @example
  * ```ts
+ * import { fromStringUnsafe, round } from "effect/BigDecimal"
  * import * as assert from "node:assert"
- * import { round, fromStringUnsafe } from "effect/BigDecimal"
  *
- * assert.deepStrictEqual(round(fromStringUnsafe("145"), { mode: "from-zero", scale: -1 }), fromStringUnsafe("150"))
- * assert.deepStrictEqual(round(fromStringUnsafe("-14.5")), fromStringUnsafe("-15"))
+ * assert.deepStrictEqual(
+ *   round(fromStringUnsafe("145"), { mode: "from-zero", scale: -1 }),
+ *   fromStringUnsafe("150")
+ * )
+ * assert.deepStrictEqual(
+ *   round(fromStringUnsafe("-14.5")),
+ *   fromStringUnsafe("-15")
+ * )
  * ```
  *
  * @since 4.0.0
@@ -1425,11 +1431,17 @@ export const round: {
  *
  * @example
  * ```ts
+ * import { fromStringUnsafe, truncate } from "effect/BigDecimal"
  * import * as assert from "node:assert"
- * import { truncate, fromStringUnsafe } from "effect/BigDecimal"
  *
- * assert.deepStrictEqual(truncate(fromStringUnsafe("145"), -1), fromStringUnsafe("140"))
- * assert.deepStrictEqual(truncate(fromStringUnsafe("-14.5")), fromStringUnsafe("-14"))
+ * assert.deepStrictEqual(
+ *   truncate(fromStringUnsafe("145"), -1),
+ *   fromStringUnsafe("140")
+ * )
+ * assert.deepStrictEqual(
+ *   truncate(fromStringUnsafe("-14.5")),
+ *   fromStringUnsafe("-14")
+ * )
  * ```
  *
  * @since 4.0.0
@@ -1452,10 +1464,13 @@ export const truncate: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { ceil, fromStringUnsafe } from "effect/BigDecimal"
+ * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(ceil(fromStringUnsafe("145"), -1), fromStringUnsafe("150"))
+ * assert.deepStrictEqual(
+ *   ceil(fromStringUnsafe("145"), -1),
+ *   fromStringUnsafe("150")
+ * )
  * assert.deepStrictEqual(ceil(fromStringUnsafe("-14.5")), fromStringUnsafe("-14"))
  * ```
  *
@@ -1499,11 +1514,17 @@ export const digitAt: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { floor, fromStringUnsafe } from "effect/BigDecimal"
+ * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(floor(fromStringUnsafe("145"), -1), fromStringUnsafe("140"))
- * assert.deepStrictEqual(floor(fromStringUnsafe("-14.5")), fromStringUnsafe("-15"))
+ * assert.deepStrictEqual(
+ *   floor(fromStringUnsafe("145"), -1),
+ *   fromStringUnsafe("140")
+ * )
+ * assert.deepStrictEqual(
+ *   floor(fromStringUnsafe("-14.5")),
+ *   fromStringUnsafe("-15")
+ * )
  * ```
  *
  * @since 4.0.0

@@ -55,12 +55,11 @@
  *
  * @example
  * ```ts
- * import { Chunk } from "effect"
-import { Effect } from "effect"
+ * import { Chunk, Effect } from "effect"
  *
  * // Working with Effects
  * const processChunk = (chunk: Chunk.Chunk<number>) =>
- *   Effect.gen(function* () {
+ *   Effect.gen(function*() {
  *     const mapped = Chunk.map(chunk, (n) => n * 2)
  *     const filtered = Chunk.filter(mapped, (n) => n > 5)
  *     return Chunk.toReadonlyArray(filtered)
@@ -139,8 +138,8 @@ export interface NonEmptyChunk<out A> extends Chunk<A>, NonEmptyIterable<A> {}
  *
  * @example
  * ```ts
- * import type { Kind } from "effect/types/HKT"
  * import type { ChunkTypeLambda } from "effect/Chunk"
+ * import type { Kind } from "effect/types/HKT"
  *
  * // Create a Chunk type using the type lambda
  * type NumberChunk = Kind<ChunkTypeLambda, never, never, never, number>
@@ -209,7 +208,7 @@ const emptyArray: ReadonlyArray<never> = []
  * @example
  * ```ts
  * import { Chunk } from "effect"
-import * as Equivalence from "effect/Equivalence"
+ * import * as Equivalence from "effect/Equivalence"
  *
  * const chunk1 = Chunk.make(1, 2, 3)
  * const chunk2 = Chunk.make(1, 2, 3)
@@ -558,7 +557,6 @@ export const reverse: <S extends Chunk<any>>(self: S) => Chunk.With<S, Chunk.Inf
  * @example
  * ```ts
  * import { Chunk } from "effect"
- * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make("a", "b", "c", "d")
  *
@@ -611,7 +609,7 @@ export const fromArrayUnsafe = <A>(self: ReadonlyArray<A>): Chunk<A> =>
  * @example
  * ```ts
  * import { Chunk } from "effect"
-import * as Array from "effect/Array"
+ * import * as Array from "effect/Array"
  *
  * const nonEmptyArray = Array.make(1, 2, 3, 4, 5)
  * const chunk = Chunk.fromNonEmptyArrayUnsafe(nonEmptyArray)
@@ -904,7 +902,10 @@ export const dropWhile: {
  * ```ts
  * import { Chunk } from "effect"
  *
- * const result = Chunk.make(1, 2).pipe(Chunk.prependAll(Chunk.make("a", "b")), Chunk.toArray)
+ * const result = Chunk.make(1, 2).pipe(
+ *   Chunk.prependAll(Chunk.make("a", "b")),
+ *   Chunk.toArray
+ * )
  *
  * console.log(result)
  * // [ "a", "b", 1, 2 ]
@@ -931,7 +932,10 @@ export const prependAll: {
  * ```ts
  * import { Chunk } from "effect"
  *
- * const result = Chunk.make(1, 2).pipe(Chunk.appendAll(Chunk.make("a", "b")), Chunk.toArray)
+ * const result = Chunk.make(1, 2).pipe(
+ *   Chunk.appendAll(Chunk.make("a", "b")),
+ *   Chunk.toArray
+ * )
  *
  * console.log(result)
  * // [ 1, 2, "a", "b" ]
@@ -1116,7 +1120,10 @@ export const compact = <A>(self: Chunk<Option<A>>): Chunk<A> => filterMap(self, 
  *
  * // Flattening nested arrays
  * const words = Chunk.make("hello", "world")
- * const letters = Chunk.flatMap(words, (word) => Chunk.fromIterable(word.split("")))
+ * const letters = Chunk.flatMap(
+ *   words,
+ *   (word) => Chunk.fromIterable(word.split(""))
+ * )
  * console.log(Chunk.toArray(letters)) // ["h", "e", "l", "l", "o", "w", "o", "r", "l", "d"]
  *
  * // With index parameter
@@ -1332,7 +1339,6 @@ export const isNonEmpty = <A>(self: Chunk<A>): self is NonEmptyChunk<A> => self.
  * @example
  * ```ts
  * import { Chunk } from "effect"
- * import * as Option from "effect/Option"
  *
  * console.log(Chunk.head(Chunk.empty())) // { _tag: "None" }
  * console.log(Chunk.head(Chunk.make(1, 2, 3))) // { _tag: "Some", value: 1 }
@@ -1399,7 +1405,6 @@ export const headNonEmpty: <A>(self: NonEmptyChunk<A>) => A = headUnsafe
  * @example
  * ```ts
  * import { Chunk } from "effect"
- * import * as Option from "effect/Option"
  *
  * console.log(Chunk.last(Chunk.empty())) // { _tag: "None" }
  * console.log(Chunk.last(Chunk.make(1, 2, 3))) // { _tag: "Some", value: 3 }
@@ -1465,7 +1470,7 @@ export const lastNonEmpty: <A>(self: NonEmptyChunk<A>) => A = lastUnsafe
  *
  * @example
  * ```ts
- * import { Chunk } from "effect"
+ * import type { Chunk } from "effect"
  *
  * // Extract the element type from a Chunk
  * declare const chunk: Chunk.Chunk<string>
@@ -1485,7 +1490,7 @@ export declare namespace Chunk {
    *
    * @example
    * ```ts
-   * import { Chunk } from "effect"
+   * import type { Chunk } from "effect"
    *
    * declare const numberChunk: Chunk.Chunk<number>
    * declare const stringChunk: Chunk.Chunk<string>
@@ -1504,7 +1509,7 @@ export declare namespace Chunk {
    *
    * @example
    * ```ts
-   * import { Chunk } from "effect"
+   * import type { Chunk } from "effect"
    *
    * declare const regularChunk: Chunk.Chunk<number>
    * declare const nonEmptyChunk: Chunk.NonEmptyChunk<number>
@@ -1523,14 +1528,26 @@ export declare namespace Chunk {
    *
    * @example
    * ```ts
-   * import { Chunk } from "effect"
+   * import type { Chunk } from "effect"
    *
    * declare const emptyChunk: Chunk.Chunk<number>
    * declare const nonEmptyChunk: Chunk.NonEmptyChunk<number>
    *
-   * type Result1 = Chunk.Chunk.OrNonEmpty<typeof emptyChunk, typeof emptyChunk, string> // Chunk.Chunk<string>
-   * type Result2 = Chunk.Chunk.OrNonEmpty<typeof emptyChunk, typeof nonEmptyChunk, string> // Chunk.NonEmptyChunk<string>
-   * type Result3 = Chunk.Chunk.OrNonEmpty<typeof nonEmptyChunk, typeof emptyChunk, string> // Chunk.NonEmptyChunk<string>
+   * type Result1 = Chunk.Chunk.OrNonEmpty<
+   *   typeof emptyChunk,
+   *   typeof emptyChunk,
+   *   string
+   * > // Chunk.Chunk<string>
+   * type Result2 = Chunk.Chunk.OrNonEmpty<
+   *   typeof emptyChunk,
+   *   typeof nonEmptyChunk,
+   *   string
+   * > // Chunk.NonEmptyChunk<string>
+   * type Result3 = Chunk.Chunk.OrNonEmpty<
+   *   typeof nonEmptyChunk,
+   *   typeof emptyChunk,
+   *   string
+   * > // Chunk.NonEmptyChunk<string>
    * ```
    *
    * @category types
@@ -1546,14 +1563,26 @@ export declare namespace Chunk {
    *
    * @example
    * ```ts
-   * import { Chunk } from "effect"
+   * import type { Chunk } from "effect"
    *
    * declare const emptyChunk: Chunk.Chunk<number>
    * declare const nonEmptyChunk: Chunk.NonEmptyChunk<number>
    *
-   * type Result1 = Chunk.Chunk.AndNonEmpty<typeof emptyChunk, typeof emptyChunk, string> // Chunk.Chunk<string>
-   * type Result2 = Chunk.Chunk.AndNonEmpty<typeof emptyChunk, typeof nonEmptyChunk, string> // Chunk.Chunk<string>
-   * type Result3 = Chunk.Chunk.AndNonEmpty<typeof nonEmptyChunk, typeof nonEmptyChunk, string> // Chunk.NonEmptyChunk<string>
+   * type Result1 = Chunk.Chunk.AndNonEmpty<
+   *   typeof emptyChunk,
+   *   typeof emptyChunk,
+   *   string
+   * > // Chunk.Chunk<string>
+   * type Result2 = Chunk.Chunk.AndNonEmpty<
+   *   typeof emptyChunk,
+   *   typeof nonEmptyChunk,
+   *   string
+   * > // Chunk.Chunk<string>
+   * type Result3 = Chunk.Chunk.AndNonEmpty<
+   *   typeof nonEmptyChunk,
+   *   typeof nonEmptyChunk,
+   *   string
+   * > // Chunk.NonEmptyChunk<string>
    * ```
    *
    * @category types
@@ -1569,7 +1598,7 @@ export declare namespace Chunk {
    *
    * @example
    * ```ts
-   * import { Chunk } from "effect"
+   * import type { Chunk } from "effect"
    *
    * declare const nestedChunk: Chunk.Chunk<Chunk.Chunk<number>>
    * declare const nestedNonEmpty: Chunk.NonEmptyChunk<Chunk.NonEmptyChunk<string>>
@@ -1622,8 +1651,8 @@ export const map: {
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const [finalState, mapped] = Chunk.mapAccum(chunk, 0, (state, current) => [
- *   state + current,  // accumulate sum
- *   state + current   // output running sum
+ *   state + current, // accumulate sum
+ *   state + current // output running sum
  * ])
  *
  * console.log(finalState) // 15 (final accumulated sum)
@@ -1670,7 +1699,10 @@ export const mapAccum: {
  *
  * // With refinement
  * const mixed = Chunk.make("hello", 42, "world", 100)
- * const [strings, numbers] = Chunk.partition(mixed, (x): x is number => typeof x === "number")
+ * const [strings, numbers] = Chunk.partition(
+ *   mixed,
+ *   (x): x is number => typeof x === "number"
+ * )
  * console.log(Chunk.toArray(strings)) // ["hello", "world"]
  * console.log(Chunk.toArray(numbers)) // [42, 100]
  * ```
@@ -1720,8 +1752,9 @@ export const partition: {
  *
  * // All successes
  * const validNumbers = Chunk.make("1", "2", "3")
- * const [noErrors, allNumbers] = Chunk.partitionMap(validNumbers, (str) =>
- *   Result.succeed(parseInt(str))
+ * const [noErrors, allNumbers] = Chunk.partitionMap(
+ *   validNumbers,
+ *   (str) => Result.succeed(parseInt(str))
  * )
  * console.log(Chunk.toArray(noErrors)) // []
  * console.log(Chunk.toArray(allNumbers)) // [1, 2, 3]
@@ -1797,7 +1830,7 @@ export const size = <A>(self: Chunk<A>): number => self.length
  * @example
  * ```ts
  * import { Chunk } from "effect"
-import * as Order from "effect/Order"
+ * import * as Order from "effect/Order"
  *
  * const numbers = Chunk.make(3, 1, 4, 1, 5, 9, 2, 6)
  * const sorted = Chunk.sort(numbers, Order.number)
@@ -1830,7 +1863,7 @@ export const sort: {
  * @example
  * ```ts
  * import { Chunk } from "effect"
-import * as Order from "effect/Order"
+ * import * as Order from "effect/Order"
  *
  * const people = Chunk.make(
  *   { name: "Alice", age: 30 },
@@ -2011,7 +2044,6 @@ export const splitWhere: {
  * @example
  * ```ts
  * import { Chunk } from "effect"
- * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  * console.log(Chunk.tail(chunk)) // Option.some(Chunk.make(2, 3, 4))
@@ -2209,7 +2241,11 @@ export const dedupeAdjacent = <A>(self: Chunk<A>): Chunk<A> => fromArrayUnsafe(R
  * ```ts
  * import { Chunk } from "effect"
  *
- * const pairs = Chunk.make([1, "a"] as const, [2, "b"] as const, [3, "c"] as const)
+ * const pairs = Chunk.make(
+ *   [1, "a"] as const,
+ *   [2, "b"] as const,
+ *   [3, "c"] as const
+ * )
  * const [numbers, letters] = Chunk.unzip(pairs)
  * console.log(Chunk.toArray(numbers)) // [1, 2, 3]
  * console.log(Chunk.toArray(letters)) // ["a", "b", "c"]
@@ -2466,13 +2502,17 @@ export const contains: {
  * const chunk = Chunk.make({ id: 1, name: "Alice" }, { id: 2, name: "Bob" })
  *
  * // Custom equivalence by id
- * const containsById = Chunk.containsWith<{ id: number; name: string }>((a, b) => a.id === b.id)
+ * const containsById = Chunk.containsWith<{ id: number; name: string }>((a, b) =>
+ *   a.id === b.id
+ * )
  * console.log(containsById(chunk, { id: 1, name: "Different" })) // true
  * console.log(containsById(chunk, { id: 3, name: "Charlie" })) // false
  *
  * // Case-insensitive string comparison
  * const words = Chunk.make("Apple", "Banana", "Cherry")
- * const containsCaseInsensitive = Chunk.containsWith<string>((a, b) => a.toLowerCase() === b.toLowerCase())
+ * const containsCaseInsensitive = Chunk.containsWith<string>((a, b) =>
+ *   a.toLowerCase() === b.toLowerCase()
+ * )
  * console.log(containsCaseInsensitive(words, "apple")) // true
  * console.log(containsCaseInsensitive(words, "grape")) // false
  * ```
@@ -2493,8 +2533,7 @@ export const containsWith: <A>(
  *
  * @example
  * ```ts
- * import { Chunk } from "effect"
- * import { Option } from "effect"
+ * import { Chunk, Option } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findFirst(chunk, (n) => n > 3)
@@ -2507,7 +2546,10 @@ export const containsWith: <A>(
  *
  * // With type refinement
  * const mixed = Chunk.make(1, "hello", 2, "world", 3)
- * const firstString = Chunk.findFirst(mixed, (x): x is string => typeof x === "string")
+ * const firstString = Chunk.findFirst(
+ *   mixed,
+ *   (x): x is string => typeof x === "string"
+ * )
  * console.log(Option.getOrElse(firstString, () => "")) // "hello"
  * ```
  *
@@ -2751,7 +2793,11 @@ export const reduce: {
  *
  * // String building (right to left)
  * const words = Chunk.make("a", "b", "c")
- * const reversed = Chunk.reduceRight(words, "", (acc, word, i) => acc + `${i}:${word} `)
+ * const reversed = Chunk.reduceRight(
+ *   words,
+ *   "",
+ *   (acc, word, i) => acc + `${i}:${word} `
+ * )
  * console.log(reversed) // "2:c 1:b 0:a "
  *
  * // Subtract from right to left
@@ -2779,14 +2825,18 @@ export const reduceRight: {
  * const chunk2 = Chunk.make({ id: 1, name: "Alice" }, { id: 3, name: "Charlie" })
  *
  * // Custom equivalence by id
- * const byId = Chunk.differenceWith<{ id: number; name: string }>((a, b) => a.id === b.id)
+ * const byId = Chunk.differenceWith<{ id: number; name: string }>((a, b) =>
+ *   a.id === b.id
+ * )
  * const result = byId(chunk1, chunk2)
  * console.log(Chunk.toArray(result)) // [{ id: 2, name: "Bob" }]
  *
  * // String comparison case-insensitive
  * const words1 = Chunk.make("Apple", "Banana", "Cherry")
  * const words2 = Chunk.make("apple", "grape")
- * const caseInsensitive = Chunk.differenceWith<string>((a, b) => a.toLowerCase() === b.toLowerCase())
+ * const caseInsensitive = Chunk.differenceWith<string>((a, b) =>
+ *   a.toLowerCase() === b.toLowerCase()
+ * )
  * const wordDiff = caseInsensitive(words1, words2)
  * console.log(Chunk.toArray(wordDiff)) // ["Banana", "Cherry"]
  * ```

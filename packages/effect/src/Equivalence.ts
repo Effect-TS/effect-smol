@@ -10,8 +10,7 @@
  *
  * @example
  * ```ts
- * import { Equivalence } from "effect"
- * import { Array } from "effect"
+ * import { Array, Equivalence } from "effect"
  *
  * // Case-insensitive string equivalence
  * const caseInsensitive = Equivalence.make<string>((a, b) =>
@@ -49,7 +48,7 @@ import type { TypeLambda } from "./types/HKT.ts"
  *
  * @example
  * ```ts
- * import { Equivalence } from "effect"
+ * import type { Equivalence } from "effect"
  *
  * // Simple number equivalence
  * const numberEq: Equivalence.Equivalence<number> = (a, b) => a === b
@@ -82,11 +81,17 @@ export type Equivalence<in A> = (self: A, that: A) => boolean
  *
  * @example
  * ```ts
- * import { Equivalence } from "effect"
+ * import type { Equivalence } from "effect"
  * import type { Kind } from "effect/types/HKT"
  *
  * // Used internally for type-level computations
- * type NumberEquivalence = Kind<Equivalence.EquivalenceTypeLambda, never, never, never, number>
+ * type NumberEquivalence = Kind<
+ *   Equivalence.EquivalenceTypeLambda,
+ *   never,
+ *   never,
+ *   never,
+ *   number
+ * >
  * // Equivalent to: Equivalence.Equivalence<number>
  * ```
  *
@@ -120,9 +125,7 @@ export interface EquivalenceTypeLambda extends TypeLambda {
  * console.log(caseInsensitive(str, str)) // true (fast path)
  *
  * // Numeric tolerance equivalence
- * const tolerance = Equivalence.make<number>((a, b) =>
- *   Math.abs(a - b) < 0.0001
- * )
+ * const tolerance = Equivalence.make<number>((a, b) => Math.abs(a - b) < 0.0001)
  *
  * console.log(tolerance(1.0, 1.0001)) // false
  * console.log(tolerance(1.0, 1.00001)) // true
@@ -225,9 +228,18 @@ export const combine: {
  *   z: number
  * }
  *
- * const xEq = Equivalence.mapInput(Equivalence.strict<number>(), (p: Point3D) => p.x)
- * const yEq = Equivalence.mapInput(Equivalence.strict<number>(), (p: Point3D) => p.y)
- * const zEq = Equivalence.mapInput(Equivalence.strict<number>(), (p: Point3D) => p.z)
+ * const xEq = Equivalence.mapInput(
+ *   Equivalence.strict<number>(),
+ *   (p: Point3D) => p.x
+ * )
+ * const yEq = Equivalence.mapInput(
+ *   Equivalence.strict<number>(),
+ *   (p: Point3D) => p.y
+ * )
+ * const zEq = Equivalence.mapInput(
+ *   Equivalence.strict<number>(),
+ *   (p: Point3D) => p.z
+ * )
  *
  * const point3DEq = Equivalence.combineAll([xEq, yEq, zEq])
  *
@@ -345,11 +357,13 @@ export const mapInput: {
  *
  * const customTupleEq = Equivalence.tuple([
  *   caseInsensitive,
- *   caseInsensitive,  // Case-insensitive string comparison
+ *   caseInsensitive, // Case-insensitive string comparison
  *   caseInsensitive
  * ])
  *
- * console.log(customTupleEq(["Hello", "World", "Test"], ["HELLO", "WORLD", "TEST"])) // true
+ * console.log(
+ *   customTupleEq(["Hello", "World", "Test"], ["HELLO", "WORLD", "TEST"])
+ * ) // true
  * ```
  *
  * @category combinators
@@ -439,9 +453,9 @@ export function array<A>(item: Equivalence<A>): Equivalence<ReadonlyArray<A>> {
  * )
  *
  * const personEq = Equivalence.struct({
- *   name: caseInsensitive,     // Case-insensitive name comparison
- *   age: Equivalence.strict<number>(),   // Exact age comparison
- *   email: caseInsensitive     // Case-insensitive email comparison
+ *   name: caseInsensitive, // Case-insensitive name comparison
+ *   age: Equivalence.strict<number>(), // Exact age comparison
+ *   email: caseInsensitive // Case-insensitive email comparison
  * })
  *
  * const person1 = { name: "Alice", age: 30, email: "alice@example.com" }

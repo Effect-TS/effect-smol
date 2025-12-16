@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 import type * as Effect from "../../Effect.ts"
+import type * as FileSystem from "../../FileSystem.ts"
 import { dual, type LazyArg } from "../../Function.ts"
 import type * as Option from "../../Option.ts"
-import type * as FileSystem from "../../platform/FileSystem.ts"
-import type * as Path from "../../platform/Path.ts"
+import type * as Path from "../../Path.ts"
 import type * as Redacted from "../../Redacted.ts"
 import type * as Result from "../../Result.ts"
 import type * as Schema from "../../schema/Schema.ts"
@@ -219,8 +219,8 @@ export const fileParse = (
  *
  * @example
  * ```ts
- * import { Argument } from "effect/unstable/cli"
  * import { Schema } from "effect/schema"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const ConfigSchema = Schema.Struct({
  *   port: Schema.Number,
@@ -325,10 +325,14 @@ export const withDefault: {
  * const anyFiles = Argument.string("files").pipe(Argument.variadic)
  *
  * // Accept at least 1 file
- * const atLeastOneFile = Argument.string("files").pipe(Argument.variadic({ min: 1 }))
+ * const atLeastOneFile = Argument.string("files").pipe(
+ *   Argument.variadic({ min: 1 })
+ * )
  *
  * // Accept between 1 and 5 files
- * const limitedFiles = Argument.string("files").pipe(Argument.variadic({ min: 1, max: 5 }))
+ * const limitedFiles = Argument.string("files").pipe(
+ *   Argument.variadic({ min: 1, max: 5 })
+ * )
  * ```
  *
  * @since 4.0.0
@@ -350,7 +354,7 @@ export const variadic: {
  * import { Argument } from "effect/unstable/cli"
  *
  * const port = Argument.integer("port").pipe(
- *   Argument.map(p => ({ port: p, url: `http://localhost:${p}` }))
+ *   Argument.map((p) => ({ port: p, url: `http://localhost:${p}` }))
  * )
  * ```
  *
@@ -367,16 +371,18 @@ export const map: {
  *
  * @example
  * ```ts
- * import { Argument, CliError } from "effect/unstable/cli"
  * import { Effect } from "effect"
+ * import { Argument, CliError } from "effect/unstable/cli"
  *
  * const files = Argument.string("files").pipe(
- *   Argument.mapEffect(file =>
+ *   Argument.mapEffect((file) =>
  *     file.endsWith(".txt")
  *       ? Effect.succeed(file)
- *       : Effect.fail(new CliError.UserError({
+ *       : Effect.fail(
+ *         new CliError.UserError({
  *           cause: new Error("Only .txt files allowed")
- *         }))
+ *         })
+ *       )
  *   )
  * )
  * ```
@@ -406,8 +412,9 @@ export const mapEffect: {
  *
  * const json = Argument.string("data").pipe(
  *   Argument.mapTryCatch(
- *     str => JSON.parse(str),
- *     error => `Invalid JSON: ${error instanceof Error ? error.message : String(error)}`
+ *     (str) => JSON.parse(str),
+ *     (error) =>
+ *       `Invalid JSON: ${error instanceof Error ? error.message : String(error)}`
  *   )
  * )
  * ```
@@ -486,8 +493,8 @@ export const between: {
  *
  * @example
  * ```ts
- * import { Argument } from "effect/unstable/cli"
  * import { Schema } from "effect/schema"
+ * import { Argument } from "effect/unstable/cli"
  *
  * const input = Argument.string("input").pipe(
  *   Argument.withSchema(Schema.NonEmptyString)
@@ -561,8 +568,8 @@ export const withMetavar: {
  *
  * const positiveInt = Argument.integer("count").pipe(
  *   Argument.filter(
- *     n => n > 0,
- *     n => `Expected positive integer, got ${n}`
+ *     (n) => n > 0,
+ *     (n) => `Expected positive integer, got ${n}`
  *   )
  * )
  * ```

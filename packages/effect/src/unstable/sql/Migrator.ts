@@ -4,11 +4,11 @@
 import * as Arr from "../../Array.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
+import { FileSystem } from "../../FileSystem.ts"
 import * as Filter from "../../Filter.ts"
 import { pipe } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Order from "../../Order.ts"
-import { FileSystem } from "../../platform/FileSystem.ts"
 import * as Client from "./SqlClient.ts"
 import type { SqlError } from "./SqlError.ts"
 

@@ -30,10 +30,10 @@ import type { TypeLambda } from "./types/HKT.ts"
  *
  * @example
  * ```ts
- * import { Order } from "effect"
+ * import type { Order } from "effect"
  *
  * // Custom order for objects by age
- * const byAge: Order.Order<{ name: string, age: number }> = (self, that) => {
+ * const byAge: Order.Order<{ name: string; age: number }> = (self, that) => {
  *   if (self.age < that.age) return -1
  *   if (self.age > that.age) return 1
  *   return 0
@@ -57,7 +57,7 @@ export interface Order<in A> {
  *
  * @example
  * ```ts
- * import { Order } from "effect"
+ * import type { Order } from "effect"
  *
  * // OrderTypeLambda is used internally for type-level operations
  * type MyOrderType = Order.OrderTypeLambda
@@ -75,17 +75,23 @@ export interface OrderTypeLambda extends TypeLambda {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
- * const byAge = Order.make<{ name: string, age: number }>((self, that) => {
+ * const byAge = Order.make<{ name: string; age: number }>((self, that) => {
  *   if (self.age < that.age) return -1
  *   if (self.age > that.age) return 1
  *   return 0
  * })
  *
- * assert.deepStrictEqual(byAge({ name: "Alice", age: 30 }, { name: "Bob", age: 25 }), 1)
- * assert.deepStrictEqual(byAge({ name: "Alice", age: 25 }, { name: "Bob", age: 30 }), -1)
+ * assert.deepStrictEqual(
+ *   byAge({ name: "Alice", age: 30 }, { name: "Bob", age: 25 }),
+ *   1
+ * )
+ * assert.deepStrictEqual(
+ *   byAge({ name: "Alice", age: 25 }, { name: "Bob", age: 30 }),
+ *   -1
+ * )
  * ```
  *
  * @category constructors
@@ -101,8 +107,8 @@ export const make = <A>(
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Order.string("apple", "banana"), -1)
  * assert.deepStrictEqual(Order.string("banana", "apple"), 1)
@@ -119,8 +125,8 @@ export const string: Order<string> = make((self, that) => self < that ? -1 : 1)
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Order.number(1, 2), -1)
  * assert.deepStrictEqual(Order.number(2, 1), 1)
@@ -137,8 +143,8 @@ export const number: Order<number> = make((self, that) => self < that ? -1 : 1)
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Order.boolean(false, true), -1)
  * assert.deepStrictEqual(Order.boolean(true, false), 1)
@@ -155,8 +161,8 @@ export const boolean: Order<boolean> = make((self, that) => self < that ? -1 : 1
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Order.bigint(1n, 2n), -1)
  * assert.deepStrictEqual(Order.bigint(2n, 1n), 1)
@@ -173,8 +179,8 @@ export const bigint: Order<bigint> = make((self, that) => self < that ? -1 : 1)
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const reverseNumber = Order.reverse(Order.number)
  *
@@ -194,11 +200,17 @@ export const reverse = <A>(O: Order<A>): Order<A> => make((self, that) => O(that
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
- * const byAge = Order.mapInput(Order.number, (person: { name: string, age: number }) => person.age)
- * const byName = Order.mapInput(Order.string, (person: { name: string, age: number }) => person.name)
+ * const byAge = Order.mapInput(
+ *   Order.number,
+ *   (person: { name: string; age: number }) => person.age
+ * )
+ * const byName = Order.mapInput(
+ *   Order.string,
+ *   (person: { name: string; age: number }) => person.name
+ * )
  * const byAgeAndName = Order.combine(byAge, byName)
  *
  * const person1 = { name: "Alice", age: 30 }
@@ -229,8 +241,8 @@ export const combine: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const emptyOrder = Order.empty<number>()
  *
@@ -250,11 +262,17 @@ export const empty = <A>(): Order<A> => make(() => 0)
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
- * const byAge = Order.mapInput(Order.number, (person: { name: string, age: number }) => person.age)
- * const byName = Order.mapInput(Order.string, (person: { name: string, age: number }) => person.name)
+ * const byAge = Order.mapInput(
+ *   Order.number,
+ *   (person: { name: string; age: number }) => person.age
+ * )
+ * const byName = Order.mapInput(
+ *   Order.string,
+ *   (person: { name: string; age: number }) => person.name
+ * )
  *
  * const combinedOrder = Order.combineAll([byAge, byName])
  *
@@ -285,8 +303,8 @@ export const combineAll = <A>(collection: Iterable<Order<A>>): Order<A> =>
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const byLength = Order.mapInput(Order.number, (s: string) => s.length)
  *
@@ -311,8 +329,8 @@ export const mapInput: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const date1 = new Date("2023-01-01")
  * const date2 = new Date("2023-01-02")
@@ -333,8 +351,8 @@ export const Date: Order<Date> = mapInput(number, (date) => date.getTime())
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const tupleOrder = Order.product(Order.number, Order.string)
  *
@@ -361,8 +379,8 @@ export const product: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const arrayOrder = Order.all([Order.number, Order.number])
  *
@@ -398,8 +416,8 @@ export const all = <A>(collection: Iterable<Order<A>>): Order<ReadonlyArray<A>> 
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const tupleOrder = Order.productMany(Order.number, [Order.number, Order.number])
  *
@@ -436,8 +454,8 @@ export const productMany: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const tupleOrder = Order.tuple([Order.number, Order.number])
  *
@@ -461,8 +479,8 @@ export const tuple = <Elements extends ReadonlyArray<Order<any>>>(
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const arrayOrder = Order.array(Order.number)
  *
@@ -495,8 +513,8 @@ export const array = <A>(O: Order<A>): Order<ReadonlyArray<A>> =>
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const personOrder = Order.struct({
  *   name: Order.string,
@@ -535,8 +553,8 @@ export const struct = <R extends { readonly [x: string]: Order<any> }>(
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const lessThanNumber = Order.lessThan(Order.number)
  *
@@ -558,8 +576,8 @@ export const lessThan = <A>(O: Order<A>): {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const greaterThanNumber = Order.greaterThan(Order.number)
  *
@@ -581,8 +599,8 @@ export const greaterThan = <A>(O: Order<A>): {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const lessThanOrEqualToNumber = Order.lessThanOrEqualTo(Order.number)
  *
@@ -604,8 +622,8 @@ export const lessThanOrEqualTo = <A>(O: Order<A>): {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const greaterThanOrEqualToNumber = Order.greaterThanOrEqualTo(Order.number)
  *
@@ -627,8 +645,8 @@ export const greaterThanOrEqualTo = <A>(O: Order<A>): {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const minNumber = Order.min(Order.number)
  *
@@ -650,8 +668,8 @@ export const min = <A>(O: Order<A>): {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const maxNumber = Order.max(Order.number)
  *
@@ -673,9 +691,9 @@ export const max = <A>(O: Order<A>): {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
  * import * as N from "effect/Number"
+ * import * as assert from "node:assert"
  *
  * const clamp = Order.clamp(N.Order)({ minimum: 1, maximum: 5 })
  *
@@ -710,8 +728,8 @@ export const clamp = <A>(O: Order<A>): {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Order } from "effect"
+ * import * as assert from "node:assert"
  *
  * const betweenNumber = Order.between(Order.number)
  *

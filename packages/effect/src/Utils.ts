@@ -106,11 +106,16 @@ export const makeGenKind = <F extends TypeLambda, R, O, E, A>(
 /**
  * @example
  * ```ts
- * import { Utils } from "effect"
- * import * as Option from "effect/Option"
+ * import type { Utils } from "effect"
+ * import type * as Option from "effect/Option"
  *
  * // Variance defines the type parameter relationships
- * declare const variance: Utils.Variance<Option.OptionTypeLambda, never, never, never>
+ * declare const variance: Utils.Variance<
+ *   Option.OptionTypeLambda,
+ *   never,
+ *   never,
+ *   never
+ * >
  * ```
  *
  * @category models
@@ -127,8 +132,7 @@ export interface Variance<in out F extends TypeLambda, in R, out O, out E> {
 /**
  * @example
  * ```ts
- * import { Utils } from "effect"
- * import { Option } from "effect"
+ * import type { Option, Utils } from "effect"
  *
  * // Gen enables generator-based syntax for any TypeLambda
  * declare const gen: Utils.Gen<Option.OptionTypeLambda>
@@ -167,7 +171,7 @@ export type Gen<F extends TypeLambda> = <
 /**
  * @example
  * ```ts
- * import { Utils } from "effect"
+ * import type { Utils } from "effect"
  *
  * const value1: Utils.OptionalNumber = 42
  * const value2: Utils.OptionalNumber = null

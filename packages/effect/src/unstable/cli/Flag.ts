@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 import type * as Effect from "../../Effect.ts"
+import type * as FileSystem from "../../FileSystem.ts"
 import { dual, type LazyArg } from "../../Function.ts"
 import type * as Option from "../../Option.ts"
-import type * as FileSystem from "../../platform/FileSystem.ts"
-import type * as Path from "../../platform/Path.ts"
+import type * as Path from "../../Path.ts"
 import type * as Redacted from "../../Redacted.ts"
 import type * as Result from "../../Result.ts"
 import type * as Schema from "../../schema/Schema.ts"
@@ -230,8 +230,7 @@ export const directory = (name: string, options?: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Redacted } from "effect"
+ * import { Effect, Redacted } from "effect"
  * import { Flag } from "effect/unstable/cli"
  *
  * const passwordFlag = Flag.redacted("password")
@@ -299,8 +298,8 @@ export const fileParse = (
  *
  * @example
  * ```ts
- * import { Flag } from "effect/unstable/cli"
  * import { Schema } from "effect/schema"
+ * import { Flag } from "effect/unstable/cli"
  *
  * const ConfigSchema = Schema.Struct({
  *   port: Schema.Number,
@@ -450,8 +449,7 @@ export const withMetavar: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect"
+ * import { Effect, Option } from "effect"
  * import { Flag } from "effect/unstable/cli"
  *
  * const optionalPort = Flag.optional(Flag.integer("port"))
@@ -509,12 +507,12 @@ export const withDefault: {
  *
  * // Convert string to uppercase
  * const nameFlag = Flag.string("name").pipe(
- *   Flag.map(name => name.toUpperCase())
+ *   Flag.map((name) => name.toUpperCase())
  * )
  *
  * // Convert port to URL
  * const urlFlag = Flag.integer("port").pipe(
- *   Flag.map(port => `http://localhost:${port}`)
+ *   Flag.map((port) => `http://localhost:${port}`)
  * )
  * ```
  *
@@ -531,8 +529,7 @@ export const map: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { FileSystem } from "effect/platform"
+ * import { Effect, FileSystem } from "effect"
  * import { Flag } from "effect/unstable/cli"
  *
  * // Read file size from path flag
@@ -571,16 +568,16 @@ export const mapEffect: {
  * // Parse JSON string with error handling
  * const jsonFlag = Flag.string("config").pipe(
  *   Flag.mapTryCatch(
- *     json => JSON.parse(json),
- *     error => `Invalid JSON: ${error}`
+ *     (json) => JSON.parse(json),
+ *     (error) => `Invalid JSON: ${error}`
  *   )
  * )
  *
  * // Parse URL with error handling
  * const urlFlag = Flag.string("url").pipe(
  *   Flag.mapTryCatch(
- *     url => new URL(url),
- *     error => `Invalid URL: ${error}`
+ *     (url) => new URL(url),
+ *     (error) => `Invalid URL: ${error}`
  *   )
  * )
  * ```
@@ -719,15 +716,15 @@ export const filterMap: {
  * // Ensure port is in valid range
  * const portFlag = Flag.integer("port").pipe(
  *   Flag.filter(
- *     port => port >= 1 && port <= 65535,
- *     port => `Port ${port} is out of range (1-65535)`
+ *     (port) => port >= 1 && port <= 65535,
+ *     (port) => `Port ${port} is out of range (1-65535)`
  *   )
  * )
  *
  * // Ensure non-empty string
  * const nameFlag = Flag.string("name").pipe(
  *   Flag.filter(
- *     name => name.trim().length > 0,
+ *     (name) => name.trim().length > 0,
  *     () => "Name cannot be empty"
  *   )
  * )
@@ -778,8 +775,7 @@ export const orElse: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Result } from "effect"
+ * import { Effect, Result } from "effect"
  * import { Flag } from "effect/unstable/cli"
  *
  * // Try file path, fallback to URL

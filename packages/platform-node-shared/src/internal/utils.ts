@@ -1,5 +1,5 @@
-import type { PlatformError, SystemErrorReason } from "effect/platform/PlatformError"
-import { SystemError } from "effect/platform/PlatformError"
+import type { PlatformError, SystemErrorReason } from "effect/PlatformError"
+import { SystemError } from "effect/PlatformError"
 import type { PathLike } from "node:fs"
 
 /** @internal */
