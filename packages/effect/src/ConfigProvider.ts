@@ -2,10 +2,9 @@
  * @since 4.0.0
  */
 
-import * as Data from "./data/Data.ts"
-import { format } from "./data/Formatter.ts"
-import * as Predicate from "./data/Predicate.ts"
+import * as Data from "./Data.ts"
 import * as Effect from "./Effect.ts"
+import { format } from "./Formatter.ts"
 import { dual, flow } from "./Function.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
@@ -13,6 +12,7 @@ import * as Layer from "./Layer.ts"
 import * as FileSystem from "./platform/FileSystem.ts"
 import * as Path_ from "./platform/Path.ts"
 import type { PlatformError } from "./platform/PlatformError.ts"
+import * as Predicate from "./Predicate.ts"
 import type { Scope } from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as Str from "./String.ts"

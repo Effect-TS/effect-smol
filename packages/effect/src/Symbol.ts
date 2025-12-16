@@ -2,14 +2,14 @@
  * @since 2.0.0
  */
 
-import * as predicate from "./data/Predicate.ts"
+import * as predicate from "./Predicate.ts"
 
 /**
  * Tests if a value is a `symbol`.
  *
  * @example
  * ```ts
- * import * as Predicate from "effect/data/Predicate"
+ * import * as Predicate from "effect/Predicate"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(Predicate.isSymbol(Symbol.for("a")), true)

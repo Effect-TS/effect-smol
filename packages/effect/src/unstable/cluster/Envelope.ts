@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
-import * as Predicate from "../../data/Predicate.ts"
-import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
+import * as Predicate from "../../Predicate.ts"
+import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import * as Headers from "../http/Headers.ts"

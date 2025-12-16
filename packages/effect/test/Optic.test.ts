@@ -1,5 +1,4 @@
-import { Optic } from "effect"
-import { Option, Result } from "effect/data"
+import { Optic, Option, Result } from "effect"
 import { AST, Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertFailure, assertSuccess, assertTrue, deepStrictEqual, strictEqual, throws } from "./utils/assert.ts"

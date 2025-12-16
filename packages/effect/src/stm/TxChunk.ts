@@ -10,8 +10,8 @@
  * @since 4.0.0
  */
 import * as Chunk from "../collections/Chunk.ts"
-import { format } from "../data/Formatter.ts"
 import * as Effect from "../Effect.ts"
+import { format } from "../Formatter.ts"
 import { dual } from "../Function.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"

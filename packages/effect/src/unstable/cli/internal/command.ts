@@ -5,10 +5,10 @@
  * Internal implementation details for CLI commands.
  * Public API is in ../Command.ts
  */
-import * as Predicate from "../../../data/Predicate.ts"
 import * as Effect from "../../../Effect.ts"
 import { pipeArguments } from "../../../interfaces/Pipeable.ts"
 import { YieldableProto } from "../../../internal/core.ts"
+import * as Predicate from "../../../Predicate.ts"
 import * as ServiceMap from "../../../ServiceMap.ts"
 import * as CliError from "../CliError.ts"
 import type { ArgDoc, FlagDoc, HelpDoc, SubcommandDoc } from "../HelpDoc.ts"

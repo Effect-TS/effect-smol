@@ -1,7 +1,6 @@
 import { PgClient } from "@effect/sql-pg"
 import { assert, expect, it } from "@effect/vitest"
-import { Effect, Stream, String } from "effect"
-import { Redacted } from "effect/data"
+import { Effect, Redacted, Stream, String } from "effect"
 import { TestClock } from "effect/testing"
 import { SqlClient } from "effect/unstable/sql"
 import * as Statement from "effect/unstable/sql/Statement"

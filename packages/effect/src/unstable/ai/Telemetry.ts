@@ -31,11 +31,11 @@
  *
  * @since 4.0.0
  */
-import * as Predicate from "../../data/Predicate.ts"
-import type * as Struct from "../../data/Struct.ts"
 import { dual } from "../../Function.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as String from "../../String.ts"
+import type * as Struct from "../../Struct.ts"
 import type { Span } from "../../Tracer.ts"
 import type { ProviderOptions } from "./LanguageModel.ts"
 import type * as Response from "./Response.ts"

@@ -1,11 +1,11 @@
 /**
  * @since 2.0.0
  */
-import { hasProperty } from "./data/Predicate.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
 import * as Layer from "./Layer.ts"
+import { hasProperty } from "./Predicate.ts"
 import * as Scope from "./Scope.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
 import type { Mutable } from "./types/Types.ts"

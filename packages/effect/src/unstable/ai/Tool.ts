@@ -26,15 +26,15 @@
  *
  * @since 4.0.0
  */
-import * as Predicate from "../../data/Predicate.ts"
-import type * as Struct from "../../data/Struct.ts"
 import type * as Effect from "../../Effect.ts"
 import { constFalse, constTrue, identity } from "../../Function.ts"
 import { pipeArguments } from "../../interfaces/Pipeable.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Annotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import type * as Struct from "../../Struct.ts"
 import type * as Types from "../../types/Types.ts"
 
 // =============================================================================

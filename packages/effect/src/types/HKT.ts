@@ -150,7 +150,7 @@ export interface TypeLambda {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { HKT } from "effect/types"
  *
  * // Define TypeLambdas

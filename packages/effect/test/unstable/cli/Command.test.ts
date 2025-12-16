@@ -1,6 +1,5 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Effect, Layer } from "effect"
-import { Option } from "effect/data"
+import { Effect, Layer, Option } from "effect"
 import { FileSystem, Path } from "effect/platform"
 import { TestConsole } from "effect/testing"
 import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"

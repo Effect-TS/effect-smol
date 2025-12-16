@@ -1,5 +1,5 @@
+import { Tuple } from "effect"
 import type { Array as Arr } from "effect/collections"
-import { Tuple } from "effect/data"
 import { Schema } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 

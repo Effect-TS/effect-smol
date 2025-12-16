@@ -1,6 +1,6 @@
-import * as Predicate from "effect/data/Predicate"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Predicate from "effect/Predicate"
 import type * as Schema from "effect/schema/Schema"
 import * as ServiceMap from "effect/ServiceMap"
 import * as String from "effect/String"

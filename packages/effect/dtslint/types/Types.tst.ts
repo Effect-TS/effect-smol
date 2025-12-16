@@ -1,4 +1,4 @@
-import type { Brand } from "effect/data"
+import type { Brand } from "effect"
 import type { Types } from "effect/types"
 import { describe, expect, it } from "tstyche"
 

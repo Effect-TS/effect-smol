@@ -1,8 +1,7 @@
 import { afterEach, describe, it } from "@effect/vitest"
 import { assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import type { Layer } from "effect"
-import { Effect } from "effect"
-import { Option } from "effect/data"
+import { Effect, Option } from "effect"
 import { Schema } from "effect/schema"
 import * as KeyValueStore from "effect/unstable/persistence/KeyValueStore"
 

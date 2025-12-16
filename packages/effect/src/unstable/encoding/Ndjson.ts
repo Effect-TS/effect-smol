@@ -4,9 +4,9 @@
 import * as Channel from "../../Channel.ts"
 import * as ChannelSchema from "../../ChannelSchema.ts"
 import * as Arr from "../../collections/Array.ts"
-import * as Data from "../../data/Data.ts"
-import * as Filter from "../../data/Filter.ts"
+import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
+import * as Filter from "../../Filter.ts"
 import { dual, identity } from "../../Function.ts"
 import type * as Schema from "../../schema/Schema.ts"
 

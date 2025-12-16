@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../data/Data.ts"
-import { format } from "../../data/Formatter.ts"
-import * as Predicate from "../../data/Predicate.ts"
+import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
+import { format } from "../../Formatter.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
+import * as Predicate from "../../Predicate.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import type { Issue } from "../../schema/Issue.ts"
 import * as Parser from "../../schema/Parser.ts"

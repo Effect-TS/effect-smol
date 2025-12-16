@@ -1,15 +1,15 @@
 /**
  * @since 4.0.0
  */
-import type { Brand } from "../../data/Brand.ts"
-import * as Predicate from "../../data/Predicate.ts"
-import * as Struct_ from "../../data/Struct.ts"
+import type { Brand } from "../../Brand.ts"
 import * as Effect from "../../Effect.ts"
 import { constant, dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import * as Predicate from "../../Predicate.ts"
 import type * as Annotations from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
+import * as Struct_ from "../../Struct.ts"
 
 /**
  * @since 4.0.0

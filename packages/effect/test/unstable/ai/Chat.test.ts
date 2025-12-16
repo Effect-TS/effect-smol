@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, Ref } from "effect"
-import { Option, Predicate } from "effect/data"
+import { Effect, Layer, Option, Predicate, Ref } from "effect"
 import { Schema } from "effect/schema"
 import { TestClock } from "effect/testing"
 import { Chat, IdGenerator, Prompt } from "effect/unstable/ai"

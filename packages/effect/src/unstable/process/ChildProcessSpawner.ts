@@ -6,7 +6,7 @@
  *
  * @since 4.0.0
  */
-import * as Brand from "../../data/Brand.ts"
+import * as Brand from "../../Brand.ts"
 import type * as Effect from "../../Effect.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"

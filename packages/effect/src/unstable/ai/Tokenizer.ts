@@ -35,8 +35,8 @@
  *
  * @since 4.0.0
  */
-import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as AiError from "./AiError.ts"
 import * as Prompt from "./Prompt.ts"

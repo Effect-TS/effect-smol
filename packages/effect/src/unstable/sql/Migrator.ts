@@ -2,12 +2,12 @@
  * @since 4.0.0
  */
 import * as Arr from "../../collections/Array.ts"
-import * as Data from "../../data/Data.ts"
-import * as Filter from "../../data/Filter.ts"
-import * as Option from "../../data/Option.ts"
-import * as Order from "../../data/Order.ts"
+import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
+import * as Filter from "../../Filter.ts"
 import { pipe } from "../../Function.ts"
+import * as Option from "../../Option.ts"
+import * as Order from "../../Order.ts"
 import { FileSystem } from "../../platform/FileSystem.ts"
 import * as Client from "./SqlClient.ts"
 import type { SqlError } from "./SqlError.ts"

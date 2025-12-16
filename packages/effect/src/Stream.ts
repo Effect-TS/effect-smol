@@ -9,15 +9,12 @@ import * as Arr from "./collections/Array.ts"
 import * as Iterable from "./collections/Iterable.ts"
 import * as MutableHashMap from "./collections/MutableHashMap.ts"
 import * as MutableList from "./collections/MutableList.ts"
-import * as Filter from "./data/Filter.ts"
-import * as Option from "./data/Option.ts"
-import { hasProperty, isTagged } from "./data/Predicate.ts"
-import * as Result from "./data/Result.ts"
 import * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
 import * as ExecutionPlan from "./ExecutionPlan.ts"
 import * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
+import * as Filter from "./Filter.ts"
 import type { LazyArg } from "./Function.ts"
 import { constant, constTrue, constVoid, dual, identity } from "./Function.ts"
 import * as Equal from "./interfaces/Equal.ts"
@@ -25,11 +22,14 @@ import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 import * as internalExecutionPlan from "./internal/executionPlan.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
 import type * as Layer from "./Layer.ts"
+import * as Option from "./Option.ts"
+import { hasProperty, isTagged } from "./Predicate.ts"
 import type * as PubSub from "./PubSub.ts"
 import * as Pull from "./Pull.ts"
 import * as Queue from "./Queue.ts"
 import * as RcMap from "./RcMap.ts"
 import * as RcRef from "./RcRef.ts"
+import * as Result from "./Result.ts"
 import * as Schedule from "./Schedule.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
@@ -1129,7 +1129,7 @@ export const unfold = <S, A, E, R>(
  * ```ts
  * import { Stream } from "effect"
  * import { Effect } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const stream = Stream.paginate(0, (n: number) =>
  *   Effect.succeed([
@@ -4220,7 +4220,7 @@ export const slidingSize: {
  *
  * ```ts
  * import { pipe } from "effect"
- * import { Filter } from "effect/data"
+ * import { Filter } from "effect"
  * import { Stream } from "effect"
  *
  * pipe(

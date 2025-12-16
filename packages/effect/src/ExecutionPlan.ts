@@ -2,13 +2,13 @@
  * @since 3.16.0
  */
 import type { NonEmptyReadonlyArray } from "./collections/Array.ts"
-import * as Predicate from "./data/Predicate.ts"
 import type * as Effect from "./Effect.ts"
 import { constant } from "./Function.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { pipeArguments } from "./interfaces/Pipeable.ts"
 import * as effect from "./internal/effect.ts"
 import * as Layer from "./Layer.ts"
+import * as Predicate from "./Predicate.ts"
 import type * as Schedule from "./Schedule.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 

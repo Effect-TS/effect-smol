@@ -5,10 +5,10 @@
  *
  * @since 2.0.0
  */
-import type { Equivalence } from "../data/Equivalence.ts"
-import { hasProperty } from "../data/Predicate.ts"
+import type { Equivalence } from "../Equivalence.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { byReferenceInstances, getAllObjectKeys } from "../internal/equal.ts"
+import { hasProperty } from "../Predicate.ts"
 
 /**
  * The unique identifier used to identify objects that implement the `Equal` interface.

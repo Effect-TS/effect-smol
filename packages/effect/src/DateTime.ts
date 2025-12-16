@@ -2,17 +2,17 @@
  * @since 3.6.0
  */
 import type { IllegalArgumentError } from "./Cause.ts"
-import type * as equivalence from "./data/Equivalence.ts"
-import type * as order from "./data/Order.ts"
-import type * as Result from "./data/Result.ts"
 import type * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
+import type * as equivalence from "./Equivalence.ts"
 import { dual, type LazyArg } from "./Function.ts"
 import type { Inspectable } from "./interfaces/Inspectable.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as Internal from "./internal/dateTime.ts"
 import { provideService } from "./internal/effect.ts"
 import * as Layer from "./Layer.ts"
+import type * as order from "./Order.ts"
+import type * as Result from "./Result.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 
 const TypeId = Internal.TypeId

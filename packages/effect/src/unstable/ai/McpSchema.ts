@@ -1,10 +1,10 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
-import * as Predicate from "../../data/Predicate.ts"
 import type * as Effect from "../../Effect.ts"
 import { constFalse, constTrue } from "../../Function.ts"
+import * as Option from "../../Option.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Getter from "../../schema/Getter.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type * as Scope from "../../Scope.ts"

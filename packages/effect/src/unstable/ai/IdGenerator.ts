@@ -46,9 +46,9 @@
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
-import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Random from "../../Random.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 

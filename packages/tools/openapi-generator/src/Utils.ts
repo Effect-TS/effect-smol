@@ -1,5 +1,5 @@
-import * as UndefinedOr from "effect/data/UndefinedOr"
 import * as String from "effect/String"
+import * as UndefinedOr from "effect/UndefinedOr"
 
 export const camelize = (self: string): string => {
   let str = ""

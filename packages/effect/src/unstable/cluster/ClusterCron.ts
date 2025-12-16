@@ -2,13 +2,13 @@
  * @since 4.0.0
  */
 import * as Cron from "../../Cron.ts"
-import * as Option from "../../data/Option.ts"
 import * as DateTime from "../../DateTime.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type { Scope } from "../../Scope.ts"

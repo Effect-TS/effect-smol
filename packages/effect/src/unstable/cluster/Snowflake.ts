@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import type * as Brand from "../../Brand.ts"
 import { Clock } from "../../Clock.ts"
-import type * as Brand from "../../data/Brand.ts"
 import * as DateTime from "../../DateTime.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"

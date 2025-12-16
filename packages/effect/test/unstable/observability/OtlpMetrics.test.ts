@@ -1,7 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer, Metric, Ref, ServiceMap } from "effect"
+import { Effect, Layer, Metric, Predicate, Ref, ServiceMap } from "effect"
 import { Array } from "effect/collections"
-import { Predicate } from "effect/data"
 import { TestClock } from "effect/testing"
 import { HttpClient, type HttpClientError, HttpClientResponse } from "effect/unstable/http"
 import { OtlpMetrics } from "effect/unstable/observability"

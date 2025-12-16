@@ -1,7 +1,6 @@
 import { assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import type { StandardSchemaV1 } from "@standard-schema/spec"
-import { Effect, ServiceMap } from "effect"
-import { Option, Predicate } from "effect/data"
+import { Effect, Option, Predicate, ServiceMap } from "effect"
 import { Getter, Issue, Schema } from "effect/schema"
 import { describe, it } from "vitest"
 

@@ -2,14 +2,14 @@
  * @since 2.0.0
  */
 
-import { format } from "../data/Formatter.ts"
-import { hasProperty } from "../data/Predicate.ts"
+import { format } from "../Formatter.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
+import { hasProperty } from "../Predicate.ts"
 import * as HashMap from "./hashMap.ts"
 
 /** @internal */

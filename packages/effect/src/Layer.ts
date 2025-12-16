@@ -19,7 +19,6 @@
  */
 import type * as Cause from "./Cause.ts"
 import type { NonEmptyArray } from "./collections/Array.ts"
-import { hasProperty } from "./data/Predicate.ts"
 import * as Deferred from "./Deferred.ts"
 import type { Effect } from "./Effect.ts"
 import type * as Exit from "./Exit.ts"
@@ -28,6 +27,7 @@ import { constant, constTrue, dual, identity } from "./Function.ts"
 import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 import * as internalEffect from "./internal/effect.ts"
 import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
+import { hasProperty } from "./Predicate.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import type * as Types from "./types/Types.ts"
@@ -1279,7 +1279,7 @@ export const flatMap: {
  * @example
  * ```ts
  * import { Effect, Layer, ServiceMap } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class DatabaseError extends Data.TaggedError("DatabaseError")<{
  *   message: string
@@ -1356,7 +1356,7 @@ export {
  * @example
  * ```ts
  * import { Cause, Effect, Layer, ServiceMap } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class DatabaseError extends Data.TaggedError("DatabaseError")<{
  *   message: string

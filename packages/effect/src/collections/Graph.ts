@@ -2,8 +2,7 @@
  * @since 4.0.0
  */
 
-import * as Data from "../data/Data.ts"
-import * as Option from "../data/Option.ts"
+import * as Data from "../Data.ts"
 import { dual } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
@@ -11,6 +10,7 @@ import type { Inspectable } from "../interfaces/Inspectable.ts"
 import { NodeInspectSymbol } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
+import * as Option from "../Option.ts"
 import type { Mutable } from "../types/Types.ts"
 
 const TypeId = "~effect/collections/Graph"
@@ -468,7 +468,7 @@ export const addNode = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   Graph.addNode(mutable, "Node A")
@@ -933,7 +933,7 @@ export const reverse = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "active")
@@ -985,7 +985,7 @@ export const filterMapNodes = <N, E, T extends Kind = "directed">(
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -2656,7 +2656,7 @@ export interface DijkstraConfig<E> {
  * @example
  * ```ts
  * import { Graph } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")

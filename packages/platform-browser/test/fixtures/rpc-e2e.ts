@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Effect, Fiber, ServiceMap, Stream } from "effect"
-import { Option } from "effect/data"
+import { Cause, Effect, Fiber, Option, ServiceMap, Stream } from "effect"
 // @ts-ignore
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { NodeInspectSymbol } from "effect/interfaces/Inspectable"

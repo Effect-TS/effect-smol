@@ -1,10 +1,10 @@
 /**
  * @since 2.0.0
  */
-import * as Option from "./data/Option.ts"
 import * as Effect from "./Effect.ts"
 import { dual, identity } from "./Function.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
+import * as Option from "./Option.ts"
 import * as PubSub from "./PubSub.ts"
 import * as Ref from "./Ref.ts"
 import * as Stream from "./Stream.ts"
@@ -268,7 +268,7 @@ export const getAndUpdateEffect: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -312,7 +312,7 @@ export const getAndUpdateSome: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -448,7 +448,7 @@ export const modifyEffect: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -496,7 +496,7 @@ export const modifySome: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -749,7 +749,7 @@ export const updateAndGetEffect: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -791,7 +791,7 @@ export const updateSome: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -840,7 +840,7 @@ export const updateSomeEffect: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
@@ -881,7 +881,7 @@ export const updateSomeAndGet: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {

@@ -1,4 +1,4 @@
-import * as Predicate from "../data/Predicate.ts"
+import * as Predicate from "../Predicate.ts"
 import type * as Schema from "../schema/Schema.ts"
 
 // Mutates op.path in place for perf; safe because child ops are freshly created and not shared.

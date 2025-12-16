@@ -2,14 +2,14 @@
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
-import * as Data from "../../data/Data.ts"
-import * as Option from "../../data/Option.ts"
-import * as Predicate from "../../data/Predicate.ts"
+import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import { constFalse, constTrue, dual, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
+import * as Predicate from "../../Predicate.ts"
 import type * as Schedule from "../../Schedule.ts"
 import * as Issue from "../../schema/Issue.ts"
 import * as Parser from "../../schema/Parser.ts"

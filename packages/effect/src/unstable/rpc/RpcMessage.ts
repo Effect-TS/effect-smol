@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import type { Branded } from "../../Brand.ts"
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
-import type { Branded } from "../../data/Brand.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type { Headers } from "../http/Headers.ts"
 import type * as Rpc from "./Rpc.ts"

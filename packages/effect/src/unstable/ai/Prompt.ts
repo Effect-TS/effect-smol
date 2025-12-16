@@ -52,11 +52,11 @@
  * @since 4.0.0
  */
 import * as Arr from "../../collections/Array.ts"
-import * as Option from "../../data/Option.ts"
-import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import { constFalse, dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import * as Option from "../../Option.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as SchemaIssue from "../../schema/Issue.ts"
 import * as Parser from "../../schema/Parser.ts"
 import * as Schema from "../../schema/Schema.ts"

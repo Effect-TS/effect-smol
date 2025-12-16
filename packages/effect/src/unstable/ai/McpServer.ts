@@ -3,10 +3,10 @@
  */
 import * as Cause from "../../Cause.ts"
 import * as Arr from "../../collections/Array.ts"
-import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
 import * as SchemaAnnotations from "../../schema/Annotations.ts"

@@ -1,7 +1,6 @@
 /**
  * @since 4.0.0
  */
-import type * as Record from "../../data/Record.ts"
 import * as DateTime from "../../DateTime.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
@@ -10,6 +9,7 @@ import * as Fiber from "../../Fiber.ts"
 import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Layer from "../../Layer.ts"
 import * as RcMap from "../../RcMap.ts"
+import type * as Record from "../../Record.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type * as Scope from "../../Scope.ts"

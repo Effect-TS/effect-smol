@@ -1,7 +1,7 @@
 /**
  * @since 2.0.0
  */
-import * as Result from "../data/Result.ts"
+import * as Result from "../Result.ts"
 import { EncodingError } from "./EncodingError.ts"
 
 /**
@@ -40,7 +40,7 @@ const encodeUint8Array = (bytes: Uint8Array) => {
  * @example
  * ```ts
  * import { Hex } from "effect/encoding"
- * import { Result } from "effect/data"
+ * import { Result } from "effect"
  *
  * const result = Hex.decode("48656c6c6f")
  * if (Result.isSuccess(result)) {
@@ -92,7 +92,7 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
  * @example
  * ```ts
  * import { Hex } from "effect/encoding"
- * import { Result } from "effect/data"
+ * import { Result } from "effect"
  *
  * const result = Hex.decodeString("68656c6c6f")
  * if (Result.isSuccess(result)) {

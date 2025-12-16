@@ -1,6 +1,5 @@
-import { flow, String as Str } from "effect"
-import type { Brand } from "effect/data"
-import { Struct } from "effect/data"
+import { flow, String as Str, Struct } from "effect"
+import type { Brand } from "effect"
 import type { AST } from "effect/schema"
 import { Schema } from "effect/schema"
 import { describe, expect, it, when } from "tstyche"

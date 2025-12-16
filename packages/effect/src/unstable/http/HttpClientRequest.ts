@@ -1,9 +1,6 @@
 /**
  * @since 4.0.0
  */
-import { hasProperty } from "../../data/Predicate.ts"
-import * as Redacted from "../../data/Redacted.ts"
-import * as Result from "../../data/Result.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
@@ -11,6 +8,9 @@ import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import { redact } from "../../interfaces/Redactable.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
+import { hasProperty } from "../../Predicate.ts"
+import * as Redacted from "../../Redacted.ts"
+import * as Result from "../../Result.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import type * as Schema from "../../schema/Schema.ts"
 import type * as Stream from "../../Stream.ts"

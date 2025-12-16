@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
-import type * as Option from "../../data/Option.ts"
-import type * as Redacted from "../../data/Redacted.ts"
-import type * as Result from "../../data/Result.ts"
 import type * as Effect from "../../Effect.ts"
 import { dual, type LazyArg } from "../../Function.ts"
+import type * as Option from "../../Option.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Path from "../../platform/Path.ts"
+import type * as Redacted from "../../Redacted.ts"
+import type * as Result from "../../Result.ts"
 import type * as Schema from "../../schema/Schema.ts"
 import type * as CliError from "./CliError.ts"
 import * as Param from "./Param.ts"
@@ -231,7 +231,7 @@ export const directory = (name: string, options?: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Redacted } from "effect/data"
+ * import { Redacted } from "effect"
  * import { Flag } from "effect/unstable/cli"
  *
  * const passwordFlag = Flag.redacted("password")
@@ -451,7 +451,7 @@ export const withMetavar: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { Flag } from "effect/unstable/cli"
  *
  * const optionalPort = Flag.optional(Flag.integer("port"))
@@ -677,7 +677,7 @@ export const between: {
  *
  * @example
  * ```ts
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { Flag } from "effect/unstable/cli"
  *
  * // Parse positive integers only
@@ -779,7 +779,7 @@ export const orElse: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Result } from "effect/data"
+ * import { Result } from "effect"
  * import { Flag } from "effect/unstable/cli"
  *
  * // Try file path, fallback to URL

@@ -1,7 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertFalse, assertTrue, deepStrictEqual, throws } from "@effect/vitest/utils"
-import { Cron, DateTime } from "effect"
-import { Result } from "effect/data"
+import { Cron, DateTime, Result } from "effect"
 import { Equal } from "effect/interfaces"
 
 const match = (input: Cron.Cron | string, date: DateTime.DateTime.Input) =>

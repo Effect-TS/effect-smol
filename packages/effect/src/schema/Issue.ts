@@ -2,9 +2,9 @@
  * @since 4.0.0
  */
 import type { StandardSchemaV1 } from "@standard-schema/spec"
-import { format, formatPath, type Formatter as FormatterI } from "../data/Formatter.ts"
-import * as Option from "../data/Option.ts"
-import { hasProperty } from "../data/Predicate.ts"
+import { format, formatPath, type Formatter as FormatterI } from "../Formatter.ts"
+import * as Option from "../Option.ts"
+import { hasProperty } from "../Predicate.ts"
 import * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 

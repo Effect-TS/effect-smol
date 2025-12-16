@@ -1,5 +1,4 @@
-import { Effect } from "effect"
-import { Option, Result } from "effect/data"
+import { Effect, Option, Result } from "effect"
 import { Getter } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertSome, deepStrictEqual } from "../utils/assert.ts"

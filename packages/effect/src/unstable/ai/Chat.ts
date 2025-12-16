@@ -48,11 +48,11 @@
  * @since 4.0.0
  */
 import * as Channel from "../../Channel.ts"
-import * as Option from "../../data/Option.ts"
-import * as Predicate from "../../data/Predicate.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Ref from "../../Ref.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"

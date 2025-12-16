@@ -10,7 +10,7 @@
  * @since 2.0.0
  */
 
-import { hasProperty } from "../data/Predicate.ts"
+import { hasProperty } from "../Predicate.ts"
 
 /**
  * The unique identifier used to identify objects that implement the `PrimaryKey` interface.

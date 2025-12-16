@@ -5,11 +5,11 @@
  *
  * @since 2.0.0
  */
-import * as order from "./data/Order.ts"
-import * as predicate from "./data/Predicate.ts"
-import * as Reducer from "./data/Reducer.ts"
 import type { LazyArg } from "./Function.ts"
 import { dual } from "./Function.ts"
+import * as order from "./Order.ts"
+import * as predicate from "./Predicate.ts"
+import * as Reducer from "./Reducer.ts"
 
 /**
  * Reference to the global Boolean constructor.

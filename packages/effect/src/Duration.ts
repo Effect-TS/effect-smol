@@ -13,12 +13,8 @@
  *
  * @since 2.0.0
  */
-import * as Combiner from "./data/Combiner.ts"
-import type * as equivalence from "./data/Equivalence.ts"
-import * as order from "./data/Order.ts"
-import { hasProperty, isBigInt, isNumber, isString } from "./data/Predicate.ts"
-import * as Reducer from "./data/Reducer.ts"
-import * as UndefinedOr from "./data/UndefinedOr.ts"
+import * as Combiner from "./Combiner.ts"
+import type * as equivalence from "./Equivalence.ts"
 import { dual, identity } from "./Function.ts"
 import * as Equal from "./interfaces/Equal.ts"
 import * as Hash from "./interfaces/Hash.ts"
@@ -26,6 +22,10 @@ import type * as Inspectable from "./interfaces/Inspectable.ts"
 import { NodeInspectSymbol } from "./interfaces/Inspectable.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { pipeArguments } from "./interfaces/Pipeable.ts"
+import * as order from "./Order.ts"
+import { hasProperty, isBigInt, isNumber, isString } from "./Predicate.ts"
+import * as Reducer from "./Reducer.ts"
+import * as UndefinedOr from "./UndefinedOr.ts"
 
 const TypeId = "~effect/time/Duration"
 

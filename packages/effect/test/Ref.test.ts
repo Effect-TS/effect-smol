@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Ref } from "effect"
-import { Option } from "effect/data"
+import { Effect, Option, Ref } from "effect"
 
 const current = "value"
 const update = "new value"

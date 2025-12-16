@@ -1,14 +1,14 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../data/Data.ts"
-import * as Predicate from "../../data/Predicate.ts"
-import * as Record from "../../data/Record.ts"
-import * as Result from "../../data/Result.ts"
+import * as Data from "../../Data.ts"
 import * as Duration from "../../Duration.ts"
 import { dual } from "../../Function.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import * as Predicate from "../../Predicate.ts"
+import * as Record from "../../Record.ts"
+import * as Result from "../../Result.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import type * as Types from "../../types/Types.ts"

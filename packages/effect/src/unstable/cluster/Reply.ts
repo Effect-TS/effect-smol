@@ -2,11 +2,11 @@
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
-import * as Data from "../../data/Data.ts"
-import * as Option from "../../data/Option.ts"
-import { hasProperty } from "../../data/Predicate.ts"
+import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import * as Option from "../../Option.ts"
+import { hasProperty } from "../../Predicate.ts"
 import * as Issue from "../../schema/Issue.ts"
 import * as Parser from "../../schema/Parser.ts"
 import * as Schema from "../../schema/Schema.ts"

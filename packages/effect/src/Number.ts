@@ -5,11 +5,11 @@
  *
  * @since 2.0.0
  */
-import * as order from "./data/Order.ts"
-import type { Ordering } from "./data/Ordering.ts"
-import * as predicate from "./data/Predicate.ts"
-import * as Reducer from "./data/Reducer.ts"
 import { dual } from "./Function.ts"
+import * as order from "./Order.ts"
+import type { Ordering } from "./Ordering.ts"
+import * as predicate from "./Predicate.ts"
+import * as Reducer from "./Reducer.ts"
 
 /**
  * The global `Number` constructor.

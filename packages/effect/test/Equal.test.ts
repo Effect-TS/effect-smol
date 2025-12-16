@@ -1,7 +1,7 @@
 import * as HashMap from "effect/collections/HashMap"
-import * as Option from "effect/data/Option"
 import * as Equal from "effect/interfaces/Equal"
 import * as Hash from "effect/interfaces/Hash"
+import * as Option from "effect/Option"
 import { describe, expect, it } from "vitest"
 
 describe("Equal - Structural Equality Behavior", () => {

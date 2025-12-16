@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import { Clock } from "../../Clock.ts"
-import { hasProperty } from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Fiber from "../../Fiber.ts"
 import { constUndefined } from "../../Function.ts"
@@ -10,6 +9,7 @@ import type { Inspectable } from "../../interfaces/Inspectable.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
 import * as core from "../../internal/core.ts"
 import * as internalEffect from "../../internal/effect.ts"
+import { hasProperty } from "../../Predicate.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type * as Tracer from "../../Tracer.ts"

@@ -1,20 +1,20 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../data/Data.ts"
-import * as Option from "../../data/Option.ts"
-import * as Predicate from "../../data/Predicate.ts"
-import * as Result from "../../data/Result.ts"
-import * as UndefinedOr from "../../data/UndefinedOr.ts"
+import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Base64 from "../../encoding/Base64.ts"
 import { dual, identity, type LazyArg } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"
 import type { PlatformError } from "../../platform/PlatformError.ts"
+import * as Predicate from "../../Predicate.ts"
+import * as Result from "../../Result.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
+import * as UndefinedOr from "../../UndefinedOr.ts"
 
 const TypeId = "~effect/persistence/KeyValueStore" as const
 

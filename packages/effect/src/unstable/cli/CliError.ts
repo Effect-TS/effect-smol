@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Predicate from "../../data/Predicate.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../schema/Schema.ts"
 
 /**

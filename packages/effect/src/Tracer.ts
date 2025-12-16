@@ -295,7 +295,7 @@ export interface SpanLink {
  * ```ts
  * import { Tracer } from "effect"
  * import { ServiceMap } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  *
  * // Create a custom tracer with logging
  * const loggingTracer = Tracer.make({
@@ -418,7 +418,7 @@ export const Tracer: ServiceMap.Reference<Tracer> = ServiceMap.Reference<Tracer>
  * ```ts
  * import { Tracer } from "effect"
  * import { ServiceMap } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  *
  * // Create a native span directly
  * const span = new Tracer.NativeSpan(

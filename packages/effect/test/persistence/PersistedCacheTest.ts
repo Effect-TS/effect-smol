@@ -1,7 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import type { Layer } from "effect"
-import { Effect, Exit } from "effect"
-import { Data, Filter } from "effect/data"
+import { Data, Effect, Exit, Filter } from "effect"
 import { Schema } from "effect/schema"
 import { Persistable, PersistedCache, Persistence } from "effect/unstable/persistence"
 

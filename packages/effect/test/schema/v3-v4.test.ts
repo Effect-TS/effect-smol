@@ -1,4 +1,4 @@
-import { Option, Predicate } from "effect/data"
+import { Option, Predicate } from "effect"
 import { Getter, Schema } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"

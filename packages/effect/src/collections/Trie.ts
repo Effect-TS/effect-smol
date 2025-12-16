@@ -15,11 +15,11 @@
  *
  * @since 2.0.0
  */
-import type { Option } from "../data/Option.ts"
 import type { Equal } from "../interfaces/Equal.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import * as TR from "../internal/trie.ts"
+import type { Option } from "../Option.ts"
 import type { Covariant, NoInfer } from "../types/Types.ts"
 
 const TypeId = TR.TrieTypeId
@@ -27,7 +27,7 @@ const TypeId = TR.TrieTypeId
 /**
  * @example
  * ```ts
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  * import * as Trie from "effect/collections/Trie"
  *
  * // Create a trie with string-to-number mappings
@@ -429,7 +429,7 @@ export const size: <V>(self: Trie<V>) => number = TR.size
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  * import * as Trie from "effect/collections/Trie"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -543,7 +543,7 @@ export const getUnsafe: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  * import * as Trie from "effect/collections/Trie"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -697,7 +697,7 @@ export const filter: {
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
  * import * as Equal from "effect/interfaces/Equal"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const trie = Trie.empty<number>().pipe(
  *   Trie.insert("shells", 0),
@@ -737,7 +737,7 @@ export const filterMap: {
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
  * import * as Equal from "effect/interfaces/Equal"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const trie = Trie.empty<Option.Option<number>>().pipe(
  *   Trie.insert("shells", Option.some(0)),
@@ -796,7 +796,7 @@ export const forEach: {
  * import * as assert from "node:assert"
  * import * as Trie from "effect/collections/Trie"
  * import * as Equal from "effect/interfaces/Equal"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const trie = Trie.empty<number>().pipe(
  *   Trie.insert("shells", 0),

@@ -36,15 +36,15 @@
 import type { Cause } from "./Cause.ts"
 import * as Arr from "./collections/Array.ts"
 import * as MutableList from "./collections/MutableList.ts"
-import * as Filter from "./data/Filter.ts"
-import { hasProperty } from "./data/Predicate.ts"
 import type { Effect } from "./Effect.ts"
 import type { Exit, Failure } from "./Exit.ts"
+import * as Filter from "./Filter.ts"
 import { constant, constTrue, dual, identity } from "./Function.ts"
 import type { Inspectable } from "./interfaces/Inspectable.ts"
 import * as core from "./internal/core.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as internalEffect from "./internal/effect.ts"
+import { hasProperty } from "./Predicate.ts"
 import * as Pull from "./Pull.ts"
 import type { Scheduler } from "./Scheduler.ts"
 import type * as Types from "./types/Types.ts"
@@ -1269,7 +1269,7 @@ export {
  * ```ts
  * import { Effect } from "effect"
  * import { Queue } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, Queue.Done>(10)
@@ -1315,7 +1315,7 @@ export const isFull = <A, E>(self: Dequeue<A, E>): Effect<boolean> => internalEf
  * ```ts
  * import { Effect } from "effect"
  * import { Queue } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * // Create a queue and use unsafe operations
  * const program = Effect.gen(function*() {

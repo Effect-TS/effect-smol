@@ -7,7 +7,7 @@
  *
  * @since 2.0.0
  */
-import * as Result from "../data/Result.ts"
+import * as Result from "../Result.ts"
 import { EncodingError } from "./EncodingError.ts"
 
 /**
@@ -68,7 +68,7 @@ const encodeUint8Array = (bytes: Uint8Array) => {
  * @example
  * ```ts
  * import { Base64 } from "effect/encoding"
- * import { Result } from "effect/data"
+ * import { Result } from "effect"
  *
  * const result = Base64.decode("SGVsbG8=")
  * if (Result.isSuccess(result)) {
@@ -138,7 +138,7 @@ export const decode = (str: string): Result.Result<Uint8Array, EncodingError> =>
  * @example
  * ```ts
  * import { Base64 } from "effect/encoding"
- * import { Result } from "effect/data"
+ * import { Result } from "effect"
  *
  * const result = Base64.decodeString("aGVsbG8=")
  * if (Result.isSuccess(result)) {

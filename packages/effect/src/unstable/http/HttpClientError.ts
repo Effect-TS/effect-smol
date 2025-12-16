@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../data/Data.ts"
-import { hasProperty } from "../../data/Predicate.ts"
+import * as Data from "../../Data.ts"
+import { hasProperty } from "../../Predicate.ts"
 import type * as HttpClientRequest from "./HttpClientRequest.ts"
 import type * as ClientResponse from "./HttpClientResponse.ts"
 

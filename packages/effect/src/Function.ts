@@ -30,7 +30,7 @@ export interface FunctionTypeLambda extends TypeLambda {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import * as Predicate from "effect/data/Predicate"
+ * import * as Predicate from "effect/Predicate"
  *
  * assert.deepStrictEqual(Predicate.isFunction(Predicate.isFunction), true)
  * assert.deepStrictEqual(Predicate.isFunction("function"), false)

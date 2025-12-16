@@ -2,9 +2,9 @@
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
-import * as Predicate from "../../data/Predicate.ts"
-import * as Record from "../../data/Record.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import * as Predicate from "../../Predicate.ts"
+import * as Record from "../../Record.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { PathInput } from "../http/HttpRouter.ts"
 import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"

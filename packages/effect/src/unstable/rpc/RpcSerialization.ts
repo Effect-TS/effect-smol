@@ -2,9 +2,9 @@
  * @since 4.0.0
  */
 import * as Msgpackr from "msgpackr"
-import { Predicate } from "../../data/index.ts"
-import { hasProperty } from "../../data/Predicate.ts"
+import { Predicate } from "../../index.ts"
 import * as Layer from "../../Layer.ts"
+import { hasProperty } from "../../Predicate.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as RpcMessage from "./RpcMessage.ts"
 

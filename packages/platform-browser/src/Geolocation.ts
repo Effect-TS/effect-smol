@@ -1,7 +1,7 @@
 /**
  * @since 1.0.0
  */
-import * as Data from "effect/data/Data"
+import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"

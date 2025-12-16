@@ -1,8 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Fiber } from "effect"
+import { Fiber, Option } from "effect"
 import * as Cause from "effect/Cause"
 import { Chunk } from "effect/collections"
-import { Option } from "effect/data"
 import * as Effect from "effect/Effect"
 import { TxQueue } from "effect/stm"
 

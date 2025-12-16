@@ -6,12 +6,12 @@
  * @since 4.0.0
  */
 
-import { format } from "./data/Formatter.ts"
-import * as Option from "./data/Option.ts"
-import * as Result from "./data/Result.ts"
-import * as Struct from "./data/Struct.ts"
+import { format } from "./Formatter.ts"
 import { identity, memoize } from "./Function.ts"
+import * as Option from "./Option.ts"
+import * as Result from "./Result.ts"
 import * as AST from "./schema/AST.ts"
+import * as Struct from "./Struct.ts"
 import type { IsUnion } from "./types/Types.ts"
 
 /**

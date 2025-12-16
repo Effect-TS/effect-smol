@@ -1,5 +1,4 @@
-import { Effect, ServiceMap } from "effect"
-import { Option } from "effect/data"
+import { Effect, Option, ServiceMap } from "effect"
 import { Getter, Issue, Schema } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"

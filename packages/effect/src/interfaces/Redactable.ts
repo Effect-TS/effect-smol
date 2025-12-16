@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import { hasProperty } from "../data/Predicate.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
+import { hasProperty } from "../Predicate.ts"
 import type * as ServiceMap from "../ServiceMap.ts"
 
 /**

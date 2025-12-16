@@ -1,5 +1,4 @@
-import { Cause, Exit } from "effect"
-import { Data, Option, Predicate, Record, Result } from "effect/data"
+import { Cause, Data, Exit, Option, Predicate, Record, Result } from "effect"
 import { Schema, Transformation, Util } from "effect/schema"
 import { describe, it } from "vitest"
 import { assertNone, assertSome, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"

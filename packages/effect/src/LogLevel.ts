@@ -98,8 +98,8 @@
  * })
  * ```
  */
-import * as Ord from "./data/Order.ts"
 import * as effect from "./internal/effect.ts"
+import * as Ord from "./Order.ts"
 
 /**
  * Represents the severity level of a log message.

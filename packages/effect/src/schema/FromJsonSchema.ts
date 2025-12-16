@@ -17,13 +17,13 @@
  * @since 4.0.0
  */
 import * as Arr from "../collections/Array.ts"
-import * as Combiner from "../data/Combiner.ts"
-import { format, formatPropertyKey } from "../data/Formatter.ts"
-import { isObject } from "../data/Predicate.ts"
-import * as Reducer from "../data/Reducer.ts"
-import * as UndefinedOr from "../data/UndefinedOr.ts"
+import * as Combiner from "../Combiner.ts"
+import { format, formatPropertyKey } from "../Formatter.ts"
 import { remainder } from "../Number.ts"
+import { isObject } from "../Predicate.ts"
+import * as Reducer from "../Reducer.ts"
 import { type Mutable } from "../types/Types.ts"
+import * as UndefinedOr from "../UndefinedOr.ts"
 import type { Annotations } from "./Annotations.ts"
 import type * as AST from "./AST.ts"
 import type * as Schema from "./Schema.ts"

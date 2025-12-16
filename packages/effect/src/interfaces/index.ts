@@ -35,7 +35,7 @@ export * as Hash from "./Hash.ts"
  * @example
  * ```ts
  * import { Inspectable } from "effect/interfaces"
- * import { format } from "effect/data/Formatter"
+ * import { format } from "effect/Formatter"
  *
  * class User extends Inspectable.Class {
  *   constructor(

@@ -1,7 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
-import { Config, ConfigProvider, Duration, Effect, pipe } from "effect"
-import { Option, Redacted, Result } from "effect/data"
+import { Config, ConfigProvider, Duration, Effect, Option, pipe, Redacted, Result } from "effect"
 import { Issue, Schema } from "effect/schema"
 import * as assert from "node:assert"
 

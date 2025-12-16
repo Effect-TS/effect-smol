@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import type { Cause } from "../../Cause.ts"
-import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
@@ -12,6 +11,7 @@ import * as Layer from "../../Layer.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
+import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as HttpBody from "./HttpBody.ts"
 import { type HttpMiddleware, tracer } from "./HttpMiddleware.ts"
 import { causeResponse, clientAbortFiberId, RequestError } from "./HttpServerError.ts"

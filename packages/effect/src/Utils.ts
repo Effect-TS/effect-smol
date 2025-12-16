@@ -1,8 +1,8 @@
 /**
  * @since 2.0.0
  */
-import { isObject } from "./data/Predicate.ts"
 import { identity } from "./Function.ts"
+import { isObject } from "./Predicate.ts"
 import type { Kind, TypeLambda } from "./types/HKT.ts"
 import type * as Types from "./types/Types.ts"
 
@@ -107,7 +107,7 @@ export const makeGenKind = <F extends TypeLambda, R, O, E, A>(
  * @example
  * ```ts
  * import { Utils } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * // Variance defines the type parameter relationships
  * declare const variance: Utils.Variance<Option.OptionTypeLambda, never, never, never>
@@ -128,7 +128,7 @@ export interface Variance<in out F extends TypeLambda, in R, out O, out E> {
  * @example
  * ```ts
  * import { Utils } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  *
  * // Gen enables generator-based syntax for any TypeLambda
  * declare const gen: Utils.Gen<Option.OptionTypeLambda>

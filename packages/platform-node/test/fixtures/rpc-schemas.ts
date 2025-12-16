@@ -1,5 +1,4 @@
-import { Effect, Layer, Metric, Queue, ServiceMap } from "effect"
-import { Option } from "effect/data"
+import { Effect, Layer, Metric, Option, Queue, ServiceMap } from "effect"
 import { Schema } from "effect/schema"
 import { Headers } from "effect/unstable/http"
 import * as Rpc from "effect/unstable/rpc/Rpc"

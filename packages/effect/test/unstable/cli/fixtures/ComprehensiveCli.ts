@@ -1,5 +1,4 @@
-import { Effect } from "effect"
-import { Option } from "effect/data"
+import { Effect, Option } from "effect"
 import { Argument, Command, Flag } from "effect/unstable/cli"
 import type { TestActions } from "../services/TestActions.ts"
 import { logAction } from "../services/TestActions.ts"

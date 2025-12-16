@@ -32,8 +32,6 @@
  * @since 2.0.0
  */
 import * as Cron from "./Cron.ts"
-import { hasProperty } from "./data/Predicate.ts"
-import * as Result from "./data/Result.ts"
 import type * as DateTime from "./DateTime.ts"
 import * as Duration from "./Duration.ts"
 import type { Effect } from "./Effect.ts"
@@ -42,7 +40,9 @@ import { constant, constTrue, dual, identity } from "./Function.ts"
 import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 import { isEffect } from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
+import { hasProperty } from "./Predicate.ts"
 import * as Pull from "./Pull.ts"
+import * as Result from "./Result.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import type { Contravariant, Covariant, Mutable } from "./types/Types.ts"
 
@@ -754,7 +754,7 @@ export const andThen: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import { Result } from "effect/data"
+ * import { Result } from "effect"
  * import { Console } from "effect"
  *
  * // Track which phase of the schedule we're in
@@ -3318,7 +3318,7 @@ export const satisfiesOutputType = <T>() =>
  * @example
  * ```ts
  * import { Schedule } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * // Create a custom error using Data.TaggedError
  * class CustomError extends Data.TaggedError("CustomError")<{

@@ -1,5 +1,5 @@
-import { format } from "../data/Formatter.ts"
-import * as Predicate from "../data/Predicate.ts"
+import { format } from "../Formatter.ts"
+import * as Predicate from "../Predicate.ts"
 import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"
 import type * as Schema from "../schema/Schema.ts"

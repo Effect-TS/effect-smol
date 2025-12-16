@@ -1,7 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Duration, Fiber, Schedule, Scope, ServiceMap } from "effect"
+import { Data, Duration, Fiber, Filter, Option, Result, Schedule, Scope, ServiceMap } from "effect"
 import * as Cause from "effect/Cause"
-import { Data, Filter, Option, Result } from "effect/data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import { constFalse, constTrue, pipe } from "effect/Function"

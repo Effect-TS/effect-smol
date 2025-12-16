@@ -49,9 +49,9 @@
  *
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
-import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
+import * as Option from "../../Option.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
 import * as SchemaAnnotations from "../../schema/Annotations.ts"
 import * as Schema from "../../schema/Schema.ts"

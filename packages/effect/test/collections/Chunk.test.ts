@@ -11,9 +11,9 @@ import {
   strictEqual,
   throws
 } from "@effect/vitest/utils"
+import type { Predicate } from "effect"
+import { Equivalence, Option, Order, Result } from "effect"
 import { Array as Arr, Chunk } from "effect/collections"
-import type { Predicate } from "effect/data"
-import { Equivalence, Option, Order, Result } from "effect/data"
 import { identity, pipe } from "effect/Function"
 import { Equal } from "effect/interfaces"
 import { FastCheck as fc } from "effect/testing"

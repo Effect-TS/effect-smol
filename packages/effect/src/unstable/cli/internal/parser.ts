@@ -24,9 +24,9 @@
  * - Only the first Value token can open a subcommand
  * - Errors accumulate rather than throwing exceptions
  */
-import * as Option from "../../../data/Option.ts"
 import * as Effect from "../../../Effect.ts"
 import type { LogLevel } from "../../../LogLevel.ts"
+import * as Option from "../../../Option.ts"
 import type { FileSystem } from "../../../platform/FileSystem.ts"
 import type { Path } from "../../../platform/Path.ts"
 import * as CliError from "../CliError.ts"

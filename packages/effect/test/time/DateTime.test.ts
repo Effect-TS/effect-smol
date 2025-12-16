@@ -1,7 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertDefined, assertSuccess, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { DateTime, Duration, Effect } from "effect"
-import { UndefinedOr } from "effect/data"
+import { DateTime, Duration, Effect, UndefinedOr } from "effect"
 import { TestClock } from "effect/testing"
 
 const setTo2024NZ = TestClock.setTime(new Date("2023-12-31T11:00:00.000Z").getTime())

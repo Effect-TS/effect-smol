@@ -2,16 +2,16 @@
  * @since 2.0.0
  */
 import * as Cause from "./Cause.ts"
-import * as Filter from "./data/Filter.ts"
-import * as Predicate from "./data/Predicate.ts"
 import * as Deferred from "./Deferred.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
+import * as Filter from "./Filter.ts"
 import { dual } from "./Function.ts"
 import type * as Inspectable from "./interfaces/Inspectable.ts"
 import { type Pipeable } from "./interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
+import * as Predicate from "./Predicate.ts"
 import type { Scheduler } from "./Scheduler.ts"
 import type * as Scope from "./Scope.ts"
 import type { ServiceMap } from "./ServiceMap.ts"

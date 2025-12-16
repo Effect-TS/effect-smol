@@ -1,5 +1,5 @@
+import { Option } from "effect"
 import { HashMap } from "effect/collections"
-import { Option } from "effect/data"
 import { Equal, Hash } from "effect/interfaces"
 import { describe, expect, it } from "vitest"
 

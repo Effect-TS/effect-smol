@@ -2,12 +2,12 @@
  * @since 4.0.0
  */
 import { Clock } from "../../Clock.ts"
-import type { Predicate } from "../../data/Predicate.ts"
-import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as Effect from "../../Effect.ts"
 import { constant, constFalse } from "../../Function.ts"
 import * as internalEffect from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
+import type { Predicate } from "../../Predicate.ts"
+import type { ReadonlyRecord } from "../../Record.ts"
 import { TracerEnabled } from "../../References.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import { ParentSpan } from "../../Tracer.ts"

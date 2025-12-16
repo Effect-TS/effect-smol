@@ -14,13 +14,13 @@
  * @since 2.0.0
  */
 import type * as Cause from "./Cause.ts"
-import { hasProperty } from "./data/Predicate.ts"
 import type * as Effect from "./Effect.ts"
 import type * as Exit from "./Exit.ts"
 import { dual } from "./Function.ts"
 import * as Equal from "./interfaces/Equal.ts"
 import * as core from "./internal/core.ts"
 import * as internalEffect from "./internal/effect.ts"
+import { hasProperty } from "./Predicate.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
 import type * as Types from "./types/Types.ts"
 

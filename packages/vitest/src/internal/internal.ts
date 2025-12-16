@@ -3,12 +3,12 @@
  */
 
 import * as Cause from "effect/Cause"
-import { isObject } from "effect/data/Predicate"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import { flow, pipe } from "effect/Function"
 import * as Layer from "effect/Layer"
+import { isObject } from "effect/Predicate"
 import * as Schedule from "effect/Schedule"
 import * as Schema from "effect/schema/Schema"
 import * as Scope from "effect/Scope"

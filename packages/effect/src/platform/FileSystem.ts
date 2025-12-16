@@ -37,9 +37,8 @@
  *
  * @since 4.0.0
  */
+import * as Brand from "../Brand.ts"
 import * as Arr from "../collections/Array.ts"
-import * as Brand from "../data/Brand.ts"
-import * as UndefinedOr from "../data/UndefinedOr.ts"
 import * as Effect from "../Effect.ts"
 import { pipe } from "../Function.ts"
 import * as Layer from "../Layer.ts"
@@ -48,6 +47,7 @@ import type { Scope } from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import * as Sink from "../Sink.ts"
 import * as Stream from "../Stream.ts"
+import * as UndefinedOr from "../UndefinedOr.ts"
 import type { PlatformError } from "./PlatformError.ts"
 import { BadArgument, SystemError } from "./PlatformError.ts"
 

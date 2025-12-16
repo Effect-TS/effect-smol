@@ -1,7 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
-import { ConfigProvider, Effect, Layer } from "effect"
-import { Result } from "effect/data"
+import { ConfigProvider, Effect, Layer, Result } from "effect"
 import { FileSystem, Path } from "effect/platform"
 import { SystemError } from "effect/platform/PlatformError"
 

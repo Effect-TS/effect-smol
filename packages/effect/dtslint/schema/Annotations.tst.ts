@@ -1,4 +1,4 @@
-import type { Option } from "effect/data"
+import type { Option } from "effect"
 import { Annotations, Schema } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 

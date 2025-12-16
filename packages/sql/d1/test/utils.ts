@@ -1,7 +1,6 @@
 import type { D1Database } from "@cloudflare/workers-types"
 import { D1Client } from "@effect/sql-d1"
-import { Effect, Layer, ServiceMap } from "effect"
-import { Data } from "effect/data"
+import { Data, Effect, Layer, ServiceMap } from "effect"
 import { Miniflare } from "miniflare"
 
 export class MiniflareError extends Data.TaggedError("MiniflareError")<{

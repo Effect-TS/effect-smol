@@ -1,5 +1,5 @@
 import { Optic } from "effect"
-import type { Option, Result } from "effect/data"
+import type { Option, Result } from "effect"
 import { AST, Schema } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 

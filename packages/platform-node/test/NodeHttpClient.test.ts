@@ -1,6 +1,6 @@
 import * as NodeClient from "@effect/platform-node/NodeHttpClient"
 import { describe, expect, it } from "@effect/vitest"
-import { Struct } from "effect/data"
+import { Struct } from "effect"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/schema/Schema"

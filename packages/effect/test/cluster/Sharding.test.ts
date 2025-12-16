@@ -1,7 +1,6 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Cause, Clock, Effect, Exit, Fiber, Layer, MutableRef, Queue, Stream } from "effect"
+import { Cause, Clock, Effect, Exit, Fiber, Layer, MutableRef, Option, Queue, Stream } from "effect"
 import { Array } from "effect/collections"
-import { Option } from "effect/data"
 import { TestClock } from "effect/testing"
 import {
   MessageStorage,

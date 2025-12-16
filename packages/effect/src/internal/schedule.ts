@@ -1,6 +1,6 @@
-import * as Option from "../data/Option.ts"
 import type { Effect, Repeat, Retry } from "../Effect.ts"
 import { constant, constTrue, dual } from "../Function.ts"
+import * as Option from "../Option.ts"
 import * as Pull from "../Pull.ts"
 import * as Schedule from "../Schedule.ts"
 import type { NoInfer } from "../types/Types.ts"

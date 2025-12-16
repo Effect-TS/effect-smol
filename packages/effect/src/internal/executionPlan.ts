@@ -1,7 +1,7 @@
-import * as Result from "../data/Result.ts"
 import type { Effect } from "../Effect.ts"
 import * as Api from "../ExecutionPlan.ts"
 import { dual } from "../Function.ts"
+import * as Result from "../Result.ts"
 import * as Schedule from "../Schedule.ts"
 import * as effect from "./effect.ts"
 import * as internalLayer from "./layer.ts"

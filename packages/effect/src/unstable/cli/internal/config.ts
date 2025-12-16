@@ -46,7 +46,7 @@
  * 1. Flat iteration over all params for parsing/validation
  * 2. Reconstruction of original nested shape for handler input
  */
-import * as Predicate from "../../../data/Predicate.ts"
+import * as Predicate from "../../../Predicate.ts"
 import * as Param from "../Param.ts"
 
 /* ========================================================================== */

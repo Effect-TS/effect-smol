@@ -70,14 +70,11 @@
 import type * as Cause from "./Cause.ts"
 import type { Clock } from "./Clock.ts"
 import type * as Arr from "./collections/Array.ts"
-import type * as Filter from "./data/Filter.ts"
-import type { Option } from "./data/Option.ts"
-import type * as Predicate from "./data/Predicate.ts"
-import type * as Result from "./data/Result.ts"
 import * as Duration from "./Duration.ts"
 import type { ExecutionPlan } from "./ExecutionPlan.ts"
 import * as Exit from "./Exit.ts"
 import type { Fiber } from "./Fiber.ts"
+import type * as Filter from "./Filter.ts"
 import { constant, dual, type LazyArg } from "./Function.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as core from "./internal/core.ts"
@@ -90,9 +87,12 @@ import type * as Layer from "./Layer.ts"
 import type { Logger } from "./Logger.ts"
 import type { LogLevel } from "./LogLevel.ts"
 import * as Metric from "./Metric.ts"
+import type { Option } from "./Option.ts"
+import type * as Predicate from "./Predicate.ts"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.ts"
 import type * as Request from "./Request.ts"
 import type { RequestResolver } from "./RequestResolver.ts"
+import type * as Result from "./Result.ts"
 import type { Schedule } from "./Schedule.ts"
 import type { Scheduler } from "./Scheduler.ts"
 import type { Scope } from "./Scope.ts"
@@ -1614,7 +1614,7 @@ export const withFiber: <A, E = never, R = never>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Result } from "effect/data"
+ * import { Result } from "effect"
  *
  * const success = Result.succeed(42)
  * const failure = Result.fail("Something went wrong")
@@ -1638,7 +1638,7 @@ export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect<A, E> = i
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  *
  * const some = Option.some(42)
  * const none = Option.none()
@@ -1673,7 +1673,7 @@ export const fromNullishOr: <A>(value: A) => Effect<NonNullable<A>, Cause.NoSuch
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * // Option is yieldable in Effect
  * const program = Effect.gen(function* () {
@@ -1994,7 +1994,7 @@ export const tap: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Result } from "effect/data"
+ * import { Result } from "effect"
  *
  * const success = Effect.succeed(42)
  * const failure = Effect.fail("Something went wrong")
@@ -2165,7 +2165,7 @@ export const as: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const program = Effect.asSome(Effect.succeed(42))
  *
@@ -2473,7 +2473,7 @@ export const catchTag: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * // Define tagged error types
  * class ValidationError extends Data.TaggedError("ValidationError")<{
@@ -3796,7 +3796,7 @@ export const raceFirst: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Filter } from "effect/data"
+ * import { Filter } from "effect"
  *
  * const isEven = (n: number) => Effect.succeed(n % 2 === 0 ? n : Filter.fail(n))
  *
@@ -3828,7 +3828,7 @@ export const filter: <A, B, X, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Filter } from "effect/data"
+ * import { Filter } from "effect"
  *
  * // An effect that produces a number
  * const program = Effect.succeed(5)
@@ -3870,7 +3870,7 @@ export const filterOrElse: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Filter } from "effect/data"
+ * import { Filter } from "effect"
  *
  * // An effect that produces a number
  * const program = Effect.succeed(5)
@@ -3930,7 +3930,7 @@ export const filterOrFail: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  * import { Console } from "effect"
  *
  * const shouldLog = true
@@ -4207,7 +4207,7 @@ export const matchCauseEffectEager: {
  * @example
  * ```ts
  * import { Effect, Cause } from "effect"
- * import * as Filter from "effect/data/Filter"
+ * import * as Filter from "effect/Filter"
  * import { Console } from "effect"
  *
  * const task = Effect.fail(new Error("Task failed"))
@@ -4400,7 +4400,7 @@ export const isSuccess: <A, E, R>(self: Effect<A, E, R>) => Effect<boolean, neve
  * @example
  * ```ts
  * import { Console, Effect, ServiceMap } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  *
  * const Logger = ServiceMap.Service<{
  *   log: (msg: string) => void
@@ -4441,7 +4441,7 @@ export const services: <R>() => Effect<ServiceMap.ServiceMap<R>, never, R> = int
  * @example
  * ```ts
  * import { Console, Effect, ServiceMap } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  *
  * const Logger = ServiceMap.Service<{
  *   log: (msg: string) => void
@@ -4633,7 +4633,7 @@ export const service: <I, S>(service: ServiceMap.Service<I, S>) => Effect<S, nev
  * @example
  * ```ts
  * import { Effect, ServiceMap } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  *
  * // Define a service key
  * const Logger = ServiceMap.Service<{
@@ -6236,7 +6236,7 @@ export const repeat: {
  * ```ts
  * import { Effect } from "effect"
  * import { Schedule } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  * import { Console } from "effect"
  *
  * let attempt = 0

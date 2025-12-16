@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
-import * as Option from "../../data/Option.ts"
-import type * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
+import * as Option from "../../Option.ts"
+import type * as Predicate from "../../Predicate.ts"
 import * as AST from "../../schema/AST.ts"
 import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"

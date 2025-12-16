@@ -560,7 +560,7 @@ export const size = <A>(self: PubSub<A>): Effect.Effect<number> => Effect.sync((
  * @example
  * ```ts
  * import { PubSub } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  *
  * // Unsafe synchronous size check
  * declare const pubsub: PubSub.PubSub<string>
@@ -1306,7 +1306,7 @@ export const remaining = <A>(self: Subscription<A>): Effect.Effect<number> =>
  * @example
  * ```ts
  * import { PubSub } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * declare const subscription: PubSub.Subscription<string>
  *

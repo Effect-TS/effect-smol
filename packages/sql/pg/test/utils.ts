@@ -1,7 +1,6 @@
 import { PgClient } from "@effect/sql-pg"
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
-import { Effect, Layer, ServiceMap, String } from "effect"
-import { Data, Redacted } from "effect/data"
+import { Data, Effect, Layer, Redacted, ServiceMap, String } from "effect"
 
 export class ContainerError extends Data.TaggedError("ContainerError")<{
   cause: unknown

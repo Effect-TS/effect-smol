@@ -138,8 +138,6 @@
  */
 
 import * as Arr from "./collections/Array.ts"
-import * as Order from "./data/Order.ts"
-import * as Predicate from "./data/Predicate.ts"
 import * as Duration from "./Duration.ts"
 import type { Effect } from "./Effect.ts"
 import type { Exit } from "./Exit.ts"
@@ -149,6 +147,8 @@ import { pipeArguments } from "./interfaces/Pipeable.ts"
 import * as InternalEffect from "./internal/effect.ts"
 import * as InternalMetric from "./internal/metric.ts"
 import * as Layer from "./Layer.ts"
+import * as Order from "./Order.ts"
+import * as Predicate from "./Predicate.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as _String from "./String.ts"
 import type { Contravariant, Covariant } from "./types/Types.ts"
@@ -173,7 +173,7 @@ import type { Contravariant, Covariant } from "./types/Types.ts"
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class MetricExample extends Data.TaggedError("MetricExample")<{
  *   readonly operation: string
@@ -250,7 +250,7 @@ export interface Metric<in Input, out State> extends Pipeable {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class CounterInterfaceError extends Data.TaggedError("CounterInterfaceError")<{
  *   readonly operation: string
@@ -313,7 +313,7 @@ export interface Counter<in Input extends number | bigint> extends Metric<Input,
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class CounterStateError extends Data.TaggedError("CounterStateError")<{
  *   readonly operation: string
@@ -382,7 +382,7 @@ export interface CounterState<in Input extends number | bigint> {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class FrequencyInterfaceError
  *   extends Data.TaggedError("FrequencyInterfaceError")<{
@@ -461,7 +461,7 @@ export interface Frequency extends Metric<string, FrequencyState> {}
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class FrequencyStateError extends Data.TaggedError("FrequencyStateError")<{
  *   readonly operation: string
@@ -551,7 +551,7 @@ export interface FrequencyState {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class GaugeInterfaceError extends Data.TaggedError("GaugeInterfaceError")<{
  *   readonly operation: string
@@ -607,7 +607,7 @@ export interface Gauge<in Input extends number | bigint> extends Metric<Input, G
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class GaugeStateError extends Data.TaggedError("GaugeStateError")<{
  *   readonly operation: string
@@ -681,7 +681,7 @@ export interface GaugeState<in Input extends number | bigint> {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class HistogramInterfaceError
  *   extends Data.TaggedError("HistogramInterfaceError")<{
@@ -765,7 +765,7 @@ export interface Histogram<Input> extends Metric<Input, HistogramState> {}
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class HistogramStateError extends Data.TaggedError("HistogramStateError")<{
  *   readonly operation: string
@@ -862,7 +862,7 @@ export interface HistogramState {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class SummaryInterfaceError extends Data.TaggedError("SummaryInterfaceError")<{
  *   readonly operation: string
@@ -956,7 +956,7 @@ export interface Summary<Input> extends Metric<Input, SummaryState> {}
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class SummaryStateError extends Data.TaggedError("SummaryStateError")<{
  *   readonly operation: string
@@ -1045,7 +1045,7 @@ export interface SummaryState {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
  *   readonly operation: string
@@ -1091,7 +1091,7 @@ export declare namespace Metric {
    * @example
    * ```ts
    * import { Effect, Metric } from "effect"
-   * import { Data } from "effect/data"
+   * import { Data } from "effect"
    *
    * class MetricTypeError extends Data.TaggedError("MetricTypeError")<{
    *   readonly operation: string
@@ -1172,7 +1172,7 @@ export declare namespace Metric {
    * @example
    * ```ts
    * import { Effect, Metric } from "effect"
-   * import { Data } from "effect/data"
+   * import { Data } from "effect"
    *
    * class AttributesError extends Data.TaggedError("AttributesError")<{
    *   readonly operation: string
@@ -1248,7 +1248,7 @@ export declare namespace Metric {
    * @example
    * ```ts
    * import { Effect, Metric } from "effect"
-   * import { Data } from "effect/data"
+   * import { Data } from "effect"
    *
    * class AttributeSetError extends Data.TaggedError("AttributeSetError")<{
    *   readonly operation: string
@@ -1435,7 +1435,7 @@ export declare namespace Metric {
    * @example
    * ```ts
    * import { Effect, Metric } from "effect"
-   * import { Data } from "effect/data"
+   * import { Data } from "effect"
    *
    * class HooksError extends Data.TaggedError("HooksError")<{
    *   readonly operation: string
@@ -1484,7 +1484,7 @@ export declare namespace Metric {
    * @example
    * ```ts
    * import { Effect, Metric } from "effect"
-   * import { Data } from "effect/data"
+   * import { Data } from "effect"
    *
    * class MetadataError extends Data.TaggedError("MetadataError")<{
    *   readonly operation: string
@@ -1552,7 +1552,7 @@ export declare namespace Metric {
    * @example
    * ```ts
    * import { Effect, Metric } from "effect"
-   * import { Data } from "effect/data"
+   * import { Data } from "effect"
    *
    * class SnapshotProtoError extends Data.TaggedError("SnapshotProtoError")<{
    *   readonly operation: string
@@ -1625,7 +1625,7 @@ export declare namespace Metric {
    * @example
    * ```ts
    * import { Effect, Metric } from "effect"
-   * import { Data } from "effect/data"
+   * import { Data } from "effect"
    *
    * class SnapshotError extends Data.TaggedError("SnapshotError")<{
    *   readonly operation: string
@@ -1702,7 +1702,7 @@ export declare namespace Metric {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class AttributesKeyError extends Data.TaggedError("AttributesKeyError")<{
  *   readonly operation: string
@@ -1753,7 +1753,7 @@ export const CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class AttributesError extends Data.TaggedError("AttributesError")<{
  *   readonly operation: string
@@ -2207,7 +2207,7 @@ export const isMetric = (u: unknown): u is Metric<unknown, never> =>
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class CounterError extends Data.TaggedError("CounterError")<{
  *   readonly operation: string
@@ -2287,7 +2287,7 @@ export const counter: {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class GaugeError extends Data.TaggedError("GaugeError")<{
  *   readonly operation: string
@@ -2365,7 +2365,7 @@ export const gauge: {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class FrequencyError extends Data.TaggedError("FrequencyError")<{
  *   readonly operation: string
@@ -2445,7 +2445,7 @@ export const frequency = (name: string, options?: {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class HistogramError extends Data.TaggedError("HistogramError")<{
  *   readonly operation: string
@@ -2525,7 +2525,7 @@ export const histogram = (name: string, options: {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { Duration } from "effect"
  *
  * class SummaryError extends Data.TaggedError("SummaryError")<{
@@ -2651,7 +2651,7 @@ export const summaryWithTimestamp = (name: string, options: {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { Duration } from "effect"
  *
  * class TimerError extends Data.TaggedError("TimerError")<{
@@ -2862,7 +2862,7 @@ export const update: {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class MetricError extends Data.TaggedError("MetricError")<{
  *   readonly operation: string
@@ -2928,7 +2928,7 @@ export const mapInput: {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class MetricError extends Data.TaggedError("MetricError")<{
  *   readonly operation: string
@@ -3047,7 +3047,7 @@ export const withAttributes: {
  * @example
  * ```ts
  * import { Console, Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class SnapshotError extends Data.TaggedError("SnapshotError")<{
  *   readonly operation: string
@@ -3103,7 +3103,7 @@ export const snapshot: Effect<ReadonlyArray<Metric.Snapshot>> = InternalEffect.m
  * @example
  * ```ts
  * import { Console, Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class DumpError extends Data.TaggedError("DumpError")<{
  *   readonly operation: string
@@ -3193,7 +3193,7 @@ export const dump: Effect<string> = InternalEffect.flatMap(InternalEffect.servic
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class UnsafeSnapshotError extends Data.TaggedError("UnsafeSnapshotError")<{
  *   readonly operation: string
@@ -3323,7 +3323,7 @@ const attributesToString = (attributes: Metric.AttributeSet): string => {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class BoundaryError extends Data.TaggedError("BoundaryError")<{
  *   readonly operation: string
@@ -3391,7 +3391,7 @@ export const boundariesFromIterable = (iterable: Iterable<number>): ReadonlyArra
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class BoundaryError extends Data.TaggedError("BoundaryError")<{
  *   readonly operation: string
@@ -3443,7 +3443,7 @@ export const linearBoundaries = (options: {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class BoundaryError extends Data.TaggedError("BoundaryError")<{
  *   readonly operation: string
@@ -3516,7 +3516,7 @@ const fiberFailures = counter("child_fiber_failures", {
  * @example
  * ```ts
  * import { Effect, Layer, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
  *   readonly operation: string
@@ -3557,7 +3557,7 @@ export const FiberRuntimeMetricsKey: "effect/observability/Metric/FiberRuntimeMe
  * ```ts
  * import type { ServiceMap } from "effect"
  * import { Effect, Layer, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import type { Exit } from "effect/Exit"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
@@ -3601,7 +3601,7 @@ export interface FiberRuntimeMetricsService {
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
  *   readonly operation: string
@@ -3652,7 +3652,7 @@ export const FiberRuntimeMetrics = ServiceMap.Reference<FiberRuntimeMetricsServi
  * @example
  * ```ts
  * import { Effect, Layer, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
  *   readonly operation: string
@@ -3718,7 +3718,7 @@ export const FiberRuntimeMetricsImpl: FiberRuntimeMetricsService = {
  * @example
  * ```ts
  * import { Console, Effect, Layer, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class AppError extends Data.TaggedError("AppError")<{
  *   readonly operation: string
@@ -3812,7 +3812,7 @@ export const enableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(Fibe
  * @example
  * ```ts
  * import { Effect, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
  *   readonly operation: string
@@ -3857,7 +3857,7 @@ export const disableRuntimeMetricsLayer = Layer.succeed(FiberRuntimeMetrics)(und
  * @example
  * ```ts
  * import { Console, Effect, Layer, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class RuntimeMetricsError extends Data.TaggedError("RuntimeMetricsError")<{
  *   readonly operation: string
@@ -3944,7 +3944,7 @@ export const enableRuntimeMetrics: <A, E, R>(self: Effect<A, E, R>) => Effect<A,
  * @example
  * ```ts
  * import { Console, Effect, Layer, Metric } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class DisableMetricsError extends Data.TaggedError("DisableMetricsError")<{
  *   readonly operation: string

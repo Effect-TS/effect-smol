@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import * as Predicate from "../data/Predicate.ts"
 import type * as Effect from "../Effect.ts"
+import * as Predicate from "../Predicate.ts"
 import type * as Queue from "../Queue.ts"
 import * as Schema from "../schema/Schema.ts"
 import type * as Scope from "../Scope.ts"

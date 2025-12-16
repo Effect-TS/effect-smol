@@ -3,12 +3,12 @@
  */
 import * as Clock from "../Clock.ts"
 import * as Arr from "../collections/Array.ts"
-import * as Data from "../data/Data.ts"
-import * as Order from "../data/Order.ts"
+import * as Data from "../Data.ts"
 import * as Duration from "../Duration.ts"
 import * as Effect from "../Effect.ts"
 import * as Fiber from "../Fiber.ts"
 import * as Layer from "../Layer.ts"
+import * as Order from "../Order.ts"
 
 /**
  * A `TestClock` simplifies deterministically and efficiently testing effects
@@ -26,7 +26,7 @@ import * as Layer from "../Layer.ts"
  * import * as assert from "node:assert"
  * import { Duration } from "effect"
  * import { Effect, pipe } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { Fiber } from "effect"
  * import { TestClock } from "effect/testing"
  *

@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 
-import type { Equivalence } from "../data/Equivalence.ts"
-import type { Formatter } from "../data/Formatter.ts"
+import type { Equivalence } from "../Equivalence.ts"
+import type { Formatter } from "../Formatter.ts"
 import { memoize } from "../Function.ts"
 import type * as FastCheck from "../testing/FastCheck.ts"
 import type * as AST from "./AST.ts"

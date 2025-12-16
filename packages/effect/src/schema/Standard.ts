@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 import * as Arr from "../collections/Array.ts"
-import { format, formatPropertyKey } from "../data/Formatter.ts"
-import * as Option from "../data/Option.ts"
-import * as Predicate from "../data/Predicate.ts"
-import * as Rec from "../data/Record.ts"
+import { format, formatPropertyKey } from "../Formatter.ts"
+import * as Option from "../Option.ts"
+import * as Predicate from "../Predicate.ts"
+import * as Rec from "../Record.ts"
 import * as RegEx from "../RegExp.ts"
 import type * as Types from "../types/Types.ts"
 import * as Annotations from "./Annotations.ts"

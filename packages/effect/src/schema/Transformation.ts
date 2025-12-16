@@ -2,10 +2,10 @@
  * @since 4.0.0
  */
 
-import * as Option from "../data/Option.ts"
-import * as Predicate from "../data/Predicate.ts"
 import * as Duration from "../Duration.ts"
 import * as Effect from "../Effect.ts"
+import * as Option from "../Option.ts"
+import * as Predicate from "../Predicate.ts"
 import type * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"

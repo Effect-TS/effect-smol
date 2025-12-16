@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Predicate from "../../data/Predicate.ts"
+import * as Predicate from "../../Predicate.ts"
 import type * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Stream_ from "../../Stream.ts"

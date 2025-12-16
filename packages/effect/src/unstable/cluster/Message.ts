@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Data from "../../data/Data.ts"
+import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type { ServiceMap } from "../../ServiceMap.ts"

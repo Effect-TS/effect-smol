@@ -1,6 +1,6 @@
 import { describe, it } from "@effect/vitest"
+import { Data, Option } from "effect"
 import { Graph } from "effect/collections"
-import { Data, Option } from "effect/data"
 import type { Types } from "effect/types"
 import { AssertionError } from "node:assert"
 

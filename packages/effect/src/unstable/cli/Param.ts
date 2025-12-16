@@ -10,16 +10,16 @@
  *
  * @since 4.0.0
  */
-import * as Option from "../../data/Option.ts"
-import * as Predicate from "../../data/Predicate.ts"
-import type * as Redacted from "../../data/Redacted.ts"
-import * as Result from "../../data/Result.ts"
 import * as Effect from "../../Effect.ts"
 import type { LazyArg } from "../../Function.ts"
 import { dual, identity } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import * as Option from "../../Option.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Path from "../../platform/Path.ts"
+import * as Predicate from "../../Predicate.ts"
+import type * as Redacted from "../../Redacted.ts"
+import * as Result from "../../Result.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type { Covariant } from "../../types/Types.ts"
 import * as CliError from "./CliError.ts"
@@ -1323,7 +1323,7 @@ export const atLeast: {
  *
  * @example
  * ```ts
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import * as Param from "effect/unstable/cli/Param"
  * // @internal - this module is not exported publicly
  *

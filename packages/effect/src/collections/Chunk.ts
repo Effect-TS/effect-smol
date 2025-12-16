@@ -72,22 +72,22 @@ import { Effect } from "effect"
 import * as RA from "../collections/Array.ts"
 import type { NonEmptyReadonlyArray } from "../collections/Array.ts"
 import type { NonEmptyIterable } from "../collections/NonEmptyIterable.ts"
-import * as Equivalence from "../data/Equivalence.ts"
-import { format } from "../data/Formatter.ts"
-import type { Option } from "../data/Option.ts"
-import * as O from "../data/Option.ts"
-import * as Order from "../data/Order.ts"
-import { hasProperty, type Predicate, type Refinement } from "../data/Predicate.ts"
-import type { Result } from "../data/Result.ts"
-import * as UndefinedOr from "../data/UndefinedOr.ts"
+import * as Equivalence from "../Equivalence.ts"
+import { format } from "../Formatter.ts"
 import { dual, identity, pipe } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { type Inspectable, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
+import type { Option } from "../Option.ts"
+import * as O from "../Option.ts"
+import * as Order from "../Order.ts"
+import { hasProperty, type Predicate, type Refinement } from "../Predicate.ts"
+import type { Result } from "../Result.ts"
 import type { TypeLambda } from "../types/HKT.ts"
 import type { Covariant, NoInfer } from "../types/Types.ts"
+import * as UndefinedOr from "../UndefinedOr.ts"
 
 const TypeId = "~effect/collections/Chunk"
 
@@ -209,7 +209,7 @@ const emptyArray: ReadonlyArray<never> = []
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Equivalence from "effect/data/Equivalence"
+import * as Equivalence from "effect/Equivalence"
  *
  * const chunk1 = Chunk.make(1, 2, 3)
  * const chunk2 = Chunk.make(1, 2, 3)
@@ -558,7 +558,7 @@ export const reverse: <S extends Chunk<any>>(self: S) => Chunk.With<S, Chunk.Inf
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make("a", "b", "c", "d")
  *
@@ -994,7 +994,7 @@ export const appendAll: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make("1", "2", "hello", "3", "world")
  * const numbers = Chunk.filterMap(chunk, (str) => {
@@ -1058,7 +1058,7 @@ export const filter: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make("1", "2", "hello", "3", "4")
  * const result = Chunk.filterMapWhile(chunk, (s) => {
@@ -1090,7 +1090,7 @@ export const filterMapWhile: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make(Option.some(1), Option.none(), Option.some(3))
  * const result = Chunk.compact(chunk)
@@ -1332,7 +1332,7 @@ export const isNonEmpty = <A>(self: Chunk<A>): self is NonEmptyChunk<A> => self.
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * console.log(Chunk.head(Chunk.empty())) // { _tag: "None" }
  * console.log(Chunk.head(Chunk.make(1, 2, 3))) // { _tag: "Some", value: 1 }
@@ -1399,7 +1399,7 @@ export const headNonEmpty: <A>(self: NonEmptyChunk<A>) => A = headUnsafe
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * console.log(Chunk.last(Chunk.empty())) // { _tag: "None" }
  * console.log(Chunk.last(Chunk.make(1, 2, 3))) // { _tag: "Some", value: 3 }
@@ -1705,7 +1705,7 @@ export const partition: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import * as Result from "effect/data/Result"
+ * import * as Result from "effect/Result"
  *
  * const chunk = Chunk.make("1", "hello", "2", "world", "3")
  * const [errors, numbers] = Chunk.partitionMap(chunk, (str) => {
@@ -1745,7 +1745,7 @@ export const partitionMap: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import * as Result from "effect/data/Result"
+ * import * as Result from "effect/Result"
  *
  * const chunk = Chunk.make(
  *   Result.succeed(1),
@@ -1797,7 +1797,7 @@ export const size = <A>(self: Chunk<A>): number => self.length
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Order from "effect/data/Order"
+import * as Order from "effect/Order"
  *
  * const numbers = Chunk.make(3, 1, 4, 1, 5, 9, 2, 6)
  * const sorted = Chunk.sort(numbers, Order.number)
@@ -1830,7 +1830,7 @@ export const sort: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
-import * as Order from "effect/data/Order"
+import * as Order from "effect/Order"
  *
  * const people = Chunk.make(
  *   { name: "Alice", age: 30 },
@@ -2011,7 +2011,7 @@ export const splitWhere: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  * console.log(Chunk.tail(chunk)) // Option.some(Chunk.make(2, 3, 4))
@@ -2494,7 +2494,7 @@ export const containsWith: <A>(
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findFirst(chunk, (n) => n > 3)
@@ -2555,7 +2555,7 @@ export const findFirstIndex: {
  * @example
  * ```ts
  * import { Chunk } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findLast(chunk, (n) => n < 4)

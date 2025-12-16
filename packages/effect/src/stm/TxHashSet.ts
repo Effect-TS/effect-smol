@@ -3,14 +3,14 @@
  */
 
 import * as HashSet from "../collections/HashSet.ts"
-import { format } from "../data/Formatter.ts"
-import type { Predicate, Refinement } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
+import { format } from "../Formatter.ts"
 import { dual } from "../Function.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
+import type { Predicate, Refinement } from "../Predicate.ts"
 import * as TxRef from "../stm/TxRef.ts"
 import type { NoInfer } from "../types/Types.ts"
 

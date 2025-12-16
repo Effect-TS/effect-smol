@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import { hasProperty } from "../../data/Predicate.ts"
 import type { DateTime } from "../../DateTime.ts"
+import { hasProperty } from "../../Predicate.ts"
 
 /**
  * @since 4.0.0

@@ -26,9 +26,9 @@
  *
  * @since 4.0.0
  */
-import * as Predicate from "../../data/Predicate.ts"
 import type * as DateTime from "../../DateTime.ts"
 import { constFalse, identity } from "../../Function.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as SchemaTransformation from "../../schema/Transformation.ts"
 import type * as Tool from "./Tool.ts"
@@ -2046,7 +2046,7 @@ export const UrlSourcePart: Schema.Struct<{
  * @example
  * ```ts
  * import { DateTime } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { Response } from "effect/unstable/ai"
  *
  * const metadataPart: Response.ResponseMetadataPart = Response.makePart("response-metadata", {

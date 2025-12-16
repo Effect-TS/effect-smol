@@ -1,8 +1,7 @@
 import { describe, it } from "@effect/vitest"
 import { assertFalse, assertNone, assertSome, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { pipe } from "effect"
+import { Option, pipe } from "effect"
 import { MutableHashMap as HM } from "effect/collections"
-import { Option } from "effect/data"
 import { Equal, Hash } from "effect/interfaces"
 
 class Key implements Equal.Equal {

@@ -2,15 +2,15 @@
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
-import * as Predicate from "../../data/Predicate.ts"
-import * as Record from "../../data/Record.ts"
-import * as UndefinedOr from "../../data/UndefinedOr.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import * as Predicate from "../../Predicate.ts"
+import * as Record from "../../Record.ts"
 import * as Annotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"
 import type * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable } from "../../types/Types.ts"
+import * as UndefinedOr from "../../UndefinedOr.ts"
 import type { PathInput } from "../http/HttpRouter.ts"
 import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"

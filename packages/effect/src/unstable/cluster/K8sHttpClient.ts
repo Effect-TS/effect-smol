@@ -2,11 +2,11 @@
  * @since 4.0.0
  */
 import type * as v1 from "kubernetes-types/core/v1.d.ts"
-import * as Filter from "../../data/Filter.ts"
-import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
+import * as Filter from "../../Filter.ts"
 import { identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Option from "../../Option.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../schema/Schema.ts"

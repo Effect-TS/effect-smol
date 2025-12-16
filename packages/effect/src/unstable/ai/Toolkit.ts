@@ -38,13 +38,13 @@
  *
  * @since 1.0.0
  */
-import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
 import type { Inspectable } from "../../interfaces/Inspectable.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import * as Layer from "../../Layer.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"

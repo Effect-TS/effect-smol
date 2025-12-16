@@ -1,4 +1,4 @@
-import { formatPath } from "../data/Formatter.ts"
+import { formatPath } from "../Formatter.ts"
 
 /** @internal */
 export function errorWithPath(message: string, path: ReadonlyArray<PropertyKey>) {

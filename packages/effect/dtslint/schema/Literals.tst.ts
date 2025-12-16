@@ -1,4 +1,4 @@
-import { Tuple } from "effect/data"
+import { Tuple } from "effect"
 import { Schema } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 

@@ -3,8 +3,6 @@
  */
 import * as Iterable from "./collections/Iterable.ts"
 import * as MutableHashMap from "./collections/MutableHashMap.ts"
-import * as Option from "./data/Option.ts"
-import type { Predicate } from "./data/Predicate.ts"
 import * as Deferred from "./Deferred.ts"
 import * as Duration from "./Duration.ts"
 import type * as Effect from "./Effect.ts"
@@ -15,6 +13,8 @@ import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as core from "./internal/core.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
+import * as Option from "./Option.ts"
+import type { Predicate } from "./Predicate.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 
 const TypeId = "~effect/Cache"
@@ -68,7 +68,7 @@ const TypeId = "~effect/Cache"
  * @example
  * ```ts
  * import { Cache, Effect } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { Duration } from "effect"
  *
  * // Cache with complex key types and TTL

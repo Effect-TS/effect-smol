@@ -29,11 +29,11 @@
  *
  * @since 2.0.0
  */
-import type * as Option from "./data/Option.ts"
 import * as Effect from "./Effect.ts"
 import { dual, identity } from "./Function.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as MutableRef from "./MutableRef.ts"
+import type * as Option from "./Option.ts"
 import type { Invariant } from "./types/Types.ts"
 
 const TypeId = "~effect/Ref"
@@ -309,7 +309,7 @@ export const getAndUpdate = dual<
  * ```ts
  * import { Effect } from "effect"
  * import { Ref } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
@@ -452,7 +452,7 @@ export const modify = dual<
  * ```ts
  * import { Effect } from "effect"
  * import { Ref } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
@@ -582,7 +582,7 @@ export const updateAndGet = dual<
  * ```ts
  * import { Effect } from "effect"
  * import { Ref } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(5)
@@ -631,7 +631,7 @@ export const updateSome = dual<
  * ```ts
  * import { Effect } from "effect"
  * import { Ref } from "effect"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* Ref.make(10)

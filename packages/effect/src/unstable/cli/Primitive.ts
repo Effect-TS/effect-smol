@@ -15,15 +15,15 @@ import * as Ini from "ini"
 import * as Toml from "toml"
 import * as Yaml from "yaml"
 import * as Config from "../../Config.ts"
-import { format } from "../../data/Formatter.ts"
-import * as Redacted from "../../data/Redacted.ts"
-import type * as Struct from "../../data/Struct.ts"
 import * as Effect from "../../Effect.ts"
+import { format } from "../../Formatter.ts"
 import { identity } from "../../Function.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"
+import * as Redacted from "../../Redacted.ts"
 import type { Formatter } from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
+import type * as Struct from "../../Struct.ts"
 import type { Covariant } from "../../types/Types.ts"
 
 const TypeId = "~effect/cli/Primitive"
@@ -398,7 +398,7 @@ export const path = (
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Redacted } from "effect/data"
+ * import { Redacted } from "effect"
  * import { Primitive } from "effect/unstable/cli"
  *
  * const parseRedacted = Effect.gen(function*() {

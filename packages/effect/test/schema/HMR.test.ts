@@ -1,5 +1,4 @@
-import { Exit } from "effect"
-import { Option } from "effect/data"
+import { Exit, Option } from "effect"
 import { describe, expect, it, vi } from "vitest"
 
 const SCHEMA_MODULE_PATH = "../../src/schema/Schema.ts"

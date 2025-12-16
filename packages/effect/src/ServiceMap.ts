@@ -10,8 +10,6 @@
  *
  * @since 4.0.0
  */
-import * as Option from "./data/Option.ts"
-import { hasProperty } from "./data/Predicate.ts"
 import type { Effect, EffectIterator, Yieldable } from "./Effect.ts"
 import { constant, dual, type LazyArg } from "./Function.ts"
 import * as Equal from "./interfaces/Equal.ts"
@@ -20,6 +18,8 @@ import type { Inspectable } from "./interfaces/Inspectable.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./internal/core.ts"
 import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
+import * as Option from "./Option.ts"
+import { hasProperty } from "./Predicate.ts"
 import type * as Types from "./types/Types.ts"
 
 const ServiceTypeId = "~effect/ServiceMap/Service" as const
@@ -752,7 +752,7 @@ const serviceNotFoundError = (service: Service<any, any>) => {
  * ```ts
  * import * as assert from "node:assert"
  * import { ServiceMap } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
@@ -861,7 +861,7 @@ export const mergeAll = <T extends Array<unknown>>(
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
  * import { ServiceMap } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")
@@ -900,7 +900,7 @@ export const pick = <S extends ReadonlyArray<Service<any, any>>>(
  * import * as assert from "node:assert"
  * import { pipe } from "effect"
  * import { ServiceMap } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
  * const Timeout = ServiceMap.Service<{ TIMEOUT: number }>("Timeout")

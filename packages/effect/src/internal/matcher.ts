@@ -1,9 +1,9 @@
-import * as Option from "../data/Option.ts"
-import type * as Predicate from "../data/Predicate.ts"
-import * as Result from "../data/Result.ts"
 import { dual, identity } from "../Function.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
 import type { Case, Matcher, Not, SafeRefinement, TypeMatcher, Types, ValueMatcher, When } from "../Match.ts"
+import * as Option from "../Option.ts"
+import type * as Predicate from "../Predicate.ts"
+import * as Result from "../Result.ts"
 import type { Unify } from "../types/Unify.ts"
 
 /** @internal */

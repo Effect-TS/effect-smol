@@ -39,8 +39,8 @@
  *
  * @since 2.0.0
  */
-import type * as Filter from "./data/Filter.ts"
 import type * as Effect from "./Effect.ts"
+import type * as Filter from "./Filter.ts"
 import type { Equal } from "./interfaces/Equal.ts"
 import type { Inspectable } from "./interfaces/Inspectable.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"

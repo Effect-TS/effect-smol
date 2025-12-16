@@ -1,5 +1,4 @@
-import { Brand, Option, Predicate, Tuple, Struct  } from "effect/data"
-import { ServiceMap, Effect, hole } from "effect"
+import { Brand, Option, Predicate, Tuple, Struct, ServiceMap, Effect, hole   } from "effect"
 import type { AST} from 'effect/schema';
 import { Getter, Schema, Transformation } from 'effect/schema'
 import { immerable, produce } from "immer"

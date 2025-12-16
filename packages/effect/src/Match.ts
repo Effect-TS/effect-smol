@@ -26,11 +26,11 @@
  *
  * @since 4.0.0
  */
-import type * as Option from "./data/Option.ts"
-import * as Predicate from "./data/Predicate.ts"
-import type * as Result from "./data/Result.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as internal from "./internal/matcher.ts"
+import type * as Option from "./Option.ts"
+import * as Predicate from "./Predicate.ts"
+import type * as Result from "./Result.ts"
 import type * as T from "./types/Types.ts"
 import type { Unify } from "./types/Unify.ts"
 

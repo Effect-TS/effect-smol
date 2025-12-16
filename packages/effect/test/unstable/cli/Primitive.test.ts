@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Layer } from "effect"
-import { Redacted } from "effect/data"
+import { Effect, Layer, Redacted } from "effect"
 import { FileSystem, Path, PlatformError } from "effect/platform"
 import { Primitive } from "effect/unstable/cli"
 

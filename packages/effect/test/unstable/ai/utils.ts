@@ -1,5 +1,4 @@
-import { Effect, Stream } from "effect"
-import { Predicate } from "effect/data"
+import { Effect, Predicate, Stream } from "effect"
 import { dual } from "effect/Function"
 import type { Response } from "effect/unstable/ai"
 import { LanguageModel } from "effect/unstable/ai"

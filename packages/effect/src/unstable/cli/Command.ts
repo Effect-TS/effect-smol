@@ -2,7 +2,6 @@
  * @since 4.0.0
  */
 import * as Console from "../../Console.ts"
-import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
@@ -10,6 +9,7 @@ import type * as Layer from "../../Layer.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Path from "../../platform/Path.ts"
 import type * as Terminal from "../../platform/Terminal.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as References from "../../References.ts"
 import type * as ServiceMap from "../../ServiceMap.ts"
 import type { Simplify } from "../../types/Types.ts"

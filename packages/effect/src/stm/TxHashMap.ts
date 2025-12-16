@@ -3,14 +3,14 @@
  */
 
 import * as HashMap from "../collections/HashMap.ts"
-import { format } from "../data/Formatter.ts"
-import * as Option from "../data/Option.ts"
 import * as Effect from "../Effect.ts"
+import { format } from "../Formatter.ts"
 import { dual } from "../Function.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
+import * as Option from "../Option.ts"
 import * as TxRef from "../stm/TxRef.ts"
 
 const TypeId = "~effect/transactions/TxHashMap"
@@ -42,7 +42,7 @@ const TxHashMapProto = {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -336,7 +336,7 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): Effect.E
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -732,7 +732,7 @@ export const modify: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -794,7 +794,7 @@ export const modifyAt: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -1464,7 +1464,7 @@ export const reduce: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -1877,7 +1877,7 @@ export const flatMap: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {

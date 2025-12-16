@@ -1,7 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Deferred } from "effect"
+import { Deferred, UndefinedOr } from "effect"
 import * as Cause from "effect/Cause"
-import { UndefinedOr } from "effect/data"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 

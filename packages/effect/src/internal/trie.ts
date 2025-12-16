@@ -1,13 +1,13 @@
 import type * as TR from "../collections/Trie.ts"
-import { format } from "../data/Formatter.ts"
-import * as Option from "../data/Option.ts"
-import type * as Ordering from "../data/Ordering.ts"
-import { hasProperty } from "../data/Predicate.ts"
+import { format } from "../Formatter.ts"
 import { dual, identity, pipe } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
+import * as Option from "../Option.ts"
+import type * as Ordering from "../Ordering.ts"
+import { hasProperty } from "../Predicate.ts"
 import type { NoInfer } from "../types/Types.ts"
 
 /** @internal */

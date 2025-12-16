@@ -2,10 +2,10 @@
  * @since 1.0.0
  */
 import * as Config from "effect/Config"
-import * as Redacted from "effect/data/Redacted"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Redacted from "effect/Redacted"
 import type { Scope } from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Stream from "effect/Stream"

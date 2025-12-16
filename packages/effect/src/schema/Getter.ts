@@ -1,15 +1,15 @@
 /**
  * @since 4.0.0
  */
-import * as Option from "../data/Option.ts"
-import * as Predicate from "../data/Predicate.ts"
-import * as Result from "../data/Result.ts"
 import * as DateTime from "../DateTime.ts"
 import * as Effect from "../Effect.ts"
 import * as Base64 from "../encoding/Base64.ts"
 import * as Base64Url from "../encoding/Base64Url.ts"
 import * as Hex from "../encoding/Hex.ts"
 import { Class } from "../interfaces/Pipeable.ts"
+import * as Option from "../Option.ts"
+import * as Predicate from "../Predicate.ts"
+import * as Result from "../Result.ts"
 import * as Str from "../String.ts"
 import type * as Annotations from "./Annotations.ts"
 import type * as AST from "./AST.ts"

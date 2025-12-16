@@ -25,14 +25,14 @@
  * @category data-structures
  */
 import type { NonEmptyArray } from "../collections/Array.ts"
-import { format } from "../data/Formatter.ts"
-import * as Option from "../data/Option.ts"
+import { format } from "../Formatter.ts"
 import { dual } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as Hash from "../interfaces/Hash.ts"
 import { type Inspectable, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
 import { pipeArguments } from "../interfaces/Pipeable.ts"
+import * as Option from "../Option.ts"
 
 const TypeId = "~effect/collections/MutableHashMap"
 
@@ -185,7 +185,7 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
  * @example
  * ```ts
  * import * as MutableHashMap from "effect/collections/MutableHashMap"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const map = MutableHashMap.make(["key1", 42], ["key2", 100])
  *
@@ -474,7 +474,7 @@ export const modify: {
  * @example
  * ```ts
  * import * as MutableHashMap from "effect/collections/MutableHashMap"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const map = MutableHashMap.make(["count", 5])
  *

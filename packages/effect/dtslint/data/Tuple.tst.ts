@@ -1,6 +1,5 @@
-import { Number, pipe, String as Str } from "effect"
-import { Tuple } from "effect/data"
-import type { Reducer } from "effect/data"
+import { Number, pipe, String as Str, Tuple } from "effect"
+import type { Reducer } from "effect"
 import { Schema } from "effect/schema"
 import { describe, expect, it, when } from "tstyche"
 

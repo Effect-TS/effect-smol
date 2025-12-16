@@ -11,12 +11,12 @@
  */
 import * as Cause from "../Cause.ts"
 import * as Chunk from "../collections/Chunk.ts"
-import * as Option from "../data/Option.ts"
-import { hasProperty } from "../data/Predicate.ts"
 import * as Effect from "../Effect.ts"
 import { dual } from "../Function.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
+import * as Option from "../Option.ts"
+import { hasProperty } from "../Predicate.ts"
 import * as TxChunk from "../stm/TxChunk.ts"
 import * as TxRef from "../stm/TxRef.ts"
 import type * as Types from "../types/Types.ts"
@@ -727,7 +727,7 @@ export const take = <A, E>(self: TxDequeue<A, E>): Effect.Effect<A, E> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function*() {

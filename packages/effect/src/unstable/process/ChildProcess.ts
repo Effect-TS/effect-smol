@@ -41,13 +41,13 @@
  *
  * @since 4.0.0
  */
-import * as Predicate from "../../data/Predicate.ts"
 import type * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
 import type { Pipeable } from "../../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
+import * as Predicate from "../../Predicate.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as Sink from "../../Sink.ts"
 import type * as Stream from "../../Stream.ts"

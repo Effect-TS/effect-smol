@@ -4,20 +4,20 @@
  * @since 2.0.0
  */
 import * as moduleIterable from "../collections/Iterable.ts"
-import * as Equivalence from "../data/Equivalence.ts"
-import * as Filter from "../data/Filter.ts"
-import * as Option from "../data/Option.ts"
-import * as Order from "../data/Order.ts"
-import type * as Predicate from "../data/Predicate.ts"
-import * as Record from "../data/Record.ts"
-import * as Reducer from "../data/Reducer.ts"
-import * as Result from "../data/Result.ts"
-import * as Tuple from "../data/Tuple.ts"
+import * as Equivalence from "../Equivalence.ts"
+import * as Filter from "../Filter.ts"
 import type { LazyArg } from "../Function.ts"
 import { dual, identity } from "../Function.ts"
 import * as Equal from "../interfaces/Equal.ts"
 import * as internalArray from "../internal/array.ts"
 import * as internalDoNotation from "../internal/doNotation.ts"
+import * as Option from "../Option.ts"
+import * as Order from "../Order.ts"
+import type * as Predicate from "../Predicate.ts"
+import * as Record from "../Record.ts"
+import * as Reducer from "../Reducer.ts"
+import * as Result from "../Result.ts"
+import * as Tuple from "../Tuple.ts"
 import type { TypeLambda } from "../types/HKT.ts"
 import type { NoInfer, TupleOf } from "../types/Types.ts"
 
@@ -247,7 +247,7 @@ export const fromRecord: <K extends string, A>(self: Readonly<Record<K, A>>) => 
  * @example
  * ```ts
  * import { Array } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * console.log(Array.fromOption(Option.some(1))) // [1]
  * console.log(Array.fromOption(Option.none())) // []
@@ -1433,7 +1433,7 @@ export const reverse = <S extends Iterable<any>>(
  * @example
  * ```ts
  * import { Array } from "effect/collections"
- * import { Order } from "effect/data"
+ * import { Order } from "effect"
  *
  * const result = Array.sort([3, 1, 4, 1, 5], Order.number)
  * console.log(result) // [1, 1, 3, 4, 5]
@@ -1463,7 +1463,7 @@ export const sort: {
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import { Order } from "effect/data"
+ * import { Order } from "effect"
  *
  * const result = Array.sortWith(["aaa", "b", "cc"], (s) => s.length, Order.number)
  * console.log(result) // ["b", "cc", "aaa"]
@@ -1500,7 +1500,7 @@ export const sortWith: {
  * ```ts
  * import { pipe } from "effect"
  * import { Array } from "effect/collections"
- * import { Order } from "effect/data"
+ * import { Order } from "effect"
  *
  * const users = [
  *   { name: "Alice", age: 30 },
@@ -2686,7 +2686,7 @@ export const flatten: <S extends ReadonlyArray<ReadonlyArray<any>>>(self: S) => 
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const evenSquares = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none()
  *
@@ -2724,7 +2724,7 @@ export const filterMap: {
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const toSquareTillOdd = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none()
  *
@@ -2763,7 +2763,7 @@ export const filterMapWhile: {
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import { Result } from "effect/data";
+ * import { Result } from "effect";
  *
  * const isEven = (x: number) => x % 2 === 0
  *
@@ -2831,7 +2831,7 @@ export const partitionFilter: {
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const result = Array.getSomes([Option.some(1), Option.none(), Option.some(2)])
  * console.log(result) // [1, 2]
@@ -2852,7 +2852,7 @@ export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import { Result } from "effect/data"
+ * import { Result } from "effect"
  *
  * const result = Array.getFailures([Result.succeed(1), Result.fail("err"), Result.succeed(2)])
  * console.log(result) // ["err"]
@@ -2881,7 +2881,7 @@ export const getFailures = <T extends Iterable<Result.Result<any, any>>>(
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import { Result } from "effect/data"
+ * import { Result } from "effect"
  *
  * const result = Array.getSuccesses([Result.succeed(1), Result.fail("err"), Result.succeed(2)])
  * console.log(result) // [1, 2]
@@ -2986,7 +2986,7 @@ export const partition: {
  * @example
  * ```ts
  * import { Array } from "effect/collections"
- * import { Result } from "effect/data"
+ * import { Result } from "effect"
  *
  * const results = [Result.succeed(1), Result.fail("error"), Result.succeed(2)]
  * const [failures, successes] = Array.separate(results)
@@ -3080,7 +3080,7 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  * @example
  * ```ts
  * import { Array } from "effect/collections"
- * import * as Option from "effect/data/Option"
+ * import * as Option from "effect/Option"
  *
  * const parseNumber = Array.liftOption((s: string) => {
  *   const n = Number(s)
@@ -3177,7 +3177,7 @@ export const flatMapNullishOr: {
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import { Result } from "effect/data"
+ * import { Result } from "effect"
  *
  * const parseNumber = (s: string): Result.Result<number, Error> =>
  *   isNaN(Number(s)) ? Result.fail(new Error("Not a number")) : Result.succeed(Number(s))
@@ -3301,7 +3301,7 @@ export const extend: {
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import { Order } from "effect/data"
+ * import { Order } from "effect"
  *
  * const result = Array.min([3, 1, 2], Order.number)
  * console.log(result) // 1
@@ -3322,7 +3322,7 @@ export const min: {
  *
  * ```ts
  * import { Array } from "effect/collections"
- * import { Order } from "effect/data"
+ * import { Order } from "effect"
  *
  * const result = Array.max([3, 1, 2], Order.number)
  * console.log(result) // 3
@@ -3371,7 +3371,7 @@ export const unfold = <B, A>(b: B, f: (b: B) => readonly [A, B] | undefined): Ar
  * @example
  * ```ts
  * import { Array } from "effect/collections"
- * import { Order } from "effect/data"
+ * import { Order } from "effect"
  *
  * const arrayOrder = Array.getOrder(Order.number)
  * console.log(arrayOrder([1, 2], [1, 3])) // -1 (first is less than second)

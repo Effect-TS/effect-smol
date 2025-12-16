@@ -11,7 +11,7 @@
  * @example
  * ```ts
  * import { Inspectable } from "effect/interfaces"
- * import { format } from "effect/data/Formatter"
+ * import { format } from "effect/Formatter"
  *
  * class User extends Inspectable.Class {
  *   constructor(
@@ -37,8 +37,8 @@
  *
  * @since 2.0.0
  */
-import { format } from "../data/Formatter.ts"
-import * as Predicate from "../data/Predicate.ts"
+import { format } from "../Formatter.ts"
+import * as Predicate from "../Predicate.ts"
 import { redact } from "./Redactable.ts"
 
 /**
@@ -105,7 +105,7 @@ export type NodeInspectSymbol = typeof NodeInspectSymbol
  * @example
  * ```ts
  * import { Inspectable } from "effect/interfaces"
- * import { format } from "effect/data/Formatter"
+ * import { format } from "effect/Formatter"
  *
  * class Result implements Inspectable.Inspectable {
  *   constructor(

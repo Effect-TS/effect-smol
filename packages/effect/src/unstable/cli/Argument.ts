@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
-import type * as Option from "../../data/Option.ts"
-import type * as Redacted from "../../data/Redacted.ts"
-import type * as Result from "../../data/Result.ts"
 import type * as Effect from "../../Effect.ts"
 import { dual, type LazyArg } from "../../Function.ts"
+import type * as Option from "../../Option.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Path from "../../platform/Path.ts"
+import type * as Redacted from "../../Redacted.ts"
+import type * as Result from "../../Result.ts"
 import type * as Schema from "../../schema/Schema.ts"
 import type * as CliError from "./CliError.ts"
 import type { Environment } from "./Command.ts"
@@ -585,7 +585,7 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Option } from "effect/data"
+ * import { Option } from "effect"
  * import { Argument } from "effect/unstable/cli"
  *
  * const positiveInt = Argument.integer("count").pipe(

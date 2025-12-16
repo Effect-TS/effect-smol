@@ -4,7 +4,7 @@
 import * as Cause from "../../Cause.ts"
 import type * as Arr from "../../collections/Array.ts"
 import * as Iterable from "../../collections/Iterable.ts"
-import * as Data from "../../data/Data.ts"
+import * as Data from "../../Data.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"

@@ -1,5 +1,22 @@
-import { Cause, DateTime, Duration, Effect, Exit, flow, pipe, ServiceMap, String as Str } from "effect"
-import { Brand, Option, Order, Predicate, Redacted, Result, Struct, Tuple } from "effect/data"
+import {
+  Brand,
+  Cause,
+  DateTime,
+  Duration,
+  Effect,
+  Exit,
+  flow,
+  Option,
+  Order,
+  pipe,
+  Predicate,
+  Redacted,
+  Result,
+  ServiceMap,
+  String as Str,
+  Struct,
+  Tuple
+} from "effect"
 import { Equal } from "effect/interfaces"
 import { Annotations, AST, Getter, Issue, Parser, Schema, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"

@@ -2,11 +2,11 @@
  * @since 4.0.0
  */
 import type * as Cause from "effect/Cause"
-import * as Option from "effect/data/Option"
-import * as Predicate from "effect/data/Predicate"
-import * as Result from "effect/data/Result"
 import * as Exit from "effect/Exit"
 import * as Equal from "effect/interfaces/Equal"
+import * as Option from "effect/Option"
+import * as Predicate from "effect/Predicate"
+import * as Result from "effect/Result"
 import * as assert from "node:assert"
 import { assert as vassert } from "vitest"
 

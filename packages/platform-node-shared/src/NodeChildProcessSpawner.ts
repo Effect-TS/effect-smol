@@ -4,7 +4,6 @@
  * @since 4.0.0
  */
 import type * as Arr from "effect/collections/Array"
-import * as Predicate from "effect/data/Predicate"
 import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
@@ -13,6 +12,7 @@ import * as Layer from "effect/Layer"
 import * as FileSystem from "effect/platform/FileSystem"
 import * as Path from "effect/platform/Path"
 import type * as PlatformError from "effect/platform/PlatformError"
+import * as Predicate from "effect/Predicate"
 import type * as Scope from "effect/Scope"
 import * as Sink from "effect/Sink"
 import * as Stream from "effect/Stream"

@@ -63,12 +63,10 @@ import * as Cause from "./Cause.ts"
 import * as Arr from "./collections/Array.ts"
 import * as Chunk from "./collections/Chunk.ts"
 import * as Iterable from "./collections/Iterable.ts"
-import * as Filter from "./data/Filter.ts"
-import * as Option from "./data/Option.ts"
-import { hasProperty, isTagged } from "./data/Predicate.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
+import * as Filter from "./Filter.ts"
 import type { LazyArg } from "./Function.ts"
 import { constant, constTrue, constVoid, dual, identity as identity_ } from "./Function.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
@@ -76,6 +74,8 @@ import { pipeArguments } from "./interfaces/Pipeable.ts"
 import { endSpan } from "./internal/effect.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Layer from "./Layer.ts"
+import * as Option from "./Option.ts"
+import { hasProperty, isTagged } from "./Predicate.ts"
 import * as PubSub from "./PubSub.ts"
 import * as Pull from "./Pull.ts"
 import * as Queue from "./Queue.ts"
@@ -1013,7 +1013,7 @@ export const die = (defect: unknown): Channel<never, never, never> => failCause(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class DatabaseError extends Data.TaggedError("DatabaseError")<{
  *   readonly message: string
@@ -1084,7 +1084,7 @@ export const fromEffectTake = <A, E, Done, E2, R>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { Queue } from "effect"
  *
  * class QueueError extends Data.TaggedError("QueueError")<{
@@ -1129,7 +1129,7 @@ export const fromQueue = <A, E>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { Queue } from "effect"
  *
  * class ProcessingError extends Data.TaggedError("ProcessingError")<{
@@ -1184,7 +1184,7 @@ export const identity = <Elem, Err, Done>(): Channel<Elem, Err, Done, Elem, Err,
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { PubSub } from "effect"
  *
  * class SubscriptionError extends Data.TaggedError("SubscriptionError")<{
@@ -1241,7 +1241,7 @@ export const fromSubscription = <A>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { PubSub } from "effect"
  *
  * class StreamError extends Data.TaggedError("StreamError")<{
@@ -1270,7 +1270,7 @@ export const fromSubscription = <A>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { PubSub } from "effect"
  *
  * class BatchProcessingError extends Data.TaggedError("BatchProcessingError")<{
@@ -1298,7 +1298,7 @@ export const fromSubscription = <A>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { PubSub } from "effect"
  *
  * class MetricsError extends Data.TaggedError("MetricsError")<{
@@ -1355,7 +1355,7 @@ export const fromSubscriptionArray = <A>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { PubSub } from "effect"
  *
  * class StreamError extends Data.TaggedError("StreamError")<{
@@ -1382,7 +1382,7 @@ export const fromSubscriptionArray = <A>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { PubSub } from "effect"
  *
  * class NotificationError extends Data.TaggedError("NotificationError")<{
@@ -1410,7 +1410,7 @@ export const fromSubscriptionArray = <A>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { PubSub } from "effect"
  *
  * class EventProcessingError extends Data.TaggedError("EventProcessingError")<{
@@ -1467,7 +1467,7 @@ export const fromPubSub = <A>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { PubSub } from "effect"
  *
  * class BatchError extends Data.TaggedError("BatchError")<{
@@ -1495,7 +1495,7 @@ export const fromPubSub = <A>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { PubSub } from "effect"
  *
  * class OrderProcessingError extends Data.TaggedError("OrderProcessingError")<{
@@ -1538,7 +1538,7 @@ export const fromPubSub = <A>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { PubSub } from "effect"
  *
  * class LogProcessingError extends Data.TaggedError("LogProcessingError")<{
@@ -1653,7 +1653,7 @@ export const fromAsyncIterableArray = <A, D, E>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class TransformError extends Data.TaggedError("TransformError")<{
  *   readonly reason: string
@@ -1777,7 +1777,7 @@ const concurrencyIsSequential = (
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class NetworkError extends Data.TaggedError("NetworkError")<{
  *   readonly url: string
@@ -2041,7 +2041,7 @@ export const mapInputError: {
  * import { Effect } from "effect"
  * import { Channel } from "effect"
  * import { Console } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class LogError extends Data.TaggedError("LogError")<{
  *   readonly message: string
@@ -2101,7 +2101,7 @@ export const tap: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class ProcessError extends Data.TaggedError("ProcessError")<{
  *   readonly cause: string
@@ -2306,7 +2306,7 @@ const flatMapConcurrent = <
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class ConcatError extends Data.TaggedError("ConcatError")<{
  *   readonly reason: string
@@ -2422,7 +2422,7 @@ export const concatWith: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class ConcatError extends Data.TaggedError("ConcatError")<{
  *   readonly reason: string
@@ -2729,7 +2729,7 @@ export const orElseIfEmpty: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class FlattenError extends Data.TaggedError("FlattenError")<{
  *   readonly cause: string
@@ -2785,7 +2785,7 @@ export const flatten = <
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class FlattenError extends Data.TaggedError("FlattenError")<{
  *   readonly message: string
@@ -3063,7 +3063,7 @@ export const filter: {
  * @example
  * ```ts
  * import { Array } from "effect/collections"
- * import { Filter } from "effect/data"
+ * import { Filter } from "effect"
  * import { Channel } from "effect"
  *
  * const nonEmptyArrayFilter: Filter.Filter<
@@ -3347,7 +3347,7 @@ export const scan: {
  * ```ts
  * import { Channel } from "effect"
  * import { Effect } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class ScanError extends Data.TaggedError("ScanError")<{
  *   readonly reason: string
@@ -3437,7 +3437,7 @@ export const scanEffect: {
  * ```ts
  * import { Effect, Cause } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class ProcessError extends Data.TaggedError("ProcessError")<{
  *   readonly reason: string
@@ -4108,7 +4108,7 @@ export const mapError: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class ValidationError extends Data.TaggedError("ValidationError")<{
  *   readonly field: string
@@ -4239,7 +4239,7 @@ export const retry: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class SwitchError extends Data.TaggedError("SwitchError")<{
  *   readonly reason: string
@@ -4358,7 +4358,7 @@ export const switchMap: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class MergeAllError extends Data.TaggedError("MergeAllError")<{
  *   readonly reason: string
@@ -4547,7 +4547,7 @@ export type HaltStrategy = "left" | "right" | "both" | "either"
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class MergeError extends Data.TaggedError("MergeError")<{
  *   readonly source: string
@@ -4865,7 +4865,7 @@ export const encodeText = <Err, Done>(): Channel<
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class PipeError extends Data.TaggedError("PipeError")<{
  *   readonly stage: string
@@ -4914,7 +4914,7 @@ export const pipeTo: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class SourceError extends Data.TaggedError("SourceError")<{
  *   readonly code: number
@@ -4977,7 +4977,7 @@ export const pipeToOrFail: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { Scope } from "effect"
  *
  * class UnwrapError extends Data.TaggedError("UnwrapError")<{
@@ -5029,7 +5029,7 @@ export const scoped = <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class EmbedError extends Data.TaggedError("EmbedError")<{
  *   readonly stage: string
@@ -5264,7 +5264,7 @@ export const onError: {
  * import { Effect, Exit } from "effect"
  * import { Channel } from "effect"
  * import { Console } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class ExitError extends Data.TaggedError("ExitError")<{
  *   readonly stage: string
@@ -5387,7 +5387,7 @@ export const onEnd: {
  * import { Effect } from "effect"
  * import { Channel } from "effect"
  * import { Console } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class EnsureError extends Data.TaggedError("EnsureError")<{
  *   readonly operation: string
@@ -5855,7 +5855,7 @@ export const bindTo: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class CountError extends Data.TaggedError("CountError")<{
  *   readonly reason: string
@@ -5884,7 +5884,7 @@ export const runCount = <OutElem, OutErr, OutDone, Env>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class DrainError extends Data.TaggedError("DrainError")<{
  *   readonly stage: string
@@ -5915,7 +5915,7 @@ export const runDrain = <OutElem, OutErr, OutDone, Env>(
  * import { Effect } from "effect"
  * import { Channel } from "effect"
  * import { Console } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class ForEachError extends Data.TaggedError("ForEachError")<{
  *   readonly element: unknown
@@ -5989,7 +5989,7 @@ export const runForEachWhile: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class CollectError extends Data.TaggedError("CollectError")<{
  *   readonly reason: string
@@ -6075,7 +6075,7 @@ export const runLast = <OutElem, OutErr, OutDone, Env>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  *
  * class FoldError extends Data.TaggedError("FoldError")<{
  *   readonly operation: string
@@ -6173,7 +6173,7 @@ export const runFoldEffect: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { Scope } from "effect"
  *
  * class PullError extends Data.TaggedError("PullError")<{
@@ -6224,7 +6224,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { Scope } from "effect"
  *
  * class ScopedPullError extends Data.TaggedError("ScopedPullError")<{
@@ -6317,7 +6317,7 @@ export const runIntoQueueArray: {
  * ```ts
  * import { Effect } from "effect"
  * import { Channel } from "effect"
- * import { Data } from "effect/data"
+ * import { Data } from "effect"
  * import { Queue } from "effect"
  *
  * class QueueError extends Data.TaggedError("QueueError")<{

@@ -1,6 +1,5 @@
-import type { Effect, Exit } from "effect"
+import type { Effect, Exit, Option } from "effect"
 import { hole } from "effect"
-import type { Option } from "effect/data"
 import { Schema } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 

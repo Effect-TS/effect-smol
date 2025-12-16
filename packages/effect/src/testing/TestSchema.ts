@@ -4,9 +4,9 @@
  * @since 4.0.0
  */
 import * as assert from "node:assert"
-import * as Record from "../data/Record.ts"
-import * as Result from "../data/Result.ts"
 import * as Effect from "../Effect.ts"
+import * as Record from "../Record.ts"
+import * as Result from "../Result.ts"
 import * as AST from "../schema/AST.ts"
 import type * as Issue from "../schema/Issue.ts"
 import * as Parser from "../schema/Parser.ts"

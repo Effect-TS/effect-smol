@@ -4,8 +4,8 @@
  * @internal
  */
 
-import * as Option from "../../../data/Option.ts"
 import type { LogLevel } from "../../../LogLevel.ts"
+import * as Option from "../../../Option.ts"
 import * as Flag from "../Flag.ts"
 
 /**

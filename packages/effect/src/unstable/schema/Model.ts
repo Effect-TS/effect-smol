@@ -2,11 +2,11 @@
  * @since 4.0.0
  */
 import * as Uuid from "uuid"
-import type { Brand } from "../../data/Brand.ts"
-import * as Option from "../../data/Option.ts"
-import * as Predicate from "../../data/Predicate.ts"
+import type { Brand } from "../../Brand.ts"
 import * as DateTime from "../../DateTime.ts"
 import * as Effect from "../../Effect.ts"
+import * as Option from "../../Option.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Getter from "../../schema/Getter.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"

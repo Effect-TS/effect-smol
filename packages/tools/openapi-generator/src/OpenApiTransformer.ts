@@ -1,5 +1,5 @@
-import * as Predicate from "effect/data/Predicate"
 import * as Layer from "effect/Layer"
+import * as Predicate from "effect/Predicate"
 import * as ServiceMap from "effect/ServiceMap"
 import type { OpenAPISpecMethodName } from "effect/unstable/httpapi/OpenApi"
 import type { ParsedOperation } from "./ParsedOperation.ts"
@@ -199,7 +199,7 @@ export const make = (
   return OpenApiTransformer.of({
     imports: (importName) =>
       [
-        `import * as Data from "effect/data/Data"`,
+        `import * as Data from "effect/Data"`,
         `import * as Effect from "effect/Effect"`,
         `import type { SchemaError } from "effect/schema/Schema"`,
         `import * as ${importName} from "effect/schema/Schema"`,
@@ -404,7 +404,7 @@ export const make = (
   return OpenApiTransformer.of({
     imports: (_importName) =>
       [
-        `import * as Data from "effect/data/Data"`,
+        `import * as Data from "effect/Data"`,
         `import * as Effect from "effect/Effect"`,
         `import type * as HttpClient from "effect/unstable/http/HttpClient"`,
         `import * as HttpClientError from "effect/unstable/http/HttpClientError"`,

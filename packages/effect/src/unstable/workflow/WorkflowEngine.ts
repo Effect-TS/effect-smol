@@ -2,9 +2,9 @@
  * @since 4.0.0
  */
 import type * as Cause from "../../Cause.ts"
-import * as Option from "../../data/Option.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import * as Option from "../../Option.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Scope from "../../Scope.ts"

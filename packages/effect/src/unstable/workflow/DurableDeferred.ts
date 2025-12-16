@@ -1,14 +1,14 @@
 /**
  * @since 4.0.0
  */
+import type * as Brand from "../../Brand.ts"
 import type * as Cause from "../../Cause.ts"
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
-import type * as Brand from "../../data/Brand.ts"
-import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import * as Base64Url from "../../encoding/Base64Url.ts"
 import * as Exit from "../../Exit.ts"
 import { dual } from "../../Function.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Getter from "../../schema/Getter.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"

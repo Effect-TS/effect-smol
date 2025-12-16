@@ -3,9 +3,9 @@
  */
 import * as Array from "../collections/Array.ts"
 import * as Console from "../Console.ts"
-import * as Option from "../data/Option.ts"
 import * as Effect from "../Effect.ts"
 import * as Layer from "../Layer.ts"
+import * as Option from "../Option.ts"
 
 /**
  * A `TestConsole` provides a testable implementation of the Console interface.
