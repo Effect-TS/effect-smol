@@ -198,6 +198,8 @@ export const apply = <A>(a: A) => <B>(self: (a: A) => B): B => self(a)
  *
  * @example
  * ```ts
+ * import { constant, type LazyArg } from "effect/Function"
+ *
  * const constNull: LazyArg<null> = constant(null)
  * ```
  *

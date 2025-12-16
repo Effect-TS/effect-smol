@@ -73,6 +73,7 @@ export interface Trie<in out Value> extends Iterable<[string, Value]>, Equal, Pi
  * @example
  * ```ts
  * import * as Trie from "effect/Trie"
+ * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<string>()
  *

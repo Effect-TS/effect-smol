@@ -3116,7 +3116,8 @@ export declare namespace Retry {
    * @category Error handling
    * @example
    * ```ts
-   * import type { Effect, Schedule } from "effect"
+   * import { Schedule } from "effect"
+   * import type { Effect } from "effect"
    *
    * // Options for configuring retry behavior
    * const retryOptions: Effect.Retry.Options<Error> = {
@@ -6067,7 +6068,8 @@ export declare namespace Repeat {
    * @category repetition / recursion
    * @example
    * ```ts
-   * import type { Effect, Schedule } from "effect"
+   * import { Schedule } from "effect"
+   * import type { Effect } from "effect"
    *
    * // Options for configuring repeat behavior
    * const repeatOptions: Effect.Repeat.Options<number> = {

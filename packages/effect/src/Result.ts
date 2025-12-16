@@ -515,6 +515,7 @@ export const getEquivalence = <A, E>(
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
  *
  * const success = pipe(
@@ -561,6 +562,7 @@ export const mapBoth: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
  *
  * const success = pipe(
@@ -593,6 +595,7 @@ export const mapError: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
  *
  * const success = pipe(
@@ -627,6 +630,7 @@ export const map: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
  *
  * const onFailure = (strings: ReadonlyArray<string>): string =>
@@ -913,6 +917,7 @@ export const getOrThrow: <A, E>(self: Result<A, E>) => A = getOrThrowWith(identi
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
  *
  * const success = pipe(
@@ -1160,6 +1165,7 @@ export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
  *
  * const result = pipe(
@@ -1192,6 +1198,7 @@ export const Do: Result<{}> = succeed({})
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
  *
  * const result = pipe(
@@ -1234,6 +1241,7 @@ export const bind: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
  *
  * const result = pipe(
@@ -1282,6 +1290,7 @@ export {
    *
    * @example
    * ```ts
+   * import * as assert from "node:assert"
    * import { pipe, Result } from "effect"
    *
    * const result = pipe(
@@ -1371,6 +1380,7 @@ export const transposeMapOption = dual<
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Option, Result } from "effect"
  *
  * const result = Result.succeedNone
@@ -1387,6 +1397,7 @@ export const succeedNone = succeed(option_.none)
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Option, Result } from "effect"
  *
  * const result = Result.succeedSome(42)

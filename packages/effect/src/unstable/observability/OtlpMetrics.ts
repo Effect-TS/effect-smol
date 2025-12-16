@@ -26,6 +26,8 @@ import * as OtlpResource from "./OtlpResource.ts"
  *
  * @example
  * ```ts
+ * import * as OtlpMetrics from "effect/unstable/observability/OtlpMetrics"
+ *
  * // Use delta temporality for backends that prefer it (e.g., Datadog, Dynatrace)
  * const metricsLayer = OtlpMetrics.layer({
  *   url: "http://localhost:4318/v1/metrics",

@@ -249,6 +249,7 @@ const QueueProto = {
  * @category constructors
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Effect, Queue } from "effect"
  *
  * Effect.gen(function*() {

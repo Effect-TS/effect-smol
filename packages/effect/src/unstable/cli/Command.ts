@@ -423,6 +423,7 @@ export const prompt = <Name extends string, A, E, R>(
  * @example
  * ```ts
  * import { Console } from "effect"
+ * import { Command, Flag } from "effect/unstable/cli"
  *
  * // Command without initial handler
  * const greet = Command.make("greet", {
@@ -431,7 +432,9 @@ export const prompt = <Name extends string, A, E, R>(
  *
  * // Add handler later
  * const greetWithHandler = greet.pipe(
- *   Command.withHandler((config) => Console.log(`Hello, ${config.name}!`))
+ *   Command.withHandler((config: { readonly name: string }) =>
+ *     Console.log(`Hello, ${config.name}!`)
+ *   )
  * )
  * ```
  *

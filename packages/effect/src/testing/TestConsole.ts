@@ -18,6 +18,7 @@ import * as Option from "../Option.ts"
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
+ * import * as TestConsole from "effect/testing/TestConsole"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("Hello, World!")
@@ -106,6 +107,7 @@ export declare namespace TestConsole {
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
+ * import * as TestConsole from "effect/testing/TestConsole"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("Debug message")
@@ -177,7 +179,7 @@ export const make = Effect.gen(function*() {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TestConsole } from "effect/testing"
+ * import * as TestConsole from "effect/testing/TestConsole"
  *
  * const program = TestConsole.testConsoleWith((testConsole) =>
  *   Effect.gen(function*() {
@@ -207,6 +209,7 @@ export const testConsoleWith = <A, E, R>(f: (console: TestConsole) => Effect.Eff
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
+ * import * as TestConsole from "effect/testing/TestConsole"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("This will be captured")
@@ -232,6 +235,7 @@ export const layer: Layer.Layer<TestConsole> = Layer.effect(Console.Console)(mak
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
+ * import * as TestConsole from "effect/testing/TestConsole"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.log("First message")
@@ -263,6 +267,7 @@ export const logLines: Effect.Effect<ReadonlyArray<unknown>, never, never> = tes
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
+ * import * as TestConsole from "effect/testing/TestConsole"
  *
  * const program = Effect.gen(function*() {
  *   yield* Console.error("Error message")

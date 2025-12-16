@@ -510,6 +510,7 @@ export const make = <I, S>(
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
@@ -681,6 +682,7 @@ export const getUnsafe: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { pipe, ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
@@ -882,6 +884,7 @@ export const mergeAll = <T extends Array<unknown>>(
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Option, pipe, ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
@@ -921,6 +924,7 @@ export const pick = <S extends ReadonlyArray<Service<any, any>>>(
 /**
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Option, pipe, ServiceMap } from "effect"
  *
  * const Port = ServiceMap.Service<{ PORT: number }>("Port")
@@ -966,6 +970,8 @@ export const omit = <S extends ReadonlyArray<Service<any, any>>>(
  *
  * @example
  * ```ts
+ * import { ServiceMap } from "effect"
+ *
  * // Create a reference with a default value
  * const LoggerRef = ServiceMap.Reference("Logger", {
  *   defaultValue: () => ({ log: (msg: string) => console.log(msg) })
@@ -977,7 +983,7 @@ export const omit = <S extends ReadonlyArray<Service<any, any>>>(
  *
  * // You can also override the default value
  * const customServices = ServiceMap.make(LoggerRef, {
- *   log: (msg) => `Custom: ${msg}`
+ *   log: (msg: string) => `Custom: ${msg}`
  * })
  * const customLogger = ServiceMap.get(customServices, LoggerRef)
  * ```

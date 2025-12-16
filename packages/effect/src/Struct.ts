@@ -454,7 +454,7 @@ export const lambda = <L extends (a: any) => any>(
  * @example
  * ```ts
  * // Used with lambda functions for type-level operations
- * const struct = { a: 1, b: 2, c: 3 }
+ * const original = { a: 1, b: 2, c: 3 }
  * // Map transforms all values using the provided lambda
  * ```
  *
@@ -482,7 +482,7 @@ export const map: {
  * @example
  * ```ts
  * // Used with lambda functions for selective transformation
- * const struct = { a: 1, b: 2, c: 3 }
+ * const data = { a: 1, b: 2, c: 3 }
  * const keys = ["a", "c"]
  * // Transforms only the specified keys
  * ```
@@ -519,7 +519,7 @@ export const mapPick: {
  * @example
  * ```ts
  * // Used with lambda functions for selective omission
- * const struct = { a: 1, b: 2, c: 3 }
+ * const source = { a: 1, b: 2, c: 3 }
  * const keysToOmit = ["b"]
  * // Transforms all keys except the omitted ones
  * ```

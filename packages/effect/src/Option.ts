@@ -2240,6 +2240,7 @@ export const exists: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Option, pipe } from "effect"
  *
  * const result = pipe(
@@ -2290,6 +2291,7 @@ export {
    *
    * @example
    * ```ts
+   * import * as assert from "node:assert"
    * import { Option, pipe } from "effect"
    *
    * const result = pipe(
@@ -2325,6 +2327,7 @@ export {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Option, pipe } from "effect"
  *
  * const result = pipe(
@@ -2369,6 +2372,7 @@ export const bind: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Option, pipe } from "effect"
  *
  * const result = pipe(

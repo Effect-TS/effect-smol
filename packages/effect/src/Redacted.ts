@@ -213,6 +213,7 @@ export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redactedRegistry.de
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Equivalence, Redacted } from "effect"
  *
  * const API_KEY1 = Redacted.make("1234567890")

@@ -22,6 +22,7 @@ import type { Unify } from "./types/Unify.ts"
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Data, Equal } from "effect"
  *
  * class Person extends Data.Class<{ readonly name: string }> {}
@@ -53,6 +54,7 @@ export const Class: new<A extends Record<string, any> = {}>(
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Data, Equal } from "effect"
  *
  * class Person extends Data.TaggedClass("Person")<{ readonly name: string }> {}

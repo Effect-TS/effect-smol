@@ -191,7 +191,7 @@ type Evolved<T, E> = { [I in keyof T]: I extends keyof E ? (E[I] extends (...a: 
  * @example
  * ```ts
  * // Transform specific elements by index
- * const original = ["hello", 42, true]
+ * const evolveOriginal = ["hello", 42, true]
  * const transformers = {
  *   0: (s: string) => s.toUpperCase(),
  *   1: (n: number) => n * 2
@@ -218,7 +218,7 @@ export const evolve: {
  * @example
  * ```ts
  * // Example demonstrates index remapping concept
- * const original = ["a", "b", "c"]
+ * const renameOriginal = ["a", "b", "c"]
  * const mapping = { 0: "2", 1: "0" }
  * // Result would remap indices according to the mapping
  * ```
@@ -250,7 +250,7 @@ export const renameIndices: {
  * @example
  * ```ts
  * // Used with lambda functions for transforming all elements
- * const tuple = [1, 2, 3] as const
+ * const mapTuple = [1, 2, 3] as const
  * // Map applies transformation to each element
  * ```
  *
@@ -280,7 +280,7 @@ export const map: {
  * @example
  * ```ts
  * // Transform only elements at specified indices
- * const tuple = [1, 2, 3] as const
+ * const pickTuple = [1, 2, 3] as const
  * const indices = [0, 2]
  * // Transforms elements at index 0 and 2 only
  * ```
@@ -318,7 +318,7 @@ export const mapPick: {
  * @example
  * ```ts
  * // Transform all elements except those at specified indices
- * const tuple = [1, 2, 3] as const
+ * const omitTuple = [1, 2, 3] as const
  * const indicesToOmit = [1]
  * // Transforms all elements except index 1
  * ```

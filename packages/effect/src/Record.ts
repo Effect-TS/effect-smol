@@ -390,6 +390,7 @@ export const has: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Option, Record as R } from "effect"
  *
  * const person: Record<string, unknown> = { name: "John Doe", age: 35 }
@@ -665,6 +666,7 @@ export const mapEntries: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Option, Record } from "effect"
  *
  * const x = { a: 1, b: 2, c: 3 }
@@ -751,6 +753,7 @@ export const filter: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Option, Record } from "effect"
  *
  * assert.deepStrictEqual(
@@ -843,6 +846,7 @@ export const getSuccesses = <K extends string, A, E>(
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Record, Result } from "effect"
  *
  * const x = { a: 1, b: 2, c: 3 }
@@ -889,6 +893,7 @@ export const partitionMap: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Record, Result } from "effect"
  *
  * assert.deepStrictEqual(
@@ -1366,6 +1371,7 @@ export const difference: {
  *
  * @example
  * ```ts
+ * import * as assert from "node:assert"
  * import { Equal, Record } from "effect"
  *
  * const recordEquivalence = Record.getEquivalence(Equal.equivalence<number>())
