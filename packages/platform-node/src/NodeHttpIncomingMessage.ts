@@ -3,7 +3,7 @@
  */
 import * as Effect from "effect/Effect"
 import * as Inspectable from "effect/interfaces/Inspectable"
-import type * as Stream from "effect/stream/Stream"
+import type * as Stream from "effect/Stream"
 import * as Headers from "effect/unstable/http/Headers"
 import * as IncomingMessage from "effect/unstable/http/HttpIncomingMessage"
 import * as UrlParams from "effect/unstable/http/UrlParams"

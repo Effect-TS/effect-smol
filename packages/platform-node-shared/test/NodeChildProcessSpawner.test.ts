@@ -6,7 +6,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Path from "effect/platform/Path"
 import * as PlatformError from "effect/platform/PlatformError"
-import * as Stream from "effect/stream/Stream"
+import * as Stream from "effect/Stream"
 import * as TestClock from "effect/testing/TestClock"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 

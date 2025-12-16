@@ -5,7 +5,7 @@ import { Array } from "effect/collections"
 import { Filter, Redacted, Struct } from "effect/data"
 import { FileSystem } from "effect/platform"
 import { Getter, Schema, Transformation } from "effect/schema"
-import { Stream } from "effect/stream"
+import { Stream } from "effect"
 import {
   Cookies,
   HttpClient,

@@ -7,7 +7,7 @@ import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
 import * as Queue from "effect/Queue"
 import * as ServiceMap from "effect/ServiceMap"
-import * as Stream from "effect/stream/Stream"
+import * as Stream from "effect/Stream"
 
 const TypeId = "~@effect/platform-browser/Geolocation"
 const ErrorTypeId = "~@effect/platform-browser/Geolocation/GeolocationError"

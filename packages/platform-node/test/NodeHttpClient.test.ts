@@ -5,7 +5,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/schema/Schema"
 import * as ServiceMap from "effect/ServiceMap"
-import * as Stream from "effect/stream/Stream"
+import * as Stream from "effect/Stream"
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 const Todo = Schema.Struct({

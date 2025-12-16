@@ -4,7 +4,7 @@ import { Array } from "effect/collections"
 import { Option } from "effect/data"
 import * as Effect from "effect/Effect"
 import * as Fs from "effect/platform/FileSystem"
-import * as Stream from "effect/stream/Stream"
+import * as Stream from "effect/Stream"
 
 const runPromise = <E, A>(self: Effect.Effect<A, E, Fs.FileSystem>) =>
   Effect.runPromise(

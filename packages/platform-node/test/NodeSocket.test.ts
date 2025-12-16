@@ -2,7 +2,7 @@ import { NodeSocket, NodeSocketServer } from "@effect/platform-node"
 import { assert, describe, expect, it } from "@effect/vitest"
 import { Effect, Queue } from "effect"
 import * as Fiber from "effect/Fiber"
-import * as Stream from "effect/stream/Stream"
+import * as Stream from "effect/Stream"
 import { Socket, type SocketServer } from "effect/unstable/socket"
 import { WS } from "vitest-websocket-mock"
 

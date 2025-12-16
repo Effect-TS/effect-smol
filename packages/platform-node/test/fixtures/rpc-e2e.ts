@@ -5,7 +5,7 @@ import { Option } from "effect/data"
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { NodeInspectSymbol } from "effect/interfaces/Inspectable"
 import * as Layer from "effect/Layer"
-import { Stream } from "effect/stream"
+import { Stream } from "effect"
 import * as RpcClient from "effect/unstable/rpc/RpcClient"
 import type { RpcClientError } from "effect/unstable/rpc/RpcClientError"
 import type * as RpcGroup from "effect/unstable/rpc/RpcGroup"

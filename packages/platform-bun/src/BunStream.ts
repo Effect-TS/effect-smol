@@ -5,9 +5,9 @@ import * as Arr from "effect/collections/Array"
 import * as Effect from "effect/Effect"
 import type { LazyArg } from "effect/Function"
 import * as Scope from "effect/Scope"
-import * as Channel from "effect/stream/Channel"
-import * as Pull from "effect/stream/Pull"
-import * as Stream from "effect/stream/Stream"
+import * as Channel from "effect/Channel"
+import * as Pull from "effect/Pull"
+import * as Stream from "effect/Stream"
 
 /**
  * @since 1.0.0

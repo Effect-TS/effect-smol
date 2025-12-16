@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 
-import * as Stream from "effect/stream/Stream"
+import * as Stream from "effect/Stream"
 
 /**
  * Creates a `Stream` from `window.addEventListener`.
