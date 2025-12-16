@@ -1,6 +1,6 @@
 import { Number } from "effect"
 import { Option } from "effect/data"
-import { deepStrictEqual } from "node:assert"
+import { deepStrictEqual, strictEqual } from "node:assert"
 import { describe, it } from "vitest"
 
 describe("Option", () => {
@@ -25,5 +25,16 @@ describe("Option", () => {
     deepStrictEqual(R.combine(R.initialValue, Option.none()), Option.none())
     deepStrictEqual(R.combine(Option.some(1), R.initialValue), Option.some(1))
     deepStrictEqual(R.combine(R.initialValue, Option.some(1)), Option.some(1))
+  })
+
+  it("getOrder", () => {
+    const O = Option.getOrder(Number.Order)
+
+    strictEqual(O(Option.none(), Option.none()), 0)
+    strictEqual(O(Option.none(), Option.some(1)), -1)
+    strictEqual(O(Option.some(1), Option.none()), 1)
+    strictEqual(O(Option.some(1), Option.some(2)), -1)
+    strictEqual(O(Option.some(1), Option.some(1)), 0)
+    strictEqual(O(Option.some(2), Option.some(1)), 1)
   })
 })

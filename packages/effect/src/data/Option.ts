@@ -3,8 +3,7 @@
  */
 import type { NoSuchElementError } from "../Cause.ts"
 import * as Equivalence from "../data/Equivalence.ts"
-import type { Order } from "../data/Order.ts"
-import * as order from "../data/Order.ts"
+import * as Order from "../data/Order.ts"
 import type { Predicate, Refinement } from "../data/Predicate.ts"
 import type { Result } from "../data/Result.ts"
 import type { EffectIterator, Yieldable } from "../Effect.ts"
@@ -1999,8 +1998,9 @@ export const getEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equ
  * @category Sorting
  * @since 2.0.0
  */
-export const getOrder = <A>(O: Order<A>): Order<Option<A>> =>
-  order.make((self, that) => isSome(self) ? (isSome(that) ? O(self.value, that.value) : 1) : -1)
+export function getOrder<A>(order: Order.Order<A>): Order.Order<Option<A>> {
+  return Order.make((self, that) => isSome(self) ? (isSome(that) ? order(self.value, that.value) : 1) : -1)
+}
 
 /**
  * Lifts a binary function to work with `Option` values, allowing the function

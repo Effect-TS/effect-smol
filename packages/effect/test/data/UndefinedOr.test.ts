@@ -63,4 +63,15 @@ describe("UndefinedOr", () => {
     strictEqual(R.combineAll([1, undefined, 2]), undefined)
     strictEqual(R.combineAll([1, 2]), 3)
   })
+
+  it("getOrder", () => {
+    const O = UndefinedOr.getOrder(Number.Order)
+
+    strictEqual(O(undefined, undefined), 0)
+    strictEqual(O(undefined, 1), -1)
+    strictEqual(O(1, undefined), 1)
+    strictEqual(O(1, 2), -1)
+    strictEqual(O(1, 1), 0)
+    strictEqual(O(2, 1), 1)
+  })
 })
