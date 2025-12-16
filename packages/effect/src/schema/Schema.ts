@@ -7183,6 +7183,7 @@ function makeClass<
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
   const getClassSchema = getClassSchemaFactory(struct, identifier, annotations)
+  const ClassTypeId = getClassTypeId(identifier) // HMR support
 
   return class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
@@ -7199,6 +7200,7 @@ function makeClass<
     }
 
     static readonly [TypeId] = TypeId
+    readonly [ClassTypeId] = ClassTypeId
     static readonly [immerable] = true
 
     declare static readonly "~rebuild.out": decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>
@@ -7272,6 +7274,10 @@ function getClassTransformation(self: new(...args: ReadonlyArray<any>) => any) {
   )
 }
 
+function getClassTypeId(identifier: string) {
+  return `~effect/schema/Schema/Class/${identifier}`
+}
+
 function getClassSchemaFactory<S extends Top>(
   from: S,
   identifier: string,
@@ -7287,7 +7293,8 @@ function getClassSchemaFactory<S extends Top>(
         new AST.Declaration(
           [from.ast],
           () => (input, ast) => {
-            return input instanceof self ?
+            return input instanceof self ||
+                Predicate.hasProperty(input, getClassTypeId(identifier)) ?
               Effect.succeed(input) :
               Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
           },
