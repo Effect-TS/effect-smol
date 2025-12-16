@@ -158,6 +158,17 @@ describe("Standard", () => {
     })
 
     describe("Array", () => {
+      it("Array(String)", () => {
+        assertJsonSchemaRoundtrip(
+          Schema.Array(Schema.String),
+          `Schema.Array(Schema.String)`
+        )
+        assertJsonSchemaRoundtrip(
+          Schema.Array(Schema.String).annotate({ description: "a" }),
+          `Schema.Array(Schema.String).annotate({ "description": "a" })`
+        )
+      })
+
       describe("checks", () => {
         it("isMinLength", () => {
           assertJsonSchemaRoundtrip(
@@ -263,7 +274,8 @@ describe("Standard", () => {
                       rest: [{
                         _tag: "Suspend",
                         $ref: "Category"
-                      }]
+                      }],
+                      checks: []
                     },
                     isOptional: false,
                     isMutable: false
@@ -296,7 +308,8 @@ describe("Standard", () => {
                         _tag: "Suspend",
                         $ref: "Category"
                       }
-                    ]
+                    ],
+                    checks: []
                   },
                   isOptional: false,
                   isMutable: false
@@ -325,7 +338,8 @@ describe("Standard", () => {
                           _tag: "Suspend",
                           $ref: "Category"
                         }
-                      ]
+                      ],
+                      checks: []
                     },
                     isOptional: false,
                     isMutable: false
@@ -733,9 +747,9 @@ describe("Standard", () => {
 
     describe("Arrays", () => {
       it("empty tuple", () => {
-        assertToJson(Schema.Tuple([]), { schema: { _tag: "Arrays", elements: [], rest: [] } })
+        assertToJson(Schema.Tuple([]), { schema: { _tag: "Arrays", elements: [], rest: [], checks: [] } })
         assertToJson(Schema.Tuple([]).annotate({ description: "a" }), {
-          schema: { _tag: "Arrays", annotations: { description: "a" }, elements: [], rest: [] }
+          schema: { _tag: "Arrays", annotations: { description: "a" }, elements: [], rest: [], checks: [] }
         })
       })
     })
