@@ -323,7 +323,7 @@ const Proto = {
           }),
           Effect.updateServices((input) => ServiceMap.merge(schemas.services, input)),
           Effect.mapError((cause) =>
-            cause instanceof Schema.SchemaError
+            Schema.isSchemaError(cause)
               ? new AiError.MalformedInput({
                 module: "Toolkit",
                 method: `${name}.handle`,

@@ -52,7 +52,7 @@ export const toResponseOrElse = (u: unknown, orElse: HttpServerResponse): Effect
   } else if (isRespondable(u)) {
     return Effect.catchCause(u[TypeId](), () => Effect.succeed(orElse))
     // add support for some commmon types
-  } else if (u instanceof Schema.SchemaError) {
+  } else if (Schema.isSchemaError(u)) {
     return Effect.succeed(badRequest)
   } else if (Cause.isNoSuchElementError(u)) {
     return Effect.succeed(notFound)
