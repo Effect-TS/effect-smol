@@ -3,9 +3,9 @@
  */
 import * as Cache from "../../Cache.ts"
 import * as Effect from "../../Effect.ts"
+import * as Equal from "../../Equal.ts"
 import { constant, identity } from "../../Function.ts"
-import * as Equal from "../../interfaces/Equal.ts"
-import * as Hash from "../../interfaces/Hash.ts"
+import * as Hash from "../../Hash.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 

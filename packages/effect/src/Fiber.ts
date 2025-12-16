@@ -76,9 +76,9 @@
  */
 import type { Effect } from "./Effect.ts"
 import type { Exit } from "./Exit.ts"
-import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as effect from "./internal/effect.ts"
 import { version } from "./internal/version.ts"
+import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import type { StackFrame } from "./References.ts"
 import type { Scheduler } from "./Scheduler.ts"

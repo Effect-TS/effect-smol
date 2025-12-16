@@ -4,7 +4,7 @@
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import type { LazyArg } from "effect/Function"
-import * as Inspectable from "effect/interfaces/Inspectable"
+import * as Inspectable from "effect/Inspectable"
 import type * as Layer from "effect/Layer"
 import * as Queue from "effect/Queue"
 import * as ServiceMap from "effect/ServiceMap"

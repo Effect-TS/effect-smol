@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import * as Effect from "effect/Effect"
-import * as Inspectable from "effect/interfaces/Inspectable"
+import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
 import type * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"

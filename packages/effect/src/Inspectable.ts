@@ -10,7 +10,7 @@
  *
  * @example
  * ```ts
- * import { Inspectable } from "effect/interfaces"
+ * import { Inspectable } from "effect"
  * import { format } from "effect/Formatter"
  *
  * class User extends Inspectable.Class {
@@ -37,8 +37,8 @@
  *
  * @since 2.0.0
  */
-import { format } from "../Formatter.ts"
-import * as Predicate from "../Predicate.ts"
+import { format } from "./Formatter.ts"
+import * as Predicate from "./Predicate.ts"
 import { redact } from "./Redactable.ts"
 
 /**
@@ -50,7 +50,7 @@ import { redact } from "./Redactable.ts"
  *
  * @example
  * ```ts
- * import { Inspectable } from "effect/interfaces"
+ * import { Inspectable } from "effect"
  *
  * class CustomObject {
  *   constructor(private value: string) {}
@@ -76,7 +76,7 @@ export const NodeInspectSymbol = Symbol.for("nodejs.util.inspect.custom")
  *
  * @example
  * ```ts
- * import { Inspectable } from "effect/interfaces"
+ * import { Inspectable } from "effect"
  *
  * class CustomObject {
  *   constructor(private value: string) {}
@@ -104,7 +104,7 @@ export type NodeInspectSymbol = typeof NodeInspectSymbol
  *
  * @example
  * ```ts
- * import { Inspectable } from "effect/interfaces"
+ * import { Inspectable } from "effect"
  * import { format } from "effect/Formatter"
  *
  * class Result implements Inspectable.Inspectable {
@@ -176,7 +176,7 @@ export const toJson = (input: unknown): unknown => {
  *
  * @example
  * ```ts
- * import { Inspectable } from "effect/interfaces"
+ * import { Inspectable } from "effect"
  *
  * // Use as prototype
  * const myObject = Object.create(Inspectable.BaseProto)
@@ -216,7 +216,7 @@ export const BaseProto: Inspectable = {
  *
  * @example
  * ```ts
- * import { Inspectable } from "effect/interfaces"
+ * import { Inspectable } from "effect"
  *
  * class User extends Inspectable.Class {
  *   constructor(

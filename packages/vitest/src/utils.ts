@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 import type * as Cause from "effect/Cause"
+import * as Equal from "effect/Equal"
 import * as Exit from "effect/Exit"
-import * as Equal from "effect/interfaces/Equal"
 import * as Option from "effect/Option"
 import * as Predicate from "effect/Predicate"
 import * as Result from "effect/Result"

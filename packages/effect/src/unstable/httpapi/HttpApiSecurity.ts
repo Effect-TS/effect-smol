@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import { dual } from "../../Function.ts"
-import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import type { Redacted } from "../../Redacted.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Covariant } from "../../types/Types.ts"

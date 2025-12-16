@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
-import { pipeArguments } from "../interfaces/Pipeable.ts"
-import { hasProperty } from "../Predicate.ts"
-import type * as ServiceMap from "../ServiceMap.ts"
+import { pipeArguments } from "./Pipeable.ts"
+import { hasProperty } from "./Predicate.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
 
 /**
  * Symbol used to identify objects that implement redaction capabilities.
@@ -22,7 +22,7 @@ export const symbolRedactable: unique symbol = Symbol.for("~effect/Inspectable/r
  *
  * @example
  * ```ts
- * import { Redactable } from "effect/interfaces"
+ * import { Redactable } from "effect"
  * import { ServiceMap } from "effect"
  *
  * class SensitiveData implements Redactable.Redactable {
@@ -55,7 +55,7 @@ export interface Redactable {
  *
  * @example
  * ```ts
- * import { Redactable } from "effect/interfaces"
+ * import { Redactable } from "effect"
  *
  * class RedactableSecret {
  *   [Redactable.symbolRedactable]() {
@@ -87,7 +87,7 @@ export const isRedactable = (u: unknown): u is Redactable => hasProperty(u, symb
  *
  * @example
  * ```ts
- * import { Redactable } from "effect/interfaces"
+ * import { Redactable } from "effect"
  *
  * class CreditCard {
  *   constructor(private number: string) {}

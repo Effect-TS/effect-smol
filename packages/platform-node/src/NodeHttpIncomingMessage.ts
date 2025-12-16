@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import * as Effect from "effect/Effect"
-import * as Inspectable from "effect/interfaces/Inspectable"
+import * as Inspectable from "effect/Inspectable"
 import type * as Stream from "effect/Stream"
 import * as Headers from "effect/unstable/http/Headers"
 import * as IncomingMessage from "effect/unstable/http/HttpIncomingMessage"

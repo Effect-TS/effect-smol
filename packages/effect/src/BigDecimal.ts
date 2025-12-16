@@ -14,14 +14,14 @@
  * @since 2.0.0
  */
 
+import * as Equal from "./Equal.ts"
 import * as equivalence from "./Equivalence.ts"
 import { dual } from "./Function.ts"
-import * as Equal from "./interfaces/Equal.ts"
-import * as Hash from "./interfaces/Hash.ts"
-import { type Inspectable, NodeInspectSymbol } from "./interfaces/Inspectable.ts"
-import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
+import * as Hash from "./Hash.ts"
+import { type Inspectable, NodeInspectSymbol } from "./Inspectable.ts"
 import * as order from "./Order.ts"
 import type { Ordering } from "./Ordering.ts"
+import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 
 const DEFAULT_PRECISION = 100

@@ -1,14 +1,14 @@
 /**
  * @since 4.0.0
  */
+import * as Equal from "../../Equal.ts"
 import * as Equivalence_ from "../../Equivalence.ts"
 import { dual } from "../../Function.ts"
-import * as Equal from "../../interfaces/Equal.ts"
-import * as Hash from "../../interfaces/Hash.ts"
-import * as Inspectable from "../../interfaces/Inspectable.ts"
-import * as Redactable from "../../interfaces/Redactable.ts"
+import * as Hash from "../../Hash.ts"
+import * as Inspectable from "../../Inspectable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
+import * as Redactable from "../../Redactable.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"

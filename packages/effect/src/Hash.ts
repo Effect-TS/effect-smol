@@ -7,9 +7,9 @@
  *
  * @since 2.0.0
  */
-import { dual } from "../Function.ts"
-import { byReferenceInstances, getAllObjectKeys } from "../internal/equal.ts"
-import { hasProperty } from "../Predicate.ts"
+import { dual } from "./Function.ts"
+import { byReferenceInstances, getAllObjectKeys } from "./internal/equal.ts"
+import { hasProperty } from "./Predicate.ts"
 
 /**
  * The unique identifier used to identify objects that implement the Hash interface.
@@ -26,7 +26,7 @@ export const symbol = "~effect/interfaces/Hash"
  *
  * @example
  * ```ts
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  *
  * class MyClass implements Hash.Hash {
  *   constructor(private value: number) {}
@@ -66,7 +66,7 @@ export interface Hash {
  *
  * @example
  * ```ts
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  *
  * // Hash primitive values
  * console.log(Hash.hash(42)) // numeric hash
@@ -145,7 +145,7 @@ export const hash: <A>(self: A) => number = <A>(self: A) => {
  *
  * @example
  * ```ts
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  *
  * const obj1 = { a: 1 }
  * const obj2 = { a: 1 }
@@ -176,7 +176,7 @@ export const random: <A extends object>(self: A) => number = (self) => {
  *
  * @example
  * ```ts
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  *
  * const hash1 = Hash.hash("hello")
  * const hash2 = Hash.hash("world")
@@ -206,7 +206,7 @@ export const combine: {
  *
  * @example
  * ```ts
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  *
  * const rawHash = 1234567890
  * const optimizedHash = Hash.optimize(rawHash)
@@ -229,7 +229,7 @@ export const optimize = (n: number): number => (n & 0xbfffffff) | ((n >>> 1) & 0
  *
  * @example
  * ```ts
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  *
  * class MyHashable implements Hash.Hash {
  *   [Hash.symbol]() {
@@ -257,7 +257,7 @@ export const isHash = (u: unknown): u is Hash => hasProperty(u, symbol)
  *
  * @example
  * ```ts
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  *
  * console.log(Hash.number(42)) // hash of 42
  * console.log(Hash.number(3.14)) // hash of 3.14
@@ -300,7 +300,7 @@ export const number = (n: number) => {
  *
  * @example
  * ```ts
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  *
  * console.log(Hash.string("hello")) // hash of "hello"
  * console.log(Hash.string("world")) // hash of "world"
@@ -330,7 +330,7 @@ export const string = (str: string) => {
  *
  * @example
  * ```ts
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  *
  * const person = { name: "John", age: 30, city: "New York" }
  *
@@ -367,7 +367,7 @@ export const structureKeys = (o: object, keys: Iterable<PropertyKey>) => {
  *
  * @example
  * ```ts
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  *
  * const obj1 = { name: "John", age: 30 }
  * const obj2 = { name: "Jane", age: 25 }
@@ -403,7 +403,7 @@ const iterableWith = (seed: number, f: (el: any) => number) => (iter: Iterable<a
  *
  * @example
  * ```ts
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  *
  * const arr1 = [1, 2, 3]
  * const arr2 = [1, 2, 3]

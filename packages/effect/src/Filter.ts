@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 import type { Effect } from "./Effect.ts"
+import * as Equal from "./Equal.ts"
 import { dual } from "./Function.ts"
-import * as Equal from "./interfaces/Equal.ts"
 import type * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import type * as Result from "./Result.ts"

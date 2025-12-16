@@ -3,14 +3,14 @@
  */
 
 import * as Data from "./Data.ts"
+import * as Equal from "./Equal.ts"
 import { dual } from "./Function.ts"
-import * as Equal from "./interfaces/Equal.ts"
-import * as Hash from "./interfaces/Hash.ts"
-import type { Inspectable } from "./interfaces/Inspectable.ts"
-import { NodeInspectSymbol } from "./interfaces/Inspectable.ts"
-import type { Pipeable } from "./interfaces/Pipeable.ts"
-import { pipeArguments } from "./interfaces/Pipeable.ts"
+import * as Hash from "./Hash.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import { NodeInspectSymbol } from "./Inspectable.ts"
 import * as Option from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
 import type { Mutable } from "./types/Types.ts"
 
 const TypeId = "~effect/collections/Graph"

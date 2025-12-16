@@ -5,9 +5,9 @@
  */
 
 import type * as Combiner from "./Combiner.ts"
+import * as Equal from "./Equal.ts"
 import type { Equivalence } from "./Equivalence.ts"
 import { dual, identity } from "./Function.ts"
-import * as Equal from "./interfaces/Equal.ts"
 import * as Option from "./Option.ts"
 import * as Reducer from "./Reducer.ts"
 import type { Result } from "./Result.ts"
@@ -1036,7 +1036,7 @@ export const set: {
  * ```ts
  * import * as assert from "node:assert"
  * import { Record } from "effect"
- * import { Equal } from "effect/interfaces"
+ * import { Equal } from "effect"
  *
  * const isSubrecord = Record.isSubrecordBy(Equal.equivalence<number>())
  *
@@ -1353,7 +1353,7 @@ export const difference: {
  * ```ts
  * import * as assert from "node:assert"
  * import { Record } from "effect"
- * import { Equal } from "effect/interfaces"
+ * import { Equal } from "effect"
  *
  * const recordEquivalence = Record.getEquivalence(Equal.equivalence<number>())
  *

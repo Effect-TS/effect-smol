@@ -4,7 +4,7 @@
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import { format } from "../../Formatter.ts"
-import * as Inspectable from "../../interfaces/Inspectable.ts"
+import * as Inspectable from "../../Inspectable.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
 import * as Predicate from "../../Predicate.ts"

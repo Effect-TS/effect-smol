@@ -3,7 +3,7 @@
  */
 import type { Brand } from "../../Brand.ts"
 import type { Effect } from "../../Effect.ts"
-import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../schema/Schema.ts"

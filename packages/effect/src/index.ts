@@ -608,6 +608,15 @@ export * as Duration from "./Duration.ts"
 export * as Effect from "./Effect.ts"
 
 /**
+ * This module provides functionality for defining and working with equality between values.
+ * It includes the `Equal` interface for types that can determine equality with other values
+ * of the same type, and utilities for comparing values.
+ *
+ * @since 2.0.0
+ */
+export * as Equal from "./Equal.ts"
+
+/**
  * This module provides utilities for working with equivalence relations - binary relations that are
  * reflexive, symmetric, and transitive. Equivalence relations define when two values of the same type
  * should be considered equivalent, which is fundamental for comparing, deduplicating, and organizing data.
@@ -780,6 +789,17 @@ export * as Function from "./Function.ts"
 export * as Graph from "./Graph.ts"
 
 /**
+ * This module provides utilities for hashing values in TypeScript.
+ *
+ * Hashing is the process of converting data into a fixed-size numeric value,
+ * typically used for data structures like hash tables, equality comparisons,
+ * and efficient data storage.
+ *
+ * @since 2.0.0
+ */
+export * as Hash from "./Hash.ts"
+
+/**
  * @since 2.0.0
  */
 export * as HashMap from "./HashMap.ts"
@@ -793,6 +813,47 @@ export * as HashRing from "./HashRing.ts"
  * @since 2.0.0
  */
 export * as HashSet from "./HashSet.ts"
+
+/**
+ * This module provides utilities for making values inspectable and debuggable in TypeScript.
+ *
+ * The Inspectable interface provides a standard way to implement custom string representations
+ * for objects, making them easier to debug and inspect. It includes support for JSON
+ * serialization, Node.js inspection, and safe circular reference handling.
+ *
+ * The module also includes redaction capabilities for sensitive data, allowing objects
+ * to provide different representations based on the current execution context.
+ *
+ * @example
+ * ```ts
+ * import { Inspectable } from "effect"
+ * import { format } from "effect/Formatter"
+ *
+ * class User extends Inspectable.Class {
+ *   constructor(
+ *     public readonly name: string,
+ *     public readonly email: string
+ *   ) {
+ *     super()
+ *   }
+ *
+ *   toJSON() {
+ *     return {
+ *       _tag: "User",
+ *       name: this.name,
+ *       email: this.email
+ *     }
+ *   }
+ * }
+ *
+ * const user = new User("Alice", "alice@example.com")
+ * console.log(user.toString()) // Pretty printed JSON
+ * console.log(format(user)) // Same as toString()
+ * ```
+ *
+ * @since 2.0.0
+ */
+export * as Inspectable from "./Inspectable.ts"
 
 /**
  * This module provides utility functions for working with Iterables in TypeScript.
@@ -1589,12 +1650,30 @@ export * as Ordering from "./Ordering.ts"
 /**
  * @since 2.0.0
  */
+export * as Pipeable from "./Pipeable.ts"
+
+/**
+ * @since 2.0.0
+ */
 export * as Pool from "./Pool.ts"
 
 /**
  * @since 2.0.0
  */
 export * as Predicate from "./Predicate.ts"
+
+/**
+ * This module provides functionality for working with primary keys.
+ * A `PrimaryKey` is a simple interface that represents a unique identifier
+ * that can be converted to a string representation.
+ *
+ * Primary keys are useful for creating unique identifiers for objects,
+ * database records, cache keys, or any scenario where you need a
+ * string-based unique identifier.
+ *
+ * @since 2.0.0
+ */
+export * as PrimaryKey from "./PrimaryKey.ts"
 
 /**
  * This module provides utilities for working with publish-subscribe (PubSub) systems.
@@ -1713,6 +1792,11 @@ export * as RcRef from "./RcRef.ts"
  * @since 2.0.0
  */
 export * as Record from "./Record.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as Redactable from "./Redactable.ts"
 
 /**
  * The Redacted module provides functionality for handling sensitive information

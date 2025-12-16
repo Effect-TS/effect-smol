@@ -5,10 +5,10 @@
  *
  * @since 2.0.0
  */
-import type { Equivalence } from "../Equivalence.ts"
-import * as Hash from "../interfaces/Hash.ts"
-import { byReferenceInstances, getAllObjectKeys } from "../internal/equal.ts"
-import { hasProperty } from "../Predicate.ts"
+import type { Equivalence } from "./Equivalence.ts"
+import * as Hash from "./Hash.ts"
+import { byReferenceInstances, getAllObjectKeys } from "./internal/equal.ts"
+import { hasProperty } from "./Predicate.ts"
 
 /**
  * The unique identifier used to identify objects that implement the `Equal` interface.
@@ -23,7 +23,7 @@ export const symbol = "~effect/interfaces/Equal"
  *
  * @example
  * ```ts
- * import { Equal, Hash } from "effect/interfaces"
+ * import { Equal, Hash } from "effect"
  *
  * class Coordinate implements Equal.Equal {
  *   constructor(readonly x: number, readonly y: number) {}
@@ -76,7 +76,7 @@ export interface Equal extends Hash.Hash {
  *
  * @example
  * ```ts
- * import { Equal } from "effect/interfaces"
+ * import { Equal } from "effect"
  * import * as assert from "node:assert"
  *
  * // Primitive values
@@ -316,7 +316,7 @@ const compareSets = makeCompareSet(compareBoth)
  *
  * @example
  * ```ts
- * import { Equal, Hash } from "effect/interfaces"
+ * import { Equal, Hash } from "effect"
  * import * as assert from "node:assert"
  *
  * class MyClass implements Equal.Equal {
@@ -345,7 +345,7 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  *
  * @example
  * ```ts
- * import { Equal } from "effect/interfaces"
+ * import { Equal } from "effect"
  * import { Array } from "effect"
  *
  * const eq = Equal.equivalence<number>()
@@ -367,7 +367,7 @@ export const equivalence: <A>() => Equivalence<A> = () => equals
  *
  * @example
  * ```ts
- * import { Equal } from "effect/interfaces"
+ * import { Equal } from "effect"
  * import * as assert from "node:assert"
  *
  * const obj1 = { a: 1, b: 2 }
@@ -403,7 +403,7 @@ export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(ne
  *
  * @example
  * ```ts
- * import { Equal } from "effect/interfaces"
+ * import { Equal } from "effect"
  * import * as assert from "node:assert"
  *
  * const obj1 = { a: 1, b: 2 }

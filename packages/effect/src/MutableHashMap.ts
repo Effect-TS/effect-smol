@@ -25,14 +25,14 @@
  * @category data-structures
  */
 import type { NonEmptyArray } from "./Array.ts"
+import * as Equal from "./Equal.ts"
 import { format } from "./Formatter.ts"
 import { dual } from "./Function.ts"
-import * as Equal from "./interfaces/Equal.ts"
-import * as Hash from "./interfaces/Hash.ts"
-import { type Inspectable, NodeInspectSymbol, toJson } from "./interfaces/Inspectable.ts"
-import type { Pipeable } from "./interfaces/Pipeable.ts"
-import { pipeArguments } from "./interfaces/Pipeable.ts"
+import * as Hash from "./Hash.ts"
+import { type Inspectable, NodeInspectSymbol, toJson } from "./Inspectable.ts"
 import * as Option from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
 
 const TypeId = "~effect/collections/MutableHashMap"
 

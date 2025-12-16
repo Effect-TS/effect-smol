@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
 import * as Predicate from "../../Predicate.ts"
+import * as PrimaryKey from "../../PrimaryKey.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"

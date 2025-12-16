@@ -3,11 +3,11 @@
  *
  * @since 2.0.0
  */
+import * as Equal from "./Equal.ts"
 import * as Equivalence from "./Equivalence.ts"
 import * as Filter from "./Filter.ts"
 import type { LazyArg } from "./Function.ts"
 import { dual, identity } from "./Function.ts"
-import * as Equal from "./interfaces/Equal.ts"
 import * as internalArray from "./internal/array.ts"
 import * as internalDoNotation from "./internal/doNotation.ts"
 import * as moduleIterable from "./Iterable.ts"

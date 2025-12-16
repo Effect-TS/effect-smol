@@ -1,6 +1,6 @@
+import * as Equal from "effect/Equal"
+import * as Hash from "effect/Hash"
 import * as HashMap from "effect/HashMap"
-import * as Equal from "effect/interfaces/Equal"
-import * as Hash from "effect/interfaces/Hash"
 import * as Option from "effect/Option"
 import { describe, expect, it } from "vitest"
 

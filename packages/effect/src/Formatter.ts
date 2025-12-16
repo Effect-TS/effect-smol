@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import { getRedacted, redact, symbolRedactable } from "./interfaces/Redactable.ts"
 import * as Predicate from "./Predicate.ts"
+import { getRedacted, redact, symbolRedactable } from "./Redactable.ts"
 
 /**
  * @category Model

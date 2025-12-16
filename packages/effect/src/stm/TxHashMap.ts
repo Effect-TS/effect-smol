@@ -6,11 +6,11 @@ import * as Effect from "../Effect.ts"
 import { format } from "../Formatter.ts"
 import { dual } from "../Function.ts"
 import * as HashMap from "../HashMap.ts"
-import type { Inspectable } from "../interfaces/Inspectable.ts"
-import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { pipeArguments } from "../interfaces/Pipeable.ts"
+import type { Inspectable } from "../Inspectable.ts"
+import { NodeInspectSymbol, toJson } from "../Inspectable.ts"
 import * as Option from "../Option.ts"
+import type { Pipeable } from "../Pipeable.ts"
+import { pipeArguments } from "../Pipeable.ts"
 import * as TxRef from "../stm/TxRef.ts"
 
 const TypeId = "~effect/transactions/TxHashMap"
@@ -1162,7 +1162,7 @@ export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V> => {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -1209,7 +1209,7 @@ export const getHash: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Hash } from "effect/interfaces"
+ * import { Hash } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {

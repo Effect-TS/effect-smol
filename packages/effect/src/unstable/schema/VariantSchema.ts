@@ -4,7 +4,7 @@
 import type { Brand } from "../../Brand.ts"
 import * as Effect from "../../Effect.ts"
 import { constant, dual } from "../../Function.ts"
-import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
+import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Annotations from "../../schema/Annotations.ts"
 import type * as AST from "../../schema/AST.ts"

@@ -4,6 +4,7 @@ import {
   DateTime,
   Duration,
   Effect,
+  Equal,
   Exit,
   flow,
   Option,
@@ -17,7 +18,6 @@ import {
   Struct,
   Tuple
 } from "effect"
-import { Equal } from "effect/interfaces"
 import { Annotations, AST, Getter, Issue, Parser, Schema, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { produce } from "immer"

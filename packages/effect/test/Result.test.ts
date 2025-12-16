@@ -1,5 +1,4 @@
-import { Cause, Chunk, Effect, Equivalence, flow, identity, Option, pipe, Result, String as Str } from "effect"
-import { Equal } from "effect/interfaces"
+import { Cause, Chunk, Effect, Equal, Equivalence, flow, identity, Option, pipe, Result, String as Str } from "effect"
 import { inspect } from "node:util"
 import { describe, it } from "vitest"
 import {

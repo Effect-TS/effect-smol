@@ -2,15 +2,15 @@
  * @since 2.0.0
  */
 
+import * as Equal_ from "../Equal.ts"
 import { format } from "../Formatter.ts"
 import { dual, pipe } from "../Function.ts"
-import * as Equal_ from "../interfaces/Equal.ts"
-import * as Hash from "../interfaces/Hash.ts"
-import type { Inspectable } from "../interfaces/Inspectable.ts"
-import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { pipeArguments } from "../interfaces/Pipeable.ts"
+import * as Hash from "../Hash.ts"
+import type { Inspectable } from "../Inspectable.ts"
+import { NodeInspectSymbol, toJson } from "../Inspectable.ts"
 import * as Option from "../Option.ts"
+import type { Pipeable } from "../Pipeable.ts"
+import { pipeArguments } from "../Pipeable.ts"
 import { hasProperty } from "../Predicate.ts"
 import type { NoInfer } from "../types/Types.ts"
 

@@ -26,9 +26,9 @@
  *
  * @since 4.0.0
  */
-import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as internal from "./internal/matcher.ts"
 import type * as Option from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import type * as Result from "./Result.ts"
 import type * as T from "./types/Types.ts"

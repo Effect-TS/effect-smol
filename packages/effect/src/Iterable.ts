@@ -31,8 +31,8 @@
  */
 
 import type { NonEmptyArray } from "./Array.ts"
+import * as Equal from "./Equal.ts"
 import { dual, identity } from "./Function.ts"
-import * as Equal from "./interfaces/Equal.ts"
 import type { Option } from "./Option.ts"
 import * as O from "./Option.ts"
 import { isBoolean } from "./Predicate.ts"

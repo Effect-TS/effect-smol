@@ -4,7 +4,7 @@
 import type * as Arr from "../../Array.ts"
 import * as Channel from "../../Channel.ts"
 import * as Effect from "../../Effect.ts"
-import * as Inspectable from "../../interfaces/Inspectable.ts"
+import * as Inspectable from "../../Inspectable.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import type * as Path from "../../platform/Path.ts"
 import type { ReadonlyRecord } from "../../Record.ts"

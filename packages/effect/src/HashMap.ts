@@ -2,11 +2,11 @@
  * @since 2.0.0
  */
 
-import type { Equal } from "./interfaces/Equal.ts"
-import type { Inspectable } from "./interfaces/Inspectable.ts"
-import type { Pipeable } from "./interfaces/Pipeable.ts"
+import type { Equal } from "./Equal.ts"
+import type { Inspectable } from "./Inspectable.ts"
 import * as internal from "./internal/hashMap.ts"
 import type { Option } from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
 import type { NoInfer } from "./types/Types.ts"
 
 const TypeId = internal.HashMapTypeId
@@ -321,7 +321,7 @@ export const get: {
  * @example
  * ```ts
  * import * as HashMap from "effect/HashMap"
-import { Hash } from "effect/interfaces"
+import { Hash } from "effect"
  * import * as Option from "effect/Option"
  *
  * // Useful when implementing custom equality for complex keys
@@ -423,7 +423,7 @@ export const has: {
  * @example
  * ```ts
  * import * as HashMap from "effect/HashMap"
-import { Hash } from "effect/interfaces"
+import { Hash } from "effect"
  *
  * // Create a map with case-sensitive keys
  * const userMap = HashMap.make(
@@ -771,7 +771,7 @@ export const modifyAt: {
  * @example
  * ```ts
  * import * as HashMap from "effect/HashMap"
-import { Hash } from "effect/interfaces"
+import { Hash } from "effect"
  * import * as Option from "effect/Option"
  *
  * // Useful when working with precomputed hashes for performance

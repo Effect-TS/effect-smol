@@ -40,12 +40,12 @@
  * @since 2.0.0
  */
 import type * as Effect from "./Effect.ts"
+import type { Equal } from "./Equal.ts"
 import type * as Filter from "./Filter.ts"
-import type { Equal } from "./interfaces/Equal.ts"
-import type { Inspectable } from "./interfaces/Inspectable.ts"
-import type { Pipeable } from "./interfaces/Pipeable.ts"
+import type { Inspectable } from "./Inspectable.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
+import type { Pipeable } from "./Pipeable.ts"
 import type { StackFrame } from "./References.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import type { NoInfer } from "./types/Types.ts"

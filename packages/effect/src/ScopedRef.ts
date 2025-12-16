@@ -4,8 +4,8 @@
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import { dual, type LazyArg } from "./Function.ts"
-import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
+import type { Pipeable } from "./Pipeable.ts"
 import * as Scope from "./Scope.ts"
 import * as Synchronized from "./SynchronizedRef.ts"
 

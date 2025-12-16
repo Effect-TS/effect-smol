@@ -1,5 +1,4 @@
-import { HashSet } from "effect"
-import { Equal, Hash } from "effect/interfaces"
+import { Equal, Hash, HashSet } from "effect"
 import { describe, expect, it } from "vitest"
 
 describe("HashSet", () => {

@@ -1,5 +1,4 @@
-import { HashMap, Option } from "effect"
-import { Equal, Hash } from "effect/interfaces"
+import { Equal, Hash, HashMap, Option } from "effect"
 import { describe, expect, it } from "vitest"
 
 describe("HashMap", () => {

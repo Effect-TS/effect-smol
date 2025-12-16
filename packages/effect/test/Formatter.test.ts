@@ -1,6 +1,5 @@
-import { Option, Redacted } from "effect"
+import { Option, Redactable, Redacted } from "effect"
 import { format, formatJson } from "effect/Formatter"
-import { Redactable } from "effect/interfaces"
 import { Schema } from "effect/schema"
 import { describe, it } from "vitest"
 import { strictEqual } from "./utils/assert.ts"

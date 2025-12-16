@@ -10,7 +10,7 @@
  * @since 2.0.0
  */
 
-import { hasProperty } from "../Predicate.ts"
+import { hasProperty } from "./Predicate.ts"
 
 /**
  * The unique identifier used to identify objects that implement the `PrimaryKey` interface.
@@ -27,7 +27,7 @@ export const symbol = "~effect/interfaces/PrimaryKey"
  *
  * @example
  * ```ts
- * import { PrimaryKey } from "effect/interfaces"
+ * import { PrimaryKey } from "effect"
  *
  * class ProductId implements PrimaryKey.PrimaryKey {
  *   constructor(private category: string, private id: number) {}
@@ -59,7 +59,7 @@ export const isPrimaryKey = (u: unknown): u is PrimaryKey => hasProperty(u, symb
  *
  * @example
  * ```ts
- * import { PrimaryKey } from "effect/interfaces"
+ * import { PrimaryKey } from "effect"
  *
  * class OrderId implements PrimaryKey.PrimaryKey {
  *   constructor(private timestamp: number, private sequence: number) {}

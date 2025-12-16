@@ -3,9 +3,9 @@
  */
 import type { Effect } from "../../Effect.ts"
 import type { Exit as Exit_ } from "../../Exit.ts"
-import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
-import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
+import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
+import * as PrimaryKey from "../../PrimaryKey.ts"
 import type * as Queue from "../../Queue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"

@@ -71,8 +71,8 @@
  */
 import * as Effect from "../../Effect.ts"
 import { format } from "../../Formatter.ts"
-import { redact } from "../../interfaces/Redactable.ts"
 import * as Predicate from "../../Predicate.ts"
+import { redact } from "../../Redactable.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type * as HttpClientError from "../http/HttpClientError.ts"
 

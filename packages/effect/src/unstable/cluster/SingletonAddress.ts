@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import * as Equal from "../../interfaces/Equal.ts"
-import * as Hash from "../../interfaces/Hash.ts"
+import * as Equal from "../../Equal.ts"
+import * as Hash from "../../Hash.ts"
 import * as Schema from "../../schema/Schema.ts"
 import { ShardId } from "./ShardId.ts"
 

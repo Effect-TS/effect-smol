@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import * as Effect from "effect/Effect"
-import * as Inspectable from "effect/interfaces/Inspectable"
+import * as Inspectable from "effect/Inspectable"
 import type * as FileSystem from "effect/platform/FileSystem"
 import type * as Path from "effect/platform/Path"
 import type * as Scope from "effect/Scope"

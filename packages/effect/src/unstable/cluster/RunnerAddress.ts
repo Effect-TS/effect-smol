@@ -1,10 +1,10 @@
 /**
  * @since 4.0.0
  */
-import * as Equal from "../../interfaces/Equal.ts"
-import * as Hash from "../../interfaces/Hash.ts"
-import { NodeInspectSymbol } from "../../interfaces/Inspectable.ts"
-import * as PrimaryKey from "../../interfaces/PrimaryKey.ts"
+import * as Equal from "../../Equal.ts"
+import * as Hash from "../../Hash.ts"
+import { NodeInspectSymbol } from "../../Inspectable.ts"
+import * as PrimaryKey from "../../PrimaryKey.ts"
 import * as Schema from "../../schema/Schema.ts"
 
 const TypeId = "~effect/cluster/RunnerAddress"

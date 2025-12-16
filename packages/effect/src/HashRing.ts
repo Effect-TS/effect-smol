@@ -2,12 +2,12 @@
  * @since 4.0.0
  */
 import { dual } from "./Function.ts"
-import * as Hash from "./interfaces/Hash.ts"
-import { type Pipeable } from "./interfaces/Pipeable.ts"
-import * as PrimaryKey from "./interfaces/PrimaryKey.ts"
+import * as Hash from "./Hash.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as Iterable from "./Iterable.ts"
+import { type Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
+import * as PrimaryKey from "./PrimaryKey.ts"
 
 const TypeId = "~effect/cluster/HashRing" as const
 

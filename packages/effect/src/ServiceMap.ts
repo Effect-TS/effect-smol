@@ -11,14 +11,14 @@
  * @since 4.0.0
  */
 import type { Effect, EffectIterator, Yieldable } from "./Effect.ts"
+import * as Equal from "./Equal.ts"
 import { constant, dual, type LazyArg } from "./Function.ts"
-import * as Equal from "./interfaces/Equal.ts"
-import * as Hash from "./interfaces/Hash.ts"
-import type { Inspectable } from "./interfaces/Inspectable.ts"
-import type { Pipeable } from "./interfaces/Pipeable.ts"
+import * as Hash from "./Hash.ts"
+import type { Inspectable } from "./Inspectable.ts"
 import { exitSucceed, PipeInspectableProto, withFiber, YieldableProto } from "./internal/core.ts"
 import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
 import * as Option from "./Option.ts"
+import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import type * as Types from "./types/Types.ts"
 

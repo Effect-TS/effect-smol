@@ -6,8 +6,7 @@ import {
   deepStrictEqual,
   strictEqual
 } from "@effect/vitest/utils"
-import { Graph, Option } from "effect"
-import { Equal, Hash } from "effect/interfaces"
+import { Equal, Graph, Hash, Option } from "effect"
 import { describe, expect, it } from "vitest"
 
 describe("Graph", () => {

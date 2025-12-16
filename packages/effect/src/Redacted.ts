@@ -6,12 +6,12 @@
  *
  * @since 3.3.0
  */
+import * as Equal from "./Equal.ts"
 import * as Equivalence from "./Equivalence.ts"
-import * as Equal from "./interfaces/Equal.ts"
-import * as Hash from "./interfaces/Hash.ts"
-import type { Pipeable } from "./interfaces/Pipeable.ts"
+import * as Hash from "./Hash.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import { redactedRegistry } from "./internal/redacted.ts"
+import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty, isString } from "./Predicate.ts"
 import type { Covariant } from "./types/Types.ts"
 

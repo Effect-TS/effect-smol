@@ -26,10 +26,10 @@
  */
 import { format } from "./Formatter.ts"
 import * as Dual from "./Function.ts"
-import { type Inspectable, NodeInspectSymbol, toJson } from "./interfaces/Inspectable.ts"
-import type { Pipeable } from "./interfaces/Pipeable.ts"
-import { pipeArguments } from "./interfaces/Pipeable.ts"
+import { type Inspectable, NodeInspectSymbol, toJson } from "./Inspectable.ts"
 import * as MutableHashMap from "./MutableHashMap.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
 
 const TypeId = "~effect/collections/MutableHashSet"
 

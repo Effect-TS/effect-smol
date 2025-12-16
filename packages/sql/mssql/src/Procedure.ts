@@ -2,8 +2,8 @@
  * @since 1.0.0
  */
 import { identity } from "effect/Function"
-import type { Pipeable } from "effect/interfaces/Pipeable"
-import { pipeArguments } from "effect/interfaces/Pipeable"
+import type { Pipeable } from "effect/Pipeable"
+import { pipeArguments } from "effect/Pipeable"
 import type { Covariant } from "effect/types/Types"
 import type { Row } from "effect/unstable/sql/SqlConnection"
 import type { DataType } from "tedious/lib/data-type.ts"

@@ -1,7 +1,7 @@
 /**
  * @since 2.0.0
  */
-import { pipeArguments } from "./interfaces/Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
 import type { TypeLambda } from "./types/HKT.ts"
 
 /**

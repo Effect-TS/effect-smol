@@ -6,10 +6,10 @@ import * as Effect from "../Effect.ts"
 import { format } from "../Formatter.ts"
 import { dual } from "../Function.ts"
 import * as HashSet from "../HashSet.ts"
-import type { Inspectable } from "../interfaces/Inspectable.ts"
-import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { pipeArguments } from "../interfaces/Pipeable.ts"
+import type { Inspectable } from "../Inspectable.ts"
+import { NodeInspectSymbol, toJson } from "../Inspectable.ts"
+import type { Pipeable } from "../Pipeable.ts"
+import { pipeArguments } from "../Pipeable.ts"
 import type { Predicate, Refinement } from "../Predicate.ts"
 import * as TxRef from "../stm/TxRef.ts"
 import type { NoInfer } from "../types/Types.ts"
@@ -382,7 +382,7 @@ export const remove: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Equal, Hash } from "effect/interfaces"
+ * import { Equal, Hash } from "effect"
  * import { TxHashSet } from "effect/stm"
  *
  * const program = Effect.gen(function*() {

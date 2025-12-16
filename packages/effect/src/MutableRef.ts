@@ -30,11 +30,11 @@
  * @since 2.0.0
  * @category data-structures
  */
+import * as Equal from "./Equal.ts"
 import * as Dual from "./Function.ts"
-import * as Equal from "./interfaces/Equal.ts"
-import { type Inspectable, toJson } from "./interfaces/Inspectable.ts"
-import type { Pipeable } from "./interfaces/Pipeable.ts"
+import { type Inspectable, toJson } from "./Inspectable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
+import type { Pipeable } from "./Pipeable.ts"
 
 const TypeId = "~effect/MutableRef"
 

@@ -504,7 +504,7 @@ export interface Pipeable {
  * @category utilities
  * @example
  * ```ts
- * import { Pipeable } from "effect/interfaces"
+ * import { Pipeable } from "effect"
  *
  * // pipeArguments is used internally to implement efficient piping
  * function customPipe<A>(self: A, ...fns: Array<(a: any) => any>): unknown {

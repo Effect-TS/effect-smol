@@ -1,6 +1,6 @@
+import * as Equal from "../Equal.ts"
 import * as Equivalence from "../Equivalence.ts"
 import { memoize } from "../Function.ts"
-import * as Equal from "../interfaces/Equal.ts"
 import * as Predicate from "../Predicate.ts"
 import * as Annotations from "../schema/Annotations.ts"
 import * as AST from "../schema/AST.ts"

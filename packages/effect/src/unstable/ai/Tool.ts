@@ -28,7 +28,7 @@
  */
 import type * as Effect from "../../Effect.ts"
 import { constFalse, constTrue, identity } from "../../Function.ts"
-import { pipeArguments } from "../../interfaces/Pipeable.ts"
+import { pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Annotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"

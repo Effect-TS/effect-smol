@@ -3,8 +3,8 @@
  */
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
-import { type Pipeable } from "../../interfaces/Pipeable.ts"
 import * as Layer from "../../Layer.ts"
+import { type Pipeable } from "../../Pipeable.ts"
 import type * as Queue from "../../Queue.ts"
 import type * as Record from "../../Record.ts"
 import type { Scope } from "../../Scope.ts"
