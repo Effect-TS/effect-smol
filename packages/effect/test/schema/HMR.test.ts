@@ -5,7 +5,7 @@ const SCHEMA_MODULE_PATH = "../../src/schema/Schema.ts"
 
 describe("HMR", () => {
   it("sanity check: reload produces distinct constructors", async () => {
-    const PATH = "./fixtures/HRM.ts"
+    const PATH = "./fixtures/HMR-sanity-check.ts"
     const mod1: any = await vi.importActual(PATH)
     vi.resetModules()
     const mod2: any = await vi.importActual(PATH)
@@ -55,7 +55,7 @@ describe("HMR", () => {
   })
 
   it("Schema.Class", async () => {
-    const PATH = "./fixtures/Class.ts"
+    const PATH = "./fixtures/HMR-Class.ts"
     const mod1: any = await vi.importActual(PATH)
     vi.resetModules()
     const mod2: any = await vi.importActual(PATH)
