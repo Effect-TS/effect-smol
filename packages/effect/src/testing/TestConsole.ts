@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Array from "../collections/Array.ts"
+import * as Array from "../Array.ts"
 import * as Console from "../Console.ts"
 import * as Effect from "../Effect.ts"
 import * as Layer from "../Layer.ts"

@@ -1,10 +1,10 @@
 /**
  * @since 4.0.0
  */
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
+import * as Arr from "../../Array.ts"
 import * as Channel from "../../Channel.ts"
 import * as ChannelSchema from "../../ChannelSchema.ts"
-import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
-import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../Data.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"

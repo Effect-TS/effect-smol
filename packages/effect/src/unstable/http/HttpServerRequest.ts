@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import type * as Arr from "../../Array.ts"
 import * as Channel from "../../Channel.ts"
-import type * as Arr from "../../collections/Array.ts"
 import * as Effect from "../../Effect.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"

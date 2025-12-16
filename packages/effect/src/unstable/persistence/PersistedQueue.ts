@@ -1,13 +1,13 @@
 /**
  * @since 4.0.0
  */
+import type * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
-import type * as Arr from "../../collections/Array.ts"
-import * as Iterable from "../../collections/Iterable.ts"
 import * as Data from "../../Data.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import * as Iterable from "../../Iterable.ts"
 import * as Layer from "../../Layer.ts"
 import * as MutableRef from "../../MutableRef.ts"
 import * as Queue from "../../Queue.ts"

@@ -401,7 +401,7 @@ export const Equivalence: equivalence.Equivalence<DateTime> = Internal.Equivalen
  * @example
  * ```ts
  * import { DateTime } from "effect"
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const dates = [
  *   DateTime.makeUnsafe("2024-03-01"),

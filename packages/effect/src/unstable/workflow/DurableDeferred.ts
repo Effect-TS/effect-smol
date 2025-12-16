@@ -1,9 +1,9 @@
 /**
  * @since 4.0.0
  */
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import type * as Brand from "../../Brand.ts"
 import type * as Cause from "../../Cause.ts"
-import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Effect from "../../Effect.ts"
 import * as Base64Url from "../../encoding/Base64Url.ts"
 import * as Exit from "../../Exit.ts"

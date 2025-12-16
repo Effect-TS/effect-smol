@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "../../Array.ts"
 import { Clock } from "../../Clock.ts"
-import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"

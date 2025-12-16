@@ -1,7 +1,6 @@
 import * as NodeFileSystem from "@effect/platform-node-shared/NodeFileSystem"
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Option } from "effect"
-import { Array } from "effect/collections"
+import { Array, Option } from "effect"
 import * as Effect from "effect/Effect"
 import * as Fs from "effect/platform/FileSystem"
 import * as Stream from "effect/Stream"

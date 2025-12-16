@@ -59,10 +59,9 @@
  * @since 2.0.0
  */
 // @effect-diagnostics returnEffectInGen:off
+import * as Arr from "./Array.ts"
 import * as Cause from "./Cause.ts"
-import * as Arr from "./collections/Array.ts"
-import * as Chunk from "./collections/Chunk.ts"
-import * as Iterable from "./collections/Iterable.ts"
+import * as Chunk from "./Chunk.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
@@ -73,6 +72,7 @@ import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { pipeArguments } from "./interfaces/Pipeable.ts"
 import { endSpan } from "./internal/effect.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
+import * as Iterable from "./Iterable.ts"
 import * as Layer from "./Layer.ts"
 import * as Option from "./Option.ts"
 import { hasProperty, isTagged } from "./Predicate.ts"
@@ -633,7 +633,7 @@ export const fromArray = <A>(array: ReadonlyArray<A>): Channel<A> =>
  * @example
  * ```ts
  * import { Channel } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3)
  * const channel = Channel.fromChunk(chunk)
@@ -3062,7 +3062,7 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import { Filter } from "effect"
  * import { Channel } from "effect"
  *

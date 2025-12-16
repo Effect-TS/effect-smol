@@ -2,10 +2,10 @@
  * @since 2.0.0
  */
 
-import * as HashSet from "../collections/HashSet.ts"
 import * as Effect from "../Effect.ts"
 import { format } from "../Formatter.ts"
 import { dual } from "../Function.ts"
+import * as HashSet from "../HashSet.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
@@ -243,7 +243,7 @@ export const fromIterable = <V>(values: Iterable<V>): Effect.Effect<TxHashSet<V>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  * import { TxHashSet } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -275,7 +275,7 @@ export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHas
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  * import { TxHashSet } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -852,7 +852,7 @@ export const reduce: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  * import { TxHashSet } from "effect/stm"
  *
  * const program = Effect.gen(function*() {

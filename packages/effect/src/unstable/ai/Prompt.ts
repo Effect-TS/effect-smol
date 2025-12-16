@@ -51,7 +51,7 @@
  *
  * @since 4.0.0
  */
-import * as Arr from "../../collections/Array.ts"
+import * as Arr from "../../Array.ts"
 import * as Effect from "../../Effect.ts"
 import { constFalse, dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"

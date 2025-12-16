@@ -1,6 +1,6 @@
 // @ts-check
 import * as Glob from "glob"
-import Jscodeshift from "jscodeshift/src/Runner.js"
+import * as Jscodeshift from "jscodeshift/src/Runner.js"
 import * as Path from "node:path"
 
 // Look up files in all workspace packages including those nested in

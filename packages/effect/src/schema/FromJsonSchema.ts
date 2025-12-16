@@ -16,7 +16,7 @@
  *
  * @since 4.0.0
  */
-import * as Arr from "../collections/Array.ts"
+import * as Arr from "../Array.ts"
 import * as Combiner from "../Combiner.ts"
 import { format, formatPropertyKey } from "../Formatter.ts"
 import { remainder } from "../Number.ts"

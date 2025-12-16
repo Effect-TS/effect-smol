@@ -1,7 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertFalse, assertTrue, strictEqual, throws } from "@effect/vitest/utils"
-import { Redacted } from "effect"
-import { Chunk } from "effect/collections"
+import { Chunk, Redacted } from "effect"
 import { Equal, Hash } from "effect/interfaces"
 
 describe("Redacted", () => {

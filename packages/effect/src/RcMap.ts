@@ -3,7 +3,6 @@
  */
 import * as Cause from "./Cause.ts"
 import { Clock } from "./Clock.ts"
-import * as MutableHashMap from "./collections/MutableHashMap.ts"
 import * as Deferred from "./Deferred.ts"
 import * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
@@ -12,6 +11,7 @@ import * as Fiber from "./Fiber.ts"
 import { constant, dual, flow } from "./Function.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"
 import { pipeArguments } from "./interfaces/Pipeable.ts"
+import * as MutableHashMap from "./MutableHashMap.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 
@@ -116,7 +116,7 @@ export declare namespace State {
    * @category Models
    * @example
    * ```ts
-   * import * as MutableHashMap from "effect/collections/MutableHashMap"
+   * import * as MutableHashMap from "effect/MutableHashMap"
    * import { RcMap } from "effect"
    *
    * // State.Open contains the active resource map

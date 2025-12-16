@@ -99,8 +99,8 @@
  * })
  * ```
  */
+import * as Array from "./Array.ts"
 import type * as Cause from "./Cause.ts"
-import * as Array from "./collections/Array.ts"
 import type * as Duration from "./Duration.ts"
 import type * as Effect from "./Effect.ts"
 import type * as Fiber from "./Fiber.ts"

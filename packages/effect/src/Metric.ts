@@ -137,7 +137,7 @@
  * ```
  */
 
-import * as Arr from "./collections/Array.ts"
+import * as Arr from "./Array.ts"
 import * as Duration from "./Duration.ts"
 import type { Effect } from "./Effect.ts"
 import type { Exit } from "./Exit.ts"

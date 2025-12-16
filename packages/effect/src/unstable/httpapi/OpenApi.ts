@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type { NonEmptyArray } from "../../collections/Array.ts"
+import type { NonEmptyArray } from "../../Array.ts"
 import { constFalse } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import type * as AST from "../../schema/AST.ts"

@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 
+import * as Arr from "../Array.ts"
 import * as Cause from "../Cause.ts"
-import * as Arr from "../collections/Array.ts"
 import type * as Combiner from "../Combiner.ts"
 import * as Effect from "../Effect.ts"
 import type * as Exit from "../Exit.ts"

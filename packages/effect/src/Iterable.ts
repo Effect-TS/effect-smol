@@ -12,7 +12,7 @@
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Create iterables
  * const numbers = Iterable.range(1, 5)
@@ -30,17 +30,17 @@
  * @since 2.0.0
  */
 
-import type { NonEmptyArray } from "../collections/Array.ts"
-import { dual, identity } from "../Function.ts"
-import * as Equal from "../interfaces/Equal.ts"
-import type { Option } from "../Option.ts"
-import * as O from "../Option.ts"
-import { isBoolean } from "../Predicate.ts"
-import type * as Record from "../Record.ts"
-import type { Result } from "../Result.ts"
-import * as R from "../Result.ts"
-import * as Tuple from "../Tuple.ts"
-import type { NoInfer } from "../types/Types.ts"
+import type { NonEmptyArray } from "./Array.ts"
+import { dual, identity } from "./Function.ts"
+import * as Equal from "./interfaces/Equal.ts"
+import type { Option } from "./Option.ts"
+import * as O from "./Option.ts"
+import { isBoolean } from "./Predicate.ts"
+import type * as Record from "./Record.ts"
+import type { Result } from "./Result.ts"
+import * as R from "./Result.ts"
+import * as Tuple from "./Tuple.ts"
+import type { NoInfer } from "./types/Types.ts"
 
 /**
  * Creates an iterable by applying a function to consecutive integers.
@@ -54,7 +54,7 @@ import type { NoInfer } from "../types/Types.ts"
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Generate first 5 even numbers
  * const evens = Iterable.makeBy(n => n * 2, { length: 5 })
@@ -100,7 +100,7 @@ export const makeBy = <A>(f: (i: number) => A, options?: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { range } from "effect/collections/Iterable"
+ * import { range } from "effect/Iterable"
  *
  * assert.deepStrictEqual(Array.from(range(1, 3)), [1, 2, 3])
  * ```
@@ -125,7 +125,7 @@ export const range = (start: number, end?: number): Iterable<number> => {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { replicate } from "effect/collections/Iterable"
+ * import { replicate } from "effect/Iterable"
  *
  * assert.deepStrictEqual(Array.from(replicate("a", 3)), ["a", "a", "a"])
  * ```
@@ -159,7 +159,7 @@ export const forever = <A>(self: Iterable<A>): Iterable<A> => repeat(self, Infin
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { fromRecord } from "effect/collections/Iterable"
+ * import { fromRecord } from "effect/Iterable"
  *
  * const x = { a: 1, b: 2, c: 3 }
  * assert.deepStrictEqual(Array.from(fromRecord(x)), [["a", 1], ["b", 2], ["c", 3]])
@@ -183,7 +183,7 @@ export const fromRecord = <K extends string, A>(self: Readonly<Record<K, A>>): I
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const numbers = [2, 3, 4]
  * const withOne = Iterable.prepend(numbers, 1)
@@ -209,7 +209,7 @@ export const prepend: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * assert.deepStrictEqual(
  *   Array.from(Iterable.prependAll([1, 2], ["a", "b"])),
@@ -233,7 +233,7 @@ export const prependAll: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const numbers = [1, 2, 3]
  * const withFour = Iterable.append(numbers, 4)
@@ -260,7 +260,7 @@ export const append: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const first = [1, 2, 3]
  * const second = [4, 5, 6]
@@ -316,7 +316,7 @@ export const appendAll: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Running sum of numbers
  * const numbers = [1, 2, 3, 4, 5]
@@ -366,7 +366,7 @@ export const scan: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { isEmpty } from "effect/collections/Iterable"
+ * import { isEmpty } from "effect/Iterable"
  *
  * assert.deepStrictEqual(isEmpty([]), true);
  * assert.deepStrictEqual(isEmpty([1, 2, 3]), false);
@@ -385,7 +385,7 @@ export const isEmpty = <A>(self: Iterable<A>): self is Iterable<never> => {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const numbers = [1, 2, 3, 4, 5]
  * console.log(Iterable.size(numbers)) // 5
@@ -419,7 +419,7 @@ export const size = <A>(self: Iterable<A>): number => {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  * import * as Option from "effect/Option"
  *
  * const numbers = [1, 2, 3]
@@ -451,7 +451,7 @@ export const head = <A>(self: Iterable<A>): Option<A> => {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const numbers = [1, 2, 3]
  * console.log(Iterable.headUnsafe(numbers)) // 1
@@ -489,7 +489,7 @@ export const headUnsafe = <A>(self: Iterable<A>): A => {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const numbers = [1, 2, 3, 4, 5]
  * const firstThree = Iterable.take(numbers, 3)
@@ -536,7 +536,7 @@ export const take: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const numbers = [2, 4, 6, 8, 3, 10, 12]
  * const evenPrefix = Iterable.takeWhile(numbers, x => x % 2 === 0)
@@ -589,7 +589,7 @@ export const takeWhile: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const numbers = [1, 2, 3, 4, 5]
  * const withoutFirstTwo = Iterable.drop(numbers, 2)
@@ -639,7 +639,7 @@ export const drop: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  * import * as Option from "effect/Option"
  *
  * const numbers = [1, 3, 4, 6, 8]
@@ -703,7 +703,7 @@ export const findFirst: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  * import * as Option from "effect/Option"
  *
  * const numbers = [1, 3, 4, 6, 8, 2]
@@ -761,7 +761,7 @@ export const findLast: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const numbers = [1, 2, 3]
  * const letters = ["a", "b", "c"]
@@ -804,7 +804,7 @@ export const zip: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Add corresponding elements
  * const a = [1, 2, 3, 4]
@@ -862,7 +862,7 @@ export const zipWith: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Join numbers with separator
  * const numbers = [1, 2, 3, 4]
@@ -923,7 +923,7 @@ export const intersperse: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Custom equivalence for objects
  * const byId = (a: { id: number }, b: { id: number }) => a.id === b.id
@@ -973,7 +973,7 @@ const _equivalence = Equal.equivalence()
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const numbers = [1, 2, 3, 4, 5]
  * console.log(Iterable.contains(numbers, 3)) // true
@@ -1008,7 +1008,7 @@ export const contains: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9]
  * const chunks = Iterable.chunksOf(numbers, 3)
@@ -1075,7 +1075,7 @@ export const chunksOf: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Group consecutive equal numbers
  * const numbers = [1, 1, 2, 2, 2, 3, 1, 1]
@@ -1152,7 +1152,7 @@ export const groupWith: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const numbers = [1, 1, 2, 2, 2, 3, 1, 1]
  * const grouped = Iterable.group(numbers)
@@ -1189,7 +1189,7 @@ export const group: <A>(self: Iterable<A>) => Iterable<NonEmptyArray<A>> = group
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Group by string length
  * const words = ["a", "bb", "ccc", "dd", "eee", "f"]
@@ -1270,7 +1270,7 @@ const constEmptyIterator: Iterator<never> = {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const empty = Iterable.empty<string>()
  * console.log(Array.from(empty)) // []
@@ -1298,7 +1298,7 @@ export const empty = <A = never>(): Iterable<A> => constEmpty
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const single = Iterable.of(42)
  * console.log(Array.from(single)) // [42]
@@ -1336,7 +1336,7 @@ export const of = <A>(a: A): Iterable<A> => [a]
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Transform numbers to their squares
  * const numbers = [1, 2, 3, 4, 5]
@@ -1384,7 +1384,7 @@ export const map: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Expand each number to a range
  * const numbers = [1, 2, 3]
@@ -1429,7 +1429,7 @@ export const flatMap: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Flatten nested arrays
  * const nested = [[1, 2], [3, 4], [5, 6]]
@@ -1487,7 +1487,7 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  * import * as Option from "effect/Option"
  *
  * // Parse strings to numbers, keeping only valid ones
@@ -1552,7 +1552,7 @@ export const filterMap: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  * import * as Option from "effect/Option"
  *
  * // Parse numbers until we hit an invalid one
@@ -1610,7 +1610,7 @@ export const filterMapWhile: {
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  * import * as Option from "effect/Option"
  *
  * assert.deepStrictEqual(
@@ -1630,7 +1630,7 @@ export const getSomes: <A>(self: Iterable<Option<A>>) => Iterable<A> = filterMap
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  * import * as Result from "effect/Result"
  *
  * assert.deepStrictEqual(
@@ -1650,7 +1650,7 @@ export const getFailures = <R, L>(self: Iterable<Result<R, L>>): Iterable<L> => 
  * @example
  * ```ts
  * import * as assert from "node:assert"
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  * import * as Result from "effect/Result"
  *
  * assert.deepStrictEqual(
@@ -1676,7 +1676,7 @@ export const getSuccesses = <R, L>(self: Iterable<Result<R, L>>): Iterable<R> =>
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Filter even numbers
  * const numbers = [1, 2, 3, 4, 5, 6]
@@ -1739,7 +1739,7 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Extract valid elements from nullable function results
  * const data = ["1", "2", "invalid", "4"]
@@ -1790,7 +1790,7 @@ export const flatMapNullishOr: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const numbers = [1, 3, 5, 7, 8]
  * const hasEven = Iterable.some(numbers, x => x % 2 === 0)
@@ -1848,7 +1848,7 @@ export const some: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Generate Fibonacci sequence
  * const fibonacci = Iterable.unfold([0, 1], ([a, b]) =>
@@ -1903,7 +1903,7 @@ export const unfold = <B, A>(b: B, f: (b: B) => readonly [A, B] | undefined): It
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Print each element
  * const numbers = [1, 2, 3, 4, 5]
@@ -1953,7 +1953,7 @@ export const forEach: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Sum all numbers
  * const numbers = [1, 2, 3, 4, 5]
@@ -2005,7 +2005,7 @@ export const reduce: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Remove adjacent duplicates with custom equality
  * const numbers = [1, 1, 2, 2, 3, 1, 1]
@@ -2074,7 +2074,7 @@ export const dedupeAdjacentWith: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Remove adjacent duplicate numbers
  * const numbers = [1, 1, 2, 2, 2, 3, 1, 1]
@@ -2113,7 +2113,7 @@ export const dedupeAdjacent: <A>(self: Iterable<A>) => Iterable<A> = dedupeAdjac
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // Create coordinate pairs
  * const xs = [1, 2]
@@ -2165,7 +2165,7 @@ export const cartesianWith: {
  *
  * @example
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * // All pairs of numbers and letters
  * const numbers = [1, 2, 3]
@@ -2214,7 +2214,7 @@ export const cartesian: {
  * **Example**
  *
  * ```ts
- * import { Iterable } from "effect/collections"
+ * import { Iterable } from "effect"
  *
  * const result = Iterable.countBy([1, 2, 3, 4, 5], n => n % 2 === 0)
  * console.log(result) // 2

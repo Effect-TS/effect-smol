@@ -1,11 +1,11 @@
 /**
  * @since 2.0.0
  */
+import type { NonEmptyReadonlyArray } from "./Array.ts"
+import * as Arr from "./Array.ts"
 import type * as Cause from "./Cause.ts"
 import * as Channel from "./Channel.ts"
-import type { NonEmptyReadonlyArray } from "./collections/Array.ts"
-import * as Arr from "./collections/Array.ts"
-import * as Chunk from "./collections/Chunk.ts"
+import * as Chunk from "./Chunk.ts"
 import * as Effect from "./Effect.ts"
 import * as Filter from "./Filter.ts"
 import type { LazyArg } from "./Function.ts"

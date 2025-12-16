@@ -24,19 +24,19 @@
  * @since 2.0.0
  * @category data-structures
  */
-import * as MutableHashMap from "../collections/MutableHashMap.ts"
-import { format } from "../Formatter.ts"
-import * as Dual from "../Function.ts"
-import { type Inspectable, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { pipeArguments } from "../interfaces/Pipeable.ts"
+import { format } from "./Formatter.ts"
+import * as Dual from "./Function.ts"
+import { type Inspectable, NodeInspectSymbol, toJson } from "./interfaces/Inspectable.ts"
+import type { Pipeable } from "./interfaces/Pipeable.ts"
+import { pipeArguments } from "./interfaces/Pipeable.ts"
+import * as MutableHashMap from "./MutableHashMap.ts"
 
 const TypeId = "~effect/collections/MutableHashSet"
 
 /**
  * @example
  * ```ts
- * import { MutableHashSet } from "effect/collections"
+ * import { MutableHashSet } from "effect"
  *
  * // Create a mutable hash set
  * const set: MutableHashSet.MutableHashSet<string> = MutableHashSet.make("apple", "banana")
@@ -98,7 +98,7 @@ const fromHashMap = <V>(keyMap: MutableHashMap.MutableHashMap<V, boolean>): Muta
  *
  * @example
  * ```ts
- * import { MutableHashSet } from "effect/collections"
+ * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.empty<string>()
  *
@@ -122,7 +122,7 @@ export const empty = <K = never>(): MutableHashSet<K> => fromHashMap(MutableHash
  *
  * @example
  * ```ts
- * import { MutableHashSet } from "effect/collections"
+ * import { MutableHashSet } from "effect"
  *
  * const values = ["apple", "banana", "apple", "cherry", "banana"]
  * const set = MutableHashSet.fromIterable(values)
@@ -151,7 +151,7 @@ export const fromIterable = <K = never>(keys: Iterable<K>): MutableHashSet<K> =>
  *
  * @example
  * ```ts
- * import { MutableHashSet } from "effect/collections"
+ * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.make("apple", "banana", "apple", "cherry")
  *
@@ -181,7 +181,7 @@ export const make = <Keys extends ReadonlyArray<unknown>>(
  *
  * @example
  * ```ts
- * import { MutableHashSet } from "effect/collections"
+ * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.empty<string>()
  *
@@ -218,7 +218,7 @@ export const add: {
  *
  * @example
  * ```ts
- * import { MutableHashSet } from "effect/collections"
+ * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.make("apple", "banana", "cherry")
  *
@@ -251,7 +251,7 @@ export const has: {
  *
  * @example
  * ```ts
- * import { MutableHashSet } from "effect/collections"
+ * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.make("apple", "banana", "cherry")
  *
@@ -288,7 +288,7 @@ export const remove: {
  *
  * @example
  * ```ts
- * import { MutableHashSet } from "effect/collections"
+ * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.empty<string>()
  * console.log(MutableHashSet.size(set)) // 0
@@ -316,7 +316,7 @@ export const size = <V>(self: MutableHashSet<V>): number => MutableHashMap.size(
  *
  * @example
  * ```ts
- * import { MutableHashSet } from "effect/collections"
+ * import { MutableHashSet } from "effect"
  *
  * const set = MutableHashSet.make("apple", "banana", "cherry")
  *

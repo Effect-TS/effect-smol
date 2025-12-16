@@ -1,4 +1,4 @@
-import * as Array from "#dist/effect/collections/Array"
+import * as Array from "#dist/effect/Array"
 import * as Effect from "#dist/effect/Effect"
 import * as Exit from "#dist/effect/Exit"
 import * as Request from "#dist/effect/Request"

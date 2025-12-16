@@ -3,9 +3,9 @@
  */
 
 import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec"
+import * as Arr from "../Array.ts"
 import type * as Brand from "../Brand.ts"
 import * as Cause_ from "../Cause.ts"
-import * as Arr from "../collections/Array.ts"
 import type * as Combiner from "../Combiner.ts"
 import * as Data from "../Data.ts"
 import * as DateTime from "../DateTime.ts"

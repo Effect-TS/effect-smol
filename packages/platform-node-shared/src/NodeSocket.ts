@@ -1,8 +1,8 @@
 /**
  * @since 1.0.0
  */
+import type { Array } from "effect"
 import * as Channel from "effect/Channel"
-import type { Array } from "effect/collections"
 import * as Deferred from "effect/Deferred"
 import type * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"

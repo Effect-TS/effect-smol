@@ -2,6 +2,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { assertExitFailure, assertSuccess, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import {
+  Array,
   Cause,
   Clock,
   Deferred,
@@ -17,8 +18,7 @@ import {
   Sink,
   Stream
 } from "effect"
-import { Array } from "effect/collections"
-import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/collections/Array"
+import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/Array"
 import { constFalse, constTrue, constVoid, pipe } from "effect/Function"
 import { TestClock } from "effect/testing"
 import * as fc from "effect/testing/FastCheck"

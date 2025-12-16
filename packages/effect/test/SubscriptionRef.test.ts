@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Exit, Fiber, Number, Pull, Random, Stream, SubscriptionRef } from "effect"
-import { Array } from "effect/collections"
+import { Array, Effect, Exit, Fiber, Number, Pull, Random, Stream, SubscriptionRef } from "effect"
 
 describe("SubscriptionRef", () => {
   it.effect("multiple subscribers can receive changes", () =>

@@ -1,8 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "./collections/Array.ts"
-import * as MutableHashMap from "./collections/MutableHashMap.ts"
+import * as Arr from "./Array.ts"
 import * as Deferred from "./Deferred.ts"
 import * as Duration from "./Duration.ts"
 import type * as Effect from "./Effect.ts"
@@ -13,6 +12,7 @@ import type { Pipeable } from "./interfaces/Pipeable.ts"
 import * as core from "./internal/core.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
+import * as MutableHashMap from "./MutableHashMap.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Scope from "./Scope.ts"

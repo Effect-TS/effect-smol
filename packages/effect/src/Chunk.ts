@@ -30,7 +30,7 @@
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * // Creating chunks
  * const chunk1 = Chunk.fromIterable([1, 2, 3])
@@ -44,7 +44,7 @@
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * // Functional transformations
  * const numbers = Chunk.range(1, 5) // [1, 2, 3, 4, 5]
@@ -55,7 +55,7 @@
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
 import { Effect } from "effect"
  *
  * // Working with Effects
@@ -69,25 +69,25 @@ import { Effect } from "effect"
  *
  * @since 2.0.0
  */
-import * as RA from "../collections/Array.ts"
-import type { NonEmptyReadonlyArray } from "../collections/Array.ts"
-import type { NonEmptyIterable } from "../collections/NonEmptyIterable.ts"
-import * as Equivalence from "../Equivalence.ts"
-import { format } from "../Formatter.ts"
-import { dual, identity, pipe } from "../Function.ts"
-import * as Equal from "../interfaces/Equal.ts"
-import * as Hash from "../interfaces/Hash.ts"
-import { type Inspectable, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { pipeArguments } from "../interfaces/Pipeable.ts"
-import type { Option } from "../Option.ts"
-import * as O from "../Option.ts"
-import * as Order from "../Order.ts"
-import { hasProperty, type Predicate, type Refinement } from "../Predicate.ts"
-import type { Result } from "../Result.ts"
-import type { TypeLambda } from "../types/HKT.ts"
-import type { Covariant, NoInfer } from "../types/Types.ts"
-import * as UndefinedOr from "../UndefinedOr.ts"
+import * as RA from "./Array.ts"
+import type { NonEmptyReadonlyArray } from "./Array.ts"
+import * as Equivalence from "./Equivalence.ts"
+import { format } from "./Formatter.ts"
+import { dual, identity, pipe } from "./Function.ts"
+import * as Equal from "./interfaces/Equal.ts"
+import * as Hash from "./interfaces/Hash.ts"
+import { type Inspectable, NodeInspectSymbol, toJson } from "./interfaces/Inspectable.ts"
+import type { Pipeable } from "./interfaces/Pipeable.ts"
+import { pipeArguments } from "./interfaces/Pipeable.ts"
+import type { NonEmptyIterable } from "./NonEmptyIterable.ts"
+import type { Option } from "./Option.ts"
+import * as O from "./Option.ts"
+import * as Order from "./Order.ts"
+import { hasProperty, type Predicate, type Refinement } from "./Predicate.ts"
+import type { Result } from "./Result.ts"
+import type { TypeLambda } from "./types/HKT.ts"
+import type { Covariant, NoInfer } from "./types/Types.ts"
+import * as UndefinedOr from "./UndefinedOr.ts"
 
 const TypeId = "~effect/collections/Chunk"
 
@@ -96,7 +96,7 @@ const TypeId = "~effect/collections/Chunk"
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk: Chunk.Chunk<number> = Chunk.make(1, 2, 3)
  * console.log(chunk.length) // 3
@@ -122,7 +122,7 @@ export interface Chunk<out A> extends Iterable<A>, Equal.Equal, Pipeable, Inspec
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const nonEmptyChunk: Chunk.NonEmptyChunk<number> = Chunk.make(1, 2, 3)
  * console.log(Chunk.headNonEmpty(nonEmptyChunk)) // 1
@@ -140,7 +140,7 @@ export interface NonEmptyChunk<out A> extends Chunk<A>, NonEmptyIterable<A> {}
  * @example
  * ```ts
  * import type { Kind } from "effect/types/HKT"
- * import type { ChunkTypeLambda } from "effect/collections/Chunk"
+ * import type { ChunkTypeLambda } from "effect/Chunk"
  *
  * // Create a Chunk type using the type lambda
  * type NumberChunk = Kind<ChunkTypeLambda, never, never, never, number>
@@ -208,7 +208,7 @@ const emptyArray: ReadonlyArray<never> = []
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
 import * as Equivalence from "effect/Equivalence"
  *
  * const chunk1 = Chunk.make(1, 2, 3)
@@ -318,7 +318,7 @@ const makeChunk = <A>(backing: Backing<A>): Chunk<A> => {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3)
  * const array = [1, 2, 3]
@@ -343,7 +343,7 @@ const _empty = makeChunk<never>({ _tag: "IEmpty" })
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const emptyChunk = Chunk.empty()
  * console.log(Chunk.size(emptyChunk)) // 0
@@ -359,7 +359,7 @@ export const empty: <A = never>() => Chunk<A> = () => _empty
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  * console.log(chunk)
@@ -377,7 +377,7 @@ export const make = <As extends readonly [any, ...Array<any>]>(...as: As): NonEm
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.of("hello")
  * console.log(chunk)
@@ -394,7 +394,7 @@ export const of = <A>(a: A): NonEmptyChunk<A> => makeChunk({ _tag: "ISingleton",
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.fromIterable([1, 2, 3])
  * console.log(chunk)
@@ -444,7 +444,7 @@ const toArray_ = <A>(self: Chunk<A>): Array<A> => toReadonlyArray(self).slice()
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3)
  * const array = Chunk.toArray(chunk)
@@ -493,7 +493,7 @@ const toReadonlyArray_ = <A>(self: Chunk<A>): ReadonlyArray<A> => {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3)
  * const readonlyArray = Chunk.toReadonlyArray(chunk)
@@ -538,7 +538,7 @@ const reverseChunk = <A>(self: Chunk<A>): Chunk<A> => {
  * @example
  *
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3)
  * const result = Chunk.reverse(chunk)
@@ -557,7 +557,7 @@ export const reverse: <S extends Chunk<any>>(self: S) => Chunk.With<S, Chunk.Inf
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make("a", "b", "c", "d")
@@ -588,7 +588,7 @@ export const get: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const array = [1, 2, 3, 4, 5]
  * const chunk = Chunk.fromArrayUnsafe(array)
@@ -610,8 +610,8 @@ export const fromArrayUnsafe = <A>(self: ReadonlyArray<A>): Chunk<A> =>
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
-import * as Array from "effect/collections/Array"
+ * import { Chunk } from "effect"
+import * as Array from "effect/Array"
  *
  * const nonEmptyArray = Array.make(1, 2, 3, 4, 5)
  * const chunk = Chunk.fromNonEmptyArrayUnsafe(nonEmptyArray)
@@ -632,7 +632,7 @@ export const fromNonEmptyArrayUnsafe = <A>(self: NonEmptyReadonlyArray<A>): NonE
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make("a", "b", "c", "d")
  *
@@ -687,7 +687,7 @@ export const getUnsafe: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3)
  * const newChunk = Chunk.append(chunk, 4)
@@ -712,7 +712,7 @@ export const append: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(2, 3, 4)
  * const newChunk = Chunk.prepend(chunk, 1)
@@ -737,7 +737,7 @@ export const prepend: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.take(chunk, 3)
@@ -794,7 +794,7 @@ export const take: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.drop(chunk, 2)
@@ -850,7 +850,7 @@ export const drop: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.dropRight(chunk, 2)
@@ -871,7 +871,7 @@ export const dropRight: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.dropWhile(chunk, (n) => n < 3)
@@ -902,7 +902,7 @@ export const dropWhile: {
  * @example
  *
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const result = Chunk.make(1, 2).pipe(Chunk.prependAll(Chunk.make("a", "b")), Chunk.toArray)
  *
@@ -929,7 +929,7 @@ export const prependAll: {
  * @example
  *
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const result = Chunk.make(1, 2).pipe(Chunk.appendAll(Chunk.make("a", "b")), Chunk.toArray)
  *
@@ -993,7 +993,7 @@ export const appendAll: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make("1", "2", "hello", "3", "world")
@@ -1027,7 +1027,7 @@ export const filterMap: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5, 6)
  * const evenNumbers = Chunk.filter(chunk, (n) => n % 2 === 0)
@@ -1057,7 +1057,7 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make("1", "2", "hello", "3", "4")
@@ -1089,7 +1089,7 @@ export const filterMapWhile: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make(Option.some(1), Option.none(), Option.some(3))
@@ -1108,7 +1108,7 @@ export const compact = <A>(self: Chunk<Option<A>>): Chunk<A> => filterMap(self, 
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3)
  * const duplicated = Chunk.flatMap(chunk, (n) => Chunk.make(n, n))
@@ -1157,7 +1157,7 @@ export const flatMap: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  *
@@ -1191,7 +1191,7 @@ export const forEach: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const nested = Chunk.make(
  *   Chunk.make(1, 2),
@@ -1220,7 +1220,7 @@ export const flatten: <S extends Chunk<Chunk<any>>>(self: S) => Chunk.Flatten<S>
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5, 6, 7, 8, 9)
  * const chunked = Chunk.chunksOf(chunk, 3)
@@ -1264,7 +1264,7 @@ export const chunksOf: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk1 = Chunk.make(1, 2, 3, 4)
  * const chunk2 = Chunk.make(3, 4, 5, 6)
@@ -1299,7 +1299,7 @@ export const intersection: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * console.log(Chunk.isEmpty(Chunk.empty())) // true
  * console.log(Chunk.isEmpty(Chunk.make(1, 2, 3))) // false
@@ -1315,7 +1315,7 @@ export const isEmpty = <A>(self: Chunk<A>): boolean => self.length === 0
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * console.log(Chunk.isNonEmpty(Chunk.empty())) // false
  * console.log(Chunk.isNonEmpty(Chunk.make(1, 2, 3))) // true
@@ -1331,7 +1331,7 @@ export const isNonEmpty = <A>(self: Chunk<A>): self is NonEmptyChunk<A> => self.
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import * as Option from "effect/Option"
  *
  * console.log(Chunk.head(Chunk.empty())) // { _tag: "None" }
@@ -1350,7 +1350,7 @@ export const head: <A>(self: Chunk<A>) => Option<A> = get(0)
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  * console.log(Chunk.headUnsafe(chunk)) // 1
@@ -1376,7 +1376,7 @@ export const headUnsafe = <A>(self: Chunk<A>): A => getUnsafe(self, 0)
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const nonEmptyChunk = Chunk.make(1, 2, 3, 4)
  * console.log(Chunk.headNonEmpty(nonEmptyChunk)) // 1
@@ -1398,7 +1398,7 @@ export const headNonEmpty: <A>(self: NonEmptyChunk<A>) => A = headUnsafe
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import * as Option from "effect/Option"
  *
  * console.log(Chunk.last(Chunk.empty())) // { _tag: "None" }
@@ -1417,7 +1417,7 @@ export const last = <A>(self: Chunk<A>): Option<A> => get(self, self.length - 1)
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  * console.log(Chunk.lastUnsafe(chunk)) // 4
@@ -1443,7 +1443,7 @@ export const lastUnsafe = <A>(self: Chunk<A>): A => getUnsafe(self, self.length 
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const nonEmptyChunk = Chunk.make(1, 2, 3, 4)
  * console.log(Chunk.lastNonEmpty(nonEmptyChunk)) // 4
@@ -1465,7 +1465,7 @@ export const lastNonEmpty: <A>(self: NonEmptyChunk<A>) => A = lastUnsafe
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * // Extract the element type from a Chunk
  * declare const chunk: Chunk.Chunk<string>
@@ -1485,7 +1485,7 @@ export declare namespace Chunk {
    *
    * @example
    * ```ts
-   * import { Chunk } from "effect/collections"
+   * import { Chunk } from "effect"
    *
    * declare const numberChunk: Chunk.Chunk<number>
    * declare const stringChunk: Chunk.Chunk<string>
@@ -1504,7 +1504,7 @@ export declare namespace Chunk {
    *
    * @example
    * ```ts
-   * import { Chunk } from "effect/collections"
+   * import { Chunk } from "effect"
    *
    * declare const regularChunk: Chunk.Chunk<number>
    * declare const nonEmptyChunk: Chunk.NonEmptyChunk<number>
@@ -1523,7 +1523,7 @@ export declare namespace Chunk {
    *
    * @example
    * ```ts
-   * import { Chunk } from "effect/collections"
+   * import { Chunk } from "effect"
    *
    * declare const emptyChunk: Chunk.Chunk<number>
    * declare const nonEmptyChunk: Chunk.NonEmptyChunk<number>
@@ -1546,7 +1546,7 @@ export declare namespace Chunk {
    *
    * @example
    * ```ts
-   * import { Chunk } from "effect/collections"
+   * import { Chunk } from "effect"
    *
    * declare const emptyChunk: Chunk.Chunk<number>
    * declare const nonEmptyChunk: Chunk.NonEmptyChunk<number>
@@ -1569,7 +1569,7 @@ export declare namespace Chunk {
    *
    * @example
    * ```ts
-   * import { Chunk } from "effect/collections"
+   * import { Chunk } from "effect"
    *
    * declare const nestedChunk: Chunk.Chunk<Chunk.Chunk<number>>
    * declare const nestedNonEmpty: Chunk.NonEmptyChunk<Chunk.NonEmptyChunk<string>>
@@ -1593,7 +1593,7 @@ export declare namespace Chunk {
  * @example
  *
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const result = Chunk.map(Chunk.make(1, 2), (n) => n + 1)
  *
@@ -1618,7 +1618,7 @@ export const map: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const [finalState, mapped] = Chunk.mapAccum(chunk, 0, (state, current) => [
@@ -1655,7 +1655,7 @@ export const mapAccum: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5, 6)
  * const [odds, evens] = Chunk.partition(chunk, (n) => n % 2 === 0)
@@ -1704,7 +1704,7 @@ export const partition: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import * as Result from "effect/Result"
  *
  * const chunk = Chunk.make("1", "hello", "2", "world", "3")
@@ -1744,7 +1744,7 @@ export const partitionMap: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import * as Result from "effect/Result"
  *
  * const chunk = Chunk.make(
@@ -1780,7 +1780,7 @@ export const separate = <A, B>(self: Chunk<Result<B, A>>): [Chunk<A>, Chunk<B>] 
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3)
  * console.log(Chunk.size(chunk)) // 3
@@ -1796,7 +1796,7 @@ export const size = <A>(self: Chunk<A>): number => self.length
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
 import * as Order from "effect/Order"
  *
  * const numbers = Chunk.make(3, 1, 4, 1, 5, 9, 2, 6)
@@ -1829,7 +1829,7 @@ export const sort: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
 import * as Order from "effect/Order"
  *
  * const people = Chunk.make(
@@ -1870,7 +1870,7 @@ export const sortWith: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5, 6)
  * const [before, after] = Chunk.splitAt(chunk, 3)
@@ -1902,7 +1902,7 @@ export const splitAt: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const nonEmptyChunk = Chunk.make(1, 2, 3, 4, 5, 6)
  * const [before, after] = Chunk.splitNonEmptyAt(nonEmptyChunk, 3)
@@ -1936,7 +1936,7 @@ export const splitNonEmptyAt: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5, 6, 7, 8, 9)
  * const chunks = Chunk.split(chunk, 3)
@@ -1969,7 +1969,7 @@ export const split: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5, 6)
  * const [before, fromMatch] = Chunk.splitWhere(chunk, (n) => n > 3)
@@ -2010,7 +2010,7 @@ export const splitWhere: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
@@ -2033,7 +2033,7 @@ export const tail = <A>(self: Chunk<A>): Chunk<A> | undefined => self.length > 0
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const nonEmptyChunk = Chunk.make(1, 2, 3, 4)
  * const result = Chunk.tailNonEmpty(nonEmptyChunk)
@@ -2057,7 +2057,7 @@ export const tailNonEmpty = <A>(self: NonEmptyChunk<A>): Chunk<A> => drop(self, 
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5, 6)
  * const lastThree = Chunk.takeRight(chunk, 3)
@@ -2085,7 +2085,7 @@ export const takeRight: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 3, 2, 1)
  * const result = Chunk.takeWhile(chunk, (n) => n < 4)
@@ -2126,7 +2126,7 @@ export const takeWhile: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk1 = Chunk.make(1, 2, 3)
  * const chunk2 = Chunk.make(3, 4, 5)
@@ -2156,7 +2156,7 @@ export const union: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 2, 3, 1, 4, 3)
  * const result = Chunk.dedupe(chunk)
@@ -2183,7 +2183,7 @@ export const dedupe = <A>(self: Chunk<A>): Chunk<A> => fromArrayUnsafe(RA.dedupe
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 1, 2, 2, 2, 3, 1, 1)
  * const result = Chunk.dedupeAdjacent(chunk)
@@ -2207,7 +2207,7 @@ export const dedupeAdjacent = <A>(self: Chunk<A>): Chunk<A> => fromArrayUnsafe(R
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const pairs = Chunk.make([1, "a"] as const, [2, "b"] as const, [3, "c"] as const)
  * const [numbers, letters] = Chunk.unzip(pairs)
@@ -2234,7 +2234,7 @@ export const unzip = <A, B>(self: Chunk<readonly [A, B]>): [Chunk<A>, Chunk<B>] 
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const numbers = Chunk.make(1, 2, 3)
  * const letters = Chunk.make("a", "b", "c")
@@ -2265,7 +2265,7 @@ export const zipWith: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const numbers = Chunk.make(1, 2, 3)
  * const letters = Chunk.make("a", "b", "c")
@@ -2295,7 +2295,7 @@ export const zip: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make("a", "b", "c", "d")
  * const result = Chunk.remove(chunk, 1)
@@ -2327,7 +2327,7 @@ export const remove: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  * const result = Chunk.modify(chunk, 1, (n) => n * 10)
@@ -2360,7 +2360,7 @@ export const modify: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make("a", "b", "c", "d")
  * const result = Chunk.replace(chunk, 1, "X")
@@ -2390,7 +2390,7 @@ export const replace: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.makeBy(5, (i) => i * 2)
  * console.log(chunk)
@@ -2410,7 +2410,7 @@ export const makeBy: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.range(1, 5)
  * console.log(chunk)
@@ -2432,7 +2432,7 @@ export const range = (start: number, end: number): NonEmptyChunk<number> =>
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * console.log(Chunk.contains(chunk, 3)) // true
@@ -2461,7 +2461,7 @@ export const contains: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make({ id: 1, name: "Alice" }, { id: 2, name: "Bob" })
  *
@@ -2493,7 +2493,7 @@ export const containsWith: <A>(
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { Option } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
@@ -2526,7 +2526,7 @@ export const findFirst: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findFirstIndex(chunk, (n) => n > 3)
@@ -2554,7 +2554,7 @@ export const findFirstIndex: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import * as Option from "effect/Option"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
@@ -2586,7 +2586,7 @@ export const findLast: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const result = Chunk.findLastIndex(chunk, (n) => n < 4)
@@ -2614,7 +2614,7 @@ export const findLastIndex: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const allPositive = Chunk.make(1, 2, 3, 4, 5)
  * console.log(Chunk.every(allPositive, (n) => n > 0)) // true
@@ -2651,7 +2651,7 @@ export const every: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * console.log(Chunk.some(chunk, (n) => n > 4)) // true
@@ -2682,7 +2682,7 @@ export const some: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make("apple", "banana", "cherry")
  * const result = Chunk.join(chunk, ", ")
@@ -2714,7 +2714,7 @@ export const join: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4, 5)
  * const sum = Chunk.reduce(chunk, 0, (acc, n) => acc + n)
@@ -2743,7 +2743,7 @@ export const reduce: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk = Chunk.make(1, 2, 3, 4)
  * const result = Chunk.reduceRight(chunk, 0, (acc, n) => acc + n)
@@ -2773,7 +2773,7 @@ export const reduceRight: {
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk1 = Chunk.make({ id: 1, name: "Alice" }, { id: 2, name: "Bob" })
  * const chunk2 = Chunk.make({ id: 1, name: "Alice" }, { id: 3, name: "Charlie" })
@@ -2810,7 +2810,7 @@ export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): 
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  *
  * const chunk1 = Chunk.make(1, 2, 3, 4, 5)
  * const chunk2 = Chunk.make(3, 4, 6, 7)

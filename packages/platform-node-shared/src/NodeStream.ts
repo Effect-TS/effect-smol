@@ -1,9 +1,9 @@
 /**
  * @since 1.0.0
  */
+import * as Arr from "effect/Array"
 import * as Cause from "effect/Cause"
 import * as Channel from "effect/Channel"
-import * as Arr from "effect/collections/Array"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"

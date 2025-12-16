@@ -346,7 +346,7 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  * @example
  * ```ts
  * import { Equal } from "effect/interfaces"
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const eq = Equal.equivalence<number>()
  * const result = Array.dedupeWith([1, 2, 2, 3, 1], eq)

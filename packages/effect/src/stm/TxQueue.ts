@@ -10,7 +10,7 @@
  * @since 4.0.0
  */
 import * as Cause from "../Cause.ts"
-import * as Chunk from "../collections/Chunk.ts"
+import * as Chunk from "../Chunk.ts"
 import * as Effect from "../Effect.ts"
 import { dual } from "../Function.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
@@ -622,7 +622,7 @@ export const offer: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxQueue } from "effect/stm"
  *
  * const program = Effect.gen(function*() {

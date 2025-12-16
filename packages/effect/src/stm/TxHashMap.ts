@@ -2,10 +2,10 @@
  * @since 2.0.0
  */
 
-import * as HashMap from "../collections/HashMap.ts"
 import * as Effect from "../Effect.ts"
 import { format } from "../Formatter.ts"
 import { dual } from "../Function.ts"
+import * as HashMap from "../HashMap.ts"
 import type { Inspectable } from "../interfaces/Inspectable.ts"
 import { NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
 import type { Pipeable } from "../interfaces/Pipeable.ts"
@@ -908,7 +908,7 @@ export const entries = <K, V>(self: TxHashMap<K, V>): Effect.Effect<Array<readon
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { HashMap } from "effect/collections"
+ * import { HashMap } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -950,7 +950,7 @@ export const snapshot = <K, V>(self: TxHashMap<K, V>): Effect.Effect<HashMap.Has
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { HashMap } from "effect/collections"
+ * import { HashMap } from "effect"
  * import { TxHashMap } from "effect/stm"
  *
  * const program = Effect.gen(function*() {

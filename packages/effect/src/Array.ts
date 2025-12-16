@@ -3,30 +3,30 @@
  *
  * @since 2.0.0
  */
-import * as moduleIterable from "../collections/Iterable.ts"
-import * as Equivalence from "../Equivalence.ts"
-import * as Filter from "../Filter.ts"
-import type { LazyArg } from "../Function.ts"
-import { dual, identity } from "../Function.ts"
-import * as Equal from "../interfaces/Equal.ts"
-import * as internalArray from "../internal/array.ts"
-import * as internalDoNotation from "../internal/doNotation.ts"
-import * as Option from "../Option.ts"
-import * as Order from "../Order.ts"
-import type * as Predicate from "../Predicate.ts"
-import * as Record from "../Record.ts"
-import * as Reducer from "../Reducer.ts"
-import * as Result from "../Result.ts"
-import * as Tuple from "../Tuple.ts"
-import type { TypeLambda } from "../types/HKT.ts"
-import type { NoInfer, TupleOf } from "../types/Types.ts"
+import * as Equivalence from "./Equivalence.ts"
+import * as Filter from "./Filter.ts"
+import type { LazyArg } from "./Function.ts"
+import { dual, identity } from "./Function.ts"
+import * as Equal from "./interfaces/Equal.ts"
+import * as internalArray from "./internal/array.ts"
+import * as internalDoNotation from "./internal/doNotation.ts"
+import * as moduleIterable from "./Iterable.ts"
+import * as Option from "./Option.ts"
+import * as Order from "./Order.ts"
+import type * as Predicate from "./Predicate.ts"
+import * as Record from "./Record.ts"
+import * as Reducer from "./Reducer.ts"
+import * as Result from "./Result.ts"
+import * as Tuple from "./Tuple.ts"
+import type { TypeLambda } from "./types/HKT.ts"
+import type { NoInfer, TupleOf } from "./types/Types.ts"
 
 /**
  * Reference to the global Array constructor.
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const arr = new Array.Array(3)
  * console.log(arr) // [undefined, undefined, undefined]
@@ -43,7 +43,7 @@ export const Array = globalThis.Array
  * @example
  * ```ts
  * import type { Kind } from "effect/types/HKT"
- * import type { ReadonlyArrayTypeLambda } from "effect/collections/Array"
+ * import type { ReadonlyArrayTypeLambda } from "effect/Array"
  *
  * // Create a ReadonlyArray type using the type lambda
  * type NumberArray = Kind<ReadonlyArrayTypeLambda, never, never, never, number>
@@ -62,7 +62,7 @@ export interface ReadonlyArrayTypeLambda extends TypeLambda {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const nonEmpty: Array.NonEmptyReadonlyArray<number> = [1, 2, 3]
  * const head = nonEmpty[0] // 1 (guaranteed to exist)
@@ -78,7 +78,7 @@ export type NonEmptyReadonlyArray<A> = readonly [A, ...Array<A>]
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const nonEmpty: Array.NonEmptyArray<number> = [1, 2, 3]
  * nonEmpty.push(4) // Mutable operations are allowed
@@ -94,7 +94,7 @@ export type NonEmptyArray<A> = [A, ...Array<A>]
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.make(1, 2, 3)
  * console.log(result) // [1, 2, 3]
@@ -112,7 +112,7 @@ export const make = <Elements extends NonEmptyArray<unknown>>(
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.allocate<number>(3)
  * console.log(result) // [ <3 empty items> ]
@@ -130,7 +130,7 @@ export const allocate = <A = never>(n: number): Array<A | undefined> => new Arra
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.makeBy(5, n => n * 2)
  * console.log(result) // [0, 2, 4, 6, 8]
@@ -156,7 +156,7 @@ export const makeBy: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.range(1, 3)
  * console.log(result) // [1, 2, 3]
@@ -175,7 +175,7 @@ export const range = (start: number, end: number): NonEmptyArray<number> =>
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.replicate("a", 3)
  * console.log(result) // ["a", "a", "a"]
@@ -196,7 +196,7 @@ export const replicate: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.fromIterable(new Set([1, 2, 3]))
  * console.log(result) // [1, 2, 3]
@@ -213,7 +213,7 @@ export const fromIterable = <A>(collection: Iterable<A>): Array<A> =>
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * console.log(Array.ensure("a")) // ["a"]
  * console.log(Array.ensure(["a"])) // ["a"]
@@ -230,7 +230,7 @@ export const ensure = <A>(self: ReadonlyArray<A> | A): Array<A> => Array.isArray
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.fromRecord({ a: 1, b: 2, c: 3 })
  * console.log(result) // [["a", 1], ["b", 2], ["c", 3]]
@@ -246,7 +246,7 @@ export const fromRecord: <K extends string, A>(self: Readonly<Record<K, A>>) => 
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import * as Option from "effect/Option"
  *
  * console.log(Array.fromOption(Option.some(1))) // [1]
@@ -263,7 +263,7 @@ export const fromOption: <A>(self: Option.Option<A>) => Array<A> = Option.toArra
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const match = Array.match({
  *   onEmpty: () => "empty",
@@ -303,7 +303,7 @@ export const match: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const matchLeft = Array.matchLeft({
  *   onEmpty: () => "empty",
@@ -343,7 +343,7 @@ export const matchLeft: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const matchRight = Array.matchRight({
  *   onEmpty: () => "empty",
@@ -386,7 +386,7 @@ export const matchRight: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.prepend([2, 3, 4], 1)
  * console.log(result) // [1, 2, 3, 4]
@@ -407,7 +407,7 @@ export const prepend: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.prependAll([2, 3], [0, 1])
  * console.log(result) // [0, 1, 2, 3]
@@ -434,7 +434,7 @@ export const prependAll: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.append([1, 2, 3], 4);
  * console.log(result) // [1, 2, 3, 4]
@@ -454,7 +454,7 @@ export const append: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.appendAll([1, 2], [3, 4])
  * console.log(result) // [1, 2, 3, 4]
@@ -483,7 +483,7 @@ export const appendAll: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections";
+ * import { Array } from "effect";
  *
  * const result = Array.scan([1, 2, 3, 4], 0, (acc, value) => acc + value)
  * console.log(result) // [0, 1, 3, 6, 10]
@@ -519,7 +519,7 @@ export const scan: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections";
+ * import { Array } from "effect";
  *
  * const result = Array.scanRight([1, 2, 3, 4], 0, (acc, value) => acc + value)
  * console.log(result) // [10, 9, 7, 4, 0]
@@ -547,7 +547,7 @@ export const scanRight: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * console.log(Array.isArray(null)) // false
  * console.log(Array.isArray([1, 2, 3])) // true
@@ -567,7 +567,7 @@ export const isArray: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * console.log(Array.isArrayEmpty([])) // true
  * console.log(Array.isArrayEmpty([1, 2, 3])) // false
@@ -584,7 +584,7 @@ export const isArrayEmpty = <A>(self: Array<A>): self is [] => self.length === 0
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * console.log(Array.isReadonlyArrayEmpty([])) // true
  * console.log(Array.isReadonlyArrayEmpty([1, 2, 3])) // false
@@ -603,7 +603,7 @@ export const isReadonlyArrayEmpty: <A>(self: ReadonlyArray<A>) => self is readon
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * console.log(Array.isArrayNonEmpty([])) // false
  * console.log(Array.isArrayNonEmpty([1, 2, 3])) // true
@@ -622,7 +622,7 @@ export const isArrayNonEmpty: <A>(self: Array<A>) => self is NonEmptyArray<A> = 
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * console.log(Array.isReadonlyArrayNonEmpty([])) // false
  * console.log(Array.isReadonlyArrayNonEmpty([1, 2, 3])) // true
@@ -639,7 +639,7 @@ export const isReadonlyArrayNonEmpty: <A>(self: ReadonlyArray<A>) => self is Non
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.length([1, 2, 3])
  * console.log(result) // 3
@@ -662,7 +662,7 @@ const clamp = <A>(i: number, as: ReadonlyArray<A>): number => Math.floor(Math.mi
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.get([1, 2, 3], 1)
  * console.log(result) // Some(2)
@@ -687,7 +687,7 @@ export const get: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.getUnsafe([1, 2, 3], 1)
  * console.log(result) // 2
@@ -716,7 +716,7 @@ export const getUnsafe: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections";
+ * import { Array } from "effect";
  *
  * const result = Array.unprepend([1, 2, 3, 4])
  * console.log(result) // [1, [2, 3, 4]]
@@ -735,7 +735,7 @@ export const unprepend = <A>(
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections";
+ * import { Array } from "effect";
  *
  * const result = Array.unappend([1, 2, 3, 4])
  * console.log(result) // [[1, 2, 3], 4]
@@ -753,7 +753,7 @@ export const unappend = <A>(
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.head([1, 2, 3])
  * console.log(result) // Some(1)
@@ -773,7 +773,7 @@ export const head: <A>(self: ReadonlyArray<A>) => Option.Option<A> = get(0)
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.headNonEmpty([1, 2, 3, 4])
  * console.log(result) // 1
@@ -789,7 +789,7 @@ export const headNonEmpty: <A>(self: NonEmptyReadonlyArray<A>) => A = getUnsafe(
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.last([1, 2, 3])
  * console.log(result) // Some(3)
@@ -810,7 +810,7 @@ export const last = <A>(self: ReadonlyArray<A>): Option.Option<A> =>
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.lastNonEmpty([1, 2, 3, 4])
  * console.log(result) // 4
@@ -826,7 +826,7 @@ export const lastNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): A => self[self.
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * Array.tail([1, 2, 3, 4]) // [2, 3, 4]
  * Array.tail([]) // undefined
@@ -846,7 +846,7 @@ export function tail<A>(self: Iterable<A>): Array<A> | undefined {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.tailNonEmpty([1, 2, 3, 4])
  * console.log(result) // [2, 3, 4]
@@ -862,7 +862,7 @@ export const tailNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => sel
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * Array.init([1, 2, 3, 4]) // [1, 2, 3]
  * Array.init([]) // undefined
@@ -882,7 +882,7 @@ export function init<A>(self: Iterable<A>): Array<A> | undefined {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.initNonEmpty([1, 2, 3, 4])
  * console.log(result) // [1, 2, 3]
@@ -901,7 +901,7 @@ export const initNonEmpty = <A>(self: NonEmptyReadonlyArray<A>): Array<A> => sel
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.take([1, 2, 3, 4, 5], 3)
  * console.log(result) // [1, 2, 3]
@@ -926,7 +926,7 @@ export const take: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.takeRight([1, 2, 3, 4, 5], 3)
  * console.log(result) // [3, 4, 5]
@@ -950,7 +950,7 @@ export const takeRight: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.takeWhile([1, 3, 2, 4, 1, 2], x => x < 4)
  * console.log(result) // [1, 3, 2]
@@ -1002,7 +1002,7 @@ const spanIndex = <A>(self: Iterable<A>, predicate: (a: A, i: number) => boolean
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.span([1, 3, 2, 4, 5], x => x % 2 === 1)
  * console.log(result) // [[1, 3], [2, 4, 5]]
@@ -1035,7 +1035,7 @@ export const span: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.drop([1, 2, 3, 4, 5], 2)
  * console.log(result) // [3, 4, 5]
@@ -1060,7 +1060,7 @@ export const drop: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.dropRight([1, 2, 3, 4, 5], 2)
  * console.log(result) // [1, 2, 3]
@@ -1083,7 +1083,7 @@ export const dropRight: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.dropWhile([1, 2, 3, 4, 5], x => x < 4)
  * console.log(result) // [4, 5]
@@ -1107,7 +1107,7 @@ export const dropWhile: {
  * **Example**
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * Array.findFirstIndex(
  *   [5, 3, 8, 9],
@@ -1137,7 +1137,7 @@ export const findFirstIndex: {
  * **Example**
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * Array.findLastIndex(
  *   [1, 3, 8, 9],
@@ -1167,7 +1167,7 @@ export const findLastIndex: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.findFirst([1, 2, 3, 4, 5], x => x > 3)
  * console.log(result) // Option.some(4)
@@ -1192,7 +1192,7 @@ export const findFirst: {
  * **Example**
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * Array.findFirstWithIndex([1, 2, 3, 4, 5], x => x > 3) // [4, 3]
  * ```
@@ -1237,7 +1237,7 @@ export const findFirstWithIndex: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.findLast([1, 2, 3, 4, 5], n => n % 2 === 0)
  * console.log(result) // Option.some(4)
@@ -1284,7 +1284,7 @@ export const findLast: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * Array.insertAt(['a', 'b', 'c', 'e'], 3, 'd') // ['a', 'b', 'c', 'd', 'e']
  * ```
@@ -1310,7 +1310,7 @@ export const insertAt: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.replace([1, 2, 3], 1, 4)
  * console.log(result) // [1, 4, 3]
@@ -1340,7 +1340,7 @@ export const replace: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const input = [1, 2, 3, 4]
  * const result = Array.modify(input, 2, (n) => n * 2)
@@ -1381,7 +1381,7 @@ export const modify: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const input = [1, 2, 3, 4]
  * const result = Array.remove(input, 2)
@@ -1412,7 +1412,7 @@ export const remove: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.reverse([1, 2, 3, 4])
  * console.log(result) // [4, 3, 2, 1]
@@ -1432,7 +1432,7 @@ export const reverse = <S extends Iterable<any>>(
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import { Order } from "effect"
  *
  * const result = Array.sort([3, 1, 4, 1, 5], Order.number)
@@ -1462,7 +1462,7 @@ export const sort: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import { Order } from "effect"
  *
  * const result = Array.sortWith(["aaa", "b", "cc"], (s) => s.length, Order.number)
@@ -1499,7 +1499,7 @@ export const sortWith: {
  *
  * ```ts
  * import { pipe } from "effect"
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import { Order } from "effect"
  *
  * const users = [
@@ -1554,7 +1554,7 @@ export const sortBy = <S extends Iterable<any>>(
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.zip([1, 2, 3], ['a', 'b'])
  * console.log(result) // [[1, 'a'], [2, 'b']]
@@ -1580,7 +1580,7 @@ export const zip: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.zipWith([1, 2, 3], [4, 5, 6], (a, b) => a + b)
  * console.log(result) // [5, 7, 9]
@@ -1614,7 +1614,7 @@ export const zipWith: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.unzip([[1, "a"], [2, "b"], [3, "c"]])
  * console.log(result) // [[1, 2, 3], ['a', 'b', 'c']]
@@ -1648,7 +1648,7 @@ export const unzip: <S extends Iterable<readonly [any, any]>>(
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.intersperse([1, 2, 3], 0)
  * console.log(result) // [1, 0, 2, 0, 3]
@@ -1685,7 +1685,7 @@ export const intersperse: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.modifyHeadNonEmpty([1, 2, 3], n => n * 10)
  * console.log(result) // [10, 2, 3]
@@ -1711,7 +1711,7 @@ export const modifyHeadNonEmpty: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.setHeadNonEmpty([1, 2, 3], 10)
  * console.log(result) // [10, 2, 3]
@@ -1734,7 +1734,7 @@ export const setHeadNonEmpty: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.modifyLastNonEmpty([1, 2, 3], n => n * 2)
  * console.log(result) // [1, 2, 6]
@@ -1758,7 +1758,7 @@ export const modifyLastNonEmpty: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.setLastNonEmpty([1, 2, 3], 4)
  * console.log(result) // [1, 2, 4]
@@ -1782,7 +1782,7 @@ export const setLastNonEmpty: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.rotate(['a', 'b', 'c', 'd'], 2)
  * console.log(result) // ['c', 'd', 'a', 'b']
@@ -1820,7 +1820,7 @@ export const rotate: {
  *
  * ```ts
  * import { pipe } from "effect"
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const isEquivalent = (a: number, b: number) => a === b
  * const containsNumber = Array.containsWith(isEquivalent)
@@ -1853,7 +1853,7 @@ const _equivalence = Equal.equivalence()
  *
  * ```ts
  * import { pipe } from "effect"
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = pipe(['a', 'b', 'c', 'd'], Array.contains('c'))
  * console.log(result) // true
@@ -1875,7 +1875,7 @@ export const contains: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.chop([1, 2, 3, 4, 5], (as): [number, Array<number>] => [as[0] * 2, as.slice(1)])
  * console.log(result) // [2, 4, 6, 8, 10]
@@ -1927,7 +1927,7 @@ export const chop: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.splitAt([1, 2, 3, 4, 5], 3)
  * console.log(result) // [[1, 2, 3], [4, 5]]
@@ -1958,7 +1958,7 @@ export const splitAt: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.splitAtNonEmpty(["a", "b", "c", "d", "e"], 3)
  * console.log(result) // [["a", "b", "c"], ["d", "e"]]
@@ -1983,7 +1983,7 @@ export const splitAtNonEmpty: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.split([1, 2, 3, 4, 5, 6, 7, 8], 3)
  * console.log(result) // [[1, 2, 3], [4, 5, 6], [7, 8]]
@@ -2007,7 +2007,7 @@ export const split: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.splitWhere([1, 2, 3, 4, 5], n => n > 3)
  * console.log(result) // [[1, 2, 3], [4, 5]]
@@ -2033,7 +2033,7 @@ export const splitWhere: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.copy([1, 2, 3])
  * console.log(result) // [1, 2, 3]
@@ -2056,7 +2056,7 @@ export const copy: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.pad([1, 2, 3], 6, 0)
  * console.log(result) // [1, 2, 3, 0, 0, 0]
@@ -2097,7 +2097,7 @@ export const pad: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.chunksOf([1, 2, 3, 4, 5], 2)
  * console.log(result) // [[1, 2], [3, 4], [5]]
@@ -2136,7 +2136,7 @@ export const chunksOf: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const numbers = [1, 2, 3, 4, 5]
  *
@@ -2167,7 +2167,7 @@ export const window: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.groupWith(["a", "a", "b", "b", "b", "c", "a"], (x, y) => x === y)
  * console.log(result) // [["a", "a"], ["b", "b", "b"], ["c"], ["a"]]
@@ -2204,7 +2204,7 @@ export const groupWith: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.group([1, 1, 2, 2, 2, 3, 1])
  * console.log(result) // [[1, 1], [2, 2, 2], [3], [1]]
@@ -2224,7 +2224,7 @@ export const group: <A>(self: NonEmptyReadonlyArray<A>) => NonEmptyArray<NonEmpt
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const people = [
  *   { name: "Alice", group: "A" },
@@ -2273,7 +2273,7 @@ export const groupBy: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const union = Array.unionWith([1, 2], [2, 3], (a, b) => a === b)
  * console.log(union) // [1, 2, 3]
@@ -2317,7 +2317,7 @@ export const unionWith: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.union([1, 2], [2, 3])
  * console.log(result) // [1, 2, 3]
@@ -2344,7 +2344,7 @@ export const union: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const array1 = [{ id: 1 }, { id: 2 }, { id: 3 }]
  * const array2 = [{ id: 3 }, { id: 4 }, { id: 1 }]
@@ -2374,7 +2374,7 @@ export const intersectionWith = <A>(isEquivalent: (self: A, that: A) => boolean)
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.intersection([1, 2, 3], [3, 4, 1])
  * console.log(result) // [1, 3]
@@ -2395,7 +2395,7 @@ export const intersection: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const array1 = [1, 2, 3]
  * const array2 = [2, 3, 4]
@@ -2424,7 +2424,7 @@ export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): 
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const difference = Array.difference([1, 2, 3], [2, 3, 4])
  * console.log(difference) // [1]
@@ -2443,7 +2443,7 @@ export const difference: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.empty()
  * console.log(result) // []
@@ -2459,7 +2459,7 @@ export const empty: <A = never>() => Array<A> = () => []
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.of(1)
  * console.log(result) // [1]
@@ -2475,7 +2475,7 @@ export const of = <A>(a: A): NonEmptyArray<A> => [a]
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * type ElementType = Array.ReadonlyArray.Infer<ReadonlyArray<string>>
  * // ElementType is string
@@ -2488,7 +2488,7 @@ export const of = <A>(a: A): NonEmptyArray<A> => [a]
  *
  * @example
  * ```ts
- * import type { Array } from "effect/collections"
+ * import type { Array } from "effect"
  *
  * // Using ReadonlyArray utility types
  * type ElementType = Array.ReadonlyArray.Infer<readonly string[]>
@@ -2504,7 +2504,7 @@ export declare namespace ReadonlyArray {
    *
    * @example
    * ```ts
-   * import type { Array } from "effect/collections"
+   * import type { Array } from "effect"
    *
    * type StringArrayType = Array.ReadonlyArray.Infer<readonly string[]>
    * // StringArrayType is string
@@ -2522,7 +2522,7 @@ export declare namespace ReadonlyArray {
    *
    * @example
    * ```ts
-   * import type { Array } from "effect/collections"
+   * import type { Array } from "effect"
    *
    * type Result = Array.ReadonlyArray.With<readonly [number], string>
    * // Result is NonEmptyArray<string>
@@ -2539,7 +2539,7 @@ export declare namespace ReadonlyArray {
    *
    * @example
    * ```ts
-   * import type { Array } from "effect/collections"
+   * import type { Array } from "effect"
    *
    * type Result = Array.ReadonlyArray.OrNonEmpty<readonly [number], readonly string[], number>
    * // Result is NonEmptyArray<number>
@@ -2561,7 +2561,7 @@ export declare namespace ReadonlyArray {
    *
    * @example
    * ```ts
-   * import type { Array } from "effect/collections"
+   * import type { Array } from "effect"
    *
    * type Result = Array.ReadonlyArray.AndNonEmpty<readonly [number], readonly [string], boolean>
    * // Result is NonEmptyArray<boolean>
@@ -2583,7 +2583,7 @@ export declare namespace ReadonlyArray {
    *
    * @example
    * ```ts
-   * import type { Array } from "effect/collections"
+   * import type { Array } from "effect"
    *
    * type Nested = readonly (readonly number[])[]
    * type Flattened = Array.ReadonlyArray.Flatten<Nested>
@@ -2604,7 +2604,7 @@ export declare namespace ReadonlyArray {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.map([1, 2, 3], x => x * 2)
  * console.log(result) // [2, 4, 6]
@@ -2625,7 +2625,7 @@ export const map: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.flatMap([1, 2, 3], x => [x, x * 2])
  * console.log(result) // [1, 2, 2, 4, 3, 6]
@@ -2665,7 +2665,7 @@ export const flatMap: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.flatten([[1, 2], [], [3, 4], [], [5, 6]])
  * console.log(result) // [1, 2, 3, 4, 5, 6]
@@ -2685,7 +2685,7 @@ export const flatten: <S extends ReadonlyArray<ReadonlyArray<any>>>(self: S) => 
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import * as Option from "effect/Option"
  *
  * const evenSquares = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none()
@@ -2723,7 +2723,7 @@ export const filterMap: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import * as Option from "effect/Option"
  *
  * const toSquareTillOdd = (x: number) => x % 2 === 0 ? Option.some(x * x) : Option.none()
@@ -2762,7 +2762,7 @@ export const filterMapWhile: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import { Result } from "effect";
  *
  * const isEven = (x: number) => x % 2 === 0
@@ -2830,7 +2830,7 @@ export const partitionFilter: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import * as Option from "effect/Option"
  *
  * const result = Array.getSomes([Option.some(1), Option.none(), Option.some(2)])
@@ -2851,7 +2851,7 @@ export const getSomes: <T extends Iterable<Option.Option<X>>, X = any>(
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import { Result } from "effect"
  *
  * const result = Array.getFailures([Result.succeed(1), Result.fail("err"), Result.succeed(2)])
@@ -2880,7 +2880,7 @@ export const getFailures = <T extends Iterable<Result.Result<any, any>>>(
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import { Result } from "effect"
  *
  * const result = Array.getSuccesses([Result.succeed(1), Result.fail("err"), Result.succeed(2)])
@@ -2908,7 +2908,7 @@ export const getSuccesses = <T extends Iterable<Result.Result<any, any>>>(
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.filter([1, 2, 3, 4], x => x % 2 === 0)
  * console.log(result) // [2, 4]
@@ -2942,7 +2942,7 @@ export const filter: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.partition([1, 2, 3, 4], n => n % 2 === 0)
  * console.log(result) // [[1, 3], [2, 4]]
@@ -2985,7 +2985,7 @@ export const partition: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import { Result } from "effect"
  *
  * const results = [Result.succeed(1), Result.fail("error"), Result.succeed(2)]
@@ -3010,7 +3010,7 @@ export const separate: <T extends Iterable<Result.Result<any, any>>>(
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.reduce([1, 2, 3], 0, (acc, n) => acc + n)
  * console.log(result) // 6
@@ -3034,7 +3034,7 @@ export const reduce: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.reduceRight([1, 2, 3], 0, (acc, n) => acc + n)
  * console.log(result) // 6
@@ -3058,7 +3058,7 @@ export const reduceRight: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const isEven = (n: number) => n % 2 === 0
  * const to = Array.liftPredicate(isEven)
@@ -3079,7 +3079,7 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import * as Option from "effect/Option"
  *
  * const parseNumber = Array.liftOption((s: string) => {
@@ -3104,7 +3104,7 @@ export const liftOption = <A extends Array<unknown>, B>(
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * console.log(Array.fromNullishOr(1)) // [1]
  * console.log(Array.fromNullishOr(null)) // []
@@ -3121,7 +3121,7 @@ export const fromNullishOr = <A>(a: A): Array<NonNullable<A>> => a == null ? emp
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const parseNumber = Array.liftNullishOr((s: string) => {
  *   const n = Number(s)
@@ -3146,7 +3146,7 @@ export const liftNullishOr = <A extends Array<unknown>, B>(
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.flatMapNullishOr([1, 2, 3], n => (n % 2 === 0 ? null : n))
  * console.log(result) // [1, 3]
@@ -3176,7 +3176,7 @@ export const flatMapNullishOr: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import { Result } from "effect"
  *
  * const parseNumber = (s: string): Result.Result<number, Error> =>
@@ -3212,7 +3212,7 @@ export const liftResult = <A extends Array<unknown>, E, B>(
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.every([2, 4, 6], x => x % 2 === 0)
  * console.log(result) // true
@@ -3242,7 +3242,7 @@ export const every: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.some([1, 3, 4], x => x % 2 === 0)
  * console.log(result) // true
@@ -3271,7 +3271,7 @@ export const some: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.extend([1, 2, 3], as => as.length)
  * console.log(result) // [3, 2, 1]
@@ -3300,7 +3300,7 @@ export const extend: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import { Order } from "effect"
  *
  * const result = Array.min([3, 1, 2], Order.number)
@@ -3321,7 +3321,7 @@ export const min: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import { Order } from "effect"
  *
  * const result = Array.max([3, 1, 2], Order.number)
@@ -3341,7 +3341,7 @@ export const max: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.unfold(1, n => n <= 5 ? [n, n + 1] : undefined)
  * console.log(result) // [1, 2, 3, 4, 5]
@@ -3370,7 +3370,7 @@ export const unfold = <B, A>(b: B, f: (b: B) => readonly [A, B] | undefined): Ar
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  * import { Order } from "effect"
  *
  * const arrayOrder = Array.getOrder(Order.number)
@@ -3388,7 +3388,7 @@ export const getOrder: <A>(O: Order.Order<A>) => Order.Order<ReadonlyArray<A>> =
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const eq = Array.getEquivalence<number>((a, b) => a === b)
  * console.log(eq([1, 2, 3], [1, 2, 3])) // true
@@ -3407,7 +3407,7 @@ export const getEquivalence: <A>(
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * Array.forEach([1, 2, 3], n => console.log(n)) // 1, 2, 3
  * ```
@@ -3427,7 +3427,7 @@ export const forEach: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.dedupeWith([1, 2, 2, 3, 3, 3], (a, b) => a === b)
  * console.log(result) // [1, 2, 3]
@@ -3466,7 +3466,7 @@ export const dedupeWith: {
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.dedupe([1, 2, 1, 3, 2, 4])
  * console.log(result) // [1, 2, 3, 4]
@@ -3486,7 +3486,7 @@ export const dedupe = <S extends Iterable<any>>(
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.dedupeAdjacentWith([1, 1, 2, 2, 3, 3], (a, b) => a === b)
  * console.log(result) // [1, 2, 3]
@@ -3516,7 +3516,7 @@ export const dedupeAdjacentWith: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.dedupeAdjacent([1, 1, 2, 2, 3, 3])
  * console.log(result) // [1, 2, 3]
@@ -3533,7 +3533,7 @@ export const dedupeAdjacent: <A>(self: Iterable<A>) => Array<A> = dedupeAdjacent
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const strings = ["a", "b", "c"]
  * const joined = Array.join(strings, "-")
@@ -3554,7 +3554,7 @@ export const join: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.mapAccum([1, 2, 3], 0, (acc, n) => [acc + n, acc + n])
  * console.log(result) // [6, [1, 3, 6]]
@@ -3595,7 +3595,7 @@ export const mapAccum: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.cartesianWith([1, 2], ["a", "b"], (a, b) => `${a}-${b}`)
  * console.log(result) // ["1-a", "1-b", "2-a", "2-b"]
@@ -3619,7 +3619,7 @@ export const cartesianWith: {
  * @example
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.cartesian([1, 2], ["a", "b"])
  * console.log(result) // [[1, "a"], [1, "b"], [2, "a"], [2, "b"]]
@@ -3658,7 +3658,7 @@ export const cartesian: {
  *
  * ```ts
  * import { pipe } from "effect"
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const doResult = pipe(
  *   Array.Do,
@@ -3708,7 +3708,7 @@ export const Do: ReadonlyArray<{}> = of({})
  *
  * ```ts
  * import { pipe } from "effect"
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const doResult = pipe(
  *   Array.Do,
@@ -3770,7 +3770,7 @@ export const bind: {
  *
  * ```ts
  * import { pipe } from "effect"
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const doResult = pipe(
  *   Array.Do,
@@ -3836,7 +3836,7 @@ export {
    *
    * ```ts
    * import { pipe } from "effect"
-   * import { Array } from "effect/collections"
+   * import { Array } from "effect"
    *
    * const doResult = pipe(
    *   Array.Do,
@@ -3896,7 +3896,7 @@ export function getReducerConcat<A>(): Reducer.Reducer<Array<A>> {
  * **Example**
  *
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * const result = Array.countBy([1, 2, 3, 4, 5], n => n % 2 === 0)
  * console.log(result) // 2

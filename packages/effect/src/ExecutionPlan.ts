@@ -1,7 +1,7 @@
 /**
  * @since 3.16.0
  */
-import type { NonEmptyReadonlyArray } from "./collections/Array.ts"
+import type { NonEmptyReadonlyArray } from "./Array.ts"
 import type * as Effect from "./Effect.ts"
 import { constant } from "./Function.ts"
 import type { Pipeable } from "./interfaces/Pipeable.ts"

@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../../collections/Array.ts"
+import * as Arr from "../../Array.ts"
 import * as Effect from "../../Effect.ts"
 import { compose, dual, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"

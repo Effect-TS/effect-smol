@@ -1,8 +1,8 @@
 /**
  * @since 1.0.0
  */
+import * as Arr from "effect/Array"
 import * as Channel from "effect/Channel"
-import * as Arr from "effect/collections/Array"
 import * as Effect from "effect/Effect"
 import type { LazyArg } from "effect/Function"
 import * as Pull from "effect/Pull"

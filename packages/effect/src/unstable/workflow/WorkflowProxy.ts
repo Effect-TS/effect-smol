@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as HttpApiEndpoint from "../httpapi/HttpApiEndpoint.ts"
 import * as HttpApiGroup from "../httpapi/HttpApiGroup.ts"

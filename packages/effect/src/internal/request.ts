@@ -1,4 +1,4 @@
-import type { NonEmptyArray } from "../collections/Array.ts"
+import type { NonEmptyArray } from "../Array.ts"
 import type { Effect } from "../Effect.ts"
 import type { Exit } from "../Exit.ts"
 import type { Fiber } from "../Fiber.ts"

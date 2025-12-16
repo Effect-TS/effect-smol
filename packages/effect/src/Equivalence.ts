@@ -11,7 +11,7 @@
  * @example
  * ```ts
  * import { Equivalence } from "effect"
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * // Case-insensitive string equivalence
  * const caseInsensitive = Equivalence.make<string>((a, b) =>

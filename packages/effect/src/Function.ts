@@ -531,7 +531,7 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  *
  * ```ts skip-type-checking
  * import { pipe } from "effect"
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * pipe(as, Array.map(f), Array.filter(g))
  * ```

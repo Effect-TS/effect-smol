@@ -3,7 +3,7 @@
  */
 import { constTrue } from "effect/Function"
 import * as Predicate from "effect/Predicate"
-import * as Array_ from "../../collections/Array.ts"
+import * as Array_ from "../../Array.ts"
 import * as Combiner from "../../Combiner.ts"
 import { formatPath } from "../../Formatter.ts"
 import * as Record_ from "../../Record.ts"

@@ -1,7 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertExitFailure, assertExitSuccess, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Cause, Effect, Ref, Sink, Stream } from "effect"
-import { Array } from "effect/collections"
+import { Array, Cause, Effect, Ref, Sink, Stream } from "effect"
 import { constTrue, pipe } from "effect/Function"
 
 describe("Sink", () => {

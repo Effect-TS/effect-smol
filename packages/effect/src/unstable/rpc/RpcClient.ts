@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
-import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import type * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"

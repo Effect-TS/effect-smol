@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Fiber, PubSub } from "effect"
-import { Array } from "effect/collections"
+import { Array, Effect, Fiber, PubSub } from "effect"
 import { pipe } from "effect/Function"
 
 describe("PubSub", () => {

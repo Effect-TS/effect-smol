@@ -1,4 +1,4 @@
-import type * as Arr from "effect/collections/Array"
+import type * as Arr from "effect/Array"
 import * as Effect from "effect/Effect"
 import * as Queue from "effect/Queue"
 import * as Stream from "effect/Stream"

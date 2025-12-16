@@ -1,6 +1,6 @@
+import * as Arr from "../Array.ts"
 import type * as Cause from "../Cause.ts"
 import type * as Clock from "../Clock.ts"
-import * as Arr from "../collections/Array.ts"
 import type * as Console from "../Console.ts"
 import * as Duration from "../Duration.ts"
 import type * as Effect from "../Effect.ts"

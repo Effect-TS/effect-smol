@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import { type Pipeable, pipeArguments } from "../../interfaces/Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"

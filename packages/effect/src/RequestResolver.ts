@@ -1,11 +1,9 @@
 /**
  * @since 2.0.0
  */
+import type { NonEmptyArray } from "./Array.ts"
+import * as Arr from "./Array.ts"
 import * as Cache from "./Cache.ts"
-import type { NonEmptyArray } from "./collections/Array.ts"
-import * as Arr from "./collections/Array.ts"
-import * as Iterable from "./collections/Iterable.ts"
-import * as MutableHashMap from "./collections/MutableHashMap.ts"
 import type * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
@@ -14,6 +12,8 @@ import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 import { exitFail, exitSucceed } from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
 import * as internal from "./internal/request.ts"
+import * as Iterable from "./Iterable.ts"
+import * as MutableHashMap from "./MutableHashMap.ts"
 import { hasProperty } from "./Predicate.ts"
 import type * as Request from "./Request.ts"
 import type * as Schema from "./schema/Schema.ts"

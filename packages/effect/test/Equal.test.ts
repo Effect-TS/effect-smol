@@ -1,4 +1,4 @@
-import * as HashMap from "effect/collections/HashMap"
+import * as HashMap from "effect/HashMap"
 import * as Equal from "effect/interfaces/Equal"
 import * as Hash from "effect/interfaces/Hash"
 import * as Option from "effect/Option"

@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 
+import * as Arr from "../Array.ts"
 import * as Cause from "../Cause.ts"
-import * as Arr from "../collections/Array.ts"
 import * as Effect from "../Effect.ts"
 import * as Exit from "../Exit.ts"
 import * as Filter from "../Filter.ts"

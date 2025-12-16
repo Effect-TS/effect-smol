@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Channel from "../../Channel.ts"
-import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Data from "../../Data.ts"
 import * as Deferred from "../../Deferred.ts"
 import type { DurationInput } from "../../Duration.ts"

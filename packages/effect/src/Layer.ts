@@ -17,8 +17,8 @@
  *
  * @since 2.0.0
  */
+import type { NonEmptyArray } from "./Array.ts"
 import type * as Cause from "./Cause.ts"
-import type { NonEmptyArray } from "./collections/Array.ts"
 import * as Deferred from "./Deferred.ts"
 import type { Effect } from "./Effect.ts"
 import type * as Exit from "./Exit.ts"

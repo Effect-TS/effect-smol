@@ -1,4 +1,4 @@
-import { Array } from "effect/collections"
+import { Array } from "effect"
 import { hole, pipe } from "effect/Function"
 import { describe, expect, it } from "tstyche"
 

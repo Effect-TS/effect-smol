@@ -1,7 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertTrue, deepStrictEqual } from "@effect/vitest/utils"
-import { Effect, ExecutionPlan, Exit, Layer, ServiceMap, Stream } from "effect"
-import { Array } from "effect/collections"
+import { Array, Effect, ExecutionPlan, Exit, Layer, ServiceMap, Stream } from "effect"
 
 describe("ExecutionPlan", () => {
   class Service extends ServiceMap.Service<Service>()("Service", {

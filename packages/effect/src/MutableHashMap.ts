@@ -24,22 +24,22 @@
  * @since 2.0.0
  * @category data-structures
  */
-import type { NonEmptyArray } from "../collections/Array.ts"
-import { format } from "../Formatter.ts"
-import { dual } from "../Function.ts"
-import * as Equal from "../interfaces/Equal.ts"
-import * as Hash from "../interfaces/Hash.ts"
-import { type Inspectable, NodeInspectSymbol, toJson } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { pipeArguments } from "../interfaces/Pipeable.ts"
-import * as Option from "../Option.ts"
+import type { NonEmptyArray } from "./Array.ts"
+import { format } from "./Formatter.ts"
+import { dual } from "./Function.ts"
+import * as Equal from "./interfaces/Equal.ts"
+import * as Hash from "./interfaces/Hash.ts"
+import { type Inspectable, NodeInspectSymbol, toJson } from "./interfaces/Inspectable.ts"
+import type { Pipeable } from "./interfaces/Pipeable.ts"
+import { pipeArguments } from "./interfaces/Pipeable.ts"
+import * as Option from "./Option.ts"
 
 const TypeId = "~effect/collections/MutableHashMap"
 
 /**
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * // Create a mutable hash map with string keys and number values
  * const map: MutableHashMap.MutableHashMap<string, number> = MutableHashMap.empty()
@@ -97,7 +97,7 @@ const MutableHashMapProto: Omit<MutableHashMap<unknown, unknown>, "backing" | "b
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * const map = MutableHashMap.empty<string, number>()
  *
@@ -123,7 +123,7 @@ export const empty = <K, V>(): MutableHashMap<K, V> => {
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * const map = MutableHashMap.make(
  *   ["key1", 42],
@@ -150,7 +150,7 @@ export const make: <Entries extends Array<readonly [any, any]>>(
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * const entries = [
  *   ["apple", 1],
@@ -184,7 +184,7 @@ export const fromIterable = <K, V>(entries: Iterable<readonly [K, V]>): MutableH
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  * import * as Option from "effect/Option"
  *
  * const map = MutableHashMap.make(["key1", 42], ["key2", 100])
@@ -232,7 +232,7 @@ const isSimpleKey = (u: unknown): boolean => typeof u !== "object" && typeof u !
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * const map = MutableHashMap.make(
  *   ["apple", 1],
@@ -257,7 +257,7 @@ export const keys = <K, V>(self: MutableHashMap<K, V>): Iterable<K> => self.back
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * const map = MutableHashMap.make(
  *   ["apple", 1],
@@ -302,7 +302,7 @@ const getFromBucket = <K, V>(
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * const map = MutableHashMap.make(["key1", 42], ["key2", 100])
  *
@@ -331,7 +331,7 @@ export const has: {
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * const map = MutableHashMap.empty<string, number>()
  *
@@ -407,7 +407,7 @@ const getRefKey = <K>(
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * const map = MutableHashMap.make(["count", 5], ["total", 100])
  *
@@ -473,7 +473,7 @@ export const modify: {
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  * import * as Option from "effect/Option"
  *
  * const map = MutableHashMap.make(["count", 5])
@@ -536,7 +536,7 @@ export const modifyAt: {
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * const map = MutableHashMap.make(
  *   ["key1", 42],
@@ -602,7 +602,7 @@ export const remove: {
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * const map = MutableHashMap.make(
  *   ["key1", 42],
@@ -637,7 +637,7 @@ export const clear = <K, V>(self: MutableHashMap<K, V>) => {
  *
  * @example
  * ```ts
- * import * as MutableHashMap from "effect/collections/MutableHashMap"
+ * import * as MutableHashMap from "effect/MutableHashMap"
  *
  * const map = MutableHashMap.empty<string, number>()
  * console.log(MutableHashMap.size(map)) // 0

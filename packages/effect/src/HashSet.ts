@@ -2,13 +2,13 @@
  * @since 2.0.0
  */
 
-import * as Dual from "../Function.ts"
-import type { Equal } from "../interfaces/Equal.ts"
-import type { Inspectable } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import * as internal from "../internal/hashSet.ts"
-import type { Predicate, Refinement } from "../Predicate.ts"
-import type { NoInfer } from "../types/Types.ts"
+import * as Dual from "./Function.ts"
+import type { Equal } from "./interfaces/Equal.ts"
+import type { Inspectable } from "./interfaces/Inspectable.ts"
+import type { Pipeable } from "./interfaces/Pipeable.ts"
+import * as internal from "./internal/hashSet.ts"
+import type { Predicate, Refinement } from "./Predicate.ts"
+import type { NoInfer } from "./types/Types.ts"
 
 const TypeId = internal.HashSetTypeId
 
@@ -18,7 +18,7 @@ const TypeId = internal.HashSetTypeId
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * // Create a HashSet
  * const set = HashSet.make("apple", "banana", "cherry")
@@ -49,7 +49,7 @@ export interface HashSet<out Value> extends Iterable<Value>, Equal, Pipeable, In
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * // Create a concrete HashSet for type extraction
  * const fruits = HashSet.make("apple", "banana", "cherry")
@@ -70,7 +70,7 @@ export declare namespace HashSet {
   /**
    * @example
    * ```ts
-   * import * as HashSet from "effect/collections/HashSet"
+   * import * as HashSet from "effect/HashSet"
    *
    * const numbers = HashSet.make(1, 2, 3, 4, 5)
    *
@@ -91,7 +91,7 @@ export declare namespace HashSet {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const set = HashSet.empty<string>()
  *
@@ -113,7 +113,7 @@ export const empty: <V = never>() => HashSet<V> = internal.empty
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const fruits = HashSet.make("apple", "banana", "cherry")
  * console.log(HashSet.size(fruits)) // 3
@@ -137,7 +137,7 @@ export const make: <Values extends ReadonlyArray<any>>(
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const fromArray = HashSet.fromIterable(["a", "b", "c", "b", "a"])
  * console.log(HashSet.size(fromArray)) // 3
@@ -159,7 +159,7 @@ export const fromIterable: <V>(values: Iterable<V>) => HashSet<V> = internal.fro
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const set = HashSet.make(1, 2, 3)
  * const array = [1, 2, 3]
@@ -182,7 +182,7 @@ export const isHashSet: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const set = HashSet.make("a", "b")
  * const withC = HashSet.add(set, "c")
@@ -212,7 +212,7 @@ export const add: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const set = HashSet.make("apple", "banana", "cherry")
  *
@@ -254,7 +254,7 @@ export const has: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const set = HashSet.make("a", "b", "c")
  * const withoutB = HashSet.remove(set, "b")
@@ -284,7 +284,7 @@ export const remove: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const empty = HashSet.empty<string>()
  * console.log(HashSet.size(empty)) // 0
@@ -306,7 +306,7 @@ export const size: <V>(self: HashSet<V>) => number = internal.size
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const empty = HashSet.empty<string>()
  * console.log(HashSet.isEmpty(empty)) // true
@@ -325,7 +325,7 @@ export const isEmpty: <V>(self: HashSet<V>) => boolean = internal.isEmpty
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const set1 = HashSet.make("a", "b")
  * const set2 = HashSet.make("b", "c")
@@ -351,7 +351,7 @@ export const union: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const set1 = HashSet.make("a", "b", "c")
  * const set2 = HashSet.make("b", "c", "d")
@@ -377,7 +377,7 @@ export const intersection: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const set1 = HashSet.make("a", "b", "c")
  * const set2 = HashSet.make("b", "d")
@@ -403,7 +403,7 @@ export const difference: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const small = HashSet.make("a", "b")
  * const large = HashSet.make("a", "b", "c", "d")
@@ -431,7 +431,7 @@ export const isSubset: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const numbers = HashSet.make(1, 2, 3)
  * const doubled = HashSet.map(numbers, n => n * 2)
@@ -461,7 +461,7 @@ export const map: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const numbers = HashSet.make(1, 2, 3, 4, 5, 6)
  * const evens = HashSet.filter(numbers, n => n % 2 === 0)
@@ -494,7 +494,7 @@ export const filter: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const numbers = HashSet.make(1, 2, 3, 4, 5)
  *
@@ -521,7 +521,7 @@ export const some: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const numbers = HashSet.make(2, 4, 6, 8)
  *
@@ -548,7 +548,7 @@ export const every: {
  *
  * @example
  * ```ts
- * import * as HashSet from "effect/collections/HashSet"
+ * import * as HashSet from "effect/HashSet"
  *
  * const numbers = HashSet.make(1, 2, 3, 4, 5)
  * const sum = HashSet.reduce(numbers, 0, (acc, n) => acc + n)

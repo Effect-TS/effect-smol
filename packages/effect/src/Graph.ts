@@ -2,16 +2,16 @@
  * @since 4.0.0
  */
 
-import * as Data from "../Data.ts"
-import { dual } from "../Function.ts"
-import * as Equal from "../interfaces/Equal.ts"
-import * as Hash from "../interfaces/Hash.ts"
-import type { Inspectable } from "../interfaces/Inspectable.ts"
-import { NodeInspectSymbol } from "../interfaces/Inspectable.ts"
-import type { Pipeable } from "../interfaces/Pipeable.ts"
-import { pipeArguments } from "../interfaces/Pipeable.ts"
-import * as Option from "../Option.ts"
-import type { Mutable } from "../types/Types.ts"
+import * as Data from "./Data.ts"
+import { dual } from "./Function.ts"
+import * as Equal from "./interfaces/Equal.ts"
+import * as Hash from "./interfaces/Hash.ts"
+import type { Inspectable } from "./interfaces/Inspectable.ts"
+import { NodeInspectSymbol } from "./interfaces/Inspectable.ts"
+import type { Pipeable } from "./interfaces/Pipeable.ts"
+import { pipeArguments } from "./interfaces/Pipeable.ts"
+import * as Option from "./Option.ts"
+import type { Mutable } from "./types/Types.ts"
 
 const TypeId = "~effect/collections/Graph"
 
@@ -229,7 +229,7 @@ export const isGraph = (u: unknown): u is Graph<unknown, unknown> => typeof u ==
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * // Directed graph with initial nodes and edges
  * const graph = Graph.directed<string, string>((mutable) => {
@@ -270,7 +270,7 @@ export const directed = <N, E>(mutate?: (mutable: MutableDirectedGraph<N, E>) =>
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * // Undirected graph with initial nodes and edges
  * const graph = Graph.undirected<string, string>((mutable) => {
@@ -315,7 +315,7 @@ export const undirected = <N, E>(mutate?: (mutable: MutableUndirectedGraph<N, E>
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>()
  * const mutable = Graph.beginMutation(graph)
@@ -359,7 +359,7 @@ export const beginMutation = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>()
  * const mutable = Graph.beginMutation(graph)
@@ -392,7 +392,7 @@ export const endMutation = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>()
  * const newGraph = Graph.mutate(graph, (mutable) => {
@@ -430,7 +430,7 @@ export const mutate: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -467,7 +467,7 @@ export const addNode = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  * import * as Option from "effect/Option"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
@@ -503,7 +503,7 @@ export const getNode: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   Graph.addNode(mutable, "Node A")
@@ -534,7 +534,7 @@ export const hasNode: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const emptyGraph = Graph.directed<string, number>()
  * console.log(Graph.nodeCount(emptyGraph)) // 0
@@ -560,7 +560,7 @@ export const nodeCount = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   Graph.addNode(mutable, "Node A")
@@ -602,7 +602,7 @@ export const findNode: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   Graph.addNode(mutable, "Start A")
@@ -646,7 +646,7 @@ export const findNodes: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -690,7 +690,7 @@ export const findEdge: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -737,7 +737,7 @@ export const findEdges: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   Graph.addNode(mutable, "Node A")
@@ -771,7 +771,7 @@ export const updateNode = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -806,7 +806,7 @@ export const updateEdge = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   Graph.addNode(mutable, "node a")
@@ -838,7 +838,7 @@ export const mapNodes = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -875,7 +875,7 @@ export const mapEdges = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -932,7 +932,7 @@ export const reverse = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  * import * as Option from "effect/Option"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
@@ -984,7 +984,7 @@ export const filterMapNodes = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  * import * as Option from "effect/Option"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
@@ -1040,7 +1040,7 @@ export const filterMapEdges = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   Graph.addNode(mutable, "active")
@@ -1083,7 +1083,7 @@ export const filterNodes = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -1158,7 +1158,7 @@ const invalidateCycleFlagOnAddition = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -1230,7 +1230,7 @@ export const addEdge = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -1293,7 +1293,7 @@ export const removeNode = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const result = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -1385,7 +1385,7 @@ const removeEdgeInternal = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -1424,7 +1424,7 @@ export const getEdge: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -1483,7 +1483,7 @@ export const hasEdge: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const emptyGraph = Graph.directed<string, number>()
  * console.log(Graph.edgeCount(emptyGraph)) // 0
@@ -1512,7 +1512,7 @@ export const edgeCount = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -1574,7 +1574,7 @@ export const neighbors: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, string>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -1646,7 +1646,7 @@ export const neighborsDirected: {
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import * as Graph from "effect/Graph"
  *
  * // Basic options with custom labels
  * const basicOptions: Graph.GraphVizOptions<string, number> = {
@@ -1690,7 +1690,7 @@ export interface GraphVizOptions<N, E> {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.mutate(Graph.directed<string, number>(), (mutable) => {
  *   const nodeA = Graph.addNode(mutable, "Node A")
@@ -1776,7 +1776,7 @@ export const toGraphViz: {
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import * as Graph from "effect/Graph"
  *
  * // Shape selector function for different node types
  * const shapeSelector = (nodeData: string): Graph.MermaidNodeShape => {
@@ -1816,7 +1816,7 @@ export type MermaidNodeShape =
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import * as Graph from "effect/Graph"
  *
  * // Horizontal workflow diagram
  * const horizontalOptions: Graph.MermaidOptions<string, string> = {
@@ -1856,7 +1856,7 @@ export type MermaidDirection =
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import * as Graph from "effect/Graph"
  *
  * // Force flowchart format (even for undirected graphs)
  * const flowchartOptions: Graph.MermaidOptions<string, string> = {
@@ -1893,7 +1893,7 @@ export type MermaidDiagramType =
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import * as Graph from "effect/Graph"
  *
  * // Basic options with custom labels
  * const basicOptions: Graph.MermaidOptions<string, number> = {
@@ -2000,7 +2000,7 @@ const formatMermaidNode = (
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import * as Graph from "effect/Graph"
  *
  * // Basic directed graph export
  * const graph = Graph.directed<string, number>((mutable) => {
@@ -2023,7 +2023,7 @@ const formatMermaidNode = (
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import * as Graph from "effect/Graph"
  *
  * // Undirected graph with custom labels and direction
  * const socialGraph = Graph.undirected<{name: string}, string>((mutable) => {
@@ -2050,7 +2050,7 @@ const formatMermaidNode = (
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import * as Graph from "effect/Graph"
  *
  * // Advanced styling with node shapes for flowchart
  * const workflow = Graph.directed<{type: string, name: string}, string>((mutable) => {
@@ -2088,7 +2088,7 @@ const formatMermaidNode = (
  *
  * @example
  * ```ts
- * import * as Graph from "effect/collections/Graph"
+ * import * as Graph from "effect/Graph"
  *
  * // Real-world example: Software dependency graph
  * interface Dependency {
@@ -2198,7 +2198,7 @@ export const toMermaid: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, string>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -2231,7 +2231,7 @@ export type Direction = "outgoing" | "incoming"
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * // Acyclic directed graph (DAG)
  * const dag = Graph.directed<string, string>((mutable) => {
@@ -2341,7 +2341,7 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * // Bipartite graph (alternating coloring possible)
  * const bipartite = Graph.undirected<string, string>((mutable) => {
@@ -2450,7 +2450,7 @@ const getUndirectedNeighbors = <N, E>(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.undirected<string, string>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -2508,7 +2508,7 @@ export const connectedComponents = <N, E>(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, string>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -2655,7 +2655,7 @@ export interface DijkstraConfig<E> {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  * import * as Option from "effect/Option"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
@@ -2838,7 +2838,7 @@ export interface AllPairsResult<E> {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -2998,7 +2998,7 @@ export interface AstarConfig<E, N> {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<{x: number, y: number}, number>((mutable) => {
  *   const a = Graph.addNode(mutable, {x: 0, y: 0})
@@ -3207,7 +3207,7 @@ export interface BellmanFordConfig<E> {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -3379,7 +3379,7 @@ export const bellmanFord: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -3451,7 +3451,7 @@ export class Walker<T, N> implements Iterable<[T, N]> {
      *
      * @example
      * ```ts
-     * import { Graph } from "effect/collections"
+     * import { Graph } from "effect"
      *
      * const graph = Graph.directed<string, number>((mutable) => {
      *   const a = Graph.addNode(mutable, "A")
@@ -3503,7 +3503,7 @@ export type EdgeWalker<E> = Walker<EdgeIndex, Edge<E>>
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -3526,7 +3526,7 @@ export const indices = <T, N>(walker: Walker<T, N>): Iterable<T> => walker.visit
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -3549,7 +3549,7 @@ export const values = <T, N>(walker: Walker<T, N>): Iterable<N> => walker.visit(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -3587,7 +3587,7 @@ export interface SearchConfig {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -3680,7 +3680,7 @@ export const dfs: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -3779,7 +3779,7 @@ export interface TopoConfig {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -3913,7 +3913,7 @@ export const topo: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const root = Graph.addNode(mutable, "root")
@@ -4016,7 +4016,7 @@ export const dfsPostOrder: {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -4061,7 +4061,7 @@ export const nodes = <N, E, T extends Kind = "directed">(
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const a = Graph.addNode(mutable, "A")
@@ -4118,7 +4118,7 @@ export interface ExternalsConfig {
  *
  * @example
  * ```ts
- * import { Graph } from "effect/collections"
+ * import { Graph } from "effect"
  *
  * const graph = Graph.directed<string, number>((mutable) => {
  *   const source = Graph.addNode(mutable, "source")     // 0 - no incoming

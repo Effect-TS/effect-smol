@@ -3,7 +3,7 @@
  *
  * @since 4.0.0
  */
-import type * as Arr from "effect/collections/Array"
+import type * as Arr from "effect/Array"
 import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"

@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as ServiceMap from "../../ServiceMap.ts"

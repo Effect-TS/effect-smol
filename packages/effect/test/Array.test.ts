@@ -1,8 +1,7 @@
 import { describe, it } from "@effect/vitest"
 import { assertNone, assertSome, assertUndefined, deepStrictEqual, strictEqual, throws } from "@effect/vitest/utils"
-import { Number as Num, Option, Order, Result, String as Str } from "effect"
+import { Array as Arr, Number as Num, Option, Order, Result, String as Str } from "effect"
 import { Equivalence, type Predicate } from "effect"
-import { Array as Arr } from "effect/collections"
 import { identity, pipe } from "effect/Function"
 import { FastCheck as fc } from "effect/testing"
 

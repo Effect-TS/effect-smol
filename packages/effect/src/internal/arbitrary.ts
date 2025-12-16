@@ -1,5 +1,5 @@
+import * as Array from "../Array.ts"
 import * as Boolean from "../Boolean.ts"
-import * as Array from "../collections/Array.ts"
 import type * as Combiner from "../Combiner.ts"
 import { memoize } from "../Function.ts"
 import * as Number from "../Number.ts"

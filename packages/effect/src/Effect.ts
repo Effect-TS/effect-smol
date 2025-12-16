@@ -67,9 +67,9 @@
  *
  * @since 2.0.0
  */
+import type * as Arr from "./Array.ts"
 import type * as Cause from "./Cause.ts"
 import type { Clock } from "./Clock.ts"
-import type * as Arr from "./collections/Array.ts"
 import * as Duration from "./Duration.ts"
 import type { ExecutionPlan } from "./ExecutionPlan.ts"
 import * as Exit from "./Exit.ts"

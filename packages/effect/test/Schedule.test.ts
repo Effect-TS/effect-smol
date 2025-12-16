@@ -1,6 +1,5 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Duration, Effect, Fiber, Pull, Schedule } from "effect"
-import { Array } from "effect/collections"
+import { Array, Duration, Effect, Fiber, Pull, Schedule } from "effect"
 import { constant, constUndefined } from "effect/Function"
 import { TestClock } from "effect/testing"
 

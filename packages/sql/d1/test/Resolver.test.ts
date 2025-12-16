@@ -1,7 +1,6 @@
 import { D1Client } from "@effect/sql-d1"
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Effect } from "effect"
-import { Iterable } from "effect/collections"
+import { Cause, Effect, Iterable } from "effect"
 import * as Schema from "effect/schema/Schema"
 import { SqlError, SqlResolver } from "effect/unstable/sql"
 import { D1Miniflare } from "./utils.ts"

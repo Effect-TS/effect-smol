@@ -1,4 +1,4 @@
-import { Array as RA } from "effect/collections"
+import { Array as RA } from "effect"
 import { Schema } from "effect/schema"
 import { Bench } from "tinybench"
 

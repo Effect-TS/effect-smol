@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../collections/Array.ts"
+import * as Arr from "../Array.ts"
 import { format, formatPropertyKey } from "../Formatter.ts"
 import * as Option from "../Option.ts"
 import * as Predicate from "../Predicate.ts"

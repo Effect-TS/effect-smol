@@ -1,7 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { assertFalse, assertNone, assertSome, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Equivalence, Option } from "effect"
-import { Iterable as Iter } from "effect/collections"
+import { Equivalence, Iterable as Iter, Option } from "effect"
 import { pipe } from "effect/Function"
 import type { Predicate } from "effect/Predicate"
 

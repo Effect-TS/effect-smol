@@ -1,5 +1,4 @@
-import { Effect, Layer, Ref, ServiceMap } from "effect"
-import { Array as Arr } from "effect/collections"
+import { Array as Arr, Effect, Layer, Ref, ServiceMap } from "effect"
 
 export interface TestAction {
   readonly command: string

@@ -1,7 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { assertFalse, assertTrue, strictEqual } from "@effect/vitest/utils"
-import { Deferred, Effect, Exit, Fiber, FiberSet, pipe, Ref, Scope } from "effect"
-import { Array } from "effect/collections"
+import { Array, Deferred, Effect, Exit, Fiber, FiberSet, pipe, Ref, Scope } from "effect"
 import { TestClock } from "effect/testing"
 
 describe("FiberSet", () => {

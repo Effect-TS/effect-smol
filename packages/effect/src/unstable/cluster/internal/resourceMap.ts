@@ -1,7 +1,7 @@
-import * as MutableHashMap from "../../../collections/MutableHashMap.ts"
 import * as Deferred from "../../../Deferred.ts"
 import * as Effect from "../../../Effect.ts"
 import * as Exit from "../../../Exit.ts"
+import * as MutableHashMap from "../../../MutableHashMap.ts"
 import * as MutableRef from "../../../MutableRef.ts"
 import * as Option from "../../../Option.ts"
 import * as Scope from "../../../Scope.ts"

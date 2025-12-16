@@ -6,7 +6,7 @@
  * @since 2.0.0
  */
 
-import type { NonEmptyArray } from "./collections/Array.ts"
+import type { NonEmptyArray } from "./Array.ts"
 import { dual } from "./Function.ts"
 import * as readonlyArray from "./internal/array.ts"
 import * as number from "./Number.ts"

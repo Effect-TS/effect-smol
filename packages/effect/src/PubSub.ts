@@ -30,14 +30,14 @@
  *
  * @since 2.0.0
  */
-import * as Arr from "./collections/Array.ts"
-import * as MutableList from "./collections/MutableList.ts"
+import * as Arr from "./Array.ts"
 import * as Deferred from "./Deferred.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import type { LazyArg } from "./Function.ts"
 import { dual, identity } from "./Function.ts"
 import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
+import * as MutableList from "./MutableList.ts"
 import * as MutableRef from "./MutableRef.ts"
 import { nextPow2 } from "./Number.ts"
 import * as Scope from "./Scope.ts"

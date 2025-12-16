@@ -5,7 +5,7 @@
  *
  * @since 2.0.0
  */
-import * as Arr from "./collections/Array.ts"
+import * as Arr from "./Array.ts"
 import * as Option from "./Option.ts"
 import * as Result from "./Result.ts"
 import * as AST from "./schema/AST.ts"

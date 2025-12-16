@@ -9,7 +9,7 @@
  *
  * @since 4.0.0
  */
-import * as Chunk from "../collections/Chunk.ts"
+import * as Chunk from "../Chunk.ts"
 import * as Effect from "../Effect.ts"
 import { format } from "../Formatter.ts"
 import { dual } from "../Function.ts"
@@ -33,7 +33,7 @@ const TypeId = "~effect/transactions/TxChunk"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -99,7 +99,7 @@ const TxChunkProto = {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -159,7 +159,7 @@ export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -194,7 +194,7 @@ export const fromIterable = <A>(iterable: Iterable<A>): Effect.Effect<TxChunk<A>
  *
  * @example
  * ```ts
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk, TxRef } from "effect/stm"
  *
  * // Create a TxChunk from an existing TxRef (advanced usage)
@@ -223,7 +223,7 @@ export const makeUnsafe = <A>(ref: TxRef.TxRef<Chunk.Chunk<A>>): TxChunk<A> => {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -267,7 +267,7 @@ export const modify: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -300,7 +300,7 @@ export const update: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -330,7 +330,7 @@ export const get = <A>(self: TxChunk<A>): Effect.Effect<Chunk.Chunk<A>> => TxRef
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -362,7 +362,7 @@ export const set: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -396,7 +396,7 @@ export const append: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -512,7 +512,7 @@ export const isNonEmpty = <A>(self: TxChunk<A>): Effect.Effect<boolean> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -543,7 +543,7 @@ export const take: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -574,7 +574,7 @@ export const drop: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -610,7 +610,7 @@ export const slice: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -645,7 +645,7 @@ export const map: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -683,7 +683,7 @@ export const filter: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -720,7 +720,7 @@ export const appendAll: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {
@@ -759,7 +759,7 @@ export const prependAll: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Chunk } from "effect/collections"
+ * import { Chunk } from "effect"
  * import { TxChunk } from "effect/stm"
  *
  * const program = Effect.gen(function*() {

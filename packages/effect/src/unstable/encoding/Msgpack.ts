@@ -3,9 +3,9 @@
  */
 import { Packr, Unpackr } from "msgpackr"
 import * as Msgpackr from "msgpackr"
+import * as Arr from "../../Array.ts"
 import * as Channel from "../../Channel.ts"
 import * as ChannelSchema from "../../ChannelSchema.ts"
-import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"

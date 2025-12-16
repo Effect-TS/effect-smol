@@ -23,7 +23,7 @@
  * ## Basic Usage
  *
  * ```ts
- * import * as NonEmptyIterable from "effect/collections/NonEmptyIterable"
+ * import * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
  * // NonEmptyIterable is a type that represents any iterable with at least one element
  * function processNonEmpty<A>(data: NonEmptyIterable.NonEmptyIterable<A>): A {
@@ -54,9 +54,9 @@
  *
  * ```ts
  * import { pipe } from "effect"
- * import * as NonEmptyIterable from "effect/collections/NonEmptyIterable"
- * import { Array } from "effect/collections"
- * import * as Chunk from "effect/collections/Chunk"
+ * import * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import { Array } from "effect"
+ * import * as Chunk from "effect/Chunk"
  *
  * // Creating non-empty arrays
  * const nonEmptyArray = Array.make(1, 2, 3) as unknown as NonEmptyIterable.NonEmptyIterable<number>
@@ -94,9 +94,9 @@
  *
  * ```ts
  * import { pipe } from "effect"
- * import * as NonEmptyIterable from "effect/collections/NonEmptyIterable"
- * import { Array } from "effect/collections"
- * import * as Chunk from "effect/collections/Chunk"
+ * import * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import { Array } from "effect"
+ * import * as Chunk from "effect/Chunk"
  *
  * // Many Array functions work with NonEmptyIterable
  * declare const nonEmptyData: NonEmptyIterable.NonEmptyIterable<number>
@@ -128,7 +128,7 @@
  *
  * @example
  * ```ts
- * import * as NonEmptyIterable from "effect/collections/NonEmptyIterable"
+ * import * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
  * // The symbol is used internally for type branding
  * declare const data: NonEmptyIterable<number>
@@ -161,9 +161,9 @@ export declare const nonEmpty: unique symbol
  *
  * @example
  * ```ts
- * import * as NonEmptyIterable from "effect/collections/NonEmptyIterable"
- * import { Array } from "effect/collections"
- * import * as Chunk from "effect/collections/Chunk"
+ * import * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import { Array } from "effect"
+ * import * as Chunk from "effect/Chunk"
  *
  * // Function that requires non-empty data
  * function getFirst<A>(data: NonEmptyIterable.NonEmptyIterable<A>): A {
@@ -210,9 +210,9 @@ export interface NonEmptyIterable<out A> extends Iterable<A> {
  *
  * @example
  * ```ts
- * import * as NonEmptyIterable from "effect/collections/NonEmptyIterable"
- * import { Array } from "effect/collections"
- * import * as Chunk from "effect/collections/Chunk"
+ * import * as NonEmptyIterable from "effect/NonEmptyIterable"
+ * import { Array } from "effect"
+ * import * as Chunk from "effect/Chunk"
  *
  * // Helper to make iterator iterable for Array.from
  * const iteratorToIterable = <T>(iterator: Iterator<T>): Iterable<T> => ({

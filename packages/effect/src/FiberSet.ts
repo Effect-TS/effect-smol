@@ -2,7 +2,6 @@
  * @since 2.0.0
  */
 import * as Cause from "./Cause.ts"
-import * as Iterable from "./collections/Iterable.ts"
 import * as Deferred from "./Deferred.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
@@ -12,6 +11,7 @@ import { constVoid, dual } from "./Function.ts"
 import type * as Inspectable from "./interfaces/Inspectable.ts"
 import { type Pipeable } from "./interfaces/Pipeable.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
+import * as Iterable from "./Iterable.ts"
 import * as Predicate from "./Predicate.ts"
 import type * as Scope from "./Scope.ts"
 import type { ServiceMap } from "./ServiceMap.ts"

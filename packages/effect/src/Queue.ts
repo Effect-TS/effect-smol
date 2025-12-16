@@ -33,9 +33,8 @@
  *
  * @since 3.8.0
  */
+import * as Arr from "./Array.ts"
 import type { Cause } from "./Cause.ts"
-import * as Arr from "./collections/Array.ts"
-import * as MutableList from "./collections/MutableList.ts"
 import type { Effect } from "./Effect.ts"
 import type { Exit, Failure } from "./Exit.ts"
 import * as Filter from "./Filter.ts"
@@ -44,6 +43,7 @@ import type { Inspectable } from "./interfaces/Inspectable.ts"
 import * as core from "./internal/core.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as internalEffect from "./internal/effect.ts"
+import * as MutableList from "./MutableList.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as Pull from "./Pull.ts"
 import type { Scheduler } from "./Scheduler.ts"

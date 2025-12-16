@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 import type { YieldableError } from "../../Cause.ts"
-import * as Iterable from "../../collections/Iterable.ts"
 import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
+import * as Iterable from "../../Iterable.ts"
 import type * as FileSystem from "../../platform/FileSystem.ts"
 import * as Annotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"
