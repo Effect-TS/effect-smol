@@ -1,6 +1,5 @@
-import { Effect, Layer, MutableRef, Queue, Schedule, ServiceMap } from "effect"
+import { Effect, Layer, MutableRef, Queue, Schedule, ServiceMap, Stream } from "effect"
 import { Schema } from "effect/schema"
-import { Stream } from "effect/stream"
 import type { Envelope } from "effect/unstable/cluster"
 import { ClusterSchema, Entity } from "effect/unstable/cluster"
 import type { RpcGroup } from "effect/unstable/rpc"

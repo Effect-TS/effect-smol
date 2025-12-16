@@ -3,18 +3,18 @@
  */
 import { Packr, Unpackr } from "msgpackr"
 import * as Msgpackr from "msgpackr"
+import * as Channel from "../../Channel.ts"
+import * as ChannelSchema from "../../ChannelSchema.ts"
 import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
+import type * as Pull from "../../Pull.ts"
 import * as Issue from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
-import * as Channel from "../../stream/Channel.ts"
-import * as ChannelSchema from "../../stream/ChannelSchema.ts"
-import type * as Pull from "../../stream/Pull.ts"
 
 const MsgPackErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
 

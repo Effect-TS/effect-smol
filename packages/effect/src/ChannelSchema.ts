@@ -1,11 +1,11 @@
 /**
  * @since 4.0.0
  */
-import type * as Arr from "../collections/Array.ts"
-import * as Effect from "../Effect.ts"
-import { dual } from "../Function.ts"
-import * as Schema from "../schema/Schema.ts"
 import * as Channel from "./Channel.ts"
+import type * as Arr from "./collections/Array.ts"
+import * as Effect from "./Effect.ts"
+import { dual } from "./Function.ts"
+import * as Schema from "./schema/Schema.ts"
 
 /**
  * @since 4.0.0

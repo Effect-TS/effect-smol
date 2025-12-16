@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Channel from "../../Channel.ts"
 import * as Arr from "../../collections/Array.ts"
 import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
@@ -11,14 +12,13 @@ import { constant, dual } from "../../Function.ts"
 import * as Inspectable from "../../interfaces/Inspectable.ts"
 import * as FileSystem from "../../platform/FileSystem.ts"
 import * as Path from "../../platform/Path.ts"
+import * as Pull from "../../Pull.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import * as Channel from "../../stream/Channel.ts"
-import * as Pull from "../../stream/Pull.ts"
-import * as Stream from "../../stream/Stream.ts"
+import * as Stream from "../../Stream.ts"
 import * as IncomingMessage from "./HttpIncomingMessage.ts"
 import * as MP from "./Multipasta.ts"
 

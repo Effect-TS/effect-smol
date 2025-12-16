@@ -1,7 +1,7 @@
 import type * as Arr from "effect/collections/Array"
 import * as Effect from "effect/Effect"
 import * as Queue from "effect/Queue"
-import * as Stream from "effect/stream/Stream"
+import * as Stream from "effect/Stream"
 
 export interface ChunkCoordination<A> {
   readonly queue: Queue.Queue<Arr.NonEmptyReadonlyArray<A>, Queue.Done>

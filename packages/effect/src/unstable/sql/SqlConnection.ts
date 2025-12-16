@@ -4,7 +4,7 @@
 import type { Effect } from "../../Effect.ts"
 import type { Scope } from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import type { Stream } from "../../stream/Stream.ts"
+import type { Stream } from "../../Stream.ts"
 import type { SqlError } from "./SqlError.ts"
 
 /**

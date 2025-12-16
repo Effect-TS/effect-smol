@@ -11,7 +11,7 @@ import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import * as Stream from "../../stream/Stream.ts"
+import * as Stream from "../../Stream.ts"
 
 /**
  * @since 4.0.0

@@ -1,9 +1,9 @@
 /**
  * @since 2.0.0
  */
-import type { NonEmptyReadonlyArray } from "../collections/Array.ts"
-import * as Effect from "../Effect.ts"
-import * as Exit from "../Exit.ts"
+import type { NonEmptyReadonlyArray } from "./collections/Array.ts"
+import * as Effect from "./Effect.ts"
+import * as Exit from "./Exit.ts"
 import * as Pull from "./Pull.ts"
 
 /**

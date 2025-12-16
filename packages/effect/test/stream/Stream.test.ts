@@ -1,12 +1,11 @@
 /* eslint-disable no-restricted-syntax */
 import { assert, describe, it } from "@effect/vitest"
 import { assertExitFailure, assertSuccess, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Cause, Clock, Deferred, Duration, Effect, Exit, Fiber, Queue, Ref, Schedule } from "effect"
+import { Cause, Clock, Deferred, Duration, Effect, Exit, Fiber, Queue, Ref, Schedule, Sink, Stream } from "effect"
 import { Array } from "effect/collections"
 import { isReadonlyArrayNonEmpty, type NonEmptyArray } from "effect/collections/Array"
 import { Filter, Option } from "effect/data"
 import { constFalse, constTrue, constVoid, pipe } from "effect/Function"
-import { Sink, Stream } from "effect/stream"
 import { TestClock } from "effect/testing"
 import * as fc from "effect/testing/FastCheck"
 import { assertFailure } from "../utils/assert.ts"

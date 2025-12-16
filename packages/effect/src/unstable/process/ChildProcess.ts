@@ -7,7 +7,7 @@
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Stream } from "effect/stream"
+ * import { Stream } from "effect"
  * import { ChildProcess } from "effect/unstable/process"
  * import { NodeServices } from "@effect/platform-node"
  *
@@ -49,8 +49,8 @@ import type { Pipeable } from "../../interfaces/Pipeable.ts"
 import { PipeInspectableProto, YieldableProto } from "../../internal/core.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
 import type * as Scope from "../../Scope.ts"
-import type * as Sink from "../../stream/Sink.ts"
-import type * as Stream from "../../stream/Stream.ts"
+import type * as Sink from "../../Sink.ts"
+import type * as Stream from "../../Stream.ts"
 import type { ChildProcessHandle } from "./ChildProcessSpawner.ts"
 import { ChildProcessSpawner } from "./ChildProcessSpawner.ts"
 
@@ -741,7 +741,7 @@ export const pipeTo: {
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { Stream } from "effect/stream"
+ * import { Stream } from "effect"
  * import { ChildProcess } from "effect/unstable/process"
  * import { NodeServices } from "@effect/platform-node"
  *

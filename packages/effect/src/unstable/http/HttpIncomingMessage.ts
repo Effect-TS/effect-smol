@@ -9,7 +9,7 @@ import type * as FileSystem from "../../platform/FileSystem.ts"
 import type { ParseOptions } from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import type * as Stream from "../../stream/Stream.ts"
+import type * as Stream from "../../Stream.ts"
 import type * as Headers from "./Headers.ts"
 import * as UrlParams from "./UrlParams.ts"
 

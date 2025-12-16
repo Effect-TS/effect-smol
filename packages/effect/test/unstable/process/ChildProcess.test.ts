@@ -2,8 +2,8 @@ import { assert, describe, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import type * as PlatformError from "effect/platform/PlatformError"
-import * as Sink from "effect/stream/Sink"
-import * as Stream from "effect/stream/Stream"
+import * as Sink from "effect/Sink"
+import * as Stream from "effect/Stream"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
 const MockExecutorLayer = Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, {

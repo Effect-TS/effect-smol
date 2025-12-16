@@ -1,12 +1,12 @@
 import { assert, describe, it } from "@effect/vitest"
 import { assertFailure, assertTrue } from "@effect/vitest/utils"
 import { Deferred, pipe, Ref } from "effect"
+import * as Channel from "effect/Channel"
 import * as Chunk from "effect/collections/Chunk"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import * as Queue from "effect/Queue"
-import * as Channel from "effect/stream/Channel"
 
 describe("Channel", () => {
   describe("constructors", () => {

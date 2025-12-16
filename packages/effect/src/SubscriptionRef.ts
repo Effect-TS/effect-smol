@@ -1,16 +1,16 @@
 /**
  * @since 2.0.0
  */
-import * as Option from "../data/Option.ts"
-import * as Effect from "../Effect.ts"
-import { dual, identity } from "../Function.ts"
-import { PipeInspectableProto } from "../internal/core.ts"
-import * as PubSub from "../PubSub.ts"
-import * as Ref from "../Ref.ts"
-import type { Invariant } from "../types/Types.ts"
+import * as Option from "./data/Option.ts"
+import * as Effect from "./Effect.ts"
+import { dual, identity } from "./Function.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import * as PubSub from "./PubSub.ts"
+import * as Ref from "./Ref.ts"
 import * as Stream from "./Stream.ts"
+import type { Invariant } from "./types/Types.ts"
 
-const TypeId = "~effect/stream/SubscriptionRef"
+const TypeId = "~effect/SubscriptionRef"
 
 /**
  * @since 2.0.0
@@ -78,7 +78,7 @@ export const make: <A>(value: A) => Effect.Effect<SubscriptionRef<A>> = Effect.f
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Stream, SubscriptionRef } from "effect/stream"
+ * import { Stream, SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(0)
@@ -118,7 +118,7 @@ export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> =>
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(42)
@@ -139,7 +139,7 @@ export const getUnsafe = <A>(self: SubscriptionRef<A>): A => self.backing.ref.cu
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(42)
@@ -161,7 +161,7 @@ export const get = <A>(self: SubscriptionRef<A>): Effect.Effect<A> => Effect.syn
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -193,7 +193,7 @@ export const getAndSet: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -227,7 +227,7 @@ export const getAndUpdate: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -269,7 +269,7 @@ export const getAndUpdateEffect: {
  * ```ts
  * import { Effect } from "effect"
  * import { Option } from "effect/data"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -313,7 +313,7 @@ export const getAndUpdateSome: {
  * ```ts
  * import { Effect } from "effect"
  * import { Option } from "effect/data"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -362,7 +362,7 @@ export const getAndUpdateSomeEffect: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -402,7 +402,7 @@ export const modify: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -449,7 +449,7 @@ export const modifyEffect: {
  * ```ts
  * import { Effect } from "effect"
  * import { Option } from "effect/data"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -497,7 +497,7 @@ export const modifySome: {
  * ```ts
  * import { Effect } from "effect"
  * import { Option } from "effect/data"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -549,7 +549,7 @@ export const modifySomeEffect: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(0)
@@ -580,7 +580,7 @@ export const set: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(0)
@@ -609,7 +609,7 @@ export const setAndGet: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -641,7 +641,7 @@ export const update: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -680,7 +680,7 @@ export const updateEffect: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -711,7 +711,7 @@ export const updateAndGet: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -750,7 +750,7 @@ export const updateAndGetEffect: {
  * ```ts
  * import { Effect } from "effect"
  * import { Option } from "effect/data"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -792,7 +792,7 @@ export const updateSome: {
  * ```ts
  * import { Effect } from "effect"
  * import { Option } from "effect/data"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -841,7 +841,7 @@ export const updateSomeEffect: {
  * ```ts
  * import { Effect } from "effect"
  * import { Option } from "effect/data"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)
@@ -882,7 +882,7 @@ export const updateSomeAndGet: {
  * ```ts
  * import { Effect } from "effect"
  * import { Option } from "effect/data"
- * import { SubscriptionRef } from "effect/stream"
+ * import { SubscriptionRef } from "effect"
  *
  * const program = Effect.gen(function* () {
  *   const ref = yield* SubscriptionRef.make(10)

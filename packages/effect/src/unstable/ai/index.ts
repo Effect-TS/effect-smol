@@ -107,7 +107,7 @@ export * as AiError from "./AiError.ts"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Stream } from "effect/stream"
+ * import { Stream } from "effect"
  * import { Chat, LanguageModel } from "effect/unstable/ai"
  *
  * // Streaming chat with tool support

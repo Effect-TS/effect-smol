@@ -1,25 +1,25 @@
 /**
  * @since 2.0.0
  */
-import type * as Cause from "../Cause.ts"
-import type { NonEmptyReadonlyArray } from "../collections/Array.ts"
-import * as Arr from "../collections/Array.ts"
-import * as Chunk from "../collections/Chunk.ts"
-import * as Filter from "../data/Filter.ts"
-import * as Option from "../data/Option.ts"
-import type { Predicate } from "../data/Predicate.ts"
-import { hasProperty } from "../data/Predicate.ts"
-import * as Effect from "../Effect.ts"
-import type { LazyArg } from "../Function.ts"
-import { constant, constTrue, constVoid, dual, identity } from "../Function.ts"
-import { type Pipeable, pipeArguments } from "../interfaces/Pipeable.ts"
-import type * as Scope from "../Scope.ts"
-import * as Channel from "../stream/Channel.ts"
-import type * as Types from "../types/Types.ts"
-import type * as Unify from "../types/Unify.ts"
+import type * as Cause from "./Cause.ts"
+import * as Channel from "./Channel.ts"
+import type { NonEmptyReadonlyArray } from "./collections/Array.ts"
+import * as Arr from "./collections/Array.ts"
+import * as Chunk from "./collections/Chunk.ts"
+import * as Filter from "./data/Filter.ts"
+import * as Option from "./data/Option.ts"
+import type { Predicate } from "./data/Predicate.ts"
+import { hasProperty } from "./data/Predicate.ts"
+import * as Effect from "./Effect.ts"
+import type { LazyArg } from "./Function.ts"
+import { constant, constTrue, constVoid, dual, identity } from "./Function.ts"
+import { type Pipeable, pipeArguments } from "./interfaces/Pipeable.ts"
 import * as Pull from "./Pull.ts"
+import type * as Scope from "./Scope.ts"
+import type * as Types from "./types/Types.ts"
+import type * as Unify from "./types/Unify.ts"
 
-const TypeId = "~effect/stream/Sink"
+const TypeId = "~effect/Sink"
 
 /**
  * A `Sink<A, In, L, E, R>` is used to consume elements produced by a `Stream`.
@@ -30,8 +30,8 @@ const TypeId = "~effect/stream/Sink"
  *
  * @example
  * ```ts
- * import * as Sink from "effect/stream/Sink"
- * import * as Stream from "effect/stream/Stream"
+ * import * as Sink from "effect/Sink"
+ * import * as Stream from "effect/Stream"
  * import { Effect } from "effect"
  *
  * // Create a simple sink that always succeeds with a value
@@ -76,7 +76,7 @@ const endVoid = Pull.halt([void 0] as End<void, never>)
  *
  * @example
  * ```ts
- * import type * as Sink from "effect/stream/Sink"
+ * import type * as Sink from "effect/Sink"
  * import type { Effect } from "effect"
  * import type * as Unify from "effect/types/Unify"
  *
@@ -110,7 +110,7 @@ export interface SinkUnify<A extends { [Unify.typeSymbol]?: any }> extends Effec
  *
  * @example
  * ```ts
- * import type * as Sink from "effect/stream/Sink"
+ * import type * as Sink from "effect/Sink"
  *
  * // Used internally by the type system
  * type IgnoreConfig = Sink.SinkUnifyIgnore
@@ -128,7 +128,7 @@ export interface SinkUnifyIgnore extends Effect.EffectUnifyIgnore {
  *
  * @example
  * ```ts
- * import type * as Sink from "effect/stream/Sink"
+ * import type * as Sink from "effect/Sink"
  *
  * // The Sink namespace contains internal type definitions
  * // These are used internally for type safety and variance
@@ -145,7 +145,7 @@ export declare namespace Sink {
    *
    * @example
    * ```ts
-   * import type * as Sink from "effect/stream/Sink"
+   * import type * as Sink from "effect/Sink"
    *
    * // The variance interface is used internally
    * // It defines how type parameters behave in Sink
@@ -164,7 +164,7 @@ export declare namespace Sink {
    *
    * @example
    * ```ts
-   * import type * as Sink from "effect/stream/Sink"
+   * import type * as Sink from "effect/Sink"
    *
    * // The variance structure is used internally by the type system
    * // It ensures proper type safety for Sink operations
@@ -203,7 +203,7 @@ const SinkProto = {
  *
  * @example
  * ```ts
- * import { Sink } from "effect/stream"
+ * import { Sink } from "effect"
  *
  * const sink = Sink.never
  * const notStream = { data: [1, 2, 3] }
@@ -257,8 +257,8 @@ export const fromTransform = <L, In, E, A, R, EX, RX>(
  *
  * @example
  * ```ts
- * import { Sink } from "effect/stream"
- * import { Channel } from "effect/stream"
+ * import { Sink } from "effect"
+ * import { Channel } from "effect"
  *
  * // Create a sink and extract its channel
  * const sink = Sink.succeed(42)
@@ -277,8 +277,8 @@ export const toChannel = <A, In, L, E, R>(
  *
  * @example
  * ```ts
- * import { Sink } from "effect/stream"
- * import { Stream } from "effect/stream"
+ * import { Sink } from "effect"
+ * import { Stream } from "effect"
  * import { Effect } from "effect"
  *
  * // Create a sink that always yields the same value
@@ -320,8 +320,8 @@ export const suspend = <A, In, L, E, R>(evaluate: LazyArg<Sink<A, In, L, E, R>>)
  *
  * @example
  * ```ts
- * import { Sink } from "effect/stream"
- * import { Stream } from "effect/stream"
+ * import { Sink } from "effect"
+ * import { Stream } from "effect"
  * import { Effect } from "effect"
  *
  * // Create a sink that always fails
@@ -345,8 +345,8 @@ export const fail = <E>(e: E): Sink<never, unknown, never, E> => fromChannel(Cha
  *
  * @example
  * ```ts
- * import { Sink } from "effect/stream"
- * import { Stream } from "effect/stream"
+ * import { Sink } from "effect"
+ * import { Stream } from "effect"
  * import { Effect } from "effect"
  *
  * // Create a sink that fails with a lazy error
@@ -371,8 +371,8 @@ export const failSync = <E>(evaluate: LazyArg<E>): Sink<never, unknown, never, E
  *
  * @example
  * ```ts
- * import { Sink } from "effect/stream"
- * import { Stream } from "effect/stream"
+ * import { Sink } from "effect"
+ * import { Stream } from "effect"
  * import { Effect, Cause } from "effect"
  *
  * // Create a sink that fails with a specific cause
@@ -397,8 +397,8 @@ export const failCause = <E>(cause: Cause.Cause<E>): Sink<never, unknown, never,
  *
  * @example
  * ```ts
- * import { Sink } from "effect/stream"
- * import { Stream } from "effect/stream"
+ * import { Sink } from "effect"
+ * import { Stream } from "effect"
  * import { Effect, Cause } from "effect"
  *
  * // Create a sink that fails with a lazy cause
@@ -425,8 +425,8 @@ export const failCauseSync = <E>(evaluate: LazyArg<Cause.Cause<E>>): Sink<never,
  *
  * @example
  * ```ts
- * import { Sink } from "effect/stream"
- * import { Stream } from "effect/stream"
+ * import { Sink } from "effect"
+ * import { Stream } from "effect"
  * import { Effect } from "effect"
  *
  * // Create a sink that dies with a defect
@@ -1047,7 +1047,7 @@ export const collectAllFilterEffect = <In, Out, X, E, R>(
  * ```ts
  * import { Effect } from "effect"
  * import { Console } from "effect"
- * import { Sink, Stream } from "effect/stream"
+ * import { Sink, Stream } from "effect"
  *
  * // Create a sink that logs each item
  * const sink = Sink.forEach((item: number) => Console.log(`Processing: ${item}`))
@@ -1078,7 +1078,7 @@ export const forEach = <In, X, E, R>(
  * ```ts
  * import { Effect } from "effect"
  * import { Console } from "effect"
- * import { Sink, Stream } from "effect/stream"
+ * import { Sink, Stream } from "effect"
  *
  * // Create a sink that processes chunks
  * const sink = Sink.forEachArray((chunk: readonly number[]) =>
@@ -1116,7 +1116,7 @@ export const forEachArray = <In, X, E, R>(
  * ```ts
  * import { Effect } from "effect"
  * import { Console } from "effect"
- * import { Sink, Stream } from "effect/stream"
+ * import { Sink, Stream } from "effect"
  *
  * // Create a sink from an effect that produces a sink
  * const sinkEffect = Effect.succeed(Sink.forEach((item: number) => Console.log(`Item: ${item}`)))

@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Channel from "../../Channel.ts"
 import type * as Arr from "../../collections/Array.ts"
 import type { ReadonlyRecord } from "../../data/Record.ts"
 import * as Result from "../../data/Result.ts"
@@ -12,8 +13,7 @@ import type { ParseOptions } from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import * as Channel from "../../stream/Channel.ts"
-import * as Stream from "../../stream/Stream.ts"
+import * as Stream from "../../Stream.ts"
 import * as Socket from "../socket/Socket.ts"
 import * as Cookies from "./Cookies.ts"
 import * as Headers from "./Headers.ts"

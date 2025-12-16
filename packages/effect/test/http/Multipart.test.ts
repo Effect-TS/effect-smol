@@ -1,7 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
-import { Effect, identity } from "effect"
-import { Stream } from "effect/stream"
+import { Effect, identity, Stream } from "effect"
 import { Unify } from "effect/types"
 import * as Multipart from "effect/unstable/http/Multipart"
 

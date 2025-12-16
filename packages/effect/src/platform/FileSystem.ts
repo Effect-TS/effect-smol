@@ -43,11 +43,11 @@ import * as UndefinedOr from "../data/UndefinedOr.ts"
 import * as Effect from "../Effect.ts"
 import { pipe } from "../Function.ts"
 import * as Layer from "../Layer.ts"
+import * as Pull from "../Pull.ts"
 import type { Scope } from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
-import * as Pull from "../stream/Pull.ts"
-import * as Sink from "../stream/Sink.ts"
-import * as Stream from "../stream/Stream.ts"
+import * as Sink from "../Sink.ts"
+import * as Stream from "../Stream.ts"
 import type { PlatformError } from "./PlatformError.ts"
 import { BadArgument, SystemError } from "./PlatformError.ts"
 
@@ -1238,7 +1238,7 @@ export declare namespace WatchEvent {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Stream } from "effect/stream"
+ * import { Stream } from "effect"
  * import { FileSystem } from "effect/platform"
  *
  * // Custom watch backend implementation

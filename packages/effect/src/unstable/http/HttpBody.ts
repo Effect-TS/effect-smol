@@ -12,7 +12,7 @@ import type { ParseOptions } from "../../schema/AST.ts"
 import type { Issue } from "../../schema/Issue.ts"
 import * as Parser from "../../schema/Parser.ts"
 import * as Schema from "../../schema/Schema.ts"
-import type * as Stream_ from "../../stream/Stream.ts"
+import type * as Stream_ from "../../Stream.ts"
 import * as UrlParams from "./UrlParams.ts"
 
 const TypeId = "~effect/http/HttpBody"

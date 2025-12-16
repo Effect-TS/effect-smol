@@ -1,14 +1,14 @@
 /**
  * @since 4.0.0
  */
+import * as Channel from "../../Channel.ts"
+import * as ChannelSchema from "../../ChannelSchema.ts"
 import * as Arr from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import * as Filter from "../../data/Filter.ts"
 import * as Effect from "../../Effect.ts"
 import { dual, identity } from "../../Function.ts"
 import type * as Schema from "../../schema/Schema.ts"
-import * as Channel from "../../stream/Channel.ts"
-import * as ChannelSchema from "../../stream/ChannelSchema.ts"
 
 const NdjsonErrorTypeId = "~effect/encoding/Ndjson/NdjsonError"
 

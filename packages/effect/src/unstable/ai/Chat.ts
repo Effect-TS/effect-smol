@@ -30,7 +30,7 @@
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Stream } from "effect/stream"
+ * import { Stream } from "effect"
  * import { Chat, LanguageModel } from "effect/unstable/ai"
  *
  * // Streaming chat with tool support
@@ -47,6 +47,7 @@
  *
  * @since 4.0.0
  */
+import * as Channel from "../../Channel.ts"
 import * as Option from "../../data/Option.ts"
 import * as Predicate from "../../data/Predicate.ts"
 import * as Duration from "../../Duration.ts"
@@ -55,8 +56,7 @@ import * as Layer from "../../Layer.ts"
 import * as Ref from "../../Ref.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import * as Channel from "../../stream/Channel.ts"
-import * as Stream from "../../stream/Stream.ts"
+import * as Stream from "../../Stream.ts"
 import type { NoExcessProperties } from "../../types/Types.ts"
 import type { PersistenceError } from "../persistence/Persistence.ts"
 import { BackingPersistence } from "../persistence/Persistence.ts"
@@ -220,7 +220,7 @@ export interface Service {
    * @example
    * ```ts
    * import { Console, Effect } from "effect"
-   * import { Stream } from "effect/stream"
+   * import { Stream } from "effect"
    * import { Chat } from "effect/unstable/ai"
    *
    * const streamingChat = Effect.gen(function* () {

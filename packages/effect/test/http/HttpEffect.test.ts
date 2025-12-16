@@ -1,8 +1,7 @@
 import { describe, test } from "@effect/vitest"
 import { deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Effect, References, ServiceMap } from "effect"
+import { Effect, References, ServiceMap, Stream } from "effect"
 import * as Layer from "effect/Layer"
-import { Stream } from "effect/stream"
 import { HttpEffect, HttpServerResponse } from "effect/unstable/http"
 
 describe("Http/App", () => {

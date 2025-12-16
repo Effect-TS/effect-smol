@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Channel from "../../Channel.ts"
 import type { NonEmptyReadonlyArray } from "../../collections/Array.ts"
 import * as Data from "../../data/Data.ts"
 import * as Filter from "../../data/Filter.ts"
@@ -12,11 +13,10 @@ import * as Exit from "../../Exit.ts"
 import * as FiberSet from "../../FiberSet.ts"
 import { constVoid, dual } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
+import * as Pull from "../../Pull.ts"
 import * as Queue from "../../Queue.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import * as Channel from "../../stream/Channel.ts"
-import * as Pull from "../../stream/Pull.ts"
 
 /**
  * @since 4.0.0

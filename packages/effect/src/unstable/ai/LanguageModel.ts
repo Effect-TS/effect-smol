@@ -56,7 +56,7 @@ import * as Queue from "../../Queue.ts"
 import * as SchemaAnnotations from "../../schema/Annotations.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import * as Stream from "../../stream/Stream.ts"
+import * as Stream from "../../Stream.ts"
 import type { Span } from "../../Tracer.ts"
 import type { Concurrency, Mutable, NoExcessProperties } from "../../types/Types.ts"
 import * as AiError from "./AiError.ts"
@@ -982,7 +982,7 @@ export const generateObject = <
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { Stream } from "effect/stream"
+ * import { Stream } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
  *
  * const program = LanguageModel.streamText({

@@ -12,8 +12,8 @@ import * as Inspectable from "../../interfaces/Inspectable.ts"
 import type * as PlatformError from "../../platform/PlatformError.ts"
 import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import type * as Sink from "../../stream/Sink.ts"
-import type * as Stream from "../../stream/Stream.ts"
+import type * as Sink from "../../Sink.ts"
+import type * as Stream from "../../Stream.ts"
 import type { Command, KillOptions } from "./ChildProcess.ts"
 
 /**

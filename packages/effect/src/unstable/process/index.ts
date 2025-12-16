@@ -11,7 +11,7 @@
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { Stream } from "effect/stream"
+ * import { Stream } from "effect"
  * import { ChildProcess } from "effect/unstable/process"
  * import { NodeServices } from "@effect/platform-node"
  *

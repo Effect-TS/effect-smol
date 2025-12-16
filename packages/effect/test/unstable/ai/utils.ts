@@ -1,7 +1,6 @@
-import { Effect } from "effect"
+import { Effect, Stream } from "effect"
 import { Predicate } from "effect/data"
 import { dual } from "effect/Function"
-import { Stream } from "effect/stream"
 import type { Response } from "effect/unstable/ai"
 import { LanguageModel } from "effect/unstable/ai"
 
