@@ -60,7 +60,7 @@ function makeGuard<T extends AST["_tag"]>(tag: T) {
  * @since 4.0.0
  */
 export function isAST(u: unknown): u is AST {
-  return u instanceof Base
+  return Predicate.hasProperty(u, TypeId) && u[TypeId] === TypeId
 }
 
 /**
@@ -304,11 +304,14 @@ export class Context {
  */
 export type Checks = readonly [Check<any>, ...Array<Check<any>>]
 
+const TypeId = "~effect/schema/Schema"
+
 /**
  * @category model
  * @since 4.0.0
  */
 export abstract class Base {
+  readonly [TypeId] = TypeId
   abstract readonly _tag: string
   readonly annotations: Annotations.Annotations | undefined
   readonly checks: Checks | undefined
