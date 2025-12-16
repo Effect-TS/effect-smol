@@ -742,7 +742,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
       },
       Stream.unwrap,
       Stream.mapError((error) =>
-        error instanceof Schema.SchemaError
+        Schema.isSchemaError(error)
           ? AiError.MalformedOutput.fromSchemaError({
             module: "LanguageModel",
             method: "streamText",
