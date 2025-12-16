@@ -1,6 +1,7 @@
 /**
  * @since 1.0.0
  */
+import * as Channel from "effect/Channel"
 import * as Arr from "effect/collections/Array"
 import * as Config from "effect/Config"
 import * as Redacted from "effect/data/Redacted"
@@ -9,12 +10,11 @@ import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
 import * as Number from "effect/Number"
+import * as Pull from "effect/Pull"
 import * as Queue from "effect/Queue"
 import * as RcRef from "effect/RcRef"
 import * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
-import * as Channel from "effect/Channel"
-import * as Pull from "effect/Pull"
 import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as Client from "effect/unstable/sql/SqlClient"

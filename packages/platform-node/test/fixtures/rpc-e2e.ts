@@ -1,11 +1,10 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Effect, Fiber, ServiceMap } from "effect"
+import { Cause, Effect, Fiber, ServiceMap, Stream } from "effect"
 import { Option } from "effect/data"
 // @ts-ignore
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { NodeInspectSymbol } from "effect/interfaces/Inspectable"
 import * as Layer from "effect/Layer"
-import { Stream } from "effect"
 import * as RpcClient from "effect/unstable/rpc/RpcClient"
 import type { RpcClientError } from "effect/unstable/rpc/RpcClientError"
 import type * as RpcGroup from "effect/unstable/rpc/RpcGroup"

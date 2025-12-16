@@ -1,6 +1,7 @@
 /**
  * @since 1.0.0
  */
+import * as Channel from "effect/Channel"
 import type { Array } from "effect/collections"
 import * as Deferred from "effect/Deferred"
 import type * as Duration from "effect/Duration"
@@ -10,7 +11,6 @@ import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
-import * as Channel from "effect/Channel"
 import * as Socket from "effect/unstable/socket/Socket"
 import * as Net from "node:net"
 import type { Duplex } from "node:stream"
