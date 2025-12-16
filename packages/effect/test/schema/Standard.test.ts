@@ -67,6 +67,10 @@ describe("Standard", () => {
             Schema.String.check(Schema.isMinLength(10)),
             `Schema.String.check(Schema.isMinLength(10))`
           )
+          assertJsonSchemaRoundtrip(
+            Schema.String.check(Schema.isMinLength(10, { description: "a" })),
+            `Schema.String.check(Schema.isMinLength(10, { "description": "a" }))`
+          )
         })
 
         it("isMaxLength", () => {
@@ -150,6 +154,17 @@ describe("Standard", () => {
           Schema.Struct({ a: Schema.String }),
           `Schema.Struct({ "a": Schema.String })`
         )
+      })
+    })
+
+    describe("Array", () => {
+      describe("checks", () => {
+        it("isMinLength", () => {
+          assertJsonSchemaRoundtrip(
+            Schema.Array(Schema.String).check(Schema.isMinLength(3)),
+            `Schema.Array(Schema.String).check(Schema.isMinLength(3))`
+          )
+        })
       })
     })
   })
@@ -1402,11 +1417,11 @@ describe("Standard", () => {
       })
 
       it("Undefined", () => {
-        assertToJsonSchema(Schema.Undefined, { schema: {} })
+        assertToJsonSchema(Schema.Undefined, { schema: { not: {} } })
       })
 
       it("Void", () => {
-        assertToJsonSchema(Schema.Void, { schema: {} })
+        assertToJsonSchema(Schema.Void, { schema: { not: {} } })
       })
 
       it("Never", () => {
@@ -1425,18 +1440,18 @@ describe("Standard", () => {
         assertToJsonSchema(Schema.String, { schema: { type: "string" } })
         assertToJsonSchema(
           Schema.String.annotate({
-            title: "Name",
-            description: "A person's name",
-            default: "John",
-            examples: ["John", "Jane"]
+            title: "a",
+            description: "b",
+            default: "c",
+            examples: ["d"]
           }),
           {
             schema: {
               type: "string",
-              title: "Name",
-              description: "A person's name",
-              default: "John",
-              examples: ["John", "Jane"]
+              title: "a",
+              description: "b",
+              default: "c",
+              examples: ["d"]
             }
           }
         )
@@ -1455,17 +1470,17 @@ describe("Standard", () => {
       })
 
       it("BigInt", () => {
-        assertToJsonSchema(Schema.BigInt, { schema: {} })
+        assertToJsonSchema(Schema.BigInt, { schema: { not: {} } })
       })
 
       it("Symbol", () => {
-        assertToJsonSchema(Schema.Symbol, { schema: {} })
+        assertToJsonSchema(Schema.Symbol, { schema: { not: {} } })
       })
 
       it("UniqueSymbol", () => {
         assertToJsonSchema(
           Schema.UniqueSymbol(Symbol.for("test")),
-          { schema: {} }
+          { schema: { not: {} } }
         )
       })
     })
@@ -1710,15 +1725,15 @@ describe("Standard", () => {
       it("isMinLength", () => {
         assertToJsonSchema(
           Schema.String.check(Schema.isMinLength(5)),
-          { schema: { type: "string", minLength: 5 } }
+          { schema: { type: "string", allOf: [{ minLength: 5 }] } }
         )
         assertToJsonSchema(
           Schema.String.annotate({ description: "a" }).check(Schema.isMinLength(5)),
-          { schema: { type: "string", description: "a", minLength: 5 } }
+          { schema: { type: "string", description: "a", allOf: [{ minLength: 5 }] } }
         )
         assertToJsonSchema(
           Schema.String.check(Schema.isMinLength(5, { description: "b" })),
-          { schema: { type: "string", description: "b", minLength: 5 } }
+          { schema: { type: "string", allOf: [{ minLength: 5, description: "b" }] } }
         )
         assertToJsonSchema(
           Schema.String.annotate({ description: "a" }).check(Schema.isMinLength(5, { description: "b" })),
@@ -1729,78 +1744,109 @@ describe("Standard", () => {
       it("isMaxLength", () => {
         assertToJsonSchema(
           Schema.String.check(Schema.isMaxLength(10)),
-          { schema: { type: "string", maxLength: 10 } }
+          { schema: { type: "string", allOf: [{ maxLength: 10 }] } }
         )
       })
 
       it("isLength", () => {
         assertToJsonSchema(
           Schema.String.check(Schema.isLength(5)),
-          { schema: { type: "string", minLength: 5, maxLength: 5 } }
+          { schema: { type: "string", allOf: [{ minLength: 5, maxLength: 5 }] } }
         )
       })
 
       it("isPattern", () => {
         assertToJsonSchema(
           Schema.String.check(Schema.isPattern(new RegExp("^[a-z]+$"))),
-          { schema: { type: "string", pattern: "^[a-z]+$" } }
+          { schema: { type: "string", allOf: [{ pattern: "^[a-z]+$" }] } }
         )
       })
 
       it("isUUID", () => {
         assertToJsonSchema(
           Schema.String.check(Schema.isUUID(undefined)),
-          { schema: { type: "string", format: "uuid" } }
+          {
+            schema: {
+              type: "string",
+              allOf: [{
+                pattern:
+                  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
+              }]
+            }
+          }
         )
         assertToJsonSchema(
           Schema.String.check(Schema.isUUID(1)),
-          { schema: { type: "string", format: "uuid" } }
+          {
+            schema: {
+              type: "string",
+              allOf: [{
+                pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-1[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
+              }]
+            }
+          }
         )
       })
 
       it("isBase64", () => {
         assertToJsonSchema(
           Schema.String.check(Schema.isBase64()),
-          { schema: { type: "string", contentEncoding: "base64" } }
+          {
+            schema: {
+              type: "string",
+              allOf: [{ pattern: "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$" }]
+            }
+          }
         )
       })
 
       it("isBase64Url", () => {
         assertToJsonSchema(
           Schema.String.check(Schema.isBase64Url()),
-          { schema: { type: "string", contentEncoding: "base64url" } }
+          {
+            schema: {
+              type: "string",
+              allOf: [{ pattern: "^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$" }]
+            }
+          }
         )
       })
 
       it("multiple checks", () => {
         assertToJsonSchema(
           Schema.String.check(Schema.isMinLength(5), Schema.isMaxLength(10)),
-          { schema: { type: "string", minLength: 5, maxLength: 10 } }
+          { schema: { type: "string", allOf: [{ minLength: 5 }, { maxLength: 10 }] } }
         )
       })
 
       it("filter group", () => {
         assertToJsonSchema(
           Schema.String.check(Schema.makeFilterGroup([Schema.isMinLength(5), Schema.isMaxLength(10)])),
-          { schema: { type: "string", minLength: 5, maxLength: 10 } }
+          { schema: { type: "string", allOf: [{ allOf: [{ minLength: 5 }, { maxLength: 10 }] }] } }
         )
         assertToJsonSchema(
           Schema.String.annotate({ description: "a" }).check(
             Schema.makeFilterGroup([Schema.isMinLength(5), Schema.isMaxLength(10)])
           ),
-          { schema: { type: "string", description: "a", minLength: 5, maxLength: 10 } }
+          { schema: { type: "string", description: "a", allOf: [{ allOf: [{ minLength: 5 }, { maxLength: 10 }] }] } }
         )
         assertToJsonSchema(
           Schema.String.check(
             Schema.makeFilterGroup([Schema.isMinLength(5), Schema.isMaxLength(10)], { description: "b" })
           ),
-          { schema: { type: "string", description: "b", minLength: 5, maxLength: 10 } }
+          { schema: { type: "string", allOf: [{ description: "b", allOf: [{ minLength: 5 }, { maxLength: 10 }] }] } }
         )
         assertToJsonSchema(
           Schema.String.annotate({ description: "a" }).check(
             Schema.makeFilterGroup([Schema.isMinLength(5), Schema.isMaxLength(10)], { description: "b" })
           ),
-          { schema: { type: "string", description: "a", allOf: [{ description: "b", minLength: 5, maxLength: 10 }] } }
+          {
+            schema: {
+              type: "string",
+              description: "a",
+              allOf: [{ description: "b", allOf: [{ minLength: 5 }, { maxLength: 10 }] }]
+            }
+          }
         )
       })
     })
@@ -1809,61 +1855,61 @@ describe("Standard", () => {
       it("isInt", () => {
         assertToJsonSchema(
           Schema.Number.check(Schema.isInt()),
-          { schema: { type: "integer" } }
+          { schema: { type: "number", allOf: [{ type: "integer" }] } }
         )
         assertToJsonSchema(
           Schema.Number.annotate({ description: "a" }).check(Schema.isInt()),
-          { schema: { type: "integer", description: "a" } }
+          { schema: { type: "number", description: "a", allOf: [{ type: "integer" }] } }
         )
         assertToJsonSchema(
           Schema.Number.check(Schema.isInt({ description: "b" })),
-          { schema: { type: "integer", description: "b" } }
+          { schema: { type: "number", allOf: [{ type: "integer", description: "b" }] } }
         )
         assertToJsonSchema(
           Schema.Number.annotate({ description: "a" }).check(Schema.isInt({ description: "b" })),
-          { schema: { type: "integer", description: "a", allOf: [{ description: "b" }] } }
+          { schema: { type: "number", description: "a", allOf: [{ type: "integer", description: "b" }] } }
         )
       })
 
       it("isMultipleOf", () => {
         assertToJsonSchema(
           Schema.Number.check(Schema.isMultipleOf(5)),
-          { schema: { type: "number", multipleOf: 5 } }
+          { schema: { type: "number", allOf: [{ multipleOf: 5 }] } }
         )
       })
 
       it("isGreaterThanOrEqualTo", () => {
         assertToJsonSchema(
           Schema.Number.check(Schema.isGreaterThanOrEqualTo(10)),
-          { schema: { type: "number", minimum: 10 } }
+          { schema: { type: "number", allOf: [{ minimum: 10 }] } }
         )
       })
 
       it("isLessThanOrEqualTo", () => {
         assertToJsonSchema(
           Schema.Number.check(Schema.isLessThanOrEqualTo(100)),
-          { schema: { type: "number", maximum: 100 } }
+          { schema: { type: "number", allOf: [{ maximum: 100 }] } }
         )
       })
 
       it("isGreaterThan", () => {
         assertToJsonSchema(
           Schema.Number.check(Schema.isGreaterThan(10)),
-          { schema: { type: "number", exclusiveMinimum: 10 } }
+          { schema: { type: "number", allOf: [{ exclusiveMinimum: 10 }] } }
         )
       })
 
       it("isLessThan", () => {
         assertToJsonSchema(
           Schema.Number.check(Schema.isLessThan(100)),
-          { schema: { type: "number", exclusiveMaximum: 100 } }
+          { schema: { type: "number", allOf: [{ exclusiveMaximum: 100 }] } }
         )
       })
 
       it("isBetween", () => {
         assertToJsonSchema(
           Schema.Number.check(Schema.isBetween({ minimum: 1, maximum: 10 })),
-          { schema: { type: "number", minimum: 1, maximum: 10 } }
+          { schema: { type: "number", allOf: [{ minimum: 1, maximum: 10 }] } }
         )
       })
     })
@@ -1875,9 +1921,15 @@ describe("Standard", () => {
           Schema.Number.check(Schema.isInt32()),
           {
             schema: {
-              type: "integer",
-              minimum: -2147483648,
-              maximum: 2147483647
+              type: "number",
+              allOf: [
+                {
+                  allOf: [
+                    { type: "integer" },
+                    { minimum: -2147483648, maximum: 2147483647 }
+                  ]
+                }
+              ]
             }
           }
         )
@@ -2067,7 +2119,7 @@ describe("Standard", () => {
             },
             definitions: {}
           },
-          { schema: {} }
+          { schema: { not: {} } }
         )
       })
     })

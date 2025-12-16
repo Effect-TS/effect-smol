@@ -376,6 +376,7 @@ export interface BuiltInMetaRegistry {
   }
   readonly isTrimmed: {
     readonly _tag: "isTrimmed"
+    readonly regExp: RegExp
   }
   readonly isUUID: {
     readonly _tag: "isUUID"
@@ -397,26 +398,33 @@ export interface BuiltInMetaRegistry {
   readonly isStartsWith: {
     readonly _tag: "isStartsWith"
     readonly startsWith: string
+    readonly regExp: RegExp
   }
   readonly isEndsWith: {
     readonly _tag: "isEndsWith"
     readonly endsWith: string
+    readonly regExp: RegExp
   }
   readonly isIncludes: {
     readonly _tag: "isIncludes"
     readonly includes: string
+    readonly regExp: RegExp
   }
   readonly isUppercased: {
     readonly _tag: "isUppercased"
+    readonly regExp: RegExp
   }
   readonly isLowercased: {
     readonly _tag: "isLowercased"
+    readonly regExp: RegExp
   }
   readonly isCapitalized: {
     readonly _tag: "isCapitalized"
+    readonly regExp: RegExp
   }
   readonly isUncapitalized: {
     readonly _tag: "isUncapitalized"
+    readonly regExp: RegExp
   }
   // Number Meta
   readonly isFinite: {

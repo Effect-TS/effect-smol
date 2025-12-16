@@ -458,7 +458,8 @@ const IsSymbolString$ = Schema.Struct({
 }).annotate({ identifier: "IsSymbolString" })
 
 const IsTrimmed$ = Schema.Struct({
-  _tag: Schema.tag("isTrimmed")
+  _tag: Schema.tag("isTrimmed"),
+  regExp: Schema.RegExp
 }).annotate({ identifier: "IsTrimmed" })
 
 const IsUUID$ = Schema.Struct({
@@ -484,33 +485,40 @@ const IsBase64Url$ = Schema.Struct({
 
 const IsStartsWith$ = Schema.Struct({
   _tag: Schema.tag("isStartsWith"),
-  startsWith: Schema.String
+  startsWith: Schema.String,
+  regExp: Schema.RegExp
 }).annotate({ identifier: "IsStartsWith" })
 
 const IsEndsWith$ = Schema.Struct({
   _tag: Schema.tag("isEndsWith"),
-  endsWith: Schema.String
+  endsWith: Schema.String,
+  regExp: Schema.RegExp
 }).annotate({ identifier: "IsEndsWith" })
 
 const IsIncludes$ = Schema.Struct({
   _tag: Schema.tag("isIncludes"),
-  includes: Schema.String
+  includes: Schema.String,
+  regExp: Schema.RegExp
 }).annotate({ identifier: "IsIncludes" })
 
 const IsUppercased$ = Schema.Struct({
-  _tag: Schema.tag("isUppercased")
+  _tag: Schema.tag("isUppercased"),
+  regExp: Schema.RegExp
 }).annotate({ identifier: "IsUppercased" })
 
 const IsLowercased$ = Schema.Struct({
-  _tag: Schema.tag("isLowercased")
+  _tag: Schema.tag("isLowercased"),
+  regExp: Schema.RegExp
 }).annotate({ identifier: "IsLowercased" })
 
 const IsCapitalized$ = Schema.Struct({
-  _tag: Schema.tag("isCapitalized")
+  _tag: Schema.tag("isCapitalized"),
+  regExp: Schema.RegExp
 }).annotate({ identifier: "IsCapitalized" })
 
 const IsUncapitalized$ = Schema.Struct({
-  _tag: Schema.tag("isUncapitalized")
+  _tag: Schema.tag("isUncapitalized"),
+  regExp: Schema.RegExp
 }).annotate({ identifier: "IsUncapitalized" })
 
 const IsMinLength$ = Schema.Struct({
@@ -1418,6 +1426,8 @@ function toSchemaFilter(filter: Filter<Annotations.BuiltInMeta>): AST.Check<any>
   }
 }
 
+const unsupportedJsonSchema: Schema.JsonSchema = { not: {} }
+
 /**
  * Return a Draft 2020-12 JSON Schema Document.
  *
@@ -1432,29 +1442,37 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
 
   function recur(ast: StandardSchema): Schema.JsonSchema {
     let jsonSchema: Schema.JsonSchema = on(ast)
-    jsonSchema = mergeJsonSchemaAnnotations(jsonSchema, ast.annotations)
-    if ((ast._tag === "String" || ast._tag === "Number") && ast.checks.length > 0) {
-      jsonSchema = applyChecks(jsonSchema, ast.checks, ast._tag)
+    if (jsonSchema === unsupportedJsonSchema) return unsupportedJsonSchema
+    const a = collectJsonSchemaAnnotations(ast.annotations)
+    if (a) {
+      jsonSchema = { ...jsonSchema, ...a }
+    }
+    if ("checks" in ast) {
+      const checks = collectJsonSchemaChecks(ast.checks)
+      if (checks.length > 0) {
+        jsonSchema = appendJsonSchema(jsonSchema, { allOf: checks })
+      }
     }
     return jsonSchema
   }
 
   function on(schema: StandardSchema): Schema.JsonSchema {
     switch (schema._tag) {
+      case "Unknown":
+      case "Any":
+        return {}
+      case "Undefined":
+      case "Void":
+      case "BigInt":
+      case "Symbol":
+      case "UniqueSymbol":
+        return unsupportedJsonSchema
       case "Declaration":
-        return {} // TODO
+        return unsupportedJsonSchema // TODO
       case "Suspend":
         return { $ref: `#/$defs/${escapeJsonPointer(schema.$ref)}` }
       case "Null":
         return { type: "null" }
-      case "Undefined":
-      case "Void":
-      case "Unknown":
-      case "Any":
-      case "BigInt":
-      case "Symbol":
-      case "UniqueSymbol":
-        return {}
       case "Never":
         return { not: {} }
       case "String": {
@@ -1541,11 +1559,20 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
 
         for (const ps of schema.propertySignatures) {
           const name = typeof ps.name === "string" ? ps.name : globalThis.String(ps.name)
-          properties[name] = recur(ps.type)
-          // Property is required only if it's not explicitly optional AND doesn't contain Undefined
-          if (!ps.isOptional && !containsUndefined(ps.type)) {
-            required.push(name)
+          if (containsUndefined(ps.type)) {
+            const type = recur(ps.type)
+            if (Array.isArray(type.anyOf) && type.anyOf.length === 1 && Object.keys(type).length === 1) {
+              properties[name] = type.anyOf[0]
+            } else {
+              properties[name] = type
+            }
+          } else {
+            properties[name] = recur(ps.type)
+            if (!ps.isOptional) {
+              required.push(name)
+            }
           }
+          // Property is required only if it's not explicitly optional AND doesn't contain Undefined
         }
 
         if (Object.keys(properties).length > 0) {
@@ -1568,14 +1595,100 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
         return out
       }
       case "Union": {
-        const types = schema.types.map((t) => recur(t)).filter((t) => Object.keys(t).length > 0)
+        const types = schema.types.map((t) => recur(t)).filter((t) => t !== unsupportedJsonSchema)
         if (types.length === 0) {
-          return { not: {} }
+          // anyOf MUST be a non-empty array
+          return unsupportedJsonSchema
         }
-        const result = schema.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
-        return flattenArrayJsonSchema(result)
+        return schema.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
       }
     }
+  }
+}
+
+function collectJsonSchemaChecks(checks: ReadonlyArray<Check<any>>): Array<Schema.JsonSchema> {
+  return checks.map(recur).filter((c) => c !== undefined)
+
+  function recur(check: Check<any>): Schema.JsonSchema | undefined {
+    switch (check._tag) {
+      case "Filter":
+        return filterToJsonSchema(check)
+      case "FilterGroup": {
+        const checks = check.checks.map(recur).filter((c) => c !== undefined)
+        if (checks.length === 0) return undefined
+        let out = { allOf: checks }
+        const a = collectJsonSchemaAnnotations(check.annotations)
+        if (a) {
+          out = { ...out, ...a }
+        }
+        return out
+      }
+    }
+  }
+}
+
+function filterToJsonSchema(filter: Filter<any>): Schema.JsonSchema | undefined {
+  const meta = filter.meta as StringMeta | Exclude<NumberMeta, { _tag: "isFinite" }>
+  if (!meta) return undefined
+
+  let out = on(meta)
+  const a = collectJsonSchemaAnnotations(filter.annotations)
+  if (a) {
+    out = { ...out, ...a }
+  }
+  return out
+
+  function on(meta: StringMeta | Exclude<NumberMeta, { _tag: "isFinite" }>): Schema.JsonSchema {
+    switch (meta._tag) {
+      case "isMinLength":
+        return { minLength: meta.minLength }
+      case "isMaxLength":
+        return { maxLength: meta.maxLength }
+      case "isLength":
+        return { minLength: meta.length, maxLength: meta.length }
+      case "isPattern":
+      case "isUUID":
+      case "isULID":
+      case "isBase64":
+      case "isBase64Url":
+      case "isStartsWith":
+      case "isEndsWith":
+      case "isIncludes":
+      case "isUppercased":
+      case "isLowercased":
+      case "isCapitalized":
+      case "isUncapitalized":
+      case "isTrimmed":
+      case "isNumberString":
+      case "isBigIntString":
+      case "isSymbolString":
+        return { pattern: meta.regExp.source }
+      case "isInt":
+        return { type: "integer" }
+      case "isMultipleOf":
+        return { multipleOf: meta.divisor }
+      case "isGreaterThanOrEqualTo":
+        return { minimum: meta.minimum }
+      case "isLessThanOrEqualTo":
+        return { maximum: meta.maximum }
+      case "isGreaterThan":
+        return { exclusiveMinimum: meta.exclusiveMinimum }
+      case "isLessThan":
+        return { exclusiveMaximum: meta.exclusiveMaximum }
+      case "isBetween":
+        return { minimum: meta.minimum, maximum: meta.maximum }
+    }
+  }
+}
+
+function containsUndefined(schema: StandardSchema): boolean {
+  switch (schema._tag) {
+    case "Undefined":
+      return true
+    case "Union":
+      return schema.types.some(containsUndefined)
+    default:
+      return false
   }
 }
 
@@ -1583,7 +1696,7 @@ function escapeJsonPointer(identifier: string): string {
   return identifier.replace(/~/g, "~0").replace(/\//g, "~1")
 }
 
-function getJsonSchemaAnnotations(
+function collectJsonSchemaAnnotations(
   annotations: Annotations.Annotations | undefined
 ): Schema.JsonSchema | undefined {
   if (annotations) {
@@ -1597,182 +1710,31 @@ function getJsonSchemaAnnotations(
   }
 }
 
-function mergeJsonSchemaAnnotations(
-  jsonSchema: Schema.JsonSchema,
-  annotations: Annotations.Annotations | undefined
-): Schema.JsonSchema {
-  const a = getJsonSchemaAnnotations(annotations)
-  if (a) {
-    return combineJsonSchema(jsonSchema, a)
-  }
-  return jsonSchema
+function isRawAllOf(jsonSchema: Schema.JsonSchema): jsonSchema is { allOf: ReadonlyArray<Schema.JsonSchema> } {
+  return Array.isArray(jsonSchema.allOf) && Object.keys(jsonSchema).length === 1
 }
 
-function combineJsonSchema(a: Schema.JsonSchema, b: Schema.JsonSchema): Schema.JsonSchema {
-  if ("$ref" in a) {
-    return { allOf: [a, b] }
+function appendJsonSchema(a: Schema.JsonSchema, b: Schema.JsonSchema): Schema.JsonSchema {
+  if (Array.isArray(a.allOf)) {
+    if (isRawAllOf(b)) {
+      return { ...a, allOf: [...a.allOf, ...b.allOf] }
+    } else {
+      return { ...a, allOf: [...a.allOf, b] }
+    }
   } else {
-    const hasIntersection = Object.keys(a).filter((key) => key !== "type").some((key) => Object.hasOwn(b, key))
-    if (hasIntersection) {
-      if (Array.isArray(a.allOf)) {
-        return { ...a, allOf: [...a.allOf, b] }
+    if ("$ref" in a) {
+      if (isRawAllOf(b)) {
+        return { allOf: [a, ...b.allOf] }
+      } else {
+        return { allOf: [a, b] }
+      }
+    } else {
+      if (isRawAllOf(b)) {
+        return { ...a, allOf: b.allOf }
       } else {
         return { ...a, allOf: [b] }
       }
-    } else {
-      return { ...a, ...b }
     }
-  }
-}
-
-function flattenArrayJsonSchema(js: Schema.JsonSchema): Schema.JsonSchema {
-  if (Object.keys(js).length === 1) {
-    if (Array.isArray(js.anyOf) && js.anyOf.length === 1) {
-      return js.anyOf[0]
-    } else if (Array.isArray(js.oneOf) && js.oneOf.length === 1) {
-      return js.oneOf[0]
-    } else if (Array.isArray(js.allOf) && js.allOf.length === 1) {
-      return js.allOf[0]
-    }
-  }
-  return js
-}
-
-function checkToJsonSchemaFragment(
-  check: Check<any>,
-  tag: "String" | "Number" | "BigInt"
-): Schema.JsonSchema {
-  if (check._tag === "FilterGroup") {
-    const merged = check.checks
-      .map((c) => checkToJsonSchemaFragment(c, tag))
-      .filter((js) => Object.keys(js).length > 0)
-      .reduce<Schema.JsonSchema>((acc, js) => combineJsonSchema(acc, js), {})
-
-    return mergeJsonSchemaAnnotations(merged, check.annotations)
-  }
-
-  if (!check.meta) {
-    return getJsonSchemaAnnotations(check.annotations) ?? {}
-  }
-
-  const meta = check.meta
-  const fragment: Schema.JsonSchema = {}
-
-  switch (tag) {
-    case "String": {
-      switch (meta._tag) {
-        case "isMinLength":
-          fragment.minLength = meta.minLength
-          break
-        case "isMaxLength":
-          fragment.maxLength = meta.maxLength
-          break
-        case "isLength":
-          fragment.minLength = meta.length
-          fragment.maxLength = meta.length
-          break
-        case "isPattern":
-          fragment.pattern = meta.regExp.source
-          break
-        case "isUUID":
-          fragment.format = "uuid"
-          break
-        case "isULID":
-          fragment.pattern = "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"
-          break
-        case "isBase64":
-          fragment.contentEncoding = "base64"
-          break
-        case "isBase64Url":
-          fragment.contentEncoding = "base64url"
-          break
-      }
-      break
-    }
-    case "Number": {
-      switch (meta._tag) {
-        case "isInt":
-          fragment.type = "integer"
-          break
-        case "isMultipleOf":
-          fragment.multipleOf = meta.divisor
-          break
-        case "isGreaterThanOrEqualTo":
-          fragment.minimum = meta.minimum
-          break
-        case "isLessThanOrEqualTo":
-          fragment.maximum = meta.maximum
-          break
-        case "isGreaterThan":
-          fragment.exclusiveMinimum = meta.exclusiveMinimum
-          break
-        case "isLessThan":
-          fragment.exclusiveMaximum = meta.exclusiveMaximum
-          break
-        case "isBetween":
-          fragment.minimum = meta.minimum
-          fragment.maximum = meta.maximum
-          break
-      }
-      break
-    }
-    case "BigInt": {
-      switch (meta._tag) {
-        case "isGreaterThanOrEqualToBigInt":
-          fragment.minimum = meta.minimum
-          break
-        case "isLessThanOrEqualToBigInt":
-          fragment.maximum = meta.maximum
-          break
-        case "isGreaterThanBigInt":
-          fragment.exclusiveMinimum = meta.exclusiveMinimum
-          break
-        case "isLessThanBigInt":
-          fragment.exclusiveMaximum = meta.exclusiveMaximum
-          break
-        case "isBetweenBigInt":
-          fragment.minimum = meta.minimum
-          fragment.maximum = meta.maximum
-          break
-      }
-      break
-    }
-  }
-
-  return mergeJsonSchemaAnnotations(fragment, check.annotations)
-}
-
-function applyChecks(
-  jsonSchema: Schema.JsonSchema,
-  checks: ReadonlyArray<Check<any>>,
-  tag: "String" | "Number" | "BigInt"
-): Schema.JsonSchema {
-  return checks.reduce((acc, check) => {
-    const fragment = checkToJsonSchemaFragment(check, tag)
-    if (Object.keys(fragment).length === 0) return acc
-
-    if (
-      typeof acc.type === "string" &&
-      typeof fragment.type === "string" &&
-      fragment.type !== acc.type
-    ) {
-      const { type, ...rest } = fragment
-      const updated = { ...acc, type }
-      return Object.keys(rest).length > 0 ? combineJsonSchema(updated, rest) : updated
-    }
-
-    return combineJsonSchema(acc, fragment)
-  }, jsonSchema)
-}
-
-function containsUndefined(schema: StandardSchema): boolean {
-  switch (schema._tag) {
-    case "Undefined":
-      return true
-    case "Union":
-      return schema.types.some(containsUndefined)
-    default:
-      return false
   }
 }
 
@@ -2194,7 +2156,11 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
   function collectStringChecks(r: Record<string, unknown>): Array<Check<StringMeta>> {
     const checks: Array<Check<StringMeta>> = []
     if (typeof r.minLength === "number") {
-      checks.push({ _tag: "Filter", meta: { _tag: "isMinLength", minLength: r.minLength } })
+      checks.push({
+        _tag: "Filter",
+        meta: { _tag: "isMinLength", minLength: r.minLength },
+        annotations: collectAnnotations(r)
+      })
     }
     if (typeof r.maxLength === "number") {
       checks.push({ _tag: "Filter", meta: { _tag: "isMaxLength", maxLength: r.maxLength } })
