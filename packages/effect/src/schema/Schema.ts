@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 
-import type { StandardSchemaV1 } from "@standard-schema/spec"
+import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec"
 import * as Cause_ from "../Cause.ts"
 import * as Arr from "../collections/Array.ts"
 import type * as Brand from "../data/Brand.ts"
@@ -43,7 +43,6 @@ import * as AST from "./AST.ts"
 import * as Getter from "./Getter.ts"
 import * as Issue from "./Issue.ts"
 import * as Parser from "./Parser.ts"
-import type { StandardJSONSchemaV1 } from "./StandardSchema.ts"
 import * as Transformation from "./Transformation.ts"
 
 /**

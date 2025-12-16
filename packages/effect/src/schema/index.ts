@@ -59,12 +59,6 @@ export * as Standard from "./Standard.ts"
 
 /**
  * @since 4.0.0
- * @experimental
- */
-export * as StandardSchema from "./StandardSchema.ts"
-
-/**
- * @since 4.0.0
  */
 export * as Transformation from "./Transformation.ts"
 
