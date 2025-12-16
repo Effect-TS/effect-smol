@@ -70,6 +70,49 @@ export * as Boolean from "./Boolean.ts"
 export * as Cache from "./Cache.ts"
 
 /**
+ * This module provides utilities for working with `Cause`, a data type that represents
+ * the different ways an `Effect` can fail. It includes structured error handling with
+ * typed errors, defects, and interruptions.
+ *
+ * A `Cause` can represent:
+ * - **Fail**: A typed, expected error that can be handled
+ * - **Die**: An unrecoverable defect (like a programming error)
+ * - **Interrupt**: A fiber interruption
+ *
+ * @example
+ * ```ts
+ * import { Cause, Effect } from "effect"
+ *
+ * // Creating different types of causes
+ * const failCause = Cause.fail("Something went wrong")
+ * const dieCause = Cause.die(new Error("Unexpected error"))
+ * const interruptCause = Cause.interrupt(123)
+ *
+ * // Working with effects that can fail
+ * const program = Effect.fail("user error").pipe(
+ *   Effect.catchCause((cause) => {
+ *     if (Cause.hasFail(cause)) {
+ *       const error = Cause.filterError(cause)
+ *       console.log("Expected error:", error)
+ *     }
+ *     return Effect.succeed("handled")
+ *   })
+ * )
+ *
+ * // Analyzing failure types
+ * const analyzeCause = (cause: Cause.Cause<string>) => {
+ *   if (Cause.hasFail(cause)) return "Has user error"
+ *   if (Cause.hasDie(cause)) return "Has defect"
+ *   if (Cause.hasInterrupt(cause)) return "Was interrupted"
+ *   return "Unknown cause"
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ */
+export * as Cause from "./Cause.ts"
+
+/**
  * The `Channel` module provides a powerful abstraction for bi-directional communication
  * and streaming operations. A `Channel` is a nexus of I/O operations that supports both
  * reading and writing, forming the foundation for Effect's Stream and Sink abstractions.
@@ -135,49 +178,6 @@ export * as Channel from "./Channel.ts"
  * @since 4.0.0
  */
 export * as ChannelSchema from "./ChannelSchema.ts"
-
-/**
- * This module provides utilities for working with `Cause`, a data type that represents
- * the different ways an `Effect` can fail. It includes structured error handling with
- * typed errors, defects, and interruptions.
- *
- * A `Cause` can represent:
- * - **Fail**: A typed, expected error that can be handled
- * - **Die**: An unrecoverable defect (like a programming error)
- * - **Interrupt**: A fiber interruption
- *
- * @example
- * ```ts
- * import { Cause, Effect } from "effect"
- *
- * // Creating different types of causes
- * const failCause = Cause.fail("Something went wrong")
- * const dieCause = Cause.die(new Error("Unexpected error"))
- * const interruptCause = Cause.interrupt(123)
- *
- * // Working with effects that can fail
- * const program = Effect.fail("user error").pipe(
- *   Effect.catchCause((cause) => {
- *     if (Cause.hasFail(cause)) {
- *       const error = Cause.filterError(cause)
- *       console.log("Expected error:", error)
- *     }
- *     return Effect.succeed("handled")
- *   })
- * )
- *
- * // Analyzing failure types
- * const analyzeCause = (cause: Cause.Cause<string>) => {
- *   if (Cause.hasFail(cause)) return "Has user error"
- *   if (Cause.hasDie(cause)) return "Has defect"
- *   if (Cause.hasInterrupt(cause)) return "Was interrupted"
- *   return "Unknown cause"
- * }
- * ```
- *
- * @since 2.0.0
- */
-export * as Cause from "./Cause.ts"
 
 /**
  * The `Clock` module provides functionality for time-based operations in Effect applications.
@@ -1078,11 +1078,6 @@ export * as Optic from "./Optic.ts"
 export * as Pool from "./Pool.ts"
 
 /**
- * @since 4.0.0
- */
-export * as Pull from "./Pull.ts"
-
-/**
  * This module provides utilities for working with publish-subscribe (PubSub) systems.
  *
  * A PubSub is an asynchronous message hub where publishers can publish messages and subscribers
@@ -1115,6 +1110,11 @@ export * as Pull from "./Pull.ts"
  * @since 2.0.0
  */
 export * as PubSub from "./PubSub.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as Pull from "./Pull.ts"
 
 /**
  * This module provides utilities for working with asynchronous queues that support various backpressure strategies.
