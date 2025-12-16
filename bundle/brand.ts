@@ -1,4 +1,4 @@
-import * as Brand from "#dist/effect/data/Brand"
+import * as Brand from "#dist/effect/Brand"
 import * as Schema from "#dist/effect/schema/Schema"
 
 type Positive = number & Brand.Brand<"Positive">
