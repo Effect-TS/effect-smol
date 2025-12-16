@@ -1464,20 +1464,20 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
     definitions: Rec.map(document.definitions, (d) => recur(d))
   }
 
-  function recur(schema: StandardSchema): Schema.JsonSchema {
-    let jsonSchema: Schema.JsonSchema = on(schema)
-    if (jsonSchema === unsupportedJsonSchema) return unsupportedJsonSchema
-    const a = collectJsonSchemaAnnotations(schema.annotations)
+  function recur(ss: StandardSchema): Schema.JsonSchema {
+    let s: Schema.JsonSchema = on(ss)
+    if (s === unsupportedJsonSchema) return unsupportedJsonSchema
+    const a = collectJsonSchemaAnnotations(ss.annotations)
     if (a) {
-      jsonSchema = { ...jsonSchema, ...a }
+      s = { ...s, ...a }
     }
-    if ("checks" in schema) {
-      const checks = collectJsonSchemaChecks(schema.checks)
-      if (checks.length > 0) {
-        jsonSchema = appendJsonSchema(jsonSchema, { allOf: checks })
+    if ("checks" in ss) {
+      const checks = collectJsonSchemaChecks(ss.checks)
+      for (const check of checks) {
+        s = appendJsonSchema(s, check)
       }
     }
-    return jsonSchema
+    return normalizeJsonSchemaOutput(s)
   }
 
   function on(schema: StandardSchema): Schema.JsonSchema {
@@ -1583,20 +1583,11 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
 
         for (const ps of schema.propertySignatures) {
           const name = typeof ps.name === "string" ? ps.name : globalThis.String(ps.name)
-          if (containsUndefined(ps.type)) {
-            const type = recur(ps.type)
-            if (Array.isArray(type.anyOf) && type.anyOf.length === 1 && Object.keys(type).length === 1) {
-              properties[name] = type.anyOf[0]
-            } else {
-              properties[name] = type
-            }
-          } else {
-            properties[name] = recur(ps.type)
-            if (!ps.isOptional) {
-              required.push(name)
-            }
-          }
+          properties[name] = recur(ps.type)
           // Property is required only if it's not explicitly optional AND doesn't contain Undefined
+          if (!ps.isOptional && !containsUndefined(ps.type)) {
+            required.push(name)
+          }
         }
 
         if (Object.keys(properties).length > 0) {
@@ -1628,6 +1619,17 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
       }
     }
   }
+}
+
+function normalizeJsonSchemaOutput(s: Schema.JsonSchema): Schema.JsonSchema {
+  if (Array.isArray(s.anyOf)) {
+    if (s.anyOf.length === 1) {
+      if (Object.keys(s).length === 1) {
+        return s.anyOf[0]
+      }
+    }
+  }
+  return s
 }
 
 function collectJsonSchemaChecks(checks: ReadonlyArray<Check<any>>): Array<Schema.JsonSchema> {
@@ -1669,7 +1671,7 @@ function filterToJsonSchema(filter: Filter<any>): Schema.JsonSchema | undefined 
       case "isMaxLength":
         return { maxLength: meta.maxLength }
       case "isLength":
-        return { minLength: meta.length, maxLength: meta.length }
+        return { allOf: [{ minLength: meta.length }, { maxLength: meta.length }] }
       case "isPattern":
       case "isUUID":
       case "isULID":
@@ -1734,32 +1736,18 @@ function collectJsonSchemaAnnotations(
   }
 }
 
-function isRawAllOf(jsonSchema: Schema.JsonSchema): jsonSchema is { allOf: ReadonlyArray<Schema.JsonSchema> } {
-  return Array.isArray(jsonSchema.allOf) && Object.keys(jsonSchema).length === 1
-}
-
 function appendJsonSchema(a: Schema.JsonSchema, b: Schema.JsonSchema): Schema.JsonSchema {
+  const members = Array.isArray(b.allOf) && Object.keys(b).length === 1 ? b.allOf : [b]
+
   if (Array.isArray(a.allOf)) {
-    if (isRawAllOf(b)) {
-      return { ...a, allOf: [...a.allOf, ...b.allOf] }
-    } else {
-      return { ...a, allOf: [...a.allOf, b] }
-    }
-  } else {
-    if ("$ref" in a) {
-      if (isRawAllOf(b)) {
-        return { allOf: [a, ...b.allOf] }
-      } else {
-        return { allOf: [a, b] }
-      }
-    } else {
-      if (isRawAllOf(b)) {
-        return { ...a, allOf: b.allOf }
-      } else {
-        return { ...a, allOf: [b] }
-      }
-    }
+    return { ...a, allOf: [...a.allOf, ...members] }
   }
+
+  if (typeof a.$ref === "string") {
+    return { allOf: [a, ...members] }
+  }
+
+  return { ...a, allOf: members }
 }
 
 function getPartPattern(part: StandardSchema): string {
@@ -2134,7 +2122,7 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
     if (u === true) return { _tag: "Unknown" }
     if (u === false) return { _tag: "Never" }
     if (Predicate.isObject(u)) {
-      const normalized = normalize(u)
+      const normalized = normalizeJsonSchemaInput(u)
       const out = on(normalized)
       const annotations = collectAnnotations(normalized)
       if (annotations !== undefined) {
@@ -2168,210 +2156,207 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
     return { _tag: "Unknown" }
   }
 
-  function on(schema: Schema.JsonSchema): Types.Mutable<StandardSchema> {
-    if (Predicate.isObject(schema)) {
-      if ("enum" in schema && Array.isArray(schema.enum)) {
-        switch (schema.enum.length) {
+  function on(s: Schema.JsonSchema): Types.Mutable<StandardSchema> {
+    if (Predicate.isObject(s)) {
+      if ("enum" in s && Array.isArray(s.enum)) {
+        switch (s.enum.length) {
           case 0:
             return { _tag: "Never" }
           case 1:
-            return { _tag: "Literal", literal: schema.enum[0] }
+            return { _tag: "Literal", literal: s.enum[0] }
           default:
             return {
               _tag: "Union",
-              types: schema.enum.map((e) => ({ _tag: "Literal", literal: e })),
+              types: s.enum.map((e) => ({ _tag: "Literal", literal: e })),
               mode: "anyOf"
             }
         }
       }
-      switch (schema.type) {
+      switch (s.type) {
         case "null":
           return { _tag: "Null" }
         case "boolean":
           return { _tag: "Boolean" }
         case "number":
-          return { _tag: "Number", checks: collectNumberChecks(schema) }
+          return { _tag: "Number", checks: collectNumberChecks(s) }
         case "integer":
           return {
             _tag: "Number",
-            checks: [{ _tag: "Filter", meta: { _tag: "isInt" } }, ...collectNumberChecks(schema)]
+            checks: [{ _tag: "Filter", meta: { _tag: "isInt" } }, ...collectNumberChecks(s)]
           }
         case "string":
-          return { _tag: "String", checks: collectStringChecks(schema) }
+          return { _tag: "String", checks: collectStringChecks(s) }
         case "array":
           return {
             _tag: "Arrays",
-            elements: collectElements(schema),
-            rest: collectRest(schema),
-            checks: collectArraysChecks(schema)
+            elements: collectElements(s),
+            rest: collectRest(s),
+            checks: collectArraysChecks(s)
           }
         case "object": {
-          const propertySignatures = collectProperties(schema)
-          const indexSignatures = collectIndexSignatures(schema)
+          const propertySignatures = collectProperties(s)
+          const indexSignatures = collectIndexSignatures(s)
           return { _tag: "Objects", propertySignatures, indexSignatures }
         }
       }
-      if ("anyOf" in schema && Array.isArray(schema.anyOf)) {
-        return { _tag: "Union", types: schema.anyOf.map((e) => recur(e)), mode: "anyOf" }
+      if ("anyOf" in s && Array.isArray(s.anyOf)) {
+        return { _tag: "Union", types: s.anyOf.map((e) => recur(e)), mode: "anyOf" }
       }
     }
     return { _tag: "Unknown" }
   }
 
-  function collectStringChecks(schema: Schema.JsonSchema): Array<Check<StringMeta>> {
+  function collectStringChecks(s: Schema.JsonSchema): Array<Check<StringMeta>> {
     const checks: Array<Check<StringMeta>> = []
-    if (typeof schema.minLength === "number") {
+    if (typeof s.minLength === "number") {
       checks.push({
         _tag: "Filter",
-        meta: { _tag: "isMinLength", minLength: schema.minLength },
-        annotations: collectAnnotations(schema)
+        meta: { _tag: "isMinLength", minLength: s.minLength },
+        annotations: collectAnnotations(s)
       })
     }
-    if (typeof schema.maxLength === "number") {
+    if (typeof s.maxLength === "number") {
       checks.push({
         _tag: "Filter",
-        meta: { _tag: "isMaxLength", maxLength: schema.maxLength },
-        annotations: collectAnnotations(schema)
+        meta: { _tag: "isMaxLength", maxLength: s.maxLength },
+        annotations: collectAnnotations(s)
       })
     }
-    if (typeof schema.pattern === "string") {
+    if (typeof s.pattern === "string") {
       checks.push({
         _tag: "Filter",
-        meta: { _tag: "isPattern", regExp: new RegExp(schema.pattern) },
-        annotations: collectAnnotations(schema)
+        meta: { _tag: "isPattern", regExp: new RegExp(s.pattern) },
+        annotations: collectAnnotations(s)
       })
     }
     return checks
   }
 
-  function collectNumberChecks(schema: Schema.JsonSchema): Array<Check<NumberMeta>> {
+  function collectNumberChecks(s: Schema.JsonSchema): Array<Check<NumberMeta>> {
     const checks: Array<Check<NumberMeta>> = []
-    if (typeof schema.exclusiveMinimum === "number") {
+    if (typeof s.exclusiveMinimum === "number") {
       checks.push({
         _tag: "Filter",
-        meta: { _tag: "isGreaterThan", exclusiveMinimum: schema.exclusiveMinimum },
-        annotations: collectAnnotations(schema)
+        meta: { _tag: "isGreaterThan", exclusiveMinimum: s.exclusiveMinimum },
+        annotations: collectAnnotations(s)
       })
     }
-    if (typeof schema.minimum === "number") {
+    if (typeof s.minimum === "number") {
       checks.push({
         _tag: "Filter",
-        meta: { _tag: "isGreaterThanOrEqualTo", minimum: schema.minimum },
-        annotations: collectAnnotations(schema)
+        meta: { _tag: "isGreaterThanOrEqualTo", minimum: s.minimum },
+        annotations: collectAnnotations(s)
       })
     }
-    if (typeof schema.maximum === "number") {
+    if (typeof s.maximum === "number") {
       checks.push({
         _tag: "Filter",
-        meta: { _tag: "isLessThanOrEqualTo", maximum: schema.maximum },
-        annotations: collectAnnotations(schema)
+        meta: { _tag: "isLessThanOrEqualTo", maximum: s.maximum },
+        annotations: collectAnnotations(s)
       })
     }
-    if (typeof schema.exclusiveMaximum === "number") {
+    if (typeof s.exclusiveMaximum === "number") {
       checks.push({
         _tag: "Filter",
-        meta: { _tag: "isLessThan", exclusiveMaximum: schema.exclusiveMaximum },
-        annotations: collectAnnotations(schema)
+        meta: { _tag: "isLessThan", exclusiveMaximum: s.exclusiveMaximum },
+        annotations: collectAnnotations(s)
       })
     }
-    if (typeof schema.multipleOf === "number") {
+    if (typeof s.multipleOf === "number") {
       checks.push({
         _tag: "Filter",
-        meta: { _tag: "isMultipleOf", divisor: schema.multipleOf },
-        annotations: collectAnnotations(schema)
+        meta: { _tag: "isMultipleOf", divisor: s.multipleOf },
+        annotations: collectAnnotations(s)
       })
     }
     return checks
   }
 
-  function collectArraysChecks(schema: Schema.JsonSchema): Array<Check<ArraysMeta>> {
+  function collectArraysChecks(s: Schema.JsonSchema): Array<Check<ArraysMeta>> {
     const checks: Array<Check<ArraysMeta>> = []
-    if (typeof schema.minItems === "number") {
+    if (typeof s.minItems === "number") {
       checks.push({
         _tag: "Filter",
-        meta: { _tag: "isMinLength", minLength: schema.minItems },
-        annotations: collectAnnotations(schema)
+        meta: { _tag: "isMinLength", minLength: s.minItems },
+        annotations: collectAnnotations(s)
       })
     }
-    if (typeof schema.maxItems === "number") {
+    if (typeof s.maxItems === "number") {
       checks.push({
         _tag: "Filter",
-        meta: { _tag: "isMaxLength", maxLength: schema.maxItems },
-        annotations: collectAnnotations(schema)
+        meta: { _tag: "isMaxLength", maxLength: s.maxItems },
+        annotations: collectAnnotations(s)
       })
     }
-    if (schema.uniqueItems === true) {
+    if (s.uniqueItems === true) {
       checks.push({
         _tag: "Filter",
         meta: { _tag: "isUnique" },
-        annotations: collectAnnotations(schema)
+        annotations: collectAnnotations(s)
       })
     }
     return checks
   }
 
-  function collectElements(schema: Schema.JsonSchema): Array<Element> {
+  function collectElements(s: Schema.JsonSchema): Array<Element> {
     const elements: Array<Element> = []
-    if (Array.isArray(schema.prefixItems)) {
-      for (const item of schema.prefixItems) {
+    if (Array.isArray(s.prefixItems)) {
+      for (const item of s.prefixItems) {
         elements.push({ type: recur(item), isOptional: false })
       }
     }
     return elements
   }
 
-  function collectRest(schema: Schema.JsonSchema): Array<StandardSchema> {
-    if (schema.items !== undefined) {
-      return [recur(schema.items)]
+  function collectRest(s: Schema.JsonSchema): Array<StandardSchema> {
+    if (s.items !== undefined) {
+      return [recur(s.items)]
     }
     return []
   }
 
-  function collectProperties(r: Record<string, unknown>): Array<PropertySignature> {
-    const properties: Array<PropertySignature> = []
-    if (Predicate.isObject(r.properties)) {
-      for (const [key, value] of Object.entries(r.properties)) {
-        properties.push({ name: key, type: recur(value), isOptional: false, isMutable: false })
-      }
-    }
-    return properties
+  function collectProperties(s: Schema.JsonSchema): Array<PropertySignature> {
+    const required = new Set(Array.isArray(s.required) ? s.required : [])
+    return Predicate.isObject(s.properties) ?
+      Object.entries(s.properties).map(([key, value]) => ({
+        name: key,
+        type: recur(value),
+        isOptional: !required.has(key),
+        isMutable: false
+      })) :
+      []
   }
 
-  function collectIndexSignatures(_r: Record<string, unknown>): Array<IndexSignature> {
+  function collectIndexSignatures(_s: Schema.JsonSchema): Array<IndexSignature> {
     const indexSignatures: Array<IndexSignature> = []
     return indexSignatures
   }
 }
 
-const stringKeys = ["minLength", "maxLength", "pattern", "format", "contentMediaType", "contentSchema"]
-const numberKeys = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"]
-const objectKeys = [
-  "properties",
-  "required",
-  "additionalProperties",
-  "patternProperties",
-  "propertyNames",
-  "minProperties",
-  "maxProperties"
-]
-const arrayKeys = ["items", "prefixItems", "additionalItems", "minItems", "maxItems", "uniqueItems"]
+const filtersKeysByType = Object.entries({
+  string: ["minLength", "maxLength", "pattern", "format", "contentMediaType", "contentSchema"],
+  number: ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"],
+  object: [
+    "properties",
+    "required",
+    "additionalProperties",
+    "patternProperties",
+    "propertyNames",
+    "minProperties",
+    "maxProperties"
+  ],
+  array: ["items", "prefixItems", "additionalItems", "minItems", "maxItems", "uniqueItems"]
+})
 
-function normalize(schema: Schema.JsonSchema): Schema.JsonSchema {
-  if (schema.type === undefined) {
-    if (stringKeys.some((key) => schema[key] !== undefined)) {
-      return { ...schema, type: "string" }
-    }
-    if (numberKeys.some((key) => schema[key] !== undefined)) {
-      return { ...schema, type: "number" }
-    }
-    if (objectKeys.some((key) => schema[key] !== undefined)) {
-      return { ...schema, type: "object" }
-    }
-    if (arrayKeys.some((key) => schema[key] !== undefined)) {
-      return { ...schema, type: "array" }
+function normalizeJsonSchemaInput(s: Schema.JsonSchema): Schema.JsonSchema {
+  if (s.type === undefined) {
+    for (const [type, keys] of filtersKeysByType) {
+      if (keys.some((key) => s[key] !== undefined)) {
+        s = { ...s, type }
+      }
     }
   }
-  return schema
+  return s
 }
 
 function collectAnnotations(u: unknown): Annotations.Annotations | undefined {
