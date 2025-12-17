@@ -1,8 +1,8 @@
 import { NodeRedis } from "@effect/platform-node"
 import { RedisContainer } from "@testcontainers/redis"
 import { Effect, Layer } from "effect"
-import * as PersistedCacheTest from "effect-test/persistence/PersistedCacheTest"
-import * as PersistedQueueTest from "effect-test/persistence/PersistedQueueTest"
+import * as PersistedCacheTest from "effect-test/unstable/persistence/PersistedCacheTest"
+import * as PersistedQueueTest from "effect-test/unstable/persistence/PersistedQueueTest"
 import { PersistedQueue, Persistence } from "effect/unstable/persistence"
 
 const RedisLayer = Layer.unwrap(
@@ -22,14 +22,10 @@ const RedisLayer = Layer.unwrap(
 
 PersistedCacheTest.suite(
   "NodeRedis",
-  Persistence.layerRedis.pipe(
-    Layer.provide(RedisLayer)
-  )
+  Persistence.layerRedis.pipe(Layer.provide(RedisLayer))
 )
 
 PersistedQueueTest.suite(
   "NodeRedis",
-  PersistedQueue.layerStoreRedis().pipe(
-    Layer.provide(RedisLayer)
-  )
+  PersistedQueue.layerStoreRedis().pipe(Layer.provide(RedisLayer))
 )

@@ -1,10 +1,20 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Data, Duration, Fiber, Filter, Option, Result, Schedule, Scope, ServiceMap } from "effect"
-import * as Cause from "effect/Cause"
-import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
+import {
+  Cause,
+  Data,
+  Duration,
+  Effect,
+  Exit,
+  Fiber,
+  Filter,
+  Option,
+  Result,
+  Schedule,
+  Scope,
+  ServiceMap,
+  TxRef
+} from "effect"
 import { constFalse, constTrue, pipe } from "effect/Function"
-import { TxRef } from "effect/stm"
 import { TestClock } from "effect/testing"
 
 class ATag extends ServiceMap.Service<ATag, "A">()("ATag") {}

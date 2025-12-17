@@ -1,6 +1,6 @@
 import * as String from "effect/String"
 import { describe, it } from "vitest"
-import { strictEqual } from "../utils/assert.ts"
+import { strictEqual } from "./utils/assert.ts"
 
 describe("String", () => {
   it("ReducerConcat", () => {

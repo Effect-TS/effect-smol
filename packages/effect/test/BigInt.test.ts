@@ -1,6 +1,6 @@
 import * as BigInt from "effect/BigInt"
 import { describe, it } from "vitest"
-import { strictEqual } from "../utils/assert.ts"
+import { strictEqual } from "./utils/assert.ts"
 
 describe("BigInt", () => {
   it("ReducerSum", () => {

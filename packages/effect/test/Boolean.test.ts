@@ -1,6 +1,6 @@
 import * as Boolean from "effect/Boolean"
 import { describe, it } from "vitest"
-import { strictEqual } from "../utils/assert.ts"
+import { strictEqual } from "./utils/assert.ts"
 
 describe("Boolean", () => {
   it("ReducerAnd", () => {

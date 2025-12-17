@@ -1,6 +1,6 @@
 import { Number } from "effect"
 import { describe, it } from "vitest"
-import { strictEqual } from "../utils/assert.ts"
+import { strictEqual } from "./utils/assert.ts"
 
 describe("Number", () => {
   it("ReducerSum", () => {

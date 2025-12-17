@@ -1,7 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Equal, Hash, HashSet } from "effect"
-import * as Effect from "effect/Effect"
-import { TxHashSet } from "effect/stm"
+import { Effect, Equal, Hash, HashSet, TxHashSet } from "effect"
 
 class TestValue implements Equal.Equal {
   constructor(readonly value: string) {}

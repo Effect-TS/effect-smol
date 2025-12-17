@@ -1,5 +1,4 @@
-import { Chunk, Effect } from "effect"
-import { TxChunk } from "effect/stm"
+import { Chunk, Effect, TxChunk } from "effect"
 import { describe, expect, it } from "vitest"
 
 describe("TxChunk", () => {

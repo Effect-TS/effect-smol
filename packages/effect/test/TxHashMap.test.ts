@@ -1,7 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Hash, HashMap, Option } from "effect"
-import * as Effect from "effect/Effect"
-import { TxHashMap } from "effect/stm"
+import { Effect, Hash, HashMap, Option, TxHashMap } from "effect"
 
 describe("TxHashMap", () => {
   describe("constructors", () => {
