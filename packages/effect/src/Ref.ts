@@ -33,7 +33,7 @@ import { dual, identity } from "./Function.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as MutableRef from "./MutableRef.ts"
 import type * as Option from "./Option.ts"
-import type { Invariant } from "./types/Types.ts"
+import type { Invariant } from "./Types.ts"
 
 const TypeId = "~effect/Ref"
 

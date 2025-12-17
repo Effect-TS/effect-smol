@@ -16,8 +16,8 @@ import type { Predicate } from "./Predicate.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as Pull from "./Pull.ts"
 import type * as Scope from "./Scope.ts"
-import type * as Types from "./types/Types.ts"
-import type * as Unify from "./types/Unify.ts"
+import type * as Types from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 
 const TypeId = "~effect/Sink"
 
@@ -78,7 +78,7 @@ const endVoid = Pull.halt([void 0] as End<void, never>)
  * ```ts
  * import type { Effect } from "effect"
  * import type * as Sink from "effect/Sink"
- * import type * as Unify from "effect/types/Unify"
+ * import type * as Unify from "effect/Unify"
  *
  * // SinkUnify helps unify Sink and Effect types
  * declare const sink: Sink.Sink<number>

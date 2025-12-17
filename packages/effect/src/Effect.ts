@@ -75,6 +75,7 @@ import * as Exit from "./Exit.ts"
 import type { Fiber } from "./Fiber.ts"
 import type * as Filter from "./Filter.ts"
 import { constant, dual, type LazyArg } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
 import * as core from "./internal/core.ts"
 import * as internal from "./internal/effect.ts"
 import * as internalExecutionPlan from "./internal/executionPlan.ts"
@@ -107,18 +108,8 @@ import type {
   TraceOptions,
   Tracer
 } from "./Tracer.ts"
-import type { TypeLambda } from "./types/HKT.ts"
-import type {
-  Concurrency,
-  Covariant,
-  ExcludeTag,
-  ExtractTag,
-  NoInfer,
-  NotFunction,
-  Tags,
-  unassigned
-} from "./types/Types.ts"
-import type * as Unify from "./types/Unify.ts"
+import type { Concurrency, Covariant, ExcludeTag, ExtractTag, NoInfer, NotFunction, Tags, unassigned } from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 import { internalCall, SingleShotGen } from "./Utils.ts"
 
 const TypeId = core.EffectTypeId

@@ -7,7 +7,7 @@ import { dual } from "./Function.ts"
 import type * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import type * as Result from "./Result.ts"
-import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./types/Types.ts"
+import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./Types.ts"
 
 /**
  * Represents a filter function that can transform inputs to outputs or filter them out.

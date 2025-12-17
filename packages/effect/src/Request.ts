@@ -22,7 +22,7 @@ import * as core from "./internal/core.ts"
 import * as internalEffect from "./internal/effect.ts"
 import { hasProperty } from "./Predicate.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
-import type * as Types from "./types/Types.ts"
+import type * as Types from "./Types.ts"
 
 const TypeId = "~effect/Request"
 

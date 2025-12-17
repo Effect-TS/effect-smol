@@ -8,6 +8,7 @@ import * as Equivalence from "./Equivalence.ts"
 import * as Filter from "./Filter.ts"
 import type { LazyArg } from "./Function.ts"
 import { dual, identity } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
 import * as internalArray from "./internal/array.ts"
 import * as internalDoNotation from "./internal/doNotation.ts"
 import * as moduleIterable from "./Iterable.ts"
@@ -18,8 +19,7 @@ import * as Record from "./Record.ts"
 import * as Reducer from "./Reducer.ts"
 import * as Result from "./Result.ts"
 import * as Tuple from "./Tuple.ts"
-import type { TypeLambda } from "./types/HKT.ts"
-import type { NoInfer, TupleOf } from "./types/Types.ts"
+import type { NoInfer, TupleOf } from "./Types.ts"
 
 /**
  * Reference to the global Array constructor.
@@ -43,7 +43,7 @@ export const Array = globalThis.Array
  * @example
  * ```ts
  * import type { ReadonlyArrayTypeLambda } from "effect/Array"
- * import type { Kind } from "effect/types/HKT"
+ * import type { Kind } from "effect/HKT"
  *
  * // Create a ReadonlyArray type using the type lambda
  * type NumberArray = Kind<ReadonlyArrayTypeLambda, never, never, never, number>

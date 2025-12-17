@@ -19,7 +19,7 @@ import * as Option from "../Option.ts"
 import { hasProperty } from "../Predicate.ts"
 import * as TxChunk from "../stm/TxChunk.ts"
 import * as TxRef from "../stm/TxRef.ts"
-import type * as Types from "../types/Types.ts"
+import type * as Types from "../Types.ts"
 
 /**
  * Represents the state of a transactional queue with sophisticated lifecycle management.

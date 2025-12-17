@@ -20,7 +20,7 @@ import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
-import type * as Types from "./types/Types.ts"
+import type * as Types from "./Types.ts"
 
 const ServiceTypeId = "~effect/ServiceMap/Service" as const
 

@@ -15,6 +15,7 @@ import * as Fiber from "./Fiber.ts"
 import * as Filter from "./Filter.ts"
 import type { LazyArg } from "./Function.ts"
 import { constant, constTrue, constVoid, dual, identity } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
 import * as internalExecutionPlan from "./internal/executionPlan.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Iterable from "./Iterable.ts"
@@ -37,9 +38,8 @@ import * as Sink from "./Sink.ts"
 import { isString } from "./String.ts"
 import type * as Take from "./Take.ts"
 import type { ParentSpan, SpanOptions } from "./Tracer.ts"
-import type { TypeLambda } from "./types/HKT.ts"
-import type { Covariant, ExcludeTag, ExtractTag, NoInfer, Tags } from "./types/Types.ts"
-import type * as Unify from "./types/Unify.ts"
+import type { Covariant, ExcludeTag, ExtractTag, NoInfer, Tags } from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 
 const TypeId = "~effect/Stream"
 
@@ -135,7 +135,7 @@ export interface StreamUnifyIgnore extends Effect.EffectUnifyIgnore {
  * @example
  * ```ts
  * import type { StreamTypeLambda } from "effect/Stream"
- * import type { Kind } from "effect/types/HKT"
+ * import type { Kind } from "effect/HKT"
  *
  * // Create a Stream type using the type lambda
  * type NumberStream = Kind<StreamTypeLambda, never, string, never, number>

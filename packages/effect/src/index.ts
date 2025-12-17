@@ -845,6 +845,44 @@ export * as HashRing from "./HashRing.ts"
 export * as HashSet from "./HashSet.ts"
 
 /**
+ * This module provides utilities for Higher-Kinded Types (HKT) in TypeScript.
+ *
+ * Higher-Kinded Types are types that take other types as parameters, similar to how
+ * functions take values as parameters. They enable generic programming over type
+ * constructors, allowing you to write code that works with any container type
+ * (like Array, Option, Effect, etc.) in a uniform way.
+ *
+ * The HKT system in Effect uses TypeLambdas to encode type-level functions that
+ * can represent complex type relationships with multiple type parameters, including
+ * contravariant, covariant, and invariant positions.
+ *
+ * @example
+ * ```ts
+ * import type { HKT } from "effect"
+ *
+ * // Define a TypeLambda for Array
+ * interface ArrayTypeLambda extends HKT.TypeLambda {
+ *   readonly type: Array<this["Target"]>
+ * }
+ *
+ * // Use Kind to get the concrete type
+ * type MyArray = HKT.Kind<ArrayTypeLambda, never, never, never, string>
+ * // MyArray is Array<string>
+ *
+ * // Define a TypeClass that works with any HKT
+ * interface Functor<F extends HKT.TypeLambda> extends HKT.TypeClass<F> {
+ *   map<A, B>(
+ *     fa: HKT.Kind<F, never, never, never, A>,
+ *     f: (a: A) => B
+ *   ): HKT.Kind<F, never, never, never, B>
+ * }
+ * ```
+ *
+ * @since 2.0.0
+ */
+export * as HKT from "./HKT.ts"
+
+/**
  * This module provides utilities for making values inspectable and debuggable in TypeScript.
  *
  * The Inspectable interface provides a standard way to implement custom string representations
@@ -2131,6 +2169,13 @@ export * as Trie from "./Trie.ts"
 export * as Tuple from "./Tuple.ts"
 
 /**
+ * A collection of types that are commonly used types.
+ *
+ * @since 2.0.0
+ */
+export * as Types from "./Types.ts"
+
+/**
  * This module provides small, allocation-free utilities for working with values of type
  * `A | undefined`, where `undefined` means "no value".
  *
@@ -2160,6 +2205,11 @@ export * as Tuple from "./Tuple.ts"
  * @since 4.0.0
  */
 export * as UndefinedOr from "./UndefinedOr.ts"
+
+/**
+ * @since 2.0.0
+ */
+export * as Unify from "./Unify.ts"
 
 /**
  * @since 2.0.0

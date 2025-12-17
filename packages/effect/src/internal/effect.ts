@@ -38,7 +38,7 @@ import * as Scheduler from "../Scheduler.ts"
 import type * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import * as Tracer from "../Tracer.ts"
-import type { Concurrency, ExcludeTag, ExtractTag, NoInfer, NotFunction, Simplify, Tags } from "../types/Types.ts"
+import type { Concurrency, ExcludeTag, ExtractTag, NoInfer, NotFunction, Simplify, Tags } from "../Types.ts"
 import { internalCall } from "../Utils.ts"
 import type { Primitive } from "./core.ts"
 import {

@@ -7,7 +7,7 @@ import type { Inspectable } from "./Inspectable.ts"
 import * as internal from "./internal/hashMap.ts"
 import type { Option } from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
-import type { NoInfer } from "./types/Types.ts"
+import type { NoInfer } from "./Types.ts"
 
 const TypeId = internal.HashMapTypeId
 

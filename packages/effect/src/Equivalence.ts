@@ -37,8 +37,8 @@
  * @since 2.0.0
  */
 import { dual } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
 import * as Reducer from "./Reducer.ts"
-import type { TypeLambda } from "./types/HKT.ts"
 
 /**
  * Represents an equivalence relation over type `A`.
@@ -82,7 +82,7 @@ export type Equivalence<in A> = (self: A, that: A) => boolean
  * @example
  * ```ts
  * import type { Equivalence } from "effect"
- * import type { Kind } from "effect/types/HKT"
+ * import type { Kind } from "effect/HKT"
  *
  * // Used internally for type-level computations
  * type NumberEquivalence = Kind<

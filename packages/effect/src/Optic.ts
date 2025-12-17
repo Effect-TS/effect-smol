@@ -12,7 +12,7 @@ import * as Option from "./Option.ts"
 import * as Result from "./Result.ts"
 import * as AST from "./schema/AST.ts"
 import * as Struct from "./Struct.ts"
-import type { IsUnion } from "./types/Types.ts"
+import type { IsUnion } from "./Types.ts"
 
 /**
  * @category Iso

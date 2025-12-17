@@ -82,8 +82,8 @@ import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as Take from "./Take.ts"
 import { ParentSpan, type SpanOptions } from "./Tracer.ts"
-import type * as Types from "./types/Types.ts"
-import type * as Unify from "./types/Unify.ts"
+import type * as Types from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 
 const TypeId = "~effect/Channel"
 

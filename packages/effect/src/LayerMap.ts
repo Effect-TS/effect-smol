@@ -8,7 +8,7 @@ import * as Layer from "./Layer.ts"
 import * as RcMap from "./RcMap.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import type { Mutable, NoExcessProperties } from "./types/Types.ts"
+import type { Mutable, NoExcessProperties } from "./Types.ts"
 
 const TypeId = "~effect/LayerMap"
 

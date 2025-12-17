@@ -18,7 +18,7 @@ type TupleOf_<T, N extends number, R extends Array<unknown>> = `${N}` extends `-
  *
  * @example
  * ```ts
- * import type { TupleOf } from "effect/types/Types"
+ * import type { TupleOf } from "effect/Types"
  *
  * // A tuple with exactly 3 numbers
  * const example1: TupleOf<3, number> = [1, 2, 3] // valid
@@ -44,7 +44,7 @@ export type TupleOf<N extends number, T> = N extends N ? number extends N ? Arra
  *
  * @example
  * ```ts
- * import type { TupleOfAtLeast } from "effect/types/Types"
+ * import type { TupleOfAtLeast } from "effect/Types"
  *
  * // A tuple with at least 3 numbers
  * const example1: TupleOfAtLeast<3, number> = [1, 2, 3] // valid
@@ -62,7 +62,7 @@ export type TupleOfAtLeast<N extends number, T> = [...TupleOf<N, T>, ...Array<T>
  * Returns the tags in a type.
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type Res = Types.Tags<string | { _tag: "a" } | { _tag: "b" }> // "a" | "b"
  * ```
@@ -76,7 +76,7 @@ export type Tags<E> = E extends { readonly _tag: string } ? E["_tag"] : never
  * Excludes the tagged object from the type.
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type Res = Types.ExcludeTag<string | { _tag: "a" } | { _tag: "b" }, "a"> // string | { _tag: "b" }
  * ```
@@ -91,7 +91,7 @@ export type ExcludeTag<E, K extends string> = Exclude<E, { readonly _tag: K }>
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type Res = Types.ExtractTag<
  *   { _tag: "a"; a: number } | { _tag: "b"; b: number },
@@ -109,7 +109,7 @@ export type ExtractTag<E, K extends string> = Extract<E, { readonly _tag: K }>
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type Union = { a: string } | { b: number }
  * type Intersection = Types.UnionToIntersection<Union> // { a: string } & { b: number }
@@ -126,7 +126,7 @@ export type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) ext
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type Res = Types.Simplify<{ a: number } & { b: number }> // { a: number; b: number; }
  * ```
@@ -143,7 +143,7 @@ export type Simplify<A> = {
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type Res1 = Types.Equals<{ a: number }, { a: number }> // true
  * type Res2 = Types.Equals<{ a: number }, { b: number }> // false
@@ -162,7 +162,7 @@ export type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type Result1 = Types.EqualsWith<string, string, "yes", "no"> // "yes"
  * type Result2 = Types.EqualsWith<string, number, "yes", "no"> // "no"
@@ -178,7 +178,7 @@ export type EqualsWith<A, B, Y, N> = (<T>() => T extends A ? 1 : 2) extends (<T>
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type Res1 = Types.Has<{ a: number }, "a" | "b"> // true
  * type Res2 = Types.Has<{ c: number }, "a" | "b"> // false
@@ -196,7 +196,7 @@ export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof 
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type MergeLeft = Types.MergeLeft<{ a: number; b: number }, { a: string }> // { a: number; b: number; }
  * ```
@@ -211,7 +211,7 @@ export type MergeLeft<Source, Target> = MergeRight<Target, Source>
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type MergeRight = Types.MergeRight<{ a: number; b: number }, { a: string }> // { a: string; b: number; }
  * ```
@@ -231,7 +231,7 @@ export type MergeRight<Target, Source> = Simplify<
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type Result = Types.MergeRecord<
  *   { a: number; b: number },
@@ -249,7 +249,7 @@ export type MergeRecord<Source, Target> = MergeLeft<Source, Target>
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * const unbounded: Types.Concurrency = "unbounded"
  * const inherit: Types.Concurrency = "inherit"
@@ -266,7 +266,7 @@ export type Concurrency = number | "unbounded" | "inherit"
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type MutableStruct = Types.Mutable<{ readonly a: string; readonly b: number }> // { a: string; b: number; }
  *
@@ -289,7 +289,7 @@ export type Mutable<T> = {
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type DeepMutableStruct = Types.DeepMutable<{
  *   readonly a: string
@@ -311,7 +311,7 @@ export type DeepMutable<T> = T extends ReadonlyMap<infer K, infer V> ? Map<DeepM
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * declare function fn<T>(value: T, noInfer: Types.NoInfer<T>): T
  *
@@ -330,7 +330,7 @@ export type NoInfer<A> = [A][A extends any ? 0 : never]
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * // Invariant type for phantom types
  * type UserId = Types.Invariant<string>
@@ -353,7 +353,7 @@ export type Invariant<A> = (_: A) => A
 /**
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type MyInvariant = Types.Invariant<number>
  * type ExtractedType = Types.Invariant.Type<MyInvariant> // number
@@ -366,7 +366,7 @@ export declare namespace Invariant {
   /**
    * @example
    * ```ts
-   * import type { Types } from "effect/types"
+   * import type * as Types from "effect/Types"
    *
    * type MyInvariant = Types.Invariant<number>
    * type ExtractedType = Types.Invariant.Type<MyInvariant> // number
@@ -383,7 +383,7 @@ export declare namespace Invariant {
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * // Covariant type for producer types
  * type Producer<T> = Types.Covariant<T>
@@ -402,7 +402,7 @@ export type Covariant<A> = (_: never) => A
 /**
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type MyCovariant = Types.Covariant<string>
  * type ExtractedType = Types.Covariant.Type<MyCovariant> // string
@@ -415,7 +415,7 @@ export declare namespace Covariant {
   /**
    * @example
    * ```ts
-   * import type { Types } from "effect/types"
+   * import type * as Types from "effect/Types"
    *
    * type MyCovariant = Types.Covariant<string>
    * type ExtractedType = Types.Covariant.Type<MyCovariant> // string
@@ -432,7 +432,7 @@ export declare namespace Covariant {
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * // Contravariant type for consumer types
  * type Consumer<T> = Types.Contravariant<T>
@@ -451,7 +451,7 @@ export type Contravariant<A> = (_: A) => void
 /**
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type MyContravariant = Types.Contravariant<string>
  * type ExtractedType = Types.Contravariant.Type<MyContravariant> // string
@@ -464,7 +464,7 @@ export declare namespace Contravariant {
   /**
    * @example
    * ```ts
-   * import type { Types } from "effect/types"
+   * import type * as Types from "effect/Types"
    *
    * type MyContravariant = Types.Contravariant<string>
    * type ExtractedType = Types.Contravariant.Type<MyContravariant> // string
@@ -481,7 +481,7 @@ export declare namespace Contravariant {
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type EmptyResult = Types.MatchRecord<{}, "empty", "not empty"> // "empty"
  * type NonEmptyResult = Types.MatchRecord<{ a: number }, "empty", "not empty"> // "not empty"
@@ -497,7 +497,7 @@ export type MatchRecord<S, onTrue, onFalse> = {} extends S ? onTrue : onFalse
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type Result = Types.NotFunction<string | number | (() => void)> // string | number
  * type NoFunctions = Types.NotFunction<string> // string
@@ -514,7 +514,7 @@ export type NotFunction<T> = T extends Function ? never : T
  *
  * @example
  * ```ts
- * import type { Types } from "effect/types"
+ * import type * as Types from "effect/Types"
  *
  * type Expected = { a: number; b: string }
  * type Input = { a: number; b: string; c: boolean }

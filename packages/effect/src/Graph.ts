@@ -11,7 +11,7 @@ import { NodeInspectSymbol } from "./Inspectable.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
-import type { Mutable } from "./types/Types.ts"
+import type { Mutable } from "./Types.ts"
 
 const TypeId = "~effect/collections/Graph"
 

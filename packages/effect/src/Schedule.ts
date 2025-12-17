@@ -42,7 +42,7 @@ import { hasProperty } from "./Predicate.ts"
 import * as Pull from "./Pull.ts"
 import * as Result from "./Result.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import type { Contravariant, Covariant, Mutable } from "./types/Types.ts"
+import type { Contravariant, Covariant, Mutable } from "./Types.ts"
 
 const TypeId = "~effect/Schedule"
 

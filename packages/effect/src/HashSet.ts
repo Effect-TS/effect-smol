@@ -8,7 +8,7 @@ import type { Inspectable } from "./Inspectable.ts"
 import * as internal from "./internal/hashSet.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import type { Predicate, Refinement } from "./Predicate.ts"
-import type { NoInfer } from "./types/Types.ts"
+import type { NoInfer } from "./Types.ts"
 
 const TypeId = internal.HashSetTypeId
 

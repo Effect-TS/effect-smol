@@ -9,7 +9,7 @@ import * as Annotations from "../../schema/Annotations.ts"
 import * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
-import type { Mutable } from "../../types/Types.ts"
+import type { Mutable } from "../../Types.ts"
 import type * as Multipart_ from "../http/Multipart.ts"
 
 declare module "../../schema/Annotations.ts" {

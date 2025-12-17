@@ -20,7 +20,7 @@ import type * as Schema from "./schema/Schema.ts"
 import type { Scope } from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as Tracer from "./Tracer.ts"
-import type * as Types from "./types/Types.ts"
+import type * as Types from "./Types.ts"
 import type * as Persistable from "./unstable/persistence/Persistable.ts"
 import * as Persistence from "./unstable/persistence/Persistence.ts"
 

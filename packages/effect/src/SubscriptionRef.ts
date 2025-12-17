@@ -8,7 +8,7 @@ import * as Option from "./Option.ts"
 import * as PubSub from "./PubSub.ts"
 import * as Ref from "./Ref.ts"
 import * as Stream from "./Stream.ts"
-import type { Invariant } from "./types/Types.ts"
+import type { Invariant } from "./Types.ts"
 
 const TypeId = "~effect/SubscriptionRef"
 

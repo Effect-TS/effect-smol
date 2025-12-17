@@ -11,7 +11,7 @@ import * as Record from "../../Record.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as Transformation from "../../schema/Transformation.ts"
-import type * as Types from "../../types/Types.ts"
+import type * as Types from "../../Types.ts"
 
 const TypeId = "~effect/http/Cookies"
 

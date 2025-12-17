@@ -16,7 +16,7 @@ import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as Result from "./Result.ts"
 import * as String from "./String.ts"
-import type { Mutable } from "./types/Types.ts"
+import type { Mutable } from "./Types.ts"
 import * as UndefinedOr from "./UndefinedOr.ts"
 
 const TypeId = "~effect/time/Cron"

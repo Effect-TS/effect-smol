@@ -8,7 +8,7 @@ import type * as Ordering from "../Ordering.ts"
 import { pipeArguments } from "../Pipeable.ts"
 import { hasProperty } from "../Predicate.ts"
 import type * as TR from "../Trie.ts"
-import type { NoInfer } from "../types/Types.ts"
+import type { NoInfer } from "../Types.ts"
 
 /** @internal */
 export const TrieTypeId = "~effect/collections/Trie"

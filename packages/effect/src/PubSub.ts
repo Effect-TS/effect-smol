@@ -39,7 +39,7 @@ import * as MutableRef from "./MutableRef.ts"
 import { nextPow2 } from "./Number.ts"
 import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import * as Scope from "./Scope.ts"
-import type { Covariant, Invariant } from "./types/Types.ts"
+import type { Covariant, Invariant } from "./Types.ts"
 
 const TypeId = "~effect/PubSub"
 

@@ -1,4 +1,4 @@
-import type * as Types from "effect/types/Types"
+import type * as Types from "effect/Types"
 import type { OpenAPISpecMethodName } from "effect/unstable/httpapi/OpenApi"
 
 export interface ParsedOperation {

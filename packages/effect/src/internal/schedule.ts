@@ -3,7 +3,7 @@ import { constant, constTrue, dual } from "../Function.ts"
 import * as Option from "../Option.ts"
 import * as Pull from "../Pull.ts"
 import * as Schedule from "../Schedule.ts"
-import type { NoInfer } from "../types/Types.ts"
+import type { NoInfer } from "../Types.ts"
 import { internalCall } from "../Utils.ts"
 import * as effect from "./effect.ts"
 

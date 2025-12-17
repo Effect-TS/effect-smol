@@ -12,7 +12,7 @@
  *
  * @example
  * ```ts
- * import type { HKT } from "effect/types"
+ * import type { HKT } from "effect"
  *
  * // Define a TypeLambda for Array
  * interface ArrayTypeLambda extends HKT.TypeLambda {
@@ -34,7 +34,7 @@
  *
  * @since 2.0.0
  */
-import type * as Types from "../types/Types.ts"
+import type * as Types from "./Types.ts"
 
 /**
  * A unique symbol used to identify TypeClass implementations.
@@ -45,7 +45,7 @@ import type * as Types from "../types/Types.ts"
  *
  * @example
  * ```ts
- * import type { HKT } from "effect/types"
+ * import type { HKT } from "effect"
  *
  * interface MyTypeClass<F extends HKT.TypeLambda> extends HKT.TypeClass<F> {
  *   // TypeClass methods here
@@ -69,7 +69,7 @@ export declare const URI: unique symbol
  *
  * @example
  * ```ts
- * import type { HKT } from "effect/types"
+ * import type { HKT } from "effect"
  *
  * // Define a Functor type class
  * interface Functor<F extends HKT.TypeLambda> extends HKT.TypeClass<F> {
@@ -111,7 +111,7 @@ export interface TypeClass<F extends TypeLambda> {
  * @example
  * ```ts
  * import type { Effect } from "effect"
- * import type { HKT } from "effect/types"
+ * import type { HKT } from "effect"
  *
  * // TypeLambda for Array<A>
  * interface ArrayTypeLambda extends HKT.TypeLambda {
@@ -153,7 +153,7 @@ export interface TypeLambda {
  * @example
  * ```ts
  * import type { Effect, Option } from "effect"
- * import type { HKT } from "effect/types"
+ * import type { HKT } from "effect"
  *
  * // Define TypeLambdas
  * interface OptionTypeLambda extends HKT.TypeLambda {

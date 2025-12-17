@@ -17,9 +17,9 @@
  * @since 2.0.0
  */
 import { dual } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
 import type { Ordering } from "./Ordering.ts"
 import * as Reducer from "./Reducer.ts"
-import type { TypeLambda } from "./types/HKT.ts"
 
 /**
  * Represents a total ordering for values of type `A`.

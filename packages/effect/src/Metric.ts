@@ -151,7 +151,7 @@ import { pipeArguments } from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as _String from "./String.ts"
-import type { Contravariant, Covariant } from "./types/Types.ts"
+import type { Contravariant, Covariant } from "./Types.ts"
 
 /**
  * A `Metric<Input, State>` represents a concurrent metric which accepts update

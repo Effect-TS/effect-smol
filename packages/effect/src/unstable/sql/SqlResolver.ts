@@ -11,7 +11,7 @@ import * as MutableHashMap from "../../MutableHashMap.ts"
 import * as Request from "../../Request.ts"
 import * as RequestResolver from "../../RequestResolver.ts"
 import * as Schema from "../../schema/Schema.ts"
-import type * as Types from "../../types/Types.ts"
+import type * as Types from "../../Types.ts"
 import * as SqlClient from "./SqlClient.ts"
 import { ResultLengthMismatch } from "./SqlError.ts"
 

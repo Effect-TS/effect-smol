@@ -2,7 +2,7 @@
  * @since 2.0.0
  */
 
-import { identity } from "../Function.ts"
+import { identity } from "./Function.ts"
 
 /**
  * A unique symbol used to identify unification behavior in Effect types.
@@ -12,7 +12,7 @@ import { identity } from "../Function.ts"
  *
  * @example
  * ```ts
- * import type { Unify } from "effect/types"
+ * import type { Unify } from "effect"
  *
  * // The unifySymbol is used internally in Effect types
  * // to enable automatic type unification
@@ -35,7 +35,7 @@ export declare const unifySymbol: unique symbol
  *
  * @example
  * ```ts
- * import type { Unify } from "effect/types"
+ * import type { Unify } from "effect"
  *
  * // The unifySymbol type is used in type declarations
  * // to enable unification behavior
@@ -57,7 +57,7 @@ export type unifySymbol = typeof unifySymbol
  *
  * @example
  * ```ts
- * import type { Unify } from "effect/types"
+ * import type { Unify } from "effect"
  *
  * // The typeSymbol is used internally in Effect types
  * // to store type information for unification
@@ -80,7 +80,7 @@ export declare const typeSymbol: unique symbol
  *
  * @example
  * ```ts
- * import type { Unify } from "effect/types"
+ * import type { Unify } from "effect"
  *
  * // The typeSymbol type is used in type declarations
  * // to store type information for unification
@@ -103,7 +103,7 @@ export type typeSymbol = typeof typeSymbol
  *
  * @example
  * ```ts
- * import type { Unify } from "effect/types"
+ * import type { Unify } from "effect"
  *
  * // The ignoreSymbol is used internally in Effect types
  * // to mark types that should be ignored during unification
@@ -126,7 +126,7 @@ export declare const ignoreSymbol: unique symbol
  *
  * @example
  * ```ts
- * import type { Unify } from "effect/types"
+ * import type { Unify } from "effect"
  *
  * // The ignoreSymbol type is used in type declarations
  * // to mark types that should be ignored during unification
@@ -171,7 +171,7 @@ type FilterOut<A> = A extends any ? typeSymbol extends keyof A ? never : A : nev
  *
  * @example
  * ```ts
- * import type * as Unify from "effect/types/Unify"
+ * import type * as Unify from "effect/Unify"
  *
  * // Example of types that can be unified
  * type UnifiableA = {
@@ -212,7 +212,7 @@ export type Unify<A> = Values<
  *
  * @example
  * ```ts
- * import { Unify } from "effect/types"
+ * import { Unify } from "effect"
  *
  * // Unify a simple value
  * const unifiedValue = Unify.unify("hello")

@@ -13,7 +13,7 @@ import { PipeInspectableProto } from "./internal/core.ts"
 import { redactedRegistry } from "./internal/redacted.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty, isString } from "./Predicate.ts"
-import type { Covariant } from "./types/Types.ts"
+import type { Covariant } from "./Types.ts"
 
 const TypeId = "~effect/data/Redacted"
 

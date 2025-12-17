@@ -20,7 +20,7 @@ import type { Inspectable } from "./Inspectable.ts"
 import * as TR from "./internal/trie.ts"
 import type { Option } from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
-import type { Covariant, NoInfer } from "./types/Types.ts"
+import type { Covariant, NoInfer } from "./Types.ts"
 
 const TypeId = TR.TrieTypeId
 

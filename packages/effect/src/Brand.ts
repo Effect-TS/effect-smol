@@ -10,7 +10,7 @@ import * as Option from "./Option.ts"
 import * as Result from "./Result.ts"
 import * as AST from "./schema/AST.ts"
 import type * as Issue from "./schema/Issue.ts"
-import type * as Types from "./types/Types.ts"
+import type * as Types from "./Types.ts"
 
 const TypeId = "~effect/data/Brand"
 

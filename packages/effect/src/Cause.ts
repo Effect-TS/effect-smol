@@ -48,7 +48,7 @@ import * as effect from "./internal/effect.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import type { StackFrame } from "./References.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import type { NoInfer } from "./types/Types.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * @since 2.0.0

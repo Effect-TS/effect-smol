@@ -17,7 +17,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Terminal from "../../Terminal.ts"
-import type { Covariant } from "../../types/Types.ts"
+import type { Covariant } from "../../Types.ts"
 import * as Ansi from "./internal/ansi.ts"
 import type * as Primitive from "./Primitive.ts"
 

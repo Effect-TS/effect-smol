@@ -75,6 +75,7 @@ import * as Equivalence from "./Equivalence.ts"
 import { format } from "./Formatter.ts"
 import { dual, identity, pipe } from "./Function.ts"
 import * as Hash from "./Hash.ts"
+import type { TypeLambda } from "./HKT.ts"
 import { type Inspectable, NodeInspectSymbol, toJson } from "./Inspectable.ts"
 import type { NonEmptyIterable } from "./NonEmptyIterable.ts"
 import type { Option } from "./Option.ts"
@@ -84,8 +85,7 @@ import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
 import { hasProperty, type Predicate, type Refinement } from "./Predicate.ts"
 import type { Result } from "./Result.ts"
-import type { TypeLambda } from "./types/HKT.ts"
-import type { Covariant, NoInfer } from "./types/Types.ts"
+import type { Covariant, NoInfer } from "./Types.ts"
 import * as UndefinedOr from "./UndefinedOr.ts"
 
 const TypeId = "~effect/collections/Chunk"
@@ -139,7 +139,7 @@ export interface NonEmptyChunk<out A> extends Chunk<A>, NonEmptyIterable<A> {}
  * @example
  * ```ts
  * import type { ChunkTypeLambda } from "effect/Chunk"
- * import type { Kind } from "effect/types/HKT"
+ * import type { Kind } from "effect/HKT"
  *
  * // Create a Chunk type using the type lambda
  * type NumberChunk = Kind<ChunkTypeLambda, never, never, never, number>

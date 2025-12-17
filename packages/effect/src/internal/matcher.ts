@@ -4,7 +4,7 @@ import * as Option from "../Option.ts"
 import { pipeArguments } from "../Pipeable.ts"
 import type * as Predicate from "../Predicate.ts"
 import * as Result from "../Result.ts"
-import type { Unify } from "../types/Unify.ts"
+import type { Unify } from "../Unify.ts"
 
 /** @internal */
 export const TypeId = "~effect/match/Match/Matcher"

@@ -2,9 +2,9 @@
  * @since 2.0.0
  */
 import { identity } from "./Function.ts"
+import type { Kind, TypeLambda } from "./HKT.ts"
 import { isObject } from "./Predicate.ts"
-import type { Kind, TypeLambda } from "./types/HKT.ts"
-import type * as Types from "./types/Types.ts"
+import type * as Types from "./Types.ts"
 
 /**
  * @since 2.0.0

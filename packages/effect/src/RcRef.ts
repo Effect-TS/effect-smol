@@ -5,7 +5,7 @@ import type * as Duration from "./Duration.ts"
 import type * as Effect from "./Effect.ts"
 import * as internal from "./internal/rcRef.ts"
 import type { Scope } from "./Scope.ts"
-import type * as Types from "./types/Types.ts"
+import type * as Types from "./Types.ts"
 
 const TypeId = "~effect/RcRef"
 

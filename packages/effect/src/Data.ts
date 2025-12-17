@@ -14,8 +14,8 @@
 import type * as Cause from "./Cause.ts"
 import * as core from "./internal/core.ts"
 import * as Predicate from "./Predicate.ts"
-import type * as Types from "./types/Types.ts"
-import type { Unify } from "./types/Unify.ts"
+import type * as Types from "./Types.ts"
+import type { Unify } from "./Unify.ts"
 
 /**
  * Provides a constructor for a Case Class.

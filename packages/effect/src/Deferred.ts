@@ -74,7 +74,7 @@ import * as core from "./internal/core.ts"
 import * as internalEffect from "./internal/effect.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
-import type * as Types from "./types/Types.ts"
+import type * as Types from "./Types.ts"
 
 const TypeId = "~effect/Deferred"
 

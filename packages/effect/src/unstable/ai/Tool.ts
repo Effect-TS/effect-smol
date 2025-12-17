@@ -35,7 +35,7 @@ import * as AST from "../../schema/AST.ts"
 import * as Schema from "../../schema/Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Struct from "../../Struct.ts"
-import type * as Types from "../../types/Types.ts"
+import type * as Types from "../../Types.ts"
 
 // =============================================================================
 // Type Ids

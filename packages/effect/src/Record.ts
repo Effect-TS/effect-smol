@@ -8,12 +8,12 @@ import type * as Combiner from "./Combiner.ts"
 import * as Equal from "./Equal.ts"
 import type { Equivalence } from "./Equivalence.ts"
 import { dual, identity } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
 import * as Option from "./Option.ts"
 import * as Reducer from "./Reducer.ts"
 import type { Result } from "./Result.ts"
 import * as R from "./Result.ts"
-import type { TypeLambda } from "./types/HKT.ts"
-import type { NoInfer } from "./types/Types.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * Represents a readonly record with keys of type `K` and values of type `A`.

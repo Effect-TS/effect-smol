@@ -15,7 +15,7 @@ import type * as Filter from "./Filter.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
 import type { Option } from "./Option.ts"
-import type { NoInfer } from "./types/Types.ts"
+import type { NoInfer } from "./Types.ts"
 
 const TypeId = core.ExitTypeId
 

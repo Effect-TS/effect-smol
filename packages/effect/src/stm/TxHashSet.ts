@@ -12,7 +12,7 @@ import type { Pipeable } from "../Pipeable.ts"
 import { pipeArguments } from "../Pipeable.ts"
 import type { Predicate, Refinement } from "../Predicate.ts"
 import * as TxRef from "../stm/TxRef.ts"
-import type { NoInfer } from "../types/Types.ts"
+import type { NoInfer } from "../Types.ts"
 
 const TypeId = "~effect/transactions/TxHashSet"
 

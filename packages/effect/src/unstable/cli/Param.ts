@@ -21,7 +21,7 @@ import * as Predicate from "../../Predicate.ts"
 import type * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../schema/Schema.ts"
-import type { Covariant } from "../../types/Types.ts"
+import type { Covariant } from "../../Types.ts"
 import * as CliError from "./CliError.ts"
 import * as Primitive from "./Primitive.ts"
 

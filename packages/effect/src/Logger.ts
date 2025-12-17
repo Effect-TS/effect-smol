@@ -116,7 +116,7 @@ import * as Predicate from "./Predicate.ts"
 import { CurrentLogAnnotations, CurrentLogSpans } from "./References.ts"
 import type * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import type * as Types from "./types/Types.ts"
+import type * as Types from "./Types.ts"
 
 const TypeId = "~effect/Logger"
 

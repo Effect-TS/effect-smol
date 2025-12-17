@@ -31,8 +31,8 @@ import type * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import type * as Result from "./Result.ts"
-import type * as T from "./types/Types.ts"
-import type { Unify } from "./types/Unify.ts"
+import type * as T from "./Types.ts"
+import type { Unify } from "./Unify.ts"
 
 const TypeId = internal.TypeId
 

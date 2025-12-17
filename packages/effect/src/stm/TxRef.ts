@@ -10,7 +10,7 @@
  */
 import * as Effect from "../Effect.ts"
 import { dual } from "../Function.ts"
-import type { NoInfer } from "../types/Types.ts"
+import type { NoInfer } from "../Types.ts"
 
 const TypeId = "~effect/transactions/TxRef"
 

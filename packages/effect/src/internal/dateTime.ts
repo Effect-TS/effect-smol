@@ -13,7 +13,7 @@ import * as order from "../Order.ts"
 import { pipeArguments } from "../Pipeable.ts"
 import * as Predicate from "../Predicate.ts"
 import * as Result from "../Result.ts"
-import type { Mutable } from "../types/Types.ts"
+import type { Mutable } from "../Types.ts"
 import * as UndefinedOr from "../UndefinedOr.ts"
 import * as effect from "./effect.ts"
 

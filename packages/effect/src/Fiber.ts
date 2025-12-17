@@ -83,7 +83,7 @@ import type { Scheduler } from "./Scheduler.ts"
 import type { Scope } from "./Scope.ts"
 import type * as ServiceMap from "./ServiceMap.ts"
 import type { AnySpan } from "./Tracer.ts"
-import type { Covariant } from "./types/Types.ts"
+import type { Covariant } from "./Types.ts"
 
 const TypeId = `~effect/Fiber/${version}`
 

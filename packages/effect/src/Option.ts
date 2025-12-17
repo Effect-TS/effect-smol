@@ -8,6 +8,7 @@ import * as Equal from "./Equal.ts"
 import * as Equivalence from "./Equivalence.ts"
 import type { LazyArg } from "./Function.ts"
 import { constNull, constUndefined, dual, identity, isFunction } from "./Function.ts"
+import type { TypeLambda } from "./HKT.ts"
 import type { Inspectable } from "./Inspectable.ts"
 import * as doNotation from "./internal/doNotation.ts"
 import * as option from "./internal/option.ts"
@@ -18,9 +19,8 @@ import type { Pipeable } from "./Pipeable.ts"
 import type { Predicate, Refinement } from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
 import type { Result } from "./Result.ts"
-import type { TypeLambda } from "./types/HKT.ts"
-import type { Covariant, NoInfer, NotFunction } from "./types/Types.ts"
-import type * as Unify from "./types/Unify.ts"
+import type { Covariant, NoInfer, NotFunction } from "./Types.ts"
+import type * as Unify from "./Unify.ts"
 import * as Gen from "./Utils.ts"
 
 const TypeId = "~effect/data/Option"
@@ -101,7 +101,7 @@ export interface Some<out A> extends Pipeable, Inspectable, Yieldable<Option<A>,
  * @example
  * ```ts
  * import type { Option } from "effect"
- * import type * as Unify from "effect/types/Unify"
+ * import type * as Unify from "effect/Unify"
  *
  * // Internal unification interface used by the Effect library
  * // for type-level operations with Option types

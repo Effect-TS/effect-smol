@@ -1,8 +1,8 @@
 /**
  * @since 2.0.0
  */
+import type { TypeLambda } from "./HKT.ts"
 import { pipeArguments } from "./Pipeable.ts"
-import type { TypeLambda } from "./types/HKT.ts"
 
 /**
  * Type lambda for function types, used for higher-kinded type operations.
@@ -10,7 +10,7 @@ import type { TypeLambda } from "./types/HKT.ts"
  * @example
  * ```ts
  * import type { FunctionTypeLambda } from "effect/Function"
- * import type { Kind } from "effect/types/HKT"
+ * import type { Kind } from "effect/HKT"
  *
  * // Create a function type using the type lambda
  * type StringToNumber = Kind<FunctionTypeLambda, string, never, never, number>

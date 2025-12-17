@@ -24,7 +24,7 @@ import * as Redacted from "../../Redacted.ts"
 import type { Formatter } from "../../schema/Issue.ts"
 import * as Schema from "../../schema/Schema.ts"
 import type * as Struct from "../../Struct.ts"
-import type { Covariant } from "../../types/Types.ts"
+import type { Covariant } from "../../Types.ts"
 
 const TypeId = "~effect/cli/Primitive"
 

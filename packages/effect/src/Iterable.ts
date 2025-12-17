@@ -40,7 +40,7 @@ import type * as Record from "./Record.ts"
 import type { Result } from "./Result.ts"
 import * as R from "./Result.ts"
 import * as Tuple from "./Tuple.ts"
-import type { NoInfer } from "./types/Types.ts"
+import type { NoInfer } from "./Types.ts"
 
 /**
  * Creates an iterable by applying a function to consecutive integers.

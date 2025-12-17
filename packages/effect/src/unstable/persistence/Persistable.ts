@@ -7,7 +7,7 @@ import type * as Exit from "../../Exit.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
 import * as Request from "../../Request.ts"
 import * as Schema from "../../schema/Schema.ts"
-import type * as Types from "../../types/Types.ts"
+import type * as Types from "../../Types.ts"
 import type { PersistenceError } from "./Persistence.ts"
 
 /**

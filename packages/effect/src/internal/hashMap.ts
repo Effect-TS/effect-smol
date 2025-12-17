@@ -12,7 +12,7 @@ import * as Option from "../Option.ts"
 import type { Pipeable } from "../Pipeable.ts"
 import { pipeArguments } from "../Pipeable.ts"
 import { hasProperty } from "../Predicate.ts"
-import type { NoInfer } from "../types/Types.ts"
+import type { NoInfer } from "../Types.ts"
 
 /** @internal */
 export const HashMapTypeId = "~effect/collections/HashMap"
