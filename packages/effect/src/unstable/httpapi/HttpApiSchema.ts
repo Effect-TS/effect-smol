@@ -5,6 +5,7 @@ import type { YieldableError } from "../../Cause.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
 import * as Iterable from "../../Iterable.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
@@ -532,6 +533,7 @@ export const EmptyError = <Self>() =>
       this.name = options.tag
     }
   }
+  const isEmptyError = (u: unknown): u is EmptyError => Schema.isSchema(u) && Predicate.isTagged(u, options.tag)
   let transform: Schema.Top | undefined
   Object.defineProperty(EmptyError, "ast", {
     get() {
@@ -542,7 +544,7 @@ export const EmptyError = <Self>() =>
       const decoded = new self()
       decoded.stack = options.tag
       transform = asEmpty(
-        Schema.declare((u) => u instanceof EmptyError, {
+        Schema.declare(isEmptyError, {
           identifier: options.tag
         }),
         {
