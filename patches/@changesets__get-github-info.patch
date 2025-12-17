@@ -1,16 +1,14 @@
 diff --git a/dist/changesets-get-github-info.cjs.js b/dist/changesets-get-github-info.cjs.js
-index a74df59f8a5988f458a3476087399f5e6dfe4818..ce5e60ef9916eb0cb76ab1e9dd422abcad752bf6 100644
+index 4187b5c54532a1c1c179b60cb314026f67e48323..740a894a5f8ac240a5ce1d3f12d2d77cabc0c2aa 100644
 --- a/dist/changesets-get-github-info.cjs.js
 +++ b/dist/changesets-get-github-info.cjs.js
-@@ -251,18 +251,13 @@ async function getInfo(request) {
+@@ -237,16 +237,13 @@ async function getInfo(request) {
      b = new Date(b.mergedAt);
      return a > b ? 1 : a < b ? -1 : 0;
    })[0] : null;
--
 -  if (associatedPullRequest) {
 -    user = associatedPullRequest.author;
 -  }
--
    return {
      user: user ? user.login : null,
      pull: associatedPullRequest ? associatedPullRequest.number : null,
@@ -23,18 +21,16 @@ index a74df59f8a5988f458a3476087399f5e6dfe4818..ce5e60ef9916eb0cb76ab1e9dd422abc
    };
  }
 diff --git a/dist/changesets-get-github-info.esm.js b/dist/changesets-get-github-info.esm.js
-index 27e5c972ab1202ff16f5124b471f4bbcc46be2b5..3940a8fe86e10cb46d8ff6436dea1103b1839927 100644
+index 071ec75bb2b5894f09c06d4ead395e56ddbfd1c8..9a6134e78ace53ff341ef21f0352f0bd734b6b2c 100644
 --- a/dist/changesets-get-github-info.esm.js
 +++ b/dist/changesets-get-github-info.esm.js
-@@ -242,18 +242,13 @@ async function getInfo(request) {
+@@ -228,16 +228,13 @@ async function getInfo(request) {
      b = new Date(b.mergedAt);
      return a > b ? 1 : a < b ? -1 : 0;
    })[0] : null;
--
 -  if (associatedPullRequest) {
 -    user = associatedPullRequest.author;
 -  }
--
    return {
      user: user ? user.login : null,
      pull: associatedPullRequest ? associatedPullRequest.number : null,

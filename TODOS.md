@@ -49,7 +49,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |      Effect 3       | Ported | Effect 4 | Comments |
 | :-----------------: | :----: | :------: | :------: |
-| `withExecutionPlan` |   -    |          |          |
+| `withExecutionPlan` |  Done  |          |          |
 
 ### Combinators
 
@@ -452,68 +452,68 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |           Effect 3            | Ported |         Effect 4         | Comments |
 | :---------------------------: | :----: | :----------------------: | :------: |
-|         `collectAll`          |  Done  |       `collectAll`       |          |
-|         `collectAllN`         |  Done  |        `collectN`        |          |
-|       `collectAllToMap`       |   -    |                          |          |
-|      `collectAllToMapN`       |   -    |                          |          |
-|       `collectAllToSet`       |   -    |                          |          |
-|      `collectAllToSetN`       |   -    |                          |          |
-|       `collectAllUntil`       |   -    |                          |          |
-|    `collectAllUntilEffect`    |   -    |                          |          |
-|       `collectAllWhile`       |   -    |                          |          |
-|    `collectAllWhileEffect`    |   -    |                          |          |
-|           `context`           |   -    |                          |          |
-|         `contextWith`         |   -    |                          |          |
-|      `contextWithEffect`      |   -    |                          |          |
-|       `contextWithSink`       |   -    |                          |          |
-|            `count`            |   -    |                          |          |
+|         `collectAll`          |  Done  |        `collect`         |          |
+|         `collectAllN`         |  Done  |          `take`          |          |
+|       `collectAllToMap`       |   X    |                          |          |
+|      `collectAllToMapN`       |   X    |                          |          |
+|       `collectAllToSet`       |   X    |                          |          |
+|      `collectAllToSetN`       |   X    |                          |          |
+|       `collectAllUntil`       |  Done  |       `takeUntil`        |          |
+|    `collectAllUntilEffect`    |  Done  |                          |          |
+|       `collectAllWhile`       |  Done  |       `takeWhile`        |          |
+|    `collectAllWhileEffect`    |  Done  |                          |          |
+|           `context`           |   X    |                          |          |
+|         `contextWith`         |   X    |                          |          |
+|      `contextWithEffect`      |   X    |                          |          |
+|       `contextWithSink`       |   X    |                          |          |
+|            `count`            |  Done  |                          |          |
 |             `die`             |  Done  |          `die`           |          |
-|           `dieSync`           |   -    |                          |          |
+|           `dieSync`           |   X    |                          |          |
 |            `drain`            |  Done  |         `drain`          |          |
-|            `drop`             |   -    |                          |          |
-|          `dropUntil`          |   -    |                          |          |
-|       `dropUntilEffect`       |   -    |                          |          |
-|          `dropWhile`          |   -    |                          |          |
-|       `dropWhileEffect`       |   -    |                          |          |
-|            `every`            |   -    |                          |          |
+|            `drop`             |   X    |                          |          |
+|          `dropUntil`          |   X    |                          |          |
+|       `dropUntilEffect`       |   X    |                          |          |
+|          `dropWhile`          |   X    |                          |          |
+|       `dropWhileEffect`       |   X    |                          |          |
+|            `every`            |  Done  |                          |          |
 |            `fail`             |  Done  |          `fail`          |          |
 |          `failCause`          |  Done  |       `failCause`        |          |
 |        `failCauseSync`        |  Done  |     `failCauseSync`      |          |
 |          `failSync`           |  Done  |        `failSync`        |          |
-|         `foldChunks`          |   -    |    `reduceWhileArray`    |          |
-|      `foldChunksEffect`       |   -    | `reduceWhileArrayEffect` |          |
+|         `foldChunks`          |  Done  |    `reduceWhileArray`    |          |
+|      `foldChunksEffect`       |  Done  | `reduceWhileArrayEffect` |          |
 |         `foldEffect`          |  Done  |   `reduceWhileEffect`    |          |
 |          `foldLeft`           |  Done  |      `reduceWhile`       |          |
-|       `foldLeftChunks`        |   -    |      `reduceArray`       |          |
-|    `foldLeftChunksEffect`     |   -    |   `reduceArrayEffect`    |          |
+|       `foldLeftChunks`        |  Done  |      `reduceArray`       |          |
+|    `foldLeftChunksEffect`     |  Done  |   `reduceArrayEffect`    |          |
 |       `foldLeftEffect`        |  Done  |      `reduceEffect`      |          |
-|          `foldUntil`          |   -    |                          |          |
-|       `foldUntilEffect`       |   -    |                          |          |
-|        `foldWeighted`         |   -    |                          |          |
-|    `foldWeightedDecompose`    |   -    |                          |          |
-| `foldWeightedDecomposeEffect` |   -    |                          |          |
-|     `foldWeightedEffect`      |   -    |                          |          |
+|          `foldUntil`          |  Done  |                          |          |
+|       `foldUntilEffect`       |  Done  |                          |          |
+|        `foldWeighted`         |   X    |                          |          |
+|    `foldWeightedDecompose`    |   X    |                          |          |
+| `foldWeightedDecomposeEffect` |   X    |                          |          |
+|     `foldWeightedEffect`      |   X    |                          |          |
 |           `forEach`           |  Done  |        `forEach`         |          |
 |        `forEachChunk`         |  Done  |      `forEachArray`      |          |
-|      `forEachChunkWhile`      |   -    |                          |          |
-|        `forEachWhile`         |   -    |                          |          |
+|      `forEachChunkWhile`      |  Done  |                          |          |
+|        `forEachWhile`         |  Done  |                          |          |
 |         `fromChannel`         |  Done  |      `fromChannel`       |          |
 |         `fromEffect`          |  Done  |                          |          |
-|         `fromPubSub`          |   -    |                          |          |
-|          `fromPush`           |   -    |                          |          |
-|          `fromQueue`          |   -    |                          |          |
+|         `fromPubSub`          |  Done  |                          |          |
+|          `fromPush`           |   X    |                          |          |
+|          `fromQueue`          |  Done  |                          |          |
 |            `head`             |  Done  |          `head`          |          |
 |            `last`             |  Done  |          `last`          |          |
-|          `leftover`           |   -    |                          |          |
+|          `leftover`           |   X    |                          |          |
 |          `mkString`           |  Done  |        `mkString`        |          |
 |            `never`            |  Done  |         `never`          |          |
-|            `some`             |   -    |                          |          |
+|            `some`             |  Done  |                          |          |
 |           `succeed`           |  Done  |        `succeed`         |          |
 |             `sum`             |  Done  |          `sum`           |          |
 |           `suspend`           |  Done  |        `suspend`         |          |
 |            `sync`             |  Done  |          `sync`          |          |
 |            `take`             |  Done  |          `take`          |          |
-|            `timed`            |   -    |                          |          |
+|            `timed`            |  Done  |                          |          |
 |          `toChannel`          |  Done  |       `toChannel`        |          |
 |           `unwrap`            |  Done  |         `unwrap`         |          |
 |        `unwrapScoped`         |   X    |                          |          |
@@ -521,37 +521,37 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 ### Context
 
-|     Effect 3     | Ported | Effect 4 | Comments |
-| :--------------: | :----: | :------: | :------: |
-| `provideContext` |   -    |          |          |
+|     Effect 3     | Ported |     Effect 4      | Comments |
+| :--------------: | :----: | :---------------: | :------: |
+| `provideContext` |   -    | `provideServices` |          |
 
 ### Elements
 
 |   Effect 3   | Ported | Effect 4 | Comments |
 | :----------: | :----: | :------: | :------: |
-| `findEffect` |   -    |          |          |
+| `findEffect` |   -    |  `find`  |          |
 
 ### Error Handling
 
 |     Effect 3      | Ported | Effect 4 | Comments |
 | :---------------: | :----: | :------: | :------: |
 |     `orElse`      |   -    |          |          |
-|   `refineOrDie`   |   -    |          |          |
-| `refineOrDieWith` |   -    |          |          |
+|   `refineOrDie`   |   -    | `catch`  |          |
+| `refineOrDieWith` |   X    |          |          |
 
 ### Filtering
 
 |      Effect 3       | Ported | Effect 4 | Comments |
 | :-----------------: | :----: | :------: | :------: |
-|    `filterInput`    |   -    |          |          |
-| `filterInputEffect` |   -    |          |          |
+|    `filterInput`    |  Done  |          |          |
+| `filterInputEffect` |  Done  |          |          |
 
 ### Finalization
 
 |    Effect 3    | Ported | Effect 4 | Comments |
 | :------------: | :----: | :------: | :------: |
 |   `ensuring`   |   -    |          |          |
-| `ensuringWith` |   -    |          |          |
+| `ensuringWith` |   -    | `onExit` |          |
 
 ### Folding
 
@@ -564,46 +564,46 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |        Effect 3        | Ported |   Effect 4    | Comments |
 | :--------------------: | :----: | :-----------: | :------: |
-|          `as`          |   -    |               |          |
-|        `dimap`         |   -    |               |          |
-|     `dimapChunks`      |   -    |               |          |
-|  `dimapChunksEffect`   |   -    |               |          |
-|     `dimapEffect`      |   -    |               |          |
+|          `as`          |  Done  |               |          |
+|        `dimap`         |   X    |               |          |
+|     `dimapChunks`      |   X    |               |          |
+|  `dimapChunksEffect`   |   X    |               |          |
+|     `dimapEffect`      |   X    |               |          |
 |         `map`          |  Done  |     `map`     |          |
 |      `mapEffect`       |  Done  |  `mapEffect`  |          |
 |       `mapError`       |  Done  |  `mapError`   |          |
-|       `mapInput`       |   -    |               |          |
-|    `mapInputChunks`    |   -    |               |          |
-| `mapInputChunksEffect` |   -    |               |          |
-|    `mapInputEffect`    |   -    |               |          |
+|       `mapInput`       |  Done  |               |          |
+|    `mapInputChunks`    |  Done  |               |          |
+| `mapInputChunksEffect` |  Done  |               |          |
+|    `mapInputEffect`    |  Done  |               |          |
 |     `mapLeftover`      |  Done  | `mapLeftover` |          |
 
 ### Sequencing
 
 | Effect 3  | Ported | Effect 4 | Comments |
 | :-------: | :----: | :------: | :------: |
-| `flatMap` |   -    |          |          |
+| `flatMap` |  Done  |          |          |
 
 ### Utils
 
 |       Effect 3        | Ported |     Effect 4     | Comments |
 | :-------------------: | :----: | :--------------: | :------: |
-|   `collectAllFrom`    |   -    |                  |          |
-| `collectAllWhileWith` |   -    |                  |          |
-|   `collectLeftover`   |   -    |                  |          |
+|   `collectAllFrom`    |   X    |                  |          |
+| `collectAllWhileWith` |   X    |                  |          |
+|   `collectLeftover`   |   X    |                  |          |
 |   `ignoreLeftover`    |  Done  | `ignoreLeftover` |          |
-|        `race`         |   -    |                  |          |
-|      `raceBoth`       |   -    |                  |          |
-|      `raceWith`       |   -    |                  |          |
-|     `splitWhere`      |   -    |                  |          |
-|     `summarized`      |   -    |                  |          |
-|    `withDuration`     |   -    |                  |          |
+|        `race`         |   X    |                  |          |
+|      `raceBoth`       |   X    |                  |          |
+|      `raceWith`       |   X    |                  |          |
+|     `splitWhere`      |   X    |                  |          |
+|     `summarized`      |  Done  |                  |          |
+|    `withDuration`     |  Done  |                  |          |
 
 ### Zipping
 
 |  Effect 3  | Ported | Effect 4 | Comments |
 | :--------: | :----: | :------: | :------: |
-|   `zip`    |   -    |          |          |
-| `zipLeft`  |   -    |          |          |
-| `zipRight` |   -    |          |          |
-| `zipWith`  |   -    |          |          |
+|   `zip`    |   X    |          |          |
+| `zipLeft`  |   X    |          |          |
+| `zipRight` |   X    |          |          |
+| `zipWith`  |   X    |          |          |

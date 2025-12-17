@@ -1044,6 +1044,18 @@ export const fromEffect = <A, E, R>(
   )
 
 /**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromEffectDone = <A, E, R>(
+  effect: Effect.Effect<A, E, R>
+): Channel<never, Pull.ExcludeHalt<E>, A, unknown, unknown, unknown, R> =>
+  fromPull(Effect.succeed(Effect.flatMap(
+    effect,
+    Pull.halt
+  )))
+
+/**
  * Use an effect and discard its result.
  *
  * @since 4.0.0

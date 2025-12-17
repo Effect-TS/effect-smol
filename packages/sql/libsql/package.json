@@ -61,7 +61,7 @@
   },
   "devDependencies": {
     "effect": "workspace:^",
-    "testcontainers": "^11.6.0"
+    "testcontainers": "^11.10.0"
   },
   "peerDependencies": {
     "effect": "workspace:^"

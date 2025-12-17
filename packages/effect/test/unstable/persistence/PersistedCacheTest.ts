@@ -19,7 +19,7 @@ class TTLRequest extends Persistable.Class<{
 export class TransientError extends Data.TaggedError("TransientError") {}
 
 export const suite = (storeId: string, layer: Layer.Layer<Persistence.Persistence, unknown>) =>
-  describe(`PersistedCache (${storeId})`, () => {
+  describe(`PersistedCache (${storeId})`, { timeout: 30_000 }, () => {
     it.effect("smoke test", () =>
       Effect.gen(function*() {
         const persistence = yield* Persistence.Persistence
@@ -69,4 +69,4 @@ export const suite = (storeId: string, layer: Layer.Layer<Persistence.Persistenc
         Effect.provide(layer),
         Effect.catchFilter((e) => e instanceof TransientError ? e : Filter.fail(e), () => Effect.void)
       ))
-  }, { timeout: 30_000 })
+  })

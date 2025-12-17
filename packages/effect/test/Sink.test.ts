@@ -1,6 +1,13 @@
 import { describe, it } from "@effect/vitest"
-import { assertExitFailure, assertExitSuccess, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
-import { Array, Cause, Effect, Ref, Sink, Stream } from "effect"
+import {
+  assertExitFailure,
+  assertExitSuccess,
+  assertNone,
+  assertSome,
+  deepStrictEqual,
+  strictEqual
+} from "@effect/vitest/utils"
+import { Array, Cause, Effect, Option, Ref, Sink, Stream } from "effect"
 import { constTrue, pipe } from "effect/Function"
 
 describe("Sink", () => {
@@ -123,38 +130,47 @@ describe("Sink", () => {
       }))
   })
 
-  describe("collectN", () => {
-    it.effect("respects the given limit", () =>
+  describe("flatMap", () => {
+    it.effect("flatMap - empty input", () =>
       Effect.gen(function*() {
-        const stream = pipe(
-          Stream.make(1, 2, 3, 4),
-          Stream.transduce(Sink.collectN<number>(3))
-        )
-        const result = yield* Stream.runCollect(stream)
-        deepStrictEqual(result, [[1, 2, 3], [4]])
+        const sink = pipe(Sink.head<number>(), Sink.flatMap(Sink.succeed))
+        const result = yield* pipe(Stream.empty, Stream.run(sink))
+        assertNone(result)
       }))
 
-    it.effect("produces empty trailing chunks", () =>
+    it.effect("flatMap - non-empty input", () =>
       Effect.gen(function*() {
-        const stream = pipe(
-          Stream.make(1, 2, 3, 4),
-          Stream.transduce(Sink.collectN(4))
-        )
-        const result = yield* Stream.runCollect(stream)
-        deepStrictEqual(
-          result,
-          [[1, 2, 3, 4], []]
-        )
+        const sink = pipe(Sink.head<number>(), Sink.flatMap(Sink.succeed))
+        const result = yield* pipe(Stream.make(1, 2, 3), Stream.run(sink))
+        assertSome(result, 1)
       }))
 
-    it.effect("produces empty trailing chunks", () =>
+    it.effect("flatMap - with leftovers", () =>
       Effect.gen(function*() {
-        const stream = pipe(
-          Stream.empty,
-          Stream.transduce(Sink.collectN<number>(3))
+        const chunks = Array.make(
+          Array.make(1, 2),
+          Array.make(3, 4, 5),
+          Array.empty<number>(),
+          Array.make(7, 8, 9, 10)
         )
-        const result = yield* (Stream.runCollect(stream))
-        deepStrictEqual(result, [[]])
+        const sink = pipe(
+          Sink.head<number>(),
+          Sink.flatMap((head) =>
+            pipe(
+              Sink.count,
+              Sink.map((count) => [head, count] as const)
+            )
+          )
+        )
+        const [option, count] = yield* pipe(Stream.fromArrays(...chunks), Stream.run(sink))
+        deepStrictEqual(option, Array.head(Array.flatten(chunks)))
+        strictEqual(
+          count + Option.match(option, {
+            onNone: () => 0,
+            onSome: () => 1
+          }),
+          chunks.flat().length
+        )
       }))
   })
 })

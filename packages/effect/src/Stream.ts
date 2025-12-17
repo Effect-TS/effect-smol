@@ -17,13 +17,14 @@ import type { LazyArg } from "./Function.ts"
 import { constant, constTrue, constVoid, dual, identity } from "./Function.ts"
 import type { TypeLambda } from "./HKT.ts"
 import * as internalExecutionPlan from "./internal/executionPlan.ts"
+import * as internal from "./internal/stream.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Iterable from "./Iterable.ts"
 import type * as Layer from "./Layer.ts"
 import * as MutableHashMap from "./MutableHashMap.ts"
 import * as MutableList from "./MutableList.ts"
 import * as Option from "./Option.ts"
-import { type Pipeable, pipeArguments } from "./Pipeable.ts"
+import { type Pipeable } from "./Pipeable.ts"
 import { hasProperty, isTagged } from "./Predicate.ts"
 import type * as PubSub from "./PubSub.ts"
 import * as Pull from "./Pull.ts"
@@ -226,12 +227,6 @@ export type Error<T extends Stream<any, any, any>> = [T] extends [Stream<infer _
 export type Services<T extends Stream<any, any, any>> = [T] extends [Stream<infer _A, infer _E, infer _R>] ? _R
   : never
 
-const streamVariance = {
-  _R: identity,
-  _E: identity,
-  _A: identity
-}
-
 /**
  * Checks if a value is a Stream.
  *
@@ -250,13 +245,6 @@ const streamVariance = {
  * @category guards
  */
 export const isStream = (u: unknown): u is Stream<unknown, unknown, unknown> => hasProperty(u, TypeId)
-
-const StreamProto = {
-  [TypeId]: streamVariance,
-  pipe() {
-    return pipeArguments(this, arguments)
-  }
-}
 
 /**
  * The default chunk size used by streams for batching operations.
@@ -297,13 +285,9 @@ export type HaltStrategy = Channel.HaltStrategy
  * @since 2.0.0
  * @category constructors
  */
-export const fromChannel = <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
+export const fromChannel: <Arr extends Arr.NonEmptyReadonlyArray<any>, E, R>(
   channel: Channel.Channel<Arr, E, void, unknown, unknown, unknown, R>
-): Stream<Arr extends Arr.NonEmptyReadonlyArray<infer A> ? A : never, E, R> => {
-  const self = Object.create(StreamProto)
-  self.channel = channel
-  return self
-}
+) => Stream<Arr extends Arr.NonEmptyReadonlyArray<infer A> ? A : never, E, R> = internal.fromChannel
 
 /**
  * Either emits the success value of this effect or terminates the stream
@@ -1576,12 +1560,12 @@ export const tapSink: {
           return Pull.haltVoid
         }))
 
-        yield* Channel.toTransform(sink.channel)(sinkUpstream, scope).pipe(
-          Effect.flatMap((pull) => Effect.forever(pull, { autoYield: false })),
-          Effect.tapCause((cause) => {
+        yield* sink.transform(sinkUpstream, scope).pipe(
+          Effect.onExitInterruptible((exit) => {
             sinkDone = true
-            if (Pull.isHaltCause(cause)) return sinkLatch.open
-            causeSink = cause as Cause.Cause<E2>
+            if (Exit.isFailure(exit)) {
+              causeSink = exit.cause
+            }
             return sinkLatch.open
           }),
           Effect.forkIn(scope)
@@ -4902,7 +4886,7 @@ export const groupedWithin: {
 ): Stream<Array<A>, E, R> =>
   aggregateWithin(
     self,
-    Sink.collectN(chunkSize),
+    Sink.take(chunkSize),
     Schedule.spaced(duration)
   ))
 
@@ -5150,14 +5134,12 @@ export const transduce = dual<
             return Pull.haltVoid
           })
         )
-        const pull = Effect.flatMap(
-          Effect.suspend(() => Channel.toTransform(sink.channel)(upstreamWithLeftover, scope)),
-          (pull) =>
-            Pull.catchHalt(pull, (end_) => {
-              const [value, leftover_] = end_ as Sink.End<A2, A>
-              leftover = leftover_
-              return Effect.succeed(Arr.of(value))
-            })
+        const pull = Effect.map(
+          sink.transform(upstreamWithLeftover, scope),
+          ([value, leftover_]) => {
+            leftover = leftover_
+            return Arr.of(value)
+          }
         )
         return Effect.suspend((): Pull.Pull<
           Arr.NonEmptyReadonlyArray<A2>,
@@ -5255,7 +5237,7 @@ export const aggregateWithin: {
       pullLatch.openUnsafe()
       return pullFromBuffer
     })
-    const catchSinkHalt = Pull.catchHalt(([value, leftover_]: Sink.End<B, A2>) => {
+    const catchSinkHalt = Effect.flatMap(([value, leftover_]: Sink.End<B, A2>) => {
       // ignore the last output if the upsteam only pulled a halt
       if (!hadChunk && buffer.state._tag === "Done") return Pull.haltVoid
       lastOutput = Option.some(value)
@@ -5268,14 +5250,9 @@ export const aggregateWithin: {
       if (buffer.state._tag === "Done") {
         return buffer.state.exit as Exit.Exit<never, Pull.Halt<void> | E>
       }
-      return Channel.toTransform(sink.channel)(sinkUpstream as any, scope)
+      return Effect.succeed(sink.transform(sinkUpstream as any, scope))
     }).pipe(
-      Effect.flatMap((pull) =>
-        Effect.raceFirst(
-          catchSinkHalt(pull) as Pull.Pull<Arr.NonEmptyReadonlyArray<B>, E | E2, void, R2>,
-          stepToBuffer
-        )
-      )
+      Effect.flatMap((pull) => Effect.raceFirst(catchSinkHalt(pull), stepToBuffer))
     )
   }))))
 
@@ -5543,7 +5520,7 @@ export const pipeThrough: {
   2,
   <A, E, R, A2, L, E2, R2>(self: Stream<A, E, R>, sink: Sink.Sink<A2, A, L, E2, R2>): Stream<L, E | E2, R | R2> =>
     self.channel.pipe(
-      Channel.pipeToOrFail(sink.channel),
+      Channel.pipeToOrFail(Sink.toChannel(sink)),
       Channel.concatWith(([_, leftover]) => leftover ? Channel.succeed(leftover) : Channel.empty),
       fromChannel
     )
@@ -6378,10 +6355,11 @@ export const run: {
   self: Stream<A, E, R>,
   sink: Sink.Sink<A2, A, L, E2, R2>
 ): Effect.Effect<A2, E | E2, R | R2> =>
-  self.channel.pipe(
-    Channel.pipeToOrFail(sink.channel),
-    Channel.runDrain,
-    Effect.map(([a]) => a)
+  Effect.scopedWith((scope) =>
+    Channel.toPullScoped(self.channel, scope).pipe(
+      Effect.flatMap((upstream) => sink.transform(upstream as any, scope)),
+      Effect.map(([a]) => a)
+    )
   ))
 
 /**

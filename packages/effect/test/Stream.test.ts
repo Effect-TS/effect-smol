@@ -851,7 +851,7 @@ describe("Stream", () => {
 
         const firstFiber = yield* sharedStream.pipe(
           Stream.take(1),
-          Stream.run(Sink.collectAll()),
+          Stream.run(Sink.collect()),
           Effect.forkChild({ startImmediately: true })
         )
 
@@ -862,7 +862,7 @@ describe("Stream", () => {
 
         const secondFiber = yield* sharedStream.pipe(
           Stream.take(1),
-          Stream.run(Sink.collectAll()),
+          Stream.run(Sink.collect()),
           Effect.forkChild({ startImmediately: true })
         )
 
@@ -883,7 +883,7 @@ describe("Stream", () => {
 
         const firstFiber = yield* sharedStream.pipe(
           Stream.take(1),
-          Stream.run(Sink.collectAll()),
+          Stream.run(Sink.collect()),
           Effect.forkChild({ startImmediately: true })
         )
 
@@ -894,7 +894,7 @@ describe("Stream", () => {
 
         const secondFiber = yield* sharedStream.pipe(
           Stream.take(1),
-          Stream.run(Sink.collectAll()),
+          Stream.run(Sink.collect()),
           Effect.forkChild({ startImmediately: true })
         )
 
@@ -912,12 +912,12 @@ describe("Stream", () => {
 
         const fiber1 = yield* sharedStream.pipe(
           Stream.take(1),
-          Stream.run(Sink.collectAll()),
+          Stream.run(Sink.collect()),
           Effect.forkChild({ startImmediately: true })
         )
         const fiber2 = yield* sharedStream.pipe(
           Stream.take(2),
-          Stream.run(Sink.collectAll()),
+          Stream.run(Sink.collect()),
           Effect.forkChild({ startImmediately: true })
         )
 

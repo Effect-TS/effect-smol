@@ -72,10 +72,10 @@
     "ioredis": "^5.7.0"
   },
   "devDependencies": {
-    "@testcontainers/mysql": "^11.6.0",
-    "@testcontainers/postgresql": "^11.6.0",
-    "@testcontainers/redis": "^11.9.0",
-    "@types/node": "^24.8.1",
+    "@testcontainers/mysql": "^11.10.0",
+    "@testcontainers/postgresql": "^11.10.0",
+    "@testcontainers/redis": "^11.10.0",
+    "@types/node": "^25.0.2",
     "effect": "workspace:^"
   }
 }

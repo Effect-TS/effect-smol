@@ -765,13 +765,11 @@ export const make = (
               : chunkSize
             return file.readAlloc(toRead)
           }),
-          UndefinedOr.match({
-            onUndefined: () => Pull.haltVoid,
-            onDefined: (buf) => {
-              totalBytesRead += BigInt(buf.length)
-              return Effect.succeed(Arr.of(buf))
-            }
-          })
+          (buf) => {
+            if (!buf) return Pull.haltVoid
+            totalBytesRead += BigInt(buf.length)
+            return Effect.succeed(Arr.of(buf))
+          }
         )
       ))
     }, Stream.unwrap),

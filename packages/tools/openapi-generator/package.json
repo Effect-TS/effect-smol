@@ -46,9 +46,9 @@
   "devDependencies": {
     "@types/swagger2openapi": "^7.0.4",
     "effect": "workspace:^",
-    "json-schema-typed": "^8.0.1",
+    "json-schema-typed": "^8.0.2",
     "openapi-typescript": "^7.10.1",
     "swagger2openapi": "^7.0.8",
-    "tsup": "^8.5.0"
+    "tsup": "^8.5.1"
   }
 }

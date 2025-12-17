@@ -17,12 +17,12 @@
     "generate-gallery": "tsx scripts/generate-gallery.ts"
   },
   "dependencies": {
-    "effect": "workspace:*",
-    "@effect/platform-node": "workspace:*"
+    "@effect/platform-node": "workspace:*",
+    "effect": "workspace:*"
   },
   "devDependencies": {
-    "tsx": "^4.7.0",
-    "typescript": "^5.3.3",
-    "ansi-to-svg": "^1.4.3"
+    "ansi-to-svg": "^1.4.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }
