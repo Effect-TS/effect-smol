@@ -7695,6 +7695,7 @@ export interface ToJsonSchemaOptions {
 }
 
 /**
+ * @category Json Schema
  * @since 4.0.0
  */
 export interface JsonSchema {
@@ -7782,6 +7783,12 @@ export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T,
 export function toCodecIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
   return make(serializerIso(AST.toType(schema.ast)))
 }
+
+/**
+ * @category Serializer
+ * @since 4.0.0
+ */
+export type StringTree = Tree<string | undefined>
 
 /**
  * The StringTree serializer converts **every leaf value to a string**, while
@@ -8314,28 +8321,28 @@ export function overrideToCodecIso<S extends Top, Iso>(
  * RFC 6902 (subset) JSON Patch operations
  * Keeping only "add", "remove", "replace"
  *
- * @category JsonPatch Differ
+ * @category JsonPatch
  * @since 4.0.0
  */
 export type JsonPatchOperation =
-  | { op: "add"; path: string; value: JsonValue } // path may end with "-" to append to arrays
-  | { op: "remove"; path: string }
-  | { op: "replace"; path: string; value: JsonValue }
+  | { op: "add"; path: string; value: Json; description?: string } // path may end with "-" to append to arrays
+  | { op: "remove"; path: string; description?: string }
+  | { op: "replace"; path: string; value: Json; description?: string }
 
 /**
  * A JSON Patch document is an array of operations
  *
- * @category JsonPatch Differ
+ * @category JsonPatch
  * @since 4.0.0
  */
 export type JsonPatch = ReadonlyArray<JsonPatchOperation>
 
 /**
- * @category JsonPatch Differ
+ * @category JsonPatch
  * @since 4.0.0
  */
 export function toDifferJsonPatch<T, E>(schema: Codec<T, E>): Differ<T, JsonPatch> {
-  const serializer = toCodecJson(schema) as Codec<T, JsonValue, never, never> // TODO: remove this cast
+  const serializer = toCodecJson(schema) as Codec<T, Json, never, never> // TODO: remove this cast
   const get = Parser.encodeSync(serializer)
   const set = Parser.decodeSync(serializer)
   return {
@@ -8354,13 +8361,13 @@ export function toDifferJsonPatch<T, E>(schema: Codec<T, E>): Differ<T, JsonPatc
  * @category Tree
  * @since 4.0.0
  */
-export type Tree<A> = A | TreeRecord<A> | ReadonlyArray<Tree<A>>
+export type Tree<Node> = Node | TreeObject<Node> | ReadonlyArray<Tree<Node>>
 
 /**
  * @category Tree
  * @since 4.0.0
  */
-export interface TreeRecord<A> {
+export interface TreeObject<A> {
   readonly [x: string]: Tree<A>
 }
 
@@ -8368,53 +8375,17 @@ export interface TreeRecord<A> {
  * @category Tree
  * @since 4.0.0
  */
-export type PrimitiveTree = Tree<null | number | boolean | bigint | symbol | string>
-
-/**
- * @category Tree
- * @since 4.0.0
- */
-export type StringTree = Tree<string | undefined>
-
-/**
- * @category Tree
- * @since 4.0.0
- */
-export type JsonValue = Tree<null | number | boolean | string>
-
-/**
- * @category Tree
- * @since 4.0.0
- */
-export interface JsonObject extends TreeRecord<null | number | boolean | string> {}
-
-/**
- * @category Tree
- * @since 4.0.0
- */
 export function Tree<S extends Top>(
-  schema: S
+  node: S
 ): Codec<Tree<S["Type"]>, Tree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> {
   const Tree$ref = suspend(() => Tree)
   const Tree: Codec<Tree<S["Type"]>, Tree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> = Union([
-    schema,
+    node,
     Array(Tree$ref),
     Record(String, Tree$ref)
   ])
   return Tree
 }
-
-/**
- * @category Tree
- * @since 4.0.0
- */
-export const JsonValue: Codec<JsonValue> = Tree(Union([Null, Number, Boolean, String]))
-
-/**
- * @category Tree
- * @since 4.0.0
- */
-export const PrimitiveTree: Codec<PrimitiveTree> = Tree(Union([Null, Number, Boolean, BigInt, Symbol, String]))
 
 /**
  * @category Tree
@@ -8434,18 +8405,6 @@ export interface MutableTreeRecord<A> {
  * @category Tree
  * @since 4.0.0
  */
-export type MutableJsonValue = MutableTree<null | number | boolean | string>
-
-/**
- * @category Tree
- * @since 4.0.0
- */
-export const MutableJsonValue: Codec<MutableJsonValue> = MutableTree(Union([Null, Number, Boolean, String]))
-
-/**
- * @category Tree
- * @since 4.0.0
- */
 export function MutableTree<S extends Top>(
   schema: S
 ): Codec<MutableTree<S["Type"]>, MutableTree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> {
@@ -8456,4 +8415,44 @@ export function MutableTree<S extends Top>(
     Record(String, mutableKey(MutableTree$ref))
   ])
   return MutableTree
+}
+
+/**
+ * @category JSON
+ * @since 4.0.0
+ */
+export type Json = null | number | boolean | string | JsonArray | JsonObject
+
+/**
+ * @category JSON
+ * @since 4.0.0
+ */
+export interface JsonArray extends ReadonlyArray<Json> {}
+
+/**
+ * @category JSON
+ * @since 4.0.0
+ */
+export interface JsonObject {
+  readonly [x: string]: Json
+}
+
+/**
+ * @category JSON
+ * @since 4.0.0
+ */
+export type MutableJson = null | number | boolean | string | MutableJsonArray | MutableJsonObject
+
+/**
+ * @category JSON
+ * @since 4.0.0
+ */
+export interface MutableJsonArray extends Array<MutableJson> {}
+
+/**
+ * @category JSON
+ * @since 4.0.0
+ */
+export interface MutableJsonObject {
+  [x: string]: MutableJson
 }

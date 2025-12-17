@@ -428,6 +428,8 @@ export type ToolResultParts<Tools extends Record<string, Tool.Any>> = {
 // =============================================================================
 
 /**
+ * A mutable `Json` without `null`.
+ *
  * @since 4.0.0
  * @category models
  */

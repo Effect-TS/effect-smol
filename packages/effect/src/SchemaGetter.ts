@@ -340,7 +340,7 @@ type ParseJsonOptions = {
  * @category Json
  * @since 4.0.0
  */
-export function parseJson<E extends string>(): Getter<Schema.MutableJsonValue, E>
+export function parseJson<E extends string>(): Getter<Schema.MutableJson, E>
 export function parseJson<E extends string>(options: ParseJsonOptions): Getter<unknown, E>
 export function parseJson<E extends string>(options?: ParseJsonOptions | undefined): Getter<unknown, E> {
   return onSome((input) =>
@@ -553,7 +553,7 @@ export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Gette
  * @category FormData
  * @since 4.0.0
  */
-export function decodeFormData(): Getter<Schema.TreeRecord<string | Blob>, FormData> {
+export function decodeFormData(): Getter<Schema.TreeObject<string | Blob>, FormData> {
   return transform((input) => makeTreeRecord(Array.from(input.entries())))
 }
 
@@ -582,7 +582,7 @@ export function encodeFormData(): Getter<FormData, unknown> {
  * @category URLSearchParams
  * @since 4.0.0
  */
-export function decodeURLSearchParams(): Getter<Schema.TreeRecord<string>, URLSearchParams> {
+export function decodeURLSearchParams(): Getter<Schema.TreeObject<string>, URLSearchParams> {
   return transform((input) => makeTreeRecord(Array.from(input.entries())))
 }
 
@@ -651,7 +651,7 @@ function bracketPathToTokens(bracketPath: string): Array<string | number> {
  */
 export function makeTreeRecord<A>(
   bracketPathEntries: ReadonlyArray<readonly [bracketPath: string, value: A]>
-): Schema.TreeRecord<A> {
+): Schema.TreeObject<A> {
   const out: any = {}
   bracketPathEntries.forEach(([key, value]) => {
     const tokens = bracketPathToTokens(key)

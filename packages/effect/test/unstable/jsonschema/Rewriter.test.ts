@@ -9,12 +9,12 @@ function assertJsonSchema(
   expected: {
     readonly schema: Schema.JsonSchema
     readonly definitions?: Record<string, Schema.JsonSchema> | undefined
-    readonly traces?: Array<string> | undefined
+    readonly traces?: Array<Schema.JsonPatchOperation> | undefined
   },
   options?: Schema.ToJsonSchemaOptions
 ) {
-  const traces: Array<string> = []
-  const tracer: Rewriter.Tracer = {
+  const traces: Array<Schema.JsonPatchOperation> = []
+  const tracer: Rewriter.RewriterTracer = {
     push(change) {
       traces.push(change)
     }
@@ -39,7 +39,7 @@ describe("Rewriter", () => {
   describe("openAi", () => {
     it("root must be an object", () => {
       assertJsonSchema(
-        Rewriter.openAi,
+        Rewriter.openAiRewriter,
         Schema.Union([Schema.String, Schema.Number]),
         {
           schema: {
@@ -49,12 +49,22 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            `root must be an object, returning default schema at ["schema"]`
+            {
+              description: "[ROOT_OBJECT_REQUIRED]",
+              op: "replace",
+              path: "/schema",
+              value: {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              }
+            }
           ]
         }
       )
       assertJsonSchema(
-        Rewriter.openAi,
+        Rewriter.openAiRewriter,
         Schema.Union([Schema.String, Schema.Number]).annotate({
           description: "description"
         }),
@@ -67,12 +77,23 @@ describe("Rewriter", () => {
             "description": "description"
           },
           traces: [
-            `root must be an object, returning default schema at ["schema"]`
+            {
+              description: "[ROOT_OBJECT_REQUIRED]",
+              op: "replace",
+              path: "/schema",
+              value: {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false,
+                "description": "description"
+              }
+            }
           ]
         }
       )
       assertJsonSchema(
-        Rewriter.openAi,
+        Rewriter.openAiRewriter,
         Schema.Union([Schema.String, Schema.Number]).annotate({
           identifier: "ID",
           description: "description"
@@ -86,7 +107,18 @@ describe("Rewriter", () => {
             "description": "description"
           },
           traces: [
-            `root must be an object, returning default schema at ["schema"]`
+            {
+              description: "[ROOT_OBJECT_REQUIRED]",
+              op: "replace",
+              path: "/schema",
+              value: {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false,
+                "description": "description"
+              }
+            }
           ]
         }
       )
@@ -94,7 +126,7 @@ describe("Rewriter", () => {
 
     it("nested $ref", () => {
       assertJsonSchema(
-        Rewriter.openAi,
+        Rewriter.openAiRewriter,
         Schema.Struct({ a: Schema.String.annotate({ identifier: "ID" }) }),
         {
           schema: {
@@ -127,7 +159,7 @@ describe("Rewriter", () => {
           as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ identifier: "A" })))
         })
         assertJsonSchema(
-          Rewriter.openAi,
+          Rewriter.openAiRewriter,
           schema,
           {
             schema: {
@@ -171,7 +203,7 @@ describe("Rewriter", () => {
           as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
         }).annotate({ identifier: "A" })
         assertJsonSchema(
-          Rewriter.openAi,
+          Rewriter.openAiRewriter,
           schema,
           {
             schema: {
@@ -209,7 +241,7 @@ describe("Rewriter", () => {
     describe("Struct", () => {
       it("additionalProperties: false must always be set in objects", () => {
         assertJsonSchema(
-          Rewriter.openAi,
+          Rewriter.openAiRewriter,
           Schema.Struct({ a: Schema.String }),
           {
             schema: {
@@ -223,7 +255,12 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              `set additionalProperties to false at ["schema"]`
+              {
+                description: `[SET_ADDITIONAL_PROPERTIES_TO_FALSE]`,
+                op: "replace",
+                path: "/schema/additionalProperties",
+                value: false
+              }
             ]
           },
           {
@@ -235,7 +272,7 @@ describe("Rewriter", () => {
 
       it("required field", () => {
         assertJsonSchema(
-          Rewriter.openAi,
+          Rewriter.openAiRewriter,
           Schema.Struct({ a: Schema.NonEmptyString }),
           {
             schema: {
@@ -250,7 +287,11 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              `removed property "minLength" at ["schema"]["properties"]["a"]`
+              {
+                description: `[UNSUPPORTED_PROPERTY_KEY]: "minLength"`,
+                op: "remove",
+                path: "/schema/properties/a/minLength"
+              }
             ]
           }
         )
@@ -258,7 +299,7 @@ describe("Rewriter", () => {
 
       it("optional field", () => {
         assertJsonSchema(
-          Rewriter.openAi,
+          Rewriter.openAiRewriter,
           Schema.Struct({
             a: Schema.optionalKey(Schema.String),
             b: Schema.optionalKey(Schema.String.annotate({ description: "description" })),
@@ -317,22 +358,80 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              `merged 1 fragment(s) at ["schema"]["properties"]["l"]`,
-              `added required property "a" at ["schema"]`,
-              `added required property "b" at ["schema"]`,
-              `added required property "c" at ["schema"]`,
-              `added required property "d" at ["schema"]`,
-              `added required property "e" at ["schema"]`,
-              `added required property "f" at ["schema"]`,
-              `added required property "g" at ["schema"]`,
-              `added required property "h" at ["schema"]`,
-              `added required property "i" at ["schema"]`,
-              `added required property "l" at ["schema"]`
+              {
+                description: `[MERGE_ALL_OF]: 1 fragment(s)`,
+                op: "replace",
+                path: "/schema/properties/l",
+                value: {
+                  description: "a value with a length of at least 1, description",
+                  type: "string"
+                }
+              },
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "a"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "a"
+              },
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "b"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "b"
+              },
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "c"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "c"
+              },
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "d"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "d"
+              },
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "e"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "e"
+              },
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "f"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "f"
+              },
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "g"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "g"
+              },
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "h"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "h"
+              },
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "i"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "i"
+              },
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "l"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "l"
+              }
             ]
           }
         )
         assertJsonSchema(
-          Rewriter.openAi,
+          Rewriter.openAiRewriter,
           Schema.Struct({ a: Schema.optionalKey(Schema.Literal(1)) }),
           {
             schema: {
@@ -347,12 +446,17 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              `added required property "a" at ["schema"]`
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "a"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "a"
+              }
             ]
           }
         )
         assertJsonSchema(
-          Rewriter.openAi,
+          Rewriter.openAiRewriter,
           Schema.Struct({
             a: Schema.optionalKey(
               Schema.Literal(1).annotate({
@@ -374,12 +478,17 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              `added required property "a" at ["schema"]`
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "a"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "a"
+              }
             ]
           }
         )
         assertJsonSchema(
-          Rewriter.openAi,
+          Rewriter.openAiRewriter,
           Schema.Struct({ a: Schema.optionalKey(Schema.Union([Schema.String, Schema.Number])) }),
           {
             schema: {
@@ -397,12 +506,17 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              `added required property "a" at ["schema"]`
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "a"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "a"
+              }
             ]
           }
         )
         assertJsonSchema(
-          Rewriter.openAi,
+          Rewriter.openAiRewriter,
           Schema.Struct({
             a: Schema.optionalKey(
               Schema.Union([Schema.String, Schema.Number]).annotate({
@@ -427,7 +541,12 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              `added required property "a" at ["schema"]`
+              {
+                description: `[ADD_REQUIRED_PROPERTY]: "a"`,
+                op: "add",
+                path: "/schema/required/-",
+                value: "a"
+              }
             ]
           }
         )
@@ -437,7 +556,7 @@ describe("Rewriter", () => {
     describe("Union", () => {
       it("anyOf", () => {
         assertJsonSchema(
-          Rewriter.openAi,
+          Rewriter.openAiRewriter,
           Schema.Struct({
             a: Schema.Union([
               Schema.NonEmptyString.annotate({ description: "string description" }),
@@ -478,8 +597,20 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              `removed property "minLength" at ["schema"]["properties"]["a"]["anyOf"][0]`,
-              `merged 1 fragment(s) at ["schema"]["properties"]["a"]["anyOf"][1]["anyOf"][0]`
+              {
+                description: `[UNSUPPORTED_PROPERTY_KEY]: "minLength"`,
+                op: "remove",
+                path: "/schema/properties/a/anyOf/0/minLength"
+              },
+              {
+                description: `[MERGE_ALL_OF]: 1 fragment(s)`,
+                op: "replace",
+                path: "/schema/properties/a/anyOf/1/anyOf/0",
+                value: {
+                  "type": "integer",
+                  "description": "an integer, a value greater than 0"
+                }
+              }
             ]
           }
         )
@@ -487,7 +618,7 @@ describe("Rewriter", () => {
 
       it("anyOf", () => {
         assertJsonSchema(
-          Rewriter.openAi,
+          Rewriter.openAiRewriter,
           Schema.Struct({
             a: Schema.Union([
               Schema.NonEmptyString.annotate({ description: "string description" }),
@@ -528,10 +659,65 @@ describe("Rewriter", () => {
               "additionalProperties": false
             },
             traces: [
-              `removed property "minLength" at ["schema"]["properties"]["a"]["oneOf"][0]`,
-              `merged 1 fragment(s) at ["schema"]["properties"]["a"]["oneOf"][1]["oneOf"][0]`,
-              `rewrote oneOf to anyOf at ["schema"]["properties"]["a"]["oneOf"][1]`,
-              `rewrote oneOf to anyOf at ["schema"]["properties"]["a"]`
+              {
+                description: `[UNSUPPORTED_PROPERTY_KEY]: "minLength"`,
+                op: "remove",
+                path: "/schema/properties/a/oneOf/0/minLength"
+              },
+              {
+                description: `[MERGE_ALL_OF]: 1 fragment(s)`,
+                op: "replace",
+                path: "/schema/properties/a/oneOf/1/oneOf/0",
+                value: {
+                  "type": "integer",
+                  "description": "an integer, a value greater than 0"
+                }
+              },
+              {
+                description: `[ONE_OF -> ANY_OF]`,
+                op: "replace",
+                path: "/schema/properties/a/oneOf/1",
+                value: {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "description": "an integer, a value greater than 0"
+                    },
+                    {
+                      "type": "boolean",
+                      "description": "boolean description"
+                    }
+                  ],
+                  "description": "number or boolean description"
+                }
+              },
+              {
+                description: `[ONE_OF -> ANY_OF]`,
+                op: "replace",
+                path: "/schema/properties/a",
+                value: {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "string description"
+                    },
+                    {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "description": "an integer, a value greater than 0"
+                        },
+                        {
+                          "type": "boolean",
+                          "description": "boolean description"
+                        }
+                      ],
+                      "description": "number or boolean description"
+                    }
+                  ],
+                  "description": "top level description"
+                }
+              }
             ]
           }
         )
@@ -540,7 +726,7 @@ describe("Rewriter", () => {
 
     it("String", () => {
       assertJsonSchema(
-        Rewriter.openAi,
+        Rewriter.openAiRewriter,
         Schema.Struct({ a: Schema.String.check(Schema.isMinLength(1)) }),
         {
           schema: {
@@ -555,12 +741,16 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            `removed property "minLength" at ["schema"]["properties"]["a"]`
+            {
+              description: `[UNSUPPORTED_PROPERTY_KEY]: "minLength"`,
+              op: "remove",
+              path: "/schema/properties/a/minLength"
+            }
           ]
         }
       )
       assertJsonSchema(
-        Rewriter.openAi,
+        Rewriter.openAiRewriter,
         Schema.Struct({
           a: Schema.String.check(Schema.isMinLength(1, {
             description: "description isMinLength(1)"
@@ -579,12 +769,16 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            `removed property "minLength" at ["schema"]["properties"]["a"]`
+            {
+              description: `[UNSUPPORTED_PROPERTY_KEY]: "minLength"`,
+              op: "remove",
+              path: "/schema/properties/a/minLength"
+            }
           ]
         }
       )
       assertJsonSchema(
-        Rewriter.openAi,
+        Rewriter.openAiRewriter,
         Schema.Struct({
           a: Schema.String.check(
             Schema.isMinLength(1, {
@@ -606,7 +800,15 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            `merged 1 fragment(s) at ["schema"]["properties"]["a"]`
+            {
+              description: `[MERGE_ALL_OF]: 1 fragment(s)`,
+              op: "replace",
+              path: "/schema/properties/a",
+              value: {
+                "type": "string",
+                "description": "description isMinLength(1), a value with a length of at most 4"
+              }
+            }
           ]
         }
       )
@@ -614,7 +816,7 @@ describe("Rewriter", () => {
 
     it("Tuple", () => {
       assertJsonSchema(
-        Rewriter.openAi,
+        Rewriter.openAiRewriter,
         Schema.Struct({ a: Schema.Tuple([Schema.NonEmptyString, Schema.Number]) }),
         {
           schema: {
@@ -638,8 +840,16 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            `removed property "minItems" at ["schema"]["properties"]["a"]`,
-            `removed property "minLength" at ["schema"]["properties"]["a"]["prefixItems"][0]`
+            {
+              description: `[UNSUPPORTED_PROPERTY_KEY]: "minItems"`,
+              op: "remove",
+              path: "/schema/properties/a/minItems"
+            },
+            {
+              description: `[UNSUPPORTED_PROPERTY_KEY]: "minLength"`,
+              op: "remove",
+              path: "/schema/properties/a/prefixItems/0/minLength"
+            }
           ]
         }
       )
@@ -647,7 +857,7 @@ describe("Rewriter", () => {
 
     it("Array", () => {
       assertJsonSchema(
-        Rewriter.openAi,
+        Rewriter.openAiRewriter,
         Schema.Struct({ a: Schema.Array(Schema.NonEmptyString) }),
         {
           schema: {
@@ -665,7 +875,11 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            `removed property "minLength" at ["schema"]["properties"]["a"]["items"]`
+            {
+              description: `[UNSUPPORTED_PROPERTY_KEY]: "minLength"`,
+              op: "remove",
+              path: "/schema/properties/a/items/minLength"
+            }
           ]
         }
       )
@@ -673,7 +887,7 @@ describe("Rewriter", () => {
 
     it("const", () => {
       assertJsonSchema(
-        Rewriter.openAi,
+        Rewriter.openAiRewriter,
         Schema.Struct({
           a: Schema.String.annotate({
             description: "description",
@@ -695,7 +909,15 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            `rewrote const to enum at ["schema"]["properties"]["a"]`
+            {
+              description: `[CONST -> ENUM]`,
+              op: "replace",
+              path: "/schema/properties/a",
+              value: {
+                "enum": ["a"],
+                "description": "description"
+              }
+            }
           ]
         }
       )
@@ -703,7 +925,7 @@ describe("Rewriter", () => {
 
     it("UniqueArray", () => {
       assertJsonSchema(
-        Rewriter.openAi,
+        Rewriter.openAiRewriter,
         Schema.Struct({ a: Schema.UniqueArray(Schema.String) }),
         {
           schema: {
@@ -721,7 +943,11 @@ describe("Rewriter", () => {
             "additionalProperties": false
           },
           traces: [
-            `removed property "uniqueItems" at ["schema"]["properties"]["a"]`
+            {
+              description: `[UNSUPPORTED_PROPERTY_KEY]: "uniqueItems"`,
+              op: "remove",
+              path: "/schema/properties/a/uniqueItems"
+            }
           ]
         }
       )

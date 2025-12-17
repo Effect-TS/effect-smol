@@ -383,18 +383,26 @@ const toJsonBlacklist: Set<string> = new Set([
   "contentSchema"
 ])
 
-const PrimitiveTree = Schema.PrimitiveTree.annotate({ identifier: "PrimitiveTree" })
+/**
+ * @category Tree
+ * @since 4.0.0
+ */
+export type PrimitiveTree = Schema.Tree<null | number | boolean | bigint | symbol | string>
 
-const isPrimitiveTree = Schema.is(PrimitiveTree)
+const PrimitiveTree$: Schema.Codec<PrimitiveTree> = Schema.Tree(
+  Schema.Union([Schema.Null, Schema.Number, Schema.Boolean, Schema.BigInt, Schema.Symbol, Schema.String])
+)
+
+const isPrimitiveTree = Schema.is(PrimitiveTree$)
 
 /**
  * @since 4.0.0
  */
 export const Annotations$ = Schema.Record(Schema.String, Schema.Unknown).pipe(
-  Schema.encodeTo(Schema.Record(Schema.String, PrimitiveTree), {
+  Schema.encodeTo(Schema.Record(Schema.String, PrimitiveTree$), {
     decode: Getter.passthrough(),
     encode: Getter.transformOptional(Option.flatMap((r) => {
-      const out: Record<string, typeof PrimitiveTree["Type"]> = {}
+      const out: Record<string, typeof PrimitiveTree$["Type"]> = {}
       for (const [k, v] of Object.entries(r)) {
         if (!toJsonBlacklist.has(k) && isPrimitiveTree(v)) {
           out[k] = v

@@ -1,12 +1,11 @@
 /**
  * @since 4.0.0
  */
-import { constTrue } from "effect/Function"
 import * as Predicate from "effect/Predicate"
-import * as Array_ from "../../Array.ts"
+import * as Arr from "../../Array.ts"
 import * as Combiner from "../../Combiner.ts"
-import { formatPath } from "../../Formatter.ts"
-import * as Record_ from "../../Record.ts"
+import { format } from "../../Formatter.ts"
+import * as Rec from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
 import * as Struct from "../../Struct.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
@@ -19,38 +18,235 @@ export type Path = readonly ["schema" | "definitions", ...ReadonlyArray<string |
 /**
  * @since 4.0.0
  */
-export interface Tracer {
-  push(change: string): void
+export interface RewriterTracer {
+  push(change: Schema.JsonPatchOperation): void
 }
 
 /**
  * @since 4.0.0
  */
-export const NoopTracer: Tracer = { push() {} }
+export type Rewriter = <S extends Schema.JsonSchema.Source>(
+  document: Schema.JsonSchema.Document<S>,
+  tracer?: RewriterTracer
+) => Schema.JsonSchema.Document<S>
 
 /**
+ * Rewrites a JSON Schema to an OpenAI-compatible schema.
+ *
+ * Rules:
+ *
+ * - [ROOT_OBJECT_REQUIRED]: Root must be an object.
+ * - [ONE_OF -> ANY_OF]: Rewrite `oneOf` to `anyOf`.
+ * - [MERGE_ALL_OF]: Merge allOf into a single schema.
+ * - [ADD_REQUIRED_PROPERTY]: Add required property.
+ * - [UNSUPPORTED_PROPERTY_KEY]: Remove unsupported property keys.
+ * - [SET_ADDITIONAL_PROPERTIES_TO_FALSE]: Set `additionalProperties` to false.
+ * - [CONST -> ENUM]: Rewrite `const` to `enum`.
+ *
+ * @see https://platform.openai.com/docs/guides/structured-outputs/supported-schemas?type-restrictions=string-restrictions#supported-schemas
+ *
  * @since 4.0.0
  */
-export interface Rewriter {
-  (document: Schema.JsonSchema.Document, tracer?: Tracer): Schema.JsonSchema.Document
+export const openAiRewriter: Rewriter = (document, tracer) => {
+  return {
+    source: document.source,
+    schema: top(document.schema, ["schema"]),
+    definitions: Rec.map(document.definitions, (value) => recur(value, ["definitions"]))
+  }
+
+  function top(schema: Schema.JsonSchema, path: Path): Schema.JsonSchema {
+    // [ROOT_OBJECT_REQUIRED]
+    if (schema.type !== "object") {
+      const value = getDefaultSchema(schema)
+      tracer?.push({
+        op: "replace",
+        path: formatPath(path),
+        value,
+        description: "[ROOT_OBJECT_REQUIRED]"
+      })
+      return value
+    }
+    return recur(schema, path)
+  }
+
+  function recur(schema: Schema.JsonSchema, path: Path): Schema.JsonSchema {
+    // anyOf
+    if (Array.isArray(schema.anyOf)) {
+      const value = whitelistProperties(schema, path, ["anyOf"], tracer)
+      // recursively rewrite members
+      const anyOf = schema.anyOf.map((value, i: number) => recur(value, [...path, "anyOf", i]))
+      value.anyOf = anyOf
+      return value
+    }
+
+    // [ONE_OF -> ANY_OF]
+    if (Array.isArray(schema.oneOf)) {
+      const value = whitelistProperties(schema, path, ["oneOf"], tracer)
+      // recursively rewrite members
+      const anyOf = schema.oneOf.map((value, i: number) => recur(value, [...path, "oneOf", i]))
+      value.anyOf = anyOf
+      delete value.oneOf
+      tracer?.push({
+        op: "replace",
+        path: formatPath(path),
+        value,
+        description: "[ONE_OF -> ANY_OF]"
+      })
+      return value
+    }
+
+    // [MERGE_ALL_OF]
+    if (Array.isArray(schema.allOf)) {
+      const { allOf, ...rest } = schema
+      const value = allOf.reduce((acc, curr) => propertiesReducer.combine(acc, curr), rest)
+      tracer?.push({
+        op: "replace",
+        path: formatPath(path),
+        value,
+        description: `[MERGE_ALL_OF]: ${allOf.length} fragment(s)`
+      })
+      return recur(value, path)
+    }
+
+    // type: "string", "number", "integer", "boolean"
+    if (
+      schema.type === "string"
+      || schema.type === "number"
+      || schema.type === "integer"
+      || schema.type === "boolean"
+    ) {
+      return whitelistProperties(schema, path, ["type", "enum"], tracer)
+    }
+
+    // type: "array"
+    if (schema.type === "array") {
+      const value: any = whitelistProperties(schema, path, ["type", "items", "prefixItems"], tracer)
+      // recursively rewrite prefixItems
+      if (value.prefixItems) {
+        value.prefixItems = value.prefixItems.map((value: Schema.JsonSchema, i: number) =>
+          recur(value, [...path, "prefixItems", i])
+        )
+      }
+      // recursively rewrite items
+      if (value.items) {
+        value.items = recur(value.items, [...path, "items"])
+      }
+      return value
+    }
+
+    // type: "object"
+    if (schema.type === "object") {
+      const value: any = whitelistProperties(
+        schema,
+        path,
+        ["type", "properties", "required", "additionalProperties"],
+        tracer
+      )
+
+      // recursively rewrite properties
+      if (value.properties !== undefined) {
+        value.properties = Rec.map(
+          value.properties,
+          (value: Schema.JsonSchema, key: string) => recur(value, [...path, "properties", key])
+        )
+
+        // [ADD_REQUIRED_PROPERTY]
+        const keys = Object.keys(value.properties)
+        value.required = value.required !== undefined ? [...value.required] : []
+        if (value.required.length < keys.length) {
+          const required = new Set(value.required)
+          for (const key of keys) {
+            if (!required.has(key)) {
+              value.required.push(key)
+              const property = value.properties[key]
+              const type = property.type
+              if (typeof type === "string") {
+                property.type = [type, "null"] as any
+              } else {
+                if (Array.isArray(property.anyOf)) {
+                  value.properties[key] = {
+                    ...property,
+                    "anyOf": [...property.anyOf, { "type": "null" }]
+                  }
+                } else {
+                  value.properties[key] = { "anyOf": [property, { "type": "null" }] }
+                }
+              }
+              tracer?.push({
+                op: "add",
+                path: formatPath([...path, "required", "-"]),
+                value: key,
+                description: `[ADD_REQUIRED_PROPERTY]: ${format(key)}`
+              })
+            }
+          }
+        }
+      }
+
+      // [SET_ADDITIONAL_PROPERTIES_TO_FALSE]
+      if (value.additionalProperties !== false) {
+        value.additionalProperties = false
+        tracer?.push({
+          op: "replace",
+          path: formatPath([...path, "additionalProperties"]),
+          value: false,
+          description: "[SET_ADDITIONAL_PROPERTIES_TO_FALSE]"
+        })
+      }
+
+      return value
+    }
+
+    // $refs
+    if (schema.$ref !== undefined) {
+      return schema
+    }
+
+    // [CONST -> ENUM]
+    if (schema.const !== undefined) {
+      const value: any = whitelistProperties(schema, path, ["const"], tracer)
+      value.enum = [schema.const]
+      delete value.const
+      tracer?.push({
+        op: "replace",
+        path: formatPath(path),
+        value,
+        description: "[CONST -> ENUM]"
+      })
+      return value
+    }
+
+    const value = getDefaultSchema(schema)
+    tracer?.push({
+      op: "replace",
+      path: formatPath(path),
+      value,
+      description: "[UNKNOWN_SCHEMA_TYPE]"
+    })
+    return value
+  }
 }
 
-function change(path: Path, summary: string) {
-  return `${summary} at ${formatPath(path)}`
+function formatPath(path: Path): string {
+  return "/" + path.join("/")
 }
 
 function whitelistProperties(
   schema: Schema.JsonSchema,
   path: Path,
-  tracer: Tracer,
-  whitelist: Record<string, (value: unknown) => boolean>
-) {
+  whitelist: Iterable<string>,
+  tracer?: RewriterTracer | undefined
+): any {
   const out = { ...schema }
+  const w = new Set([...whitelist, ...["description", "title", "default", "examples"]])
   for (const key of Object.keys(schema)) {
-    if (key in whitelist && whitelist[key](schema[key])) continue
+    if (w.has(key)) continue
 
-    // tracer
-    tracer.push(change(path, `removed property "${key}"`))
+    tracer?.push({
+      op: "remove",
+      path: formatPath([...path, key]),
+      description: `[UNSUPPORTED_PROPERTY_KEY]: ${format(key)}`
+    })
 
     delete out[key]
   }
@@ -65,197 +261,24 @@ const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
   return `${a}, ${b}`
 }))
 
-const propertiesCombiner: Combiner.Combiner<any> = Struct.getCombiner({
+const propertiesReducer = Struct.getReducer({
   type: UndefinedOr.getReducer(Combiner.first<string>()),
   description: join,
   title: join,
   default: UndefinedOr.getReducer(Combiner.last()),
-  examples: UndefinedOr.getReducer(Array_.getReducerConcat())
+  examples: UndefinedOr.getReducer(Arr.getReducerConcat())
 }, {
   omitKeyWhen: Predicate.isUndefined
 })
 
-function getDefaultSchema(schema: Schema.JsonSchema): Schema.JsonSchema {
-  const out: any = {
+function getDefaultSchema(schema: Schema.JsonSchema): Schema.JsonObject {
+  const out: Schema.MutableJsonObject = {
     "type": "object",
     "properties": {},
     "required": [],
     "additionalProperties": false
   }
-  if (schema.description !== undefined) out.description = schema.description
-  if (schema.title !== undefined) out.title = schema.title
-  if (schema.default !== undefined) out.default = schema.default
-  if (schema.examples !== undefined) out.examples = schema.examples
+  if (typeof schema.description === "string") out.description = schema.description
+  if (typeof schema.title === "string") out.title = schema.title
   return out
-}
-
-/**
- * @see https://platform.openai.com/docs/guides/structured-outputs/supported-schemas?type-restrictions=string-restrictions#supported-schemas
- *
- * @since 4.0.0
- */
-export const openAi: Rewriter = (document, tracer = NoopTracer) => {
-  const jsonSchemaAnnotations = {
-    title: constTrue,
-    description: constTrue,
-    default: constTrue,
-    examples: constTrue
-  }
-
-  function recur(schema: Schema.JsonSchema, path: Path): Schema.JsonSchema {
-    // root must be an object
-    if (path.length === 1 && path[0] === "schema" && schema.type !== "object") {
-      tracer.push(change(path, `root must be an object, returning default schema`))
-      return getDefaultSchema(schema)
-    }
-
-    // handle anyOf
-    if (Array.isArray(schema.anyOf)) {
-      const out: any = whitelistProperties(schema, path, tracer, {
-        anyOf: constTrue,
-        ...jsonSchemaAnnotations
-      })
-      // recursively rewrite members
-      const anyOf = out.anyOf.map((value: Schema.JsonSchema, i: number) => recur(value, [...path, "anyOf", i]))
-      out.anyOf = anyOf
-      return out
-    }
-
-    // rewrite oneOf to anyOf
-    if (Array.isArray(schema.oneOf)) {
-      const out: any = whitelistProperties(schema, path, tracer, {
-        oneOf: constTrue,
-        ...jsonSchemaAnnotations
-      })
-      // recursively rewrite members
-      const anyOf = out.oneOf.map((value: Schema.JsonSchema, i: number) => recur(value, [...path, "oneOf", i]))
-      out.anyOf = anyOf
-      delete out.oneOf
-      tracer.push(change(path, `rewrote oneOf to anyOf`))
-      return out
-    }
-
-    // merge allOf into a single schema
-    if (Array.isArray(schema.allOf)) {
-      const { allOf, ...rest } = schema
-      const merged = allOf.reduce((acc, curr) => propertiesCombiner.combine(acc, curr), rest)
-      tracer.push(change(path, `merged ${allOf.length} fragment(s)`))
-      return recur(merged, path)
-    }
-
-    // handle strings, numbers, integers, and booleans
-    if (
-      schema.type === "string"
-      || schema.type === "number"
-      || schema.type === "integer"
-      || schema.type === "boolean"
-    ) {
-      return whitelistProperties(schema, path, tracer, {
-        type: constTrue,
-        ...jsonSchemaAnnotations,
-        enum: constTrue
-      })
-    }
-
-    // handle arrays
-    if (schema.type === "array") {
-      const array: any = whitelistProperties(schema, path, tracer, {
-        type: constTrue,
-        ...jsonSchemaAnnotations,
-        items: constTrue,
-        prefixItems: constTrue
-      })
-      // recursively rewrite prefixItems
-      if (array.prefixItems) {
-        array.prefixItems = array.prefixItems.map((value: Schema.JsonSchema, i: number) =>
-          recur(value, [...path, "prefixItems", i])
-        )
-      }
-      // recursively rewrite items
-      if (array.items) {
-        array.items = recur(array.items, [...path, "items"])
-      }
-      return array
-    }
-
-    // handle objects
-    if (schema.type === "object") {
-      const object: any = whitelistProperties(schema, path, tracer, {
-        type: constTrue,
-        ...jsonSchemaAnnotations,
-        properties: constTrue,
-        required: constTrue,
-        additionalProperties: constTrue
-      })
-
-      // recursively rewrite properties
-      if (object.properties !== undefined) {
-        object.properties = Record_.map(
-          object.properties,
-          (value: Schema.JsonSchema, key: string) => recur(value, [...path, "properties", key])
-        )
-
-        // all fields must be required
-        const keys = Object.keys(object.properties)
-        object.required = object.required !== undefined ? [...object.required] : []
-        if (object.required.length < keys.length) {
-          const required = new Set(object.required)
-          for (const key of keys) {
-            if (!required.has(key)) {
-              object.required.push(key)
-              const property = object.properties[key]
-              const type = property.type
-              if (typeof type === "string") {
-                property.type = [type, "null"] as any
-              } else {
-                if (Array.isArray(property.anyOf)) {
-                  object.properties[key] = {
-                    ...property,
-                    "anyOf": [...property.anyOf, { "type": "null" }]
-                  }
-                } else {
-                  object.properties[key] = { "anyOf": [property, { "type": "null" }] }
-                }
-              }
-              tracer.push(change(path, `added required property "${key}"`))
-            }
-          }
-        }
-      }
-
-      // additionalProperties: false must always be set in objects
-      if (object.additionalProperties !== false) {
-        tracer.push(change(path, `set additionalProperties to false`))
-        object.additionalProperties = false
-      }
-
-      return object
-    }
-
-    // handle $refs
-    if (schema.$ref !== undefined) {
-      return schema
-    }
-
-    // rewrite const to enum
-    if (schema.const !== undefined) {
-      const out: any = whitelistProperties(schema, path, tracer, {
-        const: constTrue,
-        ...jsonSchemaAnnotations
-      })
-      out.enum = [schema.const]
-      delete out.const
-      tracer.push(change(path, `rewrote const to enum`))
-      return out
-    }
-
-    tracer.push(change(path, `unknown schema type, returning default schema`))
-    return getDefaultSchema(schema)
-  }
-
-  return {
-    source: document.source,
-    schema: recur(document.schema, ["schema"]),
-    definitions: Record_.map(document.definitions, (value) => recur(value, ["definitions"]))
-  }
 }
