@@ -523,19 +523,19 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |     Effect 3     | Ported |     Effect 4      | Comments |
 | :--------------: | :----: | :---------------: | :------: |
-| `provideContext` |   -    | `provideServices` |          |
+| `provideContext` |  Done  | `provideServices` |          |
 
 ### Elements
 
 |   Effect 3   | Ported | Effect 4 | Comments |
 | :----------: | :----: | :------: | :------: |
-| `findEffect` |   -    |  `find`  |          |
+| `findEffect` |  Done  |  `find`  |          |
 
 ### Error Handling
 
 |     Effect 3      | Ported | Effect 4 | Comments |
 | :---------------: | :----: | :------: | :------: |
-|     `orElse`      |   -    |          |          |
+|     `orElse`      |  Done  |          |          |
 |   `refineOrDie`   |   -    | `catch`  |          |
 | `refineOrDieWith` |   X    |          |          |
 

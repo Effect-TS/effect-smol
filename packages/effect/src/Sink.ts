@@ -20,6 +20,7 @@ import * as PubSub from "./PubSub.ts"
 import * as Pull from "./Pull.ts"
 import * as Queue from "./Queue.ts"
 import * as Scope from "./Scope.ts"
+import type * as ServiceMap from "./ServiceMap.ts"
 import type { Stream } from "./Stream.ts"
 import type * as Types from "./Types.ts"
 import type * as Unify from "./Unify.ts"
@@ -252,7 +253,7 @@ export const fromTransform = <In, A, E, R, L = never>(
   ) => Effect.Effect<End<A, L>, E, R>
 ): Sink<A, In, L, E, R> => {
   const self = Object.create(SinkProto)
-  self.transform = (upstream: any, scope: Scope.Scope) => Effect.suspend(() => transform(upstream, scope))
+  self.transform = transform
   return self
 }
 
@@ -796,7 +797,7 @@ export const mapInputEffect: {
 /**
  * Transforms this sink's input elements.
  *
- * @since 2.0.0
+ * @since 4.0.0
  * @category mapping
  */
 export const mapInputArray: {
@@ -818,7 +819,7 @@ export const mapInputArray: {
 /**
  * Effectfully transforms this sink's input elements.
  *
- * @since 2.0.0
+ * @since 4.0.0
  * @category mapping
  */
 export const mapInputArrayEffect: {
@@ -846,7 +847,7 @@ export const mapInputArrayEffect: {
 /**
  * Transforms this sink's result.
  *
- * @since 2.0.0
+ * @since 4.0.0
  * @category mapping
  */
 export const mapEnd: {
@@ -876,7 +877,7 @@ const transformEffect = <A, In, L, E, R, A2, E2, R2, L2 = never>(
 /**
  * Effectfully transforms this sink's result.
  *
- * @since 3.0.0
+ * @since 4.0.0
  * @category mapping
  */
 export const mapEffectEnd: {
@@ -1105,7 +1106,7 @@ export const reduceWhileEffect = <S, In, E, R>(
  * A sink that reduces its inputs using the provided function `f` starting from
  * the provided `initial` state while the specified `predicate` returns `true`.
  *
- * @since 2.0.0
+ * @since 4.0.0
  * @category reducing
  */
 export const reduceWhileArray = <S, In>(
@@ -1138,7 +1139,7 @@ export const reduceWhileArray = <S, In>(
  * starting from the provided `initial` state while the specified `predicate`
  * returns `true`.
  *
- * @since 2.0.0
+ * @since 4.0.0
  * @category reducing
  */
 export const reduceWhileArrayEffect = <S, In, E, R>(
@@ -1234,6 +1235,37 @@ const last_ = reduceArray(Option.none<unknown>, (_, arr) => Arr.last(arr))
  * @category constructors
  */
 export const last = <In>(): Sink<Option.Option<In>, In> => last_ as any
+
+/**
+ * Creates a sink containing the first matching value.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const find: {
+  <In, Out extends In>(refinement: Refinement<In, Out>): Sink<Option.Option<Out>, In, In>
+  <In>(predicate: Predicate<In>): Sink<Option.Option<In>, In, In>
+} = <In>(predicate: Predicate<In>): Sink<Option.Option<In>, In, In> =>
+  reduceWhile(
+    Option.none<In>,
+    Option.isNone,
+    (acc, in_) => predicate(in_) ? Option.some(in_) : acc
+  )
+
+/**
+ * Creates a sink containing the first matching value.
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const findEffect = <In, E, R>(
+  predicate: (input: In) => Effect.Effect<boolean, E, R>
+): Sink<Option.Option<In>, In, In, E, R> =>
+  reduceWhileEffect(
+    Option.none<In>,
+    Option.isNone,
+    (acc, in_) => Effect.map(predicate(in_), (b) => b ? Option.some(in_) : acc)
+  )
 
 /**
  * Creates a sink which sums up its inputs.
@@ -1437,7 +1469,7 @@ export const forEach = <In, X, E, R>(
  * // Output: Processing chunk of 5 items: [1, 2, 3, 4, 5]
  * ```
  *
- * @since 2.0.0
+ * @since 4.0.0
  * @category constructors
  */
 export const forEachArray = <In, X, E, R>(
@@ -1558,3 +1590,87 @@ export const withDuration = <A, In, L, E, R>(
  * @category constructors
  */
 export const timed: Sink<Duration.Duration, unknown> = map(withDuration(drain), ([, duration]) => duration)
+
+/**
+ * @since 4.0.0
+ * @category Services
+ */
+export const provideServices: {
+  <Provided>(
+    services: ServiceMap.ServiceMap<Provided>
+  ): <A, In, L, E, R>(self: Sink<A, In, L, E, R>) => Sink<A, In, L, E, Exclude<R, Provided>>
+  <A, In, L, E, R, Provided>(
+    self: Sink<A, In, L, E, R>,
+    services: ServiceMap.ServiceMap<Provided>
+  ): Sink<A, In, L, E, Exclude<R, Provided>>
+} = dual(2, <A, In, L, E, R, Provided>(
+  self: Sink<A, In, L, E, R>,
+  services: ServiceMap.ServiceMap<Provided>
+): Sink<A, In, L, E, Exclude<R, Provided>> =>
+  fromTransform((upstream, scope) =>
+    self.transform(upstream, scope).pipe(
+      Effect.provideServices(services)
+    )
+  ))
+
+/**
+ * @since 4.0.0
+ * @category Services
+ */
+export const provideService: {
+  <I, S>(
+    key: ServiceMap.Service<I, S>,
+    value: Types.NoInfer<S>
+  ): <A, In, L, E, R>(self: Sink<A, In, L, E, R>) => Sink<A, In, L, E, Exclude<R, I>>
+  <A, In, L, E, R, I, S>(
+    self: Sink<A, In, L, E, R>,
+    key: ServiceMap.Service<I, S>,
+    value: Types.NoInfer<S>
+  ): Sink<A, In, L, E, Exclude<R, I>>
+} = dual(3, <A, In, L, E, R, I, S>(
+  self: Sink<A, In, L, E, R>,
+  key: ServiceMap.Service<I, S>,
+  value: Types.NoInfer<S>
+): Sink<A, In, L, E, Exclude<R, I>> =>
+  fromTransform((upstream, scope) =>
+    self.transform(upstream, scope).pipe(
+      Effect.provideService(key, value)
+    )
+  ))
+
+/**
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const orElse: {
+  <E, A2, In2, L2, E2, R2>(
+    f: (error: Types.NoInfer<E>) => Sink<A2, In2, L2, E2, R2>
+  ): <A, In, L, R>(self: Sink<A, In, L, E, R>) => Sink<A2 | A, In & In2, L2 | L, E2 | E, R2 | R>
+  <A, In, L, E, R, A2, In2, L2, E2, R2>(
+    self: Sink<A, In, L, E, R>,
+    f: (error: E) => Sink<A2, In2, L2, E2, R2>
+  ): Sink<A | A2, In & In2, L | L2, E | E2, R | R2>
+} = dual(2, <A, In, L, E, R, A2, In2, L2, E2, R2>(
+  self: Sink<A, In, L, E, R>,
+  f: (error: E) => Sink<A2, In2, L2, E2, R2>
+): Sink<A | A2, In & In2, L | L2, E | E2, R | R2> =>
+  fromTransform((upstream, scope) => {
+    let upstreamDone = false
+    const pull = Effect.catchCause(upstream, (cause) => {
+      upstreamDone = true
+      return Effect.failCause(cause)
+    })
+    return Effect.catch(
+      self.transform(pull, scope) as Effect.Effect<End<A | A2, L | L2>, E, R>,
+      (error) =>
+        f(error).transform(
+          Effect.suspend(() => {
+            if (upstreamDone) {
+              return Pull.haltVoid
+            }
+            return upstream
+          }),
+          scope
+        )
+    )
+  }))

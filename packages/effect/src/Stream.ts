@@ -1560,7 +1560,7 @@ export const tapSink: {
           return Pull.haltVoid
         }))
 
-        yield* sink.transform(sinkUpstream, scope).pipe(
+        yield* Effect.suspend(() => sink.transform(sinkUpstream, scope)).pipe(
           Effect.onExitInterruptible((exit) => {
             sinkDone = true
             if (Exit.isFailure(exit)) {
@@ -5135,7 +5135,7 @@ export const transduce = dual<
           })
         )
         const pull = Effect.map(
-          sink.transform(upstreamWithLeftover, scope),
+          Effect.suspend(() => sink.transform(upstreamWithLeftover, scope)),
           ([value, leftover_]) => {
             leftover = leftover_
             return Arr.of(value)
@@ -5250,7 +5250,7 @@ export const aggregateWithin: {
       if (buffer.state._tag === "Done") {
         return buffer.state.exit as Exit.Exit<never, Pull.Halt<void> | E>
       }
-      return Effect.succeed(sink.transform(sinkUpstream as any, scope))
+      return Effect.succeed(Effect.suspend(() => sink.transform(sinkUpstream as any, scope)))
     }).pipe(
       Effect.flatMap((pull) => Effect.raceFirst(catchSinkHalt(pull), stepToBuffer))
     )
