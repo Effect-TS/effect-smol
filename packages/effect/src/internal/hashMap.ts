@@ -92,6 +92,7 @@ function mergeLeaves<K, V>(
 
 /** @internal */
 abstract class Node<K, V> {
+  abstract readonly _tag: "EmptyNode" | "LeafNode" | "IndexedNode" | "CollisionNode" | "ArrayNode"
   abstract readonly edit: number
   abstract get size(): number
   abstract get(shift: number, hash: number, key: K): Option.Option<V>
@@ -121,6 +122,8 @@ abstract class Node<K, V> {
 
 /** @internal */
 class EmptyNode<K, V> extends Node<K, V> {
+  readonly _tag = "EmptyNode"
+
   readonly edit = 0
 
   get size(): number {
@@ -172,6 +175,8 @@ class EmptyNode<K, V> extends Node<K, V> {
 
 /** @internal */
 class LeafNode<K, V> extends Node<K, V> {
+  readonly _tag = "LeafNode"
+
   edit: number
   readonly hash: number
   key: K
@@ -275,6 +280,8 @@ class LeafNode<K, V> extends Node<K, V> {
 
 /** @internal */
 class CollisionNode<K, V> extends Node<K, V> {
+  readonly _tag = "CollisionNode"
+
   edit: number
   readonly hash: number
   entries: Array<[K, V]>
@@ -413,6 +420,8 @@ class CollisionNode<K, V> extends Node<K, V> {
 
 /** @internal */
 class IndexedNode<K, V> extends Node<K, V> {
+  readonly _tag = "IndexedNode"
+
   edit: number
   private _size: number | undefined
   bitmap: number
@@ -537,7 +546,7 @@ class IndexedNode<K, V> extends Node<K, V> {
 
       if (this.children.length === 2) {
         const remaining = this.children[idx === 0 ? 1 : 0]
-        if (remaining instanceof LeafNode) {
+        if (remaining._tag === "LeafNode") {
           return remaining
         }
       }
@@ -611,6 +620,8 @@ class IndexedNode<K, V> extends Node<K, V> {
 
 /** @internal */
 class ArrayNode<K, V> extends Node<K, V> {
+  readonly _tag = "ArrayNode"
+
   edit: number
   private _size: number | undefined
   count: number
