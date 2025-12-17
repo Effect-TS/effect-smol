@@ -1,33 +1,4 @@
 /**
- * JSON Patch (RFC 6902 subset) utilities.
- *
- * This module implements a small, predictable subset of JSON Patch:
- *
- * - `add` (including array append via `/-`)
- * - `remove`
- * - `replace`
- *
- * Patches are expressed using JSON Pointer (RFC 6901) paths. A path is either:
- *
- * - `""` (the root document)
- * - `"/..."` (one or more reference tokens separated by `/`)
- *
- * Reference tokens follow the RFC 6901 escaping rules:
- *
- * - `~` is encoded as `~0`
- * - `/` is encoded as `~1`
- *
- * Notes on semantics:
- *
- * - `replace` and `remove` require the target to exist.
- * - `add` may create a missing object member.
- * - For arrays, `add` supports `/-` to append. `replace` / `remove` do not.
- * - Root `replace` (`path: ""`) returns the provided value as-is (no cloning).
- * - Root `remove` is not supported.
- *
- * The implementation is immutable: applying a patch never mutates the input
- * document; it creates updated copies along the modified path.
- *
  * @since 4.0.0
  */
 import { format } from "./Formatter.ts"
@@ -52,7 +23,7 @@ export type JsonPatchOperation =
     /**
      * JSON Pointer to the target location.
      *
-     * For array targets, `path` may end with `/-` to append.
+     * For arrays, the last token may be `-` to append.
      */
     readonly path: string
     readonly value: Schema.Json
@@ -92,6 +63,8 @@ export type JsonPatch = ReadonlyArray<JsonPatchOperation>
  * - Arrays are compared by index (no move/copy detection).
  * - Objects are compared by key; keys are processed in sorted order to keep the
  *   output stable across runs.
+ *
+ * The generated patch is deterministic, but not guaranteed to be minimal.
  *
  * Array removals are emitted from highest index to lowest to avoid index
  * shifting when the patch is applied.
@@ -177,8 +150,7 @@ export function apply(patch: JsonPatch, oldValue: Schema.Json): Schema.Json {
   for (const op of patch) {
     switch (op.op) {
       case "replace": {
-        if (op.path === "") return op.value
-        doc = setAt(doc, op.path, op.value, "replace")
+        doc = op.path === "" ? op.value : setAt(doc, op.path, op.value, "replace")
         break
       }
       case "add": {
@@ -200,7 +172,7 @@ function prefixPathInPlace(op: JsonPatchOperation, parent: string): void {
   ;(op as any).path = op.path === "" ? parent : parent + op.path
 }
 
-function isJsonObject(value: Schema.Json): value is Schema.JsonObject {
+function isJsonObject(value: unknown): value is Schema.JsonObject {
   return Predicate.isObject(value)
 }
 
@@ -226,72 +198,33 @@ function toIndex(token: string): number {
   return Number(token)
 }
 
-/**
- * Read the value at `pointer`.
- *
- * Returns `undefined` when the traversal walks into `null` / `undefined`, or when
- * an array index is out of bounds.
- */
-function getAt(doc: Schema.Json, pointer: string): Schema.Json | undefined {
-  if (pointer === "") return doc
-  const tokens = tokenize(pointer)
-  let cur: any = doc
-
-  for (const token of tokens) {
-    if (cur == null) return undefined
-
-    if (Array.isArray(cur)) {
-      const idx = toIndex(token)
-      if (idx < 0 || idx >= cur.length) return undefined
-      cur = cur[idx]
-    } else {
-      cur = (cur as any)[token]
-    }
-  }
-
-  return cur
-}
-
-/**
- * Apply an `add` at `pointer`.
- *
- * - May create a missing object member.
- * - For arrays, supports `/-` to append.
- * - Throws when the parent location does not exist, is not a container, or when
- *   an array index is out of bounds.
- */
 function addAt(doc: Schema.Json, pointer: string, val: Schema.Json): Schema.Json {
   if (pointer === "") return val
 
-  const tokens = tokenize(pointer)
-  const parentPath = "/" + tokens.slice(0, -1).map(escapeToken).join("/")
-  const lastToken = tokens[tokens.length - 1]
-  const parent = getAt(doc, parentPath === "/" ? "" : parentPath)
+  const resolved = resolveParent(doc, pointer)
+  if (resolved === null) {
+    throw new Error(`Cannot add at "${pointer}" (parent not found or not a container).`)
+  }
+
+  const { lastToken, parent, stack } = resolved
 
   if (Array.isArray(parent)) {
     const idx = lastToken === "-" ? parent.length : toIndex(lastToken)
     if (idx < 0 || idx > parent.length) throw new Error(`Array index out of bounds at "${pointer}".`)
     const updated = parent.slice()
     updated.splice(idx, 0, val)
-    return setParent(doc, parentPath, updated)
+    return rebuildFromStack(stack, updated)
   }
 
-  if (parent && isJsonObject(parent)) {
+  if (isJsonObject(parent)) {
     const updated = { ...parent }
     updated[lastToken] = val
-    return setParent(doc, parentPath, updated)
+    return rebuildFromStack(stack, updated)
   }
 
   throw new Error(`Cannot add at "${pointer}" (parent not found or not a container).`)
 }
 
-/**
- * Apply a `replace` or `remove` at `pointer`.
- *
- * - Requires the target to exist.
- * - For arrays, `-` is not valid (only concrete indices).
- * - Root remove is not supported.
- */
 function setAt(
   doc: Schema.Json,
   pointer: string,
@@ -303,10 +236,12 @@ function setAt(
     return val
   }
 
-  const tokens = tokenize(pointer)
-  const parentPath = "/" + tokens.slice(0, -1).map(escapeToken).join("/")
-  const lastToken = tokens[tokens.length - 1]
-  const parent = getAt(doc, parentPath === "/" ? "" : parentPath)
+  const resolved = resolveParent(doc, pointer)
+  if (resolved === null) {
+    throw new Error(`Cannot ${mode} at "${pointer}" (parent not found or not a container).`)
+  }
+
+  const { lastToken, parent, stack } = resolved
 
   if (Array.isArray(parent)) {
     if (lastToken === "-") throw new Error(`"-" is not valid for ${mode} at "${pointer}".`)
@@ -315,58 +250,70 @@ function setAt(
     const updated = parent.slice()
     if (mode === "remove") updated.splice(idx, 1)
     else updated[idx] = val
-    return setParent(doc, parentPath, updated)
+    return rebuildFromStack(stack, updated)
   }
 
-  // On objects, "-" is just a normal property name.
-  if (parent && isJsonObject(parent)) {
+  if (isJsonObject(parent)) {
     if (!Object.hasOwn(parent, lastToken)) {
       throw new Error(`Property "${lastToken}" does not exist at "${pointer}".`)
     }
     const updated = { ...parent }
     if (mode === "remove") delete updated[lastToken]
     else updated[lastToken] = val!
-    return setParent(doc, parentPath, updated)
+    return rebuildFromStack(stack, updated)
   }
 
   throw new Error(`Cannot ${mode} at "${pointer}" (parent not found or not a container).`)
 }
 
-/**
- * Immutably write `newParent` back into the document at `parentPointer`.
- *
- * This is the only “rebuild” step: it records the path containers while
- * traversing, then recreates them from the bottom up.
- */
-function setParent(doc: Schema.Json, parentPointer: string, newParent: Schema.Json): Schema.Json {
-  if (parentPointer === "" || parentPointer === "/") return newParent
+type StackEntry = { readonly container: unknown; readonly token: number | string }
 
-  const tokens = tokenize(parentPointer)
-  const stack: Array<{ container: unknown; token: number | string }> = []
+// Walk to the parent of `pointer`, recording the path.
+// Returns null if the parent path cannot be resolved.
+function resolveParent(
+  doc: Schema.Json,
+  pointer: string
+): { readonly stack: ReadonlyArray<StackEntry>; readonly parent: unknown; readonly lastToken: string } | null {
+  const tokens = tokenize(pointer)
+  if (tokens.length === 0) return null // caller handles root
+
+  const lastToken = tokens[tokens.length - 1]
+  const stack: Array<StackEntry> = []
   let cur: unknown = doc
 
-  for (const token of tokens) {
+  for (let i = 0; i < tokens.length - 1; i++) {
+    const token = tokens[i]
+
+    if (cur == null) return null
+
     if (Array.isArray(cur)) {
       const idx = toIndex(token)
-      if (idx < 0 || idx >= cur.length) {
-        throw new Error(`Array index out of bounds while writing at "${parentPointer}".`)
-      }
+      if (idx < 0 || idx >= cur.length) return null
       stack.push({ container: cur, token: idx })
       cur = cur[idx]
-    } else if (cur && typeof cur === "object") {
-      if (!Object.hasOwn(cur, token)) {
-        throw new Error(`Key ${token} not found while writing at "${parentPointer}".`)
-      }
+      continue
+    }
+
+    if (cur && typeof cur === "object") {
+      if (!Object.hasOwn(cur, token)) return null
       stack.push({ container: cur, token })
       cur = (cur as any)[token]
-    } else {
-      throw new Error(`Cannot traverse non-container at "${parentPointer}".`)
+      continue
     }
+
+    return null
   }
 
+  return { stack, parent: cur, lastToken }
+}
+
+// Rebuild the document by writing `newParent` back through `stack`.
+function rebuildFromStack(stack: ReadonlyArray<StackEntry>, newParent: Schema.Json): Schema.Json {
   let acc: Schema.Json = newParent
+
   for (let i = stack.length - 1; i >= 0; i--) {
     const { container, token } = stack[i]
+
     if (Array.isArray(container)) {
       const copy = container.slice()
       copy[token as number] = acc

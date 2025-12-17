@@ -202,6 +202,19 @@ describe("JsonPatch", () => {
 
   describe("apply", () => {
     describe("happy paths", () => {
+      it("applies operations after a root replace", () => {
+        deepStrictEqual(
+          JsonPatch.apply(
+            [
+              { op: "replace", path: "", value: {} },
+              { op: "add", path: "/a", value: 1 }
+            ],
+            { old: true }
+          ),
+          { a: 1 }
+        )
+      })
+
       it("replace", () => {
         deepStrictEqual(JsonPatch.apply([{ op: "replace", path: "", value: 42 }], 1), 42)
 
