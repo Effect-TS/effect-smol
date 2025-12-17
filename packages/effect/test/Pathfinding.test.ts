@@ -1,6 +1,5 @@
 import { describe, it } from "@effect/vitest"
-import { Data, Graph, Option } from "effect"
-import type { Types } from "effect/types"
+import { Data, Graph, Option, type Types } from "effect"
 import { AssertionError } from "node:assert"
 
 // TODO: Add more terrains
