@@ -188,7 +188,7 @@ export const toString = <E = Cause.UnknownError>(
   const onError = options?.onError ?? defaultOnError
   const encoding = options?.encoding ?? "utf8"
   return Effect.callback((resume) => {
-    const stream = readable()
+    const stream = readable() as Readable
     stream.setEncoding(encoding)
 
     stream.once("error", (err) => {
@@ -235,7 +235,7 @@ export const toArrayBuffer = <E = Cause.UnknownError>(
   const maxBytesNumber = options?.maxBytes ? Number(options.maxBytes) : undefined
   const onError = options?.onError ?? defaultOnError
   return Effect.callback((resume) => {
-    const stream = readable()
+    const stream = readable() as Readable
     let buffer = Buffer.alloc(0)
     let bytes = 0
     stream.once("error", (err) => {
@@ -298,6 +298,7 @@ const readableToPullUnsafe = <A, E>(options: {
   readonly chunkSize: number | undefined
   readonly closeOnDone?: boolean | undefined
 }) => {
+  const readable = options.readable as Readable
   const closeOnDone = options.closeOnDone ?? true
   const exit = options.exit ?? MutableRef.make(undefined)
   const latch = Effect.makeLatchUnsafe(false)
@@ -312,9 +313,9 @@ const readableToPullUnsafe = <A, E>(options: {
     exit.current = Exit.fail(new Pull.Halt(void 0))
     latch.openUnsafe()
   }
-  options.readable.on("readable", onReadable)
-  options.readable.once("error", onError)
-  options.readable.once("end", onEnd)
+  readable.on("readable", onReadable)
+  readable.once("error", onError)
+  readable.once("end", onEnd)
 
   const pull = Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> {
     let item = options.readable.read(options.chunkSize) as A | null
@@ -338,9 +339,9 @@ const readableToPullUnsafe = <A, E>(options: {
     Scope.addFinalizer(
       options.scope,
       Effect.sync(() => {
-        options.readable.off("readable", onReadable)
-        options.readable.off("error", onError)
-        options.readable.off("end", onEnd)
+        readable.off("readable", onReadable)
+        readable.off("error", onError)
+        readable.off("end", onEnd)
         if (closeOnDone && "closed" in options.readable && !options.readable.closed) {
           options.readable.destroy()
         }

@@ -194,7 +194,7 @@ const makeResponse = (
  */
 export const layerServer: <R extends string>(
   options: ServeOptions<R>
-) => Layer.Layer<Server.HttpServer> = Layer.effect(Server.HttpServer)(make)
+) => Layer.Layer<Server.HttpServer> = Layer.effect(Server.HttpServer, make) as any
 
 /**
  * @since 1.0.0

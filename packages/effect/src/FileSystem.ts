@@ -47,7 +47,6 @@ import type { Scope } from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as Sink from "./Sink.ts"
 import * as Stream from "./Stream.ts"
-import * as UndefinedOr from "./UndefinedOr.ts"
 
 const TypeId = "~effect/platform/FileSystem"
 

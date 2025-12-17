@@ -8,7 +8,6 @@ import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as FileSystem from "effect/FileSystem"
-import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Path from "effect/Path"
 import type * as PlatformError from "effect/PlatformError"
@@ -55,10 +54,7 @@ const make = Effect.gen(function*() {
     command: ChildProcess.StandardCommand | ChildProcess.TemplatedCommand
   ) {
     if (ChildProcess.isStandardCommand(command)) return command
-    const parsed = yield* Effect.orDie(Effect.try({
-      try: () => parseTemplates(command.templates, command.expressions),
-      catch: identity
-    }))
+    const parsed = yield* Effect.sync(() => parseTemplates(command.templates, command.expressions))
     return ChildProcess.make(parsed[0], parsed.slice(1), command.options)
   })
 
