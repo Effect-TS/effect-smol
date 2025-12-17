@@ -2,6 +2,7 @@
  * @since 1.0.0
  */
 import * as Effect from "effect/Effect"
+import { flow } from "effect/Function"
 import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
 import type * as Scope from "effect/Scope"
@@ -342,7 +343,7 @@ export const makeAgent = (options?: Https.AgentOptions): Effect.Effect<HttpAgent
  */
 export const layerAgentOptions: (options?: Https.AgentOptions | undefined) => Layer.Layer<
   HttpAgent
-> = Layer.effect(HttpAgent)(makeAgent)
+> = flow(makeAgent, Layer.effect(HttpAgent))
 
 /**
  * @since 1.0.0

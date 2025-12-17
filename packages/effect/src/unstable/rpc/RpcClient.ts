@@ -8,7 +8,7 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import * as Filter from "../../Filter.ts"
-import { constVoid, dual, identity } from "../../Function.ts"
+import { constVoid, dual, flow, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import * as Pool from "../../Pool.ts"
@@ -1264,7 +1264,7 @@ export const layerProtocolWorker: (
   Protocol,
   WorkerError,
   Worker.WorkerPlatform | Worker.Spawner
-> = Layer.effect(Protocol)(makeProtocolWorker)
+> = flow(makeProtocolWorker, Layer.effect(Protocol))
 
 // internal
 

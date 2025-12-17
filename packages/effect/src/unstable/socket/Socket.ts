@@ -10,7 +10,7 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as FiberSet from "../../FiberSet.ts"
 import * as Filter from "../../Filter.ts"
-import { constVoid, dual } from "../../Function.ts"
+import { constVoid, dual, flow } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Pull from "../../Pull.ts"
@@ -612,7 +612,7 @@ export const layerWebSocket: (
     readonly openTimeout?: DurationInput | undefined
     readonly protocols?: string | Array<string> | undefined
   } | undefined
-) => Layer.Layer<Socket, never, WebSocketConstructor> = Layer.effect(Socket)(makeWebSocket)
+) => Layer.Layer<Socket, never, WebSocketConstructor> = flow(makeWebSocket, Layer.effect(Socket))
 
 /**
  * @since 4.0.0

@@ -6,7 +6,7 @@ import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import type * as FileSystem from "effect/FileSystem"
-import type { LazyArg } from "effect/Function"
+import { flow, type LazyArg } from "effect/Function"
 import * as Layer from "effect/Layer"
 import type * as Path from "effect/Path"
 import type * as Record from "effect/Record"
@@ -356,7 +356,7 @@ class ServerRequestImpl extends NodeHttpIncomingMessage<HttpServerError> impleme
 export const layerServer: (
   evaluate: LazyArg<Http.Server<typeof Http.IncomingMessage, typeof Http.ServerResponse>>,
   options: Net.ListenOptions
-) => Layer.Layer<HttpServer.HttpServer, ServeError> = Layer.effect(HttpServer.HttpServer)(make)
+) => Layer.Layer<HttpServer.HttpServer, ServeError> = flow(make, Layer.effect(HttpServer.HttpServer))
 
 /**
  * @since 1.0.0

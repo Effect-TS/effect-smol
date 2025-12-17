@@ -762,28 +762,18 @@ export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): La
  * @category constructors
  */
 export const effect: {
-  <I, S>(service: ServiceMap.Service<I, S>): <E, R, Args extends ReadonlyArray<any> = never>(
-    effectOrFn: Effect<S, E, R> | ((...args: Args) => Effect<S, E, R>)
-  ) => [Args] extends [never] ? Layer<I, E, Exclude<R, Scope.Scope>>
-    : (...args: Args) => Layer<I, E, Exclude<R, Scope.Scope>>
-
-  <I, S, E, R, Args extends ReadonlyArray<any> = never>(
+  <I, S>(service: ServiceMap.Service<I, S>): <E, R>(
+    effect: Effect<S, E, R>
+  ) => Layer<I, E, Exclude<R, Scope.Scope>>
+  <I, S, E, R>(
     service: ServiceMap.Service<I, S>,
-    effectOrFn: Effect<S, E, R> | ((...args: Args) => Effect<S, E, R>)
-  ): [Args] extends [never] ? Layer<I, E, Exclude<R, Scope.Scope>>
-    : (...args: Args) => Layer<I, E, Exclude<R, Scope.Scope>>
+    effect: Effect<S, E, R>
+  ): Layer<I, E, Exclude<R, Scope.Scope>>
 } = function() {
   if (arguments.length === 1) {
-    return (effectOrFn: any) =>
-      typeof effectOrFn === "function"
-        ? (...args: any) => effectImpl(arguments[0], internalEffect.suspend(() => effectOrFn(...args)))
-        : effectImpl(arguments[0], effectOrFn)
+    return (effect: any) => effectImpl(arguments[0], effect)
   }
-
-  const effectOrFn = arguments[1]
-  return typeof effectOrFn === "function"
-    ? (...args: any) => effectImpl(arguments[0], internalEffect.suspend(() => effectOrFn(...args)))
-    : effectImpl(arguments[0], effectOrFn)
+  return effectImpl(arguments[0], arguments[1])
 } as any
 
 const effectImpl = <I, S, E, R>(

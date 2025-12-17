@@ -10,6 +10,7 @@ import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import * as FiberSet from "effect/FiberSet"
 import type * as FileSystem from "effect/FileSystem"
+import { flow } from "effect/Function"
 import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
 import type * as Path from "effect/Path"
@@ -198,7 +199,7 @@ const makeResponse = (
  */
 export const layerServer: <R extends string>(
   options: ServeOptions<R>
-) => Layer.Layer<Server.HttpServer> = Layer.effect(Server.HttpServer, make) as any
+) => Layer.Layer<Server.HttpServer> = flow(make, Layer.effect(Server.HttpServer)) as any
 
 /**
  * @since 1.0.0

@@ -7,6 +7,7 @@ import * as Deferred from "effect/Deferred"
 import type * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as FiberSet from "effect/FiberSet"
+import * as Function from "effect/Function"
 import { identity } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
@@ -232,4 +233,4 @@ export const makeNetChannel = <IE = never>(
 export const layerNet: (options: Net.NetConnectOpts) => Layer.Layer<
   Socket.Socket,
   Socket.SocketError
-> = Layer.effect(Socket.Socket)(makeNet)
+> = Function.flow(makeNet, Layer.effect(Socket.Socket))

@@ -5,7 +5,7 @@ import type { IllegalArgumentError } from "./Cause.ts"
 import type * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
 import type * as Equ from "./Equivalence.ts"
-import { dual, type LazyArg } from "./Function.ts"
+import { dual, flow, type LazyArg } from "./Function.ts"
 import type { Inspectable } from "./Inspectable.ts"
 import * as Internal from "./internal/dateTime.ts"
 import { provideService } from "./internal/effect.ts"
@@ -2472,7 +2472,7 @@ export const layerCurrentZoneOffset = (offset: number): Layer.Layer<CurrentTimeZ
 export const layerCurrentZoneNamed: (zoneId: string) => Layer.Layer<
   CurrentTimeZone,
   IllegalArgumentError
-> = Layer.effect(CurrentTimeZone)(Internal.zoneMakeNamedEffect)
+> = flow(Internal.zoneMakeNamedEffect, Layer.effect(CurrentTimeZone))
 
 /**
  * Create a Layer from the system's local time zone.

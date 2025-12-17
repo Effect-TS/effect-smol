@@ -4,7 +4,7 @@
 import * as Config from "../../Config.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
-import { identity } from "../../Function.ts"
+import { flow, identity } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
@@ -655,7 +655,7 @@ export const layerStoreRedis: (
   RateLimiterStore,
   never,
   Redis.Redis
-> = Layer.effect(RateLimiterStore, makeStoreRedis)
+> = flow(makeStoreRedis, Layer.effect(RateLimiterStore))
 
 /**
  * @since 4.0.0
