@@ -110,8 +110,7 @@ export interface TypeClass<F extends TypeLambda> {
  *
  * @example
  * ```ts
- * import type { Effect } from "effect"
- * import type { HKT } from "effect"
+ * import type { Effect, HKT } from "effect"
  *
  * // TypeLambda for Array<A>
  * interface ArrayTypeLambda extends HKT.TypeLambda {
@@ -152,8 +151,7 @@ export interface TypeLambda {
  *
  * @example
  * ```ts
- * import type { Effect, Option } from "effect"
- * import type { HKT } from "effect"
+ * import type { Effect, HKT, Option } from "effect"
  *
  * // Define TypeLambdas
  * interface OptionTypeLambda extends HKT.TypeLambda {

@@ -515,8 +515,8 @@ export const getEquivalence = <A, E>(
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const success = pipe(
  *   Result.succeed(1),
@@ -562,8 +562,8 @@ export const mapBoth: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const success = pipe(
  *   Result.succeed(1),
@@ -595,8 +595,8 @@ export const mapError: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const success = pipe(
  *   Result.succeed(1),
@@ -630,8 +630,8 @@ export const map: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const onFailure = (strings: ReadonlyArray<string>): string =>
  *   `strings: ${strings.join(", ")}`
@@ -917,8 +917,8 @@ export const getOrThrow: <A, E>(self: Result<A, E>) => A = getOrThrowWith(identi
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const success = pipe(
  *   Result.succeed(1),
@@ -1165,8 +1165,8 @@ export const gen: Gen.Gen<ResultTypeLambda> = (...args) => {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const result = pipe(
  *   Result.Do,
@@ -1198,8 +1198,8 @@ export const Do: Result<{}> = succeed({})
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const result = pipe(
  *   Result.Do,
@@ -1241,8 +1241,8 @@ export const bind: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { pipe, Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const result = pipe(
  *   Result.Do,
@@ -1290,8 +1290,8 @@ export {
    *
    * @example
    * ```ts
-   * import * as assert from "node:assert"
    * import { pipe, Result } from "effect"
+   * import * as assert from "node:assert"
    *
    * const result = pipe(
    *   Result.Do,
@@ -1380,8 +1380,8 @@ export const transposeMapOption = dual<
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Option, Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const result = Result.succeedNone
  * assert.deepStrictEqual(result, Result.succeed(Option.none()))
@@ -1397,8 +1397,8 @@ export const succeedNone = succeed(option_.none)
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Option, Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const result = Result.succeedSome(42)
  * assert.deepStrictEqual(result, Result.succeed(Option.some(42)))

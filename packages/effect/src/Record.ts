@@ -390,8 +390,8 @@ export const has: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Option, Record as R } from "effect"
+ * import * as assert from "node:assert"
  *
  * const person: Record<string, unknown> = { name: "John Doe", age: 35 }
  *
@@ -666,8 +666,8 @@ export const mapEntries: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Option, Record } from "effect"
+ * import * as assert from "node:assert"
  *
  * const x = { a: 1, b: 2, c: 3 }
  * const f = (a: number, key: string) => a > 2 ? Option.some(a * 2) : Option.none()
@@ -753,8 +753,8 @@ export const filter: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Option, Record } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
  *   Record.getSomes({ a: Option.some(1), b: Option.none(), c: Option.some(2) }),
@@ -846,8 +846,8 @@ export const getSuccesses = <K extends string, A, E>(
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Record, Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * const x = { a: 1, b: 2, c: 3 }
  * const f = (n: number) => (n % 2 === 0 ? Result.succeed(n) : Result.fail(n))
@@ -893,8 +893,8 @@ export const partitionMap: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Record, Result } from "effect"
+ * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
  *   Record.separate({ a: Result.fail("e"), b: Result.succeed(1) }),
@@ -1371,8 +1371,8 @@ export const difference: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Equal, Record } from "effect"
+ * import * as assert from "node:assert"
  *
  * const recordEquivalence = Record.getEquivalence(Equal.equivalence<number>())
  *

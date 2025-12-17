@@ -2240,8 +2240,8 @@ export const exists: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Option, pipe } from "effect"
+ * import * as assert from "node:assert"
  *
  * const result = pipe(
  *   Option.Do,
@@ -2291,8 +2291,8 @@ export {
    *
    * @example
    * ```ts
-   * import * as assert from "node:assert"
    * import { Option, pipe } from "effect"
+   * import * as assert from "node:assert"
    *
    * const result = pipe(
    *   Option.Do,
@@ -2327,8 +2327,8 @@ export {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Option, pipe } from "effect"
+ * import * as assert from "node:assert"
  *
  * const result = pipe(
  *   Option.Do,
@@ -2372,8 +2372,8 @@ export const bind: {
  *
  * @example
  * ```ts
- * import * as assert from "node:assert"
  * import { Option, pipe } from "effect"
+ * import * as assert from "node:assert"
  *
  * const result = pipe(
  *   Option.Do,

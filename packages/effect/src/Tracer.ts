@@ -11,7 +11,8 @@ import * as ServiceMap from "./ServiceMap.ts"
  * @category models
  * @example
  * ```ts
- * import { ServiceMap, Tracer } from "effect"
+ * import type { ServiceMap } from "effect"
+ * import { Tracer } from "effect"
  *
  * // Create a custom tracer implementation
  * const customTracer: Tracer.Tracer = {
@@ -139,7 +140,8 @@ export class ParentSpan extends ServiceMap.Service<ParentSpan, AnySpan>()(Parent
  * @category models
  * @example
  * ```ts
- * import { ServiceMap, Tracer } from "effect"
+ * import type { Tracer } from "effect"
+ * import { ServiceMap } from "effect"
  *
  * // Create an external span from another tracing system
  * const externalSpan: Tracer.ExternalSpan = {

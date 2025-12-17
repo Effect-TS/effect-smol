@@ -134,8 +134,8 @@ export interface StreamUnifyIgnore extends Effect.EffectUnifyIgnore {
  *
  * @example
  * ```ts
- * import type { StreamTypeLambda } from "effect/Stream"
  * import type { Kind } from "effect/HKT"
+ * import type { StreamTypeLambda } from "effect/Stream"
  *
  * // Create a Stream type using the type lambda
  * type NumberStream = Kind<StreamTypeLambda, never, string, never, number>
