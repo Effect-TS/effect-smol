@@ -2,13 +2,13 @@
  * @since 4.0.0
  */
 
-import * as Effect from "../Effect.ts"
-import type { Inspectable } from "../Inspectable.ts"
-import { NodeInspectSymbol, toJson } from "../Inspectable.ts"
-import type { Pipeable } from "../Pipeable.ts"
-import { pipeArguments } from "../Pipeable.ts"
-import type * as Scope from "../Scope.ts"
-import * as TxRef from "../stm/TxRef.ts"
+import * as Effect from "./Effect.ts"
+import type { Inspectable } from "./Inspectable.ts"
+import { NodeInspectSymbol, toJson } from "./Inspectable.ts"
+import type { Pipeable } from "./Pipeable.ts"
+import { pipeArguments } from "./Pipeable.ts"
+import type * as Scope from "./Scope.ts"
+import * as TxRef from "./TxRef.ts"
 
 const TypeId = "~effect/transactions/TxSemaphore"
 
@@ -21,7 +21,7 @@ const TypeId = "~effect/transactions/TxSemaphore"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * // Create a semaphore with 3 permits for managing concurrent database connections
  * const program = Effect.gen(function*() {
@@ -77,7 +77,7 @@ const makeTxSemaphore = (permitsRef: TxRef.TxRef<number>, capacity: number): TxS
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * // Create a semaphore for managing concurrent access to a resource pool
  * const program = Effect.gen(function*() {
@@ -118,7 +118,7 @@ export const make = (permits: number): Effect.Effect<TxSemaphore> =>
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(5)
@@ -151,7 +151,7 @@ export const available = (self: TxSemaphore): Effect.Effect<number> => TxRef.get
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(10)
@@ -181,7 +181,7 @@ export const capacity = (self: TxSemaphore): Effect.Effect<number> => Effect.suc
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(2)
@@ -223,7 +223,7 @@ export const acquire = (self: TxSemaphore): Effect.Effect<void> =>
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(5)
@@ -266,7 +266,7 @@ export const acquireN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(1)
@@ -302,7 +302,7 @@ export const tryAcquire = (self: TxSemaphore): Effect.Effect<boolean> =>
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(3)
@@ -342,7 +342,7 @@ export const tryAcquireN = (self: TxSemaphore, n: number): Effect.Effect<boolean
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(2)
@@ -374,7 +374,7 @@ export const release = (self: TxSemaphore): Effect.Effect<void> =>
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(5)
@@ -419,7 +419,7 @@ export const releaseN = (self: TxSemaphore, n: number): Effect.Effect<void> => {
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(2)
@@ -468,7 +468,7 @@ export const withPermit = <A, E, R>(
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(5)
@@ -519,7 +519,7 @@ export const withPermits = <A, E, R>(
  * @example
  * ```ts
  * import { Console, Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(3)
@@ -560,7 +560,7 @@ export const withPermitScoped = (self: TxSemaphore): Effect.Effect<void, never, 
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxSemaphore } from "effect/stm"
+ * import { TxSemaphore } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const semaphore = yield* TxSemaphore.make(5)

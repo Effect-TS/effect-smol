@@ -97,7 +97,6 @@ import type { Schedule } from "./Schedule.ts"
 import type { Scheduler } from "./Scheduler.ts"
 import type { Scope } from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
-import type { TxRef } from "./stm/TxRef.ts"
 import type {
   AnySpan,
   ParentSpan,
@@ -108,6 +107,7 @@ import type {
   TraceOptions,
   Tracer
 } from "./Tracer.ts"
+import type { TxRef } from "./TxRef.ts"
 import type { Concurrency, Covariant, ExcludeTag, ExtractTag, NoInfer, NotFunction, Tags, unassigned } from "./Types.ts"
 import type * as Unify from "./Unify.ts"
 import { internalCall, SingleShotGen } from "./Utils.ts"
@@ -10827,7 +10827,7 @@ export class Transaction extends ServiceMap.Service<
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/stm"
+ * import { TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref1 = yield* TxRef.make(0)
@@ -10859,7 +10859,7 @@ export const atomic = <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/stm"
+ * import { TxRef } from "effect"
  *
  * const program = Effect.atomicWith((txState) =>
  *   Effect.gen(function*() {
@@ -10919,7 +10919,7 @@ export const atomicWith = <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/stm"
+ * import { TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref1 = yield* TxRef.make(0)
@@ -10962,7 +10962,7 @@ export const transaction = <A, E, R>(
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/stm"
+ * import { TxRef } from "effect"
  *
  * const program = Effect.transactionWith((txState) =>
  *   Effect.gen(function*() {
@@ -11086,8 +11086,7 @@ function clearTransaction(state: Transaction["Service"]) {
  * @example
  *
  * ```ts
- * import { Effect } from "effect"
- * import * as TxRef from "effect/stm/TxRef"
+ * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // create a transactional reference

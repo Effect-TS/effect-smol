@@ -8,9 +8,9 @@
  *
  * @since 4.0.0
  */
-import * as Effect from "../Effect.ts"
-import { dual } from "../Function.ts"
-import type { NoInfer } from "../Types.ts"
+import * as Effect from "./Effect.ts"
+import { dual } from "./Function.ts"
+import type { NoInfer } from "./Types.ts"
 
 const TypeId = "~effect/transactions/TxRef"
 
@@ -27,7 +27,7 @@ const TypeId = "~effect/transactions/TxRef"
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/stm"
+ * import { TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a transactional reference
@@ -60,7 +60,7 @@ export interface TxRef<in out A> {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/stm"
+ * import { TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a transactional reference with initial value
@@ -87,7 +87,7 @@ export const make = <A>(initial: A) => Effect.sync(() => makeUnsafe(initial))
  * @category Constructors
  * @example
  * ```ts
- * import { TxRef } from "effect/stm"
+ * import { TxRef } from "effect"
  *
  * // Create a TxRef synchronously (unsafe - use make instead in Effect contexts)
  * const counter = TxRef.makeUnsafe(0)
@@ -113,7 +113,7 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/stm"
+ * import { TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* TxRef.make(0)
@@ -155,7 +155,7 @@ export const modify: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/stm"
+ * import { TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* TxRef.make(10)
@@ -185,7 +185,7 @@ export const update: {
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/stm"
+ * import { TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* TxRef.make(42)
@@ -209,7 +209,7 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (curren
  * @example
  * ```ts
  * import { Effect } from "effect"
- * import { TxRef } from "effect/stm"
+ * import { TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* TxRef.make(0)
