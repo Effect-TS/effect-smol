@@ -464,7 +464,7 @@ export const succeed = <A, L = never>(a: A, leftovers?: NonEmptyReadonlyArray<L>
  * @since 2.0.0
  * @category constructors
  */
-export const sync = <A>(a: LazyArg<A>): Sink<A, unknown, never> => fromEffect(Effect.sync(a))
+export const sync = <A>(a: LazyArg<A>): Sink<A> => fromEffect(Effect.sync(a))
 
 /**
  * A sink that is created from a lazily evaluated sink.
