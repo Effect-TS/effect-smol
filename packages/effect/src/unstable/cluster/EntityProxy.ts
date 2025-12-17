@@ -20,8 +20,7 @@ const clientErrors = [
  * Derives an `RpcGroup` from an `Entity`.
  *
  * ```ts
- * import { Layer } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Layer, Schema } from "effect"
  * import {
  *   ClusterSchema,
  *   Entity,
@@ -133,8 +132,7 @@ const entityIdPath = Schema.Struct({
  * Derives an `HttpApiGroup` from an `Entity`.
  *
  * ```ts
- * import { Layer } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Layer, Schema } from "effect"
  * import {
  *   ClusterSchema,
  *   Entity,

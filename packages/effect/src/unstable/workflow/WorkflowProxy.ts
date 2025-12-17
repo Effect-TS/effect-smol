@@ -13,8 +13,7 @@ import type * as Workflow from "./Workflow.ts"
  * Derives an `RpcGroup` from a list of workflows.
  *
  * ```ts
- * import { Layer } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Layer, Schema } from "effect"
  * import { RpcServer } from "effect/unstable/rpc"
  * import {
  *   Workflow,
@@ -94,8 +93,7 @@ export type ConvertRpcs<Workflows extends Workflow.Any, Prefix extends string> =
  * Derives an `HttpApiGroup` from a list of workflows.
  *
  * ```ts
- * import { Layer } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Layer, Schema } from "effect"
  * import { HttpApi, HttpApiBuilder } from "effect/unstable/httpapi"
  * import {
  *   Workflow,

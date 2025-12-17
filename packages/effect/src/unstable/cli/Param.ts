@@ -717,7 +717,7 @@ export const fileParse = <Kind extends ParamKind>(
  *
  * @example
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  * import * as Param from "effect/unstable/cli/Param"
  * // @internal - this module is not exported publicly
  *
@@ -1452,7 +1452,7 @@ export const withMetavar: {
  *
  * @example
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  * import * as Param from "effect/unstable/cli/Param"
  * // @internal - this module is not exported publicly
  *

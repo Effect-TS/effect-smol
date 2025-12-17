@@ -472,8 +472,7 @@ export const LogLevel = Schema.Literals(LogLevel_.values)
  * **Example**
  *
  * ```ts
- * import { Config, ConfigProvider, Effect } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Config, ConfigProvider, Effect, Schema } from "effect"
  *
  * const schema = Config.Record(Schema.String, Schema.String)
  * const config = Config.schema(schema, "OTEL_RESOURCE_ATTRIBUTES")

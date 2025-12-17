@@ -550,8 +550,7 @@ export type FileSchemaOptions = Struct.Simplify<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Effect, Schema } from "effect"
  * import { Primitive } from "effect/unstable/cli"
  *
  * const ConfigSchema = Schema.Struct({

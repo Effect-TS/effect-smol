@@ -448,7 +448,7 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  * **Example** (Creating a standard schema from a regular schema)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * // Define custom hook functions for error formatting
  * const leafHook = (issue: any) => {
@@ -621,7 +621,7 @@ export function toStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSche
  * **Example** (Basic Type Guard)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const isString = Schema.is(Schema.String)
  *
@@ -652,7 +652,7 @@ export const is = Parser.is
  * **Example** (Basic Usage)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const assertString: (u: unknown) => asserts u is string = Schema.asserts(
  *   Schema.String
@@ -900,7 +900,7 @@ interface optionalKeyLambda extends Lambda {
  * **Example** (Creating a struct with optional key)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const schema = Schema.Struct({
  *   name: Schema.String,
@@ -951,7 +951,7 @@ interface optionalLambda extends Lambda {
  * **Example** (Creating a struct with optional)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const schema = Schema.Struct({
  *   name: Schema.String,
@@ -1481,7 +1481,7 @@ export interface UniqueSymbol<sym extends symbol>
  * **Example**
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const a = Symbol.for("a")
  * const schema = Schema.UniqueSymbol(a)
@@ -1673,7 +1673,7 @@ interface fieldsAssign<NewFields extends Struct.Fields> extends Lambda {
  *
  * ```ts
  * import { Tuple } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * // Add a new field to all members of a union of structs
  * const schema = Schema.Union([
@@ -2845,14 +2845,14 @@ export interface compose<To extends Top, From extends Top> extends decodeTo<To, 
  * **Example** (String to Number with transformation)
  *
  * ```ts
- * import { Getter, Schema } from "effect/schema"
+ * import { SchemaGetter, Schema } from "effect"
  *
  * const NumberFromString = Schema.String.pipe(
  *   Schema.decodeTo(
  *     Schema.Number,
  *     {
- *       decode: Getter.transform((s) => Number(s)),
- *       encode: Getter.transform((n) => String(n))
+ *       decode: SchemaGetter.transform((s) => Number(s)),
+ *       encode: SchemaGetter.transform((n) => String(n))
  *     }
  *   )
  * )
@@ -2915,12 +2915,12 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
  * **Example** (Trimming string values during encoding/decoding)
  *
  * ```ts
- * import { Getter, Schema } from "effect/schema"
+ * import { SchemaGetter, Schema } from "effect"
  *
  * const Trimmed = Schema.String.pipe(
  *   Schema.decode({
- *     decode: Getter.transform((s) => s.trim()),
- *     encode: Getter.transform((s) => s.trim())
+ *     decode: SchemaGetter.transform((s) => s.trim()),
+ *     encode: SchemaGetter.transform((s) => s.trim())
  *   })
  * )
  *
@@ -3139,7 +3139,7 @@ export type TaggedStruct<Tag extends AST.LiteralValue, Fields extends Struct.Fie
  * **Example** (Tagged struct as a shorthand for a struct with a `_tag` field)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * // Defines a struct with a fixed `_tag` field
  * const tagged = Schema.TaggedStruct("A", {
@@ -3156,7 +3156,7 @@ export type TaggedStruct<Tag extends AST.LiteralValue, Fields extends Struct.Fie
  * **Example** (Accessing the literal value of the tag)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const tagged = Schema.TaggedStruct("A", {
  *   a: Schema.String
@@ -6469,7 +6469,7 @@ export interface UnknownFromJsonString extends fromJsonString<Unknown> {}
  * **Example**
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * Schema.decodeUnknownSync(Schema.UnknownFromJsonString)(`{"a":1,"b":2}`)
  * // => { a: 1, b: 2 }
@@ -6497,7 +6497,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {}
  * **Example**
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const schema = Schema.Struct({ a: Schema.Number })
  * const schemaFromJsonString = Schema.fromJsonString(schema)
@@ -6515,7 +6515,7 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {}
  * **Example**
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const original = Schema.Struct({ a: Schema.String })
  * const schema = Schema.fromJsonString(original)
@@ -6596,7 +6596,7 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {}
  * **Example** (Decoding a flat structure)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const schema = Schema.fromFormData(
  *   Schema.Struct({
@@ -6617,7 +6617,7 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {}
  * **Example** (Nested fields)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const schema = Schema.fromFormData(
  *   Schema.Struct({
@@ -6646,7 +6646,7 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {}
  * **Example** (Parsing non-string values)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const schema = Schema.fromFormData(
  *   Schema.toCodecStringTree(
@@ -6698,7 +6698,7 @@ export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearc
  * **Example** (Decoding a flat structure)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const schema = Schema.fromURLSearchParams(
  *   Schema.Struct({
@@ -6716,7 +6716,7 @@ export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearc
  * **Example** (Nested fields)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const schema = Schema.fromURLSearchParams(
  *   Schema.Struct({
@@ -6741,7 +6741,7 @@ export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearc
  * **Example** (Parsing non-string values)
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  *
  * const schema = Schema.fromURLSearchParams(
  *   Schema.toCodecStringTree(

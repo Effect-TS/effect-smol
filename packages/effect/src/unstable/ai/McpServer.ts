@@ -449,8 +449,7 @@ export const layer = (options: {
  * @example
  * ```ts
  * import { NodeRuntime, NodeSink, NodeStream } from "@effect/platform-node"
- * import { Effect, Layer, Logger } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Effect, Layer, Logger, Schema } from "effect"
  * import { McpSchema, McpServer } from "effect/unstable/ai"
  *
  * const idParam = McpSchema.param("id", Schema.Number)

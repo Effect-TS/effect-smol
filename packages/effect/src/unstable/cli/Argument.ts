@@ -219,7 +219,7 @@ export const fileParse = (
  *
  * @example
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  * import { Argument } from "effect/unstable/cli"
  *
  * const ConfigSchema = Schema.Struct({
@@ -493,7 +493,7 @@ export const between: {
  *
  * @example
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  * import { Argument } from "effect/unstable/cli"
  *
  * const input = Argument.string("input").pipe(

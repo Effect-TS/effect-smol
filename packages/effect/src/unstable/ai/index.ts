@@ -204,8 +204,7 @@ export * as IdGenerator from "./IdGenerator.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Effect, Schema } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
  *
  * // Structured output generation
@@ -440,7 +439,7 @@ export * as Tokenizer from "./Tokenizer.ts"
  *
  * @example
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  * import { Tool } from "effect/unstable/ai"
  *
  * // Define a simple calculator tool
@@ -466,8 +465,7 @@ export * as Tool from "./Tool.ts"
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Effect, Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
  *
  * // Create individual tools

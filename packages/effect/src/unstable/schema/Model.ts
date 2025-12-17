@@ -61,7 +61,7 @@ export {
    * @category constructors
    * @example
    * ```ts
-   * import { Schema } from "effect/schema"
+   * import { Schema } from "effect"
    * import { Model } from "effect/unstable/schema"
    *
    * export const GroupId = Schema.Number.pipe(Schema.brand<"GroupId">())

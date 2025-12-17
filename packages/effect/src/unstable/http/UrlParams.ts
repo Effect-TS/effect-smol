@@ -414,7 +414,7 @@ export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonS
  * `UrlParams`.
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  * import { UrlParams } from "effect/unstable/http"
  *
  * const extractFoo = UrlParams.schemaJsonField("foo").pipe(
@@ -471,7 +471,7 @@ export interface schemaRecord extends
  * **Example**
  *
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  * import { UrlParams } from "effect/unstable/http"
  *
  * const toStruct = UrlParams.schemaRecord.pipe(

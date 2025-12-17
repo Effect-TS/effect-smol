@@ -27,8 +27,7 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Effect, Schema } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
  *
  * // Structured output generation
@@ -369,8 +368,7 @@ export class GenerateTextResponse<Tools extends Record<string, Tool.Any>> {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Effect, Schema } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
  *
  * const UserSchema = Schema.Struct({
@@ -935,8 +933,7 @@ export const generateText = <
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Effect, Schema } from "effect"
  * import { LanguageModel } from "effect/unstable/ai"
  *
  * const EventSchema = Schema.Struct({

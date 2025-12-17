@@ -5,8 +5,7 @@
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Effect, Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
  *
  * // Create individual tools
@@ -60,8 +59,7 @@ const TypeId = "~effect/ai/Toolkit" as const
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Effect, Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
  *
  * // Create individual tools
@@ -398,7 +396,7 @@ export const empty: Toolkit<{}> = makeProto({})
  *
  * @example
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  * import { Tool, Toolkit } from "effect/unstable/ai"
  *
  * const GetCurrentTime = Tool.make("GetCurrentTime", {

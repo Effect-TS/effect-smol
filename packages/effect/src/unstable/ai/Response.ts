@@ -167,7 +167,7 @@ export type AllPartsEncoded =
  *
  * @example
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  * import { Response, Tool, Toolkit } from "effect/unstable/ai"
  *
  * const myToolkit = Toolkit.make(
@@ -1341,7 +1341,7 @@ export const ToolParamsEndPart: Schema.Struct<{
  *
  * @example
  * ```ts
- * import { Schema } from "effect/schema"
+ * import { Schema } from "effect"
  * import { Response } from "effect/unstable/ai"
  *
  * const weatherParams = Schema.Struct({
