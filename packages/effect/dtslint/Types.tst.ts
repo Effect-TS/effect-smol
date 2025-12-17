@@ -1,5 +1,4 @@
-import type { Brand } from "effect"
-import type { Types } from "effect/types"
+import type { Brand, Types } from "effect"
 import { describe, expect, it } from "tstyche"
 
 describe("Types", () => {
