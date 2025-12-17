@@ -2,6 +2,7 @@
  * @since 1.0.0
  */
 import type { Server as BunServer, ServerWebSocket } from "bun"
+import { flow } from "effect"
 import * as Config from "effect/Config"
 import type { ConfigError } from "effect/Config"
 import * as Deferred from "effect/Deferred"
@@ -194,7 +195,7 @@ const makeResponse = (
  */
 export const layerServer: <R extends string>(
   options: ServeOptions<R>
-) => Layer.Layer<Server.HttpServer> = Layer.effect(Server.HttpServer)(make)
+) => Layer.Layer<Server.HttpServer> = flow(make, Layer.effect(Server.HttpServer))
 
 /**
  * @since 1.0.0

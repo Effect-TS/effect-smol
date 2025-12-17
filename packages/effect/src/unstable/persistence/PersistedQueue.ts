@@ -7,6 +7,7 @@ import * as Data from "../../Data.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import { flow } from "../../Function.ts"
 import * as Iterable from "../../Iterable.ts"
 import * as Layer from "../../Layer.ts"
 import * as MutableRef from "../../MutableRef.ts"
@@ -652,7 +653,7 @@ export const layerStoreRedis: (
   PersistedQueueStore,
   never,
   Redis.Redis
-> = Layer.effect(PersistedQueueStore, makeStoreRedis)
+> = flow(makeStoreRedis, Layer.effect(PersistedQueueStore))
 
 /**
  * @since 4.0.0
@@ -1093,4 +1094,4 @@ export const layerStoreSql: (
   PersistedQueueStore,
   SqlError,
   SqlClient.SqlClient
-> = Layer.effect(PersistedQueueStore, makeStoreSql)
+> = flow(makeStoreSql, Layer.effect(PersistedQueueStore))

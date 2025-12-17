@@ -38,6 +38,7 @@ export const layerWebSocket: (
     readonly protocols?: string | Array<string> | undefined
   } | undefined
 ) => Layer.Layer<Socket.Socket, never, never> = flow(
-  Layer.effect(Socket.Socket)(Socket.makeWebSocket),
+  Socket.makeWebSocket,
+  Layer.effect(Socket.Socket),
   Layer.provide(layerWebSocketConstructor)
 )
