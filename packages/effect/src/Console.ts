@@ -83,35 +83,6 @@ import type * as ServiceMap from "./ServiceMap.ts"
  * Provides methods for various console operations including logging, debugging,
  * timing, and grouping output.
  *
- * @example
- * ```ts
- * import type { Console } from "effect"
- *
- * // The Console interface defines all console methods
- * // It's typically implemented by the runtime
- * const customConsole: Console.Console = {
- *   log: (...args) => console.log("[LOG]", ...args),
- *   error: (...args) => console.error("[ERROR]", ...args),
- *   assert: (condition, ...args) => console.assert(condition, ...args),
- *   clear: () => console.clear(),
- *   count: (label) => console.count(label),
- *   countReset: (label) => console.countReset(label),
- *   debug: (...args) => console.debug(...args),
- *   dir: (item, options) => console.dir(item, options),
- *   dirxml: (...args) => console.dirxml(...args),
- *   group: (...args) => console.group(...args),
- *   groupCollapsed: (...args) => console.groupCollapsed(...args),
- *   groupEnd: () => console.groupEnd(),
- *   info: (...args) => console.info(...args),
- *   table: (data, props) => console.table(data, props),
- *   time: (label) => console.time(label),
- *   timeEnd: (label) => console.timeEnd(label),
- *   timeLog: (label, ...args) => console.timeLog(label, ...args),
- *   trace: (...args) => console.trace(...args),
- *   warn: (...args) => console.warn(...args)
- * }
- * ```
- *
  * @since 2.0.0
  * @category models
  */
