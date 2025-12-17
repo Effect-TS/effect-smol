@@ -32,8 +32,7 @@ const TypeId = "~effect/transactions/TxChunk"
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a transactional chunk
@@ -97,8 +96,7 @@ const TxChunkProto = {
  * @category Constructors
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a TxChunk with initial values
@@ -124,8 +122,7 @@ export const make = <A>(initial: Chunk.Chunk<A>): Effect.Effect<TxChunk<A>> =>
  * @category Constructors
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create an empty TxChunk
@@ -156,8 +153,7 @@ export const empty = <A = never>(): Effect.Effect<TxChunk<A>> =>
  * @category Constructors
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create TxChunk from array
@@ -191,8 +187,7 @@ export const fromIterable = <A>(iterable: Iterable<A>): Effect.Effect<TxChunk<A>
  *
  * @example
  * ```ts
- * import { Chunk } from "effect"
- * import { TxChunk, TxRef } from "effect"
+ * import { Chunk, TxChunk, TxRef } from "effect"
  *
  * // Create a TxChunk from an existing TxRef (advanced usage)
  * const ref = TxRef.makeUnsafe(Chunk.fromIterable([1, 2, 3]))
@@ -219,8 +214,7 @@ export const makeUnsafe = <A>(ref: TxRef.TxRef<Chunk.Chunk<A>>): TxChunk<A> => {
  * @category Combinators
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
@@ -262,8 +256,7 @@ export const modify: {
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
@@ -294,8 +287,7 @@ export const update: {
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
@@ -323,8 +315,7 @@ export const get = <A>(self: TxChunk<A>): Effect.Effect<Chunk.Chunk<A>> => TxRef
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
@@ -354,8 +345,7 @@ export const set: {
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
@@ -387,8 +377,7 @@ export const append: {
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([2, 3, 4])
@@ -417,8 +406,7 @@ export const prepend: {
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5])
@@ -445,8 +433,7 @@ export const size = <A>(self: TxChunk<A>): Effect.Effect<number> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const emptyChunk = yield* TxChunk.empty<number>()
@@ -472,8 +459,7 @@ export const isEmpty = <A>(self: TxChunk<A>): Effect.Effect<boolean> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const emptyChunk = yield* TxChunk.empty<number>()
@@ -502,8 +488,7 @@ export const isNonEmpty = <A>(self: TxChunk<A>): Effect.Effect<boolean> =>
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5])
@@ -532,8 +517,7 @@ export const take: {
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5])
@@ -562,8 +546,7 @@ export const drop: {
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5, 6, 7])
@@ -597,8 +580,7 @@ export const slice: {
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4])
@@ -631,8 +613,7 @@ export const map: {
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3, 4, 5, 6])
@@ -668,8 +649,7 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([1, 2, 3])
@@ -704,8 +684,7 @@ export const appendAll: {
  *
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk = yield* TxChunk.fromIterable([4, 5, 6])
@@ -742,8 +721,7 @@ export const prependAll: {
  * @category Combinators
  * @example
  * ```ts
- * import { Chunk, Effect } from "effect"
- * import { TxChunk } from "effect"
+ * import { Chunk, Effect, TxChunk } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const txChunk1 = yield* TxChunk.fromIterable([1, 2, 3])

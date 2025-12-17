@@ -1672,8 +1672,7 @@ interface fieldsAssign<NewFields extends Struct.Fields> extends Lambda {
  * **Example** (Adding fields to a union of structs)
  *
  * ```ts
- * import { Tuple } from "effect"
- * import { Schema } from "effect"
+ * import { Schema, Tuple } from "effect"
  *
  * // Add a new field to all members of a union of structs
  * const schema = Schema.Union([
@@ -2845,7 +2844,7 @@ export interface compose<To extends Top, From extends Top> extends decodeTo<To, 
  * **Example** (String to Number with transformation)
  *
  * ```ts
- * import { SchemaGetter, Schema } from "effect"
+ * import { Schema, SchemaGetter } from "effect"
  *
  * const NumberFromString = Schema.String.pipe(
  *   Schema.decodeTo(
@@ -2915,7 +2914,7 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
  * **Example** (Trimming string values during encoding/decoding)
  *
  * ```ts
- * import { SchemaGetter, Schema } from "effect"
+ * import { Schema, SchemaGetter } from "effect"
  *
  * const Trimmed = Schema.String.pipe(
  *   Schema.decode({

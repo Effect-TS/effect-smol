@@ -10826,8 +10826,7 @@ export class Transaction extends ServiceMap.Service<
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxRef } from "effect"
+ * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref1 = yield* TxRef.make(0)
@@ -10858,8 +10857,7 @@ export const atomic = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxRef } from "effect"
+ * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.atomicWith((txState) =>
  *   Effect.gen(function*() {
@@ -10918,8 +10916,7 @@ export const atomicWith = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxRef } from "effect"
+ * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const ref1 = yield* TxRef.make(0)
@@ -10961,8 +10958,7 @@ export const transaction = <A, E, R>(
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxRef } from "effect"
+ * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.transactionWith((txState) =>
  *   Effect.gen(function*() {

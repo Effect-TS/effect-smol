@@ -26,8 +26,7 @@ const TypeId = "~effect/transactions/TxRef"
  * @category Models
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxRef } from "effect"
+ * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a transactional reference
@@ -59,8 +58,7 @@ export interface TxRef<in out A> {
  * @category Constructors
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxRef } from "effect"
+ * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   // Create a transactional reference with initial value
@@ -112,8 +110,7 @@ export const makeUnsafe = <A>(initial: A): TxRef<A> => ({
  * @category Combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxRef } from "effect"
+ * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* TxRef.make(0)
@@ -154,8 +151,7 @@ export const modify: {
  * @category Combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxRef } from "effect"
+ * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* TxRef.make(10)
@@ -184,8 +180,7 @@ export const update: {
  * @category Combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxRef } from "effect"
+ * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* TxRef.make(42)
@@ -208,8 +203,7 @@ export const get = <A>(self: TxRef<A>): Effect.Effect<A> => modify(self, (curren
  * @category Combinators
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { TxRef } from "effect"
+ * import { Effect, TxRef } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const counter = yield* TxRef.make(0)
