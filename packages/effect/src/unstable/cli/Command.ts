@@ -929,7 +929,7 @@ export const runWith = <const Name extends string, Input, E, R>(
       yield* withLogLevel
     },
     Effect.catch((error) =>
-      error instanceof CliError.ShowHelp
+      CliError.isCliError(error) && error._tag === "ShowHelp"
         ? showHelp(command, error.commandPath)
         : Effect.fail(error)
     )
