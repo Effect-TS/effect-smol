@@ -514,6 +514,8 @@ export interface EmptyErrorClass<Self, Tag> extends
   new(): { readonly _tag: Tag } & YieldableError
 }
 
+const EmptyErrorTypeId = "~effect/httpapi/HttpApiSchema/EmptyError"
+
 /**
  * @since 4.0.0
  * @category empty errors
@@ -528,12 +530,13 @@ export const EmptyError = <Self>() =>
   }, {
     id: options.tag
   }) {
+    readonly [EmptyErrorTypeId]: typeof EmptyErrorTypeId
     constructor() {
       super({}, { disableValidation: true })
+      this[EmptyErrorTypeId] = EmptyErrorTypeId
       this.name = options.tag
     }
   }
-  const isEmptyError = (u: unknown): u is EmptyError => Schema.isSchema(u) && Predicate.isTagged(u, options.tag)
   let transform: Schema.Top | undefined
   Object.defineProperty(EmptyError, "ast", {
     get() {
@@ -544,7 +547,7 @@ export const EmptyError = <Self>() =>
       const decoded = new self()
       decoded.stack = options.tag
       transform = asEmpty(
-        Schema.declare(isEmptyError, {
+        Schema.declare((u: unknown) => Predicate.hasProperty(u, EmptyErrorTypeId), {
           identifier: options.tag
         }),
         {
