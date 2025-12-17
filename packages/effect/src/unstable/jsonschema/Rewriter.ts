@@ -5,6 +5,7 @@ import * as Predicate from "effect/Predicate"
 import * as Arr from "../../Array.ts"
 import * as Combiner from "../../Combiner.ts"
 import { format } from "../../Formatter.ts"
+import type { JsonPatchOperation } from "../../JsonPatch.ts"
 import * as Rec from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
 import * as Struct from "../../Struct.ts"
@@ -19,7 +20,7 @@ export type Path = readonly ["schema" | "definitions", ...ReadonlyArray<string |
  * @since 4.0.0
  */
 export interface RewriterTracer {
-  push(change: Schema.JsonPatchOperation): void
+  push(change: JsonPatchOperation): void
 }
 
 /**

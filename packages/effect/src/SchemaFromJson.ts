@@ -19,6 +19,7 @@
 import * as Arr from "./Array.ts"
 import * as Combiner from "./Combiner.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
+import { unescapeToken } from "./internal/schema/json-pointer.ts"
 import { remainder } from "./Number.ts"
 import { isObject } from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
@@ -400,14 +401,10 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
 
 function getRefParts($ref: string): Array<string> {
   if ($ref.startsWith("#/")) {
-    const parts = $ref.slice(2).split("/").filter((part) => part !== "").map(unescapeJsonPointerPart)
+    const parts = $ref.slice(2).split("/").filter((part) => part !== "").map(unescapeToken)
     if (Arr.isArrayNonEmpty(parts)) return parts
   }
   return []
-}
-
-function unescapeJsonPointerPart(part: string): string {
-  return part.replace(/~0/ig, "~").replace(/~1/ig, "/")
 }
 
 /**

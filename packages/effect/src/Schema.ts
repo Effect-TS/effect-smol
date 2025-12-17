@@ -19,11 +19,11 @@ import type { Formatter } from "./Formatter.ts"
 import { format, formatDate, formatPropertyKey } from "./Formatter.ts"
 import { identity, memoize } from "./Function.ts"
 import * as core from "./internal/core.ts"
-import * as InternalDiffer from "./internal/differ.ts"
 import * as InternalEquivalence from "./internal/equivalence.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as InternalArbitrary from "./internal/schema/arbitrary.ts"
 import * as InternalJsonSchema from "./internal/schema/json-schema.ts"
+import * as JsonPatch from "./JsonPatch.ts"
 import { remainder } from "./Number.ts"
 import * as Optic_ from "./Optic.ts"
 import * as Option_ from "./Option.ts"
@@ -8318,40 +8318,20 @@ export function overrideToCodecIso<S extends Top, Iso>(
 // -----------------------------------------------------------------------------
 
 /**
- * RFC 6902 (subset) JSON Patch operations
- * Keeping only "add", "remove", "replace"
- *
  * @category JsonPatch
  * @since 4.0.0
  */
-export type JsonPatchOperation =
-  | { op: "add"; path: string; value: Json; description?: string } // path may end with "-" to append to arrays
-  | { op: "remove"; path: string; description?: string }
-  | { op: "replace"; path: string; value: Json; description?: string }
-
-/**
- * A JSON Patch document is an array of operations
- *
- * @category JsonPatch
- * @since 4.0.0
- */
-export type JsonPatch = ReadonlyArray<JsonPatchOperation>
-
-/**
- * @category JsonPatch
- * @since 4.0.0
- */
-export function toDifferJsonPatch<T, E>(schema: Codec<T, E>): Differ<T, JsonPatch> {
+export function toDifferJsonPatch<T, E>(schema: Codec<T, E>): Differ<T, JsonPatch.JsonPatch> {
   const serializer = toCodecJson(schema) as Codec<T, Json, never, never> // TODO: remove this cast
   const get = Parser.encodeSync(serializer)
   const set = Parser.decodeSync(serializer)
   return {
     empty: [],
-    diff: (oldValue, newValue) => InternalDiffer.getJsonPatch(get(oldValue), get(newValue)),
+    diff: (oldValue, newValue) => JsonPatch.get(get(oldValue), get(newValue)),
     combine: (first, second) => [...first, ...second],
     patch: (oldValue, patch) => {
       const value = get(oldValue)
-      const patched = InternalDiffer.applyJsonPatch(patch, value)
+      const patched = JsonPatch.apply(patch, value)
       return Object.is(patched, value) ? oldValue : set(patched)
     }
   }

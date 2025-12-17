@@ -1,4 +1,5 @@
 import { Schema } from "effect"
+import type { JsonPatchOperation } from "effect/JsonPatch"
 import { Rewriter } from "effect/unstable/jsonschema"
 import { describe, it } from "vitest"
 import { deepStrictEqual } from "../../utils/assert.ts"
@@ -9,11 +10,11 @@ function assertJsonSchema(
   expected: {
     readonly schema: Schema.JsonSchema
     readonly definitions?: Record<string, Schema.JsonSchema> | undefined
-    readonly traces?: Array<Schema.JsonPatchOperation> | undefined
+    readonly traces?: Array<JsonPatchOperation> | undefined
   },
   options?: Schema.ToJsonSchemaOptions
 ) {
-  const traces: Array<Schema.JsonPatchOperation> = []
+  const traces: Array<JsonPatchOperation> = []
   const tracer: Rewriter.RewriterTracer = {
     push(change) {
       traces.push(change)

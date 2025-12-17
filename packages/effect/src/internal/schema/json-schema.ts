@@ -4,6 +4,7 @@ import type * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import { errorWithPath } from "../errors.ts"
 import * as InternalAnnotations from "./annotations.ts"
+import { escapeToken } from "./json-pointer.ts"
 
 /** @internal */
 export function make<S extends Schema.Top>(
@@ -42,10 +43,6 @@ interface RecurOptions extends Schema.ToJsonSchemaOptions {
   readonly generateDescriptions: boolean
 }
 
-function escapeJsonPointer(identifier: string) {
-  return identifier.replace(/~/ig, "~0").replace(/\//ig, "~1")
-}
-
 const encodedMap = new WeakMap<AST.AST, string>()
 
 function recur(
@@ -66,7 +63,7 @@ function recur(
   if (shouldHandleIdentifier) {
     const identifier = getIdentifier(ast)
     if (identifier !== undefined) {
-      const $ref = { $ref: getPointer(target) + escapeJsonPointer(identifier) }
+      const $ref = { $ref: getPointer(target) + escapeToken(identifier) }
       const encoded = AST.toEncoded(ast)
       if (Object.hasOwn(options.definitions, identifier)) {
         if (AST.isSuspend(ast) || encodedMap.get(encoded) === identifier) {

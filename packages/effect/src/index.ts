@@ -957,6 +957,40 @@ export * as Inspectable from "./Inspectable.ts"
 export * as Iterable from "./Iterable.ts"
 
 /**
+ * JSON Patch (RFC 6902 subset) utilities.
+ *
+ * This module implements a small, predictable subset of JSON Patch:
+ *
+ * - `add` (including array append via `/-`)
+ * - `remove`
+ * - `replace`
+ *
+ * Patches are expressed using JSON Pointer (RFC 6901) paths. A path is either:
+ *
+ * - `""` (the root document)
+ * - `"/..."` (one or more reference tokens separated by `/`)
+ *
+ * Reference tokens follow the RFC 6901 escaping rules:
+ *
+ * - `~` is encoded as `~0`
+ * - `/` is encoded as `~1`
+ *
+ * Notes on semantics:
+ *
+ * - `replace` and `remove` require the target to exist.
+ * - `add` may create a missing object member.
+ * - For arrays, `add` supports `/-` to append. `replace` / `remove` do not.
+ * - Root `replace` (`path: ""`) returns the provided value as-is (no cloning).
+ * - Root `remove` is not supported.
+ *
+ * The implementation is immutable: applying a patch never mutates the input
+ * document; it creates updated copies along the modified path.
+ *
+ * @since 4.0.0
+ */
+export * as JsonPatch from "./JsonPatch.ts"
+
+/**
  * A `Layer<ROut, E, RIn>` describes how to build one or more services in your
  * application. Services can be injected into effects via
  * `Effect.provideService`. Effects can require services via `Effect.service`.

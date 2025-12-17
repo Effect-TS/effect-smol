@@ -1,49 +1,139 @@
-import * as Predicate from "../Predicate.ts"
-import type * as Schema from "../Schema.ts"
+/**
+ * JSON Patch (RFC 6902 subset) utilities.
+ *
+ * This module implements a small, predictable subset of JSON Patch:
+ *
+ * - `add` (including array append via `/-`)
+ * - `remove`
+ * - `replace`
+ *
+ * Patches are expressed using JSON Pointer (RFC 6901) paths. A path is either:
+ *
+ * - `""` (the root document)
+ * - `"/..."` (one or more reference tokens separated by `/`)
+ *
+ * Reference tokens follow the RFC 6901 escaping rules:
+ *
+ * - `~` is encoded as `~0`
+ * - `/` is encoded as `~1`
+ *
+ * Notes on semantics:
+ *
+ * - `replace` and `remove` require the target to exist.
+ * - `add` may create a missing object member.
+ * - For arrays, `add` supports `/-` to append. `replace` / `remove` do not.
+ * - Root `replace` (`path: ""`) returns the provided value as-is (no cloning).
+ * - Root `remove` is not supported.
+ *
+ * The implementation is immutable: applying a patch never mutates the input
+ * document; it creates updated copies along the modified path.
+ *
+ * @since 4.0.0
+ */
+import { format } from "./Formatter.ts"
+import { escapeToken, unescapeToken } from "./internal/schema/json-pointer.ts"
+import * as Predicate from "./Predicate.ts"
+import type * as Schema from "./Schema.ts"
 
-// Mutates op.path in place for perf; safe because child ops are freshly created and not shared.
-function prefixPathInPlace(op: Schema.JsonPatchOperation, parent: string): void {
-  op.path = op.path === "" ? parent : parent + op.path
-}
+/**
+ * A single JSON Patch operation.
+ *
+ * This is a subset of RFC 6902, restricted to operations that can be applied
+ * deterministically without additional context.
+ *
+ * Paths are JSON Pointers. The empty string (`""`) refers to the root document.
+ *
+ * @category Model
+ * @since 4.0.0
+ */
+export type JsonPatchOperation =
+  | {
+    readonly op: "add"
+    /**
+     * JSON Pointer to the target location.
+     *
+     * For array targets, `path` may end with `/-` to append.
+     */
+    readonly path: string
+    readonly value: Schema.Json
+    readonly description?: string
+  }
+  | {
+    readonly op: "remove"
+    /** JSON Pointer to the target location. */
+    readonly path: string
+    readonly description?: string
+  }
+  | {
+    readonly op: "replace"
+    /** JSON Pointer to the target location. Use `""` to replace the root document. */
+    readonly path: string
+    readonly value: Schema.Json
+    readonly description?: string
+  }
 
-function isJsonObject(value: Schema.Json): value is Schema.JsonObject {
-  return Predicate.isObject(value)
-}
+/**
+ * A JSON Patch document (an ordered list of operations).
+ *
+ * Operations are applied in sequence, and later operations observe the changes
+ * made by earlier ones.
+ *
+ * @category Model
+ * @since 4.0.0
+ */
+export type JsonPatch = ReadonlyArray<JsonPatchOperation>
 
-/** @internal */
-export function getJsonPatch(oldValue: Schema.Json, newValue: Schema.Json): Schema.JsonPatch {
+/**
+ * Compute a patch that transforms `oldValue` into `newValue`.
+ *
+ * This is a structural diff:
+ *
+ * - Primitives become a root `replace`.
+ * - Arrays are compared by index (no move/copy detection).
+ * - Objects are compared by key; keys are processed in sorted order to keep the
+ *   output stable across runs.
+ *
+ * Array removals are emitted from highest index to lowest to avoid index
+ * shifting when the patch is applied.
+ *
+ * @since 4.0.0
+ */
+export function get(oldValue: Schema.Json, newValue: Schema.Json): JsonPatch {
   if (Object.is(oldValue, newValue)) return []
-  const patches: Array<Schema.JsonPatchOperation> = []
+  const patches: Array<JsonPatchOperation> = []
+
   if (Array.isArray(oldValue) && Array.isArray(newValue)) {
     const len1 = oldValue.length
     const len2 = newValue.length
 
-    // Handle array elements that exist in both arrays
+    // Compare shared prefix by index
     const shared = Math.min(len1, len2)
     for (let i = 0; i < shared; i++) {
       const path = `/${i}`
-      const patch = getJsonPatch(oldValue[i], newValue[i])
+      const patch = get(oldValue[i], newValue[i])
       for (const op of patch) {
         prefixPathInPlace(op, path)
         patches.push(op)
       }
     }
 
-    // Handle array elements that need to be removed
     // Remove from end to start so later indices do not shift.
     for (let i = len1 - 1; i >= len2; i--) {
       patches.push({ op: "remove", path: `/${i}` })
     }
 
-    // Handle array elements that need to be added (from beginning to end)
+    // Add from beginning to end.
     for (let i = len1; i < len2; i++) {
       patches.push({ op: "add", path: `/${i}`, value: newValue[i] })
     }
-  } else if (isJsonObject(oldValue) && isJsonObject(newValue)) {
-    // Get all keys from both objects
+
+    return patches
+  }
+
+  if (isJsonObject(oldValue) && isJsonObject(newValue)) {
     const keys1 = Object.keys(oldValue)
     const keys2 = Object.keys(newValue)
-    const allKeys = Array.from(new Set([...keys1, ...keys2])).sort() // <-- stable
+    const allKeys = Array.from(new Set([...keys1, ...keys2])).sort()
 
     for (const key of allKeys) {
       const esc = escapeToken(key)
@@ -52,34 +142,42 @@ export function getJsonPatch(oldValue: Schema.Json, newValue: Schema.Json): Sche
       const hasKey2 = Object.hasOwn(newValue, key)
 
       if (hasKey1 && hasKey2) {
-        // Both objects have the key, recursively compare values
-        const patch = getJsonPatch(oldValue[key], newValue[key])
+        const patch = get(oldValue[key], newValue[key])
         for (const op of patch) {
           prefixPathInPlace(op, path)
           patches.push(op)
         }
       } else if (!hasKey1 && hasKey2) {
-        // Key exists only in v2, add it
         patches.push({ op: "add", path, value: newValue[key] })
       } else if (hasKey1 && !hasKey2) {
-        // Key exists only in v1, remove it
         patches.push({ op: "remove", path })
       }
     }
-  } else {
-    patches.push({ op: "replace", path: "", value: newValue })
+
+    return patches
   }
+
+  patches.push({ op: "replace", path: "", value: newValue })
   return patches
 }
 
-/** @internal */
-export function applyJsonPatch(patch: Schema.JsonPatch, oldValue: Schema.Json): Schema.Json {
+/**
+ * Apply a JSON Patch to a document.
+ *
+ * The input is never mutated. If the patch is empty, the original reference is
+ * returned.
+ *
+ * Root replace (`path: ""`) returns the provided value as-is.
+ *
+ * @since 4.0.0
+ */
+export function apply(patch: JsonPatch, oldValue: Schema.Json): Schema.Json {
   let doc = oldValue
 
   for (const op of patch) {
     switch (op.op) {
       case "replace": {
-        if (op.path === "") return op.value // root replace: write as-is
+        if (op.path === "") return op.value
         doc = setAt(doc, op.path, op.value, "replace")
         break
       }
@@ -97,19 +195,30 @@ export function applyJsonPatch(patch: Schema.JsonPatch, oldValue: Schema.Json): 
   return doc
 }
 
-// RFC 6901 tokenizer ("" is root). Supports ~0 -> ~ and ~1 -> /
+// Mutates op.path in place for perf; safe because child ops are freshly created and not shared.
+function prefixPathInPlace(op: JsonPatchOperation, parent: string): void {
+  ;(op as any).path = op.path === "" ? parent : parent + op.path
+}
+
+function isJsonObject(value: Schema.Json): value is Schema.JsonObject {
+  return Predicate.isObject(value)
+}
+
+/**
+ * Tokenize a JSON Pointer into unescaped reference tokens.
+ *
+ * - `""` (empty pointer) refers to the root and returns `[]`
+ * - Non-empty pointers must start with `/`
+ */
 function tokenize(pointer: string): Array<string> {
   if (pointer === "") return []
   if (pointer.charCodeAt(0) !== 47 /* "/" */) {
-    throw new Error(`Invalid JSON Pointer, it must start with "/": "${pointer}"`)
+    throw new Error(`Invalid JSON Pointer, it must start with "/": ${format(pointer)}`)
   }
-  return pointer
-    .split("/")
-    .slice(1)
-    .map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"))
+  return pointer.split("/").slice(1).map(unescapeToken)
 }
 
-// Convert token to a non-negative integer index; throws on invalid
+/** Convert a reference token to a non-negative array index (rejects `-` and negatives). */
 function toIndex(token: string): number {
   if (!/^(0|[1-9]\d*)$/.test(token)) {
     throw new Error(`Invalid array index: "${token}"`)
@@ -117,13 +226,20 @@ function toIndex(token: string): number {
   return Number(token)
 }
 
-// Read value at pointer ("" is root). Returns undefined if path walks into undefined.
+/**
+ * Read the value at `pointer`.
+ *
+ * Returns `undefined` when the traversal walks into `null` / `undefined`, or when
+ * an array index is out of bounds.
+ */
 function getAt(doc: Schema.Json, pointer: string): Schema.Json | undefined {
   if (pointer === "") return doc
   const tokens = tokenize(pointer)
   let cur: any = doc
+
   for (const token of tokens) {
     if (cur == null) return undefined
+
     if (Array.isArray(cur)) {
       const idx = toIndex(token)
       if (idx < 0 || idx >= cur.length) return undefined
@@ -132,11 +248,18 @@ function getAt(doc: Schema.Json, pointer: string): Schema.Json | undefined {
       cur = (cur as any)[token]
     }
   }
+
   return cur
 }
 
-// "add" may create a missing member; for arrays supports "-" to append. Throws
-// if parent is not a container or (array) index is out of bounds.
+/**
+ * Apply an `add` at `pointer`.
+ *
+ * - May create a missing object member.
+ * - For arrays, supports `/-` to append.
+ * - Throws when the parent location does not exist, is not a container, or when
+ *   an array index is out of bounds.
+ */
 function addAt(doc: Schema.Json, pointer: string, val: Schema.Json): Schema.Json {
   if (pointer === "") return val
 
@@ -162,9 +285,13 @@ function addAt(doc: Schema.Json, pointer: string, val: Schema.Json): Schema.Json
   throw new Error(`Cannot add at "${pointer}" (parent not found or not a container).`)
 }
 
-// "replace" and "remove" require the target to exist (RFC 6902). "-" is not
-// valid here; only concrete array indices are accepted. Removing the root ("")
-// is not supported; root replace returns provided value as-is.
+/**
+ * Apply a `replace` or `remove` at `pointer`.
+ *
+ * - Requires the target to exist.
+ * - For arrays, `-` is not valid (only concrete indices).
+ * - Root remove is not supported.
+ */
 function setAt(
   doc: Schema.Json,
   pointer: string,
@@ -182,7 +309,6 @@ function setAt(
   const parent = getAt(doc, parentPath === "/" ? "" : parentPath)
 
   if (Array.isArray(parent)) {
-    // Here, "-" is NOT allowed: remove/replace need a concrete numeric index
     if (lastToken === "-") throw new Error(`"-" is not valid for ${mode} at "${pointer}".`)
     const idx = toIndex(lastToken)
     if (idx < 0 || idx >= parent.length) throw new Error(`Array index out of bounds at "${pointer}".`)
@@ -192,7 +318,7 @@ function setAt(
     return setParent(doc, parentPath, updated)
   }
 
-  // On objects, "-" is just a normal property name
+  // On objects, "-" is just a normal property name.
   if (parent && isJsonObject(parent)) {
     if (!Object.hasOwn(parent, lastToken)) {
       throw new Error(`Property "${lastToken}" does not exist at "${pointer}".`)
@@ -206,8 +332,12 @@ function setAt(
   throw new Error(`Cannot ${mode} at "${pointer}" (parent not found or not a container).`)
 }
 
-// Immutably write an updated parent back into the document. Throws if parent
-// is not a container or index is out of bounds.
+/**
+ * Immutably write `newParent` back into the document at `parentPointer`.
+ *
+ * This is the only “rebuild” step: it records the path containers while
+ * traversing, then recreates them from the bottom up.
+ */
 function setParent(doc: Schema.Json, parentPointer: string, newParent: Schema.Json): Schema.Json {
   if (parentPointer === "" || parentPointer === "/") return newParent
 
@@ -234,7 +364,6 @@ function setParent(doc: Schema.Json, parentPointer: string, newParent: Schema.Js
     }
   }
 
-  // rebuild unchanged
   let acc: Schema.Json = newParent
   for (let i = stack.length - 1; i >= 0; i--) {
     const { container, token } = stack[i]
@@ -248,10 +377,6 @@ function setParent(doc: Schema.Json, parentPointer: string, newParent: Schema.Js
       acc = copy
     }
   }
-  return acc
-}
 
-// Escape token when reconstructing a pointer fragment
-function escapeToken(token: string): string {
-  return token.replace(/~/g, "~0").replace(/\//g, "~1")
+  return acc
 }

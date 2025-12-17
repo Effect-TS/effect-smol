@@ -4,6 +4,7 @@
 import * as Arr from "./Array.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
+import { unescapeToken } from "./internal/schema/json-pointer.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
@@ -1502,7 +1503,7 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
       case "Declaration":
         return unsupportedJsonSchema // TODO
       case "Suspend":
-        return { $ref: `#/$defs/${escapeJsonPointer(schema.$ref)}` }
+        return { $ref: `#/$defs/${unescapeToken(schema.$ref)}` }
       case "Null":
         return { type: "null" }
       case "Never":
@@ -1724,10 +1725,6 @@ function containsUndefined(schema: StandardSchema): boolean {
     default:
       return false
   }
-}
-
-function escapeJsonPointer(identifier: string): string {
-  return identifier.replace(/~/g, "~0").replace(/\//g, "~1")
 }
 
 function collectJsonSchemaAnnotations(
