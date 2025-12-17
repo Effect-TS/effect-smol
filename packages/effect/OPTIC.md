@@ -322,8 +322,7 @@ console.log(_a.replace(2, { _tag: "B", b: 1 })) // no match, so no change
 **Example** (Incrementing only positive numbers in an array field)
 
 ```ts
-import { Optic } from "effect"
-import { Check } from "effect/schema"
+import { Optic, Schema } from "effect"
 
 type S = {
   readonly a: ReadonlyArray<number>
@@ -333,7 +332,7 @@ type S = {
 // narrows the focus to elements that pass the positivity check
 const _positive = Optic.id<S>()
   .key("a") // focus the "a" array
-  .forEach((item) => item.check(Check.positive())) // keep only positive elements
+  .forEach((item) => item.check(Schema.isGreaterThan(0))) // keep only positive elements
 
 // Create a function that increments only the focused elements
 const addOne = _positive.modifyAll((n) => n + 1)
@@ -358,7 +357,7 @@ To operate on each `A` inside a `Traversal<S, A>`, use `forEach`.
 **Example**
 
 ```ts
-import { Schema } from "effect/schema"
+import { Schema } from "effect"
 
 const schema = Schema.Struct({
   a: Schema.String,
