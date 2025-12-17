@@ -10,4 +10,4 @@ const MySchemaAsJson = SchemaStandard.toJson(SchemaStandard.fromSchema(MySchema)
 
 const roundtrip = JSON.parse(JSON.stringify(MySchemaAsJson))
 
-const Restored = SchemaStandard.toSchema(SchemaStandard.fromJson(roundtrip))
+export const Restored = SchemaStandard.toSchema(SchemaStandard.fromJson(roundtrip))
