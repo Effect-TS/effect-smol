@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import * as InternalArbitrary from "effect/internal/arbitrary"
+import * as InternalArbitrary from "effect/internal/schema/arbitrary"
 import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
 import { deepStrictEqual, throws } from "../utils/assert.ts"

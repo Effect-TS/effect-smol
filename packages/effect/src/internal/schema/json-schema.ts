@@ -1,9 +1,9 @@
-import { format } from "../Formatter.ts"
-import * as Predicate from "../Predicate.ts"
-import type * as Schema from "../Schema.ts"
-import * as AST from "../SchemaAST.ts"
-import { errorWithPath } from "./errors.ts"
-import * as InternalAnnotations from "./schema/annotations.ts"
+import { format } from "../../Formatter.ts"
+import * as Predicate from "../../Predicate.ts"
+import type * as Schema from "../../Schema.ts"
+import * as AST from "../../SchemaAST.ts"
+import { errorWithPath } from "../errors.ts"
+import * as InternalAnnotations from "./annotations.ts"
 
 /** @internal */
 export function make<S extends Schema.Top>(
