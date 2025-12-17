@@ -5,7 +5,7 @@ import * as Equal from "../../Equal.ts"
 import * as Hash from "../../Hash.ts"
 import { NodeInspectSymbol } from "../../Inspectable.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 
 const TypeId = "~effect/cluster/RunnerAddress"
 

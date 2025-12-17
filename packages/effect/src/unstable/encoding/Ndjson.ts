@@ -8,7 +8,7 @@ import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Filter from "../../Filter.ts"
 import { dual, identity } from "../../Function.ts"
-import type * as Schema from "../../schema/Schema.ts"
+import type * as Schema from "../../Schema.ts"
 
 const NdjsonErrorTypeId = "~effect/encoding/Ndjson/NdjsonError"
 

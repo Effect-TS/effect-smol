@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect"
-import * as FromJsonSchema from "effect/schema/FromJsonSchema"
-import type * as Schema from "effect/schema/Schema"
+import type * as Schema from "effect/Schema"
+import * as SchemaFromJson from "effect/SchemaFromJson"
 import * as ServiceMap from "effect/ServiceMap"
 import type { OpenAPISpec } from "effect/unstable/httpapi/OpenApi"
 /**
@@ -24,16 +24,16 @@ const effectSchemas: Record<string, {
   }
 }
 
-const resolver: FromJsonSchema.Resolver = (ref) => {
+const resolver: SchemaFromJson.Resolver = (ref) => {
   if (ref in effectSchemas) {
-    return FromJsonSchema.makeGenerationExtern(
+    return SchemaFromJson.makeGenerationExtern(
       effectSchemas[ref].namespace,
       effectSchemas[ref].importDeclaration
     )
   }
-  return FromJsonSchema.makeGeneration(
+  return SchemaFromJson.makeGeneration(
     ref,
-    FromJsonSchema.makeTypes(ref, `${ref}Encoded`)
+    SchemaFromJson.makeTypes(ref, `${ref}Encoded`)
   )
 }
 
@@ -54,7 +54,7 @@ export const make = Effect.gen(function*() {
     const imports = new Set<string>()
     const generations: Array<{
       readonly name: string | undefined
-      readonly generation: FromJsonSchema.Generation
+      readonly generation: SchemaFromJson.Generation
     }> = []
 
     function addImportDeclarations(importDeclarations: ReadonlySet<string>) {
@@ -72,14 +72,14 @@ export const make = Effect.gen(function*() {
 
     // dependencies
     if (spec.components) {
-      FromJsonSchema.generateDefinitions(definitions, options).forEach(({ generation, ref }) => {
+      SchemaFromJson.generateDefinitions(definitions, options).forEach(({ generation, ref }) => {
         generations.push({ name: ref in effectSchemas ? undefined : ref, generation })
       })
     }
 
     // schemas
     Object.entries(store).forEach(([name, schema]) => {
-      const generation = FromJsonSchema.generate(schema, {
+      const generation = SchemaFromJson.generate(schema, {
         ...options,
         definitions
       })

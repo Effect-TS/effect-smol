@@ -1,4 +1,4 @@
-import { Schema } from "effect/schema"
+import { Schema } from "effect"
 import { describe, expect, it } from "tstyche"
 
 describe("Array", () => {

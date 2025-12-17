@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 
 const TypeId = "~effect/rpc/RpcClientError"
 

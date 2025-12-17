@@ -3,47 +3,47 @@
  */
 
 import type { StandardJSONSchemaV1, StandardSchemaV1 } from "@standard-schema/spec"
-import * as Arr from "../Array.ts"
-import type * as Brand from "../Brand.ts"
-import * as Cause_ from "../Cause.ts"
-import type * as Combiner from "../Combiner.ts"
-import * as Data from "../Data.ts"
-import * as DateTime from "../DateTime.ts"
-import type { Differ } from "../Differ.ts"
-import * as Duration_ from "../Duration.ts"
-import * as Effect from "../Effect.ts"
-import * as Equal from "../Equal.ts"
-import type * as Equivalence from "../Equivalence.ts"
-import * as Exit_ from "../Exit.ts"
-import type { Formatter } from "../Formatter.ts"
-import { format, formatDate, formatPropertyKey } from "../Formatter.ts"
-import { identity, memoize } from "../Function.ts"
-import * as InternalArbitrary from "../internal/arbitrary.ts"
-import * as core from "../internal/core.ts"
-import * as InternalDiffer from "../internal/differ.ts"
-import * as InternalEquivalence from "../internal/equivalence.ts"
-import * as InternalJsonSchema from "../internal/json-schema.ts"
-import { remainder } from "../Number.ts"
-import * as Optic_ from "../Optic.ts"
-import * as Option_ from "../Option.ts"
-import * as Order from "../Order.ts"
-import * as Pipeable from "../Pipeable.ts"
-import * as Predicate from "../Predicate.ts"
-import * as Record_ from "../Record.ts"
-import * as Redacted_ from "../Redacted.ts"
-import * as Request from "../Request.ts"
-import * as Result_ from "../Result.ts"
-import * as Scheduler from "../Scheduler.ts"
-import type { Assign, Lambda, Mutable, Simplify } from "../Struct.ts"
-import * as Struct_ from "../Struct.ts"
-import * as FastCheck from "../testing/FastCheck.ts"
-import type { UnionToIntersection } from "../Types.ts"
-import * as Annotations from "./Annotations.ts"
-import * as AST from "./AST.ts"
-import * as Getter from "./Getter.ts"
-import * as Issue from "./Issue.ts"
-import * as Parser from "./Parser.ts"
-import * as Transformation from "./Transformation.ts"
+import * as Arr from "./Array.ts"
+import type * as Brand from "./Brand.ts"
+import * as Cause_ from "./Cause.ts"
+import type * as Combiner from "./Combiner.ts"
+import * as Data from "./Data.ts"
+import * as DateTime from "./DateTime.ts"
+import type { Differ } from "./Differ.ts"
+import * as Duration_ from "./Duration.ts"
+import * as Effect from "./Effect.ts"
+import * as Equal from "./Equal.ts"
+import type * as Equivalence from "./Equivalence.ts"
+import * as Exit_ from "./Exit.ts"
+import type { Formatter } from "./Formatter.ts"
+import { format, formatDate, formatPropertyKey } from "./Formatter.ts"
+import { identity, memoize } from "./Function.ts"
+import * as InternalArbitrary from "./internal/arbitrary.ts"
+import * as core from "./internal/core.ts"
+import * as InternalDiffer from "./internal/differ.ts"
+import * as InternalEquivalence from "./internal/equivalence.ts"
+import * as InternalJsonSchema from "./internal/json-schema.ts"
+import { remainder } from "./Number.ts"
+import * as Optic_ from "./Optic.ts"
+import * as Option_ from "./Option.ts"
+import * as Order from "./Order.ts"
+import * as Pipeable from "./Pipeable.ts"
+import * as Predicate from "./Predicate.ts"
+import * as Record_ from "./Record.ts"
+import * as Redacted_ from "./Redacted.ts"
+import * as Request from "./Request.ts"
+import * as Result_ from "./Result.ts"
+import * as Scheduler from "./Scheduler.ts"
+import * as Annotations from "./SchemaAnnotations.ts"
+import * as AST from "./SchemaAST.ts"
+import * as Getter from "./SchemaGetter.ts"
+import * as Issue from "./SchemaIssue.ts"
+import * as Parser from "./SchemaParser.ts"
+import * as Transformation from "./SchemaTransformation.ts"
+import type { Assign, Lambda, Mutable, Simplify } from "./Struct.ts"
+import * as Struct_ from "./Struct.ts"
+import * as FastCheck from "./testing/FastCheck.ts"
+import type { UnionToIntersection } from "./Types.ts"
 
 /**
  * Is this schema required or optional?
@@ -145,7 +145,7 @@ export interface Bottom<
   makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
 }
 
-const TypeId = "~effect/schema/Schema"
+const TypeId = "~effect/Schema/Schema"
 
 const SchemaProto = {
   [TypeId]: TypeId,
@@ -395,7 +395,7 @@ export function revealCodec<T, E, RD, RE>(codec: Codec<T, E, RD, RE>) {
   return codec
 }
 
-const SchemaErrorTypeId = "~effect/schema/Schema/SchemaError"
+const SchemaErrorTypeId = "~effect/Schema/SchemaError"
 
 /**
  * A `SchemaError` is returned when schema decoding or encoding fails.
@@ -1096,7 +1096,7 @@ interface toEncodedLambda extends Lambda {
  */
 export const toEncoded = Struct_.lambda<toEncodedLambda>((schema) => makeProto(AST.toEncoded(schema.ast), { schema }))
 
-const FlipTypeId = "~effect/schema/Schema/flip"
+const FlipTypeId = "~effect/Schema/flip"
 
 /**
  * @since 4.0.0
@@ -7292,7 +7292,7 @@ function getClassTransformation(self: new(...args: ReadonlyArray<any>) => any) {
 }
 
 function getClassTypeId(identifier: string) {
-  return `~effect/schema/Schema/Class/${identifier}`
+  return `~effect/Schema/Class/${identifier}`
 }
 
 function getClassSchemaFactory<S extends Top>(
@@ -8183,7 +8183,7 @@ const serializerStringTreeKeepDeclarations = AST.serializer((ast) => {
   return out
 })
 
-const SERIALIZER_ENSURE_ARRAY = "~effect/schema/Schema/SERIALIZER_ENSURE_ARRAY"
+const SERIALIZER_ENSURE_ARRAY = "~effect/Schema/SERIALIZER_ENSURE_ARRAY"
 
 const toCodecEnsureArray = AST.serializer((ast) => {
   if (AST.isUnion(ast) && ast.annotations?.[SERIALIZER_ENSURE_ARRAY]) {

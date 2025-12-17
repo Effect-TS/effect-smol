@@ -1,7 +1,6 @@
 import { assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import type { StandardSchemaV1 } from "@standard-schema/spec"
-import { Effect, Option, Predicate, ServiceMap } from "effect"
-import { Getter, Issue, Schema } from "effect/schema"
+import { Effect, Option, Predicate, Schema, SchemaGetter, SchemaIssue, ServiceMap } from "effect"
 import { describe, it } from "vitest"
 
 function validate<I, A>(
@@ -91,13 +90,13 @@ const expectAsyncFailure = async <I, A>(
 }
 
 const AsyncString = Schema.String.pipe(Schema.decode({
-  decode: new Getter.Getter((os: Option.Option<string>) =>
+  decode: new SchemaGetter.Getter((os: Option.Option<string>) =>
     Effect.gen(function*() {
       yield* Effect.sleep("10 millis")
       return os
     })
   ),
-  encode: Getter.passthrough()
+  encode: SchemaGetter.passthrough()
 }))
 
 const AsyncNonEmptyString = AsyncString.check(Schema.isNonEmpty())
@@ -156,13 +155,13 @@ describe("toStandardSchemaV1", () => {
 
     it("sync decoding should throw", () => {
       const DepString = Schema.Number.pipe(Schema.decode({
-        decode: Getter.onSome((n) =>
+        decode: SchemaGetter.onSome((n) =>
           Effect.gen(function*() {
             const magicNumber = yield* MagicNumber
             return Option.some(n * magicNumber)
           })
         ),
-        encode: Getter.passthrough()
+        encode: SchemaGetter.passthrough()
       }))
 
       const schema = DepString
@@ -176,14 +175,14 @@ describe("toStandardSchemaV1", () => {
 
     it("async decoding should throw", () => {
       const DepString = Schema.Number.pipe(Schema.decode({
-        decode: Getter.onSome((n) =>
+        decode: SchemaGetter.onSome((n) =>
           Effect.gen(function*() {
             const magicNumber = yield* MagicNumber
             yield* Effect.sleep("10 millis")
             return Option.some(n * magicNumber)
           })
         ),
-        encode: Getter.passthrough()
+        encode: SchemaGetter.passthrough()
       }))
 
       const schema = DepString
@@ -470,7 +469,7 @@ describe("toStandardSchemaV1", () => {
     it("String", () => {
       const schema = Schema.String
       const standardSchema = Schema.toStandardSchemaV1(schema, {
-        leafHook: Issue.defaultLeafHook
+        leafHook: SchemaIssue.defaultLeafHook
       })
       expectSyncFailure(standardSchema, null, [
         {
@@ -483,7 +482,7 @@ describe("toStandardSchemaV1", () => {
     it("NonEmptyString", () => {
       const schema = Schema.NonEmptyString
       const standardSchema = Schema.toStandardSchemaV1(schema, {
-        leafHook: Issue.defaultLeafHook
+        leafHook: SchemaIssue.defaultLeafHook
       })
       expectSyncFailure(standardSchema, "", [
         {

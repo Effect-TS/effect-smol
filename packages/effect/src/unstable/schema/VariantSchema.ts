@@ -6,9 +6,9 @@ import * as Effect from "../../Effect.ts"
 import { constant, dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
-import type * as Annotations from "../../schema/Annotations.ts"
-import type * as AST from "../../schema/AST.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
+import type * as Annotations from "../../SchemaAnnotations.ts"
+import type * as AST from "../../SchemaAST.ts"
 import * as Struct_ from "../../Struct.ts"
 
 /**

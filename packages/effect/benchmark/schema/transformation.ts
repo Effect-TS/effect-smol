@@ -1,4 +1,4 @@
-import { Schema, Transformation } from "effect/schema"
+import { Schema, SchemaTransformation } from "effect"
 import { Bench } from "tinybench"
 import { z } from "zod"
 
@@ -27,7 +27,7 @@ const schema = Schema.Struct({
     c: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
     d: Schema.String
   }),
-  Transformation.transform({
+  SchemaTransformation.transform({
     decode: ({ id, ...v }) => ({ ...v, b: { id } }),
     encode: ({ b: { id }, ...v }) => ({ ...v, id })
   })

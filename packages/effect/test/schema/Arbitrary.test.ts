@@ -1,6 +1,6 @@
+import type { SchemaAnnotations } from "effect"
+import { Schema } from "effect"
 import * as InternalArbitrary from "effect/internal/arbitrary"
-import type { Annotations } from "effect/schema"
-import { Schema } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
 import { deepStrictEqual, throws } from "../utils/assert.ts"
@@ -9,7 +9,7 @@ function assertUnsupportedSchema(schema: Schema.Top, message: string) {
   throws(() => Schema.toArbitrary(schema), message)
 }
 
-function assertFragments(schema: Schema.Schema<any>, ctx: Annotations.Arbitrary.Context) {
+function assertFragments(schema: Schema.Schema<any>, ctx: SchemaAnnotations.Arbitrary.Context) {
   const ast = schema.ast
   const filters = InternalArbitrary.getFilters(ast.checks)
   const f = InternalArbitrary.constraintContext(filters)
@@ -41,7 +41,7 @@ describe("Arbitrary generation", () => {
   })
 
   it("should pass constraints to the override annotation", () => {
-    let constraints: Annotations.Arbitrary.NumberConstraints | undefined
+    let constraints: SchemaAnnotations.Arbitrary.NumberConstraints | undefined
     const schema = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 100 })).annotate({
       toArbitrary: () => (fc, ctx) => {
         constraints = ctx.constraints?.number

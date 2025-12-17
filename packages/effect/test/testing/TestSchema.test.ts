@@ -1,5 +1,4 @@
-import { Effect, Option, ServiceMap } from "effect"
-import { Getter, Issue, Schema } from "effect/schema"
+import { Effect, Option, Schema, SchemaGetter, SchemaIssue, ServiceMap } from "effect"
 import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
 
@@ -18,17 +17,17 @@ describe("TestSchema", () => {
 
     const schema = Schema.String.pipe(
       Schema.decode({
-        decode: Getter.checkEffect((s) =>
+        decode: SchemaGetter.checkEffect((s) =>
           Effect.gen(function*() {
             yield* Service
             if (s.length === 0) {
-              return new Issue.InvalidValue(Option.some(s), {
+              return new SchemaIssue.InvalidValue(Option.some(s), {
                 message: "input should not be empty string"
               })
             }
           })
         ),
-        encode: Getter.passthrough()
+        encode: SchemaGetter.passthrough()
       })
     )
     const asserts = new TestSchema.Asserts(schema)
@@ -51,12 +50,12 @@ describe("TestSchema", () => {
 
     const schema = Schema.String.pipe(
       Schema.decode({
-        decode: Getter.passthrough(),
-        encode: Getter.checkEffect((s) =>
+        decode: SchemaGetter.passthrough(),
+        encode: SchemaGetter.checkEffect((s) =>
           Effect.gen(function*() {
             yield* Service
             if (s.length === 0) {
-              return new Issue.InvalidValue(Option.some(s), {
+              return new SchemaIssue.InvalidValue(Option.some(s), {
                 message: "input should not be empty string"
               })
             }

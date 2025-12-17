@@ -1,8 +1,8 @@
 import { format } from "../Formatter.ts"
 import * as Predicate from "../Predicate.ts"
-import * as Annotations from "../schema/Annotations.ts"
-import * as AST from "../schema/AST.ts"
-import type * as Schema from "../schema/Schema.ts"
+import type * as Schema from "../Schema.ts"
+import * as Annotations from "../SchemaAnnotations.ts"
+import * as AST from "../SchemaAST.ts"
 import { errorWithPath } from "./errors.ts"
 
 /** @internal */

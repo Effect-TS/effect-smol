@@ -1,6 +1,5 @@
-import { Tuple } from "effect"
+import { Schema, Tuple } from "effect"
 import type { Array as Arr } from "effect"
-import { Schema } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 
 describe("Union", () => {

@@ -4,7 +4,7 @@
 import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import { hasProperty } from "../../Predicate.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 import type { HttpServerResponse } from "./HttpServerResponse.ts"
 import * as Response from "./HttpServerResponse.ts"
 

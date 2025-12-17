@@ -7,9 +7,9 @@ import * as DateTime from "../../DateTime.ts"
 import * as Effect from "../../Effect.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
-import * as Getter from "../../schema/Getter.ts"
-import * as Schema from "../../schema/Schema.ts"
-import * as Transformation from "../../schema/Transformation.ts"
+import * as Schema from "../../Schema.ts"
+import * as Getter from "../../SchemaGetter.ts"
+import * as Transformation from "../../SchemaTransformation.ts"
 import * as VariantSchema from "./VariantSchema.ts"
 
 const {

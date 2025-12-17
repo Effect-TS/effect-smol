@@ -1,7 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import type { Layer } from "effect"
-import { Data, Effect, Exit, Filter } from "effect"
-import { Schema } from "effect/schema"
+import { Data, Effect, Exit, Filter, Schema } from "effect"
 import { Persistable, PersistedCache, Persistence } from "effect/unstable/persistence"
 
 class User extends Schema.Class<User>("User")({

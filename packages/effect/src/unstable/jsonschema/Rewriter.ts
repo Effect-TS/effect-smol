@@ -7,7 +7,7 @@ import * as Array_ from "../../Array.ts"
 import * as Combiner from "../../Combiner.ts"
 import { formatPath } from "../../Formatter.ts"
 import * as Record_ from "../../Record.ts"
-import type * as Schema from "../../schema/Schema.ts"
+import type * as Schema from "../../Schema.ts"
 import * as Struct from "../../Struct.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 

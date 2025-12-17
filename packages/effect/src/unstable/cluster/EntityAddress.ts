@@ -3,7 +3,7 @@
  */
 import * as Equal from "../../Equal.ts"
 import * as Hash from "../../Hash.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 import { EntityId } from "./EntityId.ts"
 import { EntityType } from "./EntityType.ts"
 import { ShardId } from "./ShardId.ts"

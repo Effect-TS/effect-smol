@@ -3,8 +3,8 @@
 exports[`OpenApiGenerator > type-only > get operation 1`] = `
 "import * as Data from "effect/data/Data"
 import * as Effect from "effect/Effect"
-import type { SchemaError } from "effect/schema/Schema"
-import * as Schema from "effect/schema/Schema"
+import type { SchemaError } from "effect/Schema"
+import * as Schema from "effect/Schema"
 import type * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
@@ -23,7 +23,7 @@ export type PersistedFile = string
 export type PersistedFileEncoded = PersistedFile
 export const PersistedFile = Schema.String.annotate({ "format": "binary" }).annotate({ "identifier": "PersistedFile" })
 
-export type User = { readonly "id": number, readonly "uuid"?: string, readonly "name": string, 
+export type User = { readonly "id": number, readonly "uuid"?: string, readonly "name": string,
 /** a string that will be decoded as a DateTime.Utc */
 readonly "createdAt": string }
 export type UserEncoded = User
@@ -53,9 +53,9 @@ export type UsersFindById400 = typeof HttpApiSchemaError["Type"] | UserError
 export type UsersFindById400Encoded = typeof HttpApiSchemaError["Encoded"] | UserErrorEncoded
 export const UsersFindById400 = Schema.Union([HttpApiSchemaError, UserError])
 
-export type ListUsersParams = { 
+export type ListUsersParams = {
 /** a string that will be decoded as a finite number */
-readonly "page"?: string, 
+readonly "page"?: string,
 /** search query */
 readonly "query"?: string }
 export type ListUsersParamsEncoded = ListUsersParams
@@ -198,8 +198,8 @@ export const TestClientError = <Tag extends string, E>(
 exports[`OpenApiGenerator > type-only > get operation 2`] = `
 "import * as Data from "effect/data/Data"
 import * as Effect from "effect/Effect"
-import type { SchemaError } from "effect/schema/Schema"
-import * as Schema from "effect/schema/Schema"
+import type { SchemaError } from "effect/Schema"
+import * as Schema from "effect/Schema"
 import type * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"

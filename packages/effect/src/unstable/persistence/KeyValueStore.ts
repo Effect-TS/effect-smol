@@ -12,7 +12,7 @@ import * as Path from "../../Path.ts"
 import type { PlatformError } from "../../PlatformError.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Result from "../../Result.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 

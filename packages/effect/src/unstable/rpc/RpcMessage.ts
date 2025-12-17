@@ -3,7 +3,7 @@
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import type { Branded } from "../../Brand.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 import type { Headers } from "../http/Headers.ts"
 import type * as Rpc from "./Rpc.ts"
 import type { RpcClientError } from "./RpcClientError.ts"

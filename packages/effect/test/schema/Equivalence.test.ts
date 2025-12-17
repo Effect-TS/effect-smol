@@ -1,5 +1,4 @@
-import { DateTime, Duration, Equivalence, Option, Redacted, Result } from "effect"
-import { Schema } from "effect/schema"
+import { DateTime, Duration, Equivalence, Option, Redacted, Result, Schema } from "effect"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue, throws } from "../utils/assert.ts"
 

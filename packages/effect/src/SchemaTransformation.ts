@@ -2,13 +2,13 @@
  * @since 4.0.0
  */
 
-import * as Duration from "../Duration.ts"
-import * as Effect from "../Effect.ts"
-import * as Option from "../Option.ts"
-import * as Predicate from "../Predicate.ts"
-import type * as AST from "./AST.ts"
-import * as Getter from "./Getter.ts"
-import * as Issue from "./Issue.ts"
+import * as Duration from "./Duration.ts"
+import * as Effect from "./Effect.ts"
+import * as Option from "./Option.ts"
+import * as Predicate from "./Predicate.ts"
+import type * as AST from "./SchemaAST.ts"
+import * as Getter from "./SchemaGetter.ts"
+import * as Issue from "./SchemaIssue.ts"
 
 /**
  * @category model
@@ -43,7 +43,7 @@ export class Middleware<in out T, in out E, RDE, RDT, RET, REE> {
   }
 }
 
-const TypeId = "~effect/schema/Transformation"
+const TypeId = "~effect/SchemaTransformation/Transformation"
 
 /**
  * @category model

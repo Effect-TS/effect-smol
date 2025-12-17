@@ -1,6 +1,5 @@
-import { Brand, Option, Predicate, Tuple, Struct, ServiceMap, Effect, hole   } from "effect"
-import type { AST} from 'effect/schema';
-import { Getter, Schema, Transformation } from 'effect/schema'
+import type { SchemaAST } from "effect";
+import { Brand, Option, Predicate, Tuple, Struct, ServiceMap, Effect, hole, Schema, SchemaTransformation, SchemaGetter } from "effect"
 import { immerable, produce } from "immer"
 import { describe, expect, it, when } from "tstyche"
 
@@ -360,7 +359,7 @@ describe("Schema", () => {
   describe("typeCodec", () => {
     it("ast type", () => {
       const schema = Schema.toType(Schema.FiniteFromString)
-      expect(schema.ast).type.toBe<AST.Number>()
+      expect(schema.ast).type.toBe<SchemaAST.Number>()
     })
 
     it("revealCodec + annotate", () => {
@@ -374,7 +373,7 @@ describe("Schema", () => {
   describe("encodedCodec", () => {
     it("ast type", () => {
       const schema = Schema.FiniteFromString
-      expect(schema.ast).type.toBe<AST.Number>()
+      expect(schema.ast).type.toBe<SchemaAST.Number>()
     })
 
     it("revealCodec + annotate", () => {
@@ -404,7 +403,7 @@ describe("Schema", () => {
     const schema = Schema.Never
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.Never>()
+      expect(schema.ast).type.toBe<SchemaAST.Never>()
     })
 
     it("revealCodec + annotate", () => {
@@ -418,7 +417,7 @@ describe("Schema", () => {
     const schema = Schema.Unknown
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.Unknown>()
+      expect(schema.ast).type.toBe<SchemaAST.Unknown>()
     })
 
     it("revealCodec + annotate", () => {
@@ -432,7 +431,7 @@ describe("Schema", () => {
     const schema = Schema.Null
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.Null>()
+      expect(schema.ast).type.toBe<SchemaAST.Null>()
     })
 
     it("revealCodec + annotate", () => {
@@ -446,7 +445,7 @@ describe("Schema", () => {
     const schema = Schema.Undefined
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.Undefined>()
+      expect(schema.ast).type.toBe<SchemaAST.Undefined>()
     })
 
     it("revealCodec + annotate", () => {
@@ -460,7 +459,7 @@ describe("Schema", () => {
     const schema = Schema.String
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.String>()
+      expect(schema.ast).type.toBe<SchemaAST.String>()
     })
 
     it("revealCodec + annotate", () => {
@@ -474,7 +473,7 @@ describe("Schema", () => {
     const schema = Schema.Number
 
     it("ast type", () => {
-      expect(schema.ast).type.toBe<AST.Number>()
+      expect(schema.ast).type.toBe<SchemaAST.Number>()
     })
 
     it("revealCodec + annotate", () => {
@@ -487,7 +486,7 @@ describe("Schema", () => {
   describe("Literal", () => {
     it("ast type", () => {
       const schema = Schema.Literal("a")
-      expect(schema.ast).type.toBe<AST.Literal>()
+      expect(schema.ast).type.toBe<SchemaAST.Literal>()
     })
 
     it("revealCodec + annotate", () => {
@@ -731,51 +730,51 @@ describe("Schema", () => {
         const f1 = Schema.isInt()
         const f2 = Schema.isInt()
 
-        expect(f1.and(f2)).type.toBe<AST.FilterGroup<number>>()
-        expect(f1.and(f2).annotate({})).type.toBe<AST.FilterGroup<number>>()
+        expect(f1.and(f2)).type.toBe<SchemaAST.FilterGroup<number>>()
+        expect(f1.and(f2).annotate({})).type.toBe<SchemaAST.FilterGroup<number>>()
       })
 
       it("Filter + FilterGroup", () => {
         const f1 = Schema.isInt()
         const f2 = Schema.isInt32()
 
-        expect(f1.and(f2)).type.toBe<AST.FilterGroup<number>>()
-        expect(f2.and(f1)).type.toBe<AST.FilterGroup<number>>()
-        expect(f1.and(f2).annotate({})).type.toBe<AST.FilterGroup<number>>()
-        expect(f2.and(f1).annotate({})).type.toBe<AST.FilterGroup<number>>()
+        expect(f1.and(f2)).type.toBe<SchemaAST.FilterGroup<number>>()
+        expect(f2.and(f1)).type.toBe<SchemaAST.FilterGroup<number>>()
+        expect(f1.and(f2).annotate({})).type.toBe<SchemaAST.FilterGroup<number>>()
+        expect(f2.and(f1).annotate({})).type.toBe<SchemaAST.FilterGroup<number>>()
       })
 
       it("FilterGroup + FilterGroup", () => {
         const f1 = Schema.isInt32()
         const f2 = Schema.isInt32()
 
-        expect(f1.and(f2)).type.toBe<AST.FilterGroup<number>>()
-        expect(f2.and(f1)).type.toBe<AST.FilterGroup<number>>()
-        expect(f1.and(f2).annotate({})).type.toBe<AST.FilterGroup<number>>()
-        expect(f2.and(f1).annotate({})).type.toBe<AST.FilterGroup<number>>()
+        expect(f1.and(f2)).type.toBe<SchemaAST.FilterGroup<number>>()
+        expect(f2.and(f1)).type.toBe<SchemaAST.FilterGroup<number>>()
+        expect(f1.and(f2).annotate({})).type.toBe<SchemaAST.FilterGroup<number>>()
+        expect(f2.and(f1).annotate({})).type.toBe<SchemaAST.FilterGroup<number>>()
       })
 
       it("RefinementGroup + Filter", () => {
         const f1 = Schema.isInt().pipe(Schema.isBranded<"a">())
         const f2 = Schema.isInt()
 
-        expect(f1.and(f2)).type.toBe<AST.RefinementGroup<number & Brand.Brand<"a">, number>>()
-        expect(f2.and(f1)).type.toBe<AST.RefinementGroup<number & Brand.Brand<"a">, number>>()
-        expect(f1.and(f2).annotate({})).type.toBe<AST.RefinementGroup<number & Brand.Brand<"a">, number>>()
-        expect(f2.and(f1).annotate({})).type.toBe<AST.RefinementGroup<number & Brand.Brand<"a">, number>>()
+        expect(f1.and(f2)).type.toBe<SchemaAST.RefinementGroup<number & Brand.Brand<"a">, number>>()
+        expect(f2.and(f1)).type.toBe<SchemaAST.RefinementGroup<number & Brand.Brand<"a">, number>>()
+        expect(f1.and(f2).annotate({})).type.toBe<SchemaAST.RefinementGroup<number & Brand.Brand<"a">, number>>()
+        expect(f2.and(f1).annotate({})).type.toBe<SchemaAST.RefinementGroup<number & Brand.Brand<"a">, number>>()
       })
 
       it("RefinementGroup + RefinementGroup", () => {
         const f1 = Schema.isInt().pipe(Schema.isBranded<"a">())
         const f2 = Schema.isInt().pipe(Schema.isBranded<"b">())
 
-        expect(f1.and(f2)).type.toBe<AST.RefinementGroup<number & Brand.Brand<"a"> & Brand.Brand<"b">, number>>()
-        expect(f2.and(f1)).type.toBe<AST.RefinementGroup<number & Brand.Brand<"a"> & Brand.Brand<"b">, number>>()
+        expect(f1.and(f2)).type.toBe<SchemaAST.RefinementGroup<number & Brand.Brand<"a"> & Brand.Brand<"b">, number>>()
+        expect(f2.and(f1)).type.toBe<SchemaAST.RefinementGroup<number & Brand.Brand<"a"> & Brand.Brand<"b">, number>>()
         expect(f1.and(f2).annotate({})).type.toBe<
-          AST.RefinementGroup<number & Brand.Brand<"a"> & Brand.Brand<"b">, number>
+          SchemaAST.RefinementGroup<number & Brand.Brand<"a"> & Brand.Brand<"b">, number>
         >()
         expect(f2.and(f1).annotate({})).type.toBe<
-          AST.RefinementGroup<number & Brand.Brand<"a"> & Brand.Brand<"b">, number>
+          SchemaAST.RefinementGroup<number & Brand.Brand<"a"> & Brand.Brand<"b">, number>
         >()
       })
     })
@@ -861,7 +860,7 @@ describe("Schema", () => {
     expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<MyError, MyError, never, never>>()
     expect(schema).type.toBe<Schema.instanceOf<MyError>>()
     expect(schema.annotate({})).type.toBe<Schema.instanceOf<MyError>>()
-    expect(schema.ast).type.toBe<AST.Declaration>()
+    expect(schema.ast).type.toBe<SchemaAST.Declaration>()
     expect(schema.makeUnsafe).type.toBe<
       (input: MyError, options?: Schema.MakeOptions | undefined) => MyError
     >()
@@ -881,7 +880,7 @@ describe("Schema", () => {
       Schema.String.pipe(
         Schema.decodeTo(
           Schema.NonEmptyString,
-          Transformation.passthrough()
+          SchemaTransformation.passthrough()
         )
       )
     })
@@ -890,14 +889,14 @@ describe("Schema", () => {
       when(Schema.String.pipe).isCalledWith(
         expect(Schema.decodeTo).type.not.toBeCallableWith(
           Schema.Number,
-          Transformation.passthrough()
+          SchemaTransformation.passthrough()
         )
       )
 
       Schema.String.pipe(
         Schema.decodeTo(
           Schema.Number,
-          Transformation.passthrough({ strict: false })
+          SchemaTransformation.passthrough({ strict: false })
         )
       )
     })
@@ -906,7 +905,7 @@ describe("Schema", () => {
       Schema.String.pipe(
         Schema.decodeTo(
           Schema.UndefinedOr(Schema.String),
-          Transformation.passthroughSubtype()
+          SchemaTransformation.passthroughSubtype()
         )
       )
     })
@@ -915,7 +914,7 @@ describe("Schema", () => {
       Schema.UndefinedOr(Schema.String).pipe(
         Schema.decodeTo(
           Schema.String,
-          Transformation.passthroughSupertype()
+          SchemaTransformation.passthroughSupertype()
         )
       )
     })
@@ -1457,13 +1456,13 @@ describe("Schema", () => {
   it("asStandardSchemaV1 should not be callable with a schema with DecodingServices", () => {
     class MagicNumber extends ServiceMap.Service<MagicNumber, number>()("MagicNumber") {}
     const DepString = Schema.Number.pipe(Schema.decode({
-      decode: Getter.onSome((n) =>
+      decode: SchemaGetter.onSome((n) =>
         Effect.gen(function*() {
           const magicNumber = yield* MagicNumber
           return Option.some(n * magicNumber)
         })
       ),
-      encode: Getter.passthrough()
+      encode: SchemaGetter.passthrough()
     }))
     expect(Schema.toStandardSchemaV1).type.not.toBeCallableWith(DepString)
   })

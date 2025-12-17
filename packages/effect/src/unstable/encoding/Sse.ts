@@ -11,8 +11,8 @@ import * as Effect from "../../Effect.ts"
 import * as Filter from "../../Filter.ts"
 import { hasProperty } from "../../Predicate.ts"
 import * as Pull from "../../Pull.ts"
-import * as Schema from "../../schema/Schema.ts"
-import * as Transformation from "../../schema/Transformation.ts"
+import * as Schema from "../../Schema.ts"
+import * as Transformation from "../../SchemaTransformation.ts"
 
 /**
  * @since 4.0.0

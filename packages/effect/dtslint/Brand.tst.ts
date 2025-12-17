@@ -1,5 +1,4 @@
-import { Brand } from "effect"
-import { Schema } from "effect/schema"
+import { Brand, Schema } from "effect"
 import { describe, expect, it } from "tstyche"
 
 describe("Brand", () => {

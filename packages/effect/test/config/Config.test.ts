@@ -1,7 +1,6 @@
 import { describe, it } from "@effect/vitest"
 import { deepStrictEqual } from "@effect/vitest/utils"
-import { Config, ConfigProvider, Duration, Effect, Option, pipe, Redacted, Result } from "effect"
-import { Issue, Schema } from "effect/schema"
+import { Config, ConfigProvider, Duration, Effect, Option, pipe, Redacted, Result, Schema, SchemaIssue } from "effect"
 import * as assert from "node:assert"
 
 async function assertSuccess<T>(config: Config.Config<T>, provider: ConfigProvider.ConfigProvider, expected: T) {
@@ -35,7 +34,7 @@ describe("Config", () => {
     it("fail", async () => {
       await assertFailure(
         Config.fail(
-          new Schema.SchemaError(new Issue.Forbidden(Option.none(), { message: "failure message" }))
+          new Schema.SchemaError(new SchemaIssue.Forbidden(Option.none(), { message: "failure message" }))
         ),
         ConfigProvider.fromUnknown({}),
         `failure message`
@@ -187,7 +186,9 @@ describe("Config", () => {
       const f = (s: string) =>
         s === ""
           ? Effect.fail(
-            new Config.ConfigError(new Schema.SchemaError(new Issue.InvalidValue(Option.some(s), { message: "empty" })))
+            new Config.ConfigError(
+              new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.some(s), { message: "empty" }))
+            )
           )
           : Effect.succeed(s.toUpperCase())
 

@@ -2,27 +2,27 @@
  * @since 4.0.0
  */
 
-import * as Arr from "../Array.ts"
-import * as Cause from "../Cause.ts"
-import type * as Combiner from "../Combiner.ts"
-import * as Effect from "../Effect.ts"
-import type * as Exit from "../Exit.ts"
-import * as Filter_ from "../Filter.ts"
-import { format, formatPropertyKey } from "../Formatter.ts"
-import { memoize } from "../Function.ts"
-import { effectIsExit } from "../internal/effect.ts"
-import * as internalRecord from "../internal/record.ts"
-import * as Option from "../Option.ts"
-import * as Pipeable from "../Pipeable.ts"
-import * as Predicate from "../Predicate.ts"
-import * as RegEx from "../RegExp.ts"
-import * as Result from "../Result.ts"
-import type * as Annotations from "./Annotations.ts"
-import * as Getter from "./Getter.ts"
-import * as Issue from "./Issue.ts"
-import type * as Parser from "./Parser.ts"
+import * as Arr from "./Array.ts"
+import * as Cause from "./Cause.ts"
+import type * as Combiner from "./Combiner.ts"
+import * as Effect from "./Effect.ts"
+import type * as Exit from "./Exit.ts"
+import * as Filter_ from "./Filter.ts"
+import { format, formatPropertyKey } from "./Formatter.ts"
+import { memoize } from "./Function.ts"
+import { effectIsExit } from "./internal/effect.ts"
+import * as internalRecord from "./internal/record.ts"
+import * as Option from "./Option.ts"
+import * as Pipeable from "./Pipeable.ts"
+import * as Predicate from "./Predicate.ts"
+import * as RegEx from "./RegExp.ts"
+import * as Result from "./Result.ts"
 import type * as Schema from "./Schema.ts"
-import * as Transformation from "./Transformation.ts"
+import type * as Annotations from "./SchemaAnnotations.ts"
+import * as Getter from "./SchemaGetter.ts"
+import * as Issue from "./SchemaIssue.ts"
+import type * as Parser from "./SchemaParser.ts"
+import * as Transformation from "./SchemaTransformation.ts"
 
 /**
  * @category model
@@ -304,7 +304,7 @@ export class Context {
  */
 export type Checks = readonly [Check<any>, ...Array<Check<any>>]
 
-const TypeId = "~effect/schema/Schema"
+const TypeId = "~effect/Schema"
 
 /**
  * @category model
@@ -2678,4 +2678,4 @@ export function runRefine<T extends E, E>(refine: Refine<T, E>, s: E): Result.Re
 }
 
 /** @internal */
-export const ClassTypeId = "~effect/schema/Schema/Class"
+export const ClassTypeId = "~effect/Schema/Class"

@@ -5,7 +5,7 @@ import type * as Effect from "./Effect.ts"
 import type { PlatformError } from "./PlatformError.ts"
 import * as Predicate from "./Predicate.ts"
 import type * as Queue from "./Queue.ts"
-import * as Schema from "./schema/Schema.ts"
+import * as Schema from "./Schema.ts"
 import type * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 

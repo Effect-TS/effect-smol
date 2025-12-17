@@ -1,5 +1,4 @@
-import { Tuple } from "effect"
-import { Schema } from "effect/schema"
+import { Schema, Tuple } from "effect"
 import { describe, expect, it } from "tstyche"
 
 describe("Literals", () => {

@@ -1,6 +1,5 @@
 import type { Brand, Cause, Exit, Optic, Option } from "effect"
-import { Data } from "effect"
-import { Schema, Util } from "effect/schema"
+import { Data, Schema, SchemaUtils } from "effect"
 import { describe, expect, it } from "tstyche"
 
 class Value extends Schema.Class<Value, { readonly brand: unique symbol }>("Value")({
@@ -300,7 +299,7 @@ it("getNativeClassSchema", () => {
       super(Props.makeUnsafe(props))
     }
   }
-  const schema = Util.getNativeClassSchema(Err, { encoding: Props })
+  const schema = SchemaUtils.getNativeClassSchema(Err, { encoding: Props })
   const optic = Schema.toIso(schema)
 
   expect(optic).type.toBe<

@@ -4,7 +4,7 @@
 import * as Equal from "../../Equal.ts"
 import * as Hash from "../../Hash.ts"
 import { NodeInspectSymbol } from "../../Inspectable.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 import { RunnerAddress } from "./RunnerAddress.ts"
 
 const TypeId = "~effect/cluster/Runner"

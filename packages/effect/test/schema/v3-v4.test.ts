@@ -1,5 +1,4 @@
-import { Option, Predicate } from "effect"
-import { Getter, Schema } from "effect/schema"
+import { Option, Predicate, Schema, SchemaGetter } from "effect"
 import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
 
@@ -14,8 +13,8 @@ describe("v3 -> v4 migration tests", () => {
         return Schema.Struct({
           a: Schema.optional(schema).pipe(
             Schema.decodeTo(Schema.toType(schema), {
-              decode: Getter.withDefault(defaultValue),
-              encode: Getter.required()
+              decode: SchemaGetter.withDefault(defaultValue),
+              encode: SchemaGetter.required()
             })
           )
         })
@@ -53,8 +52,8 @@ describe("v3 -> v4 migration tests", () => {
         return Schema.Struct({
           a: Schema.optionalKey(schema).pipe(
             Schema.decodeTo(Schema.toType(schema), {
-              decode: Getter.withDefault(defaultValue),
-              encode: Getter.required()
+              decode: SchemaGetter.withDefault(defaultValue),
+              encode: SchemaGetter.required()
             })
           )
         })
@@ -96,8 +95,8 @@ describe("v3 -> v4 migration tests", () => {
         return Schema.Struct({
           a: Schema.optional(Schema.NullOr(schema)).pipe(
             Schema.decodeTo(Schema.optional(Schema.toType(schema)), {
-              decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
-              encode: Getter.passthrough()
+              decode: SchemaGetter.transformOptional(Option.filter(Predicate.isNotNull)),
+              encode: SchemaGetter.passthrough()
             })
           )
         })
@@ -133,8 +132,8 @@ describe("v3 -> v4 migration tests", () => {
         return Schema.Struct({
           a: Schema.optionalKey(Schema.NullOr(schema)).pipe(
             Schema.decodeTo(Schema.optionalKey(Schema.toType(schema)), {
-              decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
-              encode: Getter.passthrough()
+              decode: SchemaGetter.transformOptional(Option.filter(Predicate.isNotNull)),
+              encode: SchemaGetter.passthrough()
             })
           )
         })
@@ -173,10 +172,10 @@ describe("v3 -> v4 migration tests", () => {
         return Schema.Struct({
           a: Schema.optional(Schema.NullOr(schema)).pipe(
             Schema.decodeTo(Schema.UndefinedOr(Schema.toType(schema)), {
-              decode: Getter.transformOptional((o) =>
+              decode: SchemaGetter.transformOptional((o) =>
                 o.pipe(Option.filter(Predicate.isNotNull), Option.orElseSome(defaultValue))
               ),
-              encode: Getter.required()
+              encode: SchemaGetter.required()
             })
           )
         })
@@ -211,10 +210,10 @@ describe("v3 -> v4 migration tests", () => {
         return Schema.Struct({
           a: Schema.optionalKey(Schema.NullOr(schema)).pipe(
             Schema.decodeTo(Schema.toType(schema), {
-              decode: Getter.transformOptional((o) =>
+              decode: SchemaGetter.transformOptional((o) =>
                 o.pipe(Option.filter(Predicate.isNotNull), Option.orElseSome(defaultValue))
               ),
-              encode: Getter.required()
+              encode: SchemaGetter.required()
             })
           )
         })

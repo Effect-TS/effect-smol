@@ -3,8 +3,8 @@
  */
 import * as Effect from "../../Effect.ts"
 import { dual } from "../../Function.ts"
-import * as Getter from "../../schema/Getter.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
+import * as Getter from "../../SchemaGetter.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 
 /**

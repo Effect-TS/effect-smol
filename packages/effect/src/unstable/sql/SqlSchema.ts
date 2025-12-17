@@ -4,7 +4,7 @@
 import * as Arr from "../../Array.ts"
 import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 
 /**
  * Run a sql query with a request schema and a result schema.

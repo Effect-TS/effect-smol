@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Stream } from "effect"
-import { Schema } from "effect/schema"
+import { Effect, Schema, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { LanguageModel, Response, Tool, Toolkit } from "effect/unstable/ai"
 import * as TestUtils from "./utils.ts"

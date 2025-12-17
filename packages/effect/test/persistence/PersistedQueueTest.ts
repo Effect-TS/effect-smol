@@ -1,6 +1,5 @@
 import { assert, it } from "@effect/vitest"
-import { Effect, Fiber, Layer } from "effect"
-import { Schema } from "effect/schema"
+import { Effect, Fiber, Layer, Schema } from "effect"
 import { TestClock } from "effect/testing"
 import { PersistedQueue } from "effect/unstable/persistence"
 

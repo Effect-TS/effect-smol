@@ -2,18 +2,18 @@
  * @since 4.0.0
  */
 
-import * as Arr from "../Array.ts"
-import * as Cause from "../Cause.ts"
-import * as Effect from "../Effect.ts"
-import * as Exit from "../Exit.ts"
-import * as Filter from "../Filter.ts"
-import { memoize } from "../Function.ts"
-import * as Option from "../Option.ts"
-import * as Predicate from "../Predicate.ts"
-import * as Annotations from "./Annotations.ts"
-import * as AST from "./AST.ts"
-import * as Issue from "./Issue.ts"
+import * as Arr from "./Array.ts"
+import * as Cause from "./Cause.ts"
+import * as Effect from "./Effect.ts"
+import * as Exit from "./Exit.ts"
+import * as Filter from "./Filter.ts"
+import { memoize } from "./Function.ts"
+import * as Option from "./Option.ts"
+import * as Predicate from "./Predicate.ts"
 import type * as Schema from "./Schema.ts"
+import * as Annotations from "./SchemaAnnotations.ts"
+import * as AST from "./SchemaAST.ts"
+import * as Issue from "./SchemaIssue.ts"
 
 const recurDefaults = memoize((ast: AST.AST): AST.AST => {
   switch (ast._tag) {

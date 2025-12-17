@@ -1,5 +1,4 @@
-import { Cause, Data, Exit, Option, Predicate, Record, Result } from "effect"
-import { Schema, Transformation, Util } from "effect/schema"
+import { Cause, Data, Exit, Option, Predicate, Record, Result, Schema, SchemaTransformation, SchemaUtils } from "effect"
 import { describe, it } from "vitest"
 import { assertNone, assertSome, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
@@ -22,7 +21,7 @@ function addTwo(date: Date): Date {
 
 describe("Optic generation", () => {
   it("overrideToCodecIso", () => {
-    const schema = Schema.URL.pipe(Schema.overrideToCodecIso(Schema.String, Transformation.urlFromString))
+    const schema = Schema.URL.pipe(Schema.overrideToCodecIso(Schema.String, SchemaTransformation.urlFromString))
     const optic = Schema.toIso(schema)
     const modify = optic.modify((s) => s + "test")
     deepStrictEqual(modify(new URL("https://example.com")), new URL("https://example.com/test"))
@@ -361,7 +360,7 @@ describe("Optic generation", () => {
           super(Props.makeUnsafe(props))
         }
       }
-      const schema = Util.getNativeClassSchema(Err, { encoding: Props })
+      const schema = SchemaUtils.getNativeClassSchema(Err, { encoding: Props })
       const optic = Schema.toIso(schema)
       const modify = optic.modify((e) => new Err({ message: e.message + "!" }))
 

@@ -6,7 +6,7 @@ import * as Effect from "../../Effect.ts"
 import * as Equal from "../../Equal.ts"
 import { constant, identity } from "../../Function.ts"
 import * as Hash from "../../Hash.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 
 /**

@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect } from "effect"
-import { Schema } from "effect/schema"
+import { Effect, Schema } from "effect"
 import { Model } from "effect/unstable/schema"
 import { SqlClient, SqlModel } from "effect/unstable/sql"
 import { MysqlContainer } from "./utils.ts"

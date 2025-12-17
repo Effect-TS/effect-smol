@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import { hasProperty } from "../../Predicate.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 
 const TypeId = "~effect/workers/WorkerError" as const
 

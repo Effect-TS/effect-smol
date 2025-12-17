@@ -3,7 +3,7 @@
  */
 import type * as Effect from "../../Effect.ts"
 import { hasProperty } from "../../Predicate.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Simplify } from "../../Struct.ts"
 import type { unhandled } from "../../Types.ts"

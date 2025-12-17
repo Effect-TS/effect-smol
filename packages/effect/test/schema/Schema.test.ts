@@ -13,12 +13,18 @@ import {
   Predicate,
   Redacted,
   Result,
+  Schema,
+  SchemaAnnotations,
+  SchemaAST,
+  SchemaGetter,
+  SchemaIssue,
+  SchemaParser,
+  SchemaTransformation,
   ServiceMap,
   String as Str,
   Struct,
   Tuple
 } from "effect"
-import { Annotations, AST, Getter, Issue, Parser, Schema, Transformation } from "effect/schema"
 import { TestSchema } from "effect/testing"
 import { produce } from "immer"
 import { deepStrictEqual, fail, ok, strictEqual } from "node:assert"
@@ -33,7 +39,7 @@ const equals = TestSchema.Asserts.ast.fields.equals
 
 const SnakeToCamel = Schema.String.pipe(
   Schema.decode(
-    Transformation.snakeToCamel()
+    SchemaTransformation.snakeToCamel()
   )
 )
 
@@ -425,13 +431,13 @@ Expected an integer, got -1.2`
     it("should throw an error if there are duplicate property signatures", () => {
       throws(
         () =>
-          new AST.Objects(
+          new SchemaAST.Objects(
             [
-              new AST.PropertySignature("a", Schema.String.ast),
-              new AST.PropertySignature("b", Schema.String.ast),
-              new AST.PropertySignature("c", Schema.String.ast),
-              new AST.PropertySignature("a", Schema.String.ast),
-              new AST.PropertySignature("c", Schema.String.ast)
+              new SchemaAST.PropertySignature("a", Schema.String.ast),
+              new SchemaAST.PropertySignature("b", Schema.String.ast),
+              new SchemaAST.PropertySignature("c", Schema.String.ast),
+              new SchemaAST.PropertySignature("a", Schema.String.ast),
+              new SchemaAST.PropertySignature("c", Schema.String.ast)
             ],
             []
           ),
@@ -457,8 +463,8 @@ Expected an integer, got -1.2`
       it("optional field with default", () => {
         const schema = Schema.Struct({
           a: Schema.String.pipe(Schema.encode({
-            decode: Getter.withDefault(() => "default-a"),
-            encode: Getter.passthrough()
+            decode: SchemaGetter.withDefault(() => "default-a"),
+            encode: SchemaGetter.passthrough()
           })),
           b: Schema.String
         })
@@ -1845,7 +1851,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         a: Schema.String.pipe(
           Schema.decodeTo(
             Schema.String,
-            Transformation.passthrough()
+            SchemaTransformation.passthrough()
           )
         )
       })
@@ -1874,8 +1880,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           Schema.decodeTo(
             Schema.optionalKey(Schema.String),
             {
-              decode: Getter.required(),
-              encode: Getter.withDefault(() => "default")
+              decode: SchemaGetter.required(),
+              encode: SchemaGetter.withDefault(() => "default")
             }
           )
         )
@@ -1901,8 +1907,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           Schema.decodeTo(
             Schema.String,
             {
-              decode: Getter.withDefault(() => "default"),
-              encode: Getter.passthrough()
+              decode: SchemaGetter.withDefault(() => "default"),
+              encode: SchemaGetter.passthrough()
             }
           )
         )
@@ -1920,7 +1926,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("double transformation", async () => {
       const schema = Schema.Trim.pipe(Schema.decodeTo(
         Schema.FiniteFromString,
-        Transformation.passthrough()
+        SchemaTransformation.passthrough()
       ))
       const asserts = new TestSchema.Asserts(schema)
 
@@ -1940,11 +1946,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         a: Schema.String.check(Schema.isMinLength(2)).pipe(
           Schema.decodeTo(
             Schema.String.check(Schema.isMinLength(3)),
-            Transformation.passthrough()
+            SchemaTransformation.passthrough()
           ),
           Schema.decodeTo(
             Schema.String,
-            Transformation.passthrough()
+            SchemaTransformation.passthrough()
           )
         )
       })
@@ -1977,15 +1983,15 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
               Schema.decodeTo(
                 Schema.String,
                 {
-                  decode: Getter.withDefault(() => "default-b"),
-                  encode: Getter.passthrough()
+                  decode: SchemaGetter.withDefault(() => "default-b"),
+                  encode: SchemaGetter.passthrough()
                 }
               )
             )
           }),
           {
-            decode: Getter.withDefault(() => ({})),
-            encode: Getter.passthrough()
+            decode: SchemaGetter.withDefault(() => ({})),
+            encode: SchemaGetter.passthrough()
           }
         ))
       })
@@ -2002,8 +2008,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("double transformation", async () => {
       const schema = Schema.String.pipe(
         Schema.decode(
-          Transformation.trim().compose(
-            Transformation.toLowerCase()
+          SchemaTransformation.trim().compose(
+            SchemaTransformation.toLowerCase()
           )
         )
       )
@@ -2023,7 +2029,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.String,
-            Transformation.passthrough()
+            SchemaTransformation.passthrough()
           )
         )
       })
@@ -2052,8 +2058,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           Schema.encodeTo(
             Schema.optionalKey(Schema.String),
             {
-              decode: Getter.withDefault(() => "default"),
-              encode: Getter.passthrough()
+              decode: SchemaGetter.withDefault(() => "default"),
+              encode: SchemaGetter.passthrough()
             }
           )
         )
@@ -2074,8 +2080,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           Schema.encodeTo(
             Schema.String,
             {
-              decode: Getter.required(),
-              encode: Getter.withDefault(() => "default")
+              decode: SchemaGetter.required(),
+              encode: SchemaGetter.withDefault(() => "default")
             }
           )
         )
@@ -2098,7 +2104,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("double transformation", async () => {
       const schema = Schema.FiniteFromString.pipe(Schema.encodeTo(
         Schema.Trim,
-        Transformation.passthrough()
+        SchemaTransformation.passthrough()
       ))
       const asserts = new TestSchema.Asserts(schema)
 
@@ -2118,11 +2124,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         a: Schema.String.pipe(
           Schema.encodeTo(
             Schema.String.check(Schema.isMinLength(3)),
-            Transformation.passthrough()
+            SchemaTransformation.passthrough()
           ),
           Schema.encodeTo(
             Schema.String.check(Schema.isMinLength(2)),
-            Transformation.passthrough()
+            SchemaTransformation.passthrough()
           )
         )
       })
@@ -2150,8 +2156,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("double transformation", async () => {
       const schema = Schema.String.pipe(
         Schema.encode(
-          Transformation.trim().compose(
-            Transformation.toLowerCase()
+          SchemaTransformation.trim().compose(
+            SchemaTransformation.toLowerCase()
           ).flip()
         )
       )
@@ -2829,7 +2835,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           `Missing key
   at ["a"]`
         )
-        const effect = await Parser.makeEffect(schema)({}).pipe(
+        const effect = await SchemaParser.makeEffect(schema)({}).pipe(
           Effect.provideService(Service, { value: Effect.succeed(-1) }),
           Effect.result,
           Effect.runPromise
@@ -3783,7 +3789,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const schema = Schema.String.pipe(
         Schema.decodeTo(
           Schema.String,
-          Transformation.toLowerCase()
+          SchemaTransformation.toLowerCase()
         )
       )
       const asserts = new TestSchema.Asserts(schema)
@@ -3795,7 +3801,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("toUpperCase", async () => {
       const schema = Schema.String.pipe(
-        Schema.decodeTo(Schema.String, Transformation.toUpperCase())
+        Schema.decodeTo(Schema.String, SchemaTransformation.toUpperCase())
       )
       const asserts = new TestSchema.Asserts(schema)
 
@@ -3940,8 +3946,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
           Schema.encodeTo(
             Schema.optionalKey(Schema.Literal("a")),
             {
-              decode: Getter.withDefault(() => "a" as const),
-              encode: Getter.omit()
+              decode: SchemaGetter.withDefault(() => "a" as const),
+              encode: SchemaGetter.omit()
             }
           )
         ),
@@ -4199,14 +4205,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     const schema = Schema.String.pipe(
       Schema.decodeTo(
         Schema.String,
-        Transformation.transformOrFail({
+        SchemaTransformation.transformOrFail({
           decode: (s) =>
             s === "a"
-              ? Effect.fail(new Issue.Forbidden(Option.some(s), { message: `input should not be "a"` }))
+              ? Effect.fail(new SchemaIssue.Forbidden(Option.some(s), { message: `input should not be "a"` }))
               : Effect.succeed(s),
           encode: (s) =>
             s === "b"
-              ? Effect.fail(new Issue.Forbidden(Option.some(s), { message: `input should not be "b"` }))
+              ? Effect.fail(new SchemaIssue.Forbidden(Option.some(s), { message: `input should not be "b"` }))
               : Effect.succeed(s)
         })
       )
@@ -4240,7 +4246,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         parts: Schema.TemplateLiteral.Parts,
         source: string
       ) => {
-        strictEqual(AST.getTemplateLiteralRegExp(Schema.TemplateLiteral(parts).ast).source, source)
+        strictEqual(SchemaAST.getTemplateLiteralRegExp(Schema.TemplateLiteral(parts).ast).source, source)
       }
 
       assertSource(["a"], "^(a)$")
@@ -5356,7 +5362,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
-        Schema.middlewareDecoding(() => Effect.fail(new Issue.Forbidden(Option.none(), { message: "my message" })))
+        Schema.middlewareDecoding(() =>
+          Effect.fail(new SchemaIssue.Forbidden(Option.none(), { message: "my message" }))
+        )
       )
       const asserts = new TestSchema.Asserts(schema)
 
@@ -5457,7 +5465,9 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
     it("forced failure", async () => {
       const schema = Schema.String.pipe(
-        Schema.middlewareEncoding(() => Effect.fail(new Issue.Forbidden(Option.none(), { message: "my message" })))
+        Schema.middlewareEncoding(() =>
+          Effect.fail(new SchemaIssue.Forbidden(Option.none(), { message: "my message" }))
+        )
       )
       const asserts = new TestSchema.Asserts(schema)
 
@@ -5538,8 +5548,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("Optional Property to Exact Optional Property", async () => {
       const schema = Schema.Struct({
         a: Schema.optional(Schema.FiniteFromString).pipe(Schema.decodeTo(Schema.optionalKey(Schema.Number), {
-          decode: Getter.transformOptional(Option.filter(Predicate.isNotUndefined)),
-          encode: Getter.passthrough()
+          decode: SchemaGetter.transformOptional(Option.filter(Predicate.isNotUndefined)),
+          encode: SchemaGetter.passthrough()
         }))
       })
       const asserts = new TestSchema.Asserts(schema)
@@ -5558,8 +5568,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const schema = Schema.Struct({
         a: Schema.optional(Schema.NullOr(Schema.FiniteFromString)).pipe(
           Schema.decodeTo(Schema.optional(Schema.Number), {
-            decode: Getter.transformOptional(Option.filter(Predicate.isNotNull)),
-            encode: Getter.passthrough()
+            decode: SchemaGetter.transformOptional(Option.filter(Predicate.isNotNull)),
+            encode: SchemaGetter.passthrough()
           })
         )
       })
@@ -5583,7 +5593,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         a: Schema.optionalKey(Schema.FiniteFromString).pipe(
           Schema.decodeTo(
             Schema.Option(Schema.Number),
-            Transformation.transformOptional({
+            SchemaTransformation.transformOptional({
               decode: Option.some,
               encode: Option.flatten
             })
@@ -5606,7 +5616,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         a: Schema.optional(Schema.FiniteFromString).pipe(
           Schema.decodeTo(
             Schema.Option(Schema.Number),
-            Transformation.transformOptional({
+            SchemaTransformation.transformOptional({
               decode: (on) => on.pipe(Option.filter((nu) => nu !== undefined), Option.some),
               encode: Option.flatten
             })
@@ -5697,14 +5707,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("no context", async () => {
       const schema = Schema.String.pipe(
         Schema.decode({
-          decode: Getter.checkEffect((s) =>
+          decode: SchemaGetter.checkEffect((s) =>
             Effect.gen(function*() {
               if (s.length === 0) {
-                return new Issue.InvalidValue(Option.some(s), { message: "input should not be empty string" })
+                return new SchemaIssue.InvalidValue(Option.some(s), { message: "input should not be empty string" })
               }
             }).pipe(Effect.delay(100))
           ),
-          encode: Getter.passthrough()
+          encode: SchemaGetter.passthrough()
         })
       )
       const asserts = new TestSchema.Asserts(schema)
@@ -5722,15 +5732,15 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const schema = Schema.String.pipe(
         Schema.decode({
-          decode: Getter.checkEffect((s) =>
+          decode: SchemaGetter.checkEffect((s) =>
             Effect.gen(function*() {
               yield* Service
               if (s.length === 0) {
-                return new Issue.InvalidValue(Option.some(s), { message: "input should not be empty string" })
+                return new SchemaIssue.InvalidValue(Option.some(s), { message: "input should not be empty string" })
               }
             })
           ),
-          encode: Getter.passthrough()
+          encode: SchemaGetter.passthrough()
         })
       )
       const asserts = new TestSchema.Asserts(schema)
@@ -5798,32 +5808,32 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   describe("decodeUnknownExit", () => {
     it("should throw on async decoding", () => {
       const AsyncString = Schema.String.pipe(Schema.decode({
-        decode: new Getter.Getter((os: Option.Option<string>) =>
+        decode: new SchemaGetter.Getter((os: Option.Option<string>) =>
           Effect.gen(function*() {
             yield* Effect.sleep("10 millis")
             return os
           })
         ),
-        encode: Getter.passthrough()
+        encode: SchemaGetter.passthrough()
       }))
       const schema = AsyncString
 
-      throws(() => Parser.decodeUnknownExit(schema)("1"))
+      throws(() => SchemaParser.decodeUnknownExit(schema)("1"))
     })
 
     it("should die on missing dependency", () => {
       class MagicNumber extends ServiceMap.Service<MagicNumber, number>()("MagicNumber") {}
       const DepString = Schema.Number.pipe(Schema.decode({
-        decode: Getter.onSome((n) =>
+        decode: SchemaGetter.onSome((n) =>
           Effect.gen(function*() {
             const magicNumber = yield* MagicNumber
             return Option.some(n * magicNumber)
           })
         ),
-        encode: Getter.passthrough()
+        encode: SchemaGetter.passthrough()
       }))
       const schema = DepString
-      const exit = Parser.decodeUnknownExit(schema as any)(1)
+      const exit = SchemaParser.decodeUnknownExit(schema as any)(1)
       assertTrue(Exit.hasDie(exit))
     })
   })
@@ -6217,7 +6227,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     describe("returns issue", () => {
       it("abort: false", async () => {
         const schema = Schema.String.check(
-          Schema.makeFilter((s) => new Issue.InvalidValue(Option.some(s), { message: "error message 1" }), {
+          Schema.makeFilter((s) => new SchemaIssue.InvalidValue(Option.some(s), { message: "error message 1" }), {
             title: "filter title 1"
           }),
           Schema.makeFilter(() => false, { title: "filter title 2", message: "error message 2" })
@@ -6234,7 +6244,7 @@ error message 2`
 
       it("abort: true", async () => {
         const schema = Schema.String.check(
-          Schema.makeFilter((s) => new Issue.InvalidValue(Option.some(s), { message: "error message 1" }), {
+          Schema.makeFilter((s) => new SchemaIssue.InvalidValue(Option.some(s), { message: "error message 1" }), {
             title: "filter title 1"
           }, true),
           Schema.makeFilter(() => false, { title: "filter title 2", message: "error message 2" })
@@ -6685,7 +6695,7 @@ error message 2`
     const schema = Schema.String.pipe(
       Schema.decodeTo(
         Schema.String.check(Schema.isCapitalized()),
-        Transformation.capitalize()
+        SchemaTransformation.capitalize()
       )
     )
     const asserts = new TestSchema.Asserts(schema)
@@ -6710,7 +6720,7 @@ error message 2`
     const schema = Schema.String.pipe(
       Schema.decodeTo(
         Schema.String.check(Schema.isUncapitalized()),
-        Transformation.uncapitalize()
+        SchemaTransformation.uncapitalize()
       )
     )
     const asserts = new TestSchema.Asserts(schema)
@@ -6735,7 +6745,7 @@ error message 2`
     const schema = Schema.String.pipe(
       Schema.decodeTo(
         Schema.String.check(Schema.isLowercased()),
-        Transformation.toLowerCase()
+        SchemaTransformation.toLowerCase()
       )
     )
     const asserts = new TestSchema.Asserts(schema)
@@ -6760,7 +6770,7 @@ error message 2`
     const schema = Schema.String.pipe(
       Schema.decodeTo(
         Schema.String.check(Schema.isUppercased()),
-        Transformation.toUpperCase()
+        SchemaTransformation.toUpperCase()
       )
     )
     const asserts = new TestSchema.Asserts(schema)
@@ -6785,8 +6795,8 @@ error message 2`
 describe("Getter", () => {
   it("succeed", async () => {
     const schema = Schema.Literal(0).pipe(Schema.decodeTo(Schema.Literal("a"), {
-      decode: Getter.succeed("a"),
-      encode: Getter.succeed(0)
+      decode: SchemaGetter.succeed("a"),
+      encode: SchemaGetter.succeed(0)
     }))
     const asserts = new TestSchema.Asserts(schema)
 
@@ -6804,7 +6814,7 @@ describe("Check", () => {
   it("isNumberString", async () => {
     const schema = Schema.String.check(Schema.isNumberString())
 
-    deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(SchemaAnnotations.resolveInto(schema)?.["meta"], {
       _tag: "isNumberString",
       regExp: /(?:[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?|Infinity|-Infinity|NaN)/
     })
@@ -6813,7 +6823,7 @@ describe("Check", () => {
   it("isBigIntString", async () => {
     const schema = Schema.String.check(Schema.isBigIntString())
 
-    deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(SchemaAnnotations.resolveInto(schema)?.["meta"], {
       _tag: "isBigIntString",
       regExp: /-?\d+/
     })
@@ -6822,7 +6832,7 @@ describe("Check", () => {
   it("isSymbolString", async () => {
     const schema = Schema.String.check(Schema.isSymbolString())
 
-    deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(SchemaAnnotations.resolveInto(schema)?.["meta"], {
       _tag: "isSymbolString",
       regExp: /^Symbol\((.*)\)$/
     })
@@ -6837,7 +6847,7 @@ describe("Check", () => {
       arbitrary.verifyGeneration()
     }
 
-    deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(SchemaAnnotations.resolveInto(schema)?.["meta"], {
       _tag: "isULID",
       regExp: /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
     })
@@ -6853,7 +6863,7 @@ describe("Check", () => {
   it("isBase64", async () => {
     const schema = Schema.String.check(Schema.isBase64())
 
-    deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(SchemaAnnotations.resolveInto(schema)?.["meta"], {
       _tag: "isBase64",
       regExp: /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
     })
@@ -6862,7 +6872,7 @@ describe("Check", () => {
   it("isBase64Url", async () => {
     const schema = Schema.String.check(Schema.isBase64Url())
 
-    deepStrictEqual(Annotations.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(SchemaAnnotations.resolveInto(schema)?.["meta"], {
       _tag: "isBase64Url",
       regExp: /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
     })

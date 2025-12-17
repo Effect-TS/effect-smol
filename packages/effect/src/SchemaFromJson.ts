@@ -16,17 +16,17 @@
  *
  * @since 4.0.0
  */
-import * as Arr from "../Array.ts"
-import * as Combiner from "../Combiner.ts"
-import { format, formatPropertyKey } from "../Formatter.ts"
-import { remainder } from "../Number.ts"
-import { isObject } from "../Predicate.ts"
-import * as Reducer from "../Reducer.ts"
-import { type Mutable } from "../Types.ts"
-import * as UndefinedOr from "../UndefinedOr.ts"
-import type { Annotations } from "./Annotations.ts"
-import type * as AST from "./AST.ts"
+import * as Arr from "./Array.ts"
+import * as Combiner from "./Combiner.ts"
+import { format, formatPropertyKey } from "./Formatter.ts"
+import { remainder } from "./Number.ts"
+import { isObject } from "./Predicate.ts"
+import * as Reducer from "./Reducer.ts"
 import type * as Schema from "./Schema.ts"
+import type { Annotations } from "./SchemaAnnotations.ts"
+import type * as AST from "./SchemaAST.ts"
+import { type Mutable } from "./Types.ts"
+import * as UndefinedOr from "./UndefinedOr.ts"
 
 /**
  * @since 4.0.0

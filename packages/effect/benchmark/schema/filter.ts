@@ -1,5 +1,5 @@
 import { type } from "arktype"
-import { Schema } from "effect/schema"
+import { Schema } from "effect"
 import { Bench } from "tinybench"
 import * as v from "valibot"
 import { z } from "zod/v4-mini"

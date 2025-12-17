@@ -9,8 +9,7 @@ import {
   strictEqual,
   throws
 } from "@effect/vitest/utils"
-import { Brand, Result } from "effect"
-import { Schema } from "effect/schema"
+import { Brand, Result, Schema } from "effect"
 
 function assertSuccess<T extends Brand.Brand<any>>(ctor: Brand.Constructor<T>, value: Brand.Brand.Unbranded<T>) {
   vassertSuccess(ctor.result(value), value as T)

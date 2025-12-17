@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
-import type * as Schema from "effect/schema/Schema"
+import type * as Schema from "effect/Schema"
 import * as ServiceMap from "effect/ServiceMap"
 import * as String from "effect/String"
 import type { OpenAPISpec, OpenAPISpecMethodName, OpenAPISpecPathItem } from "effect/unstable/httpapi/OpenApi"

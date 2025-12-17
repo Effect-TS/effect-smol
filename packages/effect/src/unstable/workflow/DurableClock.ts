@@ -3,7 +3,7 @@
  */
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
-import type * as Schema from "../../schema/Schema.ts"
+import type * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Activity from "./Activity.ts"
 import * as DurableDeferred from "./DurableDeferred.ts"

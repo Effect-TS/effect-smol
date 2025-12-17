@@ -1,5 +1,17 @@
-import { Cause, DateTime, Duration, Effect, Option, Redacted, Result } from "effect"
-import { Getter, Issue, Parser, Schema, Transformation } from "effect/schema"
+import {
+  Cause,
+  DateTime,
+  Duration,
+  Effect,
+  Option,
+  Redacted,
+  Result,
+  Schema,
+  SchemaGetter,
+  SchemaIssue,
+  SchemaParser,
+  SchemaTransformation
+} from "effect"
 import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
 import { assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
@@ -8,7 +20,7 @@ const isDeno = "Deno" in globalThis
 
 const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
   Schema.Number,
-  Transformation.transform({
+  SchemaTransformation.transform({
     decode: (date) => date.getTime(),
     encode: (n) => new Date(n)
   })
@@ -20,8 +32,8 @@ describe("Serializers", () => {
       const schema = Schema.Union([
         Schema.String,
         Schema.String.pipe(Schema.encodeTo(Schema.BigInt, {
-          decode: Getter.transform((n: bigint) => String(n) + "a"),
-          encode: Getter.transform(() => 0n)
+          decode: SchemaGetter.transform((n: bigint) => String(n) + "a"),
+          encode: SchemaGetter.transform(() => 0n)
         }))
       ])
       const serializer = Schema.toCodecJson(schema)
@@ -121,7 +133,7 @@ describe("Serializers", () => {
             "toCodec*": () =>
               Schema.link<Date>()(
                 Schema.Date,
-                Transformation.passthrough()
+                SchemaTransformation.passthrough()
               )
           }),
           b: Schema.Number
@@ -152,7 +164,7 @@ describe("Serializers", () => {
               "toCodec*": () =>
                 Schema.link<MyError>()(
                   Schema.String,
-                  Transformation.transform({
+                  SchemaTransformation.transform({
                     decode: (message) => new MyError(message),
                     encode: (e) => e.message
                   })
@@ -188,7 +200,7 @@ describe("Serializers", () => {
                 "toCodec*": () =>
                   Schema.link<MyError>()(
                     MyError.Props,
-                    Transformation.transform({
+                    SchemaTransformation.transform({
                       decode: (props) => new MyError(props),
                       encode: (e) => ({
                         message: e.message,
@@ -1190,15 +1202,15 @@ describe("Serializers", () => {
         c: Schema.Tuple([Schema.String])
       })
 
-      const r = Parser.decodeUnknownExit(schema)({ a: "", c: [] }, { errors: "all" })
+      const r = SchemaParser.decodeUnknownExit(schema)({ a: "", c: [] }, { errors: "all" })
 
       assertTrue(r._tag === "Failure")
       assertTrue(r.cause.failures.length === 1)
       const failure = r.cause.failures[0]
       assertTrue(failure._tag === "Fail")
 
-      const failureResult = Issue.makeFormatterStandardSchemaV1({
-        leafHook: Issue.defaultLeafHook
+      const failureResult = SchemaIssue.makeFormatterStandardSchemaV1({
+        leafHook: SchemaIssue.defaultLeafHook
       })(failure.error)
 
       const asserts = new TestSchema.Asserts(Schema.toCodecJson(Schema.StandardSchemaV1FailureResult))
@@ -1242,8 +1254,8 @@ describe("Serializers", () => {
         const schema = Schema.Union([
           Schema.String,
           Schema.String.pipe(Schema.encodeTo(Schema.BigInt, {
-            decode: Getter.transform((n: bigint) => String(n) + "a"),
-            encode: Getter.transform(() => 0n)
+            decode: SchemaGetter.transform((n: bigint) => String(n) + "a"),
+            encode: SchemaGetter.transform(() => 0n)
           }))
         ])
         const serializer = Schema.toCodecStringTree(schema, { keepDeclarations: true })
@@ -1278,8 +1290,8 @@ describe("Serializers", () => {
       const schema = Schema.Union([
         Schema.String,
         Schema.String.pipe(Schema.encodeTo(Schema.BigInt, {
-          decode: Getter.transform((n: bigint) => String(n) + "a"),
-          encode: Getter.transform(() => 0n)
+          decode: SchemaGetter.transform((n: bigint) => String(n) + "a"),
+          encode: SchemaGetter.transform(() => 0n)
         }))
       ])
       const serializer = Schema.toCodecStringTree(schema)

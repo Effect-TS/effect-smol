@@ -4,7 +4,7 @@
 import type { NoSuchElementError } from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Transferable from "../workers/Transferable.ts"
 import type { Protocol } from "./RpcServer.ts"

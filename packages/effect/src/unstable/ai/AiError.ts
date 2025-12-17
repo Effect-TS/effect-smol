@@ -76,7 +76,7 @@ import * as Effect from "../../Effect.ts"
 import { format } from "../../Formatter.ts"
 import * as Predicate from "../../Predicate.ts"
 import { redact } from "../../Redactable.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 import type * as HttpClientError from "../http/HttpClientError.ts"
 
 const TypeId = "~effect/unstable/ai/AiError" as const

@@ -99,7 +99,7 @@ ${clientErrorSource(name)}`
    * Whether or not the response should be included in the value returned from
    * an operation.
    *
-   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned, 
+   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned,
    * where \`A\` is the success type of the operation.
    *
    * If set to \`false\`, only the success type of the operation will be returned.
@@ -109,7 +109,7 @@ ${clientErrorSource(name)}`
 
 /**
  * A utility type which optionally includes the response in the return result
- * of an operation based upon the value of the \`includeResponse\` configuration 
+ * of an operation based upon the value of the \`includeResponse\` configuration
  * option.
  */
 export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
@@ -201,8 +201,8 @@ export const make = (
       [
         `import * as Data from "effect/Data"`,
         `import * as Effect from "effect/Effect"`,
-        `import type { SchemaError } from "effect/schema/Schema"`,
-        `import * as ${importName} from "effect/schema/Schema"`,
+        `import type { SchemaError } from "effect/Schema"`,
+        `import * as ${importName} from "effect/Schema"`,
         `import type * as HttpClient from "effect/unstable/http/HttpClient"`,
         `import * as HttpClientError from "effect/unstable/http/HttpClientError"`,
         `import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"`,
@@ -286,7 +286,7 @@ ${clientErrorSource(name)}`
    * Whether or not the response should be included in the value returned from
    * an operation.
    *
-   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned, 
+   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned,
    * where \`A\` is the success type of the operation.
    *
    * If set to \`false\`, only the success type of the operation will be returned.
@@ -296,7 +296,7 @@ ${clientErrorSource(name)}`
 
 /**
  * A utility type which optionally includes the response in the return result
- * of an operation based upon the value of the \`includeResponse\` configuration 
+ * of an operation based upon the value of the \`includeResponse\` configuration
  * option.
  */
 export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
@@ -439,11 +439,11 @@ const commonSource = `const unexpectedStatus = (response: HttpClientResponse.Htt
   ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
     const withOptionalResponse = (
       config?.includeResponse
-        ? (response: HttpClientResponse.HttpClientResponse) => Effect.map(f(response), (a) => [a, response]) 
+        ? (response: HttpClientResponse.HttpClientResponse) => Effect.map(f(response), (a) => [a, response])
         : (response: HttpClientResponse.HttpClientResponse) => f(response)
     ) as any
     return options?.transformClient
-      ? (request) => 
+      ? (request) =>
           Effect.flatMap(
             Effect.flatMap(options.transformClient!(httpClient), (client) => client.execute(request)),
             withOptionalResponse

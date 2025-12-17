@@ -2,12 +2,12 @@
  * @since 4.0.0
  */
 
-import type { Equivalence } from "../Equivalence.ts"
-import type { Formatter } from "../Formatter.ts"
-import { memoize } from "../Function.ts"
-import type * as FastCheck from "../testing/FastCheck.ts"
-import type * as AST from "./AST.ts"
+import type { Equivalence } from "./Equivalence.ts"
+import type { Formatter } from "./Formatter.ts"
+import { memoize } from "./Function.ts"
 import type * as Schema from "./Schema.ts"
+import type * as AST from "./SchemaAST.ts"
+import type * as FastCheck from "./testing/FastCheck.ts"
 
 /**
  * This interface is used to define the annotations that can be attached to a
@@ -21,10 +21,10 @@ import type * as Schema from "./Schema.ts"
  * **Example** (Defining your own annotations)
  *
  * ```ts
- * import { Annotations, Schema } from "effect/schema"
+ * import { SchemaAnnotations, Schema } from "effect"
  *
  * // Extend the Annotations interface with a custom `version` annotation
- * declare module "effect/schema/Annotations" {
+ * declare module "effect/SchemaAnnotations" {
  *   interface Annotations {
  *     readonly version?:
  *       | readonly [major: number, minor: number, patch: number]
@@ -36,7 +36,7 @@ import type * as Schema from "./Schema.ts"
  * const schema = Schema.String.annotate({ version: [1, 2, 0] })
  *
  * // const version: readonly [major: number, minor: number, patch: number] | undefined
- * const version = Annotations.resolveInto(schema)?.["version"]
+ * const version = SchemaAnnotations.resolveInto(schema)?.["version"]
  *
  * if (version) {
  *   // Access individual parts of the version

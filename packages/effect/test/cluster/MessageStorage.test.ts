@@ -1,6 +1,5 @@
 import { describe, expect, it } from "@effect/vitest"
-import { Effect, Exit, Fiber, Layer, ServiceMap } from "effect"
-import { Schema } from "effect/schema"
+import { Effect, Exit, Fiber, Layer, Schema, ServiceMap } from "effect"
 import { TestClock } from "effect/testing"
 import {
   EntityAddress,

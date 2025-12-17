@@ -1,5 +1,5 @@
 import { describe, it } from "@effect/vitest"
-import { Schema } from "effect/schema"
+import { Schema } from "effect"
 import { TestSchema } from "effect/testing"
 import { Cookies } from "effect/unstable/http"
 import { assertSuccess } from "../../utils/assert.ts"

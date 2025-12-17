@@ -1,17 +1,17 @@
 /**
  * @since 4.0.0
  */
-import * as Arr from "../Array.ts"
-import { format, formatPropertyKey } from "../Formatter.ts"
-import * as Option from "../Option.ts"
-import * as Predicate from "../Predicate.ts"
-import * as Rec from "../Record.ts"
-import * as RegEx from "../RegExp.ts"
-import type * as Types from "../Types.ts"
-import * as Annotations from "./Annotations.ts"
-import * as AST from "./AST.ts"
-import * as Getter from "./Getter.ts"
+import * as Arr from "./Array.ts"
+import { format, formatPropertyKey } from "./Formatter.ts"
+import * as Option from "./Option.ts"
+import * as Predicate from "./Predicate.ts"
+import * as Rec from "./Record.ts"
+import * as RegEx from "./RegExp.ts"
 import * as Schema from "./Schema.ts"
+import * as Annotations from "./SchemaAnnotations.ts"
+import * as AST from "./SchemaAST.ts"
+import * as Getter from "./SchemaGetter.ts"
+import type * as Types from "./Types.ts"
 
 // -----------------------------------------------------------------------------
 // specification

@@ -1,6 +1,5 @@
+import { hole, Schema } from "effect"
 import type { Effect, Exit, Option } from "effect"
-import { hole } from "effect"
-import { Schema } from "effect/schema"
 import { describe, expect, it } from "tstyche"
 
 describe("decoding / encoding API", () => {

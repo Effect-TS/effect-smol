@@ -3,7 +3,7 @@
  */
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 import type { ServiceMap } from "../../ServiceMap.ts"
 import * as Rpc from "../rpc/Rpc.ts"
 import type { PersistenceError } from "./ClusterError.ts"

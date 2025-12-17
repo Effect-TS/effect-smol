@@ -1,5 +1,4 @@
-import { Equivalence, Number, pipe, String, String as Str, Struct, UndefinedOr } from "effect"
-import { Schema } from "effect/schema"
+import { Equivalence, Number, pipe, Schema, String, String as Str, Struct, UndefinedOr } from "effect"
 import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
 import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "./utils/assert.ts"

@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 
 // TODO: Add schema for structured issues

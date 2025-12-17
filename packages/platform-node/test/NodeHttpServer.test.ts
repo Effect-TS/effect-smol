@@ -4,7 +4,7 @@ import { Effect } from "effect"
 import * as Duration from "effect/Duration"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
-import * as Schema from "effect/schema/Schema"
+import * as Schema from "effect/Schema"
 import * as Stream from "effect/Stream"
 import * as Tracer from "effect/Tracer"
 import {

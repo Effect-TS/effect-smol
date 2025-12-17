@@ -1,4 +1,4 @@
-import { Schema } from "effect/schema"
+import { Schema } from "effect"
 import { Rewriter } from "effect/unstable/jsonschema"
 import { describe, it } from "vitest"
 import { deepStrictEqual } from "../../utils/assert.ts"

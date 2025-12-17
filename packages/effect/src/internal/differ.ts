@@ -1,5 +1,5 @@
 import * as Predicate from "../Predicate.ts"
-import type * as Schema from "../schema/Schema.ts"
+import type * as Schema from "../Schema.ts"
 
 // Mutates op.path in place for perf; safe because child ops are freshly created and not shared.
 function prefixPathInPlace(op: Schema.JsonPatchOperation, parent: string): void {

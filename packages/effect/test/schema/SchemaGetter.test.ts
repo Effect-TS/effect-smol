@@ -1,9 +1,8 @@
-import { Effect, Option, Result } from "effect"
-import { Getter } from "effect/schema"
+import { Effect, Option, Result, SchemaGetter } from "effect"
 import { describe, it } from "vitest"
 import { assertSome, deepStrictEqual } from "../utils/assert.ts"
 
-function makeAsserts<T, E>(getter: Getter.Getter<T, E>) {
+function makeAsserts<T, E>(getter: SchemaGetter.Getter<T, E>) {
   return async (input: E, expected: T) => {
     const r = await Effect.runPromise(
       getter.run(Option.some(input), {}).pipe(
@@ -15,16 +14,16 @@ function makeAsserts<T, E>(getter: Getter.Getter<T, E>) {
   }
 }
 
-describe("Getter", () => {
+describe("SchemaGetter", () => {
   it("map", () => {
-    const getter = Getter.succeed(1).map((t) => t + 1)
+    const getter = SchemaGetter.succeed(1).map((t) => t + 1)
     const result = Effect.runSync(getter.run(Option.some(1), {}))
     assertSome(result, 2)
   })
 
   describe("decodeFormData / encodeFormData", () => {
-    const decoding = makeAsserts(Getter.decodeFormData())
-    const encoding = makeAsserts(Getter.encodeFormData())
+    const decoding = makeAsserts(SchemaGetter.decodeFormData())
+    const encoding = makeAsserts(SchemaGetter.encodeFormData())
 
     it("should support multiple values for the same key", async () => {
       const formData = new FormData()
@@ -219,8 +218,8 @@ describe("Getter", () => {
   })
 
   describe("decodeURLSearchParams / encodeURLSearchParams", () => {
-    const decoding = makeAsserts(Getter.decodeURLSearchParams())
-    const encoding = makeAsserts(Getter.encodeURLSearchParams())
+    const decoding = makeAsserts(SchemaGetter.decodeURLSearchParams())
+    const encoding = makeAsserts(SchemaGetter.encodeURLSearchParams())
 
     it("should support multiple values for the same key", async () => {
       const urlSearchParams = new URLSearchParams("a=1&a=2")

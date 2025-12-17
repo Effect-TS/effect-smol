@@ -1,13 +1,11 @@
-import { flow, String as Str, Struct } from "effect"
-import type { Brand } from "effect"
-import type { AST } from "effect/schema"
-import { Schema } from "effect/schema"
+import { flow, Schema, String as Str, Struct } from "effect"
+import type { Brand, SchemaAST } from "effect"
 import { describe, expect, it, when } from "tstyche"
 
 describe("Struct", () => {
   it("ast type", () => {
     const schema = Schema.Struct({ a: Schema.String })
-    expect(schema.ast).type.toBe<AST.Objects>()
+    expect(schema.ast).type.toBe<SchemaAST.Objects>()
   })
 
   it("Never should be usable as a field", () => {
@@ -557,7 +555,7 @@ describe("Struct", () => {
       expect(schema.annotate({})).type.toBe<
         Schema.Struct<{ readonly a: Schema.decodeTo<Schema.Number, Schema.String> }>
       >()
-      expect(schema.ast).type.toBe<AST.Objects>()
+      expect(schema.ast).type.toBe<SchemaAST.Objects>()
       expect(schema.makeUnsafe).type.toBe<
         (input: { readonly a: number }, options?: Schema.MakeOptions | undefined) => A
       >()

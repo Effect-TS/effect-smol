@@ -1,6 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect } from "effect"
-import { Schema } from "effect/schema"
+import { Effect, Schema } from "effect"
 import { Headers } from "effect/unstable/http"
 import { Rpc, RpcGroup } from "effect/unstable/rpc"
 import { RequestId } from "effect/unstable/rpc/RpcMessage"

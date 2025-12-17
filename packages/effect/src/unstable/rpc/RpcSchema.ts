@@ -2,8 +2,8 @@
  * @since 4.0.0
  */
 import * as Predicate from "../../Predicate.ts"
-import type * as AST from "../../schema/AST.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
+import type * as AST from "../../SchemaAST.ts"
 import * as Stream_ from "../../Stream.ts"
 
 const StreamSchemaTypeId = "~effect/rpc/RpcSchema/StreamSchema"

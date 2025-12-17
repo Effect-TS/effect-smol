@@ -1,11 +1,11 @@
 import * as Duration from "#dist/effect/Duration"
 import * as Effect from "#dist/effect/Effect"
-import * as Schema from "#dist/effect/schema/Schema"
-import * as Transformation from "#dist/effect/schema/Transformation"
+import * as Schema from "#dist/effect/Schema"
+import * as SchemaTransformation from "#dist/effect/SchemaTransformation"
 
 const schema = Schema.String.pipe(Schema.decodeTo(
   Schema.String,
-  Transformation.transformOrFail({
+  SchemaTransformation.transformOrFail({
     decode: (s) =>
       Effect.gen(function*() {
         yield* Effect.clockWith((clock) => clock.sleep(Duration.millis(300)))

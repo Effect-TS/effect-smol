@@ -1,5 +1,5 @@
+import { Schema } from "effect"
 import * as DateTime from "effect/DateTime"
-import { Schema } from "effect/schema"
 import * as FastCheck from "effect/testing/FastCheck"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"

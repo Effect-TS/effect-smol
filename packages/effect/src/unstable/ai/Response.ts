@@ -29,8 +29,8 @@
 import type * as DateTime from "../../DateTime.ts"
 import { constFalse, identity } from "../../Function.ts"
 import * as Predicate from "../../Predicate.ts"
-import * as Schema from "../../schema/Schema.ts"
-import * as SchemaTransformation from "../../schema/Transformation.ts"
+import * as Schema from "../../Schema.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type * as Tool from "./Tool.ts"
 import type * as Toolkit from "./Toolkit.ts"
 

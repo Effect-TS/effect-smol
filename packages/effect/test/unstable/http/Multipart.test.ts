@@ -1,5 +1,5 @@
 import { describe, it } from "@effect/vitest"
-import { Schema } from "effect/schema"
+import { Schema } from "effect"
 import { Multipart } from "effect/unstable/http"
 import { deepStrictEqual } from "node:assert"
 

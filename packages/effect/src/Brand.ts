@@ -8,8 +8,8 @@
 import * as Arr from "./Array.ts"
 import * as Option from "./Option.ts"
 import * as Result from "./Result.ts"
-import * as AST from "./schema/AST.ts"
-import type * as Issue from "./schema/Issue.ts"
+import * as AST from "./SchemaAST.ts"
+import type * as Issue from "./SchemaIssue.ts"
 import type * as Types from "./Types.ts"
 
 const TypeId = "~effect/data/Brand"

@@ -4,7 +4,7 @@
 import type * as Duration from "effect/Duration"
 import type * as Effect from "effect/Effect"
 import type * as Layer from "effect/Layer"
-import type * as Schema from "effect/schema/Schema"
+import type * as Schema from "effect/Schema"
 import type * as Scope from "effect/Scope"
 import type * as FC from "effect/testing/FastCheck"
 import * as V from "vitest"

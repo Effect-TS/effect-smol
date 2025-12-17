@@ -2,9 +2,9 @@ import * as Equal from "../Equal.ts"
 import * as Equivalence from "../Equivalence.ts"
 import { memoize } from "../Function.ts"
 import * as Predicate from "../Predicate.ts"
-import * as Annotations from "../schema/Annotations.ts"
-import * as AST from "../schema/AST.ts"
-import * as Parser from "../schema/Parser.ts"
+import * as Annotations from "../SchemaAnnotations.ts"
+import * as AST from "../SchemaAST.ts"
+import * as Parser from "../SchemaParser.ts"
 import { errorWithPath } from "./errors.ts"
 
 /** @internal */

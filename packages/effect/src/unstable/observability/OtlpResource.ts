@@ -4,7 +4,7 @@
 import * as Config from "../../Config.ts"
 import * as Effect from "../../Effect.ts"
 import { format } from "../../Formatter.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 
 /**
  * @since 4.0.0

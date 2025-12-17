@@ -1,5 +1,4 @@
-import { Number, pipe, String, Tuple } from "effect"
-import { Schema } from "effect/schema"
+import { Number, pipe, Schema, String, Tuple } from "effect"
 import { TestSchema } from "effect/testing"
 import { deepStrictEqual, strictEqual } from "node:assert"
 import { describe, it } from "vitest"

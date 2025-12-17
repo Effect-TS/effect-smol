@@ -1,7 +1,7 @@
 import type { Options as AjvOptions } from "ajv"
 // eslint-disable-next-line import-x/no-named-as-default
 import Ajv from "ajv"
-import { Getter, Schema } from "effect/schema"
+import { Schema, SchemaGetter } from "effect"
 import { describe, it } from "vitest"
 import { assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
@@ -489,12 +489,12 @@ describe("JsonSchema generation", () => {
       it("using a schema with two different encodings", () => {
         const To = Schema.String.annotate({ identifier: "ID" })
         const schema1 = To.pipe(Schema.encodeTo(Schema.Literal(1), {
-          decode: Getter.succeed("a"),
-          encode: Getter.succeed(1)
+          decode: SchemaGetter.succeed("a"),
+          encode: SchemaGetter.succeed(1)
         }))
         const schema2 = To.pipe(Schema.encodeTo(Schema.Literal(2), {
-          decode: Getter.succeed("b"),
-          encode: Getter.succeed(2)
+          decode: SchemaGetter.succeed("b"),
+          encode: SchemaGetter.succeed(2)
         }))
         const schema = Schema.Union([schema1, schema2])
         assertDraft07(schema, {

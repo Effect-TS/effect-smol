@@ -4,7 +4,7 @@
 import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import { hasProperty, isTagged } from "../../Predicate.ts"
-import * as Schema from "../../schema/Schema.ts"
+import * as Schema from "../../Schema.ts"
 import { EntityAddress } from "./EntityAddress.ts"
 import { RunnerAddress } from "./RunnerAddress.ts"
 import { SnowflakeFromString } from "./Snowflake.ts"

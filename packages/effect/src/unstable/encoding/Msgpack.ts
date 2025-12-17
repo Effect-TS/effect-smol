@@ -12,9 +12,9 @@ import { dual } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Pull from "../../Pull.ts"
-import * as Issue from "../../schema/Issue.ts"
-import * as Schema from "../../schema/Schema.ts"
-import * as Transformation from "../../schema/Transformation.ts"
+import * as Schema from "../../Schema.ts"
+import * as Issue from "../../SchemaIssue.ts"
+import * as Transformation from "../../SchemaTransformation.ts"
 
 const MsgPackErrorTypeId = "~effect/encoding/MsgPack/MsgPackError"
 

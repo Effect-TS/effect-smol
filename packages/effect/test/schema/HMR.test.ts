@@ -1,7 +1,7 @@
 import { Exit, Option } from "effect"
 import { describe, expect, it, vi } from "vitest"
 
-const SCHEMA_MODULE_PATH = "../../src/schema/Schema.ts"
+const SCHEMA_MODULE_PATH = "../../src/Schema.ts"
 
 describe("HMR", () => {
   it("sanity check: reload produces distinct constructors", async () => {
@@ -17,10 +17,10 @@ describe("HMR", () => {
   })
 
   it("isAST", async () => {
-    const AST_MODULE_PATH = "../../src/schema/AST.ts"
-    const mod1: any = await vi.importActual(AST_MODULE_PATH)
+    const SCHEMA_AST_MODULE_PATH = "../../src/SchemaAST.ts"
+    const mod1: any = await vi.importActual(SCHEMA_AST_MODULE_PATH)
     vi.resetModules()
-    const mod2: any = await vi.importActual(AST_MODULE_PATH)
+    const mod2: any = await vi.importActual(SCHEMA_AST_MODULE_PATH)
 
     const isAST = mod1.isAST
 

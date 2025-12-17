@@ -1,7 +1,21 @@
 import { NodeHttpServer } from "@effect/platform-node"
 import { assert, describe, it } from "@effect/vitest"
-import { Array, DateTime, Effect, FileSystem, Filter, Layer, Redacted, Ref, ServiceMap, Stream, Struct } from "effect"
-import { Getter, Schema, Transformation } from "effect/schema"
+import {
+  Array,
+  DateTime,
+  Effect,
+  FileSystem,
+  Filter,
+  Layer,
+  Redacted,
+  Ref,
+  Schema,
+  SchemaGetter,
+  SchemaTransformation,
+  ServiceMap,
+  Stream,
+  Struct
+} from "effect"
 import {
   Cookies,
   HttpClient,
@@ -501,8 +515,8 @@ describe("HttpApi", () => {
             success: Schema.String,
             error: Schema.Union([Schema.String, Schema.Number.annotate({ httpApiStatus: 400 })]).pipe(
               Schema.encodeTo(Schema.String, {
-                decode: Getter.passthrough(),
-                encode: Getter.transform(String)
+                decode: SchemaGetter.passthrough(),
+                encode: SchemaGetter.transform(String)
               })
             ).annotate({ httpApiStatus: 400 })
           }))
@@ -544,7 +558,7 @@ describe("HttpApi", () => {
       Schema.String.pipe(
         Schema.decodeTo(
           RateLimitError,
-          Transformation.transform({
+          SchemaTransformation.transform({
             encode: ({ message }) => message,
             decode: (message) => new RateLimitError({ message })
           })
@@ -697,8 +711,8 @@ class UsersApi extends HttpApiGroup.make("users")
         page: Schema.FiniteFromString.pipe(
           Schema.optionalKey,
           Schema.decode({
-            decode: Getter.withDefault(() => 1),
-            encode: Getter.passthrough()
+            decode: SchemaGetter.withDefault(() => 1),
+            encode: SchemaGetter.passthrough()
           })
         )
       },

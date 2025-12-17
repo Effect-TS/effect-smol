@@ -5,14 +5,14 @@ import type { YieldableError } from "../../Cause.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
 import * as Iterable from "../../Iterable.ts"
-import * as Annotations from "../../schema/Annotations.ts"
-import * as AST from "../../schema/AST.ts"
-import * as Schema from "../../schema/Schema.ts"
-import * as Transformation from "../../schema/Transformation.ts"
+import * as Schema from "../../Schema.ts"
+import * as Annotations from "../../SchemaAnnotations.ts"
+import * as AST from "../../SchemaAST.ts"
+import * as Transformation from "../../SchemaTransformation.ts"
 import type { Mutable } from "../../Types.ts"
 import type * as Multipart_ from "../http/Multipart.ts"
 
-declare module "../../schema/Annotations.ts" {
+declare module "../../SchemaAnnotations.ts" {
   interface Annotations {
     readonly httpApiEncoding?: Encoding | undefined
     readonly httpApiIsEmpty?: true | undefined

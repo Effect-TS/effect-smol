@@ -1,4 +1,4 @@
-import { Schema, Standard } from "effect/schema"
+import { Schema, SchemaStandard } from "effect"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
@@ -19,31 +19,31 @@ const InnerCategory = Schema.Struct({
   )
 })
 
-function assertToCode(schema: Schema.Top, expected: string, reviver?: Standard.Reviver<string>) {
-  const document = Standard.fromAST(schema.ast)
-  strictEqual(Standard.toCode(document, { reviver }), expected)
+function assertToCode(schema: Schema.Top, expected: string, reviver?: SchemaStandard.Reviver<string>) {
+  const document = SchemaStandard.fromAST(schema.ast)
+  strictEqual(SchemaStandard.toCode(document, { reviver }), expected)
 }
 
-function assertJsonSchemaRoundtrip(schema: Schema.Top, expected: string, reviver?: Standard.Reviver<string>) {
-  const document = Standard.fromAST(schema.ast)
-  const toJsonSchema = Standard.toJsonSchema(document)
-  const decodedDocument = Standard.fromJsonSchema(toJsonSchema)
-  const code = Standard.toCode(decodedDocument, { reviver })
+function assertJsonSchemaRoundtrip(schema: Schema.Top, expected: string, reviver?: SchemaStandard.Reviver<string>) {
+  const document = SchemaStandard.fromAST(schema.ast)
+  const toJsonSchema = SchemaStandard.toJsonSchema(document)
+  const decodedDocument = SchemaStandard.fromJsonSchema(toJsonSchema)
+  const code = SchemaStandard.toCode(decodedDocument, { reviver })
   strictEqual(code, expected)
-  const decodedSchema = Standard.toSchema(decodedDocument)
-  deepStrictEqual(Standard.toJsonSchema(Standard.fromAST(decodedSchema.ast)), toJsonSchema)
+  const decodedSchema = SchemaStandard.toSchema(decodedDocument)
+  deepStrictEqual(SchemaStandard.toJsonSchema(SchemaStandard.fromAST(decodedSchema.ast)), toJsonSchema)
 }
 
 describe("Standard", () => {
   describe("toJsonSchema", () => {
     function assertToJsonSchema(
-      documentOrSchema: Standard.Document | Schema.Top,
+      documentOrSchema: SchemaStandard.Document | Schema.Top,
       expected: { schema: object; definitions?: Record<string, object> }
     ) {
       const astDocument = Schema.isSchema(documentOrSchema)
-        ? Standard.fromAST(documentOrSchema.ast)
+        ? SchemaStandard.fromAST(documentOrSchema.ast)
         : documentOrSchema
-      const jsonDocument = Standard.toJsonSchema(astDocument)
+      const jsonDocument = SchemaStandard.toJsonSchema(astDocument)
       strictEqual(jsonDocument.source, "draft-2020-12")
       deepStrictEqual(jsonDocument.schema, expected.schema)
       deepStrictEqual(jsonDocument.definitions, expected.definitions ?? {})
@@ -1079,8 +1079,8 @@ describe("Standard", () => {
         readonly definitions?: Record<string, Schema.JsonSchema>
       }
     ) {
-      const document = Standard.fromAST(schema.ast)
-      deepStrictEqual(Standard.toJson(document), { source: "draft-2020-12", definitions: {}, ...expected })
+      const document = SchemaStandard.fromAST(schema.ast)
+      deepStrictEqual(SchemaStandard.toJson(document), { source: "draft-2020-12", definitions: {}, ...expected })
     }
 
     it("should throw if there are duplicate identifiers", () => {
@@ -1088,7 +1088,7 @@ describe("Standard", () => {
         a: Schema.String.annotate({ identifier: "a" }),
         b: Schema.String.annotate({ identifier: "a" })
       })
-      throws(() => Standard.fromAST(schema.ast), "Duplicate identifier: a")
+      throws(() => SchemaStandard.fromAST(schema.ast), "Duplicate identifier: a")
     })
 
     describe("Suspend", () => {
@@ -1962,9 +1962,9 @@ describe("Standard", () => {
 
       it("should throw error for symbol created without Symbol.for()", () => {
         const sym = Symbol("test")
-        const document = Standard.fromAST(Schema.UniqueSymbol(sym).ast)
+        const document = SchemaStandard.fromAST(Schema.UniqueSymbol(sym).ast)
         throws(
-          () => Standard.toCode(document),
+          () => SchemaStandard.toCode(document),
           "Cannot generate code for UniqueSymbol created without Symbol.for()"
         )
       })
@@ -2215,8 +2215,8 @@ describe("Standard", () => {
 
   describe("toSchema", () => {
     function assertToSchema(schema: Schema.Top, expected: string) {
-      const document = Standard.fromAST(schema.ast)
-      const toSchema = Standard.toSchema(document)
+      const document = SchemaStandard.fromAST(schema.ast)
+      const toSchema = SchemaStandard.toSchema(document)
       assertToCode(toSchema, expected)
     }
 
@@ -2311,8 +2311,8 @@ describe("Standard", () => {
         readonly definitions?: Record<string, Schema.JsonSchema>
       }
     ) {
-      const document = Standard.fromAST(schema.ast)
-      const jsonSchemaDocument = Standard.toJsonSchema(document)
+      const document = SchemaStandard.fromAST(schema.ast)
+      const jsonSchemaDocument = SchemaStandard.toJsonSchema(document)
       deepStrictEqual(rewrite(jsonSchemaDocument), {
         source: target,
         schema: expected.schema,
@@ -2322,9 +2322,9 @@ describe("Standard", () => {
       function rewrite(jsonSchemaDocument: Schema.JsonSchema.Document) {
         switch (target) {
           case "draft-07":
-            return Standard.rewriteToDraft07(jsonSchemaDocument)
+            return SchemaStandard.rewriteToDraft07(jsonSchemaDocument)
           case "openapi-3.1":
-            return Standard.rewriteToOpenApi3_1(jsonSchemaDocument)
+            return SchemaStandard.rewriteToOpenApi3_1(jsonSchemaDocument)
         }
       }
     }
