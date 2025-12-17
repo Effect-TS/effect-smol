@@ -6,7 +6,6 @@ import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
-import * as Annotations from "../../SchemaAnnotations.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Mutable } from "../../Types.ts"
@@ -270,7 +269,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 const emptyMap = new Map<never, never>()
 
 function resoveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
-  return Annotations.resolveDescription(ast) ?? Annotations.resolveIdentifier(ast)
+  return AST.resolveDescription(ast) ?? AST.resolveIdentifier(ast)
 }
 
 const extractMembers = (

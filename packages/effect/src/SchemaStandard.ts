@@ -3,12 +3,12 @@
  */
 import * as Arr from "./Array.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
+import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
 import * as RegEx from "./RegExp.ts"
 import * as Schema from "./Schema.ts"
-import * as Annotations from "./SchemaAnnotations.ts"
 import * as AST from "./SchemaAST.ts"
 import * as Getter from "./SchemaGetter.ts"
 import type * as Types from "./Types.ts"
@@ -22,7 +22,7 @@ import type * as Types from "./Types.ts"
  */
 export interface Declaration {
   readonly _tag: "Declaration"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly typeParameters: ReadonlyArray<StandardSchema>
   readonly checks: ReadonlyArray<Check<DateMeta>>
 }
@@ -32,7 +32,7 @@ export interface Declaration {
  */
 export interface Suspend {
   readonly _tag: "Suspend"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly $ref: string
 }
 
@@ -41,7 +41,7 @@ export interface Suspend {
  */
 export interface Null {
   readonly _tag: "Null"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -49,7 +49,7 @@ export interface Null {
  */
 export interface Undefined {
   readonly _tag: "Undefined"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -57,7 +57,7 @@ export interface Undefined {
  */
 export interface Void {
   readonly _tag: "Void"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -65,7 +65,7 @@ export interface Void {
  */
 export interface Never {
   readonly _tag: "Never"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -73,7 +73,7 @@ export interface Never {
  */
 export interface Unknown {
   readonly _tag: "Unknown"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -81,7 +81,7 @@ export interface Unknown {
  */
 export interface Any {
   readonly _tag: "Any"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -89,7 +89,7 @@ export interface Any {
  */
 export interface String {
   readonly _tag: "String"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly checks: ReadonlyArray<Check<StringMeta>>
   readonly contentMediaType?: string | undefined
   readonly contentSchema?: StandardSchema | undefined
@@ -100,7 +100,7 @@ export interface String {
  */
 export interface Number {
   readonly _tag: "Number"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly checks: ReadonlyArray<Check<NumberMeta>>
 }
 
@@ -109,7 +109,7 @@ export interface Number {
  */
 export interface Boolean {
   readonly _tag: "Boolean"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -117,7 +117,7 @@ export interface Boolean {
  */
 export interface BigInt {
   readonly _tag: "BigInt"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly checks: ReadonlyArray<Check<BigIntMeta>>
 }
 
@@ -126,7 +126,7 @@ export interface BigInt {
  */
 export interface Symbol {
   readonly _tag: "Symbol"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -134,7 +134,7 @@ export interface Symbol {
  */
 export interface Literal {
   readonly _tag: "Literal"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly literal: string | number | boolean | bigint
 }
 
@@ -143,7 +143,7 @@ export interface Literal {
  */
 export interface UniqueSymbol {
   readonly _tag: "UniqueSymbol"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly symbol: symbol
 }
 
@@ -152,7 +152,7 @@ export interface UniqueSymbol {
  */
 export interface ObjectKeyword {
   readonly _tag: "ObjectKeyword"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -160,7 +160,7 @@ export interface ObjectKeyword {
  */
 export interface Enum {
   readonly _tag: "Enum"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly enums: ReadonlyArray<readonly [string, string | number]>
 }
 
@@ -169,7 +169,7 @@ export interface Enum {
  */
 export interface TemplateLiteral {
   readonly _tag: "TemplateLiteral"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly parts: ReadonlyArray<StandardSchema>
 }
 
@@ -186,7 +186,7 @@ export interface Element {
  */
 export interface Arrays {
   readonly _tag: "Arrays"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly elements: ReadonlyArray<Element>
   readonly rest: ReadonlyArray<StandardSchema>
   readonly checks: ReadonlyArray<Check<ArraysMeta>>
@@ -197,7 +197,7 @@ export interface Arrays {
  */
 export interface Objects {
   readonly _tag: "Objects"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly propertySignatures: ReadonlyArray<PropertySignature>
   readonly indexSignatures: ReadonlyArray<IndexSignature>
 }
@@ -207,7 +207,7 @@ export interface Objects {
  */
 export interface Union {
   readonly _tag: "Union"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly types: ReadonlyArray<StandardSchema>
   readonly mode: "anyOf" | "oneOf"
 }
@@ -220,7 +220,7 @@ export interface PropertySignature {
   readonly type: StandardSchema
   readonly isOptional: boolean
   readonly isMutable: boolean
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -267,7 +267,7 @@ export type Check<T> = Filter<T> | FilterGroup<T>
  */
 export interface Filter<M> {
   readonly _tag: "Filter"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly meta: M
 }
 
@@ -276,14 +276,14 @@ export interface Filter<M> {
  */
 export interface FilterGroup<M> {
   readonly _tag: "FilterGroup"
-  readonly annotations?: Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly checks: readonly [Check<M>, ...Array<Check<M>>]
 }
 
 /**
  * @since 4.0.0
  */
-export type StringMeta = Annotations.BuiltInMetaRegistry[
+export type StringMeta = Schema.Annotations.BuiltInMetaRegistry[
   | "isNumberString"
   | "isBigIntString"
   | "isSymbolString"
@@ -308,7 +308,7 @@ export type StringMeta = Annotations.BuiltInMetaRegistry[
 /**
  * @since 4.0.0
  */
-export type NumberMeta = Annotations.BuiltInMetaRegistry[
+export type NumberMeta = Schema.Annotations.BuiltInMetaRegistry[
   | "isInt"
   | "isFinite"
   | "isMultipleOf"
@@ -322,7 +322,7 @@ export type NumberMeta = Annotations.BuiltInMetaRegistry[
 /**
  * @since 4.0.0
  */
-export type BigIntMeta = Annotations.BuiltInMetaRegistry[
+export type BigIntMeta = Schema.Annotations.BuiltInMetaRegistry[
   | "isGreaterThanOrEqualToBigInt"
   | "isLessThanOrEqualToBigInt"
   | "isGreaterThanBigInt"
@@ -333,7 +333,7 @@ export type BigIntMeta = Annotations.BuiltInMetaRegistry[
 /**
  * @since 4.0.0
  */
-export type DateMeta = Annotations.BuiltInMetaRegistry[
+export type DateMeta = Schema.Annotations.BuiltInMetaRegistry[
   | "isValidDate"
   | "isGreaterThanDate"
   | "isGreaterThanOrEqualToDate"
@@ -346,7 +346,7 @@ export type DateMeta = Annotations.BuiltInMetaRegistry[
  * @since 4.0.0
  */
 export type ArraysMeta =
-  | Annotations.BuiltInMetaRegistry[
+  | Schema.Annotations.BuiltInMetaRegistry[
     | "isMinLength"
     | "isMaxLength"
   ]
@@ -973,7 +973,7 @@ export function fromAST(ast: AST.AST): Document {
 
   function recur(ast: AST.AST, ignoreIdentifier = false): StandardSchema {
     if (!ignoreIdentifier) {
-      const $ref = Annotations.resolveIdentifier(ast)
+      const $ref = InternalAnnotations.resolveIdentifier(ast)
       if ($ref !== undefined) {
         if ($ref in definitions) {
           throw new Error(`Duplicate identifier: ${$ref}`)
@@ -995,7 +995,7 @@ export function fromAST(ast: AST.AST): Document {
       case "Suspend": {
         const thunk = ast.thunk()
         if (visited.has(thunk)) {
-          const $ref = Annotations.resolveIdentifier(thunk)
+          const $ref = InternalAnnotations.resolveIdentifier(thunk)
           if ($ref !== undefined) {
             return { _tag: "Suspend", $ref }
           } else {
@@ -1731,7 +1731,7 @@ function escapeJsonPointer(identifier: string): string {
 }
 
 function collectJsonSchemaAnnotations(
-  annotations: Annotations.Annotations | undefined
+  annotations: Schema.Annotations.Annotations | undefined
 ): Schema.JsonSchema | undefined {
   if (annotations) {
     const out: Schema.JsonSchema = {}
@@ -1902,7 +1902,7 @@ const toCodeAnnotationsBlacklist: Set<string> = new Set([
   "typeConstructor"
 ])
 
-function toCodeAnnotations(annotations: Annotations.Annotations | undefined): string {
+function toCodeAnnotations(annotations: Schema.Annotations.Annotations | undefined): string {
   if (!annotations) return ""
   const entries: Array<string> = []
   for (const [key, value] of Object.entries(annotations)) {
@@ -1916,7 +1916,7 @@ function toCodeAnnotations(annotations: Annotations.Annotations | undefined): st
 /**
  * @since 4.0.0
  */
-export function toCodeAnnotate(annotations: Annotations.Annotations | undefined): string {
+export function toCodeAnnotate(annotations: Schema.Annotations.Annotations | undefined): string {
   const s = toCodeAnnotations(annotations)
   if (s === "") return ""
   return `.annotate(${s})`
@@ -2372,9 +2372,9 @@ function normalizeJsonSchemaInput(s: Schema.JsonSchema): Schema.JsonSchema {
   return s
 }
 
-function collectAnnotations(u: unknown): Annotations.Annotations | undefined {
+function collectAnnotations(u: unknown): Schema.Annotations.Annotations | undefined {
   if (Predicate.isObject(u)) {
-    const as: Types.Mutable<Annotations.Annotations> = {}
+    const as: Types.Mutable<Schema.Annotations.Annotations> = {}
     if (typeof u.title === "string") as.title = u.title
     if (typeof u.description === "string") as.description = u.description
     if (u.default !== undefined) as.default = u.default

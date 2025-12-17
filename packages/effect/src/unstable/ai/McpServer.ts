@@ -10,7 +10,6 @@ import * as Option from "../../Option.ts"
 import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
 import * as Schema from "../../Schema.ts"
-import * as SchemaAnnotations from "../../SchemaAnnotations.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { Sink } from "../../Sink.ts"
@@ -867,7 +866,7 @@ export const registerPrompt = <
   for (const [name, prop] of Object.entries(props)) {
     args.push({
       name,
-      description: SchemaAnnotations.resolveDescription(prop.ast),
+      description: AST.resolveDescription(prop.ast),
       required: !AST.isOptional(prop.ast)
     })
   }

@@ -12,13 +12,13 @@ import { format, formatPropertyKey } from "./Formatter.ts"
 import { memoize } from "./Function.ts"
 import { effectIsExit } from "./internal/effect.ts"
 import * as internalRecord from "./internal/record.ts"
+import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as Option from "./Option.ts"
 import * as Pipeable from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import * as RegEx from "./RegExp.ts"
 import * as Result from "./Result.ts"
 import type * as Schema from "./Schema.ts"
-import type * as Annotations from "./SchemaAnnotations.ts"
 import * as Getter from "./SchemaGetter.ts"
 import * as Issue from "./SchemaIssue.ts"
 import type * as Parser from "./SchemaParser.ts"
@@ -282,14 +282,14 @@ export class Context {
   readonly isMutable: boolean
   /** Used for constructor default values (e.g. `withConstructorDefault` API) */
   readonly defaultValue: Encoding | undefined
-  readonly annotations: Annotations.Key<unknown> | undefined
+  readonly annotations: Schema.Annotations.Key<unknown> | undefined
 
   constructor(
     isOptional: boolean,
     isMutable: boolean,
     /** Used for constructor default values (e.g. `withConstructorDefault` API) */
     defaultValue: Encoding | undefined = undefined,
-    annotations: Annotations.Key<unknown> | undefined = undefined
+    annotations: Schema.Annotations.Key<unknown> | undefined = undefined
   ) {
     this.isOptional = isOptional
     this.isMutable = isMutable
@@ -313,13 +313,13 @@ const TypeId = "~effect/Schema"
 export abstract class Base {
   readonly [TypeId] = TypeId
   abstract readonly _tag: string
-  readonly annotations: Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly checks: Checks | undefined
   readonly encoding: Encoding | undefined
   readonly context: Context | undefined
 
   constructor(
-    annotations: Annotations.Annotations | undefined = undefined,
+    annotations: Schema.Annotations.Annotations | undefined = undefined,
     checks: Checks | undefined = undefined,
     encoding: Encoding | undefined = undefined,
     context: Context | undefined = undefined
@@ -350,7 +350,7 @@ export class Declaration extends Base {
     run: (
       typeParameters: ReadonlyArray<AST>
     ) => (input: unknown, self: Declaration, options: ParseOptions) => Effect.Effect<any, Issue.Issue, any>,
-    annotations?: Annotations.Annotations,
+    annotations?: Schema.Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
@@ -565,7 +565,7 @@ export class Enum extends Base {
 
   constructor(
     enums: ReadonlyArray<readonly [string, string | number]>,
-    annotations?: Annotations.Annotations,
+    annotations?: Schema.Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
@@ -638,7 +638,7 @@ export class TemplateLiteral extends Base {
 
   constructor(
     parts: ReadonlyArray<AST>,
-    annotations?: Annotations.Annotations,
+    annotations?: Schema.Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
@@ -702,7 +702,7 @@ export class UniqueSymbol extends Base {
 
   constructor(
     symbol: symbol,
-    annotations?: Annotations.Annotations,
+    annotations?: Schema.Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
@@ -740,7 +740,7 @@ export class Literal extends Base {
 
   constructor(
     literal: LiteralValue,
-    annotations?: Annotations.Annotations,
+    annotations?: Schema.Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
@@ -924,7 +924,7 @@ export class Arrays extends Base {
     isMutable: boolean,
     elements: ReadonlyArray<AST>,
     rest: ReadonlyArray<AST>,
-    annotations?: Annotations.Annotations,
+    annotations?: Schema.Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
@@ -1209,7 +1209,7 @@ export class Objects extends Base {
   constructor(
     propertySignatures: ReadonlyArray<PropertySignature>,
     indexSignatures: ReadonlyArray<IndexSignature>,
-    annotations?: Annotations.Annotations,
+    annotations?: Schema.Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
@@ -1724,7 +1724,7 @@ export class Union<A extends AST = AST> extends Base {
   constructor(
     types: ReadonlyArray<A>,
     mode: "anyOf" | "oneOf",
-    annotations?: Annotations.Annotations,
+    annotations?: Schema.Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
@@ -1871,7 +1871,7 @@ export class Suspend extends Base {
 
   constructor(
     thunk: () => AST,
-    annotations?: Annotations.Annotations,
+    annotations?: Schema.Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
     context?: Context
@@ -1904,7 +1904,7 @@ export class Suspend extends Base {
 export class Filter<in E> extends Pipeable.Class {
   readonly _tag = "Filter"
   readonly run: (input: E, self: AST, options: ParseOptions) => Issue.Issue | undefined
-  readonly annotations: Annotations.Filter | undefined
+  readonly annotations: Schema.Annotations.Filter | undefined
   /**
    * Whether the parsing process should be aborted after this check has failed.
    */
@@ -1912,7 +1912,7 @@ export class Filter<in E> extends Pipeable.Class {
 
   constructor(
     run: (input: E, self: AST, options: ParseOptions) => Issue.Issue | undefined,
-    annotations: Annotations.Filter | undefined = undefined,
+    annotations: Schema.Annotations.Filter | undefined = undefined,
     /**
      * Whether the parsing process should be aborted after this check has failed.
      */
@@ -1923,15 +1923,15 @@ export class Filter<in E> extends Pipeable.Class {
     this.annotations = annotations
     this.aborted = aborted
   }
-  annotate(annotations: Annotations.Filter): Filter<E> {
+  annotate(annotations: Schema.Annotations.Filter): Filter<E> {
     return new Filter(this.run, { ...this.annotations, ...annotations }, this.aborted)
   }
   abort(): Filter<E> {
     return new Filter(this.run, this.annotations, true)
   }
-  and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
-  and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
-  and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E> {
+  and<T extends E>(other: Refine<T, E>, annotations?: Schema.Annotations.Filter): RefinementGroup<T, E>
+  and(other: Check<E>, annotations?: Schema.Annotations.Filter): FilterGroup<E>
+  and(other: Check<E>, annotations?: Schema.Annotations.Filter): FilterGroup<E> {
     return new FilterGroup([this, other], annotations)
   }
 }
@@ -1943,22 +1943,22 @@ export class Filter<in E> extends Pipeable.Class {
 export class FilterGroup<in E> extends Pipeable.Class {
   readonly _tag = "FilterGroup"
   readonly checks: readonly [Check<E>, ...Array<Check<E>>]
-  readonly annotations: Annotations.Filter | undefined
+  readonly annotations: Schema.Annotations.Filter | undefined
 
   constructor(
     checks: readonly [Check<E>, ...Array<Check<E>>],
-    annotations: Annotations.Filter | undefined = undefined
+    annotations: Schema.Annotations.Filter | undefined = undefined
   ) {
     super()
     this.checks = checks
     this.annotations = annotations
   }
-  annotate(annotations: Annotations.Filter): FilterGroup<E> {
+  annotate(annotations: Schema.Annotations.Filter): FilterGroup<E> {
     return new FilterGroup(this.checks, { ...this.annotations, ...annotations })
   }
-  and<T extends E>(other: Refine<T, E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
-  and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E>
-  and(other: Check<E>, annotations?: Annotations.Filter): FilterGroup<E> {
+  and<T extends E>(other: Refine<T, E>, annotations?: Schema.Annotations.Filter): RefinementGroup<T, E>
+  and(other: Check<E>, annotations?: Schema.Annotations.Filter): FilterGroup<E>
+  and(other: Check<E>, annotations?: Schema.Annotations.Filter): FilterGroup<E> {
     return new FilterGroup([this, other], annotations)
   }
 }
@@ -1975,12 +1975,12 @@ export type Check<T> = Filter<T> | FilterGroup<T>
  */
 export interface Refinement<out T extends E, in E> extends Filter<E> {
   readonly Type: T
-  annotate(annotations: Annotations.Filter): Refinement<T, E>
+  annotate(annotations: Schema.Annotations.Filter): Refinement<T, E>
   and<T2 extends E2, E2>(
     other: Refine<T2, E2>,
-    annotations?: Annotations.Filter
+    annotations?: Schema.Annotations.Filter
   ): RefinementGroup<T & T2, E & E2>
-  and(other: Check<E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
+  and(other: Check<E>, annotations?: Schema.Annotations.Filter): RefinementGroup<T, E>
 }
 
 /**
@@ -1989,12 +1989,12 @@ export interface Refinement<out T extends E, in E> extends Filter<E> {
  */
 export interface RefinementGroup<T extends E, E> extends FilterGroup<E> {
   readonly Type: T
-  annotate(annotations: Annotations.Filter): RefinementGroup<T, E>
+  annotate(annotations: Schema.Annotations.Filter): RefinementGroup<T, E>
   and<T2 extends E2, E2>(
     other: Refine<T2, E2>,
-    annotations?: Annotations.Filter
+    annotations?: Schema.Annotations.Filter
   ): RefinementGroup<T & T2, E & E2>
-  and(other: Check<E>, annotations?: Annotations.Filter): RefinementGroup<T, E>
+  and(other: Check<E>, annotations?: Schema.Annotations.Filter): RefinementGroup<T, E>
 }
 
 /**
@@ -2013,7 +2013,7 @@ export function makeFilter<T>(
     readonly path: ReadonlyArray<PropertyKey>
     readonly message: string
   },
-  annotations?: Annotations.Filter | undefined,
+  annotations?: Schema.Annotations.Filter | undefined,
   aborted: boolean = false
 ): Filter<T> {
   return new Filter(
@@ -2026,7 +2026,7 @@ export function makeFilter<T>(
 /** @internal */
 export function makeRefinedByGuard<T extends E, E>(
   is: (value: E) => value is T,
-  annotations?: Annotations.Filter
+  annotations?: Schema.Annotations.Filter
 ): Refinement<T, E> {
   return new Filter(
     (input: E) => is(input) ? undefined : new Issue.InvalidValue(Option.some(input)),
@@ -2036,7 +2036,7 @@ export function makeRefinedByGuard<T extends E, E>(
 }
 
 /** @internal */
-export function isNotUndefined<A>(annotations?: Annotations.Filter) {
+export function isNotUndefined<A>(annotations?: Schema.Annotations.Filter) {
   return makeRefinedByGuard<Exclude<A, undefined>, A>(
     Predicate.isNotUndefined,
     { expected: "a value other than `undefined`", ...annotations }
@@ -2044,7 +2044,7 @@ export function isNotUndefined<A>(annotations?: Annotations.Filter) {
 }
 
 /** @internal */
-export function isSome<A>(annotations?: Annotations.Filter) {
+export function isSome<A>(annotations?: Schema.Annotations.Filter) {
   return makeRefinedByGuard<Option.Some<A>, Option.Option<A>>(
     Option.isSome,
     { expected: "a Some value", ...annotations }
@@ -2052,7 +2052,7 @@ export function isSome<A>(annotations?: Annotations.Filter) {
 }
 
 /** @internal */
-export function isNone<A>(annotations?: Annotations.Filter) {
+export function isNone<A>(annotations?: Schema.Annotations.Filter) {
   return makeRefinedByGuard<Option.None<A>, Option.Option<A>>(
     Option.isNone,
     { expected: "a None value", ...annotations }
@@ -2060,7 +2060,7 @@ export function isNone<A>(annotations?: Annotations.Filter) {
 }
 
 /** @internal */
-export function isResultSuccess<A, E>(annotations?: Annotations.Filter) {
+export function isResultSuccess<A, E>(annotations?: Schema.Annotations.Filter) {
   return makeRefinedByGuard<Result.Success<A, E>, Result.Result<A, E>>(
     Result.isSuccess,
     { expected: "a Result.Success value", ...annotations }
@@ -2068,7 +2068,7 @@ export function isResultSuccess<A, E>(annotations?: Annotations.Filter) {
 }
 
 /** @internal */
-export function isResultFailure<A, E>(annotations?: Annotations.Filter) {
+export function isResultFailure<A, E>(annotations?: Schema.Annotations.Filter) {
   return makeRefinedByGuard<Result.Failure<A, E>, Result.Result<A, E>>(
     Result.isFailure,
     { expected: "a Result.Failure value", ...annotations }
@@ -2076,7 +2076,7 @@ export function isResultFailure<A, E>(annotations?: Annotations.Filter) {
 }
 
 /** @internal */
-export function isPattern(regExp: globalThis.RegExp, annotations?: Annotations.Filter) {
+export function isPattern(regExp: globalThis.RegExp, annotations?: Schema.Annotations.Filter) {
   const source = regExp.source
   return makeFilter(
     (s: string) => regExp.test(s),
@@ -2096,10 +2096,6 @@ export function isPattern(regExp: globalThis.RegExp, annotations?: Annotations.F
     }
   )
 }
-
-// -----------------------------------------------------------------------------
-// AST APIs
-// -----------------------------------------------------------------------------
 
 function modifyOwnPropertyDescriptors<A extends AST>(
   ast: A,
@@ -2217,7 +2213,7 @@ function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
 }
 
 /** @internal */
-export function annotate<A extends AST>(ast: A, annotations: Annotations.Annotations): A {
+export function annotate<A extends AST>(ast: A, annotations: Schema.Annotations.Annotations): A {
   if (isSuspend(ast)) {
     throw new Error("Suspended schemas cannot be annotated")
   }
@@ -2231,7 +2227,7 @@ export function annotate<A extends AST>(ast: A, annotations: Annotations.Annotat
 }
 
 /** @internal */
-export function annotateKey<A extends AST>(ast: A, annotations: Annotations.Key<unknown>): A {
+export function annotateKey<A extends AST>(ast: A, annotations: Schema.Annotations.Key<unknown>): A {
   const context = ast.context ?
     new Context(
       ast.context.isOptional,
@@ -2544,7 +2540,7 @@ export const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 const isNumberStringRegExp = new globalThis.RegExp(`(?:${NUMBER_PATTERN}|Infinity|-Infinity|NaN)`)
 
 /** @internal */
-export function isNumberString(annotations?: Annotations.Filter) {
+export function isNumberString(annotations?: Schema.Annotations.Filter) {
   return isPattern(
     isNumberStringRegExp,
     {
@@ -2571,7 +2567,7 @@ const BIGINT_PATTERN = "-?\\d+"
 const isBigIntStringRegExp = new globalThis.RegExp(BIGINT_PATTERN)
 
 /** @internal */
-export function isBigIntString(annotations?: Annotations.Filter) {
+export function isBigIntString(annotations?: Schema.Annotations.Filter) {
   return isPattern(
     isBigIntStringRegExp,
     {
@@ -2620,7 +2616,7 @@ const symbolToString = new Link(
 )
 
 /** @internal */
-export function isSymbolString(annotations?: Annotations.Filter) {
+export function isSymbolString(annotations?: Schema.Annotations.Filter) {
   return isPattern(
     isSymbolStringRegExp,
     {
@@ -2679,3 +2675,37 @@ export function runRefine<T extends E, E>(refine: Refine<T, E>, s: E): Result.Re
 
 /** @internal */
 export const ClassTypeId = "~effect/Schema/Class"
+
+/** @internal */
+export const STRUCTURAL_ANNOTATION_KEY = "~structural"
+
+/**
+ * Get all annotations from the AST.
+ * If the AST has checks, it will return the annotations from the last check.
+ *
+ * @since 4.0.0
+ */
+export const resolve: (ast: AST) => Schema.Annotations.Annotations | undefined = InternalAnnotations.resolve
+
+/**
+ * Get an annotation from the AST.
+ * If the AST has checks, it will return the annotations from the last check.
+ *
+ * @since 4.0.0
+ */
+export const resolveAt: <A>(key: string) => (ast: AST) => A | undefined = InternalAnnotations.resolveAt
+
+/**
+ * @since 4.0.0
+ */
+export const resolveIdentifier: (ast: AST) => string | undefined = InternalAnnotations.resolveIdentifier
+
+/**
+ * @since 4.0.0
+ */
+export const resolveTitle: (ast: AST) => string | undefined = InternalAnnotations.resolveTitle
+
+/**
+ * @since 4.0.0
+ */
+export const resolveDescription: (ast: AST) => string | undefined = InternalAnnotations.resolveDescription

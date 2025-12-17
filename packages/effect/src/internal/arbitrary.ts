@@ -6,12 +6,12 @@ import * as Number from "../Number.ts"
 import * as Option from "../Option.ts"
 import * as Predicate from "../Predicate.ts"
 import type * as Schema from "../Schema.ts"
-import * as Annotations from "../SchemaAnnotations.ts"
 import * as AST from "../SchemaAST.ts"
 import * as Struct from "../Struct.ts"
 import type * as FastCheck from "../testing/FastCheck.ts"
 import * as UndefinedOr from "../UndefinedOr.ts"
 import { errorWithPath } from "./errors.ts"
+import * as InternalAnnotations from "./schema/annotations.ts"
 
 const arbitraryMemoMap = new WeakMap<AST.AST, LazyArbitraryWithContext<any>>()
 
@@ -23,12 +23,12 @@ function applyChecks(ast: AST.AST, filters: Array<AST.Filter<any>>, arbitrary: F
 }
 
 function isUniqueArrayConstraintsCustomCompare(
-  constraint: Annotations.Arbitrary.ArrayConstraints | undefined
-): constraint is Annotations.Arbitrary.ArrayConstraints & FastCheck.UniqueArrayConstraintsCustomCompare<any> {
+  constraint: Schema.Annotations.ToArbitrary.ArrayConstraints | undefined
+): constraint is Schema.Annotations.ToArbitrary.ArrayConstraints & FastCheck.UniqueArrayConstraintsCustomCompare<any> {
   return constraint?.comparator !== undefined
 }
 
-function array(fc: typeof FastCheck, ctx: Annotations.Arbitrary.Context, item: FastCheck.Arbitrary<any>) {
+function array(fc: typeof FastCheck, ctx: Schema.Annotations.ToArbitrary.Context, item: FastCheck.Arbitrary<any>) {
   const constraint = ctx.constraints?.array
   const out = isUniqueArrayConstraintsCustomCompare(constraint)
     ? fc.uniqueArray(item, constraint)
@@ -67,17 +67,17 @@ const combiner: Combiner.Combiner<any> = Struct.getCombiner({
 })
 
 type FastCheckConstraint =
-  | Annotations.Arbitrary.StringConstraints
-  | Annotations.Arbitrary.NumberConstraints
-  | Annotations.Arbitrary.BigIntConstraints
-  | Annotations.Arbitrary.ArrayConstraints
-  | Annotations.Arbitrary.DateConstraints
+  | Schema.Annotations.ToArbitrary.StringConstraints
+  | Schema.Annotations.ToArbitrary.NumberConstraints
+  | Schema.Annotations.ToArbitrary.BigIntConstraints
+  | Schema.Annotations.ToArbitrary.ArrayConstraints
+  | Schema.Annotations.ToArbitrary.DateConstraints
 
 function merge(
   _tag: "string" | "number" | "bigint" | "array" | "date",
-  constraints: Annotations.Arbitrary.ToArbitraryConstraint,
+  constraints: Schema.Annotations.ToArbitrary.Constraint,
   constraint: FastCheckConstraint
-): Annotations.Arbitrary.ToArbitraryConstraint {
+): Schema.Annotations.ToArbitrary.Constraint {
   const c = constraints[_tag]
   return {
     ...constraints,
@@ -93,19 +93,19 @@ const constraintsKeys = {
   date: null
 }
 
-function isConstraintKey(key: string): key is keyof Annotations.Arbitrary.ToArbitraryConstraint {
+function isConstraintKey(key: string): key is keyof Schema.Annotations.ToArbitrary.Constraint {
   return key in constraintsKeys
 }
 
 /** @internal */
 export function constraintContext(
   filters: Array<AST.Filter<any>>
-): (ctx: Annotations.Arbitrary.Context) => Annotations.Arbitrary.Context {
+): (ctx: Schema.Annotations.ToArbitrary.Context) => Schema.Annotations.ToArbitrary.Context {
   const annotations = filters.map((filter) => filter.annotations?.toArbitraryConstraint).filter(
     Predicate.isNotUndefined
   )
   return (ctx) => {
-    const constraints = annotations.reduce((acc: Annotations.Arbitrary.ToArbitraryConstraint, c) => {
+    const constraints = annotations.reduce((acc: Schema.Annotations.ToArbitrary.Constraint, c) => {
       const keys = Object.keys(c)
       for (const key of keys) {
         if (isConstraintKey(key)) {
@@ -118,12 +118,12 @@ export function constraintContext(
   }
 }
 
-function resetContext(ctx: Annotations.Arbitrary.Context): Annotations.Arbitrary.Context {
+function resetContext(ctx: Schema.Annotations.ToArbitrary.Context): Schema.Annotations.ToArbitrary.Context {
   return { ...ctx, constraints: undefined }
 }
 
 interface LazyArbitraryWithContext<T> {
-  (fc: typeof FastCheck, ctx: Annotations.Arbitrary.Context): FastCheck.Arbitrary<T>
+  (fc: typeof FastCheck, ctx: Schema.Annotations.ToArbitrary.Context): FastCheck.Arbitrary<T>
 }
 
 /** @internal */
@@ -150,8 +150,8 @@ function recur(ast: AST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWit
   // ---------------------------------------------
   // handle Override annotation
   // ---------------------------------------------
-  const annotation = Annotations.resolve(ast)?.toArbitrary as
-    | Annotations.Arbitrary.ToArbitrary<any, ReadonlyArray<Schema.Top>>
+  const annotation = InternalAnnotations.resolve(ast)?.toArbitrary as
+    | Schema.Annotations.ToArbitrary.Declaration<any, ReadonlyArray<Schema.Top>>
     | undefined
   if (annotation) {
     const typeParameters = AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => recur(tp, path)) : []

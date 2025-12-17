@@ -1,0 +1,27 @@
+import { memoize } from "../../Function.ts"
+import type * as Schema from "../../Schema.ts"
+import type * as AST from "../../SchemaAST.ts"
+
+/** @internal */
+export function resolve(ast: AST.AST): Schema.Annotations.Annotations | undefined {
+  return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations
+}
+
+/** @internal */
+export function resolveAt<A>(key: string) {
+  return (ast: AST.AST): A | undefined => resolve(ast)?.[key] as A | undefined
+}
+
+/** @internal */
+export const resolveIdentifier = resolveAt<string>("identifier")
+
+/** @internal */
+export const resolveTitle = resolveAt<string>("title")
+
+/** @internal */
+export const resolveDescription = resolveAt<string>("description")
+
+/** @internal */
+export const getExpected = memoize((ast: AST.AST): string => {
+  return resolveIdentifier(ast) ?? ast.getExpected(getExpected)
+})

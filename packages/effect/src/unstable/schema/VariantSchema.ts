@@ -7,7 +7,6 @@ import { constant, dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import type * as Annotations from "../../SchemaAnnotations.ts"
 import type * as AST from "../../SchemaAST.ts"
 import * as Struct_ from "../../Struct.ts"
 
@@ -349,7 +348,7 @@ export const make = <
   ) => <const Fields extends Struct.Fields>(
     fields: Fields & Struct.Validate<Fields, Variants[number]>,
     annotations?:
-      | Annotations.Declaration<Self, readonly [Schema.Struct<ExtractFields<Default, Fields, true>>]>
+      | Schema.Annotations.Declaration<Self, readonly [Schema.Struct<ExtractFields<Default, Fields, true>>]>
       | undefined
   ) => [Self] extends [never] ? MissingSelfGeneric
     :
@@ -377,7 +376,10 @@ export const make = <
   function Class<Self>(identifier: string) {
     return function(
       fields: Struct.Fields,
-      annotations?: Annotations.Declaration<Self, readonly [Schema.Struct<ExtractFields<Default, typeof fields, true>>]>
+      annotations?: Schema.Annotations.Declaration<
+        Self,
+        readonly [Schema.Struct<ExtractFields<Default, typeof fields, true>>]
+      >
     ) {
       const variantStruct = Struct(fields)
       const schema = extract(variantStruct, options.defaultVariant, {

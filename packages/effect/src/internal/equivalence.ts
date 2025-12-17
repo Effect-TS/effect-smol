@@ -2,10 +2,11 @@ import * as Equal from "../Equal.ts"
 import * as Equivalence from "../Equivalence.ts"
 import { memoize } from "../Function.ts"
 import * as Predicate from "../Predicate.ts"
-import * as Annotations from "../SchemaAnnotations.ts"
+import type * as Schema from "../Schema.ts"
 import * as AST from "../SchemaAST.ts"
 import * as Parser from "../SchemaParser.ts"
 import { errorWithPath } from "./errors.ts"
+import * as InternalAnnotations from "./schema/annotations.ts"
 
 /** @internal */
 export const memoized = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
@@ -16,8 +17,8 @@ function recur(ast: AST.AST, path: ReadonlyArray<PropertyKey>): Equivalence.Equi
   // ---------------------------------------------
   // handle annotations
   // ---------------------------------------------
-  const annotation = Annotations.resolve(ast)?.["toEquivalence"] as
-    | Annotations.Equivalence.ToEquivalence<any, ReadonlyArray<any>>
+  const annotation = InternalAnnotations.resolve(ast)?.["toEquivalence"] as
+    | Schema.Annotations.ToEquivalence.Declaration<any, ReadonlyArray<any>>
     | undefined
   if (annotation) {
     return annotation(AST.isDeclaration(ast) ? ast.typeParameters.map((tp) => recur(tp, path)) : [])

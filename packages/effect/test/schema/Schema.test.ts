@@ -14,7 +14,6 @@ import {
   Redacted,
   Result,
   Schema,
-  SchemaAnnotations,
   SchemaAST,
   SchemaGetter,
   SchemaIssue,
@@ -6814,7 +6813,7 @@ describe("Check", () => {
   it("isNumberString", async () => {
     const schema = Schema.String.check(Schema.isNumberString())
 
-    deepStrictEqual(SchemaAnnotations.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
       _tag: "isNumberString",
       regExp: /(?:[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?|Infinity|-Infinity|NaN)/
     })
@@ -6823,7 +6822,7 @@ describe("Check", () => {
   it("isBigIntString", async () => {
     const schema = Schema.String.check(Schema.isBigIntString())
 
-    deepStrictEqual(SchemaAnnotations.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
       _tag: "isBigIntString",
       regExp: /-?\d+/
     })
@@ -6832,7 +6831,7 @@ describe("Check", () => {
   it("isSymbolString", async () => {
     const schema = Schema.String.check(Schema.isSymbolString())
 
-    deepStrictEqual(SchemaAnnotations.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
       _tag: "isSymbolString",
       regExp: /^Symbol\((.*)\)$/
     })
@@ -6847,7 +6846,7 @@ describe("Check", () => {
       arbitrary.verifyGeneration()
     }
 
-    deepStrictEqual(SchemaAnnotations.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
       _tag: "isULID",
       regExp: /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/
     })
@@ -6863,7 +6862,7 @@ describe("Check", () => {
   it("isBase64", async () => {
     const schema = Schema.String.check(Schema.isBase64())
 
-    deepStrictEqual(SchemaAnnotations.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
       _tag: "isBase64",
       regExp: /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/
     })
@@ -6872,7 +6871,7 @@ describe("Check", () => {
   it("isBase64Url", async () => {
     const schema = Schema.String.check(Schema.isBase64Url())
 
-    deepStrictEqual(SchemaAnnotations.resolveInto(schema)?.["meta"], {
+    deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
       _tag: "isBase64Url",
       regExp: /^([0-9a-zA-Z-_]{4})*(([0-9a-zA-Z-_]{2}(==)?)|([0-9a-zA-Z-_]{3}(=)?))?$/
     })

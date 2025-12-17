@@ -1,9 +1,9 @@
 import { format } from "../Formatter.ts"
 import * as Predicate from "../Predicate.ts"
 import type * as Schema from "../Schema.ts"
-import * as Annotations from "../SchemaAnnotations.ts"
 import * as AST from "../SchemaAST.ts"
 import { errorWithPath } from "./errors.ts"
+import * as InternalAnnotations from "./schema/annotations.ts"
 
 /** @internal */
 export function make<S extends Schema.Top>(
@@ -84,7 +84,7 @@ function recur(
   // handle Override annotation
   // ---------------------------------------------
   if (!ignoreAnnotation) {
-    const annotation = getAnnotation(Annotations.resolve(ast))
+    const annotation = getAnnotation(InternalAnnotations.resolve(ast))
     if (annotation) {
       function getDefaultJsonSchema() {
         try {
@@ -410,14 +410,14 @@ function getConstraint<T>(
   type?: Schema.JsonSchema.Type
 ): Schema.JsonSchema | undefined {
   const annotation = check.annotations?.toJsonSchemaConstraint as
-    | Annotations.JsonSchema.ToJsonSchemaConstraint
+    | Schema.Annotations.ToJsonSchema.Constraint
     | undefined
   if (annotation) return annotation({ target, type })
 }
 
 function getAnnotation(
-  annotations: Annotations.Annotations | undefined
-): Annotations.JsonSchema.ToJsonSchema<ReadonlyArray<Schema.Top>> | undefined {
+  annotations: Schema.Annotations.Annotations | undefined
+): Schema.Annotations.ToJsonSchema.Declaration<ReadonlyArray<Schema.Top>> | undefined {
   return annotations?.toJsonSchema as any
 }
 
@@ -449,7 +449,7 @@ function getPattern(
 }
 
 function getJsonSchemaAnnotations(
-  annotations: Annotations.Annotations | undefined,
+  annotations: Schema.Annotations.Annotations | undefined,
   generateDescriptions: boolean
 ): Schema.JsonSchema | undefined {
   if (annotations) {
@@ -475,7 +475,7 @@ function getJsonSchemaAnnotations(
 
 function mergeOrAppendJsonSchemaAnnotations(
   jsonSchema: Schema.JsonSchema,
-  annotations: Annotations.Annotations | undefined,
+  annotations: Schema.Annotations.Annotations | undefined,
   generateDescriptions: boolean
 ): Schema.JsonSchema {
   const fragment = getJsonSchemaAnnotations(annotations, generateDescriptions)
@@ -512,5 +512,5 @@ function appendFragment(
 }
 
 function getIdentifier(ast: AST.AST): string | undefined {
-  return Annotations.resolveIdentifier(ast) ?? (AST.isSuspend(ast) ? getIdentifier(ast.thunk()) : undefined)
+  return InternalAnnotations.resolveIdentifier(ast) ?? (AST.isSuspend(ast) ? getIdentifier(ast.thunk()) : undefined)
 }

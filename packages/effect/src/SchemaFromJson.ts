@@ -23,7 +23,6 @@ import { remainder } from "./Number.ts"
 import { isObject } from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
 import type * as Schema from "./Schema.ts"
-import type { Annotations } from "./SchemaAnnotations.ts"
 import type * as AST from "./SchemaAST.ts"
 import { type Mutable } from "./Types.ts"
 import * as UndefinedOr from "./UndefinedOr.ts"
@@ -154,7 +153,7 @@ export type GenerateOptions = {
    * You can also set it to a function that will be called to extract the jsDocs
    * from the annotations.
    */
-  readonly extractJsDocs?: boolean | ((annotations: Annotations) => string | undefined) | undefined
+  readonly extractJsDocs?: boolean | ((annotations: Schema.Annotations.Annotations) => string | undefined) | undefined
 
   /**
    * Whether to parse the "contentSchema" field of the schema when the
@@ -174,16 +173,21 @@ export type GenerateOptions = {
    * - `default`
    * - `format`
    */
-  readonly collectAnnotations?: ((schema: Schema.JsonSchema, annotations: Annotations) => Annotations) | undefined
+  readonly collectAnnotations?:
+    | ((schema: Schema.JsonSchema, annotations: Schema.Annotations.Annotations) => Schema.Annotations.Annotations)
+    | undefined
 }
 
 interface RecurOptions {
   readonly source: Schema.JsonSchema.Source
   readonly root: Schema.JsonSchema | undefined
   readonly resolver: Resolver
-  readonly extractJsDocs: (annotations: Annotations) => string | undefined
+  readonly extractJsDocs: (annotations: Schema.Annotations.Annotations) => string | undefined
   readonly parseContentSchema: boolean
-  readonly collectAnnotations: (schema: Schema.JsonSchema, annotations: Annotations) => Annotations
+  readonly collectAnnotations: (
+    schema: Schema.JsonSchema,
+    annotations: Schema.Annotations.Annotations
+  ) => Schema.Annotations.Annotations
   readonly definitions: Schema.JsonSchema.Definitions
   readonly allOf: boolean
   readonly refStack: ReadonlySet<string>
@@ -227,19 +231,19 @@ const defaultResolver: Resolver = () => {
  *
  * @since 4.0.0
  */
-export function defaultExtractJsDocs(annotations: Annotations): string | undefined {
+export function defaultExtractJsDocs(annotations: Schema.Annotations.Annotations): string | undefined {
   if (typeof annotations.description === "string") {
     return `\n/** ${annotations.description.replace(/\*\//g, "*\\/")} */\n`
   }
 }
 
-function renderAnnotations(annotations: Annotations): string {
+function renderAnnotations(annotations: Schema.Annotations.Annotations): string {
   const entries = Object.entries(annotations)
   if (entries.length === 0) return ""
   return `{ ${entries.map(([key, value]) => `${formatPropertyKey(key)}: ${format(value)}`).join(", ")} }`
 }
 
-function renderAnnotate(annotations: Annotations): string {
+function renderAnnotate(annotations: Schema.Annotations.Annotations): string {
   const s = renderAnnotations(annotations)
   if (s === "") return ""
   return `.annotate(${s})`
@@ -486,7 +490,10 @@ const annotationsReducers: Record<string, Reducer.Reducer<any>> = {
   message: joinReducer
 }
 
-function combineAnnotations(a: Annotations, b: Annotations): Annotations {
+function combineAnnotations(
+  a: Schema.Annotations.Annotations,
+  b: Schema.Annotations.Annotations
+): Schema.Annotations.Annotations {
   const out = { ...a, ...b }
   for (const key in annotationsReducers) {
     const value = annotationsReducers[key].combine(a[key], b[key])
@@ -510,11 +517,11 @@ type AST =
 
 class Unknown {
   readonly _tag = "Unknown"
-  readonly annotations: Annotations
-  constructor(annotations: Annotations = {}) {
+  readonly annotations: Schema.Annotations.Annotations
+  constructor(annotations: Schema.Annotations.Annotations = {}) {
     this.annotations = annotations
   }
-  replaceAnnotations(annotations: Annotations): Unknown {
+  replaceAnnotations(annotations: Schema.Annotations.Annotations): Unknown {
     return new Unknown(annotations)
   }
   combine(that: AST): AST {
@@ -533,11 +540,11 @@ class Unknown {
 
 class Never {
   readonly _tag = "Never"
-  readonly annotations: Annotations
-  constructor(annotations: Annotations = {}) {
+  readonly annotations: Schema.Annotations.Annotations
+  constructor(annotations: Schema.Annotations.Annotations = {}) {
     this.annotations = annotations
   }
-  replaceAnnotations(annotations: Annotations): Never {
+  replaceAnnotations(annotations: Schema.Annotations.Annotations): Never {
     return new Never(annotations)
   }
   combine(that: AST): AST {
@@ -551,11 +558,11 @@ class Never {
 
 class Null {
   readonly _tag = "Null"
-  readonly annotations: Annotations
-  constructor(annotations: Annotations = {}) {
+  readonly annotations: Schema.Annotations.Annotations
+  constructor(annotations: Schema.Annotations.Annotations = {}) {
     this.annotations = annotations
   }
-  replaceAnnotations(annotations: Annotations): Null {
+  replaceAnnotations(annotations: Schema.Annotations.Annotations): Null {
     return new Null(annotations)
   }
   combine(that: AST): AST {
@@ -581,15 +588,15 @@ class Null {
 interface FilterGroup<T> {
   readonly _tag: "FilterGroup"
   readonly checks: ReadonlyArray<T>
-  readonly annotations: Annotations
+  readonly annotations: Schema.Annotations.Annotations
 }
 
 type StringCheck = StringFilter | FilterGroup<StringCheck>
 
 type StringFilter =
-  | { readonly _tag: "minLength"; readonly value: number; readonly annotations: Annotations }
-  | { readonly _tag: "maxLength"; readonly value: number; readonly annotations: Annotations }
-  | { readonly _tag: "pattern"; readonly value: string; readonly annotations: Annotations }
+  | { readonly _tag: "minLength"; readonly value: number; readonly annotations: Schema.Annotations.Annotations }
+  | { readonly _tag: "maxLength"; readonly value: number; readonly annotations: Schema.Annotations.Annotations }
+  | { readonly _tag: "pattern"; readonly value: string; readonly annotations: Schema.Annotations.Annotations }
 
 function makePatternFilter(pattern: string): StringFilter {
   return { _tag: "pattern", value: pattern, annotations: {} }
@@ -617,17 +624,17 @@ class String {
   readonly _tag = "String"
   readonly checks: ReadonlyArray<StringCheck>
   readonly contentSchema: AST | undefined
-  readonly annotations: Annotations
+  readonly annotations: Schema.Annotations.Annotations
   constructor(
     checks: ReadonlyArray<StringCheck>,
     contentSchema: AST | undefined,
-    annotations: Annotations = {}
+    annotations: Schema.Annotations.Annotations = {}
   ) {
     this.checks = checks
     this.contentSchema = contentSchema
     this.annotations = annotations
   }
-  replaceAnnotations(annotations: Annotations): String {
+  replaceAnnotations(annotations: Schema.Annotations.Annotations): String {
     return new String(this.checks, this.contentSchema, annotations)
   }
   combine(that: AST): AST {
@@ -775,11 +782,15 @@ function renderFilter(f: StringFilter | NumberFilter | ArraysFilter | ObjectsFil
 type NumberCheck = NumberFilter | FilterGroup<NumberCheck>
 
 type NumberFilter =
-  | { readonly _tag: "greaterThanOrEqualTo"; readonly value: number; readonly annotations: Annotations }
-  | { readonly _tag: "lessThanOrEqualTo"; readonly value: number; readonly annotations: Annotations }
-  | { readonly _tag: "greaterThan"; readonly value: number; readonly annotations: Annotations }
-  | { readonly _tag: "lessThan"; readonly value: number; readonly annotations: Annotations }
-  | { readonly _tag: "multipleOf"; readonly value: number; readonly annotations: Annotations }
+  | {
+    readonly _tag: "greaterThanOrEqualTo"
+    readonly value: number
+    readonly annotations: Schema.Annotations.Annotations
+  }
+  | { readonly _tag: "lessThanOrEqualTo"; readonly value: number; readonly annotations: Schema.Annotations.Annotations }
+  | { readonly _tag: "greaterThan"; readonly value: number; readonly annotations: Schema.Annotations.Annotations }
+  | { readonly _tag: "lessThan"; readonly value: number; readonly annotations: Schema.Annotations.Annotations }
+  | { readonly _tag: "multipleOf"; readonly value: number; readonly annotations: Schema.Annotations.Annotations }
 
 class Number {
   static parseFilters(schema: Schema.JsonSchema): Array<NumberFilter> {
@@ -810,17 +821,17 @@ class Number {
   readonly _tag = "Number"
   readonly isInteger: boolean
   readonly checks: ReadonlyArray<NumberCheck>
-  readonly annotations: Annotations
+  readonly annotations: Schema.Annotations.Annotations
   constructor(
     isInteger: boolean,
     checks: ReadonlyArray<NumberCheck>,
-    annotations: Annotations = {}
+    annotations: Schema.Annotations.Annotations = {}
   ) {
     this.isInteger = isInteger
     this.checks = checks
     this.annotations = annotations
   }
-  replaceAnnotations(annotations: Annotations): Number {
+  replaceAnnotations(annotations: Schema.Annotations.Annotations): Number {
     return new Number(this.isInteger, this.checks, annotations)
   }
   combine(that: AST): AST {
@@ -903,11 +914,11 @@ function getNumberPredicate(f: NumberFilter): (n: number) => boolean {
 
 class Boolean {
   readonly _tag = "Boolean"
-  readonly annotations: Annotations
-  constructor(annotations: Annotations = {}) {
+  readonly annotations: Schema.Annotations.Annotations
+  constructor(annotations: Schema.Annotations.Annotations = {}) {
     this.annotations = annotations
   }
-  replaceAnnotations(annotations: Annotations): Boolean {
+  replaceAnnotations(annotations: Schema.Annotations.Annotations): Boolean {
     return new Boolean(annotations)
   }
   combine(that: AST): AST {
@@ -935,18 +946,18 @@ function isLiteralValue(value: unknown): value is AST.LiteralValue {
 }
 
 class Literals {
-  static make(values: ReadonlyArray<AST.LiteralValue>, annotations: Annotations = {}): AST {
+  static make(values: ReadonlyArray<AST.LiteralValue>, annotations: Schema.Annotations.Annotations = {}): AST {
     if (values.length === 0) return new Never(annotations)
     return new Literals(values, annotations)
   }
   readonly _tag = "Literals"
   readonly values: ReadonlyArray<AST.LiteralValue>
-  readonly annotations: Annotations
-  private constructor(values: ReadonlyArray<AST.LiteralValue>, annotations: Annotations = {}) {
+  readonly annotations: Schema.Annotations.Annotations
+  private constructor(values: ReadonlyArray<AST.LiteralValue>, annotations: Schema.Annotations.Annotations = {}) {
     this.annotations = annotations
     this.values = values
   }
-  replaceAnnotations(annotations: Annotations): Literals {
+  replaceAnnotations(annotations: Schema.Annotations.Annotations): Literals {
     return new Literals(this.values, annotations)
   }
   combine(that: AST): AST {
@@ -996,9 +1007,9 @@ class Literals {
 type ArraysCheck = ArraysFilter | FilterGroup<ArraysCheck>
 
 type ArraysFilter =
-  | { readonly _tag: "minItems"; readonly value: number; readonly annotations: Annotations }
-  | { readonly _tag: "maxItems"; readonly value: number; readonly annotations: Annotations }
-  | { readonly _tag: "uniqueItems"; readonly annotations: Annotations }
+  | { readonly _tag: "minItems"; readonly value: number; readonly annotations: Schema.Annotations.Annotations }
+  | { readonly _tag: "maxItems"; readonly value: number; readonly annotations: Schema.Annotations.Annotations }
+  | { readonly _tag: "uniqueItems"; readonly annotations: Schema.Annotations.Annotations }
 
 class Element {
   readonly isOptional: boolean
@@ -1021,12 +1032,12 @@ class Arrays {
   readonly elements: ReadonlyArray<Element>
   readonly rest: AST | undefined
   readonly checks: ReadonlyArray<ArraysCheck>
-  readonly annotations: Annotations
+  readonly annotations: Schema.Annotations.Annotations
   constructor(
     elements: ReadonlyArray<Element>,
     rest: AST | undefined,
     checks: ReadonlyArray<ArraysCheck>,
-    annotations: Annotations = {}
+    annotations: Schema.Annotations.Annotations = {}
   ) {
     this.elements = elements
     this.rest = rest
@@ -1040,7 +1051,7 @@ class Arrays {
     })
     this.annotations = annotations
   }
-  replaceAnnotations(annotations: Annotations): Arrays {
+  replaceAnnotations(annotations: Schema.Annotations.Annotations): Arrays {
     return new Arrays(this.elements, this.rest, this.checks, annotations)
   }
   combine(that: AST): AST {
@@ -1193,8 +1204,8 @@ function addQuestionMark(isOptional: boolean, type: string): string {
 type ObjectsCheck = ObjectsFilter | FilterGroup<ObjectsCheck>
 
 type ObjectsFilter =
-  | { readonly _tag: "minProperties"; readonly value: number; readonly annotations: Annotations }
-  | { readonly _tag: "maxProperties"; readonly value: number; readonly annotations: Annotations }
+  | { readonly _tag: "minProperties"; readonly value: number; readonly annotations: Schema.Annotations.Annotations }
+  | { readonly _tag: "maxProperties"; readonly value: number; readonly annotations: Schema.Annotations.Annotations }
 
 class Property {
   readonly isOptional: boolean
@@ -1234,13 +1245,13 @@ class Objects {
   readonly indexSignatures: ReadonlyArray<IndexSignature>
   readonly additionalProperties: boolean | AST
   readonly checks: ReadonlyArray<ObjectsCheck>
-  readonly annotations: Annotations
+  readonly annotations: Schema.Annotations.Annotations
   constructor(
     properties: ReadonlyArray<Property>,
     indexSignatures: ReadonlyArray<IndexSignature>,
     additionalProperties: boolean | AST,
     checks: ReadonlyArray<ObjectsCheck>,
-    annotations: Annotations = {}
+    annotations: Schema.Annotations.Annotations = {}
   ) {
     this.properties = properties
     this.indexSignatures = indexSignatures
@@ -1248,7 +1259,7 @@ class Objects {
     this.checks = checks
     this.annotations = annotations
   }
-  replaceAnnotations(annotations: Annotations): Objects {
+  replaceAnnotations(annotations: Schema.Annotations.Annotations): Objects {
     return new Objects(this.properties, this.indexSignatures, this.additionalProperties, this.checks, annotations)
   }
   combine(that: AST): AST {
@@ -1482,7 +1493,7 @@ type PropertyGen = {
   readonly key: string
   readonly value: Generation
   readonly isOptional: boolean
-  readonly annotations: Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
 }
 
 type IndexSignatureGen = {
@@ -1491,7 +1502,11 @@ type IndexSignatureGen = {
 }
 
 class Union {
-  static make(members: ReadonlyArray<AST>, mode: "anyOf" | "oneOf", annotations: Annotations = {}): AST {
+  static make(
+    members: ReadonlyArray<AST>,
+    mode: "anyOf" | "oneOf",
+    annotations: Schema.Annotations.Annotations = {}
+  ): AST {
     members = members.filter((m) => m._tag !== "Never")
     if (members.length === 0) return new Never(annotations)
     if (members.length === 1) {
@@ -1502,13 +1517,17 @@ class Union {
   readonly _tag = "Union"
   readonly members: ReadonlyArray<AST>
   readonly mode: "anyOf" | "oneOf"
-  readonly annotations: Annotations
-  private constructor(members: ReadonlyArray<AST>, mode: "anyOf" | "oneOf", annotations: Annotations = {}) {
+  readonly annotations: Schema.Annotations.Annotations
+  private constructor(
+    members: ReadonlyArray<AST>,
+    mode: "anyOf" | "oneOf",
+    annotations: Schema.Annotations.Annotations = {}
+  ) {
     this.members = members
     this.mode = mode
     this.annotations = annotations
   }
-  replaceAnnotations(annotations: Annotations): Union {
+  replaceAnnotations(annotations: Schema.Annotations.Annotations): Union {
     return new Union(this.members, this.mode, annotations)
   }
   combine(that: AST): AST {
@@ -1555,11 +1574,11 @@ function isBareNull(ast: AST): boolean {
 class Reference {
   readonly _tag = "Reference"
   readonly ref: string
-  readonly annotations: Annotations = {}
+  readonly annotations: Schema.Annotations.Annotations = {}
   constructor(ref: string) {
     this.ref = ref
   }
-  replaceAnnotations(_: Annotations): Reference {
+  replaceAnnotations(_: Schema.Annotations.Annotations): Reference {
     return this
   }
   combine(_: AST): AST {
@@ -1856,8 +1875,8 @@ function collectRest(schema: Schema.JsonSchema, options: RecurOptions): Schema.J
   }
 }
 
-function collectAnnotations(schema: Schema.JsonSchema): Annotations {
-  const as: Mutable<Annotations> = {}
+function collectAnnotations(schema: Schema.JsonSchema): Schema.Annotations.Annotations {
+  const as: Mutable<Schema.Annotations.Annotations> = {}
 
   if (typeof schema.title === "string") as.title = schema.title
   if (typeof schema.description === "string") as.description = schema.description

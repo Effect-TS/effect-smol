@@ -8,10 +8,10 @@ import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import * as Filter from "./Filter.ts"
 import { memoize } from "./Function.ts"
+import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import type * as Schema from "./Schema.ts"
-import * as Annotations from "./SchemaAnnotations.ts"
 import * as AST from "./SchemaAST.ts"
 import * as Issue from "./SchemaIssue.ts"
 
@@ -345,13 +345,13 @@ const recur = memoize(
     if (!ast.context && !ast.encoding && !ast.checks) {
       return (ou, options) => {
         parser ??= ast.getParser(recur)
-        return parser(ou, Annotations.resolve(ast)?.["parseOptions"] ?? options)
+        return parser(ou, InternalAnnotations.resolve(ast)?.["parseOptions"] ?? options)
       }
     }
     const isStructural = AST.isArrays(ast) || AST.isObjects(ast) ||
       (AST.isDeclaration(ast) && ast.typeParameters.length > 0)
     return (ou, options) => {
-      options = Annotations.resolve(ast)?.["parseOptions"] ?? options
+      options = InternalAnnotations.resolve(ast)?.["parseOptions"] ?? options
       const encoding = ast.encoding
       let srou: Effect.Effect<Option.Option<unknown>, Issue.Issue, unknown> | undefined
       if (encoding) {
@@ -381,7 +381,7 @@ const recur = memoize(
           sroa = Effect.catchEager(sroa, (issue) => {
             const issues: Array<Issue.Issue> = []
             AST.collectIssues(
-              checks.filter((check) => check.annotations?.[Annotations.STRUCTURAL_ANNOTATION_KEY]),
+              checks.filter((check) => check.annotations?.[AST.STRUCTURAL_ANNOTATION_KEY]),
               ou.value,
               issues,
               ast,

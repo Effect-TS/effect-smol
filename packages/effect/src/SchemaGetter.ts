@@ -11,7 +11,6 @@ import { Class } from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Result from "./Result.ts"
 import type * as Schema from "./Schema.ts"
-import type * as Annotations from "./SchemaAnnotations.ts"
 import type * as AST from "./SchemaAST.ts"
 import * as Issue from "./SchemaIssue.ts"
 import * as Str from "./String.ts"
@@ -134,7 +133,7 @@ export function onNone<T, E extends T = T, R = never>(
  * @category Constructors
  * @since 4.0.0
  */
-export function required<T, E extends T = T>(annotations?: Annotations.Key<T>): Getter<T, E> {
+export function required<T, E extends T = T>(annotations?: Schema.Annotations.Key<T>): Getter<T, E> {
   return onNone(() => Effect.fail(new Issue.MissingKey(annotations)))
 }
 

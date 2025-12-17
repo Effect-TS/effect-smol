@@ -31,7 +31,6 @@ import { constFalse, constTrue, identity } from "../../Function.ts"
 import { pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import * as Annotations from "../../SchemaAnnotations.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type * as Struct from "../../Struct.ts"
@@ -1064,7 +1063,7 @@ export const providerDefined = <
  * @category utilities
  */
 export const getDescription = <Tool extends Any>(tool: Tool): string | undefined =>
-  tool.description ?? Annotations.resolveDescription(tool.parametersSchema.ast)
+  tool.description ?? AST.resolveDescription(tool.parametersSchema.ast)
 
 /**
  * Generates a JSON Schema for a tool.

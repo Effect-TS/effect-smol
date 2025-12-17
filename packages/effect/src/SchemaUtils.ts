@@ -3,7 +3,6 @@
  */
 import { identity } from "./Function.ts"
 import * as Schema from "./Schema.ts"
-import type * as Annotations from "./SchemaAnnotations.ts"
 import * as Transformation from "./SchemaTransformation.ts"
 
 /**
@@ -14,7 +13,7 @@ export function getNativeClassSchema<C extends new(...args: any) => any, S exten
   constructor: C,
   options: {
     readonly encoding: S
-    readonly annotations?: Annotations.Declaration<InstanceType<C>>
+    readonly annotations?: Schema.Annotations.Declaration<InstanceType<C>>
   }
 ): Schema.decodeTo<Schema.instanceOf<InstanceType<C>, S["Iso"]>, S> {
   const transformation = Transformation.transform<InstanceType<C>, S["Type"]>({

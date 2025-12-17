@@ -53,7 +53,7 @@ import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Queue from "../../Queue.ts"
 import * as Schema from "../../Schema.ts"
-import * as SchemaAnnotations from "../../SchemaAnnotations.ts"
+import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type { Span } from "../../Tracer.ts"
@@ -1083,7 +1083,7 @@ export const getObjectName = <ObjectSchema extends Schema.Top>(
   if ("identifier" in schema && typeof schema.identifier === "string") {
     return schema.identifier
   }
-  const identifier = SchemaAnnotations.resolveIdentifier(schema.ast)
+  const identifier = AST.resolveIdentifier(schema.ast)
   if (typeof identifier === "string") {
     return identifier
   }

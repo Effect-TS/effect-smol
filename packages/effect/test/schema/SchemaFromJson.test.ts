@@ -1,4 +1,3 @@
-import type { SchemaAnnotations } from "effect"
 import { Schema, SchemaFromJson } from "effect"
 import { describe, expect, it } from "vitest"
 import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
@@ -25,11 +24,11 @@ function assertGeneration(
       readonly resolver?: SchemaFromJson.Resolver | undefined
       readonly extractJsDocs?:
         | boolean
-        | ((annotations: SchemaAnnotations.Annotations) => string | undefined)
+        | ((annotations: Schema.Annotations.Annotations) => string | undefined)
         | undefined
       readonly parseContentSchema?: boolean | undefined
       readonly collectAnnotations?:
-        | ((schema: Schema.JsonSchema, annotations: SchemaAnnotations.Annotations) => SchemaAnnotations.Annotations)
+        | ((schema: Schema.JsonSchema, annotations: Schema.Annotations.Annotations) => Schema.Annotations.Annotations)
         | undefined
       readonly definitions?: Schema.JsonSchema.Definitions | undefined
     } | undefined

@@ -6,32 +6,33 @@ import type * as FileSystem from "../../FileSystem.ts"
 import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
 import * as Iterable from "../../Iterable.ts"
 import * as Schema from "../../Schema.ts"
-import * as Annotations from "../../SchemaAnnotations.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
 import type { Mutable } from "../../Types.ts"
 import type * as Multipart_ from "../http/Multipart.ts"
 
-declare module "../../SchemaAnnotations.ts" {
-  interface Annotations {
-    readonly httpApiEncoding?: Encoding | undefined
-    readonly httpApiIsEmpty?: true | undefined
-    readonly httpApiMultipart?: Multipart_.withLimits.Options | undefined
-    readonly httpApiMultipartStream?: Multipart_.withLimits.Options | undefined
-    readonly httpApiStatus?: number | undefined
+declare module "../../Schema.ts" {
+  namespace Annotations {
+    interface Annotations {
+      readonly httpApiEncoding?: Encoding | undefined
+      readonly httpApiIsEmpty?: true | undefined
+      readonly httpApiMultipart?: Multipart_.withLimits.Options | undefined
+      readonly httpApiMultipartStream?: Multipart_.withLimits.Options | undefined
+      readonly httpApiStatus?: number | undefined
+    }
   }
 }
 
 /** @internal */
-export const resolveHttpApiIsEmpty = Annotations.resolveAt<boolean>("httpApiIsEmpty")
-const resolveHttpApiEncoding = Annotations.resolveAt<Encoding>("httpApiEncoding")
+export const resolveHttpApiIsEmpty = AST.resolveAt<boolean>("httpApiIsEmpty")
+const resolveHttpApiEncoding = AST.resolveAt<Encoding>("httpApiEncoding")
 /** @internal */
-export const resolveHttpApiMultipart = Annotations.resolveAt<Multipart_.withLimits.Options>("httpApiMultipart")
+export const resolveHttpApiMultipart = AST.resolveAt<Multipart_.withLimits.Options>("httpApiMultipart")
 /** @internal */
-export const resolveHttpApiMultipartStream = Annotations.resolveAt<Multipart_.withLimits.Options>(
+export const resolveHttpApiMultipartStream = AST.resolveAt<Multipart_.withLimits.Options>(
   "httpApiMultipartStream"
 )
-const resolveHttpApiStatus = Annotations.resolveAt<number>("httpApiStatus")
+const resolveHttpApiStatus = AST.resolveAt<number>("httpApiStatus")
 
 /** @internal */
 export function isVoidEncoded(ast: AST.AST): boolean {
@@ -67,8 +68,10 @@ function isHttpApiAnnotationKey(key: string): boolean {
  * @since 4.0.0
  * @category reflection
  */
-export const getHttpApiAnnotations = (self: Annotations.Annotations | undefined): Annotations.Annotations => {
-  const out: Mutable<Annotations.Annotations> = {}
+export const getHttpApiAnnotations = (
+  self: Schema.Annotations.Annotations | undefined
+): Schema.Annotations.Annotations => {
+  const out: Mutable<Schema.Annotations.Annotations> = {}
   if (!self) return out
 
   for (const [key, value] of Object.entries(self)) {
@@ -117,13 +120,13 @@ function shouldExtractUnion(ast: AST.Union): boolean {
   if (ast.encoding) return false
   if (
     ast.types.some((ast) => {
-      const annotations = Annotations.resolve(ast)
+      const annotations = AST.resolve(ast)
       return annotations && Object.keys(annotations).some(isHttpApiAnnotationKey)
     })
   ) {
     return true
   }
-  return Annotations.resolve(ast) === undefined
+  return AST.resolve(ast) === undefined
 }
 
 /**

@@ -23,6 +23,7 @@ import * as core from "./internal/core.ts"
 import * as InternalDiffer from "./internal/differ.ts"
 import * as InternalEquivalence from "./internal/equivalence.ts"
 import * as InternalJsonSchema from "./internal/json-schema.ts"
+import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import { remainder } from "./Number.ts"
 import * as Optic_ from "./Optic.ts"
 import * as Option_ from "./Option.ts"
@@ -34,7 +35,6 @@ import * as Redacted_ from "./Redacted.ts"
 import * as Request from "./Request.ts"
 import * as Result_ from "./Result.ts"
 import * as Scheduler from "./Scheduler.ts"
-import * as Annotations from "./SchemaAnnotations.ts"
 import * as AST from "./SchemaAST.ts"
 import * as Getter from "./SchemaGetter.ts"
 import * as Issue from "./SchemaIssue.ts"
@@ -4852,7 +4852,7 @@ export function isMinLength(minLength: number, annotations?: Annotations.Filter)
         _tag: "isMinLength",
         minLength
       },
-      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
       toArbitraryConstraint: {
         string: {
           minLength
@@ -4923,7 +4923,7 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
         _tag: "isMaxLength",
         maxLength
       },
-      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
       toArbitraryConstraint: {
         string: {
           maxLength
@@ -4974,7 +4974,7 @@ export function isLength(length: number, annotations?: Annotations.Filter) {
         _tag: "isLength",
         length
       },
-      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
       toArbitraryConstraint: {
         string: {
           minLength: length,
@@ -5018,7 +5018,7 @@ export function isMinSize(minSize: number, annotations?: Annotations.Filter) {
         _tag: "isMinSize",
         minSize
       },
-      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
       toArbitraryConstraint: {
         array: {
           minLength: minSize
@@ -5057,7 +5057,7 @@ export function isMaxSize(maxSize: number, annotations?: Annotations.Filter) {
         _tag: "isMaxSize",
         maxSize
       },
-      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
       toArbitraryConstraint: {
         array: {
           maxLength: maxSize
@@ -5096,7 +5096,7 @@ export function isSize(size: number, annotations?: Annotations.Filter) {
         _tag: "isSize",
         size
       },
-      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
       toArbitraryConstraint: {
         array: {
           minLength: size,
@@ -5138,7 +5138,7 @@ export function isMinProperties(minProperties: number, annotations?: Annotations
         _tag: "isMinProperties",
         minProperties
       },
-      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
       toArbitraryConstraint: {
         array: {
           minLength: minProperties
@@ -5178,7 +5178,7 @@ export function isMaxProperties(maxProperties: number, annotations?: Annotations
         _tag: "isMaxProperties",
         maxProperties
       },
-      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
       toArbitraryConstraint: {
         array: {
           maxLength: maxProperties
@@ -5219,7 +5219,7 @@ export function isPropertiesLength(length: number, annotations?: Annotations.Fil
         _tag: "isPropertiesLength",
         length
       },
-      [Annotations.STRUCTURAL_ANNOTATION_KEY]: true,
+      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
       toArbitraryConstraint: {
         array: {
           minLength: length,
@@ -7111,7 +7111,7 @@ export const DateTimeUtcFromMillis: DateTimeUtcFromMillis = Number.pipe(
 )
 
 // -----------------------------------------------------------------------------
-// Class APIs
+// Class
 // -----------------------------------------------------------------------------
 
 /**
@@ -7439,7 +7439,7 @@ export const RequestClass =
   }
 
 // -----------------------------------------------------------------------------
-// Arbitrary APIs
+// Arbitrary
 // -----------------------------------------------------------------------------
 
 /**
@@ -7466,7 +7466,7 @@ export function toArbitrary<S extends Top>(schema: S): FastCheck.Arbitrary<S["Ty
 }
 
 // -----------------------------------------------------------------------------
-// Formatter APIs
+// Formatter
 // -----------------------------------------------------------------------------
 
 /**
@@ -7499,7 +7499,7 @@ export function toFormatter<T>(schema: Schema<T>, options?: {
     // ---------------------------------------------
     // handle annotation
     // ---------------------------------------------
-    const annotation = Annotations.resolve(ast)?.["toFormatter"]
+    const annotation = InternalAnnotations.resolve(ast)?.["toFormatter"]
     if (typeof annotation === "function") {
       return annotation(AST.isDeclaration(ast) ? ast.typeParameters.map(recur) : [])
     }
@@ -7625,7 +7625,7 @@ export function toFormatter<T>(schema: Schema<T>, options?: {
 }
 
 // -----------------------------------------------------------------------------
-// Equivalence APIs
+// Equivalence
 // -----------------------------------------------------------------------------
 
 /**
@@ -7652,7 +7652,7 @@ export function toEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> 
 }
 
 // -----------------------------------------------------------------------------
-// JsonSchema APIs
+// JsonSchema
 // -----------------------------------------------------------------------------
 
 /**
@@ -7765,7 +7765,7 @@ export function toJsonSchema<S extends Top>(schema: S, options: ToJsonSchemaOpti
 }
 
 // -----------------------------------------------------------------------------
-// Serializer APIs
+// Serializer
 // -----------------------------------------------------------------------------
 
 /**
@@ -7845,7 +7845,7 @@ export function toEncoderXml<T, E, RD, RE>(
   codec: Codec<T, E, RD, RE>,
   options?: XmlEncoderOptions
 ) {
-  const rootName = Annotations.resolveIdentifier(codec.ast) ?? Annotations.resolveTitle(codec.ast)
+  const rootName = InternalAnnotations.resolveIdentifier(codec.ast) ?? InternalAnnotations.resolveTitle(codec.ast)
   const serialize = encodeEffect(toCodecStringTree(codec))
   return (t: T): Effect.Effect<string, SchemaError, RE> =>
     serialize(t).pipe(Effect.map((stringTree) => stringTreeToXml(stringTree, { rootName, ...options })))
@@ -8455,4 +8455,570 @@ export interface MutableJsonArray extends Array<MutableJson> {}
  */
 export interface MutableJsonObject {
   [x: string]: MutableJson
+}
+
+// -----------------------------------------------------------------------------
+// Annotations
+// -----------------------------------------------------------------------------
+
+/**
+ * @since 4.0.0
+ */
+export declare namespace Annotations {
+  /**
+   * This interface is used to define the annotations that can be attached to a
+   * schema. You can extend this interface to define your own annotations.
+   *
+   * Note that both a missing key or `undefined` is used to indicate that the
+   * annotation is not present.
+   *
+   * This means that can remove any annotation by setting it to `undefined`.
+   *
+   * **Example** (Defining your own annotations)
+   *
+   * ```ts
+   * import { Schema } from "effect"
+   *
+   * // Extend the Annotations interface with a custom `version` annotation
+   * declare module "effect/Schema" {
+   *   namespace Annotations {
+   *     interface Annotations {
+   *       readonly version?:
+   *         | readonly [major: number, minor: number, patch: number]
+   *         | undefined
+   *     }
+   *   }
+   * }
+   *
+   * // The `version` annotation is now recognized by the TypeScript compiler
+   * const schema = Schema.String.annotate({ version: [1, 2, 0] })
+   *
+   * // const version: readonly [major: number, minor: number, patch: number] | undefined
+   * const version = Schema.resolveInto(schema)?.["version"]
+   *
+   * if (version) {
+   *   // Access individual parts of the version
+   *   console.log(version[1])
+   *   // Output: 2
+   * }
+   * ```
+   *
+   * @category Model
+   * @since 4.0.0
+   */
+  export interface Annotations {
+    readonly [x: string]: unknown
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface Documentation extends Annotations {
+    readonly expected?: string | undefined
+    readonly title?: string | undefined
+    readonly description?: string | undefined
+    readonly documentation?: string | undefined
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export interface TypedDocumentation<T> extends Documentation {
+    readonly default?: T | undefined
+    readonly examples?: ReadonlyArray<T> | undefined
+  }
+
+  /**
+   * @category Model
+   * @since 4.0.0
+   */
+  export interface Key<T> extends TypedDocumentation<T> {
+    /**
+     * The message to use when a key is missing.
+     */
+    readonly messageMissingKey?: string | undefined
+  }
+
+  /**
+   * @category Model
+   * @since 4.0.0
+   */
+  export interface Bottom<T, TypeParameters extends ReadonlyArray<Top>> extends TypedDocumentation<T> {
+    /**
+     * The message to use when the value is invalid.
+     */
+    readonly message?: string | undefined
+    /**
+     * The message to use when a key is unexpected.
+     */
+    readonly messageUnexpectedKey?: string | undefined
+    readonly identifier?: string | undefined
+    readonly parseOptions?: AST.ParseOptions | undefined
+    /**
+     * Optional metadata used to identify or extend the filter with custom data.
+     */
+    readonly meta?: Meta | undefined
+    readonly toJsonSchema?:
+      | ToJsonSchema.Declaration<TypeParameters>
+      | undefined
+    readonly toArbitrary?:
+      | ToArbitrary.Declaration<T, TypeParameters>
+      | undefined
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export namespace TypeParameters {
+    /**
+     * @since 4.0.0
+     */
+    export type Type<TypeParameters extends ReadonlyArray<Top>> = {
+      readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Type"]>
+    }
+    /**
+     * @since 4.0.0
+     */
+    export type Encoded<TypeParameters extends ReadonlyArray<Top>> = {
+      readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Encoded"]>
+    }
+  }
+
+  /**
+   * @category Model
+   * @since 4.0.0
+   */
+  export interface Declaration<T, TypeParameters extends ReadonlyArray<Top> = readonly []>
+    extends Bottom<T, TypeParameters>
+  {
+    readonly "toCodec*"?:
+      | ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link)
+      | undefined
+    readonly toCodecJson?:
+      | ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link)
+      | undefined
+    readonly toCodecIso?:
+      | ((typeParameters: TypeParameters.Type<TypeParameters>) => AST.Link)
+      | undefined
+    readonly toJsonSchema?: ToJsonSchema.Declaration<TypeParameters> | undefined
+    readonly toArbitrary?: ToArbitrary.Declaration<T, TypeParameters> | undefined
+    readonly toEquivalence?: ToEquivalence.Declaration<T, TypeParameters> | undefined
+    readonly toFormatter?: ToFormatter.Declaration<T, TypeParameters> | undefined
+    /**
+     * Used to collect sentinels from a Declaration AST.
+     *
+     * @internal
+     */
+    readonly "~sentinels"?: ReadonlyArray<AST.Sentinel> | undefined
+    readonly typeConstructor?: string | undefined
+  }
+
+  /**
+   * **Technical Note**
+   *
+   * This annotation group is not parametric since it would make the filters
+   * invariant
+   *
+   * @category Model
+   * @since 4.0.0
+   */
+  export interface Filter extends Documentation {
+    readonly message?: string | undefined
+    readonly identifier?: string | undefined
+    /**
+     * Optional metadata used to identify or extend the filter with custom data.
+     */
+    readonly meta?: Meta | undefined
+    readonly toJsonSchemaConstraint?:
+      | ToJsonSchema.Constraint
+      | undefined
+    readonly toArbitraryConstraint?:
+      | ToArbitrary.Constraint
+      | undefined
+    /**
+     * Marks the filter as *structural*, meaning it applies to the shape or
+     * structure of the container (e.g., array length, object keys) rather than
+     * the contents.
+     *
+     * Example: `minLength` on an array is a structural filter.
+     */
+    readonly "~structural"?: boolean | undefined
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export namespace ToArbitrary {
+    /**
+     * @since 4.0.0
+     */
+    export interface StringConstraints extends FastCheck.StringSharedConstraints {
+      readonly patterns?: readonly [string, ...Array<string>]
+    }
+
+    /**
+     * @since 4.0.0
+     */
+    export interface NumberConstraints extends FastCheck.FloatConstraints {
+      readonly isInteger?: boolean
+    }
+
+    /**
+     * @since 4.0.0
+     */
+    export interface BigIntConstraints extends FastCheck.BigIntConstraints {}
+
+    /**
+     * @since 4.0.0
+     */
+    export interface ArrayConstraints extends FastCheck.ArrayConstraints {
+      readonly comparator?: (a: any, b: any) => boolean
+    }
+
+    /**
+     * @since 4.0.0
+     */
+    export interface DateConstraints extends FastCheck.DateConstraints {}
+
+    /**
+     * @since 4.0.0
+     */
+    export interface Constraint {
+      readonly string?: StringConstraints | undefined
+      readonly number?: NumberConstraints | undefined
+      readonly bigint?: BigIntConstraints | undefined
+      readonly array?: ArrayConstraints | undefined
+      readonly date?: DateConstraints | undefined
+    }
+
+    /**
+     * @since 4.0.0
+     */
+    export interface Context {
+      /**
+       * This flag is set to `true` when the current schema is a suspend. The goal
+       * is to avoid infinite recursion when generating arbitrary values for
+       * suspends, so implementations should try to avoid excessive recursion.
+       */
+      readonly isSuspend?: boolean | undefined
+      readonly constraints?: ToArbitrary.Constraint | undefined
+    }
+
+    /**
+     * @since 4.0.0
+     */
+    export interface Declaration<T, TypeParameters extends ReadonlyArray<Top>> {
+      (
+        /* Arbitraries for any type parameters of the schema (if present) */
+        typeParameters: { readonly [K in keyof TypeParameters]: FastCheck.Arbitrary<TypeParameters[K]["Type"]> }
+      ): (fc: typeof FastCheck, context: Context) => FastCheck.Arbitrary<T>
+    }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export namespace ToFormatter {
+    /**
+     * @since 4.0.0
+     */
+    export interface Declaration<T, TypeParameters extends ReadonlyArray<Top>> {
+      (
+        /* Formatters for any type parameters of the schema (if present) */
+        typeParameters: { readonly [K in keyof TypeParameters]: Formatter<TypeParameters[K]["Type"]> }
+      ): Formatter<T>
+    }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export namespace ToEquivalence {
+    /**
+     * @since 4.0.0
+     */
+    export interface Declaration<T, TypeParameters extends ReadonlyArray<Top>> {
+      (
+        /* Equivalences for any type parameters of the schema (if present) */
+        typeParameters: { readonly [K in keyof TypeParameters]: Equivalence.Equivalence<TypeParameters[K]["Type"]> }
+      ): Equivalence.Equivalence<T>
+    }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export namespace ToJsonSchema {
+    /**
+     * @since 4.0.0
+     */
+    export interface ConstraintContext {
+      /** The target of the JSON Schema */
+      readonly target: JsonSchema.Target
+      /** The type of the JSON Schema */
+      readonly type?: JsonSchema.Type | undefined
+    }
+
+    /**
+     * @since 4.0.0
+     */
+    export interface Constraint {
+      (context: ConstraintContext): JsonSchema | undefined
+    }
+
+    /**
+     * @since 4.0.0
+     */
+    export interface Context<TypeParameters extends ReadonlyArray<Top>> {
+      /** Json Schemas for any type parameters of the schema (if present) */
+      readonly typeParameters: { readonly [K in keyof TypeParameters]: JsonSchema }
+      /** The target of the JSON Schema */
+      readonly target: JsonSchema.Target
+      /** The default JSON Schema that would be generated by the AST */
+      readonly jsonSchema: JsonSchema
+      /** A function that generates a JSON Schema from an AST, respecting the target and the options */
+      readonly make: (ast: AST.AST) => JsonSchema
+    }
+
+    /**
+     * @since 4.0.0
+     */
+    export interface Declaration<TypeParameters extends ReadonlyArray<Top>> {
+      (context: Context<TypeParameters>): JsonSchema
+    }
+  }
+
+  /**
+   * @category Model
+   * @since 4.0.0
+   */
+  export interface Issue extends Annotations {
+    readonly message?: string | undefined
+  }
+
+  /**
+   * This MUST NOT be extended with custom meta.
+   *
+   * @since 4.0.0
+   */
+  export interface BuiltInMetaRegistry {
+    // String Meta
+    readonly isNumberString: {
+      readonly _tag: "isNumberString"
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isBigIntString: {
+      readonly _tag: "isBigIntString"
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isSymbolString: {
+      readonly _tag: "isSymbolString"
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isMinLength: {
+      readonly _tag: "isMinLength"
+      readonly minLength: number
+    }
+    readonly isMaxLength: {
+      readonly _tag: "isMaxLength"
+      readonly maxLength: number
+    }
+    readonly isLength: {
+      readonly _tag: "isLength"
+      readonly length: number
+    }
+    readonly isPattern: {
+      readonly _tag: "isPattern"
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isTrimmed: {
+      readonly _tag: "isTrimmed"
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isUUID: {
+      readonly _tag: "isUUID"
+      readonly regExp: globalThis.RegExp
+      readonly version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | undefined
+    }
+    readonly isULID: {
+      readonly _tag: "isULID"
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isBase64: {
+      readonly _tag: "isBase64"
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isBase64Url: {
+      readonly _tag: "isBase64Url"
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isStartsWith: {
+      readonly _tag: "isStartsWith"
+      readonly startsWith: string
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isEndsWith: {
+      readonly _tag: "isEndsWith"
+      readonly endsWith: string
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isIncludes: {
+      readonly _tag: "isIncludes"
+      readonly includes: string
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isUppercased: {
+      readonly _tag: "isUppercased"
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isLowercased: {
+      readonly _tag: "isLowercased"
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isCapitalized: {
+      readonly _tag: "isCapitalized"
+      readonly regExp: globalThis.RegExp
+    }
+    readonly isUncapitalized: {
+      readonly _tag: "isUncapitalized"
+      readonly regExp: globalThis.RegExp
+    }
+    // Number Meta
+    readonly isFinite: {
+      readonly _tag: "isFinite"
+    }
+    readonly isInt: {
+      readonly _tag: "isInt"
+    }
+    readonly isMultipleOf: {
+      readonly _tag: "isMultipleOf"
+      readonly divisor: number
+    }
+    readonly isGreaterThan: {
+      readonly _tag: "isGreaterThan"
+      readonly exclusiveMinimum: number
+    }
+    readonly isGreaterThanOrEqualTo: {
+      readonly _tag: "isGreaterThanOrEqualTo"
+      readonly minimum: number
+    }
+    readonly isLessThan: {
+      readonly _tag: "isLessThan"
+      readonly exclusiveMaximum: number
+    }
+    readonly isLessThanOrEqualTo: {
+      readonly _tag: "isLessThanOrEqualTo"
+      readonly maximum: number
+    }
+    readonly isBetween: {
+      readonly _tag: "isBetween"
+      readonly minimum: number
+      readonly maximum: number
+    }
+    // BigInt Meta
+    readonly isGreaterThanBigInt: {
+      readonly _tag: "isGreaterThanBigInt"
+      readonly exclusiveMinimum: bigint
+    }
+    readonly isGreaterThanOrEqualToBigInt: {
+      readonly _tag: "isGreaterThanOrEqualToBigInt"
+      readonly minimum: bigint
+    }
+    readonly isLessThanBigInt: {
+      readonly _tag: "isLessThanBigInt"
+      readonly exclusiveMaximum: bigint
+    }
+    readonly isLessThanOrEqualToBigInt: {
+      readonly _tag: "isLessThanOrEqualToBigInt"
+      readonly maximum: bigint
+    }
+    readonly isBetweenBigInt: {
+      readonly _tag: "isBetweenBigInt"
+      readonly minimum: bigint
+      readonly maximum: bigint
+    }
+    // Date Meta
+    readonly isValidDate: {
+      readonly _tag: "isValidDate"
+    }
+    readonly isGreaterThanDate: {
+      readonly _tag: "isGreaterThanDate"
+      readonly exclusiveMinimum: globalThis.Date
+    }
+    readonly isGreaterThanOrEqualToDate: {
+      readonly _tag: "isGreaterThanOrEqualToDate"
+      readonly minimum: globalThis.Date
+    }
+    readonly isLessThanDate: {
+      readonly _tag: "isLessThanDate"
+      readonly exclusiveMaximum: globalThis.Date
+    }
+    readonly isLessThanOrEqualToDate: {
+      readonly _tag: "isLessThanOrEqualToDate"
+      readonly maximum: globalThis.Date
+    }
+    readonly isBetweenDate: {
+      readonly _tag: "isBetweenDate"
+      readonly minimum: globalThis.Date
+      readonly maximum: globalThis.Date
+    }
+    // Objects Meta
+    readonly isMinProperties: {
+      readonly _tag: "isMinProperties"
+      readonly minProperties: number
+    }
+    readonly isMaxProperties: {
+      readonly _tag: "isMaxProperties"
+      readonly maxProperties: number
+    }
+    readonly isPropertiesLength: {
+      readonly _tag: "isPropertiesLength"
+      readonly length: number
+    }
+    // Arrays Meta
+    readonly isUnique: {
+      readonly _tag: "isUnique"
+      readonly equivalence: Equivalence.Equivalence<any>
+    }
+    // Declaration Meta
+    readonly isMinSize: {
+      readonly _tag: "isMinSize"
+      readonly minSize: number
+    }
+    readonly isMaxSize: {
+      readonly _tag: "isMaxSize"
+      readonly maxSize: number
+    }
+    readonly isSize: {
+      readonly _tag: "isSize"
+      readonly size: number
+    }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  export type BuiltInMeta = BuiltInMetaRegistry[keyof BuiltInMetaRegistry]
+
+  /**
+   * This MAY be extended with custom meta.
+   *
+   * @since 4.0.0
+   */
+  export interface MetaRegistry extends BuiltInMetaRegistry {}
+
+  /**
+   * @since 4.0.0
+   */
+  export type Meta = MetaRegistry[keyof MetaRegistry]
+}
+
+/**
+ * Return all the typed annotations from the schema.
+ *
+ * @category Schema Resolvers
+ * @since 4.0.0
+ */
+export function resolveInto<S extends Top>(schema: S): S["~annotate.in"] | undefined {
+  return InternalAnnotations.resolve(schema.ast)
 }

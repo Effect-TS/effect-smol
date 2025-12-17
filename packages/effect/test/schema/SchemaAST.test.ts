@@ -1,4 +1,4 @@
-import { Schema, SchemaAnnotations, SchemaAST } from "effect"
+import { Schema, SchemaAST } from "effect"
 import { describe, it } from "vitest"
 import { deepStrictEqual } from "../utils/assert.ts"
 
@@ -130,36 +130,6 @@ describe("SchemaAST", () => {
       deepStrictEqual(SchemaAST.getCandidates(["c"], ast.types), [])
       deepStrictEqual(SchemaAST.getCandidates("", ast.types), [ast.types[2]])
       deepStrictEqual(SchemaAST.getCandidates(1, ast.types), [])
-    })
-  })
-
-  describe("getExpected", () => {
-    it("Objects", () => {
-      const schema = Schema.Union([
-        Schema.Struct({ _tag: Schema.Literal("a") }),
-        Schema.Struct({ _tag: Schema.optionalKey(Schema.Literal("b")) }),
-        Schema.Struct({ _tag: Schema.mutableKey(Schema.Literal("c")) }),
-        Schema.Struct({ _tag: Schema.optionalKey(Schema.mutableKey(Schema.Literal("d"))) })
-      ])
-      const ast = schema.ast
-      deepStrictEqual(
-        ast.getExpected(SchemaAnnotations.getExpected),
-        `{ readonly "_tag": "a", ... } | { readonly "_tag"?: "b", ... } | { "_tag": "c", ... } | { "_tag"?: "d", ... }`
-      )
-    })
-
-    it("Arrays", () => {
-      const schema = Schema.Union([
-        Schema.Tuple([Schema.Literal("a")]),
-        Schema.Tuple([Schema.optionalKey(Schema.Literal("b"))]),
-        Schema.mutable(Schema.Tuple([Schema.Literal("c")])),
-        Schema.mutable(Schema.Tuple([Schema.optionalKey(Schema.Literal("d"))]))
-      ])
-      const ast = schema.ast
-      deepStrictEqual(
-        ast.getExpected(SchemaAnnotations.getExpected),
-        `readonly [ "a", ... ] | readonly [ "b"?, ... ] | [ "c", ... ] | [ "d"?, ... ]`
-      )
     })
   })
 })

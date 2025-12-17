@@ -3,9 +3,10 @@
  */
 import type { StandardSchemaV1 } from "@standard-schema/spec"
 import { format, formatPath, type Formatter as FormatterI } from "./Formatter.ts"
+import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as Option from "./Option.ts"
 import { hasProperty } from "./Predicate.ts"
-import * as Annotations from "./SchemaAnnotations.ts"
+import type * as Schema from "./Schema.ts"
 import type * as AST from "./SchemaAST.ts"
 
 const TypeId = "~effect/SchemaIssue/Issue"
@@ -177,13 +178,13 @@ export class MissingKey extends Base {
   /**
    * The metadata for the issue.
    */
-  readonly annotations: Annotations.Key<unknown> | undefined
+  readonly annotations: Schema.Annotations.Key<unknown> | undefined
 
   constructor(
     /**
      * The metadata for the issue.
      */
-    annotations: Annotations.Key<unknown> | undefined
+    annotations: Schema.Annotations.Key<unknown> | undefined
   ) {
     super()
     this.annotations = annotations
@@ -314,7 +315,7 @@ export class InvalidValue extends Base {
   /**
    * The metadata for the issue.
    */
-  readonly annotations: Annotations.Issue | undefined
+  readonly annotations: Schema.Annotations.Issue | undefined
 
   constructor(
     /**
@@ -324,7 +325,7 @@ export class InvalidValue extends Base {
     /**
      * The metadata for the issue.
      */
-    annotations?: Annotations.Issue | undefined
+    annotations?: Schema.Annotations.Issue | undefined
   ) {
     super()
     this.actual = actual
@@ -349,7 +350,7 @@ export class Forbidden extends Base {
   /**
    * The metadata for the issue.
    */
-  readonly annotations: Annotations.Issue | undefined
+  readonly annotations: Schema.Annotations.Issue | undefined
 
   constructor(
     /**
@@ -359,7 +360,7 @@ export class Forbidden extends Base {
     /**
      * The metadata for the issue.
      */
-    annotations: Annotations.Issue | undefined
+    annotations: Schema.Annotations.Issue | undefined
   ) {
     super()
     this.actual = actual
@@ -524,7 +525,7 @@ export const defaultLeafHook: LeafHook = (issue): string => {
   if (message !== undefined) return message
   switch (issue._tag) {
     case "InvalidType":
-      return getExpectedMessage(Annotations.getExpected(issue.ast), formatOption(issue.actual))
+      return getExpectedMessage(InternalAnnotations.getExpected(issue.ast), formatOption(issue.actual))
     case "InvalidValue":
       return `Invalid data ${formatOption(issue.actual)}`
     case "MissingKey":
@@ -609,7 +610,7 @@ function toDefaultIssues(
         if (message !== undefined) return [{ path, message }]
         return [{
           path,
-          message: getExpectedMessage(issue.ast.getExpected(Annotations.getExpected), format(issue.actual))
+          message: getExpectedMessage(issue.ast.getExpected(InternalAnnotations.getExpected), format(issue.actual))
         }]
       }
       return issue.issues.flatMap((issue) => toDefaultIssues(issue, path, leafHook, checkHook))
@@ -679,7 +680,7 @@ function findMessage(issue: Issue): string | undefined {
 }
 
 function getMessageAnnotation(
-  annotations: Annotations.Annotations | undefined,
+  annotations: Schema.Annotations.Annotations | undefined,
   type: "message" | "messageMissingKey" | "messageUnexpectedKey" = "message"
 ): string | undefined {
   const message = annotations?.[type]
