@@ -28,7 +28,7 @@ function assertUnsupportedSchema(
 
 function assertDraft07<S extends Schema.Top>(
   schema: S,
-  expected: { schema: object; definitions?: Record<string, object> },
+  expected: { schema: JsonSchema.JsonSchema; definitions?: JsonSchema.Definitions },
   options?: Schema.ToJsonSchemaOptions<"draft-07">
 ) {
   const document = Schema.toJsonSchema(schema, { target: "draft-07", ...options })
@@ -41,7 +41,7 @@ function assertDraft07<S extends Schema.Top>(
 
 function assertDraft2020_12<S extends Schema.Top>(
   schema: S,
-  expected: { schema: object; definitions?: Record<string, object> },
+  expected: { schema: JsonSchema.JsonSchema; definitions?: JsonSchema.Definitions },
   options?: Schema.ToJsonSchemaOptions<"draft-2020-12">
 ) {
   const document = Schema.toJsonSchema(schema, { target: "draft-2020-12", ...options })
@@ -57,7 +57,7 @@ function assertDraft2020_12<S extends Schema.Top>(
 
 function assertOpenApi3_1<S extends Schema.Top>(
   schema: S,
-  expected: { schema: object; definitions?: Record<string, object> },
+  expected: { schema: JsonSchema.JsonSchema; definitions?: JsonSchema.Definitions },
   options?: Schema.ToJsonSchemaOptions<"openapi-3.1">
 ) {
   const document = Schema.toJsonSchema(schema, { target: "openapi-3.1", ...options })

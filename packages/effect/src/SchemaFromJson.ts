@@ -269,13 +269,13 @@ type TopologicalSort = {
    */
   readonly nonRecursives: ReadonlyArray<{
     readonly ref: string
-    readonly schema: JsonSchema.JsonSchema
+    readonly schema: JsonSchema.JsonSchema | boolean
   }>
   /**
    * The recursive definitions (with no particular order).
    */
   readonly recursives: {
-    readonly [ref: string]: JsonSchema.JsonSchema
+    readonly [ref: string]: JsonSchema.JsonSchema | boolean
   }
 }
 
@@ -380,7 +380,7 @@ export function topologicalSort(definitions: JsonSchema.Definitions): Topologica
     if (deg === 0) queue.push(id)
   }
 
-  const nonRecursives: Array<{ readonly ref: string; readonly schema: JsonSchema.JsonSchema }> = []
+  const nonRecursives: Array<{ readonly ref: string; readonly schema: JsonSchema.JsonSchema | boolean }> = []
   for (let i = 0; i < queue.length; i++) {
     const ref = queue[i]
     nonRecursives.push({ ref, schema: definitions[ref] })
@@ -392,7 +392,7 @@ export function topologicalSort(definitions: JsonSchema.Definitions): Topologica
     }
   }
 
-  const recursives: Record<string, JsonSchema.JsonSchema> = {}
+  const recursives: Record<string, JsonSchema.JsonSchema | boolean> = {}
   for (const ref of recursive) {
     recursives[ref] = definitions[ref]
   }

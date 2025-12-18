@@ -39,7 +39,7 @@ describe("Standard", () => {
   describe("toJsonSchema", () => {
     function assertToJsonSchema(
       documentOrSchema: SchemaStandard.Document | Schema.Top,
-      expected: { schema: object; definitions?: Record<string, object> }
+      expected: { schema: JsonSchema.JsonSchema; definitions?: JsonSchema.Definitions }
     ) {
       const astDocument = Schema.isSchema(documentOrSchema)
         ? SchemaStandard.fromAST(documentOrSchema.ast)

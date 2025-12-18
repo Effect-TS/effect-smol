@@ -629,7 +629,7 @@ export interface OpenAPISpecRequestBody {
  * @since 4.0.0
  */
 export interface OpenAPIComponents {
-  schemas: Record<string, JsonSchema.JsonSchema>
+  schemas: JsonSchema.Definitions
   securitySchemes: Record<string, OpenAPISecurityScheme>
 }
 

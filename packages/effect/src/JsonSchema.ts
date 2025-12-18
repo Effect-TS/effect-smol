@@ -29,7 +29,7 @@ export type Type = "string" | "number" | "boolean" | "array" | "object" | "null"
 /**
  * @since 4.0.0
  */
-export interface Definitions extends Record<string, JsonSchema> {} // TODO: replace with a dedicated schema-node type
+export interface Definitions extends Record<string, JsonSchema | boolean> {}
 
 /**
  * @since 4.0.0
@@ -51,6 +51,28 @@ export const META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema"
 export const META_SCHEMA_URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema"
 
 /**
+ * @since 4.0.0
+ */
+export function fromDocumentDraft07(document: Document<"draft-07">): Document<"draft-2020-12"> {
+  return {
+    source: "draft-2020-12",
+    schema: fromSchemaDraft07(document.schema),
+    definitions: Rec.map(document.definitions, (d) => fromSchemaDraft07(d))
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function fromDocumentOpenApi3_0(document: Document<"openapi-3.0">): Document<"openapi-3.1"> {
+  return {
+    source: "openapi-3.1",
+    schema: fromSchemaOpenApi3_0(document.schema),
+    definitions: Rec.map(document.definitions, (d) => fromSchemaOpenApi3_0(d))
+  }
+}
+
+/**
  * Convert a Draft-07 JSON Schema into a Draft 2020-12-shaped schema.
  *
  * Notes / deliberate behavior:
@@ -66,7 +88,9 @@ export const META_SCHEMA_URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020
  *
  * @since 4.0.0
  */
-export function fromDraft07(schema: JsonSchema | boolean): JsonSchema | boolean {
+export function fromSchemaDraft07(schema: JsonSchema): JsonSchema
+export function fromSchemaDraft07(schema: JsonSchema | boolean): JsonSchema | boolean
+export function fromSchemaDraft07(schema: JsonSchema | boolean): JsonSchema | boolean {
   return recur(schema, true) as JsonSchema | boolean
 
   function recur(node: unknown, isRoot: boolean): unknown {
@@ -245,9 +269,11 @@ export function fromDraft07(schema: JsonSchema | boolean): JsonSchema | boolean 
  *
  * @since 4.0.0
  */
-export function fromOpenApi3_0(schema: JsonSchema | boolean): JsonSchema | boolean {
+export function fromSchemaOpenApi3_0(schema: JsonSchema): JsonSchema
+export function fromSchemaOpenApi3_0(schema: JsonSchema | boolean): JsonSchema | boolean
+export function fromSchemaOpenApi3_0(schema: JsonSchema | boolean): JsonSchema | boolean {
   const normalized = recur(schema) as JsonSchema | boolean
-  return fromDraft07(normalized)
+  return fromSchemaDraft07(normalized)
 
   function recur(node: unknown): unknown {
     if (Array.isArray(node)) return node.map(recur)

@@ -71,7 +71,10 @@ export const openAiRewriter: Rewriter = (document, tracer) => {
     return recur(schema, path)
   }
 
-  function recur(schema: JsonSchema.JsonSchema, path: Path): JsonSchema.JsonSchema {
+  function recur(schema: JsonSchema.JsonSchema, path: Path): JsonSchema.JsonSchema
+  function recur(schema: JsonSchema.JsonSchema | boolean, path: Path): JsonSchema.JsonSchema | boolean
+  function recur(schema: JsonSchema.JsonSchema | boolean, path: Path): JsonSchema.JsonSchema | boolean {
+    if (typeof schema === "boolean") return schema
     // anyOf
     if (Array.isArray(schema.anyOf)) {
       const value = whitelistProperties(schema, path, ["anyOf"], tracer)
