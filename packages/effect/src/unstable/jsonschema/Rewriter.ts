@@ -49,7 +49,7 @@ export type Rewriter = <S extends JsonSchema.Source>(
  *
  * @since 4.0.0
  */
-export const openAiRewriter: Rewriter = (document, tracer) => {
+export const openAi: Rewriter = (document, tracer) => {
   return {
     source: document.source,
     schema: top(document.schema, ["schema"]),

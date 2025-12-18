@@ -41,7 +41,7 @@ describe("Rewriter", () => {
   describe("openAi", () => {
     it("root must be an object", () => {
       assertJsonSchema(
-        Rewriter.openAiRewriter,
+        Rewriter.openAi,
         Schema.Union([Schema.String, Schema.Number]),
         {
           schema: {
@@ -66,7 +66,7 @@ describe("Rewriter", () => {
         }
       )
       assertJsonSchema(
-        Rewriter.openAiRewriter,
+        Rewriter.openAi,
         Schema.Union([Schema.String, Schema.Number]).annotate({
           description: "description"
         }),
@@ -95,7 +95,7 @@ describe("Rewriter", () => {
         }
       )
       assertJsonSchema(
-        Rewriter.openAiRewriter,
+        Rewriter.openAi,
         Schema.Union([Schema.String, Schema.Number]).annotate({
           identifier: "ID",
           description: "description"
@@ -128,7 +128,7 @@ describe("Rewriter", () => {
 
     it("nested $ref", () => {
       assertJsonSchema(
-        Rewriter.openAiRewriter,
+        Rewriter.openAi,
         Schema.Struct({ a: Schema.String.annotate({ identifier: "ID" }) }),
         {
           schema: {
@@ -161,7 +161,7 @@ describe("Rewriter", () => {
           as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ identifier: "A" })))
         })
         assertJsonSchema(
-          Rewriter.openAiRewriter,
+          Rewriter.openAi,
           schema,
           {
             schema: {
@@ -205,7 +205,7 @@ describe("Rewriter", () => {
           as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
         }).annotate({ identifier: "A" })
         assertJsonSchema(
-          Rewriter.openAiRewriter,
+          Rewriter.openAi,
           schema,
           {
             schema: {
@@ -243,7 +243,7 @@ describe("Rewriter", () => {
     describe("Struct", () => {
       it("additionalProperties: false must always be set in objects", () => {
         assertJsonSchema(
-          Rewriter.openAiRewriter,
+          Rewriter.openAi,
           Schema.Struct({ a: Schema.String }),
           {
             schema: {
@@ -274,7 +274,7 @@ describe("Rewriter", () => {
 
       it("required field", () => {
         assertJsonSchema(
-          Rewriter.openAiRewriter,
+          Rewriter.openAi,
           Schema.Struct({ a: Schema.NonEmptyString }),
           {
             schema: {
@@ -301,7 +301,7 @@ describe("Rewriter", () => {
 
       it("optional field", () => {
         assertJsonSchema(
-          Rewriter.openAiRewriter,
+          Rewriter.openAi,
           Schema.Struct({
             a: Schema.optionalKey(Schema.String),
             b: Schema.optionalKey(Schema.String.annotate({ description: "description" })),
@@ -433,7 +433,7 @@ describe("Rewriter", () => {
           }
         )
         assertJsonSchema(
-          Rewriter.openAiRewriter,
+          Rewriter.openAi,
           Schema.Struct({ a: Schema.optionalKey(Schema.Literal(1)) }),
           {
             schema: {
@@ -458,7 +458,7 @@ describe("Rewriter", () => {
           }
         )
         assertJsonSchema(
-          Rewriter.openAiRewriter,
+          Rewriter.openAi,
           Schema.Struct({
             a: Schema.optionalKey(
               Schema.Literal(1).annotate({
@@ -490,7 +490,7 @@ describe("Rewriter", () => {
           }
         )
         assertJsonSchema(
-          Rewriter.openAiRewriter,
+          Rewriter.openAi,
           Schema.Struct({ a: Schema.optionalKey(Schema.Union([Schema.String, Schema.Number])) }),
           {
             schema: {
@@ -518,7 +518,7 @@ describe("Rewriter", () => {
           }
         )
         assertJsonSchema(
-          Rewriter.openAiRewriter,
+          Rewriter.openAi,
           Schema.Struct({
             a: Schema.optionalKey(
               Schema.Union([Schema.String, Schema.Number]).annotate({
@@ -558,7 +558,7 @@ describe("Rewriter", () => {
     describe("Union", () => {
       it("anyOf", () => {
         assertJsonSchema(
-          Rewriter.openAiRewriter,
+          Rewriter.openAi,
           Schema.Struct({
             a: Schema.Union([
               Schema.NonEmptyString.annotate({ description: "string description" }),
@@ -620,7 +620,7 @@ describe("Rewriter", () => {
 
       it("anyOf", () => {
         assertJsonSchema(
-          Rewriter.openAiRewriter,
+          Rewriter.openAi,
           Schema.Struct({
             a: Schema.Union([
               Schema.NonEmptyString.annotate({ description: "string description" }),
@@ -728,7 +728,7 @@ describe("Rewriter", () => {
 
     it("String", () => {
       assertJsonSchema(
-        Rewriter.openAiRewriter,
+        Rewriter.openAi,
         Schema.Struct({ a: Schema.String.check(Schema.isMinLength(1)) }),
         {
           schema: {
@@ -752,7 +752,7 @@ describe("Rewriter", () => {
         }
       )
       assertJsonSchema(
-        Rewriter.openAiRewriter,
+        Rewriter.openAi,
         Schema.Struct({
           a: Schema.String.check(Schema.isMinLength(1, {
             description: "description isMinLength(1)"
@@ -780,7 +780,7 @@ describe("Rewriter", () => {
         }
       )
       assertJsonSchema(
-        Rewriter.openAiRewriter,
+        Rewriter.openAi,
         Schema.Struct({
           a: Schema.String.check(
             Schema.isMinLength(1, {
@@ -818,7 +818,7 @@ describe("Rewriter", () => {
 
     it("Tuple", () => {
       assertJsonSchema(
-        Rewriter.openAiRewriter,
+        Rewriter.openAi,
         Schema.Struct({ a: Schema.Tuple([Schema.NonEmptyString, Schema.Number]) }),
         {
           schema: {
@@ -859,7 +859,7 @@ describe("Rewriter", () => {
 
     it("Array", () => {
       assertJsonSchema(
-        Rewriter.openAiRewriter,
+        Rewriter.openAi,
         Schema.Struct({ a: Schema.Array(Schema.NonEmptyString) }),
         {
           schema: {
@@ -889,7 +889,7 @@ describe("Rewriter", () => {
 
     it("const", () => {
       assertJsonSchema(
-        Rewriter.openAiRewriter,
+        Rewriter.openAi,
         Schema.Struct({
           a: Schema.String.annotate({
             description: "description",
@@ -927,7 +927,7 @@ describe("Rewriter", () => {
 
     it("UniqueArray", () => {
       assertJsonSchema(
-        Rewriter.openAiRewriter,
+        Rewriter.openAi,
         Schema.Struct({ a: Schema.UniqueArray(Schema.String) }),
         {
           schema: {
