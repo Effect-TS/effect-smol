@@ -8,6 +8,7 @@ import * as Channel from "./Channel.ts"
 import * as Clock from "./Clock.ts"
 import * as Duration from "./Duration.ts"
 import * as Effect from "./Effect.ts"
+import * as Exit from "./Exit.ts"
 import * as Filter from "./Filter.ts"
 import type { LazyArg } from "./Function.ts"
 import { constant, constFalse, constTrue, constVoid, dual, identity, pipe } from "./Function.ts"
@@ -1674,3 +1675,87 @@ export const orElse: {
         )
     )
   }))
+
+/**
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchCause: {
+  <E, A2, E2, R2>(
+    f: (error: Cause.Cause<Types.NoInfer<E>>) => Effect.Effect<A2, E2, R2>
+  ): <A, In, L, R>(self: Sink<A, In, L, E, R>) => Sink<A2 | A, In, L, E, R2 | R>
+  <A, In, L, E, R, A2, E2, R2>(
+    self: Sink<A, In, L, E, R>,
+    f: (error: Cause.Cause<E>) => Effect.Effect<A2, E2, R2>
+  ): Sink<A | A2, In, L, E2, R | R2>
+} = dual(2, <A, In, L, E, R, A2, E2, R2>(
+  self: Sink<A, In, L, E, R>,
+  f: (error: Cause.Cause<E>) => Effect.Effect<A2, E2, R2>
+): Sink<A | A2, In, L, E2, R | R2> =>
+  transformEffect(
+    self,
+    Effect.catchCause((cause) => Effect.map(f(cause), (a2) => [a2 as A | A2] as const))
+  ))
+
+const catch_: {
+  <E, A2, E2, R2>(
+    f: (error: Types.NoInfer<E>) => Effect.Effect<A2, E2, R2>
+  ): <A, In, L, R>(self: Sink<A, In, L, E, R>) => Sink<A2 | A, In, L, E, R2 | R>
+  <A, In, L, E, R, A2, E2, R2>(
+    self: Sink<A, In, L, E, R>,
+    f: (error: E) => Effect.Effect<A2, E2, R2>
+  ): Sink<A | A2, In, L, E2, R | R2>
+} = dual(2, <A, In, L, E, R, A2, E2, R2>(
+  self: Sink<A, In, L, E, R>,
+  f: (error: E) => Effect.Effect<A2, E2, R2>
+): Sink<A | A2, In, L, E2, R | R2> =>
+  transformEffect(
+    self,
+    Effect.catch((error) => Effect.map(f(error), (a2) => [a2 as A | A2] as const))
+  ))
+
+export {
+  /**
+   * @since 4.0.0
+   * @category Error handling
+   */
+  catch_ as catch
+}
+
+/**
+ * @since 4.0.0
+ * @category Finalization
+ */
+export const onExit: {
+  <A, E, X, E2, R2>(
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<X, E2, R2>
+  ): <In, L, R>(self: Sink<A, In, L, E, R>) => Sink<A, In, L, E | E2, R2 | R>
+  <A, In, L, E, R, X, E2, R2>(
+    self: Sink<A, In, L, E, R>,
+    f: (exit: Exit.Exit<A, E>) => Effect.Effect<X, E2, R2>
+  ): Sink<A, In, L, E | E2, R | R2>
+} = dual(2, <A, In, L, E, R, X, E2, R2>(
+  self: Sink<A, In, L, E, R>,
+  f: (exit: Exit.Exit<A, E>) => Effect.Effect<X, E2, R2>
+): Sink<A, In, L, E | E2, R | R2> =>
+  transformEffect(
+    self,
+    Effect.onExit((exit) => f(Exit.map(exit, ([a]) => a)))
+  ))
+
+/**
+ * @since 4.0.0
+ * @category Finalization
+ */
+export const ensuring: {
+  <X, E2, R2>(
+    effect: Effect.Effect<X, E2, R2>
+  ): <A, E, In, L, R>(self: Sink<A, In, L, E, R>) => Sink<A, In, L, E | E2, R2 | R>
+  <A, In, L, E, R, X, E2, R2>(
+    self: Sink<A, In, L, E, R>,
+    effect: Effect.Effect<X, E2, R2>
+  ): Sink<A, In, L, E | E2, R | R2>
+} = dual(2, <A, In, L, E, R, X, E2, R2>(
+  self: Sink<A, In, L, E, R>,
+  effect: Effect.Effect<X, E2, R2>
+): Sink<A, In, L, E | E2, R | R2> => onExit(self, () => effect))

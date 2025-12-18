@@ -11,7 +11,7 @@ Releases are snapshot only
 - [x] RateLimiter with persistence
 - [x] Reduce nesting of modules
 - [x] Effect.fn call site trace
-- [ ] Port Stream / Sink apis
+- [x] Port Stream / Sink apis
 - [ ] Add opentelemetry package
 - [ ] Add AI provider packages
 
@@ -536,7 +536,7 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 |     Effect 3      | Ported | Effect 4 | Comments |
 | :---------------: | :----: | :------: | :------: |
 |     `orElse`      |  Done  |          |          |
-|   `refineOrDie`   |   -    | `catch`  |          |
+|   `refineOrDie`   |  Done  | `catch`  |          |
 | `refineOrDieWith` |   X    |          |          |
 
 ### Filtering
@@ -550,15 +550,15 @@ The exports under each section are organized as they are in Effect 3.0. The cate
 
 |    Effect 3    | Ported | Effect 4 | Comments |
 | :------------: | :----: | :------: | :------: |
-|   `ensuring`   |   -    |          |          |
-| `ensuringWith` |   -    | `onExit` |          |
+|   `ensuring`   |  Done  |          |          |
+| `ensuringWith` |  Done  | `onExit` |          |
 
 ### Folding
 
 |  Effect 3  | Ported | Effect 4 | Comments |
 | :--------: | :----: | :------: | :------: |
 |   `fold`   |  Done  |  `fold`  |          |
-| `foldSink` |   -    |          |          |
+| `foldSink` |   X    |          |          |
 
 ### Mapping
 
