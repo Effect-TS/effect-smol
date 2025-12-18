@@ -888,41 +888,47 @@ describe("Rewriter", () => {
     })
 
     it("const", () => {
-      assertJsonSchema(
-        Rewriter.openAi,
-        Schema.Struct({
-          a: Schema.String.annotate({
-            description: "description",
-            toJsonSchema: () => ({
-              const: "a"
-            })
-          })
-        }),
-        {
-          schema: {
-            "type": "object",
-            "properties": {
-              "a": {
-                "enum": ["a"],
-                "description": "description"
-              }
-            },
-            "required": ["a"],
-            "additionalProperties": false
-          },
-          traces: [
-            {
-              description: `[CONST -> ENUM]`,
-              op: "replace",
-              path: "/schema/properties/a",
-              value: {
-                "enum": ["a"],
-                "description": "description"
-              }
-            }
-          ]
+      const traces: Array<JsonPatchOperation> = []
+      const tracer: Rewriter.RewriterTracer = {
+        push(change) {
+          traces.push(change)
         }
-      )
+      }
+      const document = Rewriter.openAi({
+        source: "draft-2020-12",
+        schema: {
+          "type": "object",
+          "properties": {
+            "a": {
+              "const": "a"
+            }
+          },
+          "required": ["a"],
+          "additionalProperties": false
+        },
+        definitions: {}
+      }, tracer)
+
+      deepStrictEqual(document.schema, {
+        "type": "object",
+        "properties": {
+          "a": {
+            "enum": ["a"]
+          }
+        },
+        "required": ["a"],
+        "additionalProperties": false
+      })
+      deepStrictEqual(traces, [
+        {
+          description: `[CONST -> ENUM]`,
+          op: "replace",
+          path: "/schema/properties/a",
+          value: {
+            "enum": ["a"]
+          }
+        }
+      ])
     })
 
     it("UniqueArray", () => {
