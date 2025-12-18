@@ -154,10 +154,24 @@ export const FileSchema: FileSchema = Schema.declare(
   isPersistedFile,
   {
     identifier: "PersistedFile",
-    toJsonSchema: () => ({
-      "type": "string",
-      "format": "binary"
-    })
+    toCodecJson: () =>
+      Schema.link<PersistedFile>()(
+        Schema.Struct({
+          key: Schema.String,
+          name: Schema.String,
+          contentType: Schema.String,
+          path: Schema.String
+        }),
+        Transformation.transform({
+          decode: ({ contentType, key, name, path }) => new PersistedFileImpl(key, name, contentType, path),
+          encode: (file) => ({
+            key: file.key,
+            name: file.name,
+            contentType: file.contentType,
+            path: file.path
+          })
+        })
+      )
   }
 )
 
