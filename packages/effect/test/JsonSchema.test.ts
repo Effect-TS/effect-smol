@@ -14,205 +14,152 @@ describe("JsonSchema", () => {
     it("removes $schema at every level", () => {
       const input = {
         $schema: "http://json-schema.org/draft-07/schema#",
-        type: "object",
         properties: {
-          a: {
-            $schema: "http://json-schema.org/draft-07/schema#",
-            type: "string"
-          }
-        },
-        allOf: [
-          { $schema: "http://json-schema.org/draft-07/schema#", type: "number" }
-        ]
+          a: { $schema: "http://json-schema.org/draft-07/schema#", type: "string" }
+        }
       }
-
       deepStrictEqual(fromDraft07(input), {
-        type: "object",
-        properties: {
-          a: {
-            type: "string"
-          }
-        },
-        allOf: [
-          { type: "number" }
-        ]
+        properties: { a: { type: "string" } }
       })
     })
 
-    it(`renames "definitions" to "$defs" (recursing into its values)`, () => {
-      {
+    describe("Root-Only 'definitions' logic", () => {
+      it("renames root-level 'definitions' to '$defs' and recurses", () => {
         const input = {
-          $ref: "#/definitions/A",
           definitions: {
-            A: {
-              $schema: "http://json-schema.org/draft-07/schema#",
-              type: "string"
-            }
+            A: { $schema: "x", type: "string" }
           }
         }
-
         deepStrictEqual(fromDraft07(input), {
-          $ref: "#/$defs/A",
           $defs: {
             A: { type: "string" }
           }
         })
-      }
+      })
 
-      {
+      it("merges root-level 'definitions' with existing '$defs' ($defs wins on collisions)", () => {
         const input = {
-          "type": "object",
-          "properties": {
-            "city": { "$ref": "#/properties/address/definitions/City" },
-            "address": {
-              "type": "object",
-              "properties": {
-                "city": { "$ref": "#/properties/address/definitions/City" },
-                "zip": { "type": "integer" }
-              },
-              "definitions": {
-                "City": { "type": "string" }
-              }
+          $defs: { A: { type: "string" } },
+          definitions: { B: { type: "number" } }
+        }
+        deepStrictEqual(fromDraft07(input), {
+          $defs: { B: { type: "number" }, A: { type: "string" } }
+        })
+      })
+
+      it("preserves 'definitions' when used as a property name (non-root)", () => {
+        const input = {
+          type: "object",
+          properties: {
+            definitions: {
+              type: "string",
+              description: "Business logic property, not a keyword"
             }
           }
         }
-
         deepStrictEqual(fromDraft07(input), {
-          "type": "object",
-          "properties": {
-            "city": { "$ref": "#/properties/address/$defs/City" },
-            "address": {
-              "type": "object",
-              "properties": {
-                "city": { "$ref": "#/properties/address/$defs/City" },
-                "zip": { "type": "integer" }
-              },
-              "$defs": {
-                "City": { "type": "string" }
-              }
+          type: "object",
+          properties: {
+            definitions: {
+              type: "string",
+              description: "Business logic property, not a keyword"
             }
           }
         })
-      }
+      })
     })
 
-    it("preserves nested local references", () => {
-      const input = {
-        "type": "object",
-        "properties": {
-          "city": { "$ref": "#/properties/address/properties/city" },
-          "address": {
-            "type": "object",
-            "properties": {
-              "city": { "type": "string" },
-              "zip": { "type": "integer" }
-            }
+    describe("Pointer Rewriting ($ref)", () => {
+      it("rewrites root-level references strictly", () => {
+        const input = { $ref: "#/definitions/A" }
+        deepStrictEqual(fromDraft07(input), { $ref: "#/$defs/A" })
+      })
+
+      it("rewrites #/definitions container refs too", () => {
+        const input = { $ref: "#/definitions" }
+        deepStrictEqual(fromDraft07(input), { $ref: "#/$defs" })
+      })
+
+      it("does NOT rewrite nested 'definitions' tokens in pointers (Root-Only Strategy)", () => {
+        const input = { $ref: "#/definitions/User/definitions/Address" }
+        deepStrictEqual(fromDraft07(input), { $ref: "#/$defs/User/definitions/Address" })
+      })
+
+      it("handles escaped characters at the start of the pointer", () => {
+        const input = { $ref: "#/definitions/My~1Path" }
+        deepStrictEqual(fromDraft07(input), { $ref: "#/$defs/My~1Path" })
+      })
+
+      it("ignores external refs or refs not pointing to definitions", () => {
+        deepStrictEqual(fromDraft07({ $ref: "other.json#/definitions/A" }), { $ref: "other.json#/definitions/A" })
+        deepStrictEqual(fromDraft07({ $ref: "#/properties/a" }), { $ref: "#/properties/a" })
+      })
+    })
+
+    describe("Array Transformations (Tuples)", () => {
+      it("converts items-array to prefixItems and additionalItems to items", () => {
+        const input = {
+          type: "array",
+          items: [{ type: "number" }],
+          additionalItems: { type: "boolean" }
+        }
+        deepStrictEqual(fromDraft07(input), {
+          type: "array",
+          prefixItems: [{ type: "number" }],
+          items: { type: "boolean" }
+        })
+      })
+
+      it("preserves items-schema as items and drops additionalItems", () => {
+        const input = {
+          type: "array",
+          items: { type: "number" },
+          additionalItems: false
+        }
+        deepStrictEqual(fromDraft07(input), {
+          type: "array",
+          items: { type: "number" }
+        })
+      })
+
+      it("drops additionalItems if items is missing", () => {
+        const input = { type: "array", additionalItems: { type: "number" } }
+        deepStrictEqual(fromDraft07(input), { type: "array" })
+      })
+    })
+
+    describe("Dependencies Transformation", () => {
+      it("splits dependencies into dependentSchemas and dependentRequired", () => {
+        const input = {
+          dependencies: {
+            a: { type: "string" }, // Schema
+            b: ["c"] // Property
           }
         }
-      }
+        deepStrictEqual(fromDraft07(input), {
+          dependentSchemas: { a: { type: "string" } },
+          dependentRequired: { b: ["c"] }
+        })
+      })
 
-      deepStrictEqual(fromDraft07(input), {
-        "type": "object",
-        "properties": {
-          "city": { "$ref": "#/properties/address/properties/city" },
-          "address": {
-            "type": "object",
-            "properties": {
-              "city": { "type": "string" },
-              "zip": { "type": "integer" }
-            }
-          }
+      it("merges dependencies with existing dependent schemas/required (explicit wins)", () => {
+        const input = {
+          dependentSchemas: { x: { type: "boolean" } },
+          dependencies: { x: { type: "string" }, a: { type: "string" } }
         }
+        deepStrictEqual(fromDraft07(input), {
+          dependentSchemas: { x: { type: "boolean" }, a: { type: "string" } }
+        })
       })
     })
 
-    it("items[] -> prefixItems and additionalItems -> items (when present)", () => {
-      const input = {
-        type: "array",
-        items: [{ type: "number" }, { type: "string" }],
-        additionalItems: { type: "boolean" }
-      }
-
-      deepStrictEqual(fromDraft07(input), {
-        type: "array",
-        prefixItems: [{ type: "number" }, { type: "string" }],
-        items: { type: "boolean" }
-      })
-    })
-
-    it("items[] without additionalItems -> prefixItems only", () => {
-      const input = {
-        type: "array",
-        items: [{ type: "number" }, { type: "string" }]
-      }
-
-      deepStrictEqual(fromDraft07(input), {
-        type: "array",
-        prefixItems: [{ type: "number" }, { type: "string" }]
-      })
-    })
-
-    it("items(schema) stays items and additionalItems is dropped", () => {
-      const input = {
-        type: "array",
-        items: { type: "number" },
-        additionalItems: false
-      }
-
-      deepStrictEqual(fromDraft07(input), {
-        type: "array",
-        items: { type: "number" }
-      })
-    })
-
-    it("drops additionalItems when items is missing (no tuple context)", () => {
-      const input = {
-        type: "array",
-        additionalItems: { type: "number" }
-      }
-
-      deepStrictEqual(fromDraft07(input), {
-        type: "array"
-      })
-    })
-
-    it("does not recurse into unknown keywords (leaves their contents unchanged)", () => {
-      const input = {
-        custom: {
-          $schema: "should-stay"
+    describe("Keyword Stripping", () => {
+      it("strips unknown keywords (like vendor extensions)", () => {
+        const input = {
+          type: "object",
+          "x-vendor": { type: "string" }
         }
-      }
-
-      deepStrictEqual(fromDraft07(input), {
-        custom: {
-          $schema: "should-stay"
-        }
-      })
-    })
-
-    it("preserves existing $defs and converts schemas inside it", () => {
-      const input = {
-        $defs: {
-          A: { $schema: "x", type: "string" },
-          B: { items: [{ type: "number" }] }
-        }
-      }
-
-      deepStrictEqual(fromDraft07(input), {
-        $defs: {
-          A: { type: "string" },
-          B: { prefixItems: [{ type: "number" }] }
-        }
-      })
-    })
-
-    it("preserves unrelated keywords and values", () => {
-      const input = {
-        nullable: true
-      }
-
-      deepStrictEqual(fromDraft07(input), {
-        nullable: true
+        deepStrictEqual(fromDraft07(input), { type: "object" })
       })
     })
   })
@@ -220,213 +167,152 @@ describe("JsonSchema", () => {
   describe("fromOpenApi3_0", () => {
     const fromOpenApi3_0 = JsonSchema.fromOpenApi3_0
 
-    it("preserves boolean schemas", () => {
-      deepStrictEqual(fromOpenApi3_0(true), true)
-      deepStrictEqual(fromOpenApi3_0(false), false)
-    })
-
-    describe("nullable", () => {
-      it("removes nullable: false", () => {
-        deepStrictEqual(
-          fromOpenApi3_0({ type: "string", nullable: false }),
-          { type: "string" }
-        )
-        deepStrictEqual(
-          fromOpenApi3_0({ type: "string", nullable: false, "description": "a" }),
-          { type: "string", "description": "a" }
-        )
-      })
-
-      it("nullable: true widens type: string -> [string, null]", () => {
-        deepStrictEqual(
-          fromOpenApi3_0({ type: "string", nullable: true }),
-          { type: ["string", "null"] }
-        )
-        deepStrictEqual(
-          fromOpenApi3_0({ type: "string", nullable: true, "description": "a" }),
-          { type: ["string", "null"], "description": "a" }
-        )
-      })
-
-      it("nullable: true widens type array by adding 'null' (no duplicates)", () => {
-        deepStrictEqual(
-          fromOpenApi3_0({ type: ["string"], nullable: true }),
-          { type: ["string", "null"] }
-        )
-
-        deepStrictEqual(
-          fromOpenApi3_0({ type: ["string", "null"], nullable: true }),
-          { type: ["string", "null"] }
-        )
-      })
-
-      it("nullable: true adds null to enum (no duplicates)", () => {
-        deepStrictEqual(
-          fromOpenApi3_0({ enum: ["a", "b"], nullable: true }),
-          { enum: ["a", "b", null] }
-        )
-
-        deepStrictEqual(
-          fromOpenApi3_0({ enum: ["a", null], nullable: true }),
-          { enum: ["a", null] }
-        )
-      })
-
-      it("nullable: true wraps schema in anyOf when there is no type/enum", () => {
-        deepStrictEqual(
-          fromOpenApi3_0({ minimum: 1, nullable: true }),
-          {
-            anyOf: [
-              { minimum: 1 },
-              { type: "null" }
-            ]
-          }
-        )
-      })
-
-      it("nullable conversion works for nested schemas", () => {
-        deepStrictEqual(
-          fromOpenApi3_0({
-            type: "object",
-            properties: {
-              a: { type: "number", nullable: true }
-            },
-            items: { type: "string", nullable: true } // not valid for objects, but should still be walked
-          }),
-          {
-            type: "object",
-            properties: {
-              a: { type: ["number", "null"] }
-            },
-            items: { type: ["string", "null"] }
-          }
-        )
-      })
-
-      it("nullable conversion works inside arrays", () => {
-        deepStrictEqual(
-          fromOpenApi3_0({
-            allOf: [
-              { type: "string", nullable: true },
-              { enum: ["x"], nullable: true }
-            ]
-          }),
-          {
-            allOf: [
-              { type: ["string", "null"] },
-              { enum: ["x", null] }
-            ]
-          }
-        )
+    describe("Base Migration (Inherited from Draft 07)", () => {
+      it("strips $schema and renames definitions to $defs", () => {
+        const input = {
+          $schema: "http://json-schema.org/draft-07/schema#",
+          definitions: { A: { type: "string" } },
+          properties: { a: { $ref: "#/definitions/A" } }
+        }
+        deepStrictEqual(fromOpenApi3_0(input), {
+          $defs: { A: { type: "string" } },
+          properties: { a: { $ref: "#/$defs/A" } }
+        })
       })
     })
 
-    describe("exclusiveMinimum / exclusiveMaximum (OpenAPI boolean form)", () => {
-      it("exclusiveMinimum: true + minimum: n -> exclusiveMinimum: n and deletes minimum", () => {
+    describe("Numeric Exclusivity (OA3 Boolean -> 2020-12 Numeric)", () => {
+      it("converts exclusiveMinimum: true with minimum to numeric form", () => {
         deepStrictEqual(
           fromOpenApi3_0({ minimum: 5, exclusiveMinimum: true }),
           { exclusiveMinimum: 5 }
         )
       })
 
-      it("exclusiveMaximum: true + maximum: n -> exclusiveMaximum: n and deletes maximum", () => {
+      it("converts exclusiveMaximum: true with maximum to numeric form", () => {
         deepStrictEqual(
-          fromOpenApi3_0({ maximum: 5, exclusiveMaximum: true }),
-          { exclusiveMaximum: 5 }
+          fromOpenApi3_0({ maximum: 10, exclusiveMaximum: true }),
+          { exclusiveMaximum: 10 }
         )
       })
 
-      it("exclusiveMinimum: false -> drops exclusiveMinimum (keeps minimum)", () => {
+      it("removes boolean exclusivity if numeric bound is missing or false", () => {
+        deepStrictEqual(fromOpenApi3_0({ exclusiveMinimum: true }), {})
+        deepStrictEqual(fromOpenApi3_0({ minimum: 5, exclusiveMinimum: false }), { minimum: 5 })
+      })
+
+      it("leaves existing numeric exclusivity untouched", () => {
+        deepStrictEqual(fromOpenApi3_0({ exclusiveMaximum: 100 }), { exclusiveMaximum: 100 })
+      })
+    })
+
+    describe("Nullable handling", () => {
+      it("removes nullable: false", () => {
         deepStrictEqual(
-          fromOpenApi3_0({ minimum: 5, exclusiveMinimum: false }),
-          { minimum: 5 }
+          fromOpenApi3_0({ type: "string", nullable: false }),
+          { type: "string" }
         )
       })
 
-      it("exclusiveMaximum: false -> drops exclusiveMaximum (keeps maximum)", () => {
-        deepStrictEqual(
-          fromOpenApi3_0({ maximum: 5, exclusiveMaximum: false }),
-          { maximum: 5 }
-        )
-      })
+      describe("nullable: true transformations", () => {
+        it("widens type: string -> [string, null]", () => {
+          deepStrictEqual(
+            fromOpenApi3_0({ type: "string", nullable: true }),
+            { type: ["string", "null"] }
+          )
+        })
 
-      it("exclusiveMinimum: true without minimum -> drops exclusiveMinimum", () => {
-        deepStrictEqual(
-          fromOpenApi3_0({ exclusiveMinimum: true }),
-          {}
-        )
-      })
+        it("appends to existing type arrays and prevents duplicates", () => {
+          deepStrictEqual(
+            fromOpenApi3_0({ type: ["string", "number"], nullable: true }),
+            { type: ["string", "number", "null"] }
+          )
+          deepStrictEqual(
+            fromOpenApi3_0({ type: ["string", "null"], nullable: true }),
+            { type: ["string", "null"] }
+          )
+        })
 
-      it("exclusiveMaximum: true without maximum -> drops exclusiveMaximum", () => {
-        deepStrictEqual(
-          fromOpenApi3_0({ exclusiveMaximum: true }),
-          {}
-        )
-      })
+        it("adds null to enum AND widens type simultaneously", () => {
+          deepStrictEqual(
+            fromOpenApi3_0({ type: "string", enum: ["a", "b"], nullable: true }),
+            { type: ["string", "null"], enum: ["a", "b", null] }
+          )
+        })
 
-      it("does not touch numeric exclusiveMinimum/exclusiveMaximum", () => {
-        deepStrictEqual(
-          fromOpenApi3_0({ exclusiveMinimum: 2, minimum: 1 }),
-          { exclusiveMinimum: 2, minimum: 1 }
-        )
-        deepStrictEqual(
-          fromOpenApi3_0({ exclusiveMaximum: 9, maximum: 10 }),
-          { exclusiveMaximum: 9, maximum: 10 }
-        )
-      })
-
-      it("exclusive conversions work for nested schemas", () => {
-        deepStrictEqual(
-          fromOpenApi3_0({
-            type: "object",
-            properties: {
-              a: { minimum: 1, exclusiveMinimum: true },
-              b: { maximum: 10, exclusiveMaximum: false }
-            }
-          }),
-          {
-            type: "object",
-            properties: {
-              a: { exclusiveMinimum: 1 },
-              b: { maximum: 10 }
-            }
+        it("handles fallback with anyOf (keeps root metadata for stable pointers)", () => {
+          const input = {
+            nullable: true,
+            $ref: "#/definitions/A",
+            definitions: { A: { type: "string" } },
+            title: "Schema Title",
+            description: "A description",
+            default: "val",
+            examples: ["val"]
           }
-        )
+          deepStrictEqual(fromOpenApi3_0(input), {
+            $defs: { A: { type: "string" } },
+            title: "Schema Title",
+            description: "A description",
+            default: "val",
+            examples: ["val"],
+            anyOf: [
+              { $ref: "#/$defs/A" },
+              { type: "null" }
+            ]
+          })
+        })
       })
     })
 
-    it("can apply both nullable and exclusive conversions in the same schema", () => {
-      deepStrictEqual(
-        fromOpenApi3_0({
-          type: "number",
-          nullable: true,
-          minimum: 1,
-          exclusiveMinimum: true
-        }),
-        {
-          type: ["number", "null"],
-          exclusiveMinimum: 1
-        }
-      )
-    })
-
-    it.todo("nullable & $ref conversion works together", () => {
-      deepStrictEqual(
-        fromOpenApi3_0({
-          nullable: true,
-          $ref: "#/definitions/Foo",
-          definitions: { Foo: { type: "string" } }
-        }),
-        {
-          $defs: { Foo: { type: "string" } },
-          anyOf: [
-            {
-              $ref: "#/$defs/Foo"
-            },
-            { type: "null" }
+    describe("Traversal and Scope", () => {
+      it("recurses into nested structures (properties, items, combinators)", () => {
+        const input = {
+          properties: {
+            a: { type: "integer", minimum: 0, exclusiveMinimum: true }
+          },
+          items: [
+            { type: "string", nullable: true }
+          ],
+          allOf: [
+            { type: "number", nullable: true }
           ]
         }
-      )
+        deepStrictEqual(fromOpenApi3_0(input), {
+          properties: {
+            a: { type: "integer", exclusiveMinimum: 0 }
+          },
+          prefixItems: [
+            { type: ["string", "null"] }
+          ],
+          allOf: [
+            { type: ["number", "null"] }
+          ]
+        })
+      })
+
+      it("strips x- vendor extensions (unknown keywords) after migration", () => {
+        const input = {
+          type: "object",
+          "x-custom-meta": {
+            type: "string",
+            nullable: true,
+            definitions: { B: { type: "boolean" } }
+          }
+        }
+        deepStrictEqual(fromOpenApi3_0(input), { type: "object" })
+      })
+
+      it("does not mutate the input object", () => {
+        const input: any = {
+          type: "object",
+          properties: { a: { type: "string", nullable: true } },
+          "x-custom": { anything: { nullable: true } }
+        }
+        const snapshot = structuredClone(input)
+        fromOpenApi3_0(input)
+        deepStrictEqual(input, snapshot)
+      })
     })
   })
 })
