@@ -13,7 +13,7 @@ function assertJsonSchema(
     readonly definitions?: Record<string, JsonSchema.JsonSchema> | undefined
     readonly traces?: Array<JsonPatchOperation> | undefined
   },
-  options?: Schema.ToJsonSchemaOptions
+  options?: Schema.ToJsonSchemaOptions<JsonSchema.Target>
 ) {
   const traces: Array<JsonPatchOperation> = []
   const tracer: Rewriter.RewriterTracer = {

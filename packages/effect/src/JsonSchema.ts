@@ -63,6 +63,8 @@ export const META_SCHEMA_URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020
  *   `items: [..]` becomes `prefixItems`, and `additionalItems` becomes `items`.
  * - Transforms Draft-07 `dependencies` into `dependentSchemas` and `dependentRequired`.
  * - Strips unknown keywords everywhere (including `x-*` vendor extensions).
+ *
+ * @since 4.0.0
  */
 export function fromDraft07(schema: JsonSchema | boolean): JsonSchema | boolean {
   return recur(schema, true) as JsonSchema | boolean
@@ -240,6 +242,8 @@ export function fromDraft07(schema: JsonSchema | boolean): JsonSchema | boolean 
  *   - converts root `definitions` to `$defs`,
  *   - converts tuples / dependencies,
  *   - strips unknown keywords everywhere (including `x-*` vendor extensions).
+ *
+ * @since 4.0.0
  */
 export function fromOpenApi3_0(schema: JsonSchema | boolean): JsonSchema | boolean {
   const normalized = recur(schema) as JsonSchema | boolean
