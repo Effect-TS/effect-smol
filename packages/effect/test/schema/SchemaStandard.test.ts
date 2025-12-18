@@ -234,10 +234,10 @@ describe("Standard", () => {
       })
 
       describe("contentSchema", () => {
-        it("with contentMediaType and contentSchema", () => {
+        it("top level fromJsonString", () => {
           assertToJsonSchema(
             Schema.toEncoded(
-              Schema.fromJsonString(Schema.Struct({ a: Schema.String }))
+              Schema.fromJsonString(Schema.Struct({ a: Schema.FiniteFromString }))
             ),
             {
               schema: {
@@ -250,6 +250,38 @@ describe("Standard", () => {
                   },
                   required: ["a"],
                   additionalProperties: false
+                }
+              }
+            }
+          )
+        })
+
+        it("nested fromJsonString", () => {
+          assertToJsonSchema(
+            Schema.toEncoded(
+              Schema.fromJsonString(Schema.Struct({
+                a: Schema.fromJsonString(Schema.FiniteFromString)
+              }))
+            ),
+            {
+              schema: {
+                "type": "string",
+                "contentMediaType": "application/json",
+                "contentSchema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "a": {
+                      "contentMediaType": "application/json",
+                      "contentSchema": {
+                        "type": "string"
+                      },
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
                 }
               }
             }
@@ -1067,6 +1099,25 @@ describe("Standard", () => {
         assertJsonSchemaRoundtrip(
           Schema.Union([Schema.String, Schema.Number]),
           `Schema.Union([Schema.String, Schema.Number])`
+        )
+      })
+    })
+
+    // TODO
+    describe("fromJsonString", () => {
+      it("top level fromJsonString", () => {
+        assertJsonSchemaRoundtrip(
+          Schema.fromJsonString(Schema.FiniteFromString),
+          `Schema.fromJsonString(Schema.String)`
+        )
+      })
+
+      it("nested fromJsonString", () => {
+        assertJsonSchemaRoundtrip(
+          Schema.fromJsonString(Schema.Struct({
+            a: Schema.fromJsonString(Schema.FiniteFromString)
+          })),
+          `Schema.fromJsonString(Schema.Struct({ "a": Schema.fromJsonString(Schema.String) }))`
         )
       })
     })

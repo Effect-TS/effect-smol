@@ -970,6 +970,8 @@ export function fromSchema(schema: Schema.Top): Document {
  * @since 4.0.0
  */
 export function fromAST(ast: AST.AST): Document {
+  ast = AST.toEncoded(ast)
+
   const visited = new Set<AST.AST>()
   const definitions: Record<string, StandardSchema> = {}
 
@@ -1035,7 +1037,7 @@ export function fromAST(ast: AST.AST): Document {
             _tag: ast._tag,
             checks: [],
             contentMediaType,
-            contentSchema: recur(contentSchema)
+            contentSchema: recur(AST.toEncoded(contentSchema))
           }
         }
         return { _tag: ast._tag, checks: fromASTChecks(ast.checks) }
@@ -1264,8 +1266,14 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
         return Schema.Unknown
       case "Any":
         return Schema.Any
-      case "String":
+      case "String": {
+        const contentMediaType = schema.contentMediaType
+        const contentSchema = schema.contentSchema
+        if (contentMediaType === "application/json" && contentSchema !== undefined) {
+          return Schema.fromJsonString(recur(contentSchema))
+        }
         return Schema.String
+      }
       case "Number":
         return Schema.Number
       case "Boolean":
@@ -1839,12 +1847,19 @@ export function toCode(document: Document, options?: {
       case "Never":
       case "Unknown":
       case "Any":
-      case "String":
       case "Number":
       case "Boolean":
       case "BigInt":
       case "Symbol":
         return `Schema.${schema._tag}`
+      case "String": {
+        const contentMediaType = schema.contentMediaType
+        const contentSchema = schema.contentSchema
+        if (contentMediaType === "application/json" && contentSchema !== undefined) {
+          return `Schema.fromJsonString(${recur(contentSchema)})`
+        }
+        return `Schema.String`
+      }
       case "Literal":
         return `Schema.Literal(${format(schema.literal)})`
       case "UniqueSymbol": {
@@ -2200,8 +2215,19 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
             _tag: "Number",
             checks: [{ _tag: "Filter", meta: { _tag: "isInt" } }, ...collectNumberChecks(s)]
           }
-        case "string":
+        case "string": {
+          const contentMediaType = s.contentMediaType
+          const contentSchema = s.contentSchema
+          if (contentMediaType === "application/json" && contentSchema !== undefined) {
+            return {
+              _tag: "String",
+              checks: collectStringChecks(s),
+              contentMediaType,
+              contentSchema: recur(contentSchema)
+            }
+          }
           return { _tag: "String", checks: collectStringChecks(s) }
+        }
         case "array":
           return {
             _tag: "Arrays",

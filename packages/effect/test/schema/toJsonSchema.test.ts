@@ -73,48 +73,6 @@ function assertOpenApi3_1<S extends Schema.Top>(
 
 describe("JsonSchema generation", () => {
   describe("Thrown errors", () => {
-    it("Declaration", () => {
-      assertUnsupportedSchema(
-        Schema.instanceOf(globalThis.URL),
-        `Unsupported AST Declaration`
-      )
-    })
-
-    it("Undefined", () => {
-      assertUnsupportedSchema(
-        Schema.Undefined,
-        `Unsupported AST Undefined`
-      )
-    })
-
-    it("BigInt", () => {
-      assertUnsupportedSchema(
-        Schema.BigInt,
-        `Unsupported AST BigInt`
-      )
-    })
-
-    it("UniqueSymbol", () => {
-      assertUnsupportedSchema(
-        Schema.UniqueSymbol(Symbol.for("effect/Schema/test/a")),
-        `Unsupported AST UniqueSymbol`
-      )
-    })
-
-    it("Symbol", () => {
-      assertUnsupportedSchema(
-        Schema.Symbol,
-        `Unsupported AST Symbol`
-      )
-    })
-
-    it("Literal(bigint)", () => {
-      assertUnsupportedSchema(
-        Schema.Literal(1n),
-        `Unsupported literal 1n`
-      )
-    })
-
     it("Suspend without identifier annotation", () => {
       interface A {
         readonly a: string
@@ -132,14 +90,6 @@ describe("JsonSchema generation", () => {
     })
 
     describe("Tuple", () => {
-      it("Unsupported element", () => {
-        assertUnsupportedSchema(
-          Schema.Tuple([Schema.Symbol]),
-          `Unsupported AST Symbol
-  at [0]`
-        )
-      })
-
       it("Unsupported post-rest elements", () => {
         assertUnsupportedSchema(
           Schema.TupleWithRest(Schema.Tuple([]), [Schema.Number, Schema.String]),
@@ -149,14 +99,6 @@ describe("JsonSchema generation", () => {
     })
 
     describe("Struct", () => {
-      it("Unsupported field", () => {
-        assertUnsupportedSchema(
-          Schema.Struct({ a: Schema.Symbol }),
-          `Unsupported AST Symbol
-  at ["a"]`
-        )
-      })
-
       it("Unsupported property signature name", () => {
         const a = Symbol.for("effect/Schema/test/a")
         assertUnsupportedSchema(
@@ -173,40 +115,23 @@ describe("JsonSchema generation", () => {
         )
       })
     })
-
-    describe("onMissingJsonSchemaAnnotation", () => {
-      it("when returns a JSON Schema", () => {
-        assertDraft07(
-          Schema.Date,
-          {
-            schema: {}
-          },
-          {
-            target: "draft-07",
-            onMissingJsonSchemaAnnotation: () => ({})
-          }
-        )
-      })
-
-      it("when returns undefined", () => {
-        assertUnsupportedSchema(
-          Schema.Date,
-          `Unsupported AST Declaration`,
-          {
-            target: "draft-07",
-            onMissingJsonSchemaAnnotation: () => undefined
-          }
-        )
-      })
-    })
   })
 
-  describe("Override annotation", () => {
-    it("typeParameters", () => {
-      function getOptionJsonSchema(value: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-        return {
-          "title": "Option",
-          "oneOf": [
+  describe("Declaration", () => {
+    it("instanceOf", () => {
+      const schema = Schema.URL
+      assertDraft07(schema, {
+        schema: {
+          "type": "string"
+        }
+      })
+    })
+
+    it("Option(String)", () => {
+      const schema = Schema.Option(Schema.String)
+      assertDraft07(schema, {
+        schema: {
+          "anyOf": [
             {
               "type": "object",
               "properties": {
@@ -214,9 +139,11 @@ describe("JsonSchema generation", () => {
                   "type": "string",
                   "enum": ["Some"]
                 },
-                value
+                "value": {
+                  "type": "string"
+                }
               },
-              "required": ["_tag"],
+              "required": ["_tag", "value"],
               "additionalProperties": false
             },
             {
@@ -232,148 +159,6 @@ describe("JsonSchema generation", () => {
             }
           ]
         }
-      }
-      const schema = Schema.Option(Schema.String).annotate({
-        toJsonSchema: (ctx) => getOptionJsonSchema(ctx.typeParameters[0])
-      })
-      assertDraft07(schema, {
-        schema: getOptionJsonSchema({
-          "type": "string"
-        })
-      })
-    })
-
-    it("instanceOf", () => {
-      const schema = Schema.instanceOf(URL, {
-        toJsonSchema: () => ({ "type": "string" })
-      })
-      assertDraft07(schema, {
-        schema: {
-          "type": "string"
-        }
-      })
-    })
-
-    it("should ignore errors when generating the default JSON Schema passed in the override context", () => {
-      assertDraft07(
-        Schema.Symbol.annotate({
-          toJsonSchema: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
-        }),
-        {
-          schema: {
-            "type": "string"
-          }
-        }
-      )
-      assertDraft07(
-        Schema.Symbol.annotate({
-          toJsonSchema: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
-        }),
-        {
-          schema: {
-            "$comment": "comment",
-            "type": "string"
-          }
-        },
-        {
-          target: "draft-07",
-          onMissingJsonSchemaAnnotation: () => ({ "$comment": "comment" })
-        }
-      )
-      assertDraft07(
-        Schema.Symbol.check(Schema.makeFilter(() => true)).annotate({
-          toJsonSchema: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
-        }),
-        {
-          schema: {
-            "type": "string"
-          }
-        }
-      )
-      assertDraft07(
-        Schema.Symbol.check(Schema.makeFilter(() => true)).annotate({
-          toJsonSchema: (ctx) => ({ ...ctx.jsonSchema, "type": "string" })
-        }),
-        {
-          schema: {
-            "$comment": "comment",
-            "type": "string"
-          }
-        },
-        {
-          target: "draft-07",
-          onMissingJsonSchemaAnnotation: () => ({ "$comment": "comment" })
-        }
-      )
-    })
-
-    describe("String", () => {
-      it("String & override", () => {
-        const schema = Schema.String.annotate({
-          toJsonSchema: () => ({
-            "type": "string",
-            "minLength": 1
-          })
-        })
-        assertDraft07(
-          schema,
-          {
-            schema: {
-              "type": "string",
-              "minLength": 1
-            }
-          }
-        )
-        assertDraft07(
-          schema.annotate({ description: "description" }),
-          {
-            schema: {
-              "type": "string",
-              "description": "description",
-              "minLength": 1
-            }
-          }
-        )
-      })
-
-      it("String & identifier & override", () => {
-        assertDraft07(
-          Schema.String.annotate({
-            identifier: "ID",
-            toJsonSchema: () => ({
-              "type": "string",
-              "minLength": 1
-            })
-          }),
-          {
-            schema: {
-              "$ref": "#/definitions/ID"
-            },
-            definitions: {
-              "ID": {
-                "type": "string",
-                "minLength": 1
-              }
-            }
-          }
-        )
-      })
-
-      it("String & check & override", () => {
-        assertDraft07(
-          Schema.String.check(Schema.isMinLength(2)).annotate({
-            toJsonSchema: () => ({
-              "type": "string",
-              "minLength": 1
-            })
-          }),
-          {
-            schema: {
-              "type": "string",
-              "minLength": 1
-            }
-          }
-        )
       })
     })
   })
@@ -633,28 +418,6 @@ describe("JsonSchema generation", () => {
           {
             schema: {
               "type": "string"
-            }
-          }
-        )
-      })
-
-      it("String & override & check", () => {
-        assertDraft07(
-          Schema.String.annotate({
-            toJsonSchema: () => ({
-              "type": "string",
-              "minLength": 1
-            })
-          }).check(Schema.isMinLength(2)),
-          {
-            schema: {
-              "type": "string",
-              "minLength": 1,
-              "allOf": [
-                {
-                  "minLength": 2
-                }
-              ]
             }
           }
         )
@@ -3197,7 +2960,11 @@ describe("JsonSchema generation", () => {
           Schema.fromJsonString(Schema.FiniteFromString),
           {
             schema: {
-              "type": "string"
+              "type": "string",
+              "contentMediaType": "application/json",
+              "contentSchema": {
+                "type": "string"
+              }
             }
           }
         )
@@ -3210,7 +2977,24 @@ describe("JsonSchema generation", () => {
           })),
           {
             schema: {
-              "type": "string"
+              "type": "string",
+              "contentMediaType": "application/json",
+              "contentSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "a": {
+                    "contentMediaType": "application/json",
+                    "contentSchema": {
+                      "type": "string"
+                    },
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "a"
+                ],
+                "type": "object"
+              }
             }
           }
         )
