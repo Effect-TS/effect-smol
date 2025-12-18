@@ -237,4 +237,217 @@ describe("JsonSchema", () => {
       })
     })
   })
+
+  describe("fromOpenApi3_0", () => {
+    const fromOpenApi3_0 = JsonSchema.fromOpenApi3_0
+
+    it("preserves boolean schemas", () => {
+      deepStrictEqual(fromOpenApi3_0(true), true)
+      deepStrictEqual(fromOpenApi3_0(false), false)
+    })
+
+    describe("nullable", () => {
+      it("removes nullable: false", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({ type: "string", nullable: false }),
+          { type: "string" }
+        )
+        deepStrictEqual(
+          fromOpenApi3_0({ type: "string", nullable: false, "description": "a" }),
+          { type: "string", "description": "a" }
+        )
+      })
+
+      it("nullable: true widens type: string -> [string, null]", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({ type: "string", nullable: true }),
+          { type: ["string", "null"] }
+        )
+        deepStrictEqual(
+          fromOpenApi3_0({ type: "string", nullable: true, "description": "a" }),
+          { type: ["string", "null"], "description": "a" }
+        )
+      })
+
+      it("nullable: true widens type array by adding 'null' (no duplicates)", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({ type: ["string"], nullable: true }),
+          { type: ["string", "null"] }
+        )
+
+        deepStrictEqual(
+          fromOpenApi3_0({ type: ["string", "null"], nullable: true }),
+          { type: ["string", "null"] }
+        )
+      })
+
+      it("nullable: true adds null to enum (no duplicates)", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({ enum: ["a", "b"], nullable: true }),
+          { enum: ["a", "b", null] }
+        )
+
+        deepStrictEqual(
+          fromOpenApi3_0({ enum: ["a", null], nullable: true }),
+          { enum: ["a", null] }
+        )
+      })
+
+      it("nullable: true wraps schema in anyOf when there is no type/enum", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({ minimum: 1, nullable: true }),
+          {
+            anyOf: [
+              { minimum: 1 },
+              { type: "null" }
+            ]
+          }
+        )
+      })
+
+      it("nullable conversion works for nested schemas", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({
+            type: "object",
+            properties: {
+              a: { type: "number", nullable: true }
+            },
+            items: { type: "string", nullable: true } // not valid for objects, but should still be walked
+          }),
+          {
+            type: "object",
+            properties: {
+              a: { type: ["number", "null"] }
+            },
+            items: { type: ["string", "null"] }
+          }
+        )
+      })
+
+      it("nullable conversion works inside arrays", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({
+            allOf: [
+              { type: "string", nullable: true },
+              { enum: ["x"], nullable: true }
+            ]
+          }),
+          {
+            allOf: [
+              { type: ["string", "null"] },
+              { enum: ["x", null] }
+            ]
+          }
+        )
+      })
+    })
+
+    describe("exclusiveMinimum / exclusiveMaximum (OpenAPI boolean form)", () => {
+      it("exclusiveMinimum: true + minimum: n -> exclusiveMinimum: n and deletes minimum", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({ minimum: 5, exclusiveMinimum: true }),
+          { exclusiveMinimum: 5 }
+        )
+      })
+
+      it("exclusiveMaximum: true + maximum: n -> exclusiveMaximum: n and deletes maximum", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({ maximum: 5, exclusiveMaximum: true }),
+          { exclusiveMaximum: 5 }
+        )
+      })
+
+      it("exclusiveMinimum: false -> drops exclusiveMinimum (keeps minimum)", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({ minimum: 5, exclusiveMinimum: false }),
+          { minimum: 5 }
+        )
+      })
+
+      it("exclusiveMaximum: false -> drops exclusiveMaximum (keeps maximum)", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({ maximum: 5, exclusiveMaximum: false }),
+          { maximum: 5 }
+        )
+      })
+
+      it("exclusiveMinimum: true without minimum -> drops exclusiveMinimum", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({ exclusiveMinimum: true }),
+          {}
+        )
+      })
+
+      it("exclusiveMaximum: true without maximum -> drops exclusiveMaximum", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({ exclusiveMaximum: true }),
+          {}
+        )
+      })
+
+      it("does not touch numeric exclusiveMinimum/exclusiveMaximum", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({ exclusiveMinimum: 2, minimum: 1 }),
+          { exclusiveMinimum: 2, minimum: 1 }
+        )
+        deepStrictEqual(
+          fromOpenApi3_0({ exclusiveMaximum: 9, maximum: 10 }),
+          { exclusiveMaximum: 9, maximum: 10 }
+        )
+      })
+
+      it("exclusive conversions work for nested schemas", () => {
+        deepStrictEqual(
+          fromOpenApi3_0({
+            type: "object",
+            properties: {
+              a: { minimum: 1, exclusiveMinimum: true },
+              b: { maximum: 10, exclusiveMaximum: false }
+            }
+          }),
+          {
+            type: "object",
+            properties: {
+              a: { exclusiveMinimum: 1 },
+              b: { maximum: 10 }
+            }
+          }
+        )
+      })
+    })
+
+    it("can apply both nullable and exclusive conversions in the same schema", () => {
+      deepStrictEqual(
+        fromOpenApi3_0({
+          type: "number",
+          nullable: true,
+          minimum: 1,
+          exclusiveMinimum: true
+        }),
+        {
+          type: ["number", "null"],
+          exclusiveMinimum: 1
+        }
+      )
+    })
+
+    it.todo("nullable & $ref conversion works together", () => {
+      deepStrictEqual(
+        fromOpenApi3_0({
+          nullable: true,
+          $ref: "#/definitions/Foo",
+          definitions: { Foo: { type: "string" } }
+        }),
+        {
+          $defs: { Foo: { type: "string" } },
+          anyOf: [
+            {
+              $ref: "#/$defs/Foo"
+            },
+            { type: "null" }
+          ]
+        }
+      )
+    })
+  })
 })

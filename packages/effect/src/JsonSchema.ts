@@ -66,11 +66,10 @@ export function getMetaSchemaUri(target: Target) {
  * @since 4.0.0
  */
 export function fromDraft07(schema: JsonSchema | boolean): JsonSchema | boolean {
-  return recur(schema) as JsonSchema
+  return recur(schema) as JsonSchema | boolean
 
   function recur(node: unknown): unknown {
-    if (typeof node === "boolean") return node
-    if (!Predicate.isObject(node)) return node
+    if (typeof node === "boolean" || !Predicate.isObject(node)) return node
 
     const out: Record<string, unknown> = {}
 
@@ -90,7 +89,7 @@ export function fromDraft07(schema: JsonSchema | boolean): JsonSchema | boolean 
         // Rewrite local refs to definitions -> $defs
         case "$ref": {
           out.$ref = typeof value === "string"
-            ? value.replace(/#\/definitions\//g, "#/$defs/")
+            ? value.replace(/^#\/definitions\//g, "#/$defs/")
             : value
           break
         }
@@ -114,8 +113,7 @@ export function fromDraft07(schema: JsonSchema | boolean): JsonSchema | boolean 
         // schema arrays
         case "allOf":
         case "anyOf":
-        case "oneOf":
-        case "prefixItems": {
+        case "oneOf": {
           if (Array.isArray(value)) {
             out[key] = value.map(recur)
           } else {
@@ -181,5 +179,119 @@ export function fromDraft07(schema: JsonSchema | boolean): JsonSchema | boolean 
     // If there was additionalItems without tuple-form items, drop it.
 
     return out
+  }
+}
+
+/**
+ * Convert an OpenAPI 3.0 Schema Object to a JSON Schema Draft 2020-12 shape.
+ *
+ * This is a best-effort conversion focused on the main OpenAPI 3.0 differences:
+ *
+ * 1. First, it normalizes the schema using {@link fromDraft07}. In practice this is
+ *    used to:
+ *    - strip `$schema` everywhere
+ *    - rename `definitions` to `$defs`
+ *    - rewrite local `$ref` fragments `#/definitions/...` to `#/$defs/...`
+ *    - convert tuple form `items: []` / `additionalItems` into
+ *      `prefixItems` / `items` (when applicable)
+ *
+ * 2. Then it applies OpenAPI 3.0-specific rewrites in-place:
+ *
+ *    - `nullable: true`
+ *      - if `enum` is present: adds `null` to the enum (if missing)
+ *      - else if `type` is a string: widens to `type: [type, "null"]`
+ *      - else if `type` is an array: appends `"null"` if missing
+ *      - else: wraps the schema as `anyOf: [schema, { type: "null" }]`
+ *      - `nullable: false` is removed
+ *
+ *    - Draft-04/OpenAPI boolean exclusivity:
+ *      - `exclusiveMinimum: true` + `minimum: number` -> `exclusiveMinimum: minimum` and deletes `minimum`
+ *      - `exclusiveMaximum: true` + `maximum: number` -> `exclusiveMaximum: maximum` and deletes `maximum`
+ *      - `exclusiveMinimum: false` / `exclusiveMaximum: false` are removed
+ *      - boolean exclusivity without a numeric bound is removed
+ *
+ * Traversal notes:
+ * - The conversion walks arrays and objects to find these keywords.
+ * - Vendor extension objects (keys starting with `x-`) are treated as opaque:
+ *   their values are not traversed or rewritten.
+ *
+ * @since 4.0.0
+ */
+export function fromOpenApi3_0(schema: JsonSchema | boolean): JsonSchema | boolean {
+  const out = fromDraft07(schema)
+  walk(out)
+  return out
+
+  function walk(node: unknown): void {
+    if (Array.isArray(node)) {
+      for (const v of node) {
+        walk(v)
+      }
+    } else if (Predicate.isObject(node)) {
+      // recurse first (post-order)
+      for (const k of Object.keys(node)) {
+        if (k.startsWith("x-")) {
+          continue
+        }
+        const v = node[k]
+        if (Array.isArray(v) || Predicate.isObject(v)) {
+          walk(v)
+        }
+      }
+
+      // OpenAPI 3.0 boolean form -> 2020-12 numeric form (or drop)
+      const exMin = node.exclusiveMinimum
+      if (typeof exMin === "boolean") {
+        if (exMin === true && typeof node.minimum === "number") {
+          node.exclusiveMinimum = node.minimum
+          delete node.minimum
+        } else {
+          delete node.exclusiveMinimum
+        }
+      }
+
+      const exMax = node.exclusiveMaximum
+      if (typeof exMax === "boolean") {
+        if (exMax === true && typeof node.maximum === "number") {
+          node.exclusiveMaximum = node.maximum
+          delete node.maximum
+        } else {
+          delete node.exclusiveMaximum
+        }
+      }
+
+      // nullable -> widen enum/type, otherwise wrap in anyOf
+      if (node.nullable === true) {
+        delete node.nullable
+
+        if (Array.isArray(node.enum)) {
+          if (!node.enum.includes(null)) {
+            node.enum.push(null)
+          }
+        } else {
+          const t = node.type
+          if (typeof t === "string") {
+            if (t !== "null") {
+              node.type = [t, "null"]
+            }
+          } else if (Array.isArray(t)) {
+            if (!t.includes("null")) {
+              t.push("null")
+            }
+          } else {
+            // fallback: wrap the schema
+            const original = { ...node }
+            for (const k of Object.keys(node)) {
+              delete node[k]
+            }
+            node.anyOf = [original, { type: "null" }]
+          }
+        }
+      }
+
+      if (node.nullable === false) {
+        delete node.nullable
+      }
+    }
   }
 }
