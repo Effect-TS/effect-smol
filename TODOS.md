@@ -3,16 +3,17 @@
 Releases are snapshot only
 
 - [x] Port Channel apis
-- [ ] Port Stream / Sink apis
 - [x] Port worker modules
 - [x] Port command execution modules
 - [x] Port platform-browser
 - [x] Add CLI modules
-- [ ] Add opentelemetry package
 - [x] Port SubscriptionRef
 - [x] RateLimiter with persistence
 - [x] Reduce nesting of modules
 - [x] Effect.fn call site trace
+- [ ] Port Stream / Sink apis
+- [ ] Add opentelemetry package
+- [ ] Add AI provider packages
 
 ## Beta
 
