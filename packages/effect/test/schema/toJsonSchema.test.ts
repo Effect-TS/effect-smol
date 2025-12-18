@@ -35,7 +35,7 @@ function assertDraft07<S extends Schema.Top>(
   strictEqual(document.source, "draft-07")
   deepStrictEqual(document.schema, expected.schema)
   deepStrictEqual(document.definitions, expected.definitions ?? {})
-  const valid = ajvDraft07.validateSchema({ $schema: JsonSchema.getMetaSchemaUri(document.source), ...document.schema })
+  const valid = ajvDraft07.validateSchema({ $schema: JsonSchema.META_SCHEMA_URI_DRAFT_07, ...document.schema })
   assertTrue(valid)
 }
 
@@ -49,7 +49,7 @@ function assertDraft2020_12<S extends Schema.Top>(
   deepStrictEqual(document.schema, expected.schema)
   deepStrictEqual(document.definitions, expected.definitions ?? {})
   const valid = ajvDraft2020_12.validateSchema({
-    $schema: JsonSchema.getMetaSchemaUri(document.source),
+    $schema: JsonSchema.META_SCHEMA_URI_DRAFT_2020_12,
     ...document.schema
   })
   assertTrue(valid)
@@ -65,7 +65,7 @@ function assertOpenApi3_1<S extends Schema.Top>(
   deepStrictEqual(document.schema, expected.schema)
   deepStrictEqual(document.definitions, expected.definitions ?? {})
   const valid = ajvDraft2020_12.validateSchema({
-    $schema: JsonSchema.getMetaSchemaUri(document.source),
+    $schema: JsonSchema.META_SCHEMA_URI_DRAFT_2020_12,
     ...document.schema
   })
   assertTrue(valid)

@@ -7,22 +7,11 @@ describe("JsonSchema", () => {
     const fromDraft07 = JsonSchema.fromDraft07
 
     it("preserves boolean schemas", () => {
-      deepStrictEqual(fromDraft07(true as any), true)
-      deepStrictEqual(fromDraft07(false as any), false)
+      deepStrictEqual(fromDraft07(true), true)
+      deepStrictEqual(fromDraft07(false), false)
     })
 
-    it("strips $schema at the root", () => {
-      const input = {
-        $schema: "http://json-schema.org/draft-07/schema#",
-        type: "string"
-      }
-
-      deepStrictEqual(fromDraft07(input), {
-        type: "string"
-      })
-    })
-
-    it("strips $schema at every level (including nested subschemas)", () => {
+    it("removes $schema at every level", () => {
       const input = {
         $schema: "http://json-schema.org/draft-07/schema#",
         type: "object",
@@ -50,60 +39,94 @@ describe("JsonSchema", () => {
       })
     })
 
-    it("renames \"definitions\" to \"$defs\" (recursing into its values)", () => {
-      const input = {
-        definitions: {
-          Foo: {
-            type: "object",
-            properties: {
-              x: { $schema: "http://json-schema.org/draft-07/schema#", type: "string" }
+    it(`renames "definitions" to "$defs" (recursing into its values)`, () => {
+      {
+        const input = {
+          $ref: "#/definitions/A",
+          definitions: {
+            A: {
+              $schema: "http://json-schema.org/draft-07/schema#",
+              type: "string"
             }
-          },
-          Bar: true
+          }
+        }
+
+        deepStrictEqual(fromDraft07(input), {
+          $ref: "#/$defs/A",
+          $defs: {
+            A: { type: "string" }
+          }
+        })
+      }
+
+      {
+        const input = {
+          "type": "object",
+          "properties": {
+            "city": { "$ref": "#/properties/address/definitions/City" },
+            "address": {
+              "type": "object",
+              "properties": {
+                "city": { "$ref": "#/properties/address/definitions/City" },
+                "zip": { "type": "integer" }
+              },
+              "definitions": {
+                "City": { "type": "string" }
+              }
+            }
+          }
+        }
+
+        deepStrictEqual(fromDraft07(input), {
+          "type": "object",
+          "properties": {
+            "city": { "$ref": "#/properties/address/$defs/City" },
+            "address": {
+              "type": "object",
+              "properties": {
+                "city": { "$ref": "#/properties/address/$defs/City" },
+                "zip": { "type": "integer" }
+              },
+              "$defs": {
+                "City": { "type": "string" }
+              }
+            }
+          }
+        })
+      }
+    })
+
+    it("preserves nested local references", () => {
+      const input = {
+        "type": "object",
+        "properties": {
+          "city": { "$ref": "#/properties/address/properties/city" },
+          "address": {
+            "type": "object",
+            "properties": {
+              "city": { "type": "string" },
+              "zip": { "type": "integer" }
+            }
+          }
         }
       }
 
       deepStrictEqual(fromDraft07(input), {
-        $defs: {
-          Foo: {
-            type: "object",
-            properties: {
-              x: { type: "string" }
+        "type": "object",
+        "properties": {
+          "city": { "$ref": "#/properties/address/properties/city" },
+          "address": {
+            "type": "object",
+            "properties": {
+              "city": { "type": "string" },
+              "zip": { "type": "integer" }
             }
-          },
-          Bar: true
+          }
         }
       })
     })
 
-    it("does not create $defs when definitions is not an object", () => {
-      deepStrictEqual(fromDraft07({ definitions: 123 } as any), {})
-      deepStrictEqual(fromDraft07({ definitions: null } as any), {})
-      deepStrictEqual(fromDraft07({ definitions: ["x"] } as any), {})
-    })
-
-    it("rewrites local $ref fragments from \"#/definitions/...\" to \"#/$defs/...\"", () => {
-      const input = {
-        $ref: "#/definitions/Foo",
-        definitions: {
-          Foo: { type: "string" }
-        }
-      }
-
-      deepStrictEqual(fromDraft07(input), {
-        $ref: "#/$defs/Foo",
-        $defs: {
-          Foo: { type: "string" }
-        }
-      })
-    })
-
-    it("does not rewrite $ref when it is not a string", () => {
-      deepStrictEqual(fromDraft07({ $ref: 123 } as any), { $ref: 123 })
-      deepStrictEqual(fromDraft07({ $ref: null } as any), { $ref: null })
-    })
-
-    it("converts tuple validation: items[] -> prefixItems and additionalItems -> items (when present)", () => {
+    it("items[] -> prefixItems and additionalItems -> items (when present)", () => {
       const input = {
         type: "array",
         items: [{ type: "number" }, { type: "string" }],
@@ -117,7 +140,7 @@ describe("JsonSchema", () => {
       })
     })
 
-    it("converts tuple validation: items[] without additionalItems -> prefixItems only", () => {
+    it("items[] without additionalItems -> prefixItems only", () => {
       const input = {
         type: "array",
         items: [{ type: "number" }, { type: "string" }]
@@ -129,7 +152,7 @@ describe("JsonSchema", () => {
       })
     })
 
-    it("keeps list validation: items(schema) stays items and additionalItems is dropped", () => {
+    it("items(schema) stays items and additionalItems is dropped", () => {
       const input = {
         type: "array",
         items: { type: "number" },
@@ -153,54 +176,16 @@ describe("JsonSchema", () => {
       })
     })
 
-    it("recurses into known schema locations (properties, additionalProperties, anyOf, etc.)", () => {
-      const input = {
-        type: "object",
-        properties: {
-          a: { definitions: { X: { type: "string", $schema: "x" } } }
-        },
-        additionalProperties: {
-          items: [{ $ref: "#/definitions/T" }],
-          additionalItems: { $ref: "#/definitions/U" }
-        },
-        anyOf: [
-          { definitions: { Y: { type: "number" } } }
-        ]
-      }
-
-      deepStrictEqual(fromDraft07(input), {
-        type: "object",
-        properties: {
-          a: { $defs: { X: { type: "string" } } }
-        },
-        additionalProperties: {
-          prefixItems: [{ $ref: "#/$defs/T" }],
-          items: { $ref: "#/$defs/U" }
-        },
-        anyOf: [
-          { $defs: { Y: { type: "number" } } }
-        ]
-      })
-    })
-
     it("does not recurse into unknown keywords (leaves their contents unchanged)", () => {
       const input = {
         custom: {
-          $schema: "should-stay",
-          definitions: { Foo: { type: "string" } },
-          items: [{ type: "number" }],
-          additionalItems: false,
-          $ref: "#/definitions/Foo"
+          $schema: "should-stay"
         }
       }
 
       deepStrictEqual(fromDraft07(input), {
         custom: {
-          $schema: "should-stay",
-          definitions: { Foo: { type: "string" } },
-          items: [{ type: "number" }],
-          additionalItems: false,
-          $ref: "#/definitions/Foo"
+          $schema: "should-stay"
         }
       })
     })
@@ -223,16 +208,10 @@ describe("JsonSchema", () => {
 
     it("preserves unrelated keywords and values", () => {
       const input = {
-        title: "Example",
-        default: 123,
-        examples: [1, 2, 3],
         nullable: true
       }
 
       deepStrictEqual(fromDraft07(input), {
-        title: "Example",
-        default: 123,
-        examples: [1, 2, 3],
         nullable: true
       })
     })

@@ -43,15 +43,12 @@ export interface Document<S extends Source> {
 /**
  * @since 4.0.0
  */
-export function getMetaSchemaUri(target: Target) {
-  switch (target) {
-    case "draft-07":
-      return "http://json-schema.org/draft-07/schema"
-    case "draft-2020-12":
-    case "openapi-3.1":
-      return "https://json-schema.org/draft/2020-12/schema"
-  }
-}
+export const META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema"
+
+/**
+ * @since 4.0.0
+ */
+export const META_SCHEMA_URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema"
 
 /**
  * Convert a Draft 07 JSON Schema to a Draft 2020-12 JSON Schema.
@@ -88,9 +85,11 @@ export function fromDraft07(schema: JsonSchema | boolean): JsonSchema | boolean 
 
         // Rewrite local refs to definitions -> $defs
         case "$ref": {
-          out.$ref = typeof value === "string"
-            ? value.replace(/^#\/definitions\//g, "#/$defs/")
-            : value
+          if (typeof value === "string" && value.startsWith("#/")) {
+            out.$ref = value.replace(/\/definitions(?=\/|$)/g, "/$defs")
+          } else {
+            out.$ref = value
+          }
           break
         }
 
