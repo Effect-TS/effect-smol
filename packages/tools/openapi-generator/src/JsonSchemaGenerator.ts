@@ -1,5 +1,5 @@
 import * as Effect from "effect/Effect"
-import type * as Schema from "effect/Schema"
+import type * as JsonSchema from "effect/JsonSchema"
 import * as SchemaFromJson from "effect/SchemaFromJson"
 import * as ServiceMap from "effect/ServiceMap"
 import type { OpenAPISpec } from "effect/unstable/httpapi/OpenApi"
@@ -38,15 +38,15 @@ const resolver: SchemaFromJson.Resolver = (ref) => {
 }
 
 export const make = Effect.gen(function*() {
-  const store: Record<string, Schema.JsonSchema> = {}
+  const store: Record<string, JsonSchema.JsonSchema> = {}
 
-  function addSchema(name: string, schema: Schema.JsonSchema): string {
+  function addSchema(name: string, schema: JsonSchema.JsonSchema): string {
     store[name] = schema
     return name
   }
 
   function generate(
-    source: Schema.JsonSchema.Source,
+    source: JsonSchema.Source,
     spec: OpenAPISpec,
     typeOnly: boolean
   ): { schemas: string; imports: string } {
@@ -63,7 +63,7 @@ export const make = Effect.gen(function*() {
       }
     }
 
-    const definitions: Schema.JsonSchema.Definitions = spec.components?.schemas ?? {}
+    const definitions: JsonSchema.Definitions = spec.components?.schemas ?? {}
     const options = {
       source,
       resolver,

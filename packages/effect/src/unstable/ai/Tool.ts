@@ -28,6 +28,7 @@
  */
 import type * as Effect from "../../Effect.ts"
 import { constFalse, constTrue, identity } from "../../Function.ts"
+import type * as JsonSchema from "../../JsonSchema.ts"
 import { pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
@@ -1099,14 +1100,14 @@ export const getDescription = <Tool extends Any>(tool: Tool): string | undefined
  * @since 4.0.0
  * @category utilities
  */
-export const getJsonSchema = <Tool extends Any>(tool: Tool): Schema.JsonSchema =>
+export const getJsonSchema = <Tool extends Any>(tool: Tool): JsonSchema.JsonSchema =>
   getJsonSchemaFromSchema(tool.parametersSchema)
 
 /**
  * @since 4.0.0
  * @category utilities
  */
-export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): Schema.JsonSchema => {
+export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): JsonSchema.JsonSchema => {
   // TODO: replace this with a rewriter
   const props = AST.isObjects(schema.ast) ? schema.ast.propertySignatures : []
   if (props.length === 0) {

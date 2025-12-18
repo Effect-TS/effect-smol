@@ -1,7 +1,7 @@
 import type { Options as AjvOptions } from "ajv"
 // eslint-disable-next-line import-x/no-named-as-default
 import Ajv from "ajv"
-import { Schema, SchemaGetter } from "effect"
+import { JsonSchema, Schema, SchemaGetter } from "effect"
 import { describe, it } from "vitest"
 import { assertTrue, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
@@ -18,50 +18,54 @@ const baseAjvOptions: AjvOptions = {
 const ajvDraft07 = new Ajv.default(baseAjvOptions)
 const ajvDraft2020_12 = new Ajv2020.default(baseAjvOptions)
 
-function assertUnsupportedSchema(schema: Schema.Top, message: string, options?: Schema.ToJsonSchemaOptions) {
+function assertUnsupportedSchema(
+  schema: Schema.Top,
+  message: string,
+  options?: Schema.ToJsonSchemaOptions<"draft-07">
+) {
   throws(() => Schema.toJsonSchema(schema, { target: "draft-07", ...options }), message)
 }
 
 function assertDraft07<S extends Schema.Top>(
   schema: S,
   expected: { schema: object; definitions?: Record<string, object> },
-  options?: Schema.ToJsonSchemaOptions
+  options?: Schema.ToJsonSchemaOptions<"draft-07">
 ) {
   const document = Schema.toJsonSchema(schema, { target: "draft-07", ...options })
   strictEqual(document.source, "draft-07")
   deepStrictEqual(document.schema, expected.schema)
   deepStrictEqual(document.definitions, expected.definitions ?? {})
-  const valid = ajvDraft07.validateSchema({ $schema: Schema.getMetaSchemaUri(document.source), ...document.schema })
+  const valid = ajvDraft07.validateSchema({ $schema: JsonSchema.getMetaSchemaUri(document.source), ...document.schema })
   assertTrue(valid)
 }
 
-export function assertDraft2020_12<S extends Schema.Top>(
+function assertDraft2020_12<S extends Schema.Top>(
   schema: S,
   expected: { schema: object; definitions?: Record<string, object> },
-  options?: Schema.ToJsonSchemaOptions
+  options?: Schema.ToJsonSchemaOptions<"draft-2020-12">
 ) {
   const document = Schema.toJsonSchema(schema, { target: "draft-2020-12", ...options })
   strictEqual(document.source, "draft-2020-12")
   deepStrictEqual(document.schema, expected.schema)
   deepStrictEqual(document.definitions, expected.definitions ?? {})
   const valid = ajvDraft2020_12.validateSchema({
-    $schema: Schema.getMetaSchemaUri(document.source),
+    $schema: JsonSchema.getMetaSchemaUri(document.source),
     ...document.schema
   })
   assertTrue(valid)
 }
 
-export function assertOpenApi3_1<S extends Schema.Top>(
+function assertOpenApi3_1<S extends Schema.Top>(
   schema: S,
   expected: { schema: object; definitions?: Record<string, object> },
-  options?: Schema.ToJsonSchemaOptions
+  options?: Schema.ToJsonSchemaOptions<"openapi-3.1">
 ) {
   const document = Schema.toJsonSchema(schema, { target: "openapi-3.1", ...options })
   strictEqual(document.source, "openapi-3.1")
   deepStrictEqual(document.schema, expected.schema)
   deepStrictEqual(document.definitions, expected.definitions ?? {})
   const valid = ajvDraft2020_12.validateSchema({
-    $schema: Schema.getMetaSchemaUri(document.source),
+    $schema: JsonSchema.getMetaSchemaUri(document.source),
     ...document.schema
   })
   assertTrue(valid)
@@ -199,7 +203,7 @@ describe("JsonSchema generation", () => {
 
   describe("Override annotation", () => {
     it("typeParameters", () => {
-      function getOptionJsonSchema(value: Schema.JsonSchema): Schema.JsonSchema {
+      function getOptionJsonSchema(value: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
         return {
           "title": "Option",
           "oneOf": [

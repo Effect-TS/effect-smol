@@ -1,10 +1,11 @@
+import type { JsonSchema } from "effect"
 import { Schema, SchemaFromJson } from "effect"
 import { describe, expect, it } from "vitest"
 import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
 
 function assertRoundtrip(input: {
   readonly schema: Schema.Top
-  readonly source?: Schema.JsonSchema.Target | undefined
+  readonly source?: JsonSchema.Target | undefined
 }) {
   const source = input.source ?? "draft-07"
   const document = Schema.toJsonSchema(input.schema, { target: source })
@@ -20,7 +21,7 @@ function assertGeneration(
   input: {
     readonly schema: Record<string, unknown> | boolean
     readonly options?: {
-      readonly source?: Schema.JsonSchema.Source | undefined
+      readonly source?: JsonSchema.Source | undefined
       readonly resolver?: SchemaFromJson.Resolver | undefined
       readonly extractJsDocs?:
         | boolean
@@ -28,9 +29,12 @@ function assertGeneration(
         | undefined
       readonly parseContentSchema?: boolean | undefined
       readonly collectAnnotations?:
-        | ((schema: Schema.JsonSchema, annotations: Schema.Annotations.Annotations) => Schema.Annotations.Annotations)
+        | ((
+          schema: JsonSchema.JsonSchema,
+          annotations: Schema.Annotations.Annotations
+        ) => Schema.Annotations.Annotations)
         | undefined
-      readonly definitions?: Schema.JsonSchema.Definitions | undefined
+      readonly definitions?: JsonSchema.Definitions | undefined
     } | undefined
   },
   expected: {
@@ -3054,8 +3058,8 @@ describe("SchemaFromJson", () => {
 
   describe("generateDefinitions", () => {
     function generate(
-      definitions: Schema.JsonSchema.Definitions,
-      schemas: ReadonlyArray<Schema.JsonSchema>
+      definitions: JsonSchema.Definitions,
+      schemas: ReadonlyArray<JsonSchema.JsonSchema>
     ) {
       const resolver: SchemaFromJson.Resolver = (ref) => {
         return SchemaFromJson.makeGeneration(
@@ -3243,15 +3247,15 @@ const schema1 = Schema.Struct({ "a": A });`
     type TopologicalSort = {
       readonly nonRecursives: ReadonlyArray<{
         readonly ref: string
-        readonly schema: Schema.JsonSchema
+        readonly schema: JsonSchema.JsonSchema
       }>
       readonly recursives: {
-        readonly [ref: string]: Schema.JsonSchema
+        readonly [ref: string]: JsonSchema.JsonSchema
       }
     }
 
     function assertTopologicalSort(
-      definitions: Schema.JsonSchema.Definitions,
+      definitions: JsonSchema.Definitions,
       expected: TopologicalSort
     ) {
       const result = SchemaFromJson.topologicalSort(definitions)
@@ -3666,12 +3670,12 @@ type CodeGeneration = {
 }
 
 function generateCode(
-  source: Schema.JsonSchema.Source,
+  source: JsonSchema.Source,
   schemas: ReadonlyArray<{
     readonly identifier: string
-    readonly schema: Schema.JsonSchema
+    readonly schema: JsonSchema.JsonSchema
   }>,
-  definitions: Schema.JsonSchema.Definitions,
+  definitions: JsonSchema.Definitions,
   externs: Record<string, {
     readonly namespace: string
     readonly importDeclaration: string

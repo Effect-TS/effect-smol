@@ -6,6 +6,7 @@ import * as Arr from "../../Array.ts"
 import * as Combiner from "../../Combiner.ts"
 import { format } from "../../Formatter.ts"
 import type { JsonPatchOperation } from "../../JsonPatch.ts"
+import type * as JsonSchema from "../../JsonSchema.ts"
 import * as Rec from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
 import * as Struct from "../../Struct.ts"
@@ -26,10 +27,10 @@ export interface RewriterTracer {
 /**
  * @since 4.0.0
  */
-export type Rewriter = <S extends Schema.JsonSchema.Source>(
-  document: Schema.JsonSchema.Document<S>,
+export type Rewriter = <S extends JsonSchema.Source>(
+  document: JsonSchema.Document<S>,
   tracer?: RewriterTracer
-) => Schema.JsonSchema.Document<S>
+) => JsonSchema.Document<S>
 
 /**
  * Rewrites a JSON Schema to an OpenAI-compatible schema.
@@ -55,7 +56,7 @@ export const openAiRewriter: Rewriter = (document, tracer) => {
     definitions: Rec.map(document.definitions, (value) => recur(value, ["definitions"]))
   }
 
-  function top(schema: Schema.JsonSchema, path: Path): Schema.JsonSchema {
+  function top(schema: JsonSchema.JsonSchema, path: Path): JsonSchema.JsonSchema {
     // [ROOT_OBJECT_REQUIRED]
     if (schema.type !== "object") {
       const value = getDefaultSchema(schema)
@@ -70,7 +71,7 @@ export const openAiRewriter: Rewriter = (document, tracer) => {
     return recur(schema, path)
   }
 
-  function recur(schema: Schema.JsonSchema, path: Path): Schema.JsonSchema {
+  function recur(schema: JsonSchema.JsonSchema, path: Path): JsonSchema.JsonSchema {
     // anyOf
     if (Array.isArray(schema.anyOf)) {
       const value = whitelistProperties(schema, path, ["anyOf"], tracer)
@@ -124,7 +125,7 @@ export const openAiRewriter: Rewriter = (document, tracer) => {
       const value: any = whitelistProperties(schema, path, ["type", "items", "prefixItems"], tracer)
       // recursively rewrite prefixItems
       if (value.prefixItems) {
-        value.prefixItems = value.prefixItems.map((value: Schema.JsonSchema, i: number) =>
+        value.prefixItems = value.prefixItems.map((value: JsonSchema.JsonSchema, i: number) =>
           recur(value, [...path, "prefixItems", i])
         )
       }
@@ -148,7 +149,7 @@ export const openAiRewriter: Rewriter = (document, tracer) => {
       if (value.properties !== undefined) {
         value.properties = Rec.map(
           value.properties,
-          (value: Schema.JsonSchema, key: string) => recur(value, [...path, "properties", key])
+          (value: JsonSchema.JsonSchema, key: string) => recur(value, [...path, "properties", key])
         )
 
         // [ADD_REQUIRED_PROPERTY]
@@ -233,7 +234,7 @@ function formatPath(path: Path): string {
 }
 
 function whitelistProperties(
-  schema: Schema.JsonSchema,
+  schema: JsonSchema.JsonSchema,
   path: Path,
   whitelist: Iterable<string>,
   tracer?: RewriterTracer | undefined
@@ -272,7 +273,7 @@ const propertiesReducer = Struct.getReducer({
   omitKeyWhen: Predicate.isUndefined
 })
 
-function getDefaultSchema(schema: Schema.JsonSchema): Schema.JsonObject {
+function getDefaultSchema(schema: JsonSchema.JsonSchema): Schema.JsonObject {
   const out: Schema.MutableJsonObject = {
     "type": "object",
     "properties": {},

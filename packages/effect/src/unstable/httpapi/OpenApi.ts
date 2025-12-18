@@ -3,6 +3,7 @@
  */
 import type { NonEmptyArray } from "../../Array.ts"
 import { constFalse } from "../../Function.ts"
+import type * as JsonSchema from "../../JsonSchema.ts"
 import * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 import type * as AST from "../../SchemaAST.ts"
@@ -207,14 +208,14 @@ function processAnnotation<Services, S, I>(
 export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
   options?: {
-    readonly additionalProperties?: true | false | Schema.JsonSchema | undefined
+    readonly additionalProperties?: true | false | JsonSchema.JsonSchema | undefined
   } | undefined
 ): OpenAPISpec => {
   const cached = apiCache.get(api)
   if (cached !== undefined) {
     return cached
   }
-  const jsonSchemaDefs: Schema.JsonSchema.Definitions = {}
+  const jsonSchemaDefs: JsonSchema.Definitions = {}
   let spec: OpenAPISpec = {
     openapi: "3.1.0",
     info: {
@@ -230,7 +231,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
     tags: []
   }
 
-  function processAST(ast: AST.AST): Schema.JsonSchema {
+  function processAST(ast: AST.AST): JsonSchema.JsonSchema {
     const { definitions, schema } = Schema.toJsonSchema(Schema.make(ast), {
       target: "openapi-3.1",
       additionalProperties: options?.additionalProperties,
@@ -611,7 +612,7 @@ export interface OpenApiSpecResponse {
  * @since 4.0.0
  */
 export interface OpenApiSpecMediaType {
-  schema: Schema.JsonSchema
+  schema: JsonSchema.JsonSchema
 }
 
 /**
@@ -628,7 +629,7 @@ export interface OpenAPISpecRequestBody {
  * @since 4.0.0
  */
 export interface OpenAPIComponents {
-  schemas: Record<string, Schema.JsonSchema>
+  schemas: Record<string, JsonSchema.JsonSchema>
   securitySchemes: Record<string, OpenAPISecurityScheme>
 }
 

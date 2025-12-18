@@ -20,6 +20,7 @@ import * as Arr from "./Array.ts"
 import * as Combiner from "./Combiner.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
 import { unescapeToken } from "./internal/schema/json-pointer.ts"
+import type * as JsonSchema from "./JsonSchema.ts"
 import { remainder } from "./Number.ts"
 import { isObject } from "./Predicate.ts"
 import * as Reducer from "./Reducer.ts"
@@ -130,7 +131,7 @@ export type GenerateOptions = {
   /**
    * The type of the specification of the JSON Schema.
    */
-  readonly source: Schema.JsonSchema.Source
+  readonly source: JsonSchema.Source
 
   /**
    * A function that is called to resolve a reference.
@@ -143,7 +144,7 @@ export type GenerateOptions = {
    * This becomes required if the schema contains references in an `allOf` array
    * because references must be resolved in order to merge the schemas.
    */
-  readonly definitions?: Schema.JsonSchema.Definitions | undefined
+  readonly definitions?: JsonSchema.Definitions | undefined
 
   /**
    * A function that is called to extract the JavaScript documentation from the
@@ -175,26 +176,26 @@ export type GenerateOptions = {
    * - `format`
    */
   readonly collectAnnotations?:
-    | ((schema: Schema.JsonSchema, annotations: Schema.Annotations.Annotations) => Schema.Annotations.Annotations)
+    | ((schema: JsonSchema.JsonSchema, annotations: Schema.Annotations.Annotations) => Schema.Annotations.Annotations)
     | undefined
 }
 
 interface RecurOptions {
-  readonly source: Schema.JsonSchema.Source
-  readonly root: Schema.JsonSchema | undefined
+  readonly source: JsonSchema.Source
+  readonly root: JsonSchema.JsonSchema | undefined
   readonly resolver: Resolver
   readonly extractJsDocs: (annotations: Schema.Annotations.Annotations) => string | undefined
   readonly parseContentSchema: boolean
   readonly collectAnnotations: (
-    schema: Schema.JsonSchema,
+    schema: JsonSchema.JsonSchema,
     annotations: Schema.Annotations.Annotations
   ) => Schema.Annotations.Annotations
-  readonly definitions: Schema.JsonSchema.Definitions
+  readonly definitions: JsonSchema.Definitions
   readonly allOf: boolean
   readonly refStack: ReadonlySet<string>
 }
 
-function getRecurOptions(schema: Schema.JsonSchema | boolean, options: GenerateOptions): RecurOptions {
+function getRecurOptions(schema: JsonSchema.JsonSchema | boolean, options: GenerateOptions): RecurOptions {
   const extractJsDocs = options.extractJsDocs ?? false
   const recurOptions: RecurOptions = {
     source: options.source,
@@ -217,7 +218,7 @@ function getRecurOptions(schema: Schema.JsonSchema | boolean, options: GenerateO
 /**
  * @since 4.0.0
  */
-export function generate(schema: Schema.JsonSchema | boolean, options: GenerateOptions): Generation {
+export function generate(schema: JsonSchema.JsonSchema | boolean, options: GenerateOptions): Generation {
   const recurOptions = getRecurOptions(schema, options)
   return parse(schema, recurOptions).toGeneration(recurOptions)
 }
@@ -268,18 +269,18 @@ type TopologicalSort = {
    */
   readonly nonRecursives: ReadonlyArray<{
     readonly ref: string
-    readonly schema: Schema.JsonSchema
+    readonly schema: JsonSchema.JsonSchema
   }>
   /**
    * The recursive definitions (with no particular order).
    */
   readonly recursives: {
-    readonly [ref: string]: Schema.JsonSchema
+    readonly [ref: string]: JsonSchema.JsonSchema
   }
 }
 
 /** @internal */
-export function topologicalSort(definitions: Schema.JsonSchema.Definitions): TopologicalSort {
+export function topologicalSort(definitions: JsonSchema.Definitions): TopologicalSort {
   const identifiers = Object.keys(definitions)
   const identifierSet = new Set(identifiers)
 
@@ -379,7 +380,7 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
     if (deg === 0) queue.push(id)
   }
 
-  const nonRecursives: Array<{ readonly ref: string; readonly schema: Schema.JsonSchema }> = []
+  const nonRecursives: Array<{ readonly ref: string; readonly schema: JsonSchema.JsonSchema }> = []
   for (let i = 0; i < queue.length; i++) {
     const ref = queue[i]
     nonRecursives.push({ ref, schema: definitions[ref] })
@@ -391,7 +392,7 @@ export function topologicalSort(definitions: Schema.JsonSchema.Definitions): Top
     }
   }
 
-  const recursives: Record<string, Schema.JsonSchema> = {}
+  const recursives: Record<string, JsonSchema.JsonSchema> = {}
   for (const ref of recursive) {
     recursives[ref] = definitions[ref]
   }
@@ -435,7 +436,7 @@ export type GenerateDefinitionsOptions = Omit<GenerateOptions, "definitions">
  * @since 4.0.0
  */
 export function generateDefinitions(
-  definitions: Schema.JsonSchema.Definitions,
+  definitions: JsonSchema.Definitions,
   options: GenerateDefinitionsOptions
 ): Array<DefinitionGeneration> {
   const ts = topologicalSort(definitions)
@@ -609,7 +610,7 @@ function isValidRegExp(source: string): boolean {
 }
 
 class String {
-  static parseFilters(schema: Schema.JsonSchema): Array<StringFilter> {
+  static parseFilters(schema: JsonSchema.JsonSchema): Array<StringFilter> {
     const fs: Array<StringFilter> = []
 
     if (typeof schema.minLength === "number") fs.push({ _tag: "minLength", value: schema.minLength, annotations: {} })
@@ -790,7 +791,7 @@ type NumberFilter =
   | { readonly _tag: "multipleOf"; readonly value: number; readonly annotations: Schema.Annotations.Annotations }
 
 class Number {
-  static parseFilters(schema: Schema.JsonSchema): Array<NumberFilter> {
+  static parseFilters(schema: JsonSchema.JsonSchema): Array<NumberFilter> {
     const fs: Array<NumberFilter> = []
 
     if (typeof schema.exclusiveMinimum === "number") {
@@ -1018,7 +1019,7 @@ class Element {
 }
 
 class Arrays {
-  static parseFilters(schema: Schema.JsonSchema): Array<ArraysFilter> {
+  static parseFilters(schema: JsonSchema.JsonSchema): Array<ArraysFilter> {
     const fs: Array<ArraysFilter> = []
     if (typeof schema.minItems === "number") fs.push({ _tag: "minItems", value: schema.minItems, annotations: {} })
     if (typeof schema.maxItems === "number") fs.push({ _tag: "maxItems", value: schema.maxItems, annotations: {} })
@@ -1225,7 +1226,7 @@ class IndexSignature {
 }
 
 class Objects {
-  static parseFilters(schema: Schema.JsonSchema): Array<ObjectsFilter> {
+  static parseFilters(schema: JsonSchema.JsonSchema): Array<ObjectsFilter> {
     const fs: Array<ObjectsFilter> = []
 
     if (typeof schema.minProperties === "number") {
@@ -1628,7 +1629,7 @@ function NullOr(ast: AST): AST {
   return includesNull(ast) ? ast : Union.make([ast, new Null()], "anyOf")
 }
 
-function parseJsonSchema(schema: Schema.JsonSchema, options: RecurOptions): AST {
+function parseJsonSchema(schema: JsonSchema.JsonSchema, options: RecurOptions): AST {
   if (Array.isArray(schema.anyOf)) {
     return Union.make(schema.anyOf.map((m) => parse(m, options)), "anyOf")
   }
@@ -1691,7 +1692,7 @@ function parseJsonSchema(schema: Schema.JsonSchema, options: RecurOptions): AST 
   return new Unknown()
 }
 
-function getRef(parts: readonly [string, ...Array<string>], source: Schema.JsonSchema.Source): Array<string> {
+function getRef(parts: readonly [string, ...Array<string>], source: JsonSchema.Source): Array<string> {
   switch (source) {
     case "draft-07":
     case "draft-2020-12":
@@ -1703,9 +1704,9 @@ function getRef(parts: readonly [string, ...Array<string>], source: Schema.JsonS
 }
 
 function extractDefinition(
-  root: Schema.JsonSchema,
+  root: JsonSchema.JsonSchema,
   parts: readonly [string, ...Array<string>]
-): Schema.JsonSchema | undefined {
+): JsonSchema.JsonSchema | undefined {
   let current = root
   for (const part of parts) {
     if (isObject(current[part])) {
@@ -1730,7 +1731,7 @@ const objectKeys = [
 ]
 const arrayKeys = ["items", "prefixItems", "additionalItems", "minItems", "maxItems", "uniqueItems"]
 
-function normalize(schema: Schema.JsonSchema): Schema.JsonSchema {
+function normalize(schema: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
   if (schema.type === undefined) {
     if (stringKeys.some((key) => schema[key] !== undefined)) {
       return { ...schema, type: "string" }
@@ -1750,11 +1751,11 @@ function normalize(schema: Schema.JsonSchema): Schema.JsonSchema {
 
 const types = ["null", "string", "number", "integer", "boolean", "object", "array"]
 
-function isType(type: unknown): type is Schema.JsonSchema.Type {
+function isType(type: unknown): type is JsonSchema.Type {
   return typeof type === "string" && types.includes(type)
 }
 
-function parseType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, options: RecurOptions): AST {
+function parseType(type: JsonSchema.Type, schema: JsonSchema.JsonSchema, options: RecurOptions): AST {
   switch (type) {
     case "null":
       return new Null()
@@ -1804,7 +1805,7 @@ function parseType(type: Schema.JsonSchema.Type, schema: Schema.JsonSchema, opti
   }
 }
 
-function collectProperties(schema: Schema.JsonSchema, options: RecurOptions): Array<Property> {
+function collectProperties(schema: JsonSchema.JsonSchema, options: RecurOptions): Array<Property> {
   const properties: Record<string, unknown> = isObject(schema.properties) ? schema.properties : {}
   const required = Array.isArray(schema.required) ? schema.required : []
   required.forEach((key) => {
@@ -1815,7 +1816,7 @@ function collectProperties(schema: Schema.JsonSchema, options: RecurOptions): Ar
   return Object.entries(properties).map(([key, v]) => new Property(!required.includes(key), key, parse(v, options)))
 }
 
-function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions): Array<IndexSignature> {
+function collectIndexSignatures(schema: JsonSchema.JsonSchema, options: RecurOptions): Array<IndexSignature> {
   const out: Array<IndexSignature> = []
 
   if (isObject(schema.propertyNames)) {
@@ -1836,7 +1837,7 @@ function collectIndexSignatures(schema: Schema.JsonSchema, options: RecurOptions
   return out
 }
 
-function collectElements(schema: Schema.JsonSchema, options: RecurOptions): ReadonlyArray<unknown> {
+function collectElements(schema: JsonSchema.JsonSchema, options: RecurOptions): ReadonlyArray<unknown> {
   switch (options.source) {
     case "draft-07":
       return Array.isArray(schema.items) ? schema.items : []
@@ -1849,11 +1850,14 @@ function collectElements(schema: Schema.JsonSchema, options: RecurOptions): Read
   }
 }
 
-function isJsonSchema(candidate: unknown): candidate is Schema.JsonSchema | boolean {
+function isJsonSchema(candidate: unknown): candidate is JsonSchema.JsonSchema | boolean {
   return isObject(candidate) || (typeof candidate === "boolean")
 }
 
-function collectRest(schema: Schema.JsonSchema, options: RecurOptions): Schema.JsonSchema | boolean | undefined {
+function collectRest(
+  schema: JsonSchema.JsonSchema,
+  options: RecurOptions
+): JsonSchema.JsonSchema | boolean | undefined {
   switch (options.source) {
     case "draft-07":
       return isJsonSchema(schema.items)
@@ -1872,7 +1876,7 @@ function collectRest(schema: Schema.JsonSchema, options: RecurOptions): Schema.J
   }
 }
 
-function collectAnnotations(schema: Schema.JsonSchema): Schema.Annotations.Annotations {
+function collectAnnotations(schema: JsonSchema.JsonSchema): Schema.Annotations.Annotations {
   const as: Mutable<Schema.Annotations.Annotations> = {}
 
   if (typeof schema.title === "string") as.title = schema.title

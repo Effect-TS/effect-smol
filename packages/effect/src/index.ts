@@ -962,6 +962,11 @@ export * as Iterable from "./Iterable.ts"
 export * as JsonPatch from "./JsonPatch.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as JsonSchema from "./JsonSchema.ts"
+
+/**
  * A `Layer<ROut, E, RIn>` describes how to build one or more services in your
  * application. Services can be injected into effects via
  * `Effect.provideService`. Effects can require services via `Effect.service`.

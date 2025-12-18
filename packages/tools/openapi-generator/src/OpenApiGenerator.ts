@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect"
+import type * as JsonSchema from "effect/JsonSchema"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
-import type * as Schema from "effect/Schema"
 import * as ServiceMap from "effect/ServiceMap"
 import * as String from "effect/String"
 import type { OpenAPISpec, OpenAPISpecMethodName, OpenAPISpecPathItem } from "effect/unstable/httpapi/OpenApi"
@@ -93,7 +93,7 @@ export const make = Effect.gen(function*() {
 
           if (validParameters.length > 0) {
             const schema = {
-              type: "object" as Schema.JsonSchema.Type,
+              type: "object" as JsonSchema.Type,
               properties: {} as Record<string, any>,
               required: [] as Array<string>,
               additionalProperties: false
@@ -247,7 +247,7 @@ export const make = Effect.gen(function*() {
   return { generate } as const
 })
 
-function getSource(spec: OpenAPISpec): Schema.JsonSchema.Source {
+function getSource(spec: OpenAPISpec): JsonSchema.Source {
   return spec.openapi.trim().startsWith("3.0") ? "openapi-3.0" : "openapi-3.1"
 }
 

@@ -1,4 +1,5 @@
 import { format } from "../../Formatter.ts"
+import type * as JsonSchema from "../../JsonSchema.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
@@ -7,10 +8,10 @@ import * as InternalAnnotations from "./annotations.ts"
 import { escapeToken } from "./json-pointer.ts"
 
 /** @internal */
-export function make<S extends Schema.Top>(
+export function make<S extends Schema.Top, Target extends JsonSchema.Target>(
   schema: S,
-  options: Schema.ToJsonSchemaOptions
-): Schema.JsonSchema.Document {
+  options: Schema.ToJsonSchemaOptions<Target>
+): JsonSchema.Document<Target> {
   const target = options.target
   const definitions = {}
   const additionalProperties = options.additionalProperties ?? false
@@ -36,10 +37,10 @@ export function make<S extends Schema.Top>(
   }
 }
 
-interface RecurOptions extends Schema.ToJsonSchemaOptions {
-  readonly target: Schema.JsonSchema.Target
-  readonly additionalProperties: true | false | Schema.JsonSchema
-  readonly definitions: Record<string, Schema.JsonSchema>
+interface RecurOptions extends Schema.ToJsonSchemaOptions<JsonSchema.Target> {
+  readonly target: JsonSchema.Target
+  readonly additionalProperties: true | false | JsonSchema.JsonSchema
+  readonly definitions: Record<string, JsonSchema.JsonSchema>
   readonly generateDescriptions: boolean
 }
 
@@ -51,7 +52,7 @@ function recur(
   options: RecurOptions,
   ignoreIdentifier: boolean,
   ignoreAnnotation: boolean
-): Schema.JsonSchema {
+): JsonSchema.JsonSchema {
   const target = options.target
   // ---------------------------------------------
   // handle identifier annotation
@@ -124,7 +125,7 @@ function recur(
       }
     }
     function handleFilter(check: AST.Filter<any>): void {
-      const fragment = getConstraint(check, options.target, out.type as Schema.JsonSchema.Type)
+      const fragment = getConstraint(check, options.target, out.type as JsonSchema.Type)
       if (fragment) {
         out = appendFragment(
           out,
@@ -154,7 +155,7 @@ function recur(
   return out
 }
 
-function flattenArrayJsonSchema(jsonSchema: Schema.JsonSchema): Schema.JsonSchema {
+function flattenArrayJsonSchema(jsonSchema: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
   if (Object.keys(jsonSchema).length === 1) {
     if (Array.isArray(jsonSchema.anyOf) && jsonSchema.anyOf.length === 1) {
       return jsonSchema.anyOf[0]
@@ -176,7 +177,7 @@ function base(
   path: ReadonlyArray<PropertyKey>,
   options: RecurOptions,
   ignoreAnnotation: boolean
-): Schema.JsonSchema {
+): JsonSchema.JsonSchema {
   const target = options.target
   // ---------------------------------------------
   // handle Override annotation
@@ -368,7 +369,7 @@ function base(
       return out
     }
     case "Union": {
-      const types: Array<Schema.JsonSchema> = []
+      const types: Array<JsonSchema.JsonSchema> = []
       for (const type of ast.types) {
         if (!AST.isUndefined(type)) {
           types.push(recur(type, path, options, false, false))
@@ -390,7 +391,7 @@ function base(
   }
 }
 
-function getPointer(target: Schema.JsonSchema.Target) {
+function getPointer(target: JsonSchema.Target) {
   switch (target) {
     case "draft-07":
       return "#/definitions/"
@@ -403,9 +404,9 @@ function getPointer(target: Schema.JsonSchema.Target) {
 
 function getConstraint<T>(
   check: AST.Check<T>,
-  target: Schema.JsonSchema.Target,
-  type?: Schema.JsonSchema.Type
-): Schema.JsonSchema | undefined {
+  target: JsonSchema.Target,
+  type?: JsonSchema.Type
+): JsonSchema.JsonSchema | undefined {
   const annotation = check.annotations?.toJsonSchemaConstraint as
     | Schema.Annotations.ToJsonSchema.Constraint
     | undefined
@@ -448,9 +449,9 @@ function getPattern(
 function getJsonSchemaAnnotations(
   annotations: Schema.Annotations.Annotations | undefined,
   generateDescriptions: boolean
-): Schema.JsonSchema | undefined {
+): JsonSchema.JsonSchema | undefined {
   if (annotations) {
-    const out: Schema.JsonSchema = {}
+    const out: JsonSchema.JsonSchema = {}
     if (typeof annotations.title === "string") {
       out.title = annotations.title
     }
@@ -471,10 +472,10 @@ function getJsonSchemaAnnotations(
 }
 
 function mergeOrAppendJsonSchemaAnnotations(
-  jsonSchema: Schema.JsonSchema,
+  jsonSchema: JsonSchema.JsonSchema,
   annotations: Schema.Annotations.Annotations | undefined,
   generateDescriptions: boolean
-): Schema.JsonSchema {
+): JsonSchema.JsonSchema {
   const fragment = getJsonSchemaAnnotations(annotations, generateDescriptions)
   if (fragment) {
     return appendFragment(jsonSchema, fragment)
@@ -483,16 +484,16 @@ function mergeOrAppendJsonSchemaAnnotations(
 }
 
 function hasIntersection(
-  jsonSchema: Schema.JsonSchema,
-  fragment: Schema.JsonSchema
+  jsonSchema: JsonSchema.JsonSchema,
+  fragment: JsonSchema.JsonSchema
 ): boolean {
   return Object.keys(jsonSchema).filter((key) => key !== "type").some((key) => Object.hasOwn(fragment, key))
 }
 
 function appendFragment(
-  jsonSchema: Schema.JsonSchema,
-  fragment: Schema.JsonSchema
-): Schema.JsonSchema {
+  jsonSchema: JsonSchema.JsonSchema,
+  fragment: JsonSchema.JsonSchema
+): JsonSchema.JsonSchema {
   if ("$ref" in jsonSchema) {
     return { allOf: [jsonSchema, fragment] }
   } else {

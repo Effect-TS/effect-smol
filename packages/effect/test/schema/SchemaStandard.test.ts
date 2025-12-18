@@ -1,3 +1,4 @@
+import type { JsonSchema } from "effect"
 import { Schema, SchemaStandard } from "effect"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
@@ -1075,8 +1076,8 @@ describe("Standard", () => {
     function assertToJson(
       schema: Schema.Top,
       expected: {
-        readonly schema: Schema.JsonSchema
-        readonly definitions?: Record<string, Schema.JsonSchema>
+        readonly schema: JsonSchema.JsonSchema
+        readonly definitions?: Record<string, JsonSchema.JsonSchema>
       }
     ) {
       const document = SchemaStandard.fromAST(schema.ast)
@@ -2305,10 +2306,10 @@ describe("Standard", () => {
   describe("rewriters", () => {
     function assertJsonDocument(
       schema: Schema.Top,
-      target: Exclude<Schema.JsonSchema.Target, "draft-2020-12">,
+      target: Exclude<JsonSchema.Target, "draft-2020-12">,
       expected: {
-        readonly schema: Schema.JsonSchema
-        readonly definitions?: Record<string, Schema.JsonSchema>
+        readonly schema: JsonSchema.JsonSchema
+        readonly definitions?: Record<string, JsonSchema.JsonSchema>
       }
     ) {
       const document = SchemaStandard.fromAST(schema.ast)
@@ -2319,7 +2320,7 @@ describe("Standard", () => {
         definitions: expected.definitions ?? {}
       })
 
-      function rewrite(jsonSchemaDocument: Schema.JsonSchema.Document) {
+      function rewrite(jsonSchemaDocument: JsonSchema.Document<"draft-2020-12">) {
         switch (target) {
           case "draft-07":
             return SchemaStandard.rewriteToDraft07(jsonSchemaDocument)

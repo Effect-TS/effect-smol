@@ -5,6 +5,7 @@ import * as Arr from "./Array.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import { unescapeToken } from "./internal/schema/json-pointer.ts"
+import type * as JsonSchema from "./JsonSchema.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
@@ -284,7 +285,7 @@ export interface FilterGroup<M> {
 /**
  * @since 4.0.0
  */
-export type StringMeta = Schema.Annotations.BuiltInMetaRegistry[
+export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isNumberString"
   | "isBigIntString"
   | "isSymbolString"
@@ -309,7 +310,7 @@ export type StringMeta = Schema.Annotations.BuiltInMetaRegistry[
 /**
  * @since 4.0.0
  */
-export type NumberMeta = Schema.Annotations.BuiltInMetaRegistry[
+export type NumberMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isInt"
   | "isFinite"
   | "isMultipleOf"
@@ -323,7 +324,7 @@ export type NumberMeta = Schema.Annotations.BuiltInMetaRegistry[
 /**
  * @since 4.0.0
  */
-export type BigIntMeta = Schema.Annotations.BuiltInMetaRegistry[
+export type BigIntMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isGreaterThanOrEqualToBigInt"
   | "isLessThanOrEqualToBigInt"
   | "isGreaterThanBigInt"
@@ -334,7 +335,7 @@ export type BigIntMeta = Schema.Annotations.BuiltInMetaRegistry[
 /**
  * @since 4.0.0
  */
-export type DateMeta = Schema.Annotations.BuiltInMetaRegistry[
+export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isValidDate"
   | "isGreaterThanDate"
   | "isGreaterThanOrEqualToDate"
@@ -347,7 +348,7 @@ export type DateMeta = Schema.Annotations.BuiltInMetaRegistry[
  * @since 4.0.0
  */
 export type ArraysMeta =
-  | Schema.Annotations.BuiltInMetaRegistry[
+  | Schema.Annotations.BuiltInMetaDefinitions[
     | "isMinLength"
     | "isMaxLength"
   ]
@@ -917,7 +918,12 @@ export const Declaration$ = Schema.Struct({
 /**
  * @since 4.0.0
  */
-export const Schema$: Schema.Codec<StandardSchema, unknown> = Schema.Union([
+export interface Schema$ extends Schema.Codec<StandardSchema> {}
+
+/**
+ * @since 4.0.0
+ */
+export const Schema$: Schema$ = Schema.Union([
   Null$,
   Undefined$,
   Void$,
@@ -1119,27 +1125,30 @@ function fromASTChecks(
   return checks.map(getCheck).filter((c) => c !== undefined)
 }
 
-const serializerJson = Schema.toCodecJson(Document$)
-const encodeUnknownSync = Schema.encodeUnknownSync(serializerJson)
-const decodeUnknownSync = Schema.decodeUnknownSync(serializerJson)
+const schemaToCodecJson = Schema.toCodecJson(Schema$)
+const encodeSchema = Schema.encodeUnknownSync(schemaToCodecJson)
 
 /**
  * @since 4.0.0
  */
-export function toJson(document: Document): Schema.JsonSchema.Document<"draft-2020-12"> {
-  const json = encodeUnknownSync(document) as Pick<Schema.JsonSchema.Document, "schema" | "definitions">
+export function toJson(document: Document): JsonSchema.Document<"draft-2020-12"> {
+  const schema = encodeSchema(document.schema) as JsonSchema.JsonSchema
+  const definitions = Rec.map(document.definitions, (d) => encodeSchema(d)) as JsonSchema.Definitions
   return {
     source: "draft-2020-12",
-    schema: json.schema,
-    definitions: json.definitions
+    schema,
+    definitions
   }
 }
+
+const documentToCodecJson = Schema.toCodecJson(Document$)
+const decodeDocument = Schema.decodeUnknownSync(documentToCodecJson)
 
 /**
  * @since 4.0.0
  */
 export function fromJson(u: unknown): Document {
-  return decodeUnknownSync(u)
+  return decodeDocument(u)
 }
 
 /**
@@ -1459,22 +1468,22 @@ function toSchemaFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | Ar
   }
 }
 
-const unsupportedJsonSchema: Schema.JsonSchema = { not: {} }
+const unsupportedJsonSchema: JsonSchema.JsonSchema = { not: {} }
 
 /**
  * Return a Draft 2020-12 JSON Schema Document.
  *
  * @since 4.0.0
  */
-export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"draft-2020-12"> {
+export function toJsonSchema(document: Document): JsonSchema.Document<"draft-2020-12"> {
   return {
     source: "draft-2020-12",
     schema: recur(document.schema),
     definitions: Rec.map(document.definitions, (d) => recur(d))
   }
 
-  function recur(ss: StandardSchema): Schema.JsonSchema {
-    let s: Schema.JsonSchema = on(ss)
+  function recur(ss: StandardSchema): JsonSchema.JsonSchema {
+    let s: JsonSchema.JsonSchema = on(ss)
     if (s === unsupportedJsonSchema) return unsupportedJsonSchema
     const a = collectJsonSchemaAnnotations(ss.annotations)
     if (a) {
@@ -1489,7 +1498,7 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
     return normalizeJsonSchemaOutput(s)
   }
 
-  function on(schema: StandardSchema): Schema.JsonSchema {
+  function on(schema: StandardSchema): JsonSchema.JsonSchema {
     switch (schema._tag) {
       case "Unknown":
       case "Any":
@@ -1509,7 +1518,7 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
       case "Never":
         return { not: {} }
       case "String": {
-        const out: Schema.JsonSchema = { type: "string" }
+        const out: JsonSchema.JsonSchema = { type: "string" }
         if (schema.contentMediaType !== undefined) {
           out.contentMediaType = schema.contentMediaType
         }
@@ -1561,9 +1570,9 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
         return { type: "string", pattern: `^${pattern}$` }
       }
       case "Arrays": {
-        const out: Schema.JsonSchema = { type: "array" }
+        const out: JsonSchema.JsonSchema = { type: "array" }
         let minItems = schema.elements.length
-        const prefixItems: Array<Schema.JsonSchema> = schema.elements.map((e) => {
+        const prefixItems: Array<JsonSchema.JsonSchema> = schema.elements.map((e) => {
           if (e.isOptional || containsUndefined(e.type)) minItems--
           return recur(e.type)
         })
@@ -1586,8 +1595,8 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
         if (schema.propertySignatures.length === 0 && schema.indexSignatures.length === 0) {
           return { anyOf: [{ type: "object" }, { type: "array" }] }
         }
-        const out: Schema.JsonSchema = { type: "object" }
-        const properties: Record<string, Schema.JsonSchema> = {}
+        const out: JsonSchema.JsonSchema = { type: "object" }
+        const properties: Record<string, JsonSchema.JsonSchema> = {}
         const required: Array<string> = []
 
         for (const ps of schema.propertySignatures) {
@@ -1630,7 +1639,7 @@ export function toJsonSchema(document: Document): Schema.JsonSchema.Document<"dr
   }
 }
 
-function normalizeJsonSchemaOutput(s: Schema.JsonSchema): Schema.JsonSchema {
+function normalizeJsonSchemaOutput(s: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
   if (Array.isArray(s.anyOf)) {
     if (s.anyOf.length === 1) {
       if (Object.keys(s).length === 1) {
@@ -1641,10 +1650,10 @@ function normalizeJsonSchemaOutput(s: Schema.JsonSchema): Schema.JsonSchema {
   return s
 }
 
-function collectJsonSchemaChecks(checks: ReadonlyArray<Check<any>>): Array<Schema.JsonSchema> {
+function collectJsonSchemaChecks(checks: ReadonlyArray<Check<any>>): Array<JsonSchema.JsonSchema> {
   return checks.map(recur).filter((c) => c !== undefined)
 
-  function recur(check: Check<any>): Schema.JsonSchema | undefined {
+  function recur(check: Check<any>): JsonSchema.JsonSchema | undefined {
     switch (check._tag) {
       case "Filter":
         return filterToJsonSchema(check)
@@ -1662,7 +1671,7 @@ function collectJsonSchemaChecks(checks: ReadonlyArray<Check<any>>): Array<Schem
   }
 }
 
-function filterToJsonSchema(filter: Filter<any>): Schema.JsonSchema | undefined {
+function filterToJsonSchema(filter: Filter<any>): JsonSchema.JsonSchema | undefined {
   const meta = filter.meta as StringMeta | Exclude<NumberMeta, { _tag: "isFinite" }>
   if (!meta) return undefined
 
@@ -1673,7 +1682,7 @@ function filterToJsonSchema(filter: Filter<any>): Schema.JsonSchema | undefined 
   }
   return out
 
-  function on(meta: StringMeta | Exclude<NumberMeta, { _tag: "isFinite" }>): Schema.JsonSchema {
+  function on(meta: StringMeta | Exclude<NumberMeta, { _tag: "isFinite" }>): JsonSchema.JsonSchema {
     switch (meta._tag) {
       case "isMinLength":
         return { minLength: meta.minLength }
@@ -1729,9 +1738,9 @@ function containsUndefined(schema: StandardSchema): boolean {
 
 function collectJsonSchemaAnnotations(
   annotations: Schema.Annotations.Annotations | undefined
-): Schema.JsonSchema | undefined {
+): JsonSchema.JsonSchema | undefined {
   if (annotations) {
-    const out: Schema.JsonSchema = {}
+    const out: JsonSchema.JsonSchema = {}
     if (typeof annotations.title === "string") out.title = annotations.title
     if (typeof annotations.description === "string") out.description = annotations.description
     if (annotations.default !== undefined) out.default = annotations.default
@@ -1741,7 +1750,7 @@ function collectJsonSchemaAnnotations(
   }
 }
 
-function appendJsonSchema(a: Schema.JsonSchema, b: Schema.JsonSchema): Schema.JsonSchema {
+function appendJsonSchema(a: JsonSchema.JsonSchema, b: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
   const members = Array.isArray(b.allOf) && Object.keys(b).length === 1 ? b.allOf : [b]
 
   if (Array.isArray(a.allOf)) {
@@ -2057,13 +2066,13 @@ function toCodeRegExp(regExp: RegExp): string {
 /**
  * @internal
  */
-export function rewriteToDraft07(document: Schema.JsonSchema.Document): Schema.JsonSchema.Document {
+export function rewriteToDraft07(document: JsonSchema.Document<"draft-2020-12">): JsonSchema.Document<"draft-07"> {
   function rewrite(u: unknown): any {
     if (Array.isArray(u)) {
       return u.map(rewrite)
     } else if (typeof u === "object" && u !== null) {
       if ("$ref" in u || "prefixItems" in u) {
-        const out: Schema.JsonSchema = { ...u }
+        const out: JsonSchema.JsonSchema = { ...u }
         if ("$ref" in out && typeof out.$ref === "string") {
           out.$ref = out.$ref.replace(/#\/\$defs\//g, "#/definitions/")
         }
@@ -2092,13 +2101,15 @@ export function rewriteToDraft07(document: Schema.JsonSchema.Document): Schema.J
 /**
  * @internal
  */
-export function rewriteToOpenApi3_1(document: Schema.JsonSchema.Document): Schema.JsonSchema.Document {
+export function rewriteToOpenApi3_1(
+  document: JsonSchema.Document<"draft-2020-12">
+): JsonSchema.Document<"openapi-3.1"> {
   function rewrite(u: unknown): any {
     if (Array.isArray(u)) {
       return u.map(rewrite)
     } else if (typeof u === "object" && u !== null) {
       if ("$ref" in u && typeof u.$ref === "string") {
-        const out: Schema.JsonSchema = { ...u }
+        const out: JsonSchema.JsonSchema = { ...u }
         out.$ref = u.$ref.replace(/#\/\$defs\//g, "#/components/schemas/")
         return out
       }
@@ -2117,7 +2128,7 @@ export function rewriteToOpenApi3_1(document: Schema.JsonSchema.Document): Schem
 /**
  * @since 4.0.0
  */
-export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-12">): Document {
+export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): Document {
   return {
     schema: recur(document.schema),
     definitions: Rec.map(document.definitions, (d) => recur(d))
@@ -2161,7 +2172,7 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
     return { _tag: "Unknown" }
   }
 
-  function on(s: Schema.JsonSchema): Types.Mutable<StandardSchema> {
+  function on(s: JsonSchema.JsonSchema): Types.Mutable<StandardSchema> {
     if (Predicate.isObject(s)) {
       if ("enum" in s && Array.isArray(s.enum)) {
         switch (s.enum.length) {
@@ -2211,7 +2222,7 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
     return { _tag: "Unknown" }
   }
 
-  function collectStringChecks(s: Schema.JsonSchema): Array<Check<StringMeta>> {
+  function collectStringChecks(s: JsonSchema.JsonSchema): Array<Check<StringMeta>> {
     const checks: Array<Check<StringMeta>> = []
     if (typeof s.minLength === "number") {
       checks.push({
@@ -2237,7 +2248,7 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
     return checks
   }
 
-  function collectNumberChecks(s: Schema.JsonSchema): Array<Check<NumberMeta>> {
+  function collectNumberChecks(s: JsonSchema.JsonSchema): Array<Check<NumberMeta>> {
     const checks: Array<Check<NumberMeta>> = []
     if (typeof s.exclusiveMinimum === "number") {
       checks.push({
@@ -2277,7 +2288,7 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
     return checks
   }
 
-  function collectArraysChecks(s: Schema.JsonSchema): Array<Check<ArraysMeta>> {
+  function collectArraysChecks(s: JsonSchema.JsonSchema): Array<Check<ArraysMeta>> {
     const checks: Array<Check<ArraysMeta>> = []
     const elementsLength = Array.isArray(s.prefixItems) ? s.prefixItems.length : 0
     if (typeof s.minItems === "number" && s.minItems > elementsLength) {
@@ -2304,7 +2315,7 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
     return checks
   }
 
-  function collectElements(s: Schema.JsonSchema): Array<Element> {
+  function collectElements(s: JsonSchema.JsonSchema): Array<Element> {
     if (Array.isArray(s.prefixItems)) {
       const minItems = typeof s.minItems === "number" ? s.minItems : s.prefixItems.length
       return s.prefixItems.map((item, index) => ({ type: recur(item), isOptional: index >= minItems }))
@@ -2312,14 +2323,14 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
     return []
   }
 
-  function collectRest(s: Schema.JsonSchema): Array<StandardSchema> {
+  function collectRest(s: JsonSchema.JsonSchema): Array<StandardSchema> {
     if (s.items !== undefined && s.items !== false) {
       return [recur(s.items)]
     }
     return []
   }
 
-  function collectProperties(s: Schema.JsonSchema): Array<PropertySignature> {
+  function collectProperties(s: JsonSchema.JsonSchema): Array<PropertySignature> {
     const required = new Set(Array.isArray(s.required) ? s.required : [])
     return Predicate.isObject(s.properties) ?
       Object.entries(s.properties).map(([key, value]) => ({
@@ -2331,7 +2342,7 @@ export function fromJsonSchema(document: Schema.JsonSchema.Document<"draft-2020-
       []
   }
 
-  function collectIndexSignatures(s: Schema.JsonSchema): Array<IndexSignature> {
+  function collectIndexSignatures(s: JsonSchema.JsonSchema): Array<IndexSignature> {
     const indexSignatures: Array<IndexSignature> = []
     if (Predicate.isObject(s.additionalProperties)) {
       indexSignatures.push({
@@ -2358,7 +2369,7 @@ const filtersKeysByType = Object.entries({
   array: ["items", "prefixItems", "additionalItems", "minItems", "maxItems", "uniqueItems"]
 })
 
-function normalizeJsonSchemaInput(s: Schema.JsonSchema): Schema.JsonSchema {
+function normalizeJsonSchemaInput(s: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
   if (s.type === undefined) {
     for (const [type, keys] of filtersKeysByType) {
       if (keys.some((key) => s[key] !== undefined)) {
@@ -2369,19 +2380,19 @@ function normalizeJsonSchemaInput(s: Schema.JsonSchema): Schema.JsonSchema {
   return s
 }
 
-function collectAnnotations(u: unknown): Schema.Annotations.Annotations | undefined {
-  if (Predicate.isObject(u)) {
-    const as: Types.Mutable<Schema.Annotations.Annotations> = {}
-    if (typeof u.title === "string") as.title = u.title
-    if (typeof u.description === "string") as.description = u.description
-    if (u.default !== undefined) as.default = u.default
-    if (Array.isArray(u.examples)) {
-      as.examples = u.examples
-    } else if (u.example !== undefined) {
+function collectAnnotations(s: JsonSchema.JsonSchema): Schema.Annotations.Annotations | undefined {
+  if (Predicate.isObject(s)) {
+    const as: Record<string, unknown> = {}
+    if (typeof s.title === "string") as.title = s.title
+    if (typeof s.description === "string") as.description = s.description
+    if (s.default !== undefined) as.default = s.default
+    if (Array.isArray(s.examples)) {
+      as.examples = s.examples
+    } else if (s.example !== undefined) {
       // OpenAPI 3.0 uses `example` (singular). Only use it if defined
-      as.examples = [u.example]
+      as.examples = [s.example]
     }
-    if (typeof u.format === "string") as.format = u.format
+    if (typeof s.format === "string") as.format = s.format
     if (Object.keys(as).length === 0) return undefined
     return as
   }
