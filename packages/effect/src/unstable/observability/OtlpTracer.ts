@@ -5,6 +5,7 @@ import * as Cause from "../../Cause.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
+import { flow } from "../../Function.ts"
 import * as Exporter from "../../internal/tracing/otlpExporter.ts"
 import * as Layer from "../../Layer.ts"
 import type * as Scope from "../../Scope.ts"
@@ -112,7 +113,7 @@ export const layer: (options: {
   readonly maxBatchSize?: number | undefined
   readonly context?: (<X>(f: () => X, span: Tracer.AnySpan) => X) | undefined
   readonly shutdownTimeout?: Duration.DurationInput | undefined
-}) => Layer.Layer<never, never, HttpClient.HttpClient> = Layer.effect(Tracer.Tracer)(make)
+}) => Layer.Layer<never, never, HttpClient.HttpClient> = flow(make, Layer.effect(Tracer.Tracer))
 
 // internal
 

@@ -7,6 +7,7 @@ import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
 import { pipe } from "effect/Function"
+import * as Function from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as References from "effect/References"
 import * as Scope from "effect/Scope"
@@ -148,7 +149,7 @@ export const layer: (
 ) => Layer.Layer<
   SocketServer.SocketServer,
   SocketServer.SocketServerError
-> = Layer.effect(SocketServer.SocketServer)(make)
+> = Function.flow(make, Layer.effect(SocketServer.SocketServer))
 
 /**
  * @since 1.0.0
@@ -258,7 +259,7 @@ export const layerWebSocket: (
 ) => Layer.Layer<
   SocketServer.SocketServer,
   SocketServer.SocketServerError
-> = Layer.effect(SocketServer.SocketServer)(makeWebSocket)
+> = Function.flow(makeWebSocket, Layer.effect(SocketServer.SocketServer))
 
 const reportUnhandledError = <E>(cause: Cause<E>) =>
   Effect.withFiber<void>((fiber) => {

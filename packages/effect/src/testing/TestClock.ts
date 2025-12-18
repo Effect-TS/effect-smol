@@ -7,6 +7,7 @@ import * as Data from "../Data.ts"
 import * as Duration from "../Duration.ts"
 import * as Effect from "../Effect.ts"
 import * as Fiber from "../Fiber.ts"
+import { flow } from "../Function.ts"
 import * as Layer from "../Layer.ts"
 import * as Order from "../Order.ts"
 
@@ -364,7 +365,10 @@ export const make = Effect.fnUntraced(function*(
  * @since 4.0.0
  * @category layers
  */
-export const layer: (options?: TestClock.Options) => Layer.Layer<TestClock> = Layer.effect(Clock.Clock)(make) as any
+export const layer: (options?: TestClock.Options) => Layer.Layer<TestClock> = flow(
+  make,
+  Layer.effect(Clock.Clock)
+) as any
 
 /**
  * Retrieves the `TestClock` service for this test and uses it to run the
