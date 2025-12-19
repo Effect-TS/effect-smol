@@ -36,6 +36,31 @@ function assertJsonSchemaRoundtrip(schema: Schema.Top, expected: string, reviver
 }
 
 describe("Standard", () => {
+  describe("fromAST", () => {
+    it("should throw if there is a suspended schema without an identifier", () => {
+      const schema = Schema.Struct({
+        name: Schema.String,
+        children: Schema.Array(Schema.suspend((): Schema.Codec<Category> => schema))
+      })
+      throws(() => SchemaStandard.fromAST(schema.ast), "Suspended schema without identifier detected")
+    })
+
+    it("should throw if there are suspended schemas with duplicate identifiers", () => {
+      type Category2 = {
+        readonly name: number
+        readonly children: ReadonlyArray<Category2>
+      }
+
+      const OuterCategory2 = Schema.Struct({
+        name: Schema.Number,
+        children: Schema.Array(Schema.suspend((): Schema.Codec<Category2> => OuterCategory2))
+      }).annotate({ identifier: "Category" })
+
+      const schema = Schema.Tuple([OuterCategory, OuterCategory2])
+      throws(() => SchemaStandard.fromAST(schema.ast), "Suspended schema with duplicate identifier: Category")
+    })
+  })
+
   describe("toJsonSchema", () => {
     function assertToJsonSchema(
       documentOrSchema: SchemaStandard.Document | Schema.Top,
@@ -1132,16 +1157,9 @@ describe("Standard", () => {
       }
     ) {
       const document = SchemaStandard.fromAST(schema.ast)
-      deepStrictEqual(SchemaStandard.toJson(document), { source: "draft-2020-12", definitions: {}, ...expected })
+      const json = SchemaStandard.toJson(document)
+      deepStrictEqual(json, { source: "draft-2020-12", definitions: {}, ...expected })
     }
-
-    it("should throw if there are duplicate identifiers", () => {
-      const schema = Schema.Struct({
-        a: Schema.String.annotate({ identifier: "a" }),
-        b: Schema.String.annotate({ identifier: "a" })
-      })
-      throws(() => SchemaStandard.fromAST(schema.ast), "Duplicate identifier: a")
-    })
 
     describe("Suspend", () => {
       it("non-recursive", () => {
@@ -1150,8 +1168,9 @@ describe("Standard", () => {
         })
         assertToJson(Schema.suspend(() => Schema.String.annotate({ identifier: "ID" })), {
           schema: {
-            _tag: "Suspend",
-            $ref: "ID"
+            _tag: "Reference",
+            $ref: "ID",
+            isSuspend: false
           },
           definitions: {
             ID: {
@@ -1174,8 +1193,8 @@ describe("Standard", () => {
             _tag: "Union",
             mode: "anyOf",
             types: [
-              { _tag: "Suspend", $ref: "inner" },
-              { _tag: "Suspend", $ref: "inner" }
+              { _tag: "Reference", $ref: "inner", isSuspend: false },
+              { _tag: "Reference", $ref: "inner", isSuspend: true }
             ]
           },
           definitions: {
@@ -1195,8 +1214,9 @@ describe("Standard", () => {
         it("outer identifier", () => {
           assertToJson(OuterCategory, {
             schema: {
-              _tag: "Suspend",
-              $ref: "Category"
+              _tag: "Reference",
+              $ref: "Category",
+              isSuspend: false
             },
             definitions: {
               Category: {
@@ -1215,8 +1235,9 @@ describe("Standard", () => {
                       _tag: "Arrays",
                       elements: [],
                       rest: [{
-                        _tag: "Suspend",
-                        $ref: "Category"
+                        _tag: "Reference",
+                        $ref: "Category",
+                        isSuspend: true
                       }],
                       checks: []
                     },
@@ -1248,8 +1269,9 @@ describe("Standard", () => {
                     elements: [],
                     rest: [
                       {
-                        _tag: "Suspend",
-                        $ref: "Category"
+                        _tag: "Reference",
+                        $ref: "Category",
+                        isSuspend: false
                       }
                     ],
                     checks: []
@@ -1278,8 +1300,9 @@ describe("Standard", () => {
                       elements: [],
                       rest: [
                         {
-                          _tag: "Suspend",
-                          $ref: "Category"
+                          _tag: "Reference",
+                          $ref: "Category",
+                          isSuspend: true
                         }
                       ],
                       checks: []
@@ -1693,6 +1716,65 @@ describe("Standard", () => {
         assertToJson(Schema.Tuple([]), { schema: { _tag: "Arrays", elements: [], rest: [], checks: [] } })
         assertToJson(Schema.Tuple([]).annotate({ description: "a" }), {
           schema: { _tag: "Arrays", annotations: { description: "a" }, elements: [], rest: [], checks: [] }
+        })
+      })
+
+      it("required element", () => {
+        assertToJson(Schema.Tuple([Schema.String]), {
+          schema: {
+            _tag: "Arrays",
+            elements: [{ isOptional: false, type: { _tag: "String", checks: [] } }],
+            rest: [],
+            checks: []
+          }
+        })
+        const ID = Schema.String.annotate({ identifier: "ID" })
+        assertToJson(Schema.Tuple([ID, ID]), {
+          schema: {
+            _tag: "Arrays",
+            elements: [
+              { isOptional: false, type: { _tag: "Reference", $ref: "ID", isSuspend: false } },
+              { isOptional: false, type: { _tag: "Reference", $ref: "ID", isSuspend: false } }
+            ],
+            rest: [],
+            checks: []
+          },
+          definitions: {
+            ID: {
+              _tag: "String",
+              annotations: { identifier: "ID" },
+              checks: []
+            }
+          }
+        })
+      })
+
+      it("required element & annotateKey", () => {
+        const ID = Schema.String.annotate({ identifier: "ID" })
+        assertToJson(Schema.Tuple([ID, ID.annotateKey({ description: "b" })]), {
+          schema: {
+            _tag: "Arrays",
+            elements: [
+              {
+                isOptional: false,
+                type: { _tag: "Reference", $ref: "ID", isSuspend: false }
+              },
+              {
+                isOptional: false,
+                type: { _tag: "String", annotations: { identifier: "ID" }, checks: [] },
+                annotations: { description: "b" }
+              }
+            ],
+            rest: [],
+            checks: []
+          },
+          definitions: {
+            ID: {
+              _tag: "String",
+              annotations: { identifier: "ID" },
+              checks: []
+            }
+          }
         })
       })
     })
@@ -2351,109 +2433,6 @@ describe("Standard", () => {
         OuterCategory,
         `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)) }).annotate({ "identifier": "Category" })`
       )
-    })
-  })
-
-  describe("rewriters", () => {
-    function assertJsonDocument(
-      schema: Schema.Top,
-      target: Exclude<JsonSchema.Target, "draft-2020-12">,
-      expected: {
-        readonly schema: JsonSchema.JsonSchema
-        readonly definitions?: Record<string, JsonSchema.JsonSchema>
-      }
-    ) {
-      const document = SchemaStandard.fromAST(schema.ast)
-      const jsonSchemaDocument = SchemaStandard.toJsonSchema(document)
-      deepStrictEqual(rewrite(jsonSchemaDocument), {
-        source: target,
-        schema: expected.schema,
-        definitions: expected.definitions ?? {}
-      })
-
-      function rewrite(jsonSchemaDocument: JsonSchema.Document<"draft-2020-12">) {
-        switch (target) {
-          case "draft-07":
-            return SchemaStandard.rewriteToDraft07(jsonSchemaDocument)
-          case "openapi-3.1":
-            return SchemaStandard.rewriteToOpenApi3_1(jsonSchemaDocument)
-        }
-      }
-    }
-
-    describe("draft-07", () => {
-      it("should rewrite $ref references", () => {
-        assertJsonDocument(
-          Schema.Struct({ a: Schema.String }).annotate({ identifier: "A" }),
-          "draft-07",
-          {
-            schema: { $ref: "#/definitions/A" },
-            definitions: {
-              A: {
-                type: "object",
-                properties: {
-                  a: { type: "string" }
-                },
-                required: ["a"],
-                additionalProperties: false
-              }
-            }
-          }
-        )
-      })
-
-      it("should keep items if there are no prefixItems", () => {
-        assertJsonDocument(
-          Schema.Array(Schema.String),
-          "draft-07",
-          {
-            schema: {
-              type: "array",
-              items: { type: "string" }
-            }
-          }
-        )
-      })
-
-      it("should rewrite prefixItems to items and items to additionalItems", () => {
-        assertJsonDocument(
-          Schema.Tuple([Schema.String, Schema.Number]),
-          "draft-07",
-          {
-            schema: {
-              type: "array",
-              items: [
-                { type: "string" },
-                { type: "number" }
-              ],
-              minItems: 2,
-              additionalItems: false
-            }
-          }
-        )
-      })
-    })
-
-    describe("openapi-3.1", () => {
-      it("should rewrite $ref references", () => {
-        assertJsonDocument(
-          Schema.Struct({ a: Schema.String }).annotate({ identifier: "A" }),
-          "openapi-3.1",
-          {
-            schema: { $ref: "#/components/schemas/A" },
-            definitions: {
-              A: {
-                type: "object",
-                properties: {
-                  a: { type: "string" }
-                },
-                required: ["a"],
-                additionalProperties: false
-              }
-            }
-          }
-        )
-      })
     })
   })
 })

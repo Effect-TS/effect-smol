@@ -32,10 +32,11 @@ export interface Declaration {
 /**
  * @since 4.0.0
  */
-export interface Suspend {
-  readonly _tag: "Suspend"
+export interface Reference {
+  readonly _tag: "Reference"
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly $ref: string
+  readonly isSuspend: boolean
 }
 
 /**
@@ -178,14 +179,6 @@ export interface TemplateLiteral {
 /**
  * @since 4.0.0
  */
-export interface Element {
-  readonly isOptional: boolean
-  readonly type: StandardSchema
-}
-
-/**
- * @since 4.0.0
- */
 export interface Arrays {
   readonly _tag: "Arrays"
   readonly annotations?: Schema.Annotations.Annotations | undefined
@@ -197,21 +190,20 @@ export interface Arrays {
 /**
  * @since 4.0.0
  */
-export interface Objects {
-  readonly _tag: "Objects"
+export interface Element {
+  readonly isOptional: boolean
+  readonly type: StandardSchema
   readonly annotations?: Schema.Annotations.Annotations | undefined
-  readonly propertySignatures: ReadonlyArray<PropertySignature>
-  readonly indexSignatures: ReadonlyArray<IndexSignature>
 }
 
 /**
  * @since 4.0.0
  */
-export interface Union {
-  readonly _tag: "Union"
+export interface Objects {
+  readonly _tag: "Objects"
   readonly annotations?: Schema.Annotations.Annotations | undefined
-  readonly types: ReadonlyArray<StandardSchema>
-  readonly mode: "anyOf" | "oneOf"
+  readonly propertySignatures: ReadonlyArray<PropertySignature>
+  readonly indexSignatures: ReadonlyArray<IndexSignature>
 }
 
 /**
@@ -236,9 +228,19 @@ export interface IndexSignature {
 /**
  * @since 4.0.0
  */
+export interface Union {
+  readonly _tag: "Union"
+  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly types: ReadonlyArray<StandardSchema>
+  readonly mode: "anyOf" | "oneOf"
+}
+
+/**
+ * @since 4.0.0
+ */
 export type StandardSchema =
   | Declaration
-  | Suspend
+  | Reference
   | Null
   | Undefined
   | Void
@@ -791,7 +793,8 @@ export const TemplateLiteral$ = Schema.Struct({
  */
 export const Element$ = Schema.Struct({
   isOptional: Schema.Boolean,
-  type: Schema$ref
+  type: Schema$ref,
+  annotations: Schema.optionalKey(Annotations$)
 }).annotate({ identifier: "Element" })
 
 const IsUnique$ = Schema.Struct({
@@ -857,11 +860,12 @@ export const Union$ = Schema.Struct({
 /**
  * @since 4.0.0
  */
-export const Suspend$ = Schema.Struct({
-  _tag: Schema.tag("Suspend"),
+export const Reference$ = Schema.Struct({
+  _tag: Schema.tag("Reference"),
   annotations: Schema.optionalKey(Annotations$),
-  $ref: Schema.String
-}).annotate({ identifier: "Suspend" })
+  $ref: Schema.String,
+  isSuspend: Schema.Boolean
+}).annotate({ identifier: "Reference" })
 
 const IsValidDate$ = Schema.Struct({
   _tag: Schema.tag("isValidDate")
@@ -943,7 +947,7 @@ export const Schema$: Schema$ = Schema.Union([
   Arrays$,
   Objects$,
   Union$,
-  Suspend$,
+  Reference$,
   Declaration$
 ]).annotate({ identifier: "Schema" })
 
@@ -973,6 +977,7 @@ export function fromAST(ast: AST.AST): Document {
   ast = AST.toEncoded(ast)
 
   const visited = new Set<AST.AST>()
+  const identifiers = new Map<AST.AST, string>()
   const definitions: Record<string, StandardSchema> = {}
 
   return {
@@ -982,13 +987,20 @@ export function fromAST(ast: AST.AST): Document {
 
   function recur(ast: AST.AST, ignoreIdentifier = false): StandardSchema {
     if (!ignoreIdentifier) {
-      const $ref = InternalAnnotations.resolveIdentifier(ast)
-      if ($ref !== undefined) {
-        if ($ref in definitions) {
-          throw new Error(`Duplicate identifier: ${$ref}`)
+      const identifier = InternalAnnotations.resolveIdentifier(ast)
+      if (identifier !== undefined) {
+        const out: Reference = { _tag: "Reference", $ref: identifier, isSuspend: AST.isSuspend(ast) }
+        if (identifier in definitions) {
+          if (visited.has(ast)) {
+            return out
+          }
+          // duplicate identifier
+          return recur(ast, true)
+        } else {
+          identifiers.set(ast, identifier)
+          definitions[identifier] = recur(ast, true)
+          return out
         }
-        definitions[$ref] = recur(ast, true)
-        return { _tag: "Suspend", $ref }
       }
     }
     const out = on(ast)
@@ -1004,11 +1016,14 @@ export function fromAST(ast: AST.AST): Document {
       case "Suspend": {
         const thunk = ast.thunk()
         if (visited.has(thunk)) {
-          const $ref = InternalAnnotations.resolveIdentifier(thunk)
-          if ($ref !== undefined) {
-            return { _tag: "Suspend", $ref }
+          const identifier = InternalAnnotations.resolveIdentifier(thunk)
+          if (identifier !== undefined) {
+            if (identifiers.get(thunk) !== identifier) {
+              throw new Error(`Suspended schema with duplicate identifier: ${identifier}`)
+            }
+            return { _tag: "Reference", $ref: identifier, isSuspend: true }
           } else {
-            throw new Error("Suspended schema without identifier detected", { cause: ast })
+            throw new Error("Suspended schema without identifier detected", { cause: ast }) // TODO: test this
           }
         } else {
           return recur(thunk)
@@ -1058,7 +1073,13 @@ export function fromAST(ast: AST.AST): Document {
       case "Arrays":
         return {
           _tag: ast._tag,
-          elements: ast.elements.map((e) => ({ isOptional: AST.isOptional(e), type: recur(e) })),
+          elements: ast.elements.map((e) => {
+            const out: Types.Mutable<Element> = { isOptional: AST.isOptional(e), type: recur(e) }
+            if (e.context?.annotations) {
+              out.annotations = e.context.annotations
+            }
+            return out
+          }),
           rest: ast.rest.map((r) => recur(r)),
           checks: fromASTChecks(ast.checks)
         }
@@ -1252,7 +1273,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
     switch (schema._tag) {
       case "Declaration":
         return reviver(schema, recur)
-      case "Suspend":
+      case "Reference":
         return resolveReference(schema.$ref)
       case "Null":
         return Schema.Null
@@ -1519,7 +1540,7 @@ export function toJsonSchema(document: Document): JsonSchema.Document<"draft-202
         return unsupportedJsonSchema
       case "Declaration":
         return unsupportedJsonSchema // TODO
-      case "Suspend":
+      case "Reference":
         return { $ref: `#/$defs/${unescapeToken(schema.$ref)}` }
       case "Null":
         return { type: "null" }
@@ -1809,7 +1830,7 @@ export function toCode(document: Document, options?: {
   const reviver = options?.reviver ?? toCodeDefaultReviver
   const schema = document.schema
 
-  if (schema._tag === "Suspend") {
+  if (schema._tag === "Reference") {
     const definition = document.definitions[schema.$ref]
     if (definition !== undefined) return recur(definition)
   }
@@ -1821,7 +1842,7 @@ export function toCode(document: Document, options?: {
       default:
         return b + toCodeAnnotate(schema.annotations)
       case "Declaration":
-      case "Suspend":
+      case "Reference":
         return b
       case "String":
       case "Number":
@@ -1835,7 +1856,7 @@ export function toCode(document: Document, options?: {
     switch (schema._tag) {
       case "Declaration":
         return reviver(schema, recur)
-      case "Suspend": {
+      case "Reference": {
         if (schema.$ref in document.definitions) {
           return `Schema.suspend((): Schema.Codec<${schema.$ref}> => ${schema.$ref})`
         }
@@ -2344,7 +2365,10 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
   function collectElements(s: JsonSchema.JsonSchema): Array<Element> {
     if (Array.isArray(s.prefixItems)) {
       const minItems = typeof s.minItems === "number" ? s.minItems : s.prefixItems.length
-      return s.prefixItems.map((item, index) => ({ type: recur(item), isOptional: index >= minItems }))
+      return s.prefixItems.map((item, index) => ({
+        type: recur(item),
+        isOptional: index >= minItems
+      }))
     }
     return []
   }
