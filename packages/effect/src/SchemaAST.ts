@@ -22,7 +22,9 @@ import type * as Schema from "./Schema.ts"
 import * as Getter from "./SchemaGetter.ts"
 import * as Issue from "./SchemaIssue.ts"
 import type * as Parser from "./SchemaParser.ts"
+import type * as SchemaStandard from "./SchemaStandard.ts"
 import * as Transformation from "./SchemaTransformation.ts"
+import type * as Types from "./Types.ts"
 
 /**
  * @category model
@@ -2709,3 +2711,179 @@ export const resolveTitle: (ast: AST) => string | undefined = InternalAnnotation
  * @since 4.0.0
  */
 export const resolveDescription: (ast: AST) => string | undefined = InternalAnnotations.resolveDescription
+
+/** @internal */
+export function documentFromAST(ast: AST): SchemaStandard.Document {
+  ast = toEncoded(ast)
+
+  const visited = new Set<AST>()
+  const identifiers = new Map<AST, string>()
+  const definitions: Record<string, SchemaStandard.StandardSchema> = {}
+
+  return {
+    schema: recur(ast),
+    definitions
+  }
+
+  function recur(ast: AST, ignoreIdentifier = false): SchemaStandard.StandardSchema {
+    if (!ignoreIdentifier) {
+      const identifier = InternalAnnotations.resolveIdentifier(ast)
+      if (identifier !== undefined) {
+        const out: SchemaStandard.Reference = { _tag: "Reference", $ref: identifier, isSuspend: isSuspend(ast) }
+        if (identifier in definitions) {
+          if (visited.has(ast)) {
+            return out
+          }
+          // duplicate identifier: TODO generate a new identifier?
+          return recur(ast, true)
+        } else {
+          identifiers.set(ast, identifier)
+          definitions[identifier] = recur(ast, true)
+          return out
+        }
+      }
+    }
+    const out = on(ast)
+    if (ast.annotations) {
+      out.annotations = ast.annotations
+    }
+    return out
+  }
+
+  function on(ast: AST): Types.Mutable<SchemaStandard.StandardSchema> {
+    visited.add(ast)
+    switch (ast._tag) {
+      case "Suspend": {
+        const thunk = ast.thunk()
+        if (visited.has(thunk)) {
+          const identifier = InternalAnnotations.resolveIdentifier(thunk)
+          if (identifier !== undefined) {
+            if (identifiers.get(thunk) !== identifier) {
+              throw new Error(`Suspended schema with duplicate identifier: ${identifier}`)
+            }
+            return { _tag: "Reference", $ref: identifier, isSuspend: true }
+          } else {
+            throw new Error("Suspended schema without identifier detected", { cause: ast }) // TODO: test this
+          }
+        } else {
+          return recur(thunk)
+        }
+      }
+      case "Declaration":
+        return {
+          _tag: "Declaration",
+          typeParameters: ast.typeParameters.map((tp) => recur(tp)),
+          checks: fromASTChecks(ast.checks)
+        }
+      case "Null":
+      case "Undefined":
+      case "Void":
+      case "Never":
+      case "Unknown":
+      case "Any":
+      case "Boolean":
+      case "Symbol":
+        return { _tag: ast._tag }
+      case "String": {
+        const contentMediaType = ast.annotations?.contentMediaType
+        const contentSchema = ast.annotations?.contentSchema
+        if (typeof contentMediaType === "string" && isAST(contentSchema)) {
+          return {
+            _tag: ast._tag,
+            checks: [],
+            contentMediaType,
+            contentSchema: recur(contentSchema)
+          }
+        }
+        return { _tag: ast._tag, checks: fromASTChecks(ast.checks) }
+      }
+      case "Number":
+      case "BigInt":
+        return { _tag: ast._tag, checks: fromASTChecks(ast.checks) }
+      case "Literal":
+        return { _tag: ast._tag, literal: ast.literal }
+      case "UniqueSymbol":
+        return { _tag: ast._tag, symbol: ast.symbol }
+      case "ObjectKeyword":
+        return { _tag: ast._tag }
+      case "Enum":
+        return { _tag: ast._tag, enums: ast.enums }
+      case "TemplateLiteral":
+        return { _tag: ast._tag, parts: ast.parts.map((p) => recur(p)) }
+      case "Arrays":
+        return {
+          _tag: ast._tag,
+          elements: ast.elements.map((e) => {
+            const out: Types.Mutable<SchemaStandard.Element> = { isOptional: isOptional(e), type: recur(e) }
+            if (e.context?.annotations) {
+              out.annotations = e.context.annotations
+            }
+            return out
+          }),
+          rest: ast.rest.map((r) => recur(r)),
+          checks: fromASTChecks(ast.checks)
+        }
+      case "Objects":
+        return {
+          _tag: ast._tag,
+          propertySignatures: ast.propertySignatures.map((ps) => {
+            const out: Types.Mutable<SchemaStandard.PropertySignature> = {
+              name: ps.name,
+              type: recur(ps.type),
+              isOptional: isOptional(ps.type),
+              isMutable: isMutable(ps.type)
+            }
+            if (ps.type.context?.annotations) {
+              out.annotations = ps.type.context.annotations
+            }
+            return out
+          }),
+          indexSignatures: ast.indexSignatures.map((is) => ({
+            parameter: recur(is.parameter),
+            type: recur(is.type)
+          }))
+        }
+      case "Union":
+        return {
+          _tag: ast._tag,
+          types: ast.types.map((t) => recur(t)),
+          mode: ast.mode
+        }
+    }
+  }
+}
+
+function fromASTChecks(
+  checks: readonly [Check<any>, ...Array<Check<any>>] | undefined
+): Array<SchemaStandard.Check<any>> {
+  if (!checks) return []
+  function getCheck(c: Check<any>): SchemaStandard.Check<any> | undefined {
+    switch (c._tag) {
+      case "Filter": {
+        const meta = c.annotations?.meta
+        if (meta) {
+          const out: Types.Mutable<SchemaStandard.Check<any>> = { _tag: "Filter", meta }
+          if (c.annotations) {
+            out.annotations = c.annotations
+          }
+          return out
+        }
+        return undefined
+      }
+      case "FilterGroup": {
+        const checks = fromASTChecks(c.checks)
+        if (Arr.isArrayNonEmpty(checks)) {
+          const out: Types.Mutable<SchemaStandard.Check<any>> = {
+            _tag: "FilterGroup",
+            checks
+          }
+          if (c.annotations) {
+            out.annotations = c.annotations
+          }
+          return out
+        }
+      }
+    }
+  }
+  return checks.map(getCheck).filter((c) => c !== undefined)
+}

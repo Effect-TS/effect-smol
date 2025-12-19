@@ -7688,16 +7688,16 @@ export function toJsonSchema<S extends Top, Target extends JsonSchema.Target>(
   options: ToJsonSchemaOptions<Target>
 ): JsonSchema.Document<Target> {
   const target = options.target
-  const definitions: Record<string, JsonSchema.JsonSchema> = {}
   const additionalProperties = options.additionalProperties ?? false
   const referenceStrategy = options.referenceStrategy ?? "keep"
   const generateDescriptions = options.generateDescriptions ?? false
 
-  const encodedMap = new WeakMap<AST.AST, string>()
+  const visited = new Set<AST.AST>()
+  const definitions: Record<string, JsonSchema.JsonSchema> = {}
 
   return {
     source: options.target,
-    schema: recur(schema.ast, [], false),
+    schema: recur(AST.toEncoded(schema.ast), [], false),
     definitions
   }
 
@@ -7705,32 +7705,24 @@ export function toJsonSchema<S extends Top, Target extends JsonSchema.Target>(
     // ---------------------------------------------
     // handle identifier annotation
     // ---------------------------------------------
-    const shouldHandleIdentifier = !ignoreIdentifier && (
-      (referenceStrategy === "keep" || (referenceStrategy === "skip-top-level" && path.length > 0))
-      || AST.isSuspend(ast)
-    )
-    if (shouldHandleIdentifier) {
-      const identifier = getIdentifier(ast)
+    if (
+      !ignoreIdentifier && !(referenceStrategy === "skip") &&
+      !(referenceStrategy === "skip-top-level" && path.length === 0)
+    ) {
+      const identifier = InternalAnnotations.resolveIdentifier(ast)
       if (identifier !== undefined) {
-        const $ref = { $ref: getPointer(target) + escapeToken(identifier) }
-        const encoded = AST.toEncoded(ast)
-        if (Object.hasOwn(definitions, identifier)) {
-          if (AST.isSuspend(ast) || encodedMap.get(encoded) === identifier) {
-            return $ref
+        const out = { $ref: getPointer(target) + escapeToken(identifier) }
+        if (identifier in definitions) {
+          if (visited.has(ast)) {
+            return out
           }
+          // duplicate identifier: TODO generate a new identifier?
+          return recur(ast, path, true)
         } else {
-          encodedMap.set(encoded, identifier)
-          definitions[identifier] = $ref
           definitions[identifier] = recur(ast, path, true)
-          return $ref
+          return out
         }
       }
-    }
-    // ---------------------------------------------
-    // handle encoding
-    // ---------------------------------------------
-    if (ast.encoding) {
-      return recur(AST.toEncoded(ast), path, ignoreIdentifier)
     }
     let out = flattenArrayJsonSchema(on(ast, path))
     // ---------------------------------------------
@@ -7796,13 +7788,33 @@ export function toJsonSchema<S extends Top, Target extends JsonSchema.Target>(
   }
 
   function on(ast: AST.AST, path: ReadonlyArray<PropertyKey>): JsonSchema.JsonSchema {
+    visited.add(ast)
     switch (ast._tag) {
+      case "Suspend": {
+        const thunk = ast.thunk()
+        if (visited.has(thunk)) {
+          const identifier = InternalAnnotations.resolveIdentifier(thunk)
+          if (identifier !== undefined) {
+            const out = { $ref: getPointer(target) + escapeToken(identifier) }
+            if (identifier in definitions) {
+              return out
+            } else {
+              definitions[identifier] = recur(ast, path, true)
+              return out
+            }
+          } else {
+            throw errorWithPath("Suspended schema without identifier detected", path)
+          }
+        } else {
+          return recur(thunk, path, false)
+        }
+      }
       case "Declaration":
       case "BigInt":
       case "Symbol":
       case "Undefined":
       case "UniqueSymbol":
-        return recur(serializerJson(ast), path, false)
+        return recur(AST.toEncoded(serializerJson(ast)), path, false)
 
       case "Never":
         return { not: {} }
@@ -7978,13 +7990,6 @@ export function toJsonSchema<S extends Top, Target extends JsonSchema.Target>(
           ? { anyOf: types }
           : { oneOf: types }
       }
-      case "Suspend": {
-        const identifier = getIdentifier(ast)
-        if (identifier !== undefined) {
-          return recur(ast.thunk(), path, true)
-        }
-        throw errorWithPath("Missing identifier in suspended schema", path)
-      }
     }
   }
 
@@ -8097,10 +8102,6 @@ export function toJsonSchema<S extends Top, Target extends JsonSchema.Target>(
         return { ...jsonSchema, ...fragment }
       }
     }
-  }
-
-  function getIdentifier(ast: AST.AST): string | undefined {
-    return InternalAnnotations.resolveIdentifier(ast) ?? (AST.isSuspend(ast) ? getIdentifier(ast.thunk()) : undefined)
   }
 }
 
