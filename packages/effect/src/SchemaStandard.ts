@@ -1037,7 +1037,7 @@ export function fromAST(ast: AST.AST): Document {
             _tag: ast._tag,
             checks: [],
             contentMediaType,
-            contentSchema: recur(AST.toEncoded(contentSchema))
+            contentSchema: recur(contentSchema)
           }
         }
         return { _tag: ast._tag, checks: fromASTChecks(ast.checks) }

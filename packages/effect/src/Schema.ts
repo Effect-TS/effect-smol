@@ -6550,7 +6550,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
   return String.annotate({
     expected: "a string that will be decoded as JSON",
     contentMediaType: "application/json",
-    contentSchema: schema.ast
+    contentSchema: AST.toEncoded(schema.ast)
   }).pipe(decodeTo(schema, Transformation.fromJsonString))
 }
 
