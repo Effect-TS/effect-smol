@@ -3,6 +3,7 @@
  */
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import * as Fiber from "../../Fiber.ts"
 import * as Filter from "../../Filter.ts"
 import { constVoid, dual } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
@@ -42,6 +43,7 @@ export const isAtomRegistry = (u: unknown): u is AtomRegistry => hasProperty(u, 
 export interface AtomRegistry {
   readonly [TypeId]: TypeId
   readonly scheduler: Scheduler
+  readonly schedulerAsync: Scheduler
   readonly getNodes: () => ReadonlyMap<Atom.Atom<any> | string, Node<any>>
   readonly get: <A>(atom: Atom.Atom<A>) => A
   readonly mount: <A>(atom: Atom.Atom<A>) => () => void
@@ -134,25 +136,14 @@ export const toStream: {
 } = dual(
   2,
   <A>(self: AtomRegistry, atom: Atom.Atom<A>) =>
-    Stream.unwrap(
-      Effect.servicesWith((services: ServiceMap.ServiceMap<Scope.Scope>) => {
-        const scope = ServiceMap.get(services, Scope.Scope)
-        return Queue.make<A>().pipe(
-          Effect.tap((queue) => {
-            const cancel = self.subscribe(atom, (value) => Queue.offerUnsafe(queue, value), {
-              immediate: true
-            })
-            return Scope.addFinalizer(
-              scope,
-              Effect.suspend(() => {
-                cancel()
-                return Queue.shutdown(queue)
-              })
-            )
-          }),
-          Effect.uninterruptible,
-          Effect.map((queue) => Stream.fromQueue(queue))
-        )
+    Stream.callback<A>((queue) =>
+      Effect.suspend(() => {
+        const fiber = Fiber.getCurrent()!
+        const scope = ServiceMap.getUnsafe(fiber.services, Scope.Scope)
+        const cancel = self.subscribe(atom, (value) => Queue.offerUnsafe(queue, value), {
+          immediate: true
+        })
+        return Scope.addFinalizer(scope, Effect.sync(cancel))
       })
     )
 )
@@ -223,6 +214,7 @@ class RegistryImpl implements AtomRegistry {
   readonly timeoutResolution: number
   readonly defaultIdleTTL: number | undefined
   readonly scheduler: Scheduler
+  readonly schedulerAsync: Scheduler
 
   constructor(
     initialValues?: Iterable<readonly [Atom.Atom<any>, any]>,
@@ -232,6 +224,7 @@ class RegistryImpl implements AtomRegistry {
   ) {
     this[TypeId] = TypeId
     this.scheduler = new MixedScheduler("sync", scheduleTask)
+    this.schedulerAsync = new MixedScheduler("async", scheduleTask)
     this.defaultIdleTTL = defaultIdleTTL
 
     if (timeoutResolution === undefined && defaultIdleTTL !== undefined) {
@@ -346,7 +339,7 @@ class RegistryImpl implements AtomRegistry {
   }
 
   scheduleAtomRemoval(atom: Atom.Atom<any>): void {
-    this.scheduler.scheduleTask(() => {
+    this.schedulerAsync.scheduleTask(() => {
       const node = this.nodes.get(atomKey(atom))
       if (node !== undefined && node.canBeRemoved) {
         this.removeNode(node)
@@ -355,7 +348,7 @@ class RegistryImpl implements AtomRegistry {
   }
 
   scheduleNodeRemoval(node: NodeImpl<any>): void {
-    this.scheduler.scheduleTask(() => {
+    this.schedulerAsync.scheduleTask(() => {
       if (node.canBeRemoved) {
         this.removeNode(node)
       }
@@ -450,9 +443,9 @@ class RegistryImpl implements AtomRegistry {
 }
 
 const NodeFlags = {
-  alive: 1 << 0,
-  initialized: 1 << 1,
-  waitingForValue: 1 << 2
+  alive: 1, // 1 << 0
+  initialized: 2, // 1 << 1,
+  waitingForValue: 4 // 1 << 2
 } as const
 type NodeFlags = typeof NodeFlags[keyof typeof NodeFlags]
 
@@ -462,7 +455,7 @@ const NodeState = {
   valid: NodeFlags.alive | NodeFlags.initialized,
   removed: 0
 } as const
-type NodeState = typeof NodeState[keyof typeof NodeState]
+type NodeState = number
 
 class NodeImpl<A> {
   constructor(
@@ -487,8 +480,7 @@ class NodeImpl<A> {
   skipInvalidation = false
 
   get canBeRemoved(): boolean {
-    return !this.atom.keepAlive && this.listeners.length === 0 && this.children.length === 0 &&
-      this.state !== 0
+    return !this.atom.keepAlive && this.listeners.length === 0 && this.children.length === 0 && this.state !== 0
   }
 
   _value: A = undefined as any

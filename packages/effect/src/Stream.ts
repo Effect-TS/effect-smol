@@ -1474,22 +1474,12 @@ export const tap: {
   options?: {
     readonly concurrency?: number | "unbounded" | undefined
   } | undefined
-): Stream<A, E | E2, R | R2> => {
-  const concurrency = options?.concurrency ?? 1
-  if (concurrency === 1 || concurrency === "unbounded") {
-    return self.channel.pipe(
-      Channel.tap(Effect.forEach(f, { discard: true, concurrency }), options),
-      fromChannel
-    )
-  }
-  return suspend(() => {
-    const withPermit = Effect.makeSemaphoreUnsafe(concurrency).withPermit
-    return self.channel.pipe(
-      Channel.tap(Effect.forEach((a) => withPermit(f(a)), { discard: true, concurrency }), options),
-      fromChannel
-    )
-  })
-})
+): Stream<A, E | E2, R | R2> =>
+  mapEffect(
+    self,
+    (a) => Effect.as(f(a), a),
+    options
+  ))
 
 /**
  * @since 2.0.0
