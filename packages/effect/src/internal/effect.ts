@@ -146,6 +146,9 @@ export const causeFilterError = <E>(self: Cause.Cause<E>): E | Filter.fail<Cause
 }
 
 /** @internal */
+export const causeErrorOption = Filter.toOption(causeFilterError)
+
+/** @internal */
 export const causeHasDie = <E>(self: Cause.Cause<E>): boolean => self.failures.some(failureIsDie)
 
 /** @internal */
@@ -756,12 +759,12 @@ export const fiberJoin = <A, E>(self: Fiber.Fiber<A, E>): Effect.Effect<A, E> =>
 
 /** @internal */
 export const fiberJoinAll = <A extends Fiber.Fiber<any, any>>(self: Iterable<A>): Effect.Effect<
-  Array<A extends Fiber.Fiber<infer _A, infer _E> ? _A : never>,
+  Arr.NonEmptyArray<A extends Fiber.Fiber<infer _A, infer _E> ? _A : never>,
   A extends Fiber.Fiber<infer _A, infer _E> ? _E : never
 > =>
   callback((resume) => {
     const fibers = Array.from(self)
-    const out = new Array<any>(fibers.length)
+    const out = new Array<any>(fibers.length) as Arr.NonEmptyArray<any>
     const cancels = Arr.empty<() => void>()
     let done = 0
     let failed = false

@@ -6662,7 +6662,7 @@ export const runDrain = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<void, E,
  */
 export const toPull = <A, E, R>(
   self: Stream<A, E, R>
-): Effect.Effect<Pull.Pull<ReadonlyArray<A>, E>, never, R | Scope.Scope> => Channel.toPull(self.channel)
+): Effect.Effect<Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E>, never, R | Scope.Scope> => Channel.toPull(self.channel)
 
 /**
  * Returns a combined string resulting from concatenating each of the values

@@ -133,11 +133,14 @@ export class MixedScheduler implements Scheduler {
   private tasks: Array<() => void> = []
   private running: ReturnType<typeof setImmediate> | undefined = undefined
   readonly executionMode: "sync" | "async"
+  readonly setImmediate: (f: () => void) => () => void
 
   constructor(
-    executionMode: "sync" | "async" = "async"
+    executionMode: "sync" | "async" = "async",
+    setImmediateFn: (f: () => void) => () => void = setImmediate
   ) {
     this.executionMode = executionMode
+    this.setImmediate = setImmediateFn
   }
 
   /**
@@ -146,7 +149,7 @@ export class MixedScheduler implements Scheduler {
   scheduleTask(task: () => void, _priority: number) {
     this.tasks.push(task)
     if (this.running === undefined) {
-      this.running = setImmediate(this.afterScheduled)
+      this.running = this.setImmediate(this.afterScheduled)
     }
   }
 

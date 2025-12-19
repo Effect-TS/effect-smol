@@ -45,6 +45,7 @@ import type * as Filter from "./Filter.ts"
 import type { Inspectable } from "./Inspectable.ts"
 import * as core from "./internal/core.ts"
 import * as effect from "./internal/effect.ts"
+import type { Option } from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import type { StackFrame } from "./References.ts"
 import * as ServiceMap from "./ServiceMap.ts"
@@ -519,6 +520,12 @@ export const filterFail: <E>(self: Cause<E>) => Fail<E> | Filter.fail<Cause<neve
  * @since 4.0.0
  */
 export const filterError: <E>(self: Cause<E>) => E | Filter.fail<Cause<never>> = effect.causeFilterError
+
+/**
+ * @category Failure
+ * @since 4.0.0
+ */
+export const errorOption: <E>(input: Cause<E>) => Option<E> = effect.causeErrorOption
 
 /**
  * Tests if a `Cause` contains any defects.

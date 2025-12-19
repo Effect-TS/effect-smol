@@ -14,8 +14,9 @@ Releases are snapshot only
 - [x] Port Stream / Sink apis
 - [x] Add opentelemetry package
 - [ ] Consider adding stack trace info to tracing / cause
-- [ ] Add AI provider packages
 - [ ] Use Predicate for filtering functions
+- [ ] Add Atom package
+- [ ] Add AI provider packages
 
 ## Beta
 

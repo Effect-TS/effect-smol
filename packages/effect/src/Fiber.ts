@@ -72,6 +72,7 @@
  *
  * @since 2.0.0
  */
+import type { NonEmptyArray } from "./Array.ts"
 import type { Effect } from "./Effect.ts"
 import type { Exit } from "./Exit.ts"
 import * as effect from "./internal/effect.ts"
@@ -260,7 +261,7 @@ export const join: <A, E>(self: Fiber<A, E>) => Effect<A, E> = effect.fiberJoin
 export const joinAll: <A extends Fiber<any, any>>(
   self: Iterable<A>
 ) => Effect<
-  Array<A extends Fiber<infer _A, infer _E> ? _A : never>,
+  NonEmptyArray<A extends Fiber<infer _A, infer _E> ? _A : never>,
   A extends Fiber<infer _A, infer _E> ? _E : never
 > = effect.fiberJoinAll
 
