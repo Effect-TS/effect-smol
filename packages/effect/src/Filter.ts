@@ -4,9 +4,9 @@
 import type { Effect } from "./Effect.ts"
 import * as Equal from "./Equal.ts"
 import { dual } from "./Function.ts"
-import type * as Option from "./Option.ts"
+import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
-import type * as Result from "./Result.ts"
+import * as Result from "./Result.ts"
 import type { EqualsWith, ExcludeTag, ExtractTag, Tags } from "./Types.ts"
 
 /**
@@ -737,3 +737,27 @@ export const composePassthrough: {
   if (isFail(rightOut)) return fail(input)
   return rightOut
 })
+
+/**
+ * @since 4.0.0
+ * @category Conversions
+ */
+export const toOption = <A, Pass, Fail>(
+  self: Filter<A, Pass, Fail>
+): (input: A) => Option.Option<Pass> =>
+(input: A) => {
+  const result = self(input)
+  return isFail(result) ? Option.none() : Option.some(result)
+}
+
+/**
+ * @since 4.0.0
+ * @category Conversions
+ */
+export const toResult = <A, Pass, Fail>(
+  self: Filter<A, Pass, Fail>
+): (input: A) => Result.Result<Pass, Fail> =>
+(input: A) => {
+  const result = self(input)
+  return isFail(result) ? Result.fail(result.fail) : Result.succeed(result)
+}
