@@ -33,9 +33,11 @@ export const identifier = (operationId: string) => String.capitalize(camelize(op
  * Preserves the original casing while removing invalid characters.
  *
  * @example
+ * ```ts
  * sanitizeSchemaName("Conversation-2") // "Conversation2"
  * sanitizeSchemaName("Error-2") // "Error2"
  * sanitizeSchemaName("MySchema") // "MySchema" (unchanged)
+ * ```
  */
 export const sanitizeSchemaName = (name: string): string => {
   // Use existing camelize to handle hyphens and special chars
@@ -45,9 +47,7 @@ export const sanitizeSchemaName = (name: string): string => {
 
   // Ensure first character matches original casing
   if (sanitized.length === 0) return sanitized
-  return firstCharWasUpper
-    ? sanitized[0].toUpperCase() + sanitized.slice(1)
-    : sanitized[0].toLowerCase() + sanitized.slice(1)
+  return firstCharWasUpper ? String.capitalize(sanitized) : String.uncapitalize(sanitized)
 }
 
 export function nonEmptyString(a: unknown): string | undefined {
