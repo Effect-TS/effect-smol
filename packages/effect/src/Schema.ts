@@ -20,10 +20,8 @@ import { format, formatDate, formatPropertyKey } from "./Formatter.ts"
 import { identity, memoize } from "./Function.ts"
 import * as core from "./internal/core.ts"
 import * as InternalEquivalence from "./internal/equivalence.ts"
-import { errorWithPath } from "./internal/errors.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as InternalArbitrary from "./internal/schema/arbitrary.ts"
-import { escapeToken } from "./internal/schema/json-pointer.ts"
 import * as JsonPatch from "./JsonPatch.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
 import { remainder } from "./Number.ts"
@@ -551,31 +549,15 @@ export function toStandardSchemaV1<
   }
 }
 
-const targets = ["draft-07", "draft-2020-12", "openapi-3.1"]
-
-function isTarget(target: StandardJSONSchemaV1.Target): target is JsonSchema.Target {
-  return targets.includes(target)
-}
-
-function getDefinitionsNamespace(target: JsonSchema.Target): string {
-  switch (target) {
-    case "draft-07":
-      return "definitions"
-    case "draft-2020-12":
-    case "openapi-3.1":
-      return "$defs"
-  }
-}
-
 function toBaseStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Target): JsonSchema.JsonSchema {
-  if (isTarget(target)) {
-    const { definitions, schema } = toJsonSchema(self, { target })
+  if (target === "draft-2020-12") {
+    const { definitions, schema } = toJsonSchema(self)
     if (Object.keys(definitions).length > 0) {
-      schema[getDefinitionsNamespace(target)] = definitions
+      schema.$defs = definitions
     }
     return schema
   }
-  throw new globalThis.Error(`Unsupported target: ${target}`)
+  throw new globalThis.Error(`Unsupported target: ${target}`) // TODO: handle other targets
 }
 
 /**
@@ -7644,11 +7626,7 @@ export function toEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> 
 /**
  * @since 4.0.0
  */
-export interface ToJsonSchemaOptions<Target extends JsonSchema.Target> {
-  /**
-   * The target of the JSON Schema.
-   */
-  readonly target: Target
+export interface ToJsonSchemaOptions {
   /**
    * Controls how additional properties are handled while resolving the JSON
    * schema.
@@ -7683,425 +7661,19 @@ export interface ToJsonSchemaOptions<Target extends JsonSchema.Target> {
  * @category JsonSchema
  * @since 4.0.0
  */
-export function toJsonSchema<S extends Top, Target extends JsonSchema.Target>(
+export function toJsonSchema<S extends Top>(
   schema: S,
-  options: ToJsonSchemaOptions<Target>
-): JsonSchema.Document<Target> {
-  const target = options.target
-  const additionalProperties = options.additionalProperties ?? false
-  const referenceStrategy = options.referenceStrategy ?? "keep"
-  const generateDescriptions = options.generateDescriptions ?? false
+  _options?: ToJsonSchemaOptions
+): JsonSchema.Document<"draft-2020-12"> {
+  // const additionalProperties = options.additionalProperties ?? false
+  // const referenceStrategy = options.referenceStrategy ?? "keep"
+  // const generateDescriptions = options.generateDescriptions ?? false
 
-  const visited = new Set<AST.AST>()
-  const definitions: Record<string, JsonSchema.JsonSchema> = {}
-
+  const document = AST.documentToJsonSchema(AST.documentFromAST(schema.ast))
   return {
-    source: options.target,
-    schema: recur(AST.toEncoded(schema.ast), [], false),
-    definitions
-  }
-
-  function recur(ast: AST.AST, path: ReadonlyArray<PropertyKey>, ignoreIdentifier: boolean): JsonSchema.JsonSchema {
-    // ---------------------------------------------
-    // handle identifier annotation
-    // ---------------------------------------------
-    if (
-      !ignoreIdentifier && !(referenceStrategy === "skip") &&
-      !(referenceStrategy === "skip-top-level" && path.length === 0)
-    ) {
-      const identifier = InternalAnnotations.resolveIdentifier(ast)
-      if (identifier !== undefined) {
-        const out = { $ref: getPointer(target) + escapeToken(identifier) }
-        if (identifier in definitions) {
-          if (visited.has(ast)) {
-            return out
-          }
-          // duplicate identifier: TODO generate a new identifier?
-          return recur(ast, path, true)
-        } else {
-          definitions[identifier] = recur(ast, path, true)
-          return out
-        }
-      }
-    }
-    let out = flattenArrayJsonSchema(on(ast, path))
-    // ---------------------------------------------
-    // handle JSON Schema annotations
-    // ---------------------------------------------
-    out = mergeOrAppendJsonSchemaAnnotations(out, ast.annotations, generateDescriptions)
-    // ---------------------------------------------
-    // handle checks
-    // ---------------------------------------------
-    if (ast.checks) {
-      function handleAnnotations(check: AST.Check<any>): void {
-        const annotations = getJsonSchemaAnnotations(check.annotations, generateDescriptions)
-        if (annotations) {
-          out = appendFragment(out, annotations)
-        }
-      }
-      function handleFilter(check: AST.Filter<any>): void {
-        const fragment = getConstraint(check, target, out.type as JsonSchema.Type)
-        if (fragment) {
-          out = appendFragment(
-            out,
-            mergeOrAppendJsonSchemaAnnotations(fragment, check.annotations, generateDescriptions)
-          )
-        } else {
-          handleAnnotations(check)
-        }
-      }
-      function handleFilterGroup(checks: AST.Checks): void {
-        for (const check of checks) {
-          switch (check._tag) {
-            case "Filter": {
-              handleFilter(check)
-              break
-            }
-            case "FilterGroup": {
-              handleFilterGroup(check.checks)
-              handleAnnotations(check)
-              break
-            }
-          }
-        }
-      }
-      handleFilterGroup(ast.checks)
-    }
-    return out
-  }
-
-  function flattenArrayJsonSchema(jsonSchema: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-    if (Object.keys(jsonSchema).length === 1) {
-      if (globalThis.Array.isArray(jsonSchema.anyOf) && jsonSchema.anyOf.length === 1) {
-        return jsonSchema.anyOf[0]
-      } else if (globalThis.Array.isArray(jsonSchema.oneOf) && jsonSchema.oneOf.length === 1) {
-        return jsonSchema.oneOf[0]
-      } else if (globalThis.Array.isArray(jsonSchema.allOf) && jsonSchema.allOf.length === 1) {
-        return jsonSchema.allOf[0]
-      }
-    }
-    return jsonSchema
-  }
-
-  function isUnknownSchema(schema: unknown) {
-    return Predicate.isObject(schema) && Object.keys(schema).length === 0
-  }
-
-  function on(ast: AST.AST, path: ReadonlyArray<PropertyKey>): JsonSchema.JsonSchema {
-    visited.add(ast)
-    switch (ast._tag) {
-      case "Suspend": {
-        const thunk = ast.thunk()
-        if (visited.has(thunk)) {
-          const identifier = InternalAnnotations.resolveIdentifier(thunk)
-          if (identifier !== undefined) {
-            const out = { $ref: getPointer(target) + escapeToken(identifier) }
-            if (identifier in definitions) {
-              return out
-            } else {
-              definitions[identifier] = recur(ast, path, true)
-              return out
-            }
-          } else {
-            throw errorWithPath("Suspended schema without identifier detected", path)
-          }
-        } else {
-          return recur(thunk, path, false)
-        }
-      }
-      case "Declaration":
-      case "BigInt":
-      case "Symbol":
-      case "Undefined":
-      case "UniqueSymbol":
-        return recur(AST.toEncoded(serializerJson(ast)), path, false)
-
-      case "Never":
-        return { not: {} }
-
-      case "Void":
-      case "Unknown":
-      case "Any":
-        return {}
-
-      case "Null":
-        return { type: "null" }
-
-      case "String": {
-        const contentMediaType = ast.annotations?.contentMediaType
-        const contentSchema = ast.annotations?.contentSchema
-        if (contentMediaType === "application/json" && AST.isAST(contentSchema)) {
-          return {
-            type: "string",
-            contentMediaType,
-            contentSchema: recur(contentSchema, path, false)
-          }
-        }
-        return { type: "string" }
-      }
-
-      case "Number":
-        return { type: "number" }
-
-      case "Boolean":
-        return { type: "boolean" }
-
-      case "ObjectKeyword":
-        return { anyOf: [{ type: "object" }, { type: "array" }] }
-
-      case "Literal": {
-        const literal = ast.literal
-        if (typeof literal === "string") {
-          return { type: "string", enum: [literal] }
-        }
-        if (typeof literal === "number") {
-          return { type: "number", enum: [literal] }
-        }
-        if (typeof literal === "boolean") {
-          return { type: "boolean", enum: [literal] }
-        }
-        return recur(serializerJson(ast), path, false)
-      }
-
-      case "Enum":
-        return recur(AST.enumsToLiterals(ast), path, false)
-
-      case "TemplateLiteral":
-        return { type: "string", pattern: AST.getTemplateLiteralRegExp(ast).source }
-
-      case "Arrays": {
-        // ---------------------------------------------
-        // handle post rest elements
-        // ---------------------------------------------
-        if (ast.rest.length > 1) {
-          throw errorWithPath(
-            "Generating a JSON Schema for post-rest elements is not currently supported. You're welcome to contribute by submitting a Pull Request",
-            path
-          )
-        }
-        const out: any = { type: "array" }
-        // ---------------------------------------------
-        // handle elements
-        // ---------------------------------------------
-        const items = ast.elements.map((e, i) =>
-          mergeOrAppendJsonSchemaAnnotations(
-            recur(e, [...path, i], false),
-            e.context?.annotations,
-            generateDescriptions
-          )
-        )
-        out.minItems = ast.elements.length
-        const minItems = ast.elements.findIndex(isOptional)
-        if (minItems !== -1) {
-          out.minItems = minItems
-        }
-        if (out.minItems === 0) {
-          delete out.minItems
-        }
-        // ---------------------------------------------
-        // handle rest element
-        // ---------------------------------------------
-        const additionalItems = ast.rest.length > 0
-          ? recur(ast.rest[0], [...path, ast.elements.length], false)
-          : false
-        if (items.length === 0) {
-          if (!isUnknownSchema(additionalItems)) {
-            out.items = additionalItems
-          }
-        } else {
-          switch (target) {
-            case "draft-07": {
-              out.items = items
-              if (!isUnknownSchema(additionalItems)) {
-                out.additionalItems = additionalItems
-              }
-              break
-            }
-            case "draft-2020-12":
-            case "openapi-3.1": {
-              out.prefixItems = items
-              if (!isUnknownSchema(additionalItems)) {
-                out.items = additionalItems
-              }
-              break
-            }
-          }
-        }
-        return out
-      }
-      case "Objects": {
-        if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
-          return { anyOf: [{ type: "object" }, { type: "array" }] }
-        }
-        const out: any = { type: "object" }
-        // ---------------------------------------------
-        // handle property signatures
-        // ---------------------------------------------
-        for (const ps of ast.propertySignatures) {
-          const name = ps.name as string
-          if (Predicate.isSymbol(name)) {
-            throw errorWithPath(`Unsupported property signature name ${format(name)}`, [...path, name])
-          } else {
-            out.properties ??= {}
-            out.properties[name] = mergeOrAppendJsonSchemaAnnotations(
-              recur(ps.type, [...path, name], false),
-              ps.type.context?.annotations,
-              generateDescriptions
-            )
-            if (!isOptional(ps.type)) {
-              out.required ??= []
-              out.required.push(name)
-            }
-          }
-        }
-        // ---------------------------------------------
-        // handle index signatures
-        // ---------------------------------------------
-        out.additionalProperties = additionalProperties
-        const patternProperties: Record<string, object> = {}
-        for (const is of ast.indexSignatures) {
-          const type = recur(is.type, path, false)
-          const pattern = getPattern(is.parameter, path)
-          if (pattern !== undefined) {
-            patternProperties[pattern] = type
-          } else {
-            out.additionalProperties = type
-          }
-        }
-        if (Object.keys(patternProperties).length > 0) {
-          out.patternProperties = patternProperties
-          delete out.additionalProperties
-        }
-        if (isUnknownSchema(out.additionalProperties)) {
-          delete out.additionalProperties
-        }
-        return out
-      }
-      case "Union": {
-        const types: Array<JsonSchema.JsonSchema> = []
-        for (const type of ast.types) {
-          if (!AST.isUndefined(type)) {
-            types.push(recur(type, path, false))
-          }
-        }
-        return types.length === 0
-          ? { not: {} }
-          : ast.mode === "anyOf"
-          ? { anyOf: types }
-          : { oneOf: types }
-      }
-    }
-  }
-
-  function getPointer(target: JsonSchema.Target) {
-    switch (target) {
-      case "draft-07":
-        return "#/definitions/"
-      case "draft-2020-12":
-        return "#/$defs/"
-      case "openapi-3.1":
-        return "#/components/schemas/"
-    }
-  }
-
-  function getConstraint<T>(
-    check: AST.Check<T>,
-    target: JsonSchema.Target,
-    type?: JsonSchema.Type
-  ): JsonSchema.JsonSchema | undefined {
-    const annotation = check.annotations?.toJsonSchemaConstraint as
-      | Annotations.ToJsonSchema.Constraint
-      | undefined
-    if (annotation) return annotation({ target, type })
-  }
-
-  function isOptional(ast: AST.AST): boolean {
-    const encoded = AST.toEncoded(ast)
-    return AST.isOptional(encoded) || AST.containsUndefined(encoded)
-  }
-
-  function getPattern(
-    ast: AST.AST,
-    path: ReadonlyArray<PropertyKey>
-  ): string | undefined {
-    switch (ast._tag) {
-      case "String": {
-        const jsonSchema = recur(ast, path, false)
-        if (Object.hasOwn(jsonSchema, "pattern") && typeof jsonSchema.pattern === "string") {
-          return jsonSchema.pattern
-        }
-        return undefined
-      }
-      case "Number":
-        return "^[0-9]+$"
-      case "TemplateLiteral":
-        return AST.getTemplateLiteralRegExp(ast).source
-      default:
-        throw errorWithPath("Unsupported index signature parameter", path)
-    }
-  }
-
-  function getJsonSchemaAnnotations(
-    annotations: Annotations.Annotations | undefined,
-    generateDescriptions: boolean
-  ): JsonSchema.JsonSchema | undefined {
-    if (annotations) {
-      const out: JsonSchema.JsonSchema = {}
-      if (typeof annotations.title === "string") {
-        out.title = annotations.title
-      }
-      if (typeof annotations.description === "string") {
-        out.description = annotations.description
-      } else if (generateDescriptions && typeof annotations.expected === "string") {
-        out.description = annotations.expected
-      }
-      if (annotations.default !== undefined) {
-        out.default = annotations.default
-      }
-      if (globalThis.Array.isArray(annotations.examples)) {
-        out.examples = annotations.examples
-      }
-
-      if (Object.keys(out).length > 0) return out
-    }
-  }
-
-  function mergeOrAppendJsonSchemaAnnotations(
-    jsonSchema: JsonSchema.JsonSchema,
-    annotations: Annotations.Annotations | undefined,
-    generateDescriptions: boolean
-  ): JsonSchema.JsonSchema {
-    const fragment = getJsonSchemaAnnotations(annotations, generateDescriptions)
-    if (fragment) {
-      return appendFragment(jsonSchema, fragment)
-    }
-    return jsonSchema
-  }
-
-  function hasIntersection(
-    jsonSchema: JsonSchema.JsonSchema,
-    fragment: JsonSchema.JsonSchema
-  ): boolean {
-    return Object.keys(jsonSchema).filter((key) => key !== "type").some((key) => Object.hasOwn(fragment, key))
-  }
-
-  function appendFragment(
-    jsonSchema: JsonSchema.JsonSchema,
-    fragment: JsonSchema.JsonSchema
-  ): JsonSchema.JsonSchema {
-    if ("$ref" in jsonSchema) {
-      return { allOf: [jsonSchema, fragment] }
-    } else {
-      if (hasIntersection(jsonSchema, fragment)) {
-        if (globalThis.Array.isArray(jsonSchema.allOf)) {
-          return { ...jsonSchema, allOf: [...jsonSchema.allOf, fragment] }
-        } else {
-          return { ...jsonSchema, allOf: [fragment] }
-        }
-      } else {
-        return { ...jsonSchema, ...fragment }
-      }
-    }
+    source: "draft-2020-12",
+    schema: document.schema,
+    definitions: document.definitions
   }
 }
 

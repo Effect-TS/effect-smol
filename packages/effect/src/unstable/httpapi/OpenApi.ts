@@ -232,8 +232,9 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   }
 
   function processAST(ast: AST.AST): JsonSchema.JsonSchema {
+    // TODO: convert to openapi-3.1
+    throw new globalThis.Error("convert to openapi-3.1")
     const { definitions, schema } = Schema.toJsonSchema(Schema.make(ast), {
-      target: "openapi-3.1",
       additionalProperties: options?.additionalProperties,
       referenceStrategy: "keep"
     })

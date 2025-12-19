@@ -5,14 +5,13 @@ import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
 
 function assertRoundtrip(input: {
   readonly schema: Schema.Top
-  readonly source?: JsonSchema.Target | undefined
 }) {
-  const source = input.source ?? "draft-07"
-  const document = Schema.toJsonSchema(input.schema, { target: source })
+  const source = "draft-2020-12"
+  const document = Schema.toJsonSchema(input.schema)
   const output = SchemaFromJson.generate(document.schema, { source })
   const fn = new Function("Schema", `return ${output.code}`)
   const generated = fn(Schema)
-  const codedocument = Schema.toJsonSchema(generated, { target: source })
+  const codedocument = Schema.toJsonSchema(generated)
   deepStrictEqual(codedocument, document)
   deepStrictEqual(SchemaFromJson.generate(codedocument.schema, { source }), output)
 }
@@ -3110,7 +3109,7 @@ describe("SchemaFromJson", () => {
       }).annotate({ identifier: "Operation" })
 
       {
-        const document = Schema.toJsonSchema(Operation, { target: "draft-07" })
+        const document = Schema.toJsonSchema(Operation)
         strictEqual(
           generate(document.definitions, [document.schema]),
           `// Definitions
@@ -3125,7 +3124,7 @@ const schema1 = Operation;`
         )
       }
       {
-        const document = Schema.toJsonSchema(Expression, { target: "draft-07" })
+        const document = Schema.toJsonSchema(Expression)
         strictEqual(
           generate(document.definitions, [document.schema]),
           `// Definitions
@@ -3149,7 +3148,7 @@ const schema1 = Expression;`
           }).annotate({ identifier: "B" })
         }).annotate({ identifier: "A" })
       })
-      const document = Schema.toJsonSchema(schema, { target: "draft-07" })
+      const document = Schema.toJsonSchema(schema)
       strictEqual(
         generate(document.definitions, [document.schema]),
         `// Definitions
