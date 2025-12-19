@@ -40,17 +40,13 @@ export const identifier = (operationId: string) => String.capitalize(camelize(op
  * ```
  */
 export const sanitizeSchemaName = (name: string): string => {
-  // Use existing camelize to handle hyphens and special chars
-  // But preserve original capitalization by checking if first char was uppercase
-  const firstCharWasUpper = name.length > 0 && name[0] === name[0].toUpperCase()
-  const sanitized = camelize(name)
-
-  // Ensure first character matches original casing
-  if (sanitized.length === 0) return sanitized
-  return firstCharWasUpper ? String.capitalize(sanitized) : String.uncapitalize(sanitized)
+  if (name.length > 0) {
+    return identifier(name)
+  }
+  throw new Error(`Received empty string for schema name`)
 }
 
-export function nonEmptyString(a: unknown): string | undefined {
+export const nonEmptyString = (a: unknown): string | undefined => {
   if (typeof a === "string") {
     const trimmed = String.trim(a)
     if (String.isNonEmpty(trimmed)) {
