@@ -66,7 +66,7 @@ const Proto = {
  * @since 2.0.0
  * @category constructors
  */
-export const make = <A>(value: A) =>
+export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
   Effect.map(PubSub.unbounded<A>({ replay: 1 }), (pubsub) => {
     const self = Object.create(Proto)
     self.semaphore = Effect.makeSemaphoreUnsafe(1)
