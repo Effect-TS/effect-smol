@@ -166,6 +166,8 @@ describe("OpenApiGenerator", () => {
         openapi: "3.1.0",
         info: { title: "Test API", version: "1.0.0" },
         paths: {},
+        tags: [],
+        security: [],
         components: {
           schemas: {
             "Conversation-2": {
@@ -183,16 +185,18 @@ describe("OpenApiGenerator", () => {
               },
               description: "An error object"
             }
-          }
+          },
+          securitySchemes: {}
         }
-      })
-    )
+      }))
 
     it.effect("handles collision when sanitized name already exists", () =>
       assertRuntime({
         openapi: "3.1.0",
         info: { title: "Test API", version: "1.0.0" },
         paths: {},
+        tags: [],
+        security: [],
         components: {
           schemas: {
             "Conversation2": {
@@ -209,16 +213,18 @@ describe("OpenApiGenerator", () => {
               },
               description: "Second conversation (will be renamed to avoid collision)"
             }
-          }
+          },
+          securitySchemes: {}
         }
-      })
-    )
+      }))
 
     it.effect("preserves valid schema names unchanged", () =>
       assertRuntime({
         openapi: "3.1.0",
         info: { title: "Test API", version: "1.0.0" },
         paths: {},
+        tags: [],
+        security: [],
         components: {
           schemas: {
             "ValidName": {
@@ -235,9 +241,9 @@ describe("OpenApiGenerator", () => {
               },
               description: "Another valid schema name"
             }
-          }
+          },
+          securitySchemes: {}
         }
-      })
-    )
+      }))
   })
 })

@@ -75,7 +75,7 @@ export const make = Effect.gen(function*() {
     const usedNames = new Set<string>()
 
     for (const ref of Object.keys(definitions)) {
-      let sanitized = Utils.sanitizeSchemaName(ref)
+      const sanitized = Utils.sanitizeSchemaName(ref)
 
       // Handle collision by appending numeric suffix
       let counter = 1
