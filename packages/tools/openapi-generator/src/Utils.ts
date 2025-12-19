@@ -26,6 +26,30 @@ export const camelize = (self: string): string => {
 
 export const identifier = (operationId: string) => String.capitalize(camelize(operationId))
 
+/**
+ * Sanitizes a schema reference name to be a valid JavaScript identifier.
+ * This is specifically for component schema names (not operation IDs).
+ *
+ * Preserves the original casing while removing invalid characters.
+ *
+ * @example
+ * sanitizeSchemaName("Conversation-2") // "Conversation2"
+ * sanitizeSchemaName("Error-2") // "Error2"
+ * sanitizeSchemaName("MySchema") // "MySchema" (unchanged)
+ */
+export const sanitizeSchemaName = (name: string): string => {
+  // Use existing camelize to handle hyphens and special chars
+  // But preserve original capitalization by checking if first char was uppercase
+  const firstCharWasUpper = name.length > 0 && name[0] === name[0].toUpperCase()
+  const sanitized = camelize(name)
+
+  // Ensure first character matches original casing
+  if (sanitized.length === 0) return sanitized
+  return firstCharWasUpper
+    ? sanitized[0].toUpperCase() + sanitized.slice(1)
+    : sanitized[0].toLowerCase() + sanitized.slice(1)
+}
+
 export function nonEmptyString(a: unknown): string | undefined {
   if (typeof a === "string") {
     const trimmed = String.trim(a)

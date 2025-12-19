@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`OpenApiGenerator > type-only > get operation 1`] = `
-"import * as Data from "effect/data/Data"
+exports[`OpenApiGenerator > identifier sanitization > handles collision when sanitized name already exists 1`] = `
+"import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import type { SchemaError } from "effect/Schema"
 import * as Schema from "effect/Schema"
@@ -23,11 +23,9 @@ export type PersistedFile = string
 export type PersistedFileEncoded = PersistedFile
 export const PersistedFile = Schema.String.annotate({ "format": "binary" }).annotate({ "identifier": "PersistedFile" })
 
-export type User = { readonly "id": number, readonly "uuid"?: string, readonly "name": string,
-/** a string that will be decoded as a DateTime.Utc */
-readonly "createdAt": string }
+export type User = { readonly "id": number, readonly "uuid"?: string, readonly "name": string, readonly "createdAt": string }
 export type UserEncoded = User
-export const User = Schema.Struct({ "id": Schema.Int, "uuid": Schema.optionalKey(Schema.String), "name": Schema.String, "createdAt": Schema.String.annotate({ "description": "a string that will be decoded as a DateTime.Utc" }) }).annotate({ "identifier": "User" })
+export const User = Schema.Struct({ "id": Schema.Int, "uuid": Schema.optionalKey(Schema.String), "name": Schema.String, "createdAt": Schema.String }).annotate({ "identifier": "User" })
 
 export type UserError = { readonly "_tag": "UserError" }
 export type UserErrorEncoded = UserError
@@ -53,13 +51,11 @@ export type UsersFindById400 = typeof HttpApiSchemaError["Type"] | UserError
 export type UsersFindById400Encoded = typeof HttpApiSchemaError["Encoded"] | UserErrorEncoded
 export const UsersFindById400 = Schema.Union([HttpApiSchemaError, UserError])
 
-export type ListUsersParams = {
-/** a string that will be decoded as a finite number */
-readonly "page"?: string,
+export type ListUsersParams = { readonly "page"?: string, 
 /** search query */
 readonly "query"?: string }
 export type ListUsersParamsEncoded = ListUsersParams
-export const ListUsersParams = Schema.Struct({ "page": Schema.optionalKey(Schema.String.annotate({ "description": "a string that will be decoded as a finite number" })), "query": Schema.optionalKey(Schema.String.annotate({ "description": "search query" })) })
+export const ListUsersParams = Schema.Struct({ "page": Schema.optionalKey(Schema.String), "query": Schema.optionalKey(Schema.String.annotate({ "description": "search query" })) })
 
 export type ListUsers200 = ReadonlyArray<User>
 export type ListUsers200Encoded = ReadonlyArray<UserEncoded>
@@ -77,6 +73,28 @@ export type Healthz400 = typeof HttpApiSchemaError["Type"]
 export type Healthz400Encoded = typeof HttpApiSchemaError["Encoded"]
 export const Healthz400 = HttpApiSchemaError
 
+export interface OperationConfig {
+  /**
+   * Whether or not the response should be included in the value returned from
+   * an operation.
+   *
+   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned,
+   * where \`A\` is the success type of the operation.
+   *
+   * If set to \`false\`, only the success type of the operation will be returned.
+   */
+  readonly includeResponse?: boolean | undefined
+}
+
+/**
+ * A utility type which optionally includes the response in the return result
+ * of an operation based upon the value of the \`includeResponse\` configuration
+ * option.
+ */
+export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
+  readonly includeResponse: true
+} ? [A, HttpClientResponse.HttpClientResponse] : A
+
 export const make = (
   httpClient: HttpClient.HttpClient,
   options: {
@@ -96,19 +114,22 @@ export const make = (
           }),
         ),
     )
-  const withResponse: <A, E>(
+  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => <A, E>(
     f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
-  ) => (
-    request: HttpClientRequest.HttpClientRequest,
-  ) => Effect.Effect<any, any> = options.transformClient
-    ? (f) => (request) =>
-        Effect.flatMap(
-          Effect.flatMap(options.transformClient!(httpClient), (client) =>
-            client.execute(request),
-          ),
-          f,
-        )
-    : (f) => (request) => Effect.flatMap(httpClient.execute(request), f)
+  ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
+    const withOptionalResponse = (
+      config?.includeResponse
+        ? (response: HttpClientResponse.HttpClientResponse) => Effect.map(f(response), (a) => [a, response])
+        : (response: HttpClientResponse.HttpClientResponse) => f(response)
+    ) as any
+    return options?.transformClient
+      ? (request) =>
+          Effect.flatMap(
+            Effect.flatMap(options.transformClient!(httpClient), (client) => client.execute(request)),
+            withOptionalResponse
+          )
+      : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
+  }
   const decodeSuccess =
     <Schema extends Schema.Top>(schema: Schema) =>
     (response: HttpClientResponse.HttpClientResponse) =>
@@ -122,33 +143,33 @@ export const make = (
       )
   return {
     httpClient,
-    "groupsFindById": (id) => HttpClientRequest.get(\`/groups/\${id}\`).pipe(
-    withResponse(HttpClientResponse.matchStatus({
+    "groupsFindById": (id, options) => HttpClientRequest.get(\`/groups/\${id}\`).pipe(
+    withResponse(options?.config)(HttpClientResponse.matchStatus({
       "2xx": decodeSuccess(GroupsFindById200),
       "400": decodeError("GroupsFindById400", GroupsFindById400),
       "418": () => Effect.void,
       orElse: unexpectedStatus
     }))
   ),
-  "usersFindById": (id) => HttpClientRequest.get(\`/users/\${id}\`).pipe(
-    withResponse(HttpClientResponse.matchStatus({
+  "usersFindById": (id, options) => HttpClientRequest.get(\`/users/\${id}\`).pipe(
+    withResponse(options?.config)(HttpClientResponse.matchStatus({
       "2xx": decodeSuccess(UsersFindById200),
       "400": decodeError("UsersFindById400", UsersFindById400),
       orElse: unexpectedStatus
     }))
   ),
   "listUsers": (options) => HttpClientRequest.get(\`/users\`).pipe(
-    HttpClientRequest.setUrlParams({ "query": options?.["query"] as any }),
-    HttpClientRequest.setHeaders({ "page": options?.["page"] ?? undefined }),
-    withResponse(HttpClientResponse.matchStatus({
+    HttpClientRequest.setUrlParams({ "query": options?.params?.["query"] as any }),
+    HttpClientRequest.setHeaders({ "page": options?.params?.["page"] ?? undefined }),
+    withResponse(options?.config)(HttpClientResponse.matchStatus({
       "2xx": decodeSuccess(ListUsers200),
       "400": decodeError("ListUsers400", ListUsers400),
       "500": decodeError("ListUsers500", ListUsers500),
       orElse: unexpectedStatus
     }))
   ),
-  "healthz": () => HttpClientRequest.get(\`/healthz\`).pipe(
-    withResponse(HttpClientResponse.matchStatus({
+  "healthz": (options) => HttpClientRequest.get(\`/healthz\`).pipe(
+    withResponse(options?.config)(HttpClientResponse.matchStatus({
       "400": decodeError("Healthz400", Healthz400),
       "204": () => Effect.void,
       orElse: unexpectedStatus
@@ -159,13 +180,13 @@ export const make = (
 
 export interface TestClient {
   readonly httpClient: HttpClient.HttpClient
-  readonly "groupsFindById": (id: string) => Effect.Effect<typeof GroupsFindById200.Type, HttpClientError.HttpClientError | SchemaError | TestClientError<"GroupsFindById400", typeof GroupsFindById400.Type>>
-  readonly "usersFindById": (id: string) => Effect.Effect<typeof UsersFindById200.Type, HttpClientError.HttpClientError | SchemaError | TestClientError<"UsersFindById400", typeof UsersFindById400.Type>>
+  readonly "groupsFindById": <Config extends OperationConfig>(id: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof GroupsFindById200.Type, Config>, HttpClientError.HttpClientError | SchemaError | TestClientError<"GroupsFindById400", typeof GroupsFindById400.Type>>
+  readonly "usersFindById": <Config extends OperationConfig>(id: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof UsersFindById200.Type, Config>, HttpClientError.HttpClientError | SchemaError | TestClientError<"UsersFindById400", typeof UsersFindById400.Type>>
   /**
 * test summary
 */
-readonly "listUsers": (options?: typeof ListUsersParams.Encoded | undefined) => Effect.Effect<typeof ListUsers200.Type, HttpClientError.HttpClientError | SchemaError | TestClientError<"ListUsers400", typeof ListUsers400.Type> | TestClientError<"ListUsers500", typeof ListUsers500.Type>>
-  readonly "healthz": () => Effect.Effect<void, HttpClientError.HttpClientError | SchemaError | TestClientError<"Healthz400", typeof Healthz400.Type>>
+readonly "listUsers": <Config extends OperationConfig>(options: { readonly params?: typeof ListUsersParams.Encoded | undefined; readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof ListUsers200.Type, Config>, HttpClientError.HttpClientError | SchemaError | TestClientError<"ListUsers400", typeof ListUsers400.Type> | TestClientError<"ListUsers500", typeof ListUsers500.Type>>
+  readonly "healthz": <Config extends OperationConfig>(options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError | TestClientError<"Healthz400", typeof Healthz400.Type>>
 }
 
 export interface TestClientError<Tag extends string, E> {
@@ -195,8 +216,8 @@ export const TestClientError = <Tag extends string, E>(
   }) as any"
 `;
 
-exports[`OpenApiGenerator > type-only > get operation 2`] = `
-"import * as Data from "effect/data/Data"
+exports[`OpenApiGenerator > identifier sanitization > handles collision when sanitized name already exists 2`] = `
+"import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import type { SchemaError } from "effect/Schema"
 import * as Schema from "effect/Schema"
@@ -214,6 +235,28 @@ export type GetUser200Encoded = GetUser200
 /** User object */
 export const GetUser200 = Schema.Struct({ "id": Schema.String, "name": Schema.String }).annotate({ "description": "User object" })
 
+export interface OperationConfig {
+  /**
+   * Whether or not the response should be included in the value returned from
+   * an operation.
+   *
+   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned,
+   * where \`A\` is the success type of the operation.
+   *
+   * If set to \`false\`, only the success type of the operation will be returned.
+   */
+  readonly includeResponse?: boolean | undefined
+}
+
+/**
+ * A utility type which optionally includes the response in the return result
+ * of an operation based upon the value of the \`includeResponse\` configuration
+ * option.
+ */
+export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
+  readonly includeResponse: true
+} ? [A, HttpClientResponse.HttpClientResponse] : A
+
 export const make = (
   httpClient: HttpClient.HttpClient,
   options: {
@@ -233,19 +276,22 @@ export const make = (
           }),
         ),
     )
-  const withResponse: <A, E>(
+  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => <A, E>(
     f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
-  ) => (
-    request: HttpClientRequest.HttpClientRequest,
-  ) => Effect.Effect<any, any> = options.transformClient
-    ? (f) => (request) =>
-        Effect.flatMap(
-          Effect.flatMap(options.transformClient!(httpClient), (client) =>
-            client.execute(request),
-          ),
-          f,
-        )
-    : (f) => (request) => Effect.flatMap(httpClient.execute(request), f)
+  ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
+    const withOptionalResponse = (
+      config?.includeResponse
+        ? (response: HttpClientResponse.HttpClientResponse) => Effect.map(f(response), (a) => [a, response])
+        : (response: HttpClientResponse.HttpClientResponse) => f(response)
+    ) as any
+    return options?.transformClient
+      ? (request) =>
+          Effect.flatMap(
+            Effect.flatMap(options.transformClient!(httpClient), (client) => client.execute(request)),
+            withOptionalResponse
+          )
+      : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
+  }
   const decodeSuccess =
     <Schema extends Schema.Top>(schema: Schema) =>
     (response: HttpClientResponse.HttpClientResponse) =>
@@ -259,8 +305,8 @@ export const make = (
       )
   return {
     httpClient,
-    "getUser": (id) => HttpClientRequest.get(\`/users/\${id}\`).pipe(
-    withResponse(HttpClientResponse.matchStatus({
+    "getUser": (id, options) => HttpClientRequest.get(\`/users/\${id}\`).pipe(
+    withResponse(options?.config)(HttpClientResponse.matchStatus({
       "2xx": decodeSuccess(GetUser200),
       orElse: unexpectedStatus
     }))
@@ -270,7 +316,7 @@ export const make = (
 
 export interface TestClient {
   readonly httpClient: HttpClient.HttpClient
-  readonly "getUser": (id: string) => Effect.Effect<typeof GetUser200.Type, HttpClientError.HttpClientError | SchemaError>
+  readonly "getUser": <Config extends OperationConfig>(id: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof GetUser200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
 }
 
 export interface TestClientError<Tag extends string, E> {
@@ -300,8 +346,8 @@ export const TestClientError = <Tag extends string, E>(
   }) as any"
 `;
 
-exports[`OpenApiGenerator > type-only > get operation 3`] = `
-"import * as Data from "effect/data/Data"
+exports[`OpenApiGenerator > identifier sanitization > handles collision when sanitized name already exists 3`] = `
+"import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import type * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
@@ -311,6 +357,28 @@ import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 
 export type GetUser200 = { readonly "id": string, readonly "name": string }
 export type GetUser200Encoded = GetUser200
+
+export interface OperationConfig {
+  /**
+   * Whether or not the response should be included in the value returned from
+   * an operation.
+   *
+   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned,
+   * where \`A\` is the success type of the operation.
+   *
+   * If set to \`false\`, only the success type of the operation will be returned.
+   */
+  readonly includeResponse?: boolean | undefined
+}
+
+/**
+ * A utility type which optionally includes the response in the return result
+ * of an operation based upon the value of the \`includeResponse\` configuration
+ * option.
+ */
+export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
+  readonly includeResponse: true
+} ? [A, HttpClientResponse.HttpClientResponse] : A
 
 export const make = (
   httpClient: HttpClient.HttpClient,
@@ -331,19 +399,22 @@ export const make = (
           }),
         ),
     )
-  const withResponse: <A, E>(
+  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => <A, E>(
     f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
-  ) => (
-    request: HttpClientRequest.HttpClientRequest,
-  ) => Effect.Effect<any, any> = options.transformClient
-    ? (f) => (request) =>
-        Effect.flatMap(
-          Effect.flatMap(options.transformClient!(httpClient), (client) =>
-            client.execute(request),
-          ),
-          f,
-        )
-    : (f) => (request) => Effect.flatMap(httpClient.execute(request), f)
+  ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
+    const withOptionalResponse = (
+      config?.includeResponse
+        ? (response: HttpClientResponse.HttpClientResponse) => Effect.map(f(response), (a) => [a, response])
+        : (response: HttpClientResponse.HttpClientResponse) => f(response)
+    ) as any
+    return options?.transformClient
+      ? (request) =>
+          Effect.flatMap(
+            Effect.flatMap(options.transformClient!(httpClient), (client) => client.execute(request)),
+            withOptionalResponse
+          )
+      : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
+  }
   const decodeSuccess = <A>(response: HttpClientResponse.HttpClientResponse) =>
     response.json as Effect.Effect<A, HttpClientError.ResponseError>
   const decodeVoid = (_response: HttpClientResponse.HttpClientResponse) =>
@@ -360,7 +431,7 @@ export const make = (
         response.json as Effect.Effect<E, HttpClientError.ResponseError>,
         (cause) => Effect.fail(TestClientError(tag, cause, response)),
       )
-  const onRequest = (
+  const onRequest = <Config extends OperationConfig>(config: Config | undefined) => (
     successCodes: ReadonlyArray<string>,
     errorCodes?: Record<string, string>,
   ) => {
@@ -376,19 +447,428 @@ export const make = (
     if (successCodes.length === 0) {
       cases["2xx"] = decodeVoid
     }
-    return withResponse(HttpClientResponse.matchStatus(cases) as any)
+    return withResponse(config)(HttpClientResponse.matchStatus(cases) as any)
   }
   return {
     httpClient,
-    "getUser": (id) => HttpClientRequest.get(\`/users/\${id}\`).pipe(
-    onRequest(["2xx"])
+    "getUser": (id, options) => HttpClientRequest.get(\`/users/\${id}\`).pipe(
+    onRequest(options?.config)(["2xx"])
   )
   }
 }
 
 export interface TestClient {
   readonly httpClient: HttpClient.HttpClient
-  readonly "getUser": (id: string) => Effect.Effect<GetUser200, HttpClientError.HttpClientError>
+  readonly "getUser": <Config extends OperationConfig>(id: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<GetUser200, Config>, HttpClientError.HttpClientError>
+}
+
+export interface TestClientError<Tag extends string, E> {
+  readonly _tag: Tag
+  readonly request: HttpClientRequest.HttpClientRequest
+  readonly response: HttpClientResponse.HttpClientResponse
+  readonly cause: E
+}
+
+class TestClientErrorImpl extends Data.Error<{
+  _tag: string
+  cause: any
+  request: HttpClientRequest.HttpClientRequest
+  response: HttpClientResponse.HttpClientResponse
+}> {}
+
+export const TestClientError = <Tag extends string, E>(
+  tag: Tag,
+  cause: E,
+  response: HttpClientResponse.HttpClientResponse,
+): TestClientError<Tag, E> =>
+  new TestClientErrorImpl({
+    _tag: tag,
+    cause,
+    response,
+    request: response.request,
+  }) as any"
+`;
+
+exports[`OpenApiGenerator > identifier sanitization > handles collision when sanitized name already exists 4`] = `
+"import * as Data from "effect/Data"
+import * as Effect from "effect/Effect"
+import type { SchemaError } from "effect/Schema"
+import * as Schema from "effect/Schema"
+import type * as HttpClient from "effect/unstable/http/HttpClient"
+import * as HttpClientError from "effect/unstable/http/HttpClientError"
+import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
+
+
+
+/** A conversation object */
+export type Conversation2 = { 
+/** Conversation ID */
+readonly "id"?: string, readonly [x: string]: unknown }
+export type Conversation2Encoded = Conversation2
+
+/** A conversation object */
+export const Conversation2 = Schema.StructWithRest(Schema.Struct({ "id": Schema.optionalKey(Schema.String.annotate({ "description": "Conversation ID" })) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "A conversation object" }).annotate({ "identifier": "Conversation-2" })
+
+
+/** An error object */
+export type Error2 = { 
+/** Error code */
+readonly "code"?: string, 
+/** Error message */
+readonly "message"?: string, readonly [x: string]: unknown }
+export type Error2Encoded = Error2
+
+/** An error object */
+export const Error2 = Schema.StructWithRest(Schema.Struct({ "code": Schema.optionalKey(Schema.String.annotate({ "description": "Error code" })), "message": Schema.optionalKey(Schema.String.annotate({ "description": "Error message" })) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "An error object" }).annotate({ "identifier": "Error-2" })
+
+export interface OperationConfig {
+  /**
+   * Whether or not the response should be included in the value returned from
+   * an operation.
+   *
+   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned,
+   * where \`A\` is the success type of the operation.
+   *
+   * If set to \`false\`, only the success type of the operation will be returned.
+   */
+  readonly includeResponse?: boolean | undefined
+}
+
+/**
+ * A utility type which optionally includes the response in the return result
+ * of an operation based upon the value of the \`includeResponse\` configuration
+ * option.
+ */
+export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
+  readonly includeResponse: true
+} ? [A, HttpClientResponse.HttpClientResponse] : A
+
+export const make = (
+  httpClient: HttpClient.HttpClient,
+  options: {
+    readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
+  } = {}
+): TestClient => {
+  const unexpectedStatus = (response: HttpClientResponse.HttpClientResponse) =>
+    Effect.flatMap(
+      Effect.orElseSucceed(response.json, () => "Unexpected status code"),
+      (description) =>
+        Effect.fail(
+          new HttpClientError.ResponseError({
+            request: response.request,
+            response,
+            reason: "StatusCode",
+            description: typeof description === "string" ? description : JSON.stringify(description),
+          }),
+        ),
+    )
+  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => <A, E>(
+    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
+  ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
+    const withOptionalResponse = (
+      config?.includeResponse
+        ? (response: HttpClientResponse.HttpClientResponse) => Effect.map(f(response), (a) => [a, response])
+        : (response: HttpClientResponse.HttpClientResponse) => f(response)
+    ) as any
+    return options?.transformClient
+      ? (request) =>
+          Effect.flatMap(
+            Effect.flatMap(options.transformClient!(httpClient), (client) => client.execute(request)),
+            withOptionalResponse
+          )
+      : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
+  }
+  const decodeSuccess =
+    <Schema extends Schema.Top>(schema: Schema) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      HttpClientResponse.schemaBodyJson(schema)(response)
+  const decodeError =
+    <const Tag extends string, Schema extends Schema.Top>(tag: Tag, schema: Schema) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      Effect.flatMap(
+        HttpClientResponse.schemaBodyJson(schema)(response),
+        (cause) => Effect.fail(TestClientError(tag, cause, response)),
+      )
+  return {
+    httpClient,
+    
+  }
+}
+
+export interface TestClient {
+  readonly httpClient: HttpClient.HttpClient
+  
+}
+
+export interface TestClientError<Tag extends string, E> {
+  readonly _tag: Tag
+  readonly request: HttpClientRequest.HttpClientRequest
+  readonly response: HttpClientResponse.HttpClientResponse
+  readonly cause: E
+}
+
+class TestClientErrorImpl extends Data.Error<{
+  _tag: string
+  cause: any
+  request: HttpClientRequest.HttpClientRequest
+  response: HttpClientResponse.HttpClientResponse
+}> {}
+
+export const TestClientError = <Tag extends string, E>(
+  tag: Tag,
+  cause: E,
+  response: HttpClientResponse.HttpClientResponse,
+): TestClientError<Tag, E> =>
+  new TestClientErrorImpl({
+    _tag: tag,
+    cause,
+    response,
+    request: response.request,
+  }) as any"
+`;
+
+exports[`OpenApiGenerator > identifier sanitization > handles collision when sanitized name already exists 5`] = `
+"import * as Data from "effect/Data"
+import * as Effect from "effect/Effect"
+import type { SchemaError } from "effect/Schema"
+import * as Schema from "effect/Schema"
+import type * as HttpClient from "effect/unstable/http/HttpClient"
+import * as HttpClientError from "effect/unstable/http/HttpClientError"
+import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
+
+
+
+/** First conversation */
+export type Conversation2 = { 
+/** ID */
+readonly "id"?: string, readonly [x: string]: unknown }
+export type Conversation2Encoded = Conversation2
+
+/** First conversation */
+export const Conversation2 = Schema.StructWithRest(Schema.Struct({ "id": Schema.optionalKey(Schema.String.annotate({ "description": "ID" })) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "First conversation" }).annotate({ "identifier": "Conversation2" })
+
+
+/** Second conversation (will be renamed to avoid collision) */
+export type Conversation21 = { 
+/** Name */
+readonly "name"?: string, readonly [x: string]: unknown }
+export type Conversation21Encoded = Conversation21
+
+/** Second conversation (will be renamed to avoid collision) */
+export const Conversation21 = Schema.StructWithRest(Schema.Struct({ "name": Schema.optionalKey(Schema.String.annotate({ "description": "Name" })) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "Second conversation (will be renamed to avoid collision)" }).annotate({ "identifier": "Conversation-2" })
+
+export interface OperationConfig {
+  /**
+   * Whether or not the response should be included in the value returned from
+   * an operation.
+   *
+   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned,
+   * where \`A\` is the success type of the operation.
+   *
+   * If set to \`false\`, only the success type of the operation will be returned.
+   */
+  readonly includeResponse?: boolean | undefined
+}
+
+/**
+ * A utility type which optionally includes the response in the return result
+ * of an operation based upon the value of the \`includeResponse\` configuration
+ * option.
+ */
+export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
+  readonly includeResponse: true
+} ? [A, HttpClientResponse.HttpClientResponse] : A
+
+export const make = (
+  httpClient: HttpClient.HttpClient,
+  options: {
+    readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
+  } = {}
+): TestClient => {
+  const unexpectedStatus = (response: HttpClientResponse.HttpClientResponse) =>
+    Effect.flatMap(
+      Effect.orElseSucceed(response.json, () => "Unexpected status code"),
+      (description) =>
+        Effect.fail(
+          new HttpClientError.ResponseError({
+            request: response.request,
+            response,
+            reason: "StatusCode",
+            description: typeof description === "string" ? description : JSON.stringify(description),
+          }),
+        ),
+    )
+  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => <A, E>(
+    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
+  ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
+    const withOptionalResponse = (
+      config?.includeResponse
+        ? (response: HttpClientResponse.HttpClientResponse) => Effect.map(f(response), (a) => [a, response])
+        : (response: HttpClientResponse.HttpClientResponse) => f(response)
+    ) as any
+    return options?.transformClient
+      ? (request) =>
+          Effect.flatMap(
+            Effect.flatMap(options.transformClient!(httpClient), (client) => client.execute(request)),
+            withOptionalResponse
+          )
+      : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
+  }
+  const decodeSuccess =
+    <Schema extends Schema.Top>(schema: Schema) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      HttpClientResponse.schemaBodyJson(schema)(response)
+  const decodeError =
+    <const Tag extends string, Schema extends Schema.Top>(tag: Tag, schema: Schema) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      Effect.flatMap(
+        HttpClientResponse.schemaBodyJson(schema)(response),
+        (cause) => Effect.fail(TestClientError(tag, cause, response)),
+      )
+  return {
+    httpClient,
+    
+  }
+}
+
+export interface TestClient {
+  readonly httpClient: HttpClient.HttpClient
+  
+}
+
+export interface TestClientError<Tag extends string, E> {
+  readonly _tag: Tag
+  readonly request: HttpClientRequest.HttpClientRequest
+  readonly response: HttpClientResponse.HttpClientResponse
+  readonly cause: E
+}
+
+class TestClientErrorImpl extends Data.Error<{
+  _tag: string
+  cause: any
+  request: HttpClientRequest.HttpClientRequest
+  response: HttpClientResponse.HttpClientResponse
+}> {}
+
+export const TestClientError = <Tag extends string, E>(
+  tag: Tag,
+  cause: E,
+  response: HttpClientResponse.HttpClientResponse,
+): TestClientError<Tag, E> =>
+  new TestClientErrorImpl({
+    _tag: tag,
+    cause,
+    response,
+    request: response.request,
+  }) as any"
+`;
+
+exports[`OpenApiGenerator > identifier sanitization > preserves valid schema names unchanged 1`] = `
+"import * as Data from "effect/Data"
+import * as Effect from "effect/Effect"
+import type { SchemaError } from "effect/Schema"
+import * as Schema from "effect/Schema"
+import type * as HttpClient from "effect/unstable/http/HttpClient"
+import * as HttpClientError from "effect/unstable/http/HttpClientError"
+import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
+
+
+
+/** A valid schema name */
+export type ValidName = { readonly "id"?: string, readonly [x: string]: unknown }
+export type ValidNameEncoded = ValidName
+
+/** A valid schema name */
+export const ValidName = Schema.StructWithRest(Schema.Struct({ "id": Schema.optionalKey(Schema.String) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "A valid schema name" }).annotate({ "identifier": "ValidName" })
+
+
+/** Another valid schema name */
+export type AnotherValidName123 = { readonly "value"?: number, readonly [x: string]: unknown }
+export type AnotherValidName123Encoded = AnotherValidName123
+
+/** Another valid schema name */
+export const AnotherValidName123 = Schema.StructWithRest(Schema.Struct({ "value": Schema.optionalKey(Schema.Number) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "Another valid schema name" }).annotate({ "identifier": "AnotherValidName123" })
+
+export interface OperationConfig {
+  /**
+   * Whether or not the response should be included in the value returned from
+   * an operation.
+   *
+   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned,
+   * where \`A\` is the success type of the operation.
+   *
+   * If set to \`false\`, only the success type of the operation will be returned.
+   */
+  readonly includeResponse?: boolean | undefined
+}
+
+/**
+ * A utility type which optionally includes the response in the return result
+ * of an operation based upon the value of the \`includeResponse\` configuration
+ * option.
+ */
+export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
+  readonly includeResponse: true
+} ? [A, HttpClientResponse.HttpClientResponse] : A
+
+export const make = (
+  httpClient: HttpClient.HttpClient,
+  options: {
+    readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
+  } = {}
+): TestClient => {
+  const unexpectedStatus = (response: HttpClientResponse.HttpClientResponse) =>
+    Effect.flatMap(
+      Effect.orElseSucceed(response.json, () => "Unexpected status code"),
+      (description) =>
+        Effect.fail(
+          new HttpClientError.ResponseError({
+            request: response.request,
+            response,
+            reason: "StatusCode",
+            description: typeof description === "string" ? description : JSON.stringify(description),
+          }),
+        ),
+    )
+  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => <A, E>(
+    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
+  ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
+    const withOptionalResponse = (
+      config?.includeResponse
+        ? (response: HttpClientResponse.HttpClientResponse) => Effect.map(f(response), (a) => [a, response])
+        : (response: HttpClientResponse.HttpClientResponse) => f(response)
+    ) as any
+    return options?.transformClient
+      ? (request) =>
+          Effect.flatMap(
+            Effect.flatMap(options.transformClient!(httpClient), (client) => client.execute(request)),
+            withOptionalResponse
+          )
+      : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
+  }
+  const decodeSuccess =
+    <Schema extends Schema.Top>(schema: Schema) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      HttpClientResponse.schemaBodyJson(schema)(response)
+  const decodeError =
+    <const Tag extends string, Schema extends Schema.Top>(tag: Tag, schema: Schema) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      Effect.flatMap(
+        HttpClientResponse.schemaBodyJson(schema)(response),
+        (cause) => Effect.fail(TestClientError(tag, cause, response)),
+      )
+  return {
+    httpClient,
+    
+  }
+}
+
+export interface TestClient {
+  readonly httpClient: HttpClient.HttpClient
+  
 }
 
 export interface TestClientError<Tag extends string, E> {

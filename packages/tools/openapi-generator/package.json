@@ -24,13 +24,13 @@
     "codegen"
   ],
   "bin": {
-    "openapigen": "./src/bin.ts"
+    "openapigen": "./dist/bin.cjs"
   },
   "files": [],
   "publishConfig": {
     "provenance": true,
     "bin": {
-      "openapigen": "./dist/bin.js"
+      "openapigen": "./dist/bin.cjs"
     }
   },
   "scripts": {

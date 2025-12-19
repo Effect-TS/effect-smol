@@ -159,4 +159,85 @@ describe("OpenApiGenerator", () => {
         }
       ))
   })
+
+  describe("identifier sanitization", () => {
+    it.effect("sanitizes schema names with hyphens", () =>
+      assertRuntime({
+        openapi: "3.1.0",
+        info: { title: "Test API", version: "1.0.0" },
+        paths: {},
+        components: {
+          schemas: {
+            "Conversation-2": {
+              type: "object",
+              properties: {
+                id: { type: "string", description: "Conversation ID" }
+              },
+              description: "A conversation object"
+            },
+            "Error-2": {
+              type: "object",
+              properties: {
+                code: { type: "string", description: "Error code" },
+                message: { type: "string", description: "Error message" }
+              },
+              description: "An error object"
+            }
+          }
+        }
+      })
+    )
+
+    it.effect("handles collision when sanitized name already exists", () =>
+      assertRuntime({
+        openapi: "3.1.0",
+        info: { title: "Test API", version: "1.0.0" },
+        paths: {},
+        components: {
+          schemas: {
+            "Conversation2": {
+              type: "object",
+              properties: {
+                id: { type: "string", description: "ID" }
+              },
+              description: "First conversation"
+            },
+            "Conversation-2": {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "Name" }
+              },
+              description: "Second conversation (will be renamed to avoid collision)"
+            }
+          }
+        }
+      })
+    )
+
+    it.effect("preserves valid schema names unchanged", () =>
+      assertRuntime({
+        openapi: "3.1.0",
+        info: { title: "Test API", version: "1.0.0" },
+        paths: {},
+        components: {
+          schemas: {
+            "ValidName": {
+              type: "object",
+              properties: {
+                id: { type: "string" }
+              },
+              description: "A valid schema name"
+            },
+            "AnotherValidName123": {
+              type: "object",
+              properties: {
+                value: { type: "number" }
+              },
+              description: "Another valid schema name"
+            }
+          }
+        }
+      })
+    )
+  })
 })

@@ -3,6 +3,7 @@ import type * as JsonSchema from "effect/JsonSchema"
 import * as SchemaFromJson from "effect/SchemaFromJson"
 import * as ServiceMap from "effect/ServiceMap"
 import type { OpenAPISpec } from "effect/unstable/httpapi/OpenApi"
+import * as Utils from "./Utils.ts"
 /**
  * The service for the JSON schema generator.
  */
@@ -24,16 +25,20 @@ const effectSchemas: Record<string, {
   }
 }
 
-const resolver: SchemaFromJson.Resolver = (ref) => {
+// This will be replaced by a closure in the generate function to use the refToSanitized map
+const makeResolver = (refToSanitized: Map<string, string>): SchemaFromJson.Resolver => (ref) => {
   if (ref in effectSchemas) {
     return SchemaFromJson.makeGenerationExtern(
       effectSchemas[ref].namespace,
       effectSchemas[ref].importDeclaration
     )
   }
+  // Use pre-computed sanitized name
+  const sanitizedRef = refToSanitized.get(ref) ?? Utils.sanitizeSchemaName(ref)
+
   return SchemaFromJson.makeGeneration(
-    ref,
-    SchemaFromJson.makeTypes(ref, `${ref}Encoded`)
+    sanitizedRef,
+    SchemaFromJson.makeTypes(sanitizedRef, `${sanitizedRef}Encoded`)
   )
 }
 
@@ -64,6 +69,27 @@ export const make = Effect.gen(function*() {
     }
 
     const definitions: JsonSchema.Definitions = spec.components?.schemas ?? {}
+
+    // Build sanitized name mapping and detect collisions
+    const refToSanitized = new Map<string, string>()
+    const usedNames = new Set<string>()
+
+    for (const ref of Object.keys(definitions)) {
+      let sanitized = Utils.sanitizeSchemaName(ref)
+
+      // Handle collision by appending numeric suffix
+      let counter = 1
+      let candidate = sanitized
+      while (usedNames.has(candidate)) {
+        candidate = `${sanitized}${counter}`
+        counter++
+      }
+
+      refToSanitized.set(ref, candidate)
+      usedNames.add(candidate)
+    }
+
+    const resolver = makeResolver(refToSanitized)
     const options = {
       source,
       resolver,
@@ -73,7 +99,8 @@ export const make = Effect.gen(function*() {
     // dependencies
     if (spec.components) {
       SchemaFromJson.generateDefinitions(definitions, options).forEach(({ generation, ref }) => {
-        generations.push({ name: ref in effectSchemas ? undefined : ref, generation })
+        const sanitizedRef = refToSanitized.get(ref) ?? ref
+        generations.push({ name: ref in effectSchemas ? undefined : sanitizedRef, generation })
       })
     }
 
