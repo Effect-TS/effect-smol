@@ -66,15 +66,15 @@ const Proto = {
  * @since 2.0.0
  * @category constructors
  */
-export const make: <A>(value: A) => Effect.Effect<SubscriptionRef<A>> = Effect.fnUntraced(
-  function*<A>(value: A) {
+export const make = <A>(value: A) =>
+  Effect.map(PubSub.unbounded<A>({ replay: 1 }), (pubsub) => {
     const self = Object.create(Proto)
-    self.semaphore = yield* Effect.makeSemaphore(1)
-    self.backing = yield* Ref.make(value)
-    self.pubsub = yield* PubSub.unbounded<A>({ replay: 1 })
+    self.semaphore = Effect.makeSemaphoreUnsafe(1)
+    self.backing = Ref.makeUnsafe(value)
+    self.pubsub = pubsub
+    PubSub.publishUnsafe(self.pubsub, value)
     return self
-  }
-)
+  })
 
 /**
  * Creates a stream that emits the current value and all subsequent changes to
