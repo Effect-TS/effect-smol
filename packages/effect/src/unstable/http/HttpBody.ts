@@ -214,15 +214,16 @@ export const text = (body: string, contentType?: string): Uint8Array =>
  * @since 4.0.0
  * @category constructors
  */
-export const jsonUnsafe = (body: unknown): Uint8Array => text(JSON.stringify(body), "application/json")
+export const jsonUnsafe = (body: unknown, contentType?: string): Uint8Array =>
+  text(JSON.stringify(body), contentType ?? "application/json")
 
 /**
  * @since 4.0.0
  * @category constructors
  */
-export const json = (body: unknown): Effect.Effect<Uint8Array, HttpBodyError> =>
+export const json = (body: unknown, contentType?: string): Effect.Effect<Uint8Array, HttpBodyError> =>
   Effect.try({
-    try: () => text(JSON.stringify(body), "application/json"),
+    try: () => text(JSON.stringify(body), contentType ?? "application/json"),
     catch: (cause) => new HttpBodyError({ reason: { _tag: "JsonError" }, cause })
   })
 
@@ -235,10 +236,10 @@ export const jsonSchema = <S extends Schema.Schema<any>>(
   options?: ParseOptions | undefined
 ) => {
   const encode = Parser.encodeUnknownEffect(Schema.toCodecJson(schema))
-  return (body: S["Type"]): Effect.Effect<Uint8Array, HttpBodyError, S["EncodingServices"]> =>
+  return (body: S["Type"], contentType?: string): Effect.Effect<Uint8Array, HttpBodyError, S["EncodingServices"]> =>
     encode(body, options).pipe(
       Effect.mapError((issue) => new HttpBodyError({ reason: { _tag: "SchemaError", issue }, cause: issue })),
-      Effect.flatMap((body) => json(body))
+      Effect.flatMap((body) => json(body, contentType))
     )
 }
 
@@ -246,8 +247,8 @@ export const jsonSchema = <S extends Schema.Schema<any>>(
  * @since 4.0.0
  * @category constructors
  */
-export const urlParams = (urlParams: UrlParams.UrlParams): Uint8Array =>
-  text(UrlParams.toString(urlParams), "application/x-www-form-urlencoded")
+export const urlParams = (urlParams: UrlParams.UrlParams, contentType?: string): Uint8Array =>
+  text(UrlParams.toString(urlParams), contentType ?? "application/x-www-form-urlencoded")
 
 /**
  * @since 4.0.0

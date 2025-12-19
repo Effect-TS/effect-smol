@@ -9,7 +9,7 @@ import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import type { LazyArg } from "../../Function.ts"
-import { constant, constVoid, dual, pipe } from "../../Function.ts"
+import { constant, constTrue, constVoid, dual, pipe } from "../../Function.ts"
 import type * as Inspectable from "../../Inspectable.ts"
 import { PipeInspectableProto } from "../../internal/core.ts"
 import * as Layer from "../../Layer.ts"
@@ -513,21 +513,20 @@ function runCallbackSync<R, A, E, ER = never>(
   }
   const runFork = Effect.runForkWith(services)
   const scheduler = ServiceMap.get(services, Scheduler.Scheduler)
-  const canFlush = "flush" in scheduler
-  const fiberRuntime = runFork(effect)
-  if (canFlush) {
+  const fiber = runFork(effect)
+  if ("flush" in scheduler) {
     ;(scheduler as Scheduler.MixedScheduler).flush()
   }
-  const result = fiberRuntime.pollUnsafe()
+  const result = fiber.pollUnsafe()
   if (result) {
     onExit(result)
     return undefined
   }
-  const remove = fiberRuntime.addObserver(onExit)
+  const remove = fiber.addObserver(onExit)
   function cancel() {
     remove()
     if (!uninterruptible) {
-      fiberRuntime.interruptUnsafe()
+      fiber.interruptUnsafe()
     }
   }
   return cancel
@@ -750,16 +749,16 @@ function makeStream<A, E>(
   services = ServiceMap.add(services, AtomRegistry, ctx.registry)
 
   const run = Effect.scopedWith((scope) =>
-    Effect.flatMap(Channel.toPullScoped(Stream.toChannel(stream), scope), (pull) =>
-      pull.pipe(
-        Effect.flatMap((arr) => {
+    Effect.flatMap(Channel.toPullScoped(stream.channel, scope), (pull) =>
+      Effect.whileLoop({
+        while: constTrue,
+        body: () => pull,
+        step(arr) {
           ctx.setSelf(AsyncResult.success(Arr.lastNonEmpty(arr), {
             waiting: true
           }))
-          return Effect.void
-        }),
-        Effect.forever({ autoYield: false })
-      ))
+        }
+      }))
   ).pipe(
     Effect.catchCause((cause) => {
       if (Pull.isHaltCause(cause)) {
@@ -784,8 +783,16 @@ function makeStream<A, E>(
       return Effect.void
     })
   )
+  const servicesMap = new Map(services.mapUnsafe)
+  servicesMap.set(AtomRegistry.key, ctx.registry)
+  servicesMap.set(Scheduler.Scheduler.key, ctx.registry.scheduler)
 
-  const cancel = runCallbackSync(ServiceMap.add(services, AtomRegistry, ctx.registry), run, constVoid, false)
+  const cancel = runCallbackSync(
+    ServiceMap.makeUnsafe<AtomRegistry>(servicesMap),
+    run,
+    constVoid,
+    false
+  )
   if (cancel !== undefined) {
     ctx.addFinalizer(cancel)
   }
@@ -1076,7 +1083,7 @@ function makeResultFn<Arg, E, A>(
           (fiber) => {
             fibers.add(fiber)
             fiber.addObserver(() => fibers.delete(fiber))
-            return Effect.map(Fiber.joinAll(fibers), Arr.lastNonEmpty)
+            return Effect.map(Fiber.joinAll(fibers), (arr) => arr[0])
           }
         )
       }

@@ -718,7 +718,7 @@ export const sync: {
  * @category constructors
  */
 export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): Layer<A> =>
-  fromBuildUnsafe(constant(internalEffect.sync(evaluate)))
+  fromBuildMemo(constant(internalEffect.sync(evaluate)))
 
 /**
  * Constructs a layer from the specified scoped effect.

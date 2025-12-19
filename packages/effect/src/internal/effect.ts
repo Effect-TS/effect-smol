@@ -758,8 +758,8 @@ export const fiberJoin = <A, E>(self: Fiber.Fiber<A, E>): Effect.Effect<A, E> =>
 }
 
 /** @internal */
-export const fiberJoinAll = <A extends Fiber.Fiber<any, any>>(self: Iterable<A>): Effect.Effect<
-  Arr.NonEmptyArray<A extends Fiber.Fiber<infer _A, infer _E> ? _A : never>,
+export const fiberJoinAll = <A extends Iterable<Fiber.Fiber<any, any>>>(self: A): Effect.Effect<
+  Arr.ReadonlyArray.With<A, A extends Iterable<Fiber.Fiber<infer _A, infer _E>> ? _A : never>,
   A extends Fiber.Fiber<infer _A, infer _E> ? _E : never
 > =>
   callback((resume) => {

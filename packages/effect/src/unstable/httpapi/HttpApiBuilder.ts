@@ -645,25 +645,33 @@ const responseTransformation = <A, I, RD, RE>(
       const encoding = HttpApiSchema.getEncoding(ast)
       switch (encoding.kind) {
         case "Json": {
-          return Effect.mapError(
-            Response.json(data, { status }),
-            (error) => new Issue.InvalidType(ast, Option.some(error))
-          )
+          try {
+            return Effect.succeed(Response.text(JSON.stringify(data), {
+              status,
+              contentType: encoding.contentType
+            }))
+          } catch (error) {
+            return Effect.fail(new Issue.InvalidType(ast, Option.some(error)))
+          }
         }
         case "Text": {
-          return Effect.succeed(Response.text(data as any, {
+          return Effect.succeed(Response.text(data as string, {
             status,
             contentType: encoding.contentType
           }))
         }
         case "Uint8Array": {
-          return Effect.succeed(Response.uint8Array(data as any, {
+          return Effect.succeed(Response.uint8Array(data as Uint8Array, {
             status,
             contentType: encoding.contentType
           }))
         }
         case "UrlParams": {
-          return Effect.succeed(Response.urlParams(data as any, { status }))
+          return Effect.succeed(
+            Response.urlParams(data as any, { status }).pipe(
+              Response.setHeader("content-type", encoding.contentType)
+            )
+          )
         }
       }
     }

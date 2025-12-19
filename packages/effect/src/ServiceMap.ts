@@ -53,6 +53,7 @@ export interface Service<in out Identifier, in out Shape>
   of(self: Shape): Shape
   serviceMap(self: Shape): ServiceMap<Identifier>
   use<A, E, R>(f: (service: Shape) => Effect<A, E, R>): Effect<A, E, R | Identifier>
+  useSync<A>(f: (service: Shape) => A): Effect<A, never, Identifier>
 
   readonly stack?: string | undefined
   readonly key: string
@@ -205,6 +206,9 @@ const ServiceProto: any = {
   },
   use<A, E, R>(this: Service<never, any>, f: (service: any) => Effect<A, E, R>): Effect<A, E, R> {
     return withFiber((fiber) => f(get(fiber.services, this)))
+  },
+  useSync<A>(this: Service<never, any>, f: (service: any) => A): Effect<A, never, never> {
+    return withFiber((fiber) => exitSucceed(f(get(fiber.services, this))))
   }
 }
 
