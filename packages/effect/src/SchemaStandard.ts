@@ -23,7 +23,6 @@ export interface Declaration {
   readonly _tag: "Declaration"
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly typeParameters: ReadonlyArray<StandardSchema>
-  readonly checks: ReadonlyArray<Check<DateMeta>>
   readonly Encoded: StandardSchema
 }
 
@@ -330,18 +329,6 @@ export type BigIntMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isGreaterThanBigInt"
   | "isLessThanBigInt"
   | "isBetweenBigInt"
-]
-
-/**
- * @since 4.0.0
- */
-export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
-  | "isValidDate"
-  | "isGreaterThanDate"
-  | "isGreaterThanOrEqualToDate"
-  | "isLessThanDate"
-  | "isLessThanOrEqualToDate"
-  | "isBetweenDate"
 ]
 
 /**
@@ -869,50 +856,6 @@ export const Reference$ = Schema.Struct({
   isSuspend: Schema.Boolean
 }).annotate({ identifier: "Reference" })
 
-const IsValidDate$ = Schema.Struct({
-  _tag: Schema.tag("isValidDate")
-}).annotate({ identifier: "IsValidDate" })
-
-const IsGreaterThanDate$ = Schema.Struct({
-  _tag: Schema.tag("isGreaterThanDate"),
-  exclusiveMinimum: Schema.Date
-}).annotate({ identifier: "IsGreaterThanDate" })
-
-const IsGreaterThanOrEqualToDate$ = Schema.Struct({
-  _tag: Schema.tag("isGreaterThanOrEqualToDate"),
-  minimum: Schema.Date
-}).annotate({ identifier: "IsGreaterThanOrEqualToDate" })
-
-const IsLessThanDate$ = Schema.Struct({
-  _tag: Schema.tag("isLessThanDate"),
-  exclusiveMaximum: Schema.Date
-}).annotate({ identifier: "IsLessThanDate" })
-
-const IsLessThanOrEqualToDate$ = Schema.Struct({
-  _tag: Schema.tag("isLessThanOrEqualToDate"),
-  maximum: Schema.Date
-}).annotate({ identifier: "IsLessThanOrEqualToDate" })
-
-const IsBetweenDate$ = Schema.Struct({
-  _tag: Schema.tag("isBetweenDate"),
-  minimum: Schema.Date,
-  maximum: Schema.Date,
-  exclusiveMinimum: Schema.optional(Schema.Boolean),
-  exclusiveMaximum: Schema.optional(Schema.Boolean)
-}).annotate({ identifier: "IsBetweenDate" })
-
-/**
- * @since 4.0.0
- */
-const DateMeta$ = Schema.Union([
-  IsValidDate$,
-  IsGreaterThanDate$,
-  IsGreaterThanOrEqualToDate$,
-  IsLessThanDate$,
-  IsLessThanOrEqualToDate$,
-  IsBetweenDate$
-]).annotate({ identifier: "DateMeta" })
-
 /**
  * @since 4.0.0
  */
@@ -920,7 +863,6 @@ export const Declaration$ = Schema.Struct({
   _tag: Schema.tag("Declaration"),
   annotations: Schema.optionalKey(Annotations$),
   typeParameters: Schema.Array(Schema$ref),
-  checks: Schema.Array(makeCheck(DateMeta$, "Date")),
   Encoded: Schema$ref
 }).annotate({ identifier: "Declaration" })
 

@@ -7664,11 +7664,12 @@ export function toJsonSchemaDocument<S extends Top>(
   schema: S,
   options?: ToJsonSchemaOptions // TODO: remove referenceStrategy option (convert to rewrite function)
 ): JsonSchema.Document<"draft-2020-12"> {
-  const document = standardDocumentToJsonSchemaDocument(standardDocumentFromAST(schema.ast), options)
+  const document = standardDocumentFromAST(schema.ast)
+  const jsonDocument = standardDocumentToJsonSchemaDocument(document, options)
   return {
     source: "draft-2020-12",
-    schema: document.schema,
-    definitions: document.definitions
+    schema: jsonDocument.schema,
+    definitions: jsonDocument.definitions
   }
 }
 
@@ -8909,14 +8910,14 @@ export declare namespace Annotations {
 
 /** @internal */
 export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
-  ast = AST.toEncoded(ast)
+  const encoded = AST.toEncoded(ast)
 
   const visited = new Set<AST.AST>()
   const identifiers = new Map<AST.AST, string>()
   const definitions: Record<string, SchemaStandard.StandardSchema> = {}
 
   return {
-    schema: recur(ast),
+    schema: recur(encoded),
     definitions
   }
 
@@ -8968,7 +8969,6 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
         return {
           _tag: "Declaration",
           typeParameters: ast.typeParameters.map((tp) => recur(tp)),
-          checks: fromASTChecks(ast.checks),
           Encoded: recur(AST.toEncoded(serializerJson(ast)))
         }
       case "Null":
