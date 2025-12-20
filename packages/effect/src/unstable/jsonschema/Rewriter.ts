@@ -1,15 +1,12 @@
 /**
  * @since 4.0.0
  */
-import * as Predicate from "effect/Predicate"
-import * as Arr from "../../Array.ts"
 import * as Combiner from "../../Combiner.ts"
 import { format } from "../../Formatter.ts"
 import type { JsonPatchOperation } from "../../JsonPatch.ts"
 import type * as JsonSchema from "../../JsonSchema.ts"
 import * as Rec from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
-import * as Struct from "../../Struct.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 
 /**
@@ -27,10 +24,10 @@ export interface RewriterTracer {
 /**
  * @since 4.0.0
  */
-export type Rewriter = <S extends JsonSchema.Source>(
-  document: JsonSchema.Document<S>,
+export type Rewriter = (
+  document: JsonSchema.Document<"draft-2020-12">,
   tracer?: RewriterTracer
-) => JsonSchema.Document<S>
+) => JsonSchema.Document<"draft-2020-12">
 
 /**
  * Rewrites a JSON Schema to an OpenAI-compatible schema.
@@ -64,7 +61,7 @@ export const openAi: Rewriter = (document, tracer) => {
         op: "replace",
         path: formatPath(path),
         value,
-        description: "[ROOT_OBJECT_REQUIRED]"
+        description: `[ROOT_OBJECT_REQUIRED] at ${formatPath(path)}`
       })
       return value
     }
@@ -95,20 +92,20 @@ export const openAi: Rewriter = (document, tracer) => {
         op: "replace",
         path: formatPath(path),
         value,
-        description: "[ONE_OF -> ANY_OF]"
+        description: `[ONE_OF -> ANY_OF] at ${formatPath(path)}`
       })
-      return value
+      return recur(value, path)
     }
 
     // [MERGE_ALL_OF]
     if (Array.isArray(schema.allOf)) {
       const { allOf, ...rest } = schema
-      const value = allOf.reduce((acc, curr) => propertiesReducer.combine(acc, curr), rest)
+      const value = allOf.reduce((acc, curr) => combine(acc, curr), rest)
       tracer?.push({
         op: "replace",
         path: formatPath(path),
         value,
-        description: `[MERGE_ALL_OF]: ${allOf.length} fragment(s)`
+        description: `[MERGE_ALL_OF]: ${allOf.length} fragment(s) at ${formatPath(path)}`
       })
       return recur(value, path)
     }
@@ -181,7 +178,7 @@ export const openAi: Rewriter = (document, tracer) => {
                 op: "add",
                 path: formatPath([...path, "required", "-"]),
                 value: key,
-                description: `[ADD_REQUIRED_PROPERTY]: ${format(key)}`
+                description: `[ADD_REQUIRED_PROPERTY] ${format(key)} at ${formatPath(path)}`
               })
             }
           }
@@ -195,7 +192,7 @@ export const openAi: Rewriter = (document, tracer) => {
           op: "replace",
           path: formatPath([...path, "additionalProperties"]),
           value: false,
-          description: "[SET_ADDITIONAL_PROPERTIES_TO_FALSE]"
+          description: `[SET_ADDITIONAL_PROPERTIES_TO_FALSE] at ${formatPath(path)}`
         })
       }
 
@@ -216,7 +213,7 @@ export const openAi: Rewriter = (document, tracer) => {
         op: "replace",
         path: formatPath(path),
         value,
-        description: "[CONST -> ENUM]"
+        description: `[CONST -> ENUM] at ${formatPath(path)}`
       })
       return value
     }
@@ -226,7 +223,7 @@ export const openAi: Rewriter = (document, tracer) => {
       op: "replace",
       path: formatPath(path),
       value,
-      description: "[UNKNOWN_SCHEMA_TYPE]"
+      description: `[UNKNOWN_SCHEMA_TYPE] at ${formatPath(path)}`
     })
     return value
   }
@@ -250,7 +247,7 @@ function whitelistProperties(
     tracer?.push({
       op: "remove",
       path: formatPath([...path, key]),
-      description: `[UNSUPPORTED_PROPERTY_KEY]: ${format(key)}`
+      description: `[UNSUPPORTED_PROPERTY_KEY] ${format(key)} at ${formatPath(path)}`
     })
 
     delete out[key]
@@ -258,7 +255,21 @@ function whitelistProperties(
   return out
 }
 
-const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
+function combine(a: JsonSchema.JsonSchema, b: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
+  const out = { ...a }
+  for (const key of Object.keys(b)) {
+    if (key in combiners) {
+      out[key] = combiners[key as keyof typeof combiners].combine(a[key], b[key])
+    } else {
+      out[key] = b[key]
+    }
+  }
+  return out
+}
+
+const join = UndefinedOr.getReducer(Combiner.make<unknown>((a, b) => {
+  if (typeof a !== "string") return b
+  if (typeof b !== "string") return a
   a = a.trim()
   b = b.trim()
   if (a === "") return b
@@ -266,15 +277,19 @@ const join = UndefinedOr.getReducer(Combiner.make<string>((a, b) => {
   return `${a}, ${b}`
 }))
 
-const propertiesReducer = Struct.getReducer({
-  type: UndefinedOr.getReducer(Combiner.first<string>()),
+const concat = UndefinedOr.getReducer(Combiner.make<unknown>((a, b) => {
+  if (!Array.isArray(a)) return b
+  if (!Array.isArray(b)) return a
+  return [...a, ...b]
+}))
+
+const combiners = {
+  type: UndefinedOr.getReducer(Combiner.last()),
   description: join,
   title: join,
   default: UndefinedOr.getReducer(Combiner.last()),
-  examples: UndefinedOr.getReducer(Arr.getReducerConcat())
-}, {
-  omitKeyWhen: Predicate.isUndefined
-})
+  examples: concat
+}
 
 function getDefaultSchema(schema: JsonSchema.JsonSchema): Schema.JsonObject {
   const out: Schema.MutableJsonObject = {
