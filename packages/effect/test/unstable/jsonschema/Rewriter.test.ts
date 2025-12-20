@@ -22,7 +22,7 @@ function assertJsonSchema(
     }
   }
   const document = rewriter(
-    Schema.toJsonSchema(schema, {
+    Schema.toJsonSchemaDocument(schema, {
       generateDescriptions: true,
       referenceStrategy: "skip-top-level",
       ...options

@@ -976,7 +976,7 @@ export function fromSchema(schema: Schema.Top): Document {
 /**
  * @since 4.0.0
  */
-export const fromAST = AST.documentFromAST
+export const fromAST = AST.standardDocumentFromAST
 
 const schemaToCodecJson = Schema.toCodecJson(Schema$)
 const encodeSchema = Schema.encodeUnknownSync(schemaToCodecJson)
@@ -1332,7 +1332,7 @@ function toSchemaFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | Ar
  *
  * @since 4.0.0
  */
-export const toJsonSchema = AST.documentToJsonSchema
+export const toJsonSchemaDocument = AST.standardDocumentToJsonSchemaDocument
 
 /**
  * @since 4.0.0

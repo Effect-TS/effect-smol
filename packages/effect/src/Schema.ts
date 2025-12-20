@@ -551,7 +551,7 @@ export function toStandardSchemaV1<
 
 function toBaseStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Target): JsonSchema.JsonSchema {
   if (target === "draft-2020-12") {
-    const { definitions, schema } = toJsonSchema(self)
+    const { definitions, schema } = toJsonSchemaDocument(self)
     if (Object.keys(definitions).length > 0) {
       schema.$defs = definitions
     }
@@ -7654,14 +7654,14 @@ export interface ToJsonSchemaOptions {
 }
 
 /**
- * Returns a JSON Schema.
+ * Returns a JSON Schema Document (draft-2020-12).
  *
  * You can use the `options` parameter to return a different target JSON Schema.
  *
  * @category JsonSchema
  * @since 4.0.0
  */
-export function toJsonSchema<S extends Top>(
+export function toJsonSchemaDocument<S extends Top>(
   schema: S,
   _options?: ToJsonSchemaOptions
 ): JsonSchema.Document<"draft-2020-12"> {
@@ -7669,7 +7669,7 @@ export function toJsonSchema<S extends Top>(
   // const referenceStrategy = options.referenceStrategy ?? "keep"
   // const generateDescriptions = options.generateDescriptions ?? false
 
-  const document = AST.documentToJsonSchema(AST.documentFromAST(schema.ast))
+  const document = AST.standardDocumentToJsonSchemaDocument(AST.standardDocumentFromAST(schema.ast))
   return {
     source: "draft-2020-12",
     schema: document.schema,

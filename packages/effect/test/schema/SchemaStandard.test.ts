@@ -27,12 +27,12 @@ function assertToCode(schema: Schema.Top, expected: string, reviver?: SchemaStan
 
 function assertJsonSchemaRoundtrip(schema: Schema.Top, expected: string, reviver?: SchemaStandard.Reviver<string>) {
   const document = SchemaStandard.fromAST(schema.ast)
-  const toJsonSchema = SchemaStandard.toJsonSchema(document)
+  const toJsonSchema = SchemaStandard.toJsonSchemaDocument(document)
   const decodedDocument = SchemaStandard.fromJsonSchema(toJsonSchema)
   const code = SchemaStandard.toCode(decodedDocument, { reviver })
   strictEqual(code, expected)
   const decodedSchema = SchemaStandard.toSchema(decodedDocument)
-  deepStrictEqual(SchemaStandard.toJsonSchema(SchemaStandard.fromAST(decodedSchema.ast)), toJsonSchema)
+  deepStrictEqual(SchemaStandard.toJsonSchemaDocument(SchemaStandard.fromAST(decodedSchema.ast)), toJsonSchema)
 }
 
 describe("Standard", () => {
@@ -69,7 +69,7 @@ describe("Standard", () => {
       const astDocument = Schema.isSchema(documentOrSchema)
         ? SchemaStandard.fromAST(documentOrSchema.ast)
         : documentOrSchema
-      const jsonDocument = SchemaStandard.toJsonSchema(astDocument)
+      const jsonDocument = SchemaStandard.toJsonSchemaDocument(astDocument)
       strictEqual(jsonDocument.source, "draft-2020-12")
       deepStrictEqual(jsonDocument.schema, expected.schema)
       deepStrictEqual(jsonDocument.definitions, expected.definitions ?? {})

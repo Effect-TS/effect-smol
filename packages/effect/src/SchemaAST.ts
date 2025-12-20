@@ -2716,7 +2716,7 @@ export const resolveTitle: (ast: AST) => string | undefined = InternalAnnotation
 export const resolveDescription: (ast: AST) => string | undefined = InternalAnnotations.resolveDescription
 
 /** @internal */
-export function documentFromAST(ast: AST): SchemaStandard.Document {
+export function standardDocumentFromAST(ast: AST): SchemaStandard.Document {
   ast = toEncoded(ast)
 
   const visited = new Set<AST>()
@@ -2892,7 +2892,9 @@ function fromASTChecks(
 }
 
 /** @internal */
-export function documentToJsonSchema(document: SchemaStandard.Document): JsonSchema.Document<"draft-2020-12"> {
+export function standardDocumentToJsonSchemaDocument(
+  document: SchemaStandard.Document
+): JsonSchema.Document<"draft-2020-12"> {
   return {
     source: "draft-2020-12",
     schema: recur(document.schema),

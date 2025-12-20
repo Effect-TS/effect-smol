@@ -39,7 +39,7 @@ describe("Multipart", () => {
 
   describe("FileSchema", () => {
     it("toJsonSchema", () => {
-      const document = Schema.toJsonSchema(Multipart.FileSchema)
+      const document = Schema.toJsonSchemaDocument(Multipart.FileSchema)
       deepStrictEqual(document, {
         source: "draft-07",
         schema: {
