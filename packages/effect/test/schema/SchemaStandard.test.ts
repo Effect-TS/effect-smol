@@ -1343,7 +1343,43 @@ describe("Standard", () => {
           typeParameters: [
             { _tag: "String", checks: [] }
           ],
-          checks: []
+          checks: [],
+          Encoded: {
+            _tag: "Union",
+            types: [
+              {
+                _tag: "Objects",
+                propertySignatures: [
+                  {
+                    name: "_tag",
+                    type: { _tag: "Literal", literal: "Some" },
+                    isOptional: false,
+                    isMutable: false
+                  },
+                  {
+                    name: "value",
+                    type: { _tag: "String", checks: [] },
+                    isOptional: false,
+                    isMutable: false
+                  }
+                ],
+                indexSignatures: []
+              },
+              {
+                _tag: "Objects",
+                propertySignatures: [
+                  {
+                    name: "_tag",
+                    type: { _tag: "Literal", literal: "None" },
+                    isOptional: false,
+                    isMutable: false
+                  }
+                ],
+                indexSignatures: []
+              }
+            ],
+            mode: "anyOf"
+          }
         }
       })
     })

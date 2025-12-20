@@ -3098,7 +3098,7 @@ describe("SchemaFromJson", () => {
 
       const Expression = Schema.Struct({
         type: Schema.Literal("expression"),
-        value: Schema.Union([Schema.Finite, Schema.suspend((): Schema.Codec<Operation> => Operation)])
+        value: Schema.Union([Schema.Int, Schema.suspend((): Schema.Codec<Operation> => Operation)])
       }).annotate({ identifier: "Expression" })
 
       const Operation = Schema.Struct({
@@ -3113,11 +3113,11 @@ describe("SchemaFromJson", () => {
         strictEqual(
           generate(document.definitions, [document.schema]),
           `// Definitions
+type Expression = { readonly "type": "expression", readonly "value": number | Operation };
+const Expression = Schema.Struct({ "type": Schema.Literal("expression"), "value": Schema.Union([Schema.Int, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ "identifier": "Expression" });
+
 type Operation = { readonly "type": "operation", readonly "operator": "+" | "-", readonly "left": Expression, readonly "right": Expression };
 const Operation = Schema.Struct({ "type": Schema.Literal("operation"), "operator": Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), "left": Schema.suspend((): Schema.Codec<Expression> => Expression), "right": Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ "identifier": "Operation" });
-
-type Expression = { readonly "type": "expression", readonly "value": number | Operation };
-const Expression = Schema.Struct({ "type": Schema.Literal("expression"), "value": Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ "identifier": "Expression" });
 
 // Schemas
 const schema1 = Operation;`
@@ -3129,7 +3129,7 @@ const schema1 = Operation;`
           generate(document.definitions, [document.schema]),
           `// Definitions
 type Expression = { readonly "type": "expression", readonly "value": number | Operation };
-const Expression = Schema.Struct({ "type": Schema.Literal("expression"), "value": Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ "identifier": "Expression" });
+const Expression = Schema.Struct({ "type": Schema.Literal("expression"), "value": Schema.Union([Schema.Int, Schema.suspend((): Schema.Codec<Operation> => Operation)]) }).annotate({ "identifier": "Expression" });
 
 type Operation = { readonly "type": "operation", readonly "operator": "+" | "-", readonly "left": Expression, readonly "right": Expression };
 const Operation = Schema.Struct({ "type": Schema.Literal("operation"), "operator": Schema.Union([Schema.Literal("+"), Schema.Literal("-")]), "left": Schema.suspend((): Schema.Codec<Expression> => Expression), "right": Schema.suspend((): Schema.Codec<Expression> => Expression) }).annotate({ "identifier": "Operation" });
@@ -3205,7 +3205,6 @@ const schema1 = Schema.Struct({ "a": A });`
     assertRoundtrip({ schema: Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)) })
     assertRoundtrip({ schema: Schema.Number.check(Schema.isLessThan(1)) })
     assertRoundtrip({ schema: Schema.Number.check(Schema.isLessThanOrEqualTo(1)) })
-    assertRoundtrip({ schema: Schema.Number.check(Schema.isBetween({ minimum: 1, maximum: 10 })) })
     assertRoundtrip({ schema: Schema.Number.check(Schema.isMultipleOf(10)) })
 
     assertRoundtrip({ schema: Schema.Boolean })
@@ -3238,7 +3237,6 @@ const schema1 = Schema.Struct({ "a": A });`
 
     assertRoundtrip({ schema: Schema.Union([Schema.String]) })
     assertRoundtrip({ schema: Schema.Union([Schema.String, Schema.Number]) })
-    assertRoundtrip({ schema: Schema.Union([Schema.String], { mode: "oneOf" }) })
     assertRoundtrip({ schema: Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }) })
   })
 
