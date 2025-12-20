@@ -1119,7 +1119,7 @@ export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S): JsonSc
     }
   }
   const document = Schema.toJsonSchemaDocument(schema, {
-    referenceStrategy: "skip"
+    referenceStrategy: "skip-top-level"
   })
   if (Object.keys(document.definitions).length > 0) {
     document.schema.$defs = document.definitions

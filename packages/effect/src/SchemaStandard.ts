@@ -24,6 +24,7 @@ export interface Declaration {
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly typeParameters: ReadonlyArray<StandardSchema>
   readonly checks: ReadonlyArray<Check<DateMeta>>
+  readonly Encoded: StandardSchema
 }
 
 /**
@@ -919,7 +920,8 @@ export const Declaration$ = Schema.Struct({
   _tag: Schema.tag("Declaration"),
   annotations: Schema.optionalKey(Annotations$),
   typeParameters: Schema.Array(Schema$ref),
-  checks: Schema.Array(makeCheck(DateMeta$, "Date"))
+  checks: Schema.Array(makeCheck(DateMeta$, "Date")),
+  Encoded: Schema$ref
 }).annotate({ identifier: "Declaration" })
 
 /**

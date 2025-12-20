@@ -87,7 +87,7 @@ describe("JsonSchema generation", () => {
   })
 
   describe("Declaration", () => {
-    it.todo("instanceOf", () => {
+    it("instanceOf", () => {
       const schema = Schema.URL
       assertDocument(schema, {
         schema: {
@@ -96,7 +96,7 @@ describe("JsonSchema generation", () => {
       })
     })
 
-    it.todo("Option(String)", () => {
+    it("Option(String)", () => {
       const schema = Schema.Option(Schema.String)
       assertDocument(schema, {
         schema: {
@@ -132,63 +132,43 @@ describe("JsonSchema generation", () => {
     })
   })
 
-  describe.todo("options", () => {
+  describe("options", () => {
+    it("generateDescriptions: true", () => {
+      assertDocument(
+        Schema.String.annotate({ expected: "b" }),
+        {
+          schema: { "type": "string", "description": "b" }
+        },
+        { generateDescriptions: true }
+      )
+      assertDocument(
+        Schema.String.annotate({ description: "a", expected: "b" }),
+        {
+          schema: { "type": "string", "description": "a" }
+        },
+        { generateDescriptions: true }
+      )
+    })
+
     describe("topLevelReferenceStrategy", () => {
-      describe(`"skip"`, () => {
+      describe(`"skip-top-level"`, () => {
         it("String", () => {
           assertDocument(
-            Schema.String.annotate({ identifier: "ID" }),
+            Schema.String.annotate({ identifier: "a/b" }),
             {
               schema: {
                 "type": "string"
               },
-              definitions: {}
+              definitions: {
+                "a/b": {
+                  "type": "string"
+                }
+              }
             },
             {
-              referenceStrategy: "skip"
+              referenceStrategy: "skip-top-level"
             }
           )
-        })
-
-        it("nested identifiers", () => {
-          class A extends Schema.Class<A>("A")({ s: Schema.String.annotate({ identifier: "ID4" }) }) {}
-          const schema = Schema.Struct({
-            a: Schema.String.annotate({ identifier: "ID" }),
-            b: Schema.Struct({
-              c: Schema.String.annotate({ identifier: "ID3" })
-            }).annotate({ identifier: "ID2" }),
-            d: A
-          })
-          assertDocument(schema, {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": "string"
-                },
-                "b": {
-                  "type": "object",
-                  "properties": {
-                    "c": { "type": "string" }
-                  },
-                  "required": ["c"],
-                  "additionalProperties": false
-                },
-                "d": {
-                  "type": "object",
-                  "properties": {
-                    "s": { "type": "string" }
-                  },
-                  "required": ["s"],
-                  "additionalProperties": false
-                }
-              },
-              "required": ["a", "b", "d"],
-              "additionalProperties": false
-            }
-          }, {
-            referenceStrategy: "skip"
-          })
         })
 
         describe("Suspend", () => {
@@ -233,7 +213,7 @@ describe("JsonSchema generation", () => {
                 }
               }
             }, {
-              referenceStrategy: "skip"
+              referenceStrategy: "skip-top-level"
             })
           })
 
@@ -281,7 +261,7 @@ describe("JsonSchema generation", () => {
                 }
               },
               {
-                referenceStrategy: "skip"
+                referenceStrategy: "skip-top-level"
               }
             )
           })

@@ -235,7 +235,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
     // TODO: convert to openapi-3.1
     const { definitions, schema } = Schema.toJsonSchemaDocument(Schema.make(ast), {
       additionalProperties: options?.additionalProperties,
-      referenceStrategy: "keep"
+      referenceStrategy: "skip-top-level"
     })
     Object.assign(jsonSchemaDefs, definitions)
     return schema
