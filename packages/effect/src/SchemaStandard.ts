@@ -8,7 +8,7 @@ import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
 import * as Schema from "./Schema.ts"
-import * as AST from "./SchemaAST.ts"
+import type * as AST from "./SchemaAST.ts"
 import * as Getter from "./SchemaGetter.ts"
 import type * as Types from "./Types.ts"
 
@@ -976,7 +976,7 @@ export function fromSchema(schema: Schema.Top): Document {
 /**
  * @since 4.0.0
  */
-export const fromAST = AST.standardDocumentFromAST
+export const fromAST = Schema.standardDocumentFromAST
 
 const schemaToCodecJson = Schema.toCodecJson(Schema$)
 const encodeSchema = Schema.encodeUnknownSync(schemaToCodecJson)
@@ -1332,7 +1332,7 @@ function toSchemaFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | Ar
  *
  * @since 4.0.0
  */
-export const toJsonSchemaDocument = AST.standardDocumentToJsonSchemaDocument
+export const toJsonSchemaDocument = Schema.standardDocumentToJsonSchemaDocument
 
 /**
  * @since 4.0.0

@@ -22,6 +22,7 @@ import * as core from "./internal/core.ts"
 import * as InternalEquivalence from "./internal/equivalence.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as InternalArbitrary from "./internal/schema/arbitrary.ts"
+import { escapeToken } from "./internal/schema/json-pointer.ts"
 import * as JsonPatch from "./JsonPatch.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
 import { remainder } from "./Number.ts"
@@ -32,6 +33,7 @@ import * as Pipeable from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Record_ from "./Record.ts"
 import * as Redacted_ from "./Redacted.ts"
+import * as RegExp_ from "./RegExp.ts"
 import * as Request from "./Request.ts"
 import * as Result_ from "./Result.ts"
 import * as Scheduler from "./Scheduler.ts"
@@ -39,11 +41,13 @@ import * as AST from "./SchemaAST.ts"
 import * as Getter from "./SchemaGetter.ts"
 import * as Issue from "./SchemaIssue.ts"
 import * as Parser from "./SchemaParser.ts"
+import type * as SchemaStandard from "./SchemaStandard.ts"
 import * as Transformation from "./SchemaTransformation.ts"
 import type { Assign, Lambda, Mutable, Simplify } from "./Struct.ts"
 import * as Struct_ from "./Struct.ts"
 import * as FastCheck from "./testing/FastCheck.ts"
 import type { UnionToIntersection } from "./Types.ts"
+import type * as Types from "./Types.ts"
 
 /**
  * Is this schema required or optional?
@@ -7669,7 +7673,7 @@ export function toJsonSchemaDocument<S extends Top>(
   // const referenceStrategy = options.referenceStrategy ?? "keep"
   // const generateDescriptions = options.generateDescriptions ?? false
 
-  const document = AST.standardDocumentToJsonSchemaDocument(AST.standardDocumentFromAST(schema.ast))
+  const document = standardDocumentToJsonSchemaDocument(standardDocumentFromAST(schema.ast))
   return {
     source: "draft-2020-12",
     schema: document.schema,
@@ -7794,7 +7798,7 @@ function stringTreeToXml(value: StringTree, options: XmlEncoderOptions): string 
       if (seen.has(node)) throw new globalThis.Error("Cycle detected while serializing to XML.", { cause: node })
       seen.add(node)
       try {
-        if (globalThis.Array.isArray(node)) {
+        if (globalThis.globalThis.Array.isArray(node)) {
           if (node.length === 0) {
             push(depth, `<${safe}${attrs}/>`)
             return
@@ -8911,3 +8915,553 @@ export declare namespace Annotations {
    */
   export type Meta = MetaDefinitions[keyof MetaDefinitions]
 }
+
+/** @internal */
+export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
+  ast = AST.toEncoded(ast)
+
+  const visited = new Set<AST.AST>()
+  const identifiers = new Map<AST.AST, string>()
+  const definitions: Record<string, SchemaStandard.StandardSchema> = {}
+
+  return {
+    schema: recur(ast),
+    definitions
+  }
+
+  function recur(ast: AST.AST, ignoreIdentifier = false): SchemaStandard.StandardSchema {
+    if (!ignoreIdentifier) {
+      const identifier = InternalAnnotations.resolveIdentifier(ast)
+      if (identifier !== undefined) {
+        const out: SchemaStandard.Reference = { _tag: "Reference", $ref: identifier, isSuspend: AST.isSuspend(ast) }
+        if (identifier in definitions) {
+          if (visited.has(ast)) {
+            return out
+          }
+          // duplicate identifier: TODO generate a new identifier?
+          return recur(ast, true)
+        } else {
+          identifiers.set(ast, identifier)
+          definitions[identifier] = recur(ast, true)
+          return out
+        }
+      }
+    }
+    const out = on(ast)
+    if (ast.annotations) {
+      out.annotations = ast.annotations
+    }
+    return out
+  }
+
+  function on(ast: AST.AST): Types.Mutable<SchemaStandard.StandardSchema> {
+    visited.add(ast)
+    switch (ast._tag) {
+      case "Suspend": {
+        const thunk = ast.thunk()
+        if (visited.has(thunk)) {
+          const identifier = InternalAnnotations.resolveIdentifier(thunk)
+          if (identifier !== undefined) {
+            if (identifiers.get(thunk) !== identifier) {
+              throw new globalThis.Error(`Suspended schema with duplicate identifier: ${identifier}`)
+            }
+            return { _tag: "Reference", $ref: identifier, isSuspend: true }
+          } else {
+            throw new globalThis.Error("Suspended schema without identifier detected", { cause: ast }) // TODO: test this
+          }
+        } else {
+          return recur(thunk)
+        }
+      }
+      case "Declaration":
+        return {
+          _tag: "Declaration",
+          typeParameters: ast.typeParameters.map((tp) => recur(tp)),
+          checks: fromASTChecks(ast.checks)
+        }
+      case "Null":
+      case "Undefined":
+      case "Void":
+      case "Never":
+      case "Unknown":
+      case "Any":
+      case "Boolean":
+      case "Symbol":
+        return { _tag: ast._tag }
+      case "String": {
+        const contentMediaType = ast.annotations?.contentMediaType
+        const contentSchema = ast.annotations?.contentSchema
+        if (typeof contentMediaType === "string" && AST.isAST(contentSchema)) {
+          return {
+            _tag: ast._tag,
+            checks: [],
+            contentMediaType,
+            contentSchema: recur(contentSchema)
+          }
+        }
+        return { _tag: ast._tag, checks: fromASTChecks(ast.checks) }
+      }
+      case "Number":
+      case "BigInt":
+        return { _tag: ast._tag, checks: fromASTChecks(ast.checks) }
+      case "Literal":
+        return { _tag: ast._tag, literal: ast.literal }
+      case "UniqueSymbol":
+        return { _tag: ast._tag, symbol: ast.symbol }
+      case "ObjectKeyword":
+        return { _tag: ast._tag }
+      case "Enum":
+        return { _tag: ast._tag, enums: ast.enums }
+      case "TemplateLiteral":
+        return { _tag: ast._tag, parts: ast.parts.map((p) => recur(p)) }
+      case "Arrays":
+        return {
+          _tag: ast._tag,
+          elements: ast.elements.map((e) => {
+            const out: Types.Mutable<SchemaStandard.Element> = { isOptional: AST.isOptional(e), type: recur(e) }
+            if (e.context?.annotations) {
+              out.annotations = e.context.annotations
+            }
+            return out
+          }),
+          rest: ast.rest.map((r) => recur(r)),
+          checks: fromASTChecks(ast.checks)
+        }
+      case "Objects":
+        return {
+          _tag: ast._tag,
+          propertySignatures: ast.propertySignatures.map((ps) => {
+            const out: Types.Mutable<SchemaStandard.PropertySignature> = {
+              name: ps.name,
+              type: recur(ps.type),
+              isOptional: AST.isOptional(ps.type),
+              isMutable: AST.isMutable(ps.type)
+            }
+            if (ps.type.context?.annotations) {
+              out.annotations = ps.type.context.annotations
+            }
+            return out
+          }),
+          indexSignatures: ast.indexSignatures.map((is) => ({
+            parameter: recur(is.parameter),
+            type: recur(is.type)
+          }))
+        }
+      case "Union":
+        return {
+          _tag: ast._tag,
+          types: ast.types.map((t) => recur(t)),
+          mode: ast.mode
+        }
+    }
+  }
+}
+
+function fromASTChecks(
+  checks: readonly [AST.Check<any>, ...Array<AST.Check<any>>] | undefined
+): Array<SchemaStandard.Check<any>> {
+  if (!checks) return []
+  function getCheck(c: AST.Check<any>): SchemaStandard.Check<any> | undefined {
+    switch (c._tag) {
+      case "Filter": {
+        const meta = c.annotations?.meta
+        if (meta) {
+          const out: Types.Mutable<SchemaStandard.Check<any>> = { _tag: "Filter", meta }
+          if (c.annotations) {
+            out.annotations = c.annotations
+          }
+          return out
+        }
+        return undefined
+      }
+      case "FilterGroup": {
+        const checks = fromASTChecks(c.checks)
+        if (Arr.isArrayNonEmpty(checks)) {
+          const out: Types.Mutable<SchemaStandard.Check<any>> = {
+            _tag: "FilterGroup",
+            checks
+          }
+          if (c.annotations) {
+            out.annotations = c.annotations
+          }
+          return out
+        }
+      }
+    }
+  }
+  return checks.map(getCheck).filter((c) => c !== undefined)
+}
+
+/** @internal */
+export function standardDocumentToJsonSchemaDocument(
+  document: SchemaStandard.Document
+): JsonSchema.Document<"draft-2020-12"> {
+  return {
+    source: "draft-2020-12",
+    schema: recur(document.schema),
+    definitions: Record_.map(document.definitions, (d) => recur(d))
+  }
+
+  function recur(ss: SchemaStandard.StandardSchema): JsonSchema.JsonSchema {
+    let s: JsonSchema.JsonSchema = on(ss)
+    if (s === unsupportedJsonSchema) return unsupportedJsonSchema
+    const a = collectJsonSchemaAnnotations(ss.annotations)
+    if (a) {
+      s = { ...s, ...a }
+    }
+    if ("checks" in ss) {
+      const checks = collectJsonSchemaChecks(ss.checks, s.type)
+      for (const check of checks) {
+        s = appendJsonSchema(s, check)
+      }
+    }
+    return normalizeJsonSchemaOutput(s)
+  }
+
+  function on(schema: SchemaStandard.StandardSchema): JsonSchema.JsonSchema {
+    switch (schema._tag) {
+      case "Unknown":
+      case "Any":
+      case "Void":
+        return {}
+      case "Undefined":
+      case "BigInt":
+      case "Symbol":
+      case "UniqueSymbol":
+        return unsupportedJsonSchema
+      case "Declaration":
+        return unsupportedJsonSchema
+      case "Reference":
+        return { $ref: `#/$defs/${escapeToken(schema.$ref)}` }
+      case "Null":
+        return { type: "null" }
+      case "Never":
+        return { not: {} }
+      case "String": {
+        const out: JsonSchema.JsonSchema = { type: "string" }
+        if (schema.contentMediaType !== undefined) {
+          out.contentMediaType = schema.contentMediaType
+        }
+        if (schema.contentSchema !== undefined) {
+          out.contentSchema = recur(schema.contentSchema)
+        }
+        return out
+      }
+      case "Number":
+        return { type: "number" }
+      case "Boolean":
+        return { type: "boolean" }
+      case "Literal": {
+        const literal = schema.literal
+        if (typeof literal === "string") {
+          return { type: "string", enum: [literal] }
+        }
+        if (typeof literal === "number") {
+          return { type: "number", enum: [literal] }
+        }
+        if (typeof literal === "boolean") {
+          return { type: "boolean", enum: [literal] }
+        }
+        // bigint literals are not supported
+        return unsupportedJsonSchema
+      }
+      case "ObjectKeyword":
+        return { anyOf: [{ type: "object" }, { type: "array" }] }
+      case "Enum": {
+        return recur({
+          _tag: "Union",
+          types: schema.enums.map(([title, value]) => ({
+            _tag: "Literal",
+            literal: value,
+            annotations: { title }
+          })),
+          mode: "anyOf"
+        })
+      }
+      case "TemplateLiteral": {
+        const pattern = schema.parts.map(getPartPattern).join("")
+        return { type: "string", pattern: `^${pattern}$` }
+      }
+      case "Arrays": {
+        // ---------------------------------------------
+        // handle post rest elements
+        // ---------------------------------------------
+        if (schema.rest.length > 1) {
+          throw new globalThis.Error("Generating a JSON Schema for post-rest elements is not supported")
+        }
+        const out: JsonSchema.JsonSchema = { type: "array" }
+        let minItems = schema.elements.length
+        const prefixItems: Array<JsonSchema.JsonSchema> = schema.elements.map((e) => {
+          if (e.isOptional || containsUndefined(e.type)) minItems--
+          const v = recur(e.type)
+          const a = collectJsonSchemaAnnotations(e.annotations)
+          return a ? appendJsonSchema(v, { ...a, "x-key": true }) : v
+        })
+        if (prefixItems.length > 0) {
+          out.prefixItems = prefixItems
+          out.minItems = minItems
+        }
+        if (schema.rest.length > 0) {
+          const rest = recur(schema.rest[0])
+          if (Object.keys(rest).length > 0) {
+            out.items = rest
+          }
+        } else {
+          // No rest element: no additional items allowed
+          out.items = false
+        }
+        if (out.minItems === 0) {
+          delete out.minItems
+        }
+        return out
+      }
+      case "Objects": {
+        if (schema.propertySignatures.length === 0 && schema.indexSignatures.length === 0) {
+          return { anyOf: [{ type: "object" }, { type: "array" }] }
+        }
+        const out: JsonSchema.JsonSchema = { type: "object" }
+        const properties: Record<string, JsonSchema.JsonSchema> = {}
+        const required: Array<string> = []
+
+        for (const ps of schema.propertySignatures) {
+          const name = ps.name
+          if (typeof name !== "string") {
+            throw new globalThis.Error(`Unsupported property signature name: ${format(name)}`)
+          }
+          const v = recur(ps.type)
+          const a = collectJsonSchemaAnnotations(ps.annotations)
+          properties[name] = a ? appendJsonSchema(v, { ...a, "x-key": true }) : v
+          // Property is required only if it's not explicitly optional AND doesn't contain Undefined
+          if (!ps.isOptional && !containsUndefined(ps.type)) {
+            required.push(name)
+          }
+        }
+
+        if (Object.keys(properties).length > 0) {
+          out.properties = properties
+        }
+        if (required.length > 0) {
+          out.required = required
+        }
+
+        out.additionalProperties = false
+        const patternProperties: Record<string, JsonSchema.JsonSchema> = {}
+        // Handle index signatures
+        for (const is of schema.indexSignatures) {
+          const type = recur(is.type)
+          const pattern = getPattern(is.parameter)
+          if (pattern !== undefined) {
+            patternProperties[`^${pattern}$`] = type
+          } else {
+            out.additionalProperties = type
+          }
+        }
+        if (Object.keys(patternProperties).length > 0) {
+          out.patternProperties = patternProperties
+          delete out.additionalProperties
+        }
+        if (Predicate.isObject(out.additionalProperties) && Record_.isRecordEmpty(out.additionalProperties)) {
+          delete out.additionalProperties
+        }
+
+        return out
+      }
+      case "Union": {
+        const types = schema.types.map((t) => recur(t)).filter((t) => t !== unsupportedJsonSchema)
+        if (types.length === 0) {
+          // anyOf MUST be a non-empty array
+          return unsupportedJsonSchema
+        }
+        return schema.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
+      }
+    }
+  }
+
+  function getPattern(
+    s: SchemaStandard.StandardSchema
+  ): string | undefined {
+    switch (s._tag) {
+      case "String": {
+        const jsonSchema = recur(s)
+        if (typeof jsonSchema.pattern === "string") {
+          return jsonSchema.pattern
+        }
+        return undefined
+      }
+      case "Number": {
+        const jsonSchema = recur(s)
+        if (typeof jsonSchema.pattern === "string") {
+          return jsonSchema.pattern
+        }
+        return undefined
+      }
+      case "TemplateLiteral":
+        return s.parts.map(getPartPattern).join("")
+      case "Union":
+        return s.types.map(getPartPattern).join("|")
+      default:
+        throw new globalThis.Error("Unsupported index signature parameter")
+    }
+  }
+
+  function containsUndefined(schema: SchemaStandard.StandardSchema): boolean {
+    switch (schema._tag) {
+      case "Undefined":
+        return true
+      case "Union":
+        return schema.types.some(containsUndefined)
+      default:
+        return false
+    }
+  }
+}
+
+function normalizeJsonSchemaOutput(s: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
+  if (globalThis.Array.isArray(s.anyOf)) {
+    if (s.anyOf.length === 1) {
+      if (Object.keys(s).length === 1) {
+        return s.anyOf[0]
+      }
+    }
+  }
+  return s
+}
+
+function collectJsonSchemaChecks(
+  checks: ReadonlyArray<SchemaStandard.Check<any>>,
+  type: unknown
+): Array<JsonSchema.JsonSchema> {
+  return checks.map(recur).filter((c) => c !== undefined)
+
+  function recur(check: SchemaStandard.Check<any>): JsonSchema.JsonSchema | undefined {
+    switch (check._tag) {
+      case "Filter":
+        return filterToJsonSchema(check, type)
+      case "FilterGroup": {
+        const checks = check.checks.map(recur).filter((c) => c !== undefined)
+        if (checks.length === 0) return undefined
+        let out = { allOf: checks }
+        const a = collectJsonSchemaAnnotations(check.annotations)
+        if (a) {
+          out = { ...out, ...a }
+        }
+        return out
+      }
+    }
+  }
+}
+
+function filterToJsonSchema(filter: SchemaStandard.Filter<any>, type: unknown): JsonSchema.JsonSchema | undefined {
+  const meta = filter.meta as SchemaStandard.StringMeta | SchemaStandard.NumberMeta | SchemaStandard.ArraysMeta
+  if (!meta) return undefined
+
+  let out = on(meta)
+  const a = collectJsonSchemaAnnotations(filter.annotations)
+  if (a) {
+    out = { ...out, ...a }
+  }
+  return out
+
+  function on(
+    meta: SchemaStandard.StringMeta | SchemaStandard.NumberMeta | SchemaStandard.ArraysMeta
+  ): JsonSchema.JsonSchema {
+    switch (meta._tag) {
+      case "isMinLength":
+        return type === "array" ? { minItems: meta.minLength } : { minLength: meta.minLength }
+      case "isMaxLength":
+        return type === "array" ? { maxItems: meta.maxLength } : { maxLength: meta.maxLength }
+      case "isLength":
+        return type === "array"
+          ? { allOf: [{ minItems: meta.length }, { maxItems: meta.length }] }
+          : { allOf: [{ minLength: meta.length }, { maxLength: meta.length }] }
+      case "isPattern":
+      case "isULID":
+      case "isBase64":
+      case "isBase64Url":
+      case "isStartsWith":
+      case "isEndsWith":
+      case "isIncludes":
+      case "isUppercased":
+      case "isLowercased":
+      case "isCapitalized":
+      case "isUncapitalized":
+      case "isTrimmed":
+      case "isNumberString":
+      case "isBigIntString":
+      case "isSymbolString":
+        return { pattern: meta.regExp.source }
+      case "isUUID":
+        return { pattern: meta.regExp.source, format: "uuid" }
+
+      case "isFinite":
+      case "isInt":
+        return { type: "integer" }
+      case "isMultipleOf":
+        return { multipleOf: meta.divisor }
+      case "isGreaterThanOrEqualTo":
+        return { minimum: meta.minimum }
+      case "isLessThanOrEqualTo":
+        return { maximum: meta.maximum }
+      case "isGreaterThan":
+        return { exclusiveMinimum: meta.exclusiveMinimum }
+      case "isLessThan":
+        return { exclusiveMaximum: meta.exclusiveMaximum }
+      case "isBetween": {
+        return {
+          [meta.exclusiveMinimum ? "exclusiveMinimum" : "minimum"]: meta.minimum,
+          [meta.exclusiveMaximum ? "exclusiveMaximum" : "maximum"]: meta.maximum
+        }
+      }
+
+      case "isUnique":
+        return { uniqueItems: true, "x-is-finite": true }
+    }
+  }
+}
+
+function collectJsonSchemaAnnotations(
+  annotations: Annotations.Annotations | undefined
+): JsonSchema.JsonSchema | undefined {
+  if (annotations) {
+    const out: JsonSchema.JsonSchema = {}
+    if (typeof annotations.title === "string") out.title = annotations.title
+    if (typeof annotations.description === "string") out.description = annotations.description
+    if (annotations.default !== undefined) out.default = annotations.default
+    if (globalThis.Array.isArray(annotations.examples)) out.examples = annotations.examples
+
+    if (Object.keys(out).length > 0) return out
+  }
+}
+
+function appendJsonSchema(a: JsonSchema.JsonSchema, b: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
+  const members = globalThis.Array.isArray(b.allOf) && Object.keys(b).length === 1 ? b.allOf : [b]
+
+  if (globalThis.Array.isArray(a.allOf)) {
+    return { ...a, allOf: [...a.allOf, ...members] }
+  }
+
+  if (typeof a.$ref === "string") {
+    return { allOf: [a, ...members] }
+  }
+
+  return { ...a, allOf: members }
+}
+
+function getPartPattern(part: SchemaStandard.StandardSchema): string {
+  switch (part._tag) {
+    case "Literal":
+      return RegExp_.escape(globalThis.String(part.literal))
+    case "String":
+      return AST.STRING_PATTERN
+    case "Number":
+      return AST.NUMBER_PATTERN
+    case "TemplateLiteral":
+      return part.parts.map(getPartPattern).join("")
+    case "Union":
+      return part.types.map(getPartPattern).join("|")
+    default:
+      throw new globalThis.Error("Unsupported part", { cause: part })
+  }
+}
+
+const unsupportedJsonSchema: JsonSchema.JsonSchema = { not: {} }
