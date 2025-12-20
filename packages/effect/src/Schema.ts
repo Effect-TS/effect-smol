@@ -9212,7 +9212,7 @@ export function standardDocumentToJsonSchemaDocument(
           if (e.isOptional || containsUndefined(e.type)) minItems--
           const v = recur(e.type)
           const a = collectJsonSchemaAnnotations(e.annotations)
-          return a ? appendJsonSchema(v, { ...a, "x-key": true }) : v
+          return a ? appendJsonSchema(v, a) : v
         })
         if (prefixItems.length > 0) {
           out.prefixItems = prefixItems
@@ -9247,7 +9247,7 @@ export function standardDocumentToJsonSchemaDocument(
           }
           const v = recur(ps.type)
           const a = collectJsonSchemaAnnotations(ps.annotations)
-          properties[name] = a ? appendJsonSchema(v, { ...a, "x-key": true }) : v
+          properties[name] = a ? appendJsonSchema(v, a) : v
           // Property is required only if it's not explicitly optional AND doesn't contain Undefined
           if (!ps.isOptional && !containsUndefined(ps.type)) {
             required.push(name)
@@ -9396,7 +9396,7 @@ export function standardDocumentToJsonSchemaDocument(
         }
 
         case "isUnique":
-          return { uniqueItems: true, "x-is-finite": true }
+          return { uniqueItems: true }
       }
     }
   }

@@ -1800,16 +1800,14 @@ describe("JsonSchema generation", () => {
               "c": {
                 "type": "string",
                 "allOf": [{
-                  "description": "c-key",
-                  "x-key": true
+                  "description": "c-key"
                 }]
               },
               "d": {
                 "type": "string",
                 "description": "d",
                 "allOf": [{
-                  "description": "d-key",
-                  "x-key": true
+                  "description": "d-key"
                 }]
               },
               "id1": { "$ref": "#/$defs/id1" },
@@ -1817,8 +1815,7 @@ describe("JsonSchema generation", () => {
                 "allOf": [
                   { "$ref": "#/$defs/id2" },
                   {
-                    "description": "id2-key",
-                    "x-key": true
+                    "description": "id2-key"
                   }
                 ]
               },
@@ -1826,16 +1823,14 @@ describe("JsonSchema generation", () => {
                 "allOf": [
                   { "$ref": "#/$defs/id3" },
                   {
-                    "description": "id3_1-key",
-                    "x-key": true
+                    "description": "id3_1-key"
                   }
                 ]
               },
               "id3_2": {
                 "type": "string",
                 "allOf": [{
-                  "description": "id3_2-key",
-                  "x-key": true
+                  "description": "id3_2-key"
                 }]
               }
             },
@@ -1917,16 +1912,14 @@ describe("JsonSchema generation", () => {
               "d": {
                 "type": "string",
                 "allOf": [{
-                  "description": "d-key",
-                  "x-key": true
+                  "description": "d-key"
                 }]
               },
               "e": {
                 "type": "string",
                 "description": "e",
                 "allOf": [{
-                  "description": "e-key",
-                  "x-key": true
+                  "description": "e-key"
                 }]
               }
             },
@@ -1971,8 +1964,7 @@ describe("JsonSchema generation", () => {
               "type": "string",
               "description": "d-inner-description",
               "allOf": [{
-                "description": "d-key-description",
-                "x-key": true
+                "description": "d-key-description"
               }]
             }
           },
@@ -2093,16 +2085,14 @@ describe("JsonSchema generation", () => {
               {
                 "type": "string",
                 "allOf": [{
-                  "description": "c-key",
-                  "x-key": true
+                  "description": "c-key"
                 }]
               },
               {
                 "type": "string",
                 "description": "d",
                 "allOf": [{
-                  "description": "d-key",
-                  "x-key": true
+                  "description": "d-key"
                 }]
               },
               { "$ref": "#/$defs/id1" },
@@ -2110,8 +2100,7 @@ describe("JsonSchema generation", () => {
                 "allOf": [
                   { "$ref": "#/$defs/id2" },
                   {
-                    "description": "id2-key",
-                    "x-key": true
+                    "description": "id2-key"
                   }
                 ]
               },
@@ -2119,16 +2108,14 @@ describe("JsonSchema generation", () => {
                 "allOf": [
                   { "$ref": "#/$defs/id3" },
                   {
-                    "description": "id3_1-key",
-                    "x-key": true
+                    "description": "id3_1-key"
                   }
                 ]
               },
               {
                 "type": "string",
                 "allOf": [{
-                  "description": "id3_2-key",
-                  "x-key": true
+                  "description": "id3_2-key"
                 }]
               }
             ],
@@ -2209,16 +2196,14 @@ describe("JsonSchema generation", () => {
               {
                 "type": "string",
                 "allOf": [{
-                  "description": "d-key",
-                  "x-key": true
+                  "description": "d-key"
                 }]
               },
               {
                 "type": "string",
                 "description": "e",
                 "allOf": [{
-                  "description": "e-key",
-                  "x-key": true
+                  "description": "e-key"
                 }]
               }
             ],
@@ -2263,8 +2248,7 @@ describe("JsonSchema generation", () => {
               "type": "string",
               "description": "d-inner-description",
               "allOf": [{
-                "description": "d-key-description",
-                "x-key": true
+                "description": "d-key-description"
               }]
             }
           ],
@@ -2314,7 +2298,7 @@ describe("JsonSchema generation", () => {
             "type": "array",
             "items": { "type": "string" },
             "allOf": [
-              { "uniqueItems": true, "x-is-finite": true }
+              { "uniqueItems": true }
             ]
           }
         }
