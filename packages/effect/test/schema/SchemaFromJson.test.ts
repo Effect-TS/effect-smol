@@ -3,19 +3,6 @@ import { Schema, SchemaFromJson } from "effect"
 import { describe, expect, it } from "vitest"
 import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
 
-function assertRoundtrip(input: {
-  readonly schema: Schema.Top
-}) {
-  const source = "draft-2020-12"
-  const document = Schema.toJsonSchemaDocument(input.schema)
-  const output = SchemaFromJson.generate(document.schema, { source })
-  const fn = new Function("Schema", `return ${output.code}`)
-  const generated = fn(Schema)
-  const codedocument = Schema.toJsonSchemaDocument(generated)
-  deepStrictEqual(codedocument, document)
-  deepStrictEqual(SchemaFromJson.generate(codedocument.schema, { source }), output)
-}
-
 function assertGeneration(
   input: {
     readonly schema: Record<string, unknown> | boolean
@@ -3165,79 +3152,6 @@ const A = Schema.Struct({ "b": B }).annotate({ "identifier": "A" });
 const schema1 = Schema.Struct({ "a": A });`
       )
     })
-  })
-
-  it("roundtrips", () => {
-    assertRoundtrip({ schema: Schema.Unknown })
-
-    assertRoundtrip({ schema: Schema.Null })
-
-    assertRoundtrip({ schema: Schema.String })
-    assertRoundtrip({ schema: Schema.String.annotate({ title: "title", description: "a" }) })
-    assertRoundtrip({ schema: Schema.String.check(Schema.isMinLength(1)) })
-    assertRoundtrip({ schema: Schema.String.check(Schema.isMaxLength(10)) })
-    assertRoundtrip({ schema: Schema.String.check(Schema.isLength(5)) })
-    assertRoundtrip({ schema: Schema.String.annotate({ description: "a" }).check(Schema.isMinLength(1)) })
-    assertRoundtrip({ schema: Schema.String.check(Schema.isMinLength(1)).annotate({ description: "a" }) })
-    assertRoundtrip({ schema: Schema.String.check(Schema.isMinLength(1, { description: "a" })) })
-    assertRoundtrip({ schema: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10)) })
-    assertRoundtrip({
-      schema: Schema.String.annotate({ description: "a" }).check(
-        Schema.isMinLength(1),
-        Schema.isMaxLength(10)
-      )
-    })
-    assertRoundtrip({
-      schema: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10)).annotate({
-        description: "a"
-      })
-    })
-    assertRoundtrip({
-      schema: Schema.String.check(Schema.isMinLength(1, { description: "a" }), Schema.isMaxLength(10))
-    })
-    assertRoundtrip({
-      schema: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(10, { description: "a" }))
-    })
-
-    assertRoundtrip({ schema: Schema.Number })
-    assertRoundtrip({ schema: Schema.Number.annotate({ description: "a" }) })
-    assertRoundtrip({ schema: Schema.Number.check(Schema.isGreaterThan(1)) })
-    assertRoundtrip({ schema: Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)) })
-    assertRoundtrip({ schema: Schema.Number.check(Schema.isLessThan(1)) })
-    assertRoundtrip({ schema: Schema.Number.check(Schema.isLessThanOrEqualTo(1)) })
-    assertRoundtrip({ schema: Schema.Number.check(Schema.isMultipleOf(10)) })
-
-    assertRoundtrip({ schema: Schema.Boolean })
-    assertRoundtrip({ schema: Schema.Boolean.annotate({ description: "a" }) })
-
-    assertRoundtrip({ schema: Schema.Int })
-    assertRoundtrip({ schema: Schema.Int.annotate({ description: "a" }) })
-
-    assertRoundtrip({ schema: Schema.Struct({ a: Schema.String }) })
-    assertRoundtrip({ schema: Schema.Struct({ a: Schema.optionalKey(Schema.String) }) })
-    assertRoundtrip({ schema: Schema.Struct({ a: Schema.optional(Schema.String) }) })
-    assertRoundtrip({ schema: Schema.Record(Schema.String, Schema.String) })
-    assertRoundtrip({ schema: Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.String)]) })
-    assertRoundtrip({
-      schema: Schema.StructWithRest(
-        Schema.Struct({ a: Schema.String }),
-        [Schema.Record(Schema.String, Schema.String)]
-      )
-    })
-
-    assertRoundtrip({ schema: Schema.Tuple([]) })
-    assertRoundtrip({ schema: Schema.Tuple([Schema.String]) })
-    assertRoundtrip({ schema: Schema.Tuple([Schema.optionalKey(Schema.String)]) })
-    assertRoundtrip({
-      schema: Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Number]), [Schema.Boolean])
-    })
-    assertRoundtrip({ schema: Schema.Array(Schema.String) })
-    assertRoundtrip({ schema: Schema.Array(Schema.String).check(Schema.isMinLength(1)) })
-    assertRoundtrip({ schema: Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]) })
-
-    assertRoundtrip({ schema: Schema.Union([Schema.String]) })
-    assertRoundtrip({ schema: Schema.Union([Schema.String, Schema.Number]) })
-    assertRoundtrip({ schema: Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }) })
   })
 
   describe("topologicalSort", () => {

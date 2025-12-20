@@ -21,7 +21,7 @@ import type * as Types from "./Types.ts"
  */
 export interface Declaration {
   readonly _tag: "Declaration"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly typeParameters: ReadonlyArray<StandardSchema>
   readonly Encoded: StandardSchema
 }
@@ -31,7 +31,7 @@ export interface Declaration {
  */
 export interface Reference {
   readonly _tag: "Reference"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly $ref: string
   readonly isSuspend: boolean
 }
@@ -41,7 +41,7 @@ export interface Reference {
  */
 export interface Null {
   readonly _tag: "Null"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -49,7 +49,7 @@ export interface Null {
  */
 export interface Undefined {
   readonly _tag: "Undefined"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -57,7 +57,7 @@ export interface Undefined {
  */
 export interface Void {
   readonly _tag: "Void"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -65,7 +65,7 @@ export interface Void {
  */
 export interface Never {
   readonly _tag: "Never"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -73,7 +73,7 @@ export interface Never {
  */
 export interface Unknown {
   readonly _tag: "Unknown"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -81,7 +81,7 @@ export interface Unknown {
  */
 export interface Any {
   readonly _tag: "Any"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -89,7 +89,7 @@ export interface Any {
  */
 export interface String {
   readonly _tag: "String"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly checks: ReadonlyArray<Check<StringMeta>>
   readonly contentMediaType?: string | undefined
   readonly contentSchema?: StandardSchema | undefined
@@ -100,7 +100,7 @@ export interface String {
  */
 export interface Number {
   readonly _tag: "Number"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly checks: ReadonlyArray<Check<NumberMeta>>
 }
 
@@ -109,7 +109,7 @@ export interface Number {
  */
 export interface Boolean {
   readonly _tag: "Boolean"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -117,7 +117,7 @@ export interface Boolean {
  */
 export interface BigInt {
   readonly _tag: "BigInt"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly checks: ReadonlyArray<Check<BigIntMeta>>
 }
 
@@ -126,7 +126,7 @@ export interface BigInt {
  */
 export interface Symbol {
   readonly _tag: "Symbol"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -134,7 +134,7 @@ export interface Symbol {
  */
 export interface Literal {
   readonly _tag: "Literal"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly literal: string | number | boolean | bigint
 }
 
@@ -143,7 +143,7 @@ export interface Literal {
  */
 export interface UniqueSymbol {
   readonly _tag: "UniqueSymbol"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly symbol: symbol
 }
 
@@ -152,7 +152,7 @@ export interface UniqueSymbol {
  */
 export interface ObjectKeyword {
   readonly _tag: "ObjectKeyword"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -160,7 +160,7 @@ export interface ObjectKeyword {
  */
 export interface Enum {
   readonly _tag: "Enum"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly enums: ReadonlyArray<readonly [string, string | number]>
 }
 
@@ -169,7 +169,7 @@ export interface Enum {
  */
 export interface TemplateLiteral {
   readonly _tag: "TemplateLiteral"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly parts: ReadonlyArray<StandardSchema>
 }
 
@@ -178,7 +178,7 @@ export interface TemplateLiteral {
  */
 export interface Arrays {
   readonly _tag: "Arrays"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly elements: ReadonlyArray<Element>
   readonly rest: ReadonlyArray<StandardSchema>
   readonly checks: ReadonlyArray<Check<ArraysMeta>>
@@ -190,7 +190,7 @@ export interface Arrays {
 export interface Element {
   readonly isOptional: boolean
   readonly type: StandardSchema
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -198,7 +198,7 @@ export interface Element {
  */
 export interface Objects {
   readonly _tag: "Objects"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly propertySignatures: ReadonlyArray<PropertySignature>
   readonly indexSignatures: ReadonlyArray<IndexSignature>
 }
@@ -211,7 +211,7 @@ export interface PropertySignature {
   readonly type: StandardSchema
   readonly isOptional: boolean
   readonly isMutable: boolean
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -227,7 +227,7 @@ export interface IndexSignature {
  */
 export interface Union {
   readonly _tag: "Union"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly types: ReadonlyArray<StandardSchema>
   readonly mode: "anyOf" | "oneOf"
 }
@@ -268,7 +268,7 @@ export type Check<T> = Filter<T> | FilterGroup<T>
  */
 export interface Filter<M> {
   readonly _tag: "Filter"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly meta: M
 }
 
@@ -277,7 +277,7 @@ export interface Filter<M> {
  */
 export interface FilterGroup<M> {
   readonly _tag: "FilterGroup"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations: Schema.Annotations.Annotations | undefined
   readonly checks: readonly [Check<M>, ...Array<Check<M>>]
 }
 
@@ -407,7 +407,7 @@ export const Annotations$ = Schema.Record(Schema.String, Schema.Unknown).pipe(
  */
 export const Null$ = Schema.Struct({
   _tag: Schema.tag("Null"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.UndefinedOr(Annotations$)
 }).annotate({ identifier: "Null" })
 
 /**
@@ -415,7 +415,7 @@ export const Null$ = Schema.Struct({
  */
 export const Undefined$ = Schema.Struct({
   _tag: Schema.tag("Undefined"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.UndefinedOr(Annotations$)
 }).annotate({ identifier: "Undefined" })
 
 /**
@@ -423,7 +423,7 @@ export const Undefined$ = Schema.Struct({
  */
 export const Void$ = Schema.Struct({
   _tag: Schema.tag("Void"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.UndefinedOr(Annotations$)
 }).annotate({ identifier: "Void" })
 
 /**
@@ -431,7 +431,7 @@ export const Void$ = Schema.Struct({
  */
 export const Never$ = Schema.Struct({
   _tag: Schema.tag("Never"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.UndefinedOr(Annotations$)
 }).annotate({ identifier: "Never" })
 
 /**
@@ -439,7 +439,7 @@ export const Never$ = Schema.Struct({
  */
 export const Unknown$ = Schema.Struct({
   _tag: Schema.tag("Unknown"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.UndefinedOr(Annotations$)
 }).annotate({ identifier: "Unknown" })
 
 /**
@@ -447,7 +447,7 @@ export const Unknown$ = Schema.Struct({
  */
 export const Any$ = Schema.Struct({
   _tag: Schema.tag("Any"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.UndefinedOr(Annotations$)
 }).annotate({ identifier: "Any" })
 
 const IsNumberString$ = Schema.Struct({
@@ -576,12 +576,12 @@ function makeCheck<T>(meta: Schema.Codec<T>, identifier: string) {
   const Check: Schema.Codec<Check<T>> = Schema.Union([
     Schema.Struct({
       _tag: Schema.tag("Filter"),
-      annotations: Schema.optionalKey(Annotations$),
+      annotations: Schema.UndefinedOr(Annotations$),
       meta
     }).annotate({ identifier: `${identifier}Filter` }),
     Schema.Struct({
       _tag: Schema.tag("FilterGroup"),
-      annotations: Schema.optionalKey(Annotations$),
+      annotations: Schema.UndefinedOr(Annotations$),
       checks: Schema.NonEmptyArray(Check$ref)
     }).annotate({ identifier: `${identifier}FilterGroup` })
   ]).annotate({ identifier: `${identifier}Check` })
@@ -593,7 +593,7 @@ function makeCheck<T>(meta: Schema.Codec<T>, identifier: string) {
  */
 export const String$ = Schema.Struct({
   _tag: Schema.tag("String"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   checks: Schema.Array(makeCheck(StringMeta$, "String")),
   contentMediaType: Schema.optional(Schema.String),
   contentSchema: Schema.optional(Schema$ref)
@@ -656,7 +656,7 @@ const NumberMeta$ = Schema.Union([
  */
 export const Number$ = Schema.Struct({
   _tag: Schema.tag("Number"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   checks: Schema.Array(makeCheck(NumberMeta$, "Number"))
 }).annotate({ identifier: "Number" })
 
@@ -665,7 +665,7 @@ export const Number$ = Schema.Struct({
  */
 export const Boolean$ = Schema.Struct({
   _tag: Schema.tag("Boolean"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.UndefinedOr(Annotations$)
 }).annotate({ identifier: "Boolean" })
 
 const IsGreaterThanBigInt$ = Schema.Struct({
@@ -709,7 +709,7 @@ const BigIntMeta$ = Schema.Union([
  */
 export const BigInt$ = Schema.Struct({
   _tag: Schema.tag("BigInt"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   checks: Schema.Array(makeCheck(BigIntMeta$, "BigInt"))
 }).annotate({ identifier: "BigInt" })
 
@@ -718,7 +718,7 @@ export const BigInt$ = Schema.Struct({
  */
 export const Symbol$ = Schema.Struct({
   _tag: Schema.tag("Symbol"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.UndefinedOr(Annotations$)
 }).annotate({ identifier: "Symbol" })
 
 /**
@@ -736,7 +736,7 @@ export const LiteralValue$ = Schema.Union([
  */
 export const Literal$ = Schema.Struct({
   _tag: Schema.tag("Literal"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   literal: LiteralValue$
 }).annotate({ identifier: "Literal" })
 
@@ -745,7 +745,7 @@ export const Literal$ = Schema.Struct({
  */
 export const UniqueSymbol$ = Schema.Struct({
   _tag: Schema.tag("UniqueSymbol"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   symbol: Schema.Symbol
 }).annotate({ identifier: "UniqueSymbol" })
 
@@ -754,7 +754,7 @@ export const UniqueSymbol$ = Schema.Struct({
  */
 export const ObjectKeyword$ = Schema.Struct({
   _tag: Schema.tag("ObjectKeyword"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.UndefinedOr(Annotations$)
 }).annotate({ identifier: "ObjectKeyword" })
 
 /**
@@ -762,7 +762,7 @@ export const ObjectKeyword$ = Schema.Struct({
  */
 export const Enum$ = Schema.Struct({
   _tag: Schema.tag("Enum"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   enums: Schema.Array(
     Schema.Tuple([Schema.String, Schema.Union([Schema.String, Schema.Number])])
   )
@@ -773,7 +773,7 @@ export const Enum$ = Schema.Struct({
  */
 export const TemplateLiteral$ = Schema.Struct({
   _tag: Schema.tag("TemplateLiteral"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   parts: Schema.Array(Schema$ref)
 }).annotate({ identifier: "TemplateLiteral" })
 
@@ -783,7 +783,7 @@ export const TemplateLiteral$ = Schema.Struct({
 export const Element$ = Schema.Struct({
   isOptional: Schema.Boolean,
   type: Schema$ref,
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.UndefinedOr(Annotations$)
 }).annotate({ identifier: "Element" })
 
 const IsUnique$ = Schema.Struct({
@@ -801,7 +801,7 @@ const ArraysMeta$ = Schema.Union([
  */
 export const Arrays$ = Schema.Struct({
   _tag: Schema.tag("Arrays"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   elements: Schema.Array(Element$),
   rest: Schema.Array(Schema$ref),
   checks: Schema.Array(makeCheck(ArraysMeta$, "Arrays"))
@@ -811,7 +811,7 @@ export const Arrays$ = Schema.Struct({
  * @since 4.0.0
  */
 export const PropertySignature$ = Schema.Struct({
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   name: Schema.PropertyKey,
   type: Schema$ref,
   isOptional: Schema.Boolean,
@@ -831,7 +831,7 @@ export const IndexSignature$ = Schema.Struct({
  */
 export const Objects$ = Schema.Struct({
   _tag: Schema.tag("Objects"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   propertySignatures: Schema.Array(PropertySignature$),
   indexSignatures: Schema.Array(IndexSignature$)
 }).annotate({ identifier: "Objects" })
@@ -841,7 +841,7 @@ export const Objects$ = Schema.Struct({
  */
 export const Union$ = Schema.Struct({
   _tag: Schema.tag("Union"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   types: Schema.Array(Schema$ref),
   mode: Schema.Literals(["anyOf", "oneOf"])
 }).annotate({ identifier: "Union" })
@@ -851,7 +851,7 @@ export const Union$ = Schema.Struct({
  */
 export const Reference$ = Schema.Struct({
   _tag: Schema.tag("Reference"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   $ref: Schema.String,
   isSuspend: Schema.Boolean
 }).annotate({ identifier: "Reference" })
@@ -861,7 +861,7 @@ export const Reference$ = Schema.Struct({
  */
 export const Declaration$ = Schema.Struct({
   _tag: Schema.tag("Declaration"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.UndefinedOr(Annotations$),
   typeParameters: Schema.Array(Schema$ref),
   Encoded: Schema$ref
 }).annotate({ identifier: "Declaration" })
@@ -1639,8 +1639,8 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
   }
 
   function recur(u: unknown): StandardSchema {
-    if (u === true) return { _tag: "Unknown" }
-    if (u === false) return { _tag: "Never" }
+    if (u === true) return { _tag: "Unknown", annotations: undefined }
+    if (u === false) return { _tag: "Never", annotations: undefined }
     if (Predicate.isObject(u)) {
       const normalized = normalizeJsonSchemaInput(u)
       const out = on(normalized)
@@ -1673,7 +1673,7 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
       }
       return out
     }
-    return { _tag: "Unknown" }
+    return { _tag: "Unknown", annotations: undefined }
   }
 
   function on(s: JsonSchema.JsonSchema): Types.Mutable<StandardSchema> {
@@ -1681,28 +1681,34 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
       if ("enum" in s && Array.isArray(s.enum)) {
         switch (s.enum.length) {
           case 0:
-            return { _tag: "Never" }
+            return { _tag: "Never", annotations: undefined }
           case 1:
-            return { _tag: "Literal", literal: s.enum[0] }
+            return { _tag: "Literal", literal: s.enum[0], annotations: undefined }
           default:
             return {
               _tag: "Union",
-              types: s.enum.map((e) => ({ _tag: "Literal", literal: e })),
-              mode: "anyOf"
+              types: s.enum.map((e) => ({
+                _tag: "Literal",
+                literal: e,
+                annotations: undefined
+              })),
+              mode: "anyOf",
+              annotations: undefined
             }
         }
       }
       switch (s.type) {
         case "null":
-          return { _tag: "Null" }
+          return { _tag: "Null", annotations: undefined }
         case "boolean":
-          return { _tag: "Boolean" }
+          return { _tag: "Boolean", annotations: undefined }
         case "number":
-          return { _tag: "Number", checks: collectNumberChecks(s) }
+          return { _tag: "Number", checks: collectNumberChecks(s), annotations: undefined }
         case "integer":
           return {
             _tag: "Number",
-            checks: [{ _tag: "Filter", meta: { _tag: "isInt" } }, ...collectNumberChecks(s)]
+            checks: [{ _tag: "Filter", meta: { _tag: "isInt" }, annotations: undefined }, ...collectNumberChecks(s)],
+            annotations: undefined
           }
         case "string": {
           const contentMediaType = s.contentMediaType
@@ -1712,29 +1718,36 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
               _tag: "String",
               checks: collectStringChecks(s),
               contentMediaType,
-              contentSchema: recur(contentSchema)
+              contentSchema: recur(contentSchema),
+              annotations: undefined
             }
           }
-          return { _tag: "String", checks: collectStringChecks(s) }
+          return { _tag: "String", checks: collectStringChecks(s), annotations: undefined }
         }
         case "array":
           return {
             _tag: "Arrays",
             elements: collectElements(s),
             rest: collectRest(s),
-            checks: collectArraysChecks(s)
+            checks: collectArraysChecks(s),
+            annotations: undefined
           }
         case "object": {
           const propertySignatures = collectProperties(s)
           const indexSignatures = collectIndexSignatures(s)
-          return { _tag: "Objects", propertySignatures, indexSignatures }
+          return { _tag: "Objects", propertySignatures, indexSignatures, annotations: undefined }
         }
       }
       if ("anyOf" in s && Array.isArray(s.anyOf)) {
-        return { _tag: "Union", types: s.anyOf.map((e) => recur(e)), mode: "anyOf" }
+        return {
+          _tag: "Union",
+          types: s.anyOf.map((e) => recur(e)),
+          mode: "anyOf",
+          annotations: undefined
+        }
       }
     }
-    return { _tag: "Unknown" }
+    return { _tag: "Unknown", annotations: undefined }
   }
 
   function collectStringChecks(s: JsonSchema.JsonSchema): Array<Check<StringMeta>> {
@@ -1835,7 +1848,8 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
       const minItems = typeof s.minItems === "number" ? s.minItems : s.prefixItems.length
       return s.prefixItems.map((item, index) => ({
         type: recur(item),
-        isOptional: index >= minItems
+        isOptional: index >= minItems,
+        annotations: undefined
       }))
     }
     return []
@@ -1855,7 +1869,8 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
         name: key,
         type: recur(value),
         isOptional: !required.has(key),
-        isMutable: false
+        isMutable: false,
+        annotations: undefined
       })) :
       []
   }
@@ -1864,7 +1879,7 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
     const indexSignatures: Array<IndexSignature> = []
     if (Predicate.isObject(s.additionalProperties)) {
       indexSignatures.push({
-        parameter: { _tag: "String", checks: [] },
+        parameter: { _tag: "String", checks: [], annotations: undefined },
         type: recur(s.additionalProperties)
       })
     }

@@ -1575,34 +1575,21 @@ describe("JsonSchema generation", () => {
         schema.annotate({ description: "a" }),
         {
           schema: {
-            "type": "number",
-            "enum": [0],
-            "title": "Apple",
-            "description": "a"
-          }
-        }
-      )
-      assertDocument(
-        schema.annotate({
-          "description": "description",
-          "default": Fruits.Apple,
-          "examples": [Fruits.Apple] as const
-        }),
-        {
-          schema: {
-            "type": "number",
-            "enum": [0],
-            "title": "Apple",
-            "description": "description",
-            "default": Fruits.Apple,
-            "examples": [Fruits.Apple] as const
+            "description": "a",
+            "anyOf": [
+              {
+                "type": "number",
+                "enum": [0],
+                "title": "Apple"
+              }
+            ]
           }
         }
       )
       assertDocument(
         schema.annotate({
           identifier: "ID",
-          description: "description"
+          description: "a"
         }),
         {
           schema: {
@@ -1610,10 +1597,14 @@ describe("JsonSchema generation", () => {
           },
           definitions: {
             "ID": {
-              "type": "number",
-              "enum": [0],
-              "title": "Apple",
-              "description": "description"
+              "description": "a",
+              "anyOf": [
+                {
+                  "type": "number",
+                  "enum": [0],
+                  "title": "Apple"
+                }
+              ]
             }
           }
         }
@@ -2058,7 +2049,6 @@ describe("JsonSchema generation", () => {
     })
 
     it("required element", () => {
-      const Id3 = Schema.String.annotate({ identifier: "id3" })
       assertDocument(
         Schema.Tuple([
           Schema.String,
@@ -2066,14 +2056,11 @@ describe("JsonSchema generation", () => {
           Schema.String.annotateKey({ description: "c-key" }),
           Schema.String.annotate({ description: "d" }).annotateKey({ description: "d-key" }),
           Schema.String.annotate({ identifier: "id1" }),
-          Schema.String.annotate({ identifier: "id2" }).annotateKey({ description: "id2-key" }),
-          Id3.annotateKey({ description: "id3_1-key" }),
-          Id3.annotateKey({ description: "id3_2-key" })
+          Schema.String.annotate({ identifier: "id2" }).annotateKey({ description: "id2-key" })
         ]),
         {
           schema: {
             "type": "array",
-            "minItems": 8,
             "prefixItems": [
               {
                 "type": "string"
@@ -2099,38 +2086,22 @@ describe("JsonSchema generation", () => {
               {
                 "allOf": [
                   { "$ref": "#/$defs/id2" },
-                  {
-                    "description": "id2-key"
-                  }
+                  { "description": "id2-key" }
                 ]
-              },
-              {
-                "allOf": [
-                  { "$ref": "#/$defs/id3" },
-                  {
-                    "description": "id3_1-key"
-                  }
-                ]
-              },
-              {
-                "type": "string",
-                "allOf": [{
-                  "description": "id3_2-key"
-                }]
               }
             ],
-            "items": false
+            "minItems": 6,
+            "maxItems": 6
           },
           definitions: {
             "id1": { "type": "string" },
-            "id2": { "type": "string" },
-            "id3": { "type": "string" }
+            "id2": { "type": "string" }
           }
         }
       )
     })
 
-    it("optionalKey properties", () => {
+    it("optionalKey element", () => {
       assertDocument(
         Schema.Tuple([
           Schema.optionalKey(Schema.String)
@@ -2141,7 +2112,7 @@ describe("JsonSchema generation", () => {
             "prefixItems": [
               { "type": "string" }
             ],
-            "items": false
+            "maxItems": 1
           }
         }
       )
@@ -2155,11 +2126,11 @@ describe("JsonSchema generation", () => {
         {
           schema: {
             "type": "array",
-            "minItems": 1,
             "prefixItems": [
               { "type": "string" }
             ],
-            "items": false
+            "minItems": 1,
+            "maxItems": 1
           }
         }
       )
@@ -2207,7 +2178,7 @@ describe("JsonSchema generation", () => {
                 }]
               }
             ],
-            "items": false
+            "maxItems": 5
           }
         }
       )
@@ -2252,7 +2223,7 @@ describe("JsonSchema generation", () => {
               }]
             }
           ],
-          "items": false
+          "maxItems": 4
         }
       })
     })

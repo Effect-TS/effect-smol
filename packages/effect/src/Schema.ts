@@ -47,7 +47,6 @@ import type { Assign, Lambda, Mutable, Simplify } from "./Struct.ts"
 import * as Struct_ from "./Struct.ts"
 import * as FastCheck from "./testing/FastCheck.ts"
 import type { UnionToIntersection } from "./Types.ts"
-import type * as Types from "./Types.ts"
 
 /**
  * Is this schema required or optional?
@@ -8910,66 +8909,87 @@ export declare namespace Annotations {
 
 /** @internal */
 export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
-  const encoded = AST.toEncoded(ast)
-
-  const visited = new Set<AST.AST>()
-  const identifiers = new Map<AST.AST, string>()
   const definitions: Record<string, SchemaStandard.StandardSchema> = {}
 
+  const cache = new Map<AST.AST, SchemaStandard.StandardSchema>()
+  const visited = new Set<AST.AST>()
+  const identifiers = new Map<string, AST.AST>()
+
   return {
-    schema: recur(encoded),
+    schema: recur(ast),
     definitions
   }
 
-  function recur(ast: AST.AST, ignoreIdentifier = false): SchemaStandard.StandardSchema {
-    if (!ignoreIdentifier) {
-      const identifier = InternalAnnotations.resolveIdentifier(ast)
-      if (identifier !== undefined) {
-        const out: SchemaStandard.Reference = { _tag: "Reference", $ref: identifier, isSuspend: AST.isSuspend(ast) }
-        if (identifier in definitions) {
-          if (visited.has(ast)) {
-            return out
-          }
-          // duplicate identifier: TODO generate a new identifier?
-          return recur(ast, true)
-        } else {
-          identifiers.set(ast, identifier)
-          definitions[identifier] = recur(ast, true)
-          return out
-        }
-      }
-    }
-    const out = on(ast)
-    if (ast.annotations) {
-      out.annotations = ast.annotations
-    }
+  function recur(ast: AST.AST): SchemaStandard.StandardSchema {
+    const cached = cache.get(ast)
+    if (cached) return cached
+    visited.add(ast)
+    const identifier = getIdentifier(ast)
+    const next = getNext(ast)
+    const out = identifier !== undefined ? onTopIdentifier(next, identifier) : handleIdentifier(next)
+    cache.set(ast, out)
     return out
   }
 
-  function on(ast: AST.AST): Types.Mutable<SchemaStandard.StandardSchema> {
-    visited.add(ast)
+  function getIdentifier(ast: AST.AST): string | undefined {
+    const identifier = InternalAnnotations.resolveIdentifier(ast)
+    if (identifier !== undefined) {
+      const cache = identifiers.get(identifier)
+      if (cache !== undefined && cache !== ast) {
+        return undefined
+      }
+      identifiers.set(identifier, ast)
+      return identifier
+    }
+  }
+
+  function getNext(ast: AST.AST): AST.AST {
+    if (ast.encoding) {
+      return getNext(ast.encoding[ast.encoding.length - 1].to)
+    }
+    return ast
+  }
+
+  function onTopIdentifier(ast: AST.AST, identifier: string): SchemaStandard.StandardSchema {
+    const out: any = handleIdentifier(ast)
+    out.identifier = identifier
+    return out
+  }
+
+  function handleIdentifier(ast: AST.AST): SchemaStandard.StandardSchema {
+    const identifier = getIdentifier(ast)
+    if (identifier !== undefined) {
+      const definition = on(ast)
+      definitions[identifier] = definition
+      return {
+        _tag: "Reference",
+        $ref: identifier,
+        isSuspend: AST.isSuspend(ast),
+        annotations: undefined
+      }
+    }
+    return on(ast)
+  }
+
+  function on(ast: AST.AST): SchemaStandard.StandardSchema {
     switch (ast._tag) {
       case "Suspend": {
         const thunk = ast.thunk()
         if (visited.has(thunk)) {
-          const identifier = InternalAnnotations.resolveIdentifier(thunk)
-          if (identifier !== undefined) {
-            if (identifiers.get(thunk) !== identifier) {
-              throw new globalThis.Error(`Suspended schema with duplicate identifier: ${identifier}`)
-            }
-            return { _tag: "Reference", $ref: identifier, isSuspend: true }
-          } else {
-            throw new globalThis.Error("Suspended schema without identifier detected") // TODO: test this
+          const identifier = getIdentifier(thunk)
+          if (identifier === undefined) {
+            throw new globalThis.Error("Suspended schema without identifier detected")
           }
-        } else {
-          return recur(thunk)
+          return { _tag: "Reference", $ref: identifier, isSuspend: true, annotations: undefined }
         }
+        return recur(thunk)
       }
       case "Declaration":
         return {
           _tag: "Declaration",
+          annotations: ast.annotations,
           typeParameters: ast.typeParameters.map((tp) => recur(tp)),
-          Encoded: recur(AST.toEncoded(serializerJson(ast)))
+          Encoded: recur(serializerJson(ast))
         }
       case "Null":
       case "Undefined":
@@ -8979,42 +8999,57 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
       case "Any":
       case "Boolean":
       case "Symbol":
-        return { _tag: ast._tag }
+        return { _tag: ast._tag, annotations: ast.annotations }
       case "String": {
         const contentMediaType = ast.annotations?.contentMediaType
         const contentSchema = ast.annotations?.contentSchema
         if (typeof contentMediaType === "string" && AST.isAST(contentSchema)) {
           return {
             _tag: ast._tag,
+            annotations: ast.annotations,
             checks: [],
             contentMediaType,
             contentSchema: recur(contentSchema)
           }
         }
-        return { _tag: ast._tag, checks: fromASTChecks(ast.checks) }
+        return {
+          _tag: ast._tag,
+          annotations: ast.annotations,
+          checks: fromASTChecks(ast.checks)
+        }
       }
       case "Number":
       case "BigInt":
-        return { _tag: ast._tag, checks: fromASTChecks(ast.checks) }
+        return {
+          _tag: ast._tag,
+          annotations: ast.annotations,
+          checks: fromASTChecks(ast.checks)
+        }
       case "Literal":
-        return { _tag: ast._tag, literal: ast.literal }
+        return { _tag: ast._tag, annotations: ast.annotations, literal: ast.literal }
       case "UniqueSymbol":
-        return { _tag: ast._tag, symbol: ast.symbol }
+        return { _tag: ast._tag, annotations: ast.annotations, symbol: ast.symbol }
       case "ObjectKeyword":
-        return { _tag: ast._tag }
+        return { _tag: ast._tag, annotations: ast.annotations }
       case "Enum":
-        return { _tag: ast._tag, enums: ast.enums }
+        return { _tag: ast._tag, annotations: ast.annotations, enums: ast.enums }
       case "TemplateLiteral":
-        return { _tag: ast._tag, parts: ast.parts.map((p) => recur(p)) }
+        return {
+          _tag: ast._tag,
+          annotations: ast.annotations,
+          parts: ast.parts.map((p) => recur(p))
+        }
       case "Arrays":
         return {
           _tag: ast._tag,
+          annotations: ast.annotations,
           elements: ast.elements.map((e) => {
-            const out: Types.Mutable<SchemaStandard.Element> = { isOptional: AST.isOptional(e), type: recur(e) }
-            if (e.context?.annotations) {
-              out.annotations = e.context.annotations
+            const next = getNext(e)
+            return {
+              isOptional: AST.isOptional(next),
+              type: recur(next),
+              annotations: next.context?.annotations
             }
-            return out
           }),
           rest: ast.rest.map((r) => recur(r)),
           checks: fromASTChecks(ast.checks)
@@ -9022,17 +9057,16 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
       case "Objects":
         return {
           _tag: ast._tag,
+          annotations: ast.annotations,
           propertySignatures: ast.propertySignatures.map((ps) => {
-            const out: Types.Mutable<SchemaStandard.PropertySignature> = {
+            const next = getNext(ps.type)
+            return {
               name: ps.name,
-              type: recur(ps.type),
-              isOptional: AST.isOptional(ps.type),
-              isMutable: AST.isMutable(ps.type)
+              type: recur(next),
+              isOptional: AST.isOptional(next),
+              isMutable: AST.isMutable(next),
+              annotations: next.context?.annotations
             }
-            if (ps.type.context?.annotations) {
-              out.annotations = ps.type.context.annotations
-            }
-            return out
           }),
           indexSignatures: ast.indexSignatures.map((is) => ({
             parameter: recur(is.parameter),
@@ -9042,6 +9076,7 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
       case "Union":
         return {
           _tag: ast._tag,
+          annotations: ast.annotations,
           types: ast.types.map((t) => recur(t)),
           mode: ast.mode
         }
@@ -9058,25 +9093,18 @@ function fromASTChecks(
       case "Filter": {
         const meta = c.annotations?.meta
         if (meta) {
-          const out: Types.Mutable<SchemaStandard.Check<any>> = { _tag: "Filter", meta }
-          if (c.annotations) {
-            out.annotations = c.annotations
-          }
-          return out
+          return { _tag: "Filter", meta, annotations: c.annotations }
         }
         return undefined
       }
       case "FilterGroup": {
         const checks = fromASTChecks(c.checks)
         if (Arr.isArrayNonEmpty(checks)) {
-          const out: Types.Mutable<SchemaStandard.Check<any>> = {
+          return {
             _tag: "FilterGroup",
-            checks
+            checks,
+            annotations: c.annotations
           }
-          if (c.annotations) {
-            out.annotations = c.annotations
-          }
-          return out
         }
       }
     }
@@ -9192,7 +9220,8 @@ export function standardDocumentToJsonSchemaDocument(
             literal: value,
             annotations: { title }
           })),
-          mode: "anyOf"
+          mode: "anyOf",
+          annotations: schema.annotations
         })
       }
       case "TemplateLiteral": {
@@ -9209,26 +9238,30 @@ export function standardDocumentToJsonSchemaDocument(
         const out: JsonSchema.JsonSchema = { type: "array" }
         let minItems = schema.elements.length
         const prefixItems: Array<JsonSchema.JsonSchema> = schema.elements.map((e) => {
-          if (e.isOptional || containsUndefined(e.type)) minItems--
+          if (e.isOptional || containsUndefined(e.type)) {
+            minItems--
+          }
           const v = recur(e.type)
           const a = collectJsonSchemaAnnotations(e.annotations)
           return a ? appendJsonSchema(v, a) : v
         })
         if (prefixItems.length > 0) {
           out.prefixItems = prefixItems
-          out.minItems = minItems
+          out.maxItems = schema.elements.length
+          if (minItems > 0) {
+            out.minItems = minItems
+          }
+        } else {
+          out.items = false
         }
         if (schema.rest.length > 0) {
+          delete out.maxItems
           const rest = recur(schema.rest[0])
           if (Object.keys(rest).length > 0) {
             out.items = rest
+          } else {
+            delete out.items
           }
-        } else {
-          // No rest element: no additional items allowed
-          out.items = false
-        }
-        if (out.minItems === 0) {
-          delete out.minItems
         }
         return out
       }

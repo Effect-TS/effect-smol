@@ -568,8 +568,7 @@ describe("Rewriter", () => {
                   {
                     "type": "number"
                   }
-                ],
-                "items": false
+                ]
               }
             },
             "required": ["a"],
