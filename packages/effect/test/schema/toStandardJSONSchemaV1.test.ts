@@ -7,7 +7,7 @@ function standardConvertToJSONSchemaInput(
   schema: StandardJSONSchemaV1
 ): Record<string, unknown> {
   return schema["~standard"].jsonSchema.input({
-    target: "draft-07"
+    target: "draft-2020-12"
   })
 }
 
@@ -15,7 +15,7 @@ function standardConvertToJSONSchemaOutput(
   schema: StandardJSONSchemaV1
 ): Record<string, unknown> {
   return schema["~standard"].jsonSchema.output({
-    target: "draft-07"
+    target: "draft-2020-12"
   })
 }
 
@@ -46,7 +46,8 @@ describe("toStandardJSONSchemaV1", () => {
     const schema = Schema.FiniteFromString
     const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
     deepStrictEqual(standardConvertToJSONSchemaOutput(standardJSONSchema), {
-      "type": "number"
+      "type": "number",
+      "allOf": [{ "type": "integer" }]
     })
   })
 
@@ -54,8 +55,8 @@ describe("toStandardJSONSchemaV1", () => {
     const schema = Schema.String.annotate({ identifier: "ID" })
     const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
     deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
-      "$ref": "#/definitions/ID",
-      "definitions": {
+      "$ref": "#/$defs/ID",
+      "$defs": {
         "ID": {
           "type": "string"
         }
@@ -74,13 +75,13 @@ describe("toStandardJSONSchemaV1", () => {
     }).annotate({ identifier: "A" })
     const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
     deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
-      "$ref": "#/definitions/A",
-      "definitions": {
+      "$ref": "#/$defs/A",
+      "$defs": {
         "A": {
           "type": "object",
           "properties": {
             "a": { "type": "string" },
-            "as": { "type": "array", "items": { "$ref": "#/definitions/A" } }
+            "as": { "type": "array", "items": { "$ref": "#/$defs/A" } }
           },
           "required": ["a", "as"],
           "additionalProperties": false

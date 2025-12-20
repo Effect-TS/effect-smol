@@ -786,7 +786,7 @@ describe("Config", () => {
         await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "a" } }), "a")
       })
 
-      it.todo("string | number", async () => {
+      it("string | number", async () => {
         const schema = Schema.Union([Schema.String, Schema.Number])
         const config = Config.schema(schema, "a")
 
@@ -1057,7 +1057,7 @@ describe("Config", () => {
         await assertSuccess(config, ConfigProvider.fromUnknown("a"), "a")
       })
 
-      it.todo("string | number", async () => {
+      it("string | number", async () => {
         const schema = Schema.Union([Schema.String, Schema.Number])
         const config = Config.schema(schema)
 

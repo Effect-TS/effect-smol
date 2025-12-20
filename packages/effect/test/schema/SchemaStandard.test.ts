@@ -81,7 +81,7 @@ describe("Standard", () => {
       })
 
       it("Void", () => {
-        assertToJsonSchema(Schema.Void, { schema: { not: {} } })
+        assertToJsonSchema(Schema.Void, { schema: {} })
       })
 
       it("Never", () => {
@@ -176,6 +176,7 @@ describe("Standard", () => {
               schema: {
                 type: "string",
                 allOf: [{
+                  format: "uuid",
                   pattern:
                     "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$"
                 }]
@@ -188,6 +189,7 @@ describe("Standard", () => {
               schema: {
                 type: "string",
                 allOf: [{
+                  format: "uuid",
                   pattern: "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-1[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$"
                 }]
               }
@@ -434,7 +436,7 @@ describe("Standard", () => {
       it("bigint literal", () => {
         assertToJsonSchema(
           Schema.Literal(1n),
-          { schema: {} }
+          { schema: { not: {} } }
         )
       })
     })
@@ -443,14 +445,28 @@ describe("Standard", () => {
       it("string enum", () => {
         assertToJsonSchema(
           Schema.Enum({ A: "a", B: "b" }),
-          { schema: { type: "string", enum: ["a", "b"] } }
+          {
+            schema: {
+              anyOf: [
+                { type: "string", enum: ["a"], title: "A" },
+                { type: "string", enum: ["b"], title: "B" }
+              ]
+            }
+          }
         )
       })
 
       it("number enum", () => {
         assertToJsonSchema(
           Schema.Enum({ One: 1, Two: 2 }),
-          { schema: { type: "number", enum: [1, 2] } }
+          {
+            schema: {
+              anyOf: [
+                { type: "number", enum: [1], title: "One" },
+                { type: "number", enum: [2], title: "Two" }
+              ]
+            }
+          }
         )
       })
 
@@ -460,8 +476,8 @@ describe("Standard", () => {
           {
             schema: {
               anyOf: [
-                { type: "string", enum: ["a"] },
-                { type: "number", enum: [1] }
+                { type: "string", enum: ["a"], title: "A" },
+                { type: "number", enum: [1], title: "One" }
               ]
             }
           }

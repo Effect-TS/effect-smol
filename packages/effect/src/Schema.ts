@@ -8807,6 +8807,8 @@ export declare namespace Annotations {
       readonly _tag: "isBetween"
       readonly minimum: number
       readonly maximum: number
+      readonly exclusiveMinimum?: boolean | undefined
+      readonly exclusiveMaximum?: boolean | undefined
     }
     // BigInt Meta
     readonly isGreaterThanBigInt: {
@@ -8829,6 +8831,8 @@ export declare namespace Annotations {
       readonly _tag: "isBetweenBigInt"
       readonly minimum: bigint
       readonly maximum: bigint
+      readonly exclusiveMinimum?: boolean | undefined
+      readonly exclusiveMaximum?: boolean | undefined
     }
     // Date Meta
     readonly isValidDate: {
@@ -8854,6 +8858,8 @@ export declare namespace Annotations {
       readonly _tag: "isBetweenDate"
       readonly minimum: globalThis.Date
       readonly maximum: globalThis.Date
+      readonly exclusiveMinimum?: boolean | undefined
+      readonly exclusiveMaximum?: boolean | undefined
     }
     // Objects Meta
     readonly isMinProperties: {

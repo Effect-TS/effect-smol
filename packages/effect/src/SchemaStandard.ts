@@ -647,7 +647,9 @@ const IsLessThanOrEqualTo$ = Schema.Struct({
 const IsBetween$ = Schema.Struct({
   _tag: Schema.tag("isBetween"),
   minimum: Schema.Number,
-  maximum: Schema.Number
+  maximum: Schema.Number,
+  exclusiveMinimum: Schema.optional(Schema.Boolean),
+  exclusiveMaximum: Schema.optional(Schema.Boolean)
 }).annotate({ identifier: "IsBetween" })
 
 const NumberMeta$ = Schema.Union([
@@ -701,7 +703,9 @@ const IsLessThanOrEqualToBigInt$ = Schema.Struct({
 const IsBetweenBigInt$ = Schema.Struct({
   _tag: Schema.tag("isBetweenBigInt"),
   minimum: Schema.BigInt,
-  maximum: Schema.BigInt
+  maximum: Schema.BigInt,
+  exclusiveMinimum: Schema.optional(Schema.Boolean),
+  exclusiveMaximum: Schema.optional(Schema.Boolean)
 }).annotate({ identifier: "IsBetweenBigInt" })
 
 const BigIntMeta$ = Schema.Union([
@@ -891,7 +895,9 @@ const IsLessThanOrEqualToDate$ = Schema.Struct({
 const IsBetweenDate$ = Schema.Struct({
   _tag: Schema.tag("isBetweenDate"),
   minimum: Schema.Date,
-  maximum: Schema.Date
+  maximum: Schema.Date,
+  exclusiveMinimum: Schema.optional(Schema.Boolean),
+  exclusiveMaximum: Schema.optional(Schema.Boolean)
 }).annotate({ identifier: "IsBetweenDate" })
 
 /**
