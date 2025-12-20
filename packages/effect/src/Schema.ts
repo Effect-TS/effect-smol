@@ -8959,7 +8959,7 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
             }
             return { _tag: "Reference", $ref: identifier, isSuspend: true }
           } else {
-            throw new globalThis.Error("Suspended schema without identifier detected", { cause: ast }) // TODO: test this
+            throw new globalThis.Error("Suspended schema without identifier detected") // TODO: test this
           }
         } else {
           return recur(thunk)

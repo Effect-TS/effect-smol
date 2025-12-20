@@ -2,8 +2,6 @@
  * @since 4.0.0
  */
 import * as Combiner from "../../Combiner.ts"
-import { format } from "../../Formatter.ts"
-import type { JsonPatchOperation } from "../../JsonPatch.ts"
 import type * as JsonSchema from "../../JsonSchema.ts"
 import * as Rec from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
@@ -17,17 +15,7 @@ export type Path = readonly ["schema" | "definitions", ...ReadonlyArray<string |
 /**
  * @since 4.0.0
  */
-export interface RewriterTracer {
-  push(change: JsonPatchOperation): void
-}
-
-/**
- * @since 4.0.0
- */
-export type Rewriter = (
-  document: JsonSchema.Document<"draft-2020-12">,
-  tracer?: RewriterTracer
-) => JsonSchema.Document<"draft-2020-12">
+export type Rewriter = (document: JsonSchema.Document<"draft-2020-12">) => JsonSchema.Document<"draft-2020-12">
 
 /**
  * Rewrites a JSON Schema to an OpenAI-compatible schema.
@@ -46,7 +34,7 @@ export type Rewriter = (
  *
  * @since 4.0.0
  */
-export const openAi: Rewriter = (document, tracer) => {
+export const openAi: Rewriter = (document) => {
   return {
     source: document.source,
     schema: top(document.schema, ["schema"]),
@@ -57,12 +45,6 @@ export const openAi: Rewriter = (document, tracer) => {
     // [ROOT_OBJECT_REQUIRED]
     if (schema.type !== "object") {
       const value = getDefaultSchema(schema)
-      tracer?.push({
-        op: "replace",
-        path: formatPath(path),
-        value,
-        description: `[ROOT_OBJECT_REQUIRED] at ${formatPath(path)}`
-      })
       return value
     }
     return recur(schema, path)
@@ -74,7 +56,7 @@ export const openAi: Rewriter = (document, tracer) => {
     if (typeof schema === "boolean") return schema
     // anyOf
     if (Array.isArray(schema.anyOf)) {
-      const value = whitelistProperties(schema, path, ["anyOf"], tracer)
+      const value = whitelistProperties(schema, path, ["anyOf"])
       // recursively rewrite members
       const anyOf = schema.anyOf.map((value, i: number) => recur(value, [...path, "anyOf", i]))
       value.anyOf = anyOf
@@ -83,17 +65,11 @@ export const openAi: Rewriter = (document, tracer) => {
 
     // [ONE_OF -> ANY_OF]
     if (Array.isArray(schema.oneOf)) {
-      const value = whitelistProperties(schema, path, ["oneOf"], tracer)
+      const value = whitelistProperties(schema, path, ["oneOf"])
       // recursively rewrite members
       const anyOf = schema.oneOf.map((value, i: number) => recur(value, [...path, "oneOf", i]))
       value.anyOf = anyOf
       delete value.oneOf
-      tracer?.push({
-        op: "replace",
-        path: formatPath(path),
-        value,
-        description: `[ONE_OF -> ANY_OF] at ${formatPath(path)}`
-      })
       return recur(value, path)
     }
 
@@ -101,12 +77,6 @@ export const openAi: Rewriter = (document, tracer) => {
     if (Array.isArray(schema.allOf)) {
       const { allOf, ...rest } = schema
       const value = allOf.reduce((acc, curr) => combine(acc, curr), rest)
-      tracer?.push({
-        op: "replace",
-        path: formatPath(path),
-        value,
-        description: `[MERGE_ALL_OF]: ${allOf.length} fragment(s) at ${formatPath(path)}`
-      })
       return recur(value, path)
     }
 
@@ -117,12 +87,12 @@ export const openAi: Rewriter = (document, tracer) => {
       || schema.type === "integer"
       || schema.type === "boolean"
     ) {
-      return whitelistProperties(schema, path, ["type", "enum"], tracer)
+      return whitelistProperties(schema, path, ["type", "enum"])
     }
 
     // type: "array"
     if (schema.type === "array") {
-      const value: any = whitelistProperties(schema, path, ["type", "items", "prefixItems"], tracer)
+      const value: any = whitelistProperties(schema, path, ["type", "items", "prefixItems"])
       // recursively rewrite prefixItems
       if (value.prefixItems) {
         value.prefixItems = value.prefixItems.map((value: JsonSchema.JsonSchema, i: number) =>
@@ -141,8 +111,7 @@ export const openAi: Rewriter = (document, tracer) => {
       const value: any = whitelistProperties(
         schema,
         path,
-        ["type", "properties", "required", "additionalProperties"],
-        tracer
+        ["type", "properties", "required", "additionalProperties"]
       )
 
       // recursively rewrite properties
@@ -174,12 +143,6 @@ export const openAi: Rewriter = (document, tracer) => {
                   value.properties[key] = { "anyOf": [property, { "type": "null" }] }
                 }
               }
-              tracer?.push({
-                op: "add",
-                path: formatPath([...path, "required", "-"]),
-                value: key,
-                description: `[ADD_REQUIRED_PROPERTY] ${format(key)} at ${formatPath(path)}`
-              })
             }
           }
         }
@@ -188,12 +151,6 @@ export const openAi: Rewriter = (document, tracer) => {
       // [SET_ADDITIONAL_PROPERTIES_TO_FALSE]
       if (value.additionalProperties !== false) {
         value.additionalProperties = false
-        tracer?.push({
-          op: "replace",
-          path: formatPath([...path, "additionalProperties"]),
-          value: false,
-          description: `[SET_ADDITIONAL_PROPERTIES_TO_FALSE] at ${formatPath(path)}`
-        })
       }
 
       return value
@@ -206,50 +163,26 @@ export const openAi: Rewriter = (document, tracer) => {
 
     // [CONST -> ENUM]
     if (schema.const !== undefined) {
-      const value: any = whitelistProperties(schema, path, ["const"], tracer)
+      const value: any = whitelistProperties(schema, path, ["const"])
       value.enum = [schema.const]
       delete value.const
-      tracer?.push({
-        op: "replace",
-        path: formatPath(path),
-        value,
-        description: `[CONST -> ENUM] at ${formatPath(path)}`
-      })
       return value
     }
 
     const value = getDefaultSchema(schema)
-    tracer?.push({
-      op: "replace",
-      path: formatPath(path),
-      value,
-      description: `[UNKNOWN_SCHEMA_TYPE] at ${formatPath(path)}`
-    })
     return value
   }
-}
-
-function formatPath(path: Path): string {
-  return "/" + path.join("/")
 }
 
 function whitelistProperties(
   schema: JsonSchema.JsonSchema,
   path: Path,
-  whitelist: Iterable<string>,
-  tracer?: RewriterTracer | undefined
+  whitelist: Iterable<string>
 ): any {
   const out = { ...schema }
   const w = new Set([...whitelist, ...["description", "title", "default", "examples"]])
   for (const key of Object.keys(schema)) {
     if (w.has(key)) continue
-
-    tracer?.push({
-      op: "remove",
-      path: formatPath([...path, key]),
-      description: `[UNSUPPORTED_PROPERTY_KEY] ${format(key)} at ${formatPath(path)}`
-    })
-
     delete out[key]
   }
   return out

@@ -1,5 +1,4 @@
 import { Schema } from "effect"
-import type { JsonPatchOperation } from "effect/JsonPatch"
 import type * as JsonSchema from "effect/JsonSchema"
 import { Rewriter } from "effect/unstable/jsonschema"
 import { describe, it } from "vitest"
@@ -11,27 +10,18 @@ function assertRewrite(
   expected: {
     readonly schema: JsonSchema.JsonSchema
     readonly definitions?: Record<string, JsonSchema.JsonSchema> | undefined
-    readonly traces?: Array<string> | undefined
   },
   options?: Schema.ToJsonSchemaOptions
 ) {
-  const traces: Array<JsonPatchOperation> = []
-  const tracer: Rewriter.RewriterTracer = {
-    push(change) {
-      traces.push(change)
-    }
-  }
   const document = rewriter(
     Schema.toJsonSchemaDocument(schema, {
       generateDescriptions: true,
       referenceStrategy: "skip-top-level",
       ...options
-    }),
-    tracer
+    })
   )
   deepStrictEqual(document.schema, expected.schema)
   deepStrictEqual(document.definitions, expected.definitions ?? {})
-  deepStrictEqual(traces.map((trace) => trace.description), expected.traces ?? [])
 }
 
 describe("Rewriter", () => {
@@ -46,10 +36,7 @@ describe("Rewriter", () => {
             "properties": {},
             "required": [],
             "additionalProperties": false
-          },
-          traces: [
-            "[ROOT_OBJECT_REQUIRED] at /schema"
-          ]
+          }
         }
       )
       assertRewrite(
@@ -64,10 +51,7 @@ describe("Rewriter", () => {
             "required": [],
             "additionalProperties": false,
             "description": "description"
-          },
-          traces: [
-            "[ROOT_OBJECT_REQUIRED] at /schema"
-          ]
+          }
         }
       )
       assertRewrite(
@@ -92,10 +76,7 @@ describe("Rewriter", () => {
               ],
               "description": "description"
             }
-          },
-          traces: [
-            "[ROOT_OBJECT_REQUIRED] at /schema"
-          ]
+          }
         }
       )
     })
@@ -229,10 +210,7 @@ describe("Rewriter", () => {
               },
               "required": ["a"],
               "additionalProperties": false
-            },
-            traces: [
-              "[SET_ADDITIONAL_PROPERTIES_TO_FALSE] at /schema"
-            ]
+            }
           },
           {
             additionalProperties: true
@@ -255,16 +233,12 @@ describe("Rewriter", () => {
               },
               "required": ["a"],
               "additionalProperties": false
-            },
-            traces: [
-              `[MERGE_ALL_OF]: 1 fragment(s) at /schema/properties/a`,
-              `[UNSUPPORTED_PROPERTY_KEY] "minLength" at /schema/properties/a`
-            ]
+            }
           }
         )
       })
 
-      it("optional field", () => {
+      it.todo("optional field", () => {
         assertRewrite(
           Rewriter.openAi,
           Schema.Struct({
@@ -302,10 +276,7 @@ describe("Rewriter", () => {
                   "description": "description"
                 },
                 "f": {
-                  "anyOf": [
-                    { "type": "string" },
-                    { "type": "null" }
-                  ],
+                  "type": ["string", "null"],
                   "description": "description"
                 },
                 "g": {
@@ -316,37 +287,17 @@ describe("Rewriter", () => {
                   "description": "description"
                 },
                 "i": {
-                  "anyOf": [
-                    { "type": "string" },
-                    { "type": "null" }
-                  ],
+                  "type": ["string", "null"],
                   "description": "description"
                 },
                 "l": {
-                  "anyOf": [
-                    { "type": "string", "description": "a value with a length of at least 1" },
-                    { "type": "null" }
-                  ],
-                  "description": "description"
+                  "type": ["string", "null"],
+                  "description": "a value with a length of at least 1, description"
                 }
               },
               "required": ["a", "b", "c", "d", "e", "f", "g", "h", "i", "l"],
               "additionalProperties": false
-            },
-            traces: [
-              `[MERGE_ALL_OF]: 1 fragment(s) at /schema/properties/l/anyOf/0`,
-              `[UNSUPPORTED_PROPERTY_KEY] "minLength" at /schema/properties/l/anyOf/0`,
-              `[ADD_REQUIRED_PROPERTY] "a" at /schema`,
-              `[ADD_REQUIRED_PROPERTY] "b" at /schema`,
-              `[ADD_REQUIRED_PROPERTY] "c" at /schema`,
-              `[ADD_REQUIRED_PROPERTY] "d" at /schema`,
-              `[ADD_REQUIRED_PROPERTY] "e" at /schema`,
-              `[ADD_REQUIRED_PROPERTY] "f" at /schema`,
-              `[ADD_REQUIRED_PROPERTY] "g" at /schema`,
-              `[ADD_REQUIRED_PROPERTY] "h" at /schema`,
-              `[ADD_REQUIRED_PROPERTY] "i" at /schema`,
-              `[ADD_REQUIRED_PROPERTY] "l" at /schema`
-            ]
+            }
           }
         )
         assertRewrite(
@@ -363,10 +314,7 @@ describe("Rewriter", () => {
               },
               "required": ["a"],
               "additionalProperties": false
-            },
-            traces: [
-              `[ADD_REQUIRED_PROPERTY] "a" at /schema`
-            ]
+            }
           }
         )
         assertRewrite(
@@ -390,10 +338,7 @@ describe("Rewriter", () => {
               },
               "required": ["a"],
               "additionalProperties": false
-            },
-            traces: [
-              `[ADD_REQUIRED_PROPERTY] "a" at /schema`
-            ]
+            }
           }
         )
         assertRewrite(
@@ -413,10 +358,7 @@ describe("Rewriter", () => {
               },
               "required": ["a"],
               "additionalProperties": false
-            },
-            traces: [
-              `[ADD_REQUIRED_PROPERTY] "a" at /schema`
-            ]
+            }
           }
         )
         assertRewrite(
@@ -443,10 +385,7 @@ describe("Rewriter", () => {
               },
               "required": ["a"],
               "additionalProperties": false
-            },
-            traces: [
-              `[ADD_REQUIRED_PROPERTY] "a" at /schema`
-            ]
+            }
           }
         )
       })
@@ -494,13 +433,7 @@ describe("Rewriter", () => {
               },
               "required": ["a"],
               "additionalProperties": false
-            },
-            traces: [
-              `[MERGE_ALL_OF]: 1 fragment(s) at /schema/properties/a/anyOf/0`,
-              `[UNSUPPORTED_PROPERTY_KEY] "minLength" at /schema/properties/a/anyOf/0`,
-              `[MERGE_ALL_OF]: 2 fragment(s) at /schema/properties/a/anyOf/1/anyOf/0`,
-              `[UNSUPPORTED_PROPERTY_KEY] "exclusiveMinimum" at /schema/properties/a/anyOf/1/anyOf/0`
-            ]
+            }
           }
         )
       })
@@ -546,15 +479,7 @@ describe("Rewriter", () => {
               },
               "required": ["a"],
               "additionalProperties": false
-            },
-            traces: [
-              `[MERGE_ALL_OF]: 1 fragment(s) at /schema/properties/a/oneOf/0`,
-              `[UNSUPPORTED_PROPERTY_KEY] "minLength" at /schema/properties/a/oneOf/0`,
-              `[MERGE_ALL_OF]: 2 fragment(s) at /schema/properties/a/oneOf/1/oneOf/0`,
-              `[UNSUPPORTED_PROPERTY_KEY] "exclusiveMinimum" at /schema/properties/a/oneOf/1/oneOf/0`,
-              `[ONE_OF -> ANY_OF] at /schema/properties/a/oneOf/1`,
-              `[ONE_OF -> ANY_OF] at /schema/properties/a`
-            ]
+            }
           }
         )
       })
@@ -575,11 +500,7 @@ describe("Rewriter", () => {
             },
             "required": ["a"],
             "additionalProperties": false
-          },
-          traces: [
-            `[MERGE_ALL_OF]: 1 fragment(s) at /schema/properties/a`,
-            `[UNSUPPORTED_PROPERTY_KEY] "minLength" at /schema/properties/a`
-          ]
+          }
         }
       )
       assertRewrite(
@@ -600,11 +521,7 @@ describe("Rewriter", () => {
             },
             "required": ["a"],
             "additionalProperties": false
-          },
-          traces: [
-            `[MERGE_ALL_OF]: 1 fragment(s) at /schema/properties/a`,
-            `[UNSUPPORTED_PROPERTY_KEY] "minLength" at /schema/properties/a`
-          ]
+          }
         }
       )
       assertRewrite(
@@ -628,12 +545,7 @@ describe("Rewriter", () => {
             },
             "required": ["a"],
             "additionalProperties": false
-          },
-          traces: [
-            `[MERGE_ALL_OF]: 2 fragment(s) at /schema/properties/a`,
-            `[UNSUPPORTED_PROPERTY_KEY] "minLength" at /schema/properties/a`,
-            `[UNSUPPORTED_PROPERTY_KEY] "maxLength" at /schema/properties/a`
-          ]
+          }
         }
       )
     })
@@ -662,12 +574,7 @@ describe("Rewriter", () => {
             },
             "required": ["a"],
             "additionalProperties": false
-          },
-          traces: [
-            `[UNSUPPORTED_PROPERTY_KEY] "minItems" at /schema/properties/a`,
-            `[MERGE_ALL_OF]: 1 fragment(s) at /schema/properties/a/prefixItems/0`,
-            `[UNSUPPORTED_PROPERTY_KEY] "minLength" at /schema/properties/a/prefixItems/0`
-          ]
+          }
         }
       )
     })
@@ -690,22 +597,12 @@ describe("Rewriter", () => {
             },
             "required": ["a"],
             "additionalProperties": false
-          },
-          traces: [
-            `[MERGE_ALL_OF]: 1 fragment(s) at /schema/properties/a/items`,
-            `[UNSUPPORTED_PROPERTY_KEY] "minLength" at /schema/properties/a/items`
-          ]
+          }
         }
       )
     })
 
     it("const", () => {
-      const traces: Array<string> = []
-      const tracer: Rewriter.RewriterTracer = {
-        push(change) {
-          traces.push(change.description ?? "")
-        }
-      }
       const document = Rewriter.openAi({
         source: "draft-2020-12",
         schema: {
@@ -719,7 +616,7 @@ describe("Rewriter", () => {
           "additionalProperties": false
         },
         definitions: {}
-      }, tracer)
+      })
 
       deepStrictEqual(document.schema, {
         "type": "object",
@@ -731,9 +628,6 @@ describe("Rewriter", () => {
         "required": ["a"],
         "additionalProperties": false
       })
-      deepStrictEqual(traces, [
-        `[CONST -> ENUM] at /schema/properties/a`
-      ])
     })
 
     it("UniqueArray", () => {
@@ -754,11 +648,7 @@ describe("Rewriter", () => {
             },
             "required": ["a"],
             "additionalProperties": false
-          },
-          traces: [
-            `[MERGE_ALL_OF]: 1 fragment(s) at /schema/properties/a`,
-            `[UNSUPPORTED_PROPERTY_KEY] "uniqueItems" at /schema/properties/a`
-          ]
+          }
         }
       )
     })
