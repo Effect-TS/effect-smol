@@ -19,7 +19,7 @@ const ajvDraft2020_12 = new Ajv2020.default(baseAjvOptions)
 function assertUnsupportedSchema(
   schema: Schema.Top,
   message: string,
-  options?: Schema.ToJsonSchemaOptions
+  options?: Schema.ToJsonSchemaDocumentOptions
 ) {
   throws(() => Schema.toJsonSchemaDocument(schema, options), message)
 }
@@ -27,7 +27,7 @@ function assertUnsupportedSchema(
 function assertDocument<S extends Schema.Top>(
   schema: S,
   expected: { schema: JsonSchema.JsonSchema; definitions?: JsonSchema.Definitions },
-  options?: Schema.ToJsonSchemaOptions
+  options?: Schema.ToJsonSchemaDocumentOptions
 ) {
   const document = Schema.toJsonSchemaDocument(schema, options)
   deepStrictEqual(document, {

@@ -41,9 +41,9 @@ describe("Multipart", () => {
     it("toJsonSchema", () => {
       const document = Schema.toJsonSchemaDocument(Multipart.FileSchema)
       deepStrictEqual(document, {
-        source: "draft-07",
+        source: "draft-2020-12",
         schema: {
-          "$ref": "#/definitions/PersistedFile"
+          "$ref": "#/$defs/PersistedFile"
         },
         definitions: {
           "PersistedFile": {

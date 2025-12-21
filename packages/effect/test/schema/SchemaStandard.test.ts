@@ -65,6 +65,42 @@ describe("Standard", () => {
       throws(() => SchemaStandard.fromAST(schema.ast), "Suspended schema with duplicate identifier: Category")
     })
 
+    it.only("duplicate identifier", () => {
+      assertStandardDocument(
+        Schema.Struct({
+          a: Schema.String.annotate({ identifier: "ID", description: "a" }),
+          b: Schema.String.annotate({ identifier: "ID", description: "b" })
+        }),
+        {
+          schema: {
+            _tag: "Objects",
+            propertySignatures: [
+              {
+                name: "a",
+                type: { _tag: "Reference", $ref: "ID" },
+                isOptional: false,
+                isMutable: false
+              },
+              {
+                name: "b",
+                type: { _tag: "Reference", $ref: "ID" },
+                isOptional: false,
+                isMutable: false
+              }
+            ],
+            indexSignatures: []
+          },
+          definitions: {
+            "ID": {
+              _tag: "String",
+              checks: [],
+              annotations: { identifier: "ID", description: "b" }
+            }
+          }
+        }
+      )
+    })
+
     it("String", () => {
       assertStandardDocument(Schema.String, {
         schema: {

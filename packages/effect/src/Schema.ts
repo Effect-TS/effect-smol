@@ -6504,26 +6504,28 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {}
  * const original = Schema.Struct({ a: Schema.String })
  * const schema = Schema.fromJsonString(original)
  *
- * const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-2020-12" })
+ * const document = Schema.toJsonSchemaDocument(schema)
  *
- * console.log(JSON.stringify(jsonSchema, null, 2))
- * // Output:
+ * console.log(JSON.stringify(document, null, 2))
  * // {
- * //   "$schema": "https://json-schema.org/draft/2020-12/schema",
- * //   "type": "string",
- * //   "contentMediaType": "application/json",
- * //   "contentSchema": {
- * //     "type": "object",
- * //     "properties": {
- * //       "a": {
- * //         "type": "string"
- * //       }
- * //     },
- * //     "required": [
- * //       "a"
- * //     ],
- * //     "additionalProperties": false
- * //   }
+ * //   "source": "draft-2020-12",
+ * //   "schema": {
+ * //     "type": "string",
+ * //     "contentMediaType": "application/json",
+ * //     "contentSchema": {
+ * //       "type": "object",
+ * //       "properties": {
+ * //         "a": {
+ * //           "type": "string"
+ * //         }
+ * //       },
+ * //       "required": [
+ * //         "a"
+ * //       ],
+ * //       "additionalProperties": false
+ * //     }
+ * //   },
+ * //   "definitions": {}
  * // }
  * ```
  *
@@ -7627,7 +7629,7 @@ export function toEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> 
 /**
  * @since 4.0.0
  */
-export interface ToJsonSchemaOptions {
+export interface ToJsonSchemaDocumentOptions {
   /**
    * Controls how additional properties are handled while resolving the JSON
    * schema.
@@ -7659,7 +7661,7 @@ export interface ToJsonSchemaOptions {
  */
 export function toJsonSchemaDocument<S extends Top>(
   schema: S,
-  options?: ToJsonSchemaOptions // TODO: remove referenceStrategy option (convert to rewrite function)
+  options?: ToJsonSchemaDocumentOptions // TODO: remove referenceStrategy option (convert to rewrite function)
 ): JsonSchema.Document<"draft-2020-12"> {
   const document = standardDocumentFromAST(schema.ast)
   const jsonDocument = standardDocumentToJsonSchemaDocument(document, options)
@@ -9110,7 +9112,7 @@ function resove$ref($ref: string, definitions: JsonSchema.Definitions): JsonSche
 /** @internal */
 export function standardDocumentToJsonSchemaDocument(
   document: SchemaStandard.Document,
-  options?: ToJsonSchemaOptions
+  options?: ToJsonSchemaDocumentOptions
 ): JsonSchema.Document<"draft-2020-12"> {
   const generateDescriptions = options?.generateDescriptions ?? false
   const referenceStrategy = options?.referenceStrategy ?? "all"
