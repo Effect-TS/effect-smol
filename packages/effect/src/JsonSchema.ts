@@ -479,3 +479,42 @@ const ALLOWED_KEYWORDS = new Set<string>([
   "then",
   "else"
 ])
+
+/**
+ * Convert a JSON Schema Draft 2020-12-shaped schema into an OpenAPI 3.0 Schema Object.
+ *
+ * @since 4.0.0
+ */
+export function toSchemaOpenApi3_1(schema: JsonSchema): JsonSchema
+export function toSchemaOpenApi3_1(schema: JsonSchema | boolean): JsonSchema | boolean
+export function toSchemaOpenApi3_1(schema: JsonSchema | boolean): JsonSchema | boolean {
+  if (typeof schema === "boolean") return schema
+
+  return recur(schema) as JsonSchema | boolean
+
+  function recur(node: unknown): unknown {
+    if (Array.isArray(node)) return node.map(recur)
+    if (typeof node === "boolean" || !Predicate.isObject(node)) return node
+    const out: Record<string, unknown> = {}
+    for (const k of Object.keys(node)) {
+      const v = node[k]
+      if (Array.isArray(v) || Predicate.isObject(v)) {
+        out[k] = recur(v)
+      } else {
+        out[k] = k === "$ref" && typeof v === "string" ? v.replace(/^#\/\$defs(?=\/|$)/, "#/components/schemas") : v
+      }
+    }
+    return out
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function toDocumentOpenApi3_1(document: Document<"draft-2020-12">): Document<"openapi-3.1"> {
+  return {
+    source: "openapi-3.1",
+    schema: toSchemaOpenApi3_1(document.schema),
+    definitions: Rec.map(document.definitions, (d) => toSchemaOpenApi3_1(d))
+  }
+}

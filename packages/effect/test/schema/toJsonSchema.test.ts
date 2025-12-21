@@ -3188,7 +3188,7 @@ describe("JsonSchema generation", () => {
     })
   })
 
-  describe.todo("Class", () => {
+  describe("Class", () => {
     it("fields", () => {
       class A extends Schema.Class<A>("A")({
         a: Schema.String
@@ -3197,10 +3197,10 @@ describe("JsonSchema generation", () => {
         A,
         {
           schema: {
-            "$ref": "#/$defs/A"
+            "$ref": "#/$defs/AEncoded"
           },
           definitions: {
-            "A": {
+            "AEncoded": {
               "type": "object",
               "properties": {
                 "a": { "type": "string" }
@@ -3221,10 +3221,10 @@ describe("JsonSchema generation", () => {
         A,
         {
           schema: {
-            "$ref": "#/$defs/A"
+            "$ref": "#/$defs/AEncoded"
           },
           definitions: {
-            "A": {
+            "AEncoded": {
               "type": "object",
               "properties": {
                 "a": { "type": "string" }
@@ -3238,17 +3238,17 @@ describe("JsonSchema generation", () => {
     })
   })
 
-  describe.todo("ErrorClass", () => {
+  describe("ErrorClass", () => {
     it("fields", () => {
       class E extends Schema.ErrorClass<E>("E")({
         a: Schema.String
       }) {}
       assertDocument(E, {
         schema: {
-          "$ref": "#/$defs/E"
+          "$ref": "#/$defs/EEncoded"
         },
         definitions: {
-          "E": {
+          "EEncoded": {
             "type": "object",
             "properties": {
               "a": { "type": "string" }

@@ -7166,7 +7166,10 @@ function makeClass<
   struct: S,
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
-  const getClassSchema = getClassSchemaFactory(struct, identifier, annotations)
+  const from = InternalAnnotations.resolveIdentifier(struct.ast) === undefined
+    ? struct.annotate({ identifier: `${identifier}Encoded` })
+    : struct
+  const getClassSchema = getClassSchemaFactory(from, identifier, annotations)
   const ClassTypeId = getClassTypeId(identifier) // HMR support
 
   return class extends Inherited {
