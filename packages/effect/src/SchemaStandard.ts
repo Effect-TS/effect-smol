@@ -1345,14 +1345,12 @@ export function toCode(document: Document, options?: {
     switch (schema._tag) {
       case "Declaration":
         return reviver(schema, recur)
-      case "Reference": {
-        if (schema.$ref in document.definitions) {
-          return `Schema.suspend((): Schema.Codec<${schema.$ref}> => ${schema.$ref})`
-        }
-        throw new Error(`Reference to unknown schema: ${schema.$ref}`)
+      case "Reference":
+        return schema.$ref
+      case "Suspend": {
+        const typeAnnotation = schema.thunk._tag === "Reference" ? `: Schema.Codec<${schema.thunk.$ref}>` : ""
+        return `Schema.suspend(()${typeAnnotation} => ${recur(schema.thunk)})`
       }
-      case "Suspend":
-        return recur(schema.thunk)
       case "Null":
       case "Undefined":
       case "Void":

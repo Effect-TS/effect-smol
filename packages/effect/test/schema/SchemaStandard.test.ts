@@ -948,7 +948,7 @@ describe("Standard", () => {
     })
   })
 
-  describe.todo("Json Schema Roundtrip", () => {
+  describe("Json Schema Roundtrip", () => {
     it("Unknown", () => {
       assertJsonSchemaRoundtrip(Schema.Unknown, "Schema.Unknown")
       assertJsonSchemaRoundtrip(
@@ -1161,28 +1161,28 @@ describe("Standard", () => {
         )
       })
 
-      it("required element", () => {
+      it.todo("required element", () => {
         assertJsonSchemaRoundtrip(
           Schema.Tuple([Schema.String, Schema.Number]),
           `Schema.Tuple([Schema.String, Schema.Number])`
         )
       })
 
-      it("optionalKey", () => {
+      it.todo("optionalKey", () => {
         assertJsonSchemaRoundtrip(
           Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)]),
           `Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)])`
         )
       })
 
-      it("optional", () => {
+      it.todo("optional", () => {
         assertJsonSchemaRoundtrip(
           Schema.Tuple([Schema.String, Schema.optional(Schema.Number)]),
           `Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)])`
         )
       })
 
-      it("element with Undefined", () => {
+      it.todo("element with Undefined", () => {
         assertJsonSchemaRoundtrip(
           Schema.Tuple([Schema.String, Schema.UndefinedOr(Schema.Number)]),
           `Schema.Tuple([Schema.String, Schema.optionalKey(Schema.Number)])`
@@ -2075,14 +2075,14 @@ describe("Standard", () => {
 
   describe("toCode", () => {
     describe("Suspend", () => {
-      it.todo("non-recursive", () => {
+      it("non-recursive", () => {
         assertToCode(
           Schema.suspend(() => Schema.String),
-          `Schema.String`
+          `Schema.suspend(() => Schema.String)`
         )
         assertToCode(
           Schema.suspend(() => Schema.String.annotate({ identifier: "ID" })),
-          `Schema.String.annotate({ "identifier": "ID" })`
+          `Schema.suspend((): Schema.Codec<ID> => ID)`
         )
       })
 
