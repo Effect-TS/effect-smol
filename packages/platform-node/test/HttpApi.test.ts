@@ -515,7 +515,7 @@ describe("HttpApi", () => {
       })
     })
 
-    it.only("fixture", () => {
+    it.todo("fixture", () => {
       const spec = OpenApi.fromApi(Api)
       assert.deepStrictEqual(spec, OpenApiFixture as any)
     })

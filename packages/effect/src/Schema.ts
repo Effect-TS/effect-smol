@@ -8944,14 +8944,23 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
           if (identifier === undefined) {
             throw new globalThis.Error("Suspended schema without identifier detected")
           }
-          // TODO: return a Suspend here
-          return { _tag: "Reference", $ref: identifier }
+          return {
+            _tag: "Suspend",
+            checks: [],
+            thunk: { _tag: "Reference", $ref: identifier },
+            ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          }
         }
-        return recur(thunk)
+        return {
+          _tag: "Suspend",
+          checks: [],
+          thunk: recur(thunk),
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+        }
       }
       case "Declaration":
         return {
-          _tag: "Declaration" as const,
+          _tag: "Declaration",
           typeParameters: ast.typeParameters.map((tp) => recur(tp)),
           Encoded: recur(serializerJson(ast)),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
@@ -9153,7 +9162,7 @@ export function standardDocumentToJsonSchemaDocument(
       case "Declaration":
         return recur(schema.Encoded)
       case "Suspend":
-        return recur(schema.reference)
+        return recur(schema.thunk)
       case "Reference":
         return { $ref: `#/$defs/${escapeToken(schema.$ref)}` }
       case "Null":

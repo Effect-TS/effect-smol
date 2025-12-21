@@ -32,7 +32,8 @@ export interface Declaration {
 export interface Suspend {
   readonly _tag: "Suspend"
   readonly annotations?: Schema.Annotations.Annotations | undefined
-  readonly reference: Reference
+  readonly checks: readonly []
+  readonly thunk: StandardSchema
 }
 
 /**
@@ -878,7 +879,8 @@ export const Declaration$ = Schema.Struct({
 export const Suspend$ = Schema.Struct({
   _tag: Schema.tag("Suspend"),
   annotations: Schema.optional(Annotations$),
-  reference: Reference$
+  checks: Schema.Tuple([]),
+  thunk: Schema$ref
 }).annotate({ identifier: "Suspend" })
 
 /**
@@ -1066,7 +1068,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
       case "Reference":
         return resolveReference(schema.$ref)
       case "Suspend":
-        return recur(schema.reference)
+        return recur(schema.thunk)
       case "Null":
         return Schema.Null
       case "Undefined":
@@ -1329,12 +1331,12 @@ export function toCode(document: Document, options?: {
         return b + toCodeAnnotate(schema.annotations)
       case "Declaration":
       case "Reference":
-      case "Suspend":
         return b
       case "String":
       case "Number":
       case "BigInt":
       case "Arrays":
+      case "Suspend":
         return b + toCodeAnnotate(schema.annotations) + toCodeChecks(schema.checks)
     }
   }
@@ -1350,7 +1352,7 @@ export function toCode(document: Document, options?: {
         throw new Error(`Reference to unknown schema: ${schema.$ref}`)
       }
       case "Suspend":
-        return recur(schema.reference)
+        return recur(schema.thunk)
       case "Null":
       case "Undefined":
       case "Void":
