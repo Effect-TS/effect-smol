@@ -55,7 +55,7 @@ describe("JsonSchema generation", () => {
       })
       assertUnsupportedSchema(
         schema,
-        `Suspended schema without identifier detected`
+        `Suspended schema without identifier`
       )
     })
 

@@ -8924,6 +8924,14 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
     const identifier = InternalAnnotations.resolveIdentifier(last)
     const definition = on(last)
     if (identifier !== undefined) {
+      const existing = definitions[identifier]
+      if (existing !== undefined) {
+        if (Equal.equals(existing, definition)) {
+          return { _tag: "Reference", $ref: identifier }
+        } else {
+          throw new globalThis.Error(`Duplicate identifier: ${identifier}`)
+        }
+      }
       definitions[identifier] = definition
       return { _tag: "Reference", $ref: identifier }
     }
@@ -8944,7 +8952,7 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
         if (visited.has(thunk)) {
           const identifier = InternalAnnotations.resolveIdentifier(thunk)
           if (identifier === undefined) {
-            throw new globalThis.Error("Suspended schema without identifier detected")
+            throw new globalThis.Error("Suspended schema without identifier")
           }
           return {
             _tag: "Suspend",

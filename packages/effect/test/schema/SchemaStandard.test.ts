@@ -47,10 +47,10 @@ describe("Standard", () => {
         name: Schema.String,
         children: Schema.Array(Schema.suspend((): Schema.Codec<Category> => schema))
       })
-      throws(() => SchemaStandard.fromAST(schema.ast), "Suspended schema without identifier detected")
+      throws(() => SchemaStandard.fromAST(schema.ast), "Suspended schema without identifier")
     })
 
-    it.todo("should throw if there are suspended schemas with duplicate identifiers", () => {
+    it("should throw if there are suspended schemas with duplicate identifiers", () => {
       type Category2 = {
         readonly name: number
         readonly children: ReadonlyArray<Category2>
@@ -62,43 +62,17 @@ describe("Standard", () => {
       }).annotate({ identifier: "Category" })
 
       const schema = Schema.Tuple([OuterCategory, OuterCategory2])
-      throws(() => SchemaStandard.fromAST(schema.ast), "Suspended schema with duplicate identifier: Category")
+      throws(() => SchemaStandard.fromAST(schema.ast), "Duplicate identifier: Category")
     })
 
-    it.only("duplicate identifier", () => {
-      assertStandardDocument(
-        Schema.Struct({
-          a: Schema.String.annotate({ identifier: "ID", description: "a" }),
-          b: Schema.String.annotate({ identifier: "ID", description: "b" })
-        }),
-        {
-          schema: {
-            _tag: "Objects",
-            propertySignatures: [
-              {
-                name: "a",
-                type: { _tag: "Reference", $ref: "ID" },
-                isOptional: false,
-                isMutable: false
-              },
-              {
-                name: "b",
-                type: { _tag: "Reference", $ref: "ID" },
-                isOptional: false,
-                isMutable: false
-              }
-            ],
-            indexSignatures: []
-          },
-          definitions: {
-            "ID": {
-              _tag: "String",
-              checks: [],
-              annotations: { identifier: "ID", description: "b" }
-            }
-          }
-        }
-      )
+    it("duplicate identifier", () => {
+      throws(() =>
+        SchemaStandard.fromAST(
+          Schema.Struct({
+            a: Schema.String.annotate({ identifier: "ID", description: "a" }),
+            b: Schema.String.annotate({ identifier: "ID", description: "b" })
+          }).ast
+        ), "Duplicate identifier: ID")
     })
 
     it("String", () => {
