@@ -2533,8 +2533,6 @@ export interface suspend<S extends Top> extends
   >
 {
   readonly "~rebuild.out": this
-  // Suspended schemas cannot be annotated because they are only a way to defer evaluation
-  annotate(annotations: never): this["~rebuild.out"]
 }
 
 /**
@@ -8911,9 +8909,7 @@ export declare namespace Annotations {
 export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
   const definitions: Record<string, SchemaStandard.StandardSchema> = {}
 
-  const cache = new Map<AST.AST, SchemaStandard.StandardSchema>()
   const visited = new Set<AST.AST>()
-  const identifiers = new Map<string, AST.AST>()
 
   return {
     schema: recur(ast),
@@ -8921,54 +8917,22 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
   }
 
   function recur(ast: AST.AST): SchemaStandard.StandardSchema {
-    const cached = cache.get(ast)
-    if (cached) return cached
     visited.add(ast)
-    const identifier = getIdentifier(ast)
-    const next = getNext(ast)
-    const out = identifier !== undefined ? onTopIdentifier(next, identifier) : handleIdentifier(next)
-    cache.set(ast, out)
-    return out
-  }
-
-  function getIdentifier(ast: AST.AST): string | undefined {
-    const identifier = InternalAnnotations.resolveIdentifier(ast)
+    const last = getLastEncoding(ast)
+    const identifier = InternalAnnotations.resolveIdentifier(last)
+    const definition = on(last)
     if (identifier !== undefined) {
-      const cache = identifiers.get(identifier)
-      if (cache !== undefined && cache !== ast) {
-        return undefined
-      }
-      identifiers.set(identifier, ast)
-      return identifier
+      definitions[identifier] = definition
+      return { _tag: "Reference", $ref: identifier }
     }
+    return definition
   }
 
-  function getNext(ast: AST.AST): AST.AST {
+  function getLastEncoding(ast: AST.AST): AST.AST {
     if (ast.encoding) {
-      return getNext(ast.encoding[ast.encoding.length - 1].to)
+      return getLastEncoding(ast.encoding[ast.encoding.length - 1].to)
     }
     return ast
-  }
-
-  function onTopIdentifier(ast: AST.AST, identifier: string): SchemaStandard.StandardSchema {
-    const out: any = handleIdentifier(ast)
-    out.identifier = identifier
-    return out
-  }
-
-  function handleIdentifier(ast: AST.AST): SchemaStandard.StandardSchema {
-    const identifier = getIdentifier(ast)
-    if (identifier !== undefined) {
-      const definition = on(ast)
-      definitions[identifier] = definition
-      return {
-        _tag: "Reference",
-        $ref: identifier,
-        isSuspend: AST.isSuspend(ast),
-        annotations: undefined
-      }
-    }
-    return on(ast)
   }
 
   function on(ast: AST.AST): SchemaStandard.StandardSchema {
@@ -8976,20 +8940,21 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
       case "Suspend": {
         const thunk = ast.thunk()
         if (visited.has(thunk)) {
-          const identifier = getIdentifier(thunk)
+          const identifier = InternalAnnotations.resolveIdentifier(thunk)
           if (identifier === undefined) {
             throw new globalThis.Error("Suspended schema without identifier detected")
           }
-          return { _tag: "Reference", $ref: identifier, isSuspend: true, annotations: undefined }
+          // TODO: return a Suspend here
+          return { _tag: "Reference", $ref: identifier }
         }
         return recur(thunk)
       }
       case "Declaration":
         return {
-          _tag: "Declaration",
-          annotations: ast.annotations,
+          _tag: "Declaration" as const,
           typeParameters: ast.typeParameters.map((tp) => recur(tp)),
-          Encoded: recur(serializerJson(ast))
+          Encoded: recur(serializerJson(ast)),
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
       case "Null":
       case "Undefined":
@@ -8999,86 +8964,95 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
       case "Any":
       case "Boolean":
       case "Symbol":
-        return { _tag: ast._tag, annotations: ast.annotations }
+        return { _tag: ast._tag, ...(ast.annotations ? { annotations: ast.annotations } : undefined) }
       case "String": {
         const contentMediaType = ast.annotations?.contentMediaType
         const contentSchema = ast.annotations?.contentSchema
-        if (typeof contentMediaType === "string" && AST.isAST(contentSchema)) {
-          return {
-            _tag: ast._tag,
-            annotations: ast.annotations,
-            checks: [],
-            contentMediaType,
-            contentSchema: recur(contentSchema)
-          }
-        }
         return {
           _tag: ast._tag,
-          annotations: ast.annotations,
-          checks: fromASTChecks(ast.checks)
+          checks: fromASTChecks(ast.checks),
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined),
+          ...(typeof contentMediaType === "string" && AST.isAST(contentSchema)
+            ? { contentMediaType, contentSchema: recur(contentSchema) }
+            : undefined)
         }
       }
       case "Number":
       case "BigInt":
         return {
           _tag: ast._tag,
-          annotations: ast.annotations,
-          checks: fromASTChecks(ast.checks)
+          checks: fromASTChecks(ast.checks),
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
       case "Literal":
-        return { _tag: ast._tag, annotations: ast.annotations, literal: ast.literal }
+        return {
+          _tag: ast._tag,
+          literal: ast.literal,
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+        }
       case "UniqueSymbol":
-        return { _tag: ast._tag, annotations: ast.annotations, symbol: ast.symbol }
+        return {
+          _tag: ast._tag,
+          symbol: ast.symbol,
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+        }
       case "ObjectKeyword":
-        return { _tag: ast._tag, annotations: ast.annotations }
+        return {
+          _tag: ast._tag,
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+        }
       case "Enum":
-        return { _tag: ast._tag, annotations: ast.annotations, enums: ast.enums }
+        return {
+          _tag: ast._tag,
+          enums: ast.enums,
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+        }
       case "TemplateLiteral":
         return {
           _tag: ast._tag,
-          annotations: ast.annotations,
-          parts: ast.parts.map((p) => recur(p))
+          parts: ast.parts.map((p) => recur(p)),
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
       case "Arrays":
         return {
           _tag: ast._tag,
-          annotations: ast.annotations,
           elements: ast.elements.map((e) => {
-            const next = getNext(e)
+            const last = getLastEncoding(e)
             return {
-              isOptional: AST.isOptional(next),
-              type: recur(next),
-              annotations: next.context?.annotations
+              isOptional: AST.isOptional(last),
+              type: recur(last),
+              ...(last.context?.annotations ? { annotations: last.context?.annotations } : undefined)
             }
           }),
           rest: ast.rest.map((r) => recur(r)),
-          checks: fromASTChecks(ast.checks)
+          checks: fromASTChecks(ast.checks),
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
       case "Objects":
         return {
           _tag: ast._tag,
-          annotations: ast.annotations,
           propertySignatures: ast.propertySignatures.map((ps) => {
-            const next = getNext(ps.type)
+            const last = getLastEncoding(ps.type)
             return {
               name: ps.name,
-              type: recur(next),
-              isOptional: AST.isOptional(next),
-              isMutable: AST.isMutable(next),
-              annotations: next.context?.annotations
+              type: recur(last),
+              isOptional: AST.isOptional(last),
+              isMutable: AST.isMutable(last),
+              ...(last.context?.annotations ? { annotations: last.context?.annotations } : undefined)
             }
           }),
           indexSignatures: ast.indexSignatures.map((is) => ({
             parameter: recur(is.parameter),
             type: recur(is.type)
-          }))
+          })),
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
       case "Union":
         return {
           _tag: ast._tag,
-          annotations: ast.annotations,
           types: ast.types.map((t) => recur(t)),
-          mode: ast.mode
+          mode: ast.mode,
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
     }
   }
@@ -9150,9 +9124,11 @@ export function standardDocumentToJsonSchemaDocument(
   function recur(ss: SchemaStandard.StandardSchema): JsonSchema.JsonSchema {
     let s: JsonSchema.JsonSchema = on(ss)
     if (s === unsupportedJsonSchema) return unsupportedJsonSchema
-    const a = collectJsonSchemaAnnotations(ss.annotations)
-    if (a) {
-      s = { ...s, ...a }
+    if ("annotations" in ss) {
+      const a = collectJsonSchemaAnnotations(ss.annotations)
+      if (a) {
+        s = { ...s, ...a }
+      }
     }
     if ("checks" in ss) {
       const checks = collectJsonSchemaChecks(ss.checks, s.type)
@@ -9176,6 +9152,8 @@ export function standardDocumentToJsonSchemaDocument(
         return unsupportedJsonSchema
       case "Declaration":
         return recur(schema.Encoded)
+      case "Suspend":
+        return recur(schema.reference)
       case "Reference":
         return { $ref: `#/$defs/${escapeToken(schema.$ref)}` }
       case "Null":

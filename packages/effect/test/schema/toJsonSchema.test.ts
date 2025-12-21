@@ -1813,16 +1813,14 @@ describe("JsonSchema generation", () => {
               "id3_1": {
                 "allOf": [
                   { "$ref": "#/$defs/id3" },
-                  {
-                    "description": "id3_1-key"
-                  }
+                  { "description": "id3_1-key" }
                 ]
               },
               "id3_2": {
-                "type": "string",
-                "allOf": [{
-                  "description": "id3_2-key"
-                }]
+                "allOf": [
+                  { "$ref": "#/$defs/id3" },
+                  { "description": "id3_2-key" }
+                ]
               }
             },
             "required": ["a", "b", "c", "d", "id1", "id2", "id3_1", "id3_2"],

@@ -69,8 +69,7 @@ describe("Standard", () => {
       assertStandardDocument(Schema.String, {
         schema: {
           _tag: "String",
-          checks: [],
-          annotations: undefined
+          checks: []
         },
         definitions: {}
       })
@@ -80,9 +79,7 @@ describe("Standard", () => {
       assertStandardDocument(Schema.String.annotate({ identifier: "ID" }), {
         schema: {
           _tag: "Reference",
-          $ref: "ID",
-          isSuspend: false,
-          annotations: undefined
+          $ref: "ID"
         },
         definitions: {
           "ID": {
@@ -98,8 +95,7 @@ describe("Standard", () => {
       assertStandardDocument(Schema.String.annotate({ identifier: "ID" }).pipe(Schema.encodeTo(Schema.Literal("a"))), {
         schema: {
           _tag: "Literal",
-          literal: "a",
-          annotations: undefined
+          literal: "a"
         },
         definitions: {}
       })
@@ -113,17 +109,14 @@ describe("Standard", () => {
           elements: [
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "ID", isSuspend: false, annotations: undefined },
-              annotations: undefined
+              type: { _tag: "Reference", $ref: "ID" }
             },
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "ID", isSuspend: false, annotations: undefined },
-              annotations: undefined
+              type: { _tag: "Reference", $ref: "ID" }
             }
           ],
           rest: [],
-          annotations: undefined,
           checks: []
         },
         definitions: {
@@ -140,21 +133,18 @@ describe("Standard", () => {
           elements: [
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "ID", isSuspend: false, annotations: undefined },
-              annotations: undefined
+              type: { _tag: "Reference", $ref: "ID" }
             },
             {
               isOptional: false,
               type: {
                 _tag: "String",
                 checks: [],
-                annotations: { description: "a", identifier: "ID" }
-              },
-              annotations: undefined
+                annotations: { description: "a" }
+              }
             }
           ],
           rest: [],
-          annotations: undefined,
           checks: []
         },
         definitions: {
@@ -1267,7 +1257,7 @@ describe("Standard", () => {
     })
   })
 
-  describe.todo("toJson", () => {
+  describe("toJson", () => {
     function assertToJson(
       schema: Schema.Top,
       expected: {
@@ -1288,8 +1278,7 @@ describe("Standard", () => {
         assertToJson(Schema.suspend(() => Schema.String.annotate({ identifier: "ID" })), {
           schema: {
             _tag: "Reference",
-            $ref: "ID",
-            isSuspend: false
+            $ref: "ID"
           },
           definitions: {
             ID: {
@@ -1312,8 +1301,8 @@ describe("Standard", () => {
             _tag: "Union",
             mode: "anyOf",
             types: [
-              { _tag: "Reference", $ref: "inner", isSuspend: false },
-              { _tag: "Reference", $ref: "inner", isSuspend: true }
+              { _tag: "Reference", $ref: "inner" },
+              { _tag: "Reference", $ref: "inner" }
             ]
           },
           definitions: {
@@ -1334,8 +1323,7 @@ describe("Standard", () => {
           assertToJson(OuterCategory, {
             schema: {
               _tag: "Reference",
-              $ref: "Category",
-              isSuspend: false
+              $ref: "Category"
             },
             definitions: {
               Category: {
@@ -1355,8 +1343,7 @@ describe("Standard", () => {
                       elements: [],
                       rest: [{
                         _tag: "Reference",
-                        $ref: "Category",
-                        isSuspend: true
+                        $ref: "Category"
                       }],
                       checks: []
                     },
@@ -1389,8 +1376,7 @@ describe("Standard", () => {
                     rest: [
                       {
                         _tag: "Reference",
-                        $ref: "Category",
-                        isSuspend: false
+                        $ref: "Category"
                       }
                     ],
                     checks: []
@@ -1420,8 +1406,7 @@ describe("Standard", () => {
                       rest: [
                         {
                           _tag: "Reference",
-                          $ref: "Category",
-                          isSuspend: true
+                          $ref: "Category"
                         }
                       ],
                       checks: []
@@ -1887,8 +1872,8 @@ describe("Standard", () => {
           schema: {
             _tag: "Arrays",
             elements: [
-              { isOptional: false, type: { _tag: "Reference", $ref: "ID", isSuspend: false } },
-              { isOptional: false, type: { _tag: "Reference", $ref: "ID", isSuspend: false } }
+              { isOptional: false, type: { _tag: "Reference", $ref: "ID" } },
+              { isOptional: false, type: { _tag: "Reference", $ref: "ID" } }
             ],
             rest: [],
             checks: []
@@ -1911,11 +1896,11 @@ describe("Standard", () => {
             elements: [
               {
                 isOptional: false,
-                type: { _tag: "Reference", $ref: "ID", isSuspend: false }
+                type: { _tag: "Reference", $ref: "ID" }
               },
               {
                 isOptional: false,
-                type: { _tag: "String", annotations: { identifier: "ID" }, checks: [] },
+                type: { _tag: "Reference", $ref: "ID" },
                 annotations: { description: "b" }
               }
             ],
