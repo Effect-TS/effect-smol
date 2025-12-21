@@ -2492,7 +2492,7 @@ describe("JsonSchema generation", () => {
 
       const Expression = Schema.Struct({
         type: Schema.Literal("expression"),
-        value: Schema.Union([Schema.Finite, Schema.suspend((): Schema.Codec<Operation> => Operation)])
+        value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)])
       }).annotate({ identifier: "Expression" })
 
       const Operation = Schema.Struct({
@@ -2561,10 +2561,7 @@ describe("JsonSchema generation", () => {
                 "value": {
                   "anyOf": [
                     {
-                      "type": "number",
-                      "allOf": [
-                        { "type": "integer" }
-                      ]
+                      "type": "number"
                     },
                     {
                       "$ref": "#/$defs/Operation"
@@ -2599,15 +2596,8 @@ describe("JsonSchema generation", () => {
                 },
                 "value": {
                   "anyOf": [
-                    {
-                      "type": "number",
-                      "allOf": [
-                        { "type": "integer" }
-                      ]
-                    },
-                    {
-                      "$ref": "#/$defs/Operation"
-                    }
+                    { "type": "number" },
+                    { "$ref": "#/$defs/Operation" }
                   ]
                 }
               },
@@ -3139,6 +3129,17 @@ describe("JsonSchema generation", () => {
         }
       )
     })
+  })
+
+  it("Finite", () => {
+    assertDocument(
+      Schema.Finite,
+      {
+        schema: {
+          "type": "number"
+        }
+      }
+    )
   })
 
   describe("fromJsonString", () => {

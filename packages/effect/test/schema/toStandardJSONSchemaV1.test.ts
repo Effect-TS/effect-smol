@@ -46,8 +46,7 @@ describe("toStandardJSONSchemaV1", () => {
     const schema = Schema.FiniteFromString
     const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
     deepStrictEqual(standardConvertToJSONSchemaOutput(standardJSONSchema), {
-      "type": "number",
-      "allOf": [{ "type": "integer" }]
+      "type": "number"
     })
   })
 

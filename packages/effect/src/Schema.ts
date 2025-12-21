@@ -9371,6 +9371,7 @@ export function standardDocumentToJsonSchemaDocument(
     if (!meta) return undefined
 
     let out = on(meta)
+    if (out === undefined) return undefined
     const a = collectJsonSchemaAnnotations(filter.annotations)
     if (a) {
       out = { ...out, ...a }
@@ -9379,7 +9380,7 @@ export function standardDocumentToJsonSchemaDocument(
 
     function on(
       meta: SchemaStandard.StringMeta | SchemaStandard.NumberMeta | SchemaStandard.ArraysMeta
-    ): JsonSchema.JsonSchema {
+    ): JsonSchema.JsonSchema | undefined {
       switch (meta._tag) {
         case "isMinLength":
           return type === "array" ? { minItems: meta.minLength } : { minLength: meta.minLength }
@@ -9409,6 +9410,7 @@ export function standardDocumentToJsonSchemaDocument(
           return { pattern: meta.regExp.source, format: "uuid" }
 
         case "isFinite":
+          return undefined
         case "isInt":
           return { type: "integer" }
         case "isMultipleOf":
