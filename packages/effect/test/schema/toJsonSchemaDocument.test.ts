@@ -42,7 +42,553 @@ function assertDocument<S extends Schema.Top>(
   assertTrue(valid)
 }
 
-describe("JsonSchema generation", () => {
+describe("toJsonSchemaDocument", () => {
+  describe("identifier handling", () => {
+    it("should use the identifier annotation if present", () => {
+      assertDocument(
+        Schema.String.annotate({
+          identifier: "id" // only the identifier annotation
+        }),
+        {
+          schema: {
+            "$ref": "#/$defs/id"
+          },
+          definitions: {
+            "id": {
+              "type": "string"
+            }
+          }
+        }
+      )
+      assertDocument(
+        Schema.String.annotate({
+          identifier: "id",
+          description: "annotate" // with another annotation
+        }),
+        {
+          schema: {
+            "$ref": "#/$defs/id"
+          },
+          definitions: {
+            "id": {
+              "type": "string",
+              "description": "annotate"
+            }
+          }
+        }
+      )
+    })
+
+    it("should use the identifier annotation even if post-annotated with `annotate`", () => {
+      // simulate an imported schema
+      const ImportedSchema = Schema.String.annotate({ identifier: "id" })
+      assertDocument(
+        ImportedSchema.annotate({ description: "annotate" }), // post annotation with `annotate`
+        {
+          schema: {
+            "$ref": "#/$defs/id"
+          },
+          definitions: {
+            "id": {
+              "type": "string",
+              "description": "annotate"
+            }
+          }
+        }
+      )
+    })
+
+    it("should use the identifier annotation even if post-annotated with `annotateKey`", () => {
+      // simulate an imported schema
+      const ImportedSchema = Schema.String.annotate({ identifier: "id" })
+      assertDocument(
+        Schema.Tuple([
+          ImportedSchema.annotateKey({ description: "annotateKey" }) // post annotation with `annotateKey`
+        ]),
+        {
+          schema: {
+            "type": "array",
+            "prefixItems": [
+              {
+                "allOf": [
+                  { "$ref": "#/$defs/id" },
+                  { "description": "annotateKey" }
+                ]
+              }
+            ],
+            "minItems": 1,
+            "maxItems": 1
+          },
+          definitions: {
+            "id": { "type": "string" }
+          }
+        }
+      )
+    })
+
+    it("should use the identifier annotation even if post-annotated with both `annotate` and `annotateKey`", () => {
+      // simulate an imported schema
+      const ImportedSchema = Schema.String.annotate({ identifier: "id" })
+      assertDocument(
+        Schema.Tuple([
+          ImportedSchema
+            .annotate({ description: "annotate" }) // post annotation with `annotate`
+            .annotateKey({ description: "annotateKey" }) // post annotation with `annotateKey`
+        ]),
+        {
+          schema: {
+            "type": "array",
+            "prefixItems": [
+              {
+                "allOf": [
+                  { "$ref": "#/$defs/id" },
+                  { "description": "annotateKey" } // annotation with `annotateKey` goes here
+                ]
+              }
+            ],
+            "minItems": 1,
+            "maxItems": 1
+          },
+          definitions: {
+            "id": {
+              "type": "string",
+              "description": "annotate" // annotation with `annotate` goes here
+            }
+          }
+        }
+      )
+    })
+
+    it("should create only one definition for two schemas that share the same reference", () => {
+      // simulate an imported schema
+      const ImportedSchema = Schema.String.annotate({ identifier: "id", description: "base" })
+      assertDocument(
+        Schema.Tuple([
+          ImportedSchema, // same reference
+          ImportedSchema // same reference
+        ]),
+        {
+          schema: {
+            "type": "array",
+            "prefixItems": [
+              { "$ref": "#/$defs/id" },
+              { "$ref": "#/$defs/id" }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          },
+          definitions: {
+            "id": {
+              "type": "string",
+              "description": "base"
+            }
+          }
+        }
+      )
+    })
+
+    it("should generate an identifier for two schemas that don't share the same reference because of a post-annotate", () => {
+      // simulate an imported schema
+      const ImportedSchema = Schema.String.annotate({ identifier: "id", description: "base" })
+      assertDocument(
+        Schema.Tuple([
+          ImportedSchema,
+          ImportedSchema.annotate({ description: "annotate" }) // different reference
+        ]),
+        {
+          schema: {
+            "type": "array",
+            "prefixItems": [
+              { "$ref": "#/$defs/id" },
+              { "$ref": "#/$defs/id-1" }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          },
+          definitions: {
+            "id": { "type": "string", "description": "base" }, // inherited description from the imported schema
+            "id-1": { "type": "string", "description": "annotate" } // new description from the post-annotate
+          }
+        }
+      )
+    })
+
+    it("should generate an identifier for two schemas that don't share the same reference because of a post-annotateKey", () => {
+      // simulate an imported schema
+      const ImportedSchema = Schema.String.annotate({ identifier: "id", description: "base" })
+      assertDocument(
+        Schema.Tuple([
+          ImportedSchema,
+          ImportedSchema.annotateKey({ description: "annotateKey" }) // different reference
+        ]),
+        {
+          schema: {
+            "type": "array",
+            "prefixItems": [
+              { "$ref": "#/$defs/id" },
+              {
+                "allOf": [
+                  { "$ref": "#/$defs/id-1" },
+                  { "description": "annotateKey" } // contextual description goes here
+                ]
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          },
+          definitions: {
+            "id": { "type": "string", "description": "base" }, // inherited description from the imported schema
+            "id-1": { "type": "string", "description": "base" } // inherited description from the imported schema
+          }
+        }
+      )
+    })
+
+    it("should generate an identifier which doesn't collide with the present ones", () => {
+      assertDocument(
+        Schema.Tuple([
+          Schema.String.annotate({ identifier: "id", description: "element-1" }),
+          // the identifier here uses the same convention as the generated ones
+          Schema.String.annotate({ identifier: "id-1", description: "element-2" }),
+          // so this should generate "id-2" instead of "id-1"
+          Schema.String.annotate({ identifier: "id", description: "element-3" })
+        ]),
+        {
+          schema: {
+            "type": "array",
+            "prefixItems": [
+              { "$ref": "#/$defs/id" },
+              { "$ref": "#/$defs/id-1" },
+              { "$ref": "#/$defs/id-2" }
+            ],
+            "minItems": 3,
+            "maxItems": 3
+          },
+          definitions: {
+            "id": { "type": "string", "description": "element-1" },
+            "id-1": { "type": "string", "description": "element-2" },
+            "id-2": { "type": "string", "description": "element-3" }
+          }
+        }
+      )
+    })
+
+    describe("Class schemas", () => {
+      it("by default should re-use the identifier of the class schema for the encoded side", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {}
+        assertDocument(
+          A,
+          {
+            schema: {
+              "$ref": "#/$defs/A"
+            },
+            definitions: {
+              "A": {
+                "type": "object",
+                "properties": {
+                  "a": { "type": "string" }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+      })
+
+      it("users can override the identifier of the class schema for the encoded side by using an annotation on the passed struct", () => {
+        class A extends Schema.Class<A>("A")(
+          Schema.Struct({
+            a: Schema.String
+          }).annotate({ identifier: "B" }) // override the identifier on the encoded side
+        ) {}
+        assertDocument(
+          A,
+          {
+            schema: {
+              "$ref": "#/$defs/B"
+            },
+            definitions: {
+              "B": {
+                "type": "object",
+                "properties": {
+                  "a": { "type": "string" }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+      })
+
+      it("by default should re-use the identifier of the class schema for the type side", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {}
+        assertDocument(
+          Schema.toType(A), // type side
+          {
+            schema: {
+              "$ref": "#/$defs/A"
+            },
+            definitions: {
+              "A": {
+                "$ref": "#/$defs/A-1"
+              },
+              "A-1": {
+                "type": "object",
+                "properties": {
+                  "a": { "type": "string" }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+      })
+
+      it("users can override the identifier of the class schema for the type side by using an annotation", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }, { identifier: "B" }) {} // override the identifier on the type side
+        assertDocument(
+          Schema.toType(A), // type side
+          {
+            schema: {
+              "$ref": "#/$defs/B"
+            },
+            definitions: {
+              "A": {
+                "type": "object",
+                "properties": {
+                  "a": { "type": "string" }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              },
+              "B": {
+                "$ref": "#/$defs/A"
+              }
+            }
+          }
+        )
+      })
+
+      it("using the class schema twice should point to the same definition", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {}
+        assertDocument(
+          Schema.Tuple([A, A]),
+          {
+            schema: {
+              "type": "array",
+              "prefixItems": [
+                { "$ref": "#/$defs/A" },
+                { "$ref": "#/$defs/A" }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            definitions: {
+              "A": {
+                "type": "object",
+                "properties": {
+                  "a": { "type": "string" }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+      })
+
+      it("the type side and the encoded side can be used together", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {}
+        assertDocument(
+          Schema.Tuple([Schema.toType(A), A]),
+          {
+            schema: {
+              "type": "array",
+              "prefixItems": [
+                { "$ref": "#/$defs/A" },
+                { "$ref": "#/$defs/A-1" }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            definitions: {
+              "A": {
+                "$ref": "#/$defs/A-1"
+              },
+              "A-1": {
+                "type": "object",
+                "properties": {
+                  "a": { "type": "string" }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+      })
+
+      it("annotating a class schema should return a struct with the identifier annotation set", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {}
+        assertDocument(
+          A.annotate({ description: "description" }),
+          {
+            schema: {
+              "$ref": "#/$defs/A"
+            },
+            definitions: {
+              "A": {
+                "type": "object",
+                "properties": {
+                  "a": { "type": "string" }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              }
+            }
+          }
+        )
+      })
+    })
+
+    describe("suspended schemas", () => {
+      it("should throw if there is a suspended schema without an identifier", () => {
+        type A = readonly [A | null]
+        const schema = Schema.Tuple([Schema.NullOr(Schema.suspend((): Schema.Codec<A> => schema))])
+        throws(() => Schema.toJsonSchemaDocument(schema), "Suspended schema without identifier")
+      })
+
+      it("should use the identifier annotation if present (outer identifier annotation)", () => {
+        type A = readonly [A | null]
+        const schema = Schema.Tuple([Schema.NullOr(Schema.suspend((): Schema.Codec<A> => schema))])
+          .annotate({ identifier: "A" }) // outer identifier annotation
+        assertDocument(
+          schema,
+          {
+            schema: {
+              "$ref": "#/$defs/A"
+            },
+            definitions: {
+              "A": {
+                "type": "array",
+                "prefixItems": [{
+                  "anyOf": [
+                    { "$ref": "#/$defs/A" },
+                    { "type": "null" }
+                  ]
+                }],
+                "minItems": 1,
+                "maxItems": 1
+              }
+            }
+          }
+        )
+      })
+
+      it("should use the identifier annotation if present (inner identifier annotation)", () => {
+        type A = readonly [A | null]
+        const schema = Schema.Tuple([
+          Schema.NullOr(
+            Schema.suspend((): Schema.Codec<A> => schema.annotate({ identifier: "A" })) // inner identifier annotation
+          )
+        ])
+        assertDocument(
+          schema,
+          {
+            schema: {
+              "type": "array",
+              "prefixItems": [{
+                "anyOf": [
+                  { "$ref": "#/$defs/A" },
+                  { "type": "null" }
+                ]
+              }],
+              "minItems": 1,
+              "maxItems": 1
+            },
+            definitions: {
+              "A": {
+                "type": "array",
+                "prefixItems": [{
+                  "anyOf": [
+                    { "$ref": "#/$defs/A" },
+                    { "type": "null" }
+                  ]
+                }],
+                "minItems": 1,
+                "maxItems": 1
+              }
+            }
+          }
+        )
+      })
+
+      it("should generate an identifier for a suspended schema that has a duplicate identifier (robustness)", () => {
+        type A = readonly [A | null]
+        const A = Schema.Tuple([Schema.NullOr(Schema.suspend((): Schema.Codec<A> => A))])
+          .annotate({ identifier: "A" })
+
+        type B = readonly [B | null]
+        const B = Schema.Tuple([Schema.NullOr(Schema.suspend((): Schema.Codec<B> => B))])
+          .annotate({ identifier: "A" }) // different schema but same identifier
+
+        assertDocument(
+          Schema.Tuple([A, B]),
+          {
+            schema: {
+              "type": "array",
+              "prefixItems": [
+                { "$ref": "#/$defs/A" },
+                { "$ref": "#/$defs/A-1" }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            definitions: {
+              "A": {
+                "type": "array",
+                "prefixItems": [{
+                  "anyOf": [
+                    { "$ref": "#/$defs/A" },
+                    { "type": "null" }
+                  ]
+                }],
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "A-1": {
+                "type": "array",
+                "prefixItems": [{
+                  "anyOf": [
+                    { "$ref": "#/$defs/A-1" }, // correctly pointing to the generated identifier
+                    { "type": "null" }
+                  ]
+                }],
+                "minItems": 1,
+                "maxItems": 1
+              }
+            }
+          }
+        )
+      })
+    })
+  })
+
   describe("Thrown errors", () => {
     it("Suspend without identifier annotation", () => {
       interface A {

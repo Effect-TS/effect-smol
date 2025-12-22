@@ -7669,7 +7669,7 @@ export interface ToJsonSchemaDocumentOptions {
  */
 export function toJsonSchemaDocument<S extends Top>(
   schema: S,
-  options?: ToJsonSchemaDocumentOptions // TODO: remove referenceStrategy option (convert to rewrite function)
+  options?: ToJsonSchemaDocumentOptions // TODO: remove referenceStrategy option (convert to rewrite function)?
 ): JsonSchema.Document<"draft-2020-12"> {
   const document = standardDocumentFromAST(schema.ast)
   const jsonDocument = standardDocumentToJsonSchemaDocument(document, options)
@@ -8919,42 +8919,14 @@ function generateIdentifier(seed: string, counter: number): string {
   return `${seed}-${counter}`
 }
 
-function makeUniqueIdentifierGenerator(definitions: Record<string, SchemaStandard.StandardSchema>) {
-  const identifierCounter = new Map<string, number>()
-  const identifierMap = new Map<AST.AST, string>()
-  return function generateUniqueIdentifier(ast: AST.AST): string | undefined {
-    const existing = identifierMap.get(ast)
-    if (existing !== undefined) {
-      return existing
-    }
-    const identifier = InternalAnnotations.resolveIdentifier(ast)
-    if (identifier !== undefined) {
-      // Check if base identifier is available
-      if (definitions[identifier] === undefined) {
-        identifierCounter.set(identifier, 0)
-        identifierMap.set(ast, identifier)
-        return identifier
-      }
-      // Find a unique identifier by incrementing until we find one that doesn't exist
-      let count = (identifierCounter.get(identifier) ?? 0) + 1
-      let newIdentifier = generateIdentifier(identifier, count)
-      while (definitions[newIdentifier] !== undefined) {
-        count++
-        newIdentifier = generateIdentifier(identifier, count)
-      }
-      identifierCounter.set(identifier, count)
-      identifierMap.set(ast, newIdentifier)
-      return newIdentifier
-    }
-  }
-}
+const identifierMap = new WeakMap<AST.AST, string>()
 
 /** @internal */
 export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
   const definitions: Record<string, SchemaStandard.StandardSchema> = {}
-
+  const identifierCounter = new Map<string, number>()
+  const usedIdentifiers = new Set<string>()
   const visited = new Set<AST.AST>()
-  const generateUniqueIdentifier = makeUniqueIdentifierGenerator(definitions)
 
   return {
     schema: recur(ast),
@@ -8967,9 +8939,38 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
     const identifier = generateUniqueIdentifier(last)
     if (identifier !== undefined) {
       definitions[identifier] = on(last)
+      usedIdentifiers.add(identifier)
       return { _tag: "Reference", $ref: identifier }
     }
     return on(last)
+  }
+
+  function generateUniqueIdentifier(ast: AST.AST): string | undefined {
+    const existing = identifierMap.get(ast)
+    if (existing !== undefined) {
+      return existing
+    }
+    const identifier = InternalAnnotations.resolveIdentifier(ast)
+    if (identifier !== undefined) {
+      // Check if base identifier is available
+      if (!usedIdentifiers.has(identifier)) {
+        identifierCounter.set(identifier, 0)
+        identifierMap.set(ast, identifier)
+        usedIdentifiers.add(identifier)
+        return identifier
+      }
+      // Find a unique identifier by incrementing until we find one that doesn't exist
+      let count = (identifierCounter.get(identifier) ?? 0) + 1
+      let newIdentifier = generateIdentifier(identifier, count)
+      while (usedIdentifiers.has(newIdentifier)) {
+        count++
+        newIdentifier = generateIdentifier(identifier, count)
+      }
+      identifierCounter.set(identifier, count)
+      identifierMap.set(ast, newIdentifier)
+      usedIdentifiers.add(newIdentifier)
+      return newIdentifier
+    }
   }
 
   function getLastEncoding(ast: AST.AST): AST.AST {
