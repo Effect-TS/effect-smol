@@ -43,6 +43,15 @@ export interface Document<S extends Source> {
 /**
  * @since 4.0.0
  */
+export interface MultiDocument<S extends Source> {
+  readonly source: S
+  readonly schemas: readonly [JsonSchema, ...Array<JsonSchema>]
+  readonly definitions: Definitions
+}
+
+/**
+ * @since 4.0.0
+ */
 export const META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema"
 
 /**

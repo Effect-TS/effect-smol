@@ -42,6 +42,32 @@ function assertDocument<S extends Schema.Top>(
   assertTrue(valid)
 }
 
+describe("standardToJsonSchemaMultiDocument", () => {
+  it("should handle multiple schemas", () => {
+    const a = Schema.String.annotate({ identifier: "id", description: "a" })
+    const b = a.annotate({ description: "b" })
+    const multiDocument = Schema.toStandardMultiDocument([a.ast, b.ast])
+    const jsonMultiDocument = Schema.standardToJsonSchemaMultiDocument(multiDocument)
+    deepStrictEqual(jsonMultiDocument, {
+      source: "draft-2020-12",
+      schemas: [
+        { "$ref": "#/$defs/id" },
+        { "$ref": "#/$defs/id-1" }
+      ],
+      definitions: {
+        "id": {
+          "type": "string",
+          "description": "a"
+        },
+        "id-1": {
+          "type": "string",
+          "description": "b"
+        }
+      }
+    })
+  })
+})
+
 describe("toJsonSchemaDocument", () => {
   describe("identifier handling", () => {
     it("should use the identifier annotation if present", () => {

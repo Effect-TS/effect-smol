@@ -22,8 +22,8 @@ import type * as Types from "./Types.ts"
 export interface Declaration {
   readonly _tag: "Declaration"
   readonly annotations?: Schema.Annotations.Annotations | undefined
-  readonly typeParameters: ReadonlyArray<StandardSchema>
-  readonly Encoded: StandardSchema
+  readonly typeParameters: ReadonlyArray<Standard>
+  readonly Encoded: Standard
 }
 
 /**
@@ -33,7 +33,7 @@ export interface Suspend {
   readonly _tag: "Suspend"
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly checks: readonly []
-  readonly thunk: StandardSchema
+  readonly thunk: Standard
 }
 
 /**
@@ -100,7 +100,7 @@ export interface String {
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly checks: ReadonlyArray<Check<StringMeta>>
   readonly contentMediaType?: string | undefined
-  readonly contentSchema?: StandardSchema | undefined
+  readonly contentSchema?: Standard | undefined
 }
 
 /**
@@ -178,7 +178,7 @@ export interface Enum {
 export interface TemplateLiteral {
   readonly _tag: "TemplateLiteral"
   readonly annotations?: Schema.Annotations.Annotations | undefined
-  readonly parts: ReadonlyArray<StandardSchema>
+  readonly parts: ReadonlyArray<Standard>
 }
 
 /**
@@ -188,7 +188,7 @@ export interface Arrays {
   readonly _tag: "Arrays"
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly elements: ReadonlyArray<Element>
-  readonly rest: ReadonlyArray<StandardSchema>
+  readonly rest: ReadonlyArray<Standard>
   readonly checks: ReadonlyArray<Check<ArraysMeta>>
 }
 
@@ -197,7 +197,7 @@ export interface Arrays {
  */
 export interface Element {
   readonly isOptional: boolean
-  readonly type: StandardSchema
+  readonly type: Standard
   readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
@@ -216,7 +216,7 @@ export interface Objects {
  */
 export interface PropertySignature {
   readonly name: PropertyKey
-  readonly type: StandardSchema
+  readonly type: Standard
   readonly isOptional: boolean
   readonly isMutable: boolean
   readonly annotations?: Schema.Annotations.Annotations | undefined
@@ -226,8 +226,8 @@ export interface PropertySignature {
  * @since 4.0.0
  */
 export interface IndexSignature {
-  readonly parameter: StandardSchema
-  readonly type: StandardSchema
+  readonly parameter: Standard
+  readonly type: Standard
 }
 
 /**
@@ -236,14 +236,14 @@ export interface IndexSignature {
 export interface Union {
   readonly _tag: "Union"
   readonly annotations?: Schema.Annotations.Annotations | undefined
-  readonly types: ReadonlyArray<StandardSchema>
+  readonly types: ReadonlyArray<Standard>
   readonly mode: "anyOf" | "oneOf"
 }
 
 /**
  * @since 4.0.0
  */
-export type StandardSchema =
+export type Standard =
   | Declaration
   | Reference
   | Suspend
@@ -354,15 +354,23 @@ export type ArraysMeta =
  * @since 4.0.0
  */
 export type Document = {
-  readonly schema: StandardSchema
-  readonly definitions: Record<string, StandardSchema>
+  readonly schema: Standard
+  readonly definitions: Record<string, Standard>
+}
+
+/**
+ * @since 4.0.0
+ */
+export type MultiDocument = {
+  readonly schemas: readonly [Standard, ...Array<Standard>]
+  readonly definitions: Record<string, Standard>
 }
 
 // -----------------------------------------------------------------------------
 // schemas
 // -----------------------------------------------------------------------------
 
-const Schema$ref = Schema.suspend(() => Schema$)
+const Standard$ref = Schema.suspend(() => Standard$)
 
 const toJsonBlacklist: Set<string> = new Set([
   "toArbitrary",
@@ -605,7 +613,7 @@ export const String$ = Schema.Struct({
   annotations: Schema.optional(Annotations$),
   checks: Schema.Array(makeCheck(StringMeta$, "String")),
   contentMediaType: Schema.optional(Schema.String),
-  contentSchema: Schema.optional(Schema$ref)
+  contentSchema: Schema.optional(Standard$ref)
 }).annotate({ identifier: "String" })
 
 const IsInt$ = Schema.Struct({
@@ -783,7 +791,7 @@ export const Enum$ = Schema.Struct({
 export const TemplateLiteral$ = Schema.Struct({
   _tag: Schema.tag("TemplateLiteral"),
   annotations: Schema.optional(Annotations$),
-  parts: Schema.Array(Schema$ref)
+  parts: Schema.Array(Standard$ref)
 }).annotate({ identifier: "TemplateLiteral" })
 
 /**
@@ -791,7 +799,7 @@ export const TemplateLiteral$ = Schema.Struct({
  */
 export const Element$ = Schema.Struct({
   isOptional: Schema.Boolean,
-  type: Schema$ref,
+  type: Standard$ref,
   annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Element" })
 
@@ -812,7 +820,7 @@ export const Arrays$ = Schema.Struct({
   _tag: Schema.tag("Arrays"),
   annotations: Schema.optional(Annotations$),
   elements: Schema.Array(Element$),
-  rest: Schema.Array(Schema$ref),
+  rest: Schema.Array(Standard$ref),
   checks: Schema.Array(makeCheck(ArraysMeta$, "Arrays"))
 }).annotate({ identifier: "Arrays" })
 
@@ -822,7 +830,7 @@ export const Arrays$ = Schema.Struct({
 export const PropertySignature$ = Schema.Struct({
   annotations: Schema.optional(Annotations$),
   name: Schema.PropertyKey,
-  type: Schema$ref,
+  type: Standard$ref,
   isOptional: Schema.Boolean,
   isMutable: Schema.Boolean
 }).annotate({ identifier: "PropertySignature" })
@@ -831,8 +839,8 @@ export const PropertySignature$ = Schema.Struct({
  * @since 4.0.0
  */
 export const IndexSignature$ = Schema.Struct({
-  parameter: Schema$ref,
-  type: Schema$ref
+  parameter: Standard$ref,
+  type: Standard$ref
 }).annotate({ identifier: "IndexSignature" })
 
 /**
@@ -851,7 +859,7 @@ export const Objects$ = Schema.Struct({
 export const Union$ = Schema.Struct({
   _tag: Schema.tag("Union"),
   annotations: Schema.optional(Annotations$),
-  types: Schema.Array(Schema$ref),
+  types: Schema.Array(Standard$ref),
   mode: Schema.Literals(["anyOf", "oneOf"])
 }).annotate({ identifier: "Union" })
 
@@ -869,8 +877,8 @@ export const Reference$ = Schema.Struct({
 export const Declaration$ = Schema.Struct({
   _tag: Schema.tag("Declaration"),
   annotations: Schema.optional(Annotations$),
-  typeParameters: Schema.Array(Schema$ref),
-  Encoded: Schema$ref
+  typeParameters: Schema.Array(Standard$ref),
+  Encoded: Standard$ref
 }).annotate({ identifier: "Declaration" })
 
 /**
@@ -880,18 +888,18 @@ export const Suspend$ = Schema.Struct({
   _tag: Schema.tag("Suspend"),
   annotations: Schema.optional(Annotations$),
   checks: Schema.Tuple([]),
-  thunk: Schema$ref
+  thunk: Standard$ref
 }).annotate({ identifier: "Suspend" })
 
 /**
  * @since 4.0.0
  */
-export interface Schema$ extends Schema.Codec<StandardSchema> {}
+export interface Standard$ extends Schema.Codec<Standard> {}
 
 /**
  * @since 4.0.0
  */
-export const Schema$: Schema$ = Schema.Union([
+export const Standard$: Standard$ = Schema.Union([
   Null$,
   Undefined$,
   Void$,
@@ -920,8 +928,8 @@ export const Schema$: Schema$ = Schema.Union([
  * @since 4.0.0
  */
 export const Document$ = Schema.Struct({
-  schema: Schema$,
-  definitions: Schema.Record(Schema.String, Schema$)
+  schema: Standard$,
+  definitions: Schema.Record(Schema.String, Standard$)
 }).annotate({ identifier: "Document" })
 
 // -----------------------------------------------------------------------------
@@ -931,16 +939,14 @@ export const Document$ = Schema.Struct({
 /**
  * @since 4.0.0
  */
-export function fromSchema(schema: Schema.Top): Document {
-  return fromAST(schema.ast)
-}
+export const fromAST: (ast: AST.AST) => Document = Schema.toStandardDocument
 
 /**
  * @since 4.0.0
  */
-export const fromAST = Schema.standardDocumentFromAST
+export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDocument = Schema.toStandardMultiDocument
 
-const schemaToCodecJson = Schema.toCodecJson(Schema$)
+const schemaToCodecJson = Schema.toCodecJson(Standard$)
 const encodeSchema = Schema.encodeUnknownSync(schemaToCodecJson)
 
 /**
@@ -969,7 +975,7 @@ export function fromJson(u: unknown): Document {
 /**
  * @since 4.0.0
  */
-export type Reviver<T> = (declaration: Declaration, recur: (schema: StandardSchema) => T) => T
+export type Reviver<T> = (declaration: Declaration, recur: (schema: Standard) => T) => T
 
 /**
  * @since 4.0.0
@@ -1003,7 +1009,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
 
   return recur(document.schema) as S
 
-  function recur(node: StandardSchema): Schema.Top {
+  function recur(node: Standard): Schema.Top {
     let out = on(node)
     if ("annotations" in node && node.annotations) out = out.annotate(node.annotations)
     out = toSchemaChecks(out, node)
@@ -1061,7 +1067,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
     }
   }
 
-  function on(schema: StandardSchema): Schema.Top {
+  function on(schema: Standard): Schema.Top {
     switch (schema._tag) {
       case "Declaration":
         return reviver(schema, recur)
@@ -1159,7 +1165,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
   }
 }
 
-function toSchemaChecks(top: Schema.Top, schema: StandardSchema): Schema.Top {
+function toSchemaChecks(top: Schema.Top, schema: Standard): Schema.Top {
   switch (schema._tag) {
     default:
       return top
@@ -1296,7 +1302,10 @@ function toSchemaFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | Ar
  *
  * @since 4.0.0
  */
-export const toJsonSchemaDocument = Schema.standardDocumentToJsonSchemaDocument
+export const toJsonSchemaDocument: (
+  document: Document,
+  options?: Schema.ToJsonSchemaDocumentOptions
+) => JsonSchema.Document<"draft-2020-12"> = Schema.standardToJsonSchemaDocument
 
 /**
  * @since 4.0.0
@@ -1324,7 +1333,7 @@ export function toCode(document: Document, options?: {
   }
   return recur(schema)
 
-  function recur(schema: StandardSchema): string {
+  function recur(schema: Standard): string {
     const b = on(schema)
     switch (schema._tag) {
       default:
@@ -1341,7 +1350,7 @@ export function toCode(document: Document, options?: {
     }
   }
 
-  function on(schema: StandardSchema): string {
+  function on(schema: Standard): string {
     switch (schema._tag) {
       case "Declaration":
         return reviver(schema, recur)
@@ -1659,7 +1668,7 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
     definitions: Rec.map(document.definitions, (d) => recur(d))
   }
 
-  function recur(u: unknown): StandardSchema {
+  function recur(u: unknown): Standard {
     if (u === true) return { _tag: "Unknown", annotations: undefined }
     if (u === false) return { _tag: "Never", annotations: undefined }
     if (Predicate.isObject(u)) {
@@ -1701,7 +1710,7 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
     return { _tag: "Unknown", annotations: undefined }
   }
 
-  function on(s: JsonSchema.JsonSchema): Types.Mutable<StandardSchema> {
+  function on(s: JsonSchema.JsonSchema): Types.Mutable<Standard> {
     if (Predicate.isObject(s)) {
       if ("enum" in s && Array.isArray(s.enum)) {
         switch (s.enum.length) {
@@ -1880,7 +1889,7 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
     return []
   }
 
-  function collectRest(s: JsonSchema.JsonSchema): Array<StandardSchema> {
+  function collectRest(s: JsonSchema.JsonSchema): Array<Standard> {
     if (s.items !== undefined && s.items !== false) {
       return [recur(s.items)]
     }

@@ -41,6 +41,24 @@ function assertStandardDocument(schema: Schema.Top, expected: SchemaStandard.Doc
 }
 
 describe("Standard", () => {
+  describe("fromASTs", () => {
+    it("should handle multiple schemas", () => {
+      const a = Schema.String.annotate({ identifier: "id", description: "a" })
+      const b = a.annotate({ description: "b" })
+      const multiDocument = SchemaStandard.fromASTs([a.ast, b.ast])
+      deepStrictEqual(multiDocument, {
+        schemas: [
+          { _tag: "Reference", $ref: "id" },
+          { _tag: "Reference", $ref: "id-1" }
+        ],
+        definitions: {
+          "id": { _tag: "String", checks: [], annotations: { identifier: "id", description: "a" } },
+          "id-1": { _tag: "String", checks: [], annotations: { identifier: "id", description: "b" } }
+        }
+      })
+    })
+  })
+
   describe("fromAST", () => {
     it("should throw if there is a suspended schema without an identifier", () => {
       const schema = Schema.Struct({

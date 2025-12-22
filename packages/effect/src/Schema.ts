@@ -7671,8 +7671,8 @@ export function toJsonSchemaDocument<S extends Top>(
   schema: S,
   options?: ToJsonSchemaDocumentOptions // TODO: remove referenceStrategy option (convert to rewrite function)?
 ): JsonSchema.Document<"draft-2020-12"> {
-  const document = standardDocumentFromAST(schema.ast)
-  const jsonDocument = standardDocumentToJsonSchemaDocument(document, options)
+  const document = toStandardDocument(schema.ast)
+  const jsonDocument = standardToJsonSchemaDocument(document, options)
   return {
     source: "draft-2020-12",
     schema: jsonDocument.schema,
@@ -8919,27 +8919,34 @@ function generateIdentifier(seed: string, counter: number): string {
   return `${seed}-${counter}`
 }
 
-const identifierMap = new WeakMap<AST.AST, string>()
+/** @internal */
+export function toStandardDocument(ast: AST.AST): SchemaStandard.Document {
+  const { definitions, schemas } = toStandardMultiDocument([ast])
+  return { schema: schemas[0], definitions }
+}
 
 /** @internal */
-export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
-  const definitions: Record<string, SchemaStandard.StandardSchema> = {}
+export function toStandardMultiDocument(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaStandard.MultiDocument {
+  const definitions: Record<string, SchemaStandard.Standard> = {}
+
+  const identifierMap = new Map<AST.AST, string>()
   const identifierCounter = new Map<string, number>()
   const usedIdentifiers = new Set<string>()
   const visited = new Set<AST.AST>()
 
   return {
-    schema: recur(ast),
+    schemas: Arr.map(asts, recur),
     definitions
   }
 
-  function recur(ast: AST.AST): SchemaStandard.StandardSchema {
+  function recur(ast: AST.AST): SchemaStandard.Standard {
     visited.add(ast)
     const last = getLastEncoding(ast)
     const identifier = generateUniqueIdentifier(last)
     if (identifier !== undefined) {
-      definitions[identifier] = on(last)
-      usedIdentifiers.add(identifier)
+      if (definitions[identifier] === undefined) {
+        definitions[identifier] = on(last)
+      }
       return { _tag: "Reference", $ref: identifier }
     }
     return on(last)
@@ -8948,6 +8955,7 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
   function generateUniqueIdentifier(ast: AST.AST): string | undefined {
     const existing = identifierMap.get(ast)
     if (existing !== undefined) {
+      usedIdentifiers.add(existing)
       return existing
     }
     const identifier = InternalAnnotations.resolveIdentifier(ast)
@@ -8980,7 +8988,7 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
     return ast
   }
 
-  function on(ast: AST.AST): SchemaStandard.StandardSchema {
+  function on(ast: AST.AST): SchemaStandard.Standard {
     switch (ast._tag) {
       case "Suspend": {
         const thunk = ast.thunk()
@@ -9024,7 +9032,7 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
         const contentSchema = ast.annotations?.contentSchema
         return {
           _tag: ast._tag,
-          checks: fromASTChecks(ast.checks),
+          checks: toStandardChecks(ast.checks),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined),
           ...(typeof contentMediaType === "string" && AST.isAST(contentSchema)
             ? { contentMediaType, contentSchema: recur(contentSchema) }
@@ -9035,7 +9043,7 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
       case "BigInt":
         return {
           _tag: ast._tag,
-          checks: fromASTChecks(ast.checks),
+          checks: toStandardChecks(ast.checks),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
       case "Literal":
@@ -9079,7 +9087,7 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
             }
           }),
           rest: ast.rest.map((r) => recur(r)),
-          checks: fromASTChecks(ast.checks),
+          checks: toStandardChecks(ast.checks),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
       case "Objects":
@@ -9112,7 +9120,7 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
   }
 }
 
-function fromASTChecks(
+function toStandardChecks(
   checks: readonly [AST.Check<any>, ...Array<AST.Check<any>>] | undefined
 ): Array<SchemaStandard.Check<any>> {
   if (!checks) return []
@@ -9126,7 +9134,7 @@ function fromASTChecks(
         return undefined
       }
       case "FilterGroup": {
-        const checks = fromASTChecks(c.checks)
+        const checks = toStandardChecks(c.checks)
         if (Arr.isArrayNonEmpty(checks)) {
           return {
             _tag: "FilterGroup",
@@ -9140,60 +9148,61 @@ function fromASTChecks(
   return checks.map(getCheck).filter((c) => c !== undefined)
 }
 
-function resove$ref($ref: string, definitions: JsonSchema.Definitions): JsonSchema.JsonSchema | boolean {
-  const tokens = $ref.split("/")
-  if (tokens.length > 0) {
-    const identifier = unescapeToken(tokens[tokens.length - 1])
-    const definition = definitions[identifier]
-    if (definition !== undefined) {
-      return definition
-    }
-  }
-  throw new globalThis.Error(`Reference to unknown schema: ${$ref}`)
-}
-
 /** @internal */
-export function standardDocumentToJsonSchemaDocument(
+export function standardToJsonSchemaDocument(
   document: SchemaStandard.Document,
   options?: ToJsonSchemaDocumentOptions
 ): JsonSchema.Document<"draft-2020-12"> {
+  const { definitions, schemas, source } = standardToJsonSchemaMultiDocument({
+    schemas: [document.schema],
+    definitions: document.definitions
+  }, options)
+  return { source, schema: schemas[0], definitions }
+}
+
+/** @internal */
+export function standardToJsonSchemaMultiDocument(
+  document: SchemaStandard.MultiDocument,
+  options?: ToJsonSchemaDocumentOptions
+): JsonSchema.MultiDocument<"draft-2020-12"> {
   const generateDescriptions = options?.generateDescriptions ?? false
   const referenceStrategy = options?.referenceStrategy ?? "all"
   const additionalProperties = options?.additionalProperties ?? false
 
   const definitions = Record_.map(document.definitions, (d) => recur(d))
 
-  let schema = recur(document.schema)
-  if (referenceStrategy === "skip-top-level" && typeof schema.$ref === "string") {
-    const resolved = resove$ref(schema.$ref, definitions)
-    schema = resolved === true ? { not: {} } : resolved === false ? {} : resolved
-  }
-
   return {
     source: "draft-2020-12",
-    schema,
+    schemas: Arr.map(document.schemas, (s) => {
+      const js = recur(s)
+      if (referenceStrategy === "skip-top-level" && typeof js.$ref === "string") {
+        const resolved = resolve$ref(js.$ref, definitions)
+        return resolved === true ? { not: {} } : resolved === false ? {} : resolved
+      }
+      return js
+    }),
     definitions
   }
 
-  function recur(ss: SchemaStandard.StandardSchema): JsonSchema.JsonSchema {
-    let s: JsonSchema.JsonSchema = on(ss)
-    if (s === unsupportedJsonSchema) return unsupportedJsonSchema
-    if ("annotations" in ss) {
-      const a = collectJsonSchemaAnnotations(ss.annotations)
+  function recur(s: SchemaStandard.Standard): JsonSchema.JsonSchema {
+    let js: JsonSchema.JsonSchema = on(s)
+    if (js === unsupportedJsonSchema) return unsupportedJsonSchema
+    if ("annotations" in s) {
+      const a = collectJsonSchemaAnnotations(s.annotations)
       if (a) {
-        s = { ...s, ...a }
+        js = { ...js, ...a }
       }
     }
-    if ("checks" in ss) {
-      const checks = collectJsonSchemaChecks(ss.checks, s.type)
+    if ("checks" in s) {
+      const checks = collectJsonSchemaChecks(s.checks, js.type)
       for (const check of checks) {
-        s = appendJsonSchema(s, check)
+        js = appendJsonSchema(js, check)
       }
     }
-    return normalizeJsonSchemaOutput(s)
+    return normalizeJsonSchemaOutput(js)
   }
 
-  function on(schema: SchemaStandard.StandardSchema): JsonSchema.JsonSchema {
+  function on(schema: SchemaStandard.Standard): JsonSchema.JsonSchema {
     switch (schema._tag) {
       case "Unknown":
       case "Any":
@@ -9468,7 +9477,7 @@ export function standardDocumentToJsonSchemaDocument(
     }
   }
 
-  function getPattern(s: SchemaStandard.StandardSchema): string | undefined {
+  function getPattern(s: SchemaStandard.Standard): string | undefined {
     switch (s._tag) {
       case "String": {
         const jsonSchema = recur(s)
@@ -9493,7 +9502,7 @@ export function standardDocumentToJsonSchemaDocument(
     }
   }
 
-  function containsUndefined(schema: SchemaStandard.StandardSchema): boolean {
+  function containsUndefined(schema: SchemaStandard.Standard): boolean {
     switch (schema._tag) {
       case "Undefined":
         return true
@@ -9503,6 +9512,18 @@ export function standardDocumentToJsonSchemaDocument(
         return false
     }
   }
+}
+
+function resolve$ref($ref: string, definitions: JsonSchema.Definitions): JsonSchema.JsonSchema | boolean {
+  const tokens = $ref.split("/")
+  if (tokens.length > 0) {
+    const identifier = unescapeToken(tokens[tokens.length - 1])
+    const definition = definitions[identifier]
+    if (definition !== undefined) {
+      return definition
+    }
+  }
+  throw new globalThis.Error(`Reference to unknown schema: ${$ref}`)
 }
 
 function normalizeJsonSchemaOutput(s: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
@@ -9530,7 +9551,7 @@ function appendJsonSchema(a: JsonSchema.JsonSchema, b: JsonSchema.JsonSchema): J
   return { ...a, allOf: members }
 }
 
-function getPartPattern(part: SchemaStandard.StandardSchema): string {
+function getPartPattern(part: SchemaStandard.Standard): string {
   switch (part._tag) {
     case "Literal":
       return RegExp_.escape(globalThis.String(part.literal))
