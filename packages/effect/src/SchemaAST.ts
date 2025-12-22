@@ -1479,14 +1479,15 @@ function mergeChecks(checks: Checks | undefined, b: AST): Checks | undefined {
 /** @internal */
 export function struct<Fields extends Schema.Struct.Fields>(
   fields: Fields,
-  checks: Checks | undefined
+  checks: Checks | undefined,
+  annotations?: Schema.Annotations.Annotations
 ): Objects {
   return new Objects(
     Reflect.ownKeys(fields).map((key) => {
       return new PropertySignature(key, fields[key].ast)
     }),
     [],
-    undefined,
+    annotations,
     checks
   )
 }
@@ -1924,10 +1925,7 @@ export class Filter<in E> extends Pipeable.Class {
     this.aborted = aborted
   }
   annotate(annotations: Schema.Annotations.Filter): Filter<E> {
-    // INVARIANT: remove the identifier annotation
-    const value = { ...this.annotations }
-    delete value.identifier
-    return new Filter(this.run, Object.assign(value, annotations), this.aborted)
+    return new Filter(this.run, { ...this.annotations, ...annotations }, this.aborted)
   }
   abort(): Filter<E> {
     return new Filter(this.run, this.annotations, true)
@@ -1957,10 +1955,7 @@ export class FilterGroup<in E> extends Pipeable.Class {
     this.annotations = annotations
   }
   annotate(annotations: Schema.Annotations.Filter): FilterGroup<E> {
-    // INVARIANT: remove the identifier annotation
-    const value = { ...this.annotations }
-    delete value.identifier
-    return new FilterGroup(this.checks, Object.assign(value, annotations))
+    return new FilterGroup(this.checks, { ...this.annotations, ...annotations })
   }
   and<T extends E>(other: Refine<T, E>, annotations?: Schema.Annotations.Filter): RefinementGroup<T, E>
   and(other: Check<E>, annotations?: Schema.Annotations.Filter): FilterGroup<E>
@@ -2141,10 +2136,7 @@ export function annotate<A extends AST>(ast: A, annotations: Schema.Annotations.
     return replaceChecks(ast, Arr.append(ast.checks.slice(0, -1), last.annotate(annotations)))
   }
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    // INVARIANT: remove the identifier annotation
-    const value: Record<string, unknown> = { ...d.annotations.value }
-    delete value.identifier
-    d.annotations.value = Object.assign(value, annotations)
+    d.annotations.value = { ...d.annotations.value, ...annotations }
   })
 }
 
@@ -2154,10 +2146,6 @@ export function replaceChecks<A extends AST>(ast: A, checks: Checks | undefined)
     return ast
   }
   return modifyOwnPropertyDescriptors(ast, (d) => {
-    // INVARIANT: remove the identifier annotation
-    const value: Record<string, unknown> = { ...d.annotations.value }
-    delete value.identifier
-    d.annotations.value = value
     d.checks.value = checks
   })
 }

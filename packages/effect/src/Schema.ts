@@ -5776,7 +5776,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
           case "Die":
             return defect(a.defect, (b as Cause_.Die).defect)
           case "Interrupt":
-            return Equal.equals(a.fiberId, (b as Cause_.Interrupt).fiberId)
+            return a.fiberId === (b as Cause_.Interrupt).fiberId
         }
       },
       toFormatter: ([error, defect]) => (t) => {
@@ -7167,7 +7167,7 @@ function makeClass<
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
   const from = InternalAnnotations.resolveIdentifier(struct.ast) === undefined
-    ? struct.annotate({ identifier: `${identifier}Encoded` })
+    ? struct.annotate({ identifier })
     : struct
   const getClassSchema = getClassSchemaFactory(from, identifier, annotations)
   const ClassTypeId = getClassTypeId(identifier) // HMR support
@@ -7244,7 +7244,12 @@ function makeClass<
     ) => Class<Extended, Struct<Simplify<Assign<S["fields"], NewFields>>>, Self> {
       return (newFields, annotations) => {
         const fields = { ...struct.fields, ...newFields }
-        return makeClass(this, identifier, makeStruct(AST.struct(fields, struct.ast.checks), fields), annotations)
+        return makeClass(
+          this,
+          identifier,
+          makeStruct(AST.struct(fields, struct.ast.checks, { identifier }), fields),
+          annotations
+        )
       }
     }
     static mapFields<To extends Struct.Fields>(
@@ -7315,7 +7320,7 @@ function isStruct(schema: Struct.Fields | Struct<Struct.Fields>): schema is Stru
  * @since 4.0.0
  */
 export const Class: {
-  <Self, Brand = {}>(id: string): {
+  <Self, Brand = {}>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
@@ -7325,13 +7330,13 @@ export const Class: {
       annotations?: Annotations.Declaration<Self, readonly [S]>
     ): ExtendableClass<Self, S, Brand>
   }
-} = <Self, Brand = {}>(id: string) =>
+} = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
 ): ExtendableClass<Self, Struct<Struct.Fields>, Brand> => {
   const struct = isStruct(schema) ? schema : Struct(schema)
-  return makeClass(Data.Class, id, struct, annotations)
+  return makeClass(Data.Class, identifier, struct, annotations)
 }
 
 /**
@@ -7346,7 +7351,7 @@ export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fiel
  * @since 4.0.0
  */
 export const ErrorClass: {
-  <Self, Brand = {}>(id: string): {
+  <Self, Brand = {}>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
@@ -7356,13 +7361,13 @@ export const ErrorClass: {
       annotations?: Annotations.Declaration<Self, readonly [S]>
     ): ErrorClass<Self, S, Cause_.YieldableError & Brand>
   }
-} = <Self, Brand = {}>(id: string) =>
+} = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
 ): ErrorClass<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> => {
   const struct = isStruct(schema) ? schema : Struct(schema)
-  return makeClass(core.Error, id, struct, annotations)
+  return makeClass(core.Error, identifier, struct, annotations)
 }
 
 /**
@@ -7386,7 +7391,7 @@ export interface RequestClass<
  * @since 4.0.0
  */
 export const RequestClass =
-  <Self, Brand = {}>(id: string) =>
+  <Self, Brand = {}>(identifier: string) =>
   <Payload extends Struct<Struct.Fields>, Success extends Top, Error extends Top>(
     options: {
       readonly payload: Payload
@@ -7405,7 +7410,7 @@ export const RequestClass =
       Success["DecodingServices"] | Success["EncodingServices"] | Error["DecodingServices"] | Error["EncodingServices"]
     > & Brand
   > => {
-    return class RequestClass extends makeClass(Request.Class, id, options.payload, options.annotations) {
+    return class RequestClass extends makeClass(Request.Class, identifier, options.payload, options.annotations) {
       static readonly payload = options.payload
       static readonly success = options.success
       static readonly error = options.error
@@ -8915,6 +8920,8 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
   const definitions: Record<string, SchemaStandard.StandardSchema> = {}
 
   const visited = new Set<AST.AST>()
+  const identifierCounter = new Map<string, number>()
+  const identifierMap = new Map<AST.AST, string>()
 
   return {
     schema: recur(ast),
@@ -8924,21 +8931,42 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
   function recur(ast: AST.AST): SchemaStandard.StandardSchema {
     visited.add(ast)
     const last = getLastEncoding(ast)
-    const identifier = InternalAnnotations.resolveIdentifier(last)
-    const definition = on(last)
+    const identifier = getIdentifier(last)
     if (identifier !== undefined) {
-      const existing = definitions[identifier]
-      if (existing !== undefined) {
-        if (Equal.equals(existing, definition)) {
-          return { _tag: "Reference", $ref: identifier }
-        } else {
-          throw new globalThis.Error(`Duplicate identifier: ${identifier}`)
-        }
-      }
-      definitions[identifier] = definition
+      definitions[identifier] = on(last)
       return { _tag: "Reference", $ref: identifier }
     }
-    return definition
+    return on(last)
+  }
+
+  function getIdentifier(ast: AST.AST): string | undefined {
+    const existing = identifierMap.get(ast)
+    if (existing !== undefined) {
+      return existing
+    }
+    const identifier = InternalAnnotations.resolveIdentifier(ast)
+    if (identifier !== undefined) {
+      // Check if base identifier is available
+      if (definitions[identifier] === undefined) {
+        identifierCounter.set(identifier, 0)
+        identifierMap.set(ast, identifier)
+        return identifier
+      }
+      // Find a unique identifier by incrementing until we find one that doesn't exist
+      let count = (identifierCounter.get(identifier) ?? 0) + 1
+      let newIdentifier = generateIdentifier(identifier, count)
+      while (definitions[newIdentifier] !== undefined) {
+        count++
+        newIdentifier = generateIdentifier(identifier, count)
+      }
+      identifierCounter.set(identifier, count)
+      identifierMap.set(ast, newIdentifier)
+      return newIdentifier
+    }
+  }
+
+  function generateIdentifier(seed: string, counter: number): string {
+    return `${seed}-${counter}`
   }
 
   function getLastEncoding(ast: AST.AST): AST.AST {
@@ -8953,7 +8981,7 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
       case "Suspend": {
         const thunk = ast.thunk()
         if (visited.has(thunk)) {
-          const identifier = InternalAnnotations.resolveIdentifier(thunk)
+          const identifier = getIdentifier(thunk)
           if (identifier === undefined) {
             throw new globalThis.Error("Suspended schema without identifier")
           }

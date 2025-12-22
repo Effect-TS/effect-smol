@@ -62,17 +62,115 @@ describe("Standard", () => {
       }).annotate({ identifier: "Category" })
 
       const schema = Schema.Tuple([OuterCategory, OuterCategory2])
-      throws(() => SchemaStandard.fromAST(schema.ast), "Duplicate identifier: Category")
+      assertStandardDocument(schema, {
+        schema: {
+          _tag: "Arrays",
+          elements: [
+            {
+              isOptional: false,
+              type: { _tag: "Reference", $ref: "Category" }
+            },
+            {
+              isOptional: false,
+              type: { _tag: "Reference", $ref: "Category-1" }
+            }
+          ],
+          rest: [],
+          checks: []
+        },
+        definitions: {
+          Category: {
+            _tag: "Objects",
+            annotations: { identifier: "Category" },
+            propertySignatures: [
+              {
+                name: "name",
+                type: { _tag: "String", checks: [] },
+                isOptional: false,
+                isMutable: false
+              },
+              {
+                name: "children",
+                type: {
+                  _tag: "Arrays",
+                  elements: [],
+                  rest: [
+                    {
+                      _tag: "Suspend",
+                      checks: [],
+                      thunk: { _tag: "Reference", $ref: "Category" }
+                    }
+                  ],
+                  checks: []
+                },
+                isOptional: false,
+                isMutable: false
+              }
+            ],
+            indexSignatures: []
+          },
+          "Category-1": {
+            _tag: "Objects",
+            annotations: { identifier: "Category" },
+            propertySignatures: [
+              {
+                name: "name",
+                type: { _tag: "Number", checks: [] },
+                isOptional: false,
+                isMutable: false
+              },
+              {
+                name: "children",
+                type: {
+                  _tag: "Arrays",
+                  elements: [],
+                  rest: [
+                    {
+                      _tag: "Suspend",
+                      checks: [],
+                      thunk: { _tag: "Reference", $ref: "Category-1" }
+                    }
+                  ],
+                  checks: []
+                },
+                isOptional: false,
+                isMutable: false
+              }
+            ],
+            indexSignatures: []
+          }
+        }
+      })
     })
 
     it("duplicate identifier", () => {
-      throws(() =>
-        SchemaStandard.fromAST(
-          Schema.Struct({
-            a: Schema.String.annotate({ identifier: "ID", description: "a" }),
-            b: Schema.String.annotate({ identifier: "ID", description: "b" })
-          }).ast
-        ), "Duplicate identifier: ID")
+      assertStandardDocument(
+        Schema.Tuple([
+          Schema.String.annotate({ identifier: "ID", description: "a" }),
+          Schema.String.annotate({ identifier: "ID", description: "b" })
+        ]),
+        {
+          schema: {
+            _tag: "Arrays",
+            elements: [
+              {
+                isOptional: false,
+                type: { _tag: "Reference", $ref: "ID" }
+              },
+              {
+                isOptional: false,
+                type: { _tag: "Reference", $ref: "ID-1" }
+              }
+            ],
+            rest: [],
+            checks: []
+          },
+          definitions: {
+            "ID": { _tag: "String", checks: [], annotations: { identifier: "ID", description: "a" } },
+            "ID-1": { _tag: "String", checks: [], annotations: { identifier: "ID", description: "b" } }
+          }
+        }
+      )
     })
 
     it("String", () => {
@@ -147,18 +245,15 @@ describe("Standard", () => {
             },
             {
               isOptional: false,
-              type: {
-                _tag: "String",
-                checks: [],
-                annotations: { description: "a" }
-              }
+              type: { _tag: "Reference", $ref: "ID-1" }
             }
           ],
           rest: [],
           checks: []
         },
         definitions: {
-          "ID": { _tag: "String", checks: [], annotations: { identifier: "ID" } }
+          "ID": { _tag: "String", checks: [], annotations: { identifier: "ID" } },
+          "ID-1": { _tag: "String", checks: [], annotations: { identifier: "ID", description: "a" } }
         }
       })
     })
@@ -1909,7 +2004,7 @@ describe("Standard", () => {
               },
               {
                 isOptional: false,
-                type: { _tag: "Reference", $ref: "ID" },
+                type: { _tag: "Reference", $ref: "ID-1" },
                 annotations: { description: "b" }
               }
             ],
@@ -1918,6 +2013,11 @@ describe("Standard", () => {
           },
           definitions: {
             ID: {
+              _tag: "String",
+              annotations: { identifier: "ID" },
+              checks: []
+            },
+            "ID-1": {
               _tag: "String",
               annotations: { identifier: "ID" },
               checks: []

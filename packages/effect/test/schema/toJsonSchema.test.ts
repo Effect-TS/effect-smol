@@ -492,14 +492,12 @@ describe("JsonSchema generation", () => {
           schema: {
             "anyOf": [
               { "$ref": "#/$defs/ID" },
-              {
-                "type": "string",
-                "description": "description"
-              }
+              { "$ref": "#/$defs/ID-1" }
             ]
           },
           definitions: {
-            "ID": { "type": "string" }
+            "ID": { "type": "string" },
+            "ID-1": { "type": "string", "description": "description" }
           }
         }
       )
@@ -1818,7 +1816,7 @@ describe("JsonSchema generation", () => {
               },
               "id3_2": {
                 "allOf": [
-                  { "$ref": "#/$defs/id3" },
+                  { "$ref": "#/$defs/id3-1" },
                   { "description": "id3_2-key" }
                 ]
               }
@@ -1829,7 +1827,8 @@ describe("JsonSchema generation", () => {
           definitions: {
             "id1": { "type": "string" },
             "id2": { "type": "string" },
-            "id3": { "type": "string" }
+            "id3": { "type": "string" },
+            "id3-1": { "type": "string" }
           }
         }
       )
@@ -3198,10 +3197,10 @@ describe("JsonSchema generation", () => {
         A,
         {
           schema: {
-            "$ref": "#/$defs/AEncoded"
+            "$ref": "#/$defs/A"
           },
           definitions: {
-            "AEncoded": {
+            "A": {
               "type": "object",
               "properties": {
                 "a": { "type": "string" }
@@ -3222,10 +3221,10 @@ describe("JsonSchema generation", () => {
         A,
         {
           schema: {
-            "$ref": "#/$defs/AEncoded"
+            "$ref": "#/$defs/A"
           },
           definitions: {
-            "AEncoded": {
+            "A": {
               "type": "object",
               "properties": {
                 "a": { "type": "string" }
@@ -3246,10 +3245,10 @@ describe("JsonSchema generation", () => {
       }) {}
       assertDocument(E, {
         schema: {
-          "$ref": "#/$defs/EEncoded"
+          "$ref": "#/$defs/E"
         },
         definitions: {
-          "EEncoded": {
+          "E": {
             "type": "object",
             "properties": {
               "a": { "type": "string" }
