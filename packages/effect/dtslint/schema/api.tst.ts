@@ -17,7 +17,7 @@ describe("decoding / encoding API", () => {
     const isStruct = Schema.is(struct)
     const s = hole<{ b: string }>()
     if (isStruct(s)) {
-      expect(s).type.toBe<{ b: string } & { readonly a: string }>()
+      expect(s).type.toBe<{ readonly a: string; b: string }>()
     }
     const schema = Schema.Array(Schema.String).pipe(
       Schema.refineByGuard(
@@ -45,7 +45,7 @@ describe("decoding / encoding API", () => {
     const s = hole<{ b: string }>()
     {
       assertsStruct(s)
-      expect(s).type.toBe<{ b: string } & { readonly a: string }>()
+      expect(s).type.toBe<{ readonly a: string; b: string }>()
     }
   })
 

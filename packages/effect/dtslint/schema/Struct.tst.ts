@@ -146,7 +146,7 @@ describe("Struct", () => {
       Schema.Codec<{ readonly a: string; readonly c: string; readonly b: string }>
     >()
     expect(schema).type.toBe<
-      Schema.Struct<{ readonly a: Schema.String; readonly c: Schema.String } & { readonly b: Schema.String }>
+      Schema.Struct<{ readonly a: Schema.String; readonly b: Schema.String; readonly c: Schema.String }>
     >()
   })
 
@@ -635,7 +635,7 @@ describe("Struct", () => {
       Schema.TaggedStruct<"A", { readonly a: Schema.String }>
     >()
     expect(schema).type.toBe<
-      Schema.Struct<{ readonly _tag: Schema.tag<"A"> } & { readonly a: Schema.String }>
+      Schema.Struct<{ readonly _tag: Schema.tag<"A">; readonly a: Schema.String }>
     >()
     expect(schema.fields._tag.schema.literal).type.toBe<"A">()
   })
