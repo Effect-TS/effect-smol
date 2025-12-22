@@ -485,7 +485,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
           )
       }
     )
-    return Schema.makeProto(schema.ast, {
+    return Schema.make(schema.ast, {
       success: options.success,
       error: options.error
     })

@@ -23,6 +23,7 @@ import * as InternalEquivalence from "./internal/equivalence.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as InternalArbitrary from "./internal/schema/arbitrary.ts"
 import { escapeToken, unescapeToken } from "./internal/schema/json-pointer.ts"
+import * as InternalSchema from "./internal/schema/schema.ts"
 import * as JsonPatch from "./JsonPatch.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
 import { remainder } from "./Number.ts"
@@ -47,6 +48,8 @@ import type { Assign, Lambda, Mutable, Simplify } from "./Struct.ts"
 import * as Struct_ from "./Struct.ts"
 import * as FastCheck from "./testing/FastCheck.ts"
 import type { UnionToIntersection } from "./Types.ts"
+
+const TypeId = InternalSchema.TypeId
 
 /**
  * Is this schema required or optional?
@@ -148,34 +151,6 @@ export interface Bottom<
   makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
 }
 
-const TypeId = "~effect/Schema/Schema"
-
-const SchemaProto = {
-  [TypeId]: TypeId,
-  pipe() {
-    return Pipeable.pipeArguments(this, arguments)
-  },
-  annotate(this: Top, annotations: Annotations.Annotations) {
-    return this.rebuild(AST.annotate(this.ast, annotations))
-  },
-  annotateKey(this: Top, annotations: Annotations.Key<unknown>) {
-    return this.rebuild(AST.annotateKey(this.ast, annotations))
-  },
-  check(this: Top, ...checks: readonly [AST.Check<unknown>, ...Array<AST.Check<unknown>>]) {
-    return this.rebuild(AST.appendChecks(this.ast, checks))
-  }
-}
-
-/** @internal */
-export function makeProto<S extends Top>(ast: AST.AST, options: object): S {
-  const self = Object.create(SchemaProto)
-  Object.assign(self, options)
-  self.ast = ast
-  self.rebuild = (ast: AST.AST) => makeProto(ast, options)
-  self.makeUnsafe = Parser.makeUnsafe(self)
-  return self
-}
-
 /**
  * @since 4.0.0
  */
@@ -216,7 +191,7 @@ export function declareConstructor<T, E = T, Iso = T>() {
     return make(
       new AST.Declaration(
         typeParameters.map(AST.getAST),
-        (typeParameters) => run(typeParameters.map(make) as any),
+        (typeParameters) => run(typeParameters.map((ast) => make(ast)) as any),
         annotations
       )
     )
@@ -834,9 +809,7 @@ export const encodeSync = Parser.encodeSync
  * @category Constructors
  * @since 4.0.0
  */
-export function make<S extends Top>(ast: S["ast"]): S {
-  return makeProto(ast, {})
-}
+export const make: <S extends Top>(ast: S["ast"], options?: object) => S = InternalSchema.make
 
 /**
  * Tests if a value is a `Schema`.
@@ -900,9 +873,7 @@ interface optionalKeyLambda extends Lambda {
  *
  * @since 4.0.0
  */
-export const optionalKey = Struct_.lambda<optionalKeyLambda>((schema) =>
-  makeProto(AST.optionalKey(schema.ast), { schema })
-)
+export const optionalKey = Struct_.lambda<optionalKeyLambda>((schema) => make(AST.optionalKey(schema.ast), { schema }))
 
 interface requiredKeyLambda extends Lambda {
   <S extends Top>(self: optionalKey<S>): S
@@ -998,9 +969,7 @@ interface mutableKeyLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const mutableKey = Struct_.lambda<mutableKeyLambda>((schema) =>
-  makeProto(AST.mutableKey(schema.ast), { schema })
-)
+export const mutableKey = Struct_.lambda<mutableKeyLambda>((schema) => make(AST.mutableKey(schema.ast), { schema }))
 
 interface readonlyKeyLambda extends Lambda {
   <S extends Top>(self: mutableKey<S>): S
@@ -1046,7 +1015,7 @@ interface toTypeLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const toType = Struct_.lambda<toTypeLambda>((schema) => makeProto(AST.toType(schema.ast), { schema }))
+export const toType = Struct_.lambda<toTypeLambda>((schema) => make(AST.toType(schema.ast), { schema }))
 
 /**
  * @since 4.0.0
@@ -1081,7 +1050,7 @@ interface toEncodedLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const toEncoded = Struct_.lambda<toEncodedLambda>((schema) => makeProto(AST.toEncoded(schema.ast), { schema }))
+export const toEncoded = Struct_.lambda<toEncodedLambda>((schema) => make(AST.toEncoded(schema.ast), { schema }))
 
 const FlipTypeId = "~effect/Schema/flip"
 
@@ -1124,7 +1093,7 @@ export function flip<S extends Top>(schema: S): flip<S> {
   if (isFlip$(schema)) {
     return schema.schema.rebuild(AST.flip(schema.ast))
   }
-  return makeProto(AST.flip(schema.ast), { [FlipTypeId]: FlipTypeId, schema })
+  return make(AST.flip(schema.ast), { [FlipTypeId]: FlipTypeId, schema })
 }
 
 /**
@@ -1143,7 +1112,7 @@ export interface Literal<L extends AST.LiteralValue> extends Bottom<L, L, never,
  * @since 4.0.0
  */
 export function Literal<L extends AST.LiteralValue>(literal: L): Literal<L> {
-  const out = makeProto<Literal<L>>(new AST.Literal(literal), {
+  const out = make<Literal<L>>(new AST.Literal(literal), {
     literal,
     transform<L2 extends AST.LiteralValue>(to: L2): decodeTo<Literal<L2>, Literal<L>> {
       return out.pipe(decodeTo(Literal(to), {
@@ -1220,7 +1189,7 @@ function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Pa
  * @since 4.0.0
  */
 export function TemplateLiteral<const Parts extends TemplateLiteral.Parts>(parts: Parts): TemplateLiteral<Parts> {
-  return makeProto(templateLiteralFromParts(parts), { parts })
+  return make(templateLiteralFromParts(parts), { parts })
 }
 
 /**
@@ -1262,7 +1231,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
 export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>(
   parts: Parts
 ): TemplateLiteralParser<Parts> {
-  return makeProto(templateLiteralFromParts(parts).asTemplateLiteralParser(), { parts: [...parts] })
+  return make(templateLiteralFromParts(parts).asTemplateLiteralParser(), { parts: [...parts] })
 }
 
 /**
@@ -1279,7 +1248,7 @@ export interface Enum<A extends { [x: string]: string | number }>
  * @since 4.0.0
  */
 export function Enum<A extends { [x: string]: string | number }>(enums: A): Enum<A> {
-  return makeProto(
+  return make(
     new AST.Enum(
       Object.keys(enums).filter(
         (key) => typeof enums[enums[key]] !== "number"
@@ -1621,7 +1590,7 @@ export interface Struct<Fields extends Struct.Fields> extends
 }
 
 function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields: Fields): Struct<Fields> {
-  return makeProto(ast, {
+  return make(ast, {
     fields,
     mapFields<To extends Struct.Fields>(
       this: Struct<Fields>,
@@ -1867,7 +1836,7 @@ export function Record<Key extends Record.Key, Value extends Top>(
   const keyValueCombiner = options?.keyValueCombiner?.decode || options?.keyValueCombiner?.encode
     ? new AST.KeyValueCombiner(options.keyValueCombiner.decode, options.keyValueCombiner.encode)
     : undefined
-  return makeProto(AST.record(key.ast, value.ast, keyValueCombiner), { key, value })
+  return make(AST.record(key.ast, value.ast, keyValueCombiner), { key, value })
 }
 
 /**
@@ -1964,7 +1933,7 @@ export function StructWithRest<
   schema: S,
   records: Records
 ): StructWithRest<S, Records> {
-  return makeProto(AST.structWithRest(schema.ast, records.map(AST.getAST)), { schema, records })
+  return make(AST.structWithRest(schema.ast, records.map(AST.getAST)), { schema, records })
 }
 
 /**
@@ -2089,7 +2058,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
 }
 
 function makeTuple<Elements extends Tuple.Elements>(ast: AST.Arrays, elements: Elements): Tuple<Elements> {
-  return makeProto(ast, {
+  return make(ast, {
     elements,
     mapElements<To extends Tuple.Elements>(
       this: Tuple<Elements>,
@@ -2208,7 +2177,7 @@ export function TupleWithRest<S extends Tuple<Tuple.Elements>, const Rest extend
   schema: S,
   rest: Rest
 ): TupleWithRest<S, Rest> {
-  return makeProto(AST.tupleWithRest(schema.ast, rest.map(AST.getAST)), { schema, rest })
+  return make(AST.tupleWithRest(schema.ast, rest.map(AST.getAST)), { schema, rest })
 }
 
 /**
@@ -2239,9 +2208,7 @@ interface ArrayLambda extends Lambda {
  * @category Constructors
  * @since 4.0.0
  */
-export const Array = Struct_.lambda<ArrayLambda>((schema) =>
-  makeProto(new AST.Arrays(false, [], [schema.ast]), { schema })
-)
+export const Array = Struct_.lambda<ArrayLambda>((schema) => make(new AST.Arrays(false, [], [schema.ast]), { schema }))
 
 /**
  * @since 4.0.0
@@ -2272,7 +2239,7 @@ interface NonEmptyArrayLambda extends Lambda {
  * @since 4.0.0
  */
 export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
-  makeProto(new AST.Arrays(false, [schema.ast], [schema.ast]), { schema })
+  make(new AST.Arrays(false, [schema.ast], [schema.ast]), { schema })
 )
 
 /**
@@ -2332,7 +2299,7 @@ interface mutableLambda extends Lambda {
  * @since 4.0.0
  */
 export const mutable = Struct_.lambda<mutableLambda>((schema) => {
-  return makeProto(new AST.Arrays(true, schema.ast.elements, schema.ast.rest), { schema })
+  return make(new AST.Arrays(true, schema.ast.elements, schema.ast.rest), { schema })
 })
 
 /**
@@ -2378,7 +2345,7 @@ function makeUnion<Members extends ReadonlyArray<Top>>(
   ast: AST.Union<Members[number]["ast"]>,
   members: Members
 ): Union<Members> {
-  return makeProto(ast, {
+  return make(ast, {
     members,
     mapMembers<To extends ReadonlyArray<Top>>(
       this: Union<Members>,
@@ -2442,7 +2409,7 @@ export interface Literals<L extends ReadonlyArray<AST.LiteralValue>>
  */
 export function Literals<const L extends ReadonlyArray<AST.LiteralValue>>(literals: L): Literals<L> {
   const members = literals.map(Literal) as { readonly [K in keyof L]: Literal<L[K]> }
-  return makeProto(AST.union(members, "anyOf", undefined), {
+  return make(AST.union(members, "anyOf", undefined), {
     literals,
     members,
     mapMembers<To extends ReadonlyArray<Top>>(
@@ -2587,7 +2554,7 @@ export interface refine<T extends S["Type"], S extends Top> extends
  */
 export function refine<T extends E, E>(refine: AST.Refine<T, E>) {
   return <S extends Schema<E>>(schema: S): refine<S["Type"] & T, S> =>
-    makeProto(AST.appendChecks(schema.ast, [refine]), { schema })
+    make(AST.appendChecks(schema.ast, [refine]), { schema })
 }
 
 /**
@@ -2636,7 +2603,7 @@ export interface brand<S extends Top, B> extends
  * @since 4.0.0
  */
 export function brand<B extends string | symbol>() {
-  return <S extends Top>(schema: S): brand<S, B> => makeProto(schema.ast, { schema })
+  return <S extends Top>(schema: S): brand<S, B> => make(schema.ast, { schema })
 }
 
 /**
@@ -2687,7 +2654,7 @@ export function middlewareDecoding<S extends Top, RD>(
   ) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, RD>
 ) {
   return (schema: S): middlewareDecoding<S, RD> =>
-    makeProto(
+    make(
       AST.decodingMiddleware(schema.ast, new Transformation.Middleware(decode, identity)),
       { schema }
     )
@@ -2729,7 +2696,7 @@ export function middlewareEncoding<S extends Top, RE>(
   ) => Effect.Effect<Option_.Option<S["Encoded"]>, Issue.Issue, RE>
 ) {
   return (schema: S): middlewareEncoding<S, RE> =>
-    makeProto(
+    make(
       AST.encodingMiddleware(schema.ast, new Transformation.Middleware(identity, encode)),
       { schema }
     )
@@ -2863,7 +2830,7 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
   } | undefined
 ) {
   return (from: From) => {
-    return makeProto(
+    return make(
       AST.decodeTo(
         from.ast,
         to.ast,
@@ -3006,7 +2973,7 @@ export function withConstructorDefault<S extends Top & WithoutConstructorDefault
   ) => Option_.Option<S["~type.make.in"]> | Effect.Effect<Option_.Option<S["~type.make.in"]>>
 ) {
   return (schema: S): withConstructorDefault<S> => {
-    return makeProto(
+    return make(
       AST.withConstructorDefault(schema.ast, defaultValue),
       { schema }
     )
@@ -3305,7 +3272,7 @@ export function TaggedUnion<const CasesByTag extends Record<string, Struct.Field
   }
   const union = Union(members)
   const { guards, isAnyOf, match } = toTaggedUnion("_tag")(union)
-  return makeProto(union.ast, { cases, isAnyOf, guards, match })
+  return make(union.ast, { cases, isAnyOf, guards, match })
 }
 
 /**
@@ -5410,7 +5377,7 @@ export function Option<A extends Top>(value: A): Option<A> {
         })
     }
   )
-  return makeProto(schema.ast, { value })
+  return make(schema.ast, { value })
 }
 
 /**
@@ -5579,7 +5546,7 @@ export function Result<A extends Top, E extends Top>(
         })
     }
   )
-  return makeProto(schema.ast, { success, failure })
+  return make(schema.ast, { success, failure })
 }
 
 /**
@@ -5669,7 +5636,7 @@ export function Redacted<S extends Top>(value: S, options?: {
       toEquivalence: ([value]) => Redacted_.getEquivalence(value)
     }
   )
-  return makeProto(schema.ast, { value })
+  return make(schema.ast, { value })
 }
 
 /**
@@ -5791,7 +5758,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
       }
     }
   )
-  return makeProto(schema.ast, { error, defect })
+  return make(schema.ast, { error, defect })
 }
 
 /**
@@ -5847,7 +5814,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       toFormatter: ([failures]) => (t) => `Cause(${failures(t.failures)})`
     }
   )
-  return makeProto(schema.ast, { error, defect })
+  return make(schema.ast, { error, defect })
 }
 
 /**
@@ -6028,7 +5995,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
       }
     }
   )
-  return makeProto(schema.ast, { value, error, defect })
+  return make(schema.ast, { value, error, defect })
 }
 
 /**
@@ -6108,7 +6075,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
       }
     }
   )
-  return makeProto(schema.ast, { key, value })
+  return make(schema.ast, { key, value })
 }
 
 /**
@@ -6184,7 +6151,7 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
       }
     }
   )
-  return makeProto(schema.ast, { value })
+  return make(schema.ast, { value })
 }
 
 /**
@@ -7671,12 +7638,12 @@ export function toJsonSchemaDocument<S extends Top>(
   schema: S,
   options?: ToJsonSchemaDocumentOptions // TODO: remove referenceStrategy option (convert to rewrite function)?
 ): JsonSchema.Document<"draft-2020-12"> {
-  const document = toStandardDocument(schema.ast)
-  const jsonDocument = standardToJsonSchemaDocument(document, options)
+  const sd = toStandardDocument(schema.ast)
+  const jd = standardToJsonSchemaDocument(sd, options)
   return {
     source: "draft-2020-12",
-    schema: jsonDocument.schema,
-    definitions: jsonDocument.definitions
+    schema: jd.schema,
+    definitions: jd.definitions
   }
 }
 
@@ -8221,7 +8188,7 @@ export function overrideToCodecIso<S extends Top, Iso>(
   }
 ) {
   return (schema: S): overrideToCodecIso<S, Iso> => {
-    return makeProto(
+    return make(
       AST.annotate(schema.ast, {
         toCodecIso: () => new AST.Link(to.ast, Transformation.make(transformation))
       }),

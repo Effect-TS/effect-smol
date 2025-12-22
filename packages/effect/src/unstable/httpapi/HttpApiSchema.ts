@@ -178,9 +178,9 @@ export function param<Name extends string, S extends Schema.Top & { readonly "En
 ): Param<Name, S>
 export function param(name: string): any {
   if (arguments.length === 1) {
-    return (schema: Schema.Top) => Schema.makeProto(schema.ast, { name, schema })
+    return (schema: Schema.Top) => Schema.make(schema.ast, { name, schema })
   }
-  return Schema.makeProto(arguments[1].ast, { name, schema: arguments[1] })
+  return Schema.make(arguments[1].ast, { name, schema: arguments[1] })
 }
 
 /**
