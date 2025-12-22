@@ -8915,31 +8915,14 @@ export declare namespace Annotations {
   export type Meta = MetaDefinitions[keyof MetaDefinitions]
 }
 
-/** @internal */
-export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
-  const definitions: Record<string, SchemaStandard.StandardSchema> = {}
+function generateIdentifier(seed: string, counter: number): string {
+  return `${seed}-${counter}`
+}
 
-  const visited = new Set<AST.AST>()
+function makeUniqueIdentifierGenerator(definitions: Record<string, SchemaStandard.StandardSchema>) {
   const identifierCounter = new Map<string, number>()
   const identifierMap = new Map<AST.AST, string>()
-
-  return {
-    schema: recur(ast),
-    definitions
-  }
-
-  function recur(ast: AST.AST): SchemaStandard.StandardSchema {
-    visited.add(ast)
-    const last = getLastEncoding(ast)
-    const identifier = getIdentifier(last)
-    if (identifier !== undefined) {
-      definitions[identifier] = on(last)
-      return { _tag: "Reference", $ref: identifier }
-    }
-    return on(last)
-  }
-
-  function getIdentifier(ast: AST.AST): string | undefined {
+  return function generateUniqueIdentifier(ast: AST.AST): string | undefined {
     const existing = identifierMap.get(ast)
     if (existing !== undefined) {
       return existing
@@ -8964,9 +8947,29 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
       return newIdentifier
     }
   }
+}
 
-  function generateIdentifier(seed: string, counter: number): string {
-    return `${seed}-${counter}`
+/** @internal */
+export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
+  const definitions: Record<string, SchemaStandard.StandardSchema> = {}
+
+  const visited = new Set<AST.AST>()
+  const generateUniqueIdentifier = makeUniqueIdentifierGenerator(definitions)
+
+  return {
+    schema: recur(ast),
+    definitions
+  }
+
+  function recur(ast: AST.AST): SchemaStandard.StandardSchema {
+    visited.add(ast)
+    const last = getLastEncoding(ast)
+    const identifier = generateUniqueIdentifier(last)
+    if (identifier !== undefined) {
+      definitions[identifier] = on(last)
+      return { _tag: "Reference", $ref: identifier }
+    }
+    return on(last)
   }
 
   function getLastEncoding(ast: AST.AST): AST.AST {
@@ -8981,7 +8984,7 @@ export function standardDocumentFromAST(ast: AST.AST): SchemaStandard.Document {
       case "Suspend": {
         const thunk = ast.thunk()
         if (visited.has(thunk)) {
-          const identifier = getIdentifier(thunk)
+          const identifier = generateUniqueIdentifier(thunk)
           if (identifier === undefined) {
             throw new globalThis.Error("Suspended schema without identifier")
           }
