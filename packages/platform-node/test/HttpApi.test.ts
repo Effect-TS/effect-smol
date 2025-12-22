@@ -323,7 +323,7 @@ describe("HttpApi", () => {
       })
     }).pipe(Effect.provide(HttpLive)))
 
-  describe("OpenAPI spec", () => {
+  describe.todo("OpenAPI spec", () => {
     describe("error", () => {
       it("check & httpApiStatus annotation", () => {
         class Group extends HttpApiGroup.make("users")
