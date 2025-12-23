@@ -259,9 +259,6 @@ export function toJsonSchemaDocument(
   return { source, schema: schemas[0], definitions }
 }
 
-const bigIntString = fromAST(AST.bigIntString).schema
-const symbolString = fromAST(AST.symbolString).schema
-
 /** @internal */
 export function toJsonSchemaMultiDocument(
   document: SchemaStandard.MultiDocument,
@@ -312,10 +309,20 @@ export function toJsonSchemaMultiDocument(
       case "Undefined":
         return { type: "null" }
       case "BigInt":
-        return recur(bigIntString)
+        return {
+          "type": "string",
+          "allOf": [
+            { "pattern": "^-?\\d+$" }
+          ]
+        }
       case "Symbol":
       case "UniqueSymbol":
-        return recur(symbolString)
+        return {
+          "type": "string",
+          "allOf": [
+            { "pattern": "^Symbol\\((.*)\\)$" }
+          ]
+        }
       case "Declaration":
         return recur(schema.Encoded)
       case "Suspend":
