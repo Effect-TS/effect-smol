@@ -210,6 +210,7 @@ export interface Objects {
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly propertySignatures: ReadonlyArray<PropertySignature>
   readonly indexSignatures: ReadonlyArray<IndexSignature>
+  readonly checks: ReadonlyArray<Check<ObjectsMeta>>
 }
 
 /**
@@ -348,8 +349,18 @@ export type ArraysMeta =
   | Schema.Annotations.BuiltInMetaDefinitions[
     | "isMinLength"
     | "isMaxLength"
+    | "isLength"
   ]
   | { readonly _tag: "isUnique" }
+
+/**
+ * @since 4.0.0
+ */
+export type ObjectsMeta = Schema.Annotations.BuiltInMetaDefinitions[
+  | "isMinProperties"
+  | "isMaxProperties"
+  | "isPropertiesLength"
+]
 
 /**
  * @since 4.0.0
@@ -373,7 +384,7 @@ export type MultiDocument = {
 
 const Standard$ref = Schema.suspend(() => Standard$)
 
-const toJsonBlacklist: Set<string> = new Set([
+const toJsonAnnotationsBlacklist: Set<string> = new Set([
   "toArbitrary",
   "toArbitraryConstraint",
   "toJsonSchema",
@@ -411,7 +422,7 @@ export const Annotations$ = Schema.Record(Schema.String, Schema.Unknown).pipe(
     encode: Getter.transformOptional(Option.flatMap((r) => {
       const out: Record<string, typeof PrimitiveTree$["Type"]> = {}
       for (const [k, v] of Object.entries(r)) {
-        if (!toJsonBlacklist.has(k) && isPrimitiveTree(v)) {
+        if (!toJsonAnnotationsBlacklist.has(k) && isPrimitiveTree(v)) {
           out[k] = v
         }
       }
@@ -811,6 +822,7 @@ const IsUnique$ = Schema.Struct({
 const ArraysMeta$ = Schema.Union([
   IsMinLength$,
   IsMaxLength$,
+  IsLength$,
   IsUnique$
 ]).annotate({ identifier: "ArraysMeta" })
 
@@ -844,6 +856,27 @@ export const IndexSignature$ = Schema.Struct({
   type: Standard$ref
 }).annotate({ identifier: "IndexSignature" })
 
+const IsMinProperties$ = Schema.Struct({
+  _tag: Schema.tag("isMinProperties"),
+  minProperties: Schema.Number
+}).annotate({ identifier: "IsMinProperties" })
+
+const IsMaxProperties$ = Schema.Struct({
+  _tag: Schema.tag("isMaxProperties"),
+  maxProperties: Schema.Number
+}).annotate({ identifier: "IsMaxProperties" })
+
+const IsPropertiesLength$ = Schema.Struct({
+  _tag: Schema.tag("isPropertiesLength"),
+  length: Schema.Number
+}).annotate({ identifier: "IsPropertiesLength" })
+
+const ObjectsMeta$ = Schema.Union([
+  IsMinProperties$,
+  IsMaxProperties$,
+  IsPropertiesLength$
+]).annotate({ identifier: "ObjectsMeta" })
+
 /**
  * @since 4.0.0
  */
@@ -851,7 +884,8 @@ export const Objects$ = Schema.Struct({
   _tag: Schema.tag("Objects"),
   annotations: Schema.optional(Annotations$),
   propertySignatures: Schema.Array(PropertySignature$),
-  indexSignatures: Schema.Array(IndexSignature$)
+  indexSignatures: Schema.Array(IndexSignature$),
+  checks: Schema.Array(makeCheck(ObjectsMeta$, "Objects"))
 }).annotate({ identifier: "Objects" })
 
 /**
@@ -1447,7 +1481,7 @@ export function toCode(document: Document, options?: {
 }
 
 const toCodeAnnotationsBlacklist: Set<string> = new Set([
-  ...toJsonBlacklist,
+  ...toJsonAnnotationsBlacklist,
   "typeConstructor"
 ])
 
@@ -1496,7 +1530,7 @@ function toCodeCheck(check: Check<StringMeta | NumberMeta | BigIntMeta | ArraysM
   }
 }
 
-function toCodeFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | ArraysMeta>): string {
+function toCodeFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMeta>): string {
   const a = toCodeAnnotations(filter.annotations)
   const ca = a === "" ? "" : `, ${a}`
   switch (filter.meta._tag) {
@@ -1567,38 +1601,18 @@ function toCodeFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | Arra
       return `Schema.isLessThanOrEqualToBigInt(${filter.meta.maximum}n${ca})`
     case "isBetweenBigInt":
       return `Schema.isBetweenBigInt(${filter.meta.minimum}n, ${filter.meta.maximum}n${ca})`
-    // Date Meta
-    // case "isValidDate":
-    //   return `Schema.isValidDate(${ca})`
-    // case "isGreaterThanDate":
-    //   return `Schema.isGreaterThanDate(${filter.meta.exclusiveMinimum}${ca})`
-    // case "isGreaterThanOrEqualToDate":
-    //   return `Schema.isGreaterThanOrEqualToDate(${filter.meta.minimum}${ca})`
-    // case "isLessThanDate":
-    //   return `Schema.isLessThanDate(${filter.meta.exclusiveMaximum}${ca})`
-    // case "isLessThanOrEqualToDate":
-    //   return `Schema.isLessThanOrEqualToDate(${filter.meta.maximum}${ca})`
-    // case "isBetweenDate":
-    //   return `Schema.isBetweenDate(${filter.meta.minimum}, ${filter.meta.maximum}${ca})`
-
-    // Object Meta
-    // case "isMinProperties":
-    //   return `Schema.isMinProperties(${filter.meta.minProperties}${ca})`
-    // case "isMaxProperties":
-    //   return `Schema.isMaxProperties(${filter.meta.maxProperties}${ca})`
-    // case "isPropertiesLength":
-    //   return `Schema.isPropertiesLength(${filter.meta.length}${ca})`
 
     // Arrays Meta
     case "isUnique":
       return `Schema.isUnique(undefined, ${a})`
-      // case "isMinSize":
-      //   return `Schema.isMinSize(${filter.meta.minSize}${ca})`
-      // case "isMaxSize":
-      //   return `Schema.isMaxSize(${filter.meta.maxSize}${ca})`
-      // case "isSize":
-      //   return `Schema.isSize(${filter.meta.size}${ca})`
-      // TODO: equivalence parameter?
+
+    // Object Meta
+    case "isMinProperties":
+      return `Schema.isMinProperties(${filter.meta.minProperties}${ca})`
+    case "isMaxProperties":
+      return `Schema.isMaxProperties(${filter.meta.maxProperties}${ca})`
+    case "isPropertiesLength":
+      return `Schema.isPropertiesLength(${filter.meta.length}${ca})`
   }
 }
 
@@ -1778,7 +1792,13 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
         case "object": {
           const propertySignatures = collectProperties(s)
           const indexSignatures = collectIndexSignatures(s)
-          return { _tag: "Objects", propertySignatures, indexSignatures, annotations: undefined }
+          return {
+            _tag: "Objects",
+            propertySignatures,
+            indexSignatures,
+            checks: collectObjectsChecks(s),
+            annotations: undefined
+          }
         }
       }
       if ("anyOf" in s && Array.isArray(s.anyOf)) {
@@ -1880,6 +1900,25 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
       checks.push({
         _tag: "Filter",
         meta: { _tag: "isUnique" },
+        annotations: collectAnnotations(s)
+      })
+    }
+    return checks
+  }
+
+  function collectObjectsChecks(s: JsonSchema.JsonSchema): Array<Check<ObjectsMeta>> {
+    const checks: Array<Check<ObjectsMeta>> = []
+    if (typeof s.minProperties === "number") {
+      checks.push({
+        _tag: "Filter",
+        meta: { _tag: "isMinProperties", minProperties: s.minProperties },
+        annotations: collectAnnotations(s)
+      })
+    }
+    if (typeof s.maxProperties === "number") {
+      checks.push({
+        _tag: "Filter",
+        meta: { _tag: "isMaxProperties", maxProperties: s.maxProperties },
         annotations: collectAnnotations(s)
       })
     }

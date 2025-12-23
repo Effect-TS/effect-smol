@@ -4949,9 +4949,9 @@ console.log(String(Schema.decodeUnknownExit(schema)(urlSearchParams)))
 
 ### Basic Conversion
 
-By default, a plain schema produces the minimal valid JSON Schema for that shape.
+By default, a plain schema produces the minimal valid draft-2020-12 JSON Schema for that shape.
 
-**Example** (Tuple to draft-07 JSON Schema)
+**Example** (Tuple to draft-2020-12 JSON Schema)
 
 ```ts
 import { Schema } from "effect"
@@ -4959,42 +4959,8 @@ import { Schema } from "effect"
 // Define a tuple: [string, number]
 const schema = Schema.Tuple([Schema.String, Schema.Number])
 
-// Generate a draft-07 JSON Schema
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
-
-console.log(JSON.stringify(document, null, 2))
-/*
-Output:
-{
-  "source": "draft-07",
-  "schema": {
-    "type": "array",
-    "minItems": 2,
-    "items": [
-      {
-        "type": "string"
-      },
-      {
-        "type": "number"
-      }
-    ],
-    "additionalItems": false
-  },
-  "definitions": {}
-}
-*/
-```
-
-**Example** (Tuple to draft-2020-12 JSON Schema)
-
-```ts
-import { Schema } from "effect"
-
-// Same tuple as above
-const schema = Schema.Tuple([Schema.String, Schema.Number])
-
 // Generate a draft-2020-12 JSON Schema
-const document = Schema.toJsonSchema(schema, { target: "draft-2020-12" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
@@ -5003,7 +4969,6 @@ Output:
   "source": "draft-2020-12",
   "schema": {
     "type": "array",
-    "minItems": 2,
     "prefixItems": [
       {
         "type": "string"
@@ -5012,11 +4977,18 @@ Output:
         "type": "number"
       }
     ],
-    "items": false
+    "maxItems": 2,
+    "minItems": 2
   },
   "definitions": {}
 }
 */
+```
+
+**Example** (Tuple to draft-7 JSON Schema)
+
+```ts
+// TODO
 ```
 
 ### Attaching Standard Metadata
@@ -5040,22 +5012,25 @@ const schema = Schema.NonEmptyString.annotate({
   examples: ["alice", "bob"]
 })
 
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
-Output:
 {
-  "source": "draft-07",
+  "source": "draft-2020-12",
   "schema": {
     "type": "string",
-    "minLength": 1,
-    "title": "Username",
-    "description": "A non-empty user name string",
-    "default": "anonymous",
-    "examples": [
-      "alice",
-      "bob"
+    "allOf": [
+      {
+        "minLength": 1,
+        "title": "Username",
+        "description": "A non-empty user name string",
+        "default": "anonymous",
+        "examples": [
+          "alice",
+          "bob"
+        ]
+      }
     ]
   },
   "definitions": {}
@@ -5074,13 +5049,12 @@ const schema = Schema.Struct({
   a: Schema.UndefinedOr(Schema.Number) // 'a' may be undefined
 })
 
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
-Output:
 {
-  "source": "draft-07",
+  "source": "draft-2020-12",
   "schema": {
     "type": "object",
     "properties": {
@@ -5102,21 +5076,20 @@ import { Schema } from "effect"
 
 const schema = Schema.Tuple([Schema.UndefinedOr(Schema.Number)]) // first element may be undefined
 
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
-Output:
 {
-  "source": "draft-07",
+  "source": "draft-2020-12",
   "schema": {
     "type": "array",
-    "items": [
+    "prefixItems": [
       {
         "type": "number"
       }
     ],
-    "additionalItems": false
+    "maxItems": 1
   },
   "definitions": {}
 }
@@ -5170,7 +5143,7 @@ console.log(json)
 // { headers: [ [ 'a', 'b' ] ] }
 
 // Generate a JSON Schema that matches the JSON-safe shape produced by the serializer.
-const document = Schema.toJsonSchema(schema, { target: "draft-2020-12" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document.schema, null, 2))
 /*
@@ -5220,23 +5193,27 @@ import { Schema } from "effect"
 
 const schema = Schema.String.check(Schema.isMinLength(1))
 
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
 Output:
 {
-  "source": "draft-07",
+  "source": "draft-2020-12",
   "schema": {
     "type": "string",
-    "minLength": 1
+    "allOf": [
+      {
+        "minLength": 1
+      }
+    ]
   },
   "definitions": {}
 }
 */
 ```
 
-**Example** (Multiple filters: top-level + `allOf`)
+**Example** (Multiple filters)
 
 ```ts
 import { Schema } from "effect"
@@ -5246,18 +5223,19 @@ const schema = Schema.String.check(
   Schema.isMaxLength(2, { description: "description2" })
 )
 
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
-Output:
 {
-  "source": "draft-07",
+  "source": "draft-2020-12",
   "schema": {
     "type": "string",
-    "minLength": 1,
-    "description": "description1",
     "allOf": [
+      {
+        "minLength": 1,
+        "description": "description1"
+      },
       {
         "maxLength": 2,
         "description": "description2"

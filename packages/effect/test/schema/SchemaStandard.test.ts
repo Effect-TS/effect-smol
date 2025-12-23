@@ -151,7 +151,8 @@ describe("Standard", () => {
                 isMutable: false
               }
             ],
-            indexSignatures: []
+            indexSignatures: [],
+            checks: []
           },
           "Category-1": {
             _tag: "Objects",
@@ -181,7 +182,8 @@ describe("Standard", () => {
                 isMutable: false
               }
             ],
-            indexSignatures: []
+            indexSignatures: [],
+            checks: []
           }
         }
       })

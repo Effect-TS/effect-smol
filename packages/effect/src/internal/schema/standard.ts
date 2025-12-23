@@ -198,6 +198,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
             parameter: recur(is.parameter),
             type: recur(is.type)
           })),
+          checks: fromChecks(ast.checks),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
       case "Union":
@@ -255,6 +256,9 @@ export function toJsonSchemaDocument(
   return { source, schema: schemas[0], definitions }
 }
 
+const bigIntString = fromAST(AST.bigIntString).schema
+const symbolString = fromAST(AST.symbolString).schema
+
 /** @internal */
 export function toJsonSchemaMultiDocument(
   document: SchemaStandard.MultiDocument,
@@ -301,13 +305,15 @@ export function toJsonSchemaMultiDocument(
     switch (schema._tag) {
       case "Unknown":
       case "Any":
-      case "Void":
         return {}
+      case "Void":
       case "Undefined":
+        return { type: "null" }
       case "BigInt":
+        return recur(bigIntString)
       case "Symbol":
       case "UniqueSymbol":
-        return unsupportedJsonSchema
+        return recur(symbolString)
       case "Declaration":
         return recur(schema.Encoded)
       case "Suspend":
@@ -374,7 +380,7 @@ export function toJsonSchemaMultiDocument(
         const out: JsonSchema.JsonSchema = { type: "array" }
         let minItems = schema.elements.length
         const prefixItems: Array<JsonSchema.JsonSchema> = schema.elements.map((e) => {
-          if (e.isOptional || containsUndefined(e.type)) {
+          if (e.isOptional) {
             minItems--
           }
           const v = recur(e.type)
@@ -418,7 +424,7 @@ export function toJsonSchemaMultiDocument(
           const a = collectJsonSchemaAnnotations(ps.annotations)
           properties[name] = a ? appendJsonSchema(v, a) : v
           // Property is required only if it's not explicitly optional AND doesn't contain Undefined
-          if (!ps.isOptional && !containsUndefined(ps.type)) {
+          if (!ps.isOptional) {
             required.push(name)
           }
         }
@@ -435,9 +441,11 @@ export function toJsonSchemaMultiDocument(
         // Handle index signatures
         for (const is of schema.indexSignatures) {
           const type = recur(is.type)
-          const pattern = getPattern(is.parameter)
-          if (pattern !== undefined) {
-            patternProperties[`^${pattern}$`] = type
+          const patterns = getParameterPatterns(is.parameter)
+          if (patterns.length > 0) {
+            for (const pattern of patterns) {
+              patternProperties[pattern] = type
+            }
           } else {
             out.additionalProperties = type
           }
@@ -453,7 +461,7 @@ export function toJsonSchemaMultiDocument(
         return out
       }
       case "Union": {
-        const types = schema.types.map((t) => recur(t)).filter((t) => t !== unsupportedJsonSchema)
+        const types = schema.types.map((t) => recur(t)) // .filter((t) => t !== unsupportedJsonSchema)
         if (types.length === 0) {
           // anyOf MUST be a non-empty array
           return unsupportedJsonSchema
@@ -503,7 +511,11 @@ export function toJsonSchemaMultiDocument(
   }
 
   function filterToJsonSchema(filter: SchemaStandard.Filter<any>, type: unknown): JsonSchema.JsonSchema | undefined {
-    const meta = filter.meta as SchemaStandard.StringMeta | SchemaStandard.NumberMeta | SchemaStandard.ArraysMeta
+    const meta = filter.meta as
+      | SchemaStandard.StringMeta
+      | SchemaStandard.NumberMeta
+      | SchemaStandard.ArraysMeta
+      | SchemaStandard.ObjectsMeta
     if (!meta) return undefined
 
     let out = on(meta)
@@ -515,7 +527,11 @@ export function toJsonSchemaMultiDocument(
     return out
 
     function on(
-      meta: SchemaStandard.StringMeta | SchemaStandard.NumberMeta | SchemaStandard.ArraysMeta
+      meta:
+        | SchemaStandard.StringMeta
+        | SchemaStandard.NumberMeta
+        | SchemaStandard.ArraysMeta
+        | SchemaStandard.ObjectsMeta
     ): JsonSchema.JsonSchema | undefined {
       switch (meta._tag) {
         case "isMinLength":
@@ -568,44 +584,47 @@ export function toJsonSchemaMultiDocument(
 
         case "isUnique":
           return { uniqueItems: true }
+
+        case "isMinProperties":
+          return { minProperties: meta.minProperties }
+        case "isMaxProperties":
+          return { maxProperties: meta.maxProperties }
+        case "isPropertiesLength":
+          return { minProperties: meta.length, maxProperties: meta.length }
       }
     }
   }
 
-  function getPattern(s: SchemaStandard.Standard): string | undefined {
-    switch (s._tag) {
-      case "String": {
-        const jsonSchema = recur(s)
-        if (typeof jsonSchema.pattern === "string") {
-          return jsonSchema.pattern
-        }
-        return undefined
-      }
-      case "Number": {
-        const jsonSchema = recur(s)
-        if (typeof jsonSchema.pattern === "string") {
-          return jsonSchema.pattern
-        }
-        return undefined
-      }
-      case "TemplateLiteral":
-        return s.parts.map(getPartPattern).join("")
-      case "Union":
-        return s.types.map(getPartPattern).join("|")
+  function getParameterPatterns(parameter: SchemaStandard.Standard): Array<string> {
+    switch (parameter._tag) {
       default:
         throw new globalThis.Error("Unsupported index signature parameter")
+      case "String":
+        return getPatterns(parameter)
+      case "TemplateLiteral":
+        return [`^${parameter.parts.map(getPartPattern).join("")}$`]
+      case "Union":
+        return parameter.types.flatMap(getParameterPatterns)
     }
   }
+}
 
-  function containsUndefined(schema: SchemaStandard.Standard): boolean {
-    switch (schema._tag) {
-      case "Undefined":
-        return true
-      case "Union":
-        return schema.types.some(containsUndefined)
-      default:
-        return false
-    }
+function getPatterns(s: SchemaStandard.String): Array<string> {
+  return recur(s.checks)
+
+  function recur(checks: ReadonlyArray<SchemaStandard.Check<SchemaStandard.StringMeta>>): Array<string> {
+    return checks.flatMap((c) => {
+      switch (c._tag) {
+        case "Filter": {
+          if ("regExp" in c.meta) {
+            return [c.meta.regExp.source]
+          }
+          return []
+        }
+        case "FilterGroup":
+          return recur(c.checks)
+      }
+    })
   }
 }
 

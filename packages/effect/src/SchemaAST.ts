@@ -2580,8 +2580,11 @@ export function isBigIntString(annotations?: Schema.Annotations.Filter) {
   )
 }
 
+/** @internal */
+export const bigIntString = appendChecks(string, [isBigIntString()])
+
 const bigIntToString = new Link(
-  appendChecks(string, [isBigIntString()]),
+  bigIntString,
   new Transformation.Transformation(
     Getter.transform(globalThis.BigInt),
     Getter.String()
@@ -2590,11 +2593,14 @@ const bigIntToString = new Link(
 
 const isSymbolStringRegExp = /^Symbol\((.*)\)$/
 
+/** @internal */
+export const symbolString = appendChecks(string, [isSymbolString()])
+
 /**
  * to distinguish between Symbol and String, we need to add a check to the string keyword
  */
 const symbolToString = new Link(
-  appendChecks(string, [isSymbolString()]),
+  symbolString,
   new Transformation.Transformation(
     Getter.transform((description) => globalThis.Symbol.for(isSymbolStringRegExp.exec(description)![1])),
     Getter.transformOrFail((sym: symbol) => {
