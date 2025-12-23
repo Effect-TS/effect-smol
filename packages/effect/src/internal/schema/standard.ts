@@ -9,6 +9,7 @@ import * as AST from "../../SchemaAST.ts"
 import type * as SchemaStandard from "../../SchemaStandard.ts"
 import * as InternalAnnotations from "./annotations.ts"
 import { escapeToken, unescapeToken } from "./json-pointer.ts"
+import * as InternalSchema from "./schema.ts"
 
 /** @internal */
 export function fromAST(ast: AST.AST): SchemaStandard.Document {
@@ -106,7 +107,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
         return {
           _tag: "Declaration",
           typeParameters: ast.typeParameters.map((tp) => recur(tp)),
-          Encoded: recur(AST.toCodecJson(ast)),
+          Encoded: recur(InternalSchema.toCodecJson(ast)),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
       case "Null":

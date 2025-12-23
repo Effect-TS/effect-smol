@@ -6824,7 +6824,7 @@ describe("Check", () => {
 
     deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
       _tag: "isBigIntString",
-      regExp: /-?\d+/
+      regExp: /^-?\d+$/
     })
   })
 

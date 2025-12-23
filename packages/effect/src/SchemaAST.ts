@@ -13,7 +13,6 @@ import { memoize } from "./Function.ts"
 import { effectIsExit } from "./internal/effect.ts"
 import * as internalRecord from "./internal/record.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
-import * as InternalSchema from "./internal/schema/schema.ts"
 import * as Option from "./Option.ts"
 import * as Pipeable from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
@@ -2563,7 +2562,7 @@ const numberToString = new Link(
  */
 const BIGINT_PATTERN = "-?\\d+"
 
-const isBigIntStringRegExp = new globalThis.RegExp(BIGINT_PATTERN)
+const isBigIntStringRegExp = new globalThis.RegExp(`^${BIGINT_PATTERN}$`)
 
 /** @internal */
 export function isBigIntString(annotations?: Schema.Annotations.Filter) {
@@ -2714,145 +2713,3 @@ export const resolveTitle: (ast: AST) => string | undefined = InternalAnnotation
  * @since 4.0.0
  */
 export const resolveDescription: (ast: AST) => string | undefined = InternalAnnotations.resolveDescription
-
-/** @internal */
-export const toCodecJson = toCodec((ast) => {
-  const out = toCodecJsonBase(ast)
-  if (out !== ast && isOptional(ast)) {
-    return optionalKeyLastLink(out)
-  }
-  return out
-})
-
-function toCodecJsonBase(ast: AST): AST {
-  switch (ast._tag) {
-    case "Unknown":
-    case "ObjectKeyword":
-    case "Declaration": {
-      const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.["toCodec*"]
-      if (Predicate.isFunction(getLink)) {
-        const tps = isDeclaration(ast)
-          ? ast.typeParameters.map((tp) => InternalSchema.make(toCodecJson(toEncoded(tp))))
-          : []
-        const link = getLink(tps)
-        const to = toCodecJson(link.to)
-        return replaceEncoding(ast, to === link.to ? [link] : [new Link(to, link.transformation)])
-      }
-      return replaceEncoding(ast, [unknownToNull])
-    }
-    case "Undefined":
-    case "Void":
-      return ast.encodeToNull()
-    case "UniqueSymbol":
-    case "Symbol":
-    case "BigInt":
-      return ast.encodeToString()
-    case "Literal":
-      return ast.encodeToStringOrNumberOrBoolean()
-    case "Number":
-      return ast.encodeToNumberOrNonFiniteLiterals()
-    case "Objects": {
-      if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
-        throw new globalThis.Error("Objects property names must be strings", { cause: ast })
-      }
-      return ast.recur(toCodecJson)
-    }
-    case "Union": {
-      const sortedTypes = jsonReorder(ast.types)
-      if (sortedTypes !== ast.types) {
-        return new Union(
-          sortedTypes,
-          ast.mode,
-          ast.annotations,
-          ast.checks,
-          ast.encoding,
-          ast.context
-        ).recur(toCodecJson)
-      }
-      return ast.recur(toCodecJson)
-    }
-    case "Arrays":
-    case "Suspend":
-      return ast.recur(toCodecJson)
-  }
-  // `Schema.Any` is used as an escape hatch
-  return ast
-}
-
-const jsonReorder = makeReorder(getJsonPriority)
-
-function getJsonPriority(ast: AST): number {
-  switch (ast._tag) {
-    case "BigInt":
-    case "Symbol":
-    case "UniqueSymbol":
-      return 0
-    default:
-      return 1
-  }
-}
-
-/** @internal */
-export function makeReorder(getPriority: (ast: AST) => number) {
-  return (types: ReadonlyArray<AST>): ReadonlyArray<AST> => {
-    // Create a map of original indices for O(1) lookup
-    const indexMap = new Map<AST, number>()
-    for (let i = 0; i < types.length; i++) {
-      indexMap.set(toEncoded(types[i]), i)
-    }
-
-    // Create a sorted copy of the types array
-    const sortedTypes = [...types].sort((a, b) => {
-      a = toEncoded(a)
-      b = toEncoded(b)
-      const pa = getPriority(a)
-      const pb = getPriority(b)
-      if (pa !== pb) return pa - pb
-      // If priorities are equal, maintain original order (stable sort)
-      return indexMap.get(a)! - indexMap.get(b)!
-    })
-
-    // Check if order changed by comparing arrays
-    const orderChanged = sortedTypes.some((ast, index) => ast !== types[index])
-
-    if (!orderChanged) return types
-    return sortedTypes
-  }
-}
-
-const unknownToNull = new Link(
-  null_,
-  new Transformation.Transformation(
-    Getter.passthrough(),
-    Getter.transform(() => null)
-  )
-)
-
-/** @internal */
-export const toCodecIso = memoize((ast: AST): AST => {
-  const out = toCodecIsoBase(ast)
-  if (out !== ast && isOptional(ast)) {
-    return optionalKeyLastLink(out)
-  }
-  return out
-})
-
-function toCodecIsoBase(ast: AST): AST {
-  switch (ast._tag) {
-    case "Declaration": {
-      const getLink = ast.annotations?.toCodecIso ?? ast.annotations?.["toCodec*"]
-      if (Predicate.isFunction(getLink)) {
-        const link = getLink(ast.typeParameters.map((tp) => InternalSchema.make(toCodecIso(tp))))
-        const to = toCodecIso(link.to)
-        return replaceEncoding(ast, to === link.to ? [link] : [new Link(to, link.transformation)])
-      }
-      return ast
-    }
-    case "Arrays":
-    case "Objects":
-    case "Union":
-    case "Suspend":
-      return ast.recur(toCodecIso)
-  }
-  return ast
-}

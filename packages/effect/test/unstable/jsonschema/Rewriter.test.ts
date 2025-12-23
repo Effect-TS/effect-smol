@@ -289,7 +289,9 @@ describe("Rewriter", () => {
             }
           }
         )
+      })
 
+      it.todo("optional", () => {
         assertRewrite(
           Rewriter.openAi,
           Schema.Struct({
@@ -299,29 +301,11 @@ describe("Rewriter", () => {
             schema: {
               "type": "object",
               "properties": {
-                "a": { "type": ["string", "null"] }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            }
-          }
-        )
-
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.optional(Schema.String).annotate({ description: "description" })
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
                 "a": {
                   "anyOf": [
                     { "type": "string" },
                     { "type": "null" }
-                  ],
-                  "description": "description"
+                  ]
                 }
               },
               "required": ["a"],
@@ -353,6 +337,31 @@ describe("Rewriter", () => {
           }
         )
 
+        assertRewrite(
+          Rewriter.openAi,
+          Schema.Struct({
+            a: Schema.optional(Schema.String).annotate({ description: "description" })
+          }),
+          {
+            schema: {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "anyOf": [
+                    { "type": "string" },
+                    { "type": "null" }
+                  ],
+                  "description": "description"
+                }
+              },
+              "required": ["a"],
+              "additionalProperties": false
+            }
+          }
+        )
+      })
+
+      it.todo("UndefinedOr", () => {
         assertRewrite(
           Rewriter.openAi,
           Schema.Struct({

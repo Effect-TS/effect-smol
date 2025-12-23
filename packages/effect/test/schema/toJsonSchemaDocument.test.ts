@@ -1120,7 +1120,7 @@ describe("toJsonSchemaDocument", () => {
         schema: {
           "type": "string",
           "allOf": [
-            { "pattern": "-?\\d+" }
+            { "pattern": "^-?\\d+$" }
           ]
         }
       }

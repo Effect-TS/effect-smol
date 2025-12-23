@@ -7652,7 +7652,7 @@ export function toJsonSchemaDocument(
  * @since 4.0.0
  */
 export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
-  return make(AST.toCodecJson(schema.ast))
+  return make(InternalSchema.toCodecJson(schema.ast))
 }
 
 /**
@@ -7660,7 +7660,7 @@ export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T,
  * @since 4.0.0
  */
 export function toCodecIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
-  return make(AST.toCodecIso(AST.toType(schema.ast)))
+  return make(InternalSchema.toCodecIso(AST.toType(schema.ast)))
 }
 
 /**
@@ -7829,7 +7829,7 @@ function getStringTreePriority(ast: AST.AST): number {
   }
 }
 
-const treeReorder = AST.makeReorder(getStringTreePriority)
+const treeReorder = InternalSchema.makeReorder(getStringTreePriority)
 
 function serializerTree(
   ast: AST.AST,
