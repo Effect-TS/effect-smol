@@ -2093,6 +2093,29 @@ describe("toJsonSchemaDocument", () => {
         }
       )
     })
+
+    it("bigint", () => {
+      const schema = Schema.Literal(1n)
+      assertDocument(
+        schema,
+        {
+          schema: {
+            "type": "string",
+            "enum": ["1"]
+          }
+        }
+      )
+      assertDocument(
+        schema.annotate({ description: "a" }),
+        {
+          schema: {
+            "type": "string",
+            "enum": ["1"],
+            "description": "a"
+          }
+        }
+      )
+    })
   })
 
   describe("Literals", () => {
@@ -2110,7 +2133,8 @@ describe("toJsonSchemaDocument", () => {
         schema.annotate({ description: "a" }),
         {
           schema: {
-            "not": {}
+            "not": {},
+            "description": "a"
           }
         }
       )
@@ -2533,7 +2557,8 @@ describe("toJsonSchemaDocument", () => {
         schema.annotate({ description: "a" }),
         {
           schema: {
-            "not": {}
+            "not": {},
+            "description": "a"
           }
         }
       )
@@ -2548,9 +2573,13 @@ describe("toJsonSchemaDocument", () => {
         schema,
         {
           schema: {
-            "type": "number",
-            "enum": [0],
-            "title": "Apple"
+            "anyOf": [
+              {
+                "type": "number",
+                "enum": [0],
+                "title": "Apple"
+              }
+            ]
           }
         }
       )
@@ -3634,7 +3663,7 @@ describe("toJsonSchemaDocument", () => {
   })
 
   describe("Union", () => {
-    it("empty union (unsupported)", () => {
+    it("empty union", () => {
       const schema = Schema.Union([])
       assertDocument(schema, {
         schema: {
@@ -3643,7 +3672,8 @@ describe("toJsonSchemaDocument", () => {
       })
       assertDocument(Schema.Union([]).annotate({ description: "a" }), {
         schema: {
-          "not": {}
+          "not": {},
+          "description": "a"
         }
       })
     })
@@ -3652,7 +3682,11 @@ describe("toJsonSchemaDocument", () => {
       const schema = Schema.Union([Schema.String])
       assertDocument(schema, {
         schema: {
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            }
+          ]
         }
       })
       assertDocument(Schema.Union([Schema.String]).annotate({ description: "a" }), {
@@ -3713,43 +3747,38 @@ describe("toJsonSchemaDocument", () => {
       )
     })
 
-    it(`1 | 2 | string`, () => {
+    it("String | BigInt", () => {
       assertDocument(
         Schema.Union([
-          Schema.Literal(1),
-          Schema.Literal(2).annotate({ description: "2-description" }),
-          Schema.String
-        ]),
-        {
-          schema: {
-            "anyOf": [
-              { "type": "number", "enum": [1] },
-              { "type": "number", "enum": [2], "description": "2-description" },
-              { "type": "string" }
-            ]
-          }
-        }
-      )
-    })
-
-    it(`(1 | 2) | string`, () => {
-      assertDocument(
-        Schema.Union([
-          Schema.Literals([1, 2]).annotate({ description: "1-2-description" }),
-          Schema.String
+          Schema.String,
+          Schema.BigInt
         ]),
         {
           schema: {
             "anyOf": [
               {
-                "anyOf": [
-                  { "type": "number", "enum": [1] },
-                  { "type": "number", "enum": [2] }
-                ],
-                "description": "1-2-description"
+                "type": "string",
+                "allOf": [
+                  { "pattern": "^-?\\d+$" }
+                ]
               },
               { "type": "string" }
             ]
+          }
+        }
+      )
+      assertDocument(
+        Schema.Union([
+          Schema.String,
+          Schema.Number
+        ]).annotate({ description: "description" }),
+        {
+          schema: {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "number" }
+            ],
+            "description": "description"
           }
         }
       )

@@ -23,6 +23,7 @@ import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as InternalArbitrary from "./internal/schema/arbitrary.ts"
 import * as InternalEquivalence from "./internal/schema/equivalence.ts"
 import * as InternalSchema from "./internal/schema/schema.ts"
+import * as InternalSerializer from "./internal/schema/serializer.ts"
 import * as InternalStandard from "./internal/schema/standard.ts"
 import * as JsonPatch from "./JsonPatch.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
@@ -7652,7 +7653,7 @@ export function toJsonSchemaDocument(
  * @since 4.0.0
  */
 export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
-  return make(InternalSchema.toCodecJson(schema.ast))
+  return make(InternalSerializer.toCodecJson(schema.ast))
 }
 
 /**
@@ -7660,7 +7661,7 @@ export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T,
  * @since 4.0.0
  */
 export function toCodecIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
-  return make(InternalSchema.toCodecIso(AST.toType(schema.ast)))
+  return make(InternalSerializer.toCodecIso(AST.toType(schema.ast)))
 }
 
 /**
@@ -7829,7 +7830,7 @@ function getStringTreePriority(ast: AST.AST): number {
   }
 }
 
-const treeReorder = InternalSchema.makeReorder(getStringTreePriority)
+const treeReorder = InternalSerializer.makeReorder(getStringTreePriority)
 
 function serializerTree(
   ast: AST.AST,

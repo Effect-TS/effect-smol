@@ -9,7 +9,7 @@ import * as AST from "../../SchemaAST.ts"
 import type * as SchemaStandard from "../../SchemaStandard.ts"
 import * as InternalAnnotations from "./annotations.ts"
 import { escapeToken, unescapeToken } from "./json-pointer.ts"
-import * as InternalSchema from "./schema.ts"
+import * as InternalSerializer from "./serializer.ts"
 
 /** @internal */
 export function fromAST(ast: AST.AST): SchemaStandard.Document {
@@ -107,7 +107,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
         return {
           _tag: "Declaration",
           typeParameters: ast.typeParameters.map((tp) => recur(tp)),
-          Encoded: recur(InternalSchema.toCodecJson(ast)),
+          Encoded: recur(InternalSerializer.toCodecJson(ast)),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
       case "Null":
@@ -202,13 +202,15 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
           checks: fromChecks(ast.checks),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
-      case "Union":
+      case "Union": {
+        const types = InternalSerializer.jsonReorder(ast.types)
         return {
           _tag: ast._tag,
-          types: ast.types.map((t) => recur(t)),
+          types: types.map((t) => recur(t)),
           mode: ast.mode,
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
+      }
     }
   }
 }
@@ -286,7 +288,6 @@ export function toJsonSchemaMultiDocument(
 
   function recur(s: SchemaStandard.Standard): JsonSchema.JsonSchema {
     let js: JsonSchema.JsonSchema = on(s)
-    if (js === unsupportedJsonSchema) return unsupportedJsonSchema
     if ("annotations" in s) {
       const a = collectJsonSchemaAnnotations(s.annotations)
       if (a) {
@@ -299,7 +300,7 @@ export function toJsonSchemaMultiDocument(
         js = appendJsonSchema(js, check)
       }
     }
-    return normalizeJsonSchemaOutput(js)
+    return js
   }
 
   function on(schema: SchemaStandard.Standard): JsonSchema.JsonSchema {
@@ -351,7 +352,7 @@ export function toJsonSchemaMultiDocument(
           return { type: "boolean", enum: [literal] }
         }
         // bigint literals are not supported
-        return unsupportedJsonSchema
+        return { type: "string", enum: [String(literal)] }
       }
       case "ObjectKeyword":
         return { anyOf: [{ type: "object" }, { type: "array" }] }
@@ -462,10 +463,10 @@ export function toJsonSchemaMultiDocument(
         return out
       }
       case "Union": {
-        const types = schema.types.map((t) => recur(t)) // .filter((t) => t !== unsupportedJsonSchema)
+        const types = schema.types.map(recur)
         if (types.length === 0) {
           // anyOf MUST be a non-empty array
-          return unsupportedJsonSchema
+          return { not: {} }
         }
         return schema.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
       }
@@ -641,17 +642,6 @@ function resolve$ref($ref: string, definitions: JsonSchema.Definitions): JsonSch
   throw new globalThis.Error(`Reference to unknown schema: ${$ref}`)
 }
 
-function normalizeJsonSchemaOutput(s: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-  if (globalThis.Array.isArray(s.anyOf)) {
-    if (s.anyOf.length === 1) {
-      if (Object.keys(s).length === 1) {
-        return s.anyOf[0]
-      }
-    }
-  }
-  return s
-}
-
 function appendJsonSchema(a: JsonSchema.JsonSchema, b: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
   const members = globalThis.Array.isArray(b.allOf) && Object.keys(b).length === 1 ? b.allOf : [b]
 
@@ -682,5 +672,3 @@ function getPartPattern(part: SchemaStandard.Standard): string {
       throw new globalThis.Error("Unsupported part", { cause: part })
   }
 }
-
-const unsupportedJsonSchema: JsonSchema.JsonSchema = { not: {} }
