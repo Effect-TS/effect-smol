@@ -3,6 +3,7 @@
  */
 import * as Arr from "./Array.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
+import * as InternalStandard from "./internal/schema/standard.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
@@ -939,12 +940,12 @@ export const Document$ = Schema.Struct({
 /**
  * @since 4.0.0
  */
-export const fromAST: (ast: AST.AST) => Document = Schema.toStandardDocument
+export const fromAST: (ast: AST.AST) => Document = InternalStandard.fromAST
 
 /**
  * @since 4.0.0
  */
-export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDocument = Schema.toStandardMultiDocument
+export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDocument = InternalStandard.fromASTs
 
 const schemaToCodecJson = Schema.toCodecJson(Standard$)
 const encodeSchema = Schema.encodeUnknownSync(schemaToCodecJson)
@@ -1304,8 +1305,16 @@ function toSchemaFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | Ar
  */
 export const toJsonSchemaDocument: (
   document: Document,
-  options?: Schema.ToJsonSchemaDocumentOptions
-) => JsonSchema.Document<"draft-2020-12"> = Schema.standardToJsonSchemaDocument
+  options?: Schema.ToJsonSchemaOptions
+) => JsonSchema.Document<"draft-2020-12"> = InternalStandard.toJsonSchemaDocument
+
+/**
+ * @since 4.0.0
+ */
+export const toJsonSchemaMultiDocument: (
+  document: MultiDocument,
+  options?: Schema.ToJsonSchemaOptions
+) => JsonSchema.MultiDocument<"draft-2020-12"> = InternalStandard.toJsonSchemaMultiDocument
 
 /**
  * @since 4.0.0

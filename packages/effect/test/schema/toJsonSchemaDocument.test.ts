@@ -1,5 +1,4 @@
 import type { Options as AjvOptions } from "ajv"
-
 import { JsonSchema, Schema, SchemaGetter } from "effect"
 import { describe, it } from "vitest"
 import { assertTrue, deepStrictEqual, throws } from "../utils/assert.ts"
@@ -19,7 +18,7 @@ const ajvDraft2020_12 = new Ajv2020.default(baseAjvOptions)
 function assertUnsupportedSchema(
   schema: Schema.Top,
   message: string,
-  options?: Schema.ToJsonSchemaDocumentOptions
+  options?: Schema.ToJsonSchemaOptions
 ) {
   throws(() => Schema.toJsonSchemaDocument(schema, options), message)
 }
@@ -27,7 +26,7 @@ function assertUnsupportedSchema(
 function assertDocument<S extends Schema.Top>(
   schema: S,
   expected: { schema: JsonSchema.JsonSchema; definitions?: JsonSchema.Definitions },
-  options?: Schema.ToJsonSchemaDocumentOptions
+  options?: Schema.ToJsonSchemaOptions
 ) {
   const document = Schema.toJsonSchemaDocument(schema, options)
   deepStrictEqual(document, {
@@ -41,32 +40,6 @@ function assertDocument<S extends Schema.Top>(
   })
   assertTrue(valid)
 }
-
-describe("standardToJsonSchemaMultiDocument", () => {
-  it("should handle multiple schemas", () => {
-    const a = Schema.String.annotate({ identifier: "id", description: "a" })
-    const b = a.annotate({ description: "b" })
-    const multiDocument = Schema.toStandardMultiDocument([a.ast, b.ast])
-    const jsonMultiDocument = Schema.standardToJsonSchemaMultiDocument(multiDocument)
-    deepStrictEqual(jsonMultiDocument, {
-      source: "draft-2020-12",
-      schemas: [
-        { "$ref": "#/$defs/id" },
-        { "$ref": "#/$defs/id-1" }
-      ],
-      definitions: {
-        "id": {
-          "type": "string",
-          "description": "a"
-        },
-        "id-1": {
-          "type": "string",
-          "description": "b"
-        }
-      }
-    })
-  })
-})
 
 describe("toJsonSchemaDocument", () => {
   describe("identifier handling", () => {

@@ -11,7 +11,7 @@ function assertRewrite(
     readonly schema: JsonSchema.JsonSchema
     readonly definitions?: Record<string, JsonSchema.JsonSchema> | undefined
   },
-  options?: Schema.ToJsonSchemaDocumentOptions
+  options?: Schema.ToJsonSchemaOptions
 ) {
   const document = rewriter(
     Schema.toJsonSchemaDocument(schema, {

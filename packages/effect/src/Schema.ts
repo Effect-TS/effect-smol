@@ -17,13 +17,13 @@ import type * as Equivalence from "./Equivalence.ts"
 import * as Exit_ from "./Exit.ts"
 import type { Formatter } from "./Formatter.ts"
 import { format, formatDate, formatPropertyKey } from "./Formatter.ts"
-import { identity, memoize } from "./Function.ts"
+import { identity } from "./Function.ts"
 import * as core from "./internal/core.ts"
-import * as InternalEquivalence from "./internal/equivalence.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as InternalArbitrary from "./internal/schema/arbitrary.ts"
-import { escapeToken, unescapeToken } from "./internal/schema/json-pointer.ts"
+import * as InternalEquivalence from "./internal/schema/equivalence.ts"
 import * as InternalSchema from "./internal/schema/schema.ts"
+import * as InternalStandard from "./internal/schema/standard.ts"
 import * as JsonPatch from "./JsonPatch.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
 import { remainder } from "./Number.ts"
@@ -34,7 +34,6 @@ import * as Pipeable from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Record_ from "./Record.ts"
 import * as Redacted_ from "./Redacted.ts"
-import * as RegExp_ from "./RegExp.ts"
 import * as Request from "./Request.ts"
 import * as Result_ from "./Result.ts"
 import * as Scheduler from "./Scheduler.ts"
@@ -42,7 +41,6 @@ import * as AST from "./SchemaAST.ts"
 import * as Getter from "./SchemaGetter.ts"
 import * as Issue from "./SchemaIssue.ts"
 import * as Parser from "./SchemaParser.ts"
-import type * as SchemaStandard from "./SchemaStandard.ts"
 import * as Transformation from "./SchemaTransformation.ts"
 import type { Assign, Lambda, Mutable, Simplify } from "./Struct.ts"
 import * as Struct_ from "./Struct.ts"
@@ -5883,7 +5881,7 @@ export const Defect: Defect = Union([
   ErrorJsonEncoded.pipe(decodeTo(Error, Transformation.errorFromErrorJsonEncoded)),
   Any.pipe(decodeTo(
     Unknown.annotate({
-      serializerJson: () => link<unknown>()(Any, defectTransformation),
+      toCodecJson: () => link<unknown>()(Any, defectTransformation),
       toArbitrary: () => (fc) => fc.json()
     }),
     defectTransformation
@@ -7584,9 +7582,7 @@ export function toFormatter<T>(schema: Schema<T>, options?: {
  * @since 4.0.0
  */
 export function overrideToEquivalence<S extends Top>(toEquivalence: () => Equivalence.Equivalence<S["Type"]>) {
-  return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ toEquivalence })
-  }
+  return (self: S): S["~rebuild.out"] => self.annotate({ toEquivalence })
 }
 
 /**
@@ -7594,7 +7590,7 @@ export function overrideToEquivalence<S extends Top>(toEquivalence: () => Equiva
  * @since 4.0.0
  */
 export function toEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> {
-  return InternalEquivalence.memoized(schema.ast)
+  return InternalEquivalence.toEquivalence(schema.ast)
 }
 
 // -----------------------------------------------------------------------------
@@ -7604,7 +7600,7 @@ export function toEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> 
 /**
  * @since 4.0.0
  */
-export interface ToJsonSchemaDocumentOptions {
+export interface ToJsonSchemaOptions {
   /**
    * Controls how additional properties are handled while resolving the JSON
    * schema.
@@ -7634,12 +7630,12 @@ export interface ToJsonSchemaDocumentOptions {
  * @category JsonSchema
  * @since 4.0.0
  */
-export function toJsonSchemaDocument<S extends Top>(
-  schema: S,
-  options?: ToJsonSchemaDocumentOptions // TODO: remove referenceStrategy option (convert to rewrite function)?
+export function toJsonSchemaDocument(
+  schema: Top,
+  options?: ToJsonSchemaOptions // TODO: remove referenceStrategy option (convert to rewrite function)?
 ): JsonSchema.Document<"draft-2020-12"> {
-  const sd = toStandardDocument(schema.ast)
-  const jd = standardToJsonSchemaDocument(sd, options)
+  const sd = InternalStandard.fromAST(schema.ast)
+  const jd = InternalStandard.toJsonSchemaDocument(sd, options)
   return {
     source: "draft-2020-12",
     schema: jd.schema,
@@ -7656,7 +7652,7 @@ export function toJsonSchemaDocument<S extends Top>(
  * @since 4.0.0
  */
 export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
-  return make(serializerJson(schema.ast))
+  return make(AST.toCodecJson(schema.ast))
 }
 
 /**
@@ -7664,7 +7660,7 @@ export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T,
  * @since 4.0.0
  */
 export function toCodecIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
-  return make(serializerIso(AST.toType(schema.ast)))
+  return make(AST.toCodecIso(AST.toType(schema.ast)))
 }
 
 /**
@@ -7678,13 +7674,13 @@ export type StringTree = Tree<string | undefined>
  * preserving the original structure.
  *
  * Declarations are converted to `undefined` (unless they have a
- * `serializerJson` or `serializer` annotation).
+ * `toCodecJson` or `toCodec*` annotation).
  *
  * **Options**
  *
  * - `keepDeclarations`: if `true`, it **does not** convert declarations to
  *   `undefined` but instead keeps them as they are (unless they have a
- *   `serializerJson` or `serializer` annotation).
+ *   `toCodecJson` or `toCodec*` annotation).
  *
  *    Defaults to `false`.
  *
@@ -7819,146 +7815,6 @@ const xml = {
   }
 }
 
-function makeReorder(getPriority: (ast: AST.AST) => number) {
-  return (types: ReadonlyArray<AST.AST>): ReadonlyArray<AST.AST> => {
-    // Create a map of original indices for O(1) lookup
-    const indexMap = new Map<AST.AST, number>()
-    for (let i = 0; i < types.length; i++) {
-      indexMap.set(AST.toEncoded(types[i]), i)
-    }
-
-    // Create a sorted copy of the types array
-    const sortedTypes = [...types].sort((a, b) => {
-      a = AST.toEncoded(a)
-      b = AST.toEncoded(b)
-      const pa = getPriority(a)
-      const pb = getPriority(b)
-      if (pa !== pb) return pa - pb
-      // If priorities are equal, maintain original order (stable sort)
-      return indexMap.get(a)! - indexMap.get(b)!
-    })
-
-    // Check if order changed by comparing arrays
-    const orderChanged = sortedTypes.some((ast, index) => ast !== types[index])
-
-    if (!orderChanged) return types
-    return sortedTypes
-  }
-}
-
-function getJsonPriority(ast: AST.AST): number {
-  switch (ast._tag) {
-    case "BigInt":
-    case "Symbol":
-    case "UniqueSymbol":
-      return 0
-    default:
-      return 1
-  }
-}
-
-const jsonReorder = makeReorder(getJsonPriority)
-
-const unknownToNull = new AST.Link(
-  AST.null,
-  new Transformation.Transformation(
-    Getter.passthrough(),
-    Getter.transform(() => null)
-  )
-)
-
-/** @internal */
-export const serializerJson = AST.serializer((ast) => {
-  const out = serializerJsonBase(ast)
-  if (out !== ast && AST.isOptional(ast)) {
-    return AST.optionalKeyLastLink(out)
-  }
-  return out
-})
-
-function serializerJsonBase(ast: AST.AST): AST.AST {
-  switch (ast._tag) {
-    case "Unknown":
-    case "ObjectKeyword":
-    case "Declaration": {
-      const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.["toCodec*"]
-      if (Predicate.isFunction(getLink)) {
-        const tps = AST.isDeclaration(ast)
-          ? ast.typeParameters.map((tp) => make(serializerJson(AST.toEncoded(tp))))
-          : []
-        const link = getLink(tps)
-        const to = serializerJson(link.to)
-        return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
-      }
-      return AST.replaceEncoding(ast, [unknownToNull])
-    }
-    case "Undefined":
-    case "Void":
-      return ast.encodeToNull()
-    case "UniqueSymbol":
-    case "Symbol":
-    case "BigInt":
-      return ast.encodeToString()
-    case "Literal":
-      return ast.encodeToStringOrNumberOrBoolean()
-    case "Number":
-      return ast.encodeToNumberOrNonFiniteLiterals()
-    case "Objects": {
-      if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
-        throw new globalThis.Error("Objects property names must be strings", { cause: ast })
-      }
-      return ast.recur(serializerJson)
-    }
-    case "Union": {
-      const sortedTypes = jsonReorder(ast.types)
-      if (sortedTypes !== ast.types) {
-        return new AST.Union(
-          sortedTypes,
-          ast.mode,
-          ast.annotations,
-          ast.checks,
-          ast.encoding,
-          ast.context
-        ).recur(serializerJson)
-      }
-      return ast.recur(serializerJson)
-    }
-    case "Arrays":
-    case "Suspend":
-      return ast.recur(serializerJson)
-  }
-  // `Schema.Any` is used as an escape hatch
-  return ast
-}
-
-const serializerIso = memoize((ast: AST.AST): AST.AST => {
-  const out = serializerIsoBase(ast)
-  if (out !== ast && AST.isOptional(ast)) {
-    return AST.optionalKeyLastLink(out)
-  }
-  return out
-})
-
-function serializerIsoBase(ast: AST.AST): AST.AST {
-  switch (ast._tag) {
-    case "Declaration": {
-      const getLink = ast.annotations?.toCodecIso ?? ast.annotations?.["toCodec*"]
-      if (Predicate.isFunction(getLink)) {
-        const link = getLink(ast.typeParameters.map((tp) => make(serializerIso(tp))))
-        const to = serializerIso(link.to)
-        return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
-      }
-      return ast
-    }
-    case "Arrays":
-    case "Objects":
-    case "Union":
-    case "Suspend":
-      return ast.recur(serializerIso)
-  }
-  return ast
-}
-
 function getStringTreePriority(ast: AST.AST): number {
   switch (ast._tag) {
     case "Null":
@@ -7973,7 +7829,7 @@ function getStringTreePriority(ast: AST.AST): number {
   }
 }
 
-const treeReorder = makeReorder(getStringTreePriority)
+const treeReorder = AST.makeReorder(getStringTreePriority)
 
 function serializerTree(
   ast: AST.AST,
@@ -8050,7 +7906,7 @@ const booleanToString = new AST.Link(
   )
 )
 
-const serializerStringTree = AST.serializer((ast) => {
+const serializerStringTree = AST.toCodec((ast) => {
   const out = serializerTree(ast, serializerStringTree, (ast) => AST.replaceEncoding(ast, [unknownToUndefined]))
   if (out !== ast && AST.isOptional(ast)) {
     return AST.optionalKeyLastLink(out)
@@ -8066,7 +7922,7 @@ const unknownToUndefined = new AST.Link(
   )
 )
 
-const serializerStringTreeKeepDeclarations = AST.serializer((ast) => {
+const serializerStringTreeKeepDeclarations = AST.toCodec((ast) => {
   const out = serializerTree(ast, serializerStringTreeKeepDeclarations, identity)
   if (out !== ast && AST.isOptional(ast)) {
     return AST.optionalKeyLastLink(out)
@@ -8076,7 +7932,7 @@ const serializerStringTreeKeepDeclarations = AST.serializer((ast) => {
 
 const SERIALIZER_ENSURE_ARRAY = "~effect/Schema/SERIALIZER_ENSURE_ARRAY"
 
-const toCodecEnsureArray = AST.serializer((ast) => {
+const toCodecEnsureArray = AST.toCodec((ast) => {
   if (AST.isUnion(ast) && ast.annotations?.[SERIALIZER_ENSURE_ARRAY]) {
     return ast
   }
@@ -8881,658 +8737,3 @@ export declare namespace Annotations {
    */
   export type Meta = MetaDefinitions[keyof MetaDefinitions]
 }
-
-function generateIdentifier(seed: string, counter: number): string {
-  return `${seed}-${counter}`
-}
-
-/** @internal */
-export function toStandardDocument(ast: AST.AST): SchemaStandard.Document {
-  const { definitions, schemas } = toStandardMultiDocument([ast])
-  return { schema: schemas[0], definitions }
-}
-
-/** @internal */
-export function toStandardMultiDocument(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaStandard.MultiDocument {
-  const definitions: Record<string, SchemaStandard.Standard> = {}
-
-  const identifierMap = new Map<AST.AST, string>()
-  const identifierCounter = new Map<string, number>()
-  const usedIdentifiers = new Set<string>()
-  const visited = new Set<AST.AST>()
-
-  return {
-    schemas: Arr.map(asts, recur),
-    definitions
-  }
-
-  function recur(ast: AST.AST): SchemaStandard.Standard {
-    visited.add(ast)
-    const last = getLastEncoding(ast)
-    const identifier = generateUniqueIdentifier(last)
-    if (identifier !== undefined) {
-      if (definitions[identifier] === undefined) {
-        definitions[identifier] = on(last)
-      }
-      return { _tag: "Reference", $ref: identifier }
-    }
-    return on(last)
-  }
-
-  function generateUniqueIdentifier(ast: AST.AST): string | undefined {
-    const existing = identifierMap.get(ast)
-    if (existing !== undefined) {
-      usedIdentifiers.add(existing)
-      return existing
-    }
-    const identifier = InternalAnnotations.resolveIdentifier(ast)
-    if (identifier !== undefined) {
-      // Check if base identifier is available
-      if (!usedIdentifiers.has(identifier)) {
-        identifierCounter.set(identifier, 0)
-        identifierMap.set(ast, identifier)
-        usedIdentifiers.add(identifier)
-        return identifier
-      }
-      // Find a unique identifier by incrementing until we find one that doesn't exist
-      let count = (identifierCounter.get(identifier) ?? 0) + 1
-      let newIdentifier = generateIdentifier(identifier, count)
-      while (usedIdentifiers.has(newIdentifier)) {
-        count++
-        newIdentifier = generateIdentifier(identifier, count)
-      }
-      identifierCounter.set(identifier, count)
-      identifierMap.set(ast, newIdentifier)
-      usedIdentifiers.add(newIdentifier)
-      return newIdentifier
-    }
-  }
-
-  function getLastEncoding(ast: AST.AST): AST.AST {
-    if (ast.encoding) {
-      return getLastEncoding(ast.encoding[ast.encoding.length - 1].to)
-    }
-    return ast
-  }
-
-  function on(ast: AST.AST): SchemaStandard.Standard {
-    switch (ast._tag) {
-      case "Suspend": {
-        const thunk = ast.thunk()
-        if (visited.has(thunk)) {
-          const identifier = generateUniqueIdentifier(thunk)
-          if (identifier === undefined) {
-            throw new globalThis.Error("Suspended schema without identifier")
-          }
-          return {
-            _tag: "Suspend",
-            checks: [],
-            thunk: { _tag: "Reference", $ref: identifier },
-            ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-          }
-        }
-        return {
-          _tag: "Suspend",
-          checks: [],
-          thunk: recur(thunk),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-        }
-      }
-      case "Declaration":
-        return {
-          _tag: "Declaration",
-          typeParameters: ast.typeParameters.map((tp) => recur(tp)),
-          Encoded: recur(serializerJson(ast)),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-        }
-      case "Null":
-      case "Undefined":
-      case "Void":
-      case "Never":
-      case "Unknown":
-      case "Any":
-      case "Boolean":
-      case "Symbol":
-        return { _tag: ast._tag, ...(ast.annotations ? { annotations: ast.annotations } : undefined) }
-      case "String": {
-        const contentMediaType = ast.annotations?.contentMediaType
-        const contentSchema = ast.annotations?.contentSchema
-        return {
-          _tag: ast._tag,
-          checks: toStandardChecks(ast.checks),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined),
-          ...(typeof contentMediaType === "string" && AST.isAST(contentSchema)
-            ? { contentMediaType, contentSchema: recur(contentSchema) }
-            : undefined)
-        }
-      }
-      case "Number":
-      case "BigInt":
-        return {
-          _tag: ast._tag,
-          checks: toStandardChecks(ast.checks),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-        }
-      case "Literal":
-        return {
-          _tag: ast._tag,
-          literal: ast.literal,
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-        }
-      case "UniqueSymbol":
-        return {
-          _tag: ast._tag,
-          symbol: ast.symbol,
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-        }
-      case "ObjectKeyword":
-        return {
-          _tag: ast._tag,
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-        }
-      case "Enum":
-        return {
-          _tag: ast._tag,
-          enums: ast.enums,
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-        }
-      case "TemplateLiteral":
-        return {
-          _tag: ast._tag,
-          parts: ast.parts.map((p) => recur(p)),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-        }
-      case "Arrays":
-        return {
-          _tag: ast._tag,
-          elements: ast.elements.map((e) => {
-            const last = getLastEncoding(e)
-            return {
-              isOptional: AST.isOptional(last),
-              type: recur(last),
-              ...(last.context?.annotations ? { annotations: last.context?.annotations } : undefined)
-            }
-          }),
-          rest: ast.rest.map((r) => recur(r)),
-          checks: toStandardChecks(ast.checks),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-        }
-      case "Objects":
-        return {
-          _tag: ast._tag,
-          propertySignatures: ast.propertySignatures.map((ps) => {
-            const last = getLastEncoding(ps.type)
-            return {
-              name: ps.name,
-              type: recur(last),
-              isOptional: AST.isOptional(last),
-              isMutable: AST.isMutable(last),
-              ...(last.context?.annotations ? { annotations: last.context?.annotations } : undefined)
-            }
-          }),
-          indexSignatures: ast.indexSignatures.map((is) => ({
-            parameter: recur(is.parameter),
-            type: recur(is.type)
-          })),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-        }
-      case "Union":
-        return {
-          _tag: ast._tag,
-          types: ast.types.map((t) => recur(t)),
-          mode: ast.mode,
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-        }
-    }
-  }
-}
-
-function toStandardChecks(
-  checks: readonly [AST.Check<any>, ...Array<AST.Check<any>>] | undefined
-): Array<SchemaStandard.Check<any>> {
-  if (!checks) return []
-  function getCheck(c: AST.Check<any>): SchemaStandard.Check<any> | undefined {
-    switch (c._tag) {
-      case "Filter": {
-        const meta = c.annotations?.meta
-        if (meta) {
-          return { _tag: "Filter", meta, annotations: c.annotations }
-        }
-        return undefined
-      }
-      case "FilterGroup": {
-        const checks = toStandardChecks(c.checks)
-        if (Arr.isArrayNonEmpty(checks)) {
-          return {
-            _tag: "FilterGroup",
-            checks,
-            annotations: c.annotations
-          }
-        }
-      }
-    }
-  }
-  return checks.map(getCheck).filter((c) => c !== undefined)
-}
-
-/** @internal */
-export function standardToJsonSchemaDocument(
-  document: SchemaStandard.Document,
-  options?: ToJsonSchemaDocumentOptions
-): JsonSchema.Document<"draft-2020-12"> {
-  const { definitions, schemas, source } = standardToJsonSchemaMultiDocument({
-    schemas: [document.schema],
-    definitions: document.definitions
-  }, options)
-  return { source, schema: schemas[0], definitions }
-}
-
-/** @internal */
-export function standardToJsonSchemaMultiDocument(
-  document: SchemaStandard.MultiDocument,
-  options?: ToJsonSchemaDocumentOptions
-): JsonSchema.MultiDocument<"draft-2020-12"> {
-  const generateDescriptions = options?.generateDescriptions ?? false
-  const referenceStrategy = options?.referenceStrategy ?? "all"
-  const additionalProperties = options?.additionalProperties ?? false
-
-  const definitions = Record_.map(document.definitions, (d) => recur(d))
-
-  return {
-    source: "draft-2020-12",
-    schemas: Arr.map(document.schemas, (s) => {
-      const js = recur(s)
-      if (referenceStrategy === "skip-top-level" && typeof js.$ref === "string") {
-        const resolved = resolve$ref(js.$ref, definitions)
-        return resolved === true ? { not: {} } : resolved === false ? {} : resolved
-      }
-      return js
-    }),
-    definitions
-  }
-
-  function recur(s: SchemaStandard.Standard): JsonSchema.JsonSchema {
-    let js: JsonSchema.JsonSchema = on(s)
-    if (js === unsupportedJsonSchema) return unsupportedJsonSchema
-    if ("annotations" in s) {
-      const a = collectJsonSchemaAnnotations(s.annotations)
-      if (a) {
-        js = { ...js, ...a }
-      }
-    }
-    if ("checks" in s) {
-      const checks = collectJsonSchemaChecks(s.checks, js.type)
-      for (const check of checks) {
-        js = appendJsonSchema(js, check)
-      }
-    }
-    return normalizeJsonSchemaOutput(js)
-  }
-
-  function on(schema: SchemaStandard.Standard): JsonSchema.JsonSchema {
-    switch (schema._tag) {
-      case "Unknown":
-      case "Any":
-      case "Void":
-        return {}
-      case "Undefined":
-      case "BigInt":
-      case "Symbol":
-      case "UniqueSymbol":
-        return unsupportedJsonSchema
-      case "Declaration":
-        return recur(schema.Encoded)
-      case "Suspend":
-        return recur(schema.thunk)
-      case "Reference":
-        return { $ref: `#/$defs/${escapeToken(schema.$ref)}` }
-      case "Null":
-        return { type: "null" }
-      case "Never":
-        return { not: {} }
-      case "String": {
-        const out: JsonSchema.JsonSchema = { type: "string" }
-        if (schema.contentMediaType !== undefined) {
-          out.contentMediaType = schema.contentMediaType
-        }
-        if (schema.contentSchema !== undefined) {
-          out.contentSchema = recur(schema.contentSchema)
-        }
-        return out
-      }
-      case "Number":
-        return { type: "number" }
-      case "Boolean":
-        return { type: "boolean" }
-      case "Literal": {
-        const literal = schema.literal
-        if (typeof literal === "string") {
-          return { type: "string", enum: [literal] }
-        }
-        if (typeof literal === "number") {
-          return { type: "number", enum: [literal] }
-        }
-        if (typeof literal === "boolean") {
-          return { type: "boolean", enum: [literal] }
-        }
-        // bigint literals are not supported
-        return unsupportedJsonSchema
-      }
-      case "ObjectKeyword":
-        return { anyOf: [{ type: "object" }, { type: "array" }] }
-      case "Enum": {
-        return recur({
-          _tag: "Union",
-          types: schema.enums.map(([title, value]) => ({
-            _tag: "Literal",
-            literal: value,
-            annotations: { title }
-          })),
-          mode: "anyOf",
-          annotations: schema.annotations
-        })
-      }
-      case "TemplateLiteral": {
-        const pattern = schema.parts.map(getPartPattern).join("")
-        return { type: "string", pattern: `^${pattern}$` }
-      }
-      case "Arrays": {
-        // ---------------------------------------------
-        // handle post rest elements
-        // ---------------------------------------------
-        if (schema.rest.length > 1) {
-          throw new globalThis.Error("Generating a JSON Schema for post-rest elements is not supported")
-        }
-        const out: JsonSchema.JsonSchema = { type: "array" }
-        let minItems = schema.elements.length
-        const prefixItems: Array<JsonSchema.JsonSchema> = schema.elements.map((e) => {
-          if (e.isOptional || containsUndefined(e.type)) {
-            minItems--
-          }
-          const v = recur(e.type)
-          const a = collectJsonSchemaAnnotations(e.annotations)
-          return a ? appendJsonSchema(v, a) : v
-        })
-        if (prefixItems.length > 0) {
-          out.prefixItems = prefixItems
-          out.maxItems = schema.elements.length
-          if (minItems > 0) {
-            out.minItems = minItems
-          }
-        } else {
-          out.items = false
-        }
-        if (schema.rest.length > 0) {
-          delete out.maxItems
-          const rest = recur(schema.rest[0])
-          if (Object.keys(rest).length > 0) {
-            out.items = rest
-          } else {
-            delete out.items
-          }
-        }
-        return out
-      }
-      case "Objects": {
-        if (schema.propertySignatures.length === 0 && schema.indexSignatures.length === 0) {
-          return { anyOf: [{ type: "object" }, { type: "array" }] }
-        }
-        const out: JsonSchema.JsonSchema = { type: "object" }
-        const properties: Record<string, JsonSchema.JsonSchema> = {}
-        const required: Array<string> = []
-
-        for (const ps of schema.propertySignatures) {
-          const name = ps.name
-          if (typeof name !== "string") {
-            throw new globalThis.Error(`Unsupported property signature name: ${format(name)}`)
-          }
-          const v = recur(ps.type)
-          const a = collectJsonSchemaAnnotations(ps.annotations)
-          properties[name] = a ? appendJsonSchema(v, a) : v
-          // Property is required only if it's not explicitly optional AND doesn't contain Undefined
-          if (!ps.isOptional && !containsUndefined(ps.type)) {
-            required.push(name)
-          }
-        }
-
-        if (Object.keys(properties).length > 0) {
-          out.properties = properties
-        }
-        if (required.length > 0) {
-          out.required = required
-        }
-
-        out.additionalProperties = additionalProperties
-        const patternProperties: Record<string, JsonSchema.JsonSchema> = {}
-        // Handle index signatures
-        for (const is of schema.indexSignatures) {
-          const type = recur(is.type)
-          const pattern = getPattern(is.parameter)
-          if (pattern !== undefined) {
-            patternProperties[`^${pattern}$`] = type
-          } else {
-            out.additionalProperties = type
-          }
-        }
-        if (Object.keys(patternProperties).length > 0) {
-          out.patternProperties = patternProperties
-          delete out.additionalProperties
-        }
-        if (Predicate.isObject(out.additionalProperties) && Record_.isRecordEmpty(out.additionalProperties)) {
-          delete out.additionalProperties
-        }
-
-        return out
-      }
-      case "Union": {
-        const types = schema.types.map((t) => recur(t)).filter((t) => t !== unsupportedJsonSchema)
-        if (types.length === 0) {
-          // anyOf MUST be a non-empty array
-          return unsupportedJsonSchema
-        }
-        return schema.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
-      }
-    }
-  }
-
-  function collectJsonSchemaAnnotations(
-    annotations: Annotations.Annotations | undefined
-  ): JsonSchema.JsonSchema | undefined {
-    if (annotations) {
-      const out: JsonSchema.JsonSchema = {}
-      if (typeof annotations.title === "string") out.title = annotations.title
-      if (typeof annotations.description === "string") out.description = annotations.description
-      else if (generateDescriptions && typeof annotations.expected === "string") out.description = annotations.expected
-      if (annotations.default !== undefined) out.default = annotations.default
-      if (globalThis.Array.isArray(annotations.examples)) out.examples = annotations.examples
-
-      if (Object.keys(out).length > 0) return out
-    }
-  }
-
-  function collectJsonSchemaChecks(
-    checks: ReadonlyArray<SchemaStandard.Check<any>>,
-    type: unknown
-  ): Array<JsonSchema.JsonSchema> {
-    return checks.map(recur).filter((c) => c !== undefined)
-
-    function recur(check: SchemaStandard.Check<any>): JsonSchema.JsonSchema | undefined {
-      switch (check._tag) {
-        case "Filter":
-          return filterToJsonSchema(check, type)
-        case "FilterGroup": {
-          const checks = check.checks.map(recur).filter((c) => c !== undefined)
-          if (checks.length === 0) return undefined
-          let out = { allOf: checks }
-          const a = collectJsonSchemaAnnotations(check.annotations)
-          if (a) {
-            out = { ...out, ...a }
-          }
-          return out
-        }
-      }
-    }
-  }
-
-  function filterToJsonSchema(filter: SchemaStandard.Filter<any>, type: unknown): JsonSchema.JsonSchema | undefined {
-    const meta = filter.meta as SchemaStandard.StringMeta | SchemaStandard.NumberMeta | SchemaStandard.ArraysMeta
-    if (!meta) return undefined
-
-    let out = on(meta)
-    if (out === undefined) return undefined
-    const a = collectJsonSchemaAnnotations(filter.annotations)
-    if (a) {
-      out = { ...out, ...a }
-    }
-    return out
-
-    function on(
-      meta: SchemaStandard.StringMeta | SchemaStandard.NumberMeta | SchemaStandard.ArraysMeta
-    ): JsonSchema.JsonSchema | undefined {
-      switch (meta._tag) {
-        case "isMinLength":
-          return type === "array" ? { minItems: meta.minLength } : { minLength: meta.minLength }
-        case "isMaxLength":
-          return type === "array" ? { maxItems: meta.maxLength } : { maxLength: meta.maxLength }
-        case "isLength":
-          return type === "array"
-            ? { allOf: [{ minItems: meta.length }, { maxItems: meta.length }] }
-            : { allOf: [{ minLength: meta.length }, { maxLength: meta.length }] }
-        case "isPattern":
-        case "isULID":
-        case "isBase64":
-        case "isBase64Url":
-        case "isStartsWith":
-        case "isEndsWith":
-        case "isIncludes":
-        case "isUppercased":
-        case "isLowercased":
-        case "isCapitalized":
-        case "isUncapitalized":
-        case "isTrimmed":
-        case "isNumberString":
-        case "isBigIntString":
-        case "isSymbolString":
-          return { pattern: meta.regExp.source }
-        case "isUUID":
-          return { pattern: meta.regExp.source, format: "uuid" }
-
-        case "isFinite":
-          return undefined
-        case "isInt":
-          return { type: "integer" }
-        case "isMultipleOf":
-          return { multipleOf: meta.divisor }
-        case "isGreaterThanOrEqualTo":
-          return { minimum: meta.minimum }
-        case "isLessThanOrEqualTo":
-          return { maximum: meta.maximum }
-        case "isGreaterThan":
-          return { exclusiveMinimum: meta.exclusiveMinimum }
-        case "isLessThan":
-          return { exclusiveMaximum: meta.exclusiveMaximum }
-        case "isBetween": {
-          return {
-            [meta.exclusiveMinimum ? "exclusiveMinimum" : "minimum"]: meta.minimum,
-            [meta.exclusiveMaximum ? "exclusiveMaximum" : "maximum"]: meta.maximum
-          }
-        }
-
-        case "isUnique":
-          return { uniqueItems: true }
-      }
-    }
-  }
-
-  function getPattern(s: SchemaStandard.Standard): string | undefined {
-    switch (s._tag) {
-      case "String": {
-        const jsonSchema = recur(s)
-        if (typeof jsonSchema.pattern === "string") {
-          return jsonSchema.pattern
-        }
-        return undefined
-      }
-      case "Number": {
-        const jsonSchema = recur(s)
-        if (typeof jsonSchema.pattern === "string") {
-          return jsonSchema.pattern
-        }
-        return undefined
-      }
-      case "TemplateLiteral":
-        return s.parts.map(getPartPattern).join("")
-      case "Union":
-        return s.types.map(getPartPattern).join("|")
-      default:
-        throw new globalThis.Error("Unsupported index signature parameter")
-    }
-  }
-
-  function containsUndefined(schema: SchemaStandard.Standard): boolean {
-    switch (schema._tag) {
-      case "Undefined":
-        return true
-      case "Union":
-        return schema.types.some(containsUndefined)
-      default:
-        return false
-    }
-  }
-}
-
-function resolve$ref($ref: string, definitions: JsonSchema.Definitions): JsonSchema.JsonSchema | boolean {
-  const tokens = $ref.split("/")
-  if (tokens.length > 0) {
-    const identifier = unescapeToken(tokens[tokens.length - 1])
-    const definition = definitions[identifier]
-    if (definition !== undefined) {
-      return definition
-    }
-  }
-  throw new globalThis.Error(`Reference to unknown schema: ${$ref}`)
-}
-
-function normalizeJsonSchemaOutput(s: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-  if (globalThis.Array.isArray(s.anyOf)) {
-    if (s.anyOf.length === 1) {
-      if (Object.keys(s).length === 1) {
-        return s.anyOf[0]
-      }
-    }
-  }
-  return s
-}
-
-function appendJsonSchema(a: JsonSchema.JsonSchema, b: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-  const members = globalThis.Array.isArray(b.allOf) && Object.keys(b).length === 1 ? b.allOf : [b]
-
-  if (globalThis.Array.isArray(a.allOf)) {
-    return { ...a, allOf: [...a.allOf, ...members] }
-  }
-
-  if (typeof a.$ref === "string") {
-    return { allOf: [a, ...members] }
-  }
-
-  return { ...a, allOf: members }
-}
-
-function getPartPattern(part: SchemaStandard.Standard): string {
-  switch (part._tag) {
-    case "Literal":
-      return RegExp_.escape(globalThis.String(part.literal))
-    case "String":
-      return AST.STRING_PATTERN
-    case "Number":
-      return AST.NUMBER_PATTERN
-    case "TemplateLiteral":
-      return part.parts.map(getPartPattern).join("")
-    case "Union":
-      return part.types.map(getPartPattern).join("|")
-    default:
-      throw new globalThis.Error("Unsupported part", { cause: part })
-  }
-}
-
-const unsupportedJsonSchema: JsonSchema.JsonSchema = { not: {} }

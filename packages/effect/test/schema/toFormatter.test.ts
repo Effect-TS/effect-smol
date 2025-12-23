@@ -2,7 +2,7 @@ import { DateTime, Duration, Option, Redacted, Result, Schema } from "effect"
 import { describe, it } from "vitest"
 import { strictEqual } from "../utils/assert.ts"
 
-describe("Formatter generation", () => {
+describe("toFormatter", () => {
   it("Never", () => {
     const format = Schema.toFormatter(Schema.Never)
     strictEqual(format(1 as never), "never")
