@@ -1,5 +1,6 @@
 import type { Options as AjvOptions } from "ajv"
 import { JsonSchema, Schema, SchemaGetter } from "effect"
+// import { FastCheck } from "effect/testing"
 import { describe, it } from "vitest"
 import { assertTrue, deepStrictEqual, throws } from "../utils/assert.ts"
 
@@ -23,8 +24,8 @@ function assertUnsupportedSchema(
   throws(() => Schema.toJsonSchemaDocument(schema, options), message)
 }
 
-function assertDocument<S extends Schema.Top>(
-  schema: S,
+function assertDocument<T, E, RD>(
+  schema: Schema.Codec<T, E, RD, never>,
   expected: { schema: JsonSchema.JsonSchema; definitions?: JsonSchema.Definitions },
   options?: Schema.ToJsonSchemaOptions
 ) {
@@ -34,11 +35,21 @@ function assertDocument<S extends Schema.Top>(
     schema: expected.schema,
     definitions: expected.definitions ?? {}
   })
-  const valid = ajvDraft2020_12.validateSchema({
+  const jsonSchema = {
     $schema: JsonSchema.META_SCHEMA_URI_DRAFT_2020_12,
-    ...document.schema
-  })
+    ...document.schema,
+    $defs: document.definitions
+  }
+  const valid = ajvDraft2020_12.validateSchema(jsonSchema)
   assertTrue(valid)
+  // const validate = ajvDraft2020_12.compile(jsonSchema)
+  // const arb = Schema.toArbitrary(schema)
+  // const codec = Schema.toCodecJson(schema)
+  // const encode = Schema.encodeSync(codec)
+  // FastCheck.assert(FastCheck.property(arb, (t) => {
+  //   const e = encode(t)
+  //   return validate(e)
+  // }))
 }
 
 describe("toJsonSchemaDocument", () => {
@@ -592,7 +603,7 @@ describe("toJsonSchemaDocument", () => {
     describe("Tuple", () => {
       it("Unsupported post-rest elements", () => {
         assertUnsupportedSchema(
-          Schema.TupleWithRest(Schema.Tuple([]), [Schema.Number, Schema.String]),
+          Schema.TupleWithRest(Schema.Tuple([]), [Schema.Finite, Schema.String]),
           "Generating a JSON Schema for post-rest elements is not supported"
         )
       })
@@ -609,7 +620,7 @@ describe("toJsonSchemaDocument", () => {
 
       it("Unsupported index signature parameter", () => {
         assertUnsupportedSchema(
-          Schema.Record(Schema.Symbol, Schema.Number),
+          Schema.Record(Schema.Symbol, Schema.Finite),
           `Unsupported index signature parameter`
         )
       })
@@ -813,13 +824,6 @@ describe("toJsonSchemaDocument", () => {
     })
   })
 
-  const jsonAnnotations = {
-    "title": "title",
-    "description": "description",
-    "default": "",
-    "examples": ["", "a", "aa"]
-  }
-
   describe("refs", () => {
     it(`refs should be created using the pattern: "#/$defs/IDENTIFIER"`, () => {
       assertDocument(
@@ -870,7 +874,7 @@ describe("toJsonSchemaDocument", () => {
       assertDocument(
         Schema.String.annotate({
           identifier: "ID",
-          ...jsonAnnotations
+          description: "a"
         }),
         {
           schema: {
@@ -879,7 +883,7 @@ describe("toJsonSchemaDocument", () => {
           definitions: {
             "ID": {
               "type": "string",
-              ...jsonAnnotations
+              "description": "a"
             }
           }
         }
@@ -1057,13 +1061,16 @@ describe("toJsonSchemaDocument", () => {
     assertDocument(
       schema,
       {
-        schema: {}
+        schema: {
+          "type": "null"
+        }
       }
     )
     assertDocument(
       schema.annotate({ description: "a" }),
       {
         schema: {
+          "type": "null",
           "description": "a"
         }
       }
@@ -1200,13 +1207,6 @@ describe("toJsonSchemaDocument", () => {
   })
 
   describe("String", () => {
-    const jsonAnnotations = {
-      "title": "title",
-      "description": "description",
-      "default": "",
-      "examples": ["", "a", "aa"]
-    }
-
     it("String", () => {
       assertDocument(
         Schema.String,
@@ -1217,27 +1217,11 @@ describe("toJsonSchemaDocument", () => {
         }
       )
       assertDocument(
-        Schema.String.annotate({
-          ...jsonAnnotations
-        }),
+        Schema.String.annotate({ description: "a" }),
         {
           schema: {
             "type": "string",
-            ...jsonAnnotations
-          }
-        }
-      )
-      // should support getters
-      assertDocument(
-        Schema.String.annotate({
-          get description() {
-            return "description"
-          }
-        }),
-        {
-          schema: {
-            "type": "string",
-            "description": "description"
+            "description": "a"
           }
         }
       )
@@ -1246,7 +1230,7 @@ describe("toJsonSchemaDocument", () => {
     it("should ignore the key json annotations if the schema is not contextual", () => {
       assertDocument(
         Schema.String.annotateKey({
-          ...jsonAnnotations
+          description: "a"
         }),
         {
           schema: {
@@ -1753,7 +1737,12 @@ describe("toJsonSchemaDocument", () => {
         schema,
         {
           schema: {
-            "type": "number"
+            "anyOf": [
+              { "type": "number" },
+              { "type": "string", "enum": ["NaN"] },
+              { "type": "string", "enum": ["Infinity"] },
+              { "type": "string", "enum": ["-Infinity"] }
+            ]
           }
         }
       )
@@ -1761,8 +1750,37 @@ describe("toJsonSchemaDocument", () => {
         schema.annotate({ description: "a" }),
         {
           schema: {
-            "type": "number",
+            "anyOf": [
+              { "type": "number" },
+              { "type": "string", "enum": ["NaN"] },
+              { "type": "string", "enum": ["Infinity"] },
+              { "type": "string", "enum": ["-Infinity"] }
+            ],
             "description": "a"
+          }
+        }
+      )
+    })
+  })
+
+  describe("Finite", () => {
+    it("Finite", () => {
+      assertDocument(
+        Schema.Finite,
+        {
+          schema: {
+            "type": "number"
+          }
+        }
+      )
+      assertDocument(
+        Schema.Finite.annotate({ description: "a" }),
+        {
+          schema: {
+            "type": "number",
+            "allOf": [{
+              "description": "a"
+            }]
           }
         }
       )
@@ -1771,14 +1789,10 @@ describe("toJsonSchemaDocument", () => {
     describe("checks", () => {
       it("isInt", () => {
         assertDocument(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isInt()),
+          Schema.Finite.check(Schema.isInt()),
           {
             schema: {
-              "type": "number",
-              "description": "description",
-              "allOf": [
-                { "type": "integer" }
-              ]
+              "type": "integer"
             }
           }
         )
@@ -1786,13 +1800,11 @@ describe("toJsonSchemaDocument", () => {
 
       it("isInt32", () => {
         assertDocument(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isInt32()),
+          Schema.Finite.check(Schema.isInt32()),
           {
             schema: {
-              "type": "number",
-              "description": "description",
+              "type": "integer",
               "allOf": [
-                { "type": "integer" },
                 { "maximum": 2147483647, "minimum": -2147483648 }
               ]
             }
@@ -1802,28 +1814,25 @@ describe("toJsonSchemaDocument", () => {
 
       it("isUint32", () => {
         assertDocument(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isUint32()),
+          Schema.Finite.check(Schema.isUint32()),
           {
             schema: {
-              "type": "number",
-              "description": "description",
+              "type": "integer",
               "allOf": [
-                { "type": "integer" },
                 { "maximum": 4294967295, "minimum": 0 }
               ]
             }
           }
         )
         assertDocument(
-          Schema.Number.check(Schema.isUint32({ description: "uint32 description" })),
+          Schema.Finite.check(Schema.isUint32({ description: "a" })),
           {
             schema: {
-              "type": "number",
+              "type": "integer",
               "allOf": [
                 {
-                  "description": "uint32 description",
+                  "description": "a",
                   "allOf": [
-                    { "type": "integer" },
                     { "maximum": 4294967295, "minimum": 0 }
                   ]
                 }
@@ -1832,18 +1841,16 @@ describe("toJsonSchemaDocument", () => {
           }
         )
         assertDocument(
-          Schema.Number.annotate({ description: "description" }).check(
-            Schema.isUint32({ description: "uint32 description" })
+          Schema.Finite.check(
+            Schema.isUint32({ description: "a" })
           ),
           {
             schema: {
-              "type": "number",
-              "description": "description",
+              "type": "integer",
               "allOf": [
                 {
-                  "description": "uint32 description",
+                  "description": "a",
                   "allOf": [
-                    { "type": "integer" },
                     { "maximum": 4294967295, "minimum": 0 }
                   ]
                 }
@@ -1855,7 +1862,7 @@ describe("toJsonSchemaDocument", () => {
 
       it("isGreaterThan", () => {
         assertDocument(
-          Schema.Number.check(Schema.isGreaterThan(1)),
+          Schema.Finite.check(Schema.isGreaterThan(1)),
           {
             schema: {
               "type": "number",
@@ -1869,7 +1876,7 @@ describe("toJsonSchemaDocument", () => {
 
       it("isGreaterThanOrEqualTo", () => {
         assertDocument(
-          Schema.Number.check(Schema.isGreaterThanOrEqualTo(1)),
+          Schema.Finite.check(Schema.isGreaterThanOrEqualTo(1)),
           {
             schema: {
               "type": "number",
@@ -1882,7 +1889,7 @@ describe("toJsonSchemaDocument", () => {
       })
 
       it("isLessThan", () => {
-        assertDocument(Schema.Number.check(Schema.isLessThan(1)), {
+        assertDocument(Schema.Finite.check(Schema.isLessThan(1)), {
           schema: {
             "type": "number",
             "allOf": [
@@ -1893,7 +1900,7 @@ describe("toJsonSchemaDocument", () => {
       })
 
       it("isLessThanOrEqualTo", () => {
-        assertDocument(Schema.Number.check(Schema.isLessThanOrEqualTo(1)), {
+        assertDocument(Schema.Finite.check(Schema.isLessThanOrEqualTo(1)), {
           schema: {
             "type": "number",
             "allOf": [
@@ -1905,11 +1912,10 @@ describe("toJsonSchemaDocument", () => {
 
       it("isBetween", () => {
         assertDocument(
-          Schema.Number.annotate({ description: "description" }).check(Schema.isBetween({ minimum: 1, maximum: 10 })),
+          Schema.Finite.check(Schema.isBetween({ minimum: 1, maximum: 10 })),
           {
             schema: {
               "type": "number",
-              "description": "description",
               "allOf": [
                 { "minimum": 1, "maximum": 10 }
               ]
@@ -1917,13 +1923,12 @@ describe("toJsonSchemaDocument", () => {
           }
         )
         assertDocument(
-          Schema.Number.annotate({ description: "description" }).check(
+          Schema.Finite.check(
             Schema.isBetween({ minimum: 1, maximum: 10, exclusiveMinimum: true })
           ),
           {
             schema: {
               "type": "number",
-              "description": "description",
               "allOf": [
                 { "exclusiveMinimum": 1, "maximum": 10 }
               ]
@@ -1931,13 +1936,12 @@ describe("toJsonSchemaDocument", () => {
           }
         )
         assertDocument(
-          Schema.Number.annotate({ description: "description" }).check(
+          Schema.Finite.check(
             Schema.isBetween({ minimum: 1, maximum: 10, exclusiveMaximum: true })
           ),
           {
             schema: {
               "type": "number",
-              "description": "description",
               "allOf": [
                 { "minimum": 1, "exclusiveMaximum": 10 }
               ]
@@ -1945,13 +1949,12 @@ describe("toJsonSchemaDocument", () => {
           }
         )
         assertDocument(
-          Schema.Number.annotate({ description: "description" }).check(
+          Schema.Finite.check(
             Schema.isBetween({ minimum: 1, maximum: 10, exclusiveMinimum: true, exclusiveMaximum: true })
           ),
           {
             schema: {
               "type": "number",
-              "description": "description",
               "allOf": [
                 { "exclusiveMinimum": 1, "exclusiveMaximum": 10 }
               ]
@@ -1962,12 +1965,12 @@ describe("toJsonSchemaDocument", () => {
 
       it("isMultipleOf", () => {
         assertDocument(
-          Schema.Number.check(Schema.isMultipleOf(10)),
+          Schema.Int.check(Schema.isMultipleOf(2)),
           {
             schema: {
-              "type": "number",
+              "type": "integer",
               "allOf": [
-                { "multipleOf": 10 }
+                { "multipleOf": 2 }
               ]
             }
           }
@@ -2003,10 +2006,7 @@ describe("toJsonSchemaDocument", () => {
       schema,
       {
         schema: {
-          "anyOf": [
-            { "type": "object" },
-            { "type": "array" }
-          ]
+          "type": "null"
         }
       }
     )
@@ -2014,10 +2014,7 @@ describe("toJsonSchemaDocument", () => {
       schema.annotate({ description: "a" }),
       {
         schema: {
-          "anyOf": [
-            { "type": "object" },
-            { "type": "array" }
-          ],
+          "type": "null",
           "description": "a"
         }
       }
@@ -2946,7 +2943,10 @@ describe("toJsonSchemaDocument", () => {
       it("optionalKey(String) to String", () => {
         assertDocument(
           Schema.Struct({
-            a: Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String))
+            a: Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String, {
+              decode: SchemaGetter.passthrough(),
+              encode: SchemaGetter.withDefault(() => "")
+            }))
           }),
           {
             schema: {
@@ -3055,7 +3055,10 @@ describe("toJsonSchemaDocument", () => {
       it("optional(String) to String", () => {
         assertDocument(
           Schema.Struct({
-            a: Schema.optional(Schema.String).pipe(Schema.encodeTo(Schema.String))
+            a: Schema.optional(Schema.String).pipe(Schema.encodeTo(Schema.String, {
+              decode: SchemaGetter.passthrough(),
+              encode: SchemaGetter.withDefault(() => "")
+            }))
           }),
           {
             schema: {
@@ -3167,7 +3170,10 @@ describe("toJsonSchemaDocument", () => {
       it("UndefinedOr(String) to String", () => {
         assertDocument(
           Schema.Struct({
-            a: Schema.UndefinedOr(Schema.String).pipe(Schema.encodeTo(Schema.String))
+            a: Schema.UndefinedOr(Schema.String).pipe(Schema.encodeTo(Schema.String, {
+              decode: SchemaGetter.passthrough(),
+              encode: SchemaGetter.transform((s) => s ?? "")
+            }))
           }),
           {
             schema: {
@@ -3187,18 +3193,9 @@ describe("toJsonSchemaDocument", () => {
   })
 
   describe("Record", () => {
-    it("Record(String, Unknown)", () => {
+    it("Record(String, Finite)", () => {
       assertDocument(
-        Schema.Record(Schema.String, Schema.Unknown),
-        {
-          schema: { "type": "object" }
-        }
-      )
-    })
-
-    it("Record(String, Number)", () => {
-      assertDocument(
-        Schema.Record(Schema.String, Schema.Number),
+        Schema.Record(Schema.String, Schema.Finite),
         {
           schema: {
             "type": "object",
@@ -3211,14 +3208,16 @@ describe("toJsonSchemaDocument", () => {
       assertDocument(
         Schema.Record(
           Schema.String.annotate({ description: "k" }), // TODO: where to attach the description?
-          Schema.Number.annotate({ description: "v" })
+          Schema.Finite.annotate({ description: "v" })
         ).annotate({ description: "r" }),
         {
           schema: {
             "type": "object",
             "additionalProperties": {
               "type": "number",
-              "description": "v"
+              "allOf": [{
+                "description": "v"
+              }]
             },
             "description": "r"
           }
@@ -3228,7 +3227,7 @@ describe("toJsonSchemaDocument", () => {
 
     it("Record(`a${string}`, Number) & annotate", () => {
       assertDocument(
-        Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number),
+        Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Finite),
         {
           schema: {
             "type": "object",
@@ -3244,7 +3243,7 @@ describe("toJsonSchemaDocument", () => {
 
     it("Record(Literals(['a', 'b']), Number)", () => {
       assertDocument(
-        Schema.Record(Schema.Literals(["a", "b"]), Schema.Number),
+        Schema.Record(Schema.Literals(["a", "b"]), Schema.Finite),
         {
           schema: {
             "type": "object",
@@ -3261,7 +3260,7 @@ describe("toJsonSchemaDocument", () => {
 
     it("Record(isUppercased, Number)", () => {
       assertDocument(
-        Schema.Record(Schema.String.check(Schema.isUppercased()), Schema.Number),
+        Schema.Record(Schema.String.check(Schema.isUppercased()), Schema.Finite),
         {
           schema: {
             "type": "object",
@@ -3278,7 +3277,7 @@ describe("toJsonSchemaDocument", () => {
     describe("checks", () => {
       it("isMinProperties", () => {
         assertDocument(
-          Schema.Record(Schema.String, Schema.Number).check(Schema.isMinProperties(2)),
+          Schema.Record(Schema.String, Schema.Finite).check(Schema.isMinProperties(2)),
           {
             schema: {
               "type": "object",
@@ -3295,7 +3294,7 @@ describe("toJsonSchemaDocument", () => {
 
       it("isMaxProperties", () => {
         assertDocument(
-          Schema.Record(Schema.String, Schema.Number).check(Schema.isMaxProperties(2)),
+          Schema.Record(Schema.String, Schema.Finite).check(Schema.isMaxProperties(2)),
           {
             schema: {
               "type": "object",
@@ -3308,7 +3307,7 @@ describe("toJsonSchemaDocument", () => {
 
       it("isPropertiesLength", () => {
         assertDocument(
-          Schema.Record(Schema.String, Schema.Number).check(Schema.isPropertiesLength(2)),
+          Schema.Record(Schema.String, Schema.Finite).check(Schema.isPropertiesLength(2)),
           {
             schema: {
               "type": "object",
@@ -3323,7 +3322,9 @@ describe("toJsonSchemaDocument", () => {
 
   it("StructWithRest", () => {
     assertDocument(
-      Schema.StructWithRest(Schema.Struct({ a: Schema.String }), [Schema.Record(Schema.String, Schema.Number)]),
+      Schema.StructWithRest(Schema.Struct({ a: Schema.String }), [
+        Schema.Record(Schema.String, Schema.Union([Schema.Finite, Schema.String]))
+      ]),
       {
         schema: {
           "type": "object",
@@ -3331,7 +3332,10 @@ describe("toJsonSchemaDocument", () => {
             "a": { "type": "string" }
           },
           "additionalProperties": {
-            "type": "number"
+            "anyOf": [
+              { "type": "number" },
+              { "type": "string" }
+            ]
           },
           "required": ["a"]
         }
@@ -3517,7 +3521,10 @@ describe("toJsonSchemaDocument", () => {
       it("optionalKey(String) to String", () => {
         assertDocument(
           Schema.Tuple([
-            Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String))
+            Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String, {
+              decode: SchemaGetter.passthrough(),
+              encode: SchemaGetter.withDefault(() => "")
+            }))
           ]),
           {
             schema: {
@@ -3534,7 +3541,10 @@ describe("toJsonSchemaDocument", () => {
     it("optionalKey to required key", () => {
       assertDocument(
         Schema.Tuple([
-          Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String))
+          Schema.optionalKey(Schema.String).pipe(Schema.encodeTo(Schema.String, {
+            decode: SchemaGetter.passthrough(),
+            encode: SchemaGetter.withDefault(() => "")
+          }))
         ]),
         {
           schema: {
@@ -3551,15 +3561,6 @@ describe("toJsonSchemaDocument", () => {
   })
 
   describe("Array", () => {
-    it("Array(Unknown)", () => {
-      assertDocument(
-        Schema.Array(Schema.Unknown),
-        {
-          schema: { "type": "array" }
-        }
-      )
-    })
-
     it("Array(String)", () => {
       assertDocument(
         Schema.Array(Schema.String),
@@ -3648,7 +3649,7 @@ describe("toJsonSchemaDocument", () => {
 
   it("TupleWithRest", () => {
     assertDocument(
-      Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]),
+      Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Finite]),
       {
         schema: {
           "type": "array",
@@ -3719,7 +3720,7 @@ describe("toJsonSchemaDocument", () => {
       assertDocument(
         Schema.Union([
           Schema.String,
-          Schema.Number
+          Schema.Finite
         ]),
         {
           schema: {
@@ -3733,7 +3734,7 @@ describe("toJsonSchemaDocument", () => {
       assertDocument(
         Schema.Union([
           Schema.String,
-          Schema.Number
+          Schema.Finite
         ]).annotate({ description: "description" }),
         {
           schema: {
@@ -3770,7 +3771,7 @@ describe("toJsonSchemaDocument", () => {
       assertDocument(
         Schema.Union([
           Schema.String,
-          Schema.Number
+          Schema.Finite
         ]).annotate({ description: "description" }),
         {
           schema: {
@@ -3800,7 +3801,7 @@ describe("toJsonSchemaDocument", () => {
 
     const Expression = Schema.Struct({
       type: Schema.Literal("expression"),
-      value: Schema.Union([Schema.Number, Schema.suspend((): Schema.Codec<Operation> => Operation)])
+      value: Schema.Union([Schema.Finite, Schema.suspend((): Schema.Codec<Operation> => Operation)])
     }).annotate({ identifier: "Expression" })
 
     const Operation = Schema.Struct({

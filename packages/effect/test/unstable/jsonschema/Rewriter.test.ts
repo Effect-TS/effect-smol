@@ -56,7 +56,7 @@ describe("Rewriter", () => {
       )
       assertRewrite(
         Rewriter.openAi,
-        Schema.Union([Schema.String, Schema.Number]).annotate({
+        Schema.Union([Schema.String, Schema.Finite]).annotate({
           identifier: "ID",
           description: "description"
         }),
@@ -72,7 +72,7 @@ describe("Rewriter", () => {
             "ID": {
               "anyOf": [
                 { "type": "string" },
-                { "type": "number" }
+                { "type": "number", "description": "a finite number" }
               ],
               "description": "description"
             }
@@ -678,7 +678,7 @@ describe("Rewriter", () => {
     it("Tuple", () => {
       assertRewrite(
         Rewriter.openAi,
-        Schema.Struct({ a: Schema.Tuple([Schema.NonEmptyString, Schema.Number]) }),
+        Schema.Struct({ a: Schema.Tuple([Schema.NonEmptyString, Schema.Finite]) }),
         {
           schema: {
             "type": "object",
@@ -691,7 +691,8 @@ describe("Rewriter", () => {
                     "description": "a value with a length of at least 1"
                   },
                   {
-                    "type": "number"
+                    "type": "number",
+                    "description": "a finite number"
                   }
                 ]
               }

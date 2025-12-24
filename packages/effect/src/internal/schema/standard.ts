@@ -302,11 +302,12 @@ export function toJsonSchemaMultiDocument(
 
   function on(schema: SchemaStandard.Standard): JsonSchema.JsonSchema {
     switch (schema._tag) {
-      case "Unknown":
       case "Any":
         return {}
+      case "Unknown":
       case "Void":
       case "Undefined":
+      case "ObjectKeyword":
         return { type: "null" }
       case "BigInt":
         return {
@@ -344,7 +345,18 @@ export function toJsonSchemaMultiDocument(
         return out
       }
       case "Number":
-        return { type: "number" }
+        return hasCheck(schema.checks, "isInt") ?
+          { type: "integer" } :
+          hasCheck(schema.checks, "isFinite") ?
+          { type: "number" } :
+          {
+            "anyOf": [
+              { type: "number" },
+              { type: "string", enum: ["NaN"] },
+              { type: "string", enum: ["Infinity"] },
+              { type: "string", enum: ["-Infinity"] }
+            ]
+          }
       case "Boolean":
         return { type: "boolean" }
       case "Literal": {
@@ -361,8 +373,6 @@ export function toJsonSchemaMultiDocument(
         // bigint literals are not supported
         return { type: "string", enum: [String(literal)] }
       }
-      case "ObjectKeyword":
-        return { anyOf: [{ type: "object" }, { type: "array" }] }
       case "Enum": {
         return recur({
           _tag: "Union",
@@ -489,7 +499,7 @@ export function toJsonSchemaMultiDocument(
       if (typeof annotations.description === "string") out.description = annotations.description
       else if (generateDescriptions && typeof annotations.expected === "string") out.description = annotations.expected
       if (annotations.default !== undefined) out.default = annotations.default
-      if (globalThis.Array.isArray(annotations.examples)) out.examples = annotations.examples
+      if (Array.isArray(annotations.examples)) out.examples = annotations.examples
 
       if (Object.keys(out).length > 0) return out
     }
@@ -528,7 +538,6 @@ export function toJsonSchemaMultiDocument(
     if (!meta) return undefined
 
     let out = on(meta)
-    if (out === undefined) return undefined
     const a = collectJsonSchemaAnnotations(filter.annotations)
     if (a) {
       out = { ...out, ...a }
@@ -571,9 +580,8 @@ export function toJsonSchemaMultiDocument(
           return { pattern: meta.regExp.source, format: "uuid" }
 
         case "isFinite":
-          return undefined
         case "isInt":
-          return { type: "integer" }
+          return undefined
         case "isMultipleOf":
           return { multipleOf: meta.divisor }
         case "isGreaterThanOrEqualTo":
@@ -637,6 +645,17 @@ function getPatterns(s: SchemaStandard.String): Array<string> {
   }
 }
 
+function hasCheck(checks: ReadonlyArray<SchemaStandard.Check<SchemaStandard.Meta>>, tag: string): boolean {
+  return checks.some((c) => {
+    switch (c._tag) {
+      case "Filter":
+        return c.meta._tag === tag
+      case "FilterGroup":
+        return hasCheck(c.checks, tag)
+    }
+  })
+}
+
 function resolve$ref($ref: string, definitions: JsonSchema.Definitions): JsonSchema.JsonSchema | boolean {
   const tokens = $ref.split("/")
   if (tokens.length > 0) {
@@ -650,9 +669,12 @@ function resolve$ref($ref: string, definitions: JsonSchema.Definitions): JsonSch
 }
 
 function appendJsonSchema(a: JsonSchema.JsonSchema, b: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-  const members = globalThis.Array.isArray(b.allOf) && Object.keys(b).length === 1 ? b.allOf : [b]
+  if (Object.keys(a).length === 0) return b
+  const len = Object.keys(b).length
+  if (len === 0) return a
+  const members = Array.isArray(b.allOf) && len === 1 ? b.allOf : [b]
 
-  if (globalThis.Array.isArray(a.allOf)) {
+  if (Array.isArray(a.allOf)) {
     return { ...a, allOf: [...a.allOf, ...members] }
   }
 

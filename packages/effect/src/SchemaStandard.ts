@@ -272,7 +272,7 @@ export type Standard =
 /**
  * @since 4.0.0
  */
-export type Check<T> = Filter<T> | FilterGroup<T>
+export type Check<M> = Filter<M> | FilterGroup<M>
 
 /**
  * @since 4.0.0
@@ -361,6 +361,11 @@ export type ObjectsMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isMaxProperties"
   | "isPropertiesLength"
 ]
+
+/**
+ * @since 4.0.0
+ */
+export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMeta
 
 /**
  * @since 4.0.0
@@ -1214,7 +1219,7 @@ function toSchemaChecks(top: Schema.Top, schema: Standard): Schema.Top {
   }
 }
 
-function toSchemaCheck(check: Check<StringMeta | NumberMeta | BigIntMeta | ArraysMeta>): AST.Check<any> {
+function toSchemaCheck(check: Check<Meta>): AST.Check<any> {
   switch (check._tag) {
     case "Filter":
       return toSchemaFilter(check)
@@ -1224,7 +1229,7 @@ function toSchemaCheck(check: Check<StringMeta | NumberMeta | BigIntMeta | Array
   }
 }
 
-function toSchemaFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | ArraysMeta>): AST.Check<any> {
+function toSchemaFilter(filter: Filter<Meta>): AST.Check<any> {
   const a = filter.annotations
   switch (filter.meta._tag) {
     // String Meta
@@ -1297,38 +1302,17 @@ function toSchemaFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | Ar
     case "isBetweenBigInt":
       return Schema.isBetweenBigInt(filter.meta, a)
 
-    // Date Meta
-    // case "isValidDate":
-    //   return Schema.isValidDate(a)
-    // case "isGreaterThanDate":
-    //   return Schema.isGreaterThanDate(filter.meta.exclusiveMinimum, a)
-    // case "isGreaterThanOrEqualToDate":
-    //   return Schema.isGreaterThanOrEqualToDate(filter.meta.minimum, a)
-    // case "isLessThanDate":
-    //   return Schema.isLessThanDate(filter.meta.exclusiveMaximum, a)
-    // case "isLessThanOrEqualToDate":
-    //   return Schema.isLessThanOrEqualToDate(filter.meta.maximum, a)
-    // case "isBetweenDate":
-    //   return Schema.isBetweenDate(filter.meta, a)
-
     // Object Meta
-    // case "isMinProperties":
-    //   return Schema.isMinProperties(filter.meta.minProperties, a)
-    // case "isMaxProperties":
-    //   return Schema.isMaxProperties(filter.meta.maxProperties, a)
-    // case "isPropertiesLength":
-    //   return Schema.isPropertiesLength(filter.meta.length, a)
+    case "isMinProperties":
+      return Schema.isMinProperties(filter.meta.minProperties, a)
+    case "isMaxProperties":
+      return Schema.isMaxProperties(filter.meta.maxProperties, a)
+    case "isPropertiesLength":
+      return Schema.isPropertiesLength(filter.meta.length, a)
 
     // Arrays Meta
     case "isUnique":
       return Schema.isUnique(undefined, a)
-      // case "isMinSize":
-      //   return Schema.isMinSize(filter.meta.minSize, a)
-      // case "isMaxSize":
-      //   return Schema.isMaxSize(filter.meta.maxSize, a)
-      // case "isSize":
-      //   return Schema.isSize(filter.meta.size, a)
-      // TODO: equivalence parameter?
   }
 }
 
@@ -1530,7 +1514,7 @@ function toCodeCheck(check: Check<StringMeta | NumberMeta | BigIntMeta | ArraysM
   }
 }
 
-function toCodeFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMeta>): string {
+function toCodeFilter(filter: Filter<Meta>): string {
   const a = toCodeAnnotations(filter.annotations)
   const ca = a === "" ? "" : `, ${a}`
   switch (filter.meta._tag) {
