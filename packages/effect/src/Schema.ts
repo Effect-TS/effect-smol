@@ -3431,7 +3431,6 @@ export function isTrimmed(annotations?: Annotations.Filter) {
     (s: string) => s.trim() === s,
     {
       expected: "a string with no leading or trailing whitespace",
-      toJsonSchemaConstraint: () => ({ pattern: TRIMMED_PATTERN }),
       meta: {
         _tag: "isTrimmed",
         regExp: new globalThis.RegExp(TRIMMED_PATTERN)
@@ -3561,10 +3560,6 @@ export function isUUID(version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | undefined, annot
         regExp,
         version
       },
-      toJsonSchemaConstraint: () => ({
-        pattern: regExp.source,
-        format: "uuid"
-      }),
       ...annotations
     }
   )
@@ -3686,7 +3681,6 @@ export function isStartsWith(startsWith: string, annotations?: Annotations.Filte
     (s: string) => s.startsWith(startsWith),
     {
       expected: `a string starting with ${formatted}`,
-      toJsonSchemaConstraint: () => ({ pattern: `^${startsWith}` }),
       meta: {
         _tag: "isStartsWith",
         startsWith,
@@ -3724,7 +3718,6 @@ export function isEndsWith(endsWith: string, annotations?: Annotations.Filter) {
     (s: string) => s.endsWith(endsWith),
     {
       expected: `a string ending with ${formatted}`,
-      toJsonSchemaConstraint: () => ({ pattern: `${endsWith}$` }),
       meta: {
         _tag: "isEndsWith",
         endsWith,
@@ -3762,7 +3755,6 @@ export function isIncludes(includes: string, annotations?: Annotations.Filter) {
     (s: string) => s.includes(includes),
     {
       expected: `a string including ${formatted}`,
-      toJsonSchemaConstraint: () => ({ pattern: includes }),
       meta: {
         _tag: "isIncludes",
         includes,
@@ -3801,7 +3793,6 @@ export function isUppercased(annotations?: Annotations.Filter) {
     (s: string) => s.toUpperCase() === s,
     {
       expected: "a string with all characters in uppercase",
-      toJsonSchemaConstraint: () => ({ pattern: UPPERCASED_PATTERN }),
       meta: {
         _tag: "isUppercased",
         regExp: new globalThis.RegExp(UPPERCASED_PATTERN)
@@ -3839,7 +3830,6 @@ export function isLowercased(annotations?: Annotations.Filter) {
     (s: string) => s.toLowerCase() === s,
     {
       expected: "a string with all characters in lowercase",
-      toJsonSchemaConstraint: () => ({ pattern: LOWERCASED_PATTERN }),
       meta: {
         _tag: "isLowercased",
         regExp: new globalThis.RegExp(LOWERCASED_PATTERN)
@@ -3877,7 +3867,6 @@ export function isCapitalized(annotations?: Annotations.Filter) {
     (s: string) => s.charAt(0).toUpperCase() === s.charAt(0),
     {
       expected: "a string with the first character in uppercase",
-      toJsonSchemaConstraint: () => ({ pattern: CAPITALIZED_PATTERN }),
       meta: {
         _tag: "isCapitalized",
         regExp: new globalThis.RegExp(CAPITALIZED_PATTERN)
@@ -3915,7 +3904,6 @@ export function isUncapitalized(annotations?: Annotations.Filter) {
     (s: string) => s.charAt(0).toLowerCase() === s.charAt(0),
     {
       expected: "a string with the first character in lowercase",
-      toJsonSchemaConstraint: () => ({ pattern: UNCAPITALIZED_PATTERN }),
       meta: {
         _tag: "isUncapitalized",
         regExp: new globalThis.RegExp(UNCAPITALIZED_PATTERN)
@@ -4141,7 +4129,6 @@ export function makeIsMultipleOf<T>(options: {
 export const isGreaterThan = makeIsGreaterThan({
   order: Order.number,
   annotate: (exclusiveMinimum) => ({
-    toJsonSchemaConstraint: () => ({ exclusiveMinimum }),
     meta: {
       _tag: "isGreaterThan",
       exclusiveMinimum
@@ -4174,7 +4161,6 @@ export const isGreaterThan = makeIsGreaterThan({
 export const isGreaterThanOrEqualTo = makeIsGreaterThanOrEqualTo({
   order: Order.number,
   annotate: (minimum) => ({
-    toJsonSchemaConstraint: () => ({ minimum }),
     meta: {
       _tag: "isGreaterThanOrEqualTo",
       minimum
@@ -4206,7 +4192,6 @@ export const isGreaterThanOrEqualTo = makeIsGreaterThanOrEqualTo({
 export const isLessThan = makeIsLessThan({
   order: Order.number,
   annotate: (exclusiveMaximum) => ({
-    toJsonSchemaConstraint: () => ({ exclusiveMaximum }),
     meta: {
       _tag: "isLessThan",
       exclusiveMaximum
@@ -4239,7 +4224,6 @@ export const isLessThan = makeIsLessThan({
 export const isLessThanOrEqualTo = makeIsLessThanOrEqualTo({
   order: Order.number,
   annotate: (maximum) => ({
-    toJsonSchemaConstraint: () => ({ maximum }),
     meta: {
       _tag: "isLessThanOrEqualTo",
       maximum
@@ -4274,20 +4258,6 @@ export const isBetween = makeIsBetween({
   order: Order.number,
   annotate: (options) => {
     return {
-      toJsonSchemaConstraint: () => {
-        const out: Record<string, unknown> = {}
-        if (options.exclusiveMinimum) {
-          out.exclusiveMinimum = options.minimum
-        } else {
-          out.minimum = options.minimum
-        }
-        if (options.exclusiveMaximum) {
-          out.exclusiveMaximum = options.maximum
-        } else {
-          out.maximum = options.maximum
-        }
-        return out
-      },
       meta: {
         _tag: "isBetween",
         ...options
@@ -4327,8 +4297,7 @@ export const isMultipleOf = makeIsMultipleOf({
     meta: {
       _tag: "isMultipleOf",
       divisor
-    },
-    toJsonSchemaConstraint: () => ({ multipleOf: Math.abs(divisor) })
+    }
   })
 })
 
@@ -4353,7 +4322,6 @@ export function isInt(annotations?: Annotations.Filter) {
     (n: number) => globalThis.Number.isSafeInteger(n),
     {
       expected: "an integer",
-      toJsonSchemaConstraint: () => ({ type: "integer" }),
       meta: {
         _tag: "isInt"
       },
@@ -4392,10 +4360,6 @@ export function isInt32(annotations?: Annotations.Filter) {
     ],
     {
       expected: "a 32-bit integer",
-      toJsonSchemaConstraint: (ctx) =>
-        ctx.target === "openapi-3.1" ?
-          { format: "int32" } :
-          undefined,
       ...annotations
     }
   )
@@ -4426,10 +4390,6 @@ export function isUint32(annotations?: Annotations.Filter) {
     ],
     {
       expected: "a 32-bit unsigned integer",
-      toJsonSchemaConstraint: (ctx) =>
-        ctx.target === "openapi-3.1" ?
-          { format: "uint32" } :
-          undefined,
       ...annotations
     }
   )
@@ -4790,14 +4750,6 @@ export function isMinLength(minLength: number, annotations?: Annotations.Filter)
     (input) => input.length >= minLength,
     {
       expected: `a value with a length of at least ${minLength}`,
-      toJsonSchemaConstraint: (ctx) => {
-        switch (ctx.type) {
-          case "string":
-            return { minLength }
-          case "array":
-            return { minItems: minLength }
-        }
-      },
       meta: {
         _tag: "isMinLength",
         minLength
@@ -4861,14 +4813,6 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
     (input) => input.length <= maxLength,
     {
       expected: `a value with a length of at most ${maxLength}`,
-      toJsonSchemaConstraint: (ctx) => {
-        switch (ctx.type) {
-          case "string":
-            return { maxLength }
-          case "array":
-            return { maxItems: maxLength }
-        }
-      },
       meta: {
         _tag: "isMaxLength",
         maxLength
@@ -4912,14 +4856,6 @@ export function isLength(length: number, annotations?: Annotations.Filter) {
     (input) => input.length === length,
     {
       expected: `a value with a length of ${length}`,
-      toJsonSchemaConstraint: (ctx) => {
-        switch (ctx.type) {
-          case "string":
-            return { minLength: length, maxLength: length }
-          case "array":
-            return { minItems: length, maxItems: length }
-        }
-      },
       meta: {
         _tag: "isLength",
         length
@@ -5083,7 +5019,6 @@ export function isMinProperties(minProperties: number, annotations?: Annotations
     (input) => Reflect.ownKeys(input).length >= minProperties,
     {
       expected: `an object with at least ${minProperties} properties`,
-      toJsonSchemaConstraint: () => ({ minProperties }),
       meta: {
         _tag: "isMinProperties",
         minProperties
@@ -5123,7 +5058,6 @@ export function isMaxProperties(maxProperties: number, annotations?: Annotations
     (input) => Reflect.ownKeys(input).length <= maxProperties,
     {
       expected: `an object with at most ${maxProperties} properties`,
-      toJsonSchemaConstraint: () => ({ maxProperties }),
       meta: {
         _tag: "isMaxProperties",
         maxProperties
@@ -5164,7 +5098,6 @@ export function isPropertiesLength(length: number, annotations?: Annotations.Fil
     (input) => Reflect.ownKeys(input).length === length,
     {
       expected: `an object with exactly ${length} properties`,
-      toJsonSchemaConstraint: () => ({ minProperties: length, maxProperties: length }),
       meta: {
         _tag: "isPropertiesLength",
         length
@@ -5203,7 +5136,6 @@ export function isUnique<T>(equivalence?: Equivalence.Equivalence<T>, annotation
     (input) => Arr.dedupeWith(input, equivalence).length === input.length,
     {
       expected: "an array with unique items",
-      toJsonSchemaConstraint: () => ({ uniqueItems: true }),
       meta: {
         _tag: "isUnique",
         equivalence
@@ -8356,9 +8288,6 @@ export declare namespace Annotations {
      * Optional metadata used to identify or extend the filter with custom data.
      */
     readonly meta?: Meta | undefined
-    readonly toJsonSchemaConstraint?:
-      | ToJsonSchema.Constraint
-      | undefined
     readonly toArbitraryConstraint?:
       | ToArbitrary.Constraint
       | undefined
@@ -8469,42 +8398,6 @@ export declare namespace Annotations {
         /* Equivalences for any type parameters of the schema (if present) */
         typeParameters: { readonly [K in keyof TypeParameters]: Equivalence.Equivalence<TypeParameters[K]["Type"]> }
       ): Equivalence.Equivalence<T>
-    }
-  }
-
-  /**
-   * @since 4.0.0
-   */
-  export namespace ToJsonSchema {
-    /**
-     * @since 4.0.0
-     */
-    export interface ConstraintContext {
-      /** The target of the JSON Schema */
-      readonly target: JsonSchema.Target
-      /** The type of the JSON Schema */
-      readonly type?: JsonSchema.Type | undefined
-    }
-
-    /**
-     * @since 4.0.0
-     */
-    export interface Constraint {
-      (context: ConstraintContext): JsonSchema.JsonSchema | undefined
-    }
-
-    /**
-     * @since 4.0.0
-     */
-    export interface Context<TypeParameters extends ReadonlyArray<Top>> {
-      /** Json Schemas for any type parameters of the schema (if present) */
-      readonly typeParameters: { readonly [K in keyof TypeParameters]: JsonSchema.JsonSchema }
-      /** The target of the JSON Schema */
-      readonly target: JsonSchema.Target
-      /** The default JSON Schema that would be generated by the AST */
-      readonly jsonSchema: JsonSchema.JsonSchema
-      /** A function that generates a JSON Schema from an AST, respecting the target and the options */
-      readonly make: (ast: AST.AST) => JsonSchema.JsonSchema
     }
   }
 

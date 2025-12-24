@@ -1216,6 +1216,9 @@ describe("toJsonSchemaDocument", () => {
           }
         }
       )
+    })
+
+    it("String & annotate", () => {
       assertDocument(
         Schema.String.annotate({ description: "a" }),
         {
@@ -1227,7 +1230,7 @@ describe("toJsonSchemaDocument", () => {
       )
     })
 
-    it("should ignore the key json annotations if the schema is not contextual", () => {
+    it("should ignore annotateKey annotations if the schema is not contextual", () => {
       assertDocument(
         Schema.String.annotateKey({
           description: "a"
@@ -1254,7 +1257,7 @@ describe("toJsonSchemaDocument", () => {
       )
     })
 
-    it("String & empty check", () => {
+    it("String & custom check without annotation", () => {
       assertDocument(
         Schema.String.check(Schema.makeFilter(() => true)),
         {
@@ -1265,7 +1268,7 @@ describe("toJsonSchemaDocument", () => {
       )
     })
 
-    it("String & annotations & check", () => {
+    it("String & annotate & check", () => {
       assertDocument(
         Schema.String.annotate({ description: "a" }).check(Schema.isMinLength(2)),
         {
@@ -1280,15 +1283,15 @@ describe("toJsonSchemaDocument", () => {
       )
     })
 
-    it("String & annotations & check & identifier", () => {
+    it("String & annotate & check & identifier", () => {
       assertDocument(
-        Schema.String.annotate({ description: "a" }).check(Schema.isMinLength(2, { identifier: "ID" })),
+        Schema.String.annotate({ description: "a" }).check(Schema.isMinLength(2, { identifier: "id" })),
         {
           schema: {
-            "$ref": "#/$defs/ID"
+            "$ref": "#/$defs/id"
           },
           definitions: {
-            ID: {
+            id: {
               "type": "string",
               "description": "a",
               "allOf": [
@@ -1300,7 +1303,7 @@ describe("toJsonSchemaDocument", () => {
       )
     })
 
-    it("String & check & annotations", () => {
+    it("String & check & annotate", () => {
       assertDocument(
         Schema.String.check(Schema.isMinLength(2)).annotate({
           description: "a"
@@ -1331,7 +1334,7 @@ describe("toJsonSchemaDocument", () => {
       )
     })
 
-    it("String & annotations & check & check", () => {
+    it("String & annotate & check & check", () => {
       assertDocument(
         Schema.String.annotate({ description: "a" }).check(Schema.isMinLength(2), Schema.isMaxLength(3)),
         {
@@ -1347,7 +1350,7 @@ describe("toJsonSchemaDocument", () => {
       )
     })
 
-    it("String & check & check & annotations", () => {
+    it("String & check & check & annotate", () => {
       assertDocument(
         Schema.String.check(Schema.isMinLength(2), Schema.isMaxLength(3)).annotate({
           description: "a"
@@ -1369,23 +1372,23 @@ describe("toJsonSchemaDocument", () => {
       )
     })
 
-    it("String & annotations & check & check & annotations", () => {
+    it("String & annotate & check & check & annotate", () => {
       assertDocument(
-        Schema.String.annotate({ description: "description1" }).check(
+        Schema.String.annotate({ description: "a" }).check(
           Schema.isMinLength(2),
-          Schema.isMaxLength(3, { description: "description3" })
+          Schema.isMaxLength(3, { description: "c" })
         ),
         {
           schema: {
             "type": "string",
-            "description": "description1",
+            "description": "a",
             "allOf": [
               {
                 "minLength": 2
               },
               {
                 "maxLength": 3,
-                "description": "description3"
+                "description": "c"
               }
             ]
           }
@@ -1396,8 +1399,8 @@ describe("toJsonSchemaDocument", () => {
     it("String & check & annotations & check & annotations", () => {
       assertDocument(
         Schema.String.check(
-          Schema.isMinLength(2, { description: "description2" }),
-          Schema.isMaxLength(3, { description: "description3" })
+          Schema.isMinLength(2, { description: "b" }),
+          Schema.isMaxLength(3, { description: "c" })
         ),
         {
           schema: {
@@ -1405,11 +1408,11 @@ describe("toJsonSchemaDocument", () => {
             "allOf": [
               {
                 "minLength": 2,
-                "description": "description2"
+                "description": "b"
               },
               {
                 "maxLength": 3,
-                "description": "description3"
+                "description": "c"
               }
             ]
           }
@@ -1419,22 +1422,22 @@ describe("toJsonSchemaDocument", () => {
 
     it("String & annotations & check & annotations & check & annotations", () => {
       assertDocument(
-        Schema.String.annotate({ description: "description1" }).check(
-          Schema.isMinLength(2, { description: "description2" }),
-          Schema.isMaxLength(3, { description: "description3" })
+        Schema.String.annotate({ description: "a" }).check(
+          Schema.isMinLength(2, { description: "b" }),
+          Schema.isMaxLength(3, { description: "c" })
         ),
         {
           schema: {
             "type": "string",
-            "description": "description1",
+            "description": "a",
             "allOf": [
               {
                 "minLength": 2,
-                "description": "description2"
+                "description": "b"
               },
               {
                 "maxLength": 3,
-                "description": "description3"
+                "description": "c"
               }
             ]
           }

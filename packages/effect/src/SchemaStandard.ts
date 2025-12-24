@@ -279,7 +279,7 @@ export type Check<M> = Filter<M> | FilterGroup<M>
  */
 export interface Filter<M> {
   readonly _tag: "Filter"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Filter | undefined
   readonly meta: M
 }
 
@@ -288,7 +288,7 @@ export interface Filter<M> {
  */
 export interface FilterGroup<M> {
   readonly _tag: "FilterGroup"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Filter | undefined
   readonly checks: readonly [Check<M>, ...Array<Check<M>>]
 }
 
@@ -393,7 +393,6 @@ const toJsonAnnotationsBlacklist: Set<string> = new Set([
   "toArbitrary",
   "toArbitraryConstraint",
   "toJsonSchema",
-  "toJsonSchemaConstraint",
   "toEquivalence",
   "toFormatter",
   "toCodec*",

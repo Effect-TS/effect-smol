@@ -2083,7 +2083,6 @@ export function isPattern(regExp: globalThis.RegExp, annotations?: Schema.Annota
     (s: string) => regExp.test(s),
     {
       expected: `a string matching the RegExp ${source}`,
-      toJsonSchemaConstraint: () => ({ pattern: regExp.source }),
       meta: {
         _tag: "isPattern",
         regExp
