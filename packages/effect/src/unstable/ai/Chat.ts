@@ -45,6 +45,7 @@
  * @since 4.0.0
  */
 import * as Channel from "../../Channel.ts"
+import * as Chunk from "../../Chunk.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import * as Layer from "../../Layer.ts"
@@ -374,7 +375,7 @@ export const empty: Effect.Effect<Service> = Effect.gen(function*() {
     ),
     streamText: Effect.fnUntraced(
       function*(options) {
-        let combined: Prompt.Prompt = Prompt.empty
+        let parts = Chunk.empty<Response.AnyPart>()
         return Stream.fromChannel(Channel.acquireUseRelease(
           semaphore.take(1).pipe(
             Effect.flatMap(() => Ref.get(history)),
@@ -382,15 +383,19 @@ export const empty: Effect.Effect<Service> = Effect.gen(function*() {
           ),
           (prompt) =>
             LanguageModel.streamText({ ...options, prompt }).pipe(
-              Stream.mapArrayEffect(Effect.fnUntraced(function*(parts) {
-                combined = Prompt.concat(combined, Prompt.fromResponseParts(parts))
-                return parts
-              })),
+              Stream.mapArray((chunk) => {
+                parts = Chunk.appendAll(parts, Chunk.fromArrayUnsafe(chunk))
+                return chunk
+              }),
               Stream.toChannel
             ),
-          (parts) =>
-            Ref.set(history, Prompt.concat(parts, combined)).pipe(
-              Effect.flatMap(() => semaphore.release(1))
+          (prompt) =>
+            Effect.andThen(
+              Ref.set(
+                history,
+                Prompt.concat(prompt, Prompt.fromResponseParts(Array.from(parts)))
+              ),
+              semaphore.release(1)
             )
         )).pipe(
           provideContextStream,
