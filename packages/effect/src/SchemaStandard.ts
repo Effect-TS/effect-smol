@@ -1311,7 +1311,7 @@ function toSchemaFilter(filter: Filter<Meta>): AST.Check<any> {
 
     // Arrays Meta
     case "isUnique":
-      return Schema.isUnique(undefined, a)
+      return Schema.isUnique(a)
   }
 }
 
@@ -1587,7 +1587,7 @@ function toCodeFilter(filter: Filter<Meta>): string {
 
     // Arrays Meta
     case "isUnique":
-      return `Schema.isUnique(undefined, ${a})`
+      return `Schema.isUnique(${a})`
 
     // Object Meta
     case "isMinProperties":

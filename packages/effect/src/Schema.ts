@@ -2256,7 +2256,7 @@ export interface UniqueArray<S extends Top> extends Array$<S> {}
  * @since 4.0.0
  */
 export function UniqueArray<S extends Top>(item: S): UniqueArray<S> {
-  return Array(item).check(isUnique(toEquivalence(item)))
+  return Array(item).check(isUnique())
 }
 
 /**
@@ -5130,15 +5130,14 @@ export function isPropertiesLength(length: number, annotations?: Annotations.Fil
  *
  * @since 4.0.0
  */
-export function isUnique<T>(equivalence?: Equivalence.Equivalence<T>, annotations?: Annotations.Filter) {
-  equivalence = equivalence ?? Equal.equivalence()
+export function isUnique<T>(annotations?: Annotations.Filter) {
+  const equivalence = Equal.equivalence()
   return makeFilter<ReadonlyArray<T>>(
     (input) => Arr.dedupeWith(input, equivalence).length === input.length,
     {
       expected: "an array with unique items",
       meta: {
-        _tag: "isUnique",
-        equivalence
+        _tag: "isUnique"
       },
       toArbitraryConstraint: {
         array: {
@@ -8597,7 +8596,6 @@ export declare namespace Annotations {
     // Arrays Meta
     readonly isUnique: {
       readonly _tag: "isUnique"
-      readonly equivalence: Equivalence.Equivalence<any>
     }
     // Declaration Meta
     readonly isMinSize: {
