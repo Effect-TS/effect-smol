@@ -376,8 +376,7 @@ export class Declaration extends Base {
   }
   /** @internal */
   getExpected(): string {
-    // Annotations on checks are ignored internally
-    const expected = this.annotations?.identifier ?? this.annotations?.title ?? this.annotations?.expected
+    const expected = this.annotations?.identifier ?? this.annotations?.expected
     if (typeof expected === "string") return expected
     return "<Declaration>"
   }
@@ -2194,6 +2193,14 @@ function appendTransformation<A extends AST>(
 ): A {
   const link = new Link(from, transformation)
   return replaceEncoding(to, to.encoding ? [...to.encoding, link] : [link])
+}
+
+/** @internal */
+export function brand(ast: AST, brand: string): AST {
+  const existing = InternalAnnotations.resolveBrands(ast)
+  const brands = existing ? [...existing, brand] : [brand]
+  const identifier = brands.join("")
+  return annotate(ast, { identifier, brands })
 }
 
 /**

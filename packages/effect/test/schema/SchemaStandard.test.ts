@@ -86,116 +86,238 @@ describe("Standard", () => {
   })
 
   describe("fromAST", () => {
-    it("should throw if there is a suspended schema without an identifier", () => {
-      const schema = Schema.Struct({
-        name: Schema.String,
-        children: Schema.Array(Schema.suspend((): Schema.Codec<Category> => schema))
-      })
-      throws(() => SchemaStandard.fromAST(schema.ast), "Suspended schema without identifier")
-    })
-
-    it("should throw if there are suspended schemas with duplicate identifiers", () => {
-      type Category2 = {
-        readonly name: number
-        readonly children: ReadonlyArray<Category2>
-      }
-
-      const OuterCategory2 = Schema.Struct({
-        name: Schema.Number,
-        children: Schema.Array(Schema.suspend((): Schema.Codec<Category2> => OuterCategory2))
-      }).annotate({ identifier: "Category" })
-
-      const schema = Schema.Tuple([OuterCategory, OuterCategory2])
-      assertStandardDocument(schema, {
+    it("String", () => {
+      assertStandardDocument(Schema.String, {
         schema: {
-          _tag: "Arrays",
-          elements: [
-            {
-              isOptional: false,
-              type: { _tag: "Reference", $ref: "Category" }
-            },
-            {
-              isOptional: false,
-              type: { _tag: "Reference", $ref: "Category-1" }
-            }
-          ],
-          rest: [],
+          _tag: "String",
           checks: []
         },
+        definitions: {}
+      })
+    })
+
+    it("String & brand", () => {
+      assertStandardDocument(Schema.String.pipe(Schema.brand("a")), {
+        schema: {
+          _tag: "Reference",
+          $ref: "a"
+        },
         definitions: {
-          Category: {
-            _tag: "Objects",
-            annotations: { identifier: "Category" },
-            propertySignatures: [
-              {
-                name: "name",
-                type: { _tag: "String", checks: [] },
-                isOptional: false,
-                isMutable: false
-              },
-              {
-                name: "children",
-                type: {
-                  _tag: "Arrays",
-                  elements: [],
-                  rest: [
-                    {
-                      _tag: "Suspend",
-                      checks: [],
-                      thunk: { _tag: "Reference", $ref: "Category" }
-                    }
-                  ],
-                  checks: []
-                },
-                isOptional: false,
-                isMutable: false
-              }
-            ],
-            indexSignatures: [],
-            checks: []
-          },
-          "Category-1": {
-            _tag: "Objects",
-            annotations: { identifier: "Category" },
-            propertySignatures: [
-              {
-                name: "name",
-                type: { _tag: "Number", checks: [] },
-                isOptional: false,
-                isMutable: false
-              },
-              {
-                name: "children",
-                type: {
-                  _tag: "Arrays",
-                  elements: [],
-                  rest: [
-                    {
-                      _tag: "Suspend",
-                      checks: [],
-                      thunk: { _tag: "Reference", $ref: "Category-1" }
-                    }
-                  ],
-                  checks: []
-                },
-                isOptional: false,
-                isMutable: false
-              }
-            ],
-            indexSignatures: [],
-            checks: []
+          "a": {
+            _tag: "String",
+            checks: [],
+            annotations: { identifier: "a", brands: ["a"] }
           }
         }
       })
     })
 
-    it("duplicate identifier", () => {
-      assertStandardDocument(
-        Schema.Tuple([
-          Schema.String.annotate({ identifier: "ID", description: "a" }),
-          Schema.String.annotate({ identifier: "ID", description: "b" })
-        ]),
-        {
+    it("String & brand & brand", () => {
+      assertStandardDocument(Schema.String.pipe(Schema.brand("a"), Schema.brand("b")), {
+        schema: {
+          _tag: "Reference",
+          $ref: "ab"
+        },
+        definitions: {
+          "ab": {
+            _tag: "String",
+            checks: [],
+            annotations: { identifier: "ab", brands: ["a", "b"] }
+          }
+        }
+      })
+    })
+
+    describe("identifier handling", () => {
+      it("should throw if there is a suspended schema without an identifier", () => {
+        const schema = Schema.Struct({
+          name: Schema.String,
+          children: Schema.Array(Schema.suspend((): Schema.Codec<Category> => schema))
+        })
+        throws(() => SchemaStandard.fromAST(schema.ast), "Suspended schema without identifier")
+      })
+
+      it("should handle suspended schemas with duplicate identifiers", () => {
+        type Category2 = {
+          readonly name: number
+          readonly children: ReadonlyArray<Category2>
+        }
+
+        const OuterCategory2 = Schema.Struct({
+          name: Schema.Number,
+          children: Schema.Array(Schema.suspend((): Schema.Codec<Category2> => OuterCategory2))
+        }).annotate({ identifier: "Category" })
+
+        const schema = Schema.Tuple([OuterCategory, OuterCategory2])
+        assertStandardDocument(schema, {
+          schema: {
+            _tag: "Arrays",
+            elements: [
+              {
+                isOptional: false,
+                type: { _tag: "Reference", $ref: "Category" }
+              },
+              {
+                isOptional: false,
+                type: { _tag: "Reference", $ref: "Category-1" }
+              }
+            ],
+            rest: [],
+            checks: []
+          },
+          definitions: {
+            Category: {
+              _tag: "Objects",
+              annotations: { identifier: "Category" },
+              propertySignatures: [
+                {
+                  name: "name",
+                  type: { _tag: "String", checks: [] },
+                  isOptional: false,
+                  isMutable: false
+                },
+                {
+                  name: "children",
+                  type: {
+                    _tag: "Arrays",
+                    elements: [],
+                    rest: [
+                      {
+                        _tag: "Suspend",
+                        checks: [],
+                        thunk: { _tag: "Reference", $ref: "Category" }
+                      }
+                    ],
+                    checks: []
+                  },
+                  isOptional: false,
+                  isMutable: false
+                }
+              ],
+              indexSignatures: [],
+              checks: []
+            },
+            "Category-1": {
+              _tag: "Objects",
+              annotations: { identifier: "Category" },
+              propertySignatures: [
+                {
+                  name: "name",
+                  type: { _tag: "Number", checks: [] },
+                  isOptional: false,
+                  isMutable: false
+                },
+                {
+                  name: "children",
+                  type: {
+                    _tag: "Arrays",
+                    elements: [],
+                    rest: [
+                      {
+                        _tag: "Suspend",
+                        checks: [],
+                        thunk: { _tag: "Reference", $ref: "Category-1" }
+                      }
+                    ],
+                    checks: []
+                  },
+                  isOptional: false,
+                  isMutable: false
+                }
+              ],
+              indexSignatures: [],
+              checks: []
+            }
+          }
+        })
+      })
+
+      it("should handle duplicate identifiers", () => {
+        assertStandardDocument(
+          Schema.Tuple([
+            Schema.String.annotate({ identifier: "ID", description: "a" }),
+            Schema.String.annotate({ identifier: "ID", description: "b" })
+          ]),
+          {
+            schema: {
+              _tag: "Arrays",
+              elements: [
+                {
+                  isOptional: false,
+                  type: { _tag: "Reference", $ref: "ID" }
+                },
+                {
+                  isOptional: false,
+                  type: { _tag: "Reference", $ref: "ID-1" }
+                }
+              ],
+              rest: [],
+              checks: []
+            },
+            definitions: {
+              "ID": { _tag: "String", checks: [], annotations: { identifier: "ID", description: "a" } },
+              "ID-1": { _tag: "String", checks: [], annotations: { identifier: "ID", description: "b" } }
+            }
+          }
+        )
+      })
+
+      it("String & identifier", () => {
+        assertStandardDocument(Schema.String.annotate({ identifier: "ID" }), {
+          schema: {
+            _tag: "Reference",
+            $ref: "ID"
+          },
+          definitions: {
+            "ID": {
+              _tag: "String",
+              checks: [],
+              annotations: { identifier: "ID" }
+            }
+          }
+        })
+      })
+
+      it("String& identifier & encoding ", () => {
+        assertStandardDocument(
+          Schema.String.annotate({ identifier: "ID" }).pipe(Schema.encodeTo(Schema.Literal("a"))),
+          {
+            schema: {
+              _tag: "Literal",
+              literal: "a"
+            },
+            definitions: {}
+          }
+        )
+      })
+
+      it("Tuple(ID, ID)", () => {
+        const ID = Schema.String.annotate({ identifier: "ID" })
+        assertStandardDocument(Schema.Tuple([ID, ID]), {
+          schema: {
+            _tag: "Arrays",
+            elements: [
+              {
+                isOptional: false,
+                type: { _tag: "Reference", $ref: "ID" }
+              },
+              {
+                isOptional: false,
+                type: { _tag: "Reference", $ref: "ID" }
+              }
+            ],
+            rest: [],
+            checks: []
+          },
+          definitions: {
+            "ID": { _tag: "String", checks: [], annotations: { identifier: "ID" } }
+          }
+        })
+      })
+
+      it("Tuple(ID, ID & description)", () => {
+        const ID = Schema.String.annotate({ identifier: "ID" })
+        assertStandardDocument(Schema.Tuple([ID, ID.annotate({ description: "a" })]), {
           schema: {
             _tag: "Arrays",
             elements: [
@@ -212,95 +334,10 @@ describe("Standard", () => {
             checks: []
           },
           definitions: {
-            "ID": { _tag: "String", checks: [], annotations: { identifier: "ID", description: "a" } },
-            "ID-1": { _tag: "String", checks: [], annotations: { identifier: "ID", description: "b" } }
+            "ID": { _tag: "String", checks: [], annotations: { identifier: "ID" } },
+            "ID-1": { _tag: "String", checks: [], annotations: { identifier: "ID", description: "a" } }
           }
-        }
-      )
-    })
-
-    it("String", () => {
-      assertStandardDocument(Schema.String, {
-        schema: {
-          _tag: "String",
-          checks: []
-        },
-        definitions: {}
-      })
-    })
-
-    it("String & identifier", () => {
-      assertStandardDocument(Schema.String.annotate({ identifier: "ID" }), {
-        schema: {
-          _tag: "Reference",
-          $ref: "ID"
-        },
-        definitions: {
-          "ID": {
-            _tag: "String",
-            checks: [],
-            annotations: { identifier: "ID" }
-          }
-        }
-      })
-    })
-
-    it("String& identifier & encoding ", () => {
-      assertStandardDocument(Schema.String.annotate({ identifier: "ID" }).pipe(Schema.encodeTo(Schema.Literal("a"))), {
-        schema: {
-          _tag: "Literal",
-          literal: "a"
-        },
-        definitions: {}
-      })
-    })
-
-    it("Tuple(ID, ID)", () => {
-      const ID = Schema.String.annotate({ identifier: "ID" })
-      assertStandardDocument(Schema.Tuple([ID, ID]), {
-        schema: {
-          _tag: "Arrays",
-          elements: [
-            {
-              isOptional: false,
-              type: { _tag: "Reference", $ref: "ID" }
-            },
-            {
-              isOptional: false,
-              type: { _tag: "Reference", $ref: "ID" }
-            }
-          ],
-          rest: [],
-          checks: []
-        },
-        definitions: {
-          "ID": { _tag: "String", checks: [], annotations: { identifier: "ID" } }
-        }
-      })
-    })
-
-    it("Tuple(ID, ID & description)", () => {
-      const ID = Schema.String.annotate({ identifier: "ID" })
-      assertStandardDocument(Schema.Tuple([ID, ID.annotate({ description: "a" })]), {
-        schema: {
-          _tag: "Arrays",
-          elements: [
-            {
-              isOptional: false,
-              type: { _tag: "Reference", $ref: "ID" }
-            },
-            {
-              isOptional: false,
-              type: { _tag: "Reference", $ref: "ID-1" }
-            }
-          ],
-          rest: [],
-          checks: []
-        },
-        definitions: {
-          "ID": { _tag: "String", checks: [], annotations: { identifier: "ID" } },
-          "ID-1": { _tag: "String", checks: [], annotations: { identifier: "ID", description: "a" } }
-        }
+        })
       })
     })
   })

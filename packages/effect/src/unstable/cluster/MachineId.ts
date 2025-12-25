@@ -8,7 +8,7 @@ import * as Schema from "../../Schema.ts"
  * @category constructors
  */
 export const MachineId = Schema.Int.pipe(
-  Schema.brand<"~effect/cluster/MachineId">(),
+  Schema.brand("~effect/cluster/MachineId"),
   Schema.annotate({
     toFormatter: () => (machineId: string) => `MachineId(${machineId})`
   })

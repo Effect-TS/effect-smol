@@ -307,7 +307,7 @@ export const Multipart = <S extends Schema.Top>(self: S, options?: {
   readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): Multipart<S> =>
-  self.pipe(Schema.brand<MultipartTypeId>()).annotate({
+  self.pipe(Schema.brand(MultipartTypeId)).annotate({
     httpApiMultipart: options ?? {}
   })
 
@@ -340,7 +340,7 @@ export const MultipartStream = <S extends Schema.Top>(self: S, options?: {
   readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): MultipartStream<S> =>
-  self.pipe(Schema.brand<MultipartStreamTypeId>()).annotate({
+  self.pipe(Schema.brand(MultipartStreamTypeId)).annotate({
     httpApiMultipartStream: options ?? {}
   })
 

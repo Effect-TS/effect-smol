@@ -2567,25 +2567,23 @@ export function refineByGuard<T extends S["Type"], S extends Top>(
   return (self: S): refine<T, S> => self.pipe(refine(makeRefinedByGuard(is, annotations)))
 }
 
-type DistributeBrands<T, B> =
-  & T
-  & UnionToIntersection<B extends infer U extends string | symbol ? Brand.Brand<U> : never>
+type DistributeBrands<B> = UnionToIntersection<B extends infer U extends string ? Brand.Brand<U> : never>
 
 /**
  * @since 4.0.0
  */
 export interface brand<S extends Top, B> extends
   Bottom<
-    DistributeBrands<S["Type"], B>,
+    S["Type"] & DistributeBrands<B>,
     S["Encoded"],
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
     brand<S, B>,
     S["~type.make.in"],
-    DistributeBrands<S["Type"], B>,
+    S["Type"] & DistributeBrands<B>,
     S["~type.parameters"],
-    DistributeBrands<S["Type"], B>,
+    S["Type"] & DistributeBrands<B>,
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -2595,25 +2593,55 @@ export interface brand<S extends Top, B> extends
 {
   readonly "~rebuild.out": this
   readonly schema: S
+  readonly identifier: string
 }
 
 /**
+ * Adds a brand to a schema.
+ *
+ * **Multiple brands**
+ *
+ * When multiple brands are added, they are joined to form the identifier.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const schema = Schema.String.pipe(Schema.brand("Positive"), Schema.brand("Int"))
+ * console.log(schema.ast.annotations?.identifier) // "PositiveInt"
+ * console.log(schema.ast.annotations?.brands) // ["Positive", "Int"]
+ * ```
+ *
+ * You can override the default behavior by adding an explicit identifier after the last brand
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ *
+ * const schema = Schema.String.pipe(Schema.brand("Positive"), Schema.brand("Int")).annotate({ identifier: "MyInt" })
+ * console.log(schema.ast.annotations?.identifier) // "MyInt"
+ * console.log(schema.ast.annotations?.brands) // ["Positive", "Int"]
+ * ```
+ *
  * @category Branding
  * @since 4.0.0
  */
-export function brand<B extends string | symbol>() {
-  return <S extends Top>(schema: S): brand<S, B> => make(schema.ast, { schema })
+export function brand<B extends string>(identifier: B) {
+  return <S extends Top>(schema: S): brand<S["~rebuild.out"], B> =>
+    make(AST.brand(schema.ast, identifier), { schema, identifier })
 }
 
 /**
  * @category Constructors
  * @since 4.0.0
  */
-export function fromBrand<A extends Brand.Brand<any>>(ctor: Brand.Constructor<A>) {
+export function fromBrand<A extends Brand.Brand<any>>(identifier: string, ctor: Brand.Constructor<A>) {
   return <S extends Top & { readonly "Type": Brand.Brand.Unbranded<A> }>(
     self: S
   ): brand<S["~rebuild.out"], Brand.Brand.Keys<A>> => {
-    return (ctor.checks ? self.check(...ctor.checks) : self.annotate({})).pipe(brand<any>())
+    return (ctor.checks ? self.check(...ctor.checks) : self).pipe(brand(identifier))
   }
 }
 
@@ -3378,7 +3406,7 @@ export function isRefinedByGuard<T extends E, E>(
  * @category Checks Combinators
  * @since 4.0.0
  */
-export function isBranded<B extends string | symbol>() {
+export function isBranded<B extends string>() {
   return <T>(self: AST.Check<T>): AST.RefinementGroup<T & Brand.Brand<B>, T> => {
     return self as any
   }
@@ -8220,6 +8248,10 @@ export declare namespace Annotations {
      * Optional metadata used to identify or extend the filter with custom data.
      */
     readonly meta?: Meta | undefined
+    /**
+     * Accumulated brands when multiple brands are added with `Schema.brand`.
+     */
+    readonly brands?: ReadonlyArray<string> | undefined
     readonly toArbitrary?:
       | ToArbitrary.Declaration<T, TypeParameters>
       | undefined

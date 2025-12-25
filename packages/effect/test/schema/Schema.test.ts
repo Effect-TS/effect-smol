@@ -2229,7 +2229,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   it("declare", async () => {
     const schema = Schema.declare(
       (u) => u instanceof File,
-      { title: "File" }
+      { expected: "File" }
     )
     const asserts = new TestSchema.Asserts(schema)
 
@@ -3834,7 +3834,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const schema = Schema.instanceOf(
         MyError,
-        { title: "MyError" }
+        { expected: "MyError" }
       )
       const asserts = new TestSchema.Asserts(schema)
 
@@ -4979,6 +4979,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed({ a: "a" }, new A({ a: "a" }))
+      await decoding.fail(
+        null,
+        `Expected object, got null`
+      )
       await decoding.fail(
         { a: 1 },
         `Expected string, got 1
@@ -6877,20 +6881,43 @@ describe("Check", () => {
     })
   })
 
+  describe("brand", () => {
+    it("single brand", async () => {
+      const schema = Schema.String.pipe(Schema.brand("Positive"))
+      strictEqual(schema.ast.annotations?.identifier, "Positive")
+      deepStrictEqual(schema.ast.annotations?.brands, ["Positive"])
+    })
+
+    it("double brand", async () => {
+      const schema = Schema.String.pipe(Schema.brand("Positive"), Schema.brand("Int"))
+      // by default brands are joined to form the identifier
+      strictEqual(schema.ast.annotations?.identifier, "PositiveInt")
+      deepStrictEqual(schema.ast.annotations?.brands, ["Positive", "Int"])
+    })
+
+    it("override the default identifier", async () => {
+      const schema = Schema.String.pipe(Schema.brand("Positive"), Schema.brand("Int")).annotate({ identifier: "MyInt" })
+      strictEqual(schema.ast.annotations?.identifier, "MyInt")
+      deepStrictEqual(schema.ast.annotations?.brands, ["Positive", "Int"])
+    })
+  })
+
   describe("fromBrand", () => {
     it("nominal", async () => {
-      const schema = Schema.String.pipe(Schema.fromBrand(Brand.nominal<string & Brand.Brand<"MyString">>()))
+      const schema = Schema.String.pipe(Schema.fromBrand("a", Brand.nominal<string & Brand.Brand<"a">>()))
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
       await decoding.succeed("a")
       await decoding.fail(1, `Expected string, got 1`)
+
+      deepStrictEqual(schema.ast.annotations?.brands, ["a"])
     })
 
     it("single brand", async () => {
       type Int = number & Brand.Brand<"Int">
       const Int = Brand.check<Int>(Schema.isInt())
-      const schema = Schema.Number.pipe(Schema.fromBrand(Int))
+      const schema = Schema.Number.pipe(Schema.fromBrand("Int", Int))
 
       const asserts = new TestSchema.Asserts(schema)
 
@@ -6898,6 +6925,8 @@ describe("Check", () => {
       await decoding.succeed(1)
       await decoding.fail("a", `Expected number, got "a"`)
       await decoding.fail(1.2, `Expected an integer, got 1.2`)
+
+      deepStrictEqual(schema.ast.checks?.at(-1)?.annotations?.brands, ["Int"])
     })
 
     it("multiple brands", async () => {
@@ -6908,7 +6937,7 @@ describe("Check", () => {
       const Positive = Brand.check<Positive>(Schema.isGreaterThan(0))
 
       const PositiveInt = Brand.all(Int, Positive)
-      const schema = Schema.Number.pipe(Schema.fromBrand(PositiveInt))
+      const schema = Schema.Number.pipe(Schema.fromBrand("PositiveInt", PositiveInt))
 
       const asserts = new TestSchema.Asserts(schema)
 
@@ -6917,6 +6946,8 @@ describe("Check", () => {
       await decoding.fail("a", `Expected number, got "a"`)
       await decoding.fail(1.2, `Expected an integer, got 1.2`)
       await decoding.fail(-1, `Expected a value greater than 0, got -1`)
+
+      deepStrictEqual(schema.ast.checks?.at(-1)?.annotations?.brands, ["PositiveInt"])
     })
   })
 

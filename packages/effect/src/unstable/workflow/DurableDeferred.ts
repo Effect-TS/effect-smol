@@ -242,7 +242,15 @@ export const raceAll = <
   })
 }
 
-type TokenTypeId = "~effect/workflow/DurableDeferred/Token"
+/**
+ * @since 4.0.0
+ */
+export const TokenTypeId = "~effect/workflow/DurableDeferred/Token"
+
+/**
+ * @since 4.0.0
+ */
+export type TokenTypeId = typeof TokenTypeId
 
 /**
  * @since 4.0.0
@@ -254,9 +262,7 @@ export type Token = Brand.Branded<string, TokenTypeId>
  * @since 4.0.0
  * @category Token
  */
-export const Token: Schema.brand<Schema.String, TokenTypeId> = Schema.String.pipe(
-  Schema.brand<TokenTypeId>()
-)
+export const Token: Schema.brand<Schema.String, TokenTypeId> = Schema.String.pipe(Schema.brand(TokenTypeId))
 
 /**
  * @since 4.0.0

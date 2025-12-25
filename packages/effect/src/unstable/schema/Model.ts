@@ -64,7 +64,7 @@ export {
    * import { Schema } from "effect"
    * import { Model } from "effect/unstable/schema"
    *
-   * export const GroupId = Schema.Number.pipe(Schema.brand<"GroupId">())
+   * export const GroupId = Schema.Number.pipe(Schema.brand("GroupId"))
    *
    * export class Group extends Model.Class<Group>("Group")({
    *   id: Model.Generated(GroupId),
@@ -565,7 +565,7 @@ export const JsonFromString = <S extends Schema.Top>(
  * @since 4.0.0
  * @category uuid
  */
-export interface UuidV4Insert<B extends string | symbol> extends
+export interface UuidV4Insert<B extends string> extends
   VariantSchema.Field<{
     readonly select: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
     readonly insert: VariantSchema.Overrideable<Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>>
@@ -586,7 +586,7 @@ export const Uint8Array: Schema.instanceOf<Uint8Array<ArrayBuffer>> = Schema.Uin
  * @since 4.0.0
  * @category uuid
  */
-export const UuidV4WithGenerate = <B extends string | symbol>(
+export const UuidV4WithGenerate = <B extends string>(
   schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
 ): VariantSchema.Overrideable<Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>> =>
   VariantSchema.Overrideable(schema, {
@@ -599,7 +599,7 @@ export const UuidV4WithGenerate = <B extends string | symbol>(
  * @since 4.0.0
  * @category uuid
  */
-export const UuidV4Insert = <const B extends string | symbol>(
+export const UuidV4Insert = <const B extends string>(
   schema: Schema.brand<Schema.instanceOf<Uint8Array<ArrayBuffer>>, B>
 ): UuidV4Insert<B> =>
   Field({
