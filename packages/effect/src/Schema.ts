@@ -3988,15 +3988,15 @@ export function isFinite(annotations?: Annotations.Filter) {
 export function makeIsGreaterThan<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMinimum: T) => Annotations.Filter) | undefined
-  readonly format?: (value: T) => string | undefined
+  readonly formatter?: Formatter<T> | undefined
 }) {
   const greaterThan = Order.greaterThan(options.order)
-  const fmt = options.format ?? format
+  const formatter = options.formatter ?? format
   return (exclusiveMinimum: T, annotations?: Annotations.Filter) => {
     return makeFilter<T>(
       (input) => greaterThan(input, exclusiveMinimum),
       {
-        expected: `a value greater than ${fmt(exclusiveMinimum)}`,
+        expected: `a value greater than ${formatter(exclusiveMinimum)}`,
         ...options.annotate?.(exclusiveMinimum),
         ...annotations
       }
@@ -4011,15 +4011,15 @@ export function makeIsGreaterThan<T>(options: {
 export function makeIsGreaterThanOrEqualTo<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMinimum: T) => Annotations.Filter) | undefined
-  readonly format?: (value: T) => string | undefined
+  readonly formatter?: Formatter<T> | undefined
 }) {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
-  const fmt = options.format ?? format
+  const formatter = options.formatter ?? format
   return (minimum: T, annotations?: Annotations.Filter) => {
     return makeFilter<T>(
       (input) => greaterThanOrEqualTo(input, minimum),
       {
-        expected: `a value greater than or equal to ${fmt(minimum)}`,
+        expected: `a value greater than or equal to ${formatter(minimum)}`,
         ...options.annotate?.(minimum),
         ...annotations
       }
@@ -4034,15 +4034,15 @@ export function makeIsGreaterThanOrEqualTo<T>(options: {
 export function makeIsLessThan<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMaximum: T) => Annotations.Filter) | undefined
-  readonly format?: (value: T) => string | undefined
+  readonly formatter?: Formatter<T> | undefined
 }) {
   const lessThan = Order.lessThan(options.order)
-  const fmt = options.format ?? format
+  const formatter = options.formatter ?? format
   return (exclusiveMaximum: T, annotations?: Annotations.Filter) => {
     return makeFilter<T>(
       (input) => lessThan(input, exclusiveMaximum),
       {
-        expected: `a value less than ${fmt(exclusiveMaximum)}`,
+        expected: `a value less than ${formatter(exclusiveMaximum)}`,
         ...options.annotate?.(exclusiveMaximum),
         ...annotations
       }
@@ -4057,15 +4057,15 @@ export function makeIsLessThan<T>(options: {
 export function makeIsLessThanOrEqualTo<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMaximum: T) => Annotations.Filter) | undefined
-  readonly format?: (value: T) => string | undefined
+  readonly formatter?: Formatter<T> | undefined
 }) {
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
-  const fmt = options.format ?? format
+  const formatter = options.formatter ?? format
   return (maximum: T, annotations?: Annotations.Filter) => {
     return makeFilter<T>(
       (input) => lessThanOrEqualTo(input, maximum),
       {
-        expected: `a value less than or equal to ${fmt(maximum)}`,
+        expected: `a value less than or equal to ${formatter(maximum)}`,
         ...options.annotate?.(maximum),
         ...annotations
       }
@@ -4087,13 +4087,13 @@ export function makeIsBetween<T>(deriveOptions: {
       readonly exclusiveMaximum?: boolean | undefined
     }) => Annotations.Filter)
     | undefined
-  readonly format?: (value: T) => string | undefined
+  readonly formatter?: Formatter<T> | undefined
 }) {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(deriveOptions.order)
   const greaterThan = Order.greaterThan(deriveOptions.order)
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(deriveOptions.order)
   const lessThan = Order.lessThan(deriveOptions.order)
-  const fmt = deriveOptions.format ?? format
+  const formatter = deriveOptions.formatter ?? format
   return (options: {
     readonly minimum: T
     readonly maximum: T
@@ -4105,8 +4105,8 @@ export function makeIsBetween<T>(deriveOptions: {
     return makeFilter<T>(
       (input) => gte(input, options.minimum) && lte(input, options.maximum),
       {
-        expected: `a value between ${fmt(options.minimum)}${options.exclusiveMinimum ? " (excluded)" : ""} and ${
-          fmt(options.maximum)
+        expected: `a value between ${formatter(options.minimum)}${options.exclusiveMinimum ? " (excluded)" : ""} and ${
+          formatter(options.maximum)
         }${options.exclusiveMaximum ? " (excluded)" : ""}`,
         ...deriveOptions.annotate?.(options),
         ...annotations
@@ -4123,14 +4123,14 @@ export function makeIsMultipleOf<T>(options: {
   readonly remainder: (input: T, divisor: T) => T
   readonly zero: NoInfer<T>
   readonly annotate?: ((divisor: T) => Annotations.Filter) | undefined
-  readonly format?: (value: T) => string | undefined
+  readonly formatter?: Formatter<T> | undefined
 }) {
   return (divisor: T, annotations?: Annotations.Filter) => {
-    const fmt = options.format ?? format
+    const formatter = options.formatter ?? format
     return makeFilter<T>(
       (input) => options.remainder(input, divisor) === options.zero,
       {
-        expected: `a value that is a multiple of ${fmt(divisor)}`,
+        expected: `a value that is a multiple of ${formatter(divisor)}`,
         ...options.annotate?.(divisor),
         ...annotations
       }
