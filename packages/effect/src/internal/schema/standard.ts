@@ -2,7 +2,7 @@ import * as Arr from "../../Array.ts"
 import { format } from "../../Formatter.ts"
 import type * as JsonSchema from "../../JsonSchema.ts"
 import * as Predicate from "../../Predicate.ts"
-import * as Record_ from "../../Record.ts"
+import * as Rec from "../../Record.ts"
 import * as RegEx from "../../RegExp.ts"
 import type * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
@@ -268,7 +268,7 @@ export function toJsonSchemaMultiDocument(
   const referenceStrategy = options?.referenceStrategy ?? "all"
   const additionalProperties = options?.additionalProperties ?? false
 
-  const definitions = Record_.map(document.definitions, (d) => recur(d))
+  const definitions = Rec.map(document.definitions, (d) => recur(d))
 
   return {
     source: "draft-2020-12",
@@ -473,7 +473,7 @@ export function toJsonSchemaMultiDocument(
           out.patternProperties = patternProperties
           delete out.additionalProperties
         }
-        if (Predicate.isObject(out.additionalProperties) && Record_.isRecordEmpty(out.additionalProperties)) {
+        if (Predicate.isObject(out.additionalProperties) && Rec.isEmptyRecord(out.additionalProperties)) {
           delete out.additionalProperties
         }
 

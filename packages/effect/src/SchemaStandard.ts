@@ -430,7 +430,7 @@ export const Annotations$ = Schema.Record(Schema.String, Schema.Unknown).pipe(
           out[k] = v
         }
       }
-      return Rec.isRecordEmpty(out) ? Option.none() : Option.some(out)
+      return Rec.isEmptyRecord(out) ? Option.none() : Option.some(out)
     }))
   })
 ).annotate({ identifier: "Annotations" })
