@@ -581,7 +581,7 @@ export class Enum extends Base {
     )
   }
   /** @internal */
-  encodeToString(): AST {
+  toCodecStringTree(): AST {
     if (this.enums.some(([_, v]) => typeof v === "number")) {
       const coercions = Object.fromEntries(this.enums.map(([_, v]) => [globalThis.String(v), v]))
       return replaceEncoding(this, [
@@ -714,7 +714,7 @@ export class UniqueSymbol extends Base {
     return fromConst(this, this.symbol)
   }
   /** @internal */
-  encodeToString(): AST {
+  toCodecStringTree(): AST {
     return replaceEncoding(this, [symbolToString])
   }
   /** @internal */
@@ -755,11 +755,11 @@ export class Literal extends Base {
     return fromConst(this, this.literal)
   }
   /** @internal */
-  encodeToStringOrNumberOrBoolean(): AST {
+  toCodecJson(): AST {
     return typeof this.literal === "bigint" ? literalToString(this) : this
   }
   /** @internal */
-  encodeToString(): AST {
+  toCodecStringTree(): AST {
     return typeof this.literal === "string" ? this : literalToString(this)
   }
   /** @internal */
@@ -822,10 +822,13 @@ export class Number extends Base {
     if (this.checks && (hasCheck(this.checks, "isInt") || hasCheck(this.checks, "isFinite"))) {
       return this
     }
-    return replaceEncoding(this, [numberToNumberOrNonFiniteLiterals])
+    return replaceEncoding(this, [numberToJson])
   }
   /** @internal */
-  encodeToString(): AST {
+  toCodecStringTree(): AST {
+    if (this.checks && (hasCheck(this.checks, "isInt") || hasCheck(this.checks, "isFinite"))) {
+      return replaceEncoding(this, [finiteToString])
+    }
     return replaceEncoding(this, [numberToString])
   }
   /** @internal */
@@ -883,7 +886,7 @@ export class Symbol extends Base {
     return fromRefinement(this, Predicate.isSymbol)
   }
   /** @internal */
-  encodeToString(): AST {
+  toCodecStringTree(): AST {
     return replaceEncoding(this, [symbolToString])
   }
   /** @internal */
@@ -908,7 +911,7 @@ export class BigInt extends Base {
     return fromRefinement(this, Predicate.isBigInt)
   }
   /** @internal */
-  encodeToString(): AST {
+  toCodecStringTree(): AST {
     return replaceEncoding(this, [bigIntToString])
   }
   /** @internal */
@@ -1118,15 +1121,13 @@ export class Arrays extends Base {
   }
 }
 
-function getIndexSignatureHash(ast: AST): string {
-  if (isTemplateLiteral(ast)) {
-    return ast.parts.map((part) =>
-      isLiteral(part) ? globalThis.String(part.literal) : `\${${getIndexSignatureHash(part)}}`
-    )
-      .join("")
-  }
-  return ast._tag
-}
+/**
+ * floating point or integer, with optional exponent
+ * @internal
+ */
+export const FINITE_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
+
+const isNumberStringRegExp = new globalThis.RegExp(`(?:${FINITE_PATTERN}|Infinity|-Infinity|NaN)`)
 
 /** @internal */
 export function getIndexSignatureKeys(
@@ -1233,17 +1234,9 @@ export class Objects extends Base {
     this.indexSignatures = indexSignatures
 
     // Duplicate property signatures
-    let duplicates = propertySignatures.map((ps) => ps.name).filter((name, i, arr) => arr.indexOf(name) !== i)
+    const duplicates = propertySignatures.map((ps) => ps.name).filter((name, i, arr) => arr.indexOf(name) !== i)
     if (duplicates.length > 0) {
       throw new Error(`Duplicate identifiers: ${JSON.stringify(duplicates)}. ts(2300)`)
-    }
-
-    // Duplicate index signatures
-    duplicates = indexSignatures.map((is) => getIndexSignatureHash(is.parameter)).filter((s, i, arr) =>
-      arr.indexOf(s) !== i
-    )
-    if (duplicates.length > 0) {
-      throw new Error(`Duplicate index signatures: ${JSON.stringify(duplicates)}. ts(2374)`)
     }
   }
   /** @internal */
@@ -1843,11 +1836,14 @@ export class Union<A extends AST = AST> extends Base {
   }
 }
 
-const numberToNumberOrNonFiniteLiterals = new Link(
-  new Union(
-    [number, new Literal("Infinity"), new Literal("-Infinity"), new Literal("NaN")],
-    "anyOf"
-  ),
+const nonFiniteLiterals = new Union([
+  new Literal("Infinity"),
+  new Literal("-Infinity"),
+  new Literal("NaN")
+], "anyOf")
+
+const numberToJson = new Link(
+  new Union([number, nonFiniteLiterals], "anyOf"),
   new Transformation.Transformation(
     Getter.Number(),
     Getter.transform((n) => globalThis.Number.isFinite(n) ? n : globalThis.String(n))
@@ -2452,7 +2448,7 @@ function getTemplateLiteralASTPartPattern(part: TemplateLiteralPart): string {
     case "String":
       return STRING_PATTERN
     case "Number":
-      return NUMBER_PATTERN
+      return FINITE_PATTERN
     case "BigInt":
       return BIGINT_PATTERN
     case "TemplateLiteral":
@@ -2523,7 +2519,7 @@ const indexSignatureParameterFromString = toCodec((ast) => {
     default:
       return ast
     case "Number":
-      return ast.encodeToString()
+      return ast.toCodecStringTree()
     case "Union":
       return ast.recur(indexSignatureParameterFromString)
   }
@@ -2539,7 +2535,7 @@ const templateLiteralPartFromString = toCodec((ast) => {
     case "BigInt":
     case "Number":
     case "Literal":
-      return ast.encodeToString()
+      return ast.toCodecStringTree()
     case "Union":
       return ast.recur(templateLiteralPartFromString)
   }
@@ -2550,31 +2546,33 @@ const templateLiteralPartFromString = toCodec((ast) => {
  * @internal
  */
 export const STRING_PATTERN = "[\\s\\S]*?"
-/**
- * floating point or integer, with optional exponent
- * @internal
- */
-export const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 
-const isNumberStringRegExp = new globalThis.RegExp(`(?:${NUMBER_PATTERN}|Infinity|-Infinity|NaN)`)
+const isFiniteStringRegExp = new globalThis.RegExp(`^${FINITE_PATTERN}$`)
 
 /** @internal */
-export function isNumberString(annotations?: Schema.Annotations.Filter) {
+export function isFiniteString(annotations?: Schema.Annotations.Filter) {
   return isPattern(
-    isNumberStringRegExp,
+    isFiniteStringRegExp,
     {
-      expected: "a string representing a number",
+      expected: "a string representing a finite number",
       meta: {
-        _tag: "isNumberString",
-        regExp: isNumberStringRegExp
+        _tag: "isFiniteString",
+        regExp: isFiniteStringRegExp
       },
       ...annotations
     }
   )
 }
 
+const finiteString = appendChecks(string, [isFiniteString()])
+
+const finiteToString = new Link(
+  finiteString,
+  Transformation.numberFromString
+)
+
 const numberToString = new Link(
-  appendChecks(string, [isNumberString()]),
+  new Union([finiteString, nonFiniteLiterals], "anyOf"),
   Transformation.numberFromString
 )
 

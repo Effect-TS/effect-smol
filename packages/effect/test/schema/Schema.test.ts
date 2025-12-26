@@ -3132,22 +3132,22 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
       await decoding.fail(
         { Infinity: "1" },
-        `Expected an integer, got Infinity
+        `Expected a string representing a finite number, got "Infinity"
   at ["Infinity"]`
       )
       await decoding.fail(
         { NaN: "1" },
-        `Expected an integer, got NaN
+        `Expected a string representing a finite number, got "NaN"
   at ["NaN"]`
       )
       await decoding.fail(
         { "-Infinity": "1" },
-        `Expected an integer, got -Infinity
+        `Expected a string representing a finite number, got "-Infinity"
   at ["-Infinity"]`
       )
     })
 
-    it("Record(Union(Number, string), FiniteFromString)", async () => {
+    it(`Record(Union(Number, "a"), FiniteFromString)`, async () => {
       const schema = Schema.Record(Schema.Union([Schema.Number, Schema.Literal("a")]), Schema.FiniteFromString)
       const asserts = new TestSchema.Asserts(schema)
 
@@ -3386,24 +3386,6 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("StructWithRest", () => {
-    it("should throw an error if there are duplicate index signatures", () => {
-      throws(
-        () =>
-          Schema.StructWithRest(
-            Schema.Struct({}),
-            [
-              Schema.Record(Schema.String, Schema.Number),
-              Schema.Record(Schema.Symbol, Schema.Number),
-              Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number),
-              Schema.Record(Schema.TemplateLiteral(["b", Schema.String]), Schema.Number),
-              Schema.Record(Schema.String, Schema.Number),
-              Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number)
-            ]
-          ),
-        new Error(`Duplicate index signatures: ["String","a\${String}"]. ts(2374)`)
-      )
-    })
-
     it("should throw an error if there are encodings", () => {
       throws(
         () =>
@@ -6814,12 +6796,12 @@ describe("Getter", () => {
 })
 
 describe("Check", () => {
-  it("isNumberString", async () => {
-    const schema = Schema.String.check(Schema.isNumberString())
+  it("isFiniteString", async () => {
+    const schema = Schema.String.check(Schema.isFiniteString())
 
     deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
-      _tag: "isNumberString",
-      regExp: /(?:[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?|Infinity|-Infinity|NaN)/
+      _tag: "isFiniteString",
+      regExp: /^[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?$/
     })
   })
 

@@ -3492,12 +3492,12 @@ export const isPattern: (regExp: globalThis.RegExp, annotations?: Annotations.Fi
   AST.isPattern
 
 /**
- * Validates that a string represents a valid number (can be parsed as a number).
+ * Validates that a string represents a finite number.
  *
  * **JSON Schema**
  *
  * This check corresponds to a `pattern` constraint in JSON Schema that matches
- * strings representing numbers.
+ * strings representing finite numbers.
  *
  * **Arbitrary**
  *
@@ -3507,7 +3507,7 @@ export const isPattern: (regExp: globalThis.RegExp, annotations?: Annotations.Fi
  * @category String checks
  * @since 4.0.0
  */
-export const isNumberString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isNumberString
+export const isFiniteString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isFiniteString
 
 /**
  * Validates that a string represents a valid BigInt (can be parsed as a BigInt).
@@ -7845,7 +7845,7 @@ function serializerTree(
     case "UniqueSymbol":
     case "Symbol":
     case "BigInt":
-      return ast.encodeToString()
+      return ast.toCodecStringTree()
     case "Objects": {
       if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
         throw new globalThis.Error("Objects property names must be strings", { cause: ast })
@@ -8471,8 +8471,8 @@ export declare namespace Annotations {
    */
   export interface BuiltInMetaDefinitions {
     // String Meta
-    readonly isNumberString: {
-      readonly _tag: "isNumberString"
+    readonly isFiniteString: {
+      readonly _tag: "isFiniteString"
       readonly regExp: globalThis.RegExp
     }
     readonly isBigIntString: {

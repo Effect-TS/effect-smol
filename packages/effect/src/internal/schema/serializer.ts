@@ -36,9 +36,8 @@ function toCodecJsonBase(ast: AST.AST): AST.AST {
     case "UniqueSymbol":
     case "Symbol":
     case "BigInt":
-      return ast.encodeToString()
+      return ast.toCodecStringTree()
     case "Literal":
-      return ast.encodeToStringOrNumberOrBoolean()
     case "Number":
       return ast.toCodecJson()
     case "Objects": {

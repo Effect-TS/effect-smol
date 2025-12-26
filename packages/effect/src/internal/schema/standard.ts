@@ -565,7 +565,7 @@ export function toJsonSchemaMultiDocument(
         case "isCapitalized":
         case "isUncapitalized":
         case "isTrimmed":
-        case "isNumberString":
+        case "isFiniteString":
         case "isBigIntString":
         case "isSymbolString":
           return { pattern: meta.regExp.source }
@@ -688,7 +688,7 @@ function getPartPattern(part: SchemaStandard.Standard): string {
     case "String":
       return AST.STRING_PATTERN
     case "Number":
-      return AST.NUMBER_PATTERN
+      return AST.FINITE_PATTERN
     case "TemplateLiteral":
       return part.parts.map(getPartPattern).join("")
     case "Union":

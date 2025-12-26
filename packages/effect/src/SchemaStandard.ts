@@ -297,7 +297,7 @@ export interface FilterGroup<M> {
  * @since 4.0.0
  */
 export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
-  | "isNumberString"
+  | "isFiniteString"
   | "isBigIntString"
   | "isSymbolString"
   | "isMinLength"
@@ -495,10 +495,10 @@ export const Any$ = Schema.Struct({
   annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Any" })
 
-const IsNumberString$ = Schema.Struct({
-  _tag: Schema.tag("isNumberString"),
+const IsFiniteString$ = Schema.Struct({
+  _tag: Schema.tag("isFiniteString"),
   regExp: Schema.RegExp
-}).annotate({ identifier: "IsNumberString" })
+}).annotate({ identifier: "IsFiniteString" })
 
 const IsBigIntString$ = Schema.Struct({
   _tag: Schema.tag("isBigIntString"),
@@ -595,7 +595,7 @@ const IsLength$ = Schema.Struct({
 }).annotate({ identifier: "IsLength" })
 
 const StringMeta$ = Schema.Union([
-  IsNumberString$,
+  IsFiniteString$,
   IsBigIntString$,
   IsSymbolString$,
   IsTrimmed$,
@@ -1293,12 +1293,12 @@ function toSchemaFilter(filter: Filter<Meta>): AST.Check<any> {
   const a = filter.annotations
   switch (filter.meta._tag) {
     // String Meta
-    case "isNumberString":
-      return Schema.isNumberString(a)
+    case "isFiniteString":
+      return Schema.isFiniteString(a) // TODO: return undefined
     case "isBigIntString":
-      return Schema.isBigIntString(a)
+      return Schema.isBigIntString(a) // TODO: return undefined
     case "isSymbolString":
-      return Schema.isSymbolString(a)
+      return Schema.isSymbolString(a) // TODO: return undefined
     case "isMinLength":
       return Schema.isMinLength(filter.meta.minLength, a)
     case "isMaxLength":
@@ -1601,8 +1601,8 @@ function toCodeFilter(filter: Filter<Meta>): string {
   const ca = a === "" ? "" : `, ${a}`
   switch (filter.meta._tag) {
     // String Meta
-    case "isNumberString":
-      return `Schema.isNumberString(${toCodeRegExp(filter.meta.regExp)}${ca})`
+    case "isFiniteString":
+      return `Schema.isFiniteString(${toCodeRegExp(filter.meta.regExp)}${ca})`
     case "isBigIntString":
       return `Schema.isBigIntString(${toCodeRegExp(filter.meta.regExp)}${ca})`
     case "isSymbolString":
