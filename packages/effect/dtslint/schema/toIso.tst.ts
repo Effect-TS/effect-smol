@@ -60,50 +60,24 @@ describe("toIso", () => {
     const schema = Schema.NonEmptyArray(Value)
     const optic = Schema.toIso(schema)
 
-    expect(optic).type.toBeAssignableTo<
+    expect(optic).type.toBe<
       Optic.Iso<
         readonly [Value, ...Array<Value>],
         readonly [{ readonly a: Date }, ...Array<{ readonly a: Date }>]
       >
     >()
-    expect(optic).type.toBeAssignableFrom<
-      Optic.Iso<
-        readonly [Value, ...Array<Value>],
-        readonly [{ readonly a: Date }, ...Array<{ readonly a: Date }>]
-      >
-    >()
-    // TODO: fix me, this should be true
-    // expect(optic).type.toBe<
-    //   Optic.Iso<
-    //     readonly [Value, ...Array<Value>],
-    //     readonly [{ readonly a: Date }, ...Array<{ readonly a: Date }>]
-    //   >
-    // >()
   })
 
   it("TupleWithRest", () => {
     const schema = Schema.TupleWithRest(Schema.Tuple([Value]), [Value, Value])
     const optic = Schema.toIso(schema)
 
-    expect(optic).type.toBeAssignableTo<
+    expect(optic).type.toBe<
       Optic.Iso<
         readonly [Value, ...Array<Value>, Value],
         readonly [{ readonly a: Date }, ...Array<{ readonly a: Date }>, { readonly a: Date }]
       >
     >()
-    expect(optic).type.toBeAssignableFrom<
-      Optic.Iso<
-        readonly [Value, ...Array<Value>, Value],
-        readonly [{ readonly a: Date }, ...Array<{ readonly a: Date }>, { readonly a: Date }]
-      >
-    >()
-    // TODO: fix me, this should be true
-    // expect(optic).type.toBe<
-    //   Optic.Iso<
-    //     readonly [Value, ...Array<Value>, Value],
-    //     readonly [{ readonly a: Date }, ...Array<{ readonly a: Date }>, { readonly a: Date }]
-    //   >
-    // >()
   })
 
   it("Struct", () => {
