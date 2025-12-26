@@ -1086,7 +1086,9 @@ export const optional = <Kind extends ParamKind, A>(
       Effect.map(
         ([leftover, value]) => [leftover, Option.some(value)] as const
       ),
-      Effect.catchTag("MissingOption", () => Effect.succeed([args.arguments, Option.none()] as const))
+      // Catch both MissingOption (for flags) and MissingArgument (for positional arguments)
+      Effect.catchTag("MissingOption", () => Effect.succeed([args.arguments, Option.none()] as const)),
+      Effect.catchTag("MissingArgument", () => Effect.succeed([args.arguments, Option.none()] as const))
     )
   return Object.assign(Object.create(Proto), {
     _tag: "Optional",

@@ -322,4 +322,37 @@ describe("Command arguments", () => {
       const helpText = stdout.join("\n")
       assert.isTrue(helpText.includes("FILE_PATH"))
     }).pipe(Effect.provide(TestLayer)))
+
+  it("should handle optional arguments - when provided", () =>
+    Effect.gen(function*() {
+      const resultRef = yield* Ref.make<any>(null)
+
+      const testCommand = Command.make("test", {
+        label: Argument.optional(
+          Argument.string("label").pipe(
+            Argument.withDescription("Optional label name")
+          )
+        )
+      }, (config) => Ref.set(resultRef, config))
+
+      // When optional argument IS provided
+      yield* Command.runWith(testCommand, { version: "1.0.0" })(["my-label"])
+      const result = yield* Ref.get(resultRef)
+      assert.isTrue(Option.isSome(result.label))
+      assert.strictEqual(result.label.value, "my-label")
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("should handle optional arguments - when not provided", () =>
+    Effect.gen(function*() {
+      // BUG TEST: Argument.optional() should work for positional arguments
+      // Currently it only catches MissingOption, not MissingArgument
+      const optionalArg = Argument.optional(Argument.string("label"))
+
+      // Parse with empty arguments - should succeed with Option.none()
+      const result = yield* optionalArg.parse({ flags: {}, arguments: [] })
+
+      // If we get here without error, optional is working
+      const [_leftover, value] = result
+      assert.isTrue(Option.isNone(value), "Should be Option.none()")
+    }).pipe(Effect.provide(TestLayer)))
 })
