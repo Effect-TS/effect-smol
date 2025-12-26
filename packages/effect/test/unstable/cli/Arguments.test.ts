@@ -148,7 +148,7 @@ describe("Command arguments", () => {
       expect(errorText).toMatchInlineSnapshot(`
         "
         ERROR
-          Invalid value for flag --count: "not-a-number". Expected: Failed to parse integer: Expected an integer, got NaN"
+          Invalid value for argument <count>: "not-a-number". Expected: Failed to parse integer: Expected an integer, got NaN"
       `)
     }).pipe(Effect.provide(TestLayer)))
 
@@ -354,5 +354,35 @@ describe("Command arguments", () => {
       // If we get here without error, optional is working
       const [_leftover, value] = result
       assert.isTrue(Option.isNone(value), "Should be Option.none()")
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("should show correct error message for invalid argument (not 'flag')", () =>
+    Effect.gen(function*() {
+      // When a positional argument has an invalid value, the error should say "argument"
+      // not "flag" (which would be confusing)
+      const intArg = Argument.integer("count")
+
+      const result = yield* Effect.exit(
+        intArg.parse({ flags: {}, arguments: ["not-a-number"] })
+      )
+
+      assert.isTrue(result._tag === "Failure", "Should fail with invalid integer")
+      if (result._tag === "Failure") {
+        // Extract the error from the cause
+        const cause = result.cause
+        // The cause structure is { _id: 'Cause', failures: [...] } but we need to access it properly
+        const errorMessage = String(cause)
+
+        // Error message should NOT say "flag"
+        assert.isFalse(
+          errorMessage.includes("flag --"),
+          `Error message should not say 'flag --' for positional arguments: ${errorMessage}`
+        )
+        // Error message SHOULD say "argument"
+        assert.isTrue(
+          errorMessage.includes("argument"),
+          `Error message should say 'argument': ${errorMessage}`
+        )
+      }
     }).pipe(Effect.provide(TestLayer)))
 })

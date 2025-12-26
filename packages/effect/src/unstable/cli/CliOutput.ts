@@ -276,7 +276,8 @@ export const layer = (formatter: Formatter): Layer.Layer<never> => Layer.succeed
  *   const error = new CliError.InvalidValue({
  *     option: "foo",
  *     value: "bar",
- *     expected: "baz"
+ *     expected: "baz",
+ *     kind: "flag"
  *   })
  *   const errorText = formatter.formatError(error)
  *   console.log(errorText)
