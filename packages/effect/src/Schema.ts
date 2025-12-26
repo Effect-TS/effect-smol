@@ -6237,7 +6237,7 @@ export const Date: Date = instanceOf(
     expected: "Date",
     toCodecJson: () =>
       link<globalThis.Date>()(
-        String.annotate({ expected: "a string that will be decoded as a Date" }),
+        String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" }),
         Transformation.transform({
           decode: (s) => new globalThis.Date(s),
           encode: formatDate

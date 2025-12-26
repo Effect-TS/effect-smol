@@ -519,6 +519,7 @@ describe("Standard", () => {
           typeParameters: [
             { _tag: "String", checks: [] }
           ],
+          checks: [],
           Encoded: {
             _tag: "Union",
             types: [

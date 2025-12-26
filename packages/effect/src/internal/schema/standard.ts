@@ -108,6 +108,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
           _tag: "Declaration",
           typeParameters: ast.typeParameters.map((tp) => recur(tp)),
           Encoded: recur(InternalSerializer.toCodecJson(ast)),
+          checks: fromChecks(ast.checks),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
       case "Null":
@@ -530,11 +531,7 @@ export function toJsonSchemaMultiDocument(
   }
 
   function filterToJsonSchema(filter: SchemaStandard.Filter<any>, type: unknown): JsonSchema.JsonSchema | undefined {
-    const meta = filter.meta as
-      | SchemaStandard.StringMeta
-      | SchemaStandard.NumberMeta
-      | SchemaStandard.ArraysMeta
-      | SchemaStandard.ObjectsMeta
+    const meta = filter.meta as SchemaStandard.Meta
     if (!meta) return undefined
 
     let out = on(meta)
@@ -545,11 +542,7 @@ export function toJsonSchemaMultiDocument(
     return out
 
     function on(
-      meta:
-        | SchemaStandard.StringMeta
-        | SchemaStandard.NumberMeta
-        | SchemaStandard.ArraysMeta
-        | SchemaStandard.ObjectsMeta
+      meta: SchemaStandard.Meta
     ): JsonSchema.JsonSchema | undefined {
       switch (meta._tag) {
         case "isMinLength":
@@ -608,6 +601,9 @@ export function toJsonSchemaMultiDocument(
           return { maxProperties: meta.maxProperties }
         case "isPropertiesLength":
           return { minProperties: meta.length, maxProperties: meta.length }
+
+        case "isValidDate":
+          return { format: "date-time" }
       }
     }
   }

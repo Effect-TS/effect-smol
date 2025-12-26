@@ -993,7 +993,28 @@ describe("toJsonSchemaDocument", () => {
   })
 
   describe("Declaration", () => {
-    it("instanceOf", () => {
+    it("Date", () => {
+      const schema = Schema.Date
+      assertDocument(schema, {
+        schema: {
+          "type": "string"
+        }
+      })
+    })
+
+    it("ValidDate", () => {
+      const schema = Schema.ValidDate
+      assertDocument(schema, {
+        schema: {
+          "type": "string",
+          "allOf": [
+            { "format": "date-time" }
+          ]
+        }
+      })
+    })
+
+    it("URL", () => {
       const schema = Schema.URL
       assertDocument(schema, {
         schema: {

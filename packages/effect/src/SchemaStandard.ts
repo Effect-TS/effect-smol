@@ -24,6 +24,7 @@ export interface Declaration {
   readonly _tag: "Declaration"
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly typeParameters: ReadonlyArray<Standard>
+  readonly checks: ReadonlyArray<Check<Meta>>
   readonly Encoded: Standard
 }
 
@@ -365,7 +366,18 @@ export type ObjectsMeta = Schema.Annotations.BuiltInMetaDefinitions[
 /**
  * @since 4.0.0
  */
-export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMeta
+export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
+  | "isValidDate"
+  | "isGreaterThanDate"
+  | "isGreaterThanOrEqualToDate"
+  | "isLessThanDate"
+  | "isLessThanOrEqualToDate"
+  | "isBetweenDate"
+]
+/**
+ * @since 4.0.0
+ */
+export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMeta | DateMeta
 
 /**
  * @since 4.0.0
@@ -910,6 +922,47 @@ export const Reference$ = Schema.Struct({
   $ref: Schema.String
 }).annotate({ identifier: "Reference" })
 
+const isValidDate$ = Schema.Struct({
+  _tag: Schema.tag("isValidDate")
+}).annotate({ identifier: "isValidDate" })
+
+const IsGreaterThanDate$ = Schema.Struct({
+  _tag: Schema.tag("isGreaterThanDate"),
+  exclusiveMinimum: Schema.Date
+}).annotate({ identifier: "IsGreaterThanDate" })
+
+const IsGreaterThanOrEqualToDate$ = Schema.Struct({
+  _tag: Schema.tag("isGreaterThanOrEqualToDate"),
+  minimum: Schema.Date
+}).annotate({ identifier: "IsGreaterThanOrEqualToDate" })
+
+const IsLessThanDate$ = Schema.Struct({
+  _tag: Schema.tag("isLessThanDate"),
+  exclusiveMaximum: Schema.Date
+}).annotate({ identifier: "IsLessThanDate" })
+
+const IsLessThanOrEqualToDate$ = Schema.Struct({
+  _tag: Schema.tag("isLessThanOrEqualToDate"),
+  maximum: Schema.Date
+}).annotate({ identifier: "IsLessThanOrEqualToDate" })
+
+const IsBetweenDate$ = Schema.Struct({
+  _tag: Schema.tag("isBetweenDate"),
+  minimum: Schema.Date,
+  maximum: Schema.Date,
+  exclusiveMinimum: Schema.optional(Schema.Boolean),
+  exclusiveMaximum: Schema.optional(Schema.Boolean)
+}).annotate({ identifier: "IsBetweenDate" })
+
+const DateMeta$ = Schema.Union([
+  isValidDate$,
+  IsGreaterThanDate$,
+  IsGreaterThanOrEqualToDate$,
+  IsLessThanDate$,
+  IsLessThanOrEqualToDate$,
+  IsBetweenDate$
+]).annotate({ identifier: "BigIntMeta" })
+
 /**
  * @since 4.0.0
  */
@@ -917,6 +970,7 @@ export const Declaration$ = Schema.Struct({
   _tag: Schema.tag("Declaration"),
   annotations: Schema.optional(Annotations$),
   typeParameters: Schema.Array(Standard$ref),
+  checks: Schema.Array(makeCheck(DateMeta$, "Date")),
   Encoded: Standard$ref
 }).annotate({ identifier: "Declaration" })
 
@@ -1312,6 +1366,20 @@ function toSchemaFilter(filter: Filter<Meta>): AST.Check<any> {
     // Arrays Meta
     case "isUnique":
       return Schema.isUnique(a)
+
+    // Date Meta
+    case "isValidDate":
+      return Schema.isValidDate(a)
+    case "isGreaterThanDate":
+      return Schema.isGreaterThanDate(filter.meta.exclusiveMinimum, a)
+    case "isGreaterThanOrEqualToDate":
+      return Schema.isGreaterThanOrEqualToDate(filter.meta.minimum, a)
+    case "isLessThanDate":
+      return Schema.isLessThanDate(filter.meta.exclusiveMaximum, a)
+    case "isLessThanOrEqualToDate":
+      return Schema.isLessThanOrEqualToDate(filter.meta.maximum, a)
+    case "isBetweenDate":
+      return Schema.isBetweenDate(filter.meta, a)
   }
 }
 
@@ -1556,7 +1624,8 @@ function toCodeFilter(filter: Filter<Meta>): string {
       return `Schema.isCapitalized(${ca})`
     case "isUncapitalized":
       return `Schema.isUncapitalized(${ca})`
-    // Number Meta
+
+      // Number Meta
     case "isFinite":
       return `Schema.isFinite(${ca})`
     case "isInt":
@@ -1573,7 +1642,8 @@ function toCodeFilter(filter: Filter<Meta>): string {
       return `Schema.isLessThanOrEqualTo(${filter.meta.maximum}${ca})`
     case "isBetween":
       return `Schema.isBetween(${filter.meta.minimum}, ${filter.meta.maximum}${ca})`
-    // BigInt Meta
+
+      // BigInt Meta
     case "isGreaterThanBigInt":
       return `Schema.isGreaterThanBigInt(${filter.meta.exclusiveMinimum}n${ca})`
     case "isGreaterThanOrEqualToBigInt":
@@ -1596,6 +1666,20 @@ function toCodeFilter(filter: Filter<Meta>): string {
       return `Schema.isMaxProperties(${filter.meta.maxProperties}${ca})`
     case "isPropertiesLength":
       return `Schema.isPropertiesLength(${filter.meta.length}${ca})`
+
+    // Date Meta
+    case "isValidDate":
+      return `Schema.isValidDate(${a})`
+    case "isGreaterThanDate":
+      return `Schema.isGreaterThanDate(${filter.meta.exclusiveMinimum}${ca})`
+    case "isGreaterThanOrEqualToDate":
+      return `Schema.isGreaterThanOrEqualToDate(${filter.meta.minimum}${ca})`
+    case "isLessThanDate":
+      return `Schema.isLessThanDate(${filter.meta.exclusiveMaximum}${ca})`
+    case "isLessThanOrEqualToDate":
+      return `Schema.isLessThanOrEqualToDate(${filter.meta.maximum}${ca})`
+    case "isBetweenDate":
+      return `Schema.isBetweenDate(${filter.meta.minimum}, ${filter.meta.maximum}${ca})`
   }
 }
 
