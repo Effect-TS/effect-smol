@@ -1023,6 +1023,88 @@ describe("toJsonSchemaDocument", () => {
       })
     })
 
+    it("Error", () => {
+      const schema = Schema.Error
+      assertDocument(schema, {
+        schema: {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "stack": {
+              "type": "string"
+            }
+          },
+          "required": ["message"],
+          "additionalProperties": false
+        }
+      })
+    })
+
+    it("RegExp", () => {
+      const schema = Schema.RegExp
+      assertDocument(schema, {
+        schema: {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "flags": {
+              "type": "string"
+            }
+          },
+          "required": ["source", "flags"],
+          "additionalProperties": false
+        }
+      })
+    })
+
+    it("Uint8Array", () => {
+      const schema = Schema.Uint8Array
+      assertDocument(schema, {
+        schema: {
+          "type": "string"
+        }
+      })
+    })
+
+    it("Duration", () => {
+      const schema = Schema.Duration
+      assertDocument(schema, {
+        schema: {
+          "anyOf": [
+            {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^-?\\d+$"
+                }
+              ]
+            },
+            {
+              "type": "integer",
+              "allOf": [
+                {
+                  "minimum": 0
+                }
+              ]
+            },
+            {
+              "type": "string",
+              "enum": [
+                "Infinity"
+              ]
+            }
+          ]
+        }
+      })
+    })
+
     it("Option(String)", () => {
       const schema = Schema.Option(Schema.String)
       assertDocument(schema, {

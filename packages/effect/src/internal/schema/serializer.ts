@@ -40,7 +40,7 @@ function toCodecJsonBase(ast: AST.AST): AST.AST {
     case "Literal":
       return ast.encodeToStringOrNumberOrBoolean()
     case "Number":
-      return ast.encodeToNumberOrNonFiniteLiterals()
+      return ast.toCodecJson()
     case "Objects": {
       if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
         throw new globalThis.Error("Objects property names must be strings", { cause: ast })

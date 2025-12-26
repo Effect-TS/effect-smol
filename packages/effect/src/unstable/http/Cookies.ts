@@ -43,7 +43,8 @@ export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRe
 export const CookiesSchema: CookiesSchema = Schema.declare(
   isCookies,
   {
-    title: "Cookies",
+    typeConstructor: { _tag: "effect/http/Cookies" },
+    expected: "Cookies",
     toCodecJson: () =>
       Schema.link<Cookies>()(
         Schema.Array(Schema.String),
@@ -105,7 +106,10 @@ export interface CookieSchema extends Schema.declare<Cookie> {}
  */
 export const CookieSchema: CookieSchema = Schema.declare(
   isCookie,
-  { title: "Cookie" }
+  {
+    typeConstructor: { _tag: "effect/http/Cookies/Cookie" },
+    expected: "Cookie"
+  }
 )
 
 const CookieErrorTypeId = "~effect/http/Cookies/CookieError"

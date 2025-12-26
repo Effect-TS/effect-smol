@@ -5310,8 +5310,8 @@ export function Option<A extends Top>(value: A): Option<A> {
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
+      typeConstructor: { _tag: "effect/Option" },
       expected: "Option",
-      typeConstructor: "Option",
       "toCodec*": ([value]) =>
         link<Option_.Option<A["Encoded"]>>()(
           Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
@@ -5474,6 +5474,7 @@ export function Result<A extends Top, E extends Top>(
       }
     },
     {
+      typeConstructor: { _tag: "effect/Result" },
       expected: "Result",
       "toCodec*": ([success, failure]) =>
         link<Result_.Result<A["Encoded"], E["Encoded"]>>()(
@@ -5577,6 +5578,7 @@ export function Redacted<S extends Top>(value: S, options?: {
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
+      typeConstructor: { _tag: "effect/Redacted" },
       expected: "Redacted",
       toCodecJson: ([value]) =>
         link<Redacted_.Redacted<S["Encoded"]>>()(
@@ -5662,6 +5664,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
       }
     },
     {
+      typeConstructor: { _tag: "effect/Cause/Failure" },
       expected: "Cause.Failure",
       "toCodec*": ([error, defect]) =>
         link<Cause_.Failure<E["Encoded"]>>()(
@@ -5758,6 +5761,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       })
     },
     {
+      typeConstructor: { _tag: "effect/Cause" },
       expected: "Cause",
       "toCodec*": ([failures]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
@@ -5796,6 +5800,7 @@ const ErrorJsonEncoded = Struct({
  * @since 4.0.0
  */
 export const Error: Error = instanceOf(globalThis.Error, {
+  typeConstructor: { _tag: "Error" },
   expected: "Error",
   toCodecJson: () => link<globalThis.Error>()(ErrorJsonEncoded, Transformation.errorFromErrorJsonEncoded),
   toArbitrary: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
@@ -5912,6 +5917,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
       }
     },
     {
+      typeConstructor: { _tag: "effect/Exit" },
       expected: "Exit",
       "toCodec*": ([value, cause]) =>
         link<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
@@ -6006,6 +6012,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
+      typeConstructor: { _tag: "ReadonlyMap" },
       expected: "ReadonlyMap",
       "toCodec*": ([key, value]) =>
         link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
@@ -6082,6 +6089,7 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
+      typeConstructor: { _tag: "ReadonlySet" },
       expected: "ReadonlySet",
       "toCodec*": ([value]) =>
         link<globalThis.Set<Value["Encoded"]>>()(
@@ -6123,6 +6131,7 @@ export interface RegExp extends instanceOf<globalThis.RegExp> {}
 export const RegExp: RegExp = instanceOf(
   globalThis.RegExp,
   {
+    typeConstructor: { _tag: "RegExp" },
     expected: "RegExp",
     toCodecJson: () =>
       link<globalThis.RegExp>()(
@@ -6187,6 +6196,7 @@ export interface URL extends instanceOf<globalThis.URL> {}
 export const URL: URL = instanceOf(
   globalThis.URL,
   {
+    typeConstructor: { _tag: "URL" },
     expected: "URL",
     toCodecJson: () =>
       link<globalThis.URL>()(
@@ -6234,6 +6244,7 @@ export interface Date extends instanceOf<globalThis.Date> {}
 export const Date: Date = instanceOf(
   globalThis.Date,
   {
+    typeConstructor: { _tag: "effect/Date" },
     expected: "Date",
     toCodecJson: () =>
       link<globalThis.Date>()(
@@ -6279,10 +6290,15 @@ export interface Duration extends declare<Duration_.Duration> {}
 export const Duration: Duration = declare(
   Duration_.isDuration,
   {
+    typeConstructor: { _tag: "effect/Duration" },
     expected: "Duration",
     toCodecJson: () =>
       link<Duration_.Duration>()(
-        Union([Number, BigInt, Literal("Infinity")]),
+        Union([
+          Int.check(isGreaterThanOrEqualTo(0)),
+          BigInt,
+          Literal("Infinity")
+        ]),
         Transformation.transform({
           decode: (value) => {
             if (value === "Infinity") return Duration_.infinity
@@ -6472,7 +6488,10 @@ export interface FormData extends instanceOf<globalThis.FormData> {}
 /**
  * @since 4.0.0
  */
-export const FormData: FormData = instanceOf(globalThis.FormData)
+export const FormData: FormData = instanceOf(globalThis.FormData, {
+  typeConstructor: { _tag: "FormData" },
+  expected: "FormData"
+})
 
 /**
  * @since 4.0.0
@@ -6574,7 +6593,10 @@ export interface URLSearchParams extends instanceOf<globalThis.URLSearchParams> 
 /**
  * @since 4.0.0
  */
-export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchParams)
+export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchParams, {
+  typeConstructor: { _tag: "URLSearchParams" },
+  expected: "URLSearchParams"
+})
 
 /**
  * @since 4.0.0
@@ -6808,12 +6830,13 @@ export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBuffer
  * @since 4.0.0
  */
 export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBufferLike>, {
+  typeConstructor: { _tag: "Uint8Array" },
+  expected: "Uint8Array",
   toCodecJson: () =>
     link<globalThis.Uint8Array<ArrayBufferLike>>()(
       String.annotate({ expected: "a string that will be decoded as Uint8Array" }),
       Transformation.uint8ArrayFromString
     ),
-  expected: "Uint8Array",
   toArbitrary: () => (fc) => fc.uint8Array()
 })
 
@@ -6911,7 +6934,8 @@ export interface DateTimeUtc extends declare<DateTime.Utc> {}
 export const DateTimeUtc: DateTimeUtc = declare(
   (u) => DateTime.isDateTime(u) && DateTime.isUtc(u),
   {
-    expected: "DateTimeUtc",
+    typeConstructor: { _tag: "effect/DateTime/Utc" },
+    expected: "DateTime.Utc",
     toCodecJson: () =>
       link<DateTime.Utc>()(
         String,
@@ -8300,7 +8324,7 @@ export declare namespace Annotations {
      * @internal
      */
     readonly "~sentinels"?: ReadonlyArray<AST.Sentinel> | undefined
-    readonly typeConstructor?: string | undefined
+    readonly typeConstructor?: { readonly _tag: string } | undefined
   }
 
   /**

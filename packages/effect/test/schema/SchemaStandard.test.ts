@@ -515,7 +515,7 @@ describe("Standard", () => {
       assertToJson(Schema.Option(Schema.String), {
         schema: {
           _tag: "Declaration",
-          annotations: { typeConstructor: "Option" },
+          annotations: { typeConstructor: { _tag: "effect/Option" } },
           typeParameters: [
             { _tag: "String", checks: [] }
           ],
@@ -1196,7 +1196,7 @@ describe("Standard", () => {
     })
 
     describe("Declaration", () => {
-      it("Option", () => {
+      it("Option(String)", () => {
         assertToCode(Schema.Option(Schema.String), "Schema.Option(Schema.String)")
       })
 

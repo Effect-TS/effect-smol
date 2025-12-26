@@ -818,7 +818,10 @@ export class Number extends Base {
     return fromRefinement(this, Predicate.isNumber)
   }
   /** @internal */
-  encodeToNumberOrNonFiniteLiterals(): AST {
+  toCodecJson(): AST {
+    if (this.checks && (hasCheck(this.checks, "isInt") || hasCheck(this.checks, "isFinite"))) {
+      return this
+    }
     return replaceEncoding(this, [numberToNumberOrNonFiniteLiterals])
   }
   /** @internal */
@@ -829,6 +832,18 @@ export class Number extends Base {
   getExpected(): string {
     return "number"
   }
+}
+
+function hasCheck(checks: ReadonlyArray<Check<unknown>>, tag: string): boolean {
+  return checks.some((c) => {
+    switch (c._tag) {
+      case "Filter": {
+        return Predicate.hasProperty(c.annotations?.meta, "_tag")
+      }
+      case "FilterGroup":
+        return hasCheck(c.checks, tag)
+    }
+  })
 }
 
 /**

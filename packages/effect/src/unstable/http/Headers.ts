@@ -85,7 +85,8 @@ export interface HeadersSchema extends Schema.declare<Headers, { readonly [x: st
 export const HeadersSchema: HeadersSchema = Schema.declare(
   isHeaders,
   {
-    title: "Headers",
+    typeConstructor: { _tag: "effect/http/Headers" },
+    expected: "Headers",
     toEquivalence: () => Equivalence,
     "toCodec*": () =>
       Schema.link<Headers>()(

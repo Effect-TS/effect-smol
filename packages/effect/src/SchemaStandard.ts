@@ -1074,12 +1074,19 @@ export type Reviver<T> = (declaration: Declaration, recur: (schema: Standard) =>
  * @since 4.0.0
  */
 export const toSchemaDefaultReviver: Reviver<Schema.Top> = (declaration, recur) => {
-  switch (declaration.annotations?.typeConstructor) {
-    default:
-      throw new Error(`Unknown type constructor: ${declaration.annotations?.typeConstructor}`)
-    case "Option":
-      return Schema.Option(recur(declaration.typeParameters[0]))
+  const typeConstructor = declaration.annotations?.typeConstructor
+  if (Predicate.hasProperty(typeConstructor, "_tag")) {
+    const _tag = typeConstructor._tag
+    if (typeof _tag === "string") {
+      switch (_tag) {
+        default:
+          return Schema.Unknown
+        case "effect/Option":
+          return Schema.Option(recur(declaration.typeParameters[0]))
+      }
+    }
   }
+  return Schema.Unknown
 }
 
 /**
@@ -1406,10 +1413,18 @@ export const toJsonSchemaMultiDocument: (
  */
 export const toCodeDefaultReviver: Reviver<string> = (declaration, recur) => {
   const typeConstructor = declaration.annotations?.typeConstructor
-  if (typeof typeConstructor === "string") {
-    return `Schema.${typeConstructor}(${declaration.typeParameters.map((p) => recur(p)).join(", ")})`
+  if (Predicate.hasProperty(typeConstructor, "_tag")) {
+    const _tag = typeConstructor._tag
+    if (typeof _tag === "string") {
+      switch (_tag) {
+        default:
+          return "Schema.Unknown"
+        case "effect/Option":
+          return `Schema.Option(${declaration.typeParameters.map((p) => recur(p)).join(", ")})`
+      }
+    }
   }
-  return `Schema.Unknown`
+  return "Schema.Unknown"
 }
 
 /**

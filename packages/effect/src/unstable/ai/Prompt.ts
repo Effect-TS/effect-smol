@@ -1498,6 +1498,11 @@ export interface PromptEncoded {
   readonly content: ReadonlyArray<MessageEncoded>
 }
 
+const Prompt$ = Schema.declare((u) => isPrompt(u), { identifier: "Prompt" })
+
+// TODO: is the type annotation necessary?
+// TODO: shoudn't the name be `PromptFrom...`?
+// TODO: is the explicit encoding necessary? maybe use the default JSON serializer?
 /**
  * Describes a schema that represents a `Prompt` instance.
  *
@@ -1508,7 +1513,7 @@ export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
   content: Schema.Array(Schema.toEncoded(Message))
 }).pipe(
   Schema.decodeTo(
-    Schema.declare((u) => isPrompt(u), { identifier: "Prompt" }),
+    Prompt$,
     SchemaTransformation.transformOrFail({
       decode: (input) =>
         Effect.mapBothEager(

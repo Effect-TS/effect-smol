@@ -153,6 +153,8 @@ export interface FileSchema extends Schema.declare<PersistedFile> {}
 export const FileSchema: FileSchema = Schema.declare(
   isPersistedFile,
   {
+    typeConstructor: { _tag: "effect/http/Multipart/PersistedFile" },
+    expected: "Multipart.PersistedFile",
     identifier: "PersistedFile",
     toCodecJson: () =>
       Schema.link<PersistedFile>()(
