@@ -952,7 +952,8 @@ export const map: {
  *         new CliError.InvalidValue({
  *           option: "email",
  *           value: email,
- *           expected: "valid email format"
+ *           expected: "valid email format",
+ *           kind: "flag"
  *         })
  *       )
  *   )
