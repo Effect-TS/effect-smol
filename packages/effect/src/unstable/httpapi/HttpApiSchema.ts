@@ -5,6 +5,7 @@ import type { YieldableError } from "../../Cause.ts"
 import type * as FileSystem from "../../FileSystem.ts"
 import { constant, constVoid, dual, type LazyArg } from "../../Function.ts"
 import * as Iterable from "../../Iterable.ts"
+import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as Transformation from "../../SchemaTransformation.ts"
@@ -513,6 +514,8 @@ export interface EmptyErrorClass<Self, Tag> extends
   new(): { readonly _tag: Tag } & YieldableError
 }
 
+const EmptyErrorTypeId = "~effect/httpapi/HttpApiSchema/EmptyError"
+
 /**
  * @since 4.0.0
  * @category empty errors
@@ -527,8 +530,10 @@ export const EmptyError = <Self>() =>
   }, {
     id: options.tag
   }) {
+    readonly [EmptyErrorTypeId]: typeof EmptyErrorTypeId
     constructor() {
       super({}, { disableValidation: true })
+      this[EmptyErrorTypeId] = EmptyErrorTypeId
       this.name = options.tag
     }
   }
@@ -542,7 +547,7 @@ export const EmptyError = <Self>() =>
       const decoded = new self()
       decoded.stack = options.tag
       transform = asEmpty(
-        Schema.declare((u) => u instanceof EmptyError, {
+        Schema.declare((u: unknown) => Predicate.hasProperty(u, EmptyErrorTypeId), {
           identifier: options.tag
         }),
         {
