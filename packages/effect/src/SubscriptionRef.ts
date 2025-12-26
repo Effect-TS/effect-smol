@@ -23,6 +23,14 @@ export interface SubscriptionRef<in out A> extends SubscriptionRef.Variance<A> {
 }
 
 /**
+ * @since 4.0.0
+ * @category guards
+ */
+export const isSubscriptionRef: (u: unknown) => u is SubscriptionRef<unknown> = (
+  u: unknown
+): u is SubscriptionRef<unknown> => typeof u === "object" && u != null && TypeId in u
+
+/**
  * The `SynchronizedRef` namespace containing type definitions and utilities.
  *
  * @since 2.0.0
@@ -58,15 +66,15 @@ const Proto = {
  * @since 2.0.0
  * @category constructors
  */
-export const make: <A>(value: A) => Effect.Effect<SubscriptionRef<A>> = Effect.fnUntraced(
-  function*<A>(value: A) {
+export const make = <A>(value: A): Effect.Effect<SubscriptionRef<A>> =>
+  Effect.map(PubSub.unbounded<A>({ replay: 1 }), (pubsub) => {
     const self = Object.create(Proto)
-    self.semaphore = yield* Effect.makeSemaphore(1)
-    self.backing = yield* Ref.make(value)
-    self.pubsub = yield* PubSub.unbounded<A>()
+    self.semaphore = Effect.makeSemaphoreUnsafe(1)
+    self.backing = Ref.makeUnsafe(value)
+    self.pubsub = pubsub
+    PubSub.publishUnsafe(self.pubsub, value)
     return self
-  }
-)
+  })
 
 /**
  * Creates a stream that emits the current value and all subsequent changes to
@@ -97,16 +105,7 @@ export const make: <A>(value: A) => Effect.Effect<SubscriptionRef<A>> = Effect.f
  * @category changes
  * @since 2.0.0
  */
-export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> =>
-  Stream.unwrap(
-    self.semaphore.withPermits(1)(Effect.sync(() => {
-      const current = self.backing.ref.current
-      return Stream.concat(
-        Stream.make(current),
-        Stream.fromPubSub(self.pubsub)
-      )
-    }))
-  )
+export const changes = <A>(self: SubscriptionRef<A>): Stream.Stream<A> => Stream.fromPubSub(self.pubsub)
 
 /**
  * Unsafely retrieves the current value of the `SubscriptionRef`.

@@ -1474,22 +1474,12 @@ export const tap: {
   options?: {
     readonly concurrency?: number | "unbounded" | undefined
   } | undefined
-): Stream<A, E | E2, R | R2> => {
-  const concurrency = options?.concurrency ?? 1
-  if (concurrency === 1 || concurrency === "unbounded") {
-    return self.channel.pipe(
-      Channel.tap(Effect.forEach(f, { discard: true, concurrency }), options),
-      fromChannel
-    )
-  }
-  return suspend(() => {
-    const withPermit = Effect.makeSemaphoreUnsafe(concurrency).withPermit
-    return self.channel.pipe(
-      Channel.tap(Effect.forEach((a) => withPermit(f(a)), { discard: true, concurrency }), options),
-      fromChannel
-    )
-  })
-})
+): Stream<A, E | E2, R | R2> =>
+  mapEffect(
+    self,
+    (a) => Effect.as(f(a), a),
+    options
+  ))
 
 /**
  * @since 2.0.0
@@ -6664,7 +6654,7 @@ export const runDrain = <A, E, R>(self: Stream<A, E, R>): Effect.Effect<void, E,
  */
 export const toPull = <A, E, R>(
   self: Stream<A, E, R>
-): Effect.Effect<Pull.Pull<ReadonlyArray<A>, E>, never, R | Scope.Scope> => Channel.toPull(self.channel)
+): Effect.Effect<Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E>, never, R | Scope.Scope> => Channel.toPull(self.channel)
 
 /**
  * Returns a combined string resulting from concatenating each of the values

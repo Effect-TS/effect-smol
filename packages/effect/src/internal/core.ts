@@ -13,13 +13,12 @@ import type * as ServiceMap from "../ServiceMap.ts"
 import type { Equals } from "../Types.ts"
 import { SingleShotGen } from "../Utils.ts"
 import type { FiberImpl } from "./effect.ts"
-import { version } from "./version.ts"
 
 /** @internal */
-export const EffectTypeId = `~effect/Effect/${version}` as const
+export const EffectTypeId = `~effect/Effect` as const
 
 /** @internal */
-export const ExitTypeId = `~effect/Exit/${version}` as const
+export const ExitTypeId = `~effect/Exit` as const
 
 const effectVariance = {
   _A: identity,
