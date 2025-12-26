@@ -1,0 +1,126 @@
+import * as NodeSdk from "@effect/opentelemetry/NodeSdk"
+import * as Tracer from "@effect/opentelemetry/Tracer"
+import { assert, describe, it } from "@effect/vitest"
+import * as OtelApi from "@opentelemetry/api"
+import { AsyncHooksContextManager } from "@opentelemetry/context-async-hooks"
+import { InMemorySpanExporter, SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base"
+import * as Effect from "effect/Effect"
+
+const TracingLive = NodeSdk.layer(Effect.sync(() => ({
+  resource: {
+    serviceName: "test"
+  },
+  spanProcessor: [new SimpleSpanProcessor(new InMemorySpanExporter())]
+})))
+
+// needed to test context propagation
+const contextManager = new AsyncHooksContextManager()
+OtelApi.context.setGlobalContextManager(contextManager)
+
+describe("Tracer", () => {
+  describe("provided", () => {
+    it.effect("withSpan", () =>
+      Effect.gen(function*() {
+        const span = yield* Effect.currentSpan
+        assert.instanceOf(span, Tracer.OtelSpan)
+      }).pipe(
+        Effect.withSpan("ok"),
+        Effect.provide(TracingLive)
+      ))
+
+    it.effect("withSpan links", () =>
+      Effect.gen(function*() {
+        const linkedSpan = yield* Effect.makeSpanScoped("B")
+        const span = yield* Effect.currentSpan.pipe(
+          Effect.withSpan("A"),
+          Effect.linkSpans(linkedSpan)
+        )
+        assert.instanceOf(span, Tracer.OtelSpan)
+        assert.lengthOf(span.links, 1)
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(TracingLive)
+      ))
+
+    it.effect("supervisor sets context", () =>
+      Effect.sync(() => {
+        const context = OtelApi.context.active()
+        assert.isDefined(OtelApi.trace.getSpan(context))
+      }).pipe(
+        Effect.withSpan("ok"),
+        Effect.provide(TracingLive)
+      ))
+
+    it.effect("supervisor sets context generator", () =>
+      Effect.gen(function*() {
+        yield* Effect.yieldNow
+        const context = OtelApi.context.active()
+        assert.isDefined(OtelApi.trace.getSpan(context))
+      }).pipe(
+        Effect.withSpan("ok"),
+        Effect.provide(TracingLive)
+      ))
+
+    // TODO:
+    // it.effect("currentOtelSpan", () =>
+    //   Effect.provide(
+    //     Effect.withSpan("ok")(
+    //       Effect.gen(function*() {
+    //         const span = yield* Effect.currentSpan
+    //         const otelSpan = yield* Tracer.currentOtelSpan
+    //         expect((span as OtelSpan).span).toBe(otelSpan)
+    //       })
+    //     ),
+    //     TracingLive
+    //   ))
+
+    it.effect("withSpanContext", () =>
+      Effect.gen(function*() {
+        const effect = Effect.gen(function*() {
+          const span = yield* Effect.currentParentSpan
+          assert(span._tag === "Span")
+          if (span.parent === undefined) {
+            return yield* Effect.die("No parent span")
+          }
+          return span.parent
+        }).pipe(Effect.withSpan("child"))
+
+        const services = yield* Effect.services<never>()
+
+        yield* Effect.promise(async () => {
+          await OtelApi.trace.getTracer("test").startActiveSpan("otel-span", {
+            root: true,
+            attributes: { "root": "yes" }
+          }, async (span) => {
+            try {
+              const parent = await effect.pipe(
+                Tracer.withSpanContext(span.spanContext()),
+                Effect.provideServices(services),
+                Effect.runPromise
+              )
+              const { spanId, traceId } = span.spanContext()
+              assert.containsSubset(parent, {
+                spanId,
+                traceId
+              })
+            } finally {
+              span.end()
+            }
+          })
+        })
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(TracingLive)
+      ))
+  })
+
+  describe("not provided", () => {
+    it.effect("withSpan", () =>
+      Effect.gen(function*() {
+        const span = yield* Effect.currentSpan
+        assert.notInstanceOf(span, Tracer.OtelSpan)
+      }).pipe(
+        Effect.withSpan("ok")
+      ))
+  })
+})

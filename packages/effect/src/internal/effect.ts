@@ -4408,7 +4408,7 @@ export const withTracerEnabled: {
 
 const bigint0 = BigInt(0)
 
-const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "context"> = {
+const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "services"> = {
   _tag: "Span",
   spanId: "noop",
   traceId: "noop",
@@ -4431,12 +4431,12 @@ const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "context"> = {
 export const noopSpan = (options: {
   readonly name: string
   readonly parent: Tracer.AnySpan | undefined
-  readonly context: ServiceMap.ServiceMap<never>
+  readonly services: ServiceMap.ServiceMap<never>
 }): Tracer.Span => Object.assign(Object.create(NoopSpanProto), options)
 
 const filterDisablePropagation = (span: Tracer.AnySpan | undefined): Tracer.AnySpan | undefined => {
   if (span) {
-    return ServiceMap.get(span.context, Tracer.DisablePropagation)
+    return ServiceMap.get(span.services, Tracer.DisablePropagation)
       ? span._tag === "Span" ? filterDisablePropagation(span.parent) : undefined
       : span
   }
@@ -4449,7 +4449,7 @@ export const makeSpanUnsafe = <XA, XE>(
   options: Tracer.SpanOptionsNoTrace | undefined
 ) => {
   const disablePropagation = !fiber.getRef(TracerEnabled) ||
-    (options?.context && ServiceMap.get(options.context, Tracer.DisablePropagation))
+    (options?.services && ServiceMap.get(options.services, Tracer.DisablePropagation))
   const parent = options?.parent ?? (options?.root ? undefined : filterDisablePropagation(fiber.currentSpan))
 
   let span: Tracer.Span
@@ -4458,8 +4458,8 @@ export const makeSpanUnsafe = <XA, XE>(
     span = noopSpan({
       name,
       parent,
-      context: ServiceMap.add(
-        options?.context ?? ServiceMap.empty(),
+      services: ServiceMap.add(
+        options?.services ?? ServiceMap.empty(),
         Tracer.DisablePropagation,
         true
       )
@@ -4477,7 +4477,7 @@ export const makeSpanUnsafe = <XA, XE>(
     span = tracer.span(
       name,
       parent,
-      options?.context ?? ServiceMap.empty(),
+      options?.services ?? ServiceMap.empty(),
       links,
       clock.currentTimeNanosUnsafe(),
       options?.kind ?? "internal"
@@ -4876,7 +4876,8 @@ export const ConsoleRef = ServiceMap.Reference<Console.Console>(
 // LogLevel
 // ----------------------------------------------------------------------------
 
-const logLevelToOrder = (level: LogLevel.LogLevel) => {
+/** @internal */
+export const logLevelToOrder = (level: LogLevel.LogLevel) => {
   switch (level) {
     case "All":
       return Number.MIN_SAFE_INTEGER
