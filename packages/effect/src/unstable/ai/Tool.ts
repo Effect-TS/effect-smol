@@ -28,6 +28,7 @@
  */
 import type * as Effect from "../../Effect.ts"
 import { constFalse, constTrue, identity } from "../../Function.ts"
+import type { ErrorWithStackTraceLimit } from "../../internal/tracer.ts"
 import type * as JsonSchema from "../../JsonSchema.ts"
 import { pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
@@ -1305,11 +1306,11 @@ function filter(obj: any) {
  */
 export const unsafeSecureJsonParse = (text: string): unknown => {
   // Performance optimization, see https://github.com/fastify/secure-json-parse/pull/90
-  const { stackTraceLimit } = Error
-  Error.stackTraceLimit = 0
+  const { stackTraceLimit } = Error as ErrorWithStackTraceLimit
+  ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = 0
   try {
     return _parse(text)
   } finally {
-    Error.stackTraceLimit = stackTraceLimit
+    ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = stackTraceLimit
   }
 }

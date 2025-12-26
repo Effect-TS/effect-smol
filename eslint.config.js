@@ -153,5 +153,11 @@ export default tseslint.config(
         }
       ]
     }
+  },
+  {
+    files: ["packages/platform-deno/src/**/*", "packages/platform-deno/test/**/*"],
+    rules: {
+      "import-x/namespace": "off"
+    }
   }
 )
