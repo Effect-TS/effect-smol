@@ -166,6 +166,14 @@ export const values: ReadonlyArray<LogLevel> = ["All", "Fatal", "Error", "Warn",
 export const Order: Ord.Order<LogLevel> = effect.LogLevelOrder
 
 /**
+ * Returns the ordinal value of the log level.
+ *
+ * @since 4.0.0
+ * @category ordering
+ */
+export const getOrdinal = (self: LogLevel): number => effect.logLevelToOrder(self)
+
+/**
  * Determines if the first log level is more severe than the second.
  *
  * Returns `true` if `self` represents a more severe level than `that`.
