@@ -4,19 +4,16 @@
 import * as Otel from "@opentelemetry/api"
 import * as OtelSemConv from "@opentelemetry/semantic-conventions"
 import * as Cause from "effect/Cause"
+import * as Clock from "effect/Clock"
 import * as Effect from "effect/Effect"
-import type * as Exit from "effect/Exit"
-import { dual } from "effect/Function"
+import * as Exit from "effect/Exit"
+import { constTrue, dual } from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Predicate from "effect/Predicate"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Tracer from "effect/Tracer"
 import { recordToAttributes, unknownToAttributeValue } from "./internal/attributes.ts"
 import { Resource } from "./Resource.ts"
-
-// TODO:
-//   - Need to figure out implementation for Tracer.currentOtelSpan
-//     - https://github.com/Effect-TS/effect/blob/ba9e7908a80a55f24217c88af4f7d89a4f7bc0e4/packages/opentelemetry/src/Tracer.ts#L44
 
 // =============================================================================
 // Service Definitions
@@ -194,6 +191,125 @@ export const layer: Layer.Layer<OtelTracer, never, OtelTracerProvider | Resource
   Layer.provideMerge(layerTracer)
 )
 
+// =============================================================================
+// Utilities / Combinators
+// =============================================================================
+
+const bigint1e6 = BigInt(1_000_000)
+const bigint1e9 = BigInt(1_000_000_000)
+
+/**
+ * Get the current OpenTelemetry span.
+ *
+ * Works with both the official OpenTelemetry API (via `Tracer.layer`,
+ * `NodeSdk.layer`, etc.) and the lightweight OTLP module (`OtlpTracer.layer`).
+ *
+ * When using OTLP, the returned span is a wrapper that conforms to the
+ * OpenTelemetry `Span` interface.
+ *
+ * @since 1.0.0
+ * @category accessors
+ */
+export const currentOtelSpan: Effect.Effect<Otel.Span, Cause.NoSuchElementError> = Effect.withFiber((fiber) => {
+  const clock = ServiceMap.get(fiber.services, Clock.Clock)
+  const span = fiber.currentSpanLocal
+  if (Predicate.isUndefined(span)) {
+    return Effect.fail(new Cause.NoSuchElementError())
+  }
+  return Effect.succeed(
+    OtelSpanTypeId in span
+      ? (span as OtelSpan).span
+      : makeOtelSpan(span, clock)
+  )
+})
+
+const makeOtelSpan = (span: Tracer.Span, clock: Clock.Clock): Otel.Span => {
+  const spanContext: Otel.SpanContext = {
+    traceId: span.traceId,
+    spanId: span.spanId,
+    traceFlags: span.sampled ? Otel.TraceFlags.SAMPLED : Otel.TraceFlags.NONE,
+    isRemote: false
+  }
+
+  let exit = Exit.void
+
+  const self: Otel.Span = {
+    spanContext: () => spanContext,
+    setAttribute(key, value) {
+      span.attribute(key, value)
+      return self
+    },
+    setAttributes(attributes) {
+      for (const [key, value] of Object.entries(attributes)) {
+        span.attribute(key, value)
+      }
+      return self
+    },
+    addEvent(name) {
+      let attributes: Otel.Attributes | undefined = undefined
+      let startTime: Otel.TimeInput | undefined = undefined
+      if (arguments.length === 3) {
+        attributes = arguments[1]
+        startTime = arguments[2]
+      } else {
+        startTime = arguments[1]
+      }
+      span.event(name, convertOtelTimeInput(startTime, clock), attributes)
+      return self
+    },
+    addLink(link) {
+      span.addLinks([{
+        span: makeExternalSpan(link.context),
+        attributes: link.attributes ?? {}
+      }])
+      return self
+    },
+    addLinks(links) {
+      span.addLinks(links.map((link) => ({
+        span: makeExternalSpan(link.context),
+        attributes: link.attributes ?? {}
+      })))
+      return self
+    },
+    setStatus(status) {
+      exit = Otel.SpanStatusCode.ERROR
+        ? Exit.die(status.message ?? "Unknown error")
+        : Exit.void
+      return self
+    },
+    updateName: () => self,
+    end(endTime) {
+      const time = convertOtelTimeInput(endTime, clock)
+      span.end(time, exit)
+      return self
+    },
+    isRecording: constTrue,
+    recordException(exception, timeInput) {
+      const time = convertOtelTimeInput(timeInput, clock)
+      const cause = Cause.fail(exception)
+      const error = Cause.prettyErrors(cause)[0]
+      span.event(error.message, time, {
+        "exception.type": error.name,
+        "exception.message": error.message,
+        "exception.stacktrace": error.stack ?? ""
+      })
+    }
+  }
+  return self
+}
+
+const convertOtelTimeInput = (input: Otel.TimeInput | undefined, clock: Clock.Clock): bigint => {
+  if (input === undefined) {
+    return clock.currentTimeNanosUnsafe()
+  } else if (typeof input === "number") {
+    return BigInt(Math.round(input * 1_000_000))
+  } else if (input instanceof Date) {
+    return BigInt(input.getTime()) * bigint1e6
+  }
+  const [seconds, nanos] = input
+  return BigInt(seconds) * bigint1e9 + BigInt(nanos)
+}
+
 /**
  * Set the effect's parent span from the given opentelemetry `SpanContext`.
  *
@@ -360,8 +476,6 @@ export class OtelSpan implements Tracer.Span {
 
 const isSampled = (traceFlags: Otel.TraceFlags): boolean =>
   (traceFlags & Otel.TraceFlags.SAMPLED) === Otel.TraceFlags.SAMPLED
-
-const bigint1e9 = 1_000_000_000n
 
 const nanosToHrTime = (timestamp: bigint): Otel.HrTime => {
   return [Number(timestamp / bigint1e9), Number(timestamp % bigint1e9)]

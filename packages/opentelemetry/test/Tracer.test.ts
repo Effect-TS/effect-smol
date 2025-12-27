@@ -61,18 +61,15 @@ describe("Tracer", () => {
         Effect.provide(TracingLive)
       ))
 
-    // TODO:
-    // it.effect("currentOtelSpan", () =>
-    //   Effect.provide(
-    //     Effect.withSpan("ok")(
-    //       Effect.gen(function*() {
-    //         const span = yield* Effect.currentSpan
-    //         const otelSpan = yield* Tracer.currentOtelSpan
-    //         expect((span as OtelSpan).span).toBe(otelSpan)
-    //       })
-    //     ),
-    //     TracingLive
-    //   ))
+    it.effect("currentOtelSpan", () =>
+      Effect.gen(function*() {
+        const span = yield* Effect.currentSpan
+        const otelSpan = yield* Tracer.currentOtelSpan
+        assert.strictEqual((span as Tracer.OtelSpan).span, otelSpan)
+      }).pipe(
+        Effect.withSpan("ok"),
+        Effect.provide(TracingLive)
+      ))
 
     it.effect("withSpanContext", () =>
       Effect.gen(function*() {
