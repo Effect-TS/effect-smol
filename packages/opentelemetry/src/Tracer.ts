@@ -4,7 +4,7 @@
 import * as Otel from "@opentelemetry/api"
 import * as OtelSemConv from "@opentelemetry/semantic-conventions"
 import * as Cause from "effect/Cause"
-import * as Clock from "effect/Clock"
+import type * as Clock from "effect/Clock"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import { constTrue, dual } from "effect/Function"
@@ -210,18 +210,12 @@ const bigint1e9 = BigInt(1_000_000_000)
  * @since 1.0.0
  * @category accessors
  */
-export const currentOtelSpan: Effect.Effect<Otel.Span, Cause.NoSuchElementError> = Effect.withFiber((fiber) => {
-  const clock = ServiceMap.get(fiber.services, Clock.Clock)
-  const span = fiber.currentSpanLocal
-  if (Predicate.isUndefined(span)) {
-    return Effect.fail(new Cause.NoSuchElementError())
-  }
-  return Effect.succeed(
+export const currentOtelSpan: Effect.Effect<Otel.Span, Cause.NoSuchElementError> = Effect.clockWith((clock) =>
+  Effect.map(Effect.currentSpan, (span) =>
     OtelSpanTypeId in span
       ? (span as OtelSpan).span
-      : makeOtelSpan(span, clock)
-  )
-})
+      : makeOtelSpan(span, clock))
+)
 
 const makeOtelSpan = (span: Tracer.Span, clock: Clock.Clock): Otel.Span => {
   const spanContext: Otel.SpanContext = {
