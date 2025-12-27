@@ -406,7 +406,7 @@ export const Tracer: ServiceMap.Reference<Tracer> = ServiceMap.Reference<Tracer>
           name,
           parent,
           services,
-          links,
+          links.slice(),
           startTime,
           kind
         )
@@ -444,7 +444,7 @@ export class NativeSpan implements Span {
   readonly name: string
   readonly parent: AnySpan | undefined
   readonly services: ServiceMap.ServiceMap<never>
-  readonly links: ReadonlyArray<SpanLink>
+  readonly links: Array<SpanLink>
   readonly startTime: bigint
   readonly kind: SpanKind
 
@@ -456,7 +456,7 @@ export class NativeSpan implements Span {
     name: string,
     parent: AnySpan | undefined,
     services: ServiceMap.ServiceMap<never>,
-    links: ReadonlyArray<SpanLink>,
+    links: Array<SpanLink>,
     startTime: bigint,
     kind: SpanKind
   ) {
@@ -490,6 +490,11 @@ export class NativeSpan implements Span {
 
   event(name: string, startTime: bigint, attributes?: Record<string, unknown>): void {
     this.events.push([name, startTime, attributes ?? {}])
+  }
+
+  addLinks(links: ReadonlyArray<SpanLink>): void {
+    // eslint-disable-next-line no-restricted-syntax
+    this.links.push(...links)
   }
 }
 

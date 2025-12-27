@@ -1,16 +1,12 @@
 /**
  * @since 1.0.0
  */
-import { ValueType } from "@opentelemetry/api"
 import type { MetricProducer, MetricReader } from "@opentelemetry/sdk-metrics"
-import { InstrumentType } from "@opentelemetry/sdk-metrics"
-import type { InstrumentDescriptor } from "@opentelemetry/sdk-metrics/build/src/InstrumentDescriptor.js"
 import type * as Arr from "effect/Array"
 import type { DurationInput } from "effect/Duration"
 import * as Effect from "effect/Effect"
 import type { LazyArg } from "effect/Function"
 import * as Layer from "effect/Layer"
-import type * as Metric from "effect/Metric"
 import type * as Scope from "effect/Scope"
 import { MetricProducerImpl } from "./internal/metrics.ts"
 import { Resource } from "./Resource.ts"
