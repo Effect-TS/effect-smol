@@ -4424,7 +4424,8 @@ const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "services"> = {
   kind: "internal",
   attribute() {},
   event() {},
-  end() {}
+  end() {},
+  addLinks() {}
 }
 
 /** @internal */
