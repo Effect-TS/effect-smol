@@ -358,7 +358,7 @@ describe("HttpApi", () => {
           .add(HttpApiEndpoint.post("create", "/", {
             payload: Schema.String,
             success: Schema.String,
-            error: Schema.Union([Schema.String, Schema.Number]).annotate({ httpApiStatus: 400 })
+            error: Schema.Union([Schema.String, Schema.Finite]).annotate({ httpApiStatus: 400 })
           }))
         {}
 
@@ -389,7 +389,7 @@ describe("HttpApi", () => {
           .add(HttpApiEndpoint.post("create", "/", {
             payload: Schema.String,
             success: Schema.String,
-            error: Schema.Union([Schema.String, Schema.Number]).annotate({ identifier: "ID" })
+            error: Schema.Union([Schema.String, Schema.Finite]).annotate({ identifier: "ID" })
           }))
         {}
 
@@ -412,7 +412,7 @@ describe("HttpApi", () => {
           .add(HttpApiEndpoint.post("create", "/", {
             payload: Schema.String,
             success: Schema.String,
-            error: Schema.Union([Schema.NonEmptyString.annotate({ httpApiStatus: 400 }), Schema.Number]).annotate({
+            error: Schema.Union([Schema.NonEmptyString.annotate({ httpApiStatus: 400 }), Schema.Finite]).annotate({
               id: "ID"
             })
           }))
@@ -429,7 +429,9 @@ describe("HttpApi", () => {
                   { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
                     "type": "string",
-                    "minLength": 1
+                    "allOf": [
+                      { "minLength": 1 }
+                    ]
                   }
                 ]
               }
@@ -453,7 +455,7 @@ describe("HttpApi", () => {
           .add(HttpApiEndpoint.post("create", "/", {
             payload: Schema.String,
             success: Schema.String,
-            error: Schema.Union([Schema.String, Schema.Number]).check(Schema.makeFilter(() => true)).annotate({
+            error: Schema.Union([Schema.String, Schema.Finite]).check(Schema.makeFilter(() => true)).annotate({
               httpApiStatus: 400
             })
           }))
@@ -486,7 +488,7 @@ describe("HttpApi", () => {
           .add(HttpApiEndpoint.post("create", "/", {
             payload: Schema.String,
             success: Schema.String,
-            error: Schema.Union([Schema.String, Schema.Number.annotate({ httpApiStatus: 400 })]).pipe(
+            error: Schema.Union([Schema.String, Schema.Finite.annotate({ httpApiStatus: 400 })]).pipe(
               Schema.encodeTo(Schema.String, {
                 decode: SchemaGetter.passthrough(),
                 encode: SchemaGetter.transform(String)

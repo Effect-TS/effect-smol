@@ -99,32 +99,22 @@ describe("Standard", () => {
     it("String & brand", () => {
       assertStandardDocument(Schema.String.pipe(Schema.brand("a")), {
         schema: {
-          _tag: "Reference",
-          $ref: "a"
+          _tag: "String",
+          checks: [],
+          annotations: { brands: ["a"] }
         },
-        definitions: {
-          "a": {
-            _tag: "String",
-            checks: [],
-            annotations: { identifier: "a", brands: ["a"] }
-          }
-        }
+        definitions: {}
       })
     })
 
     it("String & brand & brand", () => {
       assertStandardDocument(Schema.String.pipe(Schema.brand("a"), Schema.brand("b")), {
         schema: {
-          _tag: "Reference",
-          $ref: "ab"
+          _tag: "String",
+          checks: [],
+          annotations: { brands: ["a", "b"] }
         },
-        definitions: {
-          "ab": {
-            _tag: "String",
-            checks: [],
-            annotations: { identifier: "ab", brands: ["a", "b"] }
-          }
-        }
+        definitions: {}
       })
     })
 

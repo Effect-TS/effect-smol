@@ -2599,32 +2599,6 @@ export interface brand<S extends Top, B> extends
 /**
  * Adds a brand to a schema.
  *
- * **Multiple brands**
- *
- * When multiple brands are added, they are joined to form the identifier.
- *
- * **Example**
- *
- * ```ts
- * import { Schema } from "effect"
- *
- * const schema = Schema.String.pipe(Schema.brand("Positive"), Schema.brand("Int"))
- * console.log(schema.ast.annotations?.identifier) // "PositiveInt"
- * console.log(schema.ast.annotations?.brands) // ["Positive", "Int"]
- * ```
- *
- * You can override the default behavior by adding an explicit identifier after the last brand
- *
- * **Example**
- *
- * ```ts
- * import { Schema } from "effect"
- *
- * const schema = Schema.String.pipe(Schema.brand("Positive"), Schema.brand("Int")).annotate({ identifier: "MyInt" })
- * console.log(schema.ast.annotations?.identifier) // "MyInt"
- * console.log(schema.ast.annotations?.brands) // ["Positive", "Int"]
- * ```
- *
  * @category Branding
  * @since 4.0.0
  */

@@ -2216,8 +2216,7 @@ function appendTransformation<A extends AST>(
 export function brand(ast: AST, brand: string): AST {
   const existing = InternalAnnotations.resolveBrands(ast)
   const brands = existing ? [...existing, brand] : [brand]
-  const identifier = brands.join("")
-  return annotate(ast, { identifier, brands })
+  return annotate(ast, { brands })
 }
 
 /**

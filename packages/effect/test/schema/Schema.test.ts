@@ -6866,20 +6866,16 @@ describe("Check", () => {
   describe("brand", () => {
     it("single brand", async () => {
       const schema = Schema.String.pipe(Schema.brand("Positive"))
-      strictEqual(schema.ast.annotations?.identifier, "Positive")
       deepStrictEqual(schema.ast.annotations?.brands, ["Positive"])
     })
 
     it("double brand", async () => {
       const schema = Schema.String.pipe(Schema.brand("Positive"), Schema.brand("Int"))
-      // by default brands are joined to form the identifier
-      strictEqual(schema.ast.annotations?.identifier, "PositiveInt")
       deepStrictEqual(schema.ast.annotations?.brands, ["Positive", "Int"])
     })
 
     it("override the default identifier", async () => {
       const schema = Schema.String.pipe(Schema.brand("Positive"), Schema.brand("Int")).annotate({ identifier: "MyInt" })
-      strictEqual(schema.ast.annotations?.identifier, "MyInt")
       deepStrictEqual(schema.ast.annotations?.brands, ["Positive", "Int"])
     })
   })
