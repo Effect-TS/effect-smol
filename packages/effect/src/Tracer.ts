@@ -23,10 +23,17 @@ import * as ServiceMap from "./ServiceMap.ts"
  *     links: ReadonlyArray<Tracer.SpanLink>,
  *     startTime: bigint,
  *     kind: Tracer.SpanKind,
- *     _options: Tracer.SpanOptions
+ *     _options: Tracer.SpanOptions | undefined
  *   ) => {
  *     console.log(`Creating span: ${name}`)
- *     return new Tracer.NativeSpan(name, parent, services, links, startTime, kind)
+ *     return new Tracer.NativeSpan(
+ *       name,
+ *       parent,
+ *       services,
+ *       links.slice(),
+ *       startTime,
+ *       kind
+ *     )
  *   },
  *   context: <X>(f: () => X, fiber: any) => {
  *     console.log("Running with tracing context")
@@ -304,9 +311,16 @@ export interface SpanLink {
  *
  * // Create a custom tracer with logging
  * const loggingTracer = Tracer.make({
- *   span: (name, parent, services, links, startTime, kind, _options) => {
+ *   span: (name, parent, services, links, startTime, kind) => {
  *     console.log(`Starting span: ${name} (${kind})`)
- *     return new Tracer.NativeSpan(name, parent, services, links, startTime, kind)
+ *     return new Tracer.NativeSpan(
+ *       name,
+ *       parent,
+ *       services,
+ *       links.slice(),
+ *       startTime,
+ *       kind
+ *     )
  *   },
  *   context: (f, fiber) => {
  *     console.log("Executing with tracer context")
