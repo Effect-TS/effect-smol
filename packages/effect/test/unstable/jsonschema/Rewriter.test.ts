@@ -26,10 +26,10 @@ function assertRewrite(
 
 describe("Rewriter", () => {
   describe("openAi", () => {
-    it("root must be an object", () => {
+    it("Root must be an object and not a union", () => {
       assertRewrite(
         Rewriter.openAi,
-        Schema.Union([Schema.String, Schema.Number]),
+        Schema.String,
         {
           schema: {
             "type": "object",
@@ -41,41 +41,30 @@ describe("Rewriter", () => {
       )
       assertRewrite(
         Rewriter.openAi,
-        Schema.Union([Schema.String, Schema.Number]).annotate({
-          description: "description"
-        }),
+        Schema.String.annotate({ identifier: "id" }),
         {
           schema: {
             "type": "object",
             "properties": {},
             "required": [],
-            "additionalProperties": false,
-            "description": "description"
+            "additionalProperties": false
+          },
+          definitions: {
+            "id": {
+              "type": "string"
+            }
           }
         }
       )
       assertRewrite(
         Rewriter.openAi,
-        Schema.Union([Schema.String, Schema.Finite]).annotate({
-          identifier: "ID",
-          description: "description"
-        }),
+        Schema.Union([Schema.String, Schema.Number]),
         {
           schema: {
             "type": "object",
             "properties": {},
             "required": [],
-            "additionalProperties": false,
-            "description": "description"
-          },
-          definitions: {
-            "ID": {
-              "anyOf": [
-                { "type": "string" },
-                { "type": "number", "description": "a finite number" }
-              ],
-              "description": "description"
-            }
+            "additionalProperties": false
           }
         }
       )
@@ -238,281 +227,67 @@ describe("Rewriter", () => {
         )
       })
 
-      it("optionalKey", () => {
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.optionalKey(Schema.String)
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": { "type": ["string", "null"] }
-              },
-              "required": ["a"],
-              "additionalProperties": false
+      describe("optional field", () => {
+        it("optionalKey", () => {
+          assertRewrite(
+            Rewriter.openAi,
+            Schema.Struct({ a: Schema.optionalKey(Schema.String) }),
+            {
+              schema: {
+                "type": "object",
+                "properties": {
+                  "a": { "type": ["string", "null"] }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              }
             }
-          }
-        )
+          )
+        })
 
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.optionalKey(Schema.String).annotate({ description: "description" })
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": { "type": ["string", "null"], "description": "description" }
-              },
-              "required": ["a"],
-              "additionalProperties": false
+        it("optional", () => {
+          assertRewrite(
+            Rewriter.openAi,
+            Schema.Struct({ a: Schema.optional(Schema.String) }),
+            {
+              schema: {
+                "type": "object",
+                "properties": {
+                  "a": {
+                    "anyOf": [
+                      { "type": "string" },
+                      { "type": "null" }
+                    ]
+                  }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              }
             }
-          }
-        )
+          )
+        })
 
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.optionalKey(Schema.String).annotate({ description: "description" })
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": { "type": ["string", "null"], "description": "description" }
-              },
-              "required": ["a"],
-              "additionalProperties": false
+        it("UndefinedOr", () => {
+          assertRewrite(
+            Rewriter.openAi,
+            Schema.Struct({ a: Schema.UndefinedOr(Schema.String) }),
+            {
+              schema: {
+                "type": "object",
+                "properties": {
+                  "a": {
+                    "anyOf": [
+                      { "type": "string" },
+                      { "type": "null" }
+                    ]
+                  }
+                },
+                "required": ["a"],
+                "additionalProperties": false
+              }
             }
-          }
-        )
-      })
-
-      it.todo("optional", () => {
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.optional(Schema.String)
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "anyOf": [
-                    { "type": "string" },
-                    { "type": "null" }
-                  ]
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            }
-          }
-        )
-
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.optional(Schema.String).annotate({ description: "description" })
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "anyOf": [
-                    { "type": "string" },
-                    { "type": "null" }
-                  ],
-                  "description": "description"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            }
-          }
-        )
-
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.optional(Schema.String).annotate({ description: "description" })
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "anyOf": [
-                    { "type": "string" },
-                    { "type": "null" }
-                  ],
-                  "description": "description"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            }
-          }
-        )
-      })
-
-      it.todo("UndefinedOr", () => {
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.UndefinedOr(Schema.String)
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": { "type": ["string", "null"] }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            }
-          }
-        )
-
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.UndefinedOr(Schema.String).annotate({ description: "description" })
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "anyOf": [
-                    { "type": "string" },
-                    { "type": "null" }
-                  ],
-                  "description": "description"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            }
-          }
-        )
-
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.UndefinedOr(Schema.String).annotate({ description: "description" })
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "anyOf": [
-                    { "type": "string" },
-                    { "type": "null" }
-                  ],
-                  "description": "description"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            }
-          }
-        )
-
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({ a: Schema.optionalKey(Schema.Literal(1)) }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": ["number", "null"],
-                  "enum": [1]
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            }
-          }
-        )
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.optionalKey(
-              Schema.Literal(1).annotate({
-                description: "description"
-              })
-            )
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "type": ["number", "null"],
-                  "enum": [1],
-                  "description": "description"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            }
-          }
-        )
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({ a: Schema.optionalKey(Schema.Union([Schema.String, Schema.Number])) }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "anyOf": [
-                    { "type": "string" },
-                    { "type": "number" },
-                    { "type": "null" }
-                  ]
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            }
-          }
-        )
-        assertRewrite(
-          Rewriter.openAi,
-          Schema.Struct({
-            a: Schema.optionalKey(
-              Schema.Union([Schema.String, Schema.Number]).annotate({
-                description: "description"
-              })
-            )
-          }),
-          {
-            schema: {
-              "type": "object",
-              "properties": {
-                "a": {
-                  "anyOf": [
-                    { "type": "string" },
-                    { "type": "number" },
-                    { "type": "null" }
-                  ],
-                  "description": "description"
-                }
-              },
-              "required": ["a"],
-              "additionalProperties": false
-            }
-          }
-        )
+          )
+        })
       })
     })
 
@@ -543,6 +318,7 @@ describe("Rewriter", () => {
                       "anyOf": [
                         {
                           "type": "integer",
+                          "exclusiveMinimum": 0,
                           "description": "an integer, a value greater than 0"
                         },
                         {
@@ -589,6 +365,7 @@ describe("Rewriter", () => {
                       "anyOf": [
                         {
                           "type": "integer",
+                          "exclusiveMinimum": 0,
                           "description": "an integer, a value greater than 0"
                         },
                         {
@@ -694,7 +471,9 @@ describe("Rewriter", () => {
                     "type": "number",
                     "description": "a finite number"
                   }
-                ]
+                ],
+                "minItems": 2,
+                "maxItems": 2
               }
             },
             "required": ["a"],

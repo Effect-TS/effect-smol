@@ -6,11 +6,6 @@ describe("JsonSchema", () => {
   describe("fromSchemaDraft07", () => {
     const fromSchemaDraft07 = JsonSchema.fromSchemaDraft07
 
-    it("preserves boolean schemas", () => {
-      deepStrictEqual(fromSchemaDraft07(true), true)
-      deepStrictEqual(fromSchemaDraft07(false), false)
-    })
-
     it("removes $schema at every level", () => {
       const input = {
         $schema: "http://json-schema.org/draft-07/schema#",

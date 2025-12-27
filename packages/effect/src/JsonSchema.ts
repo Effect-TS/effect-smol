@@ -29,7 +29,7 @@ export type Type = "string" | "number" | "boolean" | "array" | "object" | "null"
 /**
  * @since 4.0.0
  */
-export interface Definitions extends Record<string, JsonSchema | boolean> {}
+export interface Definitions extends Record<string, JsonSchema> {}
 
 /**
  * @since 4.0.0
@@ -97,14 +97,12 @@ export function fromDocumentOpenApi3_0(document: Document<"openapi-3.0">): Docum
  *
  * @since 4.0.0
  */
-export function fromSchemaDraft07(schema: JsonSchema): JsonSchema
-export function fromSchemaDraft07(schema: JsonSchema | boolean): JsonSchema | boolean
-export function fromSchemaDraft07(schema: JsonSchema | boolean): JsonSchema | boolean {
-  return recur(schema, true) as JsonSchema | boolean
+export function fromSchemaDraft07(schema: JsonSchema): JsonSchema {
+  return recur(schema, true) as JsonSchema
 
   function recur(node: unknown, isRoot: boolean): unknown {
-    // Base case: Booleans and non-objects pass through
-    if (typeof node === "boolean" || !Predicate.isObject(node)) {
+    // Base case: Non-objects pass through
+    if (!Predicate.isObject(node)) {
       return node
     }
 
@@ -278,15 +276,13 @@ export function fromSchemaDraft07(schema: JsonSchema | boolean): JsonSchema | bo
  *
  * @since 4.0.0
  */
-export function fromSchemaOpenApi3_0(schema: JsonSchema): JsonSchema
-export function fromSchemaOpenApi3_0(schema: JsonSchema | boolean): JsonSchema | boolean
-export function fromSchemaOpenApi3_0(schema: JsonSchema | boolean): JsonSchema | boolean {
-  const normalized = recur(schema) as JsonSchema | boolean
+export function fromSchemaOpenApi3_0(schema: JsonSchema): JsonSchema {
+  const normalized = recur(schema) as JsonSchema
   return fromSchemaDraft07(normalized)
 
   function recur(node: unknown): unknown {
     if (Array.isArray(node)) return node.map(recur)
-    if (typeof node === "boolean" || !Predicate.isObject(node)) return node
+    if (!Predicate.isObject(node)) return node
 
     // Copy first (no mutation). Unknown keys are stripped later by fromDraft07.
     const out: Record<string, unknown> = {}
@@ -494,16 +490,12 @@ const ALLOWED_KEYWORDS = new Set<string>([
  *
  * @since 4.0.0
  */
-export function toSchemaOpenApi3_1(schema: JsonSchema): JsonSchema
-export function toSchemaOpenApi3_1(schema: JsonSchema | boolean): JsonSchema | boolean
-export function toSchemaOpenApi3_1(schema: JsonSchema | boolean): JsonSchema | boolean {
-  if (typeof schema === "boolean") return schema
-
-  return recur(schema) as JsonSchema | boolean
+export function toSchemaOpenApi3_1(schema: JsonSchema): JsonSchema {
+  return recur(schema) as JsonSchema
 
   function recur(node: unknown): unknown {
     if (Array.isArray(node)) return node.map(recur)
-    if (typeof node === "boolean" || !Predicate.isObject(node)) return node
+    if (!Predicate.isObject(node)) return node
     const out: Record<string, unknown> = {}
     for (const k of Object.keys(node)) {
       const v = node[k]
