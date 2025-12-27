@@ -78,14 +78,14 @@ export const registerProducer = (
  * ```ts
  * import { Metrics } from "@effect/opentelemetry"
  * import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics"
- * import { PrometheusExporter } from "@opentelemetry/exporter-prometheus"
+ * import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http"
  *
- * const exporter = new PrometheusExporter({ port: 9464 })
+ * const metricExporter = new OTLPMetricExporter({ url: "<your-otel-url>" })
  *
  * // Use delta temporality for backends like Datadog or Dynatrace
  * const metricsLayer = Metrics.layer(
  *   () => new PeriodicExportingMetricReader({
- *     exporter,
+ *     exporter: metricExporter,
  *     exportIntervalMillis: 10000
  *   }),
  *   { temporality: "delta" }
@@ -93,9 +93,7 @@ export const registerProducer = (
  *
  * // Use cumulative temporality for backends like Prometheus (default)
  * const cumulativeLayer = Metrics.layer(
- *   () => new PeriodicExportingMetricReader({
- *     exporter
- *   }),
+ *   () => new PeriodicExportingMetricReader({ exporter: metricExporter }),
  *   { temporality: "cumulative" }
  * )
  * ```

@@ -94,7 +94,7 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.1",
     "vite": "^7.3.0",
-    "vite-tsconfig-paths": "^6.0.3",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "4.0.16",
     "vitest-websocket-mock": "^0.5.0",
     "zod": "^4.2.1"
