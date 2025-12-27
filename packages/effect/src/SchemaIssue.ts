@@ -605,13 +605,12 @@ function toDefaultIssues(
     case "Composite":
       return issue.issues.flatMap((issue) => toDefaultIssues(issue, path, leafHook, checkHook))
     case "AnyOf": {
+      const message = findMessage(issue)
       if (issue.issues.length === 0) {
-        const message = findMessage(issue)
         if (message !== undefined) return [{ path, message }]
-        return [{
-          path,
-          message: getExpectedMessage(issue.ast.getExpected(InternalAnnotations.getExpected), format(issue.actual))
-        }]
+
+        const expected = getExpectedMessage(InternalAnnotations.getExpected(issue.ast), format(issue.actual))
+        return [{ path, message: expected }]
       }
       return issue.issues.flatMap((issue) => toDefaultIssues(issue, path, leafHook, checkHook))
     }
@@ -621,8 +620,8 @@ function toDefaultIssues(
 }
 
 function formatCheck<T>(check: AST.Check<T>): string {
-  const out = check.annotations?.description ?? check.annotations?.title ?? check.annotations?.expected
-  if (typeof out === "string") return out
+  const expected = check.annotations?.expected
+  if (typeof expected === "string") return expected
 
   switch (check._tag) {
     case "Filter":

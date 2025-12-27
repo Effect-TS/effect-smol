@@ -760,7 +760,7 @@ Missing key
           a: Schema.String,
           b: Schema.String
         }).check(
-          Schema.makeFilter(({ a, b }) => a === b, { title: "a === b" })
+          Schema.makeFilter(({ a, b }) => a === b, { expected: "a === b" })
         )
         const schema = from.mapFields(Struct.assign({ c: Schema.String }), { unsafePreserveChecks: true })
         const asserts = new TestSchema.Asserts(schema)
@@ -1040,9 +1040,9 @@ Expected a string including "c", got "ab"`
     describe("refinements", () => {
       it("refineByGuard", async () => {
         const schema = Schema.Option(Schema.String).pipe(
-          Schema.refineByGuard(Option.isSome, { title: "isSome" }),
+          Schema.refineByGuard(Option.isSome, { expected: "isSome" }),
           Schema.check(
-            Schema.makeFilter(({ value }) => value.length > 0, { title: "length > 0" })
+            Schema.makeFilter(({ value }) => value.length > 0, { expected: "length > 0" })
           )
         )
         const asserts = new TestSchema.Asserts(schema)
@@ -3456,11 +3456,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("should preserve both checks", async () => {
       const schema = Schema.StructWithRest(
         Schema.Struct({ a: Schema.Number }).check(
-          Schema.makeFilter((s) => s.a > 0, { title: "agt(0)" })
+          Schema.makeFilter((s) => s.a > 0, { expected: "agt(0)" })
         ),
         [
           Schema.Record(Schema.String, Schema.Number).check(
-            Schema.makeFilter((s) => s.b === undefined || s.b > 1, { title: "bgt(1)" })
+            Schema.makeFilter((s) => s.b === undefined || s.b > 1, { expected: "bgt(1)" })
           )
         ]
       )

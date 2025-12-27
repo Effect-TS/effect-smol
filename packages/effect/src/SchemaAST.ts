@@ -819,14 +819,14 @@ export class Number extends Base {
   }
   /** @internal */
   toCodecJson(): AST {
-    if (this.checks && (hasCheck(this.checks, "isInt") || hasCheck(this.checks, "isFinite"))) {
+    if (this.checks && (hasCheck(this.checks, "isFinite") || hasCheck(this.checks, "isInt"))) {
       return this
     }
     return replaceEncoding(this, [numberToJson])
   }
   /** @internal */
   toCodecStringTree(): AST {
-    if (this.checks && (hasCheck(this.checks, "isInt") || hasCheck(this.checks, "isFinite"))) {
+    if (this.checks && (hasCheck(this.checks, "isFinite") || hasCheck(this.checks, "isInt"))) {
       return replaceEncoding(this, [finiteToString])
     }
     return replaceEncoding(this, [numberToString])
@@ -1591,9 +1591,11 @@ function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
         ? ["object"]
         : ["object", "array"]
     case "Enum":
-      return ["string", "number"]
+      return Array.from(new Set(ast.enums.map(([, v]) => typeof v)))
     case "Literal":
       return [typeof ast.literal]
+    case "Union":
+      return Array.from(new Set(ast.types.flatMap(getCandidateTypes)))
     default:
       return [
         "null",
@@ -1803,8 +1805,12 @@ export class Union<A extends AST = AST> extends Base {
   }
   /** @internal */
   getExpected(getExpected: (ast: AST) => string): string {
+    const expected = this.annotations?.expected
+    if (typeof expected === "string") return expected
+
     if (this.types.length === 0) return "never"
-    const expected = this.types.map((type) => {
+
+    const types = this.types.map((type) => {
       const encoded = toEncoded(type)
       switch (encoded._tag) {
         case "Arrays": {
@@ -1832,7 +1838,7 @@ export class Union<A extends AST = AST> extends Base {
       }
       return getExpected(encoded)
     })
-    return Array.from(new Set(expected)).join(" | ")
+    return Array.from(new Set(types)).join(" | ")
   }
 }
 
@@ -2609,7 +2615,9 @@ const bigIntToString = new Link(
   )
 )
 
-const isSymbolStringRegExp = /^Symbol\((.*)\)$/
+const REGEXP_PATTERN = "Symbol\\((.*)\\)"
+
+const isSymbolStringRegExp = new globalThis.RegExp(`^${REGEXP_PATTERN}$`)
 
 /** @internal */
 export const symbolString = appendChecks(string, [isSymbolString()])
