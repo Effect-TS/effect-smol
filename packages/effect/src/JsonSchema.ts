@@ -29,7 +29,7 @@ export type Type = "string" | "number" | "boolean" | "array" | "object" | "null"
 /**
  * @since 4.0.0
  */
-export interface Definitions extends Record<string, JsonSchema | boolean> {}
+export interface Definitions extends Record<string, JsonSchema> {}
 
 /**
  * @since 4.0.0
@@ -37,6 +37,15 @@ export interface Definitions extends Record<string, JsonSchema | boolean> {}
 export interface Document<S extends Source> {
   readonly source: S
   readonly schema: JsonSchema
+  readonly definitions: Definitions
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface MultiDocument<S extends Source> {
+  readonly source: S
+  readonly schemas: readonly [JsonSchema, ...Array<JsonSchema>]
   readonly definitions: Definitions
 }
 
@@ -88,14 +97,12 @@ export function fromDocumentOpenApi3_0(document: Document<"openapi-3.0">): Docum
  *
  * @since 4.0.0
  */
-export function fromSchemaDraft07(schema: JsonSchema): JsonSchema
-export function fromSchemaDraft07(schema: JsonSchema | boolean): JsonSchema | boolean
-export function fromSchemaDraft07(schema: JsonSchema | boolean): JsonSchema | boolean {
-  return recur(schema, true) as JsonSchema | boolean
+export function fromSchemaDraft07(schema: JsonSchema): JsonSchema {
+  return recur(schema, true) as JsonSchema
 
   function recur(node: unknown, isRoot: boolean): unknown {
-    // Base case: Booleans and non-objects pass through
-    if (typeof node === "boolean" || !Predicate.isObject(node)) {
+    // Base case: Non-objects pass through
+    if (!Predicate.isObject(node)) {
       return node
     }
 
@@ -269,15 +276,13 @@ export function fromSchemaDraft07(schema: JsonSchema | boolean): JsonSchema | bo
  *
  * @since 4.0.0
  */
-export function fromSchemaOpenApi3_0(schema: JsonSchema): JsonSchema
-export function fromSchemaOpenApi3_0(schema: JsonSchema | boolean): JsonSchema | boolean
-export function fromSchemaOpenApi3_0(schema: JsonSchema | boolean): JsonSchema | boolean {
-  const normalized = recur(schema) as JsonSchema | boolean
+export function fromSchemaOpenApi3_0(schema: JsonSchema): JsonSchema {
+  const normalized = recur(schema) as JsonSchema
   return fromSchemaDraft07(normalized)
 
   function recur(node: unknown): unknown {
     if (Array.isArray(node)) return node.map(recur)
-    if (typeof node === "boolean" || !Predicate.isObject(node)) return node
+    if (!Predicate.isObject(node)) return node
 
     // Copy first (no mutation). Unknown keys are stripped later by fromDraft07.
     const out: Record<string, unknown> = {}
@@ -479,3 +484,38 @@ const ALLOWED_KEYWORDS = new Set<string>([
   "then",
   "else"
 ])
+
+/**
+ * Convert a JSON Schema Draft 2020-12-shaped schema into an OpenAPI 3.0 Schema Object.
+ *
+ * @since 4.0.0
+ */
+export function toSchemaOpenApi3_1(schema: JsonSchema): JsonSchema {
+  return recur(schema) as JsonSchema
+
+  function recur(node: unknown): unknown {
+    if (Array.isArray(node)) return node.map(recur)
+    if (!Predicate.isObject(node)) return node
+    const out: Record<string, unknown> = {}
+    for (const k of Object.keys(node)) {
+      const v = node[k]
+      if (Array.isArray(v) || Predicate.isObject(v)) {
+        out[k] = recur(v)
+      } else {
+        out[k] = k === "$ref" && typeof v === "string" ? v.replace(/^#\/\$defs(?=\/|$)/, "#/components/schemas") : v
+      }
+    }
+    return out
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function toDocumentOpenApi3_1(document: Document<"draft-2020-12">): Document<"openapi-3.1"> {
+  return {
+    source: "openapi-3.1",
+    schema: toSchemaOpenApi3_1(document.schema),
+    definitions: Rec.map(document.definitions, (d) => toSchemaOpenApi3_1(d))
+  }
+}

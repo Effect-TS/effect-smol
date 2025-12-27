@@ -638,8 +638,23 @@
         "additionalProperties": false
       },
       "PersistedFile": {
-        "format": "binary",
-        "type": "string"
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": ["key", "name", "contentType", "path"],
+        "additionalProperties": false
       },
       "User": {
         "type": "object",

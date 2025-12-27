@@ -75,14 +75,8 @@ describe("Config", () => {
       await assertFailure(
         Config.number("b"),
         provider,
-        `Expected string, got undefined
+        `Expected string | "Infinity" | "-Infinity" | "NaN", got undefined
   at ["b"]`
-      )
-      await assertFailure(
-        Config.finite("c"),
-        provider,
-        `Expected a string representing a number, got "c"
-  at ["c"]`
       )
     })
 
@@ -92,13 +86,13 @@ describe("Config", () => {
       await assertFailure(
         Config.finite("b"),
         provider,
-        `Expected a string representing a number, got "a"
+        `Expected a string representing a finite number, got "a"
   at ["b"]`
       )
       await assertFailure(
         Config.finite("c"),
         provider,
-        `Expected a finite number, got Infinity
+        `Expected a string representing a finite number, got "Infinity"
   at ["c"]`
       )
     })
@@ -233,7 +227,7 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromUnknown({ a: "a", b: "b" }),
-          `Expected a string representing a number, got "b"
+          `Expected a string representing a finite number, got "b"
   at ["b"]`
         )
       })
@@ -251,7 +245,7 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromUnknown({ a: "a", b: "b" }),
-          `Expected a string representing a number, got "b"
+          `Expected a string representing a finite number, got "b"
   at ["b"]`
         )
       })
@@ -269,7 +263,7 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromUnknown({ b: "b", d: "b" }),
-          `Expected a string representing a number, got "b"
+          `Expected a string representing a finite number, got "b"
   at ["d"]`
         )
       })
@@ -285,7 +279,7 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromUnknown({ a: "value" }),
-          `Expected a string representing a number, got "value"
+          `Expected a string representing a finite number, got "value"
   at ["a"]`
         )
       })
@@ -318,7 +312,7 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromUnknown({ a: "value" }),
-          `Expected a string representing a number, got "value"
+          `Expected a string representing a finite number, got "value"
   at ["a"]`
         )
       })
@@ -599,6 +593,32 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromEnv({ env: {} }),
+        `Expected string | "Infinity" | "-Infinity" | "NaN", got undefined
+  at ["a"]`
+      )
+    })
+
+    it("Finite", async () => {
+      const schema = Schema.Finite
+      const config = Config.schema(schema, "a")
+
+      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), 1)
+      await assertFailure(
+        config,
+        ConfigProvider.fromEnv({ env: {} }),
+        `Expected string, got undefined
+  at ["a"]`
+      )
+    })
+
+    it("Int", async () => {
+      const schema = Schema.Int
+      const config = Config.schema(schema, "a")
+
+      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), 1)
+      await assertFailure(
+        config,
+        ConfigProvider.fromEnv({ env: {} }),
         `Expected string, got undefined
   at ["a"]`
       )
@@ -663,8 +683,8 @@ describe("Config", () => {
       })
     })
 
-    it("Record(String, Number)", async () => {
-      const schema = Schema.Record(Schema.String, Schema.Number)
+    it("Record(String, Finite)", async () => {
+      const schema = Schema.Record(Schema.String, Schema.Finite)
       const config = Config.schema(schema)
 
       await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: 1 })
@@ -672,7 +692,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromEnv({ env: { a: "1", b: "value" } }),
-        `Expected a string representing a number, got "value"
+        `Expected a string representing a finite number, got "value"
   at ["b"]`
       )
     })
@@ -693,7 +713,7 @@ describe("Config", () => {
       })
 
       it("required elements", async () => {
-        const schema = Schema.Struct({ a: Schema.Tuple([Schema.String, Schema.Number]) })
+        const schema = Schema.Struct({ a: Schema.Tuple([Schema.String, Schema.Finite]) })
         const config = Config.schema(schema)
 
         await assertSuccess(config, ConfigProvider.fromEnv({ env: { a_0: "a", a_1: "2" } }), { a: ["a", 2] })
@@ -706,14 +726,14 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromEnv({ env: { a_0: "a", a_1: "value" } }),
-          `Expected a string representing a number, got "value"
+          `Expected a string representing a finite number, got "value"
   at ["a"][1]`
         )
       })
     })
 
-    it("Array(Number)", async () => {
-      const schema = Schema.Struct({ a: Schema.Array(Schema.Number) })
+    it("Array(Finite)", async () => {
+      const schema = Schema.Struct({ a: Schema.Array(Schema.Finite) })
       const config = Config.schema(schema)
 
       // ensure array
@@ -722,7 +742,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromEnv({ env: { a: "a", a_0: "1" } }),
-        `Expected a string representing a number, got "a"
+        `Expected a string representing a finite number, got "a"
   at ["a"][0]`
       )
       await assertFailure(
@@ -734,7 +754,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromEnv({ env: { a_0: "1", a_1: "value" } }),
-        `Expected a string representing a number, got "value"
+        `Expected a string representing a finite number, got "value"
   at ["a"][1]`
       )
     })
@@ -786,7 +806,7 @@ describe("Config", () => {
         await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "a" } }), "a")
       })
 
-      it.todo("string | number", async () => {
+      it("string | number", async () => {
         const schema = Schema.Union([Schema.String, Schema.Number])
         const config = Config.schema(schema, "a")
 
@@ -885,7 +905,36 @@ describe("Config", () => {
       const config = Config.schema(schema)
 
       await assertSuccess(config, ConfigProvider.fromUnknown("1"), 1)
-      await assertFailure(config, ConfigProvider.fromUnknown("a"), `Expected a string representing a number, got "a"`)
+      await assertFailure(
+        config,
+        ConfigProvider.fromUnknown("a"),
+        `Expected a string representing a finite number, got "a"
+Expected "Infinity" | "-Infinity" | "NaN", got "a"`
+      )
+    })
+
+    it("Finite", async () => {
+      const schema = Schema.Finite
+      const config = Config.schema(schema)
+
+      await assertSuccess(config, ConfigProvider.fromUnknown("1"), 1)
+      await assertFailure(
+        config,
+        ConfigProvider.fromUnknown("a"),
+        `Expected a string representing a finite number, got "a"`
+      )
+    })
+
+    it("Int", async () => {
+      const schema = Schema.Int
+      const config = Config.schema(schema)
+
+      await assertSuccess(config, ConfigProvider.fromUnknown("1"), 1)
+      await assertFailure(
+        config,
+        ConfigProvider.fromUnknown("a"),
+        `Expected a string representing a finite number, got "a"`
+      )
     })
 
     it("Boolean", async () => {
@@ -899,7 +948,7 @@ describe("Config", () => {
 
     describe("Struct", () => {
       it("required properties", async () => {
-        const schema = Schema.Struct({ a: Schema.Number })
+        const schema = Schema.Struct({ a: Schema.Finite })
         const config = Config.schema(schema)
 
         await assertSuccess(config, ConfigProvider.fromUnknown({ a: "1" }), { a: 1 })
@@ -912,7 +961,7 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromUnknown({ a: "value" }),
-          `Expected a string representing a number, got "value"
+          `Expected a string representing a finite number, got "value"
   at ["a"]`
         )
       })
@@ -951,8 +1000,8 @@ describe("Config", () => {
       })
     })
 
-    it("Record(String, Number)", async () => {
-      const schema = Schema.Record(Schema.String, Schema.Number)
+    it("Record(String, Finite)", async () => {
+      const schema = Schema.Record(Schema.String, Schema.Finite)
       const config = Config.schema(schema)
 
       await assertSuccess(config, ConfigProvider.fromUnknown({ a: "1" }), { a: 1 })
@@ -960,7 +1009,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromUnknown({ a: "1", b: "value" }),
-        `Expected a string representing a number, got "value"
+        `Expected a string representing a finite number, got "value"
   at ["b"]`
       )
     })
@@ -975,7 +1024,7 @@ describe("Config", () => {
       })
 
       it("required elements", async () => {
-        const schema = Schema.Tuple([Schema.String, Schema.Number])
+        const schema = Schema.Tuple([Schema.String, Schema.Finite])
         const config = Config.schema(schema)
 
         await assertSuccess(config, ConfigProvider.fromUnknown(["a", "2"]), ["a", 2])
@@ -988,14 +1037,14 @@ describe("Config", () => {
         await assertFailure(
           config,
           ConfigProvider.fromUnknown(["a", "value"]),
-          `Expected a string representing a number, got "value"
+          `Expected a string representing a finite number, got "value"
   at [1]`
         )
       })
     })
 
-    it("Array(Number)", async () => {
-      const schema = Schema.Array(Schema.Number)
+    it("Array(Finite)", async () => {
+      const schema = Schema.Array(Schema.Finite)
       const config = Config.schema(schema)
 
       await assertSuccess(config, ConfigProvider.fromUnknown(["1"]), [1])
@@ -1005,7 +1054,7 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromUnknown(["1", "value"]),
-        `Expected a string representing a number, got "value"
+        `Expected a string representing a finite number, got "value"
   at [1]`
       )
     })
@@ -1057,7 +1106,7 @@ describe("Config", () => {
         await assertSuccess(config, ConfigProvider.fromUnknown("a"), "a")
       })
 
-      it.todo("string | number", async () => {
+      it("string | number", async () => {
         const schema = Schema.Union([Schema.String, Schema.Number])
         const config = Config.schema(schema)
 

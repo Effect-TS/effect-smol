@@ -297,6 +297,36 @@ describe("Serializers", () => {
         await decoding.succeed("NaN", NaN)
       })
 
+      it("Finite", async () => {
+        const schema = Schema.Finite
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(1)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed(1)
+        await decoding.succeed(1.2)
+        await decoding.fail("Infinity", `Expected number, got "Infinity"`)
+        await decoding.fail("-Infinity", `Expected number, got "-Infinity"`)
+        await decoding.fail("NaN", `Expected number, got "NaN"`)
+      })
+
+      it("Int", async () => {
+        const schema = Schema.Int
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(1)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed(1)
+        await decoding.fail("Infinity", `Expected number, got "Infinity"`)
+        await decoding.fail("-Infinity", `Expected number, got "-Infinity"`)
+        await decoding.fail("NaN", `Expected number, got "NaN"`)
+        await decoding.fail(1.2, `Expected an integer, got 1.2`)
+      })
+
       it("Boolean", async () => {
         const schema = Schema.Boolean
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
@@ -1460,7 +1490,39 @@ describe("Serializers", () => {
         await decoding.succeed("Infinity", Infinity)
         await decoding.succeed("-Infinity", -Infinity)
         await decoding.succeed("NaN", NaN)
-        await decoding.fail("a", `Expected a string representing a number, got "a"`)
+        await decoding.fail(
+          "a",
+          `Expected a string representing a finite number, got "a"
+Expected "Infinity" | "-Infinity" | "NaN", got "a"`
+        )
+      })
+
+      it("Finite", async () => {
+        const schema = Schema.Finite
+        const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(1, "1")
+
+        const decoding = asserts.decoding()
+        await decoding.succeed("1", 1)
+        await decoding.fail("Infinity", `Expected a string representing a finite number, got "Infinity"`)
+        await decoding.fail("-Infinity", `Expected a string representing a finite number, got "-Infinity"`)
+        await decoding.fail("NaN", `Expected a string representing a finite number, got "NaN"`)
+      })
+
+      it("Int", async () => {
+        const schema = Schema.Int
+        const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(1, "1")
+
+        const decoding = asserts.decoding()
+        await decoding.fail("Infinity", `Expected a string representing a finite number, got "Infinity"`)
+        await decoding.fail("-Infinity", `Expected a string representing a finite number, got "-Infinity"`)
+        await decoding.fail("NaN", `Expected a string representing a finite number, got "NaN"`)
+        await decoding.fail("1.2", `Expected an integer, got 1.2`)
       })
 
       it("Boolean", async () => {

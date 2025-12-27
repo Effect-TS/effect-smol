@@ -7,7 +7,7 @@ import * as Schema from "../../Schema.ts"
  * @since 4.0.0
  * @category constructors
  */
-export const EntityType = Schema.String.pipe(Schema.brand<"~effect/cluster/EntityType">())
+export const EntityType = Schema.String.pipe(Schema.brand("~effect/cluster/EntityType"))
 
 /**
  * @since 4.0.0

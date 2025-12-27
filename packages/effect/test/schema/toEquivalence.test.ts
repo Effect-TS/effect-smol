@@ -10,7 +10,7 @@ const Modulo3 = Schema.Number.annotate({
   toEquivalence: (): Equivalence.Equivalence<number> => Equivalence.make((a, b) => a % 3 === b % 3)
 })
 
-describe("Equivalence generation", () => {
+describe("toEquivalence", () => {
   it("Never", () => {
     throws(
       () =>

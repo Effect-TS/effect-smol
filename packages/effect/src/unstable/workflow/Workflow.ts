@@ -450,6 +450,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
     readonly success: Success
     readonly error: Error
   }): CompleteSchema<Success, Error> {
+    // TODO: extract to a helper function
     const schema = Schema.declareConstructor<
       Complete<Success["Type"], Error["Type"]>,
       Complete<Success["Encoded"], Error["Encoded"]>
@@ -471,7 +472,8 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
         )
       },
       {
-        title: "Complete",
+        typeConstructor: { _tag: "effect/workflow/Workflow/Complete" },
+        expected: "Workflow.Complete",
         toCodecJson: ([exit]) =>
           Schema.link<Complete<Success["Encoded"], Error["Encoded"]>>()(
             Schema.Struct({
@@ -485,7 +487,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
           )
       }
     )
-    return Schema.makeProto(schema.ast, {
+    return Schema.make(schema.ast, {
       success: options.success,
       error: options.error
     })

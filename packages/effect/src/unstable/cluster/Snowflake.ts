@@ -12,7 +12,15 @@ import * as Transformation from "../../SchemaTransformation.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import type { MachineId } from "./MachineId.ts"
 
-type TypeId = "~effect/cluster/Snowflake"
+/**
+ * @since 4.0.0
+ */
+export const TypeId = "~effect/cluster/Snowflake"
+
+/**
+ * @since 4.0.0
+ */
+export type TypeId = typeof TypeId
 
 /**
  * @since 4.0.0
@@ -62,9 +70,7 @@ export interface SnowflakeFromBigInt extends Schema.brand<Schema.BigInt, TypeId>
  * @since 4.0.0
  * @category Schemas
  */
-export const SnowflakeFromBigInt: SnowflakeFromBigInt = Schema.BigInt.pipe(
-  Schema.brand<TypeId>()
-)
+export const SnowflakeFromBigInt: SnowflakeFromBigInt = Schema.BigInt.pipe(Schema.brand(TypeId))
 
 /**
  * @since 4.0.0

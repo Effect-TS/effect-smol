@@ -89,6 +89,7 @@ describe("SchemaAST", () => {
       deepStrictEqual(SchemaAST.getCandidates("b", ast.types), [ast.types[1], ast.types[2]])
       deepStrictEqual(SchemaAST.getCandidates("c", ast.types), [ast.types[2]])
       deepStrictEqual(SchemaAST.getCandidates(1, ast.types), [])
+      deepStrictEqual(SchemaAST.getCandidates(undefined, ast.types), [])
     })
 
     it("Literals", () => {
@@ -99,6 +100,12 @@ describe("SchemaAST", () => {
       deepStrictEqual(SchemaAST.getCandidates("c", ast.types), [ast.types[2]])
       deepStrictEqual(SchemaAST.getCandidates("d", ast.types), [])
       deepStrictEqual(SchemaAST.getCandidates(null, ast.types), [])
+      deepStrictEqual(SchemaAST.getCandidates(undefined, ast.types), [])
+    })
+
+    it("String | Literals", () => {
+      const schema = Schema.Union([Schema.String, Schema.Literals(["a", "b", "c"])])
+      const ast = schema.ast
       deepStrictEqual(SchemaAST.getCandidates(undefined, ast.types), [])
     })
 

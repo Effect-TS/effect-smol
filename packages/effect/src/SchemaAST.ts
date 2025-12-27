@@ -376,8 +376,7 @@ export class Declaration extends Base {
   }
   /** @internal */
   getExpected(): string {
-    // Annotations on checks are ignored internally
-    const expected = this.annotations?.identifier ?? this.annotations?.title ?? this.annotations?.expected
+    const expected = this.annotations?.identifier ?? this.annotations?.expected
     if (typeof expected === "string") return expected
     return "<Declaration>"
   }
@@ -582,7 +581,7 @@ export class Enum extends Base {
     )
   }
   /** @internal */
-  encodeToString(): AST {
+  toCodecStringTree(): AST {
     if (this.enums.some(([_, v]) => typeof v === "number")) {
       const coercions = Object.fromEntries(this.enums.map(([_, v]) => [globalThis.String(v), v]))
       return replaceEncoding(this, [
@@ -715,7 +714,7 @@ export class UniqueSymbol extends Base {
     return fromConst(this, this.symbol)
   }
   /** @internal */
-  encodeToString(): AST {
+  toCodecStringTree(): AST {
     return replaceEncoding(this, [symbolToString])
   }
   /** @internal */
@@ -756,11 +755,11 @@ export class Literal extends Base {
     return fromConst(this, this.literal)
   }
   /** @internal */
-  encodeToStringOrNumberOrBoolean(): AST {
+  toCodecJson(): AST {
     return typeof this.literal === "bigint" ? literalToString(this) : this
   }
   /** @internal */
-  encodeToString(): AST {
+  toCodecStringTree(): AST {
     return typeof this.literal === "string" ? this : literalToString(this)
   }
   /** @internal */
@@ -819,17 +818,35 @@ export class Number extends Base {
     return fromRefinement(this, Predicate.isNumber)
   }
   /** @internal */
-  encodeToNumberOrNonFiniteLiterals(): AST {
-    return replaceEncoding(this, [numberToNumberOrNonFiniteLiterals])
+  toCodecJson(): AST {
+    if (this.checks && (hasCheck(this.checks, "isFinite") || hasCheck(this.checks, "isInt"))) {
+      return this
+    }
+    return replaceEncoding(this, [numberToJson])
   }
   /** @internal */
-  encodeToString(): AST {
+  toCodecStringTree(): AST {
+    if (this.checks && (hasCheck(this.checks, "isFinite") || hasCheck(this.checks, "isInt"))) {
+      return replaceEncoding(this, [finiteToString])
+    }
     return replaceEncoding(this, [numberToString])
   }
   /** @internal */
   getExpected(): string {
     return "number"
   }
+}
+
+function hasCheck(checks: ReadonlyArray<Check<unknown>>, tag: string): boolean {
+  return checks.some((c) => {
+    switch (c._tag) {
+      case "Filter": {
+        return Predicate.hasProperty(c.annotations?.meta, "_tag")
+      }
+      case "FilterGroup":
+        return hasCheck(c.checks, tag)
+    }
+  })
 }
 
 /**
@@ -869,7 +886,7 @@ export class Symbol extends Base {
     return fromRefinement(this, Predicate.isSymbol)
   }
   /** @internal */
-  encodeToString(): AST {
+  toCodecStringTree(): AST {
     return replaceEncoding(this, [symbolToString])
   }
   /** @internal */
@@ -894,7 +911,7 @@ export class BigInt extends Base {
     return fromRefinement(this, Predicate.isBigInt)
   }
   /** @internal */
-  encodeToString(): AST {
+  toCodecStringTree(): AST {
     return replaceEncoding(this, [bigIntToString])
   }
   /** @internal */
@@ -1104,15 +1121,13 @@ export class Arrays extends Base {
   }
 }
 
-function getIndexSignatureHash(ast: AST): string {
-  if (isTemplateLiteral(ast)) {
-    return ast.parts.map((part) =>
-      isLiteral(part) ? globalThis.String(part.literal) : `\${${getIndexSignatureHash(part)}}`
-    )
-      .join("")
-  }
-  return ast._tag
-}
+/**
+ * floating point or integer, with optional exponent
+ * @internal
+ */
+export const FINITE_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
+
+const isNumberStringRegExp = new globalThis.RegExp(`(?:${FINITE_PATTERN}|Infinity|-Infinity|NaN)`)
 
 /** @internal */
 export function getIndexSignatureKeys(
@@ -1219,17 +1234,9 @@ export class Objects extends Base {
     this.indexSignatures = indexSignatures
 
     // Duplicate property signatures
-    let duplicates = propertySignatures.map((ps) => ps.name).filter((name, i, arr) => arr.indexOf(name) !== i)
+    const duplicates = propertySignatures.map((ps) => ps.name).filter((name, i, arr) => arr.indexOf(name) !== i)
     if (duplicates.length > 0) {
       throw new Error(`Duplicate identifiers: ${JSON.stringify(duplicates)}. ts(2300)`)
-    }
-
-    // Duplicate index signatures
-    duplicates = indexSignatures.map((is) => getIndexSignatureHash(is.parameter)).filter((s, i, arr) =>
-      arr.indexOf(s) !== i
-    )
-    if (duplicates.length > 0) {
-      throw new Error(`Duplicate index signatures: ${JSON.stringify(duplicates)}. ts(2374)`)
     }
   }
   /** @internal */
@@ -1479,14 +1486,15 @@ function mergeChecks(checks: Checks | undefined, b: AST): Checks | undefined {
 /** @internal */
 export function struct<Fields extends Schema.Struct.Fields>(
   fields: Fields,
-  checks: Checks | undefined
+  checks: Checks | undefined,
+  annotations?: Schema.Annotations.Annotations
 ): Objects {
   return new Objects(
     Reflect.ownKeys(fields).map((key) => {
       return new PropertySignature(key, fields[key].ast)
     }),
     [],
-    undefined,
+    annotations,
     checks
   )
 }
@@ -1583,9 +1591,11 @@ function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
         ? ["object"]
         : ["object", "array"]
     case "Enum":
-      return ["string", "number"]
+      return Array.from(new Set(ast.enums.map(([, v]) => typeof v)))
     case "Literal":
       return [typeof ast.literal]
+    case "Union":
+      return Array.from(new Set(ast.types.flatMap(getCandidateTypes)))
     default:
       return [
         "null",
@@ -1795,8 +1805,12 @@ export class Union<A extends AST = AST> extends Base {
   }
   /** @internal */
   getExpected(getExpected: (ast: AST) => string): string {
+    const expected = this.annotations?.expected
+    if (typeof expected === "string") return expected
+
     if (this.types.length === 0) return "never"
-    const expected = this.types.map((type) => {
+
+    const types = this.types.map((type) => {
       const encoded = toEncoded(type)
       switch (encoded._tag) {
         case "Arrays": {
@@ -1824,15 +1838,18 @@ export class Union<A extends AST = AST> extends Base {
       }
       return getExpected(encoded)
     })
-    return Array.from(new Set(expected)).join(" | ")
+    return Array.from(new Set(types)).join(" | ")
   }
 }
 
-const numberToNumberOrNonFiniteLiterals = new Link(
-  new Union(
-    [number, new Literal("Infinity"), new Literal("-Infinity"), new Literal("NaN")],
-    "anyOf"
-  ),
+const nonFiniteLiterals = new Union([
+  new Literal("Infinity"),
+  new Literal("-Infinity"),
+  new Literal("NaN")
+], "anyOf")
+
+const numberToJson = new Link(
+  new Union([number, nonFiniteLiterals], "anyOf"),
   new Transformation.Transformation(
     Getter.Number(),
     Getter.transform((n) => globalThis.Number.isFinite(n) ? n : globalThis.String(n))
@@ -2082,7 +2099,6 @@ export function isPattern(regExp: globalThis.RegExp, annotations?: Schema.Annota
     (s: string) => regExp.test(s),
     {
       expected: `a string matching the RegExp ${source}`,
-      toJsonSchemaConstraint: () => ({ pattern: regExp.source }),
       meta: {
         _tag: "isPattern",
         regExp
@@ -2129,6 +2145,17 @@ export function replaceContext<A extends AST>(ast: A, context: Context | undefin
 }
 
 /** @internal */
+export function annotate<A extends AST>(ast: A, annotations: Schema.Annotations.Annotations): A {
+  if (ast.checks) {
+    const last = ast.checks[ast.checks.length - 1]
+    return replaceChecks(ast, Arr.append(ast.checks.slice(0, -1), last.annotate(annotations)))
+  }
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    d.annotations.value = { ...d.annotations.value, ...annotations }
+  })
+}
+
+/** @internal */
 export function replaceChecks<A extends AST>(ast: A, checks: Checks | undefined): A {
   if (ast.checks === checks) {
     return ast
@@ -2151,14 +2178,6 @@ function updateLastLink(encoding: Encoding, f: (ast: AST) => AST): Encoding {
     return Arr.append(encoding.slice(0, encoding.length - 1), new Link(to, last.transformation))
   }
   return encoding
-}
-
-/** @internal */
-export function serializer(f: (ast: AST) => AST) {
-  function out(ast: AST): AST {
-    return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, out)) : f(ast)
-  }
-  return memoize(out)
 }
 
 /** @internal */
@@ -2193,6 +2212,13 @@ function appendTransformation<A extends AST>(
   return replaceEncoding(to, to.encoding ? [...to.encoding, link] : [link])
 }
 
+/** @internal */
+export function brand(ast: AST, brand: string): AST {
+  const existing = InternalAnnotations.resolveBrands(ast)
+  const brands = existing ? [...existing, brand] : [brand]
+  return annotate(ast, { brands })
+}
+
 /**
  * Maps over the array but will return the original array if no changes occur.
  */
@@ -2210,20 +2236,6 @@ function mapOrSame<A>(as: ReadonlyArray<A>, f: (a: A) => A): ReadonlyArray<A> {
     out[i] = fa
   }
   return changed ? out : as
-}
-
-/** @internal */
-export function annotate<A extends AST>(ast: A, annotations: Schema.Annotations.Annotations): A {
-  if (isSuspend(ast)) {
-    throw new Error("Suspended schemas cannot be annotated")
-  }
-  if (ast.checks) {
-    const last = ast.checks[ast.checks.length - 1]
-    return replaceChecks(ast, Arr.append(ast.checks.slice(0, -1), last.annotate(annotations)))
-  }
-  return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.annotations.value = { ...d.annotations.value, ...annotations }
-  })
 }
 
 /** @internal */
@@ -2441,7 +2453,7 @@ function getTemplateLiteralASTPartPattern(part: TemplateLiteralPart): string {
     case "String":
       return STRING_PATTERN
     case "Number":
-      return NUMBER_PATTERN
+      return FINITE_PATTERN
     case "BigInt":
       return BIGINT_PATTERN
     case "TemplateLiteral":
@@ -2499,30 +2511,38 @@ export const enumsToLiterals = memoize((ast: Enum): Union<Literal> => {
   )
 })
 
-const indexSignatureParameterFromString = serializer((ast) => {
+/** @internal */
+export function toCodec(f: (ast: AST) => AST) {
+  function out(ast: AST): AST {
+    return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, out)) : f(ast)
+  }
+  return memoize(out)
+}
+
+const indexSignatureParameterFromString = toCodec((ast) => {
   switch (ast._tag) {
-    case "Number":
-      return ast.encodeToString()
-    case "Union":
-      return ast.recur(indexSignatureParameterFromString)
     default:
       return ast
+    case "Number":
+      return ast.toCodecStringTree()
+    case "Union":
+      return ast.recur(indexSignatureParameterFromString)
   }
 })
 
-const templateLiteralPartFromString = serializer((ast) => {
+const templateLiteralPartFromString = toCodec((ast) => {
   switch (ast._tag) {
+    default:
+      return ast
     case "String":
     case "TemplateLiteral":
       return ast
     case "BigInt":
     case "Number":
     case "Literal":
-      return ast.encodeToString()
+      return ast.toCodecStringTree()
     case "Union":
       return ast.recur(templateLiteralPartFromString)
-    default:
-      return ast
   }
 })
 
@@ -2531,31 +2551,33 @@ const templateLiteralPartFromString = serializer((ast) => {
  * @internal
  */
 export const STRING_PATTERN = "[\\s\\S]*?"
-/**
- * floating point or integer, with optional exponent
- * @internal
- */
-export const NUMBER_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 
-const isNumberStringRegExp = new globalThis.RegExp(`(?:${NUMBER_PATTERN}|Infinity|-Infinity|NaN)`)
+const isFiniteStringRegExp = new globalThis.RegExp(`^${FINITE_PATTERN}$`)
 
 /** @internal */
-export function isNumberString(annotations?: Schema.Annotations.Filter) {
+export function isFiniteString(annotations?: Schema.Annotations.Filter) {
   return isPattern(
-    isNumberStringRegExp,
+    isFiniteStringRegExp,
     {
-      expected: "a string representing a number",
+      expected: "a string representing a finite number",
       meta: {
-        _tag: "isNumberString",
-        regExp: isNumberStringRegExp
+        _tag: "isFiniteString",
+        regExp: isFiniteStringRegExp
       },
       ...annotations
     }
   )
 }
 
+const finiteString = appendChecks(string, [isFiniteString()])
+
+const finiteToString = new Link(
+  finiteString,
+  Transformation.numberFromString
+)
+
 const numberToString = new Link(
-  appendChecks(string, [isNumberString()]),
+  new Union([finiteString, nonFiniteLiterals], "anyOf"),
   Transformation.numberFromString
 )
 
@@ -2564,7 +2586,7 @@ const numberToString = new Link(
  */
 const BIGINT_PATTERN = "-?\\d+"
 
-const isBigIntStringRegExp = new globalThis.RegExp(BIGINT_PATTERN)
+const isBigIntStringRegExp = new globalThis.RegExp(`^${BIGINT_PATTERN}$`)
 
 /** @internal */
 export function isBigIntString(annotations?: Schema.Annotations.Filter) {
@@ -2581,21 +2603,29 @@ export function isBigIntString(annotations?: Schema.Annotations.Filter) {
   )
 }
 
+/** @internal */
+export const bigIntString = appendChecks(string, [isBigIntString()])
+
 const bigIntToString = new Link(
-  appendChecks(string, [isBigIntString()]),
+  bigIntString,
   new Transformation.Transformation(
     Getter.transform(globalThis.BigInt),
     Getter.String()
   )
 )
 
-const isSymbolStringRegExp = /^Symbol\((.*)\)$/
+const REGEXP_PATTERN = "Symbol\\((.*)\\)"
+
+const isSymbolStringRegExp = new globalThis.RegExp(`^${REGEXP_PATTERN}$`)
+
+/** @internal */
+export const symbolString = appendChecks(string, [isSymbolString()])
 
 /**
  * to distinguish between Symbol and String, we need to add a check to the string keyword
  */
 const symbolToString = new Link(
-  appendChecks(string, [isSymbolString()]),
+  symbolString,
   new Transformation.Transformation(
     Getter.transform((description) => globalThis.Symbol.for(isSymbolStringRegExp.exec(description)![1])),
     Getter.transformOrFail((sym: symbol) => {

@@ -22,6 +22,9 @@ export const resolveTitle = resolveAt<string>("title")
 export const resolveDescription = resolveAt<string>("description")
 
 /** @internal */
+export const resolveBrands = resolveAt<ReadonlyArray<string>>("brands")
+
+/** @internal */
 export const getExpected = memoize((ast: AST.AST): string => {
-  return resolveIdentifier(ast) ?? ast.getExpected(getExpected)
+  return ast.getExpected(getExpected)
 })

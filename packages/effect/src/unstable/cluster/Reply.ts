@@ -181,6 +181,7 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
   static schemaFrom<Success extends Schema.Top>(
     success: Success
   ): Schema.declareConstructor<Chunk<Rpc.Any>, Chunk<Rpc.Any>, readonly [Success]> {
+    // TODO: extract to a helper function
     return Schema.declareConstructor<Chunk<Rpc.Any>>()(
       [success],
       ([success]) => (input, ast, options) => {
@@ -193,7 +194,8 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
         })
       },
       {
-        title: "Chunk",
+        typeConstructor: { _tag: "effect/cluster/Reply/Chunk" },
+        expected: "Reply.Chunk",
         toCodecJson: ([success]) =>
           Schema.link<Chunk<Rpc.Any>>()(
             Schema.Struct({
@@ -267,6 +269,7 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
     WithExit<Rpc.Any>,
     readonly [Schema.Exit<Success, Error, Defect>]
   > {
+    // TODO: extract to a helper function
     return Schema.declareConstructor<WithExit<Rpc.Any>>()(
       [exitSchema],
       ([exit]) => (input, ast, options) => {
@@ -279,7 +282,8 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
         })
       },
       {
-        title: "WithExit",
+        typeConstructor: { _tag: "effect/cluster/Reply/WithExit" },
+        expected: "Reply.WithExit",
         toCodecJson: ([exit]) =>
           Schema.link<WithExit<Rpc.Any>>()(
             Schema.Struct({

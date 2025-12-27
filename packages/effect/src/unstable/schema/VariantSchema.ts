@@ -481,7 +481,7 @@ export const Overrideable = <S extends Schema.Top & Schema.WithoutConstructorDef
 ) =>
   schema.pipe(
     Schema.withConstructorDefault(constant(Effect.asSome(options.defaultValue))),
-    Schema.brand<"Override">()
+    Schema.brand("Override")
   )
 
 const StructProto = {

@@ -230,7 +230,7 @@ Expected a value greater than 0, got -1.1`
     type B = { readonly _tag: "b"; readonly b: number }
     type S = { readonly _tag: "a"; readonly a: string } | B
     const optic = Optic.id<S>().refine(
-      Schema.makeRefinedByGuard((s: S): s is B => s._tag === "b", { title: `"b" tag` })
+      Schema.makeRefinedByGuard((s: S): s is B => s._tag === "b", { expected: `"b" tag` })
     ).key("b")
 
     assertSuccess(optic.getResult({ _tag: "b", b: 1 }), 1)

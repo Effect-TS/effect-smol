@@ -20,7 +20,7 @@ const TypeId = "~effect/data/Brand"
  * @since 2.0.0
  * @category models
  */
-export interface Brand<in out Keys extends string | symbol> {
+export interface Brand<in out Keys extends string> {
   readonly [TypeId]: {
     readonly [K in Keys]: Keys
   }
@@ -132,7 +132,7 @@ export declare namespace Brand {
    * @since 2.0.0
    */
   export type Brands<B extends Brand<any>> = Types.UnionToIntersection<
-    { [K in Keys<B>]: K extends string | symbol ? Brand<K> : never }[Keys<B>]
+    { [K in Keys<B>]: K extends string ? Brand<K> : never }[Keys<B>]
   >
 
   /**
@@ -158,7 +158,7 @@ export declare namespace Brand {
  * @category alias
  * @since 2.0.0
  */
-export type Branded<A, Key extends string | symbol> = A & Brand<Key>
+export type Branded<A, Key extends string> = A & Brand<Key>
 
 /**
  * This function returns a `Constructor` that **does not apply any runtime
@@ -223,7 +223,7 @@ export function check<A extends Brand<any>>(
 /**
  * @since 4.0.0
  */
-export function refine<B extends string | symbol, T>(
+export function refine<B extends string, T>(
   refine: AST.Refine<T & Brand<B>, T>
 ): Constructor<T & Brand<B>> {
   return check(refine as any)

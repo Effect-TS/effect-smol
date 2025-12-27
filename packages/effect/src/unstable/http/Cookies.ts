@@ -43,7 +43,8 @@ export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRe
 export const CookiesSchema: CookiesSchema = Schema.declare(
   isCookies,
   {
-    title: "Cookies",
+    typeConstructor: { _tag: "effect/http/Cookies" },
+    expected: "Cookies",
     toCodecJson: () =>
       Schema.link<Cookies>()(
         Schema.Array(Schema.String),
@@ -105,7 +106,10 @@ export interface CookieSchema extends Schema.declare<Cookie> {}
  */
 export const CookieSchema: CookieSchema = Schema.declare(
   isCookie,
-  { title: "Cookie" }
+  {
+    typeConstructor: { _tag: "effect/http/Cookies/Cookie" },
+    expected: "Cookie"
+  }
 )
 
 const CookieErrorTypeId = "~effect/http/Cookies/CookieError"
@@ -333,7 +337,7 @@ export const empty: Cookies = fromIterable([])
  * @since 4.0.0
  * @category refinements
  */
-export const isEmpty = (self: Cookies): boolean => Record.isRecordEmpty(self.cookies)
+export const isEmpty = (self: Cookies): boolean => Record.isEmptyRecord(self.cookies)
 
 // eslint-disable-next-line no-control-regex
 const fieldContentRegExp = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/

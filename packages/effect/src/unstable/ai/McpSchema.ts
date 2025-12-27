@@ -2073,5 +2073,5 @@ export function param<const Name extends string, S extends Schema.Top>(
   name: Name,
   schema: S
 ): Param<Name, S> {
-  return Schema.makeProto(schema.ast, { [ParamSchemaTypeId]: ParamSchemaTypeId, name, schema })
+  return Schema.make(schema.ast, { [ParamSchemaTypeId]: ParamSchemaTypeId, name, schema })
 }

@@ -17,16 +17,16 @@ describe("Struct", () => {
 
   it("branded field", () => {
     const schema = Schema.Struct({
-      a: Schema.String.pipe(Schema.brand<"a">())
+      a: Schema.String.pipe(Schema.brand("a"))
     })
     expect(Schema.revealCodec(schema)).type.toBe<
       Schema.Codec<{ readonly a: string & Brand.Brand<"a"> }, { readonly a: string }>
     >()
     expect(schema).type.toBe<
-      Schema.Struct<{ readonly a: Schema.refine<string & Brand.Brand<"a">, Schema.String> }>
+      Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>
     >()
     expect(schema.annotate({})).type.toBe<
-      Schema.Struct<{ readonly a: Schema.refine<string & Brand.Brand<"a">, Schema.String> }>
+      Schema.Struct<{ readonly a: Schema.brand<Schema.String, "a"> }>
     >()
   })
 
