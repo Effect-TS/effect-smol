@@ -78,10 +78,9 @@ export const registerProducer = (
  * ```ts
  * import { Metrics } from "@effect/opentelemetry"
  * import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics"
- * import { PrometheusExporter } from ""@opentelemetry/exporter-prometheus"
+ * import { PrometheusExporter } from "@opentelemetry/exporter-prometheus"
  *
- * const options = {port: 9464};
- * const exporter = new PrometheusExporter(options);
+ * const exporter = new PrometheusExporter({ port: 9464 })
  *
  * // Use delta temporality for backends like Datadog or Dynatrace
  * const metricsLayer = Metrics.layer(

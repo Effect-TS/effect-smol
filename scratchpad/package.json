@@ -5,6 +5,7 @@
   "version": "0.0.0",
   "dependencies": {
     "effect": "workspace:*",
+    "@effect/opentelemetry": "workspace:*",
     "@effect/platform-bun": "workspace:*",
     "@effect/platform-node": "workspace:*",
     "@effect/sql-clickhouse": "workspace:*",
