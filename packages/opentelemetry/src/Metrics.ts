@@ -78,11 +78,15 @@ export const registerProducer = (
  * ```ts
  * import { Metrics } from "@effect/opentelemetry"
  * import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics"
+ * import { PrometheusExporter } from ""@opentelemetry/exporter-prometheus"
+ *
+ * const options = {port: 9464};
+ * const exporter = new PrometheusExporter(options);
  *
  * // Use delta temporality for backends like Datadog or Dynatrace
  * const metricsLayer = Metrics.layer(
  *   () => new PeriodicExportingMetricReader({
- *     exporter: myExporter,
+ *     exporter,
  *     exportIntervalMillis: 10000
  *   }),
  *   { temporality: "delta" }
@@ -91,7 +95,7 @@ export const registerProducer = (
  * // Use cumulative temporality for backends like Prometheus (default)
  * const cumulativeLayer = Metrics.layer(
  *   () => new PeriodicExportingMetricReader({
- *     exporter: myExporter
+ *     exporter
  *   }),
  *   { temporality: "cumulative" }
  * )
