@@ -102,7 +102,8 @@
   "pnpm": {
     "patchedDependencies": {
       "@changesets/assemble-release-plan": "patches/@changesets__assemble-release-plan.patch",
-      "@changesets/get-github-info": "patches/@changesets__get-github-info.patch"
+      "@changesets/get-github-info": "patches/@changesets__get-github-info.patch",
+      "vitest-websocket-mock": "patches/vitest-websocket-mock.patch"
     },
     "ignoredBuiltDependencies": [
       "cpu-features",
