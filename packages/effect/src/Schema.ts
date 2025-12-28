@@ -7596,10 +7596,7 @@ export interface ToJsonSchemaOptions {
  * @category JsonSchema
  * @since 4.0.0
  */
-export function toJsonSchemaDocument(
-  schema: Top,
-  options?: ToJsonSchemaOptions // TODO: remove referenceStrategy option (convert to rewrite function)?
-): JsonSchema.Document<"draft-2020-12"> {
+export function toJsonSchemaDocument(schema: Top, options?: ToJsonSchemaOptions): JsonSchema.Document<"draft-2020-12"> {
   const sd = InternalStandard.fromAST(schema.ast)
   const jd = InternalStandard.toJsonSchemaDocument(sd, options)
   return {

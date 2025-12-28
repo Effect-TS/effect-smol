@@ -11,7 +11,6 @@ import * as Rec from "./Record.ts"
 import * as Schema from "./Schema.ts"
 import type * as AST from "./SchemaAST.ts"
 import * as Getter from "./SchemaGetter.ts"
-import type * as Types from "./Types.ts"
 
 // -----------------------------------------------------------------------------
 // specification
@@ -1042,22 +1041,22 @@ export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDoc
 const schemaToCodecJson = Schema.toCodecJson(Standard$)
 const encodeSchema = Schema.encodeUnknownSync(schemaToCodecJson)
 
+// TODO: tests
 /**
  * @since 4.0.0
  */
 export function toJson(document: Document): JsonSchema.Document<"draft-2020-12"> {
-  const schema = encodeSchema(document.schema) as JsonSchema.JsonSchema
-  const definitions = Rec.map(document.definitions, (d) => encodeSchema(d)) as JsonSchema.Definitions
   return {
     source: "draft-2020-12",
-    schema,
-    definitions
+    schema: encodeSchema(document.schema) as JsonSchema.JsonSchema,
+    definitions: Rec.map(document.definitions, (d) => encodeSchema(d)) as JsonSchema.Definitions
   }
 }
 
 const documentToCodecJson = Schema.toCodecJson(Document$)
 const decodeDocument = Schema.decodeUnknownSync(documentToCodecJson)
 
+// TODO: tests
 /**
  * @since 4.0.0
  */
@@ -1089,6 +1088,7 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (declaration, recur) 
   return Schema.Unknown
 }
 
+// TODO: tests
 /**
  * @since 4.0.0
  */
@@ -1427,6 +1427,7 @@ export const toCodeDefaultReviver: Reviver<string> = (declaration, recur) => {
   return "Schema.Unknown"
 }
 
+// TODO: tests
 /**
  * @since 4.0.0
  */
@@ -1702,395 +1703,13 @@ function toCodeRegExp(regExp: RegExp): string {
   return `new RegExp(${format(regExp.source)}, ${format(regExp.flags)})`
 }
 
-/**
- * @internal
- */
-export function rewriteToDraft07(document: JsonSchema.Document<"draft-2020-12">): JsonSchema.Document<"draft-07"> {
-  function rewrite(u: unknown): any {
-    if (Array.isArray(u)) {
-      return u.map(rewrite)
-    } else if (typeof u === "object" && u !== null) {
-      if ("$ref" in u || "prefixItems" in u) {
-        const out: JsonSchema.JsonSchema = { ...u }
-        if ("$ref" in out && typeof out.$ref === "string") {
-          out.$ref = out.$ref.replace(/#\/\$defs\//g, "#/definitions/")
-        }
-        if ("prefixItems" in out) {
-          if ("items" in out) {
-            out.additionalItems = out.items
-            delete out.items
-          }
-          out.items = out.prefixItems
-          delete out.prefixItems
-        }
-        return out
-      }
-      return u
-    } else {
-      return u
-    }
-  }
-  return {
-    source: "draft-07",
-    schema: rewrite(document.schema),
-    definitions: Rec.map(document.definitions, (d) => rewrite(d))
-  }
-}
-
-/**
- * @internal
- */
-export function rewriteToOpenApi3_1(
-  document: JsonSchema.Document<"draft-2020-12">
-): JsonSchema.Document<"openapi-3.1"> {
-  function rewrite(u: unknown): any {
-    if (Array.isArray(u)) {
-      return u.map(rewrite)
-    } else if (typeof u === "object" && u !== null) {
-      if ("$ref" in u && typeof u.$ref === "string") {
-        const out: JsonSchema.JsonSchema = { ...u }
-        out.$ref = u.$ref.replace(/#\/\$defs\//g, "#/components/schemas/")
-        return out
-      }
-      return u
-    } else {
-      return u
-    }
-  }
-  return {
-    source: "openapi-3.1",
-    schema: rewrite(document.schema),
-    definitions: Rec.map(document.definitions, (d) => rewrite(d))
-  }
-}
-
+// TODO: implement
 /**
  * @since 4.0.0
  */
-export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): Document {
+export function fromJsonSchema(_: JsonSchema.Document<"draft-2020-12">): Document {
   return {
-    schema: recur(document.schema),
-    definitions: Rec.map(document.definitions, (d) => recur(d))
-  }
-
-  function recur(u: unknown): Standard {
-    if (u === true) return { _tag: "Unknown", annotations: undefined }
-    if (u === false) return { _tag: "Never", annotations: undefined }
-    if (Predicate.isObject(u)) {
-      const normalized = normalizeJsonSchemaInput(u)
-      const out = on(normalized)
-      const a = collectAnnotations(normalized)
-      if (a !== undefined) {
-        if ("annotations" in out) {
-          out.annotations = a
-        } else {
-          // TODO
-        }
-      }
-      if (Array.isArray(normalized.allOf)) {
-        const allOf = normalized.allOf.map(recur)
-        const checks = allOf.flatMap((s): ReadonlyArray<Check<any>> => {
-          switch (s._tag) {
-            case "String":
-            case "Number":
-            case "Arrays":
-              return s.checks
-            default:
-              return []
-          }
-        })
-        switch (out._tag) {
-          case "String":
-          case "Number":
-          case "Arrays": {
-            out.checks = checks
-            return out
-          }
-          default:
-            return out
-        }
-      }
-      return out
-    }
-    return { _tag: "Unknown", annotations: undefined }
-  }
-
-  function on(s: JsonSchema.JsonSchema): Types.Mutable<Standard> {
-    if (Predicate.isObject(s)) {
-      if ("enum" in s && Array.isArray(s.enum)) {
-        switch (s.enum.length) {
-          case 0:
-            return { _tag: "Never", annotations: undefined }
-          case 1:
-            return { _tag: "Literal", literal: s.enum[0], annotations: undefined }
-          default:
-            return {
-              _tag: "Union",
-              types: s.enum.map((e) => ({
-                _tag: "Literal",
-                literal: e,
-                annotations: undefined
-              })),
-              mode: "anyOf",
-              annotations: undefined
-            }
-        }
-      }
-      switch (s.type) {
-        case "null":
-          return { _tag: "Null", annotations: undefined }
-        case "boolean":
-          return { _tag: "Boolean", annotations: undefined }
-        case "number":
-          return { _tag: "Number", checks: collectNumberChecks(s), annotations: undefined }
-        case "integer":
-          return {
-            _tag: "Number",
-            checks: [{ _tag: "Filter", meta: { _tag: "isInt" }, annotations: undefined }, ...collectNumberChecks(s)],
-            annotations: undefined
-          }
-        case "string": {
-          const contentMediaType = s.contentMediaType
-          const contentSchema = s.contentSchema
-          if (contentMediaType === "application/json" && contentSchema !== undefined) {
-            return {
-              _tag: "String",
-              checks: collectStringChecks(s),
-              contentMediaType,
-              contentSchema: recur(contentSchema),
-              annotations: undefined
-            }
-          }
-          return { _tag: "String", checks: collectStringChecks(s), annotations: undefined }
-        }
-        case "array":
-          return {
-            _tag: "Arrays",
-            elements: collectElements(s),
-            rest: collectRest(s),
-            checks: collectArraysChecks(s),
-            annotations: undefined
-          }
-        case "object": {
-          const propertySignatures = collectProperties(s)
-          const indexSignatures = collectIndexSignatures(s)
-          return {
-            _tag: "Objects",
-            propertySignatures,
-            indexSignatures,
-            checks: collectObjectsChecks(s),
-            annotations: undefined
-          }
-        }
-      }
-      if ("anyOf" in s && Array.isArray(s.anyOf)) {
-        return {
-          _tag: "Union",
-          types: s.anyOf.map((e) => recur(e)),
-          mode: "anyOf",
-          annotations: undefined
-        }
-      }
-    }
-    return { _tag: "Unknown", annotations: undefined }
-  }
-
-  function collectStringChecks(s: JsonSchema.JsonSchema): Array<Check<StringMeta>> {
-    const checks: Array<Check<StringMeta>> = []
-    if (typeof s.minLength === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isMinLength", minLength: s.minLength },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.maxLength === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isMaxLength", maxLength: s.maxLength },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.pattern === "string") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isPattern", regExp: new RegExp(s.pattern) },
-        annotations: collectAnnotations(s)
-      })
-    }
-    return checks
-  }
-
-  function collectNumberChecks(s: JsonSchema.JsonSchema): Array<Check<NumberMeta>> {
-    const checks: Array<Check<NumberMeta>> = []
-    if (typeof s.exclusiveMinimum === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isGreaterThan", exclusiveMinimum: s.exclusiveMinimum },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.minimum === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isGreaterThanOrEqualTo", minimum: s.minimum },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.maximum === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isLessThanOrEqualTo", maximum: s.maximum },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.exclusiveMaximum === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isLessThan", exclusiveMaximum: s.exclusiveMaximum },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.multipleOf === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isMultipleOf", divisor: s.multipleOf },
-        annotations: collectAnnotations(s)
-      })
-    }
-    return checks
-  }
-
-  function collectArraysChecks(s: JsonSchema.JsonSchema): Array<Check<ArraysMeta>> {
-    const checks: Array<Check<ArraysMeta>> = []
-    const elementsLength = Array.isArray(s.prefixItems) ? s.prefixItems.length : 0
-    if (typeof s.minItems === "number" && s.minItems > elementsLength) {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isMinLength", minLength: s.minItems },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.maxItems === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isMaxLength", maxLength: s.maxItems },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (s.uniqueItems === true) {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isUnique" },
-        annotations: collectAnnotations(s)
-      })
-    }
-    return checks
-  }
-
-  function collectObjectsChecks(s: JsonSchema.JsonSchema): Array<Check<ObjectsMeta>> {
-    const checks: Array<Check<ObjectsMeta>> = []
-    if (typeof s.minProperties === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isMinProperties", minProperties: s.minProperties },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.maxProperties === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isMaxProperties", maxProperties: s.maxProperties },
-        annotations: collectAnnotations(s)
-      })
-    }
-    return checks
-  }
-
-  function collectElements(s: JsonSchema.JsonSchema): Array<Element> {
-    if (Array.isArray(s.prefixItems)) {
-      const minItems = typeof s.minItems === "number" ? s.minItems : s.prefixItems.length
-      return s.prefixItems.map((item, index) => ({
-        type: recur(item),
-        isOptional: index >= minItems,
-        annotations: undefined
-      }))
-    }
-    return []
-  }
-
-  function collectRest(s: JsonSchema.JsonSchema): Array<Standard> {
-    if (s.items !== undefined && s.items !== false) {
-      return [recur(s.items)]
-    }
-    return []
-  }
-
-  function collectProperties(s: JsonSchema.JsonSchema): Array<PropertySignature> {
-    const required = new Set(Array.isArray(s.required) ? s.required : [])
-    return Predicate.isObject(s.properties) ?
-      Object.entries(s.properties).map(([key, value]) => ({
-        name: key,
-        type: recur(value),
-        isOptional: !required.has(key),
-        isMutable: false,
-        annotations: undefined
-      })) :
-      []
-  }
-
-  function collectIndexSignatures(s: JsonSchema.JsonSchema): Array<IndexSignature> {
-    const indexSignatures: Array<IndexSignature> = []
-    if (Predicate.isObject(s.additionalProperties)) {
-      indexSignatures.push({
-        parameter: { _tag: "String", checks: [], annotations: undefined },
-        type: recur(s.additionalProperties)
-      })
-    }
-    return indexSignatures
-  }
-}
-
-const filtersKeysByType = Object.entries({
-  string: ["minLength", "maxLength", "pattern", "format", "contentMediaType", "contentSchema"],
-  number: ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"],
-  object: [
-    "properties",
-    "required",
-    "additionalProperties",
-    "patternProperties",
-    "propertyNames",
-    "minProperties",
-    "maxProperties"
-  ],
-  array: ["items", "prefixItems", "additionalItems", "minItems", "maxItems", "uniqueItems"]
-})
-
-function normalizeJsonSchemaInput(s: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-  if (s.type === undefined) {
-    for (const [type, keys] of filtersKeysByType) {
-      if (keys.some((key) => s[key] !== undefined)) {
-        s = { ...s, type }
-      }
-    }
-  }
-  return s
-}
-
-function collectAnnotations(s: JsonSchema.JsonSchema): Schema.Annotations.Annotations | undefined {
-  if (Predicate.isObject(s)) {
-    const as: Record<string, unknown> = {}
-    if (typeof s.title === "string") as.title = s.title
-    if (typeof s.description === "string") as.description = s.description
-    if (s.default !== undefined) as.default = s.default
-    if (Array.isArray(s.examples)) {
-      as.examples = s.examples
-    } else if (s.example !== undefined) {
-      // OpenAPI 3.0 uses `example` (singular). Only use it if defined
-      as.examples = [s.example]
-    }
-    if (typeof s.format === "string") as.format = s.format
-    if (Object.keys(as).length === 0) return undefined
-    return as
+    schema: { _tag: "Unknown" },
+    definitions: {}
   }
 }
