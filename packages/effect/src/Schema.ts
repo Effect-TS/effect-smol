@@ -26,7 +26,7 @@ import * as InternalSchema from "./internal/schema/schema.ts"
 import * as InternalSerializer from "./internal/schema/serializer.ts"
 import * as InternalStandard from "./internal/schema/standard.ts"
 import * as JsonPatch from "./JsonPatch.ts"
-import type * as JsonSchema from "./JsonSchema.ts"
+import * as JsonSchema from "./JsonSchema.ts"
 import { remainder } from "./Number.ts"
 import * as Optic_ from "./Optic.ts"
 import * as Option_ from "./Option.ts"
@@ -527,14 +527,22 @@ export function toStandardSchemaV1<
 }
 
 function toBaseStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Target): JsonSchema.JsonSchema {
+  const doc2020_12 = toJsonSchemaDocument(self)
   if (target === "draft-2020-12") {
-    const { definitions, schema } = toJsonSchemaDocument(self)
-    if (Object.keys(definitions).length > 0) {
-      schema.$defs = definitions
+    const schema = doc2020_12.schema
+    if (Object.keys(doc2020_12.definitions).length > 0) {
+      schema.$defs = doc2020_12.definitions
+    }
+    return schema
+  } else if (target === "draft-07") {
+    const doc07 = JsonSchema.toDocumentDraft07(doc2020_12)
+    const schema = doc07.schema
+    if (Object.keys(doc07.definitions).length > 0) {
+      schema.definitions = doc07.definitions
     }
     return schema
   }
-  throw new globalThis.Error(`Unsupported target: ${target}`) // TODO: handle other targets
+  throw new globalThis.Error(`Unsupported target: ${target}`)
 }
 
 /**
