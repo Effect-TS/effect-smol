@@ -6226,7 +6226,7 @@ export interface Date extends instanceOf<globalThis.Date> {}
 export const Date: Date = instanceOf(
   globalThis.Date,
   {
-    typeConstructor: { _tag: "effect/Date" },
+    typeConstructor: { _tag: "Date" },
     expected: "Date",
     toCodecJson: () =>
       link<globalThis.Date>()(

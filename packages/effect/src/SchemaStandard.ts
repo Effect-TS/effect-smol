@@ -403,7 +403,6 @@ const Standard$ref = Schema.suspend(() => Standard$)
 const toJsonAnnotationsBlacklist: Set<string> = new Set([
   "toArbitrary",
   "toArbitraryConstraint",
-  "toJsonSchema",
   "toEquivalence",
   "toFormatter",
   "toCodec*",
