@@ -4949,7 +4949,13 @@ console.log(String(Schema.decodeUnknownExit(schema)(urlSearchParams)))
 
 ### Basic Conversion
 
-By default, a plain schema produces the minimal valid draft-2020-12 JSON Schema for that shape.
+By default, a schema produces a draft-2020-12 JSON Schema.
+
+The result is a data structure including:
+
+- the source of the JSON Schema (e.g. `draft-2020-12`, `draft-07`, etc...)
+- the JSON Schema itself
+- any definitions referenced by `$ref` (if any)
 
 **Example** (Tuple to draft-2020-12 JSON Schema)
 
@@ -4957,7 +4963,7 @@ By default, a plain schema produces the minimal valid draft-2020-12 JSON Schema 
 import { Schema } from "effect"
 
 // Define a tuple: [string, number]
-const schema = Schema.Tuple([Schema.String, Schema.Number])
+const schema = Schema.Tuple([Schema.String, Schema.Finite])
 
 // Generate a draft-2020-12 JSON Schema
 const document = Schema.toJsonSchemaDocument(schema)
@@ -4985,10 +4991,39 @@ Output:
 */
 ```
 
+To generate a draft-07 JSON Schema, use `JsonSchema.toDocumentDraft07` to convert the draft-2020-12 JSON Schema.
+
 **Example** (Tuple to draft-7 JSON Schema)
 
 ```ts
-// TODO
+import { JsonSchema, Schema } from "effect"
+
+const schema = Schema.Tuple([Schema.String, Schema.Finite])
+
+const doc2020_12 = Schema.toJsonSchemaDocument(schema)
+const doc07 = JsonSchema.toDocumentDraft07(doc2020_12)
+
+console.log(JSON.stringify(doc07, null, 2))
+/*
+Output:
+{
+  "source": "draft-07",
+  "schema": {
+    "type": "array",
+    "maxItems": 2,
+    "minItems": 2,
+    "items": [
+      {
+        "type": "string"
+      },
+      {
+        "type": "number"
+      }
+    ]
+  },
+  "definitions": {}
+}
+*/
 ```
 
 ### Attaching Standard Metadata
@@ -5038,15 +5073,17 @@ console.log(JSON.stringify(document, null, 2))
 */
 ```
 
-### Undefined is converted to optional fields / elements
+### Optional fields / elements
 
-**Example** (Optional struct field from `UndefinedOr`)
+Optional fields are converted to optional fields or elements in the JSON Schema.
+
+**Example**
 
 ```ts
 import { Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.UndefinedOr(Schema.Number) // 'a' may be undefined
+  a: Schema.optionalKey(Schema.String)
 })
 
 const document = Schema.toJsonSchemaDocument(schema)
@@ -5059,7 +5096,7 @@ console.log(JSON.stringify(document, null, 2))
     "type": "object",
     "properties": {
       "a": {
-        "type": "number"
+        "type": "string"
       }
     },
     "additionalProperties": false
@@ -5069,12 +5106,16 @@ console.log(JSON.stringify(document, null, 2))
 */
 ```
 
-**Example** (Optional tuple element from `UndefinedOr`)
+Fields including `undefined` (such as those defined unsing `Schema.optional` or `Schema.UndefinedOr`) are converted to optional fields or elements in the JSON Schema with a union with the `null` type.
+
+**Example**
 
 ```ts
 import { Schema } from "effect"
 
-const schema = Schema.Tuple([Schema.UndefinedOr(Schema.Number)]) // first element may be undefined
+const schema = Schema.Struct({
+  a: Schema.optional(Schema.String)
+})
 
 const document = Schema.toJsonSchemaDocument(schema)
 
@@ -5083,13 +5124,20 @@ console.log(JSON.stringify(document, null, 2))
 {
   "source": "draft-2020-12",
   "schema": {
-    "type": "array",
-    "prefixItems": [
-      {
-        "type": "number"
+    "type": "object",
+    "properties": {
+      "a": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
       }
-    ],
-    "maxItems": 1
+    },
+    "additionalProperties": false
   },
   "definitions": {}
 }
@@ -5154,7 +5202,6 @@ console.log(JSON.stringify(document.schema, null, 2))
       "type": "array",
       "items": {
         "type": "array",
-        "minItems": 2,
         "prefixItems": [
           {
             "type": "string"
@@ -5163,7 +5210,8 @@ console.log(JSON.stringify(document.schema, null, 2))
             "type": "string"
           }
         ],
-        "items": false
+        "maxItems": 2,
+        "minItems": 2
       }
     }
   },
@@ -5180,13 +5228,9 @@ console.log(String(Schema.decodeUnknownExit(serializer)(json)))
 // Success({"headers":Headers([["a","b"]])})
 ```
 
-### Adding JSON Schema Validation Constraints For Filters
+### Validation Constraints
 
-When you call `.check(...)`, Effect attaches a filter. A filter may include a `"toJsonSchemaConstraint"` annotation that describes a JSON Schema validation constraint to merge into the final schema.
-
-#### Built-in Filters
-
-Effect's built-in checks already carry a `toJsonSchemaConstraint`. For example:
+**Example**
 
 ```ts
 import { Schema } from "effect"
@@ -5197,7 +5241,6 @@ const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
-Output:
 {
   "source": "draft-2020-12",
   "schema": {
@@ -5247,48 +5290,9 @@ console.log(JSON.stringify(document, null, 2))
 */
 ```
 
-#### Declaring your own validation constraint filter
-
-You can define a custom filter and provide a JSON Schema validation constraint.
-
-**Example** (Custom `pattern` constraint)
-
-```ts
-import { Schema } from "effect"
-
-const schema = Schema.String.check(
-  Schema.makeFilter((s) => /foo/.test(s), {
-    title: "containsFoo",
-    description: "must contain 'foo'",
-    toJsonSchemaConstraint:
-      // Evaluated during generation; return a validation constraint that will be merged
-      () => ({
-        pattern: "foo"
-      })
-  })
-)
-
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
-
-console.log(JSON.stringify(document, null, 2))
-/*
-Output:
-{
-  "source": "draft-07",
-  "schema": {
-    "type": "string",
-    "pattern": "foo",
-    "title": "containsFoo",
-    "description": "must contain 'foo'"
-  },
-  "definitions": {}
-}
-*/
-```
-
 ### The fromJsonString combinator
 
-With `fromJsonString` on `draft-2020-12` or `openapi-3.1`, the generated schema uses `contentSchema` to embed the JSON Schema of the decoded value.
+With `fromJsonString`, the generated schema uses `contentSchema` to embed the JSON Schema of the decoded value.
 
 **Example** (Embedding `contentSchema` for JSON string content)
 
@@ -5302,11 +5306,10 @@ const original = Schema.Struct({ a: Schema.String })
 // but its content must be valid JSON matching 'original'
 const schema = Schema.fromJsonString(original)
 
-const document = Schema.toJsonSchema(schema, { target: "draft-2020-12" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
-Output:
 {
   "source": "draft-2020-12",
   "schema": {
@@ -5334,7 +5337,7 @@ Output:
 
 Sometimes you need to adapt a schema to a different target format. For example, you might convert a JSON Schema to the subset supported by OpenAI (https://platform.openai.com/docs/guides/structured-outputs/supported-schemas?type-restrictions=string-restrictions#supported-schemas).
 
-Note: the more context that an LLM has, the more "correct" the structured output will be, so it's advised to pass the `generateDescriptions: true` option to `makeJsonSchema*` APIs.
+Note: the more context that an LLM has, the more "correct" the structured output will be, so it's advised to pass the `generateDescriptions: true` option to `toJsonSchemaDocument` APIs.
 
 **Example** (Convert to an OpenAI-compatible schema)
 
@@ -5347,9 +5350,7 @@ const schema = Schema.Struct({
   a: Schema.optionalKey(Schema.NonEmptyString)
 })
 
-const document = Schema.toJsonSchema(schema, {
-  target: "draft-2020-12",
-  referenceStrategy: "skip-top-level",
+const document = Schema.toJsonSchemaDocument(schema, {
   generateDescriptions: true
 })
 
@@ -5361,11 +5362,14 @@ Output (before rewrite):
   "properties": {
     "a": {
       "type": "string",
-      "minLength": 1, // not supported by the OpenAI subset
-      "description": "a value with a length of at least 1" // generated description
+      "allOf": [
+        {
+          "minLength": 1,
+          "description": "a value with a length of at least 1"
+        }
+      ]
     }
   },
-  "required": [], // optional field (OpenAI requires all fields to be required)
   "additionalProperties": false
 }
 */
@@ -5383,17 +5387,17 @@ Output:
   "type": "object",
   "properties": {
     "a": {
-      "type": [ // optional via nullability
+      "type": [
         "string",
         "null"
       ],
       "description": "a value with a length of at least 1"
     }
   },
+  "additionalProperties": false,
   "required": [
-    "a" // now required
-  ],
-  "additionalProperties": false
+    "a"
+  ]
 }
 */
 ```
