@@ -1040,7 +1040,6 @@ export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDoc
 const schemaToCodecJson = Schema.toCodecJson(Standard$)
 const encodeSchema = Schema.encodeUnknownSync(schemaToCodecJson)
 
-// TODO: tests
 /**
  * @since 4.0.0
  */
@@ -1702,13 +1701,198 @@ function toCodeRegExp(regExp: RegExp): string {
   return `new RegExp(${format(regExp.source)}, ${format(regExp.flags)})`
 }
 
-// TODO: implement
+interface FromJsonObjects extends Objects {
+  readonly additionalProperties?: FromJson
+}
+
+type FromJson = Never | Unknown | Null | String | Number | Boolean | Literal | Arrays | FromJsonObjects | Union
+
 /**
  * @since 4.0.0
  */
-export function fromJsonSchema(_: JsonSchema.Document<"draft-2020-12">): Document {
+export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): Document {
+  const definitions = Rec.map(document.definitions, recur)
   return {
-    schema: { _tag: "Unknown" },
-    definitions: {}
+    schema: recur(document.schema),
+    definitions
   }
+
+  function recur(u: unknown): FromJson {
+    if (u === false) return { _tag: "Never" }
+    if (!Predicate.isObject(u)) return { _tag: "Unknown" }
+
+    const annotations = collectAnnotations(u)
+    let out: FromJson = { _tag: "Unknown", ...(annotations ? { annotations } : {}) }
+
+    if ("const" in u) {
+      if (isLiteralValue(u.const)) {
+        out = { _tag: "Literal", literal: u.const }
+      }
+    } else if (Array.isArray(u.enum)) {
+      const values = u.enum
+      if (values.every(isLiteralValue)) {
+        if (values.length === 1) {
+          out = { _tag: "Literal", literal: values[0] }
+        } else {
+          out = { _tag: "Union", types: values.map((v) => ({ _tag: "Literal", literal: v })), mode: "anyOf" }
+        }
+      }
+    } else if (Array.isArray(u.anyOf)) {
+      out = { _tag: "Union", types: u.anyOf.map((type) => recur(type)), mode: "anyOf" }
+    } else if (Array.isArray(u.oneOf)) {
+      out = { _tag: "Union", types: u.oneOf.map((type) => recur(type)), mode: "oneOf" }
+    }
+
+    const type = isType(u.type) ? u.type : getType(u)
+    if (type !== undefined) {
+      switch (type) {
+        case "string":
+          out = { _tag: "String", checks: [] }
+          break
+        case "number":
+          out = { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }] }
+          break
+        case "integer":
+          out = { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isInt" } }] }
+          break
+        case "boolean":
+          out = { _tag: "Boolean" }
+          break
+        case "array": {
+          const minItems = typeof u.minItems === "number" ? u.minItems : 0
+
+          const elements: Array<Element> = (Array.isArray(u.prefixItems) ? u.prefixItems : []).map((e, i) => ({
+            isOptional: i + 1 > minItems,
+            type: recur(e)
+          }))
+
+          const rest: Array<Standard> = u.items !== undefined ?
+            [recur(u.items)]
+            : typeof u.maxItems === "number"
+            ? []
+            : [{ _tag: "Unknown" }]
+
+          out = { _tag: "Arrays", elements, rest, checks: [] }
+          break
+        }
+        case "object": {
+          const additionalProperties: FromJson = u.additionalProperties === false
+            ? { _tag: "Never" }
+            : Predicate.isObject(u.additionalProperties)
+            ? recur(u.additionalProperties)
+            : { _tag: "Unknown" }
+
+          out = {
+            _tag: "Objects",
+            propertySignatures: collectProperties(u),
+            indexSignatures: collectIndexSignatures(u),
+            checks: [],
+            additionalProperties
+          }
+          break
+        }
+      }
+    }
+
+    if (out._tag === "Objects") {
+      if (out.additionalProperties !== undefined) {
+        if (out.additionalProperties._tag !== "Never") {
+          const { additionalProperties, ...rest } = out
+          return {
+            ...rest,
+            indexSignatures: [...rest.indexSignatures, {
+              parameter: { _tag: "String", checks: [] },
+              type: additionalProperties
+            }]
+          }
+        }
+        delete (out as any).additionalProperties
+      }
+    }
+    return out
+  }
+
+  function collectProperties(js: JsonSchema.JsonSchema): Array<PropertySignature> {
+    const properties: Record<string, unknown> = Predicate.isObject(js.properties) ? js.properties : {}
+    const required = Array.isArray(js.required) ? js.required : []
+    required.forEach((key) => {
+      if (!Object.hasOwn(properties, key)) {
+        properties[key] = {}
+      }
+    })
+    return Object.entries(properties).map(([key, v]) => ({
+      name: key,
+      type: recur(v),
+      isOptional: !required.includes(key),
+      isMutable: false
+    }))
+  }
+
+  function collectIndexSignatures(js: JsonSchema.JsonSchema): Array<IndexSignature> {
+    const out: Array<IndexSignature> = []
+
+    if (Predicate.isObject(js.propertyNames)) {
+      out.push({ parameter: recur(js.propertyNames), type: { _tag: "Unknown" } })
+    }
+
+    if (Predicate.isObject(js.patternProperties)) {
+      for (const [pattern, value] of Object.entries(js.patternProperties)) {
+        out.push(
+          { parameter: recur(pattern), type: recur(value) }
+        )
+      }
+    }
+
+    return out
+  }
+}
+
+function collectAnnotations(schema: JsonSchema.JsonSchema): Schema.Annotations.Annotations | undefined {
+  const as: Record<string, unknown> = {}
+
+  if (typeof schema.title === "string") as.title = schema.title
+  if (typeof schema.description === "string") as.description = schema.description
+  if (schema.default !== undefined) as.default = schema.default
+  if (Array.isArray(schema.examples)) as.examples = schema.examples
+  if (typeof schema.format === "string") as.format = schema.format
+
+  return Rec.isEmptyRecord(as) ? undefined : as
+}
+
+function isLiteralValue(value: unknown): value is AST.LiteralValue {
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+}
+
+const stringKeys = ["minLength", "maxLength", "pattern", "format", "contentMediaType", "contentSchema"]
+const numberKeys = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"]
+const objectKeys = [
+  "properties",
+  "required",
+  "additionalProperties",
+  "patternProperties",
+  "propertyNames",
+  "minProperties",
+  "maxProperties"
+]
+const arrayKeys = ["items", "prefixItems", "additionalItems", "minItems", "maxItems", "uniqueItems"]
+
+function getType(js: JsonSchema.JsonSchema): JsonSchema.Type | undefined {
+  if (stringKeys.some((key) => js[key] !== undefined)) {
+    return "string"
+  }
+  if (numberKeys.some((key) => js[key] !== undefined)) {
+    return "number"
+  }
+  if (objectKeys.some((key) => js[key] !== undefined)) {
+    return "object"
+  }
+  if (arrayKeys.some((key) => js[key] !== undefined)) {
+    return "array"
+  }
+}
+
+const types = ["null", "string", "number", "integer", "boolean", "object", "array"]
+
+function isType(type: unknown): type is JsonSchema.Type {
+  return typeof type === "string" && types.includes(type)
 }
