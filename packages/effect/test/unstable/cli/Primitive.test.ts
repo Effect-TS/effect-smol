@@ -93,7 +93,7 @@ describe("Primitive", () => {
 
       it.effect("should fail for invalid values", () =>
         expectInvalidValues(Primitive.float, ["not-a-number"], [
-          `Expected a string representing a number, got "not-a-number"`
+          `Expected a string representing a finite number, got "not-a-number"`
         ]))
 
       it("should have correct _tag", () => {
@@ -147,7 +147,6 @@ describe("Primitive", () => {
           ["-123", -123],
           ["0", 0],
           ["9007199254740991", 9007199254740991],
-          [" 42 ", 42],
           ["1e3", 1000]
         ]))
 
@@ -155,7 +154,7 @@ describe("Primitive", () => {
         expectInvalidValues(
           Primitive.integer,
           ["3.14", "not-a-number"],
-          [`Expected an integer, got 3.14`, `Expected a string representing a number, got "not-a-number"`]
+          [`Expected an integer, got 3.14`, `Expected a string representing a finite number, got "not-a-number"`]
         ))
 
       it("should have correct _tag", () => {

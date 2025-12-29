@@ -178,9 +178,9 @@ export function param<Name extends string, S extends Schema.Top & { readonly "En
 ): Param<Name, S>
 export function param(name: string): any {
   if (arguments.length === 1) {
-    return (schema: Schema.Top) => Schema.makeProto(schema.ast, { name, schema })
+    return (schema: Schema.Top) => Schema.make(schema.ast, { name, schema })
   }
-  return Schema.makeProto(arguments[1].ast, { name, schema: arguments[1] })
+  return Schema.make(arguments[1].ast, { name, schema: arguments[1] })
 }
 
 /**
@@ -307,7 +307,7 @@ export const Multipart = <S extends Schema.Top>(self: S, options?: {
   readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): Multipart<S> =>
-  self.pipe(Schema.brand<MultipartTypeId>()).annotate({
+  self.pipe(Schema.brand(MultipartTypeId)).annotate({
     httpApiMultipart: options ?? {}
   })
 
@@ -340,7 +340,7 @@ export const MultipartStream = <S extends Schema.Top>(self: S, options?: {
   readonly maxTotalSize?: FileSystem.SizeInput | undefined
   readonly fieldMimeTypes?: ReadonlyArray<string> | undefined
 }): MultipartStream<S> =>
-  self.pipe(Schema.brand<MultipartStreamTypeId>()).annotate({
+  self.pipe(Schema.brand(MultipartStreamTypeId)).annotate({
     httpApiMultipartStream: options ?? {}
   })
 

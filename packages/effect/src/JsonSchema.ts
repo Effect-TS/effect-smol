@@ -29,14 +29,30 @@ export type Type = "string" | "number" | "boolean" | "array" | "object" | "null"
 /**
  * @since 4.0.0
  */
-export interface Definitions extends Record<string, JsonSchema | boolean> {}
+export interface Definitions extends Record<string, JsonSchema> {}
 
 /**
+ * Internal representation:
+ * - `schema` is the root schema *without* the root definitions collection.
+ * - Root definitions are stored in `definitions` and referenced via:
+ *   - `#/$defs/<name>` for Draft-2020-12
+ *   - `#/definitions/<name>` for Draft-07
+ *   - `#/components/schemas/<name>` for OpenAPI 3.1 and OpenAPI 3.0
+ *
  * @since 4.0.0
  */
 export interface Document<S extends Source> {
   readonly source: S
   readonly schema: JsonSchema
+  readonly definitions: Definitions
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface MultiDocument<S extends Source> {
+  readonly source: S
+  readonly schemas: readonly [JsonSchema, ...Array<JsonSchema>]
   readonly definitions: Definitions
 }
 
@@ -50,432 +66,379 @@ export const META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema"
  */
 export const META_SCHEMA_URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema"
 
+const RE_DEFINITIONS = /^#\/definitions(?=\/|$)/
+const RE_DEFS = /^#\/\$defs(?=\/|$)/
+const RE_COMPONENTS_SCHEMAS = /^#\/components\/schemas(?=\/|$)/
+
 /**
  * @since 4.0.0
  */
-export function fromDocumentDraft07(document: Document<"draft-07">): Document<"draft-2020-12"> {
+export function fromSchemaDraft07(js: JsonSchema): Document<"draft-2020-12"> {
+  let definitions: Definitions | undefined
+
+  const schema = walk(js, true) as JsonSchema
   return {
     source: "draft-2020-12",
-    schema: fromSchemaDraft07(document.schema),
-    definitions: Rec.map(document.definitions, (d) => fromSchemaDraft07(d))
+    schema,
+    definitions: definitions ?? {}
   }
-}
 
-/**
- * @since 4.0.0
- */
-export function fromDocumentOpenApi3_0(document: Document<"openapi-3.0">): Document<"openapi-3.1"> {
-  return {
-    source: "openapi-3.1",
-    schema: fromSchemaOpenApi3_0(document.schema),
-    definitions: Rec.map(document.definitions, (d) => fromSchemaOpenApi3_0(d))
-  }
-}
-
-/**
- * Convert a Draft-07 JSON Schema into a Draft 2020-12-shaped schema.
- *
- * Notes / deliberate behavior:
- * - Strips `$schema` at every level (you are migrating drafts).
- * - Rewrites `$ref` only when it points at the root collection: `#/definitions` -> `#/$defs`.
- *   (This is a "root-only" strategy; nested `definitions` are treated as regular property names.)
- * - Renames root-level `definitions` to `$defs` and merges with any existing `$defs`
- *   (when both exist, `$defs` takes precedence on key collisions).
- * - Drops tuple keywords not representable in 2020-12: for Draft-07 tuples,
- *   `items: [..]` becomes `prefixItems`, and `additionalItems` becomes `items`.
- * - Transforms Draft-07 `dependencies` into `dependentSchemas` and `dependentRequired`.
- * - Strips unknown keywords everywhere (including `x-*` vendor extensions).
- *
- * @since 4.0.0
- */
-export function fromSchemaDraft07(schema: JsonSchema): JsonSchema
-export function fromSchemaDraft07(schema: JsonSchema | boolean): JsonSchema | boolean
-export function fromSchemaDraft07(schema: JsonSchema | boolean): JsonSchema | boolean {
-  return recur(schema, true) as JsonSchema | boolean
-
-  function recur(node: unknown, isRoot: boolean): unknown {
-    // Base case: Booleans and non-objects pass through
-    if (typeof node === "boolean" || !Predicate.isObject(node)) {
-      return node
-    }
+  function walk(node: unknown, isRoot: boolean): unknown {
+    if (Array.isArray(node)) return node.map((v) => walk(v, false))
+    if (!Predicate.isObject(node)) return node
 
     const out: Record<string, unknown> = {}
 
-    // Deterministic merges independent of input key order
-    let defsFromDefinitions: Record<string, unknown> | undefined
-    let defsFrom$defs: Record<string, unknown> | undefined
+    let prefixItems: unknown = undefined
+    let additionalItems: unknown = undefined
 
-    let tupleItems: unknown = undefined
-    let tupleAdditionalItems: unknown = undefined
+    for (const k of Object.keys(node)) {
+      const v = node[k]
 
-    for (const key of Object.keys(node)) {
-      const value = node[key]
-
-      // Strip unknown keywords (including x-* vendor extensions)
-      if (!ALLOWED_KEYWORDS.has(key)) {
-        continue
-      }
-
-      switch (key) {
-        // Strip $schema everywhere as we are moving to a new draft
-        case "$schema":
-          break
-
-        // Pointer rewriting (root collection only)
+      switch (k) {
         case "$ref":
-          out.$ref = typeof value === "string"
-            ? value.replace(/^#\/definitions(?=\/|$)/, "#/$defs")
-            : value
+          out.$ref = typeof v === "string" ? v.replace(RE_DEFINITIONS, "#/$defs") : v
           break
 
-        // Root-only definitions -> $defs
-        case "definitions":
+        case "definitions": {
+          const mapped = walk_object(v, walk)
           if (isRoot) {
-            defsFromDefinitions = mapSchemaMap(value)
+            definitions = mapped as Definitions | undefined
           } else {
-            // Treat as a schema-map so we don't strip the map keys (e.g. "A")
-            out.definitions = mapSchemaMap(value) ?? value
+            out.definitions = mapped ?? v
           }
           break
+        }
 
-        case "$defs":
-          defsFrom$defs = mapSchemaMap(value)
-          break
-
-        // Collect tuple keywords for post-loop processing
         case "items":
-          tupleItems = value
+          prefixItems = v
           break
         case "additionalItems":
-          tupleAdditionalItems = value
+          additionalItems = v
+          break
+
+        case "properties":
+        case "patternProperties": {
+          const mapped = walk_object(v, walk)
+          out[k] = mapped ?? v
+          break
+        }
+
+        case "additionalProperties":
+        case "propertyNames":
+          out[k] = walk(v, false)
+          break
+
+        case "allOf":
+        case "anyOf":
+        case "oneOf":
+          out[k] = Array.isArray(v) ? v.map((x) => walk(x, false)) : v
+          break
+
+        case "type":
+        case "required":
+        case "enum":
+        case "const":
+        case "title":
+        case "description":
+        case "default":
+        case "examples":
+        case "format":
+        case "pattern":
+        case "minimum":
+        case "maximum":
+        case "exclusiveMinimum":
+        case "exclusiveMaximum":
+        case "minLength":
+        case "maxLength":
+        case "minItems":
+        case "maxItems":
+        case "minProperties":
+        case "maxProperties":
+        case "multipleOf":
+        case "uniqueItems":
+          out[k] = v
+          break
+
+        default:
+          break
+      }
+    }
+
+    // Draft-07 tuples -> 2020-12 tuples
+    if (prefixItems !== undefined) {
+      if (Array.isArray(prefixItems)) {
+        out.prefixItems = prefixItems.map((x) => walk(x, false))
+        if (additionalItems !== undefined) out.items = walk(additionalItems, false)
+      } else {
+        out.items = walk(prefixItems, false)
+      }
+    }
+
+    return out
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function fromSchemaDraft2020_12(js: JsonSchema): Document<"draft-2020-12"> {
+  const { $defs, ...schema } = js
+  return {
+    source: "draft-2020-12",
+    schema,
+    definitions: Predicate.isObject($defs) ? ($defs as Definitions) : {}
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function fromSchemaOpenApi3_1(js: JsonSchema): Document<"draft-2020-12"> {
+  const schema = rewrite_refs(js, RE_COMPONENTS_SCHEMAS, "#/$defs") as JsonSchema
+  return fromSchemaDraft2020_12(schema)
+}
+
+/**
+ * @since 4.0.0
+ */
+export function fromSchemaOpenApi3_0(schema: JsonSchema): Document<"draft-2020-12"> {
+  const normalized = normalize_OpenApi3_0_to_Draft07(schema)
+  return fromSchemaDraft07(normalized as JsonSchema)
+}
+
+/**
+ * @since 4.0.0
+ */
+export function toDocumentDraft07(document: Document<"draft-2020-12">): Document<"draft-07"> {
+  return {
+    source: "draft-07",
+    schema: rewrite(document.schema),
+    definitions: Rec.map(document.definitions, rewrite)
+  }
+
+  function rewrite(node: unknown): JsonSchema {
+    return walk(rewrite_refs(node, RE_DEFS, "#/definitions"), true) as JsonSchema
+  }
+
+  function walk(node: unknown, _isRoot: boolean): unknown {
+    if (Array.isArray(node)) return node.map((v) => walk(v, false))
+    if (!Predicate.isObject(node)) return node
+
+    const src = node as Record<string, unknown>
+    const out: Record<string, unknown> = {}
+
+    let prefixItems: unknown = undefined
+    let items: unknown = undefined
+
+    for (const k of Object.keys(src)) {
+      const v = src[k]
+
+      switch (k) {
+        // We already rewrote $ref via rewrite_refs, so just copy it through.
+        case "$ref":
+        case "type":
+        case "required":
+        case "enum":
+        case "const":
+        case "title":
+        case "description":
+        case "default":
+        case "examples":
+        case "format":
+        case "pattern":
+        case "minimum":
+        case "maximum":
+        case "exclusiveMinimum":
+        case "exclusiveMaximum":
+        case "minLength":
+        case "maxLength":
+        case "minItems":
+        case "maxItems":
+        case "minProperties":
+        case "maxProperties":
+        case "multipleOf":
+        case "uniqueItems":
+          out[k] = v
+          break
+
+        // Schema maps
+        case "properties":
+        case "patternProperties": {
+          const mapped = walk_object(v, walk)
+          out[k] = mapped ?? v
+          break
+        }
+
+        // Single subschemas
+        case "additionalProperties":
+        case "propertyNames":
+          out[k] = walk(v, false)
           break
 
         // Schema arrays
         case "allOf":
         case "anyOf":
         case "oneOf":
+          out[k] = Array.isArray(v) ? v.map((x) => walk(x, false)) : v
+          break
+
+        // Tuple handling (2020-12 form)
         case "prefixItems":
-          out[key] = Array.isArray(value) ? value.map((v) => recur(v, false)) : value
+          prefixItems = v
+          break
+        case "items":
+          items = v
           break
 
-        // Schema maps
-        case "properties":
-        case "patternProperties":
-        case "dependentSchemas":
-          out[key] = Predicate.isObject(value) ? Rec.map(value, (v) => recur(v, false)) : value
-          break
-
-        // dependentRequired is a map of string -> string[]
-        case "dependentRequired":
-          out[key] = Predicate.isObject(value) ? { ...value } : value
-          break
-
-        // Single sub-schemas
-        case "not":
-        case "if":
-        case "then":
-        case "else":
-        case "contains":
-        case "propertyNames":
-        case "additionalProperties":
-        case "unevaluatedItems":
-        case "unevaluatedProperties":
-          out[key] = recur(value, false)
-          break
-
-        // Draft-07 dependencies -> 2020-12 dependentSchemas / dependentRequired
-        case "dependencies": {
-          if (Predicate.isObject(value)) {
-            const schemas: Record<string, unknown> = {}
-            const required: Record<string, unknown> = {}
-            let hasSchemas = false
-            let hasRequired = false
-
-            for (const depKey of Object.keys(value)) {
-              const depValue = value[depKey]
-              if (Array.isArray(depValue)) {
-                required[depKey] = depValue
-                hasRequired = true
-              } else {
-                schemas[depKey] = recur(depValue, false)
-                hasSchemas = true
-              }
-            }
-
-            if (hasSchemas) {
-              // Explicit dependentSchemas wins on collisions
-              const existing = Predicate.isObject(out.dependentSchemas)
-                ? out.dependentSchemas
-                : undefined
-              out.dependentSchemas = existing ? { ...schemas, ...existing } : schemas
-            }
-            if (hasRequired) {
-              // Explicit dependentRequired wins on collisions
-              const existing = Predicate.isObject(out.dependentRequired)
-                ? out.dependentRequired
-                : undefined
-              out.dependentRequired = existing ? { ...required, ...existing } : required
-            }
-          }
-          break
-        }
-
-        // Known non-schema keywords: copy as-is
         default:
-          out[key] = value
+          // drop everything else (subset)
           break
       }
     }
 
-    // Deterministic $defs merge: definitions first, then $defs (so explicit $defs wins)
-    if (defsFromDefinitions !== undefined || defsFrom$defs !== undefined) {
-      out.$defs = { ...(defsFromDefinitions ?? {}), ...(defsFrom$defs ?? {}) }
-    }
-
-    // Transform items/additionalItems (Draft-07 tuples) -> prefixItems/items (2020-12)
-    if (tupleItems !== undefined) {
-      if (Array.isArray(tupleItems)) {
-        out.prefixItems = tupleItems.map((v) => recur(v, false))
-        if (tupleAdditionalItems !== undefined) {
-          out.items = recur(tupleAdditionalItems, false)
-        }
+    // 2020-12 tuples -> Draft-07 tuples
+    if (prefixItems !== undefined) {
+      if (Array.isArray(prefixItems)) {
+        out.items = prefixItems.map((x) => walk(x, false))
+        if (items !== undefined) out.additionalItems = walk(items, false)
       } else {
-        // items as a single schema remains 'items'
-        out.items = recur(tupleItems, false)
+        // Non-standard, but keep a reasonable behavior
+        out.items = walk(prefixItems, false)
       }
+    } else if (items !== undefined) {
+      // Regular items schema stays as items
+      out.items = walk(items, false)
     }
 
     return out
-
-    function mapSchemaMap(value: unknown): Record<string, unknown> | undefined {
-      if (!Predicate.isObject(value)) return undefined
-      return Rec.map(value, (v) => recur(v, false))
-    }
   }
 }
 
 /**
- * Convert an OpenAPI 3.0 Schema Object into a JSON Schema Draft 2020-12-shaped schema.
- *
- * Notes / deliberate behavior:
- * - Performs OpenAPI-specific normalization first (without mutating the input):
- *   - `nullable: true` is converted into JSON Schema form (type widening / enum widening / `anyOf` fallback).
- *   - Draft-04-style numeric exclusivity (`exclusiveMinimum: true`) becomes numeric form.
- * - Then runs the Draft-07 -> 2020-12 migration (`fromDraft07`), which:
- *   - rewrites `#/definitions` refs to `#/$defs`,
- *   - converts root `definitions` to `$defs`,
- *   - converts tuples / dependencies,
- *   - strips unknown keywords everywhere (including `x-*` vendor extensions).
- *
  * @since 4.0.0
  */
-export function fromSchemaOpenApi3_0(schema: JsonSchema): JsonSchema
-export function fromSchemaOpenApi3_0(schema: JsonSchema | boolean): JsonSchema | boolean
-export function fromSchemaOpenApi3_0(schema: JsonSchema | boolean): JsonSchema | boolean {
-  const normalized = recur(schema) as JsonSchema | boolean
-  return fromSchemaDraft07(normalized)
-
-  function recur(node: unknown): unknown {
-    if (Array.isArray(node)) return node.map(recur)
-    if (typeof node === "boolean" || !Predicate.isObject(node)) return node
-
-    // Copy first (no mutation). Unknown keys are stripped later by fromDraft07.
-    const out: Record<string, unknown> = {}
-    for (const k of Object.keys(node)) {
-      const v = node[k]
-      if (Array.isArray(v) || Predicate.isObject(v)) {
-        out[k] = recur(v)
-      } else {
-        out[k] = v
-      }
-    }
-
-    // Handle numeric exclusivity (Draft-04 style -> numeric form)
-    const exclusivityAdjusted = handleExclusivity(out)
-
-    // Handle nullable (OpenAPI 3.0 style -> JSON Schema style)
-    if (exclusivityAdjusted.nullable === true) {
-      const withoutNullable = { ...exclusivityAdjusted }
-      delete withoutNullable.nullable
-      return handleNullable(withoutNullable)
-    }
-    if (exclusivityAdjusted.nullable === false) {
-      const withoutNullable = { ...exclusivityAdjusted }
-      delete withoutNullable.nullable
-      return withoutNullable
-    }
-
-    return exclusivityAdjusted
+export function toDocumentOpenApi3_1(document: Document<"draft-2020-12">): Document<"openapi-3.1"> {
+  return {
+    source: "openapi-3.1",
+    schema: rewrite(document.schema),
+    definitions: Rec.map(document.definitions, rewrite)
   }
 
-  function handleExclusivity(node: Record<string, unknown>): Record<string, unknown> {
-    let out = node
-
-    if (typeof out.exclusiveMinimum === "boolean") {
-      if (out.exclusiveMinimum === true && typeof out.minimum === "number") {
-        out = { ...out, exclusiveMinimum: out.minimum }
-        delete out.minimum
-      } else {
-        out = { ...out }
-        delete out.exclusiveMinimum
-      }
-    }
-
-    if (typeof out.exclusiveMaximum === "boolean") {
-      if (out.exclusiveMaximum === true && typeof out.maximum === "number") {
-        out = { ...out, exclusiveMaximum: out.maximum }
-        delete out.maximum
-      } else {
-        out = { ...out }
-        delete out.exclusiveMaximum
-      }
-    }
-
-    return out
-  }
-
-  function handleNullable(node: Record<string, unknown>): Record<string, unknown> {
-    // Priority 1: Enums (add null; widen type if present)
-    if (Array.isArray(node.enum)) {
-      const nextEnum = node.enum.includes(null) ? node.enum : [...node.enum, null]
-      return widenType({ ...node, enum: nextEnum })
-    }
-
-    // Priority 2: Standard types (widen)
-    if (node.type !== undefined) {
-      return widenType({ ...node })
-    }
-
-    // Priority 3: Fallback (wrap in anyOf)
-    // Preserve pointer/identity + metadata at the root so later draft-migration can
-    // lift `definitions` -> `$defs` and keep refs stable.
-    const preserved: Record<string, unknown> = {}
-    const original: Record<string, unknown> = {}
-
-    for (const k of Object.keys(node)) {
-      if (PRESERVED_ROOT_KEYS_FOR_NULLABLE_FALLBACK.has(k)) preserved[k] = node[k]
-      else original[k] = node[k]
-    }
-
-    return {
-      ...preserved,
-      anyOf: [original, { type: "null" }]
-    }
-  }
-
-  function widenType(node: Record<string, unknown>): Record<string, unknown> {
-    const t = node.type
-    if (typeof t === "string") {
-      if (t === "null") return node
-      return { ...node, type: [t, "null"] }
-    }
-    if (Array.isArray(t)) {
-      if (t.includes("null")) return node
-      return { ...node, type: [...t, "null"] }
-    }
-    return node
+  function rewrite(js: JsonSchema) {
+    return rewrite_refs(js, RE_DEFS, "#/components/schemas") as JsonSchema
   }
 }
 
-const PRESERVED_ROOT_KEYS_FOR_NULLABLE_FALLBACK = new Set<string>([
-  // Pointer / identity
-  "$id",
-  "$anchor",
-  "$defs",
-  "$schema",
-  "$comment",
-  // Draft-07 legacy collection (preserve so fromDraft07 can lift it to $defs)
-  "definitions",
-  // Human-facing metadata
-  "title",
-  "description",
-  "default",
-  "examples",
-  // Common OpenAPI-ish annotations
-  "deprecated",
-  "readOnly",
-  "writeOnly"
-])
+function rewrite_refs(node: unknown, re: RegExp, replacement: string): unknown {
+  if (Array.isArray(node)) return node.map((v) => rewrite_refs(v, re, replacement))
+  if (!Predicate.isObject(node)) return node
 
-const ALLOWED_KEYWORDS = new Set<string>([
-  // Core
-  "$id",
-  "$schema",
-  "$ref",
-  "$comment",
-  "$defs",
-  "$anchor",
-  "$recursiveAnchor",
-  "$recursiveRef",
-  "$dynamicAnchor",
-  "$dynamicRef",
-  "$vocabulary",
+  const out: Record<string, unknown> = {}
 
-  // Draft-07 legacy collection
-  "definitions",
+  for (const k of Object.keys(node)) {
+    const v = node[k]
 
-  // Meta / annotations
-  "title",
-  "description",
-  "default",
-  "examples",
-  "deprecated",
-  "readOnly",
-  "writeOnly",
+    if (k === "$ref") {
+      out[k] = typeof v === "string" ? v.replace(re, replacement) : v
+    } else if (Array.isArray(v) || Predicate.isObject(v)) {
+      out[k] = rewrite_refs(v, re, replacement)
+    } else {
+      out[k] = v
+    }
+  }
 
-  // OpenAPI keyword that we normalize away in fromOpenApi3_0
-  "nullable",
+  return out
+}
 
-  // Validation / general
-  "type",
-  "enum",
-  "const",
+function walk_object(
+  value: unknown,
+  walk: (node: unknown, isRoot: boolean) => unknown
+): Record<string, unknown> | undefined {
+  if (!Predicate.isObject(value)) return undefined
+  const out: Record<string, unknown> = {}
+  for (const k of Object.keys(value)) out[k] = walk(value[k], false)
+  return out
+}
 
-  // Numeric
-  "multipleOf",
-  "maximum",
-  "minimum",
-  "exclusiveMaximum",
-  "exclusiveMinimum",
+function normalize_OpenApi3_0_to_Draft07(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(normalize_OpenApi3_0_to_Draft07)
+  if (!Predicate.isObject(node)) return node
 
-  // String
-  "maxLength",
-  "minLength",
-  "pattern",
-  "format",
-  "contentMediaType",
-  "contentEncoding",
-  "contentSchema",
+  const src = node as Record<string, unknown>
+  let out: Record<string, unknown> = {}
 
-  // Array
-  "items",
-  "additionalItems",
-  "prefixItems",
-  "maxItems",
-  "minItems",
-  "uniqueItems",
-  "contains",
-  "unevaluatedItems",
+  for (const k of Object.keys(src)) {
+    const v = src[k]
+    if (k === "$ref" && typeof v === "string") {
+      out[k] = v.replace(RE_COMPONENTS_SCHEMAS, "#/definitions")
+    } else if (Array.isArray(v) || Predicate.isObject(v)) {
+      out[k] = normalize_OpenApi3_0_to_Draft07(v)
+    } else {
+      out[k] = v
+    }
+  }
 
-  // Object
-  "maxProperties",
-  "minProperties",
-  "required",
-  "properties",
-  "patternProperties",
-  "additionalProperties",
-  "propertyNames",
-  "dependencies",
-  "dependentSchemas",
-  "dependentRequired",
-  "unevaluatedProperties",
+  // Draft-04-style numeric exclusivity booleans
+  out = adjust_exclusivity(out)
 
-  // Combinators / conditionals
-  "allOf",
-  "anyOf",
-  "oneOf",
-  "not",
-  "if",
-  "then",
-  "else"
-])
+  // OpenAPI 3.0 nullable
+  if (out.nullable === true) {
+    delete out.nullable
+    return apply_nullable(out)
+  }
+  if (out.nullable === false) {
+    delete out.nullable
+  }
+
+  return out
+}
+
+function adjust_exclusivity(node: Record<string, unknown>): Record<string, unknown> {
+  let out = node
+
+  if (typeof out.exclusiveMinimum === "boolean") {
+    if (out.exclusiveMinimum === true && typeof out.minimum === "number") {
+      out = { ...out, exclusiveMinimum: out.minimum }
+      delete out.minimum
+    } else {
+      out = { ...out }
+      delete out.exclusiveMinimum
+    }
+  }
+
+  if (typeof out.exclusiveMaximum === "boolean") {
+    if (out.exclusiveMaximum === true && typeof out.maximum === "number") {
+      out = { ...out, exclusiveMaximum: out.maximum }
+      delete out.maximum
+    } else {
+      out = { ...out }
+      delete out.exclusiveMaximum
+    }
+  }
+
+  return out
+}
+
+function apply_nullable(node: Record<string, unknown>): Record<string, unknown> {
+  // enum widening
+  if (Array.isArray(node.enum)) {
+    const e = node.enum.includes(null) ? node.enum : [...node.enum, null]
+    return widen_type({ ...node, enum: e })
+  }
+
+  // type widening
+  if (node.type !== undefined) {
+    return widen_type({ ...node })
+  }
+
+  // fallback
+  return { anyOf: [node, { type: "null" }] }
+}
+
+function widen_type(node: Record<string, unknown>): Record<string, unknown> {
+  const t = node.type
+  if (typeof t === "string") return t === "null" ? node : { ...node, type: [t, "null"] }
+  if (Array.isArray(t)) return t.includes("null") ? node : { ...node, type: [...t, "null"] }
+  return node
+}

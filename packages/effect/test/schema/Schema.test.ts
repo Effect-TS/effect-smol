@@ -760,7 +760,7 @@ Missing key
           a: Schema.String,
           b: Schema.String
         }).check(
-          Schema.makeFilter(({ a, b }) => a === b, { title: "a === b" })
+          Schema.makeFilter(({ a, b }) => a === b, { expected: "a === b" })
         )
         const schema = from.mapFields(Struct.assign({ c: Schema.String }), { unsafePreserveChecks: true })
         const asserts = new TestSchema.Asserts(schema)
@@ -1040,9 +1040,9 @@ Expected a string including "c", got "ab"`
     describe("refinements", () => {
       it("refineByGuard", async () => {
         const schema = Schema.Option(Schema.String).pipe(
-          Schema.refineByGuard(Option.isSome, { title: "isSome" }),
+          Schema.refineByGuard(Option.isSome, { expected: "isSome" }),
           Schema.check(
-            Schema.makeFilter(({ value }) => value.length > 0, { title: "length > 0" })
+            Schema.makeFilter(({ value }) => value.length > 0, { expected: "length > 0" })
           )
         )
         const asserts = new TestSchema.Asserts(schema)
@@ -2229,7 +2229,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   it("declare", async () => {
     const schema = Schema.declare(
       (u) => u instanceof File,
-      { title: "File" }
+      { expected: "File" }
     )
     const asserts = new TestSchema.Asserts(schema)
 
@@ -3132,22 +3132,22 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
       await decoding.fail(
         { Infinity: "1" },
-        `Expected an integer, got Infinity
+        `Expected a string representing a finite number, got "Infinity"
   at ["Infinity"]`
       )
       await decoding.fail(
         { NaN: "1" },
-        `Expected an integer, got NaN
+        `Expected a string representing a finite number, got "NaN"
   at ["NaN"]`
       )
       await decoding.fail(
         { "-Infinity": "1" },
-        `Expected an integer, got -Infinity
+        `Expected a string representing a finite number, got "-Infinity"
   at ["-Infinity"]`
       )
     })
 
-    it("Record(Union(Number, string), FiniteFromString)", async () => {
+    it(`Record(Union(Number, "a"), FiniteFromString)`, async () => {
       const schema = Schema.Record(Schema.Union([Schema.Number, Schema.Literal("a")]), Schema.FiniteFromString)
       const asserts = new TestSchema.Asserts(schema)
 
@@ -3386,24 +3386,6 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("StructWithRest", () => {
-    it("should throw an error if there are duplicate index signatures", () => {
-      throws(
-        () =>
-          Schema.StructWithRest(
-            Schema.Struct({}),
-            [
-              Schema.Record(Schema.String, Schema.Number),
-              Schema.Record(Schema.Symbol, Schema.Number),
-              Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number),
-              Schema.Record(Schema.TemplateLiteral(["b", Schema.String]), Schema.Number),
-              Schema.Record(Schema.String, Schema.Number),
-              Schema.Record(Schema.TemplateLiteral(["a", Schema.String]), Schema.Number)
-            ]
-          ),
-        new Error(`Duplicate index signatures: ["String","a\${String}"]. ts(2374)`)
-      )
-    })
-
     it("should throw an error if there are encodings", () => {
       throws(
         () =>
@@ -3474,11 +3456,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     it("should preserve both checks", async () => {
       const schema = Schema.StructWithRest(
         Schema.Struct({ a: Schema.Number }).check(
-          Schema.makeFilter((s) => s.a > 0, { title: "agt(0)" })
+          Schema.makeFilter((s) => s.a > 0, { expected: "agt(0)" })
         ),
         [
           Schema.Record(Schema.String, Schema.Number).check(
-            Schema.makeFilter((s) => s.b === undefined || s.b > 1, { title: "bgt(1)" })
+            Schema.makeFilter((s) => s.b === undefined || s.b > 1, { expected: "bgt(1)" })
           )
         ]
       )
@@ -3834,7 +3816,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const schema = Schema.instanceOf(
         MyError,
-        { title: "MyError" }
+        { expected: "MyError" }
       )
       const asserts = new TestSchema.Asserts(schema)
 
@@ -4979,6 +4961,10 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed({ a: "a" }, new A({ a: "a" }))
+      await decoding.fail(
+        null,
+        `Expected object, got null`
+      )
       await decoding.fail(
         { a: 1 },
         `Expected string, got 1
@@ -6810,12 +6796,12 @@ describe("Getter", () => {
 })
 
 describe("Check", () => {
-  it("isNumberString", async () => {
-    const schema = Schema.String.check(Schema.isNumberString())
+  it("isFiniteString", async () => {
+    const schema = Schema.String.check(Schema.isFiniteString())
 
     deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
-      _tag: "isNumberString",
-      regExp: /(?:[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?|Infinity|-Infinity|NaN)/
+      _tag: "isFiniteString",
+      regExp: /^[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?$/
     })
   })
 
@@ -6824,7 +6810,7 @@ describe("Check", () => {
 
     deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
       _tag: "isBigIntString",
-      regExp: /-?\d+/
+      regExp: /^-?\d+$/
     })
   })
 
@@ -6877,20 +6863,39 @@ describe("Check", () => {
     })
   })
 
+  describe("brand", () => {
+    it("single brand", async () => {
+      const schema = Schema.String.pipe(Schema.brand("Positive"))
+      deepStrictEqual(schema.ast.annotations?.brands, ["Positive"])
+    })
+
+    it("double brand", async () => {
+      const schema = Schema.String.pipe(Schema.brand("Positive"), Schema.brand("Int"))
+      deepStrictEqual(schema.ast.annotations?.brands, ["Positive", "Int"])
+    })
+
+    it("override the default identifier", async () => {
+      const schema = Schema.String.pipe(Schema.brand("Positive"), Schema.brand("Int")).annotate({ identifier: "MyInt" })
+      deepStrictEqual(schema.ast.annotations?.brands, ["Positive", "Int"])
+    })
+  })
+
   describe("fromBrand", () => {
     it("nominal", async () => {
-      const schema = Schema.String.pipe(Schema.fromBrand(Brand.nominal<string & Brand.Brand<"MyString">>()))
+      const schema = Schema.String.pipe(Schema.fromBrand("a", Brand.nominal<string & Brand.Brand<"a">>()))
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
       await decoding.succeed("a")
       await decoding.fail(1, `Expected string, got 1`)
+
+      deepStrictEqual(schema.ast.annotations?.brands, ["a"])
     })
 
     it("single brand", async () => {
       type Int = number & Brand.Brand<"Int">
       const Int = Brand.check<Int>(Schema.isInt())
-      const schema = Schema.Number.pipe(Schema.fromBrand(Int))
+      const schema = Schema.Number.pipe(Schema.fromBrand("Int", Int))
 
       const asserts = new TestSchema.Asserts(schema)
 
@@ -6898,6 +6903,8 @@ describe("Check", () => {
       await decoding.succeed(1)
       await decoding.fail("a", `Expected number, got "a"`)
       await decoding.fail(1.2, `Expected an integer, got 1.2`)
+
+      deepStrictEqual(schema.ast.checks?.at(-1)?.annotations?.brands, ["Int"])
     })
 
     it("multiple brands", async () => {
@@ -6908,7 +6915,7 @@ describe("Check", () => {
       const Positive = Brand.check<Positive>(Schema.isGreaterThan(0))
 
       const PositiveInt = Brand.all(Int, Positive)
-      const schema = Schema.Number.pipe(Schema.fromBrand(PositiveInt))
+      const schema = Schema.Number.pipe(Schema.fromBrand("PositiveInt", PositiveInt))
 
       const asserts = new TestSchema.Asserts(schema)
 
@@ -6917,6 +6924,8 @@ describe("Check", () => {
       await decoding.fail("a", `Expected number, got "a"`)
       await decoding.fail(1.2, `Expected an integer, got 1.2`)
       await decoding.fail(-1, `Expected a value greater than 0, got -1`)
+
+      deepStrictEqual(schema.ast.checks?.at(-1)?.annotations?.brands, ["PositiveInt"])
     })
   })
 
@@ -7032,13 +7041,6 @@ Missing key
   at ["a"]
 Missing key
   at ["c"]`
-    )
-  })
-
-  it("Suspended schemas cannot be annotated because they are only a way to defer evaluation", () => {
-    throws(
-      () => Schema.suspend(() => Schema.String).annotate({ description: "a" } as never),
-      "Suspended schemas cannot be annotated"
     )
   })
 })

@@ -2,8 +2,9 @@
  * @since 4.0.0
  */
 import type { NonEmptyArray } from "../../Array.ts"
+import * as Equal from "../../Equal.ts"
 import { constFalse } from "../../Function.ts"
-import type * as JsonSchema from "../../JsonSchema.ts"
+import * as JsonSchema from "../../JsonSchema.ts"
 import * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 import type * as AST from "../../SchemaAST.ts"
@@ -232,13 +233,19 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   }
 
   function processAST(ast: AST.AST): JsonSchema.JsonSchema {
-    const { definitions, schema } = Schema.toJsonSchema(Schema.make(ast), {
-      target: "openapi-3.1",
+    const document = JsonSchema.toDocumentOpenApi3_1(Schema.toJsonSchemaDocument(Schema.make(ast), {
       additionalProperties: options?.additionalProperties,
-      referenceStrategy: "keep"
-    })
-    Object.assign(jsonSchemaDefs, definitions)
-    return schema
+      referenceStrategy: "skip-top-level"
+    }))
+    for (const [key, definition] of Object.entries(document.definitions)) {
+      const existing = jsonSchemaDefs[key]
+      if (existing !== undefined && !Equal.equals(existing, definition)) {
+        throw new globalThis.Error(`Duplicate identifier: ${key}`)
+      } else {
+        jsonSchemaDefs[key] = definition
+      }
+    }
+    return document.schema
   }
 
   function processHttpApiSecurity(

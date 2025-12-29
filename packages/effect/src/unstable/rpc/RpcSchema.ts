@@ -56,5 +56,5 @@ const schema = Schema.declare(Stream_.isStream)
  * @category Stream
  */
 export function Stream<A extends Schema.Top, E extends Schema.Top>(success: A, error: E): Stream<A, E> {
-  return Schema.makeProto(schema.ast, { [StreamSchemaTypeId]: StreamSchemaTypeId, success, error })
+  return Schema.make(schema.ast, { [StreamSchemaTypeId]: StreamSchemaTypeId, success, error })
 }

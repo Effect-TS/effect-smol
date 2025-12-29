@@ -17,14 +17,16 @@ import type * as Equivalence from "./Equivalence.ts"
 import * as Exit_ from "./Exit.ts"
 import type { Formatter } from "./Formatter.ts"
 import { format, formatDate, formatPropertyKey } from "./Formatter.ts"
-import { identity, memoize } from "./Function.ts"
+import { identity } from "./Function.ts"
 import * as core from "./internal/core.ts"
-import * as InternalEquivalence from "./internal/equivalence.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as InternalArbitrary from "./internal/schema/arbitrary.ts"
-import * as InternalJsonSchema from "./internal/schema/json-schema.ts"
+import * as InternalEquivalence from "./internal/schema/equivalence.ts"
+import * as InternalSchema from "./internal/schema/schema.ts"
+import * as InternalSerializer from "./internal/schema/serializer.ts"
+import * as InternalStandard from "./internal/schema/standard.ts"
 import * as JsonPatch from "./JsonPatch.ts"
-import type * as JsonSchema from "./JsonSchema.ts"
+import * as JsonSchema from "./JsonSchema.ts"
 import { remainder } from "./Number.ts"
 import * as Optic_ from "./Optic.ts"
 import * as Option_ from "./Option.ts"
@@ -45,6 +47,8 @@ import type { Assign, Lambda, Mutable, Simplify } from "./Struct.ts"
 import * as Struct_ from "./Struct.ts"
 import * as FastCheck from "./testing/FastCheck.ts"
 import type { UnionToIntersection } from "./Types.ts"
+
+const TypeId = InternalSchema.TypeId
 
 /**
  * Is this schema required or optional?
@@ -146,34 +150,6 @@ export interface Bottom<
   makeUnsafe(input: this["~type.make.in"], options?: MakeOptions): this["Type"]
 }
 
-const TypeId = "~effect/Schema/Schema"
-
-const SchemaProto = {
-  [TypeId]: TypeId,
-  pipe() {
-    return Pipeable.pipeArguments(this, arguments)
-  },
-  annotate(this: Top, annotations: Annotations.Annotations) {
-    return this.rebuild(AST.annotate(this.ast, annotations))
-  },
-  annotateKey(this: Top, annotations: Annotations.Key<unknown>) {
-    return this.rebuild(AST.annotateKey(this.ast, annotations))
-  },
-  check(this: Top, ...checks: readonly [AST.Check<unknown>, ...Array<AST.Check<unknown>>]) {
-    return this.rebuild(AST.appendChecks(this.ast, checks))
-  }
-}
-
-/** @internal */
-export function makeProto<S extends Top>(ast: AST.AST, options: object): S {
-  const self = Object.create(SchemaProto)
-  Object.assign(self, options)
-  self.ast = ast
-  self.rebuild = (ast: AST.AST) => makeProto(ast, options)
-  self.makeUnsafe = Parser.makeUnsafe(self)
-  return self
-}
-
 /**
  * @since 4.0.0
  */
@@ -214,7 +190,7 @@ export function declareConstructor<T, E = T, Iso = T>() {
     return make(
       new AST.Declaration(
         typeParameters.map(AST.getAST),
-        (typeParameters) => run(typeParameters.map(make) as any),
+        (typeParameters) => run(typeParameters.map((ast) => make(ast)) as any),
         annotations
       )
     )
@@ -550,27 +526,19 @@ export function toStandardSchemaV1<
   }
 }
 
-const targets = ["draft-07", "draft-2020-12", "openapi-3.1"]
-
-function isTarget(target: StandardJSONSchemaV1.Target): target is JsonSchema.Target {
-  return targets.includes(target)
-}
-
-function getDefinitionsNamespace(target: JsonSchema.Target): string {
-  switch (target) {
-    case "draft-07":
-      return "definitions"
-    case "draft-2020-12":
-    case "openapi-3.1":
-      return "$defs"
-  }
-}
-
 function toBaseStandardJSONSchemaV1(self: Top, target: StandardJSONSchemaV1.Target): JsonSchema.JsonSchema {
-  if (isTarget(target)) {
-    const { definitions, schema } = toJsonSchema(self, { target })
-    if (Object.keys(definitions).length > 0) {
-      schema[getDefinitionsNamespace(target)] = definitions
+  const doc2020_12 = toJsonSchemaDocument(self)
+  if (target === "draft-2020-12") {
+    const schema = doc2020_12.schema
+    if (Object.keys(doc2020_12.definitions).length > 0) {
+      schema.$defs = doc2020_12.definitions
+    }
+    return schema
+  } else if (target === "draft-07") {
+    const doc07 = JsonSchema.toDocumentDraft07(doc2020_12)
+    const schema = doc07.schema
+    if (Object.keys(doc07.definitions).length > 0) {
+      schema.definitions = doc07.definitions
     }
     return schema
   }
@@ -848,9 +816,7 @@ export const encodeSync = Parser.encodeSync
  * @category Constructors
  * @since 4.0.0
  */
-export function make<S extends Top>(ast: S["ast"]): S {
-  return makeProto(ast, {})
-}
+export const make: <S extends Top>(ast: S["ast"], options?: object) => S = InternalSchema.make
 
 /**
  * Tests if a value is a `Schema`.
@@ -914,9 +880,7 @@ interface optionalKeyLambda extends Lambda {
  *
  * @since 4.0.0
  */
-export const optionalKey = Struct_.lambda<optionalKeyLambda>((schema) =>
-  makeProto(AST.optionalKey(schema.ast), { schema })
-)
+export const optionalKey = Struct_.lambda<optionalKeyLambda>((schema) => make(AST.optionalKey(schema.ast), { schema }))
 
 interface requiredKeyLambda extends Lambda {
   <S extends Top>(self: optionalKey<S>): S
@@ -1012,9 +976,7 @@ interface mutableKeyLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const mutableKey = Struct_.lambda<mutableKeyLambda>((schema) =>
-  makeProto(AST.mutableKey(schema.ast), { schema })
-)
+export const mutableKey = Struct_.lambda<mutableKeyLambda>((schema) => make(AST.mutableKey(schema.ast), { schema }))
 
 interface readonlyKeyLambda extends Lambda {
   <S extends Top>(self: mutableKey<S>): S
@@ -1060,7 +1022,7 @@ interface toTypeLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const toType = Struct_.lambda<toTypeLambda>((schema) => makeProto(AST.toType(schema.ast), { schema }))
+export const toType = Struct_.lambda<toTypeLambda>((schema) => make(AST.toType(schema.ast), { schema }))
 
 /**
  * @since 4.0.0
@@ -1095,7 +1057,7 @@ interface toEncodedLambda extends Lambda {
 /**
  * @since 4.0.0
  */
-export const toEncoded = Struct_.lambda<toEncodedLambda>((schema) => makeProto(AST.toEncoded(schema.ast), { schema }))
+export const toEncoded = Struct_.lambda<toEncodedLambda>((schema) => make(AST.toEncoded(schema.ast), { schema }))
 
 const FlipTypeId = "~effect/Schema/flip"
 
@@ -1138,7 +1100,7 @@ export function flip<S extends Top>(schema: S): flip<S> {
   if (isFlip$(schema)) {
     return schema.schema.rebuild(AST.flip(schema.ast))
   }
-  return makeProto(AST.flip(schema.ast), { [FlipTypeId]: FlipTypeId, schema })
+  return make(AST.flip(schema.ast), { [FlipTypeId]: FlipTypeId, schema })
 }
 
 /**
@@ -1157,7 +1119,7 @@ export interface Literal<L extends AST.LiteralValue> extends Bottom<L, L, never,
  * @since 4.0.0
  */
 export function Literal<L extends AST.LiteralValue>(literal: L): Literal<L> {
-  const out = makeProto<Literal<L>>(new AST.Literal(literal), {
+  const out = make<Literal<L>>(new AST.Literal(literal), {
     literal,
     transform<L2 extends AST.LiteralValue>(to: L2): decodeTo<Literal<L2>, Literal<L>> {
       return out.pipe(decodeTo(Literal(to), {
@@ -1234,7 +1196,7 @@ function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Pa
  * @since 4.0.0
  */
 export function TemplateLiteral<const Parts extends TemplateLiteral.Parts>(parts: Parts): TemplateLiteral<Parts> {
-  return makeProto(templateLiteralFromParts(parts), { parts })
+  return make(templateLiteralFromParts(parts), { parts })
 }
 
 /**
@@ -1276,7 +1238,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
 export function TemplateLiteralParser<const Parts extends TemplateLiteral.Parts>(
   parts: Parts
 ): TemplateLiteralParser<Parts> {
-  return makeProto(templateLiteralFromParts(parts).asTemplateLiteralParser(), { parts: [...parts] })
+  return make(templateLiteralFromParts(parts).asTemplateLiteralParser(), { parts: [...parts] })
 }
 
 /**
@@ -1293,7 +1255,7 @@ export interface Enum<A extends { [x: string]: string | number }>
  * @since 4.0.0
  */
 export function Enum<A extends { [x: string]: string | number }>(enums: A): Enum<A> {
-  return makeProto(
+  return make(
     new AST.Enum(
       Object.keys(enums).filter(
         (key) => typeof enums[enums[key]] !== "number"
@@ -1635,7 +1597,7 @@ export interface Struct<Fields extends Struct.Fields> extends
 }
 
 function makeStruct<const Fields extends Struct.Fields>(ast: AST.Objects, fields: Fields): Struct<Fields> {
-  return makeProto(ast, {
+  return make(ast, {
     fields,
     mapFields<To extends Struct.Fields>(
       this: Struct<Fields>,
@@ -1881,7 +1843,7 @@ export function Record<Key extends Record.Key, Value extends Top>(
   const keyValueCombiner = options?.keyValueCombiner?.decode || options?.keyValueCombiner?.encode
     ? new AST.KeyValueCombiner(options.keyValueCombiner.decode, options.keyValueCombiner.encode)
     : undefined
-  return makeProto(AST.record(key.ast, value.ast, keyValueCombiner), { key, value })
+  return make(AST.record(key.ast, value.ast, keyValueCombiner), { key, value })
 }
 
 /**
@@ -1978,7 +1940,7 @@ export function StructWithRest<
   schema: S,
   records: Records
 ): StructWithRest<S, Records> {
-  return makeProto(AST.structWithRest(schema.ast, records.map(AST.getAST)), { schema, records })
+  return make(AST.structWithRest(schema.ast, records.map(AST.getAST)), { schema, records })
 }
 
 /**
@@ -2103,7 +2065,7 @@ export interface Tuple<Elements extends Tuple.Elements> extends
 }
 
 function makeTuple<Elements extends Tuple.Elements>(ast: AST.Arrays, elements: Elements): Tuple<Elements> {
-  return makeProto(ast, {
+  return make(ast, {
     elements,
     mapElements<To extends Tuple.Elements>(
       this: Tuple<Elements>,
@@ -2222,7 +2184,7 @@ export function TupleWithRest<S extends Tuple<Tuple.Elements>, const Rest extend
   schema: S,
   rest: Rest
 ): TupleWithRest<S, Rest> {
-  return makeProto(AST.tupleWithRest(schema.ast, rest.map(AST.getAST)), { schema, rest })
+  return make(AST.tupleWithRest(schema.ast, rest.map(AST.getAST)), { schema, rest })
 }
 
 /**
@@ -2253,9 +2215,7 @@ interface ArrayLambda extends Lambda {
  * @category Constructors
  * @since 4.0.0
  */
-export const Array = Struct_.lambda<ArrayLambda>((schema) =>
-  makeProto(new AST.Arrays(false, [], [schema.ast]), { schema })
-)
+export const Array = Struct_.lambda<ArrayLambda>((schema) => make(new AST.Arrays(false, [], [schema.ast]), { schema }))
 
 /**
  * @since 4.0.0
@@ -2286,7 +2246,7 @@ interface NonEmptyArrayLambda extends Lambda {
  * @since 4.0.0
  */
 export const NonEmptyArray = Struct_.lambda<NonEmptyArrayLambda>((schema) =>
-  makeProto(new AST.Arrays(false, [schema.ast], [schema.ast]), { schema })
+  make(new AST.Arrays(false, [schema.ast], [schema.ast]), { schema })
 )
 
 /**
@@ -2304,7 +2264,7 @@ export interface UniqueArray<S extends Top> extends Array$<S> {}
  * @since 4.0.0
  */
 export function UniqueArray<S extends Top>(item: S): UniqueArray<S> {
-  return Array(item).check(isUnique(toEquivalence(item)))
+  return Array(item).check(isUnique())
 }
 
 /**
@@ -2346,7 +2306,7 @@ interface mutableLambda extends Lambda {
  * @since 4.0.0
  */
 export const mutable = Struct_.lambda<mutableLambda>((schema) => {
-  return makeProto(new AST.Arrays(true, schema.ast.elements, schema.ast.rest), { schema })
+  return make(new AST.Arrays(true, schema.ast.elements, schema.ast.rest), { schema })
 })
 
 /**
@@ -2392,7 +2352,7 @@ function makeUnion<Members extends ReadonlyArray<Top>>(
   ast: AST.Union<Members[number]["ast"]>,
   members: Members
 ): Union<Members> {
-  return makeProto(ast, {
+  return make(ast, {
     members,
     mapMembers<To extends ReadonlyArray<Top>>(
       this: Union<Members>,
@@ -2456,7 +2416,7 @@ export interface Literals<L extends ReadonlyArray<AST.LiteralValue>>
  */
 export function Literals<const L extends ReadonlyArray<AST.LiteralValue>>(literals: L): Literals<L> {
   const members = literals.map(Literal) as { readonly [K in keyof L]: Literal<L[K]> }
-  return makeProto(AST.union(members, "anyOf", undefined), {
+  return make(AST.union(members, "anyOf", undefined), {
     literals,
     members,
     mapMembers<To extends ReadonlyArray<Top>>(
@@ -2547,8 +2507,6 @@ export interface suspend<S extends Top> extends
   >
 {
   readonly "~rebuild.out": this
-  // Suspended schemas cannot be annotated because they are only a way to defer evaluation
-  annotate(annotations: never): this["~rebuild.out"]
 }
 
 /**
@@ -2603,7 +2561,7 @@ export interface refine<T extends S["Type"], S extends Top> extends
  */
 export function refine<T extends E, E>(refine: AST.Refine<T, E>) {
   return <S extends Schema<E>>(schema: S): refine<S["Type"] & T, S> =>
-    makeProto(AST.appendChecks(schema.ast, [refine]), { schema })
+    make(AST.appendChecks(schema.ast, [refine]), { schema })
 }
 
 /**
@@ -2617,25 +2575,23 @@ export function refineByGuard<T extends S["Type"], S extends Top>(
   return (self: S): refine<T, S> => self.pipe(refine(makeRefinedByGuard(is, annotations)))
 }
 
-type DistributeBrands<T, B> =
-  & T
-  & UnionToIntersection<B extends infer U extends string | symbol ? Brand.Brand<U> : never>
+type DistributeBrands<B> = UnionToIntersection<B extends infer U extends string ? Brand.Brand<U> : never>
 
 /**
  * @since 4.0.0
  */
 export interface brand<S extends Top, B> extends
   Bottom<
-    DistributeBrands<S["Type"], B>,
+    S["Type"] & DistributeBrands<B>,
     S["Encoded"],
     S["DecodingServices"],
     S["EncodingServices"],
     S["ast"],
     brand<S, B>,
     S["~type.make.in"],
-    DistributeBrands<S["Type"], B>,
+    S["Type"] & DistributeBrands<B>,
     S["~type.parameters"],
-    DistributeBrands<S["Type"], B>,
+    S["Type"] & DistributeBrands<B>,
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -2645,25 +2601,29 @@ export interface brand<S extends Top, B> extends
 {
   readonly "~rebuild.out": this
   readonly schema: S
+  readonly identifier: string
 }
 
 /**
+ * Adds a brand to a schema.
+ *
  * @category Branding
  * @since 4.0.0
  */
-export function brand<B extends string | symbol>() {
-  return <S extends Top>(schema: S): brand<S, B> => makeProto(schema.ast, { schema })
+export function brand<B extends string>(identifier: B) {
+  return <S extends Top>(schema: S): brand<S["~rebuild.out"], B> =>
+    make(AST.brand(schema.ast, identifier), { schema, identifier })
 }
 
 /**
  * @category Constructors
  * @since 4.0.0
  */
-export function fromBrand<A extends Brand.Brand<any>>(ctor: Brand.Constructor<A>) {
+export function fromBrand<A extends Brand.Brand<any>>(identifier: string, ctor: Brand.Constructor<A>) {
   return <S extends Top & { readonly "Type": Brand.Brand.Unbranded<A> }>(
     self: S
   ): brand<S["~rebuild.out"], Brand.Brand.Keys<A>> => {
-    return (ctor.checks ? self.check(...ctor.checks) : self.annotate({})).pipe(brand<any>())
+    return (ctor.checks ? self.check(...ctor.checks) : self).pipe(brand(identifier))
   }
 }
 
@@ -2703,7 +2663,7 @@ export function middlewareDecoding<S extends Top, RD>(
   ) => Effect.Effect<Option_.Option<S["Type"]>, Issue.Issue, RD>
 ) {
   return (schema: S): middlewareDecoding<S, RD> =>
-    makeProto(
+    make(
       AST.decodingMiddleware(schema.ast, new Transformation.Middleware(decode, identity)),
       { schema }
     )
@@ -2745,7 +2705,7 @@ export function middlewareEncoding<S extends Top, RE>(
   ) => Effect.Effect<Option_.Option<S["Encoded"]>, Issue.Issue, RE>
 ) {
   return (schema: S): middlewareEncoding<S, RE> =>
-    makeProto(
+    make(
       AST.encodingMiddleware(schema.ast, new Transformation.Middleware(identity, encode)),
       { schema }
     )
@@ -2879,7 +2839,7 @@ export function decodeTo<To extends Top, From extends Top, RD = never, RE = neve
   } | undefined
 ) {
   return (from: From) => {
-    return makeProto(
+    return make(
       AST.decodeTo(
         from.ast,
         to.ast,
@@ -3022,7 +2982,7 @@ export function withConstructorDefault<S extends Top & WithoutConstructorDefault
   ) => Option_.Option<S["~type.make.in"]> | Effect.Effect<Option_.Option<S["~type.make.in"]>>
 ) {
   return (schema: S): withConstructorDefault<S> => {
-    return makeProto(
+    return make(
       AST.withConstructorDefault(schema.ast, defaultValue),
       { schema }
     )
@@ -3321,7 +3281,7 @@ export function TaggedUnion<const CasesByTag extends Record<string, Struct.Field
   }
   const union = Union(members)
   const { guards, isAnyOf, match } = toTaggedUnion("_tag")(union)
-  return makeProto(union.ast, { cases, isAnyOf, guards, match })
+  return make(union.ast, { cases, isAnyOf, guards, match })
 }
 
 /**
@@ -3428,7 +3388,7 @@ export function isRefinedByGuard<T extends E, E>(
  * @category Checks Combinators
  * @since 4.0.0
  */
-export function isBranded<B extends string | symbol>() {
+export function isBranded<B extends string>() {
   return <T>(self: AST.Check<T>): AST.RefinementGroup<T & Brand.Brand<B>, T> => {
     return self as any
   }
@@ -3481,7 +3441,6 @@ export function isTrimmed(annotations?: Annotations.Filter) {
     (s: string) => s.trim() === s,
     {
       expected: "a string with no leading or trailing whitespace",
-      toJsonSchemaConstraint: () => ({ pattern: TRIMMED_PATTERN }),
       meta: {
         _tag: "isTrimmed",
         regExp: new globalThis.RegExp(TRIMMED_PATTERN)
@@ -3515,12 +3474,12 @@ export const isPattern: (regExp: globalThis.RegExp, annotations?: Annotations.Fi
   AST.isPattern
 
 /**
- * Validates that a string represents a valid number (can be parsed as a number).
+ * Validates that a string represents a finite number.
  *
  * **JSON Schema**
  *
  * This check corresponds to a `pattern` constraint in JSON Schema that matches
- * strings representing numbers.
+ * strings representing finite numbers.
  *
  * **Arbitrary**
  *
@@ -3530,7 +3489,7 @@ export const isPattern: (regExp: globalThis.RegExp, annotations?: Annotations.Fi
  * @category String checks
  * @since 4.0.0
  */
-export const isNumberString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isNumberString
+export const isFiniteString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isFiniteString
 
 /**
  * Validates that a string represents a valid BigInt (can be parsed as a BigInt).
@@ -3611,10 +3570,6 @@ export function isUUID(version: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | undefined, annot
         regExp,
         version
       },
-      toJsonSchemaConstraint: () => ({
-        pattern: regExp.source,
-        format: "uuid"
-      }),
       ...annotations
     }
   )
@@ -3736,7 +3691,6 @@ export function isStartsWith(startsWith: string, annotations?: Annotations.Filte
     (s: string) => s.startsWith(startsWith),
     {
       expected: `a string starting with ${formatted}`,
-      toJsonSchemaConstraint: () => ({ pattern: `^${startsWith}` }),
       meta: {
         _tag: "isStartsWith",
         startsWith,
@@ -3774,7 +3728,6 @@ export function isEndsWith(endsWith: string, annotations?: Annotations.Filter) {
     (s: string) => s.endsWith(endsWith),
     {
       expected: `a string ending with ${formatted}`,
-      toJsonSchemaConstraint: () => ({ pattern: `${endsWith}$` }),
       meta: {
         _tag: "isEndsWith",
         endsWith,
@@ -3812,7 +3765,6 @@ export function isIncludes(includes: string, annotations?: Annotations.Filter) {
     (s: string) => s.includes(includes),
     {
       expected: `a string including ${formatted}`,
-      toJsonSchemaConstraint: () => ({ pattern: includes }),
       meta: {
         _tag: "isIncludes",
         includes,
@@ -3851,7 +3803,6 @@ export function isUppercased(annotations?: Annotations.Filter) {
     (s: string) => s.toUpperCase() === s,
     {
       expected: "a string with all characters in uppercase",
-      toJsonSchemaConstraint: () => ({ pattern: UPPERCASED_PATTERN }),
       meta: {
         _tag: "isUppercased",
         regExp: new globalThis.RegExp(UPPERCASED_PATTERN)
@@ -3889,7 +3840,6 @@ export function isLowercased(annotations?: Annotations.Filter) {
     (s: string) => s.toLowerCase() === s,
     {
       expected: "a string with all characters in lowercase",
-      toJsonSchemaConstraint: () => ({ pattern: LOWERCASED_PATTERN }),
       meta: {
         _tag: "isLowercased",
         regExp: new globalThis.RegExp(LOWERCASED_PATTERN)
@@ -3927,7 +3877,6 @@ export function isCapitalized(annotations?: Annotations.Filter) {
     (s: string) => s.charAt(0).toUpperCase() === s.charAt(0),
     {
       expected: "a string with the first character in uppercase",
-      toJsonSchemaConstraint: () => ({ pattern: CAPITALIZED_PATTERN }),
       meta: {
         _tag: "isCapitalized",
         regExp: new globalThis.RegExp(CAPITALIZED_PATTERN)
@@ -3965,7 +3914,6 @@ export function isUncapitalized(annotations?: Annotations.Filter) {
     (s: string) => s.charAt(0).toLowerCase() === s.charAt(0),
     {
       expected: "a string with the first character in lowercase",
-      toJsonSchemaConstraint: () => ({ pattern: UNCAPITALIZED_PATTERN }),
       meta: {
         _tag: "isUncapitalized",
         regExp: new globalThis.RegExp(UNCAPITALIZED_PATTERN)
@@ -4022,15 +3970,15 @@ export function isFinite(annotations?: Annotations.Filter) {
 export function makeIsGreaterThan<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMinimum: T) => Annotations.Filter) | undefined
-  readonly format?: (value: T) => string | undefined
+  readonly formatter?: Formatter<T> | undefined
 }) {
   const greaterThan = Order.greaterThan(options.order)
-  const fmt = options.format ?? format
+  const formatter = options.formatter ?? format
   return (exclusiveMinimum: T, annotations?: Annotations.Filter) => {
     return makeFilter<T>(
       (input) => greaterThan(input, exclusiveMinimum),
       {
-        expected: `a value greater than ${fmt(exclusiveMinimum)}`,
+        expected: `a value greater than ${formatter(exclusiveMinimum)}`,
         ...options.annotate?.(exclusiveMinimum),
         ...annotations
       }
@@ -4045,15 +3993,15 @@ export function makeIsGreaterThan<T>(options: {
 export function makeIsGreaterThanOrEqualTo<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMinimum: T) => Annotations.Filter) | undefined
-  readonly format?: (value: T) => string | undefined
+  readonly formatter?: Formatter<T> | undefined
 }) {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(options.order)
-  const fmt = options.format ?? format
+  const formatter = options.formatter ?? format
   return (minimum: T, annotations?: Annotations.Filter) => {
     return makeFilter<T>(
       (input) => greaterThanOrEqualTo(input, minimum),
       {
-        expected: `a value greater than or equal to ${fmt(minimum)}`,
+        expected: `a value greater than or equal to ${formatter(minimum)}`,
         ...options.annotate?.(minimum),
         ...annotations
       }
@@ -4068,15 +4016,15 @@ export function makeIsGreaterThanOrEqualTo<T>(options: {
 export function makeIsLessThan<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMaximum: T) => Annotations.Filter) | undefined
-  readonly format?: (value: T) => string | undefined
+  readonly formatter?: Formatter<T> | undefined
 }) {
   const lessThan = Order.lessThan(options.order)
-  const fmt = options.format ?? format
+  const formatter = options.formatter ?? format
   return (exclusiveMaximum: T, annotations?: Annotations.Filter) => {
     return makeFilter<T>(
       (input) => lessThan(input, exclusiveMaximum),
       {
-        expected: `a value less than ${fmt(exclusiveMaximum)}`,
+        expected: `a value less than ${formatter(exclusiveMaximum)}`,
         ...options.annotate?.(exclusiveMaximum),
         ...annotations
       }
@@ -4091,15 +4039,15 @@ export function makeIsLessThan<T>(options: {
 export function makeIsLessThanOrEqualTo<T>(options: {
   readonly order: Order.Order<T>
   readonly annotate?: ((exclusiveMaximum: T) => Annotations.Filter) | undefined
-  readonly format?: (value: T) => string | undefined
+  readonly formatter?: Formatter<T> | undefined
 }) {
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(options.order)
-  const fmt = options.format ?? format
+  const formatter = options.formatter ?? format
   return (maximum: T, annotations?: Annotations.Filter) => {
     return makeFilter<T>(
       (input) => lessThanOrEqualTo(input, maximum),
       {
-        expected: `a value less than or equal to ${fmt(maximum)}`,
+        expected: `a value less than or equal to ${formatter(maximum)}`,
         ...options.annotate?.(maximum),
         ...annotations
       }
@@ -4121,13 +4069,13 @@ export function makeIsBetween<T>(deriveOptions: {
       readonly exclusiveMaximum?: boolean | undefined
     }) => Annotations.Filter)
     | undefined
-  readonly format?: (value: T) => string | undefined
+  readonly formatter?: Formatter<T> | undefined
 }) {
   const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(deriveOptions.order)
   const greaterThan = Order.greaterThan(deriveOptions.order)
   const lessThanOrEqualTo = Order.lessThanOrEqualTo(deriveOptions.order)
   const lessThan = Order.lessThan(deriveOptions.order)
-  const fmt = deriveOptions.format ?? format
+  const formatter = deriveOptions.formatter ?? format
   return (options: {
     readonly minimum: T
     readonly maximum: T
@@ -4139,8 +4087,8 @@ export function makeIsBetween<T>(deriveOptions: {
     return makeFilter<T>(
       (input) => gte(input, options.minimum) && lte(input, options.maximum),
       {
-        expected: `a value between ${fmt(options.minimum)}${options.exclusiveMinimum ? " (excluded)" : ""} and ${
-          fmt(options.maximum)
+        expected: `a value between ${formatter(options.minimum)}${options.exclusiveMinimum ? " (excluded)" : ""} and ${
+          formatter(options.maximum)
         }${options.exclusiveMaximum ? " (excluded)" : ""}`,
         ...deriveOptions.annotate?.(options),
         ...annotations
@@ -4157,14 +4105,14 @@ export function makeIsMultipleOf<T>(options: {
   readonly remainder: (input: T, divisor: T) => T
   readonly zero: NoInfer<T>
   readonly annotate?: ((divisor: T) => Annotations.Filter) | undefined
-  readonly format?: (value: T) => string | undefined
+  readonly formatter?: Formatter<T> | undefined
 }) {
   return (divisor: T, annotations?: Annotations.Filter) => {
-    const fmt = options.format ?? format
+    const formatter = options.formatter ?? format
     return makeFilter<T>(
       (input) => options.remainder(input, divisor) === options.zero,
       {
-        expected: `a value that is a multiple of ${fmt(divisor)}`,
+        expected: `a value that is a multiple of ${formatter(divisor)}`,
         ...options.annotate?.(divisor),
         ...annotations
       }
@@ -4191,7 +4139,6 @@ export function makeIsMultipleOf<T>(options: {
 export const isGreaterThan = makeIsGreaterThan({
   order: Order.number,
   annotate: (exclusiveMinimum) => ({
-    toJsonSchemaConstraint: () => ({ exclusiveMinimum }),
     meta: {
       _tag: "isGreaterThan",
       exclusiveMinimum
@@ -4224,7 +4171,6 @@ export const isGreaterThan = makeIsGreaterThan({
 export const isGreaterThanOrEqualTo = makeIsGreaterThanOrEqualTo({
   order: Order.number,
   annotate: (minimum) => ({
-    toJsonSchemaConstraint: () => ({ minimum }),
     meta: {
       _tag: "isGreaterThanOrEqualTo",
       minimum
@@ -4256,7 +4202,6 @@ export const isGreaterThanOrEqualTo = makeIsGreaterThanOrEqualTo({
 export const isLessThan = makeIsLessThan({
   order: Order.number,
   annotate: (exclusiveMaximum) => ({
-    toJsonSchemaConstraint: () => ({ exclusiveMaximum }),
     meta: {
       _tag: "isLessThan",
       exclusiveMaximum
@@ -4289,7 +4234,6 @@ export const isLessThan = makeIsLessThan({
 export const isLessThanOrEqualTo = makeIsLessThanOrEqualTo({
   order: Order.number,
   annotate: (maximum) => ({
-    toJsonSchemaConstraint: () => ({ maximum }),
     meta: {
       _tag: "isLessThanOrEqualTo",
       maximum
@@ -4324,20 +4268,6 @@ export const isBetween = makeIsBetween({
   order: Order.number,
   annotate: (options) => {
     return {
-      toJsonSchemaConstraint: () => {
-        const out: Record<string, unknown> = {}
-        if (options.exclusiveMinimum) {
-          out.exclusiveMinimum = options.minimum
-        } else {
-          out.minimum = options.minimum
-        }
-        if (options.exclusiveMaximum) {
-          out.exclusiveMaximum = options.maximum
-        } else {
-          out.maximum = options.maximum
-        }
-        return out
-      },
       meta: {
         _tag: "isBetween",
         ...options
@@ -4377,8 +4307,7 @@ export const isMultipleOf = makeIsMultipleOf({
     meta: {
       _tag: "isMultipleOf",
       divisor
-    },
-    toJsonSchemaConstraint: () => ({ multipleOf: Math.abs(divisor) })
+    }
   })
 })
 
@@ -4403,7 +4332,6 @@ export function isInt(annotations?: Annotations.Filter) {
     (n: number) => globalThis.Number.isSafeInteger(n),
     {
       expected: "an integer",
-      toJsonSchemaConstraint: () => ({ type: "integer" }),
       meta: {
         _tag: "isInt"
       },
@@ -4442,10 +4370,6 @@ export function isInt32(annotations?: Annotations.Filter) {
     ],
     {
       expected: "a 32-bit integer",
-      toJsonSchemaConstraint: (ctx) =>
-        ctx.target === "openapi-3.1" ?
-          { format: "int32" } :
-          undefined,
       ...annotations
     }
   )
@@ -4476,10 +4400,6 @@ export function isUint32(annotations?: Annotations.Filter) {
     ],
     {
       expected: "a 32-bit unsigned integer",
-      toJsonSchemaConstraint: (ctx) =>
-        ctx.target === "openapi-3.1" ?
-          { format: "uint32" } :
-          undefined,
       ...annotations
     }
   )
@@ -4840,14 +4760,6 @@ export function isMinLength(minLength: number, annotations?: Annotations.Filter)
     (input) => input.length >= minLength,
     {
       expected: `a value with a length of at least ${minLength}`,
-      toJsonSchemaConstraint: (ctx) => {
-        switch (ctx.type) {
-          case "string":
-            return { minLength }
-          case "array":
-            return { minItems: minLength }
-        }
-      },
       meta: {
         _tag: "isMinLength",
         minLength
@@ -4911,14 +4823,6 @@ export function isMaxLength(maxLength: number, annotations?: Annotations.Filter)
     (input) => input.length <= maxLength,
     {
       expected: `a value with a length of at most ${maxLength}`,
-      toJsonSchemaConstraint: (ctx) => {
-        switch (ctx.type) {
-          case "string":
-            return { maxLength }
-          case "array":
-            return { maxItems: maxLength }
-        }
-      },
       meta: {
         _tag: "isMaxLength",
         maxLength
@@ -4962,14 +4866,6 @@ export function isLength(length: number, annotations?: Annotations.Filter) {
     (input) => input.length === length,
     {
       expected: `a value with a length of ${length}`,
-      toJsonSchemaConstraint: (ctx) => {
-        switch (ctx.type) {
-          case "string":
-            return { minLength: length, maxLength: length }
-          case "array":
-            return { minItems: length, maxItems: length }
-        }
-      },
       meta: {
         _tag: "isLength",
         length
@@ -5133,7 +5029,6 @@ export function isMinProperties(minProperties: number, annotations?: Annotations
     (input) => Reflect.ownKeys(input).length >= minProperties,
     {
       expected: `an object with at least ${minProperties} properties`,
-      toJsonSchemaConstraint: () => ({ minProperties }),
       meta: {
         _tag: "isMinProperties",
         minProperties
@@ -5173,7 +5068,6 @@ export function isMaxProperties(maxProperties: number, annotations?: Annotations
     (input) => Reflect.ownKeys(input).length <= maxProperties,
     {
       expected: `an object with at most ${maxProperties} properties`,
-      toJsonSchemaConstraint: () => ({ maxProperties }),
       meta: {
         _tag: "isMaxProperties",
         maxProperties
@@ -5214,7 +5108,6 @@ export function isPropertiesLength(length: number, annotations?: Annotations.Fil
     (input) => Reflect.ownKeys(input).length === length,
     {
       expected: `an object with exactly ${length} properties`,
-      toJsonSchemaConstraint: () => ({ minProperties: length, maxProperties: length }),
       meta: {
         _tag: "isPropertiesLength",
         length
@@ -5247,16 +5140,14 @@ export function isPropertiesLength(length: number, annotations?: Annotations.Fil
  *
  * @since 4.0.0
  */
-export function isUnique<T>(equivalence?: Equivalence.Equivalence<T>, annotations?: Annotations.Filter) {
-  equivalence = equivalence ?? Equal.equivalence()
+export function isUnique<T>(annotations?: Annotations.Filter) {
+  const equivalence = Equal.equivalence()
   return makeFilter<ReadonlyArray<T>>(
     (input) => Arr.dedupeWith(input, equivalence).length === input.length,
     {
       expected: "an array with unique items",
-      toJsonSchemaConstraint: () => ({ uniqueItems: true }),
       meta: {
-        _tag: "isUnique",
-        equivalence
+        _tag: "isUnique"
       },
       toArbitraryConstraint: {
         array: {
@@ -5401,8 +5292,8 @@ export function Option<A extends Top>(value: A): Option<A> {
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
+      typeConstructor: { _tag: "effect/Option" },
       expected: "Option",
-      typeConstructor: "Option",
       "toCodec*": ([value]) =>
         link<Option_.Option<A["Encoded"]>>()(
           Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
@@ -5426,7 +5317,7 @@ export function Option<A extends Top>(value: A): Option<A> {
         })
     }
   )
-  return makeProto(schema.ast, { value })
+  return make(schema.ast, { value })
 }
 
 /**
@@ -5565,6 +5456,7 @@ export function Result<A extends Top, E extends Top>(
       }
     },
     {
+      typeConstructor: { _tag: "effect/Result" },
       expected: "Result",
       "toCodec*": ([success, failure]) =>
         link<Result_.Result<A["Encoded"], E["Encoded"]>>()(
@@ -5595,7 +5487,7 @@ export function Result<A extends Top, E extends Top>(
         })
     }
   )
-  return makeProto(schema.ast, { success, failure })
+  return make(schema.ast, { success, failure })
 }
 
 /**
@@ -5668,6 +5560,7 @@ export function Redacted<S extends Top>(value: S, options?: {
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
+      typeConstructor: { _tag: "effect/Redacted" },
       expected: "Redacted",
       toCodecJson: ([value]) =>
         link<Redacted_.Redacted<S["Encoded"]>>()(
@@ -5685,7 +5578,7 @@ export function Redacted<S extends Top>(value: S, options?: {
       toEquivalence: ([value]) => Redacted_.getEquivalence(value)
     }
   )
-  return makeProto(schema.ast, { value })
+  return make(schema.ast, { value })
 }
 
 /**
@@ -5753,6 +5646,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
       }
     },
     {
+      typeConstructor: { _tag: "effect/Cause/Failure" },
       expected: "Cause.Failure",
       "toCodec*": ([error, defect]) =>
         link<Cause_.Failure<E["Encoded"]>>()(
@@ -5792,7 +5686,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
           case "Die":
             return defect(a.defect, (b as Cause_.Die).defect)
           case "Interrupt":
-            return Equal.equals(a.fiberId, (b as Cause_.Interrupt).fiberId)
+            return a.fiberId === (b as Cause_.Interrupt).fiberId
         }
       },
       toFormatter: ([error, defect]) => (t) => {
@@ -5807,7 +5701,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
       }
     }
   )
-  return makeProto(schema.ast, { error, defect })
+  return make(schema.ast, { error, defect })
 }
 
 /**
@@ -5849,6 +5743,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       })
     },
     {
+      typeConstructor: { _tag: "effect/Cause" },
       expected: "Cause",
       "toCodec*": ([failures]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
@@ -5863,7 +5758,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       toFormatter: ([failures]) => (t) => `Cause(${failures(t.failures)})`
     }
   )
-  return makeProto(schema.ast, { error, defect })
+  return make(schema.ast, { error, defect })
 }
 
 /**
@@ -5887,6 +5782,7 @@ const ErrorJsonEncoded = Struct({
  * @since 4.0.0
  */
 export const Error: Error = instanceOf(globalThis.Error, {
+  typeConstructor: { _tag: "Error" },
   expected: "Error",
   toCodecJson: () => link<globalThis.Error>()(ErrorJsonEncoded, Transformation.errorFromErrorJsonEncoded),
   toArbitrary: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
@@ -5932,7 +5828,7 @@ export const Defect: Defect = Union([
   ErrorJsonEncoded.pipe(decodeTo(Error, Transformation.errorFromErrorJsonEncoded)),
   Any.pipe(decodeTo(
     Unknown.annotate({
-      serializerJson: () => link<unknown>()(Any, defectTransformation),
+      toCodecJson: () => link<unknown>()(Any, defectTransformation),
       toArbitrary: () => (fc) => fc.json()
     }),
     defectTransformation
@@ -6003,6 +5899,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
       }
     },
     {
+      typeConstructor: { _tag: "effect/Exit" },
       expected: "Exit",
       "toCodec*": ([value, cause]) =>
         link<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
@@ -6044,7 +5941,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
       }
     }
   )
-  return makeProto(schema.ast, { value, error, defect })
+  return make(schema.ast, { value, error, defect })
 }
 
 /**
@@ -6097,6 +5994,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
+      typeConstructor: { _tag: "ReadonlyMap" },
       expected: "ReadonlyMap",
       "toCodec*": ([key, value]) =>
         link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
@@ -6124,7 +6022,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
       }
     }
   )
-  return makeProto(schema.ast, { key, value })
+  return make(schema.ast, { key, value })
 }
 
 /**
@@ -6173,6 +6071,7 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
+      typeConstructor: { _tag: "ReadonlySet" },
       expected: "ReadonlySet",
       "toCodec*": ([value]) =>
         link<globalThis.Set<Value["Encoded"]>>()(
@@ -6200,7 +6099,7 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
       }
     }
   )
-  return makeProto(schema.ast, { value })
+  return make(schema.ast, { value })
 }
 
 /**
@@ -6214,6 +6113,7 @@ export interface RegExp extends instanceOf<globalThis.RegExp> {}
 export const RegExp: RegExp = instanceOf(
   globalThis.RegExp,
   {
+    typeConstructor: { _tag: "RegExp" },
     expected: "RegExp",
     toCodecJson: () =>
       link<globalThis.RegExp>()(
@@ -6278,6 +6178,7 @@ export interface URL extends instanceOf<globalThis.URL> {}
 export const URL: URL = instanceOf(
   globalThis.URL,
   {
+    typeConstructor: { _tag: "URL" },
     expected: "URL",
     toCodecJson: () =>
       link<globalThis.URL>()(
@@ -6325,10 +6226,11 @@ export interface Date extends instanceOf<globalThis.Date> {}
 export const Date: Date = instanceOf(
   globalThis.Date,
   {
+    typeConstructor: { _tag: "Date" },
     expected: "Date",
     toCodecJson: () =>
       link<globalThis.Date>()(
-        String.annotate({ expected: "a string that will be decoded as a Date" }),
+        String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" }),
         Transformation.transform({
           decode: (s) => new globalThis.Date(s),
           encode: formatDate
@@ -6370,10 +6272,15 @@ export interface Duration extends declare<Duration_.Duration> {}
 export const Duration: Duration = declare(
   Duration_.isDuration,
   {
+    typeConstructor: { _tag: "effect/Duration" },
     expected: "Duration",
     toCodecJson: () =>
       link<Duration_.Duration>()(
-        Union([Number, BigInt, Literal("Infinity")]),
+        Union([
+          Int.check(isGreaterThanOrEqualTo(0)),
+          BigInt,
+          Literal("Infinity")
+        ]),
         Transformation.transform({
           decode: (value) => {
             if (value === "Infinity") return Duration_.infinity
@@ -6520,26 +6427,28 @@ export interface fromJsonString<S extends Top> extends decodeTo<S, String> {}
  * const original = Schema.Struct({ a: Schema.String })
  * const schema = Schema.fromJsonString(original)
  *
- * const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-2020-12" })
+ * const document = Schema.toJsonSchemaDocument(schema)
  *
- * console.log(JSON.stringify(jsonSchema, null, 2))
- * // Output:
+ * console.log(JSON.stringify(document, null, 2))
  * // {
- * //   "$schema": "https://json-schema.org/draft/2020-12/schema",
- * //   "type": "string",
- * //   "contentMediaType": "application/json",
- * //   "contentSchema": {
- * //     "type": "object",
- * //     "properties": {
- * //       "a": {
- * //         "type": "string"
- * //       }
- * //     },
- * //     "required": [
- * //       "a"
- * //     ],
- * //     "additionalProperties": false
- * //   }
+ * //   "source": "draft-2020-12",
+ * //   "schema": {
+ * //     "type": "string",
+ * //     "contentMediaType": "application/json",
+ * //     "contentSchema": {
+ * //       "type": "object",
+ * //       "properties": {
+ * //         "a": {
+ * //           "type": "string"
+ * //         }
+ * //       },
+ * //       "required": [
+ * //         "a"
+ * //       ],
+ * //       "additionalProperties": false
+ * //     }
+ * //   },
+ * //   "definitions": {}
  * // }
  * ```
  *
@@ -6549,22 +6458,7 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
   return String.annotate({
     expected: "a string that will be decoded as JSON",
     contentMediaType: "application/json",
-    contentSchema: schema.ast, // TODO: remove duplication with the annotation below
-    toJsonSchema: (ctx) => {
-      switch (ctx.target) {
-        case "draft-07":
-          return {
-            "type": "string"
-          }
-        case "draft-2020-12":
-        case "openapi-3.1":
-          return {
-            "type": "string",
-            "contentMediaType": "application/json",
-            "contentSchema": ctx.make(schema.ast)
-          }
-      }
-    }
+    contentSchema: AST.toEncoded(schema.ast)
   }).pipe(decodeTo(schema, Transformation.fromJsonString))
 }
 
@@ -6576,7 +6470,10 @@ export interface FormData extends instanceOf<globalThis.FormData> {}
 /**
  * @since 4.0.0
  */
-export const FormData: FormData = instanceOf(globalThis.FormData)
+export const FormData: FormData = instanceOf(globalThis.FormData, {
+  typeConstructor: { _tag: "FormData" },
+  expected: "FormData"
+})
 
 /**
  * @since 4.0.0
@@ -6678,7 +6575,10 @@ export interface URLSearchParams extends instanceOf<globalThis.URLSearchParams> 
 /**
  * @since 4.0.0
  */
-export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchParams)
+export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchParams, {
+  typeConstructor: { _tag: "URLSearchParams" },
+  expected: "URLSearchParams"
+})
 
 /**
  * @since 4.0.0
@@ -6912,12 +6812,13 @@ export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBuffer
  * @since 4.0.0
  */
 export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBufferLike>, {
+  typeConstructor: { _tag: "Uint8Array" },
+  expected: "Uint8Array",
   toCodecJson: () =>
     link<globalThis.Uint8Array<ArrayBufferLike>>()(
       String.annotate({ expected: "a string that will be decoded as Uint8Array" }),
       Transformation.uint8ArrayFromString
     ),
-  expected: "Uint8Array",
   toArbitrary: () => (fc) => fc.uint8Array()
 })
 
@@ -7015,7 +6916,8 @@ export interface DateTimeUtc extends declare<DateTime.Utc> {}
 export const DateTimeUtc: DateTimeUtc = declare(
   (u) => DateTime.isDateTime(u) && DateTime.isUtc(u),
   {
-    expected: "DateTimeUtc",
+    typeConstructor: { _tag: "effect/DateTime/Utc" },
+    expected: "DateTime.Utc",
     toCodecJson: () =>
       link<DateTime.Utc>()(
         String,
@@ -7195,7 +7097,10 @@ function makeClass<
   struct: S,
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
-  const getClassSchema = getClassSchemaFactory(struct, identifier, annotations)
+  const from = InternalAnnotations.resolveIdentifier(struct.ast) === undefined
+    ? struct.annotate({ identifier })
+    : struct
+  const getClassSchema = getClassSchemaFactory(from, identifier, annotations)
   const ClassTypeId = getClassTypeId(identifier) // HMR support
 
   return class extends Inherited {
@@ -7270,7 +7175,12 @@ function makeClass<
     ) => Class<Extended, Struct<Simplify<Assign<S["fields"], NewFields>>>, Self> {
       return (newFields, annotations) => {
         const fields = { ...struct.fields, ...newFields }
-        return makeClass(this, identifier, makeStruct(AST.struct(fields, struct.ast.checks), fields), annotations)
+        return makeClass(
+          this,
+          identifier,
+          makeStruct(AST.struct(fields, struct.ast.checks, { identifier }), fields),
+          annotations
+        )
       }
     }
     static mapFields<To extends Struct.Fields>(
@@ -7341,7 +7251,7 @@ function isStruct(schema: Struct.Fields | Struct<Struct.Fields>): schema is Stru
  * @since 4.0.0
  */
 export const Class: {
-  <Self, Brand = {}>(id: string): {
+  <Self, Brand = {}>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
@@ -7351,13 +7261,13 @@ export const Class: {
       annotations?: Annotations.Declaration<Self, readonly [S]>
     ): ExtendableClass<Self, S, Brand>
   }
-} = <Self, Brand = {}>(id: string) =>
+} = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
 ): ExtendableClass<Self, Struct<Struct.Fields>, Brand> => {
   const struct = isStruct(schema) ? schema : Struct(schema)
-  return makeClass(Data.Class, id, struct, annotations)
+  return makeClass(Data.Class, identifier, struct, annotations)
 }
 
 /**
@@ -7372,7 +7282,7 @@ export interface ErrorClass<Self, S extends Top & { readonly fields: Struct.Fiel
  * @since 4.0.0
  */
 export const ErrorClass: {
-  <Self, Brand = {}>(id: string): {
+  <Self, Brand = {}>(identifier: string): {
     <const Fields extends Struct.Fields>(
       fields: Fields,
       annotations?: Annotations.Declaration<Self, readonly [Struct<Fields>]>
@@ -7382,13 +7292,13 @@ export const ErrorClass: {
       annotations?: Annotations.Declaration<Self, readonly [S]>
     ): ErrorClass<Self, S, Cause_.YieldableError & Brand>
   }
-} = <Self, Brand = {}>(id: string) =>
+} = <Self, Brand = {}>(identifier: string) =>
 (
   schema: Struct.Fields | Struct<Struct.Fields>,
   annotations?: Annotations.Declaration<Self, readonly [Struct<Struct.Fields>]>
 ): ErrorClass<Self, Struct<Struct.Fields>, Cause_.YieldableError & Brand> => {
   const struct = isStruct(schema) ? schema : Struct(schema)
-  return makeClass(core.Error, id, struct, annotations)
+  return makeClass(core.Error, identifier, struct, annotations)
 }
 
 /**
@@ -7412,7 +7322,7 @@ export interface RequestClass<
  * @since 4.0.0
  */
 export const RequestClass =
-  <Self, Brand = {}>(id: string) =>
+  <Self, Brand = {}>(identifier: string) =>
   <Payload extends Struct<Struct.Fields>, Success extends Top, Error extends Top>(
     options: {
       readonly payload: Payload
@@ -7431,7 +7341,7 @@ export const RequestClass =
       Success["DecodingServices"] | Success["EncodingServices"] | Error["DecodingServices"] | Error["EncodingServices"]
     > & Brand
   > => {
-    return class RequestClass extends makeClass(Request.Class, id, options.payload, options.annotations) {
+    return class RequestClass extends makeClass(Request.Class, identifier, options.payload, options.annotations) {
       static readonly payload = options.payload
       static readonly success = options.success
       static readonly error = options.error
@@ -7638,9 +7548,7 @@ export function toFormatter<T>(schema: Schema<T>, options?: {
  * @since 4.0.0
  */
 export function overrideToEquivalence<S extends Top>(toEquivalence: () => Equivalence.Equivalence<S["Type"]>) {
-  return (self: S): S["~rebuild.out"] => {
-    return self.annotate({ toEquivalence })
-  }
+  return (self: S): S["~rebuild.out"] => self.annotate({ toEquivalence })
 }
 
 /**
@@ -7648,7 +7556,7 @@ export function overrideToEquivalence<S extends Top>(toEquivalence: () => Equiva
  * @since 4.0.0
  */
 export function toEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> {
-  return InternalEquivalence.memoized(schema.ast)
+  return InternalEquivalence.toEquivalence(schema.ast)
 }
 
 // -----------------------------------------------------------------------------
@@ -7658,11 +7566,7 @@ export function toEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> 
 /**
  * @since 4.0.0
  */
-export interface ToJsonSchemaOptions<Target extends JsonSchema.Target> {
-  /**
-   * The target of the JSON Schema.
-   */
-  readonly target: Target
+export interface ToJsonSchemaOptions {
   /**
    * Controls how additional properties are handled while resolving the JSON
    * schema.
@@ -7672,21 +7576,11 @@ export interface ToJsonSchemaOptions<Target extends JsonSchema.Target> {
    * - `true`: Allow additional properties
    * - `JsonSchema`: Use the provided JSON Schema for additional properties
    */
-  readonly additionalProperties?: true | false | JsonSchema.JsonSchema | undefined
+  readonly additionalProperties?: boolean | JsonSchema.JsonSchema | undefined
   /**
    * Controls how references are handled while resolving the JSON schema.
-   *
-   * Possible values include:
-   * - `"keep"`: Keep references (default)
-   * - `"skip"`: Skip all references (recursive schemas excluded)
-   * - `"skip-top-level"`: Skip top-level references
    */
-  readonly referenceStrategy?: "keep" | "skip" | "skip-top-level" | undefined
-  /**
-   * A function that is called when a JSON Schema annotation is missing. This
-   * will be the default result instead of throwing an error.
-   */
-  readonly onMissingJsonSchemaAnnotation?: ((ast: AST.AST) => JsonSchema.JsonSchema | undefined) | undefined
+  readonly referenceStrategy?: "skip-top-level" | undefined
   /**
    * Controls whether to generate descriptions for checks (if the user has not
    * provided them) based on the `expected` annotation of the check.
@@ -7695,18 +7589,21 @@ export interface ToJsonSchemaOptions<Target extends JsonSchema.Target> {
 }
 
 /**
- * Returns a JSON Schema.
+ * Returns a JSON Schema Document (draft-2020-12).
  *
  * You can use the `options` parameter to return a different target JSON Schema.
  *
  * @category JsonSchema
  * @since 4.0.0
  */
-export function toJsonSchema<S extends Top, Target extends JsonSchema.Target>(
-  schema: S,
-  options: ToJsonSchemaOptions<Target>
-): JsonSchema.Document<Target> {
-  return InternalJsonSchema.make(schema, options)
+export function toJsonSchemaDocument(schema: Top, options?: ToJsonSchemaOptions): JsonSchema.Document<"draft-2020-12"> {
+  const sd = InternalStandard.fromAST(schema.ast)
+  const jd = InternalStandard.toJsonSchemaDocument(sd, options)
+  return {
+    source: "draft-2020-12",
+    schema: jd.schema,
+    definitions: jd.definitions
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -7718,7 +7615,7 @@ export function toJsonSchema<S extends Top, Target extends JsonSchema.Target>(
  * @since 4.0.0
  */
 export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
-  return make(serializerJson(schema.ast))
+  return make(InternalSerializer.toCodecJson(schema.ast))
 }
 
 /**
@@ -7726,7 +7623,7 @@ export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T,
  * @since 4.0.0
  */
 export function toCodecIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
-  return make(serializerIso(AST.toType(schema.ast)))
+  return make(InternalSerializer.toCodecIso(AST.toType(schema.ast)))
 }
 
 /**
@@ -7740,13 +7637,13 @@ export type StringTree = Tree<string | undefined>
  * preserving the original structure.
  *
  * Declarations are converted to `undefined` (unless they have a
- * `serializerJson` or `serializer` annotation).
+ * `toCodecJson` or `toCodec*` annotation).
  *
  * **Options**
  *
  * - `keepDeclarations`: if `true`, it **does not** convert declarations to
  *   `undefined` but instead keeps them as they are (unless they have a
- *   `serializerJson` or `serializer` annotation).
+ *   `toCodecJson` or `toCodec*` annotation).
  *
  *    Defaults to `false`.
  *
@@ -7826,7 +7723,7 @@ function stringTreeToXml(value: StringTree, options: XmlEncoderOptions): string 
       if (seen.has(node)) throw new globalThis.Error("Cycle detected while serializing to XML.", { cause: node })
       seen.add(node)
       try {
-        if (globalThis.Array.isArray(node)) {
+        if (globalThis.globalThis.Array.isArray(node)) {
           if (node.length === 0) {
             push(depth, `<${safe}${attrs}/>`)
             return
@@ -7881,145 +7778,6 @@ const xml = {
   }
 }
 
-function makeReorder(getPriority: (ast: AST.AST) => number) {
-  return (types: ReadonlyArray<AST.AST>): ReadonlyArray<AST.AST> => {
-    // Create a map of original indices for O(1) lookup
-    const indexMap = new Map<AST.AST, number>()
-    for (let i = 0; i < types.length; i++) {
-      indexMap.set(AST.toEncoded(types[i]), i)
-    }
-
-    // Create a sorted copy of the types array
-    const sortedTypes = [...types].sort((a, b) => {
-      a = AST.toEncoded(a)
-      b = AST.toEncoded(b)
-      const pa = getPriority(a)
-      const pb = getPriority(b)
-      if (pa !== pb) return pa - pb
-      // If priorities are equal, maintain original order (stable sort)
-      return indexMap.get(a)! - indexMap.get(b)!
-    })
-
-    // Check if order changed by comparing arrays
-    const orderChanged = sortedTypes.some((ast, index) => ast !== types[index])
-
-    if (!orderChanged) return types
-    return sortedTypes
-  }
-}
-
-function getJsonPriority(ast: AST.AST): number {
-  switch (ast._tag) {
-    case "BigInt":
-    case "Symbol":
-    case "UniqueSymbol":
-      return 0
-    default:
-      return 1
-  }
-}
-
-const jsonReorder = makeReorder(getJsonPriority)
-
-function serializerJsonBase(ast: AST.AST): AST.AST {
-  switch (ast._tag) {
-    case "Unknown":
-    case "ObjectKeyword":
-    case "Declaration": {
-      const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.["toCodec*"]
-      if (Predicate.isFunction(getLink)) {
-        const tps = AST.isDeclaration(ast)
-          ? ast.typeParameters.map((tp) => make(serializerJson(AST.toEncoded(tp))))
-          : []
-        const link = getLink(tps)
-        const to = serializerJson(link.to)
-        return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
-      }
-      return AST.replaceEncoding(ast, [unknownToNull])
-    }
-    case "Undefined":
-    case "Void":
-      return ast.encodeToNull()
-    case "UniqueSymbol":
-    case "Symbol":
-    case "BigInt":
-      return ast.encodeToString()
-    case "Literal":
-      return ast.encodeToStringOrNumberOrBoolean()
-    case "Number":
-      return ast.encodeToNumberOrNonFiniteLiterals()
-    case "Objects": {
-      if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
-        throw new globalThis.Error("Objects property names must be strings", { cause: ast })
-      }
-      return ast.recur(serializerJson)
-    }
-    case "Union": {
-      const sortedTypes = jsonReorder(ast.types)
-      if (sortedTypes !== ast.types) {
-        return new AST.Union(
-          sortedTypes,
-          ast.mode,
-          ast.annotations,
-          ast.checks,
-          ast.encoding,
-          ast.context
-        ).recur(serializerJson)
-      }
-      return ast.recur(serializerJson)
-    }
-    case "Arrays":
-    case "Suspend":
-      return ast.recur(serializerJson)
-  }
-  // `Schema.Any` is used as an escape hatch
-  return ast
-}
-
-const unknownToNull = new AST.Link(
-  AST.null,
-  new Transformation.Transformation(
-    Getter.passthrough(),
-    Getter.transform(() => null)
-  )
-)
-
-const serializerJson = AST.serializer((ast) => {
-  const out = serializerJsonBase(ast)
-  if (out !== ast && AST.isOptional(ast)) {
-    return AST.optionalKeyLastLink(out)
-  }
-  return out
-})
-
-function serializerIsoBase(ast: AST.AST): AST.AST {
-  switch (ast._tag) {
-    case "Declaration": {
-      const getLink = ast.annotations?.toCodecIso ?? ast.annotations?.["toCodec*"]
-      if (Predicate.isFunction(getLink)) {
-        const link = getLink(ast.typeParameters.map((tp) => make(serializerIso(tp))))
-        const to = serializerIso(link.to)
-        return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
-      }
-      return ast
-    }
-    case "Arrays":
-    case "Objects":
-    case "Union":
-    case "Suspend":
-      return ast.recur(serializerIso)
-  }
-  return ast
-}
-
-const serializerIso = memoize((ast: AST.AST): AST.AST => {
-  const out = serializerIsoBase(ast)
-  if (out !== ast && AST.isOptional(ast)) {
-    return AST.optionalKeyLastLink(out)
-  }
-  return out
-})
-
 function getStringTreePriority(ast: AST.AST): number {
   switch (ast._tag) {
     case "Null":
@@ -8034,7 +7792,7 @@ function getStringTreePriority(ast: AST.AST): number {
   }
 }
 
-const treeReorder = makeReorder(getStringTreePriority)
+const treeReorder = InternalSerializer.makeReorder(getStringTreePriority)
 
 function serializerTree(
   ast: AST.AST,
@@ -8066,7 +7824,7 @@ function serializerTree(
     case "UniqueSymbol":
     case "Symbol":
     case "BigInt":
-      return ast.encodeToString()
+      return ast.toCodecStringTree()
     case "Objects": {
       if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
         throw new globalThis.Error("Objects property names must be strings", { cause: ast })
@@ -8111,7 +7869,7 @@ const booleanToString = new AST.Link(
   )
 )
 
-const serializerStringTree = AST.serializer((ast) => {
+const serializerStringTree = AST.toCodec((ast) => {
   const out = serializerTree(ast, serializerStringTree, (ast) => AST.replaceEncoding(ast, [unknownToUndefined]))
   if (out !== ast && AST.isOptional(ast)) {
     return AST.optionalKeyLastLink(out)
@@ -8127,7 +7885,7 @@ const unknownToUndefined = new AST.Link(
   )
 )
 
-const serializerStringTreeKeepDeclarations = AST.serializer((ast) => {
+const serializerStringTreeKeepDeclarations = AST.toCodec((ast) => {
   const out = serializerTree(ast, serializerStringTreeKeepDeclarations, identity)
   if (out !== ast && AST.isOptional(ast)) {
     return AST.optionalKeyLastLink(out)
@@ -8137,7 +7895,7 @@ const serializerStringTreeKeepDeclarations = AST.serializer((ast) => {
 
 const SERIALIZER_ENSURE_ARRAY = "~effect/Schema/SERIALIZER_ENSURE_ARRAY"
 
-const toCodecEnsureArray = AST.serializer((ast) => {
+const toCodecEnsureArray = AST.toCodec((ast) => {
   if (AST.isUnion(ast) && ast.annotations?.[SERIALIZER_ENSURE_ARRAY]) {
     return ast
   }
@@ -8249,7 +8007,7 @@ export function overrideToCodecIso<S extends Top, Iso>(
   }
 ) {
   return (schema: S): overrideToCodecIso<S, Iso> => {
-    return makeProto(
+    return make(
       AST.annotate(schema.ast, {
         toCodecIso: () => new AST.Link(to.ast, Transformation.make(transformation))
       }),
@@ -8493,9 +8251,10 @@ export declare namespace Annotations {
      * Optional metadata used to identify or extend the filter with custom data.
      */
     readonly meta?: Meta | undefined
-    readonly toJsonSchema?:
-      | ToJsonSchema.Declaration<TypeParameters>
-      | undefined
+    /**
+     * Accumulated brands when multiple brands are added with `Schema.brand`.
+     */
+    readonly brands?: ReadonlyArray<string> | undefined
     readonly toArbitrary?:
       | ToArbitrary.Declaration<T, TypeParameters>
       | undefined
@@ -8535,7 +8294,6 @@ export declare namespace Annotations {
     readonly toCodecIso?:
       | ((typeParameters: TypeParameters.Type<TypeParameters>) => AST.Link)
       | undefined
-    readonly toJsonSchema?: ToJsonSchema.Declaration<TypeParameters> | undefined
     readonly toArbitrary?: ToArbitrary.Declaration<T, TypeParameters> | undefined
     readonly toEquivalence?: ToEquivalence.Declaration<T, TypeParameters> | undefined
     readonly toFormatter?: ToFormatter.Declaration<T, TypeParameters> | undefined
@@ -8545,7 +8303,7 @@ export declare namespace Annotations {
      * @internal
      */
     readonly "~sentinels"?: ReadonlyArray<AST.Sentinel> | undefined
-    readonly typeConstructor?: string | undefined
+    readonly typeConstructor?: { readonly _tag: string } | undefined
   }
 
   /**
@@ -8564,9 +8322,6 @@ export declare namespace Annotations {
      * Optional metadata used to identify or extend the filter with custom data.
      */
     readonly meta?: Meta | undefined
-    readonly toJsonSchemaConstraint?:
-      | ToJsonSchema.Constraint
-      | undefined
     readonly toArbitraryConstraint?:
       | ToArbitrary.Constraint
       | undefined
@@ -8681,49 +8436,6 @@ export declare namespace Annotations {
   }
 
   /**
-   * @since 4.0.0
-   */
-  export namespace ToJsonSchema {
-    /**
-     * @since 4.0.0
-     */
-    export interface ConstraintContext {
-      /** The target of the JSON Schema */
-      readonly target: JsonSchema.Target
-      /** The type of the JSON Schema */
-      readonly type?: JsonSchema.Type | undefined
-    }
-
-    /**
-     * @since 4.0.0
-     */
-    export interface Constraint {
-      (context: ConstraintContext): JsonSchema.JsonSchema | undefined
-    }
-
-    /**
-     * @since 4.0.0
-     */
-    export interface Context<TypeParameters extends ReadonlyArray<Top>> {
-      /** Json Schemas for any type parameters of the schema (if present) */
-      readonly typeParameters: { readonly [K in keyof TypeParameters]: JsonSchema.JsonSchema }
-      /** The target of the JSON Schema */
-      readonly target: JsonSchema.Target
-      /** The default JSON Schema that would be generated by the AST */
-      readonly jsonSchema: JsonSchema.JsonSchema
-      /** A function that generates a JSON Schema from an AST, respecting the target and the options */
-      readonly make: (ast: AST.AST) => JsonSchema.JsonSchema
-    }
-
-    /**
-     * @since 4.0.0
-     */
-    export interface Declaration<TypeParameters extends ReadonlyArray<Top>> {
-      (context: Context<TypeParameters>): JsonSchema.JsonSchema
-    }
-  }
-
-  /**
    * @category Model
    * @since 4.0.0
    */
@@ -8738,8 +8450,8 @@ export declare namespace Annotations {
    */
   export interface BuiltInMetaDefinitions {
     // String Meta
-    readonly isNumberString: {
-      readonly _tag: "isNumberString"
+    readonly isFiniteString: {
+      readonly _tag: "isFiniteString"
       readonly regExp: globalThis.RegExp
     }
     readonly isBigIntString: {
@@ -8849,6 +8561,8 @@ export declare namespace Annotations {
       readonly _tag: "isBetween"
       readonly minimum: number
       readonly maximum: number
+      readonly exclusiveMinimum?: boolean | undefined
+      readonly exclusiveMaximum?: boolean | undefined
     }
     // BigInt Meta
     readonly isGreaterThanBigInt: {
@@ -8871,6 +8585,8 @@ export declare namespace Annotations {
       readonly _tag: "isBetweenBigInt"
       readonly minimum: bigint
       readonly maximum: bigint
+      readonly exclusiveMinimum?: boolean | undefined
+      readonly exclusiveMaximum?: boolean | undefined
     }
     // Date Meta
     readonly isValidDate: {
@@ -8896,6 +8612,8 @@ export declare namespace Annotations {
       readonly _tag: "isBetweenDate"
       readonly minimum: globalThis.Date
       readonly maximum: globalThis.Date
+      readonly exclusiveMinimum?: boolean | undefined
+      readonly exclusiveMaximum?: boolean | undefined
     }
     // Objects Meta
     readonly isMinProperties: {
@@ -8913,7 +8631,6 @@ export declare namespace Annotations {
     // Arrays Meta
     readonly isUnique: {
       readonly _tag: "isUnique"
-      readonly equivalence: Equivalence.Equivalence<any>
     }
     // Declaration Meta
     readonly isMinSize: {

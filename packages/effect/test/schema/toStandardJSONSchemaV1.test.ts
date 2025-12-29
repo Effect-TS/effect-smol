@@ -4,18 +4,20 @@ import { Schema } from "effect"
 import { describe, it } from "vitest"
 
 function standardConvertToJSONSchemaInput(
-  schema: StandardJSONSchemaV1
+  schema: StandardJSONSchemaV1,
+  target?: StandardJSONSchemaV1.Target
 ): Record<string, unknown> {
   return schema["~standard"].jsonSchema.input({
-    target: "draft-07"
+    target: target ?? "draft-2020-12"
   })
 }
 
 function standardConvertToJSONSchemaOutput(
-  schema: StandardJSONSchemaV1
+  schema: StandardJSONSchemaV1,
+  target?: StandardJSONSchemaV1.Target
 ): Record<string, unknown> {
   return schema["~standard"].jsonSchema.output({
-    target: "draft-07"
+    target: target ?? "draft-2020-12"
   })
 }
 
@@ -34,58 +36,83 @@ describe("toStandardJSONSchemaV1", () => {
     })
   })
 
-  it("should return the input JSON Schema", () => {
-    const schema = Schema.FiniteFromString
-    const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
-    deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
-      "type": "string"
+  describe("draft-2020-12", () => {
+    it("should return the input JSON Schema", () => {
+      const schema = Schema.Tuple([Schema.FiniteFromString])
+      const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
+      deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
+        "type": "array",
+        "prefixItems": [{ "type": "string" }],
+        "minItems": 1,
+        "maxItems": 1
+      })
     })
-  })
 
-  it("should return the output JSON Schema", () => {
-    const schema = Schema.FiniteFromString
-    const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
-    deepStrictEqual(standardConvertToJSONSchemaOutput(standardJSONSchema), {
-      "type": "number"
+    it("should return the output JSON Schema", () => {
+      const schema = Schema.Tuple([Schema.FiniteFromString])
+      const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
+      deepStrictEqual(standardConvertToJSONSchemaOutput(standardJSONSchema), {
+        "type": "array",
+        "prefixItems": [{ "type": "number" }],
+        "minItems": 1,
+        "maxItems": 1
+      })
     })
-  })
 
-  it("a schema with identifier", () => {
-    const schema = Schema.String.annotate({ identifier: "ID" })
-    const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
-    deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
-      "$ref": "#/definitions/ID",
-      "definitions": {
-        "ID": {
-          "type": "string"
+    it("a schema with identifier", () => {
+      const schema = Schema.Tuple([Schema.FiniteFromString]).annotate({ identifier: "id" })
+      const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
+      deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
+        "$ref": "#/$defs/id",
+        "$defs": {
+          "id": {
+            "type": "array",
+            "prefixItems": [{ "type": "string" }],
+            "minItems": 1,
+            "maxItems": 1
+          }
         }
-      }
+      })
     })
   })
 
-  it("a recursive schema", () => {
-    type A = {
-      readonly a: string
-      readonly as: ReadonlyArray<A>
-    }
-    const schema = Schema.Struct({
-      a: Schema.String,
-      as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
-    }).annotate({ identifier: "A" })
-    const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
-    deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
-      "$ref": "#/definitions/A",
-      "definitions": {
-        "A": {
-          "type": "object",
-          "properties": {
-            "a": { "type": "string" },
-            "as": { "type": "array", "items": { "$ref": "#/definitions/A" } }
-          },
-          "required": ["a", "as"],
-          "additionalProperties": false
+  describe("draft-07", () => {
+    it("should return the input JSON Schema", () => {
+      const schema = Schema.Tuple([Schema.FiniteFromString])
+      const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
+      deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema, "draft-07"), {
+        "type": "array",
+        "items": [{ "type": "string" }],
+        "minItems": 1,
+        "maxItems": 1
+      })
+    })
+
+    it("should return the output JSON Schema", () => {
+      const schema = Schema.Tuple([Schema.FiniteFromString])
+      const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
+      deepStrictEqual(standardConvertToJSONSchemaOutput(standardJSONSchema, "draft-07"), {
+        "type": "array",
+        "items": [{ "type": "number" }],
+        "minItems": 1,
+        "maxItems": 1
+      })
+    })
+
+    it("a schema with identifier", () => {
+      const schema = Schema.Tuple([Schema.FiniteFromString]).annotate({ identifier: "id" })
+      const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
+      deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema, "draft-07"), {
+        "$ref": "#/definitions/id",
+        "definitions": {
+          "id": {
+            "type": "array",
+            "items": [{ "type": "string" }],
+            "minItems": 1,
+            "maxItems": 1
+          }
         }
-      }
+      })
     })
   })
 })

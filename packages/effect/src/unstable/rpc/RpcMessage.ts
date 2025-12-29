@@ -153,7 +153,7 @@ export type FromServerEncoded =
  * @since 4.0.0
  * @category response
  */
-export const ResponseIdTypeId: unique symbol = Symbol.for("@effect/rpc/RpcServer/ResponseId")
+export const ResponseIdTypeId = "~effect//rpc/RpcServer/ResponseId"
 
 /**
  * @since 4.0.0

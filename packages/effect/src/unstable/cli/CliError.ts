@@ -272,7 +272,7 @@ export class MissingArgument extends Schema.ErrorClass(`${TypeId}/MissingArgumen
 }
 
 /**
- * Error thrown when an option value is invalid.
+ * Error thrown when an option or argument value is invalid.
  *
  * @example
  * ```ts
@@ -282,21 +282,23 @@ export class MissingArgument extends Schema.ErrorClass(`${TypeId}/MissingArgumen
  * const invalidValueError = new CliError.InvalidValue({
  *   option: "port",
  *   value: "abc123",
- *   expected: "integer between 1 and 65535"
+ *   expected: "integer between 1 and 65535",
+ *   kind: "flag"
  * })
  *
  * console.log(invalidValueError.message)
  * // "Invalid value for flag --port: "abc123". Expected: integer between 1 and 65535"
  *
- * // In value validation
- * const validatePortValue = (value: string) =>
- *   Effect.gen(function*() {
- *     const port = Number(value)
- *     if (isNaN(port) || port < 1 || port > 65535) {
- *       return yield* Effect.fail(invalidValueError)
- *     }
- *     return port
- *   })
+ * // For positional arguments
+ * const invalidArgError = new CliError.InvalidValue({
+ *   option: "count",
+ *   value: "abc",
+ *   expected: "integer",
+ *   kind: "argument"
+ * })
+ *
+ * console.log(invalidArgError.message)
+ * // "Invalid value for argument <count>: "abc". Expected: integer"
  * ```
  *
  * @since 4.0.0
@@ -306,7 +308,8 @@ export class InvalidValue extends Schema.ErrorClass(`${TypeId}/InvalidValue`)({
   _tag: Schema.tag("InvalidValue"),
   option: Schema.String,
   value: Schema.String,
-  expected: Schema.String
+  expected: Schema.String,
+  kind: Schema.Union([Schema.Literal("flag"), Schema.Literal("argument")])
 }) {
   /**
    * @since 4.0.0
@@ -317,6 +320,9 @@ export class InvalidValue extends Schema.ErrorClass(`${TypeId}/InvalidValue`)({
    * @since 4.0.0
    */
   override get message() {
+    if (this.kind === "argument") {
+      return `Invalid value for argument <${this.option}>: "${this.value}". Expected: ${this.expected}`
+    }
     return `Invalid value for flag --${this.option}: "${this.value}". Expected: ${this.expected}`
   }
 }

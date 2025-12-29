@@ -38,17 +38,32 @@ describe("Multipart", () => {
     }))
 
   describe("FileSchema", () => {
-    it("jsonSchema", () => {
-      const document = Schema.toJsonSchema(Multipart.FileSchema, { target: "draft-07" })
+    it("toJsonSchema", () => {
+      const document = Schema.toJsonSchemaDocument(Multipart.FileSchema)
       deepStrictEqual(document, {
-        source: "draft-07",
+        source: "draft-2020-12",
         schema: {
-          "$ref": "#/definitions/PersistedFile"
+          "$ref": "#/$defs/PersistedFile"
         },
         definitions: {
           "PersistedFile": {
-            "type": "string",
-            "format": "binary"
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "contentType": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              }
+            },
+            "required": ["key", "name", "contentType", "path"],
+            "additionalProperties": false
           }
         }
       })

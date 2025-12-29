@@ -285,9 +285,9 @@ The `Encoded` type becomes `unknown` because JSON can represent many different s
 
 Schemas can declare serialization strategies through annotations:
 
-- `serializerJson`: JSON serialization strategy
-- `serializerIso`: ISO serialization (to the `Iso` type)
-- `serializer`: Used by both JSON and ISO serializers
+- `toCodecJson`: JSON serialization strategy
+- `toCodecIso`: ISO serialization (to the `Iso` type)
+- `toCodec*`: Used by both JSON and ISO serializers
 
 **Example** (JSON serializer for `Schema.Date`)
 
@@ -296,7 +296,7 @@ import { Schema, SchemaTransformation } from "effect"
 
 export const Date = Schema.instanceOf(globalThis.Date, {
   expected: "Date",
-  serializerJson: () =>
+  toCodecJson: () =>
     Schema.link<globalThis.Date>()(
       // JSON representation: a string that will later be decoded as a Date
       Schema.String.annotate({
@@ -365,7 +365,7 @@ This schema automatically picks JSON formats based on its parts:
 When you call `Schema.toCodecJson(schema)`, the library:
 
 1. **Walks the AST**: Recursively traverses the schema's abstract syntax tree
-2. **Finds annotations**: Looks for `serializerJson` or `serializer` annotations
+2. **Finds annotations**: Looks for `toCodecJson` or `serializer` annotations
 3. **Applies transformations**: Converts complex types to JSON-safe representations
 4. **Composes recursively**: Handles nested structures automatically
 
@@ -479,7 +479,7 @@ Schema.Void
 
 ### Defining Custom JSON Serializers
 
-You can define custom JSON serialization strategies for your types using the `serializerJson` annotation.
+You can define custom JSON serialization strategies for your types using the `toCodecJson` annotation.
 
 **Example** (Custom `Date` serialization as epoch milliseconds)
 
@@ -637,7 +637,7 @@ The key difference: JSON keeps numbers, booleans, and nested objects in their or
 
 ### Declarations in StringTree
 
-**Note**: Schemas representing declarations without a `serializerJson` or `serializer` annotation are encoded as `undefined`:
+**Note**: Schemas representing declarations without a `toCodecJson` or `serializer` annotation are encoded as `undefined`:
 
 ```ts
 import { Schema } from "effect"
@@ -660,7 +660,7 @@ console.log(
 
 ### keepDeclarations: true
 
-The `keepDeclarations: true` option behaves like the StringTree serializer, but it does **not** convert declarations to `undefined`. Instead, it keeps them as they are (unless they have a `serializerJson` or `serializer` annotation).
+The `keepDeclarations: true` option behaves like the StringTree serializer, but it does **not** convert declarations to `undefined`. Instead, it keeps them as they are (unless they have a `toCodecJson` or `serializer` annotation).
 
 ```ts
 import { Schema } from "effect"
@@ -3610,7 +3610,7 @@ class Person {
 const PersonSchema = Schema.instanceOf(Person, {
   title: "Person",
   // optional: default JSON serialization
-  serializerJson: () =>
+  toCodecJson: () =>
     Schema.link<Person>()(
       Schema.Tuple([Schema.String, Schema.Number]),
       SchemaTransformation.transform({
@@ -3649,7 +3649,7 @@ class Person {
 const PersonSchema = Schema.instanceOf(Person, {
   title: "Person",
   // optional: default JSON serialization
-  serializerJson: () =>
+  toCodecJson: () =>
     Schema.link<Person>()(
       Schema.Tuple([Schema.String, Schema.Number]),
       SchemaTransformation.transform({
@@ -4947,54 +4947,26 @@ console.log(String(Schema.decodeUnknownExit(schema)(urlSearchParams)))
 
 ## Generating a JSON Schema from a Schema
 
-### Basic Conversion (no annotations)
+### Basic Conversion
 
-By default, a plain schema (with no annotations) produces the minimal valid JSON Schema for that shape.
+By default, a schema produces a draft-2020-12 JSON Schema.
 
-**Example** (Tuple to draft-07 JSON Schema)
+The result is a data structure including:
 
-```ts
-import { Schema } from "effect"
-
-// Define a tuple: [string, number]
-const schema = Schema.Tuple([Schema.String, Schema.Number])
-
-// Generate a draft-07 JSON Schema
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
-
-console.log(JSON.stringify(document, null, 2))
-/*
-Output:
-{
-  "source": "draft-07",
-  "schema": {
-    "type": "array",
-    "minItems": 2,
-    "items": [
-      {
-        "type": "string"
-      },
-      {
-        "type": "number"
-      }
-    ],
-    "additionalItems": false
-  },
-  "definitions": {}
-}
-*/
-```
+- the source of the JSON Schema (e.g. `draft-2020-12`, `draft-07`, etc...)
+- the JSON Schema itself
+- any definitions referenced by `$ref` (if any)
 
 **Example** (Tuple to draft-2020-12 JSON Schema)
 
 ```ts
 import { Schema } from "effect"
 
-// Same tuple as above
-const schema = Schema.Tuple([Schema.String, Schema.Number])
+// Define a tuple: [string, number]
+const schema = Schema.Tuple([Schema.String, Schema.Finite])
 
 // Generate a draft-2020-12 JSON Schema
-const document = Schema.toJsonSchema(schema, { target: "draft-2020-12" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
@@ -5003,7 +4975,6 @@ Output:
   "source": "draft-2020-12",
   "schema": {
     "type": "array",
-    "minItems": 2,
     "prefixItems": [
       {
         "type": "string"
@@ -5012,29 +4983,46 @@ Output:
         "type": "number"
       }
     ],
-    "items": false
+    "maxItems": 2,
+    "minItems": 2
   },
   "definitions": {}
 }
 */
 ```
 
-If the top-level schema is a "Declaration" (e.g. `Schema.Option(Schema.String)`), `BigInt`, `Symbol`, or `UniqueSymbol`, generation fails with a runtime error.
+To generate a draft-07 JSON Schema, use `JsonSchema.toDocumentDraft07` to convert the draft-2020-12 JSON Schema.
 
-**Example** (Unsupported top-level type)
+**Example** (Tuple to draft-7 JSON Schema)
 
 ```ts
-import { Schema } from "effect"
+import { JsonSchema, Schema } from "effect"
 
-const schema = Schema.Struct({
-  a: Schema.BigInt
-})
+const schema = Schema.Tuple([Schema.String, Schema.Finite])
 
-Schema.toJsonSchema(schema, { target: "draft-07" })
+const doc2020_12 = Schema.toJsonSchemaDocument(schema)
+const doc07 = JsonSchema.toDocumentDraft07(doc2020_12)
+
+console.log(JSON.stringify(doc07, null, 2))
 /*
-throws:
-Error: Unsupported AST BigInt
-  at ["a"]
+Output:
+{
+  "source": "draft-07",
+  "schema": {
+    "type": "array",
+    "maxItems": 2,
+    "minItems": 2,
+    "items": [
+      {
+        "type": "string"
+      },
+      {
+        "type": "number"
+      }
+    ]
+  },
+  "definitions": {}
+}
 */
 ```
 
@@ -5059,22 +5047,25 @@ const schema = Schema.NonEmptyString.annotate({
   examples: ["alice", "bob"]
 })
 
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
-Output:
 {
-  "source": "draft-07",
+  "source": "draft-2020-12",
   "schema": {
     "type": "string",
-    "minLength": 1,
-    "title": "Username",
-    "description": "A non-empty user name string",
-    "default": "anonymous",
-    "examples": [
-      "alice",
-      "bob"
+    "allOf": [
+      {
+        "minLength": 1,
+        "title": "Username",
+        "description": "A non-empty user name string",
+        "default": "anonymous",
+        "examples": [
+          "alice",
+          "bob"
+        ]
+      }
     ]
   },
   "definitions": {}
@@ -5082,66 +5073,30 @@ Output:
 */
 ```
 
-### Handling invalid examples and defaults
+### Optional fields / elements
 
-Annotations are not validated when you set them.
+Optional fields are converted to optional fields or elements in the JSON Schema.
 
 **Example**
 
 ```ts
 import { Schema } from "effect"
 
-// Attaching invalid values is allowed at definition time
-const schema = Schema.NonEmptyString.annotate({
-  default: "", // invalid (empty string)
-  examples: ["alice", "", "bob"] // the empty string is invalid
-})
-
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
-
-console.log(JSON.stringify(document, null, 2))
-/*
-Output:
-{
-  "source": "draft-07",
-  "schema": {
-    "type": "string",
-    "minLength": 1,
-    "default": "",
-    "examples": [
-      "alice",
-      "",
-      "bob"
-    ]
-  },
-  "definitions": {}
-}
-*/
-```
-
-### Undefined is converted to optional fields / elements
-
-**Example** (Optional struct field from `UndefinedOr`)
-
-```ts
-import { Schema } from "effect"
-
 const schema = Schema.Struct({
-  a: Schema.UndefinedOr(Schema.Number) // 'a' may be undefined
+  a: Schema.optionalKey(Schema.String)
 })
 
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
-Output:
 {
-  "source": "draft-07",
+  "source": "draft-2020-12",
   "schema": {
     "type": "object",
     "properties": {
       "a": {
-        "type": "number"
+        "type": "string"
       }
     },
     "additionalProperties": false
@@ -5151,103 +5106,157 @@ Output:
 */
 ```
 
-**Example** (Optional tuple element from `UndefinedOr`)
+Fields including `undefined` (such as those defined unsing `Schema.optional` or `Schema.UndefinedOr`) are converted to optional fields or elements in the JSON Schema with a union with the `null` type.
+
+**Example**
 
 ```ts
 import { Schema } from "effect"
 
-const schema = Schema.Tuple([Schema.UndefinedOr(Schema.Number)]) // first element may be undefined
-
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
-
-console.log(JSON.stringify(document, null, 2))
-/*
-Output:
-{
-  "source": "draft-07",
-  "schema": {
-    "type": "array",
-    "items": [
-      {
-        "type": "number"
-      }
-    ],
-    "additionalItems": false
-  },
-  "definitions": {}
-}
-*/
-```
-
-### Defining your own JSON Schema for custom types
-
-Without a way to specify a custom JSON Schema for custom types, the default behavior is to throw an error:
-
-```ts
-import { Schema } from "effect"
-
-const schema = Schema.instanceOf(URL)
-
-Schema.toJsonSchema(schema, { target: "draft-07" })
-// Error: Unsupported AST Declaration
-```
-
-You can specify a custom JSON Schema for custom types by using the `jsonSchema` annotation:
-
-```ts
-import { Schema } from "effect"
-
-const schema = Schema.instanceOf(URL, {
-  toJsonSchema: () => ({
-    type: "string"
-  })
+const schema = Schema.Struct({
+  a: Schema.optional(Schema.String)
 })
 
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
-Output:
 {
-  "source": "draft-07",
+  "source": "draft-2020-12",
   "schema": {
-    "type": "string"
+    "type": "object",
+    "properties": {
+      "a": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "additionalProperties": false
   },
   "definitions": {}
 }
 */
 ```
 
-### Adding JSON Schema Fragments For Filters
+### Defining a JSON-safe representation for custom types
 
-When you call `.check(...)`, Effect attaches a filter. A filter may include a `"jsonSchema"` annotation that describes a JSON Schema fragment to merge into the final schema.
+This example shows how `Schema.toCodecJson` and `Schema.toJsonSchema` can describe the same JSON shape for a custom type.
 
-#### Built-in Filters
+`Headers` is not JSON-friendly by default. `JSON.stringify(new Headers({ a: "b" }))` produces `{}` because the header data is not stored in enumerable properties. By adding a `toCodecJson` annotation, you define a JSON-safe representation and use it for both serialization and JSON Schema generation.
 
-Effect's built-in checks already carry a `jsonSchema` fragment. For example:
+**Example** (Align a JSON serializer and JSON Schema for `Headers`)
+
+```ts
+import { Schema, SchemaGetter } from "effect"
+
+const data = new Headers({ a: "b" })
+
+// `Headers` does not serialize to JSON in a useful way by default.
+console.log(JSON.stringify(data))
+// {}
+
+// Define a schema with a `toCodecJson` annotation.
+// The JSON form will be: [ [name, value], ... ].
+const MyHeaders = Schema.instanceOf(Headers, {
+  toCodecJson: () =>
+    Schema.link<Headers>()(
+      // JSON-safe representation: array of [key, value] pairs
+      Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
+      {
+        decode: SchemaGetter.transform((headers) => new Headers(headers.map(([key, value]) => [key, value]))),
+        encode: SchemaGetter.transform((headers) => [...headers.entries()])
+      }
+    )
+})
+
+const schema = Schema.Struct({
+  headers: MyHeaders
+})
+
+// Build a serializer that produces JSON-safe values using the `toCodecJson` annotation.
+const serializer = Schema.toCodecJson(schema)
+
+const json = Schema.encodeUnknownSync(serializer)({
+  headers: data
+})
+
+// The JSON-encoded value:
+console.log(json)
+// { headers: [ [ 'a', 'b' ] ] }
+
+// Generate a JSON Schema that matches the JSON-safe shape produced by the serializer.
+const document = Schema.toJsonSchemaDocument(schema)
+
+console.log(JSON.stringify(document.schema, null, 2))
+/*
+{
+  "type": "object",
+  "properties": {
+    "headers": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "maxItems": 2,
+        "minItems": 2
+      }
+    }
+  },
+  "required": [
+    "headers"
+  ],
+  "additionalProperties": false
+}
+*/
+
+// Example (Decode a JSON-safe value using the same serializer)
+// If a value matches the JSON Schema above, you can decode it with the serializer.
+console.log(String(Schema.decodeUnknownExit(serializer)(json)))
+// Success({"headers":Headers([["a","b"]])})
+```
+
+### Validation Constraints
+
+**Example**
 
 ```ts
 import { Schema } from "effect"
 
 const schema = Schema.String.check(Schema.isMinLength(1))
 
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
-Output:
 {
-  "source": "draft-07",
+  "source": "draft-2020-12",
   "schema": {
     "type": "string",
-    "minLength": 1
+    "allOf": [
+      {
+        "minLength": 1
+      }
+    ]
   },
   "definitions": {}
 }
 */
 ```
 
-**Example** (Multiple filters: top-level + `allOf`)
+**Example** (Multiple filters)
 
 ```ts
 import { Schema } from "effect"
@@ -5257,18 +5266,19 @@ const schema = Schema.String.check(
   Schema.isMaxLength(2, { description: "description2" })
 )
 
-const document = Schema.toJsonSchema(schema, { target: "draft-07" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
-Output:
 {
-  "source": "draft-07",
+  "source": "draft-2020-12",
   "schema": {
     "type": "string",
-    "minLength": 1,
-    "description": "description1",
     "allOf": [
+      {
+        "minLength": 1,
+        "description": "description1"
+      },
       {
         "maxLength": 2,
         "description": "description2"
@@ -5280,48 +5290,9 @@ Output:
 */
 ```
 
-#### Declaring your own fragment filter
-
-You can define a custom filter and provide a JSON Schema fragment.
-
-**Example** (Custom `pattern` constraint)
-
-```ts
-import { Schema } from "effect"
-
-const schema = Schema.String.check(
-  Schema.makeFilter((s) => /foo/.test(s), {
-    title: "containsFoo",
-    description: "must contain 'foo'",
-    toJsonSchemaConstraint:
-      // Evaluated during generation; return a fragment that will be merged
-      () => ({
-        pattern: "foo"
-      })
-  })
-)
-
-const jsonSchema = Schema.toJsonSchema(schema, { target: "draft-07" })
-
-console.log(JSON.stringify(jsonSchema, null, 2))
-/*
-Output:
-{
-  "source": "draft-07",
-  "schema": {
-    "type": "string",
-    "pattern": "foo",
-    "title": "containsFoo",
-    "description": "must contain 'foo'"
-  },
-  "definitions": {}
-}
-*/
-```
-
 ### The fromJsonString combinator
 
-With `fromJsonString` on `draft-2020-12` or `openapi-3.1`, the generated schema uses `contentSchema` to embed the JSON Schema of the decoded value.
+With `fromJsonString`, the generated schema uses `contentSchema` to embed the JSON Schema of the decoded value.
 
 **Example** (Embedding `contentSchema` for JSON string content)
 
@@ -5335,11 +5306,10 @@ const original = Schema.Struct({ a: Schema.String })
 // but its content must be valid JSON matching 'original'
 const schema = Schema.fromJsonString(original)
 
-const document = Schema.toJsonSchema(schema, { target: "draft-2020-12" })
+const document = Schema.toJsonSchemaDocument(schema)
 
 console.log(JSON.stringify(document, null, 2))
 /*
-Output:
 {
   "source": "draft-2020-12",
   "schema": {
@@ -5367,7 +5337,7 @@ Output:
 
 Sometimes you need to adapt a schema to a different target format. For example, you might convert a JSON Schema to the subset supported by OpenAI (https://platform.openai.com/docs/guides/structured-outputs/supported-schemas?type-restrictions=string-restrictions#supported-schemas).
 
-Note: the more context that an LLM has, the more "correct" the structured output will be, so it's advised to pass the `generateDescriptions: true` option to `makeJsonSchema*` APIs.
+Note: the more context that an LLM has, the more "correct" the structured output will be, so it's advised to pass the `generateDescriptions: true` option to `toJsonSchemaDocument` APIs.
 
 **Example** (Convert to an OpenAI-compatible schema)
 
@@ -5380,9 +5350,7 @@ const schema = Schema.Struct({
   a: Schema.optionalKey(Schema.NonEmptyString)
 })
 
-const document = Schema.toJsonSchema(schema, {
-  target: "draft-2020-12",
-  referenceStrategy: "skip-top-level",
+const document = Schema.toJsonSchemaDocument(schema, {
   generateDescriptions: true
 })
 
@@ -5394,11 +5362,14 @@ Output (before rewrite):
   "properties": {
     "a": {
       "type": "string",
-      "minLength": 1, // not supported by the OpenAI subset
-      "description": "a value with a length of at least 1" // generated description
+      "allOf": [
+        {
+          "minLength": 1,
+          "description": "a value with a length of at least 1"
+        }
+      ]
     }
   },
-  "required": [], // optional field (OpenAI requires all fields to be required)
   "additionalProperties": false
 }
 */
@@ -5416,17 +5387,17 @@ Output:
   "type": "object",
   "properties": {
     "a": {
-      "type": [ // optional via nullability
+      "type": [
         "string",
         "null"
       ],
       "description": "a value with a length of at least 1"
     }
   },
+  "additionalProperties": false,
   "required": [
-    "a" // now required
-  ],
-  "additionalProperties": false
+    "a"
+  ]
 }
 */
 ```

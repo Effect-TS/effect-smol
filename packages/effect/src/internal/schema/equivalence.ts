@@ -1,15 +1,15 @@
-import * as Equal from "../Equal.ts"
-import * as Equivalence from "../Equivalence.ts"
-import { memoize } from "../Function.ts"
-import * as Predicate from "../Predicate.ts"
-import type * as Schema from "../Schema.ts"
-import * as AST from "../SchemaAST.ts"
-import * as Parser from "../SchemaParser.ts"
-import { errorWithPath } from "./errors.ts"
-import * as InternalAnnotations from "./schema/annotations.ts"
+import * as Equal from "../../Equal.ts"
+import * as Equivalence from "../../Equivalence.ts"
+import { memoize } from "../../Function.ts"
+import * as Predicate from "../../Predicate.ts"
+import type * as Schema from "../../Schema.ts"
+import * as AST from "../../SchemaAST.ts"
+import * as Parser from "../../SchemaParser.ts"
+import { errorWithPath } from "../errors.ts"
+import * as InternalAnnotations from "./annotations.ts"
 
 /** @internal */
-export const memoized = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
+export const toEquivalence = memoize((ast: AST.AST): Equivalence.Equivalence<any> => {
   return recur(ast, [])
 })
 

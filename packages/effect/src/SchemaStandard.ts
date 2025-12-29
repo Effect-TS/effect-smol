@@ -3,17 +3,14 @@
  */
 import * as Arr from "./Array.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
-import * as InternalAnnotations from "./internal/schema/annotations.ts"
-import { unescapeToken } from "./internal/schema/json-pointer.ts"
+import * as InternalStandard from "./internal/schema/standard.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
-import * as RegEx from "./RegExp.ts"
 import * as Schema from "./Schema.ts"
-import * as AST from "./SchemaAST.ts"
+import type * as AST from "./SchemaAST.ts"
 import * as Getter from "./SchemaGetter.ts"
-import type * as Types from "./Types.ts"
 
 // -----------------------------------------------------------------------------
 // specification
@@ -25,8 +22,9 @@ import type * as Types from "./Types.ts"
 export interface Declaration {
   readonly _tag: "Declaration"
   readonly annotations?: Schema.Annotations.Annotations | undefined
-  readonly typeParameters: ReadonlyArray<StandardSchema>
-  readonly checks: ReadonlyArray<Check<DateMeta>>
+  readonly typeParameters: ReadonlyArray<Standard>
+  readonly checks: ReadonlyArray<Check<Meta>>
+  readonly Encoded: Standard
 }
 
 /**
@@ -35,6 +33,15 @@ export interface Declaration {
 export interface Suspend {
   readonly _tag: "Suspend"
   readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly checks: readonly []
+  readonly thunk: Standard
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface Reference {
+  readonly _tag: "Reference"
   readonly $ref: string
 }
 
@@ -94,7 +101,7 @@ export interface String {
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly checks: ReadonlyArray<Check<StringMeta>>
   readonly contentMediaType?: string | undefined
-  readonly contentSchema?: StandardSchema | undefined
+  readonly contentSchema?: Standard | undefined
 }
 
 /**
@@ -172,15 +179,7 @@ export interface Enum {
 export interface TemplateLiteral {
   readonly _tag: "TemplateLiteral"
   readonly annotations?: Schema.Annotations.Annotations | undefined
-  readonly parts: ReadonlyArray<StandardSchema>
-}
-
-/**
- * @since 4.0.0
- */
-export interface Element {
-  readonly isOptional: boolean
-  readonly type: StandardSchema
+  readonly parts: ReadonlyArray<Standard>
 }
 
 /**
@@ -190,8 +189,17 @@ export interface Arrays {
   readonly _tag: "Arrays"
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly elements: ReadonlyArray<Element>
-  readonly rest: ReadonlyArray<StandardSchema>
+  readonly rest: ReadonlyArray<Standard>
   readonly checks: ReadonlyArray<Check<ArraysMeta>>
+}
+
+/**
+ * @since 4.0.0
+ */
+export interface Element {
+  readonly isOptional: boolean
+  readonly type: Standard
+  readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
 /**
@@ -202,16 +210,7 @@ export interface Objects {
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly propertySignatures: ReadonlyArray<PropertySignature>
   readonly indexSignatures: ReadonlyArray<IndexSignature>
-}
-
-/**
- * @since 4.0.0
- */
-export interface Union {
-  readonly _tag: "Union"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
-  readonly types: ReadonlyArray<StandardSchema>
-  readonly mode: "anyOf" | "oneOf"
+  readonly checks: ReadonlyArray<Check<ObjectsMeta>>
 }
 
 /**
@@ -219,7 +218,7 @@ export interface Union {
  */
 export interface PropertySignature {
   readonly name: PropertyKey
-  readonly type: StandardSchema
+  readonly type: Standard
   readonly isOptional: boolean
   readonly isMutable: boolean
   readonly annotations?: Schema.Annotations.Annotations | undefined
@@ -229,15 +228,26 @@ export interface PropertySignature {
  * @since 4.0.0
  */
 export interface IndexSignature {
-  readonly parameter: StandardSchema
-  readonly type: StandardSchema
+  readonly parameter: Standard
+  readonly type: Standard
 }
 
 /**
  * @since 4.0.0
  */
-export type StandardSchema =
+export interface Union {
+  readonly _tag: "Union"
+  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly types: ReadonlyArray<Standard>
+  readonly mode: "anyOf" | "oneOf"
+}
+
+/**
+ * @since 4.0.0
+ */
+export type Standard =
   | Declaration
+  | Reference
   | Suspend
   | Null
   | Undefined
@@ -262,14 +272,14 @@ export type StandardSchema =
 /**
  * @since 4.0.0
  */
-export type Check<T> = Filter<T> | FilterGroup<T>
+export type Check<M> = Filter<M> | FilterGroup<M>
 
 /**
  * @since 4.0.0
  */
 export interface Filter<M> {
   readonly _tag: "Filter"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Filter | undefined
   readonly meta: M
 }
 
@@ -278,7 +288,7 @@ export interface Filter<M> {
  */
 export interface FilterGroup<M> {
   readonly _tag: "FilterGroup"
-  readonly annotations?: Schema.Annotations.Annotations | undefined
+  readonly annotations?: Schema.Annotations.Filter | undefined
   readonly checks: readonly [Check<M>, ...Array<Check<M>>]
 }
 
@@ -286,7 +296,7 @@ export interface FilterGroup<M> {
  * @since 4.0.0
  */
 export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
-  | "isNumberString"
+  | "isFiniteString"
   | "isBigIntString"
   | "isSymbolString"
   | "isMinLength"
@@ -335,6 +345,26 @@ export type BigIntMeta = Schema.Annotations.BuiltInMetaDefinitions[
 /**
  * @since 4.0.0
  */
+export type ArraysMeta =
+  | Schema.Annotations.BuiltInMetaDefinitions[
+    | "isMinLength"
+    | "isMaxLength"
+    | "isLength"
+  ]
+  | { readonly _tag: "isUnique" }
+
+/**
+ * @since 4.0.0
+ */
+export type ObjectsMeta = Schema.Annotations.BuiltInMetaDefinitions[
+  | "isMinProperties"
+  | "isMaxProperties"
+  | "isPropertiesLength"
+]
+
+/**
+ * @since 4.0.0
+ */
 export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isValidDate"
   | "isGreaterThanDate"
@@ -343,36 +373,36 @@ export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isLessThanOrEqualToDate"
   | "isBetweenDate"
 ]
-
 /**
  * @since 4.0.0
  */
-export type ArraysMeta =
-  | Schema.Annotations.BuiltInMetaDefinitions[
-    | "isMinLength"
-    | "isMaxLength"
-  ]
-  | { readonly _tag: "isUnique" }
+export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMeta | DateMeta
 
 /**
  * @since 4.0.0
  */
 export type Document = {
-  readonly schema: StandardSchema
-  readonly definitions: Record<string, StandardSchema>
+  readonly schema: Standard
+  readonly definitions: Record<string, Standard>
+}
+
+/**
+ * @since 4.0.0
+ */
+export type MultiDocument = {
+  readonly schemas: readonly [Standard, ...Array<Standard>]
+  readonly definitions: Record<string, Standard>
 }
 
 // -----------------------------------------------------------------------------
 // schemas
 // -----------------------------------------------------------------------------
 
-const Schema$ref = Schema.suspend(() => Schema$)
+const Standard$ref = Schema.suspend(() => Standard$)
 
-const toJsonBlacklist: Set<string> = new Set([
+const toJsonAnnotationsBlacklist: Set<string> = new Set([
   "toArbitrary",
   "toArbitraryConstraint",
-  "toJsonSchema",
-  "toJsonSchemaConstraint",
   "toEquivalence",
   "toFormatter",
   "toCodec*",
@@ -406,11 +436,11 @@ export const Annotations$ = Schema.Record(Schema.String, Schema.Unknown).pipe(
     encode: Getter.transformOptional(Option.flatMap((r) => {
       const out: Record<string, typeof PrimitiveTree$["Type"]> = {}
       for (const [k, v] of Object.entries(r)) {
-        if (!toJsonBlacklist.has(k) && isPrimitiveTree(v)) {
+        if (!toJsonAnnotationsBlacklist.has(k) && isPrimitiveTree(v)) {
           out[k] = v
         }
       }
-      return Rec.isRecordEmpty(out) ? Option.none() : Option.some(out)
+      return Rec.isEmptyRecord(out) ? Option.none() : Option.some(out)
     }))
   })
 ).annotate({ identifier: "Annotations" })
@@ -420,7 +450,7 @@ export const Annotations$ = Schema.Record(Schema.String, Schema.Unknown).pipe(
  */
 export const Null$ = Schema.Struct({
   _tag: Schema.tag("Null"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Null" })
 
 /**
@@ -428,7 +458,7 @@ export const Null$ = Schema.Struct({
  */
 export const Undefined$ = Schema.Struct({
   _tag: Schema.tag("Undefined"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Undefined" })
 
 /**
@@ -436,7 +466,7 @@ export const Undefined$ = Schema.Struct({
  */
 export const Void$ = Schema.Struct({
   _tag: Schema.tag("Void"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Void" })
 
 /**
@@ -444,7 +474,7 @@ export const Void$ = Schema.Struct({
  */
 export const Never$ = Schema.Struct({
   _tag: Schema.tag("Never"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Never" })
 
 /**
@@ -452,7 +482,7 @@ export const Never$ = Schema.Struct({
  */
 export const Unknown$ = Schema.Struct({
   _tag: Schema.tag("Unknown"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Unknown" })
 
 /**
@@ -460,13 +490,13 @@ export const Unknown$ = Schema.Struct({
  */
 export const Any$ = Schema.Struct({
   _tag: Schema.tag("Any"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Any" })
 
-const IsNumberString$ = Schema.Struct({
-  _tag: Schema.tag("isNumberString"),
+const IsFiniteString$ = Schema.Struct({
+  _tag: Schema.tag("isFiniteString"),
   regExp: Schema.RegExp
-}).annotate({ identifier: "IsNumberString" })
+}).annotate({ identifier: "IsFiniteString" })
 
 const IsBigIntString$ = Schema.Struct({
   _tag: Schema.tag("isBigIntString"),
@@ -563,7 +593,7 @@ const IsLength$ = Schema.Struct({
 }).annotate({ identifier: "IsLength" })
 
 const StringMeta$ = Schema.Union([
-  IsNumberString$,
+  IsFiniteString$,
   IsBigIntString$,
   IsSymbolString$,
   IsTrimmed$,
@@ -589,12 +619,12 @@ function makeCheck<T>(meta: Schema.Codec<T>, identifier: string) {
   const Check: Schema.Codec<Check<T>> = Schema.Union([
     Schema.Struct({
       _tag: Schema.tag("Filter"),
-      annotations: Schema.optionalKey(Annotations$),
+      annotations: Schema.optional(Annotations$),
       meta
     }).annotate({ identifier: `${identifier}Filter` }),
     Schema.Struct({
       _tag: Schema.tag("FilterGroup"),
-      annotations: Schema.optionalKey(Annotations$),
+      annotations: Schema.optional(Annotations$),
       checks: Schema.NonEmptyArray(Check$ref)
     }).annotate({ identifier: `${identifier}FilterGroup` })
   ]).annotate({ identifier: `${identifier}Check` })
@@ -606,10 +636,10 @@ function makeCheck<T>(meta: Schema.Codec<T>, identifier: string) {
  */
 export const String$ = Schema.Struct({
   _tag: Schema.tag("String"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.optional(Annotations$),
   checks: Schema.Array(makeCheck(StringMeta$, "String")),
   contentMediaType: Schema.optional(Schema.String),
-  contentSchema: Schema.optional(Schema$ref)
+  contentSchema: Schema.optional(Standard$ref)
 }).annotate({ identifier: "String" })
 
 const IsInt$ = Schema.Struct({
@@ -648,7 +678,9 @@ const IsLessThanOrEqualTo$ = Schema.Struct({
 const IsBetween$ = Schema.Struct({
   _tag: Schema.tag("isBetween"),
   minimum: Schema.Number,
-  maximum: Schema.Number
+  maximum: Schema.Number,
+  exclusiveMinimum: Schema.optional(Schema.Boolean),
+  exclusiveMaximum: Schema.optional(Schema.Boolean)
 }).annotate({ identifier: "IsBetween" })
 
 const NumberMeta$ = Schema.Union([
@@ -667,7 +699,7 @@ const NumberMeta$ = Schema.Union([
  */
 export const Number$ = Schema.Struct({
   _tag: Schema.tag("Number"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.optional(Annotations$),
   checks: Schema.Array(makeCheck(NumberMeta$, "Number"))
 }).annotate({ identifier: "Number" })
 
@@ -676,7 +708,7 @@ export const Number$ = Schema.Struct({
  */
 export const Boolean$ = Schema.Struct({
   _tag: Schema.tag("Boolean"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Boolean" })
 
 const IsGreaterThanBigInt$ = Schema.Struct({
@@ -702,7 +734,9 @@ const IsLessThanOrEqualToBigInt$ = Schema.Struct({
 const IsBetweenBigInt$ = Schema.Struct({
   _tag: Schema.tag("isBetweenBigInt"),
   minimum: Schema.BigInt,
-  maximum: Schema.BigInt
+  maximum: Schema.BigInt,
+  exclusiveMinimum: Schema.optional(Schema.Boolean),
+  exclusiveMaximum: Schema.optional(Schema.Boolean)
 }).annotate({ identifier: "IsBetweenBigInt" })
 
 const BigIntMeta$ = Schema.Union([
@@ -718,7 +752,7 @@ const BigIntMeta$ = Schema.Union([
  */
 export const BigInt$ = Schema.Struct({
   _tag: Schema.tag("BigInt"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.optional(Annotations$),
   checks: Schema.Array(makeCheck(BigIntMeta$, "BigInt"))
 }).annotate({ identifier: "BigInt" })
 
@@ -727,7 +761,7 @@ export const BigInt$ = Schema.Struct({
  */
 export const Symbol$ = Schema.Struct({
   _tag: Schema.tag("Symbol"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Symbol" })
 
 /**
@@ -745,7 +779,7 @@ export const LiteralValue$ = Schema.Union([
  */
 export const Literal$ = Schema.Struct({
   _tag: Schema.tag("Literal"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.optional(Annotations$),
   literal: LiteralValue$
 }).annotate({ identifier: "Literal" })
 
@@ -754,7 +788,7 @@ export const Literal$ = Schema.Struct({
  */
 export const UniqueSymbol$ = Schema.Struct({
   _tag: Schema.tag("UniqueSymbol"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.optional(Annotations$),
   symbol: Schema.Symbol
 }).annotate({ identifier: "UniqueSymbol" })
 
@@ -763,7 +797,7 @@ export const UniqueSymbol$ = Schema.Struct({
  */
 export const ObjectKeyword$ = Schema.Struct({
   _tag: Schema.tag("ObjectKeyword"),
-  annotations: Schema.optionalKey(Annotations$)
+  annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "ObjectKeyword" })
 
 /**
@@ -771,7 +805,7 @@ export const ObjectKeyword$ = Schema.Struct({
  */
 export const Enum$ = Schema.Struct({
   _tag: Schema.tag("Enum"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.optional(Annotations$),
   enums: Schema.Array(
     Schema.Tuple([Schema.String, Schema.Union([Schema.String, Schema.Number])])
   )
@@ -782,8 +816,8 @@ export const Enum$ = Schema.Struct({
  */
 export const TemplateLiteral$ = Schema.Struct({
   _tag: Schema.tag("TemplateLiteral"),
-  annotations: Schema.optionalKey(Annotations$),
-  parts: Schema.Array(Schema$ref)
+  annotations: Schema.optional(Annotations$),
+  parts: Schema.Array(Standard$ref)
 }).annotate({ identifier: "TemplateLiteral" })
 
 /**
@@ -791,7 +825,8 @@ export const TemplateLiteral$ = Schema.Struct({
  */
 export const Element$ = Schema.Struct({
   isOptional: Schema.Boolean,
-  type: Schema$ref
+  type: Standard$ref,
+  annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Element" })
 
 const IsUnique$ = Schema.Struct({
@@ -801,6 +836,7 @@ const IsUnique$ = Schema.Struct({
 const ArraysMeta$ = Schema.Union([
   IsMinLength$,
   IsMaxLength$,
+  IsLength$,
   IsUnique$
 ]).annotate({ identifier: "ArraysMeta" })
 
@@ -809,9 +845,9 @@ const ArraysMeta$ = Schema.Union([
  */
 export const Arrays$ = Schema.Struct({
   _tag: Schema.tag("Arrays"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.optional(Annotations$),
   elements: Schema.Array(Element$),
-  rest: Schema.Array(Schema$ref),
+  rest: Schema.Array(Standard$ref),
   checks: Schema.Array(makeCheck(ArraysMeta$, "Arrays"))
 }).annotate({ identifier: "Arrays" })
 
@@ -819,9 +855,9 @@ export const Arrays$ = Schema.Struct({
  * @since 4.0.0
  */
 export const PropertySignature$ = Schema.Struct({
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.optional(Annotations$),
   name: Schema.PropertyKey,
-  type: Schema$ref,
+  type: Standard$ref,
   isOptional: Schema.Boolean,
   isMutable: Schema.Boolean
 }).annotate({ identifier: "PropertySignature" })
@@ -830,18 +866,40 @@ export const PropertySignature$ = Schema.Struct({
  * @since 4.0.0
  */
 export const IndexSignature$ = Schema.Struct({
-  parameter: Schema$ref,
-  type: Schema$ref
+  parameter: Standard$ref,
+  type: Standard$ref
 }).annotate({ identifier: "IndexSignature" })
+
+const IsMinProperties$ = Schema.Struct({
+  _tag: Schema.tag("isMinProperties"),
+  minProperties: Schema.Number
+}).annotate({ identifier: "IsMinProperties" })
+
+const IsMaxProperties$ = Schema.Struct({
+  _tag: Schema.tag("isMaxProperties"),
+  maxProperties: Schema.Number
+}).annotate({ identifier: "IsMaxProperties" })
+
+const IsPropertiesLength$ = Schema.Struct({
+  _tag: Schema.tag("isPropertiesLength"),
+  length: Schema.Number
+}).annotate({ identifier: "IsPropertiesLength" })
+
+const ObjectsMeta$ = Schema.Union([
+  IsMinProperties$,
+  IsMaxProperties$,
+  IsPropertiesLength$
+]).annotate({ identifier: "ObjectsMeta" })
 
 /**
  * @since 4.0.0
  */
 export const Objects$ = Schema.Struct({
   _tag: Schema.tag("Objects"),
-  annotations: Schema.optionalKey(Annotations$),
+  annotations: Schema.optional(Annotations$),
   propertySignatures: Schema.Array(PropertySignature$),
-  indexSignatures: Schema.Array(IndexSignature$)
+  indexSignatures: Schema.Array(IndexSignature$),
+  checks: Schema.Array(makeCheck(ObjectsMeta$, "Objects"))
 }).annotate({ identifier: "Objects" })
 
 /**
@@ -849,23 +907,22 @@ export const Objects$ = Schema.Struct({
  */
 export const Union$ = Schema.Struct({
   _tag: Schema.tag("Union"),
-  annotations: Schema.optionalKey(Annotations$),
-  types: Schema.Array(Schema$ref),
+  annotations: Schema.optional(Annotations$),
+  types: Schema.Array(Standard$ref),
   mode: Schema.Literals(["anyOf", "oneOf"])
 }).annotate({ identifier: "Union" })
 
 /**
  * @since 4.0.0
  */
-export const Suspend$ = Schema.Struct({
-  _tag: Schema.tag("Suspend"),
-  annotations: Schema.optionalKey(Annotations$),
+export const Reference$ = Schema.Struct({
+  _tag: Schema.tag("Reference"),
   $ref: Schema.String
-}).annotate({ identifier: "Suspend" })
+}).annotate({ identifier: "Reference" })
 
-const IsValidDate$ = Schema.Struct({
+const isValidDate$ = Schema.Struct({
   _tag: Schema.tag("isValidDate")
-}).annotate({ identifier: "IsValidDate" })
+}).annotate({ identifier: "isValidDate" })
 
 const IsGreaterThanDate$ = Schema.Struct({
   _tag: Schema.tag("isGreaterThanDate"),
@@ -890,40 +947,50 @@ const IsLessThanOrEqualToDate$ = Schema.Struct({
 const IsBetweenDate$ = Schema.Struct({
   _tag: Schema.tag("isBetweenDate"),
   minimum: Schema.Date,
-  maximum: Schema.Date
+  maximum: Schema.Date,
+  exclusiveMinimum: Schema.optional(Schema.Boolean),
+  exclusiveMaximum: Schema.optional(Schema.Boolean)
 }).annotate({ identifier: "IsBetweenDate" })
 
-/**
- * @since 4.0.0
- */
 const DateMeta$ = Schema.Union([
-  IsValidDate$,
+  isValidDate$,
   IsGreaterThanDate$,
   IsGreaterThanOrEqualToDate$,
   IsLessThanDate$,
   IsLessThanOrEqualToDate$,
   IsBetweenDate$
-]).annotate({ identifier: "DateMeta" })
+]).annotate({ identifier: "BigIntMeta" })
 
 /**
  * @since 4.0.0
  */
 export const Declaration$ = Schema.Struct({
   _tag: Schema.tag("Declaration"),
-  annotations: Schema.optionalKey(Annotations$),
-  typeParameters: Schema.Array(Schema$ref),
-  checks: Schema.Array(makeCheck(DateMeta$, "Date"))
+  annotations: Schema.optional(Annotations$),
+  typeParameters: Schema.Array(Standard$ref),
+  checks: Schema.Array(makeCheck(DateMeta$, "Date")),
+  Encoded: Standard$ref
 }).annotate({ identifier: "Declaration" })
 
 /**
  * @since 4.0.0
  */
-export interface Schema$ extends Schema.Codec<StandardSchema> {}
+export const Suspend$ = Schema.Struct({
+  _tag: Schema.tag("Suspend"),
+  annotations: Schema.optional(Annotations$),
+  checks: Schema.Tuple([]),
+  thunk: Standard$ref
+}).annotate({ identifier: "Suspend" })
 
 /**
  * @since 4.0.0
  */
-export const Schema$: Schema$ = Schema.Union([
+export interface Standard$ extends Schema.Codec<Standard> {}
+
+/**
+ * @since 4.0.0
+ */
+export const Standard$: Standard$ = Schema.Union([
   Null$,
   Undefined$,
   Void$,
@@ -943,16 +1010,17 @@ export const Schema$: Schema$ = Schema.Union([
   Arrays$,
   Objects$,
   Union$,
-  Suspend$,
-  Declaration$
+  Reference$,
+  Declaration$,
+  Suspend$
 ]).annotate({ identifier: "Schema" })
 
 /**
  * @since 4.0.0
  */
 export const Document$ = Schema.Struct({
-  schema: Schema$,
-  definitions: Schema.Record(Schema.String, Schema$)
+  schema: Standard$,
+  definitions: Schema.Record(Schema.String, Standard$)
 }).annotate({ identifier: "Document" })
 
 // -----------------------------------------------------------------------------
@@ -962,188 +1030,32 @@ export const Document$ = Schema.Struct({
 /**
  * @since 4.0.0
  */
-export function fromSchema(schema: Schema.Top): Document {
-  return fromAST(schema.ast)
-}
+export const fromAST: (ast: AST.AST) => Document = InternalStandard.fromAST
 
 /**
  * @since 4.0.0
  */
-export function fromAST(ast: AST.AST): Document {
-  const visited = new Set<AST.AST>()
-  const definitions: Record<string, StandardSchema> = {}
+export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDocument = InternalStandard.fromASTs
 
-  return {
-    schema: recur(ast),
-    definitions
-  }
-
-  function recur(ast: AST.AST, ignoreIdentifier = false): StandardSchema {
-    if (!ignoreIdentifier) {
-      const $ref = InternalAnnotations.resolveIdentifier(ast)
-      if ($ref !== undefined) {
-        if ($ref in definitions) {
-          throw new Error(`Duplicate identifier: ${$ref}`)
-        }
-        definitions[$ref] = recur(ast, true)
-        return { _tag: "Suspend", $ref }
-      }
-    }
-    const out = on(ast)
-    if (ast.annotations) {
-      out.annotations = ast.annotations
-    }
-    return out
-  }
-
-  function on(ast: AST.AST): Types.Mutable<StandardSchema> {
-    visited.add(ast)
-    switch (ast._tag) {
-      case "Suspend": {
-        const thunk = ast.thunk()
-        if (visited.has(thunk)) {
-          const $ref = InternalAnnotations.resolveIdentifier(thunk)
-          if ($ref !== undefined) {
-            return { _tag: "Suspend", $ref }
-          } else {
-            throw new Error("Suspended schema without identifier detected", { cause: ast })
-          }
-        } else {
-          return recur(thunk)
-        }
-      }
-      case "Declaration":
-        return {
-          _tag: "Declaration",
-          typeParameters: ast.typeParameters.map((tp) => recur(tp)),
-          checks: fromASTChecks(ast.checks)
-        }
-      case "Null":
-      case "Undefined":
-      case "Void":
-      case "Never":
-      case "Unknown":
-      case "Any":
-      case "Boolean":
-      case "Symbol":
-        return { _tag: ast._tag }
-      case "String": {
-        const contentMediaType = ast.annotations?.contentMediaType
-        const contentSchema = ast.annotations?.contentSchema
-        if (typeof contentMediaType === "string" && AST.isAST(contentSchema)) {
-          return {
-            _tag: ast._tag,
-            checks: [],
-            contentMediaType,
-            contentSchema: recur(contentSchema)
-          }
-        }
-        return { _tag: ast._tag, checks: fromASTChecks(ast.checks) }
-      }
-      case "Number":
-      case "BigInt":
-        return { _tag: ast._tag, checks: fromASTChecks(ast.checks) }
-      case "Literal":
-        return { _tag: ast._tag, literal: ast.literal }
-      case "UniqueSymbol":
-        return { _tag: ast._tag, symbol: ast.symbol }
-      case "ObjectKeyword":
-        return { _tag: ast._tag }
-      case "Enum":
-        return { _tag: ast._tag, enums: ast.enums }
-      case "TemplateLiteral":
-        return { _tag: ast._tag, parts: ast.parts.map((p) => recur(p)) }
-      case "Arrays":
-        return {
-          _tag: ast._tag,
-          elements: ast.elements.map((e) => ({ isOptional: AST.isOptional(e), type: recur(e) })),
-          rest: ast.rest.map((r) => recur(r)),
-          checks: fromASTChecks(ast.checks)
-        }
-      case "Objects":
-        return {
-          _tag: ast._tag,
-          propertySignatures: ast.propertySignatures.map((ps) => {
-            const out: Types.Mutable<PropertySignature> = {
-              name: ps.name,
-              type: recur(ps.type),
-              isOptional: AST.isOptional(ps.type),
-              isMutable: AST.isMutable(ps.type)
-            }
-            if (ps.type.context?.annotations) {
-              out.annotations = ps.type.context.annotations
-            }
-            return out
-          }),
-          indexSignatures: ast.indexSignatures.map((is) => ({
-            parameter: recur(is.parameter),
-            type: recur(is.type)
-          }))
-        }
-      case "Union":
-        return {
-          _tag: ast._tag,
-          types: ast.types.map((t) => recur(t)),
-          mode: ast.mode
-        }
-    }
-  }
-}
-
-function fromASTChecks(
-  checks: readonly [AST.Check<any>, ...Array<AST.Check<any>>] | undefined
-): Array<Check<any>> {
-  if (!checks) return []
-  function getCheck(c: AST.Check<any>): Check<any> | undefined {
-    switch (c._tag) {
-      case "Filter": {
-        const meta = c.annotations?.meta
-        if (meta) {
-          const out: Types.Mutable<Check<any>> = { _tag: "Filter", meta }
-          if (c.annotations) {
-            out.annotations = c.annotations
-          }
-          return out
-        }
-        return undefined
-      }
-      case "FilterGroup": {
-        const checks = fromASTChecks(c.checks)
-        if (Arr.isArrayNonEmpty(checks)) {
-          const out: Types.Mutable<Check<any>> = {
-            _tag: "FilterGroup",
-            checks
-          }
-          if (c.annotations) {
-            out.annotations = c.annotations
-          }
-          return out
-        }
-      }
-    }
-  }
-  return checks.map(getCheck).filter((c) => c !== undefined)
-}
-
-const schemaToCodecJson = Schema.toCodecJson(Schema$)
+const schemaToCodecJson = Schema.toCodecJson(Standard$)
 const encodeSchema = Schema.encodeUnknownSync(schemaToCodecJson)
 
+// TODO: tests
 /**
  * @since 4.0.0
  */
 export function toJson(document: Document): JsonSchema.Document<"draft-2020-12"> {
-  const schema = encodeSchema(document.schema) as JsonSchema.JsonSchema
-  const definitions = Rec.map(document.definitions, (d) => encodeSchema(d)) as JsonSchema.Definitions
   return {
     source: "draft-2020-12",
-    schema,
-    definitions
+    schema: encodeSchema(document.schema) as JsonSchema.JsonSchema,
+    definitions: Rec.map(document.definitions, (d) => encodeSchema(d)) as JsonSchema.Definitions
   }
 }
 
 const documentToCodecJson = Schema.toCodecJson(Document$)
 const decodeDocument = Schema.decodeUnknownSync(documentToCodecJson)
 
+// TODO: tests
 /**
  * @since 4.0.0
  */
@@ -1154,20 +1066,28 @@ export function fromJson(u: unknown): Document {
 /**
  * @since 4.0.0
  */
-export type Reviver<T> = (declaration: Declaration, recur: (schema: StandardSchema) => T) => T
+export type Reviver<T> = (declaration: Declaration, recur: (schema: Standard) => T) => T
 
 /**
  * @since 4.0.0
  */
 export const toSchemaDefaultReviver: Reviver<Schema.Top> = (declaration, recur) => {
-  switch (declaration.annotations?.typeConstructor) {
-    default:
-      throw new Error(`Unknown type constructor: ${declaration.annotations?.typeConstructor}`)
-    case "Option":
-      return Schema.Option(recur(declaration.typeParameters[0]))
+  const typeConstructor = declaration.annotations?.typeConstructor
+  if (Predicate.hasProperty(typeConstructor, "_tag")) {
+    const _tag = typeConstructor._tag
+    if (typeof _tag === "string") {
+      switch (_tag) {
+        default:
+          return Schema.Unknown
+        case "effect/Option":
+          return Schema.Option(recur(declaration.typeParameters[0]))
+      }
+    }
   }
+  return Schema.Unknown
 }
 
+// TODO: tests
 /**
  * @since 4.0.0
  */
@@ -1188,9 +1108,9 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
 
   return recur(document.schema) as S
 
-  function recur(node: StandardSchema): Schema.Top {
+  function recur(node: Standard): Schema.Top {
     let out = on(node)
-    if (node.annotations) out = out.annotate(node.annotations)
+    if ("annotations" in node && node.annotations) out = out.annotate(node.annotations)
     out = toSchemaChecks(out, node)
     return out
   }
@@ -1246,12 +1166,14 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
     }
   }
 
-  function on(schema: StandardSchema): Schema.Top {
+  function on(schema: Standard): Schema.Top {
     switch (schema._tag) {
       case "Declaration":
         return reviver(schema, recur)
-      case "Suspend":
+      case "Reference":
         return resolveReference(schema.$ref)
+      case "Suspend":
+        return recur(schema.thunk)
       case "Null":
         return Schema.Null
       case "Undefined":
@@ -1264,8 +1186,14 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
         return Schema.Unknown
       case "Any":
         return Schema.Any
-      case "String":
+      case "String": {
+        const contentMediaType = schema.contentMediaType
+        const contentSchema = schema.contentSchema
+        if (contentMediaType === "application/json" && contentSchema !== undefined) {
+          return Schema.fromJsonString(recur(contentSchema))
+        }
         return Schema.String
+      }
       case "Number":
         return Schema.Number
       case "Boolean":
@@ -1336,7 +1264,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
   }
 }
 
-function toSchemaChecks(top: Schema.Top, schema: StandardSchema): Schema.Top {
+function toSchemaChecks(top: Schema.Top, schema: Standard): Schema.Top {
   switch (schema._tag) {
     default:
       return top
@@ -1350,7 +1278,7 @@ function toSchemaChecks(top: Schema.Top, schema: StandardSchema): Schema.Top {
   }
 }
 
-function toSchemaCheck(check: Check<StringMeta | NumberMeta | BigIntMeta | ArraysMeta>): AST.Check<any> {
+function toSchemaCheck(check: Check<Meta>): AST.Check<any> {
   switch (check._tag) {
     case "Filter":
       return toSchemaFilter(check)
@@ -1360,16 +1288,16 @@ function toSchemaCheck(check: Check<StringMeta | NumberMeta | BigIntMeta | Array
   }
 }
 
-function toSchemaFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | ArraysMeta>): AST.Check<any> {
+function toSchemaFilter(filter: Filter<Meta>): AST.Check<any> {
   const a = filter.annotations
   switch (filter.meta._tag) {
     // String Meta
-    case "isNumberString":
-      return Schema.isNumberString(a)
+    case "isFiniteString":
+      return Schema.isFiniteString(a) // TODO: return undefined
     case "isBigIntString":
-      return Schema.isBigIntString(a)
+      return Schema.isBigIntString(a) // TODO: return undefined
     case "isSymbolString":
-      return Schema.isSymbolString(a)
+      return Schema.isSymbolString(a) // TODO: return undefined
     case "isMinLength":
       return Schema.isMinLength(filter.meta.minLength, a)
     case "isMaxLength":
@@ -1433,365 +1361,72 @@ function toSchemaFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | Ar
     case "isBetweenBigInt":
       return Schema.isBetweenBigInt(filter.meta, a)
 
-    // Date Meta
-    // case "isValidDate":
-    //   return Schema.isValidDate(a)
-    // case "isGreaterThanDate":
-    //   return Schema.isGreaterThanDate(filter.meta.exclusiveMinimum, a)
-    // case "isGreaterThanOrEqualToDate":
-    //   return Schema.isGreaterThanOrEqualToDate(filter.meta.minimum, a)
-    // case "isLessThanDate":
-    //   return Schema.isLessThanDate(filter.meta.exclusiveMaximum, a)
-    // case "isLessThanOrEqualToDate":
-    //   return Schema.isLessThanOrEqualToDate(filter.meta.maximum, a)
-    // case "isBetweenDate":
-    //   return Schema.isBetweenDate(filter.meta, a)
-
     // Object Meta
-    // case "isMinProperties":
-    //   return Schema.isMinProperties(filter.meta.minProperties, a)
-    // case "isMaxProperties":
-    //   return Schema.isMaxProperties(filter.meta.maxProperties, a)
-    // case "isPropertiesLength":
-    //   return Schema.isPropertiesLength(filter.meta.length, a)
+    case "isMinProperties":
+      return Schema.isMinProperties(filter.meta.minProperties, a)
+    case "isMaxProperties":
+      return Schema.isMaxProperties(filter.meta.maxProperties, a)
+    case "isPropertiesLength":
+      return Schema.isPropertiesLength(filter.meta.length, a)
 
     // Arrays Meta
     case "isUnique":
-      return Schema.isUnique(undefined, a)
-      // case "isMinSize":
-      //   return Schema.isMinSize(filter.meta.minSize, a)
-      // case "isMaxSize":
-      //   return Schema.isMaxSize(filter.meta.maxSize, a)
-      // case "isSize":
-      //   return Schema.isSize(filter.meta.size, a)
-      // TODO: equivalence parameter?
+      return Schema.isUnique(a)
+
+    // Date Meta
+    case "isValidDate":
+      return Schema.isValidDate(a)
+    case "isGreaterThanDate":
+      return Schema.isGreaterThanDate(filter.meta.exclusiveMinimum, a)
+    case "isGreaterThanOrEqualToDate":
+      return Schema.isGreaterThanOrEqualToDate(filter.meta.minimum, a)
+    case "isLessThanDate":
+      return Schema.isLessThanDate(filter.meta.exclusiveMaximum, a)
+    case "isLessThanOrEqualToDate":
+      return Schema.isLessThanOrEqualToDate(filter.meta.maximum, a)
+    case "isBetweenDate":
+      return Schema.isBetweenDate(filter.meta, a)
   }
 }
-
-const unsupportedJsonSchema: JsonSchema.JsonSchema = { not: {} }
 
 /**
  * Return a Draft 2020-12 JSON Schema Document.
  *
  * @since 4.0.0
  */
-export function toJsonSchema(document: Document): JsonSchema.Document<"draft-2020-12"> {
-  return {
-    source: "draft-2020-12",
-    schema: recur(document.schema),
-    definitions: Rec.map(document.definitions, (d) => recur(d))
-  }
+export const toJsonSchemaDocument: (
+  document: Document,
+  options?: Schema.ToJsonSchemaOptions
+) => JsonSchema.Document<"draft-2020-12"> = InternalStandard.toJsonSchemaDocument
 
-  function recur(ss: StandardSchema): JsonSchema.JsonSchema {
-    let s: JsonSchema.JsonSchema = on(ss)
-    if (s === unsupportedJsonSchema) return unsupportedJsonSchema
-    const a = collectJsonSchemaAnnotations(ss.annotations)
-    if (a) {
-      s = { ...s, ...a }
-    }
-    if ("checks" in ss) {
-      const checks = collectJsonSchemaChecks(ss.checks)
-      for (const check of checks) {
-        s = appendJsonSchema(s, check)
-      }
-    }
-    return normalizeJsonSchemaOutput(s)
-  }
-
-  function on(schema: StandardSchema): JsonSchema.JsonSchema {
-    switch (schema._tag) {
-      case "Unknown":
-      case "Any":
-        return {}
-      case "Undefined":
-      case "Void":
-      case "BigInt":
-      case "Symbol":
-      case "UniqueSymbol":
-        return unsupportedJsonSchema
-      case "Declaration":
-        return unsupportedJsonSchema // TODO
-      case "Suspend":
-        return { $ref: `#/$defs/${unescapeToken(schema.$ref)}` }
-      case "Null":
-        return { type: "null" }
-      case "Never":
-        return { not: {} }
-      case "String": {
-        const out: JsonSchema.JsonSchema = { type: "string" }
-        if (schema.contentMediaType !== undefined) {
-          out.contentMediaType = schema.contentMediaType
-        }
-        if (schema.contentSchema !== undefined) {
-          out.contentSchema = recur(schema.contentSchema)
-        }
-        return out
-      }
-      case "Number":
-        return { type: "number" }
-      case "Boolean":
-        return { type: "boolean" }
-      case "Literal": {
-        const literal = schema.literal
-        if (typeof literal === "string") {
-          return { type: "string", enum: [literal] }
-        }
-        if (typeof literal === "number") {
-          return { type: "number", enum: [literal] }
-        }
-        if (typeof literal === "boolean") {
-          return { type: "boolean", enum: [literal] }
-        }
-        // bigint literals are not supported
-        return {}
-      }
-      case "ObjectKeyword":
-        return { anyOf: [{ type: "object" }, { type: "array" }] }
-      case "Enum": {
-        const enumValues = schema.enums.map(([, value]) => value)
-        if (enumValues.length === 0) {
-          return {}
-        }
-        const firstType = typeof enumValues[0]
-        if (enumValues.every((v) => typeof v === firstType)) {
-          return { type: firstType === "string" ? "string" : "number", enum: enumValues }
-        }
-        // Mixed types - use anyOf
-        return {
-          anyOf: enumValues.map((value) =>
-            typeof value === "string"
-              ? { type: "string", enum: [value] }
-              : { type: "number", enum: [value] }
-          )
-        }
-      }
-      case "TemplateLiteral": {
-        const pattern = schema.parts.map(getPartPattern).join("")
-        return { type: "string", pattern: `^${pattern}$` }
-      }
-      case "Arrays": {
-        const out: JsonSchema.JsonSchema = { type: "array" }
-        let minItems = schema.elements.length
-        const prefixItems: Array<JsonSchema.JsonSchema> = schema.elements.map((e) => {
-          if (e.isOptional || containsUndefined(e.type)) minItems--
-          return recur(e.type)
-        })
-        if (prefixItems.length > 0) {
-          out.prefixItems = prefixItems
-          out.minItems = minItems
-        }
-        if (schema.rest.length > 0) {
-          out.items = recur(schema.rest[0])
-        } else {
-          // No rest element: no additional items allowed
-          out.items = false
-        }
-        if (out.minItems === 0) {
-          delete out.minItems
-        }
-        return out
-      }
-      case "Objects": {
-        if (schema.propertySignatures.length === 0 && schema.indexSignatures.length === 0) {
-          return { anyOf: [{ type: "object" }, { type: "array" }] }
-        }
-        const out: JsonSchema.JsonSchema = { type: "object" }
-        const properties: Record<string, JsonSchema.JsonSchema> = {}
-        const required: Array<string> = []
-
-        for (const ps of schema.propertySignatures) {
-          const name = typeof ps.name === "string" ? ps.name : globalThis.String(ps.name)
-          properties[name] = recur(ps.type)
-          // Property is required only if it's not explicitly optional AND doesn't contain Undefined
-          if (!ps.isOptional && !containsUndefined(ps.type)) {
-            required.push(name)
-          }
-        }
-
-        if (Object.keys(properties).length > 0) {
-          out.properties = properties
-        }
-        if (required.length > 0) {
-          out.required = required
-        }
-
-        // Handle index signatures
-        if (schema.indexSignatures.length > 0) {
-          // For draft-2020-12, we can use patternProperties or additionalProperties
-          const firstIndex = schema.indexSignatures[0]
-          out.additionalProperties = recur(firstIndex.type)
-        } else {
-          // No index signatures: additional properties are not allowed
-          out.additionalProperties = false
-        }
-
-        return out
-      }
-      case "Union": {
-        const types = schema.types.map((t) => recur(t)).filter((t) => t !== unsupportedJsonSchema)
-        if (types.length === 0) {
-          // anyOf MUST be a non-empty array
-          return unsupportedJsonSchema
-        }
-        return schema.mode === "anyOf" ? { anyOf: types } : { oneOf: types }
-      }
-    }
-  }
-}
-
-function normalizeJsonSchemaOutput(s: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-  if (Array.isArray(s.anyOf)) {
-    if (s.anyOf.length === 1) {
-      if (Object.keys(s).length === 1) {
-        return s.anyOf[0]
-      }
-    }
-  }
-  return s
-}
-
-function collectJsonSchemaChecks(checks: ReadonlyArray<Check<any>>): Array<JsonSchema.JsonSchema> {
-  return checks.map(recur).filter((c) => c !== undefined)
-
-  function recur(check: Check<any>): JsonSchema.JsonSchema | undefined {
-    switch (check._tag) {
-      case "Filter":
-        return filterToJsonSchema(check)
-      case "FilterGroup": {
-        const checks = check.checks.map(recur).filter((c) => c !== undefined)
-        if (checks.length === 0) return undefined
-        let out = { allOf: checks }
-        const a = collectJsonSchemaAnnotations(check.annotations)
-        if (a) {
-          out = { ...out, ...a }
-        }
-        return out
-      }
-    }
-  }
-}
-
-function filterToJsonSchema(filter: Filter<any>): JsonSchema.JsonSchema | undefined {
-  const meta = filter.meta as StringMeta | Exclude<NumberMeta, { _tag: "isFinite" }>
-  if (!meta) return undefined
-
-  let out = on(meta)
-  const a = collectJsonSchemaAnnotations(filter.annotations)
-  if (a) {
-    out = { ...out, ...a }
-  }
-  return out
-
-  function on(meta: StringMeta | Exclude<NumberMeta, { _tag: "isFinite" }>): JsonSchema.JsonSchema {
-    switch (meta._tag) {
-      case "isMinLength":
-        return { minLength: meta.minLength }
-      case "isMaxLength":
-        return { maxLength: meta.maxLength }
-      case "isLength":
-        return { allOf: [{ minLength: meta.length }, { maxLength: meta.length }] }
-      case "isPattern":
-      case "isUUID":
-      case "isULID":
-      case "isBase64":
-      case "isBase64Url":
-      case "isStartsWith":
-      case "isEndsWith":
-      case "isIncludes":
-      case "isUppercased":
-      case "isLowercased":
-      case "isCapitalized":
-      case "isUncapitalized":
-      case "isTrimmed":
-      case "isNumberString":
-      case "isBigIntString":
-      case "isSymbolString":
-        return { pattern: meta.regExp.source }
-      case "isInt":
-        return { type: "integer" }
-      case "isMultipleOf":
-        return { multipleOf: meta.divisor }
-      case "isGreaterThanOrEqualTo":
-        return { minimum: meta.minimum }
-      case "isLessThanOrEqualTo":
-        return { maximum: meta.maximum }
-      case "isGreaterThan":
-        return { exclusiveMinimum: meta.exclusiveMinimum }
-      case "isLessThan":
-        return { exclusiveMaximum: meta.exclusiveMaximum }
-      case "isBetween":
-        return { minimum: meta.minimum, maximum: meta.maximum }
-    }
-  }
-}
-
-function containsUndefined(schema: StandardSchema): boolean {
-  switch (schema._tag) {
-    case "Undefined":
-      return true
-    case "Union":
-      return schema.types.some(containsUndefined)
-    default:
-      return false
-  }
-}
-
-function collectJsonSchemaAnnotations(
-  annotations: Schema.Annotations.Annotations | undefined
-): JsonSchema.JsonSchema | undefined {
-  if (annotations) {
-    const out: JsonSchema.JsonSchema = {}
-    if (typeof annotations.title === "string") out.title = annotations.title
-    if (typeof annotations.description === "string") out.description = annotations.description
-    if (annotations.default !== undefined) out.default = annotations.default
-    if (Array.isArray(annotations.examples)) out.examples = annotations.examples
-
-    if (Object.keys(out).length > 0) return out
-  }
-}
-
-function appendJsonSchema(a: JsonSchema.JsonSchema, b: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-  const members = Array.isArray(b.allOf) && Object.keys(b).length === 1 ? b.allOf : [b]
-
-  if (Array.isArray(a.allOf)) {
-    return { ...a, allOf: [...a.allOf, ...members] }
-  }
-
-  if (typeof a.$ref === "string") {
-    return { allOf: [a, ...members] }
-  }
-
-  return { ...a, allOf: members }
-}
-
-function getPartPattern(part: StandardSchema): string {
-  switch (part._tag) {
-    case "String":
-      return AST.STRING_PATTERN
-    case "Number":
-      return AST.NUMBER_PATTERN
-    case "Literal":
-      return RegEx.escape(globalThis.String(part.literal))
-    case "TemplateLiteral":
-      return part.parts.map(getPartPattern).join("")
-    case "Union":
-      return part.types.map(getPartPattern).join("|")
-    default:
-      throw new Error("Unsupported part", { cause: part })
-  }
-}
+/**
+ * @since 4.0.0
+ */
+export const toJsonSchemaMultiDocument: (
+  document: MultiDocument,
+  options?: Schema.ToJsonSchemaOptions
+) => JsonSchema.MultiDocument<"draft-2020-12"> = InternalStandard.toJsonSchemaMultiDocument
 
 /**
  * @since 4.0.0
  */
 export const toCodeDefaultReviver: Reviver<string> = (declaration, recur) => {
   const typeConstructor = declaration.annotations?.typeConstructor
-  if (typeof typeConstructor === "string") {
-    return `Schema.${typeConstructor}(${declaration.typeParameters.map((p) => recur(p)).join(", ")})`
+  if (Predicate.hasProperty(typeConstructor, "_tag")) {
+    const _tag = typeConstructor._tag
+    if (typeof _tag === "string") {
+      switch (_tag) {
+        default:
+          return "Schema.Unknown"
+        case "effect/Option":
+          return `Schema.Option(${declaration.typeParameters.map((p) => recur(p)).join(", ")})`
+      }
+    }
   }
-  return `Schema.Unknown`
+  return "Schema.Unknown"
 }
 
+// TODO: tests
 /**
  * @since 4.0.0
  */
@@ -1801,37 +1436,38 @@ export function toCode(document: Document, options?: {
   const reviver = options?.reviver ?? toCodeDefaultReviver
   const schema = document.schema
 
-  if (schema._tag === "Suspend") {
+  if (schema._tag === "Reference") {
     const definition = document.definitions[schema.$ref]
     if (definition !== undefined) return recur(definition)
   }
   return recur(schema)
 
-  function recur(schema: StandardSchema): string {
+  function recur(schema: Standard): string {
     const b = on(schema)
     switch (schema._tag) {
       default:
         return b + toCodeAnnotate(schema.annotations)
       case "Declaration":
-      case "Suspend":
+      case "Reference":
         return b
       case "String":
       case "Number":
       case "BigInt":
       case "Arrays":
+      case "Suspend":
         return b + toCodeAnnotate(schema.annotations) + toCodeChecks(schema.checks)
     }
   }
 
-  function on(schema: StandardSchema): string {
+  function on(schema: Standard): string {
     switch (schema._tag) {
       case "Declaration":
         return reviver(schema, recur)
+      case "Reference":
+        return schema.$ref
       case "Suspend": {
-        if (schema.$ref in document.definitions) {
-          return `Schema.suspend((): Schema.Codec<${schema.$ref}> => ${schema.$ref})`
-        }
-        throw new Error(`Reference to unknown schema: ${schema.$ref}`)
+        const typeAnnotation = schema.thunk._tag === "Reference" ? `: Schema.Codec<${schema.thunk.$ref}>` : ""
+        return `Schema.suspend(()${typeAnnotation} => ${recur(schema.thunk)})`
       }
       case "Null":
       case "Undefined":
@@ -1839,12 +1475,19 @@ export function toCode(document: Document, options?: {
       case "Never":
       case "Unknown":
       case "Any":
-      case "String":
       case "Number":
       case "Boolean":
       case "BigInt":
       case "Symbol":
         return `Schema.${schema._tag}`
+      case "String": {
+        const contentMediaType = schema.contentMediaType
+        const contentSchema = schema.contentSchema
+        if (contentMediaType === "application/json" && contentSchema !== undefined) {
+          return `Schema.fromJsonString(${recur(contentSchema)})`
+        }
+        return `Schema.String`
+      }
       case "Literal":
         return `Schema.Literal(${format(schema.literal)})`
       case "UniqueSymbol": {
@@ -1904,7 +1547,7 @@ export function toCode(document: Document, options?: {
 }
 
 const toCodeAnnotationsBlacklist: Set<string> = new Set([
-  ...toJsonBlacklist,
+  ...toJsonAnnotationsBlacklist,
   "typeConstructor"
 ])
 
@@ -1953,13 +1596,13 @@ function toCodeCheck(check: Check<StringMeta | NumberMeta | BigIntMeta | ArraysM
   }
 }
 
-function toCodeFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | ArraysMeta>): string {
+function toCodeFilter(filter: Filter<Meta>): string {
   const a = toCodeAnnotations(filter.annotations)
   const ca = a === "" ? "" : `, ${a}`
   switch (filter.meta._tag) {
     // String Meta
-    case "isNumberString":
-      return `Schema.isNumberString(${toCodeRegExp(filter.meta.regExp)}${ca})`
+    case "isFiniteString":
+      return `Schema.isFiniteString(${toCodeRegExp(filter.meta.regExp)}${ca})`
     case "isBigIntString":
       return `Schema.isBigIntString(${toCodeRegExp(filter.meta.regExp)}${ca})`
     case "isSymbolString":
@@ -1996,7 +1639,8 @@ function toCodeFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | Arra
       return `Schema.isCapitalized(${ca})`
     case "isUncapitalized":
       return `Schema.isUncapitalized(${ca})`
-    // Number Meta
+
+      // Number Meta
     case "isFinite":
       return `Schema.isFinite(${ca})`
     case "isInt":
@@ -2013,7 +1657,8 @@ function toCodeFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | Arra
       return `Schema.isLessThanOrEqualTo(${filter.meta.maximum}${ca})`
     case "isBetween":
       return `Schema.isBetween(${filter.meta.minimum}, ${filter.meta.maximum}${ca})`
-    // BigInt Meta
+
+      // BigInt Meta
     case "isGreaterThanBigInt":
       return `Schema.isGreaterThanBigInt(${filter.meta.exclusiveMinimum}n${ca})`
     case "isGreaterThanOrEqualToBigInt":
@@ -2024,38 +1669,32 @@ function toCodeFilter(filter: Filter<StringMeta | NumberMeta | BigIntMeta | Arra
       return `Schema.isLessThanOrEqualToBigInt(${filter.meta.maximum}n${ca})`
     case "isBetweenBigInt":
       return `Schema.isBetweenBigInt(${filter.meta.minimum}n, ${filter.meta.maximum}n${ca})`
-    // Date Meta
-    // case "isValidDate":
-    //   return `Schema.isValidDate(${ca})`
-    // case "isGreaterThanDate":
-    //   return `Schema.isGreaterThanDate(${filter.meta.exclusiveMinimum}${ca})`
-    // case "isGreaterThanOrEqualToDate":
-    //   return `Schema.isGreaterThanOrEqualToDate(${filter.meta.minimum}${ca})`
-    // case "isLessThanDate":
-    //   return `Schema.isLessThanDate(${filter.meta.exclusiveMaximum}${ca})`
-    // case "isLessThanOrEqualToDate":
-    //   return `Schema.isLessThanOrEqualToDate(${filter.meta.maximum}${ca})`
-    // case "isBetweenDate":
-    //   return `Schema.isBetweenDate(${filter.meta.minimum}, ${filter.meta.maximum}${ca})`
-
-    // Object Meta
-    // case "isMinProperties":
-    //   return `Schema.isMinProperties(${filter.meta.minProperties}${ca})`
-    // case "isMaxProperties":
-    //   return `Schema.isMaxProperties(${filter.meta.maxProperties}${ca})`
-    // case "isPropertiesLength":
-    //   return `Schema.isPropertiesLength(${filter.meta.length}${ca})`
 
     // Arrays Meta
     case "isUnique":
-      return `Schema.isUnique(undefined, ${a})`
-      // case "isMinSize":
-      //   return `Schema.isMinSize(${filter.meta.minSize}${ca})`
-      // case "isMaxSize":
-      //   return `Schema.isMaxSize(${filter.meta.maxSize}${ca})`
-      // case "isSize":
-      //   return `Schema.isSize(${filter.meta.size}${ca})`
-      // TODO: equivalence parameter?
+      return `Schema.isUnique(${a})`
+
+    // Object Meta
+    case "isMinProperties":
+      return `Schema.isMinProperties(${filter.meta.minProperties}${ca})`
+    case "isMaxProperties":
+      return `Schema.isMaxProperties(${filter.meta.maxProperties}${ca})`
+    case "isPropertiesLength":
+      return `Schema.isPropertiesLength(${filter.meta.length}${ca})`
+
+    // Date Meta
+    case "isValidDate":
+      return `Schema.isValidDate(${a})`
+    case "isGreaterThanDate":
+      return `Schema.isGreaterThanDate(${filter.meta.exclusiveMinimum}${ca})`
+    case "isGreaterThanOrEqualToDate":
+      return `Schema.isGreaterThanOrEqualToDate(${filter.meta.minimum}${ca})`
+    case "isLessThanDate":
+      return `Schema.isLessThanDate(${filter.meta.exclusiveMaximum}${ca})`
+    case "isLessThanOrEqualToDate":
+      return `Schema.isLessThanOrEqualToDate(${filter.meta.maximum}${ca})`
+    case "isBetweenDate":
+      return `Schema.isBetweenDate(${filter.meta.minimum}, ${filter.meta.maximum}${ca})`
   }
 }
 
@@ -2063,337 +1702,13 @@ function toCodeRegExp(regExp: RegExp): string {
   return `new RegExp(${format(regExp.source)}, ${format(regExp.flags)})`
 }
 
-/**
- * @internal
- */
-export function rewriteToDraft07(document: JsonSchema.Document<"draft-2020-12">): JsonSchema.Document<"draft-07"> {
-  function rewrite(u: unknown): any {
-    if (Array.isArray(u)) {
-      return u.map(rewrite)
-    } else if (typeof u === "object" && u !== null) {
-      if ("$ref" in u || "prefixItems" in u) {
-        const out: JsonSchema.JsonSchema = { ...u }
-        if ("$ref" in out && typeof out.$ref === "string") {
-          out.$ref = out.$ref.replace(/#\/\$defs\//g, "#/definitions/")
-        }
-        if ("prefixItems" in out) {
-          if ("items" in out) {
-            out.additionalItems = out.items
-            delete out.items
-          }
-          out.items = out.prefixItems
-          delete out.prefixItems
-        }
-        return out
-      }
-      return u
-    } else {
-      return u
-    }
-  }
-  return {
-    source: "draft-07",
-    schema: rewrite(document.schema),
-    definitions: Rec.map(document.definitions, (d) => rewrite(d))
-  }
-}
-
-/**
- * @internal
- */
-export function rewriteToOpenApi3_1(
-  document: JsonSchema.Document<"draft-2020-12">
-): JsonSchema.Document<"openapi-3.1"> {
-  function rewrite(u: unknown): any {
-    if (Array.isArray(u)) {
-      return u.map(rewrite)
-    } else if (typeof u === "object" && u !== null) {
-      if ("$ref" in u && typeof u.$ref === "string") {
-        const out: JsonSchema.JsonSchema = { ...u }
-        out.$ref = u.$ref.replace(/#\/\$defs\//g, "#/components/schemas/")
-        return out
-      }
-      return u
-    } else {
-      return u
-    }
-  }
-  return {
-    source: "openapi-3.1",
-    schema: rewrite(document.schema),
-    definitions: Rec.map(document.definitions, (d) => rewrite(d))
-  }
-}
-
+// TODO: implement
 /**
  * @since 4.0.0
  */
-export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): Document {
+export function fromJsonSchema(_: JsonSchema.Document<"draft-2020-12">): Document {
   return {
-    schema: recur(document.schema),
-    definitions: Rec.map(document.definitions, (d) => recur(d))
-  }
-
-  function recur(u: unknown): StandardSchema {
-    if (u === true) return { _tag: "Unknown" }
-    if (u === false) return { _tag: "Never" }
-    if (Predicate.isObject(u)) {
-      const normalized = normalizeJsonSchemaInput(u)
-      const out = on(normalized)
-      const a = collectAnnotations(normalized)
-      if (a !== undefined) {
-        out.annotations = a
-      }
-      if (Array.isArray(normalized.allOf)) {
-        const allOf = normalized.allOf.map(recur)
-        const checks = allOf.flatMap((s): ReadonlyArray<Check<any>> => {
-          switch (s._tag) {
-            case "String":
-            case "Number":
-            case "Arrays":
-              return s.checks
-            default:
-              return []
-          }
-        })
-        switch (out._tag) {
-          case "String":
-          case "Number":
-          case "Arrays": {
-            out.checks = checks
-            return out
-          }
-          default:
-            return out
-        }
-      }
-      return out
-    }
-    return { _tag: "Unknown" }
-  }
-
-  function on(s: JsonSchema.JsonSchema): Types.Mutable<StandardSchema> {
-    if (Predicate.isObject(s)) {
-      if ("enum" in s && Array.isArray(s.enum)) {
-        switch (s.enum.length) {
-          case 0:
-            return { _tag: "Never" }
-          case 1:
-            return { _tag: "Literal", literal: s.enum[0] }
-          default:
-            return {
-              _tag: "Union",
-              types: s.enum.map((e) => ({ _tag: "Literal", literal: e })),
-              mode: "anyOf"
-            }
-        }
-      }
-      switch (s.type) {
-        case "null":
-          return { _tag: "Null" }
-        case "boolean":
-          return { _tag: "Boolean" }
-        case "number":
-          return { _tag: "Number", checks: collectNumberChecks(s) }
-        case "integer":
-          return {
-            _tag: "Number",
-            checks: [{ _tag: "Filter", meta: { _tag: "isInt" } }, ...collectNumberChecks(s)]
-          }
-        case "string":
-          return { _tag: "String", checks: collectStringChecks(s) }
-        case "array":
-          return {
-            _tag: "Arrays",
-            elements: collectElements(s),
-            rest: collectRest(s),
-            checks: collectArraysChecks(s)
-          }
-        case "object": {
-          const propertySignatures = collectProperties(s)
-          const indexSignatures = collectIndexSignatures(s)
-          return { _tag: "Objects", propertySignatures, indexSignatures }
-        }
-      }
-      if ("anyOf" in s && Array.isArray(s.anyOf)) {
-        return { _tag: "Union", types: s.anyOf.map((e) => recur(e)), mode: "anyOf" }
-      }
-    }
-    return { _tag: "Unknown" }
-  }
-
-  function collectStringChecks(s: JsonSchema.JsonSchema): Array<Check<StringMeta>> {
-    const checks: Array<Check<StringMeta>> = []
-    if (typeof s.minLength === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isMinLength", minLength: s.minLength },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.maxLength === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isMaxLength", maxLength: s.maxLength },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.pattern === "string") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isPattern", regExp: new RegExp(s.pattern) },
-        annotations: collectAnnotations(s)
-      })
-    }
-    return checks
-  }
-
-  function collectNumberChecks(s: JsonSchema.JsonSchema): Array<Check<NumberMeta>> {
-    const checks: Array<Check<NumberMeta>> = []
-    if (typeof s.exclusiveMinimum === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isGreaterThan", exclusiveMinimum: s.exclusiveMinimum },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.minimum === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isGreaterThanOrEqualTo", minimum: s.minimum },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.maximum === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isLessThanOrEqualTo", maximum: s.maximum },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.exclusiveMaximum === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isLessThan", exclusiveMaximum: s.exclusiveMaximum },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.multipleOf === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isMultipleOf", divisor: s.multipleOf },
-        annotations: collectAnnotations(s)
-      })
-    }
-    return checks
-  }
-
-  function collectArraysChecks(s: JsonSchema.JsonSchema): Array<Check<ArraysMeta>> {
-    const checks: Array<Check<ArraysMeta>> = []
-    const elementsLength = Array.isArray(s.prefixItems) ? s.prefixItems.length : 0
-    if (typeof s.minItems === "number" && s.minItems > elementsLength) {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isMinLength", minLength: s.minItems },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (typeof s.maxItems === "number") {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isMaxLength", maxLength: s.maxItems },
-        annotations: collectAnnotations(s)
-      })
-    }
-    if (s.uniqueItems === true) {
-      checks.push({
-        _tag: "Filter",
-        meta: { _tag: "isUnique" },
-        annotations: collectAnnotations(s)
-      })
-    }
-    return checks
-  }
-
-  function collectElements(s: JsonSchema.JsonSchema): Array<Element> {
-    if (Array.isArray(s.prefixItems)) {
-      const minItems = typeof s.minItems === "number" ? s.minItems : s.prefixItems.length
-      return s.prefixItems.map((item, index) => ({ type: recur(item), isOptional: index >= minItems }))
-    }
-    return []
-  }
-
-  function collectRest(s: JsonSchema.JsonSchema): Array<StandardSchema> {
-    if (s.items !== undefined && s.items !== false) {
-      return [recur(s.items)]
-    }
-    return []
-  }
-
-  function collectProperties(s: JsonSchema.JsonSchema): Array<PropertySignature> {
-    const required = new Set(Array.isArray(s.required) ? s.required : [])
-    return Predicate.isObject(s.properties) ?
-      Object.entries(s.properties).map(([key, value]) => ({
-        name: key,
-        type: recur(value),
-        isOptional: !required.has(key),
-        isMutable: false
-      })) :
-      []
-  }
-
-  function collectIndexSignatures(s: JsonSchema.JsonSchema): Array<IndexSignature> {
-    const indexSignatures: Array<IndexSignature> = []
-    if (Predicate.isObject(s.additionalProperties)) {
-      indexSignatures.push({
-        parameter: { _tag: "String", checks: [] },
-        type: recur(s.additionalProperties)
-      })
-    }
-    return indexSignatures
-  }
-}
-
-const filtersKeysByType = Object.entries({
-  string: ["minLength", "maxLength", "pattern", "format", "contentMediaType", "contentSchema"],
-  number: ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"],
-  object: [
-    "properties",
-    "required",
-    "additionalProperties",
-    "patternProperties",
-    "propertyNames",
-    "minProperties",
-    "maxProperties"
-  ],
-  array: ["items", "prefixItems", "additionalItems", "minItems", "maxItems", "uniqueItems"]
-})
-
-function normalizeJsonSchemaInput(s: JsonSchema.JsonSchema): JsonSchema.JsonSchema {
-  if (s.type === undefined) {
-    for (const [type, keys] of filtersKeysByType) {
-      if (keys.some((key) => s[key] !== undefined)) {
-        s = { ...s, type }
-      }
-    }
-  }
-  return s
-}
-
-function collectAnnotations(s: JsonSchema.JsonSchema): Schema.Annotations.Annotations | undefined {
-  if (Predicate.isObject(s)) {
-    const as: Record<string, unknown> = {}
-    if (typeof s.title === "string") as.title = s.title
-    if (typeof s.description === "string") as.description = s.description
-    if (s.default !== undefined) as.default = s.default
-    if (Array.isArray(s.examples)) {
-      as.examples = s.examples
-    } else if (s.example !== undefined) {
-      // OpenAPI 3.0 uses `example` (singular). Only use it if defined
-      as.examples = [s.example]
-    }
-    if (typeof s.format === "string") as.format = s.format
-    if (Object.keys(as).length === 0) return undefined
-    return as
+    schema: { _tag: "Unknown" },
+    definitions: {}
   }
 }
