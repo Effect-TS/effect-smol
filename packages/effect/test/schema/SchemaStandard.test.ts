@@ -456,6 +456,81 @@ describe("Standard", () => {
         )
       })
     })
+
+    describe("$ref", () => {
+      it("ref", () => {
+        assertFromJsonSchema(
+          {
+            schema: { $ref: "#/$defs/a" }
+          },
+          {
+            schema: { _tag: "Reference", $ref: "a" }
+          }
+        )
+      })
+    })
+
+    describe("allOf", () => {
+      it("add property", () => {
+        assertFromJsonSchema(
+          {
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              allOf: [
+                {
+                  properties: {
+                    a: { type: "string" }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            schema: {
+              _tag: "Objects",
+              propertySignatures: [
+                {
+                  name: "a",
+                  type: { _tag: "String", checks: [] },
+                  isOptional: true,
+                  isMutable: false
+                }
+              ],
+              indexSignatures: [],
+              checks: []
+            }
+          },
+          `Schema.Struct({ "a": Schema.optionalKey(Schema.String) })`
+        )
+      })
+
+      it("add additionalProperties", () => {
+        assertFromJsonSchema(
+          {
+            schema: {
+              type: "object",
+              allOf: [
+                {
+                  additionalProperties: { type: "boolean" }
+                }
+              ]
+            }
+          },
+          {
+            schema: {
+              _tag: "Objects",
+              propertySignatures: [],
+              indexSignatures: [
+                { parameter: { _tag: "String", checks: [] }, type: { _tag: "Boolean" } }
+              ],
+              checks: []
+            }
+          },
+          `Schema.Record(Schema.String, Schema.Boolean)`
+        )
+      })
+    })
   })
 
   describe("toJson", () => {
