@@ -1704,7 +1704,7 @@ function toCodeRegExp(regExp: RegExp): string {
 /**
  * @since 4.0.0
  */
-export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): Document {
+export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020-12">): Document {
   const definitions = Rec.map(document.definitions, (d) => recur(d))
 
   return {
@@ -1725,7 +1725,10 @@ export function fromJsonSchema(document: JsonSchema.Document<"draft-2020-12">): 
     } else if ("const" in u) {
       if (isLiteralValue(u.const)) {
         out = { _tag: "Literal", literal: u.const, ...makeAnnotations(annotations) }
+      } else if (u.const === null) {
+        out = { _tag: "Null", ...makeAnnotations(annotations) }
       }
+      // TODO: handle non-literal consts?
     } else if (Array.isArray(u.enum)) {
       const values = u.enum
       if (values.every(isLiteralValue)) {

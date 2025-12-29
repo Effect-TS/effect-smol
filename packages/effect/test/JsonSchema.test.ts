@@ -528,6 +528,18 @@ describe("JsonSchema", () => {
   })
 
   describe("fromSchemaOpenApi3_0", () => {
+    function assertFromSchemaOpenApi3_0(input: JsonSchema.JsonSchema, expected: {
+      readonly schema: JsonSchema.JsonSchema
+      readonly definitions?: JsonSchema.Definitions
+    }) {
+      const result = JsonSchema.fromSchemaOpenApi3_0(input)
+      deepStrictEqual(result, {
+        source: "draft-2020-12",
+        schema: expected.schema,
+        definitions: expected.definitions ?? {}
+      })
+    }
+
     it("should rewrite all component schema references", () => {
       const input: JsonSchema.JsonSchema = {
         type: "object",
@@ -584,6 +596,20 @@ describe("JsonSchema", () => {
     })
 
     describe("nullable", () => {
+      it("nullable: true", () => {
+        assertFromSchemaOpenApi3_0(
+          { nullable: true },
+          {
+            schema: {
+              anyOf: [
+                {},
+                { type: "null" }
+              ]
+            }
+          }
+        )
+      })
+
       it("should handle nullable with type: string", () => {
         const input: JsonSchema.JsonSchema = {
           type: "string",
@@ -614,7 +640,7 @@ describe("JsonSchema", () => {
         })
       })
 
-      it("should handle nullable with const", () => {
+      it("should handle nullable with type and const !== null", () => {
         const input: JsonSchema.JsonSchema = {
           type: "string",
           const: "a",
@@ -626,6 +652,39 @@ describe("JsonSchema", () => {
           schema: {
             type: ["string", "null"],
             const: "a"
+          },
+          definitions: {}
+        })
+      })
+
+      it("should handle nullable without type and const !== null", () => {
+        const input: JsonSchema.JsonSchema = {
+          const: "a",
+          nullable: true
+        }
+        const result = JsonSchema.fromSchemaOpenApi3_0(input)
+        deepStrictEqual(result, {
+          source: "draft-2020-12",
+          schema: {
+            anyOf: [
+              { const: "a" },
+              { type: "null" }
+            ]
+          },
+          definitions: {}
+        })
+      })
+
+      it("should handle nullable with const === null", () => {
+        const input: JsonSchema.JsonSchema = {
+          const: null,
+          nullable: true
+        }
+        const result = JsonSchema.fromSchemaOpenApi3_0(input)
+        deepStrictEqual(result, {
+          source: "draft-2020-12",
+          schema: {
+            const: null
           },
           definitions: {}
         })
@@ -660,6 +719,23 @@ describe("JsonSchema", () => {
           schema: {
             type: ["string", "null"],
             enum: ["a", "b", null]
+          },
+          definitions: {}
+        })
+      })
+
+      it("should handle nullable with enum that only includes null", () => {
+        const input: JsonSchema.JsonSchema = {
+          type: "string",
+          enum: [null],
+          nullable: true
+        }
+        const result = JsonSchema.fromSchemaOpenApi3_0(input)
+        deepStrictEqual(result, {
+          source: "draft-2020-12",
+          schema: {
+            type: ["string", "null"],
+            enum: [null]
           },
           definitions: {}
         })
@@ -700,6 +776,44 @@ describe("JsonSchema", () => {
           },
           definitions: {}
         })
+      })
+
+      it("should handle nullable with allOf", () => {
+        assertFromSchemaOpenApi3_0(
+          {
+            type: "string",
+            allOf: [{ nullable: true }]
+          },
+          {
+            schema: {
+              type: "string",
+              allOf: [{
+                anyOf: [
+                  {},
+                  { type: "null" }
+                ]
+              }]
+            }
+          }
+        )
+        assertFromSchemaOpenApi3_0(
+          {
+            type: "string",
+            nullable: true,
+            allOf: [{ nullable: true }]
+          },
+          {
+            schema: {
+              type: ["string", "null"],
+              allOf: [{
+                anyOf: [
+                  {},
+                  { type: "null" }
+                ]
+              }]
+            }
+          }
+        )
       })
     })
 

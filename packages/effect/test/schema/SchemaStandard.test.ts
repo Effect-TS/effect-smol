@@ -1,5 +1,4 @@
-import type { JsonSchema } from "effect"
-import { Schema, SchemaStandard } from "effect"
+import { JsonSchema, Schema, SchemaStandard } from "effect"
 import { describe, it } from "vitest"
 import { deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
@@ -23,50 +22,36 @@ const InnerCategory = Schema.Struct({
 describe("Standard", () => {
   describe("fromJsonSchema", () => {
     function assertFromJsonSchema(
-      document: {
-        readonly schema: JsonSchema.JsonSchema
-        readonly definitions?: Record<string, JsonSchema.JsonSchema>
-      },
+      schema: JsonSchema.JsonSchema,
       expected: {
         readonly schema: SchemaStandard.Standard
         readonly definitions?: Record<string, SchemaStandard.Standard>
       },
       code?: string
     ) {
-      const doc: SchemaStandard.Document = {
+      const expectedDocument: SchemaStandard.Document = {
         schema: expected.schema,
         definitions: expected.definitions ?? {}
       }
       deepStrictEqual(
-        SchemaStandard.fromJsonSchema({
-          source: "draft-2020-12",
-          schema: document.schema,
-          definitions: document.definitions ?? {}
-        }),
-        doc
+        SchemaStandard.fromJsonSchemaDocument(JsonSchema.fromSchemaDraft2020_12(schema)),
+        expectedDocument
       )
       if (code !== undefined) {
-        strictEqual(SchemaStandard.toCode(doc), code)
+        strictEqual(SchemaStandard.toCode(expectedDocument), code)
       }
     }
 
     it("{}", () => {
       assertFromJsonSchema(
-        {
-          schema: {}
-        },
+        {},
         {
           schema: { _tag: "Unknown" }
         },
         "Schema.Unknown"
       )
-    })
-
-    it("annotations", () => {
       assertFromJsonSchema(
-        {
-          schema: { description: "a" }
-        },
+        { description: "a" },
         {
           schema: { _tag: "Unknown", annotations: { description: "a" } }
         },
@@ -76,11 +61,7 @@ describe("Standard", () => {
 
     it("const", () => {
       assertFromJsonSchema(
-        {
-          schema: {
-            const: "a"
-          }
-        },
+        { const: "a" },
         {
           schema: { _tag: "Literal", literal: "a" }
         },
@@ -91,9 +72,7 @@ describe("Standard", () => {
     describe("enum", () => {
       it("single enum", () => {
         assertFromJsonSchema(
-          {
-            schema: { enum: ["a"] }
-          },
+          { enum: ["a"] },
           {
             schema: { _tag: "Literal", literal: "a" }
           },
@@ -103,9 +82,7 @@ describe("Standard", () => {
 
       it("multiple enum", () => {
         assertFromJsonSchema(
-          {
-            schema: { enum: ["a", "b"] }
-          },
+          { enum: ["a", "b"] },
           {
             schema: {
               _tag: "Union",
@@ -123,9 +100,7 @@ describe("Standard", () => {
 
     it("anyOf", () => {
       assertFromJsonSchema(
-        {
-          schema: { anyOf: [{ const: "a" }, { enum: [1, 2] }] }
-        },
+        { anyOf: [{ const: "a" }, { enum: [1, 2] }] },
         {
           schema: {
             _tag: "Union",
@@ -149,9 +124,7 @@ describe("Standard", () => {
 
     it("oneOf", () => {
       assertFromJsonSchema(
-        {
-          schema: { oneOf: [{ const: "a" }, { enum: [1, 2] }] }
-        },
+        { oneOf: [{ const: "a" }, { enum: [1, 2] }] },
         {
           schema: {
             _tag: "Union",
@@ -176,9 +149,7 @@ describe("Standard", () => {
     describe("string", () => {
       it("type", () => {
         assertFromJsonSchema(
-          {
-            schema: { type: "string" }
-          },
+          { type: "string" },
           {
             schema: { _tag: "String", checks: [] }
           },
@@ -190,9 +161,7 @@ describe("Standard", () => {
     describe("number", () => {
       it("type", () => {
         assertFromJsonSchema(
-          {
-            schema: { type: "number" }
-          },
+          { type: "number" },
           {
             schema: { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }] }
           },
@@ -204,9 +173,7 @@ describe("Standard", () => {
     describe("integer", () => {
       it("type", () => {
         assertFromJsonSchema(
-          {
-            schema: { type: "integer" }
-          },
+          { type: "integer" },
           {
             schema: {
               _tag: "Number",
@@ -223,9 +190,7 @@ describe("Standard", () => {
     describe("boolean", () => {
       it("type", () => {
         assertFromJsonSchema(
-          {
-            schema: { type: "boolean" }
-          },
+          { type: "boolean" },
           {
             schema: { _tag: "Boolean" }
           },
@@ -237,9 +202,7 @@ describe("Standard", () => {
     describe("array", () => {
       it("type", () => {
         assertFromJsonSchema(
-          {
-            schema: { type: "array" }
-          },
+          { type: "array" },
           {
             schema: {
               _tag: "Arrays",
@@ -255,7 +218,8 @@ describe("Standard", () => {
       it("items", () => {
         assertFromJsonSchema(
           {
-            schema: { type: "array", items: { type: "string" } }
+            type: "array",
+            items: { type: "string" }
           },
           {
             schema: { _tag: "Arrays", elements: [], rest: [{ _tag: "String", checks: [] }], checks: [] }
@@ -267,11 +231,9 @@ describe("Standard", () => {
       it("prefixItems", () => {
         assertFromJsonSchema(
           {
-            schema: {
-              type: "array",
-              prefixItems: [{ type: "string" }],
-              maxItems: 1
-            }
+            type: "array",
+            prefixItems: [{ type: "string" }],
+            maxItems: 1
           },
           {
             schema: {
@@ -288,12 +250,10 @@ describe("Standard", () => {
 
         assertFromJsonSchema(
           {
-            schema: {
-              type: "array",
-              prefixItems: [{ type: "string" }],
-              minItems: 1,
-              maxItems: 1
-            }
+            type: "array",
+            prefixItems: [{ type: "string" }],
+            minItems: 1,
+            maxItems: 1
           },
           {
             schema: {
@@ -312,12 +272,10 @@ describe("Standard", () => {
       it("prefixItems & minItems", () => {
         assertFromJsonSchema(
           {
-            schema: {
-              type: "array",
-              prefixItems: [{ type: "string" }],
-              minItems: 1,
-              items: { type: "number" }
-            }
+            type: "array",
+            prefixItems: [{ type: "string" }],
+            minItems: 1,
+            items: { type: "number" }
           },
           {
             schema: {
@@ -339,9 +297,7 @@ describe("Standard", () => {
     describe("object", () => {
       it("type", () => {
         assertFromJsonSchema(
-          {
-            schema: { type: "object" }
-          },
+          { type: "object" },
           {
             schema: {
               _tag: "Objects",
@@ -356,7 +312,8 @@ describe("Standard", () => {
         )
         assertFromJsonSchema(
           {
-            schema: { type: "object", additionalProperties: false }
+            type: "object",
+            additionalProperties: false
           },
           {
             schema: {
@@ -373,7 +330,8 @@ describe("Standard", () => {
       it("additionalProperties", () => {
         assertFromJsonSchema(
           {
-            schema: { type: "object", additionalProperties: { type: "boolean" } }
+            type: "object",
+            additionalProperties: { type: "boolean" }
           },
           {
             schema: {
@@ -392,15 +350,10 @@ describe("Standard", () => {
       it("properties", () => {
         assertFromJsonSchema(
           {
-            schema: {
-              type: "object",
-              properties: {
-                a: { type: "string" },
-                b: { type: "string" }
-              },
-              required: ["a"],
-              additionalProperties: false
-            }
+            type: "object",
+            properties: { a: { type: "string" }, b: { type: "string" } },
+            required: ["a"],
+            additionalProperties: false
           },
           {
             schema: {
@@ -430,12 +383,10 @@ describe("Standard", () => {
       it("properties & additionalProperties", () => {
         assertFromJsonSchema(
           {
-            schema: {
-              type: "object",
-              properties: { a: { type: "string" } },
-              required: ["a"],
-              additionalProperties: { type: "boolean" }
-            }
+            type: "object",
+            properties: { a: { type: "string" } },
+            required: ["a"],
+            additionalProperties: { type: "boolean" }
           },
           {
             schema: {
@@ -461,7 +412,7 @@ describe("Standard", () => {
       it("ref", () => {
         assertFromJsonSchema(
           {
-            schema: { $ref: "#/$defs/a" }
+            $ref: "#/$defs/a"
           },
           {
             schema: { _tag: "Reference", $ref: "a" }
@@ -474,17 +425,11 @@ describe("Standard", () => {
       it("add property", () => {
         assertFromJsonSchema(
           {
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              allOf: [
-                {
-                  properties: {
-                    a: { type: "string" }
-                  }
-                }
-              ]
-            }
+            type: "object",
+            additionalProperties: false,
+            allOf: [
+              { properties: { a: { type: "string" } } }
+            ]
           },
           {
             schema: {
@@ -508,14 +453,10 @@ describe("Standard", () => {
       it("add additionalProperties", () => {
         assertFromJsonSchema(
           {
-            schema: {
-              type: "object",
-              allOf: [
-                {
-                  additionalProperties: { type: "boolean" }
-                }
-              ]
-            }
+            type: "object",
+            allOf: [
+              { additionalProperties: { type: "boolean" } }
+            ]
           },
           {
             schema: {

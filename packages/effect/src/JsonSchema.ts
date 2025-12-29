@@ -384,12 +384,9 @@ function normalize_OpenApi3_0_to_Draft07(node: unknown): unknown {
 
   // OpenAPI 3.0 nullable
   if (out.nullable === true) {
-    delete out.nullable
-    return apply_nullable(out)
+    out = apply_nullable(out)
   }
-  if (out.nullable === false) {
-    delete out.nullable
-  }
+  delete out.nullable
 
   return out
 }
@@ -423,14 +420,17 @@ function adjust_exclusivity(node: Record<string, unknown>): Record<string, unkno
 function apply_nullable(node: Record<string, unknown>): Record<string, unknown> {
   // enum widening
   if (Array.isArray(node.enum)) {
-    const e = node.enum.includes(null) ? node.enum : [...node.enum, null]
-    return widen_type({ ...node, enum: e })
+    return widen_type({
+      ...node,
+      enum: node.enum.includes(null) ? node.enum : [...node.enum, null]
+    })
   }
 
   // type widening
-  if (node.type !== undefined) {
-    return widen_type({ ...node })
-  }
+  if (node.type !== undefined) return widen_type(node)
+
+  // const === null
+  if (node.const === null) return node
 
   // fallback
   return { anyOf: [node, { type: "null" }] }
