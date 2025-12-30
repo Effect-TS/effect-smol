@@ -6404,15 +6404,15 @@ The `Standard` module provides a way to encode and decode schemas to and from JS
 
 ```mermaid
 flowchart TD
-    Schema -->|fromAST|StandardAST{"Standard.Document: { schema, definitions }"}
+    Schema -->|fromAST|StandardAST{"Standard.Document"}
     JS["JSONSchema (draft-07, draft-2020-12, openapi-3.0, openapi-3.1)"] -->|normalize|NJS
     NJS --> |denormalize|JS
-    NJS["JSON Schema (draft-2020-12)"] -->|fromJsonSchema|StandardAST
+    NJS["JsonSchema.Document (draft-2020-12)"] -->|fromJsonSchemaDocument|StandardAST
     StandardAST --> |toJson|JSON
     JSON --> |fromJson|StandardAST
-    StandardAST --> |toJsonSchema|NJS
+    StandardAST --> |toJsonSchemaDocument|NJS
     StandardAST --> |toSchema|Schema
-    StandardAST --> |toCode|Code["{ code, types: { Type, Encoded, DecodingServices, EncodingServices }, imports }"]
+    StandardAST --> |toGeneration|Generation["Generation: { code, types, imports }"]
     Schema --> |toArbitrary|Arbitrary
     Schema --> |toEquivalence|Equivalence
     Schema --> |toFormatter|Formatter

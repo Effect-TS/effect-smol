@@ -39,7 +39,7 @@ describe("Standard", () => {
         expectedDocument
       )
       if (code !== undefined) {
-        strictEqual(SchemaStandard.toCode(expectedDocument), code)
+        strictEqual(SchemaStandard.toGeneration(expectedDocument), code)
       }
     }
 
@@ -1991,19 +1991,20 @@ describe("Standard", () => {
     })
   })
 
-  describe("toCode", () => {
-    function assertToCode(schema: Schema.Top, expected: string, reviver?: SchemaStandard.Reviver<string>) {
+  describe("toGeneration", () => {
+    function assertToGeneration(schema: Schema.Top, expected: SchemaStandard.Generation) {
       const document = SchemaStandard.fromAST(schema.ast)
-      strictEqual(SchemaStandard.toCode(document, { reviver }), expected)
+      const generation = SchemaStandard.toGeneration(document)
+      strictEqual(generation, expected)
     }
 
     describe("Suspend", () => {
       it("non-recursive", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.suspend(() => Schema.String),
           `Schema.suspend(() => Schema.String)`
         )
-        assertToCode(
+        assertToGeneration(
           Schema.suspend(() => Schema.String.annotate({ identifier: "ID" })),
           `Schema.suspend((): Schema.Codec<ID> => ID)`
         )
@@ -2011,14 +2012,14 @@ describe("Standard", () => {
 
       describe("recursive", () => {
         it("outer identifier", () => {
-          assertToCode(
+          assertToGeneration(
             OuterCategory,
             `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)) }).annotate({ "identifier": "Category" })`
           )
         })
 
         it("inner identifier", () => {
-          assertToCode(
+          assertToGeneration(
             InnerCategory,
             `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)) })`
           )
@@ -2028,70 +2029,76 @@ describe("Standard", () => {
 
     describe("Declaration", () => {
       it("Option(String)", () => {
-        assertToCode(Schema.Option(Schema.String), "Schema.Option(Schema.String)")
+        assertToGeneration(Schema.Option(Schema.String), "Schema.Option(Schema.String)")
       })
 
       it("declaration without typeConstructor annotation", () => {
-        assertToCode(Schema.instanceOf(URL), "Schema.Unknown")
+        assertToGeneration(Schema.instanceOf(URL), "Schema.Unknown")
       })
     })
 
     it("Null", () => {
-      assertToCode(Schema.Null, "Schema.Null")
-      assertToCode(Schema.Null.annotate({ "description": "a" }), `Schema.Null.annotate({ "description": "a" })`)
-      assertToCode(Schema.Null.annotate({}), "Schema.Null")
+      assertToGeneration(Schema.Null, "Schema.Null")
+      assertToGeneration(Schema.Null.annotate({ "description": "a" }), `Schema.Null.annotate({ "description": "a" })`)
+      assertToGeneration(Schema.Null.annotate({}), "Schema.Null")
     })
 
     it("Undefined", () => {
-      assertToCode(Schema.Undefined, "Schema.Undefined")
-      assertToCode(
+      assertToGeneration(Schema.Undefined, "Schema.Undefined")
+      assertToGeneration(
         Schema.Undefined.annotate({ "description": "a" }),
         `Schema.Undefined.annotate({ "description": "a" })`
       )
     })
 
     it("Void", () => {
-      assertToCode(Schema.Void, "Schema.Void")
-      assertToCode(Schema.Void.annotate({ "description": "a" }), `Schema.Void.annotate({ "description": "a" })`)
+      assertToGeneration(Schema.Void, "Schema.Void")
+      assertToGeneration(Schema.Void.annotate({ "description": "a" }), `Schema.Void.annotate({ "description": "a" })`)
     })
 
     it("Never", () => {
-      assertToCode(Schema.Never, "Schema.Never")
-      assertToCode(Schema.Never.annotate({ "description": "a" }), `Schema.Never.annotate({ "description": "a" })`)
+      assertToGeneration(Schema.Never, "Schema.Never")
+      assertToGeneration(Schema.Never.annotate({ "description": "a" }), `Schema.Never.annotate({ "description": "a" })`)
     })
 
     it("Unknown", () => {
-      assertToCode(Schema.Unknown, "Schema.Unknown")
-      assertToCode(Schema.Unknown.annotate({ "description": "a" }), `Schema.Unknown.annotate({ "description": "a" })`)
+      assertToGeneration(Schema.Unknown, "Schema.Unknown")
+      assertToGeneration(
+        Schema.Unknown.annotate({ "description": "a" }),
+        `Schema.Unknown.annotate({ "description": "a" })`
+      )
     })
 
     it("Any", () => {
-      assertToCode(Schema.Any, "Schema.Any")
-      assertToCode(Schema.Any.annotate({ "description": "a" }), `Schema.Any.annotate({ "description": "a" })`)
+      assertToGeneration(Schema.Any, "Schema.Any")
+      assertToGeneration(Schema.Any.annotate({ "description": "a" }), `Schema.Any.annotate({ "description": "a" })`)
     })
 
     describe("String", () => {
       it("String", () => {
-        assertToCode(Schema.String, "Schema.String")
+        assertToGeneration(Schema.String, "Schema.String")
       })
 
       it("String & annotations", () => {
-        assertToCode(Schema.String.annotate({ "description": "a" }), `Schema.String.annotate({ "description": "a" })`)
+        assertToGeneration(
+          Schema.String.annotate({ "description": "a" }),
+          `Schema.String.annotate({ "description": "a" })`
+        )
       })
 
       it("String & check", () => {
-        assertToCode(Schema.String.check(Schema.isMinLength(1)), "Schema.String.check(Schema.isMinLength(1))")
+        assertToGeneration(Schema.String.check(Schema.isMinLength(1)), "Schema.String.check(Schema.isMinLength(1))")
       })
 
       it("String & annotations & check", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.String.annotate({ "description": "a" }).check(Schema.isMinLength(1)),
           `Schema.String.annotate({ "description": "a" }).check(Schema.isMinLength(1))`
         )
       })
 
       it("String & check & annotations", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.String.check(Schema.isMinLength(1, { description: "a" })),
           `Schema.String.check(Schema.isMinLength(1, { "description": "a" }))`
         )
@@ -2099,28 +2106,40 @@ describe("Standard", () => {
     })
 
     it("Number", () => {
-      assertToCode(Schema.Number, "Schema.Number")
-      assertToCode(Schema.Number.annotate({ "description": "a" }), `Schema.Number.annotate({ "description": "a" })`)
+      assertToGeneration(Schema.Number, "Schema.Number")
+      assertToGeneration(
+        Schema.Number.annotate({ "description": "a" }),
+        `Schema.Number.annotate({ "description": "a" })`
+      )
     })
 
     it("Boolean", () => {
-      assertToCode(Schema.Boolean, "Schema.Boolean")
-      assertToCode(Schema.Boolean.annotate({ "description": "a" }), `Schema.Boolean.annotate({ "description": "a" })`)
+      assertToGeneration(Schema.Boolean, "Schema.Boolean")
+      assertToGeneration(
+        Schema.Boolean.annotate({ "description": "a" }),
+        `Schema.Boolean.annotate({ "description": "a" })`
+      )
     })
 
     it("BigInt", () => {
-      assertToCode(Schema.BigInt, "Schema.BigInt")
-      assertToCode(Schema.BigInt.annotate({ "description": "a" }), `Schema.BigInt.annotate({ "description": "a" })`)
+      assertToGeneration(Schema.BigInt, "Schema.BigInt")
+      assertToGeneration(
+        Schema.BigInt.annotate({ "description": "a" }),
+        `Schema.BigInt.annotate({ "description": "a" })`
+      )
     })
 
     it("Symbol", () => {
-      assertToCode(Schema.Symbol, "Schema.Symbol")
-      assertToCode(Schema.Symbol.annotate({ "description": "a" }), `Schema.Symbol.annotate({ "description": "a" })`)
+      assertToGeneration(Schema.Symbol, "Schema.Symbol")
+      assertToGeneration(
+        Schema.Symbol.annotate({ "description": "a" }),
+        `Schema.Symbol.annotate({ "description": "a" })`
+      )
     })
 
     it("ObjectKeyword", () => {
-      assertToCode(Schema.ObjectKeyword, "Schema.ObjectKeyword")
-      assertToCode(
+      assertToGeneration(Schema.ObjectKeyword, "Schema.ObjectKeyword")
+      assertToGeneration(
         Schema.ObjectKeyword.annotate({ "description": "a" }),
         `Schema.ObjectKeyword.annotate({ "description": "a" })`
       )
@@ -2128,32 +2147,32 @@ describe("Standard", () => {
 
     describe("Literal", () => {
       it("string literal", () => {
-        assertToCode(Schema.Literal("hello"), `Schema.Literal("hello")`)
-        assertToCode(
+        assertToGeneration(Schema.Literal("hello"), `Schema.Literal("hello")`)
+        assertToGeneration(
           Schema.Literal("hello").annotate({ "description": "a" }),
           `Schema.Literal("hello").annotate({ "description": "a" })`
         )
       })
 
       it("number literal", () => {
-        assertToCode(Schema.Literal(42), "Schema.Literal(42)")
-        assertToCode(
+        assertToGeneration(Schema.Literal(42), "Schema.Literal(42)")
+        assertToGeneration(
           Schema.Literal(42).annotate({ "description": "a" }),
           `Schema.Literal(42).annotate({ "description": "a" })`
         )
       })
 
       it("boolean literal", () => {
-        assertToCode(Schema.Literal(true), "Schema.Literal(true)")
-        assertToCode(
+        assertToGeneration(Schema.Literal(true), "Schema.Literal(true)")
+        assertToGeneration(
           Schema.Literal(true).annotate({ "description": "a" }),
           `Schema.Literal(true).annotate({ "description": "a" })`
         )
       })
 
       it("bigint literal", () => {
-        assertToCode(Schema.Literal(100n), "Schema.Literal(100n)")
-        assertToCode(
+        assertToGeneration(Schema.Literal(100n), "Schema.Literal(100n)")
+        assertToGeneration(
           Schema.Literal(100n).annotate({ "description": "a" }),
           `Schema.Literal(100n).annotate({ "description": "a" })`
         )
@@ -2162,14 +2181,14 @@ describe("Standard", () => {
 
     describe("UniqueSymbol", () => {
       it("should format unique symbol", () => {
-        assertToCode(Schema.UniqueSymbol(Symbol.for("test")), `Schema.UniqueSymbol(Symbol.for("test"))`)
+        assertToGeneration(Schema.UniqueSymbol(Symbol.for("test")), `Schema.UniqueSymbol(Symbol.for("test"))`)
       })
 
       it("should throw error for symbol created without Symbol.for()", () => {
         const sym = Symbol("test")
         const document = SchemaStandard.fromAST(Schema.UniqueSymbol(sym).ast)
         throws(
-          () => SchemaStandard.toCode(document),
+          () => SchemaStandard.toGeneration(document),
           "Cannot generate code for UniqueSymbol created without Symbol.for()"
         )
       })
@@ -2177,14 +2196,14 @@ describe("Standard", () => {
 
     describe("Enum", () => {
       it("should format enum with string values", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Enum({
             A: "a",
             B: "b"
           }),
           `Schema.Enum([["A", "a"], ["B", "b"]])`
         )
-        assertToCode(
+        assertToGeneration(
           Schema.Enum({
             A: "a",
             B: "b"
@@ -2194,14 +2213,14 @@ describe("Standard", () => {
       })
 
       it("should format enum with number values", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Enum({
             One: 1,
             Two: 2
           }),
           `Schema.Enum([["One", 1], ["Two", 2]])`
         )
-        assertToCode(
+        assertToGeneration(
           Schema.Enum({
             One: 1,
             Two: 2
@@ -2211,14 +2230,14 @@ describe("Standard", () => {
       })
 
       it("should format enum with mixed values", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Enum({
             A: "a",
             One: 1
           }),
           `Schema.Enum([["A", "a"], ["One", 1]])`
         )
-        assertToCode(
+        assertToGeneration(
           Schema.Enum({
             A: "a",
             One: 1
@@ -2230,11 +2249,11 @@ describe("Standard", () => {
 
     describe("TemplateLiteral", () => {
       it("should format template literal", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]),
           `Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number])`
         )
-        assertToCode(
+        assertToGeneration(
           Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]).annotate({ "description": "ad" }),
           `Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]).annotate({ "description": "ad" })`
         )
@@ -2243,38 +2262,38 @@ describe("Standard", () => {
 
     describe("Arrays", () => {
       it("empty tuple", () => {
-        assertToCode(Schema.Tuple([]), "Schema.Tuple([])")
-        assertToCode(
+        assertToGeneration(Schema.Tuple([]), "Schema.Tuple([])")
+        assertToGeneration(
           Schema.Tuple([]).annotate({ "description": "t" }),
           `Schema.Tuple([]).annotate({ "description": "t" })`
         )
       })
 
       it("tuple with elements", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Tuple([Schema.String, Schema.Number]),
           "Schema.Tuple([Schema.String, Schema.Number])"
         )
-        assertToCode(
+        assertToGeneration(
           Schema.Tuple([Schema.String, Schema.Number]).annotate({ "description": "u" }),
           `Schema.Tuple([Schema.String, Schema.Number]).annotate({ "description": "u" })`
         )
       })
 
       it("array with rest only", () => {
-        assertToCode(Schema.Array(Schema.String), "Schema.Array(Schema.String)")
-        assertToCode(
+        assertToGeneration(Schema.Array(Schema.String), "Schema.Array(Schema.String)")
+        assertToGeneration(
           Schema.Array(Schema.String).annotate({ "description": "v" }),
           `Schema.Array(Schema.String).annotate({ "description": "v" })`
         )
       })
 
       it("tuple with rest", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]),
           "Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number])"
         )
-        assertToCode(
+        assertToGeneration(
           Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]).annotate({ "description": "w" }),
           `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]).annotate({ "description": "w" })`
         )
@@ -2283,22 +2302,22 @@ describe("Standard", () => {
 
     describe("Objects", () => {
       it("empty struct", () => {
-        assertToCode(Schema.Struct({}), "Schema.Struct({  })")
-        assertToCode(
+        assertToGeneration(Schema.Struct({}), "Schema.Struct({  })")
+        assertToGeneration(
           Schema.Struct({}).annotate({ "description": "x" }),
           `Schema.Struct({  }).annotate({ "description": "x" })`
         )
       })
 
       it("struct with required properties", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Struct({
             name: Schema.String,
             age: Schema.Number
           }),
           `Schema.Struct({ "name": Schema.String, "age": Schema.Number })`
         )
-        assertToCode(
+        assertToGeneration(
           Schema.Struct({
             name: Schema.String,
             age: Schema.Number
@@ -2308,7 +2327,7 @@ describe("Standard", () => {
       })
 
       it("struct with optional properties", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Struct({
             name: Schema.String,
             age: Schema.optionalKey(Schema.Number)
@@ -2318,7 +2337,7 @@ describe("Standard", () => {
       })
 
       it("struct with mixed required and optional properties", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Struct({
             name: Schema.String,
             age: Schema.optionalKey(Schema.Number),
@@ -2330,7 +2349,7 @@ describe("Standard", () => {
 
       it("struct with symbol property key", () => {
         const sym = Symbol.for("test")
-        assertToCode(
+        assertToGeneration(
           Schema.Struct({
             [sym]: Schema.String
           }),
@@ -2341,33 +2360,33 @@ describe("Standard", () => {
 
     describe("Union", () => {
       it("union with anyOf mode (default)", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Union([Schema.String, Schema.Number]),
           "Schema.Union([Schema.String, Schema.Number])"
         )
-        assertToCode(
+        assertToGeneration(
           Schema.Union([Schema.String, Schema.Number]).annotate({ "description": "z" }),
           `Schema.Union([Schema.String, Schema.Number]).annotate({ "description": "z" })`
         )
       })
 
       it("union with oneOf mode", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }),
           `Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" })`
         )
-        assertToCode(
+        assertToGeneration(
           Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }).annotate({ "description": "aa" }),
           `Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }).annotate({ "description": "aa" })`
         )
       })
 
       it("union with multiple types", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Union([Schema.String, Schema.Number, Schema.Boolean]),
           "Schema.Union([Schema.String, Schema.Number, Schema.Boolean])"
         )
-        assertToCode(
+        assertToGeneration(
           Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).annotate({ "description": "ab" }),
           `Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).annotate({ "description": "ab" })`
         )
@@ -2376,7 +2395,7 @@ describe("Standard", () => {
 
     describe("nested structures", () => {
       it("nested struct", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Struct({
             user: Schema.Struct({
               name: Schema.String,
@@ -2385,7 +2404,7 @@ describe("Standard", () => {
           }),
           `Schema.Struct({ "user": Schema.Struct({ "name": Schema.String, "age": Schema.Number }) })`
         )
-        assertToCode(
+        assertToGeneration(
           Schema.Struct({
             user: Schema.Struct({
               name: Schema.String,
@@ -2397,7 +2416,7 @@ describe("Standard", () => {
       })
 
       it("union of structs", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Union([
             Schema.Struct({ type: Schema.Literal("a"), value: Schema.String }),
             Schema.Struct({ type: Schema.Literal("b"), value: Schema.Number })
@@ -2407,7 +2426,7 @@ describe("Standard", () => {
       })
 
       it("tuple with struct elements", () => {
-        assertToCode(
+        assertToGeneration(
           Schema.Tuple([
             Schema.Struct({ name: Schema.String }),
             Schema.Struct({ age: Schema.Number })

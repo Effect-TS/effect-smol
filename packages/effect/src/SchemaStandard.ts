@@ -1426,14 +1426,18 @@ export const toCodeDefaultReviver: Reviver<string> = (declaration, recur) => {
   return "Schema.Unknown"
 }
 
-// TODO: tests
 /**
  * @since 4.0.0
  */
-export function toCode(document: Document, options?: {
+export type Generation = string
+
+/**
+ * @since 4.0.0
+ */
+export function toGeneration(document: Document, options?: {
   readonly reviver?: Reviver<string> | undefined
-}): string {
-  const reviver = options?.reviver ?? toCodeDefaultReviver
+}): Generation {
+  const reviver = options?.reviver
   const schema = document.schema
 
   if (schema._tag === "Reference") {
@@ -1442,7 +1446,7 @@ export function toCode(document: Document, options?: {
   }
   return recur(schema)
 
-  function recur(schema: Standard): string {
+  function recur(schema: Standard): Generation {
     const b = on(schema)
     switch (schema._tag) {
       default:
@@ -1459,10 +1463,10 @@ export function toCode(document: Document, options?: {
     }
   }
 
-  function on(schema: Standard): string {
+  function on(schema: Standard): Generation {
     switch (schema._tag) {
       case "Declaration":
-        return reviver(schema, recur)
+        return reviver ? reviver(schema, recur) : `Schema.Unknown`
       case "Reference":
         return schema.$ref
       case "Suspend": {
