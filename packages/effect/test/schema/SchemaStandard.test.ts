@@ -33,8 +33,9 @@ describe("Standard", () => {
         schema: expected.schema,
         definitions: expected.definitions ?? {}
       }
+      const document = JsonSchema.fromSchemaDraft2020_12(schema)
       deepStrictEqual(
-        SchemaStandard.fromJsonSchemaDocument(JsonSchema.fromSchemaDraft2020_12(schema)),
+        SchemaStandard.fromJsonSchemaDocument(document),
         expectedDocument
       )
       if (code !== undefined) {
@@ -59,18 +60,74 @@ describe("Standard", () => {
       )
     })
 
-    it("const", () => {
-      assertFromJsonSchema(
-        { const: "a" },
-        {
-          schema: { _tag: "Literal", literal: "a" }
-        },
-        `Schema.Literal("a")`
-      )
+    describe("const", () => {
+      it("const: literal (string)", () => {
+        assertFromJsonSchema(
+          { const: "a" },
+          {
+            schema: { _tag: "Literal", literal: "a" }
+          },
+          `Schema.Literal("a")`
+        )
+        assertFromJsonSchema(
+          { const: "a", description: "a" },
+          {
+            schema: { _tag: "Literal", literal: "a", annotations: { description: "a" } }
+          },
+          `Schema.Literal("a").annotate({ "description": "a" })`
+        )
+      })
+
+      it("const: literal (number)", () => {
+        assertFromJsonSchema(
+          { const: 1 },
+          {
+            schema: { _tag: "Literal", literal: 1 }
+          },
+          `Schema.Literal(1)`
+        )
+      })
+
+      it("const: literal (boolean)", () => {
+        assertFromJsonSchema(
+          { const: true },
+          {
+            schema: { _tag: "Literal", literal: true }
+          },
+          `Schema.Literal(true)`
+        )
+      })
+
+      it("const: null", () => {
+        assertFromJsonSchema(
+          { const: null },
+          {
+            schema: { _tag: "Null" }
+          },
+          `Schema.Null`
+        )
+        assertFromJsonSchema(
+          { const: null, description: "a" },
+          {
+            schema: { _tag: "Null", annotations: { description: "a" } }
+          },
+          `Schema.Null.annotate({ "description": "a" })`
+        )
+      })
+
+      it("const: non-literal", () => {
+        assertFromJsonSchema(
+          { const: {} },
+          {
+            schema: { _tag: "Unknown" }
+          },
+          `Schema.Unknown`
+        )
+      })
     })
 
     describe("enum", () => {
-      it("single enum", () => {
+      it("single enum (string)", () => {
         assertFromJsonSchema(
           { enum: ["a"] },
           {
@@ -78,22 +135,81 @@ describe("Standard", () => {
           },
           `Schema.Literal("a")`
         )
+        assertFromJsonSchema(
+          { enum: ["a"], description: "a" },
+          {
+            schema: { _tag: "Literal", literal: "a", annotations: { description: "a" } }
+          },
+          `Schema.Literal("a").annotate({ "description": "a" })`
+        )
       })
 
-      it("multiple enum", () => {
+      it("single enum (number)", () => {
         assertFromJsonSchema(
-          { enum: ["a", "b"] },
+          { enum: [1] },
+          {
+            schema: { _tag: "Literal", literal: 1 }
+          },
+          `Schema.Literal(1)`
+        )
+      })
+
+      it("single enum (boolean)", () => {
+        assertFromJsonSchema(
+          { enum: [true] },
+          {
+            schema: { _tag: "Literal", literal: true }
+          },
+          `Schema.Literal(true)`
+        )
+      })
+
+      it("multiple enum (literals)", () => {
+        assertFromJsonSchema(
+          { enum: ["a", 1] },
           {
             schema: {
               _tag: "Union",
               types: [
                 { _tag: "Literal", literal: "a" },
-                { _tag: "Literal", literal: "b" }
+                { _tag: "Literal", literal: 1 }
               ],
               mode: "anyOf"
             }
           },
-          `Schema.Literals(["a", "b"])`
+          `Schema.Literals(["a", 1])`
+        )
+        assertFromJsonSchema(
+          { enum: ["a", 1], description: "a" },
+          {
+            schema: {
+              _tag: "Union",
+              types: [
+                { _tag: "Literal", literal: "a" },
+                { _tag: "Literal", literal: 1 }
+              ],
+              mode: "anyOf",
+              annotations: { description: "a" }
+            }
+          },
+          `Schema.Literals(["a", 1]).annotate({ "description": "a" })`
+        )
+      })
+
+      it("enum containing null", () => {
+        assertFromJsonSchema(
+          { enum: ["a", null] },
+          {
+            schema: {
+              _tag: "Union",
+              types: [
+                { _tag: "Literal", literal: "a" },
+                { _tag: "Null" }
+              ],
+              mode: "anyOf"
+            }
+          },
+          `Schema.Union([Schema.Literal("a"), Schema.Null])`
         )
       })
     })
@@ -146,8 +262,20 @@ describe("Standard", () => {
       )
     })
 
+    describe("type: null", () => {
+      it("type only", () => {
+        assertFromJsonSchema(
+          { type: "null" },
+          {
+            schema: { _tag: "Null" }
+          },
+          `Schema.Null`
+        )
+      })
+    })
+
     describe("type: string", () => {
-      it("type", () => {
+      it("type only", () => {
         assertFromJsonSchema(
           { type: "string" },
           {
@@ -159,7 +287,7 @@ describe("Standard", () => {
     })
 
     describe("type: number", () => {
-      it("type", () => {
+      it("type only", () => {
         assertFromJsonSchema(
           { type: "number" },
           {
@@ -171,7 +299,7 @@ describe("Standard", () => {
     })
 
     describe("type: integer", () => {
-      it("type", () => {
+      it("type only", () => {
         assertFromJsonSchema(
           { type: "integer" },
           {
@@ -188,7 +316,7 @@ describe("Standard", () => {
     })
 
     describe("type: boolean", () => {
-      it("type", () => {
+      it("type only", () => {
         assertFromJsonSchema(
           { type: "boolean" },
           {
@@ -200,7 +328,7 @@ describe("Standard", () => {
     })
 
     describe("type: array", () => {
-      it("type", () => {
+      it("type only", () => {
         assertFromJsonSchema(
           { type: "array" },
           {
@@ -295,7 +423,7 @@ describe("Standard", () => {
     })
 
     describe("type: object", () => {
-      it("type", () => {
+      it("type only", () => {
         assertFromJsonSchema(
           { type: "object" },
           {
@@ -408,14 +536,95 @@ describe("Standard", () => {
       })
     })
 
+    it("type: Array", () => {
+      assertFromJsonSchema(
+        {
+          type: ["string", "null"]
+        },
+        {
+          schema: {
+            _tag: "Union",
+            types: [{ _tag: "String", checks: [] }, { _tag: "Null" }],
+            mode: "anyOf"
+          }
+        },
+        `Schema.Union([Schema.String, Schema.Null])`
+      )
+      assertFromJsonSchema(
+        {
+          type: ["string", "null"],
+          description: "a"
+        },
+        {
+          schema: {
+            _tag: "Union",
+            types: [{ _tag: "String", checks: [] }, { _tag: "Null" }],
+            mode: "anyOf",
+            annotations: { description: "a" }
+          }
+        },
+        `Schema.Union([Schema.String, Schema.Null]).annotate({ "description": "a" })`
+      )
+    })
+
     describe("$ref", () => {
-      it("ref", () => {
+      it("should create a Reference and a definition", () => {
         assertFromJsonSchema(
           {
-            $ref: "#/$defs/a"
+            $ref: "#/$defs/a",
+            $defs: {
+              a: {
+                type: "string"
+              }
+            }
           },
           {
-            schema: { _tag: "Reference", $ref: "a" }
+            schema: { _tag: "Reference", $ref: "a" },
+            definitions: {
+              a: { _tag: "String", checks: [] }
+            }
+          }
+        )
+      })
+
+      it("should resolve the $ref if there are annotations", () => {
+        assertFromJsonSchema(
+          {
+            $ref: "#/$defs/a",
+            description: "a",
+            $defs: {
+              a: {
+                type: "string"
+              }
+            }
+          },
+          {
+            schema: { _tag: "String", checks: [], annotations: { description: "a" } },
+            definitions: {
+              a: { _tag: "String", checks: [] }
+            }
+          }
+        )
+      })
+
+      it("should resolve the $ref if there is an allOf", () => {
+        assertFromJsonSchema(
+          {
+            allOf: [
+              { $ref: "#/$defs/a" },
+              { description: "a" }
+            ],
+            $defs: {
+              a: {
+                type: "string"
+              }
+            }
+          },
+          {
+            schema: { _tag: "String", checks: [], annotations: { description: "a" } },
+            definitions: {
+              a: { _tag: "String", checks: [] }
+            }
           }
         )
       })
@@ -470,6 +679,32 @@ describe("Standard", () => {
           },
           `Schema.Record(Schema.String, Schema.Boolean)`
         )
+      })
+    })
+  })
+
+  describe("toJsonSchemaMultiDocument", () => {
+    it("should handle multiple schemas", () => {
+      const a = Schema.String.annotate({ identifier: "id", description: "a" })
+      const b = a.annotate({ description: "b" })
+      const multiDocument = SchemaStandard.fromASTs([a.ast, b.ast])
+      const jsonMultiDocument = SchemaStandard.toJsonSchemaMultiDocument(multiDocument)
+      deepStrictEqual(jsonMultiDocument, {
+        dialect: "draft-2020-12",
+        schemas: [
+          { "$ref": "#/$defs/id" },
+          { "$ref": "#/$defs/id-1" }
+        ],
+        definitions: {
+          "id": {
+            "type": "string",
+            "description": "a"
+          },
+          "id-1": {
+            "type": "string",
+            "description": "b"
+          }
+        }
       })
     })
   })
@@ -1482,32 +1717,6 @@ describe("Standard", () => {
             }
           })
         })
-      })
-    })
-  })
-
-  describe("toJsonSchemaMultiDocument", () => {
-    it("should handle multiple schemas", () => {
-      const a = Schema.String.annotate({ identifier: "id", description: "a" })
-      const b = a.annotate({ description: "b" })
-      const multiDocument = SchemaStandard.fromASTs([a.ast, b.ast])
-      const jsonMultiDocument = SchemaStandard.toJsonSchemaMultiDocument(multiDocument)
-      deepStrictEqual(jsonMultiDocument, {
-        dialect: "draft-2020-12",
-        schemas: [
-          { "$ref": "#/$defs/id" },
-          { "$ref": "#/$defs/id-1" }
-        ],
-        definitions: {
-          "id": {
-            "type": "string",
-            "description": "a"
-          },
-          "id-1": {
-            "type": "string",
-            "description": "b"
-          }
-        }
       })
     })
   })

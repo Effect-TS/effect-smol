@@ -3,6 +3,7 @@
  */
 import * as Arr from "./Array.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
+import { unescapeToken } from "./internal/schema/json-pointer.ts"
 import * as InternalStandard from "./internal/schema/standard.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
 import * as Option from "./Option.ts"
@@ -1716,107 +1717,113 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
     if (u === false) return never
     if (!Predicate.isObject(u)) return unknown
 
-    const annotations = collectAnnotations(u)
-    let out: Standard = { ...unknown, ...makeAnnotations(annotations) }
-
-    if (typeof u.$ref === "string") {
-      const $ref = u.$ref.slice(2).split("/").at(-1)!
-      out = { _tag: "Reference", $ref } // TODO: handle annotations
-    } else if ("const" in u) {
-      if (isLiteralValue(u.const)) {
-        out = { _tag: "Literal", literal: u.const, ...makeAnnotations(annotations) }
-      } else if (u.const === null) {
-        out = { _tag: "Null", ...makeAnnotations(annotations) }
-      }
-      // TODO: handle non-literal consts?
-    } else if (Array.isArray(u.enum)) {
-      const values = u.enum
-      if (values.every(isLiteralValue)) {
-        if (values.length === 1) {
-          out = { _tag: "Literal", literal: values[0], ...makeAnnotations(annotations) }
-        } else {
-          out = {
-            _tag: "Union",
-            types: values.map((v) => ({ _tag: "Literal", literal: v })),
-            mode: "anyOf",
-            ...makeAnnotations(annotations)
-          }
+    let js: JsonSchema.JsonSchema = u
+    if (Array.isArray(js.type)) {
+      if (js.type.every(isType)) {
+        const { type, ...rest } = js
+        js = {
+          anyOf: type.map((type) => ({ type })),
+          ...rest
         }
-      }
-    } else if (Array.isArray(u.anyOf)) {
-      out = {
-        _tag: "Union",
-        types: u.anyOf.map((type) => recur(type)),
-        mode: "anyOf",
-        ...makeAnnotations(annotations)
-      }
-    } else if (Array.isArray(u.oneOf)) {
-      out = {
-        _tag: "Union",
-        types: u.oneOf.map((type) => recur(type)),
-        mode: "oneOf",
-        ...makeAnnotations(annotations)
+      } else {
+        js = {}
       }
     }
 
-    const type = isType(u.type) ? u.type : getType(u)
+    let out = on(js)
+
+    const annotations = collectAnnotations(js)
+    if (annotations !== undefined) {
+      if (out._tag === "Reference") {
+        const b = resolveRef(out.$ref)
+        out = { ...b, ...combineAnnotations(b.annotations, annotations) }
+      } else {
+        out = { ...out, annotations }
+      }
+    }
+
+    if (Array.isArray(js.allOf)) {
+      return js.allOf.reduce((acc, curr) => combine(acc, recur(curr)), out)
+    }
+
+    return out
+  }
+
+  function on(js: JsonSchema.JsonSchema): Standard {
+    if (typeof js.$ref === "string") {
+      const $ref = js.$ref.slice(2).split("/").at(-1)
+      if ($ref !== undefined) {
+        return { _tag: "Reference", $ref: unescapeToken($ref) }
+      }
+    } else if ("const" in js) {
+      if (isLiteralValue(js.const)) {
+        return { _tag: "Literal", literal: js.const }
+      } else if (js.const === null) {
+        return null_
+      }
+    } else if (Array.isArray(js.enum)) {
+      const types: Array<Standard> = []
+      for (const e of js.enum) {
+        if (isLiteralValue(e)) {
+          types.push({ _tag: "Literal", literal: e })
+        } else if (e === null) {
+          types.push(null_)
+        } else {
+          types.push(recur(e))
+        }
+      }
+      if (types.length === 1) {
+        return types[0]
+      } else {
+        return { _tag: "Union", types, mode: "anyOf" }
+      }
+    } else if (Array.isArray(js.anyOf)) {
+      return { _tag: "Union", types: js.anyOf.map((type) => recur(type)), mode: "anyOf" }
+    } else if (Array.isArray(js.oneOf)) {
+      return { _tag: "Union", types: js.oneOf.map((type) => recur(type)), mode: "oneOf" }
+    }
+
+    const type = isType(js.type) ? js.type : getType(js)
     if (type !== undefined) {
       switch (type) {
+        case "null":
+          return null_
         case "string":
-          out = { _tag: "String", checks: [], ...makeAnnotations(annotations) }
-          break
+          return string
         case "number":
-          out = {
-            _tag: "Number",
-            checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }],
-            ...makeAnnotations(annotations)
-          }
-          break
+          return number
         case "integer":
-          out = {
-            _tag: "Number",
-            checks: [{ _tag: "Filter", meta: { _tag: "isInt" } }],
-            ...makeAnnotations(annotations)
-          }
-          break
+          return integer
         case "boolean":
-          out = { _tag: "Boolean", ...makeAnnotations(annotations) }
-          break
+          return boolean
         case "array": {
-          const minItems = typeof u.minItems === "number" ? u.minItems : 0
+          const minItems = typeof js.minItems === "number" ? js.minItems : 0
 
-          const elements: Array<Element> = (Array.isArray(u.prefixItems) ? u.prefixItems : []).map((e, i) => ({
+          const elements: Array<Element> = (Array.isArray(js.prefixItems) ? js.prefixItems : []).map((e, i) => ({
             isOptional: i + 1 > minItems,
             type: recur(e)
           }))
 
-          const rest: Array<Standard> = u.items !== undefined ?
-            [recur(u.items)]
-            : typeof u.maxItems === "number"
+          const rest: Array<Standard> = js.items !== undefined ?
+            [recur(js.items)]
+            : typeof js.maxItems === "number"
             ? []
             : [unknown]
 
-          out = { _tag: "Arrays", elements, rest, checks: [], ...makeAnnotations(annotations) }
-          break
+          return { _tag: "Arrays", elements, rest, checks: [] }
         }
         case "object": {
-          out = {
+          return {
             _tag: "Objects",
-            propertySignatures: collectProperties(u),
-            indexSignatures: collectIndexSignatures(u),
-            checks: [],
-            ...makeAnnotations(annotations)
+            propertySignatures: collectProperties(js),
+            indexSignatures: collectIndexSignatures(js),
+            checks: []
           }
-          break
         }
       }
     }
 
-    if (Array.isArray(u.allOf)) {
-      out = u.allOf.reduce((acc, curr) => combine(acc, recur(curr)), out)
-    }
-
-    return out
+    return { _tag: "Unknown" }
   }
 
   function combine(a: Standard, b: Standard): Standard {
@@ -1825,26 +1832,28 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
         return never
       case "Never":
         return a
-      case "Unknown":
-        switch (b._tag) {
-          case "Reference":
-            return b // TODO: handle annotations
-          default:
-            return { ...b, ...combineAnnotations(a.annotations, b.annotations) }
+      case "Unknown": {
+        if (b._tag === "Reference") {
+          b = resolveRef(b.$ref)
         }
+        return { ...b, ...combineAnnotations(a.annotations, b.annotations) }
+      }
       case "Null":
         switch (b._tag) {
+          case "Unknown":
           case "Null":
             return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, revolveRef(b.$ref))
+            return combine(a, resolveRef(b.$ref))
           default:
             return never
         }
       case "String":
         switch (b._tag) {
+          case "Unknown":
+            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
           case "String":
             return {
               _tag: "String",
@@ -1854,12 +1863,14 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, revolveRef(b.$ref))
+            return combine(a, resolveRef(b.$ref))
           default:
             return never
         }
       case "Number":
         switch (b._tag) {
+          case "Unknown":
+            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
           case "Number":
             return {
               _tag: "Number",
@@ -1869,23 +1880,27 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, revolveRef(b.$ref))
+            return combine(a, resolveRef(b.$ref))
           default:
             return never
         }
       case "Boolean":
         switch (b._tag) {
+          case "Unknown":
+            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
           case "Boolean":
             return { _tag: "Boolean", ...combineAnnotations(a.annotations, b.annotations) }
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, revolveRef(b.$ref))
+            return combine(a, resolveRef(b.$ref))
           default:
             return never
         }
       case "Literal":
         switch (b._tag) {
+          case "Unknown":
+            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
           case "Literal":
             return a.literal === b.literal
               ? { _tag: "Literal", literal: a.literal, ...combineAnnotations(a.annotations, b.annotations) }
@@ -1893,7 +1908,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, revolveRef(b.$ref))
+            return combine(a, resolveRef(b.$ref))
           default:
             return never
         }
@@ -1912,7 +1927,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, revolveRef(b.$ref))
+            return combine(a, resolveRef(b.$ref))
           default:
             return never
         }
@@ -1931,7 +1946,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, revolveRef(b.$ref))
+            return combine(a, resolveRef(b.$ref))
           default:
             return never
         }
@@ -1946,7 +1961,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
         }
       }
       case "Reference":
-        return combine(revolveRef(a.$ref), b)
+        return combine(resolveRef(a.$ref), b)
     }
   }
 
@@ -1981,8 +1996,16 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
     return out
   }
 
-  function revolveRef(ref: string): Standard {
-    return definitions[ref] ?? unknown
+  function resolveRef(ref: string): Exclude<Standard, { _tag: "Reference" }> {
+    const definition = definitions[ref]
+    if (definition !== undefined) {
+      if (definition._tag === "Reference") {
+        return resolveRef(definition.$ref)
+      } else {
+        return definition
+      }
+    }
+    return unknown
   }
 
   function combinePropertySignatures(
@@ -2095,9 +2118,13 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
   }
 }
 
-const string: Standard = { _tag: "String", checks: [] }
-const never: Standard = { _tag: "Never" }
-const unknown: Standard = { _tag: "Unknown" }
+const unknown: Unknown = { _tag: "Unknown" }
+const never: Never = { _tag: "Never" }
+const null_: Null = { _tag: "Null" }
+const string: String = { _tag: "String", checks: [] }
+const number: Number = { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }] }
+const integer: Number = { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isInt" } }] }
+const boolean: Boolean = { _tag: "Boolean" }
 
 function collectAnnotations(schema: JsonSchema.JsonSchema): Schema.Annotations.Annotations | undefined {
   const as: Record<string, unknown> = {}
