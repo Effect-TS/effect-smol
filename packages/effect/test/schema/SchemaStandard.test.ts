@@ -1994,7 +1994,7 @@ describe("Standard", () => {
   describe("toGeneration", () => {
     function assertToGeneration(schema: Schema.Top, expected: SchemaStandard.Generation) {
       const document = SchemaStandard.fromAST(schema.ast)
-      const generation = SchemaStandard.toGeneration(document)
+      const generation = SchemaStandard.toGeneration(document, { reviver: SchemaStandard.toCodeDefaultReviver })
       strictEqual(generation, expected)
     }
 
