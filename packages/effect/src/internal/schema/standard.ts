@@ -253,11 +253,11 @@ export function toJsonSchemaDocument(
   document: SchemaStandard.Document,
   options?: Schema.ToJsonSchemaOptions
 ): JsonSchema.Document<"draft-2020-12"> {
-  const { definitions, schemas, source } = toJsonSchemaMultiDocument({
+  const { definitions, dialect: source, schemas } = toJsonSchemaMultiDocument({
     schemas: [document.schema],
     definitions: document.definitions
   }, options)
-  return { source, schema: schemas[0], definitions }
+  return { dialect: source, schema: schemas[0], definitions }
 }
 
 /** @internal */
@@ -272,7 +272,7 @@ export function toJsonSchemaMultiDocument(
   const definitions = Rec.map(document.definitions, (d) => recur(d))
 
   return {
-    source: "draft-2020-12",
+    dialect: "draft-2020-12",
     schemas: Arr.map(document.schemas, (s) => {
       const js = recur(s)
       if (referenceStrategy === "skip-top-level" && typeof js.$ref === "string") {

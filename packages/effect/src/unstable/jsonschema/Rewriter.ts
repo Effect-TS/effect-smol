@@ -61,7 +61,7 @@ export const openAi: Rewriter = (document) => {
   ])
 
   return {
-    source: document.source,
+    dialect: document.dialect,
     schema: top(document.schema),
     definitions: Rec.map(document.definitions, recur)
   }

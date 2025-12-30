@@ -14,12 +14,7 @@ export interface JsonSchema {
 /**
  * @since 4.0.0
  */
-export type Target = "draft-07" | "draft-2020-12" | "openapi-3.1"
-
-/**
- * @since 4.0.0
- */
-export type Source = Target | "openapi-3.0"
+export type Dialect = "draft-07" | "draft-2020-12" | "openapi-3.1" | "openapi-3.0"
 
 /**
  * @since 4.0.0
@@ -41,8 +36,8 @@ export interface Definitions extends Record<string, JsonSchema> {}
  *
  * @since 4.0.0
  */
-export interface Document<S extends Source> {
-  readonly source: S
+export interface Document<D extends Dialect> {
+  readonly dialect: D
   readonly schema: JsonSchema
   readonly definitions: Definitions
 }
@@ -50,8 +45,8 @@ export interface Document<S extends Source> {
 /**
  * @since 4.0.0
  */
-export interface MultiDocument<S extends Source> {
-  readonly source: S
+export interface MultiDocument<D extends Dialect> {
+  readonly dialect: D
   readonly schemas: readonly [JsonSchema, ...Array<JsonSchema>]
   readonly definitions: Definitions
 }
@@ -78,7 +73,7 @@ export function fromSchemaDraft07(js: JsonSchema): Document<"draft-2020-12"> {
 
   const schema = walk(js, true) as JsonSchema
   return {
-    source: "draft-2020-12",
+    dialect: "draft-2020-12",
     schema,
     definitions: definitions ?? {}
   }
@@ -185,7 +180,7 @@ export function fromSchemaDraft07(js: JsonSchema): Document<"draft-2020-12"> {
 export function fromSchemaDraft2020_12(js: JsonSchema): Document<"draft-2020-12"> {
   const { $defs, ...schema } = js
   return {
-    source: "draft-2020-12",
+    dialect: "draft-2020-12",
     schema,
     definitions: Predicate.isObject($defs) ? ($defs as Definitions) : {}
   }
@@ -212,7 +207,7 @@ export function fromSchemaOpenApi3_0(schema: JsonSchema): Document<"draft-2020-1
  */
 export function toDocumentDraft07(document: Document<"draft-2020-12">): Document<"draft-07"> {
   return {
-    source: "draft-07",
+    dialect: "draft-07",
     schema: rewrite(document.schema),
     definitions: Rec.map(document.definitions, rewrite)
   }
@@ -320,7 +315,7 @@ export function toDocumentDraft07(document: Document<"draft-2020-12">): Document
  */
 export function toDocumentOpenApi3_1(document: Document<"draft-2020-12">): Document<"openapi-3.1"> {
   return {
-    source: "openapi-3.1",
+    dialect: "openapi-3.1",
     schema: rewrite(document.schema),
     definitions: Rec.map(document.definitions, rewrite)
   }

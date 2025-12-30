@@ -20,7 +20,7 @@ const InnerCategory = Schema.Struct({
 })
 
 describe("Standard", () => {
-  describe("fromJsonSchema", () => {
+  describe("fromJsonSchemaDocument", () => {
     function assertFromJsonSchema(
       schema: JsonSchema.JsonSchema,
       expected: {
@@ -146,7 +146,7 @@ describe("Standard", () => {
       )
     })
 
-    describe("string", () => {
+    describe("type: string", () => {
       it("type", () => {
         assertFromJsonSchema(
           { type: "string" },
@@ -158,7 +158,7 @@ describe("Standard", () => {
       })
     })
 
-    describe("number", () => {
+    describe("type: number", () => {
       it("type", () => {
         assertFromJsonSchema(
           { type: "number" },
@@ -170,7 +170,7 @@ describe("Standard", () => {
       })
     })
 
-    describe("integer", () => {
+    describe("type: integer", () => {
       it("type", () => {
         assertFromJsonSchema(
           { type: "integer" },
@@ -187,7 +187,7 @@ describe("Standard", () => {
       })
     })
 
-    describe("boolean", () => {
+    describe("type: boolean", () => {
       it("type", () => {
         assertFromJsonSchema(
           { type: "boolean" },
@@ -199,7 +199,7 @@ describe("Standard", () => {
       })
     })
 
-    describe("array", () => {
+    describe("type: array", () => {
       it("type", () => {
         assertFromJsonSchema(
           { type: "array" },
@@ -294,7 +294,7 @@ describe("Standard", () => {
       })
     })
 
-    describe("object", () => {
+    describe("type: object", () => {
       it("type", () => {
         assertFromJsonSchema(
           { type: "object" },
@@ -484,7 +484,7 @@ describe("Standard", () => {
     ) {
       const document = SchemaStandard.fromAST(schema.ast)
       const jd = SchemaStandard.toJson(document)
-      deepStrictEqual(jd, { source: "draft-2020-12", definitions: {}, ...expected })
+      deepStrictEqual(jd, { dialect: "draft-2020-12", definitions: {}, ...expected })
       deepStrictEqual(SchemaStandard.toJson(SchemaStandard.fromJson(jd)), jd)
     }
 
@@ -1493,7 +1493,7 @@ describe("Standard", () => {
       const multiDocument = SchemaStandard.fromASTs([a.ast, b.ast])
       const jsonMultiDocument = SchemaStandard.toJsonSchemaMultiDocument(multiDocument)
       deepStrictEqual(jsonMultiDocument, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schemas: [
           { "$ref": "#/$defs/id" },
           { "$ref": "#/$defs/id-1" }

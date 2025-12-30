@@ -1045,7 +1045,7 @@ const encodeSchema = Schema.encodeUnknownSync(schemaToCodecJson)
  */
 export function toJson(document: Document): JsonSchema.Document<"draft-2020-12"> {
   return {
-    source: "draft-2020-12",
+    dialect: "draft-2020-12",
     schema: encodeSchema(document.schema) as JsonSchema.JsonSchema,
     definitions: Rec.map(document.definitions, (d) => encodeSchema(d)) as JsonSchema.Definitions
   }

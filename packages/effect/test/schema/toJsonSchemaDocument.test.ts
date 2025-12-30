@@ -31,7 +31,7 @@ function assertDocument<T, E, RD>(
 ) {
   const document = Schema.toJsonSchemaDocument(schema, options)
   deepStrictEqual(document, {
-    source: "draft-2020-12",
+    dialect: "draft-2020-12",
     schema: expected.schema,
     definitions: expected.definitions ?? {}
   })
