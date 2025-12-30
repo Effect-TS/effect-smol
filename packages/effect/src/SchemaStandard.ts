@@ -382,9 +382,16 @@ export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMe
 /**
  * @since 4.0.0
  */
+export interface Definitions {
+  readonly [$ref: string]: Standard
+}
+
+/**
+ * @since 4.0.0
+ */
 export type Document = {
   readonly schema: Standard
-  readonly definitions: Record<string, Standard>
+  readonly definitions: Definitions
 }
 
 /**
@@ -392,7 +399,7 @@ export type Document = {
  */
 export type MultiDocument = {
   readonly schemas: readonly [Standard, ...Array<Standard>]
-  readonly definitions: Record<string, Standard>
+  readonly definitions: Definitions
 }
 
 // -----------------------------------------------------------------------------
@@ -2178,4 +2185,166 @@ const types = ["null", "string", "number", "integer", "boolean", "object", "arra
 
 function isType(type: unknown): type is JsonSchema.Type {
   return typeof type === "string" && types.includes(type)
+}
+
+/**
+ * @since 4.0.0
+ */
+export type TopologicalSort = {
+  /**
+   * The definitions that are not recursive.
+   * The definitions that depends on other definitions are placed after the definitions they depend on
+   */
+  readonly nonRecursives: ReadonlyArray<{
+    readonly $ref: string
+    readonly schema: Standard
+  }>
+  /**
+   * The recursive definitions (with no particular order).
+   */
+  readonly recursives: {
+    readonly [$ref: string]: Standard
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function topologicalSort(definitions: Definitions): TopologicalSort {
+  const identifiers = Object.keys(definitions)
+  const identifierSet = new Set(identifiers)
+
+  const collectRefs = (root: Standard): Set<string> => {
+    const refs = new Set<string>()
+    const visited = new WeakSet<object>()
+    const stack: Array<Standard> = [root]
+
+    while (stack.length > 0) {
+      const schema = stack.pop()!
+      if (visited.has(schema)) continue
+      visited.add(schema)
+
+      if (schema._tag === "Reference") {
+        if (identifierSet.has(schema.$ref)) {
+          refs.add(schema.$ref)
+        }
+      }
+
+      // Push nested Standard schemas onto the stack
+      switch (schema._tag) {
+        case "Declaration":
+          for (const typeParam of schema.typeParameters) stack.push(typeParam)
+          stack.push(schema.Encoded)
+          break
+        case "Suspend":
+          stack.push(schema.thunk)
+          break
+        case "String":
+          if (schema.contentSchema !== undefined) stack.push(schema.contentSchema)
+          break
+        case "TemplateLiteral":
+          for (const part of schema.parts) stack.push(part)
+          break
+        case "Arrays":
+          for (const element of schema.elements) stack.push(element.type)
+          for (const rest of schema.rest) stack.push(rest)
+          break
+        case "Objects":
+          for (const propertySignature of schema.propertySignatures) stack.push(propertySignature.type)
+          for (const indexSignature of schema.indexSignatures) {
+            stack.push(indexSignature.parameter)
+            stack.push(indexSignature.type)
+          }
+          break
+        case "Union":
+          for (const type of schema.types) stack.push(type)
+          break
+      }
+    }
+
+    return refs
+  }
+
+  // identifier -> internal identifiers it depends on
+  const dependencies = new Map<string, Set<string>>(
+    identifiers.map((id) => [id, collectRefs(definitions[id])])
+  )
+
+  // Mark only nodes that are part of cycles
+  const recursive = new Set<string>()
+  const state = new Map<string, 0 | 1 | 2>() // 0 = new, 1 = visiting, 2 = done
+  const stack: Array<string> = []
+  const indexInStack = new Map<string, number>()
+
+  const dfs = (id: string): void => {
+    const s = state.get(id) ?? 0
+    if (s === 1) {
+      const start = indexInStack.get(id)
+      if (start !== undefined) {
+        for (let i = start; i < stack.length; i++) {
+          recursive.add(stack[i])
+        }
+      }
+      return
+    }
+    if (s === 2) return
+
+    state.set(id, 1)
+    indexInStack.set(id, stack.length)
+    stack.push(id)
+
+    for (const dep of dependencies.get(id) ?? []) {
+      dfs(dep)
+    }
+
+    stack.pop()
+    indexInStack.delete(id)
+    state.set(id, 2)
+  }
+
+  for (const id of identifiers) dfs(id)
+
+  // Topologically sort the non-recursive nodes (ignoring edges to recursive nodes)
+  const inDegree = new Map<string, number>()
+  const dependents = new Map<string, Set<string>>() // dep -> nodes that depend on it
+
+  for (const id of identifiers) {
+    if (!recursive.has(id)) {
+      inDegree.set(id, 0)
+      dependents.set(id, new Set())
+    }
+  }
+
+  for (const [id, deps] of dependencies) {
+    if (recursive.has(id)) continue
+    for (const dep of deps) {
+      if (recursive.has(dep)) continue
+      inDegree.set(id, (inDegree.get(id) ?? 0) + 1)
+      dependents.get(dep)?.add(id)
+    }
+  }
+
+  const queue: Array<string> = []
+  for (const [id, deg] of inDegree) {
+    if (deg === 0) queue.push(id)
+  }
+
+  const nonRecursives: Array<{ readonly $ref: string; readonly schema: Standard }> = []
+  for (let i = 0; i < queue.length; i++) {
+    const $ref = queue[i]
+    nonRecursives.push({ $ref, schema: definitions[$ref] })
+
+    for (const next of dependents.get($ref) ?? []) {
+      const deg = (inDegree.get(next) ?? 0) - 1
+      inDegree.set(next, deg)
+      if (deg === 0) queue.push(next)
+    }
+  }
+
+  const recursives: Record<string, Standard> = {}
+  for (const $ref of recursive) {
+    recursives[$ref] = definitions[$ref]
+  }
+
+  return { nonRecursives, recursives }
 }
