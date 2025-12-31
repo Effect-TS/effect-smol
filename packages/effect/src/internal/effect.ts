@@ -4481,7 +4481,8 @@ export const makeSpanUnsafe = <XA, XE>(
       options?.services ?? ServiceMap.empty(),
       links,
       clock.currentTimeNanosUnsafe(),
-      options?.kind ?? "internal"
+      options?.kind ?? "internal",
+      options
     )
 
     for (const [key, value] of Object.entries(annotationsFromEnv)) {
