@@ -411,7 +411,7 @@ describe("Serializers", () => {
         )
         await encoding.fail(
           Symbol(),
-          "cannot serialize to string, Symbol has no description"
+          "cannot serialize to string, Symbol is not registered"
         )
 
         const decoding = asserts.decoding()
@@ -1677,7 +1677,7 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
         )
         await encoding.fail(
           Symbol(),
-          "cannot serialize to string, Symbol has no description"
+          "cannot serialize to string, Symbol is not registered"
         )
 
         const decoding = asserts.decoding()

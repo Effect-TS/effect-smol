@@ -2628,17 +2628,12 @@ const symbolToString = new Link(
   new Transformation.Transformation(
     Getter.transform((description) => globalThis.Symbol.for(isSymbolStringRegExp.exec(description)![1])),
     Getter.transformOrFail((sym: symbol) => {
-      const description = sym.description
-      if (description !== undefined) {
-        if (globalThis.Symbol.for(description) === sym) {
-          return Effect.succeed(globalThis.String(sym))
-        }
-        return Effect.fail(
-          new Issue.Forbidden(Option.some(sym), { message: "cannot serialize to string, Symbol is not registered" })
-        )
+      const key = globalThis.Symbol.keyFor(sym)
+      if (key !== undefined) {
+        return Effect.succeed(globalThis.String(sym))
       }
       return Effect.fail(
-        new Issue.Forbidden(Option.some(sym), { message: "cannot serialize to string, Symbol has no description" })
+        new Issue.Forbidden(Option.some(sym), { message: "cannot serialize to string, Symbol is not registered" })
       )
     })
   )
