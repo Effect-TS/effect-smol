@@ -1141,13 +1141,13 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
     return slot
   }
 
-  function resolveReference(identifier: string): Schema.Top {
-    const definition = document.definitions[identifier]
+  function resolveReference($ref: string): Schema.Top {
+    const definition = document.definitions[$ref]
     if (definition === undefined) {
-      throw new Error(`Reference to unknown schema: ${identifier}`)
+      return Schema.Unknown
     }
 
-    const slot = getSlot(identifier)
+    const slot = getSlot($ref)
 
     if (slot.state === 2) {
       // Already built: return the built schema directly
@@ -1464,16 +1464,20 @@ export function toGeneration(document: Document, options?: {
   const visited = new Set<string>()
 
   if (s._tag === "Reference") {
-    return resolveRef(s.$ref)
+    return resolveReference(s.$ref)
   }
   return recur(s)
 
-  function resolveRef(ref: string): Generation {
-    if (visited.has(ref)) {
-      return makeGeneration(ref, ref, `${ref}Encoded`)
+  function resolveReference($ref: string): Generation {
+    if (visited.has($ref)) {
+      return makeGeneration($ref, $ref, `${$ref}Encoded`)
     }
-    visited.add(ref)
-    return recur(document.definitions[ref])
+    visited.add($ref)
+    const definition = document.definitions[$ref]
+    if (definition === undefined) {
+      return makeGeneration("Schema.Unknown", "unknown")
+    }
+    return recur(document.definitions[$ref])
   }
 
   function recur(s: Standard): Generation {
@@ -1900,7 +1904,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
     const annotations = collectAnnotations(js)
     if (annotations !== undefined) {
       if (out._tag === "Reference") {
-        const b = resolveRef(out.$ref)
+        const b = resolveReference(out.$ref)
         out = { ...b, ...combineAnnotations(b.annotations, annotations) }
       } else {
         out = { ...out, annotations }
@@ -1999,7 +2003,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
         return a
       case "Unknown": {
         if (b._tag === "Reference") {
-          b = resolveRef(b.$ref)
+          b = resolveReference(b.$ref)
         }
         return { ...b, ...combineAnnotations(a.annotations, b.annotations) }
       }
@@ -2011,7 +2015,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -2028,7 +2032,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -2045,7 +2049,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -2058,7 +2062,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -2073,7 +2077,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -2092,7 +2096,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -2111,7 +2115,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -2126,7 +2130,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
         }
       }
       case "Reference":
-        return combine(resolveRef(a.$ref), b)
+        return combine(resolveReference(a.$ref), b)
     }
   }
 
@@ -2161,11 +2165,11 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
     return out
   }
 
-  function resolveRef(ref: string): Exclude<Standard, { _tag: "Reference" }> {
-    const definition = definitions[ref]
+  function resolveReference($ref: string): Exclude<Standard, { _tag: "Reference" }> {
+    const definition = definitions[$ref]
     if (definition !== undefined) {
       if (definition._tag === "Reference") {
-        return resolveRef(definition.$ref)
+        return resolveReference(definition.$ref)
       } else {
         return definition
       }

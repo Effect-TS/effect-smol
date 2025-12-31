@@ -2779,11 +2779,28 @@ describe("Standard", () => {
   describe("toSchema", () => {
     function assertToSchema(schema: Schema.Top) {
       const document = SchemaStandard.fromAST(schema.ast)
-      deepStrictEqual(SchemaStandard.fromAST(SchemaStandard.toSchema(document).ast), document)
+      const roundtrip = SchemaStandard.fromAST(SchemaStandard.toSchema(document).ast)
+      deepStrictEqual(roundtrip, document)
     }
 
-    it("String", () => {
-      assertToSchema(Schema.String)
+    describe("String", () => {
+      it("String", () => {
+        assertToSchema(Schema.String)
+      })
+
+      it("String & check", () => {
+        assertToSchema(Schema.String.check(Schema.isMinLength(1)))
+      })
+
+      describe("checks", () => {
+        it("isTrimmed", () => {
+          assertToSchema(Schema.String.check(Schema.isTrimmed()))
+        })
+
+        it("isULID", () => {
+          assertToSchema(Schema.String.check(Schema.isULID()))
+        })
+      })
     })
 
     it("Struct", () => {
