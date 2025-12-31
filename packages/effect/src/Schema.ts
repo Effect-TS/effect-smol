@@ -8297,13 +8297,13 @@ export declare namespace Annotations {
     readonly toArbitrary?: ToArbitrary.Declaration<T, TypeParameters> | undefined
     readonly toEquivalence?: ToEquivalence.Declaration<T, TypeParameters> | undefined
     readonly toFormatter?: ToFormatter.Declaration<T, TypeParameters> | undefined
+    readonly typeConstructor?: { readonly _tag: string } | undefined
     /**
      * Used to collect sentinels from a Declaration AST.
      *
      * @internal
      */
     readonly "~sentinels"?: ReadonlyArray<AST.Sentinel> | undefined
-    readonly typeConstructor?: { readonly _tag: string } | undefined
   }
 
   /**
