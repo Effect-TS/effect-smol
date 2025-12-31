@@ -12,7 +12,7 @@ import { formatJson } from "../Formatter.ts"
 import type { LazyArg } from "../Function.ts"
 import { constant, constFalse, constTrue, constUndefined, constVoid, dual, identity } from "../Function.ts"
 import * as Hash from "../Hash.ts"
-import { toJson } from "../Inspectable.ts"
+import { toJson, toStringUnknown } from "../Inspectable.ts"
 import type * as Logger from "../Logger.ts"
 import type * as LogLevel from "../LogLevel.ts"
 import type * as Metric from "../Metric.ts"
@@ -4914,7 +4914,7 @@ export const logLevelGreaterThan = Order.greaterThan(LogLevelOrder)
 export const CurrentLoggers = ServiceMap.Reference<
   ReadonlySet<Logger.Logger<unknown, any>>
 >("effect/Loggers/CurrentLoggers", {
-  defaultValue: () => new Set([defaultLogger])
+  defaultValue: () => new Set([defaultLogger, tracerLogger])
 })
 
 /** @internal */
@@ -5235,6 +5235,28 @@ export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, lo
   const console = fiber.getRef(ConsoleRef)
   const log = fiber.getRef(LogToStderr) ? console.error : console.log
   log(`[${defaultDateFormat(date)}] ${logLevel.toUpperCase()} (#${fiber.id})${spanString}:`, ...message_)
+})
+
+/** @internal */
+export const tracerLogger = loggerMake<unknown, void>(({ cause, fiber, logLevel, message }) => {
+  const clock = fiber.getRef(ClockRef)
+  const annotations = fiber.getRef(CurrentLogAnnotations)
+  const span = fiber.currentSpan
+  if (span === undefined || span._tag === "ExternalSpan") return
+  const attributes: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(annotations)) {
+    attributes[key] = value
+  }
+  attributes["effect.fiberId"] = fiber.id
+  attributes["effect.logLevel"] = logLevel.toUpperCase()
+  if (cause.failures.length > 0) {
+    attributes["effect.cause"] = causePretty(cause)
+  }
+  span.event(
+    toStringUnknown(Array.isArray(message) && message.length === 1 ? message[0] : message),
+    clock.currentTimeNanosUnsafe(),
+    attributes
+  )
 })
 
 /** @internal */
