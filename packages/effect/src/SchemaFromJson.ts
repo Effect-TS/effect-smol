@@ -602,6 +602,7 @@ function makePatternFilter(pattern: string): StringFilter {
 
 function isValidRegExp(source: string): boolean {
   try {
+    // oxlint-disable-next-line no-new
     new RegExp(source)
     return true
   } catch {

@@ -837,6 +837,7 @@ export class Number extends Base {
   }
 }
 
+// oxlint-disable-next-line only-used-in-recursion - @gcanti what's this? :-)
 function hasCheck(checks: ReadonlyArray<Check<unknown>>, tag: string): boolean {
   return checks.some((c) => {
     switch (c._tag) {

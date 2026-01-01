@@ -1,3 +1,5 @@
+/* oxlint-disable no-named-as-default */
+
 /**
  * @since 1.0.0
  */

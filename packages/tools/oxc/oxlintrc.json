@@ -1,94 +1,53 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
   "plugins": ["typescript", "import", "oxc", "eslint", "unicorn", "node"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
   "rules": {
-    // ============================================================================
-    // CORE ESLINT RULES
-    // ============================================================================
-
-    "eslint/no-empty": "error",
-    "eslint/no-console": "error",
-    "eslint/no-var": "error",
-    "eslint/no-case-declarations": "error",
-    "eslint/no-regex-spaces": "error",
-    "eslint/no-prototype-builtins": "error",
-    "eslint/no-misleading-character-class": "error",
-    "eslint/no-unexpected-multiline": "error",
-    "eslint/no-useless-catch": "error",
-    "eslint/no-useless-escape": "error",
-    "eslint/no-useless-backreference": "error",
-    "eslint/no-unsafe-optional-chaining": "error",
-    "eslint/no-constant-binary-expression": "error",
-    "eslint/no-global-assign": "error",
-    "eslint/no-delete-var": "error",
-    "eslint/no-nonoctal-decimal-escape": "error",
-
-    // Disabled: Effect uses intentional fallthrough in pattern matching
-    "eslint/no-fallthrough": "off",
-    // Disabled: Some Effect code uses irregular whitespace intentionally
-    "eslint/no-irregular-whitespace": "off",
-    // Disabled: Replaced by custom effect/object-shorthand rule
+    // Effect custom rules
+    "effect/no-import-from-barrel-package": "error",
+    "effect/no-opaque-instance-fields": "error",
+    // Tune native rules
+    "oxc/no-map-spread": "off",
     "eslint/object-shorthand": "off",
-    // Disabled: Using typescript/no-unused-vars instead
     "eslint/no-unused-vars": "off",
-    // Disabled: Effect generators don't always yield
     "eslint/require-yield": "off",
-
-    // ============================================================================
-    // UNICORN RULES
-    // ============================================================================
-
-    // Disabled: We use this a ton
+    "eslint/no-fallthrough": "off",
+    "eslint/no-await-in-loop": "off",
     "unicorn/no-new-array": "off",
-
-    // ============================================================================
-    // IMPORT RULES
-    // ============================================================================
-
-    "import/first": "error",
-    "import/no-duplicates": "error",
-
-    // ============================================================================
-    // TYPESCRIPT RULES
-    // ============================================================================
-
-    "typescript/array-type": ["warn", { "default": "generic", "readonly": "generic" }],
-    "typescript/consistent-type-imports": "warn",
-    "typescript/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
-    "typescript/no-extraneous-class": "error",
-    "typescript/no-require-imports": "error",
-    "typescript/no-unnecessary-type-constraint": "error",
-    "typescript/prefer-literal-enum-member": "error",
-    "typescript/prefer-namespace-keyword": "error",
-    "typescript/no-non-null-asserted-nullish-coalescing": "error",
-    "typescript/no-useless-constructor": "error",
-    "typescript/triple-slash-reference": "error",
-
-    // Disabled: Effect extensively uses any for advanced type-level programming
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/no-array-sort": "off",
+    "unicorn/no-array-reverse": "off",
+    "unicorn/require-post-message-target-origin": "off",
+    "unicorn/prefer-add-event-listener": "off",
+    "unicorn/prefer-set-has": "off",
     "typescript/no-explicit-any": "off",
-    // Disabled: Effect uses empty interfaces for module augmentation
     "typescript/no-empty-interface": "off",
-    // Disabled: Some ts-expect-error comments are necessary
     "typescript/ban-ts-comment": "off",
-    // Disabled: Effect uses namespaces for API organization
     "typescript/no-namespace": "off",
-    // Disabled: Effect uses non-null assertions in performance-critical code
     "typescript/no-non-null-assertion": "off",
-    // Disabled: Effect uses dynamic delete in internal implementations
     "typescript/no-dynamic-delete": "off",
-    // Disabled: Effect uses void in complex type signatures
     "typescript/no-invalid-void-type": "off",
-    // Disabled: Effect uses Function type for callbacks
     "typescript/no-unsafe-function-type": "off",
-    // Disabled: Effect uses method overloading intentionally
     "typescript/unified-signatures": "off",
-    // Disabled: Effect uses empty object types for type-level programming
     "typescript/no-empty-object-type": "off",
-  
-    // ============================================================================
-    // EFFECT RULES
-    // ============================================================================
-  
-    "effect/no-opaque-instance-fields": "error"
+    "typescript/no-confusing-non-null-assertion": "off",
+    "typescript/array-type": [
+      "error",
+      {
+        "default": "generic",
+        "readonly": "generic"
+      }
+    ],
+    "typescript/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ]
   }
 }

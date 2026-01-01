@@ -2070,7 +2070,7 @@ const renderChoiceDescription = <A>(
   isActive: boolean
 ) => {
   if (!choice.disabled && choice.description && isActive) {
-    return Ansi.annotate("-" + " " + choice.description, Ansi.blackBright)
+    return Ansi.annotate("- " + choice.description, Ansi.blackBright)
   }
   return ""
 }

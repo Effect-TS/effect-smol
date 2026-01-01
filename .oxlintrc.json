@@ -7,9 +7,20 @@
   ],
   "overrides": [
     {
-      "files": ["packages/*/benchmark/**/*.ts", "{bundle,examples,scripts}/**/*.{mjs,ts}"],
+      "files": [
+        "{bundle,scripts}/**/*.{mjs,ts}",
+      ],
       "rules": {
         "eslint/no-console": "off"
+      }
+    },
+    {
+      "files": [
+        "**/{test,dtslint,examples,benchmark}/**"
+      ],
+      "rules": {
+        "eslint/no-console": "off",
+        "effect/no-import-from-barrel-package": "off"
       }
     }
   ]

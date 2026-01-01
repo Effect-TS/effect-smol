@@ -61,6 +61,7 @@ bench
     iso.replace("Updated", user)
   })
   .add("direct replace", function() {
+    // oxlint-disable-next-line no-new
     new User({
       ...user,
       profile: {
