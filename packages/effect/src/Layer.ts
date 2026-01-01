@@ -20,16 +20,19 @@
 import type { NonEmptyArray } from "./Array.ts"
 import type * as Cause from "./Cause.ts"
 import * as Deferred from "./Deferred.ts"
-import type { Effect } from "./Effect.ts"
+import { type Effect } from "./Effect.ts"
 import type * as Exit from "./Exit.ts"
 import type { LazyArg } from "./Function.ts"
-import { constant, constTrue, dual, identity } from "./Function.ts"
+import { constant, constTrue, constUndefined, dual, identity } from "./Function.ts"
 import * as internalEffect from "./internal/effect.ts"
 import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
+import * as internalTracer from "./internal/tracer.ts"
 import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
+import { CurrentStackFrame } from "./References.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
+import * as Tracer from "./Tracer.ts"
 import type * as Types from "./Types.ts"
 
 const TypeId = "~effect/Layer"
@@ -1794,3 +1797,324 @@ export const satisfiesErrorType =
  */
 export const satisfiesServicesType =
   <RIn>() => <ROut, E, RIn2 extends RIn>(layer: Layer<ROut, E, RIn2>): Layer<ROut, E, RIn2> => layer
+
+// -----------------------------------------------------------------------------
+// Tracing
+// -----------------------------------------------------------------------------
+
+/**
+ * Represents options that can be passed to `Layer.withSpan` to control the
+ * behavior of the span created for the layer.
+ *
+ * @since 4.0.0
+ * @category Models
+ */
+export interface SpanOptions extends Tracer.SpanOptions {
+  /**
+   * A function that will be called when the span associated with the layer is
+   * ending (i.e. when the `Scope` that the span is associated with is closed).
+   */
+  readonly onEnd?:
+    | ((span: Tracer.Span, exit: Exit.Exit<unknown, unknown>) => Effect<void>)
+    | undefined
+}
+
+/**
+ * Constructs a new `Layer` which creates a new span and registers it as the
+ * current parent span.
+ *
+ * This allows you to create a traced scope for layer construction, making all
+ * operations within the layer constructor part of the same trace span. The span
+ * is automatically closed when the layer's scope is closed.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Layer, ServiceMap } from "effect"
+ *
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
+ *
+ * // Create a traced layer - all operations performed during construction of
+ * // the `Database` service are part of the "database-init" span
+ * const databaseLayer = Layer.effect(Database, Effect.gen(function*() {
+ *   // These operations are traced under "database-init" span
+ *   yield* Effect.log("Connecting to database")
+ *   yield* Effect.sleep("100 millis")
+ *   yield* Effect.log("Database connected")
+ *
+ *   const parentSpan = yield* Effect.currentParentSpan
+ *   yield* Console.log(parentSpan.name) // "database-init"
+ *
+ *   return {
+ *     query: (sql: string) => Effect.succeed(`Result: ${sql}`)
+ *   }
+ * })).pipe(Layer.provide(Layer.span("database-init")))
+ *
+ * // Can also use the `onEnd` callback to execute logic when the span ends
+ * const tracedLayer = Layer.span("service-initialization", {
+ *   attributes: { version: "1.0.0" },
+ *   onEnd: (span, exit) =>
+ *     Effect.sync(() => {
+ *       console.log(`Span ${span.name} ended with:`, exit._tag)
+ *     })
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category tracing
+ */
+export const span = (
+  name: string,
+  options?: SpanOptions
+): Layer<Tracer.ParentSpan> => {
+  options = internalTracer.addSpanStackTrace(options)
+  return effect(
+    Tracer.ParentSpan,
+    options?.onEnd
+      ? internalEffect.tap(
+        internalEffect.makeSpanScoped(name, options),
+        (span) => internalEffect.addFinalizer((exit) => options.onEnd!(span, exit))
+      )
+      : internalEffect.makeSpanScoped(name, options)
+  )
+}
+
+/**
+ * Constructs a new `Layer` which takes an existing span and registers it as the
+ * current parent span.
+ *
+ * This allows you to create a traced scope for layer construction, making all
+ * operations within the layer constructor part of the same trace span. The span
+ * is automatically closed when the layer's scope is closed.
+ *
+ * @example
+ * ```ts
+ * import { Console, Effect, Layer, ServiceMap, Tracer } from "effect"
+ *
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
+ *
+ * // Create a layer that uses an existing span as parent
+ * const databaseLayer = Layer.effect(
+ *   Database,
+ *   Effect.gen(function*() {
+ *     yield* Effect.log("Initializing database")
+ *
+ *     const parentSpan = yield* Effect.currentParentSpan
+ *     yield* Console.log(parentSpan.spanId) // "42"
+ *
+ *     return {
+ *       query: (sql: string) => Effect.succeed(`Result: ${sql}`)
+ *     }
+ *   })
+ * ).pipe(Layer.provide(Layer.parentSpan(Tracer.externalSpan({
+ *   spanId: "42",
+ *   traceId: "000"
+ * }))))
+ * ```
+ *
+ * @since 4.0.0
+ * @category tracing
+ */
+export const parentSpan = (span: Tracer.AnySpan): Layer<Tracer.ParentSpan> =>
+  succeedServices(Tracer.ParentSpan.serviceMap(span))
+
+/**
+ * Wraps a Layer with a new tracing span, making all operations in the layer
+ * constructor part of the named trace span.
+ *
+ * This creates a new span for the layer's construction and execution. The span
+ * is automatically ended when the layer's scope is closed. This is useful for
+ * tracking the lifecycle and performance of layer initialization.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Layer, ServiceMap } from "effect"
+ *
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
+ *
+ * class Logger extends ServiceMap.Service<Logger, {
+ *   readonly log: (msg: string) => Effect.Effect<void>
+ * }>()("Logger") {}
+ *
+ * // Create layers with tracing
+ * const databaseLayer = Layer.effect(Database, Effect.gen(function*() {
+ *   yield* Effect.log("Connecting to database")
+ *   yield* Effect.sleep("100 millis")
+ *   return {
+ *     query: (sql: string) => Effect.succeed(`Result: ${sql}`)
+ *   }
+ * })).pipe(Layer.withSpan("database-initialization", {
+ *   attributes: { dbType: "postgres" }
+ * }))
+ *
+ * const loggerLayer = Layer.succeed(Logger, {
+ *   log: (msg: string) => Effect.sync(() => console.log(msg))
+ * }).pipe(Layer.withSpan("logger-initialization"))
+ *
+ * // Combine traced layers
+ * const appLayer = Layer.mergeAll(databaseLayer, loggerLayer).pipe(
+ *   Layer.withSpan("app-initialization", {
+ *     onEnd: (span, exit) =>
+ *       Effect.sync(() => {
+ *         console.log(`Application initialization completed: ${exit._tag}`)
+ *       })
+ *   })
+ * )
+ *
+ * const program = Effect.gen(function*() {
+ *   const database = yield* Database
+ *   const logger = yield* Logger
+ *
+ *   yield* logger.log("Application ready")
+ *   return yield* database.query("SELECT * FROM users")
+ * }).pipe(Effect.provide(appLayer)
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category tracing
+ */
+export const withSpan: {
+  (
+    name: string,
+    options?: SpanOptions
+  ): <A, E, R>(
+    self: Layer<A, E, R>
+  ) => Layer<A, E, Exclude<R, Tracer.ParentSpan>>
+  <A, E, R>(
+    self: Layer<A, E, R>,
+    name: string,
+    options?: SpanOptions
+  ): Layer<A, E, Exclude<R, Tracer.ParentSpan>>
+} = function() {
+  const dataFirst = typeof arguments[0] !== "string"
+  const name = dataFirst ? arguments[1] : arguments[0]
+  const options = internalTracer.addSpanStackTrace(dataFirst ? arguments[2] : arguments[1]) as SpanOptions
+  if (dataFirst) {
+    const self = arguments[0]
+    return unwrap(
+      internalEffect.map(
+        options?.onEnd !== undefined
+          ? internalEffect.tap(
+            internalEffect.makeSpanScoped(name, options),
+            (span) => internalEffect.addFinalizer((exit) => options.onEnd!(span, exit))
+          )
+          : internalEffect.makeSpanScoped(name, options),
+        (span) => withParentSpan(self, span)
+      )
+    )
+  }
+  return (self: Layer<any, any, any>) =>
+    unwrap(
+      internalEffect.map(
+        options?.onEnd !== undefined
+          ? internalEffect.tap(
+            internalEffect.makeSpanScoped(name, options),
+            (span) => internalEffect.addFinalizer((exit) => options.onEnd!(span, exit))
+          )
+          : internalEffect.makeSpanScoped(name, options),
+        (span) => withParentSpan(self, span)
+      )
+    )
+} as any
+
+/**
+ * Wraps a `Layer` with a new tracing span and sets the span as the parent span.
+ *
+ * This attaches a layer to an existing trace span, making all operations within
+ * the layer children of the provided parent span. This is useful for integrating
+ * layer construction into an existing trace hierarchy.
+ *
+ * @example
+ * ```ts
+ * import { Effect, Layer, ServiceMap, Tracer } from "effect"
+ *
+ * class Database extends ServiceMap.Service<Database, {
+ *   readonly query: (sql: string) => Effect.Effect<string>
+ * }>()("Database") {}
+ *
+ * class Cache extends ServiceMap.Service<Cache, {
+ *   readonly get: (key: string) => Effect.Effect<string | null>
+ * }>()("Cache") {}
+ *
+ * // Create layers
+ * const DatabaseLayer = Layer.effect(Database, Effect.gen(function*() {
+ *   yield* Effect.log("Connecting to database")
+ *   return {
+ *     query: (sql: string) => Effect.succeed(`DB: ${sql}`)
+ *   }
+ * }))
+ *
+ * const CacheLayer = Layer.effect(Cache, Effect.gen(function*() {
+ *   yield* Effect.log("Connecting to cache")
+ *   return {
+ *     get: (key: string) => Effect.succeed(`Cache: ${key}`)
+ *   }
+ * }))
+ *
+ * // Use with an existing parent span from Effect.withSpan
+ * const program = Effect.withSpan("application-startup")(
+ *   Effect.gen(function*() {
+ *     const parentSpan = yield* Tracer.ParentSpan
+ *
+ *     // Both layers will be children of "application-startup" span
+ *     const AppLayer = Layer.mergeAll(DatabaseLayer, CacheLayer).pipe(
+ *       Layer.withParentSpan(parentSpan)
+ *     )
+ *
+ *     const services = yield* Layer.build(AppLayer)
+ *     const database = ServiceMap.get(services, Database)
+ *     const cache = ServiceMap.get(services, Cache)
+ *
+ *     const dbResult = yield* database.query("SELECT * FROM users")
+ *     const cacheResult = yield* cache.get("user:123")
+ *
+ *     return { dbResult, cacheResult }
+ *   })
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category tracing
+ */
+export const withParentSpan: {
+  (
+    span: Tracer.AnySpan,
+    options?: Tracer.TraceOptions
+  ): <A, E, R>(
+    self: Layer<A, E, R>
+  ) => Layer<A, E, Exclude<R, Tracer.ParentSpan>>
+  <A, E, R>(
+    self: Layer<A, E, R>,
+    span: Tracer.AnySpan,
+    options?: Tracer.TraceOptions
+  ): Layer<A, E, Exclude<R, Tracer.ParentSpan>>
+} = function() {
+  const dataFirst = isLayer(arguments[0])
+  const span: Tracer.AnySpan = dataFirst ? arguments[1] : arguments[0]
+  let options = dataFirst ? arguments[2] : arguments[1]
+  let provideStackFrame: <A, E, R>(self: Layer<A, E, R>) => Layer<A, E, R> = identity
+  if (span._tag === "Span") {
+    options = internalTracer.addSpanStackTrace(options)
+    provideStackFrame = provideSpanStackFrame(span.name, options?.captureStackTrace)
+  }
+  const parentSpanLayer = parentSpan(span)
+  if (dataFirst) {
+    return provide(provideStackFrame(arguments[0]), parentSpanLayer)
+  }
+  return (self: Layer<any, any, any>) => provide(provideStackFrame(self), parentSpanLayer)
+} as any
+
+const provideSpanStackFrame = (name: string, stack: (() => string | undefined) | undefined) => {
+  stack = typeof stack === "function" ? stack : constUndefined
+  return updateService(CurrentStackFrame, (parent) => ({
+    name,
+    stack,
+    parent
+  }))
+}
