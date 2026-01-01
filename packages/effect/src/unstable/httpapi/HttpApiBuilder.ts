@@ -80,7 +80,6 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
       if (groupRoutes === undefined) {
         return yield* Effect.die(`HttpApiGroup "${group.key}" not found`)
       }
-      // oxlint-disable-next-line effect/no-spread-in-push
       routes.push(...groupRoutes)
     }
     yield* (router.addAll(routes) as Effect.Effect<void>)

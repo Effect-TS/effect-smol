@@ -141,7 +141,6 @@ export const ndJsonRpc = (options?: {
           const messages: Array<RpcMessage.FromClientEncoded | RpcMessage.FromServerEncoded> = []
           for (let i = 0; i < frames.length; i++) {
             const frame = frames[i]
-            // oxlint-disable-next-line effect/no-spread-in-push
             messages.push(...decodeJsonRpcRaw(frame as any, batches) as any)
           }
           return messages

@@ -1017,7 +1017,6 @@ export const collect = <A, E>(self: Dequeue<A, E | Done>): Effect<Array<A>, Excl
           while: constTrue,
           body: constant(takeAll(self)),
           step(items: Arr.NonEmptyArray<A>) {
-            // oxlint-disable-next-line effect/no-spread-in-push
             out.push(...items)
           }
         }),

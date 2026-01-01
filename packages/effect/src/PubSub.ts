@@ -1223,7 +1223,6 @@ const takeRemainderLoop = <A>(
     return Effect.succeed(acc)
   }
   return Effect.flatMap(takeUpTo(self, max), (bs) => {
-    // oxlint-disable-next-line effect/no-spread-in-push
     acc.push(...bs)
     const remaining = min - bs.length
     if (remaining === 1) {

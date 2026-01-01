@@ -4040,7 +4040,6 @@ export const rechunk: {
             if (chunk.length === 0 && arr.length === target) {
               return Effect.succeed(arr)
             } else if (chunk.length + arr.length < target) {
-              // oxlint-disable-next-line effect/no-spread-in-push
               chunk.push(...arr)
               return loop()
             }
@@ -4321,7 +4320,6 @@ export const mapAccum: {
       for (let index = 0; index < arr.length; index++) {
         const [newState, values] = f(state, arr[index])
         state = newState
-        // oxlint-disable-next-line effect/no-spread-in-push
         acc.push(...values)
       }
       return [state, Arr.isArrayNonEmpty(acc) ? Arr.of(acc) : emptyArr]

@@ -142,7 +142,6 @@ const SpanProto = {
     this.events.push([name, startTime, attributes])
   },
   addLinks(this: SpanImpl, links: ReadonlyArray<Tracer.SpanLink>) {
-    // oxlint-disable-next-line effect/no-spread-in-push
     this.links.push(...links)
   }
 }

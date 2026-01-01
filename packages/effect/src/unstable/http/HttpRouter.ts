@@ -837,7 +837,6 @@ class MiddlewareImpl<
         const memoMap = yield* Layer.CurrentMemoMap
         const scope = ServiceMap.get(context, Scope.Scope)
         const depsContext = yield* Layer.buildWithMemoMap(this.dependencies, memoMap, scope)
-        // oxlint-disable-next-line effect/no-spread-in-push
         stack.push(...getMiddleware(depsContext))
       }
       return ServiceMap.makeUnsafe<never>(new Map([[contextKey, stack]]))

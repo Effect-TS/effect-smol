@@ -29,7 +29,6 @@ export class Collector extends ServiceMap.Service<Collector, {
 export const makeCollectorUnsafe = (): Collector["Service"] => {
   let tranferables: Array<globalThis.Transferable> = []
   const unsafeAddAll = (transfers: Iterable<globalThis.Transferable>): void => {
-    // oxlint-disable-next-line effect/no-spread-in-push
     tranferables.push(...transfers)
   }
   const unsafeRead = (): Array<globalThis.Transferable> => tranferables

@@ -531,7 +531,6 @@ export const statement = <A = Row>(
     const arg = args[i]
 
     if (isFragment(arg)) {
-      // oxlint-disable-next-line effect/no-spread-in-push
       segments.push(...arg.segments)
     } else if (isSegment(arg)) {
       segments.push(arg)
