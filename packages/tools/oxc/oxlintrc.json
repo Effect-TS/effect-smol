@@ -89,10 +89,6 @@
     // EFFECT RULES
     // ============================================================================
   
-    "effect/sort-destructure-keys": "error",
-    "effect/no-opaque-instance-fields": "error",
-    "effect/no-spread-in-push": "error",
-    "effect/newline-after-import": "error",
-    "effect/object-shorthand": "error"
+    "effect/no-opaque-instance-fields": "error"
   }
 }

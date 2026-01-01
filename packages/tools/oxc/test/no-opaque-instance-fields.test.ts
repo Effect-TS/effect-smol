@@ -1,6 +1,6 @@
 import rule from "@effect/oxc/oxlint/rules/no-opaque-instance-fields"
 import { describe, expect, it } from "vitest"
-import { runRule } from "./test-utils.ts"
+import { runRule } from "./utils.ts"
 
 describe("no-opaque-instance-fields", () => {
   const createSchemaOpaqueClass = (members: Array<{ type: string; static: boolean }>) => ({
