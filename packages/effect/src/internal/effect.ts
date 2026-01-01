@@ -31,7 +31,8 @@ import {
   type StackFrame,
   TracerEnabled,
   TracerSpanAnnotations,
-  TracerSpanLinks
+  TracerSpanLinks,
+  TracerTimingEnabled
 } from "../References.ts"
 import * as Result from "../Result.ts"
 import * as Scheduler from "../Scheduler.ts"
@@ -4406,6 +4407,12 @@ export const withTracerEnabled: {
   <A, E, R>(effect: Effect.Effect<A, E, R>, enabled: boolean): Effect.Effect<A, E, R>
 } = provideService(TracerEnabled)
 
+/** @internal */
+export const withTracerTiming: {
+  (enabled: boolean): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
+  <A, E, R>(effect: Effect.Effect<A, E, R>, enabled: boolean): Effect.Effect<A, E, R>
+} = provideService(TracerTimingEnabled)
+
 const bigint0 = BigInt(0)
 
 const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "services"> = {
@@ -4468,6 +4475,7 @@ export const makeSpanUnsafe = <XA, XE>(
   } else {
     const tracer = fiber.getRef(Tracer.Tracer)
     const clock = fiber.getRef(ClockRef)
+    const timingEnabled = fiber.getRef(TracerTimingEnabled)
     const annotationsFromEnv = fiber.getRef(TracerSpanAnnotations)
     const linksFromEnv = fiber.getRef(TracerSpanLinks)
 
@@ -4480,7 +4488,7 @@ export const makeSpanUnsafe = <XA, XE>(
       parent,
       options?.services ?? ServiceMap.empty(),
       links,
-      clock.currentTimeNanosUnsafe(),
+      timingEnabled ? clock.currentTimeNanosUnsafe() : 0n,
       options?.kind ?? "internal",
       options
     )
@@ -4514,8 +4522,9 @@ export const makeSpanScoped = (
       const scope = ServiceMap.getUnsafe(fiber.services, scopeTag)
       const span = makeSpanUnsafe(fiber, name, options ?? {})
       const clock = fiber.getRef(ClockRef)
+      const timingEnabled = fiber.getRef(TracerTimingEnabled)
       return as(
-        scopeAddFinalizerExit(scope, (exit) => endSpan(span, exit, clock)),
+        scopeAddFinalizerExit(scope, (exit) => endSpan(span, exit, clock, timingEnabled)),
         span
       )
     })
@@ -4587,10 +4596,15 @@ export const linkSpans: {
 })
 
 /** @internal */
-export const endSpan = <A, E>(span: Tracer.Span, exit: Exit.Exit<A, E>, clock: Clock.Clock) =>
+export const endSpan = <A, E>(
+  span: Tracer.Span,
+  exit: Exit.Exit<A, E>,
+  clock: Clock.Clock,
+  timingEnabled: boolean
+) =>
   sync(() => {
     if (span.status._tag === "Ended") return
-    span.end(clock.currentTimeNanosUnsafe(), exit)
+    span.end(timingEnabled ? clock.currentTimeNanosUnsafe() : bigint0, exit)
   })
 
 /** @internal */

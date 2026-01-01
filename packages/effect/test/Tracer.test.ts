@@ -187,6 +187,32 @@ describe("Tracer", () => {
       }))
   })
 
+  describe("Effect.withTracerTiming", () => {
+    it.effect("should include timing information in spans when true", () =>
+      Effect.gen(function*() {
+        yield* TestClock.adjust("1 millis")
+
+        const span = yield* Effect.currentSpan.pipe(
+          Effect.withSpan("A"),
+          Effect.withTracerTiming(true) // default
+        )
+
+        strictEqual(span.status.startTime, 1_000_000n)
+      }))
+
+    it.effect("should not include timing information in spans when false", () =>
+      Effect.gen(function*() {
+        yield* TestClock.adjust("1 millis")
+
+        const span = yield* Effect.currentSpan.pipe(
+          Effect.withSpan("A"),
+          Effect.withTracerTiming(false)
+        )
+
+        strictEqual(span.status.startTime, 0n)
+      }))
+  })
+
   // TODO
   //   it.effect("linkSpans", () =>
   //     Effect.gen(function*() {
@@ -248,18 +274,6 @@ describe("Tracer", () => {
   //     assertInclude(maybeSpan!.attributes.get("code.stacktrace") as string, "Tracer.test.ts:22:26")
   //   }))
   // })
-  //
-  // it.effect("withTracerTiming false", () =>
-  //   Effect.gen(function*() {
-  //     yield* (TestClock.adjust(Duration.millis(1)))
-  //
-  //     const span = yield* pipe(
-  //       Effect.withSpan("A")(Effect.currentSpan),
-  //       Effect.withTracerTiming(false)
-  //     )
-  //
-  //     deepStrictEqual(span.status.startTime, 0n)
-  //   }))
 
   describe("Layer.parentSpan", () => {
     it.effect("should set the parent trace span for the layer constructor", () =>

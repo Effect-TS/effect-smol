@@ -6465,8 +6465,6 @@ export const withTracer: {
 /**
  * Disable the tracer for the given Effect.
  *
- * @since 2.0.0
- * @category Tracing
  * @example
  * ```ts
  * import { Effect } from "effect"
@@ -6477,11 +6475,36 @@ export const withTracer: {
  *   Effect.withTracerEnabled(false)
  * )
  * ```
+ *
+ * @since 2.0.0
+ * @category Tracing
  */
 export const withTracerEnabled: {
   (enabled: boolean): <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R>
   <A, E, R>(effect: Effect<A, E, R>, enabled: boolean): Effect<A, E, R>
 } = internal.withTracerEnabled
+
+/**
+ * Enables or disables tracer timing for the given Effect.
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * Effect.succeed(42).pipe(
+ *   Effect.withSpan("my-span"),
+ *   // the span will not have timing information
+ *   Effect.withTracerTiming(false)
+ * )
+ * ```
+ *
+ * @since 2.0.0
+ * @category Tracing
+ */
+export const withTracerTiming: {
+  (enabled: boolean): <A, E, R>(effect: Effect<A, E, R>) => Effect<A, E, R>
+  <A, E, R>(effect: Effect<A, E, R>, enabled: boolean): Effect<A, E, R>
+} = internal.withTracerTiming
 
 /**
  * Adds an annotation to each span in this effect.
