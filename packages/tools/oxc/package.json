@@ -1,0 +1,41 @@
+{
+  "name": "@effect/oxc-config",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "description": "OXC linting configuration for Effect",
+  "sideEffects": [],
+  "exports": {
+    "./package.json": "./package.json",
+    "./oxlint": "./src/oxlint/index.ts",
+    "./oxlint/rules/*": "./src/oxlint/rules/*.ts",
+    "./configs/oxlintrc.json": "./src/configs/oxlintrc.json"
+  },
+  "files": [
+    "src/**/*.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
+  ],
+  "publishConfig": {
+    "exports": {
+      "./package.json": "./package.json",
+      "./oxlint": "./dist/oxlint/index.js",
+      "./oxlint/rules/*": "./dist/oxlint/rules/*.js",
+      "./configs/oxlintrc.json": "./src/configs/oxlintrc.json"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.build.json && pnpm babel",
+    "build:tsgo": "tsgo -b tsconfig.build.json && pnpm babel",
+    "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
+    "check": "tsc -b tsconfig.json",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.2",
+    "vitest": "^4.0.0"
+  }
+}
