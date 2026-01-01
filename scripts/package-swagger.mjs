@@ -1,4 +1,4 @@
-/* eslint-disable no-undef */
+/* oxlint-disable no-undef */
 import * as Fs from "fs/promises"
 
 const jsBundle = await fetch(
@@ -11,7 +11,7 @@ const css = await fetch(
   "https://unpkg.com/swagger-ui-dist/swagger-ui.css"
 ).then((res) => res.text())
 
-const source = `/* eslint-disable */
+const source = `/* oxlint-disable */
 
 /** @internal */
 export const javascript = ${JSON.stringify(`${jsBundle}\n${jsPreset}`)}
