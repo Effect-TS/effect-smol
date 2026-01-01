@@ -46,7 +46,6 @@
     // ============================================================================
 
     "import/first": "error",
-    "import/newline-after-import": "error",
     "import/no-duplicates": "error",
 
     // ============================================================================
@@ -84,6 +83,16 @@
     // Disabled: Effect uses method overloading intentionally
     "typescript/unified-signatures": "off",
     // Disabled: Effect uses empty object types for type-level programming
-    "typescript/no-empty-object-type": "off"
+    "typescript/no-empty-object-type": "off",
+  
+    // ============================================================================
+    // EFFECT RULES
+    // ============================================================================
+  
+    "effect/sort-destructure-keys": "error",
+    "effect/no-opaque-instance-fields": "error",
+    "effect/no-spread-in-push": "error",
+    "effect/newline-after-import": "error",
+    "effect/object-shorthand": "error"
   }
 }

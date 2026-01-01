@@ -2,14 +2,9 @@
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
   "extends": ["./packages/tools/oxc/oxlintrc.json"],
   "ignorePatterns": ["**/dist", "**/docs", "**/.tsbuildinfo", "**/*.md"],
-  "jsPlugins": ["@effect/oxc/oxlint"],
-  "rules": {
-    "effect/sort-destructure-keys": "error",
-    "effect/no-opaque-instance-fields": "error",
-    "effect/no-spread-in-push": "error",
-    "effect/object-shorthand": "error",
-    "effect/newline-after-import": "error"
-  },
+  "jsPlugins": [
+    "@effect/oxc/oxlint"
+  ],
   "overrides": [
     {
       "files": ["packages/*/benchmark/**/*.ts", "{bundle,examples,scripts}/**/*.{mjs,ts}"],

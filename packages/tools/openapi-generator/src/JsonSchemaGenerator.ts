@@ -4,6 +4,7 @@ import * as SchemaFromJson from "effect/SchemaFromJson"
 import * as ServiceMap from "effect/ServiceMap"
 import type { OpenAPISpec } from "effect/unstable/httpapi/OpenApi"
 import * as Utils from "./Utils.ts"
+
 /**
  * The service for the JSON schema generator.
  */
