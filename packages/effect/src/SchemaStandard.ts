@@ -1456,28 +1456,112 @@ export function makeGeneration(runtime: string, Type: string, Encoded: string = 
 /**
  * @since 4.0.0
  */
-export function toGeneration(document: Document, options?: {
-  readonly reviver?: Reviver<Generation> | undefined
-}): Generation {
-  const reviver = options?.reviver
-  const s = document.schema
-  const visited = new Set<string>()
-
-  if (s._tag === "Reference") {
-    return resolveReference(s.$ref)
+export type Artifact =
+  | {
+    readonly _tag: "Symbol"
+    readonly identifier: string
+    readonly generation: Generation
   }
-  return recur(s)
+  | {
+    readonly _tag: "Enum"
+    readonly identifier: string
+    readonly generation: Generation
+  }
+
+/**
+ * @since 4.0.0
+ */
+export type GenerationDocument = {
+  readonly generations: ReadonlyArray<Generation>
+  readonly definitions: {
+    readonly nonRecursives: ReadonlyArray<{
+      readonly $ref: string
+      readonly schema: Generation
+    }>
+    readonly recursives: {
+      readonly [$ref: string]: Generation
+    }
+  }
+  readonly artifacts: ReadonlyArray<Artifact>
+}
+
+/**
+ * @since 4.0.0
+ */
+export function toGenerationDocument(multiDocument: MultiDocument, options?: {
+  readonly reviver?: Reviver<Generation> | undefined
+}): GenerationDocument {
+  const reviver = options?.reviver
+  const visited = new Set<string>()
+  const artifacts: Array<Artifact> = []
+  let counter = 0
+  const identifiers = new Set<string>()
+
+  function generateIdentifier(prefix: string): string {
+    let identifier: string
+    while (identifiers.has(identifier = `${prefix}_${counter}`)) {
+      counter++
+    }
+    identifiers.add(identifier)
+    return identifier
+  }
+
+  function addSymbol(s: symbol): string {
+    const identifier = generateIdentifier("sym")
+    const key = globalThis.Symbol.keyFor(s)
+    const description = s.description
+    const generation = key === undefined
+      ? makeGeneration(`Symbol(${description === undefined ? "" : format(description)})`, `typeof ${identifier}`)
+      : makeGeneration(`Symbol.for(${format(key)})`, `typeof ${identifier}`)
+    artifacts.push({ _tag: "Symbol", identifier, generation })
+    return identifier
+  }
+
+  function addEnum(s: Enum): string {
+    const identifier = generateIdentifier("enum")
+    artifacts.push({
+      _tag: "Enum",
+      identifier,
+      generation: makeGeneration(
+        `enum ${identifier} { ${s.enums.map(([name, value]) => `${format(name)}: ${format(value)}`).join(", ")} }`,
+        `typeof ${identifier}`
+      )
+    })
+    return identifier
+  }
+
+  const ts = topologicalSort(multiDocument.definitions)
+  const nonRecursives = ts.nonRecursives.map(({ $ref, schema }) => ({ $ref, schema: top(schema) }))
+  const recursives = Rec.map(ts.recursives, (v, k) => {
+    identifiers.add(k)
+    return top(v)
+  })
+
+  const generations = multiDocument.schemas.map(top)
+
+  return {
+    generations,
+    definitions: { nonRecursives, recursives },
+    artifacts
+  }
 
   function resolveReference($ref: string): Generation {
     if (visited.has($ref)) {
       return makeGeneration($ref, $ref, `${$ref}Encoded`)
     }
     visited.add($ref)
-    const definition = document.definitions[$ref]
+    const definition = multiDocument.definitions[$ref]
     if (definition === undefined) {
       return makeGeneration("Schema.Unknown", "unknown")
     }
-    return recur(document.definitions[$ref])
+    return recur(multiDocument.definitions[$ref])
+  }
+
+  function top(s: Standard): Generation {
+    if (s._tag === "Reference") {
+      return resolveReference(s.$ref)
+    }
+    return recur(s)
   }
 
   function recur(s: Standard): Generation {
@@ -1549,24 +1633,14 @@ export function toGeneration(document: Document, options?: {
         return makeGeneration(`Schema.Literal(${literal})`, literal)
       }
       case "UniqueSymbol": {
-        const key = globalThis.Symbol.keyFor(s.symbol)
-        if (key === undefined) {
-          throw new Error("Cannot generate code for UniqueSymbol created without Symbol.for()")
-        }
-        return makeGeneration(`Schema.UniqueSymbol(Symbol.for(${format(key)}))`, "symbol")
+        const identifier = addSymbol(s.symbol)
+        return makeGeneration(`Schema.UniqueSymbol(${identifier})`, `typeof ${identifier}`)
       }
       case "ObjectKeyword":
         return makeGeneration(`Schema.ObjectKeyword`, "object")
       case "Enum": {
-        const types = new Set<string>()
-        const enums = s.enums.map(([key, value]) => {
-          types.add(typeof value)
-          return [format(key), format(value)]
-        })
-        return makeGeneration(
-          `Schema.Enum([${enums.map(([key, value]) => `[${key}, ${value}]`).join(", ")}])`,
-          [...types].join(" | ")
-        )
+        const identifier = addEnum(s)
+        return makeGeneration(`Schema.Enum(${identifier})`, `typeof ${identifier}`)
       }
       case "TemplateLiteral": {
         const parts = s.parts.map(recur)
@@ -1619,15 +1693,17 @@ export function toGeneration(document: Document, options?: {
       }
       case "Objects": {
         const pss = s.propertySignatures.map((p) => {
-          const name = formatPropertyKey(typeof p.name === "symbol" ? (p.name.description!) : p.name)
-          const nameRuntime = typeof p.name === "symbol" ? `[Symbol.for(${name})]` : name
+          const isSymbol = typeof p.name === "symbol"
+          const name = isSymbol ? addSymbol(p.name) : formatPropertyKey(p.name)
           const nameType = toTypeIsOptional(
             p.isOptional,
-            toTypeIsMutable(p.isMutable, typeof p.name === "symbol" ? `[typeof Symbol.for(${name})]` : name)
+            toTypeIsMutable(p.isMutable, isSymbol ? `[typeof ${name}]` : name)
           )
           const type = recur(p.type)
           return makeGeneration(
-            `${nameRuntime}: ${toRuntimeIsOptional(p.isOptional, toRuntimeIsMutable(p.isMutable, type.runtime))}` +
+            `${isSymbol ? `[${name}]` : name}: ${
+              toRuntimeIsOptional(p.isOptional, toRuntimeIsMutable(p.isMutable, type.runtime))
+            }` +
               toRuntimeAnnotateKey(p.annotations),
             `${nameType}: ${type.Type}`,
             `${nameType}: ${type.Encoded}`
