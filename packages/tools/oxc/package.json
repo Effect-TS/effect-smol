@@ -5,6 +5,27 @@
   "private": true,
   "license": "MIT",
   "description": "Opinionated linting and formatting configuration for Effect",
+  "homepage": "https://effect.website",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Effect-TS/effect.git",
+    "directory": "packages/tools/oxc"
+  },
+  "bugs": {
+    "url": "https://github.com/Effect-TS/effect/issues"
+  },
+  "tags": [
+    "typescript",
+    "formatting",
+    "linting",
+    "oxc"
+  ],
+  "keywords": [
+    "typescript",
+    "formatting",
+    "linting",
+    "oxc"
+  ],
   "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
