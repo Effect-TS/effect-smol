@@ -131,7 +131,7 @@ export type GenerateOptions = {
   /**
    * The type of the specification of the JSON Schema.
    */
-  readonly source: JsonSchema.Source
+  readonly source: JsonSchema.Dialect
 
   /**
    * A function that is called to resolve a reference.
@@ -181,7 +181,7 @@ export type GenerateOptions = {
 }
 
 interface RecurOptions {
-  readonly source: JsonSchema.Source
+  readonly source: JsonSchema.Dialect
   readonly root: JsonSchema.JsonSchema | undefined
   readonly resolver: Resolver
   readonly extractJsDocs: (annotations: Schema.Annotations.Annotations) => string | undefined
@@ -1692,7 +1692,7 @@ function parseJsonSchema(schema: JsonSchema.JsonSchema, options: RecurOptions): 
   return new Unknown()
 }
 
-function getRef(parts: readonly [string, ...Array<string>], source: JsonSchema.Source): Array<string> {
+function getRef(parts: readonly [string, ...Array<string>], source: JsonSchema.Dialect): Array<string> {
   switch (source) {
     case "draft-07":
     case "draft-2020-12":

@@ -51,7 +51,7 @@ export const make = Effect.gen(function*() {
   }
 
   function generate(
-    source: JsonSchema.Source,
+    source: JsonSchema.Dialect,
     spec: OpenAPISpec,
     typeOnly: boolean
   ): { schemas: string; imports: string } {

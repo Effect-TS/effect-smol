@@ -7600,7 +7600,7 @@ export function toJsonSchemaDocument(schema: Top, options?: ToJsonSchemaOptions)
   const sd = InternalStandard.fromAST(schema.ast)
   const jd = InternalStandard.toJsonSchemaDocument(sd, options)
   return {
-    source: "draft-2020-12",
+    dialect: "draft-2020-12",
     schema: jd.schema,
     definitions: jd.definitions
   }

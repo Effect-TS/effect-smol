@@ -508,7 +508,7 @@ describe("Rewriter", () => {
 
     it("const", () => {
       const document = Rewriter.openAi({
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           "type": "object",
           "properties": {

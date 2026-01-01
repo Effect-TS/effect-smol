@@ -216,7 +216,7 @@ export const make = Effect.gen(function*() {
 
       // TODO: make a CLI option ?
       const importName = "Schema"
-      const source = getSource(spec)
+      const source = getDialect(spec)
       const generation = generator.generate(source, spec, options.typeOnly)
 
       return String.stripMargin(
@@ -247,7 +247,7 @@ export const make = Effect.gen(function*() {
   return { generate } as const
 })
 
-function getSource(spec: OpenAPISpec): JsonSchema.Source {
+function getDialect(spec: OpenAPISpec): JsonSchema.Dialect {
   return spec.openapi.trim().startsWith("3.0") ? "openapi-3.0" : "openapi-3.1"
 }
 

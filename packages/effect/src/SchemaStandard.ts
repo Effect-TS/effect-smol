@@ -3,6 +3,7 @@
  */
 import * as Arr from "./Array.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
+import { unescapeToken } from "./internal/schema/json-pointer.ts"
 import * as InternalStandard from "./internal/schema/standard.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
 import * as Option from "./Option.ts"
@@ -381,9 +382,16 @@ export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMe
 /**
  * @since 4.0.0
  */
+export interface Definitions {
+  readonly [$ref: string]: Standard
+}
+
+/**
+ * @since 4.0.0
+ */
 export type Document = {
   readonly schema: Standard
-  readonly definitions: Record<string, Standard>
+  readonly definitions: Definitions
 }
 
 /**
@@ -391,7 +399,7 @@ export type Document = {
  */
 export type MultiDocument = {
   readonly schemas: readonly [Standard, ...Array<Standard>]
-  readonly definitions: Record<string, Standard>
+  readonly definitions: Definitions
 }
 
 // -----------------------------------------------------------------------------
@@ -1040,13 +1048,12 @@ export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDoc
 const schemaToCodecJson = Schema.toCodecJson(Standard$)
 const encodeSchema = Schema.encodeUnknownSync(schemaToCodecJson)
 
-// TODO: tests
 /**
  * @since 4.0.0
  */
 export function toJson(document: Document): JsonSchema.Document<"draft-2020-12"> {
   return {
-    source: "draft-2020-12",
+    dialect: "draft-2020-12",
     schema: encodeSchema(document.schema) as JsonSchema.JsonSchema,
     definitions: Rec.map(document.definitions, (d) => encodeSchema(d)) as JsonSchema.Definitions
   }
@@ -1426,14 +1433,18 @@ export const toCodeDefaultReviver: Reviver<string> = (declaration, recur) => {
   return "Schema.Unknown"
 }
 
-// TODO: tests
 /**
  * @since 4.0.0
  */
-export function toCode(document: Document, options?: {
+export type Generation = string
+
+/**
+ * @since 4.0.0
+ */
+export function toGeneration(document: Document, options?: {
   readonly reviver?: Reviver<string> | undefined
-}): string {
-  const reviver = options?.reviver ?? toCodeDefaultReviver
+}): Generation {
+  const reviver = options?.reviver
   const schema = document.schema
 
   if (schema._tag === "Reference") {
@@ -1442,7 +1453,7 @@ export function toCode(document: Document, options?: {
   }
   return recur(schema)
 
-  function recur(schema: Standard): string {
+  function recur(schema: Standard): Generation {
     const b = on(schema)
     switch (schema._tag) {
       default:
@@ -1459,10 +1470,10 @@ export function toCode(document: Document, options?: {
     }
   }
 
-  function on(schema: Standard): string {
+  function on(schema: Standard): Generation {
     switch (schema._tag) {
       case "Declaration":
-        return reviver(schema, recur)
+        return reviver ? reviver(schema, recur) : `Schema.Unknown`
       case "Reference":
         return schema.$ref
       case "Suspend": {
@@ -1702,13 +1713,638 @@ function toCodeRegExp(regExp: RegExp): string {
   return `new RegExp(${format(regExp.source)}, ${format(regExp.flags)})`
 }
 
-// TODO: implement
 /**
  * @since 4.0.0
  */
-export function fromJsonSchema(_: JsonSchema.Document<"draft-2020-12">): Document {
+export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020-12">): Document {
+  const definitions = Rec.map(document.definitions, (d) => recur(d))
+
   return {
-    schema: { _tag: "Unknown" },
-    definitions: {}
+    schema: recur(document.schema),
+    definitions
   }
+
+  function recur(u: unknown): Standard {
+    if (u === false) return never
+    if (!Predicate.isObject(u)) return unknown
+
+    let js: JsonSchema.JsonSchema = u
+    if (Array.isArray(js.type)) {
+      if (js.type.every(isType)) {
+        const { type, ...rest } = js
+        js = {
+          anyOf: type.map((type) => ({ type })),
+          ...rest
+        }
+      } else {
+        js = {}
+      }
+    }
+
+    let out = on(js)
+
+    const annotations = collectAnnotations(js)
+    if (annotations !== undefined) {
+      if (out._tag === "Reference") {
+        const b = resolveRef(out.$ref)
+        out = { ...b, ...combineAnnotations(b.annotations, annotations) }
+      } else {
+        out = { ...out, annotations }
+      }
+    }
+
+    if (Array.isArray(js.allOf)) {
+      return js.allOf.reduce((acc, curr) => combine(acc, recur(curr)), out)
+    }
+
+    return out
+  }
+
+  function on(js: JsonSchema.JsonSchema): Standard {
+    if (typeof js.$ref === "string") {
+      const $ref = js.$ref.slice(2).split("/").at(-1)
+      if ($ref !== undefined) {
+        return { _tag: "Reference", $ref: unescapeToken($ref) }
+      }
+    } else if ("const" in js) {
+      if (isLiteralValue(js.const)) {
+        return { _tag: "Literal", literal: js.const }
+      } else if (js.const === null) {
+        return null_
+      }
+    } else if (Array.isArray(js.enum)) {
+      const types: Array<Standard> = []
+      for (const e of js.enum) {
+        if (isLiteralValue(e)) {
+          types.push({ _tag: "Literal", literal: e })
+        } else if (e === null) {
+          types.push(null_)
+        } else {
+          types.push(recur(e))
+        }
+      }
+      if (types.length === 1) {
+        return types[0]
+      } else {
+        return { _tag: "Union", types, mode: "anyOf" }
+      }
+    } else if (Array.isArray(js.anyOf)) {
+      return { _tag: "Union", types: js.anyOf.map((type) => recur(type)), mode: "anyOf" }
+    } else if (Array.isArray(js.oneOf)) {
+      return { _tag: "Union", types: js.oneOf.map((type) => recur(type)), mode: "oneOf" }
+    }
+
+    const type = isType(js.type) ? js.type : getType(js)
+    if (type !== undefined) {
+      switch (type) {
+        case "null":
+          return null_
+        case "string":
+          return string
+        case "number":
+          return number
+        case "integer":
+          return integer
+        case "boolean":
+          return boolean
+        case "array": {
+          const minItems = typeof js.minItems === "number" ? js.minItems : 0
+
+          const elements: Array<Element> = (Array.isArray(js.prefixItems) ? js.prefixItems : []).map((e, i) => ({
+            isOptional: i + 1 > minItems,
+            type: recur(e)
+          }))
+
+          const rest: Array<Standard> = js.items !== undefined ?
+            [recur(js.items)]
+            : typeof js.maxItems === "number"
+            ? []
+            : [unknown]
+
+          return { _tag: "Arrays", elements, rest, checks: [] }
+        }
+        case "object": {
+          return {
+            _tag: "Objects",
+            propertySignatures: collectProperties(js),
+            indexSignatures: collectIndexSignatures(js),
+            checks: []
+          }
+        }
+      }
+    }
+
+    return { _tag: "Unknown" }
+  }
+
+  function combine(a: Standard, b: Standard): Standard {
+    switch (a._tag) {
+      default:
+        return never
+      case "Never":
+        return a
+      case "Unknown": {
+        if (b._tag === "Reference") {
+          b = resolveRef(b.$ref)
+        }
+        return { ...b, ...combineAnnotations(a.annotations, b.annotations) }
+      }
+      case "Null":
+        switch (b._tag) {
+          case "Unknown":
+          case "Null":
+            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
+          case "Union":
+            return combine(b, a)
+          case "Reference":
+            return combine(a, resolveRef(b.$ref))
+          default:
+            return never
+        }
+      case "String":
+        switch (b._tag) {
+          case "Unknown":
+            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
+          case "String":
+            return {
+              _tag: "String",
+              checks: combineChecks(a.checks, b.checks),
+              ...combineAnnotations(a.annotations, b.annotations)
+            }
+          case "Union":
+            return combine(b, a)
+          case "Reference":
+            return combine(a, resolveRef(b.$ref))
+          default:
+            return never
+        }
+      case "Number":
+        switch (b._tag) {
+          case "Unknown":
+            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
+          case "Number":
+            return {
+              _tag: "Number",
+              checks: combineChecks(a.checks, b.checks),
+              ...combineAnnotations(a.annotations, b.annotations)
+            }
+          case "Union":
+            return combine(b, a)
+          case "Reference":
+            return combine(a, resolveRef(b.$ref))
+          default:
+            return never
+        }
+      case "Boolean":
+        switch (b._tag) {
+          case "Unknown":
+            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
+          case "Boolean":
+            return { _tag: "Boolean", ...combineAnnotations(a.annotations, b.annotations) }
+          case "Union":
+            return combine(b, a)
+          case "Reference":
+            return combine(a, resolveRef(b.$ref))
+          default:
+            return never
+        }
+      case "Literal":
+        switch (b._tag) {
+          case "Unknown":
+            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
+          case "Literal":
+            return a.literal === b.literal
+              ? { _tag: "Literal", literal: a.literal, ...combineAnnotations(a.annotations, b.annotations) }
+              : never
+          case "Union":
+            return combine(b, a)
+          case "Reference":
+            return combine(a, resolveRef(b.$ref))
+          default:
+            return never
+        }
+      case "Arrays":
+        switch (b._tag) {
+          case "Unknown":
+            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
+          case "Arrays":
+            return {
+              _tag: "Arrays",
+              elements: combineElements(a.elements, b.elements),
+              rest: combineRest(a.rest, b.rest),
+              checks: combineChecks(a.checks, b.checks),
+              ...combineAnnotations(a.annotations, b.annotations)
+            }
+          case "Union":
+            return combine(b, a)
+          case "Reference":
+            return combine(a, resolveRef(b.$ref))
+          default:
+            return never
+        }
+      case "Objects":
+        switch (b._tag) {
+          case "Unknown":
+            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
+          case "Objects":
+            return {
+              _tag: "Objects",
+              propertySignatures: combinePropertySignatures(a.propertySignatures, b.propertySignatures),
+              indexSignatures: combineIndexSignatures(a.indexSignatures, b.indexSignatures),
+              checks: combineChecks(a.checks, b.checks),
+              ...combineAnnotations(a.annotations, b.annotations)
+            }
+          case "Union":
+            return combine(b, a)
+          case "Reference":
+            return combine(a, resolveRef(b.$ref))
+          default:
+            return never
+        }
+      case "Union": {
+        const types = a.types.map((s) => combine(s, b)).filter((s) => s !== never)
+        if (types.length === 0) return never
+        return {
+          _tag: "Union",
+          types: a.types.map((s) => combine(s, b)),
+          mode: "anyOf",
+          ...makeAnnotations(a.annotations)
+        }
+      }
+      case "Reference":
+        return combine(resolveRef(a.$ref), b)
+    }
+  }
+
+  function combineElements(a: ReadonlyArray<Element>, b: ReadonlyArray<Element>): Array<Element> {
+    const len = Math.max(a.length, b.length)
+    let out: Array<Element> = []
+    for (let i = 0; i < len; i++) {
+      out.push({
+        isOptional: a[i].isOptional && b[i].isOptional,
+        type: combine(a[i].type, b[i].type)
+      })
+    }
+    if (a.length > len) {
+      out = [...out, ...a.slice(len)]
+    } else if (b.length > len) {
+      out = [...out, ...b.slice(len)]
+    }
+    return out
+  }
+
+  function combineRest(a: ReadonlyArray<Standard>, b: ReadonlyArray<Standard>): Array<Standard> {
+    const len = Math.max(a.length, b.length)
+    let out: Array<Standard> = []
+    for (let i = 0; i < len; i++) {
+      out.push(combine(a[i], b[i]))
+    }
+    if (a.length > len) {
+      out = [...out, ...a.slice(len)]
+    } else if (b.length > len) {
+      out = [...out, ...b.slice(len)]
+    }
+    return out
+  }
+
+  function resolveRef(ref: string): Exclude<Standard, { _tag: "Reference" }> {
+    const definition = definitions[ref]
+    if (definition !== undefined) {
+      if (definition._tag === "Reference") {
+        return resolveRef(definition.$ref)
+      } else {
+        return definition
+      }
+    }
+    return unknown
+  }
+
+  function combinePropertySignatures(
+    a: ReadonlyArray<PropertySignature>,
+    b: ReadonlyArray<PropertySignature>
+  ): Array<PropertySignature> {
+    const propertySignatures: Array<PropertySignature> = []
+    const thatPropertiesMap: Record<PropertyKey, PropertySignature> = {}
+    for (const p of b) {
+      thatPropertiesMap[p.name] = p
+    }
+    const keys = new Set<PropertyKey>()
+    for (const p of a) {
+      keys.add(p.name)
+      const thatp = thatPropertiesMap[p.name]
+      if (thatp) {
+        propertySignatures.push(
+          {
+            name: p.name,
+            type: combine(p.type, thatp.type),
+            isOptional: p.isOptional && thatp.isOptional,
+            isMutable: p.isMutable
+          }
+        )
+      } else {
+        propertySignatures.push(p)
+      }
+    }
+    for (const p of b) {
+      if (!keys.has(p.name)) propertySignatures.push(p)
+    }
+    return propertySignatures
+  }
+
+  function combineIndexSignatures(
+    a: ReadonlyArray<IndexSignature>,
+    b: ReadonlyArray<IndexSignature>
+  ): Array<IndexSignature> {
+    if (a.length === 0 || b.length === 0) return []
+    const out: Array<IndexSignature> = [...a]
+    for (const is of b) {
+      if (is.parameter === string) {
+        const i = a.findIndex((is) => is.parameter === string)
+        if (i !== -1) {
+          out[i] = { parameter: string, type: combine(a[i].type, is.type) }
+        } else {
+          out.push(is)
+        }
+      } else {
+        out.push(is)
+      }
+    }
+    return out
+  }
+
+  function combineChecks<M>(
+    a: ReadonlyArray<Check<M>>,
+    b: ReadonlyArray<Check<M>>
+  ): Array<Check<M>> {
+    return [...a, ...b]
+  }
+
+  function makeAnnotations(
+    annotations: Schema.Annotations.Annotations | undefined
+  ): { annotations: Schema.Annotations.Annotations } | undefined {
+    return annotations ? { annotations } : undefined
+  }
+
+  function combineAnnotations(
+    a: Schema.Annotations.Annotations | undefined,
+    b: Schema.Annotations.Annotations | undefined
+  ): { annotations: Schema.Annotations.Annotations } | undefined {
+    if (a === undefined) return makeAnnotations(b)
+    if (b === undefined) return makeAnnotations(a)
+    return { annotations: { ...a, ...b } } // TODO: better merge
+  }
+
+  function collectProperties(js: JsonSchema.JsonSchema): Array<PropertySignature> {
+    const properties: Record<string, unknown> = Predicate.isObject(js.properties) ? js.properties : {}
+    const required = Array.isArray(js.required) ? js.required : []
+    required.forEach((key) => {
+      if (!Object.hasOwn(properties, key)) {
+        properties[key] = {}
+      }
+    })
+    return Object.entries(properties).map(([key, v]) => ({
+      name: key,
+      type: recur(v),
+      isOptional: !required.includes(key),
+      isMutable: false
+    }))
+  }
+
+  function collectIndexSignatures(js: JsonSchema.JsonSchema): Array<IndexSignature> {
+    const out: Array<IndexSignature> = []
+
+    if (Predicate.isObject(js.patternProperties)) {
+      for (const [pattern, value] of Object.entries(js.patternProperties)) {
+        out.push({ parameter: recur(pattern), type: recur(value) })
+      }
+    }
+
+    if (js.additionalProperties === undefined || js.additionalProperties === true) {
+      out.push({ parameter: string, type: unknown })
+    } else if (Predicate.isObject(js.additionalProperties)) {
+      out.push({ parameter: string, type: recur(js.additionalProperties) })
+    }
+
+    return out
+  }
+}
+
+const unknown: Unknown = { _tag: "Unknown" }
+const never: Never = { _tag: "Never" }
+const null_: Null = { _tag: "Null" }
+const string: String = { _tag: "String", checks: [] }
+const number: Number = { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }] }
+const integer: Number = { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isInt" } }] }
+const boolean: Boolean = { _tag: "Boolean" }
+
+function collectAnnotations(schema: JsonSchema.JsonSchema): Schema.Annotations.Annotations | undefined {
+  const as: Record<string, unknown> = {}
+
+  if (typeof schema.title === "string") as.title = schema.title
+  if (typeof schema.description === "string") as.description = schema.description
+  if (schema.default !== undefined) as.default = schema.default
+  if (Array.isArray(schema.examples)) as.examples = schema.examples
+  if (typeof schema.format === "string") as.format = schema.format
+
+  return Rec.isEmptyRecord(as) ? undefined : as
+}
+
+function isLiteralValue(value: unknown): value is AST.LiteralValue {
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+}
+
+const stringKeys = ["minLength", "maxLength", "pattern", "format", "contentMediaType", "contentSchema"]
+const numberKeys = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"]
+const objectKeys = [
+  "properties",
+  "required",
+  "additionalProperties",
+  "patternProperties",
+  "propertyNames",
+  "minProperties",
+  "maxProperties"
+]
+const arrayKeys = ["items", "prefixItems", "additionalItems", "minItems", "maxItems", "uniqueItems"]
+
+function getType(js: JsonSchema.JsonSchema): JsonSchema.Type | undefined {
+  if (stringKeys.some((key) => js[key] !== undefined)) {
+    return "string"
+  }
+  if (numberKeys.some((key) => js[key] !== undefined)) {
+    return "number"
+  }
+  if (objectKeys.some((key) => js[key] !== undefined)) {
+    return "object"
+  }
+  if (arrayKeys.some((key) => js[key] !== undefined)) {
+    return "array"
+  }
+}
+
+const types = ["null", "string", "number", "integer", "boolean", "object", "array"]
+
+function isType(type: unknown): type is JsonSchema.Type {
+  return typeof type === "string" && types.includes(type)
+}
+
+/**
+ * @since 4.0.0
+ */
+export type TopologicalSort = {
+  /**
+   * The definitions that are not recursive.
+   * The definitions that depends on other definitions are placed after the definitions they depend on
+   */
+  readonly nonRecursives: ReadonlyArray<{
+    readonly $ref: string
+    readonly schema: Standard
+  }>
+  /**
+   * The recursive definitions (with no particular order).
+   */
+  readonly recursives: {
+    readonly [$ref: string]: Standard
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function topologicalSort(definitions: Definitions): TopologicalSort {
+  const identifiers = Object.keys(definitions)
+  const identifierSet = new Set(identifiers)
+
+  const collectRefs = (root: Standard): Set<string> => {
+    const refs = new Set<string>()
+    const visited = new WeakSet<object>()
+    const stack: Array<Standard> = [root]
+
+    while (stack.length > 0) {
+      const schema = stack.pop()!
+      if (visited.has(schema)) continue
+      visited.add(schema)
+
+      if (schema._tag === "Reference") {
+        if (identifierSet.has(schema.$ref)) {
+          refs.add(schema.$ref)
+        }
+      }
+
+      // Push nested Standard schemas onto the stack
+      switch (schema._tag) {
+        case "Declaration":
+          for (const typeParam of schema.typeParameters) stack.push(typeParam)
+          stack.push(schema.Encoded)
+          break
+        case "Suspend":
+          stack.push(schema.thunk)
+          break
+        case "String":
+          if (schema.contentSchema !== undefined) stack.push(schema.contentSchema)
+          break
+        case "TemplateLiteral":
+          for (const part of schema.parts) stack.push(part)
+          break
+        case "Arrays":
+          for (const element of schema.elements) stack.push(element.type)
+          for (const rest of schema.rest) stack.push(rest)
+          break
+        case "Objects":
+          for (const propertySignature of schema.propertySignatures) stack.push(propertySignature.type)
+          for (const indexSignature of schema.indexSignatures) {
+            stack.push(indexSignature.parameter)
+            stack.push(indexSignature.type)
+          }
+          break
+        case "Union":
+          for (const type of schema.types) stack.push(type)
+          break
+      }
+    }
+
+    return refs
+  }
+
+  // identifier -> internal identifiers it depends on
+  const dependencies = new Map<string, Set<string>>(
+    identifiers.map((id) => [id, collectRefs(definitions[id])])
+  )
+
+  // Mark only nodes that are part of cycles
+  const recursive = new Set<string>()
+  const state = new Map<string, 0 | 1 | 2>() // 0 = new, 1 = visiting, 2 = done
+  const stack: Array<string> = []
+  const indexInStack = new Map<string, number>()
+
+  const dfs = (id: string): void => {
+    const s = state.get(id) ?? 0
+    if (s === 1) {
+      const start = indexInStack.get(id)
+      if (start !== undefined) {
+        for (let i = start; i < stack.length; i++) {
+          recursive.add(stack[i])
+        }
+      }
+      return
+    }
+    if (s === 2) return
+
+    state.set(id, 1)
+    indexInStack.set(id, stack.length)
+    stack.push(id)
+
+    for (const dep of dependencies.get(id) ?? []) {
+      dfs(dep)
+    }
+
+    stack.pop()
+    indexInStack.delete(id)
+    state.set(id, 2)
+  }
+
+  for (const id of identifiers) dfs(id)
+
+  // Topologically sort the non-recursive nodes (ignoring edges to recursive nodes)
+  const inDegree = new Map<string, number>()
+  const dependents = new Map<string, Set<string>>() // dep -> nodes that depend on it
+
+  for (const id of identifiers) {
+    if (!recursive.has(id)) {
+      inDegree.set(id, 0)
+      dependents.set(id, new Set())
+    }
+  }
+
+  for (const [id, deps] of dependencies) {
+    if (recursive.has(id)) continue
+    for (const dep of deps) {
+      if (recursive.has(dep)) continue
+      inDegree.set(id, (inDegree.get(id) ?? 0) + 1)
+      dependents.get(dep)?.add(id)
+    }
+  }
+
+  const queue: Array<string> = []
+  for (const [id, deg] of inDegree) {
+    if (deg === 0) queue.push(id)
+  }
+
+  const nonRecursives: Array<{ readonly $ref: string; readonly schema: Standard }> = []
+  for (let i = 0; i < queue.length; i++) {
+    const $ref = queue[i]
+    nonRecursives.push({ $ref, schema: definitions[$ref] })
+
+    for (const next of dependents.get($ref) ?? []) {
+      const deg = (inDegree.get(next) ?? 0) - 1
+      inDegree.set(next, deg)
+      if (deg === 0) queue.push(next)
+    }
+  }
+
+  const recursives: Record<string, Standard> = {}
+  for (const $ref of recursive) {
+    recursives[$ref] = definitions[$ref]
+  }
+
+  return { nonRecursives, recursives }
 }

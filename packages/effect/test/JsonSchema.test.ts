@@ -10,7 +10,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "string"
         },
@@ -37,7 +37,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "object",
           properties: {
@@ -68,7 +68,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "array",
           prefixItems: [
@@ -88,7 +88,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "array",
           items: { type: "string" }
@@ -108,7 +108,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "string",
           title: "My String",
@@ -130,7 +130,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "string",
           pattern: "^[a-z]+$",
@@ -152,7 +152,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "number",
           minimum: 0,
@@ -175,7 +175,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "array",
           items: { type: "string" },
@@ -205,7 +205,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "object",
           properties: {
@@ -244,7 +244,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           enum: ["a", "b", "c"],
           const: "constant",
@@ -281,7 +281,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "object",
           properties: {
@@ -306,7 +306,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "string"
         },
@@ -322,7 +322,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft2020_12(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "string"
         },
@@ -349,7 +349,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft2020_12(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "object",
           properties: {
@@ -385,7 +385,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft2020_12(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "object",
           properties: {
@@ -410,7 +410,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaDraft2020_12(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "string",
           "x-custom": "value"
@@ -431,7 +431,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaOpenApi3_1(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "object",
           properties: {
@@ -459,7 +459,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaOpenApi3_1(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "object",
           properties: {
@@ -492,7 +492,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaOpenApi3_1(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "object",
           properties: {
@@ -517,7 +517,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaOpenApi3_1(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "string",
           "x-custom": "value"
@@ -528,6 +528,18 @@ describe("JsonSchema", () => {
   })
 
   describe("fromSchemaOpenApi3_0", () => {
+    function assertFromSchemaOpenApi3_0(input: JsonSchema.JsonSchema, expected: {
+      readonly schema: JsonSchema.JsonSchema
+      readonly definitions?: JsonSchema.Definitions
+    }) {
+      const result = JsonSchema.fromSchemaOpenApi3_0(input)
+      deepStrictEqual(result, {
+        dialect: "draft-2020-12",
+        schema: expected.schema,
+        definitions: expected.definitions ?? {}
+      })
+    }
+
     it("should rewrite all component schema references", () => {
       const input: JsonSchema.JsonSchema = {
         type: "object",
@@ -538,7 +550,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaOpenApi3_0(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "object",
           properties: {
@@ -566,7 +578,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.fromSchemaOpenApi3_0(input)
       deepStrictEqual(result, {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "object",
           properties: {
@@ -584,6 +596,20 @@ describe("JsonSchema", () => {
     })
 
     describe("nullable", () => {
+      it("nullable: true", () => {
+        assertFromSchemaOpenApi3_0(
+          { nullable: true },
+          {
+            schema: {
+              anyOf: [
+                {},
+                { type: "null" }
+              ]
+            }
+          }
+        )
+      })
+
       it("should handle nullable with type: string", () => {
         const input: JsonSchema.JsonSchema = {
           type: "string",
@@ -591,7 +617,7 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             type: ["string", "null"]
           },
@@ -606,7 +632,7 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             type: ["string", "number", "null"]
           },
@@ -614,7 +640,7 @@ describe("JsonSchema", () => {
         })
       })
 
-      it("should handle nullable with const", () => {
+      it("should handle nullable with type and const !== null", () => {
         const input: JsonSchema.JsonSchema = {
           type: "string",
           const: "a",
@@ -622,10 +648,43 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             type: ["string", "null"],
             const: "a"
+          },
+          definitions: {}
+        })
+      })
+
+      it("should handle nullable without type and const !== null", () => {
+        const input: JsonSchema.JsonSchema = {
+          const: "a",
+          nullable: true
+        }
+        const result = JsonSchema.fromSchemaOpenApi3_0(input)
+        deepStrictEqual(result, {
+          dialect: "draft-2020-12",
+          schema: {
+            anyOf: [
+              { const: "a" },
+              { type: "null" }
+            ]
+          },
+          definitions: {}
+        })
+      })
+
+      it("should handle nullable with const === null", () => {
+        const input: JsonSchema.JsonSchema = {
+          const: null,
+          nullable: true
+        }
+        const result = JsonSchema.fromSchemaOpenApi3_0(input)
+        deepStrictEqual(result, {
+          dialect: "draft-2020-12",
+          schema: {
+            const: null
           },
           definitions: {}
         })
@@ -639,7 +698,7 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             type: ["string", "null"],
             enum: ["a", "b", null]
@@ -656,10 +715,27 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             type: ["string", "null"],
             enum: ["a", "b", null]
+          },
+          definitions: {}
+        })
+      })
+
+      it("should handle nullable with enum that only includes null", () => {
+        const input: JsonSchema.JsonSchema = {
+          type: "string",
+          enum: [null],
+          nullable: true
+        }
+        const result = JsonSchema.fromSchemaOpenApi3_0(input)
+        deepStrictEqual(result, {
+          dialect: "draft-2020-12",
+          schema: {
+            type: ["string", "null"],
+            enum: [null]
           },
           definitions: {}
         })
@@ -672,7 +748,7 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             anyOf: [
               {
@@ -694,12 +770,50 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             type: "string"
           },
           definitions: {}
         })
+      })
+
+      it("should handle nullable with allOf", () => {
+        assertFromSchemaOpenApi3_0(
+          {
+            type: "string",
+            allOf: [{ nullable: true }]
+          },
+          {
+            schema: {
+              type: "string",
+              allOf: [{
+                anyOf: [
+                  {},
+                  { type: "null" }
+                ]
+              }]
+            }
+          }
+        )
+        assertFromSchemaOpenApi3_0(
+          {
+            type: "string",
+            nullable: true,
+            allOf: [{ nullable: true }]
+          },
+          {
+            schema: {
+              type: ["string", "null"],
+              allOf: [{
+                anyOf: [
+                  {},
+                  { type: "null" }
+                ]
+              }]
+            }
+          }
+        )
       })
     })
 
@@ -712,7 +826,7 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             type: "number",
             exclusiveMinimum: 10
@@ -729,7 +843,7 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             type: "number",
             exclusiveMaximum: 100
@@ -746,7 +860,7 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             type: "number",
             minimum: 10
@@ -763,7 +877,7 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             type: "number",
             maximum: 100
@@ -779,7 +893,7 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             type: "number"
           },
@@ -794,7 +908,7 @@ describe("JsonSchema", () => {
         }
         const result = JsonSchema.fromSchemaOpenApi3_0(input)
         deepStrictEqual(result, {
-          source: "draft-2020-12",
+          dialect: "draft-2020-12",
           schema: {
             type: "number"
           },
@@ -807,7 +921,7 @@ describe("JsonSchema", () => {
   describe("toDocumentDraft07", () => {
     it("should rewrite $defs references to definitions", () => {
       const input: JsonSchema.Document<"draft-2020-12"> = {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "object",
           properties: {
@@ -827,7 +941,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.toDocumentDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-07",
+        dialect: "draft-07",
         schema: {
           type: "object",
           properties: {
@@ -849,7 +963,7 @@ describe("JsonSchema", () => {
 
     it("should convert prefixItems to items array", () => {
       const input: JsonSchema.Document<"draft-2020-12"> = {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "array",
           prefixItems: [
@@ -862,7 +976,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.toDocumentDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-07",
+        dialect: "draft-07",
         schema: {
           type: "array",
           items: [
@@ -877,7 +991,7 @@ describe("JsonSchema", () => {
 
     it("should convert single items to items", () => {
       const input: JsonSchema.Document<"draft-2020-12"> = {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "array",
           items: { type: "string" }
@@ -886,7 +1000,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.toDocumentDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-07",
+        dialect: "draft-07",
         schema: {
           type: "array",
           items: { type: "string" }
@@ -897,7 +1011,7 @@ describe("JsonSchema", () => {
 
     it("should remove non-standard properties", () => {
       const input: JsonSchema.Document<"draft-2020-12"> = {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "string",
           "x-custom": "value"
@@ -906,7 +1020,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.toDocumentDraft07(input)
       deepStrictEqual(result, {
-        source: "draft-07",
+        dialect: "draft-07",
         schema: {
           type: "string"
         },
@@ -918,7 +1032,7 @@ describe("JsonSchema", () => {
   describe("toDocumentOpenApi3_1", () => {
     it("should rewrite $defs references to definitions", () => {
       const input: JsonSchema.Document<"draft-2020-12"> = {
-        source: "draft-2020-12",
+        dialect: "draft-2020-12",
         schema: {
           type: "object",
           properties: {
@@ -938,7 +1052,7 @@ describe("JsonSchema", () => {
       }
       const result = JsonSchema.toDocumentOpenApi3_1(input)
       deepStrictEqual(result, {
-        source: "openapi-3.1",
+        dialect: "openapi-3.1",
         schema: {
           type: "object",
           properties: {
