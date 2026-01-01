@@ -89,7 +89,7 @@
     "rollup-plugin-visualizer": "^6.0.5",
     "terser": "^5.44.1",
     "ts-patch": "^3.3.0",
-    "tstyche": "^6.0.0-beta.3",
+    "tstyche": "^6.0.0-beta.4",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.0",
