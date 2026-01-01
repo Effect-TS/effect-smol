@@ -1,8 +1,8 @@
+import * as OpenApiGenerator from "@effect/openapi-generator/OpenApiGenerator"
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import type { OpenAPISpec } from "effect/unstable/httpapi/OpenApi"
 import OpenApiFixture from "../../../platform-node/test/fixtures/openapi.json" with { type: "json" }
-import * as OpenApiGenerator from "../src/OpenApiGenerator.ts"
 
 function assertRuntime(spec: OpenAPISpec) {
   return Effect.gen(function*() {

@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "import", "oxc"],
+  "plugins": ["typescript", "import", "oxc", "eslint", "unicorn", "node"],
   "rules": {
     // ============================================================================
     // CORE ESLINT RULES
@@ -33,6 +33,13 @@
     "eslint/no-unused-vars": "off",
     // Disabled: Effect generators don't always yield
     "eslint/require-yield": "off",
+
+    // ============================================================================
+    // UNICORN RULES
+    // ============================================================================
+
+    // Disabled: We use this a ton
+    "unicorn/no-new-array": "off",
 
     // ============================================================================
     // IMPORT RULES
