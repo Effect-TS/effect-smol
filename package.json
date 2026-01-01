@@ -53,6 +53,7 @@
     "@edge-runtime/vm": "^5.0.0",
     "@effect/build-utils": "^0.8.9",
     "@effect/docgen": "https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@49e99a2",
+    "@effect/oxc": "workspace:^",
     "@effect/eslint-plugin": "^0.3.2",
     "@effect/language-service": "^0.62.3",
     "@effect/vitest": "workspace:^",

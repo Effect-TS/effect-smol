@@ -61,6 +61,9 @@ importers:
       '@effect/language-service':
         specifier: ^0.62.3
         version: 0.62.3
+      '@effect/oxc':
+        specifier: workspace:^
+        version: link:packages/tools/oxc
       '@effect/vitest':
         specifier: workspace:^
         version: link:packages/vitest

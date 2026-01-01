@@ -1,18 +1,19 @@
 {
-  "name": "@effect/oxc-config",
+  "name": "@effect/oxc",
   "version": "0.0.1",
   "type": "module",
   "private": true,
   "license": "MIT",
-  "description": "OXC linting configuration for Effect",
+  "description": "Opinionated linting and formatting configuration for Effect",
   "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
     "./oxlint": "./src/oxlint/index.ts",
     "./oxlint/rules/*": "./src/oxlint/rules/*.ts",
-    "./configs/oxlintrc.json": "./src/configs/oxlintrc.json"
+    "./oxlintrc.json": "./oxlintrc.json"
   },
   "files": [
+    "oxlintrc.json",
     "src/**/*.ts",
     "dist/**/*.js",
     "dist/**/*.js.map",
@@ -24,7 +25,7 @@
       "./package.json": "./package.json",
       "./oxlint": "./dist/oxlint/index.js",
       "./oxlint/rules/*": "./dist/oxlint/rules/*.js",
-      "./configs/oxlintrc.json": "./src/configs/oxlintrc.json"
+      "./oxlintrc.json": "./oxlintrc.json"
     }
   },
   "scripts": {

@@ -9,8 +9,8 @@
     "rootDir": "test",
     "baseUrl": ".",
     "paths": {
-      "@effect/oxc-config": ["./src/index.ts"],
-      "@effect/oxc-config/*": ["./src/*/index.ts", "./src/*.ts"]
+      "@effect/oxc": ["./src/index.ts"],
+      "@effect/oxc/*": ["./src/*/index.ts", "./src/*.ts"]
     },
     "types": ["node"]
   }

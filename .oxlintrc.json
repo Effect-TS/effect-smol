@@ -1,14 +1,21 @@
 {
   "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
-  "extends": ["./packages/tools/oxc/src/configs/oxlintrc.json"],
+  "extends": ["./packages/tools/oxc/oxlintrc.json"],
   "ignorePatterns": ["**/dist", "**/docs", "**/.tsbuildinfo", "**/*.md"],
-  "jsPlugins": ["./packages/tools/oxc/dist/oxlint/index.js"],
+  "jsPlugins": ["@effect/oxc/oxlint"],
   "rules": {
     "effect/sort-destructure-keys": "error",
     "effect/no-opaque-instance-fields": "error",
     "effect/no-spread-in-push": "error",
     "effect/object-shorthand": "error",
     "effect/newline-after-import": "error"
-    // Note: no-octal and prefer-const are handled by TypeScript strict mode
-  }
+  },
+  "overrides": [
+    {
+      "files": ["packages/*/benchmark/**/*.ts", "{bundle,examples,scripts}/**/*.{mjs,ts}"],
+      "rules": {
+        "eslint/no-console": "off"
+      }
+    }
+  ]
 }
