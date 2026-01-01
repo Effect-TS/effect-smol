@@ -134,19 +134,6 @@ describe("Tracer", () => {
       }))
   })
 
-  // TODO
-  // it.effect("withTracerTiming false", () =>
-  //   Effect.gen(function*() {
-  //     yield* (TestClock.adjust(Duration.millis(1)))
-  //
-  //     const span = yield* pipe(
-  //       Effect.withSpan("A")(Effect.currentSpan),
-  //       Effect.withTracerTiming(false)
-  //     )
-  //
-  //     deepStrictEqual(span.status.startTime, 0n)
-  //   }))
-
   describe("Effect.useSpanScoped", () => {
     it.effect("should control span lifetimes with a scope", () =>
       Effect.gen(function*() {
@@ -217,106 +204,7 @@ describe("Tracer", () => {
   //     }))
   //
   // })
-
-  describe("Tracer.DisablePropagation", () => {
-    it.effect("should allow disabling span propagation via noop spans", () =>
-      Effect.gen(function*() {
-        const span = yield* Effect.currentSpan.pipe(
-          Effect.withSpan("A", {
-            services: Tracer.DisablePropagation.serviceMap(true)
-          })
-        )
-        const spanB = yield* Effect.currentSpan.pipe(
-          Effect.withSpan("B")
-        )
-
-        strictEqual(span.name, "A")
-        strictEqual(span.spanId, "noop")
-        strictEqual(spanB.name, "B")
-      }))
-
-    it.effect("should prevent a span from being used as a parent span", () =>
-      Effect.gen(function*() {
-        const span = yield* Effect.currentSpan.pipe(
-          Effect.withSpan("child"),
-          Effect.withSpan("disabled", {
-            services: Tracer.DisablePropagation.serviceMap(true)
-          }),
-          Effect.withSpan("parent")
-        )
-        strictEqual(span.name, "child")
-        strictEqual(span.parent?._tag, "Span")
-        strictEqual((span.parent as Span)?.name, "parent")
-      }))
-  })
-
-  describe("Layer", () => {
-    it.effect("parentSpan", () =>
-      Effect.gen(function*() {
-        const span = yield* Effect.makeSpan("child")
-        const parent = span.parent as Tracer.Span
-        strictEqual(parent?.name, "parent")
-        strictEqual(span.attributes.get("code.stacktrace"), undefined)
-        strictEqual(parent?.attributes.get("code.stacktrace"), undefined)
-      }).pipe(
-        Effect.provide(Layer.unwrap(
-          Effect.map(
-            Effect.makeSpanScoped("parent"),
-            (span) => Layer.parentSpan(span)
-          )
-        ))
-      ))
-
-    it.effect("span", () =>
-      Effect.gen(function*() {
-        const span = yield* Effect.makeSpan("child")
-        const parent = span.parent as Tracer.Span
-        strictEqual(parent.name, "parent")
-        strictEqual(parent.attributes.get("code.stacktrace"), undefined)
-      }).pipe(Effect.provide(Layer.span("parent"))))
-
-    it.effect("span onEnd", () =>
-      Effect.gen(function*() {
-        let onEndCalled = false
-        const span = yield* Effect.currentSpan.pipe(
-          Effect.provide(Layer.span("span", {
-            onEnd: (span, _exit) =>
-              Effect.sync(() => {
-                strictEqual(span.name, "span")
-                onEndCalled = true
-              })
-          }))
-        )
-        strictEqual(span.name, "span")
-        strictEqual(onEndCalled, true)
-      }))
-
-    it.effect("withSpan", () =>
-      Effect.gen(function*() {
-        let onEndCalled = false
-        const layer = Layer.effectDiscard(Effect.gen(function*() {
-          const span = yield* Effect.currentSpan
-          strictEqual(span.name, "span")
-          strictEqual(span.attributes.get("code.stacktrace"), undefined)
-        })).pipe(Layer.withSpan("span", {
-          onEnd: (span, _exit) =>
-            Effect.sync(() => {
-              strictEqual(span.name, "span")
-              onEndCalled = true
-            })
-        }))
-
-        const span = yield* Effect.currentSpan.pipe(
-          Effect.provide(layer),
-          Effect.option
-        )
-
-        assertNone(span)
-        strictEqual(onEndCalled, true)
-      }))
-  })
-
-  // TODO
+  //
   // describe("functionWithSpan", () => {
   //   const getSpan = Effect.functionWithSpan({
   //     body: (_id: string) => Effect.currentSpan,
@@ -360,4 +248,116 @@ describe("Tracer", () => {
   //     assertInclude(maybeSpan!.attributes.get("code.stacktrace") as string, "Tracer.test.ts:22:26")
   //   }))
   // })
+  //
+  // it.effect("withTracerTiming false", () =>
+  //   Effect.gen(function*() {
+  //     yield* (TestClock.adjust(Duration.millis(1)))
+  //
+  //     const span = yield* pipe(
+  //       Effect.withSpan("A")(Effect.currentSpan),
+  //       Effect.withTracerTiming(false)
+  //     )
+  //
+  //     deepStrictEqual(span.status.startTime, 0n)
+  //   }))
+
+  describe("Layer.parentSpan", () => {
+    it.effect("should set the parent trace span for the layer constructor", () =>
+      Effect.gen(function*() {
+        const span = yield* Effect.makeSpan("child")
+        const parent = span.parent as Tracer.Span
+        strictEqual(parent?.name, "parent")
+        strictEqual(span.attributes.get("code.stacktrace"), undefined)
+        strictEqual(parent?.attributes.get("code.stacktrace"), undefined)
+      }).pipe(Effect.provide(Layer.unwrap(
+        Effect.map(
+          Effect.makeSpanScoped("parent"),
+          (span) => Layer.parentSpan(span)
+        )
+      ))))
+  })
+
+  describe("Layer.span", () => {
+    it.effect("should create a new parent trace span for the layer constructor", () =>
+      Effect.gen(function*() {
+        const span = yield* Effect.makeSpan("child")
+        const parent = span.parent as Tracer.Span
+        strictEqual(parent.name, "parent")
+        strictEqual(parent.attributes.get("code.stacktrace"), undefined)
+      }).pipe(Effect.provide(Layer.span("parent"))))
+
+    it.effect("should call onEnd when the span is ending", () =>
+      Effect.gen(function*() {
+        let onEndCalled = false
+        const span = yield* Effect.currentSpan.pipe(
+          Effect.provide(Layer.span("span", {
+            onEnd: (span, _exit) =>
+              Effect.sync(() => {
+                strictEqual(span.name, "span")
+                onEndCalled = true
+              })
+          }))
+        )
+        strictEqual(span.name, "span")
+        strictEqual(onEndCalled, true)
+      }))
+  })
+
+  describe("Layer.withSpan", () => {
+    it.effect("sets the trace span for the layer constructor", () =>
+      Effect.gen(function*() {
+        let onEndCalled = false
+        const layer = Layer.effectDiscard(Effect.gen(function*() {
+          const span = yield* Effect.currentSpan
+          strictEqual(span.name, "span")
+          strictEqual(span.attributes.get("code.stacktrace"), undefined)
+        })).pipe(Layer.withSpan("span", {
+          onEnd: (span, _exit) =>
+            Effect.sync(() => {
+              strictEqual(span.name, "span")
+              onEndCalled = true
+            })
+        }))
+
+        const span = yield* Effect.currentSpan.pipe(
+          Effect.provide(layer),
+          Effect.option
+        )
+
+        assertNone(span)
+        strictEqual(onEndCalled, true)
+      }))
+  })
+
+  describe("Tracer.DisablePropagation", () => {
+    it.effect("should allow disabling span propagation via noop spans", () =>
+      Effect.gen(function*() {
+        const span = yield* Effect.currentSpan.pipe(
+          Effect.withSpan("A", {
+            services: Tracer.DisablePropagation.serviceMap(true)
+          })
+        )
+        const spanB = yield* Effect.currentSpan.pipe(
+          Effect.withSpan("B")
+        )
+
+        strictEqual(span.name, "A")
+        strictEqual(span.spanId, "noop")
+        strictEqual(spanB.name, "B")
+      }))
+
+    it.effect("should prevent a span from being used as a parent span", () =>
+      Effect.gen(function*() {
+        const span = yield* Effect.currentSpan.pipe(
+          Effect.withSpan("child"),
+          Effect.withSpan("disabled", {
+            services: Tracer.DisablePropagation.serviceMap(true)
+          }),
+          Effect.withSpan("parent")
+        )
+        strictEqual(span.name, "child")
+        strictEqual(span.parent?._tag, "Span")
+        strictEqual((span.parent as Span)?.name, "parent")
+      }))
+  })
 })

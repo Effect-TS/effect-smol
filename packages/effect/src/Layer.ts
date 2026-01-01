@@ -1820,8 +1820,8 @@ export interface SpanOptions extends Tracer.SpanOptions {
 }
 
 /**
- * Constructs a new `Layer` which creates a new span and registers it as the
- * current parent span.
+ * Constructs a new `Layer` which creates a span and registers it as the current
+ * parent span.
  *
  * This allows you to create a traced scope for layer construction, making all
  * operations within the layer constructor part of the same trace span. The span
