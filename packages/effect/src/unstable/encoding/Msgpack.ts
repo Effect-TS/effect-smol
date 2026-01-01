@@ -112,14 +112,14 @@ export const decode = <IE = never, Done = unknown>(): Channel.Channel<
             }
             try {
               // oxlint-disable-next-line effect/no-spread-in-push
-              out.push(...unpackr.unpackMultiple(buf)) // eslint-disable-line no-restricted-syntax
+              out.push(...unpackr.unpackMultiple(buf))
             } catch (cause) {
               const error: any = cause
               if (error.incomplete) {
                 incomplete = buf.subarray(error.lastPosition)
                 if (error.values) {
                   // oxlint-disable-next-line effect/no-spread-in-push
-                  out.push(...error.values) // eslint-disable-line no-restricted-syntax
+                  out.push(...error.values)
                 }
               } else {
                 return Effect.fail(new MsgPackError({ reason: "Unpack", cause }))

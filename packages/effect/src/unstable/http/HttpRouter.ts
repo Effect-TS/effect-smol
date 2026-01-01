@@ -838,7 +838,7 @@ class MiddlewareImpl<
         const scope = ServiceMap.get(context, Scope.Scope)
         const depsContext = yield* Layer.buildWithMemoMap(this.dependencies, memoMap, scope)
         // oxlint-disable-next-line effect/no-spread-in-push
-        stack.push(...getMiddleware(depsContext)) // eslint-disable-line no-restricted-syntax
+        stack.push(...getMiddleware(depsContext))
       }
       return ServiceMap.makeUnsafe<never>(new Map([[contextKey, stack]]))
     })).pipe(Layer.provide(this.layerFn))

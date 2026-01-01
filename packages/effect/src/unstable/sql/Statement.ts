@@ -532,7 +532,7 @@ export const statement = <A = Row>(
 
     if (isFragment(arg)) {
       // oxlint-disable-next-line effect/no-spread-in-push
-      segments.push(...arg.segments) // eslint-disable-line no-restricted-syntax
+      segments.push(...arg.segments)
     } else if (isSegment(arg)) {
       segments.push(arg)
     } else {

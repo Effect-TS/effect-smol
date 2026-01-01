@@ -286,7 +286,7 @@ export const make = (
         params: ReadonlyArray<unknown>,
         transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
       ) {
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        // oxlint-disable-next-line @typescript-eslint/no-this-alias
         const self = this
         return Stream.fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
           const client = self.pg ?? (yield* Scope.provide(reserveRaw, scope))

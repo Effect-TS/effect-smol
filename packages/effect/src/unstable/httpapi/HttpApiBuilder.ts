@@ -81,7 +81,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
         return yield* Effect.die(`HttpApiGroup "${group.key}" not found`)
       }
       // oxlint-disable-next-line effect/no-spread-in-push
-      routes.push(...groupRoutes) // eslint-disable-line no-restricted-syntax
+      routes.push(...groupRoutes)
     }
     yield* (router.addAll(routes) as Effect.Effect<void>)
     if (options?.openapiPath) {

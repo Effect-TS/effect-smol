@@ -54,7 +54,7 @@ bench
     optic.get(user)
   })
   .add("direct get", function() {
-    // eslint-disable-next-line
+    // oxlint-disable-next-line
     user.profile.address.street
   })
   .add("iso replace", function() {

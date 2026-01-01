@@ -339,7 +339,7 @@ export const empty: Cookies = fromIterable([])
  */
 export const isEmpty = (self: Cookies): boolean => Record.isEmptyRecord(self.cookies)
 
-// eslint-disable-next-line no-control-regex
+// oxlint-disable-next-line no-control-regex
 const fieldContentRegExp = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/
 
 const CookieProto = {
@@ -775,7 +775,7 @@ export function parseHeader(header: string): Record<string, string> {
 const tryDecodeURIComponent = (str: string): string => {
   try {
     return decodeURIComponent(str)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // oxlint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (_) {
     return str
   }

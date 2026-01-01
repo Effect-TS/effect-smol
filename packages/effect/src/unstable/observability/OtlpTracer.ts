@@ -143,7 +143,7 @@ const SpanProto = {
   },
   addLinks(this: SpanImpl, links: ReadonlyArray<Tracer.SpanLink>) {
     // oxlint-disable-next-line effect/no-spread-in-push
-    this.links.push(...links) // eslint-disable-line no-restricted-syntax
+    this.links.push(...links)
   }
 }
 

@@ -1224,7 +1224,7 @@ const takeRemainderLoop = <A>(
   }
   return Effect.flatMap(takeUpTo(self, max), (bs) => {
     // oxlint-disable-next-line effect/no-spread-in-push
-    acc.push(...bs) // eslint-disable-line no-restricted-syntax
+    acc.push(...bs)
     const remaining = min - bs.length
     if (remaining === 1) {
       return Effect.map(take(self), (b) => {
@@ -2275,7 +2275,7 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
     const iterator = elements[Symbol.iterator]()
     let next: IteratorResult<A> = iterator.next()
     if (!next.done) {
-      // eslint-disable-next-line no-constant-condition
+      // oxlint-disable-next-line no-constant-condition
       while (1) {
         const value = next.value
         next = iterator.next()

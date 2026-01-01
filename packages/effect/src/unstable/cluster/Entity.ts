@@ -548,7 +548,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
       Effect.provideService(CurrentAddress, address)
     )
 
-    // eslint-disable-next-line prefer-const
+    // oxlint-disable-next-line prefer-const
     let client!: Effect.Success<ReturnType<typeof RpcClient.makeNoSerialization<Rpcs, never>>>
     const server = yield* RpcServer.makeNoSerialization(entity.protocol, {
       concurrency: entityEntry.concurrency,

@@ -727,7 +727,7 @@ export class MemoryDriver extends ServiceMap.Service<MemoryDriver>()("effect/clu
         if (!request) continue
         else if (request.lastReceivedChunk === undefined) {
           // oxlint-disable-next-line effect/no-spread-in-push
-          replies.push(...request.replies) // eslint-disable-line no-restricted-syntax
+          replies.push(...request.replies)
           continue
         }
         const sequence = request.lastReceivedChunk.sequence

@@ -1382,7 +1382,7 @@ export const raceAll = <Eff extends Effect.Effect<any, any, any>>(
         doneCount++
         if (exit._tag === "Failure") {
           // oxlint-disable-next-line effect/no-spread-in-push
-          failures.push(...exit.cause.failures) // eslint-disable-line no-restricted-syntax
+          failures.push(...exit.cause.failures)
           if (doneCount >= len) {
             resume(failCause(causeFromFailures(failures)))
           }
@@ -1912,7 +1912,7 @@ export const exitAsVoidAll = <I extends Iterable<Exit.Exit<any, any>>>(
   for (const exit of exits) {
     if (exit._tag === "Failure") {
       // oxlint-disable-next-line effect/no-spread-in-push
-      failures.push(...exit.cause.failures) // eslint-disable-line no-restricted-syntax
+      failures.push(...exit.cause.failures)
     }
   }
   return failures.length === 0 ? exitVoid : exitFailCause(causeFromFailures(failures))
@@ -3743,7 +3743,7 @@ export const forEach: {
                   failed = true
                   length = index
                   // oxlint-disable-next-line effect/no-spread-in-push
-                  failures.push(...exit.cause.failures) // eslint-disable-line no-restricted-syntax
+                  failures.push(...exit.cause.failures)
                   fibers.forEach((fiber) => fiber.interruptUnsafe(parent.id, annotations))
                 } else {
                   for (const f of exit.cause.failures) {

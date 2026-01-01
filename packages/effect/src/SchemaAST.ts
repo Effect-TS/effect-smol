@@ -964,7 +964,7 @@ export class Arrays extends Base {
   }
   /** @internal */
   getParser(recur: (ast: AST) => Parser.Parser): Parser.Parser {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    // oxlint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     const elements = ast.elements.map((ast) => ({ ast, parser: recur(ast) }))
     const rest = ast.rest.map((ast) => ({ ast, parser: recur(ast) }))
@@ -1241,7 +1241,7 @@ export class Objects extends Base {
   }
   /** @internal */
   getParser(recur: (ast: AST) => Parser.Parser): Parser.Parser {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    // oxlint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     const expectedKeys: Array<PropertyKey> = []
     const expectedKeysSet = new Set<PropertyKey>()
@@ -1745,7 +1745,7 @@ export class Union<A extends AST = AST> extends Base {
   }
   /** @internal */
   getParser(recur: (ast: AST) => Parser.Parser): Parser.Parser {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    // oxlint-disable-next-line @typescript-eslint/no-this-alias
     const ast = this
     return Effect.fnUntracedEager(function*(oinput, options) {
       if (oinput._tag === "None") {

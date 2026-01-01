@@ -4041,7 +4041,7 @@ export const rechunk: {
               return Effect.succeed(arr)
             } else if (chunk.length + arr.length < target) {
               // oxlint-disable-next-line effect/no-spread-in-push
-              chunk.push(...arr) // eslint-disable-line no-restricted-syntax
+              chunk.push(...arr)
               return loop()
             }
             current = arr
@@ -4322,7 +4322,7 @@ export const mapAccum: {
         const [newState, values] = f(state, arr[index])
         state = newState
         // oxlint-disable-next-line effect/no-spread-in-push
-        acc.push(...values) // eslint-disable-line no-restricted-syntax
+        acc.push(...values)
       }
       return [state, Arr.isArrayNonEmpty(acc) ? Arr.of(acc) : emptyArr]
     },

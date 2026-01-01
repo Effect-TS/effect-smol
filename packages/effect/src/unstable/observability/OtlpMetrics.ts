@@ -291,7 +291,7 @@ export const make: (options: {
 
           if (metricDataByName.has(state.id)) {
             // oxlint-disable-next-line effect/no-spread-in-push
-            metricDataByName.get(state.id)!.sum!.dataPoints.push(...dataPoints) // eslint-disable-line no-restricted-syntax
+            metricDataByName.get(state.id)!.sum!.dataPoints.push(...dataPoints)
           } else {
             addMetricData({
               name: state.id,
@@ -360,7 +360,7 @@ export const make: (options: {
 
           if (metricDataByName.has(`${state.id}_quantiles`)) {
             // oxlint-disable-next-line effect/no-spread-in-push
-            metricDataByName.get(`${state.id}_quantiles`)!.sum!.dataPoints.push(...dataPoints) // eslint-disable-line no-restricted-syntax
+            metricDataByName.get(`${state.id}_quantiles`)!.sum!.dataPoints.push(...dataPoints)
             metricDataByName.get(`${state.id}_count`)!.sum!.dataPoints.push(countDataPoint)
             metricDataByName.get(`${state.id}_sum`)!.sum!.dataPoints.push(sumDataPoint)
           } else {
