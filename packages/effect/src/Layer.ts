@@ -1803,8 +1803,8 @@ export const satisfiesServicesType =
 // -----------------------------------------------------------------------------
 
 /**
- * Represents options that can be passed to `Layer.withSpan` to control the
- * behavior of the span created for the layer.
+ * Represents options that can be used to control the behavior of spans created
+ * for layers.
  *
  * @since 4.0.0
  * @category Models
