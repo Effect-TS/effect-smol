@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import * as Utils from "../src/Utils.js"
+import * as Utils from "../src/Utils.ts"
 
 describe("Utils", () => {
   describe("sanitizeSchemaName", () => {

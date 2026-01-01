@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import rule from "../src/oxlint/rules/sort-destructure-keys.js"
-import { runRule } from "./test-utils.js"
+import rule from "../src/oxlint/rules/sort-destructure-keys.ts"
+import { runRule } from "./test-utils.ts"
 
 describe("sort-destructure-keys", () => {
   const createObjectPattern = (keys: Array<string>) => ({

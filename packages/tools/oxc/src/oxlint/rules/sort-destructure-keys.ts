@@ -1,4 +1,4 @@
-import type { Rule } from "../types.js"
+import type { Rule } from "../types.ts"
 
 const rule: Rule = {
   meta: {

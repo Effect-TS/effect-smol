@@ -1,4 +1,4 @@
-import type { Rule, RuleContext } from "../src/oxlint/types.js"
+import type { Rule, RuleContext } from "../src/oxlint/types.ts"
 
 export interface ReportedError {
   node: unknown

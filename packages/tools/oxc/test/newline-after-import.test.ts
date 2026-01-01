@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import rule from "../src/oxlint/rules/newline-after-import.js"
-import { runRule } from "./test-utils.js"
+import rule from "../src/oxlint/rules/newline-after-import.ts"
+import { runRule } from "./test-utils.ts"
 
 describe("newline-after-import", () => {
   it("should report when no newline after imports", () => {

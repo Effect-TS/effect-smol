@@ -1,4 +1,4 @@
-import type { Rule } from "../types.js"
+import type { Rule } from "../types.ts"
 
 interface PropertyNode {
   type: string

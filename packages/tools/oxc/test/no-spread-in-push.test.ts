@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import rule from "../src/oxlint/rules/no-spread-in-push.js"
-import { runRule } from "./test-utils.js"
+import rule from "../src/oxlint/rules/no-spread-in-push.ts"
+import { runRule } from "./test-utils.ts"
 
 describe("no-spread-in-push", () => {
   const createPushCall = (args: Array<{ type: string }>) => ({
