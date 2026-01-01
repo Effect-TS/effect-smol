@@ -1829,7 +1829,7 @@ export interface SpanOptions extends Tracer.SpanOptions {
  *
  * @example
  * ```ts
- * import { Console, Effect, Layer, ServiceMap } from "effect"
+ * import { Console, Effect, Layer, ServiceMap, type Tracer } from "effect"
  *
  * class Database extends ServiceMap.Service<Database, {
  *   readonly query: (sql: string) => Effect.Effect<string>
@@ -1844,7 +1844,7 @@ export interface SpanOptions extends Tracer.SpanOptions {
  *   yield* Effect.log("Database connected")
  *
  *   const parentSpan = yield* Effect.currentParentSpan
- *   yield* Console.log(parentSpan.name) // "database-init"
+ *   yield* Console.log((parentSpan as Tracer.Span).name) // "database-init"
  *
  *   return {
  *     query: (sql: string) => Effect.succeed(`Result: ${sql}`)
