@@ -1748,10 +1748,6 @@ export declare namespace Record {
    */
   export type Record = Record$<Record.Key, Top>
 
-  type MergeTuple<T extends ReadonlyArray<unknown>> = T extends readonly [infer Head, ...infer Tail] ?
-    Head & MergeTuple<Tail>
-    : {}
-
   /**
    * @since 4.0.0
    */

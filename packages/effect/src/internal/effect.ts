@@ -1381,8 +1381,8 @@ export const raceAll = <Eff extends Effect.Effect<any, any, any>>(
       const onExit = (exit: Exit.Exit<any, any>, fiber: Fiber.Fiber<any, any>, i: number) => {
         doneCount++
         if (exit._tag === "Failure") {
-          // eslint-disable-next-line no-restricted-syntax
-          failures.push(...exit.cause.failures)
+          // oxlint-disable-next-line effect/no-spread-in-push
+          failures.push(...exit.cause.failures) // eslint-disable-line no-restricted-syntax
           if (doneCount >= len) {
             resume(failCause(causeFromFailures(failures)))
           }
@@ -1911,8 +1911,8 @@ export const exitAsVoidAll = <I extends Iterable<Exit.Exit<any, any>>>(
   const failures: Array<Cause.Failure<any>> = []
   for (const exit of exits) {
     if (exit._tag === "Failure") {
-      // eslint-disable-next-line no-restricted-syntax
-      failures.push(...exit.cause.failures)
+      // oxlint-disable-next-line effect/no-spread-in-push
+      failures.push(...exit.cause.failures) // eslint-disable-line no-restricted-syntax
     }
   }
   return failures.length === 0 ? exitVoid : exitFailCause(causeFromFailures(failures))
@@ -3742,8 +3742,8 @@ export const forEach: {
                 if (!failed) {
                   failed = true
                   length = index
-                  // eslint-disable-next-line no-restricted-syntax
-                  failures.push(...exit.cause.failures)
+                  // oxlint-disable-next-line effect/no-spread-in-push
+                  failures.push(...exit.cause.failures) // eslint-disable-line no-restricted-syntax
                   fibers.forEach((fiber) => fiber.interruptUnsafe(parent.id, annotations))
                 } else {
                   for (const f of exit.cause.failures) {

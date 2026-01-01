@@ -111,15 +111,15 @@ export const decode = <IE = never, Done = unknown>(): Channel.Channel<
               incomplete = undefined
             }
             try {
-              // eslint-disable-next-line no-restricted-syntax
-              out.push(...unpackr.unpackMultiple(buf))
+              // oxlint-disable-next-line effect/no-spread-in-push
+              out.push(...unpackr.unpackMultiple(buf)) // eslint-disable-line no-restricted-syntax
             } catch (cause) {
               const error: any = cause
               if (error.incomplete) {
                 incomplete = buf.subarray(error.lastPosition)
                 if (error.values) {
-                  // eslint-disable-next-line no-restricted-syntax
-                  out.push(...error.values)
+                  // oxlint-disable-next-line effect/no-spread-in-push
+                  out.push(...error.values) // eslint-disable-line no-restricted-syntax
                 }
               } else {
                 return Effect.fail(new MsgPackError({ reason: "Unpack", cause }))

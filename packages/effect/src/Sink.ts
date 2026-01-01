@@ -955,8 +955,8 @@ export const take = <In>(n: number): Sink<Array<In>, In, In> =>
     return upstream.pipe(
       Effect.flatMap((arr) => {
         if (taken.length + arr.length <= n) {
-          // eslint-disable-next-line no-restricted-syntax
-          taken.push(...arr)
+          // oxlint-disable-next-line effect/no-spread-in-push
+          taken.push(...arr) // eslint-disable-line no-restricted-syntax
           if (taken.length === n) {
             return Pull.haltVoid
           }
@@ -1297,8 +1297,8 @@ export const count: Sink<number, unknown> = reduceArray(() => 0, (s, arr) => s +
  */
 export const collect = <In>(): Sink<Array<In>, In> =>
   reduceArray(Arr.empty<In>, (s, arr) => {
-    // eslint-disable-next-line no-restricted-syntax
-    s.push(...arr)
+    // oxlint-disable-next-line effect/no-spread-in-push
+    s.push(...arr) // eslint-disable-line no-restricted-syntax
     return s
   })
 

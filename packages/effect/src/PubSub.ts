@@ -1223,8 +1223,8 @@ const takeRemainderLoop = <A>(
     return Effect.succeed(acc)
   }
   return Effect.flatMap(takeUpTo(self, max), (bs) => {
-    // eslint-disable-next-line no-restricted-syntax
-    acc.push(...bs)
+    // oxlint-disable-next-line effect/no-spread-in-push
+    acc.push(...bs) // eslint-disable-line no-restricted-syntax
     const remaining = min - bs.length
     if (remaining === 1) {
       return Effect.map(take(self), (b) => {

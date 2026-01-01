@@ -492,6 +492,7 @@ describe("Stream", () => {
               yield* Deferred.await(latch2)
               yield* pull.pipe(
                 Effect.andThen((chunk) => {
+                  // oxlint-disable-next-line effect/no-spread-in-push
                   arr.push(...chunk)
                 }),
                 Effect.repeat({ times: 7 })
@@ -501,6 +502,7 @@ describe("Stream", () => {
               yield* Deferred.await(latch4)
               yield* pull.pipe(
                 Effect.andThen((chunk) => {
+                  // oxlint-disable-next-line effect/no-spread-in-push
                   arr.push(...chunk)
                 }),
                 Effect.repeat({ times: 7 })

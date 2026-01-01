@@ -4040,8 +4040,8 @@ export const rechunk: {
             if (chunk.length === 0 && arr.length === target) {
               return Effect.succeed(arr)
             } else if (chunk.length + arr.length < target) {
-              // eslint-disable-next-line no-restricted-syntax
-              chunk.push(...arr)
+              // oxlint-disable-next-line effect/no-spread-in-push
+              chunk.push(...arr) // eslint-disable-line no-restricted-syntax
               return loop()
             }
             current = arr
@@ -4321,8 +4321,8 @@ export const mapAccum: {
       for (let index = 0; index < arr.length; index++) {
         const [newState, values] = f(state, arr[index])
         state = newState
-        // eslint-disable-next-line no-restricted-syntax
-        acc.push(...values)
+        // oxlint-disable-next-line effect/no-spread-in-push
+        acc.push(...values) // eslint-disable-line no-restricted-syntax
       }
       return [state, Arr.isArrayNonEmpty(acc) ? Arr.of(acc) : emptyArr]
     },
