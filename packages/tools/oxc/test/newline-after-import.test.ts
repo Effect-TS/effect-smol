@@ -1,5 +1,5 @@
+import rule from "@effect/oxc/oxlint/rules/newline-after-import"
 import { describe, expect, it } from "vitest"
-import rule from "../src/oxlint/rules/newline-after-import.ts"
 import { runRule } from "./test-utils.ts"
 
 describe("newline-after-import", () => {

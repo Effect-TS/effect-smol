@@ -1,5 +1,5 @@
+import rule from "@effect/oxc/oxlint/rules/no-spread-in-push"
 import { describe, expect, it } from "vitest"
-import rule from "../src/oxlint/rules/no-spread-in-push.ts"
 import { runRule } from "./test-utils.ts"
 
 describe("no-spread-in-push", () => {

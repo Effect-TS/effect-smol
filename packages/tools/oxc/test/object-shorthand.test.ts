@@ -1,5 +1,5 @@
+import rule from "@effect/oxc/oxlint/rules/object-shorthand"
 import { describe, expect, it } from "vitest"
-import rule from "../src/oxlint/rules/object-shorthand.ts"
 import { runRule } from "./test-utils.ts"
 
 describe("object-shorthand", () => {

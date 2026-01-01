@@ -1,5 +1,5 @@
+import rule from "@effect/oxc/oxlint/rules/no-opaque-instance-fields"
 import { describe, expect, it } from "vitest"
-import rule from "../src/oxlint/rules/no-opaque-instance-fields.ts"
 import { runRule } from "./test-utils.ts"
 
 describe("no-opaque-instance-fields", () => {
