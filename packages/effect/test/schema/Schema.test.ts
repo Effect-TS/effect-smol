@@ -3869,16 +3869,17 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     }
 
     const decoding = asserts.decoding()
-    await decoding.succeed(NaN, Duration.zero)
     await decoding.succeed(Infinity, Duration.infinity)
     await decoding.succeed(0, Duration.millis(0))
     await decoding.succeed(1000, Duration.seconds(1))
     await decoding.succeed(60 * 1000, Duration.minutes(1))
     await decoding.succeed(0.1, Duration.millis(0.1))
     await decoding.fail(-1, "Expected a value greater than or equal to 0, got -1")
+    await decoding.fail(NaN, "Expected a value greater than or equal to 0, got NaN")
 
     const encoding = asserts.encoding()
     await encoding.succeed(Duration.infinity, Infinity)
+    await encoding.succeed(Duration.millis(NaN), 0)
     await encoding.succeed(Duration.seconds(5), 5000)
     await encoding.succeed(Duration.millis(5000), 5000)
     await encoding.succeed(Duration.millis(0.1), 0.1)
