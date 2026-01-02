@@ -1837,7 +1837,7 @@ export const size = <A>(self: Chunk<A>): number => self.length
  * console.log(Chunk.toArray(sorted)) // [1, 1, 2, 3, 4, 5, 6, 9]
  *
  * // Reverse order
- * const reverseSorted = Chunk.sort(numbers, Order.reverse(Order.number))
+ * const reverseSorted = Chunk.sort(numbers, Order.flip(Order.number))
  * console.log(Chunk.toArray(reverseSorted)) // [9, 6, 5, 4, 3, 2, 1, 1]
  *
  * // String sorting
