@@ -1417,29 +1417,6 @@ export const toJsonSchemaMultiDocument: (
 /**
  * @since 4.0.0
  */
-export const toGenerationDefaultReviver: Reviver<Generation> = (declaration, recur) => {
-  const typeConstructor = declaration.annotations?.typeConstructor
-  if (Predicate.hasProperty(typeConstructor, "_tag")) {
-    const _tag = typeConstructor._tag
-    const typeParameters = declaration.typeParameters.map(recur)
-    switch (_tag) {
-      case "Date":
-        return makeGeneration(`Schema.Date`, `Date`, `Date`)
-      case "effect/Option": {
-        return makeGeneration(
-          `Schema.Option(${typeParameters.map((p) => p.runtime).join(", ")})`,
-          `Option<${typeParameters.map((p) => p.Type).join(", ")}>`,
-          `Option<${typeParameters.map((p) => p.Encoded).join(", ")}>`
-        )
-      }
-    }
-  }
-  return makeGeneration("Schema.Unknown", "unknown")
-}
-
-/**
- * @since 4.0.0
- */
 export type Generation = {
   readonly runtime: string
   readonly Type: string
@@ -1588,8 +1565,30 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
 
   function on(s: Standard): Generation {
     switch (s._tag) {
-      case "Declaration":
+      case "Declaration": {
+        const typeConstructor = s.annotations?.typeConstructor
+        if (Predicate.hasProperty(typeConstructor, "_tag")) {
+          const _tag = typeConstructor._tag
+          const typeParameters = s.typeParameters.map(recur)
+          switch (_tag) {
+            case "Date":
+              return makeGeneration(`Schema.Date`, `Date`)
+            case "effect/Option":
+              return makeGeneration(
+                `Schema.Option(${typeParameters.map((p) => p.runtime).join(", ")})`,
+                `Option<${typeParameters.map((p) => p.Type).join(", ")}>`,
+                `Option<${typeParameters.map((p) => p.Encoded).join(", ")}>`
+              )
+            case "effect/Result":
+              return makeGeneration(
+                `Schema.Result(${typeParameters.map((p) => p.runtime).join(", ")})`,
+                `Result<${typeParameters.map((p) => p.Type).join(", ")}>`,
+                `Result<${typeParameters.map((p) => p.Encoded).join(", ")}>`
+              )
+          }
+        }
         return reviver ? reviver(s, recur) : recur(s.Encoded)
+      }
       case "Reference":
         return makeGeneration(s.$ref, s.$ref, `${s.$ref}Encoded`)
       case "Suspend": {

@@ -35,9 +35,7 @@ describe("Standard", () => {
       readonly artifacts?: ReadonlyArray<SchemaStandard.Artifact>
     }) {
       const multiDocument = SchemaStandard.fromASTs([schema.ast])
-      const generationDocument = SchemaStandard.toGenerationDocument(multiDocument, {
-        reviver: SchemaStandard.toGenerationDefaultReviver
-      })
+      const generationDocument = SchemaStandard.toGenerationDocument(multiDocument)
       deepStrictEqual(generationDocument, {
         generations: Array.isArray(expected.generations) ? expected.generations : [expected.generations],
         definitions: {
@@ -53,7 +51,7 @@ describe("Standard", () => {
     describe("Declaration", () => {
       it("declaration without typeConstructor annotation", () => {
         assertToGenerationDocument(Schema.instanceOf(URL), {
-          generations: makeGeneration("Schema.Unknown", "unknown")
+          generations: makeGeneration("Schema.Null", "null")
         })
       })
 
@@ -79,6 +77,15 @@ describe("Standard", () => {
           Schema.Option(Schema.String),
           {
             generations: makeGeneration("Schema.Option(Schema.String)", "Option<string>")
+          }
+        )
+      })
+
+      it("Result(String, Number)", () => {
+        assertToGenerationDocument(
+          Schema.Result(Schema.String, Schema.Number),
+          {
+            generations: makeGeneration("Schema.Result(Schema.String, Schema.Number)", "Result<string, number>")
           }
         )
       })
