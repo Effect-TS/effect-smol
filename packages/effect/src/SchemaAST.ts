@@ -840,9 +840,8 @@ export class Number extends Base {
 function hasCheck(checks: ReadonlyArray<Check<unknown>>, tag: string): boolean {
   return checks.some((c) => {
     switch (c._tag) {
-      case "Filter": {
-        return Predicate.hasProperty(c.annotations?.meta, "_tag")
-      }
+      case "Filter":
+        return c.annotations?.meta?._tag === tag
       case "FilterGroup":
         return hasCheck(c.checks, tag)
     }
