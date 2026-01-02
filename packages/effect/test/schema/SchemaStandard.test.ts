@@ -62,6 +62,42 @@ describe("Standard", () => {
           })
         })
 
+        it("Error", () => {
+          assertToGenerationDocument(Schema.Error, {
+            generations: makeGeneration("Schema.Error", "Error")
+          })
+        })
+
+        it("RegExp", () => {
+          assertToGenerationDocument(Schema.RegExp, {
+            generations: makeGeneration("Schema.RegExp", "RegExp")
+          })
+        })
+
+        it("URL", () => {
+          assertToGenerationDocument(Schema.URL, {
+            generations: makeGeneration("Schema.URL", "URL")
+          })
+        })
+
+        it("Uint8Array", () => {
+          assertToGenerationDocument(Schema.Uint8Array, {
+            generations: makeGeneration("Schema.Uint8Array", "Uint8Array")
+          })
+        })
+
+        it("FormData", () => {
+          assertToGenerationDocument(Schema.FormData, {
+            generations: makeGeneration("Schema.FormData", "FormData")
+          })
+        })
+
+        it("URLSearchParams", () => {
+          assertToGenerationDocument(Schema.URLSearchParams, {
+            generations: makeGeneration("Schema.URLSearchParams", "URLSearchParams")
+          })
+        })
+
         it("Date & check", () => {
           assertToGenerationDocument(
             Schema.Date.check(Schema.isGreaterThanDate(new Date(0))),
@@ -76,7 +112,11 @@ describe("Standard", () => {
         assertToGenerationDocument(
           Schema.Option(Schema.String),
           {
-            generations: makeGeneration("Schema.Option(Schema.String)", "Option<string>")
+            generations: makeGeneration("Schema.Option(Schema.String)", "Option.Option<string>"),
+            artifacts: [{
+              _tag: "Import",
+              importDeclaration: `import * as Option from "effect/Option"`
+            }]
           }
         )
       })
@@ -85,7 +125,11 @@ describe("Standard", () => {
         assertToGenerationDocument(
           Schema.Result(Schema.String, Schema.Number),
           {
-            generations: makeGeneration("Schema.Result(Schema.String, Schema.Number)", "Result<string, number>")
+            generations: makeGeneration("Schema.Result(Schema.String, Schema.Number)", "Result.Result<string, number>"),
+            artifacts: [{
+              _tag: "Import",
+              importDeclaration: `import * as Result from "effect/Result"`
+            }]
           }
         )
       })

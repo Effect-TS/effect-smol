@@ -1073,7 +1073,7 @@ export function fromJson(u: unknown): Document {
 /**
  * @since 4.0.0
  */
-export type Reviver<T> = (declaration: Declaration, recur: (schema: Standard) => T) => T
+export type Reviver<T> = (declaration: Declaration, recur: (schema: Standard) => T) => T | undefined
 
 /**
  * @since 4.0.0
@@ -1102,8 +1102,6 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
   document: Document,
   options?: { readonly reviver?: Reviver<Schema.Top> | undefined }
 ): S {
-  const reviver = options?.reviver
-
   type Slot = {
     // 0 = not started, 1 = building, 2 = done
     state: 0 | 1 | 2
@@ -1176,7 +1174,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
   function on(s: Standard): Schema.Top {
     switch (s._tag) {
       case "Declaration":
-        return reviver ? reviver(s, recur) : recur(s.Encoded)
+        return options?.reviver?.(s, recur) ?? recur(s.Encoded)
       case "Reference":
         return resolveReference(s.$ref)
       case "Suspend":
@@ -1444,6 +1442,10 @@ export type Artifact =
     readonly identifier: string
     readonly generation: Generation
   }
+  | {
+    readonly _tag: "Import"
+    readonly importDeclaration: string
+  }
 
 /**
  * @since 4.0.0
@@ -1468,7 +1470,6 @@ export type GenerationDocument = {
 export function toGenerationDocument(multiDocument: MultiDocument, options?: {
   readonly reviver?: Reviver<Generation> | undefined
 }): GenerationDocument {
-  const reviver = options?.reviver
   const visited = new Set<string>()
   const artifacts: Array<Artifact> = []
   let counter = 0
@@ -1507,6 +1508,12 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
     return identifier
   }
 
+  function addImport(importDeclaration: string) {
+    if (!artifacts.some((a) => a._tag === "Import" && a.importDeclaration === importDeclaration)) {
+      artifacts.push({ _tag: "Import", importDeclaration })
+    }
+  }
+
   const ts = topologicalSort(multiDocument.definitions)
   const nonRecursives = ts.nonRecursives.map(({ $ref, schema }) => ({ $ref, schema: top(schema) }))
   const recursives = Rec.map(ts.recursives, (v, k) => {
@@ -1535,10 +1542,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
   }
 
   function top(s: Standard): Generation {
-    if (s._tag === "Reference") {
-      return resolveReference(s.$ref)
-    }
-    return recur(s)
+    return s._tag === "Reference" ? resolveReference(s.$ref) : recur(s)
   }
 
   function recur(s: Standard): Generation {
@@ -1570,24 +1574,137 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
         if (Predicate.hasProperty(typeConstructor, "_tag")) {
           const _tag = typeConstructor._tag
           const typeParameters = s.typeParameters.map(recur)
+          const typeParametersRuntime = typeParameters.map((p) => p.runtime).join(", ")
+          const typeParametersType = typeParameters.map((p) => p.Type).join(", ")
+          const typeParametersEncoded = typeParameters.map((p) => p.Encoded).join(", ")
           switch (_tag) {
             case "Date":
-              return makeGeneration(`Schema.Date`, `Date`)
-            case "effect/Option":
+            case "Error":
+            case "URL":
+            case "Uint8Array":
+            case "RegExp":
+            case "FormData":
+            case "URLSearchParams":
+              return makeGeneration(`Schema.${_tag}`, _tag)
+            case "ReadonlySet":
               return makeGeneration(
-                `Schema.Option(${typeParameters.map((p) => p.runtime).join(", ")})`,
-                `Option<${typeParameters.map((p) => p.Type).join(", ")}>`,
-                `Option<${typeParameters.map((p) => p.Encoded).join(", ")}>`
+                `Schema.ReadonlySet(${typeParametersRuntime})`,
+                `ReadonlySet<${typeParametersType}>`,
+                `ReadonlySet<${typeParametersEncoded}>`
               )
-            case "effect/Result":
+            case "ReadonlyMap":
               return makeGeneration(
-                `Schema.Result(${typeParameters.map((p) => p.runtime).join(", ")})`,
-                `Result<${typeParameters.map((p) => p.Type).join(", ")}>`,
-                `Result<${typeParameters.map((p) => p.Encoded).join(", ")}>`
+                `Schema.ReadonlyMap(${typeParametersRuntime})`,
+                `ReadonlyMap<${typeParametersType}>`,
+                `ReadonlyMap<${typeParametersEncoded}>`
               )
+            case "effect/Option": {
+              addImport(`import * as Option from "effect/Option"`)
+              return makeGeneration(
+                `Schema.Option(${typeParametersRuntime})`,
+                `Option.Option<${typeParametersType}>`,
+                `Option.Option<${typeParametersEncoded}>`
+              )
+            }
+            case "effect/Result": {
+              addImport(`import * as Result from "effect/Result"`)
+              return makeGeneration(
+                `Schema.Result(${typeParametersRuntime})`,
+                `Result.Result<${typeParametersType}>`,
+                `Result.Result<${typeParametersEncoded}>`
+              )
+            }
+            case "efect/Redacted": {
+              addImport(`import * as Redacted from "effect/Redacted"`)
+              return makeGeneration(
+                `Schema.Redacted(${typeParametersRuntime})`,
+                `Redacted.Redacted<${typeParametersType}>`,
+                `Redacted.Redacted<${typeParametersEncoded}>`
+              )
+            }
+            case "effect/Cause/Failure": {
+              addImport(`import * as Cause from "effect/Cause"`)
+              return makeGeneration(
+                `Schema.Failure(${typeParametersRuntime})`,
+                `Cause.Failure<${typeParametersType}>`,
+                `Cause.Failure<${typeParametersEncoded}>`
+              )
+            }
+            case "effect/Cause": {
+              addImport(`import * as Cause from "effect/Cause"`)
+              return makeGeneration(
+                `Schema.Cause(${typeParametersRuntime})`,
+                `Cause.Cause<${typeParametersType}>`,
+                `Cause.Cause<${typeParametersEncoded}>`
+              )
+            }
+            case "effect/Exit": {
+              addImport(`import * as Exit from "effect/Exit"`)
+              return makeGeneration(
+                `Schema.Exit(${typeParametersRuntime})`,
+                `Exit.Exit<${typeParametersType}>`,
+                `Exit.Exit<${typeParametersEncoded}>`
+              )
+            }
+            case "effect/Duration": {
+              addImport(`import * as Duration from "effect/Duration"`)
+              return makeGeneration(
+                `Schema.Duration(${typeParametersRuntime})`,
+                `Duration.Duration<${typeParametersType}>`,
+                `Duration.Duration<${typeParametersEncoded}>`
+              )
+            }
+            case "effect/DateTime/Utc": {
+              addImport(`import * as DateTime from "effect/DateTime"`)
+              return makeGeneration(
+                `Schema.DateTimeUtc(${typeParametersRuntime})`,
+                `DateTime.Utc<${typeParametersType}>`,
+                `DateTime.Utc<${typeParametersEncoded}>`
+              )
+            }
+            case "effect/http/Cookies": {
+              addImport(`import * as Cookies from "effect/http/Cookies"`)
+              return makeGeneration(
+                `Chookies.CookiesSchema`,
+                `typeof Chookies.CookiesSchema["Type"]`,
+                `typeof Chookies.CookiesSchema["Encoded"]`
+              )
+            }
+            case "effect/http/Cookies/Cookie": {
+              addImport(`import * as Cookies from "effect/http/Cookies"`)
+              return makeGeneration(
+                `Chookies.CookieSchema`,
+                `typeof Chookies.CookieSchema["Type"]`,
+                `typeof Chookies.CookieSchema["Encoded"]`
+              )
+            }
+            case "effect/http/Headers": {
+              addImport(`import * as Headers from "effect/http/Headers"`)
+              return makeGeneration(
+                `Headers.HeadersSchema`,
+                `typeof Headers.HeadersSchema["Type"]`,
+                `typeof Headers.HeadersSchema["Encoded"]`
+              )
+            }
+            case "effect/http/Multipart/PersistedFile": {
+              addImport(`import * as Multipart from "effect/http/Multipart"`)
+              return makeGeneration(
+                `Multipart.FileSchema`,
+                `typeof Multipart.FileSchema["Type"]`,
+                `typeof Multipart.FileSchema["Encoded"]`
+              )
+            }
+            case "effect/http/UrlParams": {
+              addImport(`import * as UrlParams from "effect/http/UrlParams"`)
+              return makeGeneration(
+                `UrlParams.UrlParamsSchema`,
+                `typeof UrlParams.UrlParamsSchema["Type"]`,
+                `typeof UrlParams.UrlParamsSchema["Encoded"]`
+              )
+            }
           }
         }
-        return reviver ? reviver(s, recur) : recur(s.Encoded)
+        return options?.reviver?.(s, recur) ?? recur(s.Encoded)
       }
       case "Reference":
         return makeGeneration(s.$ref, s.$ref, `${s.$ref}Encoded`)
