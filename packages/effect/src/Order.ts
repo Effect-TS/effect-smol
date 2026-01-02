@@ -123,20 +123,31 @@ export const string: Order<string> = make((self, that) => self < that ? -1 : 1)
 /**
  * An `Order` instance for numbers that compares them numerically.
  *
+ * - `0` is considered equal to `-0`.
+ * - all `NaN` values are considered equal and less than any other value.
+ *
  * @example
  * ```ts
  * import { Order } from "effect"
  * import * as assert from "node:assert"
  *
+ * assert.deepStrictEqual(Order.number(1, 1), 0)
  * assert.deepStrictEqual(Order.number(1, 2), -1)
  * assert.deepStrictEqual(Order.number(2, 1), 1)
- * assert.deepStrictEqual(Order.number(1, 1), 0)
+ *
+ * assert.deepStrictEqual(Order.number(0, -0), 0)
+ * assert.deepStrictEqual(Order.number(NaN, 1), -1)
  * ```
  *
  * @category instances
  * @since 2.0.0
  */
-export const number: Order<number> = make((self, that) => self < that ? -1 : 1)
+export const number: Order<number> = make((self, that) => {
+  if (Number.isNaN(self) && Number.isNaN(that)) return 0
+  if (Number.isNaN(self)) return -1 // NaN < any number
+  if (Number.isNaN(that)) return 1 // any number > NaN
+  return self < that ? -1 : 1
+})
 
 /**
  * An `Order` instance for booleans where `false` is considered less than `true`.
@@ -182,17 +193,17 @@ export const bigint: Order<bigint> = make((self, that) => self < that ? -1 : 1)
  * import { Order } from "effect"
  * import * as assert from "node:assert"
  *
- * const reverseNumber = Order.reverse(Order.number)
+ * const flip = Order.flip(Order.number)
  *
- * assert.deepStrictEqual(reverseNumber(1, 2), 1)
- * assert.deepStrictEqual(reverseNumber(2, 1), -1)
- * assert.deepStrictEqual(reverseNumber(1, 1), 0)
+ * assert.deepStrictEqual(flip(1, 2), 1)
+ * assert.deepStrictEqual(flip(2, 1), -1)
+ * assert.deepStrictEqual(flip(1, 1), 0)
  * ```
  *
  * @category combinators
  * @since 2.0.0
  */
-export const reverse = <A>(O: Order<A>): Order<A> => make((self, that) => O(that, self))
+export const flip = <A>(O: Order<A>): Order<A> => make((self, that) => O(that, self))
 
 /**
  * Combines two `Order` instances to create a new `Order` that first compares using the first `Order`,
@@ -346,34 +357,6 @@ export const mapInput: {
 export const Date: Order<Date> = mapInput(number, (date) => date.getTime())
 
 /**
- * Combines two `Order` instances to create an `Order` for tuples.
- * The resulting `Order` compares the first elements first, then the second elements if the first are equal.
- *
- * @example
- * ```ts
- * import { Order } from "effect"
- * import * as assert from "node:assert"
- *
- * const tupleOrder = Order.product(Order.number, Order.string)
- *
- * assert.deepStrictEqual(tupleOrder([1, "a"], [2, "b"]), -1)
- * assert.deepStrictEqual(tupleOrder([1, "b"], [1, "a"]), 1)
- * assert.deepStrictEqual(tupleOrder([1, "a"], [1, "a"]), 0)
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const product: {
-  <B>(that: Order<B>): <A>(self: Order<A>) => Order<readonly [A, B]> // readonly because invariant
-  <A, B>(self: Order<A>, that: Order<B>): Order<readonly [A, B]> // readonly because invariant
-} = dual(2, <A, B>(self: Order<A>, that: Order<B>): Order<readonly [A, B]> =>
-  make(([xa, xb], [ya, yb]) => {
-    const o = self(xa, ya)
-    return o !== 0 ? o : that(xb, yb)
-  }))
-
-/**
  * Creates an `Order` for arrays by applying the provided collection of `Order` instances to corresponding elements.
  * The comparison stops at the first non-zero result or when either array is exhausted.
  *
@@ -409,36 +392,6 @@ export const all = <A>(collection: Iterable<Order<A>>): Order<ReadonlyArray<A>> 
     return 0
   })
 }
-
-/**
- * Combines a primary `Order` with multiple `Order` instances to create an `Order` for non-empty tuples.
- * The first element is compared using the primary `Order`, and subsequent elements are compared using the collection.
- *
- * @example
- * ```ts
- * import { Order } from "effect"
- * import * as assert from "node:assert"
- *
- * const tupleOrder = Order.productMany(Order.number, [Order.number, Order.number])
- *
- * assert.deepStrictEqual(tupleOrder([1, 2, 3], [2, 3, 4]), -1)
- * assert.deepStrictEqual(tupleOrder([1, 3, 2], [1, 2, 3]), 1)
- * assert.deepStrictEqual(tupleOrder([1, 2, 3], [1, 2, 3]), 0)
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const productMany: {
-  <A>(collection: Iterable<Order<A>>): (self: Order<A>) => Order<readonly [A, ...Array<A>]> // readonly because invariant
-  <A>(self: Order<A>, collection: Iterable<Order<A>>): Order<readonly [A, ...Array<A>]> // readonly because invariant
-} = dual(2, <A>(self: Order<A>, collection: Iterable<Order<A>>): Order<readonly [A, ...Array<A>]> => {
-  const O = all(collection)
-  return make((x, y) => {
-    const o = self(x[0], y[0])
-    return o !== 0 ? o : O(x.slice(1), y.slice(1))
-  })
-})
 
 /**
  * Similar to `Promise.all` but operates on `Order`s.
