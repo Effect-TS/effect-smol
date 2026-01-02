@@ -13,6 +13,7 @@ Releases are snapshot only
 - [x] Effect.fn call site trace
 - [x] Port Stream / Sink apis
 - [x] Add opentelemetry package
+- [ ] Consider adding stack trace info to tracing / cause
 - [ ] Add AI provider packages
 - [ ] Use Predicate for filtering functions
 
