@@ -23,7 +23,7 @@ describe("Types", () => {
 
   it("UnionToIntersection", () => {
     expect<Types.UnionToIntersection<{ a: string } | { b: number }>>()
-      .type.toBe<{ a: string } & { b: number }>()
+      .type.toBe<{ a: string; b: number }>()
   })
 
   it("Tags", () => {
@@ -106,7 +106,7 @@ describe("Types", () => {
 
   describe("Mutable", () => {
     it("should convert a readonly object to mutable", () => {
-      expect<Types.Simplify<Types.Mutable<{ readonly a: string; readonly b: number }>>>()
+      expect<Types.Mutable<{ readonly a: string; readonly b: number }>>()
         .type.toBe<{ a: string; b: number }>()
     })
 
@@ -121,7 +121,7 @@ describe("Types", () => {
     })
 
     it("should convert a readonly record to a mutable record", () => {
-      expect<Types.Simplify<Types.Mutable<{ readonly [x: string]: number }>>>()
+      expect<Types.Mutable<{ readonly [x: string]: number }>>()
         .type.toBe<{ [x: string]: number }>()
     })
   })
