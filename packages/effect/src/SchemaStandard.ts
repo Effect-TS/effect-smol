@@ -1153,8 +1153,49 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
 
   function on(s: Standard): Schema.Top {
     switch (s._tag) {
-      case "Declaration":
+      case "Declaration": {
+        const typeConstructor = s.annotations?.typeConstructor
+        if (Predicate.isObject(typeConstructor) && typeof typeConstructor._tag === "string") {
+          const typeParameters = s.typeParameters.map(recur)
+          switch (typeConstructor._tag) {
+            case "effect/Option":
+              return Schema.Option(typeParameters[0])
+            case "effect/Result":
+              return Schema.Result(typeParameters[0], typeParameters[1])
+            case "effect/Redacted":
+              return Schema.Redacted(typeParameters[0])
+            case "effect/CauseFailure":
+              return Schema.CauseFailure(typeParameters[0], typeParameters[1])
+            case "effect/Cause":
+              return Schema.Cause(typeParameters[0], typeParameters[1])
+            case "Error":
+              return Schema.Error
+            case "effect/Exit":
+              return Schema.Exit(typeParameters[0], typeParameters[1], typeParameters[2])
+            case "ReadonlyMap":
+              return Schema.ReadonlyMap(typeParameters[0], typeParameters[1])
+            case "ReadonlySet":
+              return Schema.ReadonlySet(typeParameters[0])
+            case "RegExp":
+              return Schema.RegExp
+            case "URL":
+              return Schema.URL
+            case "Date":
+              return Schema.Date
+            case "effect/Duration":
+              return Schema.Duration
+            case "FormData":
+              return Schema.FormData
+            case "URLSearchParams":
+              return Schema.URLSearchParams
+            case "Uint8Array":
+              return Schema.Uint8Array
+            case "DateTime.Utc":
+              return Schema.DateTimeUtc
+          }
+        }
         return options?.reviver?.(s, recur) ?? recur(s.Encoded)
+      }
       case "Reference":
         return resolveReference(s.$ref)
       case "Suspend":

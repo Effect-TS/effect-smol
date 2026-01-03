@@ -5944,8 +5944,8 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
         _tag: "effect/Exit"
       },
       generation: {
-        runtime: `Schema.Exit(?, ?)`,
-        Type: `Exit.Exit<?, ?>`,
+        runtime: `Schema.Exit(?, ?, ?)`,
+        Type: `Exit.Exit<?, ?, ?>`,
         importDeclaration: `import * as Exit from "effect/Exit"`
       },
       expected: "Exit",
@@ -6047,7 +6047,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
       },
       generation: {
         runtime: `Schema.ReadonlyMap(?, ?)`,
-        Type: `globalThis.ReadonlyMap<<?, ?>>`
+        Type: `globalThis.ReadonlyMap<?, ?>`
       },
       expected: "ReadonlyMap",
       "toCodec*": ([key, value]) =>
