@@ -142,7 +142,6 @@ const SpanProto = {
     this.events.push([name, startTime, attributes])
   },
   addLinks(this: SpanImpl, links: ReadonlyArray<Tracer.SpanLink>) {
-    // eslint-disable-next-line no-restricted-syntax
     this.links.push(...links)
   }
 }

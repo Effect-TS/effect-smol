@@ -6,6 +6,7 @@ import * as SchemaStandard from "effect/SchemaStandard"
 import * as ServiceMap from "effect/ServiceMap"
 import type { OpenAPISpec } from "effect/unstable/httpapi/OpenApi"
 import * as Utils from "./Utils.ts"
+
 /**
  * The service for the JSON schema generator.
  */

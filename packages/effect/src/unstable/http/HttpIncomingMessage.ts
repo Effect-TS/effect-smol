@@ -103,14 +103,14 @@ export const inspect = <E>(self: HttpIncomingMessage<E>, that: object): object =
   if (contentType.includes("application/json")) {
     try {
       body = Effect.runSync(self.json)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // oxlint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_) {
       //
     }
   } else if (contentType.includes("text/") || contentType.includes("urlencoded")) {
     try {
       body = Effect.runSync(self.text)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // oxlint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_) {
       //
     }

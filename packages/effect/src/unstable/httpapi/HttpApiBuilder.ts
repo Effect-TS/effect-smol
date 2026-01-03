@@ -80,7 +80,6 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
       if (groupRoutes === undefined) {
         return yield* Effect.die(`HttpApiGroup "${group.key}" not found`)
       }
-      // eslint-disable-next-line no-restricted-syntax
       routes.push(...groupRoutes)
     }
     yield* (router.addAll(routes) as Effect.Effect<void>)

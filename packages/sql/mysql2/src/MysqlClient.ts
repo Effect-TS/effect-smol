@@ -176,7 +176,7 @@ export const make = (
           : undefined as any
       })
       : Mysql.createPool({
-        ...(options.poolConfig ?? {}),
+        ...options.poolConfig,
         host: options.host,
         port: options.port,
         database: options.database,

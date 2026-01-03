@@ -106,7 +106,7 @@ export const make = <
   const errorSchema = options.error ?? (Schema.Never as any as Error)
   const successSchemaJson = Schema.toCodecJson(successSchema)
   const errorSchemaJson = Schema.toCodecJson(errorSchema)
-  // eslint-disable-next-line prefer-const
+  // oxlint-disable-next-line prefer-const
   let execute!: Effect.Effect<Success["Type"], Error["Type"], any>
   const executeWithoutInterrupt = retryOnInterrupt(
     options.name,

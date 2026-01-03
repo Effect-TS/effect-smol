@@ -1748,10 +1748,6 @@ export declare namespace Record {
    */
   export type Record = Record$<Record.Key, Top>
 
-  type MergeTuple<T extends ReadonlyArray<unknown>> = T extends readonly [infer Head, ...infer Tail] ?
-    Head & MergeTuple<Tail>
-    : {}
-
   /**
    * @since 4.0.0
    */
@@ -3315,7 +3311,7 @@ export interface Opaque<Self, S extends Top, Brand> extends
  */
 export function Opaque<Self, Brand = {}>() {
   return <S extends Top>(schema: S): Opaque<Self, S, Brand> & Omit<S, "Type"> => {
-    // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+    // oxlint-disable-next-line @typescript-eslint/no-extraneous-class
     class Opaque {}
     Object.setPrototypeOf(Opaque, schema)
     return Opaque as any

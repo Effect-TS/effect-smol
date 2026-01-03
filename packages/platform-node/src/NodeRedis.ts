@@ -1,9 +1,9 @@
 /**
  * @since 1.0.0
  */
-import { identity } from "effect"
 import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
+import * as Fn from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
@@ -40,7 +40,7 @@ const make = Effect.fnUntraced(function*(
       })
   })
 
-  const nodeRedis = identity<NodeRedis["Service"]>({
+  const nodeRedis = Fn.identity<NodeRedis["Service"]>({
     client,
     use
   })

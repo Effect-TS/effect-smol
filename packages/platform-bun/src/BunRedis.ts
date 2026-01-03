@@ -2,9 +2,9 @@
  * @since 1.0.0
  */
 import { RedisClient, type RedisOptions } from "bun"
-import { identity } from "effect"
 import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
+import * as Fn from "effect/Function"
 import * as Layer from "effect/Layer"
 import * as Scope from "effect/Scope"
 import * as ServiceMap from "effect/ServiceMap"
@@ -42,7 +42,7 @@ const make = Effect.fnUntraced(function*(
       })
   })
 
-  const bunRedis = identity<BunRedis["Service"]>({
+  const bunRedis = Fn.identity<BunRedis["Service"]>({
     client,
     use
   })

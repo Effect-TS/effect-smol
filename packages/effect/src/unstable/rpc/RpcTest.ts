@@ -27,7 +27,7 @@ export const makeClient: <Rpcs extends Rpc.Any, const Flatten extends boolean = 
     readonly flatten?: Flatten | undefined
   }
 ) {
-  // eslint-disable-next-line prefer-const
+  // oxlint-disable-next-line prefer-const
   let client!: Effect.Success<ReturnType<typeof RpcClient.makeNoSerialization<Rpcs, never, Flatten>>>
   const server = yield* RpcServer.makeNoSerialization(group, {
     onFromServer(response) {
