@@ -136,6 +136,36 @@ describe("Standard", () => {
           }
         )
       })
+
+      it("CauseFailure(String, Number)", () => {
+        assertToGenerationDocument({ schema: Schema.CauseFailure(Schema.String, Schema.Number) }, {
+          generations: makeGeneration(
+            "Schema.CauseFailure(Schema.String, Schema.Number)",
+            "Cause.Failure<string, number>"
+          ),
+          artifacts: [{ _tag: "Import", importDeclaration: `import * as Cause from "effect/Cause"` }]
+        })
+      })
+
+      it("Cause(String, Number)", () => {
+        assertToGenerationDocument({ schema: Schema.Cause(Schema.String, Schema.Number) }, {
+          generations: makeGeneration(
+            "Schema.Cause(Schema.String, Schema.Number)",
+            "Cause.Cause<string, number>"
+          ),
+          artifacts: [{ _tag: "Import", importDeclaration: `import * as Cause from "effect/Cause"` }]
+        })
+      })
+
+      it("Exit(String, Number, String)", () => {
+        assertToGenerationDocument({ schema: Schema.Exit(Schema.String, Schema.Number, Schema.Boolean) }, {
+          generations: makeGeneration(
+            "Schema.Exit(Schema.String, Schema.Number, Schema.Boolean)",
+            "Exit.Exit<string, number, boolean>"
+          ),
+          artifacts: [{ _tag: "Import", importDeclaration: `import * as Exit from "effect/Exit"` }]
+        })
+      })
     })
 
     it("Null", () => {

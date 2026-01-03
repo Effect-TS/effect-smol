@@ -132,7 +132,7 @@ function toCodecIsoBase(ast: AST.AST): AST.AST {
     case "Declaration": {
       const getLink = ast.annotations?.toCodecIso ?? ast.annotations?.["toCodec*"]
       if (Predicate.isFunction(getLink)) {
-        const link = getLink(ast.typeParameters.map((tp) => InternalSchema.make(toCodecIso(tp))))
+        const link = getLink(ast.typeParameters.map((tp) => InternalSchema.make(tp)))
         const to = toCodecIso(link.to)
         return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
       }

@@ -13,7 +13,7 @@ import type { Differ } from "./Differ.ts"
 import * as Duration_ from "./Duration.ts"
 import * as Effect from "./Effect.ts"
 import * as Equal from "./Equal.ts"
-import type * as Equivalence from "./Equivalence.ts"
+import * as Equivalence from "./Equivalence.ts"
 import * as Exit_ from "./Exit.ts"
 import type { Formatter } from "./Formatter.ts"
 import { format, formatDate, formatPropertyKey } from "./Formatter.ts"
@@ -5697,39 +5697,51 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
             encode: identity
           })
         ),
-      toArbitrary: ([error, defect]) => (fc, ctx) => {
-        return fc.oneof(
-          ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Cause.Failure" } : {},
-          fc.constant(Cause_.failureInterrupt()),
-          fc.integer({ min: 1 }).map(Cause_.failureInterrupt),
-          error.map((e) => Cause_.failureFail(e)),
-          defect.map((d) => Cause_.failureDie(d))
-        )
-      },
-      toEquivalence: ([error, defect]) => (a, b) => {
-        if (a._tag !== b._tag) return false
-        switch (a._tag) {
-          case "Fail":
-            return error(a.error, (b as Cause_.Fail<unknown>).error)
-          case "Die":
-            return defect(a.defect, (b as Cause_.Die).defect)
-          case "Interrupt":
-            return a.fiberId === (b as Cause_.Interrupt).fiberId
-        }
-      },
-      toFormatter: ([error, defect]) => (t) => {
-        switch (t._tag) {
-          case "Fail":
-            return `Fail(${error(t.error)})`
-          case "Die":
-            return `Die(${defect(t.defect)})`
-          case "Interrupt":
-            return "Interrupt"
-        }
-      }
+      toArbitrary: ([error, defect]) => causeFailureToArbitrary(error, defect),
+      toEquivalence: ([error, defect]) => causeFailureToEquivalence(error, defect),
+      toFormatter: ([error, defect]) => causeFailureToFormatter(error, defect)
     }
   )
   return make(schema.ast, { error, defect })
+}
+
+function causeFailureToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: FastCheck.Arbitrary<D>) {
+  return (fc: typeof FastCheck, ctx: Annotations.ToArbitrary.Context | undefined) => {
+    return fc.oneof(
+      ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Cause.Failure" } : {},
+      fc.constant(Cause_.failureInterrupt()),
+      fc.integer({ min: 1 }).map(Cause_.failureInterrupt),
+      error.map((e) => Cause_.failureFail(e)),
+      defect.map((d) => Cause_.failureDie(d))
+    )
+  }
+}
+
+function causeFailureToEquivalence<E>(error: Equivalence.Equivalence<E>, defect: Equivalence.Equivalence<unknown>) {
+  return (a: Cause_.Failure<E>, b: Cause_.Failure<E>) => {
+    if (a._tag !== b._tag) return false
+    switch (a._tag) {
+      case "Fail":
+        return error(a.error, (b as Cause_.Fail<E>).error)
+      case "Die":
+        return defect(a.defect, (b as Cause_.Die).defect)
+      case "Interrupt":
+        return a.fiberId === (b as Cause_.Interrupt).fiberId
+    }
+  }
+}
+
+function causeFailureToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
+  return (t: Cause_.Failure<E>) => {
+    switch (t._tag) {
+      case "Fail":
+        return `Fail(${error(t.error)})`
+      case "Die":
+        return `Die(${defect(t.defect)})`
+      case "Interrupt":
+        return "Interrupt"
+    }
+  }
 }
 
 /**
@@ -5740,7 +5752,7 @@ export interface Cause<E extends Top, D extends Top> extends
   declareConstructor<
     Cause_.Cause<E["Type"]>,
     Cause_.Cause<E["Encoded"]>,
-    readonly [Array$<CauseFailure<E, D>>],
+    readonly [E, D],
     CauseIso<E, D>
   >
 {
@@ -5760,11 +5772,12 @@ export type CauseIso<E extends Top, D extends Top> = ReadonlyArray<CauseFailureI
  */
 export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<E, D> {
   const schema = declareConstructor<Cause_.Cause<E["Type"]>, Cause_.Cause<E["Encoded"]>, CauseIso<E, D>>()(
-    [Array(CauseFailure(error, defect))],
-    ([failures]) => (input, ast, options) => {
+    [error, defect],
+    ([error, defect]) => (input, ast, options) => {
       if (!Cause_.isCause(input)) {
         return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
+      const failures = Array(CauseFailure(error, defect))
       return Effect.mapBothEager(Parser.decodeUnknownEffect(failures)(input.failures, options), {
         onSuccess: Cause_.fromFailures,
         onFailure: (issue) => new Issue.Composite(ast, Option_.some(input), [new Issue.Pointer(["failures"], issue)])
@@ -5780,20 +5793,36 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
         importDeclaration: `import * as Cause from "effect/Cause"`
       },
       expected: "Cause",
-      "toCodec*": ([failures]) =>
+      "toCodec*": ([error, defect]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
-          failures,
+          Array(CauseFailure(error, defect)),
           Transformation.transform({
             decode: Cause_.fromFailures,
             encode: ({ failures }) => failures
           })
         ),
-      toArbitrary: ([failures]) => () => failures.map(Cause_.fromFailures),
-      toEquivalence: ([failures]) => (a, b) => failures(a.failures, b.failures),
-      toFormatter: ([failures]) => (t) => `Cause(${failures(t.failures)})`
+      toArbitrary: ([error, defect]) => causeToArbitrary(error, defect),
+      toEquivalence: ([error, defect]) => causeToEquivalence(error, defect),
+      toFormatter: ([error, defect]) => causeToFormatter(error, defect)
     }
   )
   return make(schema.ast, { error, defect })
+}
+
+function causeToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: FastCheck.Arbitrary<D>) {
+  return (fc: typeof FastCheck, ctx: Annotations.ToArbitrary.Context | undefined) => {
+    return fc.array(causeFailureToArbitrary(error, defect)(fc, ctx)).map(Cause_.fromFailures)
+  }
+}
+
+function causeToEquivalence<E>(error: Equivalence.Equivalence<E>, defect: Equivalence.Equivalence<unknown>) {
+  const failures = Equivalence.array(causeFailureToEquivalence(error, defect))
+  return (a: Cause_.Cause<E>, b: Cause_.Cause<E>) => failures(a.failures, b.failures)
+}
+
+function causeToFormatter<E>(error: Formatter<E>, defect: Formatter<unknown>) {
+  const causeFailure = causeFailureToFormatter(error, defect)
+  return (t: Cause_.Cause<E>) => `Cause([${t.failures.map(causeFailure).join(", ")}])`
 }
 
 /**
@@ -5884,7 +5913,7 @@ export interface Exit<A extends Top, E extends Top, D extends Top> extends
   declareConstructor<
     Exit_.Exit<A["Type"], E["Type"]>,
     Exit_.Exit<A["Encoded"], E["Encoded"]>,
-    readonly [A, Cause<E, D>],
+    readonly [A, E, D],
     ExitIso<A, E, D>
   >
 {
@@ -5915,11 +5944,12 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
     Exit_.Exit<A["Encoded"], E["Encoded"]>,
     ExitIso<A, E, D>
   >()(
-    [value, Cause(error, defect)],
-    ([value, cause]) => (input, ast, options) => {
+    [value, error, defect],
+    ([value, error, defect]) => (input, ast, options) => {
       if (!Exit_.isExit(input)) {
         return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
       }
+      const cause = Cause(error, defect)
       switch (input._tag) {
         case "Success":
           return Effect.mapBothEager(
@@ -5949,11 +5979,11 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
         importDeclaration: `import * as Exit from "effect/Exit"`
       },
       expected: "Exit",
-      "toCodec*": ([value, cause]) =>
+      "toCodec*": ([value, error, defect]) =>
         link<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
           Union([
             TaggedStruct("Success", { value }),
-            TaggedStruct("Failure", { cause })
+            TaggedStruct("Failure", { cause: Cause(error, defect) })
           ]),
           Transformation.transform({
             decode: (encoded): Exit_.Exit<A["Encoded"], E["Encoded"]> =>
@@ -5964,27 +5994,33 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
                 : { _tag: "Failure", cause: exit.cause } as const
           })
         ),
-      toArbitrary: ([value, cause]) => (fc, ctx) =>
+      toArbitrary: ([value, error, defect]) => (fc, ctx) =>
         fc.oneof(
           ctx?.isSuspend ? { maxDepth: 2, depthIdentifier: "Exit" } : {},
           value.map((v) => Exit_.succeed(v)),
-          cause.map((cause) => Exit_.failCause(cause))
+          causeToArbitrary(error, defect)(fc, ctx).map((cause) => Exit_.failCause(cause))
         ),
-      toEquivalence: ([value, cause]) => (a, b) => {
-        if (a._tag !== b._tag) return false
-        switch (a._tag) {
-          case "Success":
-            return value(a.value, (b as Exit_.Success<A["Type"]>).value)
-          case "Failure":
-            return cause(a.cause, (b as Exit_.Failure<E["Type"], D["Type"]>).cause)
+      toEquivalence: ([value, error, defect]) => {
+        const cause = causeToEquivalence(error, defect)
+        return (a, b) => {
+          if (a._tag !== b._tag) return false
+          switch (a._tag) {
+            case "Success":
+              return value(a.value, (b as Exit_.Success<A["Type"]>).value)
+            case "Failure":
+              return cause(a.cause, (b as Exit_.Failure<E["Type"], D["Type"]>).cause)
+          }
         }
       },
-      toFormatter: ([value, cause]) => (t) => {
-        switch (t._tag) {
-          case "Success":
-            return `Exit.Success(${value(t.value)})`
-          case "Failure":
-            return `Exit.Failure(${cause(t.cause)})`
+      toFormatter: ([value, error, defect]) => {
+        const cause = causeToFormatter(error, defect)
+        return (t) => {
+          switch (t._tag) {
+            case "Success":
+              return `Exit.Success(${value(t.value)})`
+            case "Failure":
+              return `Exit.Failure(${cause(t.cause)})`
+          }
         }
       }
     }
