@@ -21,7 +21,10 @@ const InnerCategory = Schema.Struct({
 
 describe("Standard", () => {
   describe("toGenerationDocument", () => {
-    function assertToGenerationDocument(schema: Schema.Top, expected: {
+    function assertToGenerationDocument(input: {
+      readonly schema: Schema.Top
+      readonly reviver?: SchemaStandard.Reviver<SchemaStandard.Generation> | undefined
+    }, expected: {
       readonly generations: SchemaStandard.Generation | ReadonlyArray<SchemaStandard.Generation>
       readonly definitions?: {
         readonly nonRecursives?: ReadonlyArray<{
@@ -34,8 +37,8 @@ describe("Standard", () => {
       }
       readonly artifacts?: ReadonlyArray<SchemaStandard.Artifact>
     }) {
-      const multiDocument = SchemaStandard.fromASTs([schema.ast])
-      const generationDocument = SchemaStandard.toGenerationDocument(multiDocument)
+      const multiDocument = SchemaStandard.fromASTs([input.schema.ast])
+      const generationDocument = SchemaStandard.toGenerationDocument(multiDocument, { reviver: input.reviver })
       deepStrictEqual(generationDocument, {
         generations: Array.isArray(expected.generations) ? expected.generations : [expected.generations],
         definitions: {
@@ -50,57 +53,57 @@ describe("Standard", () => {
 
     describe("Declaration", () => {
       it("declaration without typeConstructor annotation", () => {
-        assertToGenerationDocument(Schema.instanceOf(URL), {
+        assertToGenerationDocument({ schema: Schema.instanceOf(URL) }, {
           generations: makeGeneration("Schema.Null", "null")
+        })
+      })
+
+      it("Error", () => {
+        assertToGenerationDocument({ schema: Schema.Error }, {
+          generations: makeGeneration("Schema.Error", "Error")
+        })
+      })
+
+      it("RegExp", () => {
+        assertToGenerationDocument({ schema: Schema.RegExp }, {
+          generations: makeGeneration("Schema.RegExp", "RegExp")
+        })
+      })
+
+      it("URL", () => {
+        assertToGenerationDocument({ schema: Schema.URL }, {
+          generations: makeGeneration("Schema.URL", "URL")
+        })
+      })
+
+      it("Uint8Array", () => {
+        assertToGenerationDocument({ schema: Schema.Uint8Array }, {
+          generations: makeGeneration("Schema.Uint8Array", "Uint8Array")
+        })
+      })
+
+      it("FormData", () => {
+        assertToGenerationDocument({ schema: Schema.FormData }, {
+          generations: makeGeneration("Schema.FormData", "FormData")
+        })
+      })
+
+      it("URLSearchParams", () => {
+        assertToGenerationDocument({ schema: Schema.URLSearchParams }, {
+          generations: makeGeneration("Schema.URLSearchParams", "URLSearchParams")
         })
       })
 
       describe("Date", () => {
         it("Date", () => {
-          assertToGenerationDocument(Schema.Date, {
+          assertToGenerationDocument({ schema: Schema.Date }, {
             generations: makeGeneration("Schema.Date", "Date")
-          })
-        })
-
-        it("Error", () => {
-          assertToGenerationDocument(Schema.Error, {
-            generations: makeGeneration("Schema.Error", "Error")
-          })
-        })
-
-        it("RegExp", () => {
-          assertToGenerationDocument(Schema.RegExp, {
-            generations: makeGeneration("Schema.RegExp", "RegExp")
-          })
-        })
-
-        it("URL", () => {
-          assertToGenerationDocument(Schema.URL, {
-            generations: makeGeneration("Schema.URL", "URL")
-          })
-        })
-
-        it("Uint8Array", () => {
-          assertToGenerationDocument(Schema.Uint8Array, {
-            generations: makeGeneration("Schema.Uint8Array", "Uint8Array")
-          })
-        })
-
-        it("FormData", () => {
-          assertToGenerationDocument(Schema.FormData, {
-            generations: makeGeneration("Schema.FormData", "FormData")
-          })
-        })
-
-        it("URLSearchParams", () => {
-          assertToGenerationDocument(Schema.URLSearchParams, {
-            generations: makeGeneration("Schema.URLSearchParams", "URLSearchParams")
           })
         })
 
         it("Date & check", () => {
           assertToGenerationDocument(
-            Schema.Date.check(Schema.isGreaterThanDate(new Date(0))),
+            { schema: Schema.Date.check(Schema.isGreaterThanDate(new Date(0))) },
             {
               generations: makeGeneration("Schema.Date.check(Schema.isGreaterThanDate(new Date(0)))", "Date")
             }
@@ -110,7 +113,7 @@ describe("Standard", () => {
 
       it("Option(String)", () => {
         assertToGenerationDocument(
-          Schema.Option(Schema.String),
+          { schema: Schema.Option(Schema.String) },
           {
             generations: makeGeneration("Schema.Option(Schema.String)", "Option.Option<string>"),
             artifacts: [{
@@ -123,7 +126,7 @@ describe("Standard", () => {
 
       it("Result(String, Number)", () => {
         assertToGenerationDocument(
-          Schema.Result(Schema.String, Schema.Number),
+          { schema: Schema.Result(Schema.String, Schema.Number) },
           {
             generations: makeGeneration("Schema.Result(Schema.String, Schema.Number)", "Result.Result<string, number>"),
             artifacts: [{
@@ -136,26 +139,26 @@ describe("Standard", () => {
     })
 
     it("Null", () => {
-      assertToGenerationDocument(Schema.Null, {
+      assertToGenerationDocument({ schema: Schema.Null }, {
         generations: makeGeneration("Schema.Null", "null")
       })
       assertToGenerationDocument(
-        Schema.Null.annotate({ "description": "a" }),
+        { schema: Schema.Null.annotate({ "description": "a" }) },
         {
           generations: makeGeneration(`Schema.Null.annotate({ "description": "a" })`, "null")
         }
       )
-      assertToGenerationDocument(Schema.Null.annotate({}), {
+      assertToGenerationDocument({ schema: Schema.Null.annotate({}) }, {
         generations: makeGeneration("Schema.Null", "null")
       })
     })
 
     it("Undefined", () => {
-      assertToGenerationDocument(Schema.Undefined, {
+      assertToGenerationDocument({ schema: Schema.Undefined }, {
         generations: makeGeneration("Schema.Undefined", "undefined")
       })
       assertToGenerationDocument(
-        Schema.Undefined.annotate({ "description": "a" }),
+        { schema: Schema.Undefined.annotate({ "description": "a" }) },
         {
           generations: makeGeneration(`Schema.Undefined.annotate({ "description": "a" })`, "undefined")
         }
@@ -163,11 +166,11 @@ describe("Standard", () => {
     })
 
     it("Void", () => {
-      assertToGenerationDocument(Schema.Void, {
+      assertToGenerationDocument({ schema: Schema.Void }, {
         generations: makeGeneration("Schema.Void", "void")
       })
       assertToGenerationDocument(
-        Schema.Void.annotate({ "description": "a" }),
+        { schema: Schema.Void.annotate({ "description": "a" }) },
         {
           generations: makeGeneration(`Schema.Void.annotate({ "description": "a" })`, "void")
         }
@@ -175,11 +178,11 @@ describe("Standard", () => {
     })
 
     it("Never", () => {
-      assertToGenerationDocument(Schema.Never, {
+      assertToGenerationDocument({ schema: Schema.Never }, {
         generations: makeGeneration("Schema.Never", "never")
       })
       assertToGenerationDocument(
-        Schema.Never.annotate({ "description": "a" }),
+        { schema: Schema.Never.annotate({ "description": "a" }) },
         {
           generations: makeGeneration(`Schema.Never.annotate({ "description": "a" })`, "never")
         }
@@ -187,11 +190,11 @@ describe("Standard", () => {
     })
 
     it("Unknown", () => {
-      assertToGenerationDocument(Schema.Unknown, {
+      assertToGenerationDocument({ schema: Schema.Unknown }, {
         generations: makeGeneration("Schema.Unknown", "unknown")
       })
       assertToGenerationDocument(
-        Schema.Unknown.annotate({ "description": "a" }),
+        { schema: Schema.Unknown.annotate({ "description": "a" }) },
         {
           generations: makeGeneration(`Schema.Unknown.annotate({ "description": "a" })`, "unknown")
         }
@@ -199,11 +202,11 @@ describe("Standard", () => {
     })
 
     it("Any", () => {
-      assertToGenerationDocument(Schema.Any, {
+      assertToGenerationDocument({ schema: Schema.Any }, {
         generations: makeGeneration("Schema.Any", "any")
       })
       assertToGenerationDocument(
-        Schema.Any.annotate({ "description": "a" }),
+        { schema: Schema.Any.annotate({ "description": "a" }) },
         {
           generations: makeGeneration(`Schema.Any.annotate({ "description": "a" })`, "any")
         }
@@ -212,14 +215,14 @@ describe("Standard", () => {
 
     describe("String", () => {
       it("String", () => {
-        assertToGenerationDocument(Schema.String, {
+        assertToGenerationDocument({ schema: Schema.String }, {
           generations: makeGeneration("Schema.String", "string")
         })
       })
 
       it("String & annotations", () => {
         assertToGenerationDocument(
-          Schema.String.annotate({ "description": "a" }),
+          { schema: Schema.String.annotate({ "description": "a" }) },
           {
             generations: makeGeneration(`Schema.String.annotate({ "description": "a" })`, "string")
           }
@@ -228,7 +231,7 @@ describe("Standard", () => {
 
       it("String & check", () => {
         assertToGenerationDocument(
-          Schema.String.check(Schema.isMinLength(1)),
+          { schema: Schema.String.check(Schema.isMinLength(1)) },
           {
             generations: makeGeneration(`Schema.String.check(Schema.isMinLength(1))`, "string")
           }
@@ -237,7 +240,7 @@ describe("Standard", () => {
 
       it("String & annotations & check", () => {
         assertToGenerationDocument(
-          Schema.String.annotate({ "description": "a" }).check(Schema.isMinLength(1)),
+          { schema: Schema.String.annotate({ "description": "a" }).check(Schema.isMinLength(1)) },
           {
             generations: makeGeneration(
               `Schema.String.annotate({ "description": "a" }).check(Schema.isMinLength(1))`,
@@ -249,7 +252,7 @@ describe("Standard", () => {
 
       it("String & check + annotations", () => {
         assertToGenerationDocument(
-          Schema.String.check(Schema.isMinLength(1, { description: "a" })),
+          { schema: Schema.String.check(Schema.isMinLength(1, { description: "a" })) },
           {
             generations: makeGeneration(`Schema.String.check(Schema.isMinLength(1, { "description": "a" }))`, "string")
           }
@@ -258,7 +261,7 @@ describe("Standard", () => {
 
       it("String & check & annotations", () => {
         assertToGenerationDocument(
-          Schema.String.check(Schema.isMinLength(1)).annotate({ "description": "a" }),
+          { schema: Schema.String.check(Schema.isMinLength(1)).annotate({ "description": "a" }) },
           {
             generations: makeGeneration(`Schema.String.check(Schema.isMinLength(1, { "description": "a" }))`, "string")
           }
@@ -268,11 +271,11 @@ describe("Standard", () => {
 
     describe("Number", () => {
       it("Number", () => {
-        assertToGenerationDocument(Schema.Number, {
+        assertToGenerationDocument({ schema: Schema.Number }, {
           generations: makeGeneration("Schema.Number", "number")
         })
         assertToGenerationDocument(
-          Schema.Number.annotate({ "description": "a" }),
+          { schema: Schema.Number.annotate({ "description": "a" }) },
           {
             generations: makeGeneration(`Schema.Number.annotate({ "description": "a" })`, "number")
           }
@@ -281,7 +284,7 @@ describe("Standard", () => {
 
       it("Number & check", () => {
         assertToGenerationDocument(
-          Schema.Number.check(Schema.isGreaterThan(10)),
+          { schema: Schema.Number.check(Schema.isGreaterThan(10)) },
           {
             generations: makeGeneration(`Schema.Number.check(Schema.isGreaterThan(10))`, "number")
           }
@@ -290,11 +293,11 @@ describe("Standard", () => {
     })
 
     it("Boolean", () => {
-      assertToGenerationDocument(Schema.Boolean, {
+      assertToGenerationDocument({ schema: Schema.Boolean }, {
         generations: makeGeneration("Schema.Boolean", "boolean")
       })
       assertToGenerationDocument(
-        Schema.Boolean.annotate({ "description": "a" }),
+        { schema: Schema.Boolean.annotate({ "description": "a" }) },
         {
           generations: makeGeneration(`Schema.Boolean.annotate({ "description": "a" })`, "boolean")
         }
@@ -303,11 +306,11 @@ describe("Standard", () => {
 
     describe("BigInt", () => {
       it("BigInt", () => {
-        assertToGenerationDocument(Schema.BigInt, {
+        assertToGenerationDocument({ schema: Schema.BigInt }, {
           generations: makeGeneration("Schema.BigInt", "bigint")
         })
         assertToGenerationDocument(
-          Schema.BigInt.annotate({ "description": "a" }),
+          { schema: Schema.BigInt.annotate({ "description": "a" }) },
           {
             generations: makeGeneration(`Schema.BigInt.annotate({ "description": "a" })`, "bigint")
           }
@@ -316,7 +319,7 @@ describe("Standard", () => {
 
       it("BigInt & check", () => {
         assertToGenerationDocument(
-          Schema.BigInt.check(Schema.isGreaterThanBigInt(10n)),
+          { schema: Schema.BigInt.check(Schema.isGreaterThanBigInt(10n)) },
           {
             generations: makeGeneration(`Schema.BigInt.check(Schema.isGreaterThanBigInt(10n))`, "bigint")
           }
@@ -325,11 +328,11 @@ describe("Standard", () => {
     })
 
     it("Symbol", () => {
-      assertToGenerationDocument(Schema.Symbol, {
+      assertToGenerationDocument({ schema: Schema.Symbol }, {
         generations: makeGeneration("Schema.Symbol", "symbol")
       })
       assertToGenerationDocument(
-        Schema.Symbol.annotate({ "description": "a" }),
+        { schema: Schema.Symbol.annotate({ "description": "a" }) },
         {
           generations: makeGeneration(`Schema.Symbol.annotate({ "description": "a" })`, "symbol")
         }
@@ -337,11 +340,11 @@ describe("Standard", () => {
     })
 
     it("ObjectKeyword", () => {
-      assertToGenerationDocument(Schema.ObjectKeyword, {
+      assertToGenerationDocument({ schema: Schema.ObjectKeyword }, {
         generations: makeGeneration("Schema.ObjectKeyword", "object")
       })
       assertToGenerationDocument(
-        Schema.ObjectKeyword.annotate({ "description": "a" }),
+        { schema: Schema.ObjectKeyword.annotate({ "description": "a" }) },
         {
           generations: makeGeneration(`Schema.ObjectKeyword.annotate({ "description": "a" })`, "object")
         }
@@ -350,11 +353,11 @@ describe("Standard", () => {
 
     describe("Literal", () => {
       it("string literal", () => {
-        assertToGenerationDocument(Schema.Literal("a"), {
+        assertToGenerationDocument({ schema: Schema.Literal("a") }, {
           generations: makeGeneration(`Schema.Literal("a")`, `"a"`)
         })
         assertToGenerationDocument(
-          Schema.Literal("a").annotate({ "description": "a" }),
+          { schema: Schema.Literal("a").annotate({ "description": "a" }) },
           {
             generations: makeGeneration(`Schema.Literal("a").annotate({ "description": "a" })`, `"a"`)
           }
@@ -362,11 +365,11 @@ describe("Standard", () => {
       })
 
       it("number literal", () => {
-        assertToGenerationDocument(Schema.Literal(1), {
+        assertToGenerationDocument({ schema: Schema.Literal(1) }, {
           generations: makeGeneration(`Schema.Literal(1)`, "1")
         })
         assertToGenerationDocument(
-          Schema.Literal(1).annotate({ "description": "a" }),
+          { schema: Schema.Literal(1).annotate({ "description": "a" }) },
           {
             generations: makeGeneration(`Schema.Literal(1).annotate({ "description": "a" })`, "1")
           }
@@ -374,11 +377,11 @@ describe("Standard", () => {
       })
 
       it("boolean literal", () => {
-        assertToGenerationDocument(Schema.Literal(true), {
+        assertToGenerationDocument({ schema: Schema.Literal(true) }, {
           generations: makeGeneration(`Schema.Literal(true)`, "true")
         })
         assertToGenerationDocument(
-          Schema.Literal(true).annotate({ "description": "a" }),
+          { schema: Schema.Literal(true).annotate({ "description": "a" }) },
           {
             generations: makeGeneration(`Schema.Literal(true).annotate({ "description": "a" })`, "true")
           }
@@ -386,11 +389,11 @@ describe("Standard", () => {
       })
 
       it("bigint literal", () => {
-        assertToGenerationDocument(Schema.Literal(100n), {
+        assertToGenerationDocument({ schema: Schema.Literal(100n) }, {
           generations: makeGeneration(`Schema.Literal(100n)`, "100n")
         })
         assertToGenerationDocument(
-          Schema.Literal(100n).annotate({ "description": "a" }),
+          { schema: Schema.Literal(100n).annotate({ "description": "a" }) },
           {
             generations: makeGeneration(`Schema.Literal(100n).annotate({ "description": "a" })`, "100n")
           }
@@ -401,7 +404,7 @@ describe("Standard", () => {
     describe("UniqueSymbol", () => {
       it("should create a Symbol artifact", () => {
         assertToGenerationDocument(
-          Schema.UniqueSymbol(Symbol("a")),
+          { schema: Schema.UniqueSymbol(Symbol("a")) },
           {
             generations: makeGeneration(`Schema.UniqueSymbol(sym_0)`, "typeof sym_0"),
             artifacts: [{
@@ -412,7 +415,7 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.UniqueSymbol(Symbol()),
+          { schema: Schema.UniqueSymbol(Symbol()) },
           {
             generations: makeGeneration(`Schema.UniqueSymbol(sym_0)`, "typeof sym_0"),
             artifacts: [{
@@ -426,7 +429,7 @@ describe("Standard", () => {
 
       it("should create a global Symbol artifact", () => {
         assertToGenerationDocument(
-          Schema.UniqueSymbol(Symbol.for("a")),
+          { schema: Schema.UniqueSymbol(Symbol.for("a")) },
           {
             generations: makeGeneration(`Schema.UniqueSymbol(sym_0)`, "typeof sym_0"),
             artifacts: [{
@@ -437,7 +440,7 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.UniqueSymbol(Symbol.for("a")).annotate({ "description": "a" }),
+          { schema: Schema.UniqueSymbol(Symbol.for("a")).annotate({ "description": "a" }) },
           {
             generations: makeGeneration(
               `Schema.UniqueSymbol(sym_0).annotate({ "description": "a" })`,
@@ -456,10 +459,12 @@ describe("Standard", () => {
     describe("Enum", () => {
       it("string values", () => {
         assertToGenerationDocument(
-          Schema.Enum({
-            A: "a",
-            B: "b"
-          }),
+          {
+            schema: Schema.Enum({
+              A: "a",
+              B: "b"
+            })
+          },
           {
             generations: makeGeneration(`Schema.Enum(enum_0)`, `typeof enum_0`),
             artifacts: [{
@@ -470,10 +475,12 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.Enum({
-            A: "a",
-            B: "b"
-          }).annotate({ "description": "a" }),
+          {
+            schema: Schema.Enum({
+              A: "a",
+              B: "b"
+            }).annotate({ "description": "a" })
+          },
           {
             generations: makeGeneration(
               `Schema.Enum(enum_0).annotate({ "description": "a" })`,
@@ -490,10 +497,12 @@ describe("Standard", () => {
 
       it("number values", () => {
         assertToGenerationDocument(
-          Schema.Enum({
-            One: 1,
-            Two: 2
-          }),
+          {
+            schema: Schema.Enum({
+              One: 1,
+              Two: 2
+            })
+          },
           {
             generations: makeGeneration(`Schema.Enum(enum_0)`, `typeof enum_0`),
             artifacts: [{
@@ -504,10 +513,12 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.Enum({
-            One: 1,
-            Two: 2
-          }).annotate({ "description": "a" }),
+          {
+            schema: Schema.Enum({
+              One: 1,
+              Two: 2
+            }).annotate({ "description": "a" })
+          },
           {
             generations: makeGeneration(
               `Schema.Enum(enum_0).annotate({ "description": "a" })`,
@@ -524,10 +535,12 @@ describe("Standard", () => {
 
       it("mixed values", () => {
         assertToGenerationDocument(
-          Schema.Enum({
-            A: "a",
-            One: 1
-          }),
+          {
+            schema: Schema.Enum({
+              A: "a",
+              One: 1
+            })
+          },
           {
             generations: makeGeneration(`Schema.Enum(enum_0)`, `typeof enum_0`),
             artifacts: [{
@@ -538,10 +551,12 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.Enum({
-            A: "a",
-            One: 1
-          }).annotate({ "description": "a" }),
+          {
+            schema: Schema.Enum({
+              A: "a",
+              One: 1
+            }).annotate({ "description": "a" })
+          },
           {
             generations: makeGeneration(
               `Schema.Enum(enum_0).annotate({ "description": "a" })`,
@@ -560,7 +575,7 @@ describe("Standard", () => {
     describe("TemplateLiteral", () => {
       it("empty template literal", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([]),
+          { schema: Schema.TemplateLiteral([]) },
           {
             generations: makeGeneration(`Schema.TemplateLiteral([])`, "``")
           }
@@ -569,7 +584,7 @@ describe("Standard", () => {
 
       it("string literal", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Literal("a")]),
+          { schema: Schema.TemplateLiteral([Schema.Literal("a")]) },
           {
             generations: makeGeneration(`Schema.TemplateLiteral([Schema.Literal("a")])`, "`a`")
           }
@@ -578,7 +593,7 @@ describe("Standard", () => {
 
       it("number literal", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Literal(1)]),
+          { schema: Schema.TemplateLiteral([Schema.Literal(1)]) },
           {
             generations: makeGeneration(`Schema.TemplateLiteral([Schema.Literal(1)])`, "`1`")
           }
@@ -587,7 +602,7 @@ describe("Standard", () => {
 
       it("bigint literal", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Literal(1n)]),
+          { schema: Schema.TemplateLiteral([Schema.Literal(1n)]) },
           {
             generations: makeGeneration(`Schema.TemplateLiteral([Schema.Literal(1n)])`, "`1`")
           }
@@ -596,7 +611,7 @@ describe("Standard", () => {
 
       it("multiple consecutive literals", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Literal("a"), Schema.Literal("b"), Schema.Literal("c")]),
+          { schema: Schema.TemplateLiteral([Schema.Literal("a"), Schema.Literal("b"), Schema.Literal("c")]) },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.Literal("a"), Schema.Literal("b"), Schema.Literal("c")])`,
@@ -608,7 +623,7 @@ describe("Standard", () => {
 
       it("special characters in literals", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Literal("a b"), Schema.String]),
+          { schema: Schema.TemplateLiteral([Schema.Literal("a b"), Schema.String]) },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.Literal("a b"), Schema.String])`,
@@ -617,7 +632,7 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Literal("\n"), Schema.String]),
+          { schema: Schema.TemplateLiteral([Schema.Literal("\n"), Schema.String]) },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.Literal("\\n"), Schema.String])`,
@@ -629,25 +644,25 @@ describe("Standard", () => {
 
       it("only schemas", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.String]),
+          { schema: Schema.TemplateLiteral([Schema.String]) },
           {
             generations: makeGeneration(`Schema.TemplateLiteral([Schema.String])`, "`${string}`")
           }
         )
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Number]),
+          { schema: Schema.TemplateLiteral([Schema.Number]) },
           {
             generations: makeGeneration(`Schema.TemplateLiteral([Schema.Number])`, "`${number}`")
           }
         )
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.BigInt]),
+          { schema: Schema.TemplateLiteral([Schema.BigInt]) },
           {
             generations: makeGeneration(`Schema.TemplateLiteral([Schema.BigInt])`, "`${bigint}`")
           }
         )
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.String, Schema.Number]),
+          { schema: Schema.TemplateLiteral([Schema.String, Schema.Number]) },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.String, Schema.Number])`,
@@ -659,7 +674,7 @@ describe("Standard", () => {
 
       it("schema & literal", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.String, Schema.Literal("a")]),
+          { schema: Schema.TemplateLiteral([Schema.String, Schema.Literal("a")]) },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.String, Schema.Literal("a")])`,
@@ -668,7 +683,7 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Number, Schema.Literal("a")]),
+          { schema: Schema.TemplateLiteral([Schema.Number, Schema.Literal("a")]) },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.Number, Schema.Literal("a")])`,
@@ -677,7 +692,7 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.BigInt, Schema.Literal("a")]),
+          { schema: Schema.TemplateLiteral([Schema.BigInt, Schema.Literal("a")]) },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.BigInt, Schema.Literal("a")])`,
@@ -689,7 +704,7 @@ describe("Standard", () => {
 
       it("literal & schema", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Literal("a"), Schema.String]),
+          { schema: Schema.TemplateLiteral([Schema.Literal("a"), Schema.String]) },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.Literal("a"), Schema.String])`,
@@ -698,7 +713,7 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Literal("a"), Schema.Number]),
+          { schema: Schema.TemplateLiteral([Schema.Literal("a"), Schema.Number]) },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.Literal("a"), Schema.Number])`,
@@ -707,7 +722,7 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Literal("a"), Schema.BigInt]),
+          { schema: Schema.TemplateLiteral([Schema.Literal("a"), Schema.BigInt]) },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.Literal("a"), Schema.BigInt])`,
@@ -719,7 +734,7 @@ describe("Standard", () => {
 
       it("schema & literal & schema", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]),
+          { schema: Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]) },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number])`,
@@ -728,7 +743,11 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]).annotate({ "description": "ad" }),
+          {
+            schema: Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]).annotate({
+              "description": "ad"
+            })
+          },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.String, Schema.Literal("-"), Schema.Number]).annotate({ "description": "ad" })`,
@@ -740,10 +759,12 @@ describe("Standard", () => {
 
       it("TemplateLiteral as part", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([
-            Schema.Literal("a"),
-            Schema.TemplateLiteral([Schema.String, Schema.Literals(["-", "+"]), Schema.Number])
-          ]),
+          {
+            schema: Schema.TemplateLiteral([
+              Schema.Literal("a"),
+              Schema.TemplateLiteral([Schema.String, Schema.Literals(["-", "+"]), Schema.Number])
+            ])
+          },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.Literal("a"), Schema.TemplateLiteral([Schema.String, Schema.Literals(["-", "+"]), Schema.Number])])`,
@@ -755,7 +776,9 @@ describe("Standard", () => {
 
       it("Union as part", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Literal("a"), Schema.Union([Schema.String, Schema.Number])]),
+          {
+            schema: Schema.TemplateLiteral([Schema.Literal("a"), Schema.Union([Schema.String, Schema.Number])])
+          },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.Literal("a"), Schema.Union([Schema.String, Schema.Number])])`,
@@ -767,7 +790,9 @@ describe("Standard", () => {
 
       it("Literals as part", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([Schema.Literals(["a", "b"]), Schema.String]),
+          {
+            schema: Schema.TemplateLiteral([Schema.Literals(["a", "b"]), Schema.String])
+          },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.Literals(["a", "b"]), Schema.String])`,
@@ -779,11 +804,13 @@ describe("Standard", () => {
 
       it("multiple unions", () => {
         assertToGenerationDocument(
-          Schema.TemplateLiteral([
-            Schema.Union([Schema.Literal("a"), Schema.Literal("b")]),
-            Schema.String,
-            Schema.Union([Schema.Number, Schema.BigInt])
-          ]),
+          {
+            schema: Schema.TemplateLiteral([
+              Schema.Union([Schema.Literal("a"), Schema.Literal("b")]),
+              Schema.String,
+              Schema.Union([Schema.Number, Schema.BigInt])
+            ])
+          },
           {
             generations: makeGeneration(
               `Schema.TemplateLiteral([Schema.Literals(["a", "b"]), Schema.String, Schema.Union([Schema.BigInt, Schema.Number])])`,
@@ -797,11 +824,11 @@ describe("Standard", () => {
     describe("Arrays", () => {
       describe("Tuple", () => {
         it("empty tuple", () => {
-          assertToGenerationDocument(Schema.Tuple([]), {
+          assertToGenerationDocument({ schema: Schema.Tuple([]) }, {
             generations: makeGeneration("Schema.Tuple([])", "readonly []")
           })
           assertToGenerationDocument(
-            Schema.Tuple([]).annotate({ "description": "a" }),
+            { schema: Schema.Tuple([]).annotate({ "description": "a" }) },
             {
               generations: makeGeneration(`Schema.Tuple([]).annotate({ "description": "a" })`, "readonly []")
             }
@@ -810,13 +837,13 @@ describe("Standard", () => {
 
         it("required element", () => {
           assertToGenerationDocument(
-            Schema.Tuple([Schema.String]),
+            { schema: Schema.Tuple([Schema.String]) },
             {
               generations: makeGeneration(`Schema.Tuple([Schema.String])`, "readonly [string]")
             }
           )
           assertToGenerationDocument(
-            Schema.Tuple([Schema.String]).annotate({ "description": "a" }),
+            { schema: Schema.Tuple([Schema.String]).annotate({ "description": "a" }) },
             {
               generations: makeGeneration(
                 `Schema.Tuple([Schema.String]).annotate({ "description": "a" })`,
@@ -828,13 +855,13 @@ describe("Standard", () => {
 
         it("optional element", () => {
           assertToGenerationDocument(
-            Schema.Tuple([Schema.optionalKey(Schema.String)]),
+            { schema: Schema.Tuple([Schema.optionalKey(Schema.String)]) },
             {
               generations: makeGeneration(`Schema.Tuple([Schema.optionalKey(Schema.String)])`, "readonly [string?]")
             }
           )
           assertToGenerationDocument(
-            Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ "description": "a" }),
+            { schema: Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ "description": "a" }) },
             {
               generations: makeGeneration(
                 `Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ "description": "a" })`,
@@ -846,7 +873,7 @@ describe("Standard", () => {
 
         it("annotateKey", () => {
           assertToGenerationDocument(
-            Schema.Tuple([Schema.String.annotateKey({ "description": "a" })]),
+            { schema: Schema.Tuple([Schema.String.annotateKey({ "description": "a" })]) },
             {
               generations: makeGeneration(
                 `Schema.Tuple([Schema.String.annotateKey({ "description": "a" })])`,
@@ -859,13 +886,13 @@ describe("Standard", () => {
 
       it("Array", () => {
         assertToGenerationDocument(
-          Schema.Array(Schema.String),
+          { schema: Schema.Array(Schema.String) },
           {
             generations: makeGeneration("Schema.Array(Schema.String)", "ReadonlyArray<string>")
           }
         )
         assertToGenerationDocument(
-          Schema.Array(Schema.String).annotate({ "description": "a" }),
+          { schema: Schema.Array(Schema.String).annotate({ "description": "a" }) },
           {
             generations: makeGeneration(
               `Schema.Array(Schema.String).annotate({ "description": "a" })`,
@@ -877,7 +904,7 @@ describe("Standard", () => {
 
       it("TupleWithRest", () => {
         assertToGenerationDocument(
-          Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]),
+          { schema: Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]) },
           {
             generations: makeGeneration(
               `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number])`,
@@ -886,7 +913,11 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]).annotate({ "description": "a" }),
+          {
+            schema: Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]).annotate({
+              "description": "a"
+            })
+          },
           {
             generations: makeGeneration(
               `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]).annotate({ "description": "a" })`,
@@ -895,7 +926,7 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number, Schema.Boolean]),
+          { schema: Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number, Schema.Boolean]) },
           {
             generations: makeGeneration(
               `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number, Schema.Boolean])`,
@@ -908,11 +939,11 @@ describe("Standard", () => {
 
     describe("Objects", () => {
       it("empty struct", () => {
-        assertToGenerationDocument(Schema.Struct({}), {
+        assertToGenerationDocument({ schema: Schema.Struct({}) }, {
           generations: makeGeneration("Schema.Struct({  })", "{  }")
         })
         assertToGenerationDocument(
-          Schema.Struct({}).annotate({ "description": "a" }),
+          { schema: Schema.Struct({}).annotate({ "description": "a" }) },
           {
             generations: makeGeneration(`Schema.Struct({  }).annotate({ "description": "a" })`, "{  }")
           }
@@ -921,9 +952,11 @@ describe("Standard", () => {
 
       it("required properties", () => {
         assertToGenerationDocument(
-          Schema.Struct({
-            a: Schema.String
-          }),
+          {
+            schema: Schema.Struct({
+              a: Schema.String
+            })
+          },
           {
             generations: makeGeneration(
               `Schema.Struct({ "a": Schema.String })`,
@@ -932,10 +965,12 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.Struct({
-            a: Schema.String,
-            b: Schema.Number
-          }),
+          {
+            schema: Schema.Struct({
+              a: Schema.String,
+              b: Schema.Number
+            })
+          },
           {
             generations: makeGeneration(
               `Schema.Struct({ "a": Schema.String, "b": Schema.Number })`,
@@ -947,9 +982,11 @@ describe("Standard", () => {
 
       it("optional properties", () => {
         assertToGenerationDocument(
-          Schema.Struct({
-            a: Schema.optionalKey(Schema.String)
-          }),
+          {
+            schema: Schema.Struct({
+              a: Schema.optionalKey(Schema.String)
+            })
+          },
           {
             generations: makeGeneration(
               `Schema.Struct({ "a": Schema.optionalKey(Schema.String) })`,
@@ -961,9 +998,11 @@ describe("Standard", () => {
 
       it("mutable properties", () => {
         assertToGenerationDocument(
-          Schema.Struct({
-            a: Schema.mutableKey(Schema.String)
-          }),
+          {
+            schema: Schema.Struct({
+              a: Schema.mutableKey(Schema.String)
+            })
+          },
           {
             generations: makeGeneration(
               `Schema.Struct({ "a": Schema.mutableKey(Schema.String) })`,
@@ -975,9 +1014,11 @@ describe("Standard", () => {
 
       it("optional and mutable properties", () => {
         assertToGenerationDocument(
-          Schema.Struct({
-            a: Schema.optionalKey(Schema.mutableKey(Schema.String))
-          }),
+          {
+            schema: Schema.Struct({
+              a: Schema.optionalKey(Schema.mutableKey(Schema.String))
+            })
+          },
           {
             generations: makeGeneration(
               `Schema.Struct({ "a": Schema.optionalKey(Schema.mutableKey(Schema.String)) })`,
@@ -989,9 +1030,11 @@ describe("Standard", () => {
 
       it("annotateKey", () => {
         assertToGenerationDocument(
-          Schema.Struct({
-            a: Schema.String.annotateKey({ "description": "a" })
-          }),
+          {
+            schema: Schema.Struct({
+              a: Schema.String.annotateKey({ "description": "a" })
+            })
+          },
           {
             generations: makeGeneration(
               `Schema.Struct({ "a": Schema.String.annotateKey({ "description": "a" }) })`,
@@ -1004,9 +1047,11 @@ describe("Standard", () => {
       it("struct with symbol property key", () => {
         const sym = Symbol.for("a")
         assertToGenerationDocument(
-          Schema.Struct({
-            [sym]: Schema.String
-          }),
+          {
+            schema: Schema.Struct({
+              [sym]: Schema.String
+            })
+          },
           {
             generations: makeGeneration(
               `Schema.Struct({ [sym_0]: Schema.String })`,
@@ -1025,13 +1070,17 @@ describe("Standard", () => {
     describe("Union", () => {
       it("union with anyOf mode (default)", () => {
         assertToGenerationDocument(
-          Schema.Union([Schema.String, Schema.Number]),
+          {
+            schema: Schema.Union([Schema.String, Schema.Number])
+          },
           {
             generations: makeGeneration("Schema.Union([Schema.String, Schema.Number])", "string | number")
           }
         )
         assertToGenerationDocument(
-          Schema.Union([Schema.String, Schema.Number]).annotate({ "description": "z" }),
+          {
+            schema: Schema.Union([Schema.String, Schema.Number]).annotate({ "description": "z" })
+          },
           {
             generations: makeGeneration(
               `Schema.Union([Schema.String, Schema.Number]).annotate({ "description": "z" })`,
@@ -1043,7 +1092,9 @@ describe("Standard", () => {
 
       it("union with oneOf mode", () => {
         assertToGenerationDocument(
-          Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }),
+          {
+            schema: Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" })
+          },
           {
             generations: makeGeneration(
               `Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" })`,
@@ -1052,7 +1103,9 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }).annotate({ "description": "aa" }),
+          {
+            schema: Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }).annotate({ "description": "aa" })
+          },
           {
             generations: makeGeneration(
               `Schema.Union([Schema.String, Schema.Number], { mode: "oneOf" }).annotate({ "description": "aa" })`,
@@ -1064,7 +1117,9 @@ describe("Standard", () => {
 
       it("union with multiple types", () => {
         assertToGenerationDocument(
-          Schema.Union([Schema.String, Schema.Number, Schema.Boolean]),
+          {
+            schema: Schema.Union([Schema.String, Schema.Number, Schema.Boolean])
+          },
           {
             generations: makeGeneration(
               "Schema.Union([Schema.String, Schema.Number, Schema.Boolean])",
@@ -1073,7 +1128,9 @@ describe("Standard", () => {
           }
         )
         assertToGenerationDocument(
-          Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).annotate({ "description": "a" }),
+          {
+            schema: Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).annotate({ "description": "a" })
+          },
           {
             generations: makeGeneration(
               `Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).annotate({ "description": "a" })`,
@@ -1087,13 +1144,17 @@ describe("Standard", () => {
     describe("Suspend", () => {
       it("non-recursive", () => {
         assertToGenerationDocument(
-          Schema.suspend(() => Schema.String),
+          {
+            schema: Schema.suspend(() => Schema.String)
+          },
           {
             generations: makeGeneration(`Schema.suspend((): Schema.Codec<string, string> => Schema.String)`, "string")
           }
         )
         assertToGenerationDocument(
-          Schema.suspend(() => Schema.String.annotate({ identifier: "ID" })),
+          {
+            schema: Schema.suspend(() => Schema.String.annotate({ identifier: "ID" }))
+          },
           {
             generations: makeGeneration(`Schema.suspend((): Schema.Codec<ID, IDEncoded> => ID)`, "ID", "IDEncoded"),
             definitions: {
@@ -1111,7 +1172,9 @@ describe("Standard", () => {
       describe("recursive", () => {
         it("outer identifier", () => {
           assertToGenerationDocument(
-            OuterCategory,
+            {
+              schema: OuterCategory
+            },
             {
               generations: makeGeneration(
                 `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)) }).annotate({ "identifier": "Category" })`,
@@ -1133,7 +1196,9 @@ describe("Standard", () => {
 
         it("inner identifier", () => {
           assertToGenerationDocument(
-            InnerCategory,
+            {
+              schema: InnerCategory
+            },
             {
               generations: makeGeneration(
                 `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)) })`,
@@ -1158,10 +1223,12 @@ describe("Standard", () => {
     describe("nested structures", () => {
       it("tuple with struct elements", () => {
         assertToGenerationDocument(
-          Schema.Tuple([
-            Schema.Struct({ a: Schema.String }),
-            Schema.Struct({ b: Schema.Number })
-          ]),
+          {
+            schema: Schema.Tuple([
+              Schema.Struct({ a: Schema.String }),
+              Schema.Struct({ b: Schema.Number })
+            ])
+          },
           {
             generations: makeGeneration(
               `Schema.Tuple([Schema.Struct({ "a": Schema.String }), Schema.Struct({ "b": Schema.Number })])`,
@@ -1173,12 +1240,14 @@ describe("Standard", () => {
 
       it("nested struct", () => {
         assertToGenerationDocument(
-          Schema.Struct({
-            user: Schema.Struct({
-              a: Schema.String,
-              b: Schema.Number
+          {
+            schema: Schema.Struct({
+              user: Schema.Struct({
+                a: Schema.String,
+                b: Schema.Number
+              })
             })
-          }),
+          },
           {
             generations: makeGeneration(
               `Schema.Struct({ "user": Schema.Struct({ "a": Schema.String, "b": Schema.Number }) })`,
@@ -1190,10 +1259,12 @@ describe("Standard", () => {
 
       it("union of structs", () => {
         assertToGenerationDocument(
-          Schema.Union([
-            Schema.Struct({ type: Schema.Literal("a"), value: Schema.String }),
-            Schema.Struct({ type: Schema.Literal("b"), value: Schema.Number })
-          ]),
+          {
+            schema: Schema.Union([
+              Schema.Struct({ type: Schema.Literal("a"), value: Schema.String }),
+              Schema.Struct({ type: Schema.Literal("b"), value: Schema.Number })
+            ])
+          },
           {
             generations: makeGeneration(
               `Schema.Union([Schema.Struct({ "type": Schema.Literal("a"), "value": Schema.String }), Schema.Struct({ "type": Schema.Literal("b"), "value": Schema.Number })])`,

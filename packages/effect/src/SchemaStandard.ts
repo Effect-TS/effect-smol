@@ -1663,43 +1663,11 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
               )
             }
             case "effect/http/Cookies": {
-              addImport(`import * as Cookies from "effect/http/Cookies"`)
+              addImport(`import * as Cookies from "effect/unstable/http/Cookies"`)
               return makeGeneration(
                 `Chookies.CookiesSchema`,
                 `typeof Chookies.CookiesSchema["Type"]`,
                 `typeof Chookies.CookiesSchema["Encoded"]`
-              )
-            }
-            case "effect/http/Cookies/Cookie": {
-              addImport(`import * as Cookies from "effect/http/Cookies"`)
-              return makeGeneration(
-                `Chookies.CookieSchema`,
-                `typeof Chookies.CookieSchema["Type"]`,
-                `typeof Chookies.CookieSchema["Encoded"]`
-              )
-            }
-            case "effect/http/Headers": {
-              addImport(`import * as Headers from "effect/http/Headers"`)
-              return makeGeneration(
-                `Headers.HeadersSchema`,
-                `typeof Headers.HeadersSchema["Type"]`,
-                `typeof Headers.HeadersSchema["Encoded"]`
-              )
-            }
-            case "effect/http/Multipart/PersistedFile": {
-              addImport(`import * as Multipart from "effect/http/Multipart"`)
-              return makeGeneration(
-                `Multipart.FileSchema`,
-                `typeof Multipart.FileSchema["Type"]`,
-                `typeof Multipart.FileSchema["Encoded"]`
-              )
-            }
-            case "effect/http/UrlParams": {
-              addImport(`import * as UrlParams from "effect/http/UrlParams"`)
-              return makeGeneration(
-                `UrlParams.UrlParamsSchema`,
-                `typeof UrlParams.UrlParamsSchema["Type"]`,
-                `typeof UrlParams.UrlParamsSchema["Encoded"]`
               )
             }
           }

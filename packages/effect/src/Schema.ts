@@ -7236,7 +7236,7 @@ function getClassSchemaFactory<S extends Top>(
           }
         )
       )
-      memo = from.pipe(decodeTo(to, getClassTransformation(self)))
+      memo = from.pipe(decodeTo(to, transformation))
     }
     return memo
   }
