@@ -31,7 +31,7 @@ describe("SubscriptionRef", () => {
 
   it.effect("subscriptions are interruptible", () =>
     Effect.gen(function*() {
-      const ref = yield* (SubscriptionRef.make(0))
+      const ref = yield* SubscriptionRef.make(0)
       const latch1 = yield* Effect.makeLatch()
       const latch2 = yield* Effect.makeLatch()
       const fiber1 = yield* SubscriptionRef.changes(ref).pipe(
