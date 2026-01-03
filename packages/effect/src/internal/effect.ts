@@ -1092,10 +1092,10 @@ export const fn: typeof Effect.fn = function() {
   const name = nameFirst ? arguments[0] : "Effect.fn"
   const spanOptions = nameFirst ? arguments[1] : undefined
 
-  const prevLimit = globalThis.Error.stackTraceLimit
-  globalThis.Error.stackTraceLimit = 2
+  const prevLimit = (globalThis.Error as ErrorWithStackTraceLimit).stackTraceLimit
+  ;(globalThis.Error as ErrorWithStackTraceLimit).stackTraceLimit = 2
   const defError = new globalThis.Error()
-  globalThis.Error.stackTraceLimit = prevLimit
+  ;(globalThis.Error as ErrorWithStackTraceLimit).stackTraceLimit = prevLimit
 
   if (nameFirst) {
     return (body: Function, ...pipeables: Array<Function>) =>
@@ -1131,10 +1131,10 @@ const makeFn = (
     if (!isEffect(result)) {
       return result
     }
-    const prevLimit = globalThis.Error.stackTraceLimit
-    globalThis.Error.stackTraceLimit = 2
+    const prevLimit = (globalThis.Error as ErrorWithStackTraceLimit).stackTraceLimit
+    ;(globalThis.Error as ErrorWithStackTraceLimit).stackTraceLimit = 2
     const callError = new globalThis.Error()
-    globalThis.Error.stackTraceLimit = prevLimit
+    ;(globalThis.Error as ErrorWithStackTraceLimit).stackTraceLimit = prevLimit
     return updateService(
       addSpan ?
         useSpan(name, spanOptions!, (span) => provideParentSpan(result, span)) :
