@@ -1556,17 +1556,14 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
           typeof generation.Type === "string"
         ) {
           const typeParameters = s.typeParameters.map(recur)
-          const typeParametersRuntime = typeParameters.map((p) => p.runtime)
-          const typeParametersType = typeParameters.map((p) => p.Type)
-          const typeParametersEncoded = typeParameters.map((p) => p.Encoded)
           const Encoded = typeof generation.Encoded === "string" ? generation.Encoded : generation.Type
           if (typeof generation.importDeclaration === "string") {
             addImport(generation.importDeclaration)
           }
           return makeGeneration(
-            fill(generation.runtime, typeParametersRuntime),
-            fill(generation.Type, typeParametersType),
-            fill(Encoded, typeParametersEncoded)
+            fill(generation.runtime, typeParameters.map((p) => p.runtime)),
+            fill(generation.Type, typeParameters.map((p) => p.Type)),
+            fill(Encoded, typeParameters.map((p) => p.Encoded))
           )
         }
         return options?.reviver?.(s, recur) ?? recur(s.Encoded)
