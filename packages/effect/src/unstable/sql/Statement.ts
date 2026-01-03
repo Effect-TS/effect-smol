@@ -10,6 +10,7 @@ import * as core from "../../internal/core.ts"
 import * as internalEffect from "../../internal/effect.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import { hasProperty } from "../../Predicate.ts"
+import { TracerTimingEnabled } from "../../References.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import type * as Tracer from "../../Tracer.ts"
@@ -1226,6 +1227,7 @@ const StatementProto: Omit<
   ): Effect.Effect<ReadonlyArray<any>, SqlError> {
     const span = internalEffect.makeSpanUnsafe(fiber, "sql.execute", { kind: "client" })
     const clock = fiber.getRef(Clock)
+    const timingEnabled = fiber.getRef(TracerTimingEnabled)
     return Effect.onExit(
       this.withConnectionSpan(
         "execute",
@@ -1233,7 +1235,7 @@ const StatementProto: Omit<
         false,
         span
       ),
-      (exit) => internalEffect.endSpan(span, exit, clock)
+      (exit) => internalEffect.endSpan(span, exit, clock, timingEnabled)
     )
   },
   toJSON(this: StatementImpl<any>) {

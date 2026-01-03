@@ -179,6 +179,51 @@ export const TracerEnabled = ServiceMap.Reference<boolean>("effect/References/Tr
 })
 
 /**
+ * Reference for controlling whether trace timing is enabled globally. When set
+ * to false, spans will not contain timing information (trace time will always
+ * be set to zero).
+ *
+ * @example
+ * ```ts
+ * import { Effect, References } from "effect"
+ *
+ * const tracingControl = Effect.gen(function*() {
+ *   // Check if trace timing is enabled (default is true)
+ *   const current = yield* References.TracerTimingEnabled
+ *   console.log(current) // true
+ *
+ *   // Disable trace timing globally
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       // Spans will not having timing information in this context
+ *       const isEnabled = yield* References.TracerTimingEnabled
+ *       console.log(isEnabled) // false
+ *     }),
+ *     References.TracerTimingEnabled,
+ *     false
+ *   )
+ *
+ *   // Re-enable trace timing
+ *   yield* Effect.provideService(
+ *     Effect.gen(function*() {
+ *       // Spans will have timing information in this context
+ *       const isEnabled = yield* References.TracerTimingEnabled
+ *       console.log(isEnabled) // true
+ *     }),
+ *     References.TracerTimingEnabled,
+ *     true
+ *   )
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category references
+ */
+export const TracerTimingEnabled = ServiceMap.Reference<boolean>("effect/References/TracerTimingEnabled", {
+  defaultValue: constTrue
+})
+
+/**
  * Reference for managing span annotations that are automatically added to all new spans.
  * These annotations provide context and metadata that applies across multiple spans.
  *

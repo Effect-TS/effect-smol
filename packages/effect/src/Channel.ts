@@ -66,7 +66,7 @@ import * as Fiber from "./Fiber.ts"
 import * as Filter from "./Filter.ts"
 import type { LazyArg } from "./Function.ts"
 import { constant, constTrue, constVoid, dual, identity as identity_ } from "./Function.ts"
-import { endSpan } from "./internal/effect.ts"
+import { ClockRef, endSpan } from "./internal/effect.ts"
 import { addSpanStackTrace } from "./internal/tracer.ts"
 import * as Iterable from "./Iterable.ts"
 import * as Layer from "./Layer.ts"
@@ -77,6 +77,7 @@ import { hasProperty, isTagged } from "./Predicate.ts"
 import * as PubSub from "./PubSub.ts"
 import * as Pull from "./Pull.ts"
 import * as Queue from "./Queue.ts"
+import { TracerTimingEnabled } from "./References.ts"
 import * as Schedule from "./Schedule.ts"
 import * as Scope from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
@@ -5583,7 +5584,12 @@ const withSpanImpl = <OutElem, OutErr, OutDone, InElem, InErr, InDone, R>(
   acquireUseRelease(
     Effect.makeSpan(name, options),
     (span) => provideService(self, ParentSpan, span),
-    (span, exit) => Effect.clockWith((clock) => endSpan(span, exit, clock))
+    (span, exit) =>
+      Effect.withFiber((fiber) => {
+        const clock = fiber.getRef(ClockRef)
+        const timingEnabled = fiber.getRef(TracerTimingEnabled)
+        return endSpan(span, exit, clock, timingEnabled)
+      })
   )
 
 /**

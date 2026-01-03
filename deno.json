@@ -19,6 +19,7 @@
     "packages/*/dtslint/",
     "packages/*/benchmark/",
     "packages/effect/test/cluster/",
+    "packages/opentelemetry/",
     "packages/platform-browser/",
     "packages/platform-bun/",
     "packages/platform-node/",

@@ -12,7 +12,7 @@ import { formatJson } from "../Formatter.ts"
 import type { LazyArg } from "../Function.ts"
 import { constant, constFalse, constTrue, constUndefined, constVoid, dual, identity } from "../Function.ts"
 import * as Hash from "../Hash.ts"
-import { toJson } from "../Inspectable.ts"
+import { toJson, toStringUnknown } from "../Inspectable.ts"
 import type * as Logger from "../Logger.ts"
 import type * as LogLevel from "../LogLevel.ts"
 import type * as Metric from "../Metric.ts"
@@ -31,7 +31,8 @@ import {
   type StackFrame,
   TracerEnabled,
   TracerSpanAnnotations,
-  TracerSpanLinks
+  TracerSpanLinks,
+  TracerTimingEnabled
 } from "../References.ts"
 import * as Result from "../Result.ts"
 import * as Scheduler from "../Scheduler.ts"
@@ -4406,9 +4407,15 @@ export const withTracerEnabled: {
   <A, E, R>(effect: Effect.Effect<A, E, R>, enabled: boolean): Effect.Effect<A, E, R>
 } = provideService(TracerEnabled)
 
+/** @internal */
+export const withTracerTiming: {
+  (enabled: boolean): <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>
+  <A, E, R>(effect: Effect.Effect<A, E, R>, enabled: boolean): Effect.Effect<A, E, R>
+} = provideService(TracerTimingEnabled)
+
 const bigint0 = BigInt(0)
 
-const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "context"> = {
+const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "services"> = {
   _tag: "Span",
   spanId: "noop",
   traceId: "noop",
@@ -4424,19 +4431,20 @@ const NoopSpanProto: Omit<Tracer.Span, "parent" | "name" | "context"> = {
   kind: "internal",
   attribute() {},
   event() {},
-  end() {}
+  end() {},
+  addLinks() {}
 }
 
 /** @internal */
 export const noopSpan = (options: {
   readonly name: string
   readonly parent: Tracer.AnySpan | undefined
-  readonly context: ServiceMap.ServiceMap<never>
+  readonly services: ServiceMap.ServiceMap<never>
 }): Tracer.Span => Object.assign(Object.create(NoopSpanProto), options)
 
 const filterDisablePropagation = (span: Tracer.AnySpan | undefined): Tracer.AnySpan | undefined => {
   if (span) {
-    return ServiceMap.get(span.context, Tracer.DisablePropagation)
+    return ServiceMap.get(span.services, Tracer.DisablePropagation)
       ? span._tag === "Span" ? filterDisablePropagation(span.parent) : undefined
       : span
   }
@@ -4449,7 +4457,7 @@ export const makeSpanUnsafe = <XA, XE>(
   options: Tracer.SpanOptionsNoTrace | undefined
 ) => {
   const disablePropagation = !fiber.getRef(TracerEnabled) ||
-    (options?.context && ServiceMap.get(options.context, Tracer.DisablePropagation))
+    (options?.services && ServiceMap.get(options.services, Tracer.DisablePropagation))
   const parent = options?.parent ?? (options?.root ? undefined : filterDisablePropagation(fiber.currentSpan))
 
   let span: Tracer.Span
@@ -4458,8 +4466,8 @@ export const makeSpanUnsafe = <XA, XE>(
     span = noopSpan({
       name,
       parent,
-      context: ServiceMap.add(
-        options?.context ?? ServiceMap.empty(),
+      services: ServiceMap.add(
+        options?.services ?? ServiceMap.empty(),
         Tracer.DisablePropagation,
         true
       )
@@ -4467,6 +4475,7 @@ export const makeSpanUnsafe = <XA, XE>(
   } else {
     const tracer = fiber.getRef(Tracer.Tracer)
     const clock = fiber.getRef(ClockRef)
+    const timingEnabled = fiber.getRef(TracerTimingEnabled)
     const annotationsFromEnv = fiber.getRef(TracerSpanAnnotations)
     const linksFromEnv = fiber.getRef(TracerSpanLinks)
 
@@ -4477,10 +4486,11 @@ export const makeSpanUnsafe = <XA, XE>(
     span = tracer.span(
       name,
       parent,
-      options?.context ?? ServiceMap.empty(),
+      options?.services ?? ServiceMap.empty(),
       links,
-      clock.currentTimeNanosUnsafe(),
-      options?.kind ?? "internal"
+      timingEnabled ? clock.currentTimeNanosUnsafe() : 0n,
+      options?.kind ?? "internal",
+      options
     )
 
     for (const [key, value] of Object.entries(annotationsFromEnv)) {
@@ -4512,8 +4522,9 @@ export const makeSpanScoped = (
       const scope = ServiceMap.getUnsafe(fiber.services, scopeTag)
       const span = makeSpanUnsafe(fiber, name, options ?? {})
       const clock = fiber.getRef(ClockRef)
+      const timingEnabled = fiber.getRef(TracerTimingEnabled)
       return as(
-        scopeAddFinalizerExit(scope, (exit) => endSpan(span, exit, clock)),
+        scopeAddFinalizerExit(scope, (exit) => endSpan(span, exit, clock, timingEnabled)),
         span
       )
     })
@@ -4585,10 +4596,15 @@ export const linkSpans: {
 })
 
 /** @internal */
-export const endSpan = <A, E>(span: Tracer.Span, exit: Exit.Exit<A, E>, clock: Clock.Clock) =>
+export const endSpan = <A, E>(
+  span: Tracer.Span,
+  exit: Exit.Exit<A, E>,
+  clock: Clock.Clock,
+  timingEnabled: boolean
+) =>
   sync(() => {
     if (span.status._tag === "Ended") return
-    span.end(clock.currentTimeNanosUnsafe(), exit)
+    span.end(timingEnabled ? clock.currentTimeNanosUnsafe() : bigint0, exit)
   })
 
 /** @internal */
@@ -4876,7 +4892,8 @@ export const ConsoleRef = ServiceMap.Reference<Console.Console>(
 // LogLevel
 // ----------------------------------------------------------------------------
 
-const logLevelToOrder = (level: LogLevel.LogLevel) => {
+/** @internal */
+export const logLevelToOrder = (level: LogLevel.LogLevel) => {
   switch (level) {
     case "All":
       return Number.MIN_SAFE_INTEGER
@@ -4911,7 +4928,7 @@ export const logLevelGreaterThan = Order.greaterThan(LogLevelOrder)
 export const CurrentLoggers = ServiceMap.Reference<
   ReadonlySet<Logger.Logger<unknown, any>>
 >("effect/Loggers/CurrentLoggers", {
-  defaultValue: () => new Set([defaultLogger])
+  defaultValue: () => new Set([defaultLogger, tracerLogger])
 })
 
 /** @internal */
@@ -5232,6 +5249,28 @@ export const defaultLogger = loggerMake<unknown, void>(({ cause, date, fiber, lo
   const console = fiber.getRef(ConsoleRef)
   const log = fiber.getRef(LogToStderr) ? console.error : console.log
   log(`[${defaultDateFormat(date)}] ${logLevel.toUpperCase()} (#${fiber.id})${spanString}:`, ...message_)
+})
+
+/** @internal */
+export const tracerLogger = loggerMake<unknown, void>(({ cause, fiber, logLevel, message }) => {
+  const clock = fiber.getRef(ClockRef)
+  const annotations = fiber.getRef(CurrentLogAnnotations)
+  const span = fiber.currentSpan
+  if (span === undefined || span._tag === "ExternalSpan") return
+  const attributes: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(annotations)) {
+    attributes[key] = value
+  }
+  attributes["effect.fiberId"] = fiber.id
+  attributes["effect.logLevel"] = logLevel.toUpperCase()
+  if (cause.failures.length > 0) {
+    attributes["effect.cause"] = causePretty(cause)
+  }
+  span.event(
+    toStringUnknown(Array.isArray(message) && message.length === 1 ? message[0] : message),
+    clock.currentTimeNanosUnsafe(),
+    attributes
+  )
 })
 
 /** @internal */

@@ -19,13 +19,21 @@ import * as ServiceMap from "./ServiceMap.ts"
  *   span: (
  *     name: string,
  *     parent: Tracer.AnySpan | undefined,
- *     context: ServiceMap.ServiceMap<never>,
+ *     services: ServiceMap.ServiceMap<never>,
  *     links: ReadonlyArray<Tracer.SpanLink>,
  *     startTime: bigint,
- *     kind: Tracer.SpanKind
+ *     kind: Tracer.SpanKind,
+ *     _options: Tracer.SpanOptions | undefined
  *   ) => {
  *     console.log(`Creating span: ${name}`)
- *     return new Tracer.NativeSpan(name, parent, context, links, startTime, kind)
+ *     return new Tracer.NativeSpan(
+ *       name,
+ *       parent,
+ *       services,
+ *       links.slice(),
+ *       startTime,
+ *       kind
+ *     )
  *   },
  *   context: <X>(f: () => X, fiber: any) => {
  *     console.log("Running with tracing context")
@@ -38,10 +46,11 @@ export interface Tracer {
   readonly span: (
     name: string,
     parent: AnySpan | undefined,
-    context: ServiceMap.ServiceMap<never>,
+    services: ServiceMap.ServiceMap<never>,
     links: ReadonlyArray<SpanLink>,
     startTime: bigint,
-    kind: SpanKind
+    kind: SpanKind,
+    options?: SpanOptions
   ) => Span
   readonly context?:
     | (<X>(
@@ -149,7 +158,7 @@ export class ParentSpan extends ServiceMap.Service<ParentSpan, AnySpan>()(Parent
  *   spanId: "span-abc-123",
  *   traceId: "trace-xyz-789",
  *   sampled: true,
- *   context: ServiceMap.empty()
+ *   services: ServiceMap.empty()
  * }
  *
  * console.log(`External span: ${externalSpan.spanId}`)
@@ -160,7 +169,7 @@ export interface ExternalSpan {
   readonly spanId: string
   readonly traceId: string
   readonly sampled: boolean
-  readonly context: ServiceMap.ServiceMap<never>
+  readonly services: ServiceMap.ServiceMap<never>
 }
 
 /**
@@ -195,7 +204,7 @@ export interface SpanOptionsNoTrace {
   readonly links?: ReadonlyArray<SpanLink> | undefined
   readonly parent?: AnySpan | undefined
   readonly root?: boolean | undefined
-  readonly context?: ServiceMap.ServiceMap<never> | undefined
+  readonly services?: ServiceMap.ServiceMap<never> | undefined
   readonly kind?: SpanKind | undefined
 }
 
@@ -253,7 +262,7 @@ export interface Span {
   readonly spanId: string
   readonly traceId: string
   readonly parent: AnySpan | undefined
-  readonly context: ServiceMap.ServiceMap<never>
+  readonly services: ServiceMap.ServiceMap<never>
   readonly status: SpanStatus
   readonly attributes: ReadonlyMap<string, unknown>
   readonly links: ReadonlyArray<SpanLink>
@@ -262,6 +271,7 @@ export interface Span {
   end(endTime: bigint, exit: Exit.Exit<unknown, unknown>): void
   attribute(key: string, value: unknown): void
   event(name: string, startTime: bigint, attributes?: Record<string, unknown>): void
+  addLinks(links: ReadonlyArray<SpanLink>): void
 }
 
 /**
@@ -301,9 +311,16 @@ export interface SpanLink {
  *
  * // Create a custom tracer with logging
  * const loggingTracer = Tracer.make({
- *   span: (name, parent, context, links, startTime, kind) => {
+ *   span: (name, parent, services, links, startTime, kind) => {
  *     console.log(`Starting span: ${name} (${kind})`)
- *     return new Tracer.NativeSpan(name, parent, context, links, startTime, kind)
+ *     return new Tracer.NativeSpan(
+ *       name,
+ *       parent,
+ *       services,
+ *       links.slice(),
+ *       startTime,
+ *       kind
+ *     )
  *   },
  *   context: (f, fiber) => {
  *     console.log("Executing with tracer context")
@@ -339,14 +356,14 @@ export const externalSpan = (
     readonly spanId: string
     readonly traceId: string
     readonly sampled?: boolean | undefined
-    readonly context?: ServiceMap.ServiceMap<never> | undefined
+    readonly services?: ServiceMap.ServiceMap<never> | undefined
   }
 ): ExternalSpan => ({
   _tag: "ExternalSpan",
   spanId: options.spanId,
   traceId: options.traceId,
   sampled: options.sampled ?? true,
-  context: options.context ?? ServiceMap.empty()
+  services: options.services ?? ServiceMap.empty()
 })
 
 /**
@@ -398,12 +415,12 @@ export const TracerKey = "effect/Tracer"
 export const Tracer: ServiceMap.Reference<Tracer> = ServiceMap.Reference<Tracer>(TracerKey, {
   defaultValue: () =>
     make({
-      span: (name, parent, context, links, startTime, kind) =>
+      span: (name, parent, services, links, startTime, kind) =>
         new NativeSpan(
           name,
           parent,
-          context,
-          links,
+          services,
+          links.slice(),
           startTime,
           kind
         )
@@ -440,8 +457,8 @@ export class NativeSpan implements Span {
 
   readonly name: string
   readonly parent: AnySpan | undefined
-  readonly context: ServiceMap.ServiceMap<never>
-  readonly links: ReadonlyArray<SpanLink>
+  readonly services: ServiceMap.ServiceMap<never>
+  readonly links: Array<SpanLink>
   readonly startTime: bigint
   readonly kind: SpanKind
 
@@ -452,14 +469,14 @@ export class NativeSpan implements Span {
   constructor(
     name: string,
     parent: AnySpan | undefined,
-    context: ServiceMap.ServiceMap<never>,
-    links: ReadonlyArray<SpanLink>,
+    services: ServiceMap.ServiceMap<never>,
+    links: Array<SpanLink>,
     startTime: bigint,
     kind: SpanKind
   ) {
     this.name = name
     this.parent = parent
-    this.context = context
+    this.services = services
     this.links = links
     this.startTime = startTime
     this.kind = kind
@@ -487,6 +504,11 @@ export class NativeSpan implements Span {
 
   event(name: string, startTime: bigint, attributes?: Record<string, unknown>): void {
     this.events.push([name, startTime, attributes ?? {}])
+  }
+
+  addLinks(links: ReadonlyArray<SpanLink>): void {
+    // eslint-disable-next-line no-restricted-syntax
+    this.links.push(...links)
   }
 }
 
