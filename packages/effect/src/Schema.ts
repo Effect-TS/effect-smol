@@ -7208,7 +7208,7 @@ function makeClass<
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
   const from = InternalAnnotations.resolveIdentifier(struct.ast) === undefined
-    ? struct.annotate({ identifier })
+    ? struct.annotate({ identifier: `${identifier}Encoded` })
     : struct
   const getClassSchema = getClassSchemaFactory(from, identifier, annotations)
   const ClassTypeId = getClassTypeId(identifier) // HMR support
