@@ -3329,9 +3329,11 @@ describe("Standard", () => {
   })
 
   describe("toSchema", () => {
-    function assertToSchema(schema: Schema.Top) {
+    function assertToSchema(schema: Schema.Top, reviver?: SchemaStandard.Reviver<Schema.Top>) {
       const document = SchemaStandard.fromAST(schema.ast)
-      const roundtrip = SchemaStandard.fromAST(SchemaStandard.toSchema(document).ast)
+      const roundtrip = SchemaStandard.fromAST(
+        SchemaStandard.toSchema(document, { reviver }).ast
+      )
       deepStrictEqual(roundtrip, document)
     }
 
@@ -3392,6 +3394,81 @@ describe("Standard", () => {
 
     it("Suspend", () => {
       assertToSchema(OuterCategory)
+    })
+
+    describe("toSchemaDefaultReviver", () => {
+      function assertToSchemaWithReviver(schema: Schema.Top) {
+        assertToSchema(schema, SchemaStandard.toSchemaDefaultReviver)
+      }
+
+      it("Option", () => {
+        assertToSchemaWithReviver(Schema.Option(Schema.String))
+        assertToSchemaWithReviver(Schema.Option(Schema.URL))
+      })
+
+      it("Result", () => {
+        assertToSchemaWithReviver(Schema.Result(Schema.String, Schema.Number))
+      })
+
+      it("Redacted", () => {
+        assertToSchemaWithReviver(Schema.Redacted(Schema.String))
+      })
+
+      it("CauseFailure", () => {
+        assertToSchemaWithReviver(Schema.CauseFailure(Schema.String, Schema.Number))
+      })
+
+      it("Cause", () => {
+        assertToSchemaWithReviver(Schema.Cause(Schema.String, Schema.Number))
+      })
+
+      it("Error", () => {
+        assertToSchemaWithReviver(Schema.Error)
+      })
+
+      it("Exit", () => {
+        assertToSchemaWithReviver(Schema.Exit(Schema.String, Schema.Number, Schema.Boolean))
+      })
+
+      it("ReadonlyMap", () => {
+        assertToSchemaWithReviver(Schema.ReadonlyMap(Schema.String, Schema.Number))
+      })
+
+      it("ReadonlySet", () => {
+        assertToSchemaWithReviver(Schema.ReadonlySet(Schema.String))
+      })
+
+      it("RegExp", () => {
+        assertToSchemaWithReviver(Schema.RegExp)
+      })
+
+      it("URL", () => {
+        assertToSchemaWithReviver(Schema.URL)
+      })
+
+      it("Date", () => {
+        assertToSchemaWithReviver(Schema.Date)
+      })
+
+      it("Duration", () => {
+        assertToSchemaWithReviver(Schema.Duration)
+      })
+
+      it("FormData", () => {
+        assertToSchemaWithReviver(Schema.FormData)
+      })
+
+      it("URLSearchParams", () => {
+        assertToSchemaWithReviver(Schema.URLSearchParams)
+      })
+
+      it("Uint8Array", () => {
+        assertToSchemaWithReviver(Schema.Uint8Array)
+      })
+
+      it("DateTime.Utc", () => {
+        assertToSchemaWithReviver(Schema.DateTimeUtc)
+      })
     })
   })
 
