@@ -221,10 +221,7 @@ export const make = Effect.gen(function*() {
 
       return String.stripMargin(
         `|${openApiTransformer.imports(importName)}
-         |${generation.imports}
-         |
-         |${generation.schemas}
-         |
+         |${generation}
          |${openApiTransformer.toImplementation(importName, options.name, operations)}
          |
          |${openApiTransformer.toTypes(importName, options.name, operations)}`

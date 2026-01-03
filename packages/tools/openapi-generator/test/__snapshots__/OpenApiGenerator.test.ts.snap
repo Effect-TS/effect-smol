@@ -19,9 +19,9 @@ export type Group = { readonly "id": number, readonly "name": string }
 export type GroupEncoded = Group
 export const Group = Schema.Struct({ "id": Schema.Int, "name": Schema.String }).annotate({ "identifier": "Group" })
 
-export type PersistedFile = string
+export type PersistedFile = { readonly "key": string, readonly "name": string, readonly "contentType": string, readonly "path": string }
 export type PersistedFileEncoded = PersistedFile
-export const PersistedFile = Schema.String.annotate({ "format": "binary" }).annotate({ "identifier": "PersistedFile" })
+export const PersistedFile = Schema.Struct({ "key": Schema.String, "name": Schema.String, "contentType": Schema.String, "path": Schema.String }).annotate({ "identifier": "PersistedFile" })
 
 export type User = { readonly "id": number, readonly "uuid"?: string, readonly "name": string, readonly "createdAt": string }
 export type UserEncoded = User
