@@ -2551,24 +2551,24 @@ const templateLiteralPartFromString = toCodec((ast) => {
  */
 export const STRING_PATTERN = "[\\s\\S]*?"
 
-const isFiniteStringRegExp = new globalThis.RegExp(`^${FINITE_PATTERN}$`)
+const isStringFiniteRegExp = new globalThis.RegExp(`^${FINITE_PATTERN}$`)
 
 /** @internal */
-export function isFiniteString(annotations?: Schema.Annotations.Filter) {
+export function isStringFinite(annotations?: Schema.Annotations.Filter) {
   return isPattern(
-    isFiniteStringRegExp,
+    isStringFiniteRegExp,
     {
       expected: "a string representing a finite number",
       meta: {
-        _tag: "isFiniteString",
-        regExp: isFiniteStringRegExp
+        _tag: "isStringFinite",
+        regExp: isStringFiniteRegExp
       },
       ...annotations
     }
   )
 }
 
-const finiteString = appendChecks(string, [isFiniteString()])
+const finiteString = appendChecks(string, [isStringFinite()])
 
 const finiteToString = new Link(
   finiteString,
@@ -2585,17 +2585,17 @@ const numberToString = new Link(
  */
 const BIGINT_PATTERN = "-?\\d+"
 
-const isBigIntStringRegExp = new globalThis.RegExp(`^${BIGINT_PATTERN}$`)
+const isStringBigIntRegExp = new globalThis.RegExp(`^${BIGINT_PATTERN}$`)
 
 /** @internal */
-export function isBigIntString(annotations?: Schema.Annotations.Filter) {
+export function isStringBigInt(annotations?: Schema.Annotations.Filter) {
   return isPattern(
-    isBigIntStringRegExp,
+    isStringBigIntRegExp,
     {
       expected: "a string representing a bigint",
       meta: {
-        _tag: "isBigIntString",
-        regExp: isBigIntStringRegExp
+        _tag: "isStringBigInt",
+        regExp: isStringBigIntRegExp
       },
       ...annotations
     }
@@ -2603,7 +2603,7 @@ export function isBigIntString(annotations?: Schema.Annotations.Filter) {
 }
 
 /** @internal */
-export const bigIntString = appendChecks(string, [isBigIntString()])
+export const bigIntString = appendChecks(string, [isStringBigInt()])
 
 const bigIntToString = new Link(
   bigIntString,
@@ -2615,10 +2615,10 @@ const bigIntToString = new Link(
 
 const REGEXP_PATTERN = "Symbol\\((.*)\\)"
 
-const isSymbolStringRegExp = new globalThis.RegExp(`^${REGEXP_PATTERN}$`)
+const isStringSymbolRegExp = new globalThis.RegExp(`^${REGEXP_PATTERN}$`)
 
 /** @internal */
-export const symbolString = appendChecks(string, [isSymbolString()])
+export const symbolString = appendChecks(string, [isStringSymbol()])
 
 /**
  * to distinguish between Symbol and String, we need to add a check to the string keyword
@@ -2626,7 +2626,7 @@ export const symbolString = appendChecks(string, [isSymbolString()])
 const symbolToString = new Link(
   symbolString,
   new Transformation.Transformation(
-    Getter.transform((description) => globalThis.Symbol.for(isSymbolStringRegExp.exec(description)![1])),
+    Getter.transform((description) => globalThis.Symbol.for(isStringSymbolRegExp.exec(description)![1])),
     Getter.transformOrFail((sym: symbol) => {
       const key = globalThis.Symbol.keyFor(sym)
       if (key !== undefined) {
@@ -2640,14 +2640,14 @@ const symbolToString = new Link(
 )
 
 /** @internal */
-export function isSymbolString(annotations?: Schema.Annotations.Filter) {
+export function isStringSymbol(annotations?: Schema.Annotations.Filter) {
   return isPattern(
-    isSymbolStringRegExp,
+    isStringSymbolRegExp,
     {
       expected: "a string representing a symbol",
       meta: {
-        _tag: "isSymbolString",
-        regExp: isSymbolStringRegExp
+        _tag: "isStringSymbol",
+        regExp: isStringSymbolRegExp
       },
       ...annotations
     }

@@ -854,5 +854,5 @@ export function url(name?: string) {
  * @since 4.0.0
  */
 export function date(name?: string) {
-  return schema(Schema.ValidDate, name)
+  return schema(Schema.DateValid, name)
 }

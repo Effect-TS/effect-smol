@@ -3489,7 +3489,7 @@ export const isPattern: (regExp: globalThis.RegExp, annotations?: Annotations.Fi
  * @category String checks
  * @since 4.0.0
  */
-export const isFiniteString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isFiniteString
+export const isStringFinite: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isStringFinite
 
 /**
  * Validates that a string represents a valid BigInt (can be parsed as a BigInt).
@@ -3507,7 +3507,7 @@ export const isFiniteString: (annotations?: Annotations.Filter) => AST.Filter<st
  * @category String checks
  * @since 4.0.0
  */
-export const isBigIntString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isBigIntString
+export const isStringBigInt: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isStringBigInt
 
 /**
  * Validates that a string represents a valid Symbol (can be parsed as a Symbol).
@@ -3525,7 +3525,7 @@ export const isBigIntString: (annotations?: Annotations.Filter) => AST.Filter<st
  * @category String checks
  * @since 4.0.0
  */
-export const isSymbolString: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isSymbolString
+export const isStringSymbol: (annotations?: Annotations.Filter) => AST.Filter<string> = AST.isStringSymbol
 
 /**
  * Returns a RegExp for validating an RFC 4122 UUID.
@@ -4422,13 +4422,13 @@ export function isUint32(annotations?: Annotations.Filter) {
  * @category Date checks
  * @since 4.0.0
  */
-export function isValidDate(annotations?: Annotations.Filter) {
+export function isDateValid(annotations?: Annotations.Filter) {
   return makeFilter<globalThis.Date>(
     (date) => !isNaN(date.getTime()),
     {
       expected: "a valid date",
       meta: {
-        _tag: "isValidDate"
+        _tag: "isDateValid"
       },
       toArbitraryConstraint: {
         date: {
@@ -5292,7 +5292,14 @@ export function Option<A extends Top>(value: A): Option<A> {
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
-      typeConstructor: { _tag: "effect/Option" },
+      typeConstructor: {
+        _tag: "effect/Option"
+      },
+      generation: {
+        runtime: `Schema.Option(?)`,
+        Type: `Option.Option<?>`,
+        importDeclaration: `import * as Option from "effect/Option"`
+      },
       expected: "Option",
       "toCodec*": ([value]) =>
         link<Option_.Option<A["Encoded"]>>()(
@@ -5456,7 +5463,14 @@ export function Result<A extends Top, E extends Top>(
       }
     },
     {
-      typeConstructor: { _tag: "effect/Result" },
+      typeConstructor: {
+        _tag: "effect/Result"
+      },
+      generation: {
+        runtime: `Schema.Result(?, ?)`,
+        Type: `Result.Result<?, ?>`,
+        importDeclaration: `import * as Result from "effect/Result"`
+      },
       expected: "Result",
       "toCodec*": ([success, failure]) =>
         link<Result_.Result<A["Encoded"], E["Encoded"]>>()(
@@ -5560,7 +5574,14 @@ export function Redacted<S extends Top>(value: S, options?: {
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
-      typeConstructor: { _tag: "effect/Redacted" },
+      typeConstructor: {
+        _tag: "effect/Redacted"
+      },
+      generation: {
+        runtime: `Schema.Redacted(?)`,
+        Type: `Redacted.Redacted<?>`,
+        importDeclaration: `import * as Redacted from "effect/Redacted"`
+      },
       expected: "Redacted",
       toCodecJson: ([value]) =>
         link<Redacted_.Redacted<S["Encoded"]>>()(
@@ -5646,7 +5667,14 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
       }
     },
     {
-      typeConstructor: { _tag: "effect/Cause/Failure" },
+      typeConstructor: {
+        _tag: "effect/Cause/Failure"
+      },
+      generation: {
+        runtime: `Schema.CauseFailure(?, ?)`,
+        Type: `Cause.Failure<?, ?>`,
+        importDeclaration: `import * as Cause from "effect/Cause"`
+      },
       expected: "Cause.Failure",
       "toCodec*": ([error, defect]) =>
         link<Cause_.Failure<E["Encoded"]>>()(
@@ -5743,7 +5771,14 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
       })
     },
     {
-      typeConstructor: { _tag: "effect/Cause" },
+      typeConstructor: {
+        _tag: "effect/Cause"
+      },
+      generation: {
+        runtime: `Schema.Cause(?, ?)`,
+        Type: `Cause.Cause<?, ?>`,
+        importDeclaration: `import * as Cause from "effect/Cause"`
+      },
       expected: "Cause",
       "toCodec*": ([failures]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
@@ -5782,7 +5817,13 @@ const ErrorJsonEncoded = Struct({
  * @since 4.0.0
  */
 export const Error: Error = instanceOf(globalThis.Error, {
-  typeConstructor: { _tag: "Error" },
+  typeConstructor: {
+    _tag: "Error"
+  },
+  generation: {
+    runtime: `Schema.Error`,
+    Type: `globalThis.Error`
+  },
   expected: "Error",
   toCodecJson: () => link<globalThis.Error>()(ErrorJsonEncoded, Transformation.errorFromErrorJsonEncoded),
   toArbitrary: () => (fc) => fc.string().map((message) => new globalThis.Error(message))
@@ -5899,7 +5940,14 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
       }
     },
     {
-      typeConstructor: { _tag: "effect/Exit" },
+      typeConstructor: {
+        _tag: "effect/Exit"
+      },
+      generation: {
+        runtime: `Schema.Exit(?, ?)`,
+        Type: `Exit.Exit<?, ?>`,
+        importDeclaration: `import * as Exit from "effect/Exit"`
+      },
       expected: "Exit",
       "toCodec*": ([value, cause]) =>
         link<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
@@ -5994,7 +6042,13 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
-      typeConstructor: { _tag: "ReadonlyMap" },
+      typeConstructor: {
+        _tag: "ReadonlyMap"
+      },
+      generation: {
+        runtime: `Schema.ReadonlyMap(?, ?)`,
+        Type: `globalThis.ReadonlyMap<<?, ?>>`
+      },
       expected: "ReadonlyMap",
       "toCodec*": ([key, value]) =>
         link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
@@ -6071,7 +6125,13 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
       return Effect.fail(new Issue.InvalidType(ast, Option_.some(input)))
     },
     {
-      typeConstructor: { _tag: "ReadonlySet" },
+      typeConstructor: {
+        _tag: "ReadonlySet"
+      },
+      generation: {
+        runtime: `Schema.ReadonlySet(?)`,
+        Type: `globalThis.ReadonlySet<?>`
+      },
       expected: "ReadonlySet",
       "toCodec*": ([value]) =>
         link<globalThis.Set<Value["Encoded"]>>()(
@@ -6113,7 +6173,13 @@ export interface RegExp extends instanceOf<globalThis.RegExp> {}
 export const RegExp: RegExp = instanceOf(
   globalThis.RegExp,
   {
-    typeConstructor: { _tag: "RegExp" },
+    typeConstructor: {
+      _tag: "RegExp"
+    },
+    generation: {
+      runtime: `Schema.RegExp`,
+      Type: `globalThis.RegExp`
+    },
     expected: "RegExp",
     toCodecJson: () =>
       link<globalThis.RegExp>()(
@@ -6178,7 +6244,13 @@ export interface URL extends instanceOf<globalThis.URL> {}
 export const URL: URL = instanceOf(
   globalThis.URL,
   {
-    typeConstructor: { _tag: "URL" },
+    typeConstructor: {
+      _tag: "URL"
+    },
+    generation: {
+      runtime: `Schema.URL`,
+      Type: `globalThis.URL`
+    },
     expected: "URL",
     toCodecJson: () =>
       link<globalThis.URL>()(
@@ -6226,7 +6298,13 @@ export interface Date extends instanceOf<globalThis.Date> {}
 export const Date: Date = instanceOf(
   globalThis.Date,
   {
-    typeConstructor: { _tag: "Date" },
+    typeConstructor: {
+      _tag: "Date"
+    },
+    generation: {
+      runtime: `Schema.Date`,
+      Type: `globalThis.Date`
+    },
     expected: "Date",
     toCodecJson: () =>
       link<globalThis.Date>()(
@@ -6243,7 +6321,7 @@ export const Date: Date = instanceOf(
 /**
  * @since 4.0.0
  */
-export interface ValidDate extends Date {}
+export interface DateValid extends Date {}
 
 /**
  * A schema for **valid** JavaScript `Date` objects.
@@ -6253,7 +6331,7 @@ export interface ValidDate extends Date {}
  *
  * @since 4.0.0
  */
-export const ValidDate = Date.check(isValidDate())
+export const DateValid = Date.check(isDateValid())
 
 /**
  * @since 4.0.0
@@ -6272,7 +6350,14 @@ export interface Duration extends declare<Duration_.Duration> {}
 export const Duration: Duration = declare(
   Duration_.isDuration,
   {
-    typeConstructor: { _tag: "effect/Duration" },
+    typeConstructor: {
+      _tag: "effect/Duration"
+    },
+    generation: {
+      runtime: `Schema.Duration`,
+      Type: `Duration.Duration`,
+      importDeclaration: `import * as Duration from "effect/Duration"`
+    },
     expected: "Duration",
     toCodecJson: () =>
       link<Duration_.Duration>()(
@@ -6471,7 +6556,13 @@ export interface FormData extends instanceOf<globalThis.FormData> {}
  * @since 4.0.0
  */
 export const FormData: FormData = instanceOf(globalThis.FormData, {
-  typeConstructor: { _tag: "FormData" },
+  typeConstructor: {
+    _tag: "FormData"
+  },
+  generation: {
+    runtime: `Schema.FormData`,
+    Type: `globalThis.FormData`
+  },
   expected: "FormData"
 })
 
@@ -6576,7 +6667,13 @@ export interface URLSearchParams extends instanceOf<globalThis.URLSearchParams> 
  * @since 4.0.0
  */
 export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchParams, {
-  typeConstructor: { _tag: "URLSearchParams" },
+  typeConstructor: {
+    _tag: "URLSearchParams"
+  },
+  generation: {
+    runtime: `Schema.URLSearchParams`,
+    Type: `globalThis.URLSearchParams`
+  },
   expected: "URLSearchParams"
 })
 
@@ -6812,7 +6909,13 @@ export interface Uint8Array extends instanceOf<globalThis.Uint8Array<ArrayBuffer
  * @since 4.0.0
  */
 export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBufferLike>, {
-  typeConstructor: { _tag: "Uint8Array" },
+  typeConstructor: {
+    _tag: "Uint8Array"
+  },
+  generation: {
+    runtime: `Schema.Uint8Array`,
+    Type: `globalThis.Uint8Array`
+  },
   expected: "Uint8Array",
   toCodecJson: () =>
     link<globalThis.Uint8Array<ArrayBufferLike>>()(
@@ -6916,7 +7019,14 @@ export interface DateTimeUtc extends declare<DateTime.Utc> {}
 export const DateTimeUtc: DateTimeUtc = declare(
   (u) => DateTime.isDateTime(u) && DateTime.isUtc(u),
   {
-    typeConstructor: { _tag: "effect/DateTime/Utc" },
+    typeConstructor: {
+      _tag: "DateTime.Utc"
+    },
+    generation: {
+      runtime: `Schema.DateTimeUtc`,
+      Type: `DateTime.Utc`,
+      importDeclaration: `import * as DateTime from "effect/DateTime"`
+    },
     expected: "DateTime.Utc",
     toCodecJson: () =>
       link<DateTime.Utc>()(
@@ -6950,7 +7060,7 @@ export interface DateTimeUtcFromDate extends decodeTo<DateTimeUtc, Date> {}
  * @category DateTime
  * @since 4.0.0
  */
-export const DateTimeUtcFromDate: DateTimeUtcFromDate = ValidDate.pipe(
+export const DateTimeUtcFromDate: DateTimeUtcFromDate = DateValid.pipe(
   decodeTo(DateTimeUtc, {
     decode: Getter.dateTimeUtcFromInput(),
     encode: Getter.transform(DateTime.toDateUtc)
@@ -8297,7 +8407,15 @@ export declare namespace Annotations {
     readonly toArbitrary?: ToArbitrary.Declaration<T, TypeParameters> | undefined
     readonly toEquivalence?: ToEquivalence.Declaration<T, TypeParameters> | undefined
     readonly toFormatter?: ToFormatter.Declaration<T, TypeParameters> | undefined
-    readonly typeConstructor?: { readonly _tag: string } | undefined
+    readonly typeConstructor?: {
+      readonly _tag: string
+    } | undefined
+    readonly generation?: {
+      readonly runtime: string
+      readonly Type: string
+      readonly Encoded?: string | undefined
+      readonly importDeclaration?: string | undefined
+    } | undefined
     /**
      * Used to collect sentinels from a Declaration AST.
      *
@@ -8450,16 +8568,16 @@ export declare namespace Annotations {
    */
   export interface BuiltInMetaDefinitions {
     // String Meta
-    readonly isFiniteString: {
-      readonly _tag: "isFiniteString"
+    readonly isStringFinite: {
+      readonly _tag: "isStringFinite"
       readonly regExp: globalThis.RegExp
     }
-    readonly isBigIntString: {
-      readonly _tag: "isBigIntString"
+    readonly isStringBigInt: {
+      readonly _tag: "isStringBigInt"
       readonly regExp: globalThis.RegExp
     }
-    readonly isSymbolString: {
-      readonly _tag: "isSymbolString"
+    readonly isStringSymbol: {
+      readonly _tag: "isStringSymbol"
       readonly regExp: globalThis.RegExp
     }
     readonly isMinLength: {
@@ -8589,8 +8707,8 @@ export declare namespace Annotations {
       readonly exclusiveMaximum?: boolean | undefined
     }
     // Date Meta
-    readonly isValidDate: {
-      readonly _tag: "isValidDate"
+    readonly isDateValid: {
+      readonly _tag: "isDateValid"
     }
     readonly isGreaterThanDate: {
       readonly _tag: "isGreaterThanDate"

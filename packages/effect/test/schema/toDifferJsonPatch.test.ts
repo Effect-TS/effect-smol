@@ -218,7 +218,7 @@ describe("Schema.toDifferJsonPatch", () => {
       roundtrip(Schema.RegExp)
       roundtrip(Schema.Duration)
       roundtrip(Schema.DateTimeUtc)
-      roundtrip(Schema.ValidDate)
+      roundtrip(Schema.DateValid)
       roundtrip(Schema.Uint8Array)
       roundtrip(Schema.PropertyKey)
       roundtrip(Schema.Option(Schema.String))

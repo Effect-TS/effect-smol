@@ -3,7 +3,7 @@ import { Data, Schema, SchemaUtils } from "effect"
 import { describe, expect, it } from "tstyche"
 
 class Value extends Schema.Class<Value, { readonly brand: unique symbol }>("Value")({
-  a: Schema.ValidDate
+  a: Schema.DateValid
 }) {}
 
 describe("toIso", () => {

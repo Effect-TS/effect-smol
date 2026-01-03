@@ -144,18 +144,24 @@ export class MultipartError extends Schema.ErrorClass<MultipartError>(MultipartE
  * @since 4.0.0
  * @category Schemas
  */
-export interface FileSchema extends Schema.declare<PersistedFile> {}
+export interface PersistedFileSchema extends Schema.declare<PersistedFile> {}
 
 /**
  * @since 4.0.0
  * @category Schemas
  */
-export const FileSchema: FileSchema = Schema.declare(
+export const PersistedFileSchema: PersistedFileSchema = Schema.declare(
   isPersistedFile,
   {
-    typeConstructor: { _tag: "effect/http/Multipart/PersistedFile" },
-    expected: "Multipart.PersistedFile",
-    identifier: "PersistedFile",
+    typeConstructor: {
+      _tag: "effect/http/PersistedFile"
+    },
+    generation: {
+      runtime: `Multipart.PersistedFileSchema`,
+      Type: `Multipart.PersistedFile`,
+      importDeclaration: `import * as Multipart from "effect/unstable/http/Multipart"`
+    },
+    expected: "PersistedFile",
     toCodecJson: () =>
       Schema.link<PersistedFile>()(
         Schema.Struct({
@@ -181,23 +187,24 @@ export const FileSchema: FileSchema = Schema.declare(
  * @since 4.0.0
  * @category Schemas
  */
-export const FilesSchema: Schema.Array$<FileSchema> = Schema.Array(FileSchema)
+export const FilesSchema: Schema.Array$<PersistedFileSchema> = Schema.Array(PersistedFileSchema)
 
 /**
  * @since 4.0.0
  * @category Schemas
  */
-export const SingleFileSchema: Schema.decodeTo<FileSchema, Schema.Array$<FileSchema>> = FilesSchema.check(
-  Schema.isLength(1)
-).pipe(
-  Schema.decodeTo(
-    FileSchema,
-    Transformation.transform({
-      decode: ([file]) => file,
-      encode: (file) => [file]
-    })
+export const SingleFileSchema: Schema.decodeTo<PersistedFileSchema, Schema.Array$<PersistedFileSchema>> = FilesSchema
+  .check(
+    Schema.isLength(1)
+  ).pipe(
+    Schema.decodeTo(
+      PersistedFileSchema,
+      Transformation.transform({
+        decode: ([file]) => file,
+        encode: (file) => [file]
+      })
+    )
   )
-)
 
 /**
  * @since 4.0.0

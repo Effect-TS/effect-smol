@@ -1002,8 +1002,8 @@ describe("toJsonSchemaDocument", () => {
       })
     })
 
-    it("ValidDate", () => {
-      const schema = Schema.ValidDate
+    it("DateValid", () => {
+      const schema = Schema.DateValid
       assertDocument(schema, {
         schema: {
           "type": "string",
@@ -1029,15 +1029,9 @@ describe("toJsonSchemaDocument", () => {
         schema: {
           "type": "object",
           "properties": {
-            "name": {
-              "type": "string"
-            },
-            "message": {
-              "type": "string"
-            },
-            "stack": {
-              "type": "string"
-            }
+            "name": { "type": "string" },
+            "message": { "type": "string" },
+            "stack": { "type": "string" }
           },
           "required": ["message"],
           "additionalProperties": false
@@ -1051,12 +1045,8 @@ describe("toJsonSchemaDocument", () => {
         schema: {
           "type": "object",
           "properties": {
-            "source": {
-              "type": "string"
-            },
-            "flags": {
-              "type": "string"
-            }
+            "source": { "type": "string" },
+            "flags": { "type": "string" }
           },
           "required": ["source", "flags"],
           "additionalProperties": false

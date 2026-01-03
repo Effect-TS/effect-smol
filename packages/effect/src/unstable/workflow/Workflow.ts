@@ -472,7 +472,6 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
         )
       },
       {
-        typeConstructor: { _tag: "effect/workflow/Workflow/Complete" },
         expected: "Workflow.Complete",
         toCodecJson: ([exit]) =>
           Schema.link<Complete<Success["Encoded"], Error["Encoded"]>>()(

@@ -60,44 +60,44 @@ describe("Standard", () => {
 
       it("Error", () => {
         assertToGenerationDocument({ schema: Schema.Error }, {
-          generations: makeGeneration("Schema.Error", "Error")
+          generations: makeGeneration(`Schema.Error`, "globalThis.Error")
         })
       })
 
       it("RegExp", () => {
         assertToGenerationDocument({ schema: Schema.RegExp }, {
-          generations: makeGeneration("Schema.RegExp", "RegExp")
+          generations: makeGeneration(`Schema.RegExp`, "globalThis.RegExp")
         })
       })
 
       it("URL", () => {
         assertToGenerationDocument({ schema: Schema.URL }, {
-          generations: makeGeneration("Schema.URL", "URL")
+          generations: makeGeneration(`Schema.URL`, "globalThis.URL")
         })
       })
 
       it("Uint8Array", () => {
         assertToGenerationDocument({ schema: Schema.Uint8Array }, {
-          generations: makeGeneration("Schema.Uint8Array", "Uint8Array")
+          generations: makeGeneration(`Schema.Uint8Array`, "globalThis.Uint8Array")
         })
       })
 
       it("FormData", () => {
         assertToGenerationDocument({ schema: Schema.FormData }, {
-          generations: makeGeneration("Schema.FormData", "FormData")
+          generations: makeGeneration(`Schema.FormData`, "globalThis.FormData")
         })
       })
 
       it("URLSearchParams", () => {
         assertToGenerationDocument({ schema: Schema.URLSearchParams }, {
-          generations: makeGeneration("Schema.URLSearchParams", "URLSearchParams")
+          generations: makeGeneration(`Schema.URLSearchParams`, "globalThis.URLSearchParams")
         })
       })
 
       describe("Date", () => {
         it("Date", () => {
           assertToGenerationDocument({ schema: Schema.Date }, {
-            generations: makeGeneration("Schema.Date", "Date")
+            generations: makeGeneration(`Schema.Date`, "globalThis.Date")
           })
         })
 
@@ -105,7 +105,7 @@ describe("Standard", () => {
           assertToGenerationDocument(
             { schema: Schema.Date.check(Schema.isGreaterThanDate(new Date(0))) },
             {
-              generations: makeGeneration("Schema.Date.check(Schema.isGreaterThanDate(new Date(0)))", "Date")
+              generations: makeGeneration(`Schema.Date.check(Schema.isGreaterThanDate(new Date(0)))`, "globalThis.Date")
             }
           )
         })
@@ -1987,7 +1987,13 @@ describe("Standard", () => {
           assertToJson(Schema.Date, {
             schema: {
               _tag: "Declaration",
-              annotations: { typeConstructor: { _tag: "Date" } },
+              annotations: {
+                typeConstructor: { _tag: "Date" },
+                generation: {
+                  runtime: "Schema.Date",
+                  Type: "globalThis.Date"
+                }
+              },
               typeParameters: [],
               checks: [],
               Encoded: { _tag: "String", checks: [] }
@@ -2000,7 +2006,13 @@ describe("Standard", () => {
             assertToJson(Schema.Date.check(Schema.isGreaterThanDate(new Date(0))), {
               schema: {
                 _tag: "Declaration",
-                annotations: { typeConstructor: { _tag: "Date" } },
+                annotations: {
+                  typeConstructor: { _tag: "Date" },
+                  generation: {
+                    runtime: "Schema.Date",
+                    Type: "globalThis.Date"
+                  }
+                },
                 typeParameters: [],
                 checks: [
                   {
@@ -2017,7 +2029,13 @@ describe("Standard", () => {
             assertToJson(Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0))), {
               schema: {
                 _tag: "Declaration",
-                annotations: { typeConstructor: { _tag: "Date" } },
+                annotations: {
+                  typeConstructor: { _tag: "Date" },
+                  generation: {
+                    runtime: "Schema.Date",
+                    Type: "globalThis.Date"
+                  }
+                },
                 typeParameters: [],
                 checks: [
                   {
@@ -2034,7 +2052,13 @@ describe("Standard", () => {
             assertToJson(Schema.Date.check(Schema.isLessThanDate(new Date(0))), {
               schema: {
                 _tag: "Declaration",
-                annotations: { typeConstructor: { _tag: "Date" } },
+                annotations: {
+                  typeConstructor: { _tag: "Date" },
+                  generation: {
+                    runtime: "Schema.Date",
+                    Type: "globalThis.Date"
+                  }
+                },
                 typeParameters: [],
                 checks: [
                   {
@@ -2051,7 +2075,13 @@ describe("Standard", () => {
             assertToJson(Schema.Date.check(Schema.isLessThanOrEqualToDate(new Date(0))), {
               schema: {
                 _tag: "Declaration",
-                annotations: { typeConstructor: { _tag: "Date" } },
+                annotations: {
+                  typeConstructor: { _tag: "Date" },
+                  generation: {
+                    runtime: "Schema.Date",
+                    Type: "globalThis.Date"
+                  }
+                },
                 typeParameters: [],
                 checks: [
                   {
@@ -2068,7 +2098,13 @@ describe("Standard", () => {
             assertToJson(Schema.Date.check(Schema.isBetweenDate({ minimum: new Date(0), maximum: new Date(1) })), {
               schema: {
                 _tag: "Declaration",
-                annotations: { typeConstructor: { _tag: "Date" } },
+                annotations: {
+                  typeConstructor: { _tag: "Date" },
+                  generation: {
+                    runtime: "Schema.Date",
+                    Type: "globalThis.Date"
+                  }
+                },
                 typeParameters: [],
                 checks: [
                   {
@@ -2091,7 +2127,13 @@ describe("Standard", () => {
         assertToJson(Schema.URL, {
           schema: {
             _tag: "Declaration",
-            annotations: { typeConstructor: { _tag: "URL" } },
+            annotations: {
+              typeConstructor: { _tag: "URL" },
+              generation: {
+                runtime: "Schema.URL",
+                Type: "globalThis.URL"
+              }
+            },
             typeParameters: [],
             checks: [],
             Encoded: { _tag: "String", checks: [] }
@@ -2103,7 +2145,14 @@ describe("Standard", () => {
         assertToJson(Schema.Option(Schema.String), {
           schema: {
             _tag: "Declaration",
-            annotations: { typeConstructor: { _tag: "effect/Option" } },
+            annotations: {
+              typeConstructor: { _tag: "effect/Option" },
+              generation: {
+                runtime: "Schema.Option(?)",
+                Type: "Option.Option<?>",
+                importDeclaration: `import * as Option from "effect/Option"`
+              }
+            },
             typeParameters: [
               { _tag: "String", checks: [] }
             ],

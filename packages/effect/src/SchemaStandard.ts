@@ -297,9 +297,9 @@ export interface FilterGroup<M> {
  * @since 4.0.0
  */
 export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
-  | "isFiniteString"
-  | "isBigIntString"
-  | "isSymbolString"
+  | "isStringFinite"
+  | "isStringBigInt"
+  | "isStringSymbol"
   | "isMinLength"
   | "isMaxLength"
   | "isPattern"
@@ -367,7 +367,7 @@ export type ObjectsMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * @since 4.0.0
  */
 export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
-  | "isValidDate"
+  | "isDateValid"
   | "isGreaterThanDate"
   | "isGreaterThanOrEqualToDate"
   | "isLessThanDate"
@@ -501,20 +501,20 @@ export const Any$ = Schema.Struct({
   annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Any" })
 
-const IsFiniteString$ = Schema.Struct({
-  _tag: Schema.tag("isFiniteString"),
+const IsStringFinite$ = Schema.Struct({
+  _tag: Schema.tag("isStringFinite"),
   regExp: Schema.RegExp
-}).annotate({ identifier: "IsFiniteString" })
+}).annotate({ identifier: "IsStringFinite" })
 
-const IsBigIntString$ = Schema.Struct({
-  _tag: Schema.tag("isBigIntString"),
+const IsStringBigInt$ = Schema.Struct({
+  _tag: Schema.tag("isStringBigInt"),
   regExp: Schema.RegExp
-}).annotate({ identifier: "IsBigIntString" })
+}).annotate({ identifier: "IsStringBigInt" })
 
-const IsSymbolString$ = Schema.Struct({
-  _tag: Schema.tag("isSymbolString"),
+const IsStringSymbol$ = Schema.Struct({
+  _tag: Schema.tag("isStringSymbol"),
   regExp: Schema.RegExp
-}).annotate({ identifier: "IsSymbolString" })
+}).annotate({ identifier: "IsStringSymbol" })
 
 const IsTrimmed$ = Schema.Struct({
   _tag: Schema.tag("isTrimmed"),
@@ -601,9 +601,9 @@ const IsLength$ = Schema.Struct({
 }).annotate({ identifier: "IsLength" })
 
 const StringMeta$ = Schema.Union([
-  IsFiniteString$,
-  IsBigIntString$,
-  IsSymbolString$,
+  IsStringFinite$,
+  IsStringBigInt$,
+  IsStringSymbol$,
   IsTrimmed$,
   IsUUID$,
   IsULID$,
@@ -928,9 +928,9 @@ export const Reference$ = Schema.Struct({
   $ref: Schema.String
 }).annotate({ identifier: "Reference" })
 
-const isValidDate$ = Schema.Struct({
-  _tag: Schema.tag("isValidDate")
-}).annotate({ identifier: "isValidDate" })
+const IsDateValid$ = Schema.Struct({
+  _tag: Schema.tag("isDateValid")
+}).annotate({ identifier: "IsDateValid" })
 
 const IsGreaterThanDate$ = Schema.Struct({
   _tag: Schema.tag("isGreaterThanDate"),
@@ -961,7 +961,7 @@ const IsBetweenDate$ = Schema.Struct({
 }).annotate({ identifier: "IsBetweenDate" })
 
 const DateMeta$ = Schema.Union([
-  isValidDate$,
+  IsDateValid$,
   IsGreaterThanDate$,
   IsGreaterThanOrEqualToDate$,
   IsLessThanDate$,
@@ -1073,35 +1073,15 @@ export function fromJson(u: unknown): Document {
 /**
  * @since 4.0.0
  */
-export type Reviver<T> = (declaration: Declaration, recur: (schema: Standard) => T) => T | undefined
-
-/**
- * @since 4.0.0
- */
-export const toSchemaDefaultReviver: Reviver<Schema.Top> = (declaration, recur) => {
-  const typeConstructor = declaration.annotations?.typeConstructor
-  if (Predicate.hasProperty(typeConstructor, "_tag")) {
-    const _tag = typeConstructor._tag
-    if (typeof _tag === "string") {
-      switch (_tag) {
-        default:
-          return Schema.Unknown
-        case "effect/Option":
-          return Schema.Option(recur(declaration.typeParameters[0]))
-      }
-    }
-  }
-  return Schema.Unknown
-}
+export type Reviver<T> = (declaration: Declaration, recur: (standard: Standard) => T) => T | undefined
 
 // TODO: tests
 /**
  * @since 4.0.0
  */
-export function toSchema<S extends Schema.Top = Schema.Top>(
-  document: Document,
-  options?: { readonly reviver?: Reviver<Schema.Top> | undefined }
-): S {
+export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, options?: {
+  readonly reviver?: Reviver<Schema.Top> | undefined
+}): S {
   type Slot = {
     // 0 = not started, 1 = building, 2 = done
     state: 0 | 1 | 2
@@ -1297,12 +1277,12 @@ function toSchemaFilter(filter: Filter<Meta>): AST.Check<any> {
   const a = filter.annotations
   switch (filter.meta._tag) {
     // String Meta
-    case "isFiniteString":
-      return Schema.isFiniteString(a)
-    case "isBigIntString":
-      return Schema.isBigIntString(a)
-    case "isSymbolString":
-      return Schema.isSymbolString(a)
+    case "isStringFinite":
+      return Schema.isStringFinite(a)
+    case "isStringBigInt":
+      return Schema.isStringBigInt(a)
+    case "isStringSymbol":
+      return Schema.isStringSymbol(a)
     case "isMinLength":
       return Schema.isMinLength(filter.meta.minLength, a)
     case "isMaxLength":
@@ -1379,8 +1359,8 @@ function toSchemaFilter(filter: Filter<Meta>): AST.Check<any> {
       return Schema.isUnique(a)
 
     // Date Meta
-    case "isValidDate":
-      return Schema.isValidDate(a)
+    case "isDateValid":
+      return Schema.isDateValid(a)
     case "isGreaterThanDate":
       return Schema.isGreaterThanDate(filter.meta.exclusiveMinimum, a)
     case "isGreaterThanOrEqualToDate":
@@ -1570,107 +1550,24 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
   function on(s: Standard): Generation {
     switch (s._tag) {
       case "Declaration": {
-        const typeConstructor = s.annotations?.typeConstructor
-        if (Predicate.hasProperty(typeConstructor, "_tag")) {
-          const _tag = typeConstructor._tag
+        const generation = s.annotations?.generation
+        if (
+          Predicate.isObject(generation) && typeof generation.runtime === "string" &&
+          typeof generation.Type === "string"
+        ) {
           const typeParameters = s.typeParameters.map(recur)
-          const typeParametersRuntime = typeParameters.map((p) => p.runtime).join(", ")
-          const typeParametersType = typeParameters.map((p) => p.Type).join(", ")
-          const typeParametersEncoded = typeParameters.map((p) => p.Encoded).join(", ")
-          switch (_tag) {
-            case "Date":
-            case "Error":
-            case "URL":
-            case "Uint8Array":
-            case "RegExp":
-            case "FormData":
-            case "URLSearchParams":
-              return makeGeneration(`Schema.${_tag}`, _tag)
-            case "ReadonlySet":
-              return makeGeneration(
-                `Schema.ReadonlySet(${typeParametersRuntime})`,
-                `ReadonlySet<${typeParametersType}>`,
-                `ReadonlySet<${typeParametersEncoded}>`
-              )
-            case "ReadonlyMap":
-              return makeGeneration(
-                `Schema.ReadonlyMap(${typeParametersRuntime})`,
-                `ReadonlyMap<${typeParametersType}>`,
-                `ReadonlyMap<${typeParametersEncoded}>`
-              )
-            case "effect/Option": {
-              addImport(`import * as Option from "effect/Option"`)
-              return makeGeneration(
-                `Schema.Option(${typeParametersRuntime})`,
-                `Option.Option<${typeParametersType}>`,
-                `Option.Option<${typeParametersEncoded}>`
-              )
-            }
-            case "effect/Result": {
-              addImport(`import * as Result from "effect/Result"`)
-              return makeGeneration(
-                `Schema.Result(${typeParametersRuntime})`,
-                `Result.Result<${typeParametersType}>`,
-                `Result.Result<${typeParametersEncoded}>`
-              )
-            }
-            case "efect/Redacted": {
-              addImport(`import * as Redacted from "effect/Redacted"`)
-              return makeGeneration(
-                `Schema.Redacted(${typeParametersRuntime})`,
-                `Redacted.Redacted<${typeParametersType}>`,
-                `Redacted.Redacted<${typeParametersEncoded}>`
-              )
-            }
-            case "effect/Cause/Failure": {
-              addImport(`import * as Cause from "effect/Cause"`)
-              return makeGeneration(
-                `Schema.Failure(${typeParametersRuntime})`,
-                `Cause.Failure<${typeParametersType}>`,
-                `Cause.Failure<${typeParametersEncoded}>`
-              )
-            }
-            case "effect/Cause": {
-              addImport(`import * as Cause from "effect/Cause"`)
-              return makeGeneration(
-                `Schema.Cause(${typeParametersRuntime})`,
-                `Cause.Cause<${typeParametersType}>`,
-                `Cause.Cause<${typeParametersEncoded}>`
-              )
-            }
-            case "effect/Exit": {
-              addImport(`import * as Exit from "effect/Exit"`)
-              return makeGeneration(
-                `Schema.Exit(${typeParametersRuntime})`,
-                `Exit.Exit<${typeParametersType}>`,
-                `Exit.Exit<${typeParametersEncoded}>`
-              )
-            }
-            case "effect/Duration": {
-              addImport(`import * as Duration from "effect/Duration"`)
-              return makeGeneration(
-                `Schema.Duration(${typeParametersRuntime})`,
-                `Duration.Duration<${typeParametersType}>`,
-                `Duration.Duration<${typeParametersEncoded}>`
-              )
-            }
-            case "effect/DateTime/Utc": {
-              addImport(`import * as DateTime from "effect/DateTime"`)
-              return makeGeneration(
-                `Schema.DateTimeUtc(${typeParametersRuntime})`,
-                `DateTime.Utc<${typeParametersType}>`,
-                `DateTime.Utc<${typeParametersEncoded}>`
-              )
-            }
-            case "effect/http/Cookies": {
-              addImport(`import * as Cookies from "effect/unstable/http/Cookies"`)
-              return makeGeneration(
-                `Chookies.CookiesSchema`,
-                `typeof Chookies.CookiesSchema["Type"]`,
-                `typeof Chookies.CookiesSchema["Encoded"]`
-              )
-            }
+          const typeParametersRuntime = typeParameters.map((p) => p.runtime)
+          const typeParametersType = typeParameters.map((p) => p.Type)
+          const typeParametersEncoded = typeParameters.map((p) => p.Encoded)
+          const Encoded = typeof generation.Encoded === "string" ? generation.Encoded : generation.Type
+          if (typeof generation.importDeclaration === "string") {
+            addImport(generation.importDeclaration)
           }
+          return makeGeneration(
+            fill(generation.runtime, typeParametersRuntime),
+            fill(generation.Type, typeParametersType),
+            fill(Encoded, typeParametersEncoded)
+          )
         }
         return options?.reviver?.(s, recur) ?? recur(s.Encoded)
       }
@@ -1853,6 +1750,11 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
   }
 }
 
+function fill(template: string, items: ReadonlyArray<string>) {
+  let i = 0
+  return template.replace(/\?/g, () => items[i++])
+}
+
 function toTypeParts(parts: ReadonlyArray<Standard>): ReadonlyArray<string> {
   if (parts.length === 0) {
     return [""]
@@ -1883,7 +1785,8 @@ function toTypePart(standard: Standard): ReadonlyArray<string> {
 
 const toCodeAnnotationsBlacklist: Set<string> = new Set([
   ...toJsonAnnotationsBlacklist,
-  "typeConstructor"
+  "typeConstructor",
+  "generation"
 ])
 
 function toRuntimeAnnotations(annotations: Schema.Annotations.Annotations | undefined): string {
@@ -1957,12 +1860,12 @@ function toRuntimeFilter(filter: Filter<Meta>): string {
     case "isFinite":
     case "isInt":
     case "isUnique":
-    case "isValidDate":
+    case "isDateValid":
       return `Schema.${filter.meta._tag}(${ca})`
 
-    case "isFiniteString":
-    case "isBigIntString":
-    case "isSymbolString":
+    case "isStringFinite":
+    case "isStringBigInt":
+    case "isStringSymbol":
     case "isPattern":
       return `Schema.${filter.meta._tag}(${toRuntimeRegExp(filter.meta.regExp)}${ca})`
 

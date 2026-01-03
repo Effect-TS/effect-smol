@@ -194,7 +194,6 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
         })
       },
       {
-        typeConstructor: { _tag: "effect/cluster/Reply/Chunk" },
         expected: "Reply.Chunk",
         toCodecJson: ([success]) =>
           Schema.link<Chunk<Rpc.Any>>()(
@@ -282,7 +281,6 @@ export class WithExit<R extends Rpc.Any> extends Data.TaggedClass("WithExit")<{
         })
       },
       {
-        typeConstructor: { _tag: "effect/cluster/Reply/WithExit" },
         expected: "Reply.WithExit",
         toCodecJson: ([exit]) =>
           Schema.link<WithExit<Rpc.Any>>()(

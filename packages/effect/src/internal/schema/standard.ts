@@ -560,9 +560,9 @@ export function toJsonSchemaMultiDocument(
         case "isCapitalized":
         case "isUncapitalized":
         case "isTrimmed":
-        case "isFiniteString":
-        case "isBigIntString":
-        case "isSymbolString":
+        case "isStringFinite":
+        case "isStringBigInt":
+        case "isStringSymbol":
           return { pattern: meta.regExp.source }
         case "isUUID":
           return { pattern: meta.regExp.source, format: "uuid" }
@@ -597,7 +597,7 @@ export function toJsonSchemaMultiDocument(
         case "isPropertiesLength":
           return { minProperties: meta.length, maxProperties: meta.length }
 
-        case "isValidDate":
+        case "isDateValid":
           return { format: "date-time" }
       }
     }
