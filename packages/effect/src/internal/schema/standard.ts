@@ -53,13 +53,13 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
       // Check if base identifier is available
       let count = identifierCounter.get(identifier)
       if (count === undefined) {
-        identifierCounter.set(identifier, 0)
+        identifierCounter.set(identifier, 1)
         identifierMap.set(last, identifier)
         return identifier
       } else {
         // Find a unique identifier by incrementing until we find one that doesn't exist
         let out
-        while (identifierCounter.has(out = `${identifier}-${++count}`)) {
+        while (identifierCounter.has(out = `${identifier}${++count}`)) {
           //
         }
         identifierCounter.set(identifier, count)

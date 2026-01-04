@@ -64,7 +64,7 @@ describe("toJsonSchemaDocument", () => {
             "$ref": "#/$defs/id"
           },
           definitions: {
-            "id": {
+            id: {
               "type": "string"
             }
           }
@@ -80,7 +80,7 @@ describe("toJsonSchemaDocument", () => {
             "$ref": "#/$defs/id"
           },
           definitions: {
-            "id": {
+            id: {
               "type": "string",
               "description": "annotate"
             }
@@ -99,7 +99,7 @@ describe("toJsonSchemaDocument", () => {
             "$ref": "#/$defs/id"
           },
           definitions: {
-            "id": {
+            id: {
               "type": "string",
               "description": "annotate"
             }
@@ -130,7 +130,7 @@ describe("toJsonSchemaDocument", () => {
             "maxItems": 1
           },
           definitions: {
-            "id": { "type": "string" }
+            id: { "type": "string" }
           }
         }
       )
@@ -160,7 +160,7 @@ describe("toJsonSchemaDocument", () => {
             "maxItems": 1
           },
           definitions: {
-            "id": {
+            id: {
               "type": "string",
               "description": "annotate" // annotation with `annotate` goes here
             }
@@ -188,7 +188,7 @@ describe("toJsonSchemaDocument", () => {
             "maxItems": 2
           },
           definitions: {
-            "id": {
+            id: {
               "type": "string",
               "description": "base"
             }
@@ -210,14 +210,14 @@ describe("toJsonSchemaDocument", () => {
             "type": "array",
             "prefixItems": [
               { "$ref": "#/$defs/id" },
-              { "$ref": "#/$defs/id-1" }
+              { "$ref": "#/$defs/id2" }
             ],
             "minItems": 2,
             "maxItems": 2
           },
           definitions: {
-            "id": { "type": "string", "description": "base" }, // inherited description from the imported schema
-            "id-1": { "type": "string", "description": "annotate" } // new description from the post-annotate
+            id: { "type": "string", "description": "base" }, // inherited description from the imported schema
+            id2: { "type": "string", "description": "annotate" } // new description from the post-annotate
           }
         }
       )
@@ -238,7 +238,7 @@ describe("toJsonSchemaDocument", () => {
               { "$ref": "#/$defs/id" },
               {
                 "allOf": [
-                  { "$ref": "#/$defs/id-1" },
+                  { "$ref": "#/$defs/id2" },
                   { "description": "annotateKey" } // contextual description goes here
                 ]
               }
@@ -247,8 +247,8 @@ describe("toJsonSchemaDocument", () => {
             "maxItems": 2
           },
           definitions: {
-            "id": { "type": "string", "description": "base" }, // inherited description from the imported schema
-            "id-1": { "type": "string", "description": "base" } // inherited description from the imported schema
+            id: { "type": "string", "description": "base" }, // inherited description from the imported schema
+            id2: { "type": "string", "description": "base" } // inherited description from the imported schema
           }
         }
       )
@@ -259,8 +259,8 @@ describe("toJsonSchemaDocument", () => {
         Schema.Tuple([
           Schema.String.annotate({ identifier: "id", description: "element-1" }),
           // the identifier here uses the same convention as the generated ones
-          Schema.String.annotate({ identifier: "id-1", description: "element-2" }),
-          // so this should generate "id-2" instead of "id-1"
+          Schema.String.annotate({ identifier: "id2", description: "element-2" }),
+          // so this should generate "id3" instead of "id2"
           Schema.String.annotate({ identifier: "id", description: "element-3" })
         ]),
         {
@@ -268,16 +268,16 @@ describe("toJsonSchemaDocument", () => {
             "type": "array",
             "prefixItems": [
               { "$ref": "#/$defs/id" },
-              { "$ref": "#/$defs/id-1" },
-              { "$ref": "#/$defs/id-2" }
+              { "$ref": "#/$defs/id2" },
+              { "$ref": "#/$defs/id3" }
             ],
             "minItems": 3,
             "maxItems": 3
           },
           definitions: {
-            "id": { "type": "string", "description": "element-1" },
-            "id-1": { "type": "string", "description": "element-2" },
-            "id-2": { "type": "string", "description": "element-3" }
+            id: { "type": "string", "description": "element-1" },
+            id2: { "type": "string", "description": "element-2" },
+            id3: { "type": "string", "description": "element-3" }
           }
         }
       )
@@ -295,7 +295,7 @@ describe("toJsonSchemaDocument", () => {
               "$ref": "#/$defs/AEncoded"
             },
             definitions: {
-              "AEncoded": {
+              AEncoded: {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -321,7 +321,7 @@ describe("toJsonSchemaDocument", () => {
               "$ref": "#/$defs/B"
             },
             definitions: {
-              "B": {
+              B: {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -345,10 +345,10 @@ describe("toJsonSchemaDocument", () => {
               "$ref": "#/$defs/A"
             },
             definitions: {
-              "A": {
+              A: {
                 "$ref": "#/$defs/AEncoded"
               },
-              "AEncoded": {
+              AEncoded: {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -372,7 +372,7 @@ describe("toJsonSchemaDocument", () => {
               "$ref": "#/$defs/B"
             },
             definitions: {
-              "AEncoded": {
+              AEncoded: {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -380,7 +380,7 @@ describe("toJsonSchemaDocument", () => {
                 "required": ["a"],
                 "additionalProperties": false
               },
-              "B": {
+              B: {
                 "$ref": "#/$defs/AEncoded"
               }
             }
@@ -405,7 +405,7 @@ describe("toJsonSchemaDocument", () => {
               "maxItems": 2
             },
             definitions: {
-              "AEncoded": {
+              AEncoded: {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -435,10 +435,10 @@ describe("toJsonSchemaDocument", () => {
               "maxItems": 2
             },
             definitions: {
-              "A": {
+              A: {
                 "$ref": "#/$defs/AEncoded"
               },
-              "AEncoded": {
+              AEncoded: {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -462,7 +462,7 @@ describe("toJsonSchemaDocument", () => {
               "$ref": "#/$defs/AEncoded"
             },
             definitions: {
-              "AEncoded": {
+              AEncoded: {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -488,7 +488,7 @@ describe("toJsonSchemaDocument", () => {
               "$ref": "#/$defs/A"
             },
             definitions: {
-              "A": {
+              A: {
                 "type": "array",
                 "prefixItems": [{
                   "anyOf": [
@@ -526,7 +526,7 @@ describe("toJsonSchemaDocument", () => {
               "maxItems": 1
             },
             definitions: {
-              "A": {
+              A: {
                 "type": "array",
                 "prefixItems": [{
                   "anyOf": [
@@ -558,13 +558,13 @@ describe("toJsonSchemaDocument", () => {
               "type": "array",
               "prefixItems": [
                 { "$ref": "#/$defs/A" },
-                { "$ref": "#/$defs/A-1" }
+                { "$ref": "#/$defs/A2" }
               ],
               "minItems": 2,
               "maxItems": 2
             },
             definitions: {
-              "A": {
+              A: {
                 "type": "array",
                 "prefixItems": [{
                   "anyOf": [
@@ -575,11 +575,11 @@ describe("toJsonSchemaDocument", () => {
                 "minItems": 1,
                 "maxItems": 1
               },
-              "A-1": {
+              A2: {
                 "type": "array",
                 "prefixItems": [{
                   "anyOf": [
-                    { "$ref": "#/$defs/A-1" }, // correctly pointing to the generated identifier
+                    { "$ref": "#/$defs/A2" }, // correctly pointing to the generated identifier
                     { "type": "null" }
                   ]
                 }],
@@ -688,7 +688,7 @@ describe("toJsonSchemaDocument", () => {
                 "additionalProperties": false
               },
               definitions: {
-                "A": {
+                A: {
                   "type": "object",
                   "properties": {
                     "a": {
@@ -735,7 +735,7 @@ describe("toJsonSchemaDocument", () => {
                   "additionalProperties": false
                 },
                 definitions: {
-                  "A": {
+                  A: {
                     "type": "object",
                     "properties": {
                       "a": {
@@ -823,13 +823,13 @@ describe("toJsonSchemaDocument", () => {
   describe("refs", () => {
     it(`refs should be created using the pattern: "#/$defs/IDENTIFIER"`, () => {
       assertDocument(
-        Schema.String.annotate({ identifier: "ID" }),
+        Schema.String.annotate({ identifier: "id" }),
         {
           schema: {
-            "$ref": "#/$defs/ID"
+            "$ref": "#/$defs/id"
           },
           definitions: {
-            "ID": {
+            id: {
               "type": "string"
             }
           }
@@ -839,13 +839,13 @@ describe("toJsonSchemaDocument", () => {
 
     it(`refs should escape "~" and "/"`, () => {
       assertDocument(
-        Schema.String.annotate({ identifier: "ID~a/b" }),
+        Schema.String.annotate({ identifier: "id~a/b" }),
         {
           schema: {
-            "$ref": "#/$defs/ID~0a~1b"
+            "$ref": "#/$defs/id~0a~1b"
           },
           definitions: {
-            "ID~a/b": {
+            "id~a/b": {
               "type": "string"
             }
           }
@@ -855,13 +855,13 @@ describe("toJsonSchemaDocument", () => {
 
     it("String & identifier", () => {
       assertDocument(
-        Schema.String.annotate({ identifier: "ID" }),
+        Schema.String.annotate({ identifier: "id" }),
         {
           schema: {
-            "$ref": "#/$defs/ID"
+            "$ref": "#/$defs/id"
           },
           definitions: {
-            "ID": {
+            id: {
               "type": "string"
             }
           }
@@ -869,15 +869,15 @@ describe("toJsonSchemaDocument", () => {
       )
       assertDocument(
         Schema.String.annotate({
-          identifier: "ID",
+          identifier: "id",
           description: "a"
         }),
         {
           schema: {
-            "$ref": "#/$defs/ID"
+            "$ref": "#/$defs/id"
           },
           definitions: {
-            "ID": {
+            id: {
               "type": "string",
               "description": "a"
             }
@@ -888,13 +888,13 @@ describe("toJsonSchemaDocument", () => {
 
     it("String & check & identifier", () => {
       assertDocument(
-        Schema.String.check(Schema.isMinLength(2, { identifier: "ID" })),
+        Schema.String.check(Schema.isMinLength(2, { identifier: "id" })),
         {
           schema: {
-            "$ref": "#/$defs/ID"
+            "$ref": "#/$defs/id"
           },
           definitions: {
-            "ID": {
+            id: {
               "type": "string",
               "allOf": [
                 { "minLength": 2 }
@@ -908,15 +908,15 @@ describe("toJsonSchemaDocument", () => {
     it("String & check & annotations + identifier", () => {
       assertDocument(
         Schema.String.check(Schema.isMinLength(2)).annotate({
-          identifier: "ID",
+          identifier: "id",
           description: "a"
         }),
         {
           schema: {
-            "$ref": "#/$defs/ID"
+            "$ref": "#/$defs/id"
           },
           definitions: {
-            ID: {
+            id: {
               "type": "string",
               "allOf": [
                 { "minLength": 2, "description": "a" }
@@ -928,7 +928,7 @@ describe("toJsonSchemaDocument", () => {
     })
 
     it("using a schema with two different encodings", () => {
-      const To = Schema.String.annotate({ identifier: "ID" })
+      const To = Schema.String.annotate({ identifier: "id" })
       const schema1 = To.pipe(Schema.encodeTo(Schema.Literal(1), {
         decode: SchemaGetter.succeed("a"),
         encode: SchemaGetter.succeed(1)
@@ -955,18 +955,18 @@ describe("toJsonSchemaDocument", () => {
     })
 
     it("using the same identifier annotated schema twice", () => {
-      const schema1 = Schema.String.annotate({ identifier: "ID" })
+      const schema1 = Schema.String.annotate({ identifier: "id" })
       assertDocument(
         Schema.Union([schema1, schema1]),
         {
           schema: {
             "anyOf": [
-              { "$ref": "#/$defs/ID" },
-              { "$ref": "#/$defs/ID" }
+              { "$ref": "#/$defs/id" },
+              { "$ref": "#/$defs/id" }
             ]
           },
           definitions: {
-            "ID": { "type": "string" }
+            id: { "type": "string" }
           }
         }
       )
@@ -975,13 +975,13 @@ describe("toJsonSchemaDocument", () => {
         {
           schema: {
             "anyOf": [
-              { "$ref": "#/$defs/ID" },
-              { "$ref": "#/$defs/ID-1" }
+              { "$ref": "#/$defs/id" },
+              { "$ref": "#/$defs/id2" }
             ]
           },
           definitions: {
-            "ID": { "type": "string" },
-            "ID-1": { "type": "string", "description": "description" }
+            id: { "type": "string" },
+            id2: { "type": "string", "description": "description" }
           }
         }
       )
@@ -3910,7 +3910,7 @@ describe("toJsonSchemaDocument", () => {
           "$ref": "#/$defs/Operation"
         },
         definitions: {
-          "Operation": {
+          Operation: {
             "type": "object",
             "properties": {
               "type": {
@@ -3950,7 +3950,7 @@ describe("toJsonSchemaDocument", () => {
             ],
             "additionalProperties": false
           },
-          "Expression": {
+          Expression: {
             "type": "object",
             "properties": {
               "type": {
@@ -3986,7 +3986,7 @@ describe("toJsonSchemaDocument", () => {
           "$ref": "#/$defs/Expression"
         },
         definitions: {
-          "Expression": {
+          Expression: {
             "type": "object",
             "properties": {
               "type": {
@@ -4008,7 +4008,7 @@ describe("toJsonSchemaDocument", () => {
             ],
             "additionalProperties": false
           },
-          "Operation": {
+          Operation: {
             "type": "object",
             "properties": {
               "type": {
@@ -4112,7 +4112,7 @@ describe("toJsonSchemaDocument", () => {
             "$ref": "#/$defs/AEncoded"
           },
           definitions: {
-            "AEncoded": {
+            AEncoded: {
               "type": "object",
               "properties": {
                 "a": { "type": "string" }
@@ -4136,7 +4136,7 @@ describe("toJsonSchemaDocument", () => {
             "$ref": "#/$defs/AEncoded"
           },
           definitions: {
-            "AEncoded": {
+            AEncoded: {
               "type": "object",
               "properties": {
                 "a": { "type": "string" }
@@ -4160,7 +4160,7 @@ describe("toJsonSchemaDocument", () => {
           "$ref": "#/$defs/EEncoded"
         },
         definitions: {
-          "EEncoded": {
+          EEncoded: {
             "type": "object",
             "properties": {
               "a": { "type": "string" }

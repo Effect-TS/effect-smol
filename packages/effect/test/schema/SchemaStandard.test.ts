@@ -2008,14 +2008,14 @@ describe("Standard", () => {
         dialect: "draft-2020-12",
         schemas: [
           { "$ref": "#/$defs/id" },
-          { "$ref": "#/$defs/id-1" }
+          { "$ref": "#/$defs/id2" }
         ],
         definitions: {
-          "id": {
+          id: {
             "type": "string",
             "description": "a"
           },
-          "id-1": {
+          id2: {
             "type": "string",
             "description": "b"
           }
@@ -2687,7 +2687,7 @@ describe("Standard", () => {
               },
               {
                 isOptional: false,
-                type: { _tag: "Reference", $ref: "id-1" },
+                type: { _tag: "Reference", $ref: "id2" },
                 annotations: { description: "b" }
               }
             ],
@@ -2700,7 +2700,7 @@ describe("Standard", () => {
               annotations: { identifier: "id" },
               checks: []
             },
-            "id-1": {
+            id2: {
               _tag: "String",
               annotations: { identifier: "id" },
               checks: []
@@ -3093,11 +3093,11 @@ describe("Standard", () => {
       deepStrictEqual(multiDocument, {
         schemas: [
           { _tag: "Reference", $ref: "id" },
-          { _tag: "Reference", $ref: "id-1" }
+          { _tag: "Reference", $ref: "id2" }
         ],
         definitions: {
-          "id": { _tag: "String", checks: [], annotations: { identifier: "id", description: "a" } },
-          "id-1": { _tag: "String", checks: [], annotations: { identifier: "id", description: "b" } }
+          id: { _tag: "String", checks: [], annotations: { identifier: "id", description: "a" } },
+          id2: { _tag: "String", checks: [], annotations: { identifier: "id", description: "b" } }
         }
       })
     })

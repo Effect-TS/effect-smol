@@ -71,7 +71,7 @@ describe("fromAST", () => {
             },
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "A-1" }
+              type: { _tag: "Reference", $ref: "A2" }
             }
           ],
           rest: [],
@@ -96,7 +96,7 @@ describe("fromAST", () => {
             indexSignatures: [],
             checks: []
           },
-          "A-1": {
+          A2: {
             _tag: "Objects",
             annotations: { identifier: "A" },
             propertySignatures: [
@@ -105,7 +105,7 @@ describe("fromAST", () => {
                 type: {
                   _tag: "Suspend",
                   checks: [],
-                  thunk: { _tag: "Reference", $ref: "A-1" }
+                  thunk: { _tag: "Reference", $ref: "A2" }
                 },
                 isOptional: true,
                 isMutable: false
@@ -121,8 +121,8 @@ describe("fromAST", () => {
     it("should handle duplicate identifiers", () => {
       assertFromAST(
         Schema.Tuple([
-          Schema.String.annotate({ identifier: "ID", description: "a" }),
-          Schema.String.annotate({ identifier: "ID", description: "b" })
+          Schema.String.annotate({ identifier: "id", description: "a" }),
+          Schema.String.annotate({ identifier: "id", description: "b" })
         ]),
         {
           schema: {
@@ -130,35 +130,35 @@ describe("fromAST", () => {
             elements: [
               {
                 isOptional: false,
-                type: { _tag: "Reference", $ref: "ID" }
+                type: { _tag: "Reference", $ref: "id" }
               },
               {
                 isOptional: false,
-                type: { _tag: "Reference", $ref: "ID-1" }
+                type: { _tag: "Reference", $ref: "id2" }
               }
             ],
             rest: [],
             checks: []
           },
           definitions: {
-            "ID": { _tag: "String", checks: [], annotations: { identifier: "ID", description: "a" } },
-            "ID-1": { _tag: "String", checks: [], annotations: { identifier: "ID", description: "b" } }
+            id: { _tag: "String", checks: [], annotations: { identifier: "id", description: "a" } },
+            id2: { _tag: "String", checks: [], annotations: { identifier: "id", description: "b" } }
           }
         }
       )
     })
 
     it("String & identifier", () => {
-      assertFromAST(Schema.String.annotate({ identifier: "ID" }), {
+      assertFromAST(Schema.String.annotate({ identifier: "id" }), {
         schema: {
           _tag: "Reference",
-          $ref: "ID"
+          $ref: "id"
         },
         definitions: {
-          "ID": {
+          id: {
             _tag: "String",
             checks: [],
-            annotations: { identifier: "ID" }
+            annotations: { identifier: "id" }
           }
         }
       })
@@ -166,7 +166,7 @@ describe("fromAST", () => {
 
     it("String & identifier & encoding ", () => {
       assertFromAST(
-        Schema.String.annotate({ identifier: "ID" }).pipe(Schema.encodeTo(Schema.Literal("a"))),
+        Schema.String.annotate({ identifier: "id" }).pipe(Schema.encodeTo(Schema.Literal("a"))),
         {
           schema: {
             _tag: "Literal",
@@ -178,50 +178,50 @@ describe("fromAST", () => {
     })
 
     it("Tuple(ID, ID)", () => {
-      const ID = Schema.String.annotate({ identifier: "ID" })
+      const ID = Schema.String.annotate({ identifier: "id" })
       assertFromAST(Schema.Tuple([ID, ID]), {
         schema: {
           _tag: "Arrays",
           elements: [
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "ID" }
+              type: { _tag: "Reference", $ref: "id" }
             },
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "ID" }
+              type: { _tag: "Reference", $ref: "id" }
             }
           ],
           rest: [],
           checks: []
         },
         definitions: {
-          "ID": { _tag: "String", checks: [], annotations: { identifier: "ID" } }
+          id: { _tag: "String", checks: [], annotations: { identifier: "id" } }
         }
       })
     })
 
     it("Tuple(ID, ID & description)", () => {
-      const ID = Schema.String.annotate({ identifier: "ID" })
+      const ID = Schema.String.annotate({ identifier: "id" })
       assertFromAST(Schema.Tuple([ID, ID.annotate({ description: "a" })]), {
         schema: {
           _tag: "Arrays",
           elements: [
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "ID" }
+              type: { _tag: "Reference", $ref: "id" }
             },
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "ID-1" }
+              type: { _tag: "Reference", $ref: "id2" }
             }
           ],
           rest: [],
           checks: []
         },
         definitions: {
-          "ID": { _tag: "String", checks: [], annotations: { identifier: "ID" } },
-          "ID-1": { _tag: "String", checks: [], annotations: { identifier: "ID", description: "a" } }
+          id: { _tag: "String", checks: [], annotations: { identifier: "id" } },
+          id2: { _tag: "String", checks: [], annotations: { identifier: "id", description: "a" } }
         }
       })
     })
