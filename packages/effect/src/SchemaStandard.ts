@@ -25,7 +25,7 @@ export interface Declaration {
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly typeParameters: ReadonlyArray<Standard>
   readonly checks: ReadonlyArray<Check<Meta>>
-  readonly Encoded: Standard
+  readonly encodedSchema: Standard
 }
 
 /**
@@ -977,7 +977,7 @@ export const Declaration$ = Schema.Struct({
   annotations: Schema.optional(Annotations$),
   typeParameters: Schema.Array(Standard$ref),
   checks: Schema.Array(makeCheck(DateMeta$, "Date")),
-  Encoded: Standard$ref
+  encodedSchema: Standard$ref
 }).annotate({ identifier: "Declaration" })
 
 /**
@@ -1199,7 +1199,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
   function on(s: Standard): Schema.Top {
     switch (s._tag) {
       case "Declaration":
-        return options?.reviver?.(s, recur) ?? recur(s.Encoded)
+        return options?.reviver?.(s, recur) ?? recur(s.encodedSchema)
       case "Reference":
         return resolveReference(s.$ref)
       case "Suspend":
@@ -1611,7 +1611,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
             fill(Encoded, typeParameters.map((p) => p.Encoded))
           )
         }
-        return options?.reviver?.(s, recur) ?? recur(s.Encoded)
+        return options?.reviver?.(s, recur) ?? recur(s.encodedSchema)
       }
       case "Reference":
         return makeGeneration(s.$ref, s.$ref, `${s.$ref}Encoded`)
@@ -2497,7 +2497,7 @@ export function topologicalSort(definitions: Definitions): TopologicalSort {
       switch (schema._tag) {
         case "Declaration":
           for (const typeParam of schema.typeParameters) stack.push(typeParam)
-          stack.push(schema.Encoded)
+          stack.push(schema.encodedSchema)
           break
         case "Suspend":
           stack.push(schema.thunk)

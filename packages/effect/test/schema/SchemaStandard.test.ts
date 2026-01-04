@@ -2026,7 +2026,7 @@ describe("Standard", () => {
               },
               typeParameters: [],
               checks: [],
-              Encoded: { _tag: "String", checks: [] }
+              encodedSchema: { _tag: "String", checks: [] }
             }
           })
         })
@@ -2050,7 +2050,7 @@ describe("Standard", () => {
                     meta: { _tag: "isGreaterThanDate", exclusiveMinimum: "1970-01-01T00:00:00.000Z" }
                   }
                 ],
-                Encoded: { _tag: "String", checks: [] }
+                encodedSchema: { _tag: "String", checks: [] }
               }
             })
           })
@@ -2073,7 +2073,7 @@ describe("Standard", () => {
                     meta: { _tag: "isGreaterThanOrEqualToDate", minimum: "1970-01-01T00:00:00.000Z" }
                   }
                 ],
-                Encoded: { _tag: "String", checks: [] }
+                encodedSchema: { _tag: "String", checks: [] }
               }
             })
           })
@@ -2096,7 +2096,7 @@ describe("Standard", () => {
                     meta: { _tag: "isLessThanDate", exclusiveMaximum: "1970-01-01T00:00:00.000Z" }
                   }
                 ],
-                Encoded: { _tag: "String", checks: [] }
+                encodedSchema: { _tag: "String", checks: [] }
               }
             })
           })
@@ -2119,7 +2119,7 @@ describe("Standard", () => {
                     meta: { _tag: "isLessThanOrEqualToDate", maximum: "1970-01-01T00:00:00.000Z" }
                   }
                 ],
-                Encoded: { _tag: "String", checks: [] }
+                encodedSchema: { _tag: "String", checks: [] }
               }
             })
           })
@@ -2146,7 +2146,7 @@ describe("Standard", () => {
                     }
                   }
                 ],
-                Encoded: { _tag: "String", checks: [] }
+                encodedSchema: { _tag: "String", checks: [] }
               }
             })
           })
@@ -2166,7 +2166,7 @@ describe("Standard", () => {
             },
             typeParameters: [],
             checks: [],
-            Encoded: { _tag: "String", checks: [] }
+            encodedSchema: { _tag: "String", checks: [] }
           }
         })
       })
@@ -2187,7 +2187,7 @@ describe("Standard", () => {
               { _tag: "String", checks: [] }
             ],
             checks: [],
-            Encoded: {
+            encodedSchema: {
               _tag: "Union",
               types: [
                 {

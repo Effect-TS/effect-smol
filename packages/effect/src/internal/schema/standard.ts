@@ -85,7 +85,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
         return {
           _tag: "Declaration",
           typeParameters: ast.typeParameters.map(recur),
-          Encoded: recur(InternalSerializer.toCodecJson(ast)),
+          encodedSchema: recur(InternalSerializer.toCodecJson(ast)),
           checks: fromChecks(ast.checks),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
@@ -321,7 +321,7 @@ export function toJsonSchemaMultiDocument(
           ]
         }
       case "Declaration":
-        return recur(schema.Encoded)
+        return recur(schema.encodedSchema)
       case "Suspend":
         return recur(schema.thunk)
       case "Reference":
