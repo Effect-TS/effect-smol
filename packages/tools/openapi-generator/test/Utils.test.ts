@@ -19,26 +19,17 @@ describe("Utils", () => {
     })
 
     it("handles slashes and other special characters", () => {
-      expect(Utils.sanitizeSchemaName("hate/threatening")).toBe("hateThreatening")
-      expect(Utils.sanitizeSchemaName("self-harm")).toBe("selfHarm")
+      expect(Utils.sanitizeSchemaName("hate/threatening")).toBe("HateThreatening")
+      expect(Utils.sanitizeSchemaName("self-harm")).toBe("SelfHarm")
     })
 
     it("handles leading numbers by removing them", () => {
       expect(Utils.sanitizeSchemaName("2Conversation")).toBe("Conversation")
     })
 
-    it("preserves lowercase first character", () => {
-      expect(Utils.sanitizeSchemaName("mySchema")).toBe("mySchema")
-      expect(Utils.sanitizeSchemaName("my-schema")).toBe("mySchema")
-    })
-
-    it("handles empty string", () => {
-      expect(Utils.sanitizeSchemaName("")).toBe("")
-    })
-
     it("handles single character", () => {
       expect(Utils.sanitizeSchemaName("A")).toBe("A")
-      expect(Utils.sanitizeSchemaName("a")).toBe("a")
+      expect(Utils.sanitizeSchemaName("a")).toBe("A")
     })
   })
 

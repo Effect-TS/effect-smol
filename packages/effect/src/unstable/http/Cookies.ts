@@ -34,7 +34,7 @@ export interface Cookies extends Pipeable, Inspectable.Inspectable {
  * @since 4.0.0
  * @category Schemas
  */
-export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRecord<string, CookieSchema["Iso"]>> {}
+export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRecord<string, Cookie>> {}
 
 /**
  * @since 4.0.0
@@ -43,7 +43,15 @@ export interface CookiesSchema extends Schema.declare<Cookies, Record.ReadonlyRe
 export const CookiesSchema: CookiesSchema = Schema.declare(
   isCookies,
   {
-    typeConstructor: { _tag: "effect/http/Cookies" },
+    typeConstructor: {
+      _tag: "effect/http/Cookies"
+    },
+    generation: {
+      runtime: `Cookies.CookiesSchema`,
+      Type: `Cookies.Cookies`,
+      Encoded: `typeof Cookies.CookiesSchema["Encoded"]`,
+      importDeclaration: `import * as Cookies from "effect/unstable/http/Cookies"`
+    },
     expected: "Cookies",
     toCodecJson: () =>
       Schema.link<Cookies>()(
@@ -107,7 +115,14 @@ export interface CookieSchema extends Schema.declare<Cookie> {}
 export const CookieSchema: CookieSchema = Schema.declare(
   isCookie,
   {
-    typeConstructor: { _tag: "effect/http/Cookies/Cookie" },
+    typeConstructor: {
+      _tag: "effect/http/Cookie"
+    },
+    generation: {
+      runtime: `Cookies.CookieSchema`,
+      Type: `Cookies.Cookie`,
+      importDeclaration: `import * as Cookie from "effect/unstable/http/Cookies"`
+    },
     expected: "Cookie"
   }
 )

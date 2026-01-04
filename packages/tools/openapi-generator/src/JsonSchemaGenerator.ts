@@ -1,6 +1,8 @@
+import * as Arr from "effect/Array"
 import * as Effect from "effect/Effect"
-import type * as JsonSchema from "effect/JsonSchema"
+import * as JsonSchema from "effect/JsonSchema"
 import * as SchemaFromJson from "effect/SchemaFromJson"
+import * as SchemaStandard from "effect/SchemaStandard"
 import * as ServiceMap from "effect/ServiceMap"
 import type { OpenAPISpec } from "effect/unstable/httpapi/OpenApi"
 import * as Utils from "./Utils.ts"
@@ -51,6 +53,104 @@ export const make = Effect.gen(function*() {
   }
 
   function generate(
+    source: JsonSchema.Dialect,
+    spec: OpenAPISpec,
+    typeOnly: boolean
+  ) {
+    const nameMap: Array<string> = []
+    const schemas: Array<SchemaStandard.Standard> = []
+
+    const definitions: Record<string, SchemaStandard.Standard> = {}
+    for (const [name, jsonSchema] of Object.entries(spec.components?.schemas ?? {})) {
+      addDefinition(name, go(jsonSchema))
+    }
+
+    for (const [name, jsonSchema] of Object.entries(store)) {
+      nameMap.push(name)
+      schemas.push(go(jsonSchema))
+    }
+
+    if (Arr.isArrayNonEmpty(schemas)) {
+      const multiDocument: SchemaStandard.MultiDocument = {
+        schemas,
+        definitions
+      }
+      const generationDocument = SchemaStandard.toGenerationDocument(multiDocument)
+      const imports = []
+      for (const artifact of generationDocument.artifacts) {
+        if (artifact._tag === "Import") {
+          imports.push(artifact.importDeclaration)
+        }
+      }
+
+      const nonRecursives = generationDocument.definitions.nonRecursives.map(({ $ref, schema }) =>
+        renderSchema($ref, schema)
+      )
+      const recursives = Object.entries(generationDocument.definitions.recursives).map(([$ref, schema]) =>
+        renderSchema($ref, schema)
+      )
+      const generations = generationDocument.generations.map((g, i) => renderSchema(nameMap[i], g))
+
+      const s = `${render(imports)}${render(nonRecursives)}${render(recursives)}${render(generations)}`
+
+      // console.log(s)
+      const out = generateOld(source, spec, typeOnly)
+      const s2 = out.imports + "\n\n" + out.schemas + "\n"
+      return s === s2 ? s : s2
+    } else {
+      const out = generateOld(source, spec, typeOnly)
+      return out.imports + "\n\n" + out.schemas + "\n"
+    }
+
+    function normalize(jsonSchema: JsonSchema.JsonSchema) {
+      switch (source) {
+        case "draft-07":
+          return JsonSchema.fromSchemaDraft07(jsonSchema)
+        case "draft-2020-12":
+          return JsonSchema.fromSchemaDraft2020_12(jsonSchema)
+        case "openapi-3.1":
+          return JsonSchema.fromSchemaOpenApi3_1(jsonSchema)
+        case "openapi-3.0":
+          return JsonSchema.fromSchemaOpenApi3_0(jsonSchema)
+      }
+    }
+
+    function addDefinition(name: string, definition: SchemaStandard.Standard) {
+      if (name in definitions) {
+        throw new Error(`Duplicate definition id: ${name}`)
+      }
+      definitions[name] = definition
+    }
+
+    function go(jsonSchema: JsonSchema.JsonSchema): SchemaStandard.Standard {
+      const jsonDocument = normalize(jsonSchema)
+      const standardDocument = SchemaStandard.fromJsonSchemaDocument(jsonDocument)
+      for (const [name, definition] of Object.entries(standardDocument.definitions)) {
+        addDefinition(name, definition)
+      }
+      return standardDocument.schema
+    }
+
+    function renderSchema($ref: string, schema: SchemaStandard.Generation) {
+      const strings = [
+        `export type ${$ref} = ${schema.Type}`,
+        schema.Encoded !== schema.Type
+          ? `export type ${$ref}Encoded = ${schema.Encoded}`
+          : `export type ${$ref}Encoded = ${$ref}`
+      ]
+      if (!typeOnly) {
+        strings.push(`export const ${$ref} = ${schema.runtime}`)
+      }
+      return strings.join("\n")
+    }
+
+    function render(as: ReadonlyArray<string>) {
+      if (as.length === 0) return ""
+      return "\n" + as.join("\n")
+    }
+  }
+
+  function generateOld(
     source: JsonSchema.Dialect,
     spec: OpenAPISpec,
     typeOnly: boolean

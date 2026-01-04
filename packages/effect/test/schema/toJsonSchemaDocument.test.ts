@@ -292,10 +292,10 @@ describe("toJsonSchemaDocument", () => {
           A,
           {
             schema: {
-              "$ref": "#/$defs/A"
+              "$ref": "#/$defs/AEncoded"
             },
             definitions: {
-              "A": {
+              "AEncoded": {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -346,9 +346,9 @@ describe("toJsonSchemaDocument", () => {
             },
             definitions: {
               "A": {
-                "$ref": "#/$defs/A-1"
+                "$ref": "#/$defs/AEncoded"
               },
-              "A-1": {
+              "AEncoded": {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -372,7 +372,7 @@ describe("toJsonSchemaDocument", () => {
               "$ref": "#/$defs/B"
             },
             definitions: {
-              "A": {
+              "AEncoded": {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -381,7 +381,7 @@ describe("toJsonSchemaDocument", () => {
                 "additionalProperties": false
               },
               "B": {
-                "$ref": "#/$defs/A"
+                "$ref": "#/$defs/AEncoded"
               }
             }
           }
@@ -398,14 +398,14 @@ describe("toJsonSchemaDocument", () => {
             schema: {
               "type": "array",
               "prefixItems": [
-                { "$ref": "#/$defs/A" },
-                { "$ref": "#/$defs/A" }
+                { "$ref": "#/$defs/AEncoded" },
+                { "$ref": "#/$defs/AEncoded" }
               ],
               "minItems": 2,
               "maxItems": 2
             },
             definitions: {
-              "A": {
+              "AEncoded": {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -429,16 +429,16 @@ describe("toJsonSchemaDocument", () => {
               "type": "array",
               "prefixItems": [
                 { "$ref": "#/$defs/A" },
-                { "$ref": "#/$defs/A-1" }
+                { "$ref": "#/$defs/AEncoded" }
               ],
               "minItems": 2,
               "maxItems": 2
             },
             definitions: {
               "A": {
-                "$ref": "#/$defs/A-1"
+                "$ref": "#/$defs/AEncoded"
               },
-              "A-1": {
+              "AEncoded": {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -459,10 +459,10 @@ describe("toJsonSchemaDocument", () => {
           A.annotate({ description: "description" }),
           {
             schema: {
-              "$ref": "#/$defs/A"
+              "$ref": "#/$defs/AEncoded"
             },
             definitions: {
-              "A": {
+              "AEncoded": {
                 "type": "object",
                 "properties": {
                   "a": { "type": "string" }
@@ -1002,8 +1002,8 @@ describe("toJsonSchemaDocument", () => {
       })
     })
 
-    it("ValidDate", () => {
-      const schema = Schema.ValidDate
+    it("DateValid", () => {
+      const schema = Schema.DateValid
       assertDocument(schema, {
         schema: {
           "type": "string",
@@ -1029,15 +1029,9 @@ describe("toJsonSchemaDocument", () => {
         schema: {
           "type": "object",
           "properties": {
-            "name": {
-              "type": "string"
-            },
-            "message": {
-              "type": "string"
-            },
-            "stack": {
-              "type": "string"
-            }
+            "name": { "type": "string" },
+            "message": { "type": "string" },
+            "stack": { "type": "string" }
           },
           "required": ["message"],
           "additionalProperties": false
@@ -1051,12 +1045,8 @@ describe("toJsonSchemaDocument", () => {
         schema: {
           "type": "object",
           "properties": {
-            "source": {
-              "type": "string"
-            },
-            "flags": {
-              "type": "string"
-            }
+            "source": { "type": "string" },
+            "flags": { "type": "string" }
           },
           "required": ["source", "flags"],
           "additionalProperties": false
@@ -4123,10 +4113,10 @@ describe("toJsonSchemaDocument", () => {
         A,
         {
           schema: {
-            "$ref": "#/$defs/A"
+            "$ref": "#/$defs/AEncoded"
           },
           definitions: {
-            "A": {
+            "AEncoded": {
               "type": "object",
               "properties": {
                 "a": { "type": "string" }
@@ -4147,10 +4137,10 @@ describe("toJsonSchemaDocument", () => {
         A,
         {
           schema: {
-            "$ref": "#/$defs/A"
+            "$ref": "#/$defs/AEncoded"
           },
           definitions: {
-            "A": {
+            "AEncoded": {
               "type": "object",
               "properties": {
                 "a": { "type": "string" }
@@ -4171,10 +4161,10 @@ describe("toJsonSchemaDocument", () => {
       }) {}
       assertDocument(E, {
         schema: {
-          "$ref": "#/$defs/E"
+          "$ref": "#/$defs/EEncoded"
         },
         definitions: {
-          "E": {
+          "EEncoded": {
             "type": "object",
             "properties": {
               "a": { "type": "string" }

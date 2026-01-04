@@ -287,7 +287,7 @@ Schemas can declare serialization strategies through annotations:
 
 - `toCodecJson`: JSON serialization strategy
 - `toCodecIso`: ISO serialization (to the `Iso` type)
-- `toCodec*`: Used by both JSON and ISO serializers
+- `toCodec`: Used by both JSON and ISO serializers
 
 **Example** (JSON serializer for `Schema.Date`)
 

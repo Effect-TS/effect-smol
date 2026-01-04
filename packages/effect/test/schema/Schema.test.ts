@@ -3639,8 +3639,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     await decoding.fail(0, `Expected Date, got 0`)
   })
 
-  it("ValidDate", async () => {
-    const schema = Schema.ValidDate
+  it("DateValid", async () => {
+    const schema = Schema.DateValid
     const asserts = new TestSchema.Asserts(schema)
 
     if (verifyGeneration) {
@@ -6797,29 +6797,29 @@ describe("Getter", () => {
 })
 
 describe("Check", () => {
-  it("isFiniteString", async () => {
-    const schema = Schema.String.check(Schema.isFiniteString())
+  it("isStringFinite", async () => {
+    const schema = Schema.String.check(Schema.isStringFinite())
 
     deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
-      _tag: "isFiniteString",
+      _tag: "isStringFinite",
       regExp: /^[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?$/
     })
   })
 
-  it("isBigIntString", async () => {
-    const schema = Schema.String.check(Schema.isBigIntString())
+  it("isStringBigInt", async () => {
+    const schema = Schema.String.check(Schema.isStringBigInt())
 
     deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
-      _tag: "isBigIntString",
+      _tag: "isStringBigInt",
       regExp: /^-?\d+$/
     })
   })
 
-  it("isSymbolString", async () => {
-    const schema = Schema.String.check(Schema.isSymbolString())
+  it("isStringSymbol", async () => {
+    const schema = Schema.String.check(Schema.isStringSymbol())
 
     deepStrictEqual(Schema.resolveInto(schema)?.["meta"], {
-      _tag: "isSymbolString",
+      _tag: "isStringSymbol",
       regExp: /^Symbol\((.*)\)$/
     })
   })

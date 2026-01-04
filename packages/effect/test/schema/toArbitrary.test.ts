@@ -519,8 +519,8 @@ describe("Arbitrary generation", () => {
       verifyGeneration(Schema.Date.check(Schema.isBetweenDate({ minimum: new Date(0), maximum: new Date(10) })))
     })
 
-    it("ValidDate", () => {
-      verifyGeneration(Schema.ValidDate)
+    it("DateValid", () => {
+      verifyGeneration(Schema.DateValid)
     })
 
     it("isGreaterThanOrEqualToBigInt", () => {
@@ -814,7 +814,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isValidDate", () => {
-      assertFragments(Schema.Date.check(Schema.isValidDate()), {
+      assertFragments(Schema.Date.check(Schema.isDateValid()), {
         constraints: {
           date: {
             noInvalidDate: true
@@ -824,7 +824,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isValidDate & isGreaterThanOrEqualToDate", () => {
-      assertFragments(Schema.Date.check(Schema.isValidDate(), Schema.isGreaterThanOrEqualToDate(new Date(0))), {
+      assertFragments(Schema.Date.check(Schema.isDateValid(), Schema.isGreaterThanOrEqualToDate(new Date(0))), {
         constraints: {
           date: {
             noInvalidDate: true,

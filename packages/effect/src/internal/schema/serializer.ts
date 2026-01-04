@@ -19,7 +19,7 @@ function toCodecJsonBase(ast: AST.AST): AST.AST {
     case "Unknown":
     case "ObjectKeyword":
     case "Declaration": {
-      const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.["toCodec*"]
+      const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.toCodec
       if (Predicate.isFunction(getLink)) {
         const tps = AST.isDeclaration(ast)
           ? ast.typeParameters.map((tp) => InternalSchema.make(toCodecJson(AST.toEncoded(tp))))
@@ -130,9 +130,9 @@ export const toCodecIso = memoize((ast: AST.AST): AST.AST => {
 function toCodecIsoBase(ast: AST.AST): AST.AST {
   switch (ast._tag) {
     case "Declaration": {
-      const getLink = ast.annotations?.toCodecIso ?? ast.annotations?.["toCodec*"]
+      const getLink = ast.annotations?.toCodecIso ?? ast.annotations?.toCodec
       if (Predicate.isFunction(getLink)) {
-        const link = getLink(ast.typeParameters.map((tp) => InternalSchema.make(toCodecIso(tp))))
+        const link = getLink(ast.typeParameters.map((tp) => InternalSchema.make(tp)))
         const to = toCodecIso(link.to)
         return AST.replaceEncoding(ast, to === link.to ? [link] : [new AST.Link(to, link.transformation)])
       }

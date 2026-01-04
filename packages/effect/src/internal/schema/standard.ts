@@ -61,15 +61,14 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
       }
       // Find a unique identifier by incrementing until we find one that doesn't exist
       let count = (identifierCounter.get(identifier) ?? 0) + 1
-      let newIdentifier = generateIdentifier(identifier, count)
-      while (usedIdentifiers.has(newIdentifier)) {
+      let out
+      while (usedIdentifiers.has(out = `${identifier}-${count}`)) {
         count++
-        newIdentifier = generateIdentifier(identifier, count)
       }
       identifierCounter.set(identifier, count)
-      identifierMap.set(ast, newIdentifier)
-      usedIdentifiers.add(newIdentifier)
-      return newIdentifier
+      identifierMap.set(ast, out)
+      usedIdentifiers.add(out)
+      return out
     }
   }
 
@@ -82,32 +81,11 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
 
   function on(ast: AST.AST): SchemaStandard.Standard {
     switch (ast._tag) {
-      case "Suspend": {
-        const thunk = ast.thunk()
-        if (visited.has(thunk)) {
-          const identifier = generateUniqueIdentifier(thunk)
-          if (identifier === undefined) {
-            throw new globalThis.Error("Suspended schema without identifier")
-          }
-          return {
-            _tag: "Suspend",
-            checks: [],
-            thunk: { _tag: "Reference", $ref: identifier },
-            ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-          }
-        }
-        return {
-          _tag: "Suspend",
-          checks: [],
-          thunk: recur(thunk),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
-        }
-      }
       case "Declaration":
         return {
           _tag: "Declaration",
-          typeParameters: ast.typeParameters.map((tp) => recur(tp)),
-          Encoded: recur(InternalSerializer.toCodecJson(ast)),
+          typeParameters: ast.typeParameters.map(recur),
+          encodedSchema: recur(InternalSerializer.toCodecJson(ast)),
           checks: fromChecks(ast.checks),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
@@ -175,11 +153,11 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
             const last = getLastEncoding(e)
             return {
               isOptional: AST.isOptional(last),
-              type: recur(last),
+              type: recur(e),
               ...(last.context?.annotations ? { annotations: last.context?.annotations } : undefined)
             }
           }),
-          rest: ast.rest.map((r) => recur(r)),
+          rest: ast.rest.map(recur),
           checks: fromChecks(ast.checks),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
@@ -190,7 +168,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
             const last = getLastEncoding(ps.type)
             return {
               name: ps.name,
-              type: recur(last),
+              type: recur(ps.type),
               isOptional: AST.isOptional(last),
               isMutable: AST.isMutable(last),
               ...(last.context?.annotations ? { annotations: last.context?.annotations } : undefined)
@@ -207,8 +185,29 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
         const types = InternalSerializer.jsonReorder(ast.types)
         return {
           _tag: ast._tag,
-          types: types.map((t) => recur(t)),
+          types: types.map(recur),
           mode: ast.mode,
+          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+        }
+      }
+      case "Suspend": {
+        const thunk = ast.thunk()
+        if (visited.has(thunk)) {
+          const identifier = generateUniqueIdentifier(thunk)
+          if (identifier === undefined) {
+            throw new globalThis.Error("Suspended schema without identifier")
+          }
+          return {
+            _tag: "Suspend",
+            checks: [],
+            thunk: { _tag: "Reference", $ref: identifier },
+            ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          }
+        }
+        return {
+          _tag: "Suspend",
+          checks: [],
+          thunk: recur(thunk),
           ...(ast.annotations ? { annotations: ast.annotations } : undefined)
         }
       }
@@ -242,10 +241,6 @@ function fromChecks(
     }
   }
   return checks.map(getCheck).filter((c) => c !== undefined)
-}
-
-function generateIdentifier(seed: string, counter: number): string {
-  return `${seed}-${counter}`
 }
 
 /** @internal */
@@ -326,7 +321,7 @@ export function toJsonSchemaMultiDocument(
           ]
         }
       case "Declaration":
-        return recur(schema.Encoded)
+        return recur(schema.encodedSchema)
       case "Suspend":
         return recur(schema.thunk)
       case "Reference":
@@ -565,9 +560,9 @@ export function toJsonSchemaMultiDocument(
         case "isCapitalized":
         case "isUncapitalized":
         case "isTrimmed":
-        case "isFiniteString":
-        case "isBigIntString":
-        case "isSymbolString":
+        case "isStringFinite":
+        case "isStringBigInt":
+        case "isStringSymbol":
           return { pattern: meta.regExp.source }
         case "isUUID":
           return { pattern: meta.regExp.source, format: "uuid" }
@@ -602,7 +597,7 @@ export function toJsonSchemaMultiDocument(
         case "isPropertiesLength":
           return { minProperties: meta.length, maxProperties: meta.length }
 
-        case "isValidDate":
+        case "isDateValid":
           return { format: "date-time" }
       }
     }

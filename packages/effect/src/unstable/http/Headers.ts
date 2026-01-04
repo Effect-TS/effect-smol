@@ -85,10 +85,18 @@ export interface HeadersSchema extends Schema.declare<Headers, { readonly [x: st
 export const HeadersSchema: HeadersSchema = Schema.declare(
   isHeaders,
   {
-    typeConstructor: { _tag: "effect/http/Headers" },
+    typeConstructor: {
+      _tag: "effect/http/Headers"
+    },
+    generation: {
+      runtime: `Headers.HeadersSchema`,
+      Type: `Headers.Headers`,
+      Encoded: `typeof Headers.HeadersSchema["Encoded"]`,
+      importDeclaration: `import * as Headers from "effect/unstable/http/Headers"`
+    },
     expected: "Headers",
     toEquivalence: () => Equivalence,
-    "toCodec*": () =>
+    toCodec: () =>
       Schema.link<Headers>()(
         Schema.Record(Schema.String, Schema.String),
         Transformation.transform({

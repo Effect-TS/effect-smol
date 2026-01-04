@@ -156,10 +156,18 @@ export interface UrlParamsSchema extends Schema.declare<UrlParams, ReadonlyArray
 export const UrlParamsSchema: UrlParamsSchema = Schema.declare(
   isUrlParams,
   {
-    typeConstructor: { _tag: "effect/http/UrlParams" },
+    typeConstructor: {
+      _tag: "effect/http/UrlParams"
+    },
+    generation: {
+      runtime: `UrlParams.UrlParamsSchema`,
+      Type: `UrlParams.UrlParams`,
+      Encoded: `typeof UrlParams.UrlParamsSchema["Encoded"]`,
+      importDeclaration: `import * as UrlParams from "effect/unstable/http/UrlParams"`
+    },
     expected: "UrlParams",
     toEquivalence: () => Equivalence,
-    "toCodec*": () =>
+    toCodec: () =>
       Schema.link<UrlParams>()(
         Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
         Transformation.transform({

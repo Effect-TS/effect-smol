@@ -21,7 +21,7 @@ export function getNativeClassSchema<C extends new(...args: any) => any, S exten
     encode: identity
   })
   return Schema.instanceOf(constructor, {
-    "toCodec*": () => Schema.link<InstanceType<C>>()(options.encoding, transformation),
+    toCodec: () => Schema.link<InstanceType<C>>()(options.encoding, transformation),
     ...options.annotations
   }).pipe(Schema.encodeTo(options.encoding, transformation))
 }

@@ -25,7 +25,7 @@ export interface Declaration {
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly typeParameters: ReadonlyArray<Standard>
   readonly checks: ReadonlyArray<Check<Meta>>
-  readonly Encoded: Standard
+  readonly encodedSchema: Standard
 }
 
 /**
@@ -297,9 +297,9 @@ export interface FilterGroup<M> {
  * @since 4.0.0
  */
 export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
-  | "isFiniteString"
-  | "isBigIntString"
-  | "isSymbolString"
+  | "isStringFinite"
+  | "isStringBigInt"
+  | "isStringSymbol"
   | "isMinLength"
   | "isMaxLength"
   | "isPattern"
@@ -367,7 +367,7 @@ export type ObjectsMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * @since 4.0.0
  */
 export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
-  | "isValidDate"
+  | "isDateValid"
   | "isGreaterThanDate"
   | "isGreaterThanOrEqualToDate"
   | "isLessThanDate"
@@ -413,7 +413,7 @@ const toJsonAnnotationsBlacklist: Set<string> = new Set([
   "toArbitraryConstraint",
   "toEquivalence",
   "toFormatter",
-  "toCodec*",
+  "toCodec",
   "toCodecJson",
   "toCodecIso",
   "expected",
@@ -501,20 +501,20 @@ export const Any$ = Schema.Struct({
   annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Any" })
 
-const IsFiniteString$ = Schema.Struct({
-  _tag: Schema.tag("isFiniteString"),
+const IsStringFinite$ = Schema.Struct({
+  _tag: Schema.tag("isStringFinite"),
   regExp: Schema.RegExp
-}).annotate({ identifier: "IsFiniteString" })
+}).annotate({ identifier: "IsStringFinite" })
 
-const IsBigIntString$ = Schema.Struct({
-  _tag: Schema.tag("isBigIntString"),
+const IsStringBigInt$ = Schema.Struct({
+  _tag: Schema.tag("isStringBigInt"),
   regExp: Schema.RegExp
-}).annotate({ identifier: "IsBigIntString" })
+}).annotate({ identifier: "IsStringBigInt" })
 
-const IsSymbolString$ = Schema.Struct({
-  _tag: Schema.tag("isSymbolString"),
+const IsStringSymbol$ = Schema.Struct({
+  _tag: Schema.tag("isStringSymbol"),
   regExp: Schema.RegExp
-}).annotate({ identifier: "IsSymbolString" })
+}).annotate({ identifier: "IsStringSymbol" })
 
 const IsTrimmed$ = Schema.Struct({
   _tag: Schema.tag("isTrimmed"),
@@ -601,9 +601,9 @@ const IsLength$ = Schema.Struct({
 }).annotate({ identifier: "IsLength" })
 
 const StringMeta$ = Schema.Union([
-  IsFiniteString$,
-  IsBigIntString$,
-  IsSymbolString$,
+  IsStringFinite$,
+  IsStringBigInt$,
+  IsStringSymbol$,
   IsTrimmed$,
   IsUUID$,
   IsULID$,
@@ -928,9 +928,9 @@ export const Reference$ = Schema.Struct({
   $ref: Schema.String
 }).annotate({ identifier: "Reference" })
 
-const isValidDate$ = Schema.Struct({
-  _tag: Schema.tag("isValidDate")
-}).annotate({ identifier: "isValidDate" })
+const IsDateValid$ = Schema.Struct({
+  _tag: Schema.tag("isDateValid")
+}).annotate({ identifier: "IsDateValid" })
 
 const IsGreaterThanDate$ = Schema.Struct({
   _tag: Schema.tag("isGreaterThanDate"),
@@ -961,7 +961,7 @@ const IsBetweenDate$ = Schema.Struct({
 }).annotate({ identifier: "IsBetweenDate" })
 
 const DateMeta$ = Schema.Union([
-  isValidDate$,
+  IsDateValid$,
   IsGreaterThanDate$,
   IsGreaterThanOrEqualToDate$,
   IsLessThanDate$,
@@ -977,7 +977,7 @@ export const Declaration$ = Schema.Struct({
   annotations: Schema.optional(Annotations$),
   typeParameters: Schema.Array(Standard$ref),
   checks: Schema.Array(makeCheck(DateMeta$, "Date")),
-  Encoded: Standard$ref
+  encodedSchema: Standard$ref
 }).annotate({ identifier: "Declaration" })
 
 /**
@@ -1073,37 +1073,60 @@ export function fromJson(u: unknown): Document {
 /**
  * @since 4.0.0
  */
-export type Reviver<T> = (declaration: Declaration, recur: (schema: Standard) => T) => T
+export type Reviver<T> = (declaration: Declaration, recur: (standard: Standard) => T) => T | undefined
 
 /**
  * @since 4.0.0
  */
-export const toSchemaDefaultReviver: Reviver<Schema.Top> = (declaration, recur) => {
-  const typeConstructor = declaration.annotations?.typeConstructor
-  if (Predicate.hasProperty(typeConstructor, "_tag")) {
-    const _tag = typeConstructor._tag
-    if (typeof _tag === "string") {
-      switch (_tag) {
-        default:
-          return Schema.Unknown
-        case "effect/Option":
-          return Schema.Option(recur(declaration.typeParameters[0]))
-      }
+export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
+  const typeConstructor = s.annotations?.typeConstructor
+  if (Predicate.isObject(typeConstructor) && typeof typeConstructor._tag === "string") {
+    const typeParameters = s.typeParameters.map(recur)
+    switch (typeConstructor._tag) {
+      case "effect/Option":
+        return Schema.Option(typeParameters[0])
+      case "effect/Result":
+        return Schema.Result(typeParameters[0], typeParameters[1])
+      case "effect/Redacted":
+        return Schema.Redacted(typeParameters[0])
+      case "effect/Cause/Failure":
+        return Schema.CauseFailure(typeParameters[0], typeParameters[1])
+      case "effect/Cause":
+        return Schema.Cause(typeParameters[0], typeParameters[1])
+      case "Error":
+        return Schema.Error
+      case "effect/Exit":
+        return Schema.Exit(typeParameters[0], typeParameters[1], typeParameters[2])
+      case "ReadonlyMap":
+        return Schema.ReadonlyMap(typeParameters[0], typeParameters[1])
+      case "ReadonlySet":
+        return Schema.ReadonlySet(typeParameters[0])
+      case "RegExp":
+        return Schema.RegExp
+      case "URL":
+        return Schema.URL
+      case "Date":
+        return Schema.Date
+      case "effect/Duration":
+        return Schema.Duration
+      case "FormData":
+        return Schema.FormData
+      case "URLSearchParams":
+        return Schema.URLSearchParams
+      case "Uint8Array":
+        return Schema.Uint8Array
+      case "DateTime.Utc":
+        return Schema.DateTimeUtc
     }
   }
-  return Schema.Unknown
 }
 
-// TODO: tests
 /**
  * @since 4.0.0
  */
-export function toSchema<S extends Schema.Top = Schema.Top>(
-  document: Document,
-  options?: { readonly reviver?: Reviver<Schema.Top> | undefined }
-): S {
-  const reviver = options?.reviver ?? toSchemaDefaultReviver
-
+export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, options?: {
+  readonly reviver?: Reviver<Schema.Top> | undefined
+}): S {
   type Slot = {
     // 0 = not started, 1 = building, 2 = done
     state: 0 | 1 | 2
@@ -1141,13 +1164,13 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
     return slot
   }
 
-  function resolveReference(identifier: string): Schema.Top {
-    const definition = document.definitions[identifier]
+  function resolveReference($ref: string): Schema.Top {
+    const definition = document.definitions[$ref]
     if (definition === undefined) {
-      throw new Error(`Reference to unknown schema: ${identifier}`)
+      return Schema.Unknown
     }
 
-    const slot = getSlot(identifier)
+    const slot = getSlot($ref)
 
     if (slot.state === 2) {
       // Already built: return the built schema directly
@@ -1173,14 +1196,14 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
     }
   }
 
-  function on(schema: Standard): Schema.Top {
-    switch (schema._tag) {
+  function on(s: Standard): Schema.Top {
+    switch (s._tag) {
       case "Declaration":
-        return reviver(schema, recur)
+        return options?.reviver?.(s, recur) ?? recur(s.encodedSchema)
       case "Reference":
-        return resolveReference(schema.$ref)
+        return resolveReference(s.$ref)
       case "Suspend":
-        return recur(schema.thunk)
+        return recur(s.thunk)
       case "Null":
         return Schema.Null
       case "Undefined":
@@ -1194,8 +1217,8 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
       case "Any":
         return Schema.Any
       case "String": {
-        const contentMediaType = schema.contentMediaType
-        const contentSchema = schema.contentSchema
+        const contentMediaType = s.contentMediaType
+        const contentSchema = s.contentSchema
         if (contentMediaType === "application/json" && contentSchema !== undefined) {
           return Schema.fromJsonString(recur(contentSchema))
         }
@@ -1210,25 +1233,25 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
       case "Symbol":
         return Schema.Symbol
       case "Literal":
-        return Schema.Literal(schema.literal)
+        return Schema.Literal(s.literal)
       case "UniqueSymbol":
-        return Schema.UniqueSymbol(schema.symbol)
+        return Schema.UniqueSymbol(s.symbol)
       case "ObjectKeyword":
         return Schema.ObjectKeyword
       case "Enum":
-        return Schema.Enum(Object.fromEntries(schema.enums))
+        return Schema.Enum(Object.fromEntries(s.enums))
       case "TemplateLiteral": {
-        const parts = schema.parts.map(recur) as Schema.TemplateLiteral.Parts
+        const parts = s.parts.map(recur) as Schema.TemplateLiteral.Parts
         return Schema.TemplateLiteral(parts)
       }
       case "Arrays": {
-        const elements = schema.elements.map((e) => {
+        const elements = s.elements.map((e) => {
           const s = recur(e.type)
           return e.isOptional ? Schema.optionalKey(s) : s
         })
-        const rest = schema.rest.map(recur)
+        const rest = s.rest.map(recur)
         if (Arr.isArrayNonEmpty(rest)) {
-          if (schema.elements.length === 0 && schema.rest.length === 1) {
+          if (s.elements.length === 0 && s.rest.length === 1) {
             return Schema.Array(rest[0])
           }
           return Schema.TupleWithRest(Schema.Tuple(elements), rest)
@@ -1238,18 +1261,18 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
       case "Objects": {
         const fields: Record<PropertyKey, Schema.Top> = {}
 
-        for (const ps of schema.propertySignatures) {
+        for (const ps of s.propertySignatures) {
           const s = recur(ps.type)
           const withOptional = ps.isOptional ? Schema.optionalKey(s) : s
           fields[ps.name] = ps.isMutable ? Schema.mutableKey(withOptional) : withOptional
         }
 
-        const indexSignatures = schema.indexSignatures.map((is) =>
+        const indexSignatures = s.indexSignatures.map((is) =>
           Schema.Record(recur(is.parameter) as Schema.Record.Key, recur(is.type))
         )
 
         if (Arr.isArrayNonEmpty(indexSignatures)) {
-          if (schema.propertySignatures.length === 0 && indexSignatures.length === 1) {
+          if (s.propertySignatures.length === 0 && indexSignatures.length === 1) {
             return indexSignatures[0]
           }
           return Schema.StructWithRest(Schema.Struct(fields), indexSignatures)
@@ -1258,14 +1281,14 @@ export function toSchema<S extends Schema.Top = Schema.Top>(
         return Schema.Struct(fields)
       }
       case "Union": {
-        if (schema.types.length === 0) return Schema.Never
-        if (schema.types.every((t) => t._tag === "Literal")) {
-          if (schema.types.length === 1) {
-            return Schema.Literal(schema.types[0].literal)
+        if (s.types.length === 0) return Schema.Never
+        if (s.types.every((t) => t._tag === "Literal")) {
+          if (s.types.length === 1) {
+            return Schema.Literal(s.types[0].literal)
           }
-          return Schema.Literals(schema.types.map((t) => t.literal))
+          return Schema.Literals(s.types.map((t) => t.literal))
         }
-        return Schema.Union(schema.types.map(recur), { mode: schema.mode })
+        return Schema.Union(s.types.map(recur), { mode: s.mode })
       }
     }
   }
@@ -1299,12 +1322,12 @@ function toSchemaFilter(filter: Filter<Meta>): AST.Check<any> {
   const a = filter.annotations
   switch (filter.meta._tag) {
     // String Meta
-    case "isFiniteString":
-      return Schema.isFiniteString(a) // TODO: return undefined
-    case "isBigIntString":
-      return Schema.isBigIntString(a) // TODO: return undefined
-    case "isSymbolString":
-      return Schema.isSymbolString(a) // TODO: return undefined
+    case "isStringFinite":
+      return Schema.isStringFinite(a)
+    case "isStringBigInt":
+      return Schema.isStringBigInt(a)
+    case "isStringSymbol":
+      return Schema.isStringSymbol(a)
     case "isMinLength":
       return Schema.isMinLength(filter.meta.minLength, a)
     case "isMaxLength":
@@ -1381,8 +1404,8 @@ function toSchemaFilter(filter: Filter<Meta>): AST.Check<any> {
       return Schema.isUnique(a)
 
     // Date Meta
-    case "isValidDate":
-      return Schema.isValidDate(a)
+    case "isDateValid":
+      return Schema.isDateValid(a)
     case "isGreaterThanDate":
       return Schema.isGreaterThanDate(filter.meta.exclusiveMinimum, a)
     case "isGreaterThanOrEqualToDate":
@@ -1417,152 +1440,398 @@ export const toJsonSchemaMultiDocument: (
 /**
  * @since 4.0.0
  */
-export const toCodeDefaultReviver: Reviver<string> = (declaration, recur) => {
-  const typeConstructor = declaration.annotations?.typeConstructor
-  if (Predicate.hasProperty(typeConstructor, "_tag")) {
-    const _tag = typeConstructor._tag
-    if (typeof _tag === "string") {
-      switch (_tag) {
-        default:
-          return "Schema.Unknown"
-        case "effect/Option":
-          return `Schema.Option(${declaration.typeParameters.map((p) => recur(p)).join(", ")})`
-      }
-    }
-  }
-  return "Schema.Unknown"
+export type Generation = {
+  readonly runtime: string
+  readonly Type: string
+  readonly Encoded: string
 }
 
 /**
  * @since 4.0.0
  */
-export type Generation = string
+export function makeGeneration(runtime: string, Type: string, Encoded: string = Type): Generation {
+  return { runtime, Type, Encoded }
+}
 
 /**
  * @since 4.0.0
  */
-export function toGeneration(document: Document, options?: {
-  readonly reviver?: Reviver<string> | undefined
-}): Generation {
-  const reviver = options?.reviver
-  const schema = document.schema
-
-  if (schema._tag === "Reference") {
-    const definition = document.definitions[schema.$ref]
-    if (definition !== undefined) return recur(definition)
+export type Artifact =
+  | {
+    readonly _tag: "Symbol"
+    readonly identifier: string
+    readonly generation: Generation
   }
-  return recur(schema)
+  | {
+    readonly _tag: "Enum"
+    readonly identifier: string
+    readonly generation: Generation
+  }
+  | {
+    readonly _tag: "Import"
+    readonly importDeclaration: string
+  }
 
-  function recur(schema: Standard): Generation {
-    const b = on(schema)
-    switch (schema._tag) {
+/**
+ * @since 4.0.0
+ */
+export type GenerationDocument = {
+  readonly generations: ReadonlyArray<Generation>
+  readonly definitions: {
+    readonly nonRecursives: ReadonlyArray<{
+      readonly $ref: string
+      readonly schema: Generation
+    }>
+    readonly recursives: {
+      readonly [$ref: string]: Generation
+    }
+  }
+  readonly artifacts: ReadonlyArray<Artifact>
+}
+
+/**
+ * @since 4.0.0
+ */
+export function toGenerationDocument(multiDocument: MultiDocument, options?: {
+  readonly reviver?: Reviver<Generation> | undefined
+}): GenerationDocument {
+  const visited = new Set<string>()
+  const artifacts: Array<Artifact> = []
+  let counter = 0
+  const identifiers = new Set<string>()
+
+  function generateIdentifier(prefix: string): string {
+    let identifier: string
+    while (identifiers.has(identifier = `${prefix}_${counter}`)) {
+      counter++
+    }
+    identifiers.add(identifier)
+    return identifier
+  }
+
+  function addSymbol(s: symbol): string {
+    const identifier = generateIdentifier("sym")
+    const key = globalThis.Symbol.keyFor(s)
+    const description = s.description
+    const generation = key === undefined
+      ? makeGeneration(`Symbol(${description === undefined ? "" : format(description)})`, `typeof ${identifier}`)
+      : makeGeneration(`Symbol.for(${format(key)})`, `typeof ${identifier}`)
+    artifacts.push({ _tag: "Symbol", identifier, generation })
+    return identifier
+  }
+
+  function addEnum(s: Enum): string {
+    const identifier = generateIdentifier("enum")
+    artifacts.push({
+      _tag: "Enum",
+      identifier,
+      generation: makeGeneration(
+        `enum ${identifier} { ${s.enums.map(([name, value]) => `${format(name)}: ${format(value)}`).join(", ")} }`,
+        `typeof ${identifier}`
+      )
+    })
+    return identifier
+  }
+
+  function addImport(importDeclaration: string) {
+    if (!artifacts.some((a) => a._tag === "Import" && a.importDeclaration === importDeclaration)) {
+      artifacts.push({ _tag: "Import", importDeclaration })
+    }
+  }
+
+  const ts = topologicalSort(multiDocument.definitions)
+  const nonRecursives = ts.nonRecursives.map(({ $ref, schema }) => ({ $ref, schema: top(schema) }))
+  const recursives = Rec.map(ts.recursives, (v, k) => {
+    identifiers.add(k)
+    return top(v)
+  })
+
+  const generations = multiDocument.schemas.map(top)
+
+  return {
+    generations,
+    definitions: { nonRecursives, recursives },
+    artifacts
+  }
+
+  function resolveReference($ref: string): Generation {
+    if (visited.has($ref)) {
+      return makeGeneration($ref, $ref, `${$ref}Encoded`)
+    }
+    visited.add($ref)
+    const definition = multiDocument.definitions[$ref]
+    if (definition === undefined) {
+      return makeGeneration("Schema.Unknown", "unknown")
+    }
+    return recur(multiDocument.definitions[$ref])
+  }
+
+  function top(s: Standard): Generation {
+    return s._tag === "Reference" ? resolveReference(s.$ref) : recur(s)
+  }
+
+  function recur(s: Standard): Generation {
+    const g = on(s)
+    switch (s._tag) {
       default:
-        return b + toCodeAnnotate(schema.annotations)
-      case "Declaration":
+        return makeGeneration(g.runtime + toRuntimeAnnotate(s.annotations), g.Type, g.Encoded)
       case "Reference":
-        return b
+        return g
+      case "Declaration":
       case "String":
       case "Number":
       case "BigInt":
       case "Arrays":
+      case "Objects":
       case "Suspend":
-        return b + toCodeAnnotate(schema.annotations) + toCodeChecks(schema.checks)
+        return makeGeneration(
+          g.runtime + toRuntimeAnnotate(s.annotations) + toRuntimeChecks(s.checks),
+          g.Type,
+          g.Encoded
+        )
     }
   }
 
-  function on(schema: Standard): Generation {
-    switch (schema._tag) {
-      case "Declaration":
-        return reviver ? reviver(schema, recur) : `Schema.Unknown`
+  function on(s: Standard): Generation {
+    switch (s._tag) {
+      case "Declaration": {
+        const generation = s.annotations?.generation
+        if (
+          Predicate.isObject(generation) && typeof generation.runtime === "string" &&
+          typeof generation.Type === "string"
+        ) {
+          const typeParameters = s.typeParameters.map(recur)
+          const Encoded = typeof generation.Encoded === "string" ? generation.Encoded : generation.Type
+          if (typeof generation.importDeclaration === "string") {
+            addImport(generation.importDeclaration)
+          }
+          return makeGeneration(
+            fill(generation.runtime, typeParameters.map((p) => p.runtime)),
+            fill(generation.Type, typeParameters.map((p) => p.Type)),
+            fill(Encoded, typeParameters.map((p) => p.Encoded))
+          )
+        }
+        return options?.reviver?.(s, recur) ?? recur(s.encodedSchema)
+      }
       case "Reference":
-        return schema.$ref
+        return makeGeneration(s.$ref, s.$ref, `${s.$ref}Encoded`)
       case "Suspend": {
-        const typeAnnotation = schema.thunk._tag === "Reference" ? `: Schema.Codec<${schema.thunk.$ref}>` : ""
-        return `Schema.suspend(()${typeAnnotation} => ${recur(schema.thunk)})`
+        const thunk = recur(s.thunk)
+        return makeGeneration(
+          `Schema.suspend((): Schema.Codec<${thunk.Type}, ${thunk.Encoded}> => ${thunk.runtime})`,
+          thunk.Type,
+          thunk.Encoded
+        )
       }
       case "Null":
+        return makeGeneration(`Schema.Null`, "null")
       case "Undefined":
+        return makeGeneration(`Schema.Undefined`, "undefined")
       case "Void":
+        return makeGeneration(`Schema.Void`, "void")
       case "Never":
+        return makeGeneration(`Schema.Never`, "never")
       case "Unknown":
+        return makeGeneration(`Schema.Unknown`, "unknown")
       case "Any":
+        return makeGeneration(`Schema.Any`, "any")
       case "Number":
+        return makeGeneration(`Schema.Number`, "number")
       case "Boolean":
+        return makeGeneration(`Schema.Boolean`, "boolean")
       case "BigInt":
+        return makeGeneration(`Schema.BigInt`, "bigint")
       case "Symbol":
-        return `Schema.${schema._tag}`
+        return makeGeneration(`Schema.Symbol`, "symbol")
       case "String": {
-        const contentMediaType = schema.contentMediaType
-        const contentSchema = schema.contentSchema
+        const contentMediaType = s.contentMediaType
+        const contentSchema = s.contentSchema
         if (contentMediaType === "application/json" && contentSchema !== undefined) {
-          return `Schema.fromJsonString(${recur(contentSchema)})`
+          return makeGeneration(`Schema.fromJsonString(${recur(contentSchema)})`, "string")
         }
-        return `Schema.String`
+        return makeGeneration(`Schema.String`, "string")
       }
-      case "Literal":
-        return `Schema.Literal(${format(schema.literal)})`
+      case "Literal": {
+        const literal = format(s.literal)
+        return makeGeneration(`Schema.Literal(${literal})`, literal)
+      }
       case "UniqueSymbol": {
-        const key = globalThis.Symbol.keyFor(schema.symbol)
-        if (key === undefined) {
-          throw new Error("Cannot generate code for UniqueSymbol created without Symbol.for()")
-        }
-        return `Schema.UniqueSymbol(Symbol.for(${format(key)}))`
+        const identifier = addSymbol(s.symbol)
+        return makeGeneration(`Schema.UniqueSymbol(${identifier})`, `typeof ${identifier}`)
       }
       case "ObjectKeyword":
-        return "Schema.ObjectKeyword"
-      case "Enum":
-        return `Schema.Enum([${schema.enums.map(([key, value]) => `[${format(key)}, ${format(value)}]`).join(", ")}])`
-      case "TemplateLiteral":
-        return `Schema.TemplateLiteral([${schema.parts.map((p) => recur(p)).join(", ")}])`
+        return makeGeneration(`Schema.ObjectKeyword`, "object")
+      case "Enum": {
+        const identifier = addEnum(s)
+        return makeGeneration(`Schema.Enum(${identifier})`, `typeof ${identifier}`)
+      }
+      case "TemplateLiteral": {
+        const parts = s.parts.map(recur)
+        const type = toTypeParts(s.parts).map((p) => "`" + p + "`").join(" | ")
+        return makeGeneration(`Schema.TemplateLiteral([${parts.map((p) => p.runtime).join(", ")}])`, type)
+      }
       case "Arrays": {
-        const elements = schema.elements.map((e) => toCodeIsOptional(e.isOptional, recur(e.type)))
-        const rest = schema.rest.map((r) => recur(r))
-        if (Arr.isArrayNonEmpty(rest)) {
-          if (elements.length === 0 && rest.length === 1) {
-            return `Schema.Array(${rest[0]})`
+        const elements = s.elements.map((e) => {
+          return {
+            isOptional: e.isOptional,
+            type: recur(e.type),
+            annotations: e.annotations
           }
-          return `Schema.TupleWithRest(Schema.Tuple([${elements.join(", ")}]), [${rest.join(", ")}])`
+        })
+
+        const rest = s.rest.map(recur)
+
+        if (Arr.isArrayNonEmpty(rest)) {
+          const item = rest[0]
+          if (elements.length === 0 && rest.length === 1) {
+            return makeGeneration(
+              `Schema.Array(${item.runtime})`,
+              `ReadonlyArray<${item.Type}>`,
+              `ReadonlyArray<${item.Encoded}>`
+            )
+          }
+          const post = rest.slice(1)
+          return makeGeneration(
+            `Schema.TupleWithRest(Schema.Tuple([${
+              elements.map((e) =>
+                toRuntimeIsOptional(e.isOptional, e.type.runtime) + toRuntimeAnnotateKey(e.annotations)
+              ).join(", ")
+            }]), [${rest.map((r) => r.runtime).join(", ")}])`,
+            `readonly [${
+              elements.map((e) => toTypeIsOptional(e.isOptional, e.type.Type)).join(", ")
+            }, ...Array<${item.Type}>${post.length > 0 ? `, ${post.map((p) => p.Type).join(", ")}` : ""}]`,
+            `readonly [${
+              elements.map((e) => toTypeIsOptional(e.isOptional, e.type.Encoded)).join(", ")
+            }, ...Array<${item.Encoded}>${post.length > 0 ? `, ${post.map((p) => p.Encoded).join(", ")}` : ""}]`
+          )
         }
-        return `Schema.Tuple([${elements.join(", ")}])`
+        return makeGeneration(
+          `Schema.Tuple([${
+            elements.map((e) => toRuntimeIsOptional(e.isOptional, e.type.runtime) + toRuntimeAnnotateKey(e.annotations))
+              .join(", ")
+          }])`,
+          `readonly [${elements.map((e) => toTypeIsOptional(e.isOptional, e.type.Type)).join(", ")}]`,
+          `readonly [${elements.map((e) => toTypeIsOptional(e.isOptional, e.type.Encoded)).join(", ")}]`
+        )
       }
       case "Objects": {
-        const propertySignatures = schema.propertySignatures.map((p) =>
-          `${formatPropertyKey(p.name)}: ${toCodeIsMutable(p.isMutable, toCodeIsOptional(p.isOptional, recur(p.type)))}`
-        )
-        const indexSignatures = schema.indexSignatures.map((i) =>
-          `Schema.Record(${recur(i.parameter)}, ${recur(i.type)})`
-        )
-        if (Arr.isArrayNonEmpty(indexSignatures)) {
-          if (propertySignatures.length === 0 && indexSignatures.length === 1) {
-            return indexSignatures[0]
+        const pss = s.propertySignatures.map((p) => {
+          const isSymbol = typeof p.name === "symbol"
+          const name = isSymbol ? addSymbol(p.name) : formatPropertyKey(p.name)
+          const nameType = toTypeIsOptional(
+            p.isOptional,
+            toTypeIsMutable(p.isMutable, isSymbol ? `[typeof ${name}]` : name)
+          )
+          const type = recur(p.type)
+          return makeGeneration(
+            `${isSymbol ? `[${name}]` : name}: ${
+              toRuntimeIsOptional(p.isOptional, toRuntimeIsMutable(p.isMutable, type.runtime))
+            }` +
+              toRuntimeAnnotateKey(p.annotations),
+            `${nameType}: ${type.Type}`,
+            `${nameType}: ${type.Encoded}`
+          )
+        })
+
+        const iss = s.indexSignatures.map((is) => {
+          return {
+            parameter: recur(is.parameter),
+            type: recur(is.type)
           }
-          return `Schema.StructWithRest(Schema.Struct({ ${propertySignatures.join(", ")} }), [${
-            indexSignatures.join(", ")
-          }])`
+        })
+
+        if (iss.length === 0) {
+          // 1) Only properties -> Struct
+          return makeGeneration(
+            `Schema.Struct({ ${pss.map((p) => p.runtime).join(", ")} })`,
+            `{ ${pss.map((p) => p.Type).join(", ")} }`,
+            `{ ${pss.map((p) => p.Encoded).join(", ")} }`
+          )
+        } else if (pss.length === 0 && iss.length === 1) {
+          // 2) Only one index signature and no properties -> Record
+          return makeGeneration(
+            `Schema.Record(${iss[0].parameter.runtime}, ${iss[0].type.runtime})`,
+            `Record<${iss[0].parameter.Type}, ${iss[0].type.Type}>`,
+            `Record<${iss[0].parameter.Encoded}, ${iss[0].type.Encoded}>`
+          )
+        } else {
+          // 3) Properties + index signatures -> StructWithRest
+          return makeGeneration(
+            `Schema.StructWithRest(Schema.Struct({ ${pss.map((p) => p.runtime).join(", ")} }), [${
+              iss.map((is) => `Schema.Record(${is.parameter.runtime}, ${is.type.runtime})`).join(", ")
+            }])`,
+            `{ ${pss.map((p) => p.Type).join(", ")}, ${
+              iss.map((is) => `Record<${is.parameter.Type}, ${is.type.Type}>`).join(", ")
+            } }`,
+            `{ ${pss.map((p) => p.Encoded).join(", ")}, ${
+              iss.map((is) => `Record<${is.parameter.Encoded}, ${is.type.Encoded}>`).join(", ")
+            } }`
+          )
         }
-        return `Schema.Struct({ ${propertySignatures.join(", ")} })`
       }
       case "Union": {
-        if (schema.types.length === 0) return "Schema.Never"
-        if (schema.types.every((t) => t._tag === "Literal")) {
-          if (schema.types.length === 1) {
-            return `Schema.Literal(${format(schema.types[0].literal)})`
-          }
-          return `Schema.Literals([${schema.types.map((t) => format(t.literal)).join(", ")}])`
+        if (s.types.length === 0) {
+          return makeGeneration("Schema.Never", "never")
         }
-        const mode = schema.mode === "anyOf" ? "" : `, { mode: "oneOf" }`
-        return `Schema.Union([${schema.types.map((t) => recur(t)).join(", ")}]${mode})`
+        if (s.types.every((t) => t._tag === "Literal")) {
+          const literals = s.types.map((l) => format(l.literal))
+          if (literals.length === 1) {
+            return makeGeneration(`Schema.Literal(${literals[0]})`, literals[0])
+          }
+          return makeGeneration(`Schema.Literals([${literals.join(", ")}])`, literals.join(" | "))
+        }
+        const mode = s.mode === "anyOf" ? "" : `, { mode: "oneOf" }`
+        const types = s.types.map((t) => recur(t))
+        return makeGeneration(
+          `Schema.Union([${types.map((t) => t.runtime).join(", ")}]${mode})`,
+          types.map((t) => t.Type).join(" | "),
+          types.map((t) => t.Encoded).join(" | ")
+        )
       }
     }
+  }
+}
+
+function fill(template: string, items: ReadonlyArray<string>) {
+  let i = 0
+  return template.replace(/\?/g, () => items[i++])
+}
+
+function toTypeParts(parts: ReadonlyArray<Standard>): ReadonlyArray<string> {
+  if (parts.length === 0) {
+    return [""]
+  }
+  const [first, ...rest] = parts
+  const restPatterns = toTypeParts(rest)
+  return toTypePart(first).flatMap((f) => restPatterns.map((r) => f + r))
+}
+
+function toTypePart(standard: Standard): ReadonlyArray<string> {
+  switch (standard._tag) {
+    case "Literal":
+      return [globalThis.String(standard.literal)]
+    case "String":
+      return ["${string}"]
+    case "Number":
+      return ["${number}"]
+    case "BigInt":
+      return ["${bigint}"]
+    case "TemplateLiteral":
+      return toTypeParts(standard.parts)
+    case "Union":
+      return standard.types.flatMap(toTypePart)
+    default:
+      return []
   }
 }
 
 const toCodeAnnotationsBlacklist: Set<string> = new Set([
   ...toJsonAnnotationsBlacklist,
-  "typeConstructor"
+  "typeConstructor",
+  "generation"
 ])
 
-function toCodeAnnotations(annotations: Schema.Annotations.Annotations | undefined): string {
+function toRuntimeAnnotations(annotations: Schema.Annotations.Annotations | undefined): string {
   if (!annotations) return ""
   const entries: Array<string> = []
   for (const [key, value] of Object.entries(annotations)) {
@@ -1573,143 +1842,137 @@ function toCodeAnnotations(annotations: Schema.Annotations.Annotations | undefin
   return `{ ${entries.join(", ")} }`
 }
 
-/**
- * @since 4.0.0
- */
-export function toCodeAnnotate(annotations: Schema.Annotations.Annotations | undefined): string {
-  const s = toCodeAnnotations(annotations)
+function toRuntimeAnnotate(annotations: Schema.Annotations.Annotations | undefined): string {
+  const s = toRuntimeAnnotations(annotations)
   if (s === "") return ""
   return `.annotate(${s})`
 }
 
-function toCodeIsOptional(isOptional: boolean, code: string): string {
-  return isOptional ? `Schema.optionalKey(${code})` : code
+function toRuntimeAnnotateKey(annotations: Schema.Annotations.Annotations | undefined): string {
+  const s = toRuntimeAnnotations(annotations)
+  if (s === "") return ""
+  return `.annotateKey(${s})`
 }
 
-function toCodeIsMutable(isMutable: boolean, code: string): string {
-  return isMutable ? `Schema.mutableKey(${code})` : code
+function toRuntimeIsOptional(isOptional: boolean, runtime: string): string {
+  return isOptional ? `Schema.optionalKey(${runtime})` : runtime
 }
 
-function toCodeChecks(checks: ReadonlyArray<Check<StringMeta | NumberMeta | BigIntMeta | ArraysMeta>>): string {
+function toTypeIsOptional(isOptional: boolean, type: string): string {
+  return isOptional ? `${type}?` : type
+}
+
+function toRuntimeIsMutable(isMutable: boolean, runtime: string): string {
+  return isMutable ? `Schema.mutableKey(${runtime})` : runtime
+}
+
+function toTypeIsMutable(isMutable: boolean, type: string): string {
+  return isMutable ? type : `readonly ${type}`
+}
+
+function toRuntimeChecks(checks: ReadonlyArray<Check<Meta>>): string {
   if (checks.length === 0) return ""
-  return `.check(${checks.map((c) => toCodeCheck(c)).join(", ")})`
+  return `.check(${checks.map((c) => toRuntimeCheck(c)).join(", ")})`
 }
 
-function toCodeCheck(check: Check<StringMeta | NumberMeta | BigIntMeta | ArraysMeta>): string {
+function toRuntimeCheck(check: Check<Meta>): string {
   switch (check._tag) {
     case "Filter":
-      return toCodeFilter(check)
+      return toRuntimeFilter(check)
     case "FilterGroup": {
-      const a = toCodeAnnotations(check.annotations)
+      const a = toRuntimeAnnotations(check.annotations)
       const ca = a === "" ? "" : `, ${a}`
-      return `Schema.makeFilterGroup([${check.checks.map((c) => toCodeCheck(c)).join(", ")}]${ca})`
+      return `Schema.makeFilterGroup([${check.checks.map((c) => toRuntimeCheck(c)).join(", ")}]${ca})`
     }
   }
 }
 
-function toCodeFilter(filter: Filter<Meta>): string {
-  const a = toCodeAnnotations(filter.annotations)
+function toRuntimeFilter(filter: Filter<Meta>): string {
+  const a = toRuntimeAnnotations(filter.annotations)
   const ca = a === "" ? "" : `, ${a}`
   switch (filter.meta._tag) {
-    // String Meta
-    case "isFiniteString":
-      return `Schema.isFiniteString(${toCodeRegExp(filter.meta.regExp)}${ca})`
-    case "isBigIntString":
-      return `Schema.isBigIntString(${toCodeRegExp(filter.meta.regExp)}${ca})`
-    case "isSymbolString":
-      return `Schema.isSymbolString(${toCodeRegExp(filter.meta.regExp)}${ca})`
+    case "isTrimmed":
+    case "isULID":
+    case "isBase64":
+    case "isBase64Url":
+    case "isUppercased":
+    case "isLowercased":
+    case "isCapitalized":
+    case "isUncapitalized":
+    case "isFinite":
+    case "isInt":
+    case "isUnique":
+    case "isDateValid":
+      return `Schema.${filter.meta._tag}(${ca})`
+
+    case "isStringFinite":
+    case "isStringBigInt":
+    case "isStringSymbol":
+    case "isPattern":
+      return `Schema.${filter.meta._tag}(${toRuntimeRegExp(filter.meta.regExp)}${ca})`
+
     case "isMinLength":
       return `Schema.isMinLength(${filter.meta.minLength}${ca})`
     case "isMaxLength":
       return `Schema.isMaxLength(${filter.meta.maxLength}${ca})`
     case "isLength":
       return `Schema.isLength(${filter.meta.length}${ca})`
-    case "isPattern":
-      return `Schema.isPattern(${toCodeRegExp(filter.meta.regExp)}${ca})`
-    case "isTrimmed":
-      return `Schema.isTrimmed(${ca})`
     case "isUUID":
       return `Schema.isUUID(${filter.meta.version}${ca})`
-    case "isULID":
-      return `Schema.isULID(${ca})`
-    case "isBase64":
-      return `Schema.isBase64(${ca})`
-    case "isBase64Url":
-      return `Schema.isBase64Url(${ca})`
     case "isStartsWith":
       return `Schema.isStartsWith(${filter.meta.startsWith}${ca})`
     case "isEndsWith":
       return `Schema.isEndsWith(${filter.meta.endsWith}${ca})`
     case "isIncludes":
       return `Schema.isIncludes(${filter.meta.includes}${ca})`
-    case "isUppercased":
-      return `Schema.isUppercased(${ca})`
-    case "isLowercased":
-      return `Schema.isLowercased(${ca})`
-    case "isCapitalized":
-      return `Schema.isCapitalized(${ca})`
-    case "isUncapitalized":
-      return `Schema.isUncapitalized(${ca})`
 
-      // Number Meta
-    case "isFinite":
-      return `Schema.isFinite(${ca})`
-    case "isInt":
-      return `Schema.isInt(${ca})`
+    case "isGreaterThan":
+    case "isGreaterThanBigInt":
+    case "isGreaterThanDate":
+      return `Schema.${filter.meta._tag}(${toRuntimeValue(filter.meta.exclusiveMinimum)}${ca})`
+    case "isGreaterThanOrEqualTo":
+    case "isGreaterThanOrEqualToBigInt":
+    case "isGreaterThanOrEqualToDate":
+      return `Schema.${filter.meta._tag}(${toRuntimeValue(filter.meta.minimum)}${ca})`
+    case "isLessThan":
+    case "isLessThanBigInt":
+    case "isLessThanDate":
+      return `Schema.${filter.meta._tag}(${toRuntimeValue(filter.meta.exclusiveMaximum)}${ca})`
+    case "isLessThanOrEqualTo":
+    case "isLessThanOrEqualToBigInt":
+    case "isLessThanOrEqualToDate":
+      return `Schema.${filter.meta._tag}(${toRuntimeValue(filter.meta.maximum)}${ca})`
+    case "isBetween":
+    case "isBetweenBigInt":
+    case "isBetweenDate":
+      return `Schema.${filter.meta._tag}({ minimum: ${toRuntimeValue(filter.meta.minimum)}, maximum: ${
+        toRuntimeValue(filter.meta.maximum)
+      }, exclusiveMinimum: ${toRuntimeValue(filter.meta.exclusiveMinimum)}, exclusiveMaximum: ${
+        toRuntimeValue(filter.meta.exclusiveMaximum)
+      }${ca})`
+
     case "isMultipleOf":
       return `Schema.isMultipleOf(${filter.meta.divisor}${ca})`
-    case "isGreaterThan":
-      return `Schema.isGreaterThan(${filter.meta.exclusiveMinimum}${ca})`
-    case "isGreaterThanOrEqualTo":
-      return `Schema.isGreaterThanOrEqualTo(${filter.meta.minimum}${ca})`
-    case "isLessThan":
-      return `Schema.isLessThan(${filter.meta.exclusiveMaximum}${ca})`
-    case "isLessThanOrEqualTo":
-      return `Schema.isLessThanOrEqualTo(${filter.meta.maximum}${ca})`
-    case "isBetween":
-      return `Schema.isBetween(${filter.meta.minimum}, ${filter.meta.maximum}${ca})`
 
-      // BigInt Meta
-    case "isGreaterThanBigInt":
-      return `Schema.isGreaterThanBigInt(${filter.meta.exclusiveMinimum}n${ca})`
-    case "isGreaterThanOrEqualToBigInt":
-      return `Schema.isGreaterThanOrEqualToBigInt(${filter.meta.minimum}n${ca})`
-    case "isLessThanBigInt":
-      return `Schema.isLessThanBigInt(${filter.meta.exclusiveMaximum}n${ca})`
-    case "isLessThanOrEqualToBigInt":
-      return `Schema.isLessThanOrEqualToBigInt(${filter.meta.maximum}n${ca})`
-    case "isBetweenBigInt":
-      return `Schema.isBetweenBigInt(${filter.meta.minimum}n, ${filter.meta.maximum}n${ca})`
-
-    // Arrays Meta
-    case "isUnique":
-      return `Schema.isUnique(${a})`
-
-    // Object Meta
     case "isMinProperties":
       return `Schema.isMinProperties(${filter.meta.minProperties}${ca})`
     case "isMaxProperties":
       return `Schema.isMaxProperties(${filter.meta.maxProperties}${ca})`
     case "isPropertiesLength":
       return `Schema.isPropertiesLength(${filter.meta.length}${ca})`
-
-    // Date Meta
-    case "isValidDate":
-      return `Schema.isValidDate(${a})`
-    case "isGreaterThanDate":
-      return `Schema.isGreaterThanDate(${filter.meta.exclusiveMinimum}${ca})`
-    case "isGreaterThanOrEqualToDate":
-      return `Schema.isGreaterThanOrEqualToDate(${filter.meta.minimum}${ca})`
-    case "isLessThanDate":
-      return `Schema.isLessThanDate(${filter.meta.exclusiveMaximum}${ca})`
-    case "isLessThanOrEqualToDate":
-      return `Schema.isLessThanOrEqualToDate(${filter.meta.maximum}${ca})`
-    case "isBetweenDate":
-      return `Schema.isBetweenDate(${filter.meta.minimum}, ${filter.meta.maximum}${ca})`
   }
 }
 
-function toCodeRegExp(regExp: RegExp): string {
+function toRuntimeValue(value: undefined | number | boolean | bigint | Date): string {
+  if (value instanceof Date) {
+    return `new Date(${value.getTime()})`
+  } else if (typeof value === "bigint") {
+    return `${value}n`
+  }
+  return `${value}`
+}
+
+function toRuntimeRegExp(regExp: RegExp): string {
   return `new RegExp(${format(regExp.source)}, ${format(regExp.flags)})`
 }
 
@@ -1746,7 +2009,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
     const annotations = collectAnnotations(js)
     if (annotations !== undefined) {
       if (out._tag === "Reference") {
-        const b = resolveRef(out.$ref)
+        const b = resolveReference(out.$ref)
         out = { ...b, ...combineAnnotations(b.annotations, annotations) }
       } else {
         out = { ...out, annotations }
@@ -1845,7 +2108,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
         return a
       case "Unknown": {
         if (b._tag === "Reference") {
-          b = resolveRef(b.$ref)
+          b = resolveReference(b.$ref)
         }
         return { ...b, ...combineAnnotations(a.annotations, b.annotations) }
       }
@@ -1857,7 +2120,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -1874,7 +2137,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -1891,7 +2154,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -1904,7 +2167,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -1919,7 +2182,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -1938,7 +2201,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -1957,7 +2220,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
           case "Union":
             return combine(b, a)
           case "Reference":
-            return combine(a, resolveRef(b.$ref))
+            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
@@ -1972,7 +2235,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
         }
       }
       case "Reference":
-        return combine(resolveRef(a.$ref), b)
+        return combine(resolveReference(a.$ref), b)
     }
   }
 
@@ -2007,11 +2270,11 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
     return out
   }
 
-  function resolveRef(ref: string): Exclude<Standard, { _tag: "Reference" }> {
-    const definition = definitions[ref]
+  function resolveReference($ref: string): Exclude<Standard, { _tag: "Reference" }> {
+    const definition = definitions[$ref]
     if (definition !== undefined) {
       if (definition._tag === "Reference") {
-        return resolveRef(definition.$ref)
+        return resolveReference(definition.$ref)
       } else {
         return definition
       }
@@ -2234,7 +2497,7 @@ export function topologicalSort(definitions: Definitions): TopologicalSort {
       switch (schema._tag) {
         case "Declaration":
           for (const typeParam of schema.typeParameters) stack.push(typeParam)
-          stack.push(schema.Encoded)
+          stack.push(schema.encodedSchema)
           break
         case "Suspend":
           stack.push(schema.thunk)

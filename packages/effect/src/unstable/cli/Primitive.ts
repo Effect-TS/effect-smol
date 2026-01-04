@@ -227,7 +227,7 @@ export const integer: Primitive<number> = makeSchemaPrimitive(
  */
 export const date: Primitive<Date> = makeSchemaPrimitive(
   "Date",
-  Schema.ValidDate
+  Schema.DateValid
 )
 
 /**
