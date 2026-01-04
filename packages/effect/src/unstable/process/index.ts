@@ -2,6 +2,8 @@
  * @since 4.0.0
  */
 
+// @barrel: Auto-generated exports. Do not edit manually.
+
 /**
  * An Effect-native module for working with child processes.
  *

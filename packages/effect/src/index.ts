@@ -29,6 +29,8 @@ export {
   pipe
 } from "./Function.ts"
 
+// @barrel: Auto-generated exports. Do not edit manually.
+
 /**
  * This module provides utility functions for working with arrays in TypeScript.
  *

@@ -1,0 +1,36 @@
+{
+  "name": "@effect/utils",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "description": "Build tools for the repositories following the Effect standard setup",
+  "sideEffects": [],
+  "bin": {
+    "effect-utils": "./src/bin.ts"
+  },
+  "files": [
+    "src/**/*.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
+  ],
+  "publishConfig": {
+    "bin": {
+      "effect-utils": "./dist/bin.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.build.json",
+    "check": "tsc -b tsconfig.json"
+  },
+  "dependencies": {
+    "@effect/platform-node": "workspace:^",
+    "effect": "workspace:^",
+    "glob": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.2"
+  }
+}

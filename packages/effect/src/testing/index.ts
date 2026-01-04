@@ -2,6 +2,8 @@
  * @since 4.0.0
  */
 
+// @barrel: Auto-generated exports. Do not edit manually.
+
 /**
  * This module provides a re-export of the fast-check library for property-based testing.
  * Fast-check is a property-based testing framework that generates random test cases

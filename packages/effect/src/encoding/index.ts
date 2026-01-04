@@ -2,6 +2,8 @@
  * @since 4.0.0
  */
 
+// @barrel: Auto-generated exports. Do not edit manually.
+
 /**
  * This module provides encoding & decoding functionality for:
  *

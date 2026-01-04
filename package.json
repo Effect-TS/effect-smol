@@ -49,7 +49,7 @@
     "@changesets/changelog-github": "^0.5.2",
     "@changesets/cli": "^2.29.8",
     "@edge-runtime/vm": "^5.0.0",
-    "@effect/build-utils": "^0.8.9",
+    "@effect/utils": "workspace:^",
     "@effect/docgen": "https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@49e99a2",
     "@effect/oxc": "workspace:^",
     "@effect/language-service": "^0.62.5",

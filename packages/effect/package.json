@@ -93,7 +93,7 @@
     }
   },
   "scripts": {
-    "codegen": "build-utils prepare-v4",
+    "codegen": "effect-utils codegen",
     "build": "tsc -b tsconfig.build.json && pnpm babel",
     "build:tsgo": "tsgo -b tsconfig.build.json && pnpm babel",
     "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",

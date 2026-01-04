@@ -2,6 +2,8 @@
  * @since 4.0.0
  */
 
+// @barrel: Auto-generated exports. Do not edit manually.
+
 /**
  * The `AiError` module provides comprehensive error handling for AI operations.
  *

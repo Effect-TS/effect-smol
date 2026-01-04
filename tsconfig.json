@@ -21,6 +21,7 @@
     { "path": "packages/sql/sqlite-react-native" },
     { "path": "packages/sql/sqlite-wasm" },
     { "path": "packages/tools/openapi-generator" },
+    { "path": "packages/tools/utils" },
     { "path": "packages/vitest" }
   ]
 }
