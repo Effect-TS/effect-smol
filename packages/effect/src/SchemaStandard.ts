@@ -1497,14 +1497,28 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
 }): GenerationDocument {
   const artifacts: Array<Artifact> = []
   let counter = 0
-  const identifiers = new Set<string>()
+  const generatedIdentifiers = new Set<string>()
+
+  const ts = topologicalSort(multiDocument.definitions)
+  const nonRecursives = ts.nonRecursives.map(({ $ref, schema }) => ({ $ref, schema: recur(schema) }))
+  const recursives = Rec.map(ts.recursives, recur)
+  const generations = multiDocument.schemas.map(recur)
+
+  return {
+    generations,
+    definitions: {
+      nonRecursives,
+      recursives
+    },
+    artifacts
+  }
 
   function generateIdentifier(prefix: string): string {
     let identifier: string
-    while (identifiers.has(identifier = `${prefix}_${counter}`)) {
+    while (generatedIdentifiers.has(identifier = `${prefix}_${counter}`)) {
       counter++
     }
-    identifiers.add(identifier)
+    generatedIdentifiers.add(identifier)
     return identifier
   }
 
@@ -1536,21 +1550,6 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
     if (!artifacts.some((a) => a._tag === "Import" && a.importDeclaration === importDeclaration)) {
       artifacts.push({ _tag: "Import", importDeclaration })
     }
-  }
-
-  const ts = topologicalSort(multiDocument.definitions)
-  const nonRecursives = ts.nonRecursives.map(({ $ref, schema }) => ({ $ref, schema: recur(schema) }))
-  const recursives = Rec.map(ts.recursives, (v, k) => {
-    identifiers.add(k)
-    return recur(v)
-  })
-
-  const generations = multiDocument.schemas.map(recur)
-
-  return {
-    generations,
-    definitions: { nonRecursives, recursives },
-    artifacts
   }
 
   function recur(s: Standard): Generation {
@@ -1963,13 +1962,16 @@ function toRuntimeRegExp(regExp: RegExp): string {
  * @since 4.0.0
  */
 export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020-12">): Document {
+  let visited$refs = new Set<string>()
   const definitions = Rec.map(document.definitions, (d, identifier) => {
+    visited$refs.add(identifier)
     const out = recur(d)
     if (out._tag === "Reference") return out
     const annotations = out.annotations
     return { ...out, annotations: { ...annotations, identifier } }
   })
 
+  visited$refs = new Set<string>()
   return {
     schema: recur(document.schema),
     definitions
@@ -2015,7 +2017,13 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
     if (typeof js.$ref === "string") {
       const $ref = js.$ref.slice(2).split("/").at(-1)
       if ($ref !== undefined) {
-        return { _tag: "Reference", $ref: unescapeToken($ref) }
+        const reference: Reference = { _tag: "Reference", $ref: unescapeToken($ref) }
+        if (visited$refs.has($ref)) {
+          return { _tag: "Suspend", thunk: reference, checks: [] }
+        } else {
+          visited$refs.add($ref)
+          return reference
+        }
       }
     } else if ("const" in js) {
       if (isLiteralValue(js.const)) {
