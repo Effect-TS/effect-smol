@@ -92,7 +92,7 @@ export const empty = (
  */
 export const redirect = (
   location: string | URL,
-  options?: Options.WithContentType | undefined
+  options?: Options.WithContent | undefined
 ): HttpServerResponse => {
   const headers = Headers.fromRecordUnsafe({ location: location.toString() })
   return makeResponse({
@@ -213,16 +213,18 @@ export const htmlStream = <
  */
 export const json = (
   body: unknown,
-  options?: Options.WithContent | undefined
-): Effect.Effect<HttpServerResponse, Body.HttpBodyError> =>
-  Effect.map(Body.json(body), (body) =>
+  options?: Options.WithContentType | undefined
+): Effect.Effect<HttpServerResponse, Body.HttpBodyError> => {
+  const headers = options?.headers ? Headers.fromInput(options.headers) : Headers.empty
+  return Effect.map(Body.json(body, getContentType(options, headers)), (body) =>
     makeResponse({
       status: options?.status ?? 200,
       statusText: options?.statusText,
-      headers: options?.headers && Headers.fromInput(options.headers),
+      headers,
       cookies: options?.cookies,
       body
     }))
+}
 
 /**
  * @since 4.0.0
@@ -235,16 +237,18 @@ export const schemaJson = <A, I, RD, RE>(
   const encode = Body.jsonSchema(schema, options)
   return (
     body: A,
-    options?: Options.WithContent | undefined
-  ): Effect.Effect<HttpServerResponse, Body.HttpBodyError, RE> =>
-    Effect.map(encode(body), (body) =>
+    options?: Options.WithContentType | undefined
+  ): Effect.Effect<HttpServerResponse, Body.HttpBodyError, RE> => {
+    const headers = options?.headers ? Headers.fromInput(options.headers) : Headers.empty
+    return Effect.map(encode(body, getContentType(options, headers)), (body) =>
       makeResponse({
         status: options?.status ?? 200,
         statusText: options?.statusText,
-        headers: options?.headers && Headers.fromInput(options.headers),
+        headers,
         cookies: options?.cookies,
         body
       }))
+  }
 }
 
 /**
@@ -253,15 +257,17 @@ export const schemaJson = <A, I, RD, RE>(
  */
 export const jsonUnsafe = (
   body: unknown,
-  options?: Options.WithContent | undefined
-): HttpServerResponse =>
-  makeResponse({
+  options?: Options.WithContentType | undefined
+): HttpServerResponse => {
+  const headers = options?.headers ? Headers.fromInput(options.headers) : Headers.empty
+  return makeResponse({
     status: options?.status ?? 200,
     statusText: options?.statusText,
-    headers: options?.headers && Headers.fromInput(options.headers),
+    headers,
     cookies: options?.cookies,
-    body: Body.jsonUnsafe(body)
+    body: Body.jsonUnsafe(body, getContentType(options, headers))
   })
+}
 
 /**
  * @since 4.0.0
@@ -269,18 +275,20 @@ export const jsonUnsafe = (
  */
 export const urlParams = (
   body: UrlParams.Input,
-  options?: Options.WithContent | undefined
-): HttpServerResponse =>
-  makeResponse({
+  options?: Options.WithContentType | undefined
+): HttpServerResponse => {
+  const headers = options?.headers ? Headers.fromInput(options.headers) : Headers.empty
+  return makeResponse({
     status: options?.status ?? 200,
     statusText: options?.statusText,
-    headers: options?.headers && Headers.fromInput(options.headers),
+    headers,
     cookies: options?.cookies,
     body: Body.text(
       UrlParams.toString(UrlParams.fromInput(body)),
-      "application/x-www-form-urlencoded"
+      getContentType(options, headers) ?? "application/x-www-form-urlencoded"
     )
   })
+}
 
 /**
  * @since 4.0.0

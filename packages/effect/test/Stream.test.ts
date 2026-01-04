@@ -511,7 +511,7 @@ describe("Stream", () => {
           ),
           Effect.scoped
         )
-        const expected1 = [0]
+        const expected1 = Array.of(0)
         const expected2 = [1, 2, 3, 4, 5, 6, 7, 8]
         const expected3 = [1, 2, 3, 4, 5, 6, 7, 8, 17, 18, 19, 20, 21, 22, 23, 24]
         assert.deepStrictEqual(result1, expected1)
@@ -596,7 +596,7 @@ describe("Stream", () => {
           ),
           Effect.scoped
         )
-        const expected1 = [0]
+        const expected1 = [0] as const
         const expected2 = [1, 2, 3, 4, 5, 6, 7, 8]
         const expected3 = [1, 2, 3, 4, 5, 6, 7, 8, 17, 18, 19, 20, 21, 22, 23, 24]
         deepStrictEqual(result1, expected1)
@@ -774,7 +774,7 @@ describe("Stream", () => {
           ),
           Effect.scoped
         )
-        const expected1 = [0]
+        const expected1 = [0] as const
         const expected2 = [9, 10, 11, 12, 13, 14, 15, 16]
         const expected3 = [9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, -1]
         deepStrictEqual(result1, expected1)

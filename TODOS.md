@@ -12,9 +12,10 @@ Releases are snapshot only
 - [x] Reduce nesting of modules
 - [x] Effect.fn call site trace
 - [x] Port Stream / Sink apis
+- [ ] Use Predicate for filtering functions
+- [ ] Add Atom package
 - [ ] Add opentelemetry package
 - [ ] Add AI provider packages
-- [ ] Use Predicate for filtering functions
 
 ## Beta
 
