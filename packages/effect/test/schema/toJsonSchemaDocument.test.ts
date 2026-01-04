@@ -593,37 +593,33 @@ describe("toJsonSchemaDocument", () => {
     })
   })
 
-  describe("Thrown errors", () => {
-    it("should throw if there is a suspended schema without an identifier", () => {
+  describe("Unsupported schemas", () => {
+    it("Suspend: should throw if there is a suspended schema without an identifier", () => {
       type A = readonly [A | null]
       const schema = Schema.Tuple([Schema.NullOr(Schema.suspend((): Schema.Codec<A> => schema))])
       assertUnsupportedSchema(schema, `Suspended schema without identifier`)
     })
 
-    describe("Tuple", () => {
-      it("Unsupported post-rest elements", () => {
-        assertUnsupportedSchema(
-          Schema.TupleWithRest(Schema.Tuple([]), [Schema.Finite, Schema.String]),
-          "Generating a JSON Schema for post-rest elements is not supported"
-        )
-      })
+    it("Tuple: unsupported post-rest elements", () => {
+      assertUnsupportedSchema(
+        Schema.TupleWithRest(Schema.Tuple([]), [Schema.Finite, Schema.String]),
+        "Generating a JSON Schema for post-rest elements is not supported"
+      )
     })
 
-    describe("Struct", () => {
-      it("Unsupported property signature name", () => {
-        const a = Symbol.for("effect/Schema/test/a")
-        assertUnsupportedSchema(
-          Schema.Struct({ [a]: Schema.String }),
-          `Unsupported property signature name: Symbol(effect/Schema/test/a)`
-        )
-      })
+    it("Struct: unsupported property signature name", () => {
+      const a = Symbol.for("effect/Schema/test/a")
+      assertUnsupportedSchema(
+        Schema.Struct({ [a]: Schema.String }),
+        `Unsupported property signature name: Symbol(effect/Schema/test/a)`
+      )
+    })
 
-      it("Unsupported index signature parameter", () => {
-        assertUnsupportedSchema(
-          Schema.Record(Schema.Symbol, Schema.Finite),
-          `Unsupported index signature parameter`
-        )
-      })
+    it("Record: unsupported index signature parameter", () => {
+      assertUnsupportedSchema(
+        Schema.Record(Schema.Symbol, Schema.Finite),
+        `Unsupported index signature parameter`
+      )
     })
   })
 

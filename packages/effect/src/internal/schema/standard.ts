@@ -23,7 +23,6 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
 
   const identifierMap = new Map<AST.AST, string>()
   const identifierCounter = new Map<string, number>()
-  const usedIdentifiers = new Set<string>()
   const visited = new Set<AST.AST>()
 
   return {
@@ -44,31 +43,29 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
     return on(last)
   }
 
-  function generateUniqueIdentifier(ast: AST.AST): string | undefined {
-    const existing = identifierMap.get(ast)
+  function generateUniqueIdentifier(last: AST.AST): string | undefined {
+    const existing = identifierMap.get(last)
     if (existing !== undefined) {
-      usedIdentifiers.add(existing)
       return existing
     }
-    const identifier = InternalAnnotations.resolveIdentifier(ast)
+    const identifier = InternalAnnotations.resolveIdentifier(last)
     if (identifier !== undefined) {
       // Check if base identifier is available
-      if (!usedIdentifiers.has(identifier)) {
+      let count = identifierCounter.get(identifier)
+      if (count === undefined) {
         identifierCounter.set(identifier, 0)
-        identifierMap.set(ast, identifier)
-        usedIdentifiers.add(identifier)
+        identifierMap.set(last, identifier)
         return identifier
+      } else {
+        // Find a unique identifier by incrementing until we find one that doesn't exist
+        let out
+        while (identifierCounter.has(out = `${identifier}-${++count}`)) {
+          //
+        }
+        identifierCounter.set(identifier, count)
+        identifierMap.set(last, out)
+        return out
       }
-      // Find a unique identifier by incrementing until we find one that doesn't exist
-      let count = (identifierCounter.get(identifier) ?? 0) + 1
-      let out
-      while (usedIdentifiers.has(out = `${identifier}-${count}`)) {
-        count++
-      }
-      identifierCounter.set(identifier, count)
-      identifierMap.set(ast, out)
-      usedIdentifiers.add(out)
-      return out
     }
   }
 
@@ -79,15 +76,15 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
     return ast
   }
 
-  function on(ast: AST.AST): SchemaStandard.Standard {
-    switch (ast._tag) {
+  function on(last: AST.AST): SchemaStandard.Standard {
+    switch (last._tag) {
       case "Declaration":
         return {
           _tag: "Declaration",
-          typeParameters: ast.typeParameters.map(recur),
-          encodedSchema: recur(InternalSerializer.toCodecJson(ast)),
-          checks: fromChecks(ast.checks),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          typeParameters: last.typeParameters.map(recur),
+          encodedSchema: recur(InternalSerializer.toCodecJson(last)),
+          checks: fromChecks(last.checks),
+          ...(last.annotations ? { annotations: last.annotations } : undefined)
         }
       case "Null":
       case "Undefined":
@@ -97,14 +94,14 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
       case "Any":
       case "Boolean":
       case "Symbol":
-        return { _tag: ast._tag, ...(ast.annotations ? { annotations: ast.annotations } : undefined) }
+        return { _tag: last._tag, ...(last.annotations ? { annotations: last.annotations } : undefined) }
       case "String": {
-        const contentMediaType = ast.annotations?.contentMediaType
-        const contentSchema = ast.annotations?.contentSchema
+        const contentMediaType = last.annotations?.contentMediaType
+        const contentSchema = last.annotations?.contentSchema
         return {
-          _tag: ast._tag,
-          checks: fromChecks(ast.checks),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined),
+          _tag: last._tag,
+          checks: fromChecks(last.checks),
+          ...(last.annotations ? { annotations: last.annotations } : undefined),
           ...(typeof contentMediaType === "string" && AST.isAST(contentSchema)
             ? { contentMediaType, contentSchema: recur(contentSchema) }
             : undefined)
@@ -113,43 +110,43 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
       case "Number":
       case "BigInt":
         return {
-          _tag: ast._tag,
-          checks: fromChecks(ast.checks),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          _tag: last._tag,
+          checks: fromChecks(last.checks),
+          ...(last.annotations ? { annotations: last.annotations } : undefined)
         }
       case "Literal":
         return {
-          _tag: ast._tag,
-          literal: ast.literal,
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          _tag: last._tag,
+          literal: last.literal,
+          ...(last.annotations ? { annotations: last.annotations } : undefined)
         }
       case "UniqueSymbol":
         return {
-          _tag: ast._tag,
-          symbol: ast.symbol,
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          _tag: last._tag,
+          symbol: last.symbol,
+          ...(last.annotations ? { annotations: last.annotations } : undefined)
         }
       case "ObjectKeyword":
         return {
-          _tag: ast._tag,
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          _tag: last._tag,
+          ...(last.annotations ? { annotations: last.annotations } : undefined)
         }
       case "Enum":
         return {
-          _tag: ast._tag,
-          enums: ast.enums,
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          _tag: last._tag,
+          enums: last.enums,
+          ...(last.annotations ? { annotations: last.annotations } : undefined)
         }
       case "TemplateLiteral":
         return {
-          _tag: ast._tag,
-          parts: ast.parts.map((p) => recur(p)),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          _tag: last._tag,
+          parts: last.parts.map((p) => recur(p)),
+          ...(last.annotations ? { annotations: last.annotations } : undefined)
         }
       case "Arrays":
         return {
-          _tag: ast._tag,
-          elements: ast.elements.map((e) => {
+          _tag: last._tag,
+          elements: last.elements.map((e) => {
             const last = getLastEncoding(e)
             return {
               isOptional: AST.isOptional(last),
@@ -157,14 +154,14 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
               ...(last.context?.annotations ? { annotations: last.context?.annotations } : undefined)
             }
           }),
-          rest: ast.rest.map(recur),
-          checks: fromChecks(ast.checks),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          rest: last.rest.map(recur),
+          checks: fromChecks(last.checks),
+          ...(last.annotations ? { annotations: last.annotations } : undefined)
         }
       case "Objects":
         return {
-          _tag: ast._tag,
-          propertySignatures: ast.propertySignatures.map((ps) => {
+          _tag: last._tag,
+          propertySignatures: last.propertySignatures.map((ps) => {
             const last = getLastEncoding(ps.type)
             return {
               name: ps.name,
@@ -174,24 +171,24 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
               ...(last.context?.annotations ? { annotations: last.context?.annotations } : undefined)
             }
           }),
-          indexSignatures: ast.indexSignatures.map((is) => ({
+          indexSignatures: last.indexSignatures.map((is) => ({
             parameter: recur(is.parameter),
             type: recur(is.type)
           })),
-          checks: fromChecks(ast.checks),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          checks: fromChecks(last.checks),
+          ...(last.annotations ? { annotations: last.annotations } : undefined)
         }
       case "Union": {
-        const types = InternalSerializer.jsonReorder(ast.types)
+        const types = InternalSerializer.jsonReorder(last.types)
         return {
-          _tag: ast._tag,
+          _tag: last._tag,
           types: types.map(recur),
-          mode: ast.mode,
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          mode: last.mode,
+          ...(last.annotations ? { annotations: last.annotations } : undefined)
         }
       }
       case "Suspend": {
-        const thunk = ast.thunk()
+        const thunk = last.thunk()
         if (visited.has(thunk)) {
           const identifier = generateUniqueIdentifier(thunk)
           if (identifier === undefined) {
@@ -201,14 +198,14 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
             _tag: "Suspend",
             checks: [],
             thunk: { _tag: "Reference", $ref: identifier },
-            ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+            ...(last.annotations ? { annotations: last.annotations } : undefined)
           }
         }
         return {
           _tag: "Suspend",
           checks: [],
           thunk: recur(thunk),
-          ...(ast.annotations ? { annotations: ast.annotations } : undefined)
+          ...(last.annotations ? { annotations: last.annotations } : undefined)
         }
       }
     }
