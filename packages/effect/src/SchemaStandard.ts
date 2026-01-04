@@ -413,7 +413,7 @@ const toJsonAnnotationsBlacklist: Set<string> = new Set([
   "toArbitraryConstraint",
   "toEquivalence",
   "toFormatter",
-  "toCodec*",
+  "toCodec",
   "toCodecJson",
   "toCodecIso",
   "expected",

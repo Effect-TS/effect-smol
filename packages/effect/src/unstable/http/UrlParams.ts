@@ -167,7 +167,7 @@ export const UrlParamsSchema: UrlParamsSchema = Schema.declare(
     },
     expected: "UrlParams",
     toEquivalence: () => Equivalence,
-    "toCodec*": () =>
+    toCodec: () =>
       Schema.link<UrlParams>()(
         Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
         Transformation.transform({

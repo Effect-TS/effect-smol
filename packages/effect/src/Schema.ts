@@ -5301,7 +5301,7 @@ export function Option<A extends Top>(value: A): Option<A> {
         importDeclaration: `import * as Option from "effect/Option"`
       },
       expected: "Option",
-      "toCodec*": ([value]) =>
+      toCodec: ([value]) =>
         link<Option_.Option<A["Encoded"]>>()(
           Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
           Transformation.transform({
@@ -5472,7 +5472,7 @@ export function Result<A extends Top, E extends Top>(
         importDeclaration: `import * as Result from "effect/Result"`
       },
       expected: "Result",
-      "toCodec*": ([success, failure]) =>
+      toCodec: ([success, failure]) =>
         link<Result_.Result<A["Encoded"], E["Encoded"]>>()(
           Union([
             Struct({ _tag: Literal("Success"), success }),
@@ -5676,7 +5676,7 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
         importDeclaration: `import * as Cause from "effect/Cause"`
       },
       expected: "Cause.Failure",
-      "toCodec*": ([error, defect]) =>
+      toCodec: ([error, defect]) =>
         link<Cause_.Failure<E["Encoded"]>>()(
           Union([
             TaggedStruct("Fail", { error }),
@@ -5793,7 +5793,7 @@ export function Cause<E extends Top, D extends Top>(error: E, defect: D): Cause<
         importDeclaration: `import * as Cause from "effect/Cause"`
       },
       expected: "Cause",
-      "toCodec*": ([error, defect]) =>
+      toCodec: ([error, defect]) =>
         link<Cause_.Cause<E["Encoded"]>>()(
           Array(CauseFailure(error, defect)),
           Transformation.transform({
@@ -5979,7 +5979,7 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
         importDeclaration: `import * as Exit from "effect/Exit"`
       },
       expected: "Exit",
-      "toCodec*": ([value, error, defect]) =>
+      toCodec: ([value, error, defect]) =>
         link<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
           Union([
             TaggedStruct("Success", { value }),
@@ -6086,7 +6086,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
         Type: `globalThis.ReadonlyMap<?, ?>`
       },
       expected: "ReadonlyMap",
-      "toCodec*": ([key, value]) =>
+      toCodec: ([key, value]) =>
         link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
           Array(Tuple([key, value])),
           Transformation.transform({
@@ -6169,7 +6169,7 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
         Type: `globalThis.ReadonlySet<?>`
       },
       expected: "ReadonlySet",
-      "toCodec*": ([value]) =>
+      toCodec: ([value]) =>
         link<globalThis.Set<Value["Encoded"]>>()(
           Array(value),
           Transformation.transform({
@@ -7374,7 +7374,7 @@ function getClassSchemaFactory<S extends Top>(
           {
             identifier,
             [AST.ClassTypeId]: ([from]: readonly [AST.AST]) => new AST.Link(from, transformation),
-            "toCodec*": ([from]: readonly [Codec<S["Encoded"]>]) => new AST.Link(from.ast, transformation),
+            toCodec: ([from]: readonly [Codec<S["Encoded"]>]) => new AST.Link(from.ast, transformation),
             toArbitrary: ([from]: readonly [FastCheck.Arbitrary<S["Type"]>]) => () =>
               from.map((args) => new self(args)),
             toFormatter: ([from]: readonly [Formatter<S["Type"]>]) => (t: Self) => `${self.identifier}(${from(t)})`,
@@ -7783,13 +7783,13 @@ export type StringTree = Tree<string | undefined>
  * preserving the original structure.
  *
  * Declarations are converted to `undefined` (unless they have a
- * `toCodecJson` or `toCodec*` annotation).
+ * `toCodecJson` or `toCodec` annotation).
  *
  * **Options**
  *
  * - `keepDeclarations`: if `true`, it **does not** convert declarations to
  *   `undefined` but instead keeps them as they are (unless they have a
- *   `toCodecJson` or `toCodec*` annotation).
+ *   `toCodecJson` or `toCodec` annotation).
  *
  *    Defaults to `false`.
  *
@@ -7949,7 +7949,7 @@ function serializerTree(
     case "Unknown":
     case "ObjectKeyword":
     case "Declaration": {
-      const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.["toCodec*"]
+      const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.toCodec
       if (Predicate.isFunction(getLink)) {
         const tps = AST.isDeclaration(ast)
           ? ast.typeParameters.map((tp) => make(recur(AST.toEncoded(tp))))
@@ -8431,7 +8431,7 @@ export declare namespace Annotations {
   export interface Declaration<T, TypeParameters extends ReadonlyArray<Top> = readonly []>
     extends Bottom<T, TypeParameters>
   {
-    readonly "toCodec*"?:
+    readonly toCodec?:
       | ((typeParameters: TypeParameters.Encoded<TypeParameters>) => AST.Link)
       | undefined
     readonly toCodecJson?:

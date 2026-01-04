@@ -96,7 +96,7 @@ export const HeadersSchema: HeadersSchema = Schema.declare(
     },
     expected: "Headers",
     toEquivalence: () => Equivalence,
-    "toCodec*": () =>
+    toCodec: () =>
       Schema.link<Headers>()(
         Schema.Record(Schema.String, Schema.String),
         Transformation.transform({
