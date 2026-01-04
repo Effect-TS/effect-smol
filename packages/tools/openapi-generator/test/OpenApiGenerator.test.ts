@@ -165,7 +165,48 @@ describe("OpenApiGenerator", () => {
       assertRuntime({
         openapi: "3.1.0",
         info: { title: "Test API", version: "1.0.0" },
-        paths: {},
+        paths: {
+          "/users/{id}": {
+            get: {
+              operationId: "getUser",
+              parameters: [
+                {
+                  name: "id",
+                  in: "path",
+                  schema: {
+                    type: "string"
+                  },
+                  required: true
+                }
+              ],
+              responses: {
+                200: {
+                  description: "User retrieved successfully",
+                  content: {
+                    "application/json": {
+                      schema: {
+                        type: "object",
+                        properties: {
+                          id: {
+                            type: "string"
+                          },
+                          name: {
+                            type: "string"
+                          }
+                        },
+                        required: ["id", "name"],
+                        additionalProperties: false,
+                        description: "User object"
+                      }
+                    }
+                  }
+                }
+              },
+              tags: ["Users"],
+              security: []
+            }
+          }
+        },
         tags: [],
         security: [],
         components: {
@@ -194,7 +235,48 @@ describe("OpenApiGenerator", () => {
       assertRuntime({
         openapi: "3.1.0",
         info: { title: "Test API", version: "1.0.0" },
-        paths: {},
+        paths: {
+          "/users/{id}": {
+            get: {
+              operationId: "getUser",
+              parameters: [
+                {
+                  name: "id",
+                  in: "path",
+                  schema: {
+                    type: "string"
+                  },
+                  required: true
+                }
+              ],
+              responses: {
+                200: {
+                  description: "User retrieved successfully",
+                  content: {
+                    "application/json": {
+                      schema: {
+                        type: "object",
+                        properties: {
+                          id: {
+                            type: "string"
+                          },
+                          name: {
+                            type: "string"
+                          }
+                        },
+                        required: ["id", "name"],
+                        additionalProperties: false,
+                        description: "User object"
+                      }
+                    }
+                  }
+                }
+              },
+              tags: ["Users"],
+              security: []
+            }
+          }
+        },
         tags: [],
         security: [],
         components: {
@@ -222,7 +304,48 @@ describe("OpenApiGenerator", () => {
       assertRuntime({
         openapi: "3.1.0",
         info: { title: "Test API", version: "1.0.0" },
-        paths: {},
+        paths: {
+          "/users/{id}": {
+            get: {
+              operationId: "getUser",
+              parameters: [
+                {
+                  name: "id",
+                  in: "path",
+                  schema: {
+                    type: "string"
+                  },
+                  required: true
+                }
+              ],
+              responses: {
+                200: {
+                  description: "User retrieved successfully",
+                  content: {
+                    "application/json": {
+                      schema: {
+                        type: "object",
+                        properties: {
+                          id: {
+                            type: "string"
+                          },
+                          name: {
+                            type: "string"
+                          }
+                        },
+                        required: ["id", "name"],
+                        additionalProperties: false,
+                        description: "User object"
+                      }
+                    }
+                  }
+                }
+              },
+              tags: ["Users"],
+              security: []
+            }
+          }
+        },
         tags: [],
         security: [],
         components: {

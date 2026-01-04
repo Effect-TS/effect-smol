@@ -1495,7 +1495,6 @@ export type GenerationDocument = {
 export function toGenerationDocument(multiDocument: MultiDocument, options?: {
   readonly reviver?: Reviver<Generation> | undefined
 }): GenerationDocument {
-  const visited = new Set<string>()
   const artifacts: Array<Artifact> = []
   let counter = 0
   const identifiers = new Set<string>()
@@ -1540,34 +1539,18 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
   }
 
   const ts = topologicalSort(multiDocument.definitions)
-  const nonRecursives = ts.nonRecursives.map(({ $ref, schema }) => ({ $ref, schema: top(schema) }))
+  const nonRecursives = ts.nonRecursives.map(({ $ref, schema }) => ({ $ref, schema: recur(schema) }))
   const recursives = Rec.map(ts.recursives, (v, k) => {
     identifiers.add(k)
-    return top(v)
+    return recur(v)
   })
 
-  const generations = multiDocument.schemas.map(top)
+  const generations = multiDocument.schemas.map(recur)
 
   return {
     generations,
     definitions: { nonRecursives, recursives },
     artifacts
-  }
-
-  function resolveReference($ref: string): Generation {
-    if (visited.has($ref)) {
-      return makeGeneration($ref, $ref, `${$ref}Encoded`)
-    }
-    visited.add($ref)
-    const definition = multiDocument.definitions[$ref]
-    if (definition === undefined) {
-      return makeGeneration("Schema.Unknown", "unknown")
-    }
-    return recur(multiDocument.definitions[$ref])
-  }
-
-  function top(s: Standard): Generation {
-    return s._tag === "Reference" ? resolveReference(s.$ref) : recur(s)
   }
 
   function recur(s: Standard): Generation {
@@ -1980,7 +1963,12 @@ function toRuntimeRegExp(regExp: RegExp): string {
  * @since 4.0.0
  */
 export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020-12">): Document {
-  const definitions = Rec.map(document.definitions, (d) => recur(d))
+  const definitions = Rec.map(document.definitions, (d, identifier) => {
+    const out = recur(d)
+    if (out._tag === "Reference") return out
+    const annotations = out.annotations
+    return { ...out, annotations: { ...annotations, identifier } }
+  })
 
   return {
     schema: recur(document.schema),

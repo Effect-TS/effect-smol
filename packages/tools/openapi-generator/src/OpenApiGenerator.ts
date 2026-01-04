@@ -42,7 +42,7 @@ const methodNames: ReadonlyArray<OpenAPISpecMethodName> = [
 export const make = Effect.gen(function*() {
   const generate = Effect.fn(
     function*(spec: OpenAPISpec, options: OpenApiGenerateOptions) {
-      const generator = yield* JsonSchemaGenerator.JsonSchemaGenerator
+      const generator = JsonSchemaGenerator.make()
       const openApiTransformer = yield* OpenApiTransformer.OpenApiTransformer
 
       // If we receive a Swagger 2.0 spec, convert it to an OpenApi 3.0 spec
@@ -217,7 +217,7 @@ export const make = Effect.gen(function*() {
       // TODO: make a CLI option ?
       const importName = "Schema"
       const source = getDialect(spec)
-      const generation = generator.generate(source, spec, options.typeOnly)
+      const generation = generator.generate(source, spec.components?.schemas ?? {}, options.typeOnly)
 
       return String.stripMargin(
         `|${openApiTransformer.imports(importName)}
@@ -227,10 +227,6 @@ export const make = Effect.gen(function*() {
          |${openApiTransformer.toTypes(importName, options.name, operations)}`
       )
     },
-    Effect.provideServiceEffect(
-      JsonSchemaGenerator.JsonSchemaGenerator,
-      JsonSchemaGenerator.make
-    ),
     (effect, _, options) =>
       Effect.provideServiceEffect(
         effect,
@@ -244,7 +240,7 @@ export const make = Effect.gen(function*() {
   return { generate } as const
 })
 
-function getDialect(spec: OpenAPISpec): JsonSchema.Dialect {
+function getDialect(spec: OpenAPISpec): "openapi-3.0" | "openapi-3.1" {
   return spec.openapi.trim().startsWith("3.0") ? "openapi-3.0" : "openapi-3.1"
 }
 

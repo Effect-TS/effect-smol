@@ -9,69 +9,56 @@ import type * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-import { HttpApiSchemaError } from "effect/unstable/httpapi/HttpApiError"
-
-export type ComponentsSchema = { readonly "contentType": string, readonly "length": number }
-export type ComponentsSchemaEncoded = ComponentsSchema
-export const ComponentsSchema = Schema.Struct({ "contentType": Schema.String, "length": Schema.Int }).annotate({ "identifier": "ComponentsSchema" })
-
-export type Group = { readonly "id": number, readonly "name": string }
-export type GroupEncoded = Group
-export const Group = Schema.Struct({ "id": Schema.Int, "name": Schema.String }).annotate({ "identifier": "Group" })
-
-export type PersistedFile = { readonly "key": string, readonly "name": string, readonly "contentType": string, readonly "path": string }
-export type PersistedFileEncoded = PersistedFile
-export const PersistedFile = Schema.Struct({ "key": Schema.String, "name": Schema.String, "contentType": Schema.String, "path": Schema.String }).annotate({ "identifier": "PersistedFile" })
-
-export type User = { readonly "id": number, readonly "uuid"?: string, readonly "name": string, readonly "createdAt": string }
-export type UserEncoded = User
-export const User = Schema.Struct({ "id": Schema.Int, "uuid": Schema.optionalKey(Schema.String), "name": Schema.String, "createdAt": Schema.String }).annotate({ "identifier": "User" })
-
-export type UserError = { readonly "_tag": "UserError" }
-export type UserErrorEncoded = UserError
-export const UserError = Schema.Struct({ "_tag": Schema.Literal("UserError") }).annotate({ "identifier": "UserError" })
-
-export type NoStatusError = { readonly "_tag": "NoStatusError" }
-export type NoStatusErrorEncoded = NoStatusError
-export const NoStatusError = Schema.Struct({ "_tag": Schema.Literal("NoStatusError") }).annotate({ "identifier": "NoStatusError" })
-
+// schemas
 export type GroupsFindById200 = Group
 export type GroupsFindById200Encoded = GroupEncoded
 export const GroupsFindById200 = Group
-
-export type GroupsFindById400 = typeof HttpApiSchemaError["Type"]
-export type GroupsFindById400Encoded = typeof HttpApiSchemaError["Encoded"]
-export const GroupsFindById400 = HttpApiSchemaError
-
+export type GroupsFindById400 = effect/HttpApiSchemaError
+export type GroupsFindById400Encoded = effect/HttpApiSchemaErrorEncoded
+export const GroupsFindById400 = effect/HttpApiSchemaError
 export type UsersFindById200 = User
 export type UsersFindById200Encoded = UserEncoded
 export const UsersFindById200 = User
-
-export type UsersFindById400 = typeof HttpApiSchemaError["Type"] | UserError
-export type UsersFindById400Encoded = typeof HttpApiSchemaError["Encoded"] | UserErrorEncoded
-export const UsersFindById400 = Schema.Union([HttpApiSchemaError, UserError])
-
-export type ListUsersParams = { readonly "page"?: string, 
-/** search query */
-readonly "query"?: string }
+export type UsersFindById400 = effect/HttpApiSchemaError | UserError
+export type UsersFindById400Encoded = effect/HttpApiSchemaErrorEncoded | UserErrorEncoded
+export const UsersFindById400 = Schema.Union([effect/HttpApiSchemaError, UserError])
+export type ListUsersParams = { readonly "page"?: string, readonly "query"?: string }
 export type ListUsersParamsEncoded = ListUsersParams
 export const ListUsersParams = Schema.Struct({ "page": Schema.optionalKey(Schema.String), "query": Schema.optionalKey(Schema.String.annotate({ "description": "search query" })) })
-
 export type ListUsers200 = ReadonlyArray<User>
 export type ListUsers200Encoded = ReadonlyArray<UserEncoded>
 export const ListUsers200 = Schema.Array(User)
-
-export type ListUsers400 = typeof HttpApiSchemaError["Type"]
-export type ListUsers400Encoded = typeof HttpApiSchemaError["Encoded"]
-export const ListUsers400 = HttpApiSchemaError
-
+export type ListUsers400 = effect/HttpApiSchemaError
+export type ListUsers400Encoded = effect/HttpApiSchemaErrorEncoded
+export const ListUsers400 = effect/HttpApiSchemaError
 export type ListUsers500 = NoStatusError
 export type ListUsers500Encoded = NoStatusErrorEncoded
 export const ListUsers500 = NoStatusError
-
-export type Healthz400 = typeof HttpApiSchemaError["Type"]
-export type Healthz400Encoded = typeof HttpApiSchemaError["Encoded"]
-export const Healthz400 = HttpApiSchemaError
+export type Healthz400 = effect/HttpApiSchemaError
+export type Healthz400Encoded = effect/HttpApiSchemaErrorEncoded
+export const Healthz400 = effect/HttpApiSchemaError
+// non-recursive definitions
+export type ComponentsSchema = { readonly "contentType": string, readonly "length": number }
+export type ComponentsSchemaEncoded = ComponentsSchema
+export const ComponentsSchema = Schema.Struct({ "contentType": Schema.String, "length": Schema.Number.check(Schema.isInt()) }).annotate({ "identifier": "ComponentsSchema" })
+export type Group = { readonly "id": number, readonly "name": string }
+export type GroupEncoded = Group
+export const Group = Schema.Struct({ "id": Schema.Number.check(Schema.isInt()), "name": Schema.String }).annotate({ "identifier": "Group" })
+export type effect/HttpApiSchemaError = { readonly "_tag": "HttpApiSchemaError", readonly "message": string }
+export type effect/HttpApiSchemaErrorEncoded = effect/HttpApiSchemaError
+export const effect/HttpApiSchemaError = Schema.Struct({ "_tag": Schema.Literal("HttpApiSchemaError"), "message": Schema.String }).annotate({ "identifier": "effect/HttpApiSchemaError" })
+export type PersistedFile = { readonly "key": string, readonly "name": string, readonly "contentType": string, readonly "path": string }
+export type PersistedFileEncoded = PersistedFile
+export const PersistedFile = Schema.Struct({ "key": Schema.String, "name": Schema.String, "contentType": Schema.String, "path": Schema.String }).annotate({ "identifier": "PersistedFile" })
+export type User = { readonly "id": number, readonly "uuid"?: string, readonly "name": string, readonly "createdAt": string }
+export type UserEncoded = User
+export const User = Schema.Struct({ "id": Schema.Number.check(Schema.isInt()), "uuid": Schema.optionalKey(Schema.String), "name": Schema.String, "createdAt": Schema.String }).annotate({ "identifier": "User" })
+export type UserError = { readonly "_tag": "UserError" }
+export type UserErrorEncoded = UserError
+export const UserError = Schema.Struct({ "_tag": Schema.Literal("UserError") }).annotate({ "identifier": "UserError" })
+export type NoStatusError = { readonly "_tag": "NoStatusError" }
+export type NoStatusErrorEncoded = NoStatusError
+export const NoStatusError = Schema.Struct({ "_tag": Schema.Literal("NoStatusError") }).annotate({ "identifier": "NoStatusError" })
 
 export interface OperationConfig {
   /**
@@ -225,14 +212,9 @@ import type * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-
-
-
-/** User object */
+// schemas
 export type GetUser200 = { readonly "id": string, readonly "name": string }
 export type GetUser200Encoded = GetUser200
-
-/** User object */
 export const GetUser200 = Schema.Struct({ "id": Schema.String, "name": Schema.String }).annotate({ "description": "User object" })
 
 export interface OperationConfig {
@@ -353,8 +335,7 @@ import type * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-
-
+// schemas
 export type GetUser200 = { readonly "id": string, readonly "name": string }
 export type GetUser200Encoded = GetUser200
 
@@ -498,29 +479,17 @@ import type * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-
-
-
-/** A conversation object */
-export type Conversation2 = { 
-/** Conversation ID */
-readonly "id"?: string, readonly [x: string]: unknown }
-export type Conversation2Encoded = Conversation2
-
-/** A conversation object */
-export const Conversation2 = Schema.StructWithRest(Schema.Struct({ "id": Schema.optionalKey(Schema.String.annotate({ "description": "Conversation ID" })) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "A conversation object" }).annotate({ "identifier": "Conversation-2" })
-
-
-/** An error object */
-export type Error2 = { 
-/** Error code */
-readonly "code"?: string, 
-/** Error message */
-readonly "message"?: string, readonly [x: string]: unknown }
-export type Error2Encoded = Error2
-
-/** An error object */
-export const Error2 = Schema.StructWithRest(Schema.Struct({ "code": Schema.optionalKey(Schema.String.annotate({ "description": "Error code" })), "message": Schema.optionalKey(Schema.String.annotate({ "description": "Error message" })) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "An error object" }).annotate({ "identifier": "Error-2" })
+// schemas
+export type GetUser200 = { readonly "id": string, readonly "name": string }
+export type GetUser200Encoded = GetUser200
+export const GetUser200 = Schema.Struct({ "id": Schema.String, "name": Schema.String }).annotate({ "description": "User object" })
+// non-recursive definitions
+export type Conversation-2 = { readonly "id"?: string, Record<string, unknown> }
+export type Conversation-2Encoded = Conversation-2
+export const Conversation-2 = Schema.StructWithRest(Schema.Struct({ "id": Schema.optionalKey(Schema.String.annotate({ "description": "Conversation ID" })) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "A conversation object", "identifier": "Conversation-2" })
+export type Error-2 = { readonly "code"?: string, readonly "message"?: string, Record<string, unknown> }
+export type Error-2Encoded = Error-2
+export const Error-2 = Schema.StructWithRest(Schema.Struct({ "code": Schema.optionalKey(Schema.String.annotate({ "description": "Error code" })), "message": Schema.optionalKey(Schema.String.annotate({ "description": "Error message" })) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "An error object", "identifier": "Error-2" })
 
 export interface OperationConfig {
   /**
@@ -592,13 +561,18 @@ export const make = (
       )
   return {
     httpClient,
-    
+    "getUser": (id, options) => HttpClientRequest.get(\`/users/\${id}\`).pipe(
+    withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(GetUser200),
+      orElse: unexpectedStatus
+    }))
+  )
   }
 }
 
 export interface TestClient {
   readonly httpClient: HttpClient.HttpClient
-  
+  readonly "getUser": <Config extends OperationConfig>(id: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof GetUser200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
 }
 
 export interface TestClientError<Tag extends string, E> {
@@ -637,27 +611,17 @@ import type * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-
-
-
-/** First conversation */
-export type Conversation2 = { 
-/** ID */
-readonly "id"?: string, readonly [x: string]: unknown }
+// schemas
+export type GetUser200 = { readonly "id": string, readonly "name": string }
+export type GetUser200Encoded = GetUser200
+export const GetUser200 = Schema.Struct({ "id": Schema.String, "name": Schema.String }).annotate({ "description": "User object" })
+// non-recursive definitions
+export type Conversation2 = { readonly "id"?: string, Record<string, unknown> }
 export type Conversation2Encoded = Conversation2
-
-/** First conversation */
-export const Conversation2 = Schema.StructWithRest(Schema.Struct({ "id": Schema.optionalKey(Schema.String.annotate({ "description": "ID" })) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "First conversation" }).annotate({ "identifier": "Conversation2" })
-
-
-/** Second conversation (will be renamed to avoid collision) */
-export type Conversation21 = { 
-/** Name */
-readonly "name"?: string, readonly [x: string]: unknown }
-export type Conversation21Encoded = Conversation21
-
-/** Second conversation (will be renamed to avoid collision) */
-export const Conversation21 = Schema.StructWithRest(Schema.Struct({ "name": Schema.optionalKey(Schema.String.annotate({ "description": "Name" })) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "Second conversation (will be renamed to avoid collision)" }).annotate({ "identifier": "Conversation-2" })
+export const Conversation2 = Schema.StructWithRest(Schema.Struct({ "id": Schema.optionalKey(Schema.String.annotate({ "description": "ID" })) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "First conversation", "identifier": "Conversation2" })
+export type Conversation-2 = { readonly "name"?: string, Record<string, unknown> }
+export type Conversation-2Encoded = Conversation-2
+export const Conversation-2 = Schema.StructWithRest(Schema.Struct({ "name": Schema.optionalKey(Schema.String.annotate({ "description": "Name" })) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "Second conversation (will be renamed to avoid collision)", "identifier": "Conversation-2" })
 
 export interface OperationConfig {
   /**
@@ -729,13 +693,18 @@ export const make = (
       )
   return {
     httpClient,
-    
+    "getUser": (id, options) => HttpClientRequest.get(\`/users/\${id}\`).pipe(
+    withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(GetUser200),
+      orElse: unexpectedStatus
+    }))
+  )
   }
 }
 
 export interface TestClient {
   readonly httpClient: HttpClient.HttpClient
-  
+  readonly "getUser": <Config extends OperationConfig>(id: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof GetUser200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
 }
 
 export interface TestClientError<Tag extends string, E> {
@@ -774,23 +743,17 @@ import type * as HttpClient from "effect/unstable/http/HttpClient"
 import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-
-
-
-/** A valid schema name */
-export type ValidName = { readonly "id"?: string, readonly [x: string]: unknown }
+// schemas
+export type GetUser200 = { readonly "id": string, readonly "name": string }
+export type GetUser200Encoded = GetUser200
+export const GetUser200 = Schema.Struct({ "id": Schema.String, "name": Schema.String }).annotate({ "description": "User object" })
+// non-recursive definitions
+export type ValidName = { readonly "id"?: string, Record<string, unknown> }
 export type ValidNameEncoded = ValidName
-
-/** A valid schema name */
-export const ValidName = Schema.StructWithRest(Schema.Struct({ "id": Schema.optionalKey(Schema.String) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "A valid schema name" }).annotate({ "identifier": "ValidName" })
-
-
-/** Another valid schema name */
-export type AnotherValidName123 = { readonly "value"?: number, readonly [x: string]: unknown }
+export const ValidName = Schema.StructWithRest(Schema.Struct({ "id": Schema.optionalKey(Schema.String) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "A valid schema name", "identifier": "ValidName" })
+export type AnotherValidName123 = { readonly "value"?: number, Record<string, unknown> }
 export type AnotherValidName123Encoded = AnotherValidName123
-
-/** Another valid schema name */
-export const AnotherValidName123 = Schema.StructWithRest(Schema.Struct({ "value": Schema.optionalKey(Schema.Number) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "Another valid schema name" }).annotate({ "identifier": "AnotherValidName123" })
+export const AnotherValidName123 = Schema.StructWithRest(Schema.Struct({ "value": Schema.optionalKey(Schema.Number.check(Schema.isFinite())) }), [Schema.Record(Schema.String, Schema.Unknown)]).annotate({ "description": "Another valid schema name", "identifier": "AnotherValidName123" })
 
 export interface OperationConfig {
   /**
@@ -862,13 +825,18 @@ export const make = (
       )
   return {
     httpClient,
-    
+    "getUser": (id, options) => HttpClientRequest.get(\`/users/\${id}\`).pipe(
+    withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(GetUser200),
+      orElse: unexpectedStatus
+    }))
+  )
   }
 }
 
 export interface TestClient {
   readonly httpClient: HttpClient.HttpClient
-  
+  readonly "getUser": <Config extends OperationConfig>(id: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof GetUser200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
 }
 
 export interface TestClientError<Tag extends string, E> {

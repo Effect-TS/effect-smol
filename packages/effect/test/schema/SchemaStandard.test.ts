@@ -250,6 +250,20 @@ describe("Standard", () => {
         })
       })
 
+      it("String & identifier", () => {
+        assertToGenerationDocument({ schema: Schema.String.annotate({ identifier: "ID" }) }, {
+          generations: makeGeneration("ID", "ID", "IDEncoded"),
+          definitions: {
+            nonRecursives: [
+              {
+                $ref: "ID",
+                schema: makeGeneration(`Schema.String.annotate({ "identifier": "ID" })`, "string")
+              }
+            ]
+          }
+        })
+      })
+
       it("String & annotations", () => {
         assertToGenerationDocument(
           { schema: Schema.String.annotate({ "description": "a" }) },
@@ -1206,11 +1220,7 @@ describe("Standard", () => {
               schema: OuterCategory
             },
             {
-              generations: makeGeneration(
-                `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)) }).annotate({ "identifier": "Category" })`,
-                `{ readonly "name": string, readonly "children": ReadonlyArray<Category> }`,
-                `{ readonly "name": string, readonly "children": ReadonlyArray<CategoryEncoded> }`
-              ),
+              generations: makeGeneration("Category", "Category", "CategoryEncoded"),
               definitions: {
                 recursives: {
                   Category: makeGeneration(
@@ -1859,17 +1869,17 @@ describe("Standard", () => {
       it("should create a Reference and a definition", () => {
         assertFromJsonSchema(
           {
-            $ref: "#/$defs/a",
+            $ref: "#/$defs/A",
             $defs: {
-              a: {
+              A: {
                 type: "string"
               }
             }
           },
           {
-            schema: { _tag: "Reference", $ref: "a" },
+            schema: { _tag: "Reference", $ref: "A" },
             definitions: {
-              a: { _tag: "String", checks: [] }
+              A: { _tag: "String", checks: [], annotations: { identifier: "A" } }
             }
           }
         )
@@ -1878,18 +1888,18 @@ describe("Standard", () => {
       it("should resolve the $ref if there are annotations", () => {
         assertFromJsonSchema(
           {
-            $ref: "#/$defs/a",
+            $ref: "#/$defs/A",
             description: "a",
             $defs: {
-              a: {
+              A: {
                 type: "string"
               }
             }
           },
           {
-            schema: { _tag: "String", checks: [], annotations: { description: "a" } },
+            schema: { _tag: "String", checks: [], annotations: { description: "a", identifier: "A" } },
             definitions: {
-              a: { _tag: "String", checks: [] }
+              A: { _tag: "String", checks: [], annotations: { identifier: "A" } }
             }
           }
         )
@@ -1899,19 +1909,19 @@ describe("Standard", () => {
         assertFromJsonSchema(
           {
             allOf: [
-              { $ref: "#/$defs/a" },
+              { $ref: "#/$defs/A" },
               { description: "a" }
             ],
             $defs: {
-              a: {
+              A: {
                 type: "string"
               }
             }
           },
           {
-            schema: { _tag: "String", checks: [], annotations: { description: "a" } },
+            schema: { _tag: "String", checks: [], annotations: { description: "a", identifier: "A" } },
             definitions: {
-              a: { _tag: "String", checks: [] }
+              A: { _tag: "String", checks: [], annotations: { identifier: "A" } }
             }
           }
         )
@@ -1968,6 +1978,23 @@ describe("Standard", () => {
           `Schema.Record(Schema.String, Schema.Boolean)`
         )
       })
+    })
+
+    it("definitions", () => {
+      assertFromJsonSchema(
+        {
+          $ref: "#/$defs/A",
+          $defs: {
+            A: { type: "string" }
+          }
+        },
+        {
+          schema: { _tag: "Reference", $ref: "A" },
+          definitions: {
+            A: { _tag: "String", checks: [], annotations: { identifier: "A" } }
+          }
+        }
+      )
     })
   })
 
