@@ -382,7 +382,7 @@ export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMe
 /**
  * @since 4.0.0
  */
-export interface Definitions {
+export interface References {
   readonly [$ref: string]: Standard
 }
 
@@ -391,7 +391,7 @@ export interface Definitions {
  */
 export type Document = {
   readonly schema: Standard
-  readonly definitions: Definitions
+  readonly references: References
 }
 
 /**
@@ -399,7 +399,7 @@ export type Document = {
  */
 export type MultiDocument = {
   readonly schemas: readonly [Standard, ...Array<Standard>]
-  readonly definitions: Definitions
+  readonly references: References
 }
 
 // -----------------------------------------------------------------------------
@@ -409,13 +409,7 @@ export type MultiDocument = {
 const Standard$ref = Schema.suspend(() => Standard$)
 
 const toJsonAnnotationsBlacklist: Set<string> = new Set([
-  "toArbitrary",
-  "toArbitraryConstraint",
-  "toEquivalence",
-  "toFormatter",
-  "toCodec",
-  "toCodecJson",
-  "toCodecIso",
+  ...InternalStandard.fromASTBlacklist,
   "expected",
   "meta",
   "~structural",
@@ -1028,7 +1022,7 @@ export const Standard$: Standard$ = Schema.Union([
  */
 export const Document$ = Schema.Struct({
   schema: Standard$,
-  definitions: Schema.Record(Schema.String, Standard$)
+  references: Schema.Record(Schema.String, Standard$)
 }).annotate({ identifier: "Document" })
 
 // -----------------------------------------------------------------------------
@@ -1055,7 +1049,7 @@ export function toJson(document: Document): JsonSchema.Document<"draft-2020-12">
   return {
     dialect: "draft-2020-12",
     schema: encodeSchema(document.schema) as JsonSchema.JsonSchema,
-    definitions: Rec.map(document.definitions, (d) => encodeSchema(d)) as JsonSchema.Definitions
+    definitions: Rec.map(document.references, (d) => encodeSchema(d)) as JsonSchema.Definitions
   }
 }
 
@@ -1165,7 +1159,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
   }
 
   function resolveReference($ref: string): Schema.Top {
-    const definition = document.definitions[$ref]
+    const definition = document.references[$ref]
     if (definition === undefined) {
       return Schema.Unknown
     }
@@ -1499,7 +1493,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
   let counter = 0
   const generatedIdentifiers = new Set<string>()
 
-  const ts = topologicalSort(multiDocument.definitions)
+  const ts = topologicalSort(multiDocument.references)
   const nonRecursives = ts.nonRecursives.map(({ $ref, schema }) => ({ $ref, schema: recur(schema) }))
   const recursives = Rec.map(ts.recursives, recur)
   const generations = multiDocument.schemas.map(recur)
@@ -1974,7 +1968,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
   visited$refs = new Set<string>()
   return {
     schema: recur(document.schema),
-    definitions
+    references: definitions
   }
 
   function recur(u: unknown): Standard {
@@ -2469,7 +2463,7 @@ export type TopologicalSort = {
 /**
  * @since 4.0.0
  */
-export function topologicalSort(definitions: Definitions): TopologicalSort {
+export function topologicalSort(definitions: References): TopologicalSort {
   const identifiers = Object.keys(definitions)
   const identifierSet = new Set(identifiers)
 

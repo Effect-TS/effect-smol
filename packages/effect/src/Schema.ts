@@ -7243,10 +7243,7 @@ function makeClass<
   struct: S,
   annotations?: Annotations.Declaration<Self, readonly [S]>
 ): any {
-  const from = InternalAnnotations.resolveIdentifier(struct.ast) === undefined
-    ? struct.annotate({ identifier: `${identifier}Encoded` })
-    : struct
-  const getClassSchema = getClassSchemaFactory(from, identifier, annotations)
+  const getClassSchema = getClassSchemaFactory(struct, identifier, annotations)
   const ClassTypeId = getClassTypeId(identifier) // HMR support
 
   return class extends Inherited {
@@ -7723,10 +7720,6 @@ export interface ToJsonSchemaOptions {
    * - `JsonSchema`: Use the provided JSON Schema for additional properties
    */
   readonly additionalProperties?: boolean | JsonSchema.JsonSchema | undefined
-  /**
-   * Controls how references are handled while resolving the JSON schema.
-   */
-  readonly referenceStrategy?: "skip-top-level" | undefined
   /**
    * Controls whether to generate descriptions for checks (if the user has not
    * provided them) based on the `expected` annotation of the check.

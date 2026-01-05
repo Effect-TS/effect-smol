@@ -8,72 +8,110 @@ import type * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import type * as SchemaStandard from "../../SchemaStandard.ts"
 import * as InternalAnnotations from "./annotations.ts"
-import { escapeToken, unescapeToken } from "./json-pointer.ts"
+import { escapeToken } from "./json-pointer.ts"
 import * as InternalSerializer from "./serializer.ts"
 
 /** @internal */
 export function fromAST(ast: AST.AST): SchemaStandard.Document {
-  const { definitions, schemas } = fromASTs([ast])
-  return { schema: schemas[0], definitions }
+  const { references, schemas } = fromASTs([ast])
+  return { schema: schemas[0], references }
 }
+
+const FROM_AST_SEED = "_"
 
 /** @internal */
 export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaStandard.MultiDocument {
-  const definitions: Record<string, SchemaStandard.Standard> = {}
+  const references: Record<string, SchemaStandard.Standard> = {}
 
-  const identifierMap = new Map<AST.AST, string>()
-  const identifierCounter = new Map<string, number>()
-  const visited = new Set<AST.AST>()
+  const referenceMap = new Map<AST.AST, string>()
+  const referenceCounter = new Map<string, number>()
+  const referenceUsage = new Set<string>()
+
+  const schemas = Arr.map(asts, (ast) => recur(ast))
 
   return {
-    schemas: Arr.map(asts, recur),
-    definitions
+    schemas: Arr.map(schemas, compact),
+    references: Rec.map(Rec.filter(references, (_, k) => !isCompactable(k)), compact)
   }
 
-  function recur(ast: AST.AST): SchemaStandard.Standard {
-    visited.add(ast)
-    const last = getLastEncoding(ast)
-    const identifier = generateUniqueIdentifier(last)
-    if (identifier !== undefined) {
-      if (definitions[identifier] === undefined) {
-        definitions[identifier] = on(last)
-      }
-      return { _tag: "Reference", $ref: identifier }
-    }
-    return on(last)
+  function isCompactable($ref: string): boolean {
+    return !referenceUsage.has($ref) && $ref.startsWith(FROM_AST_SEED)
   }
 
-  function generateUniqueIdentifier(last: AST.AST): string | undefined {
-    const existing = identifierMap.get(last)
-    if (existing !== undefined) {
-      return existing
-    }
-    const identifier = InternalAnnotations.resolveIdentifier(last)
-    if (identifier !== undefined) {
-      // Check if base identifier is available
-      let count = identifierCounter.get(identifier)
-      if (count === undefined) {
-        identifierCounter.set(identifier, 1)
-        identifierMap.set(last, identifier)
-        return identifier
-      } else {
-        // Find a unique identifier by incrementing until we find one that doesn't exist
-        let out
-        while (identifierCounter.has(out = `${identifier}${++count}`)) {
-          //
+  function compact(s: SchemaStandard.Standard): SchemaStandard.Standard {
+    switch (s._tag) {
+      default:
+        return s
+      case "Declaration":
+        return { ...s, typeParameters: s.typeParameters.map(compact), encodedSchema: compact(s.encodedSchema) }
+      case "Reference": {
+        if (isCompactable(s.$ref)) {
+          return compact(references[s.$ref])
         }
-        identifierCounter.set(identifier, count)
-        identifierMap.set(last, out)
-        return out
+        return s
       }
+      case "Suspend":
+        return { ...s, thunk: compact(s.thunk) }
+      case "String":
+        return { ...s, ...(s.contentSchema ? { contentSchema: compact(s.contentSchema) } : undefined) }
+      case "TemplateLiteral":
+        return { ...s, parts: s.parts.map(compact) }
+      case "Arrays":
+        return { ...s, elements: s.elements.map((e) => ({ ...e, type: compact(e.type) })), rest: s.rest.map(compact) }
+      case "Objects":
+        return {
+          ...s,
+          propertySignatures: s.propertySignatures.map((ps) => ({ ...ps, type: compact(ps.type) })),
+          indexSignatures: s.indexSignatures.map((is) => ({
+            ...is,
+            parameter: compact(is.parameter),
+            type: compact(is.type)
+          }))
+        }
+      case "Union":
+        return { ...s, types: s.types.map(compact) }
+    }
+  }
+
+  function gen(seed: string = FROM_AST_SEED): string {
+    // Check if base identifier is available
+    let count = referenceCounter.get(seed)
+    if (count === undefined) {
+      referenceCounter.set(seed, 1)
+      return seed
+    } else {
+      // Find a unique identifier by incrementing until we find one that doesn't exist
+      let out
+      while (referenceCounter.has(out = `${seed}${++count}`)) {
+        //
+      }
+      referenceCounter.set(seed, count)
+      return out
+    }
+  }
+
+  function recur(ast: AST.AST, identifier?: string): SchemaStandard.Standard {
+    const found = referenceMap.get(ast)
+    if (found !== undefined) {
+      referenceUsage.add(found)
+      return { _tag: "Reference", $ref: found }
+    }
+
+    const last = getLastEncoding(ast)
+
+    if (ast === last) {
+      const reference = gen(InternalAnnotations.resolveIdentifier(ast) ?? identifier)
+      referenceMap.set(ast, reference)
+      const out = on(ast)
+      references[reference] = out
+      return { _tag: "Reference", $ref: reference }
+    } else {
+      return recur(last, InternalAnnotations.resolveIdentifier(ast))
     }
   }
 
   function getLastEncoding(ast: AST.AST): AST.AST {
-    if (ast.encoding) {
-      return getLastEncoding(ast.encoding[ast.encoding.length - 1].to)
-    }
-    return ast
+    return ast.encoding ? ast.encoding[ast.encoding.length - 1].to : ast
   }
 
   function on(last: AST.AST): SchemaStandard.Standard {
@@ -81,10 +119,10 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
       case "Declaration":
         return {
           _tag: "Declaration",
-          typeParameters: last.typeParameters.map(recur),
-          encodedSchema: recur(InternalSerializer.toCodecJson(last)),
-          checks: fromChecks(last.checks),
-          ...(last.annotations ? { annotations: last.annotations } : undefined)
+          typeParameters: last.typeParameters.map((tp) => recur(tp)),
+          encodedSchema: recur(getLastEncoding(InternalSerializer.toCodecJson(last))),
+          checks: fromASTChecks(last.checks),
+          ...fromASTAnnotations(last)
         }
       case "Null":
       case "Undefined":
@@ -94,14 +132,14 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
       case "Any":
       case "Boolean":
       case "Symbol":
-        return { _tag: last._tag, ...(last.annotations ? { annotations: last.annotations } : undefined) }
+        return { _tag: last._tag, ...fromASTAnnotations(last) }
       case "String": {
         const contentMediaType = last.annotations?.contentMediaType
         const contentSchema = last.annotations?.contentSchema
         return {
           _tag: last._tag,
-          checks: fromChecks(last.checks),
-          ...(last.annotations ? { annotations: last.annotations } : undefined),
+          checks: fromASTChecks(last.checks),
+          ...fromASTAnnotations(last),
           ...(typeof contentMediaType === "string" && AST.isAST(contentSchema)
             ? { contentMediaType, contentSchema: recur(contentSchema) }
             : undefined)
@@ -111,37 +149,37 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
       case "BigInt":
         return {
           _tag: last._tag,
-          checks: fromChecks(last.checks),
-          ...(last.annotations ? { annotations: last.annotations } : undefined)
+          checks: fromASTChecks(last.checks),
+          ...fromASTAnnotations(last)
         }
       case "Literal":
         return {
           _tag: last._tag,
           literal: last.literal,
-          ...(last.annotations ? { annotations: last.annotations } : undefined)
+          ...fromASTAnnotations(last)
         }
       case "UniqueSymbol":
         return {
           _tag: last._tag,
           symbol: last.symbol,
-          ...(last.annotations ? { annotations: last.annotations } : undefined)
+          ...fromASTAnnotations(last)
         }
       case "ObjectKeyword":
         return {
           _tag: last._tag,
-          ...(last.annotations ? { annotations: last.annotations } : undefined)
+          ...fromASTAnnotations(last)
         }
       case "Enum":
         return {
           _tag: last._tag,
           enums: last.enums,
-          ...(last.annotations ? { annotations: last.annotations } : undefined)
+          ...fromASTAnnotations(last)
         }
       case "TemplateLiteral":
         return {
           _tag: last._tag,
           parts: last.parts.map((p) => recur(p)),
-          ...(last.annotations ? { annotations: last.annotations } : undefined)
+          ...fromASTAnnotations(last)
         }
       case "Arrays":
         return {
@@ -154,9 +192,9 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
               ...(last.context?.annotations ? { annotations: last.context?.annotations } : undefined)
             }
           }),
-          rest: last.rest.map(recur),
-          checks: fromChecks(last.checks),
-          ...(last.annotations ? { annotations: last.annotations } : undefined)
+          rest: last.rest.map((r) => recur(r)),
+          checks: fromASTChecks(last.checks),
+          ...fromASTAnnotations(last)
         }
       case "Objects":
         return {
@@ -175,44 +213,53 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
             parameter: recur(is.parameter),
             type: recur(is.type)
           })),
-          checks: fromChecks(last.checks),
-          ...(last.annotations ? { annotations: last.annotations } : undefined)
+          checks: fromASTChecks(last.checks),
+          ...fromASTAnnotations(last)
         }
       case "Union": {
         const types = InternalSerializer.jsonReorder(last.types)
         return {
           _tag: last._tag,
-          types: types.map(recur),
+          types: types.map((t) => recur(t)),
           mode: last.mode,
-          ...(last.annotations ? { annotations: last.annotations } : undefined)
+          ...fromASTAnnotations(last)
         }
       }
       case "Suspend": {
-        const thunk = last.thunk()
-        if (visited.has(thunk)) {
-          const identifier = generateUniqueIdentifier(thunk)
-          if (identifier === undefined) {
-            throw new globalThis.Error("Suspended schema without identifier")
-          }
-          return {
-            _tag: "Suspend",
-            checks: [],
-            thunk: { _tag: "Reference", $ref: identifier },
-            ...(last.annotations ? { annotations: last.annotations } : undefined)
-          }
-        }
         return {
           _tag: "Suspend",
           checks: [],
-          thunk: recur(thunk),
-          ...(last.annotations ? { annotations: last.annotations } : undefined)
+          thunk: recur(last.thunk()),
+          ...fromASTAnnotations(last)
         }
       }
     }
   }
 }
 
-function fromChecks(
+/** @internal */
+export const fromASTBlacklist: Set<string> = new Set([
+  "toArbitrary",
+  "toArbitraryConstraint",
+  "toEquivalence",
+  "toFormatter",
+  "toCodec",
+  "toCodecJson",
+  "toCodecIso",
+  AST.ClassTypeId
+])
+
+function fromASTAnnotations(ast: AST.AST): { annotations: Schema.Annotations.Annotations } | undefined {
+  if (ast.annotations) {
+    const filtered = Rec.filter(ast.annotations, (_, k) => !fromASTBlacklist.has(k))
+    if (!Rec.isEmptyRecord(filtered)) {
+      return { annotations: filtered }
+    }
+  }
+  return undefined
+}
+
+function fromASTChecks(
   checks: readonly [AST.Check<any>, ...Array<AST.Check<any>>] | undefined
 ): Array<SchemaStandard.Check<any>> {
   if (!checks) return []
@@ -226,7 +273,7 @@ function fromChecks(
         return undefined
       }
       case "FilterGroup": {
-        const checks = fromChecks(c.checks)
+        const checks = fromASTChecks(c.checks)
         if (Arr.isArrayNonEmpty(checks)) {
           return {
             _tag: "FilterGroup",
@@ -247,32 +294,25 @@ export function toJsonSchemaDocument(
 ): JsonSchema.Document<"draft-2020-12"> {
   const { definitions, dialect: source, schemas } = toJsonSchemaMultiDocument({
     schemas: [document.schema],
-    definitions: document.definitions
+    references: document.references
   }, options)
-  return { dialect: source, schema: schemas[0], definitions }
+  const schema = schemas[0]
+  return { dialect: source, schema, definitions }
 }
 
 /** @internal */
 export function toJsonSchemaMultiDocument(
-  document: SchemaStandard.MultiDocument,
+  multiDocument: SchemaStandard.MultiDocument,
   options?: Schema.ToJsonSchemaOptions
 ): JsonSchema.MultiDocument<"draft-2020-12"> {
   const generateDescriptions = options?.generateDescriptions ?? false
-  const referenceStrategy = options?.referenceStrategy ?? "all"
   const additionalProperties = options?.additionalProperties ?? false
 
-  const definitions = Rec.map(document.definitions, (d) => recur(d))
+  const definitions = Rec.map(multiDocument.references, (d) => recur(d))
 
   return {
     dialect: "draft-2020-12",
-    schemas: Arr.map(document.schemas, (s) => {
-      const js = recur(s)
-      if (referenceStrategy === "skip-top-level" && typeof js.$ref === "string") {
-        const resolved = resolve$ref(js.$ref, definitions)
-        return resolved === true ? { not: {} } : resolved === false ? {} : resolved
-      }
-      return js
-    }),
+    schemas: Arr.map(multiDocument.schemas, (s) => recur(s)),
     definitions
   }
 
@@ -603,7 +643,9 @@ export function toJsonSchemaMultiDocument(
   function getParameterPatterns(parameter: SchemaStandard.Standard): Array<string> {
     switch (parameter._tag) {
       default:
-        throw new globalThis.Error("Unsupported index signature parameter")
+        throw new globalThis.Error(`Unsupported index signature parameter: ${parameter._tag}`)
+      case "Reference":
+        return getParameterPatterns(multiDocument.references[parameter.$ref])
       case "String":
         return getPatterns(parameter)
       case "TemplateLiteral":
@@ -642,18 +684,6 @@ function hasCheck(checks: ReadonlyArray<SchemaStandard.Check<SchemaStandard.Meta
         return hasCheck(c.checks, tag)
     }
   })
-}
-
-function resolve$ref($ref: string, definitions: JsonSchema.Definitions): JsonSchema.JsonSchema | boolean {
-  const tokens = $ref.split("/")
-  if (tokens.length > 0) {
-    const identifier = unescapeToken(tokens[tokens.length - 1])
-    const definition = definitions[identifier]
-    if (definition !== undefined) {
-      return definition
-    }
-  }
-  throw new globalThis.Error(`Reference to unknown schema: ${$ref}`)
 }
 
 function appendJsonSchema(a: JsonSchema.JsonSchema, b: JsonSchema.JsonSchema): JsonSchema.JsonSchema {

@@ -1327,14 +1327,14 @@ describe("Standard", () => {
     ) {
       const expectedDocument: SchemaStandard.Document = {
         schema: expected.schema,
-        definitions: expected.definitions ?? {}
+        references: expected.definitions ?? {}
       }
       const jsonDocument = JsonSchema.fromSchemaDraft2020_12(schema)
       const document = SchemaStandard.fromJsonSchemaDocument(jsonDocument)
       deepStrictEqual(document, expectedDocument)
       const multiDocument: SchemaStandard.MultiDocument = {
         schemas: [document.schema],
-        definitions: document.definitions
+        references: document.references
       }
       if (runtime !== undefined) {
         strictEqual(SchemaStandard.toGenerationDocument(multiDocument).generations[0].runtime, runtime)
@@ -3095,7 +3095,7 @@ describe("Standard", () => {
           { _tag: "Reference", $ref: "id" },
           { _tag: "Reference", $ref: "id2" }
         ],
-        definitions: {
+        references: {
           id: { _tag: "String", checks: [], annotations: { identifier: "id", description: "a" } },
           id2: { _tag: "String", checks: [], annotations: { identifier: "id", description: "b" } }
         }

@@ -234,8 +234,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
 
   function processAST(ast: AST.AST): JsonSchema.JsonSchema {
     const document = JsonSchema.toDocumentOpenApi3_1(Schema.toJsonSchemaDocument(Schema.make(ast), {
-      additionalProperties: options?.additionalProperties,
-      referenceStrategy: "skip-top-level"
+      additionalProperties: options?.additionalProperties
     }))
     for (const [key, definition] of Object.entries(document.definitions)) {
       const existing = jsonSchemaDefs[key]

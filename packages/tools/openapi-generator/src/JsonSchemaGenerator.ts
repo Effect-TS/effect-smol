@@ -37,7 +37,7 @@ export function make() {
     if (Arr.isArrayNonEmpty(schemas)) {
       const multiDocument: SchemaStandard.MultiDocument = {
         schemas,
-        definitions
+        references: definitions
       }
       const generationDocument = SchemaStandard.toGenerationDocument(multiDocument)
 
@@ -77,7 +77,7 @@ export function make() {
     function go(jsonSchema: JsonSchema.JsonSchema): SchemaStandard.Standard {
       const jsonDocument = normalize(jsonSchema)
       const standardDocument = SchemaStandard.fromJsonSchemaDocument(jsonDocument)
-      for (const [name, definition] of Object.entries(standardDocument.definitions)) {
+      for (const [name, definition] of Object.entries(standardDocument.references)) {
         addDefinition(name, definition)
       }
       return standardDocument.schema

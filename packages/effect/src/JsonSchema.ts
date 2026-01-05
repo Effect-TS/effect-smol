@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import { unescapeToken } from "./internal/schema/json-pointer.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
 
@@ -436,4 +437,18 @@ function widen_type(node: Record<string, unknown>): Record<string, unknown> {
   if (typeof t === "string") return t === "null" ? node : { ...node, type: [t, "null"] }
   if (Array.isArray(t)) return t.includes("null") ? node : { ...node, type: [...t, "null"] }
   return node
+}
+
+/**
+ * @since 4.0.0
+ */
+export function resolve$ref($ref: string, definitions: Definitions): JsonSchema | undefined {
+  const tokens = $ref.split("/")
+  if (tokens.length > 0) {
+    const identifier = unescapeToken(tokens[tokens.length - 1])
+    const definition = definitions[identifier]
+    if (definition !== undefined) {
+      return definition
+    }
+  }
 }
