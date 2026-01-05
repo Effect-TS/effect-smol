@@ -2,6 +2,24 @@ import { Schema, SchemaStandard } from "effect"
 import { describe, it } from "vitest"
 import { deepStrictEqual } from "../utils/assert.ts"
 
+describe("fromASTs", () => {
+  it("should handle multiple schemas", () => {
+    const a = Schema.String.annotate({ identifier: "id", description: "a" })
+    const b = a.annotate({ description: "b" })
+    const multiDocument = SchemaStandard.fromASTs([a.ast, b.ast])
+    deepStrictEqual(multiDocument, {
+      schemas: [
+        { _tag: "Reference", $ref: "id" },
+        { _tag: "Reference", $ref: "id2" }
+      ],
+      references: {
+        id: { _tag: "String", checks: [], annotations: { identifier: "id", description: "a" } },
+        id2: { _tag: "String", checks: [], annotations: { identifier: "id", description: "b" } }
+      }
+    })
+  })
+})
+
 describe("fromAST", () => {
   function assertFromAST(schema: Schema.Top, expected: {
     readonly schema: SchemaStandard.Standard

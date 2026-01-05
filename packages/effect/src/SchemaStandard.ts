@@ -1039,22 +1039,16 @@ export const fromAST: (ast: AST.AST) => Document = InternalStandard.fromAST
  */
 export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDocument = InternalStandard.fromASTs
 
-const schemaToCodecJson = Schema.toCodecJson(Standard$)
-const encodeSchema = Schema.encodeUnknownSync(schemaToCodecJson)
+const documentToCodecJson = Schema.toCodecJson(Document$)
+const encodeDocument = Schema.encodeUnknownSync(documentToCodecJson)
+const decodeDocument = Schema.decodeUnknownSync(documentToCodecJson)
 
 /**
  * @since 4.0.0
  */
-export function toJson(document: Document): JsonSchema.Document<"draft-2020-12"> {
-  return {
-    dialect: "draft-2020-12",
-    schema: encodeSchema(document.schema) as JsonSchema.JsonSchema,
-    definitions: Rec.map(document.references, (d) => encodeSchema(d)) as JsonSchema.Definitions
-  }
+export function toJson(document: Document): JsonSchema.JsonSchema {
+  return encodeDocument(document) as JsonSchema.JsonSchema
 }
-
-const documentToCodecJson = Schema.toCodecJson(Document$)
-const decodeDocument = Schema.decodeUnknownSync(documentToCodecJson)
 
 // TODO: tests
 /**
