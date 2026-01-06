@@ -1465,7 +1465,7 @@ export type Artifact =
  */
 export type GenerationDocument = {
   readonly generations: ReadonlyArray<Generation>
-  readonly definitions: {
+  readonly references: {
     readonly nonRecursives: ReadonlyArray<{
       readonly $ref: string
       readonly schema: Generation
@@ -1494,7 +1494,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
 
   return {
     generations,
-    definitions: {
+    references: {
       nonRecursives,
       recursives
     },

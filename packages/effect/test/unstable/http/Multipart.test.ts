@@ -46,22 +46,26 @@ describe("Multipart", () => {
           "type": "object",
           "properties": {
             "key": {
-              "type": "string"
+              "$ref": "#/$defs/_3"
             },
             "name": {
-              "type": "string"
+              "$ref": "#/$defs/_3"
             },
             "contentType": {
-              "type": "string"
+              "$ref": "#/$defs/_3"
             },
             "path": {
-              "type": "string"
+              "$ref": "#/$defs/_3"
             }
           },
           "required": ["key", "name", "contentType", "path"],
           "additionalProperties": false
         },
-        definitions: {}
+        definitions: {
+          _3: {
+            "type": "string"
+          }
+        }
       })
     })
   })

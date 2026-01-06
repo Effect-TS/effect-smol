@@ -9,6 +9,7 @@ import * as AST from "../../SchemaAST.ts"
 import type * as SchemaStandard from "../../SchemaStandard.ts"
 import * as InternalAnnotations from "./annotations.ts"
 import { escapeToken } from "./json-pointer.ts"
+import * as InternalSchema from "./schema.ts"
 import * as InternalSerializer from "./serializer.ts"
 
 /** @internal */
@@ -114,13 +115,23 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
     return ast.encoding ? ast.encoding[ast.encoding.length - 1].to : ast
   }
 
+  function getEncodedSchema(last: AST.Declaration): AST.AST {
+    const getLink = last.annotations?.toCodecJson ?? last.annotations?.toCodec
+    if (Predicate.isFunction(getLink)) {
+      const tps = last.typeParameters.map((tp) => InternalSchema.make(AST.toEncoded(tp)))
+      const link = getLink(tps)
+      return AST.replaceEncoding(last, [link])
+    }
+    return AST.null
+  }
+
   function on(last: AST.AST): SchemaStandard.Standard {
     switch (last._tag) {
       case "Declaration":
         return {
           _tag: "Declaration",
           typeParameters: last.typeParameters.map(recur),
-          encodedSchema: recur(getLastEncoding(InternalSerializer.toCodecJson(last))),
+          encodedSchema: recur(getEncodedSchema(last)),
           checks: fromASTChecks(last.checks),
           ...fromASTAnnotations(last)
         }

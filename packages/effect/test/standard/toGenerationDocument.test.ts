@@ -25,7 +25,7 @@ describe("toGenerationDocument", () => {
     readonly reviver?: SchemaStandard.Reviver<SchemaStandard.Generation> | undefined
   }, expected: {
     readonly generations: SchemaStandard.Generation | ReadonlyArray<SchemaStandard.Generation>
-    readonly definitions?: {
+    readonly references?: {
       readonly nonRecursives?: ReadonlyArray<{
         readonly $ref: string
         readonly schema: SchemaStandard.Generation
@@ -40,9 +40,9 @@ describe("toGenerationDocument", () => {
     const generationDocument = SchemaStandard.toGenerationDocument(multiDocument, { reviver: input.reviver })
     deepStrictEqual(generationDocument, {
       generations: Array.isArray(expected.generations) ? expected.generations : [expected.generations],
-      definitions: {
-        nonRecursives: expected.definitions?.nonRecursives ?? [],
-        recursives: expected.definitions?.recursives ?? {}
+      references: {
+        nonRecursives: expected.references?.nonRecursives ?? [],
+        recursives: expected.references?.recursives ?? {}
       },
       artifacts: expected.artifacts ?? []
     })
@@ -63,9 +63,18 @@ describe("toGenerationDocument", () => {
       })
     })
 
+    // TODO: remove unnecessary reference
     it("RegExp", () => {
       assertToGenerationDocument({ schema: Schema.RegExp }, {
-        generations: makeGeneration(`Schema.RegExp`, "globalThis.RegExp")
+        generations: makeGeneration(`Schema.RegExp`, "globalThis.RegExp"),
+        references: {
+          nonRecursives: [
+            {
+              $ref: "_3",
+              schema: makeGeneration("Schema.String", "string")
+            }
+          ]
+        }
       })
     })
 
@@ -114,7 +123,15 @@ describe("toGenerationDocument", () => {
       assertToGenerationDocument(
         { schema: Schema.Option(Schema.String) },
         {
-          generations: makeGeneration("Schema.Option(Schema.String)", "Option.Option<string>"),
+          generations: makeGeneration("Schema.Option(_2)", "Option.Option<_2>", "Option.Option<_2Encoded>"),
+          references: {
+            nonRecursives: [
+              {
+                $ref: "_2",
+                schema: makeGeneration("Schema.String", "string")
+              }
+            ]
+          },
           artifacts: [{
             _tag: "Import",
             importDeclaration: `import * as Option from "effect/Option"`
@@ -127,7 +144,23 @@ describe("toGenerationDocument", () => {
       assertToGenerationDocument(
         { schema: Schema.Result(Schema.String, Schema.Number) },
         {
-          generations: makeGeneration("Schema.Result(Schema.String, Schema.Number)", "Result.Result<string, number>"),
+          generations: makeGeneration(
+            "Schema.Result(_2, _3)",
+            "Result.Result<_2, _3>",
+            "Result.Result<_2Encoded, _3Encoded>"
+          ),
+          references: {
+            nonRecursives: [
+              {
+                $ref: "_2",
+                schema: makeGeneration("Schema.String", "string")
+              },
+              {
+                $ref: "_3",
+                schema: makeGeneration("Schema.Number", "number")
+              }
+            ]
+          },
           artifacts: [{
             _tag: "Import",
             importDeclaration: `import * as Result from "effect/Result"`
@@ -139,9 +172,22 @@ describe("toGenerationDocument", () => {
     it("CauseFailure(String, Number)", () => {
       assertToGenerationDocument({ schema: Schema.CauseFailure(Schema.String, Schema.Number) }, {
         generations: makeGeneration(
-          "Schema.CauseFailure(Schema.String, Schema.Number)",
-          "Cause.Failure<string, number>"
+          "Schema.CauseFailure(_2, _3)",
+          "Cause.Failure<_2, _3>",
+          "Cause.Failure<_2Encoded, _3Encoded>"
         ),
+        references: {
+          nonRecursives: [
+            {
+              $ref: "_2",
+              schema: makeGeneration("Schema.String", "string")
+            },
+            {
+              $ref: "_3",
+              schema: makeGeneration("Schema.Number", "number")
+            }
+          ]
+        },
         artifacts: [{ _tag: "Import", importDeclaration: `import * as Cause from "effect/Cause"` }]
       })
     })
@@ -149,9 +195,22 @@ describe("toGenerationDocument", () => {
     it("Cause(String, Number)", () => {
       assertToGenerationDocument({ schema: Schema.Cause(Schema.String, Schema.Number) }, {
         generations: makeGeneration(
-          "Schema.Cause(Schema.String, Schema.Number)",
-          "Cause.Cause<string, number>"
+          "Schema.Cause(_2, _3)",
+          "Cause.Cause<_2, _3>",
+          "Cause.Cause<_2Encoded, _3Encoded>"
         ),
+        references: {
+          nonRecursives: [
+            {
+              $ref: "_2",
+              schema: makeGeneration("Schema.String", "string")
+            },
+            {
+              $ref: "_3",
+              schema: makeGeneration("Schema.Number", "number")
+            }
+          ]
+        },
         artifacts: [{ _tag: "Import", importDeclaration: `import * as Cause from "effect/Cause"` }]
       })
     })
@@ -159,9 +218,26 @@ describe("toGenerationDocument", () => {
     it("Exit(String, Number, String)", () => {
       assertToGenerationDocument({ schema: Schema.Exit(Schema.String, Schema.Number, Schema.Boolean) }, {
         generations: makeGeneration(
-          "Schema.Exit(Schema.String, Schema.Number, Schema.Boolean)",
-          "Exit.Exit<string, number, boolean>"
+          "Schema.Exit(_2, _3, _4)",
+          "Exit.Exit<_2, _3, _4>",
+          "Exit.Exit<_2Encoded, _3Encoded, _4Encoded>"
         ),
+        references: {
+          nonRecursives: [
+            {
+              $ref: "_2",
+              schema: makeGeneration("Schema.String", "string")
+            },
+            {
+              $ref: "_3",
+              schema: makeGeneration("Schema.Number", "number")
+            },
+            {
+              $ref: "_4",
+              schema: makeGeneration("Schema.Boolean", "boolean")
+            }
+          ]
+        },
         artifacts: [{ _tag: "Import", importDeclaration: `import * as Exit from "effect/Exit"` }]
       })
     })
@@ -251,15 +327,7 @@ describe("toGenerationDocument", () => {
 
     it("String & identifier", () => {
       assertToGenerationDocument({ schema: Schema.String.annotate({ identifier: "ID" }) }, {
-        generations: makeGeneration("ID", "ID", "IDEncoded"),
-        definitions: {
-          nonRecursives: [
-            {
-              $ref: "ID",
-              schema: makeGeneration(`Schema.String.annotate({ "identifier": "ID" })`, "string")
-            }
-          ]
-        }
+        generations: makeGeneration(`Schema.String.annotate({ "identifier": "ID" })`, "string")
       })
     })
 
@@ -1184,7 +1252,7 @@ describe("toGenerationDocument", () => {
     })
   })
 
-  describe("Suspend", () => {
+  describe("suspend", () => {
     it("non-recursive", () => {
       assertToGenerationDocument(
         {
@@ -1194,67 +1262,97 @@ describe("toGenerationDocument", () => {
           generations: makeGeneration(`Schema.suspend((): Schema.Codec<string, string> => Schema.String)`, "string")
         }
       )
-      assertToGenerationDocument(
-        {
-          schema: Schema.suspend(() => Schema.String.annotate({ identifier: "ID" }))
-        },
-        {
-          generations: makeGeneration(`Schema.suspend((): Schema.Codec<ID, IDEncoded> => ID)`, "ID", "IDEncoded"),
-          definitions: {
-            nonRecursives: [
-              {
-                $ref: "ID",
-                schema: makeGeneration(`Schema.String.annotate({ "identifier": "ID" })`, "string")
-              }
-            ]
-          }
-        }
-      )
     })
 
-    describe("recursive", () => {
-      it("outer identifier", () => {
-        assertToGenerationDocument(
-          {
-            schema: OuterCategory
-          },
-          {
-            generations: makeGeneration("Category", "Category", "CategoryEncoded"),
-            definitions: {
-              recursives: {
-                Category: makeGeneration(
-                  `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)) }).annotate({ "identifier": "Category" })`,
-                  `{ readonly "name": string, readonly "children": ReadonlyArray<Category> }`,
-                  `{ readonly "name": string, readonly "children": ReadonlyArray<CategoryEncoded> }`
-                )
-              }
-            }
-          }
-        )
+    it("no identifier annotation", () => {
+      type A = {
+        readonly a?: A
+      }
+      const A = Schema.Struct({
+        a: Schema.optionalKey(Schema.suspend((): Schema.Codec<A> => A))
       })
 
-      it("inner identifier", () => {
-        assertToGenerationDocument(
-          {
-            schema: InnerCategory
-          },
-          {
-            generations: makeGeneration(
-              `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)) })`,
-              `{ readonly "name": string, readonly "children": ReadonlyArray<Category> }`,
-              `{ readonly "name": string, readonly "children": ReadonlyArray<CategoryEncoded> }`
-            ),
-            definitions: {
-              recursives: {
-                Category: makeGeneration(
-                  `Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<Category, CategoryEncoded> => Category)) }).annotate({ "identifier": "Category" })`,
-                  `{ readonly "name": string, readonly "children": ReadonlyArray<Category> }`,
-                  `{ readonly "name": string, readonly "children": ReadonlyArray<CategoryEncoded> }`
-                )
-              }
-            }
+      assertToGenerationDocument({ schema: A }, {
+        generations: makeGeneration(`_`, `_`, `_Encoded`),
+        references: {
+          recursives: {
+            _: makeGeneration(
+              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<_, _Encoded> => _)) })`,
+              `{ readonly "a"?: _ }`,
+              `{ readonly "a"?: _Encoded }`
+            )
           }
-        )
+        }
+      })
+    })
+
+    it("outer identifier annotation", () => {
+      type A = {
+        readonly a?: A
+      }
+      const A = Schema.Struct({
+        a: Schema.optionalKey(Schema.suspend((): Schema.Codec<A> => A))
+      }).annotate({ identifier: "A" }) // outer identifier annotation
+
+      assertToGenerationDocument({ schema: A }, {
+        generations: makeGeneration(`A`, `A`, `AEncoded`),
+        references: {
+          recursives: {
+            A: makeGeneration(
+              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<A, AEncoded> => A)) }).annotate({ "identifier": "A" })`,
+              `{ readonly "a"?: A }`,
+              `{ readonly "a"?: AEncoded }`
+            )
+          }
+        }
+      })
+    })
+
+    it("inner identifier annotation", () => {
+      type A = {
+        readonly a?: A
+      }
+      const A = Schema.Struct({
+        a: Schema.optionalKey(Schema.suspend((): Schema.Codec<A> => A.annotate({ identifier: "A" })))
+      })
+
+      assertToGenerationDocument({ schema: A }, {
+        generations: makeGeneration(
+          `Schema.Struct({ "a": Schema.optionalKey(_2) })`,
+          `{ readonly "a"?: _2 }`,
+          `{ readonly "a"?: _2Encoded }`
+        ),
+        references: {
+          recursives: {
+            _2: makeGeneration(
+              `Schema.suspend((): Schema.Codec<{ readonly "a"?: _2 }, { readonly "a"?: _2Encoded }> => Schema.Struct({ "a": Schema.optionalKey(_2) }).annotate({ "identifier": "A" }))`,
+              `{ readonly "a"?: _2 }`,
+              `{ readonly "a"?: _2Encoded }`
+            )
+          }
+        }
+      })
+    })
+
+    it("suspend identifier annotation", () => {
+      type A = {
+        readonly a?: A
+      }
+      const A = Schema.Struct({
+        a: Schema.optionalKey(Schema.suspend((): Schema.Codec<A> => A).annotate({ identifier: "A" }))
+      })
+
+      assertToGenerationDocument({ schema: A }, {
+        generations: makeGeneration(`_`, `_`, `_Encoded`),
+        references: {
+          recursives: {
+            _: makeGeneration(
+              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<_, _Encoded> => _).annotate({ "identifier": "A" })) })`,
+              `{ readonly "a"?: _ }`,
+              `{ readonly "a"?: _Encoded }`
+            )
+          }
+        }
       })
     })
   })

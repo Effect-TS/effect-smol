@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import * as Combiner from "../../Combiner.ts"
-import type * as JsonSchema from "../../JsonSchema.ts"
+import * as JsonSchema from "../../JsonSchema.ts"
 import * as Rec from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
@@ -35,6 +35,7 @@ export type Rewriter = (document: JsonSchema.Document<"draft-2020-12">) => JsonS
  * @since 4.0.0
  */
 export const openAi: Rewriter = (document) => {
+  document = JsonSchema.resolveTopLevel$ref(document)
   const supported = new Set([
     "$ref",
     "type",

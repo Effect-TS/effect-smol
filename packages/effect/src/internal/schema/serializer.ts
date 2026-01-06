@@ -22,7 +22,7 @@ function toCodecJsonBase(ast: AST.AST): AST.AST {
       const getLink = ast.annotations?.toCodecJson ?? ast.annotations?.toCodec
       if (Predicate.isFunction(getLink)) {
         const tps = AST.isDeclaration(ast)
-          ? ast.typeParameters.map((tp) => InternalSchema.make(toCodecJson(AST.toEncoded(tp))))
+          ? ast.typeParameters.map((tp) => InternalSchema.make(AST.toEncoded(tp)))
           : []
         const link = getLink(tps)
         const to = toCodecJson(link.to)

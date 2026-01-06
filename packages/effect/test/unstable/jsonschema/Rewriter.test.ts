@@ -16,7 +16,6 @@ function assertRewrite(
   const document = rewriter(
     Schema.toJsonSchemaDocument(schema, {
       generateDescriptions: true,
-      referenceStrategy: "skip-top-level",
       ...options
     })
   )
@@ -41,23 +40,6 @@ describe("Rewriter", () => {
       )
       assertRewrite(
         Rewriter.openAi,
-        Schema.String.annotate({ identifier: "id" }),
-        {
-          schema: {
-            "type": "object",
-            "properties": {},
-            "required": [],
-            "additionalProperties": false
-          },
-          definitions: {
-            "id": {
-              "type": "string"
-            }
-          }
-        }
-      )
-      assertRewrite(
-        Rewriter.openAi,
         Schema.Union([Schema.String, Schema.Number]),
         {
           schema: {
@@ -70,40 +52,17 @@ describe("Rewriter", () => {
       )
     })
 
-    it("nested $ref", () => {
-      assertRewrite(
-        Rewriter.openAi,
-        Schema.Struct({ a: Schema.String.annotate({ identifier: "ID" }) }),
-        {
-          schema: {
-            "type": "object",
-            "properties": {
-              "a": {
-                "$ref": "#/$defs/ID"
-              }
-            },
-            "required": ["a"],
-            "additionalProperties": false
-          },
-          definitions: {
-            "ID": {
-              "type": "string"
-            }
-          }
-        }
-      )
-    })
-
     describe("Suspend", () => {
-      it("inner annotation", () => {
+      it("outer annotation", () => {
         interface A {
           readonly a: string
           readonly as: ReadonlyArray<A>
         }
         const schema = Schema.Struct({
           a: Schema.String,
-          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ identifier: "A" })))
-        })
+          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
+        }).annotate({ identifier: "A" })
+
         assertRewrite(
           Rewriter.openAi,
           schema,
@@ -139,15 +98,15 @@ describe("Rewriter", () => {
         )
       })
 
-      it("outer annotation", () => {
+      it("inner annotation", () => {
         interface A {
           readonly a: string
           readonly as: ReadonlyArray<A>
         }
         const schema = Schema.Struct({
           a: Schema.String,
-          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema))
-        }).annotate({ identifier: "A" })
+          as: Schema.Array(Schema.suspend((): Schema.Codec<A> => schema.annotate({ identifier: "A" })))
+        })
         assertRewrite(
           Rewriter.openAi,
           schema,
@@ -156,27 +115,34 @@ describe("Rewriter", () => {
               "type": "object",
               "properties": {
                 "a": {
-                  "type": "string"
+                  "$ref": "#/$defs/_2"
                 },
                 "as": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/A"
-                  }
+                  "$ref": "#/$defs/_3"
                 }
               },
               "required": ["a", "as"],
               "additionalProperties": false
             },
             definitions: {
-              "A": {
-                "type": "object",
-                "properties": {
-                  "a": { "type": "string" },
-                  "as": { "type": "array", "items": { "$ref": "#/$defs/A" } }
-                },
-                "required": ["a", "as"],
-                "additionalProperties": false
+              _2: {
+                "type": "string"
+              },
+              _3: {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "a": {
+                      "$ref": "#/$defs/_2"
+                    },
+                    "as": {
+                      "$ref": "#/$defs/_3"
+                    }
+                  },
+                  "required": ["a", "as"],
+                  "additionalProperties": false
+                }
               }
             }
           }

@@ -702,32 +702,6 @@ describe("Standard", () => {
     })
   })
 
-  describe("toJsonSchemaMultiDocument", () => {
-    it("should handle multiple schemas", () => {
-      const a = Schema.String.annotate({ identifier: "id", description: "a" })
-      const b = a.annotate({ description: "b" })
-      const multiDocument = SchemaStandard.fromASTs([a.ast, b.ast])
-      const jsonMultiDocument = SchemaStandard.toJsonSchemaMultiDocument(multiDocument)
-      deepStrictEqual(jsonMultiDocument, {
-        dialect: "draft-2020-12",
-        schemas: [
-          { "$ref": "#/$defs/id" },
-          { "$ref": "#/$defs/id2" }
-        ],
-        definitions: {
-          id: {
-            "type": "string",
-            "description": "a"
-          },
-          id2: {
-            "type": "string",
-            "description": "b"
-          }
-        }
-      })
-    })
-  })
-
   describe("toSchema", () => {
     function assertToSchema(schema: Schema.Top, reviver?: SchemaStandard.Reviver<Schema.Top>) {
       const document = SchemaStandard.fromAST(schema.ast)

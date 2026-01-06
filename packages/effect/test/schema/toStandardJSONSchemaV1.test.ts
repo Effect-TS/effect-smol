@@ -60,16 +60,20 @@ describe("toStandardJSONSchemaV1", () => {
     })
 
     it("a schema with identifier", () => {
-      const schema = Schema.Tuple([Schema.FiniteFromString]).annotate({ identifier: "id" })
+      const S = Schema.String.annotate({ identifier: "id" })
+      const schema = Schema.Tuple([S, S])
       const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
       deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema), {
-        "$ref": "#/$defs/id",
+        "type": "array",
+        "prefixItems": [
+          { "$ref": "#/$defs/id" },
+          { "$ref": "#/$defs/id" }
+        ],
+        "minItems": 2,
+        "maxItems": 2,
         "$defs": {
           "id": {
-            "type": "array",
-            "prefixItems": [{ "type": "string" }],
-            "minItems": 1,
-            "maxItems": 1
+            "type": "string"
           }
         }
       })
@@ -100,16 +104,20 @@ describe("toStandardJSONSchemaV1", () => {
     })
 
     it("a schema with identifier", () => {
-      const schema = Schema.Tuple([Schema.FiniteFromString]).annotate({ identifier: "id" })
+      const S = Schema.String.annotate({ identifier: "id" })
+      const schema = Schema.Tuple([S, S])
       const standardJSONSchema = Schema.toStandardJSONSchemaV1(schema)
       deepStrictEqual(standardConvertToJSONSchemaInput(standardJSONSchema, "draft-07"), {
-        "$ref": "#/definitions/id",
+        "type": "array",
+        "items": [
+          { "$ref": "#/definitions/id" },
+          { "$ref": "#/definitions/id" }
+        ],
+        "minItems": 2,
+        "maxItems": 2,
         "definitions": {
           "id": {
-            "type": "array",
-            "items": [{ "type": "string" }],
-            "minItems": 1,
-            "maxItems": 1
+            "type": "string"
           }
         }
       })

@@ -452,3 +452,16 @@ export function resolve$ref($ref: string, definitions: Definitions): JsonSchema 
     }
   }
 }
+
+/**
+ * @since 4.0.0
+ */
+export function resolveTopLevel$ref(document: Document<"draft-2020-12">): Document<"draft-2020-12"> {
+  if (typeof document.schema.$ref === "string") {
+    const schema = resolve$ref(document.schema.$ref, document.definitions)
+    if (schema !== undefined) {
+      return { ...document, schema }
+    }
+  }
+  return document
+}

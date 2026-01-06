@@ -41,10 +41,10 @@ export function make() {
       }
       const generationDocument = SchemaStandard.toGenerationDocument(multiDocument)
 
-      const nonRecursives = generationDocument.definitions.nonRecursives.map(({ $ref, schema }) =>
+      const nonRecursives = generationDocument.references.nonRecursives.map(({ $ref, schema }) =>
         renderSchema($ref, schema)
       )
-      const recursives = Object.entries(generationDocument.definitions.recursives).map(([$ref, schema]) =>
+      const recursives = Object.entries(generationDocument.references.recursives).map(([$ref, schema]) =>
         renderSchema($ref, schema)
       )
       const generations = generationDocument.generations.map((g, i) => renderSchema(nameMap[i], g))

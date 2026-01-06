@@ -122,8 +122,72 @@ describe("fromAST", () => {
     })
   })
 
-  it("Option(String)", () => {
-    assertFromAST(Schema.Option(Schema.String), {
+  it("RegExp", () => {
+    assertFromAST(Schema.RegExp, {
+      schema: {
+        _tag: "Declaration",
+        annotations: {
+          expected: "RegExp",
+          typeConstructor: { _tag: "RegExp" },
+          generation: {
+            runtime: "Schema.RegExp",
+            Type: "globalThis.RegExp"
+          }
+        },
+        checks: [],
+        typeParameters: [],
+        encodedSchema: {
+          _tag: "Objects",
+          propertySignatures: [
+            {
+              name: "source",
+              type: { _tag: "Reference", $ref: "_3" },
+              isOptional: false,
+              isMutable: false
+            },
+            {
+              name: "flags",
+              type: { _tag: "Reference", $ref: "_3" },
+              isOptional: false,
+              isMutable: false
+            }
+          ],
+          indexSignatures: [],
+          checks: []
+        }
+      },
+      references: {
+        _3: {
+          _tag: "String",
+          checks: []
+        }
+      }
+    })
+  })
+
+  it("URLSearchParams", () => {
+    assertFromAST(Schema.URLSearchParams, {
+      schema: {
+        _tag: "Declaration",
+        annotations: {
+          expected: "URLSearchParams",
+          typeConstructor: { _tag: "URLSearchParams" },
+          generation: {
+            runtime: "Schema.URLSearchParams",
+            Type: "globalThis.URLSearchParams"
+          }
+        },
+        checks: [],
+        typeParameters: [],
+        encodedSchema: {
+          _tag: "Null"
+        }
+      }
+    })
+  })
+
+  it("Option(Number)", () => {
+    assertFromAST(Schema.Option(Schema.Number), {
       schema: {
         _tag: "Declaration",
         annotations: {
@@ -180,7 +244,7 @@ describe("fromAST", () => {
       },
       references: {
         _2: {
-          _tag: "String",
+          _tag: "Number",
           checks: []
         }
       }
@@ -390,6 +454,19 @@ describe("fromAST", () => {
     })
 
     describe("suspend", () => {
+      it("non-recursive", () => {
+        assertFromAST(Schema.suspend(() => Schema.String), {
+          schema: {
+            _tag: "Suspend",
+            checks: [],
+            thunk: {
+              _tag: "String",
+              checks: []
+            }
+          }
+        })
+      })
+
       it("no identifier annotation", () => {
         type A = {
           readonly a?: A
@@ -544,7 +621,6 @@ describe("fromAST", () => {
         type A2 = {
           readonly a?: A2
         }
-
         const A2 = Schema.Struct({
           a: Schema.optionalKey(Schema.suspend((): Schema.Codec<A2> => A2))
         }).annotate({ identifier: "A" })
