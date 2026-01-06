@@ -10,6 +10,11 @@ export * as ClusterCron from "./ClusterCron.ts"
 /**
  * @since 4.0.0
  */
+export * as ClusterDashboard from "./ClusterDashboard.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as ClusterError from "./ClusterError.ts"
 
 /**

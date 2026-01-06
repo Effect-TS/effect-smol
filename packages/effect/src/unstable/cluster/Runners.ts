@@ -14,6 +14,7 @@ import * as RpcClient_ from "../rpc/RpcClient.ts"
 import type { RpcClientError } from "../rpc/RpcClientError.ts"
 import * as RpcGroup from "../rpc/RpcGroup.ts"
 import * as RpcSchema from "../rpc/RpcSchema.ts"
+import * as ClusterDashboard from "./ClusterDashboard.ts"
 import type { PersistenceError } from "./ClusterError.ts"
 import { AlreadyProcessingMessage, EntityNotAssignedToRunner, MailboxFull, RunnerUnavailable } from "./ClusterError.ts"
 import { Persisted } from "./ClusterSchema.ts"
@@ -448,6 +449,14 @@ export class Rpcs extends RpcGroup.make(
       persisted: Schema.Boolean
     },
     error: rpcErrors
+  }),
+  // Dashboard RPCs
+  Rpc.make("DashboardSnapshot", {
+    success: ClusterDashboard.RunnerSnapshot
+  }),
+  Rpc.make("DashboardSubscribe", {
+    success: ClusterDashboard.ClusterDashboardEventSchema,
+    stream: true
   })
 ) {}
 
