@@ -8,18 +8,18 @@ import type * as Stream from "../../Stream.ts"
 import { ShardId } from "./ShardId.ts"
 
 // -----------------------------------------------------------------------------
-// Schema Types
+// Domain Models
 // -----------------------------------------------------------------------------
-
-const EntityInstanceInfoTypeId = "~effect/cluster/EntityInstanceInfo"
 
 /**
  * Information about an active entity instance.
  *
  * @since 4.0.0
- * @category models
+ * @category schemas
  */
-export class EntityInstanceInfo extends Schema.Class<EntityInstanceInfo>(EntityInstanceInfoTypeId)({
+export class EntityInstanceInfo extends Schema.Class<EntityInstanceInfo>(
+  "effect/unstable/cluster/EntityInstanceInfo"
+)({
   entityId: Schema.String,
   entityType: Schema.String,
   shardId: ShardId,
@@ -29,76 +29,66 @@ export class EntityInstanceInfo extends Schema.Class<EntityInstanceInfo>(EntityI
   mailboxSize: Schema.Number,
   lastActiveAt: Schema.Number,
   keepAliveEnabled: Schema.Boolean
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [EntityInstanceInfoTypeId] = EntityInstanceInfoTypeId
-}
-
-const EntityTypeInfoTypeId = "~effect/cluster/EntityTypeInfo"
+}) {}
 
 /**
  * Information about a registered entity type.
  *
  * @since 4.0.0
- * @category models
+ * @category schemas
  */
-export class EntityTypeInfo extends Schema.Class<EntityTypeInfo>(EntityTypeInfoTypeId)({
+export class EntityTypeInfo extends Schema.Class<EntityTypeInfo>(
+  "effect/unstable/cluster/EntityTypeInfo"
+)({
   entityType: Schema.String,
   activeInstanceCount: Schema.Number,
   registeredAt: Schema.Number
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [EntityTypeInfoTypeId] = EntityTypeInfoTypeId
-}
+}) {}
 
 /**
  * Status of a shard.
  *
  * @since 4.0.0
- * @category models
+ * @category schemas
  */
-export const ShardStatus = Schema.Literals(["assigned", "acquiring", "releasing", "unassigned"])
+export const ShardStatus = Schema.Literals([
+  "assigned",
+  "acquiring",
+  "releasing",
+  "unassigned"
+])
 
 /**
  * @since 4.0.0
- * @category models
+ * @category schemas
  */
 export type ShardStatus = typeof ShardStatus.Type
-
-const ShardInfoTypeId = "~effect/cluster/ShardInfo"
 
 /**
  * Information about a shard.
  *
  * @since 4.0.0
- * @category models
+ * @category schemas
  */
-export class ShardInfo extends Schema.Class<ShardInfo>(ShardInfoTypeId)({
+export class ShardInfo extends Schema.Class<ShardInfo>(
+  "effect/unstable/cluster/ShardInfo"
+)({
   shardId: ShardId,
   runnerHost: Schema.String,
   runnerPort: Schema.Number,
   status: ShardStatus,
   entityCount: Schema.Number
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [ShardInfoTypeId] = ShardInfoTypeId
-}
-
-const RunnerInfoTypeId = "~effect/cluster/RunnerInfo"
+}) {}
 
 /**
  * Information about a runner.
  *
  * @since 4.0.0
- * @category models
+ * @category schemas
  */
-export class RunnerInfo extends Schema.Class<RunnerInfo>(RunnerInfoTypeId)({
+export class RunnerInfo extends Schema.Class<RunnerInfo>(
+  "effect/unstable/cluster/RunnerInfo"
+)({
   host: Schema.String,
   port: Schema.Number,
   groups: Schema.Array(Schema.String),
@@ -106,43 +96,33 @@ export class RunnerInfo extends Schema.Class<RunnerInfo>(RunnerInfoTypeId)({
   healthy: Schema.Boolean,
   shardCount: Schema.Number,
   entityCount: Schema.Number
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [RunnerInfoTypeId] = RunnerInfoTypeId
-}
-
-const SingletonInfoTypeId = "~effect/cluster/SingletonInfo"
+}) {}
 
 /**
  * Information about a singleton.
  *
  * @since 4.0.0
- * @category models
+ * @category schemas
  */
-export class SingletonInfo extends Schema.Class<SingletonInfo>(SingletonInfoTypeId)({
+export class SingletonInfo extends Schema.Class<SingletonInfo>(
+  "effect/unstable/cluster/SingletonInfo"
+)({
   name: Schema.String,
   shardId: ShardId,
   running: Schema.Boolean,
   runnerHost: Schema.optional(Schema.String),
   runnerPort: Schema.optional(Schema.Number)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [SingletonInfoTypeId] = SingletonInfoTypeId
-}
-
-const RunnerSnapshotTypeId = "~effect/cluster/RunnerSnapshot"
+}) {}
 
 /**
  * Snapshot of a runner's state for dashboard purposes.
  *
  * @since 4.0.0
- * @category models
+ * @category schemas
  */
-export class RunnerSnapshot extends Schema.Class<RunnerSnapshot>(RunnerSnapshotTypeId)({
+export class RunnerSnapshot extends Schema.Class<RunnerSnapshot>(
+  "effect/unstable/cluster/RunnerSnapshot"
+)({
   host: Schema.String,
   port: Schema.Number,
   groups: Schema.Array(Schema.String),
@@ -153,22 +133,17 @@ export class RunnerSnapshot extends Schema.Class<RunnerSnapshot>(RunnerSnapshotT
   entityInstances: Schema.Array(EntityInstanceInfo),
   shards: Schema.Array(ShardInfo),
   singletons: Schema.Array(SingletonInfo)
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [RunnerSnapshotTypeId] = RunnerSnapshotTypeId
-}
-
-const ClusterSnapshotTypeId = "~effect/cluster/ClusterSnapshot"
+}) {}
 
 /**
  * Aggregated snapshot of cluster state.
  *
  * @since 4.0.0
- * @category models
+ * @category schemas
  */
-export class ClusterSnapshot extends Schema.Class<ClusterSnapshot>(ClusterSnapshotTypeId)({
+export class ClusterSnapshot extends Schema.Class<ClusterSnapshot>(
+  "effect/unstable/cluster/ClusterSnapshot"
+)({
   runners: Schema.Array(RunnerInfo),
   shards: Schema.Array(ShardInfo),
   entityTypes: Schema.Array(EntityTypeInfo),
@@ -177,45 +152,11 @@ export class ClusterSnapshot extends Schema.Class<ClusterSnapshot>(ClusterSnapsh
   totalEntityCount: Schema.Number,
   totalShardCount: Schema.Number,
   healthyRunnerCount: Schema.Number
-}) {
-  /**
-   * @since 4.0.0
-   */
-  readonly [ClusterSnapshotTypeId] = ClusterSnapshotTypeId
-}
+}) {}
 
 // -----------------------------------------------------------------------------
 // Dashboard Events
 // -----------------------------------------------------------------------------
-
-// /**
-//  * Events emitted by the cluster dashboard.
-//  *
-//  * @since 4.0.0
-//  * @category models
-//  */
-// export type ClusterDashboardEvent = Data.TaggedEnum<{
-//   readonly EntityTypeRegistered: { readonly entityType: string; readonly registeredAt: number }
-//   readonly EntityInstanceCreated: { readonly info: EntityInstanceInfo }
-//   readonly EntityInstanceRemoved: { readonly entityId: string; readonly entityType: string; readonly shardId: ShardId }
-//   readonly SingletonRegistered: { readonly name: string; readonly shardId: ShardId }
-//   readonly SingletonStarted: {
-//     readonly name: string
-//     readonly shardId: ShardId
-//     readonly runnerHost: string
-//     readonly runnerPort: number
-//   }
-//   readonly SingletonStopped: { readonly name: string; readonly shardId: ShardId }
-//   readonly ShardAcquired: { readonly shardId: ShardId; readonly runnerHost: string; readonly runnerPort: number }
-//   readonly ShardReleased: { readonly shardId: ShardId; readonly runnerHost: string; readonly runnerPort: number }
-//   readonly RunnerHealthChanged: { readonly runnerHost: string; readonly runnerPort: number; readonly healthy: boolean }
-// }>
-//
-// /**
-//  * @since 4.0.0
-//  * @category models
-//  */
-// export const ClusterDashboardEvent = Data.taggedEnum<ClusterDashboardEvent>()
 
 /**
  * @since 4.0.0
@@ -372,7 +313,7 @@ export type ClusterDashboardEvent = typeof ClusterDashboardEvent.Type
  * Dashboard client service that aggregates cluster state from all runners.
  *
  * @since 4.0.0
- * @category context
+ * @category services
  */
 export class ClusterDashboard extends ServiceMap.Service<ClusterDashboard, {
   /**

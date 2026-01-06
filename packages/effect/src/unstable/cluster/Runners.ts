@@ -455,7 +455,7 @@ export class Rpcs extends RpcGroup.make(
     success: ClusterDashboard.RunnerSnapshot
   }),
   Rpc.make("DashboardSubscribe", {
-    success: ClusterDashboard.ClusterDashboardEventSchema,
+    success: ClusterDashboard.ClusterDashboardEvent,
     stream: true
   })
 ) {}
