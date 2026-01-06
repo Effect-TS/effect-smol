@@ -27,7 +27,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
   const referenceCounter = new Map<string, number>()
   const referenceUsage = new Set<string>()
 
-  const schemas = Arr.map(asts, (ast) => recur(ast))
+  const schemas = Arr.map(asts, recur)
 
   return {
     schemas: Arr.map(schemas, compact),
@@ -35,7 +35,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
   }
 
   function isCompactable($ref: string): boolean {
-    return !referenceUsage.has($ref) && $ref.startsWith(FROM_AST_SEED)
+    return !referenceUsage.has($ref)
   }
 
   function compact(s: SchemaStandard.Standard): SchemaStandard.Standard {
@@ -90,7 +90,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
     }
   }
 
-  function recur(ast: AST.AST, identifier?: string): SchemaStandard.Standard {
+  function recur(ast: AST.AST): SchemaStandard.Standard {
     const found = referenceMap.get(ast)
     if (found !== undefined) {
       referenceUsage.add(found)
@@ -100,13 +100,13 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
     const last = getLastEncoding(ast)
 
     if (ast === last) {
-      const reference = gen(InternalAnnotations.resolveIdentifier(ast) ?? identifier)
+      const reference = gen(InternalAnnotations.resolveIdentifier(ast))
       referenceMap.set(ast, reference)
       const out = on(ast)
       references[reference] = out
       return { _tag: "Reference", $ref: reference }
     } else {
-      return recur(last, InternalAnnotations.resolveIdentifier(ast))
+      return recur(last)
     }
   }
 
@@ -119,7 +119,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
       case "Declaration":
         return {
           _tag: "Declaration",
-          typeParameters: last.typeParameters.map((tp) => recur(tp)),
+          typeParameters: last.typeParameters.map(recur),
           encodedSchema: recur(getLastEncoding(InternalSerializer.toCodecJson(last))),
           checks: fromASTChecks(last.checks),
           ...fromASTAnnotations(last)
@@ -178,7 +178,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
       case "TemplateLiteral":
         return {
           _tag: last._tag,
-          parts: last.parts.map((p) => recur(p)),
+          parts: last.parts.map(recur),
           ...fromASTAnnotations(last)
         }
       case "Arrays":
@@ -192,7 +192,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
               ...(last.context?.annotations ? { annotations: last.context?.annotations } : undefined)
             }
           }),
-          rest: last.rest.map((r) => recur(r)),
+          rest: last.rest.map(recur),
           checks: fromASTChecks(last.checks),
           ...fromASTAnnotations(last)
         }
@@ -220,7 +220,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
         const types = InternalSerializer.jsonReorder(last.types)
         return {
           _tag: last._tag,
-          types: types.map((t) => recur(t)),
+          types: types.map(recur),
           mode: last.mode,
           ...fromASTAnnotations(last)
         }
