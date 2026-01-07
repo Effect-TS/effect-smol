@@ -212,7 +212,7 @@ describe("toGenerationDocument", () => {
         references: {
           nonRecursives: [
             {
-              $ref: "_3",
+              $ref: "_2",
               schema: makeGeneration("Schema.String", "string")
             }
           ]
@@ -265,11 +265,11 @@ describe("toGenerationDocument", () => {
       assertToGenerationDocument(
         { schema: Schema.Option(Schema.String) },
         {
-          generations: makeGeneration("Schema.Option(_2)", "Option.Option<_2>"),
+          generations: makeGeneration("Schema.Option(_1)", "Option.Option<_1>"),
           references: {
             nonRecursives: [
               {
-                $ref: "_2",
+                $ref: "_1",
                 schema: makeGeneration("Schema.String", "string")
               }
             ]
@@ -286,15 +286,15 @@ describe("toGenerationDocument", () => {
       assertToGenerationDocument(
         { schema: Schema.Result(Schema.String, Schema.Number) },
         {
-          generations: makeGeneration("Schema.Result(_2, _3)", "Result.Result<_2, _3>"),
+          generations: makeGeneration("Schema.Result(_1, _2)", "Result.Result<_1, _2>"),
           references: {
             nonRecursives: [
               {
-                $ref: "_2",
+                $ref: "_1",
                 schema: makeGeneration("Schema.String", "string")
               },
               {
-                $ref: "_3",
+                $ref: "_2",
                 schema: makeGeneration("Schema.Number", "number")
               }
             ]
@@ -309,15 +309,15 @@ describe("toGenerationDocument", () => {
 
     it("CauseFailure(String, Number)", () => {
       assertToGenerationDocument({ schema: Schema.CauseFailure(Schema.String, Schema.Number) }, {
-        generations: makeGeneration("Schema.CauseFailure(_2, _3)", "Cause.Failure<_2, _3>"),
+        generations: makeGeneration("Schema.CauseFailure(_1, _2)", "Cause.Failure<_1, _2>"),
         references: {
           nonRecursives: [
             {
-              $ref: "_2",
+              $ref: "_1",
               schema: makeGeneration("Schema.String", "string")
             },
             {
-              $ref: "_3",
+              $ref: "_2",
               schema: makeGeneration("Schema.Number", "number")
             }
           ]
@@ -328,15 +328,15 @@ describe("toGenerationDocument", () => {
 
     it("Cause(String, Number)", () => {
       assertToGenerationDocument({ schema: Schema.Cause(Schema.String, Schema.Number) }, {
-        generations: makeGeneration("Schema.Cause(_2, _3)", "Cause.Cause<_2, _3>"),
+        generations: makeGeneration("Schema.Cause(_1, _2)", "Cause.Cause<_1, _2>"),
         references: {
           nonRecursives: [
             {
-              $ref: "_2",
+              $ref: "_1",
               schema: makeGeneration("Schema.String", "string")
             },
             {
-              $ref: "_3",
+              $ref: "_2",
               schema: makeGeneration("Schema.Number", "number")
             }
           ]
@@ -347,19 +347,19 @@ describe("toGenerationDocument", () => {
 
     it("Exit(String, Number, String)", () => {
       assertToGenerationDocument({ schema: Schema.Exit(Schema.String, Schema.Number, Schema.Boolean) }, {
-        generations: makeGeneration("Schema.Exit(_2, _3, _4)", "Exit.Exit<_2, _3, _4>"),
+        generations: makeGeneration("Schema.Exit(_1, _2, _3)", "Exit.Exit<_1, _2, _3>"),
         references: {
           nonRecursives: [
             {
-              $ref: "_2",
+              $ref: "_1",
               schema: makeGeneration("Schema.String", "string")
             },
             {
-              $ref: "_3",
+              $ref: "_2",
               schema: makeGeneration("Schema.Number", "number")
             },
             {
-              $ref: "_4",
+              $ref: "_3",
               schema: makeGeneration("Schema.Boolean", "boolean")
             }
           ]
@@ -1491,14 +1491,14 @@ describe("toGenerationDocument", () => {
 
       assertToGenerationDocument({ schema: A }, {
         generations: makeGeneration(
-          `Schema.Struct({ "a": Schema.optionalKey(_2) })`,
-          `{ readonly "a"?: _2 }`
+          `Schema.Struct({ "a": Schema.optionalKey(_1) })`,
+          `{ readonly "a"?: _1 }`
         ),
         references: {
           recursives: {
-            _2: makeGeneration(
-              `Schema.suspend((): Schema.Codec<{ readonly "a"?: _2 }> => Schema.Struct({ "a": Schema.optionalKey(_2) }).annotate({ "identifier": "A" }))`,
-              `{ readonly "a"?: _2 }`
+            _1: makeGeneration(
+              `Schema.suspend((): Schema.Codec<{ readonly "a"?: _1 }> => Schema.Struct({ "a": Schema.optionalKey(_1) }).annotate({ "identifier": "A" }))`,
+              `{ readonly "a"?: _1 }`
             )
           }
         }

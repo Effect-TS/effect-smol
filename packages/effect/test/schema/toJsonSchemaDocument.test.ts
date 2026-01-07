@@ -254,14 +254,14 @@ describe("toJsonSchemaDocument", () => {
         schema: {
           "type": "object",
           "properties": {
-            "source": { "$ref": "#/$defs/_3" },
-            "flags": { "$ref": "#/$defs/_3" }
+            "source": { "$ref": "#/$defs/_2" },
+            "flags": { "$ref": "#/$defs/_2" }
           },
           "required": ["source", "flags"],
           "additionalProperties": false
         },
         definitions: {
-          _3: {
+          _2: {
             "type": "string"
           }
         }
@@ -322,7 +322,7 @@ describe("toJsonSchemaDocument", () => {
                   "enum": ["Some"]
                 },
                 "value": {
-                  "$ref": "#/$defs/_2"
+                  "$ref": "#/$defs/_1"
                 }
               },
               "required": ["_tag", "value"],
@@ -342,7 +342,7 @@ describe("toJsonSchemaDocument", () => {
           ]
         },
         definitions: {
-          _2: {
+          _1: {
             "type": "string"
           }
         }
@@ -850,10 +850,10 @@ describe("toJsonSchemaDocument", () => {
               schema: {
                 "type": "array",
                 "prefixItems": [{
-                  "$ref": "#/$defs/_2"
+                  "$ref": "#/$defs/_1"
                 }],
                 "items": {
-                  "$ref": "#/$defs/_2"
+                  "$ref": "#/$defs/_1"
                 },
                 "minItems": 1,
                 "allOf": [
@@ -862,7 +862,7 @@ describe("toJsonSchemaDocument", () => {
                 ]
               },
               definitions: {
-                _2: {
+                _1: {
                   "type": "string"
                 }
               }
@@ -910,10 +910,10 @@ describe("toJsonSchemaDocument", () => {
               schema: {
                 "type": "array",
                 "prefixItems": [{
-                  "$ref": "#/$defs/_2"
+                  "$ref": "#/$defs/_1"
                 }],
                 "items": {
-                  "$ref": "#/$defs/_2"
+                  "$ref": "#/$defs/_1"
                 },
                 "minItems": 1,
                 "allOf": [
@@ -921,7 +921,7 @@ describe("toJsonSchemaDocument", () => {
                 ]
               },
               definitions: {
-                _2: {
+                _1: {
                   "type": "string"
                 }
               }
@@ -970,17 +970,17 @@ describe("toJsonSchemaDocument", () => {
                 "type": "array",
                 "minItems": 1,
                 "prefixItems": [{
-                  "$ref": "#/$defs/_2"
+                  "$ref": "#/$defs/_1"
                 }],
                 "items": {
-                  "$ref": "#/$defs/_2"
+                  "$ref": "#/$defs/_1"
                 },
                 "allOf": [
                   { "maxItems": 2 }
                 ]
               },
               definitions: {
-                _2: {
+                _1: {
                   "type": "string"
                 }
               }
@@ -2310,13 +2310,13 @@ describe("toJsonSchemaDocument", () => {
                 "a": {
                   "anyOf": [
                     { "type": "string", "description": "a" },
-                    { "$ref": "#/$defs/_4" }
+                    { "$ref": "#/$defs/_3" }
                   ]
                 },
                 "b": {
                   "anyOf": [
                     { "type": "string" },
-                    { "$ref": "#/$defs/_4" }
+                    { "$ref": "#/$defs/_3" }
                   ],
                   "description": "b"
                 }
@@ -2324,7 +2324,7 @@ describe("toJsonSchemaDocument", () => {
               "additionalProperties": false
             },
             definitions: {
-              _4: {
+              _3: {
                 "type": "null"
               }
             }
@@ -2345,7 +2345,7 @@ describe("toJsonSchemaDocument", () => {
                 "a": {
                   "anyOf": [
                     { "type": "string" },
-                    { "$ref": "#/$defs/_4" }
+                    { "$ref": "#/$defs/_3" }
                   ],
                   "allOf": [{
                     "description": "a-key"
@@ -2354,7 +2354,7 @@ describe("toJsonSchemaDocument", () => {
                 "b": {
                   "anyOf": [
                     { "type": "string", "description": "b" },
-                    { "$ref": "#/$defs/_4" }
+                    { "$ref": "#/$defs/_3" }
                   ],
                   "allOf": [{
                     "description": "b-key"
@@ -2364,7 +2364,7 @@ describe("toJsonSchemaDocument", () => {
               "additionalProperties": false
             },
             definitions: {
-              _4: {
+              _3: {
                 "type": "null"
               }
             }
@@ -2433,13 +2433,13 @@ describe("toJsonSchemaDocument", () => {
                 "a": {
                   "anyOf": [
                     { "type": "string", "description": "a" },
-                    { "$ref": "#/$defs/_4" }
+                    { "$ref": "#/$defs/_3" }
                   ]
                 },
                 "b": {
                   "anyOf": [
                     { "type": "string" },
-                    { "$ref": "#/$defs/_4" }
+                    { "$ref": "#/$defs/_3" }
                   ],
                   "description": "b"
                 }
@@ -2448,7 +2448,7 @@ describe("toJsonSchemaDocument", () => {
               "additionalProperties": false
             },
             definitions: {
-              _4: {
+              _3: {
                 "type": "null"
               }
             }
@@ -2469,7 +2469,7 @@ describe("toJsonSchemaDocument", () => {
                 "a": {
                   "anyOf": [
                     { "type": "string" },
-                    { "$ref": "#/$defs/_4" }
+                    { "$ref": "#/$defs/_3" }
                   ],
                   "allOf": [{
                     "description": "a-key"
@@ -2478,7 +2478,7 @@ describe("toJsonSchemaDocument", () => {
                 "b": {
                   "anyOf": [
                     { "type": "string", "description": "b" },
-                    { "$ref": "#/$defs/_4" }
+                    { "$ref": "#/$defs/_3" }
                   ],
                   "allOf": [{
                     "description": "b-key"
@@ -2489,7 +2489,7 @@ describe("toJsonSchemaDocument", () => {
               "additionalProperties": false
             },
             definitions: {
-              _4: {
+              _3: {
                 "type": "null"
               }
             }
@@ -2578,14 +2578,14 @@ describe("toJsonSchemaDocument", () => {
           schema: {
             "type": "object",
             "properties": {
-              "a": { "$ref": "#/$defs/_2" },
-              "b": { "$ref": "#/$defs/_2" }
+              "a": { "$ref": "#/$defs/_1" },
+              "b": { "$ref": "#/$defs/_1" }
             },
             "required": ["a", "b"],
             "additionalProperties": false
           },
           definitions: {
-            _2: {
+            _1: {
               "type": "number"
             }
           }
@@ -2664,18 +2664,18 @@ describe("toJsonSchemaDocument", () => {
         schema: {
           "type": "object",
           "properties": {
-            "a": { "$ref": "#/$defs/_2" }
+            "a": { "$ref": "#/$defs/_1" }
           },
           "additionalProperties": {
             "anyOf": [
               { "type": "number" },
-              { "$ref": "#/$defs/_2" }
+              { "$ref": "#/$defs/_1" }
             ]
           },
           "required": ["a"]
         },
         definitions: {
-          _2: {
+          _1: {
             "type": "string"
           }
         }

@@ -19,14 +19,11 @@ export function fromAST(ast: AST.AST): SchemaStandard.Document {
 }
 
 /** @internal */
-export const DEFAULT_SEED = "_"
-
-/** @internal */
 export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaStandard.MultiDocument {
   const references: Record<string, SchemaStandard.Standard> = {}
 
   const referenceMap = new Map<AST.AST, string>()
-  const uniqueReferences = new Map<string, number>()
+  const uniqueReferences = new Set<string>()
   const usedReferences = new Set<string>()
 
   const schemas = Arr.map(asts, recur)
@@ -75,21 +72,16 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
     }
   }
 
-  function gen(seed: string = DEFAULT_SEED): string {
-    // Check if base identifier is available
-    let count = uniqueReferences.get(seed)
-    if (count === undefined) {
-      uniqueReferences.set(seed, 1)
-      return seed
-    } else {
-      // Find a unique identifier by incrementing until we find one that doesn't exist
-      let out
-      while (uniqueReferences.has(out = `${seed}${++count}`)) {
-        //
-      }
-      uniqueReferences.set(seed, count)
-      return out
+  function gen(seed: string = "_"): string {
+    let candidate = seed
+    let suffix = 0
+
+    while (uniqueReferences.has(candidate)) {
+      candidate = `${seed}${++suffix}`
     }
+
+    uniqueReferences.add(candidate)
+    return candidate
   }
 
   function recur(ast: AST.AST): SchemaStandard.Standard {

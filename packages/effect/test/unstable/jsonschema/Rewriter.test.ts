@@ -115,29 +115,29 @@ describe("Rewriter", () => {
               "type": "object",
               "properties": {
                 "a": {
-                  "$ref": "#/$defs/_2"
+                  "$ref": "#/$defs/_1"
                 },
                 "as": {
-                  "$ref": "#/$defs/_3"
+                  "$ref": "#/$defs/_2"
                 }
               },
               "required": ["a", "as"],
               "additionalProperties": false
             },
             definitions: {
-              _2: {
+              _1: {
                 "type": "string"
               },
-              _3: {
+              _2: {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "properties": {
                     "a": {
-                      "$ref": "#/$defs/_2"
+                      "$ref": "#/$defs/_1"
                     },
                     "as": {
-                      "$ref": "#/$defs/_3"
+                      "$ref": "#/$defs/_2"
                     }
                   },
                   "required": ["a", "as"],

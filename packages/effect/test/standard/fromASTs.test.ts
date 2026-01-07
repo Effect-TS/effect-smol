@@ -21,7 +21,7 @@ describe("fromASTs", () => {
     assertFromASTs([A, B, C], {
       schemas: [
         { _tag: "Reference", $ref: "id" },
-        { _tag: "Reference", $ref: "id2" },
+        { _tag: "Reference", $ref: "id1" },
         {
           _tag: "Arrays",
           elements: [
@@ -31,7 +31,7 @@ describe("fromASTs", () => {
             },
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "id2" }
+              type: { _tag: "Reference", $ref: "id1" }
             }
           ],
           rest: [],
@@ -44,7 +44,7 @@ describe("fromASTs", () => {
           checks: [],
           annotations: { identifier: "id", description: "a" }
         },
-        id2: {
+        id1: {
           _tag: "String",
           checks: [],
           annotations: { identifier: "id", description: "b" }
@@ -141,13 +141,13 @@ describe("fromAST", () => {
           propertySignatures: [
             {
               name: "source",
-              type: { _tag: "Reference", $ref: "_3" },
+              type: { _tag: "Reference", $ref: "_2" },
               isOptional: false,
               isMutable: false
             },
             {
               name: "flags",
-              type: { _tag: "Reference", $ref: "_3" },
+              type: { _tag: "Reference", $ref: "_2" },
               isOptional: false,
               isMutable: false
             }
@@ -157,7 +157,7 @@ describe("fromAST", () => {
         }
       },
       references: {
-        _3: {
+        _2: {
           _tag: "String",
           checks: []
         }
@@ -201,7 +201,7 @@ describe("fromAST", () => {
         },
         checks: [],
         typeParameters: [
-          { _tag: "Reference", $ref: "_2" }
+          { _tag: "Reference", $ref: "_1" }
         ],
         encodedSchema: {
           _tag: "Union",
@@ -217,7 +217,7 @@ describe("fromAST", () => {
                 },
                 {
                   name: "value",
-                  type: { _tag: "Reference", $ref: "_2" },
+                  type: { _tag: "Reference", $ref: "_1" },
                   isOptional: false,
                   isMutable: false
                 }
@@ -243,7 +243,7 @@ describe("fromAST", () => {
         }
       },
       references: {
-        _2: {
+        _1: {
           _tag: "Number",
           checks: []
         }
@@ -328,21 +328,21 @@ describe("fromAST", () => {
                 annotations: { identifier: "A" },
                 checks: [],
                 typeParameters: [
-                  { _tag: "Reference", $ref: "_2" }
+                  { _tag: "Reference", $ref: "_1" }
                 ],
-                encodedSchema: { _tag: "Reference", $ref: "_2" }
+                encodedSchema: { _tag: "Reference", $ref: "_1" }
               }
             },
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "_2" }
+              type: { _tag: "Reference", $ref: "_1" }
             }
           ],
           rest: [],
           checks: []
         },
         references: {
-          _2: {
+          _1: {
             _tag: "Objects",
             propertySignatures: [
               {
@@ -372,18 +372,18 @@ describe("fromAST", () => {
           elements: [
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "_2" }
+              type: { _tag: "Reference", $ref: "_1" }
             },
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "_2" }
+              type: { _tag: "Reference", $ref: "_1" }
             }
           ],
           rest: [],
           checks: []
         },
         references: {
-          _2: {
+          _1: {
             _tag: "String",
             checks: []
           }
@@ -546,7 +546,7 @@ describe("fromAST", () => {
             propertySignatures: [
               {
                 name: "a",
-                type: { _tag: "Reference", $ref: "_2" },
+                type: { _tag: "Reference", $ref: "_1" },
                 isOptional: true,
                 isMutable: false
               }
@@ -555,7 +555,7 @@ describe("fromAST", () => {
             checks: []
           },
           references: {
-            _2: {
+            _1: {
               _tag: "Suspend",
               checks: [],
               thunk: {
@@ -564,7 +564,7 @@ describe("fromAST", () => {
                 propertySignatures: [
                   {
                     name: "a",
-                    type: { _tag: "Reference", $ref: "_2" },
+                    type: { _tag: "Reference", $ref: "_1" },
                     isOptional: true,
                     isMutable: false
                   }
@@ -618,14 +618,14 @@ describe("fromAST", () => {
           a: Schema.optionalKey(Schema.suspend((): Schema.Codec<A> => A))
         }).annotate({ identifier: "A" })
 
-        type A2 = {
-          readonly a?: A2
+        type A1 = {
+          readonly a?: A1
         }
-        const A2 = Schema.Struct({
-          a: Schema.optionalKey(Schema.suspend((): Schema.Codec<A2> => A2))
+        const A1 = Schema.Struct({
+          a: Schema.optionalKey(Schema.suspend((): Schema.Codec<A1> => A1))
         }).annotate({ identifier: "A" })
 
-        const schema = Schema.Tuple([A, A2])
+        const schema = Schema.Tuple([A, A1])
         assertFromAST(schema, {
           schema: {
             _tag: "Arrays",
@@ -636,7 +636,7 @@ describe("fromAST", () => {
               },
               {
                 isOptional: false,
-                type: { _tag: "Reference", $ref: "A2" }
+                type: { _tag: "Reference", $ref: "A1" }
               }
             ],
             rest: [],
@@ -661,7 +661,7 @@ describe("fromAST", () => {
               indexSignatures: [],
               checks: []
             },
-            A2: {
+            A1: {
               _tag: "Objects",
               annotations: { identifier: "A" },
               propertySignatures: [
@@ -670,7 +670,7 @@ describe("fromAST", () => {
                   type: {
                     _tag: "Suspend",
                     checks: [],
-                    thunk: { _tag: "Reference", $ref: "A2" }
+                    thunk: { _tag: "Reference", $ref: "A1" }
                   },
                   isOptional: true,
                   isMutable: false
