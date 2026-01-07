@@ -9,7 +9,6 @@ describe("JsonSchemaGenerator", () => {
     const result = generator.generate("openapi-3.1", definitions, false)
     expect(result).toBe(`// schemas
 export type A = string
-export type AEncoded = A
 export const A = Schema.String
 `)
   })
@@ -21,18 +20,16 @@ export const A = Schema.String
       B: { type: "string" }
     }
     const result = generator.generate("openapi-3.1", definitions, false)
-    expect(result).toBe(`// schemas
-export type A = B
-export type AEncoded = BEncoded
-export const A = B
-// non-recursive definitions
+    expect(result).toBe(`// non-recursive definitions
 export type B = string
-export type BEncoded = B
 export const B = Schema.String.annotate({ "identifier": "B" })
+// schemas
+export type A = B
+export const A = B
 `)
   })
 
-  it.todo("recursive schema", () => {
+  it("recursive schema", () => {
     const generator = JsonSchemaGenerator.make()
     generator.addSchema("A", { $ref: "#/components/schemas/B" })
     const definitions = {
@@ -57,14 +54,12 @@ export const B = Schema.String.annotate({ "identifier": "B" })
       }
     }
     const result = generator.generate("openapi-3.1", definitions, false)
-    expect(result).toBe(`// schemas
-export type A = B
-export type AEncoded = BEncoded
-export const A = B
-// recursive definitions
+    expect(result).toBe(`// recursive definitions
 export type B = { readonly "name": string, readonly "children": ReadonlyArray<B> }
-export type BEncoded = { readonly "name": string, readonly "children": ReadonlyArray<BEncoded> }
-export const B = Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<B, BEncoded> => B)) }).annotate({ "identifier": "B" })
+export const B = Schema.Struct({ "name": Schema.String, "children": Schema.Array(Schema.suspend((): Schema.Codec<B> => B)) }).annotate({ "identifier": "B" })
+// schemas
+export type A = B
+export const A = B
 `)
   })
 })

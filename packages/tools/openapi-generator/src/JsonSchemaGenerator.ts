@@ -1,5 +1,6 @@
 import * as Arr from "effect/Array"
 import * as JsonSchema from "effect/JsonSchema"
+import * as Rec from "effect/Record"
 import * as SchemaStandard from "effect/SchemaStandard"
 
 export function make() {
@@ -16,29 +17,25 @@ export function make() {
     typeOnly: boolean
   ) {
     const nameMap: Array<string> = []
-    const schemas: Array<SchemaStandard.Standard> = []
+    const schemas: Array<JsonSchema.JsonSchema> = []
 
-    const definitions: Record<string, SchemaStandard.Standard> = {}
-    for (const [name, jsonSchema] of Object.entries(components)) {
-      const definition = go(jsonSchema)
-      if (definition._tag !== "Reference") {
-        const annotations = definition.annotations
-        addDefinition(name, { ...definition, annotations: { ...annotations, identifier: name } })
-      } else {
-        addDefinition(name, definition)
-      }
-    }
+    const definitions: JsonSchema.Definitions = Rec.map(
+      components,
+      (js) => fromSchemaOpenApi(js).schema
+    )
 
-    for (const [name, jsonSchema] of Object.entries(store)) {
+    for (const [name, js] of Object.entries(store)) {
       nameMap.push(name)
-      schemas.push(go(jsonSchema))
+      schemas.push(fromSchemaOpenApi(js).schema)
     }
 
     if (Arr.isArrayNonEmpty(schemas)) {
-      const multiDocument: SchemaStandard.MultiDocument = {
+      const multiDocument: SchemaStandard.MultiDocument = SchemaStandard.fromJsonSchemaMultiDocument({
+        dialect: "draft-2020-12",
         schemas,
-        references: definitions
-      }
+        definitions
+      })
+
       const generationDocument = SchemaStandard.toGenerationDocument(multiDocument)
 
       const nonRecursives = generationDocument.references.nonRecursives.map(({ $ref, schema }) =>
@@ -49,16 +46,16 @@ export function make() {
       )
       const generations = generationDocument.generations.map((g, i) => renderSchema(nameMap[i], g))
 
-      const s = render("schemas", generations) +
-        render("non-recursive definitions", nonRecursives) +
-        render("recursive definitions", recursives)
+      const s = render("non-recursive definitions", nonRecursives) +
+        render("recursive definitions", recursives) +
+        render("schemas", generations)
 
       return s
     } else {
       return ""
     }
 
-    function normalize(jsonSchema: JsonSchema.JsonSchema) {
+    function fromSchemaOpenApi(jsonSchema: JsonSchema.JsonSchema) {
       switch (source) {
         case "openapi-3.1":
           return JsonSchema.fromSchemaOpenApi3_1(jsonSchema)
@@ -67,26 +64,8 @@ export function make() {
       }
     }
 
-    function addDefinition(name: string, definition: SchemaStandard.Standard) {
-      if (name in definitions) {
-        throw new Error(`Duplicate definition id: ${name}`)
-      }
-      definitions[name] = definition
-    }
-
-    function go(jsonSchema: JsonSchema.JsonSchema): SchemaStandard.Standard {
-      const jsonDocument = normalize(jsonSchema)
-      const standardDocument = SchemaStandard.fromJsonSchemaDocument(jsonDocument)
-      for (const [name, definition] of Object.entries(standardDocument.references)) {
-        addDefinition(name, definition)
-      }
-      return standardDocument.schema
-    }
-
     function renderSchema($ref: string, schema: SchemaStandard.Generation) {
-      const strings = [
-        `export type ${$ref} = ${schema.Type}`
-      ]
+      const strings = [`export type ${$ref} = ${schema.Type}`]
       if (!typeOnly) {
         strings.push(`export const ${$ref} = ${schema.runtime}`)
       }

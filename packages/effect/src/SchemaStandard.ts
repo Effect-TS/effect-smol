@@ -2078,18 +2078,38 @@ function toRuntimeRegExp(regExp: RegExp): string {
  * @since 4.0.0
  */
 export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020-12">): Document {
+  const { references, schemas } = fromJsonSchemaMultiDocument({
+    dialect: document.dialect,
+    schemas: [document.schema],
+    definitions: document.definitions
+  })
+  return {
+    schema: schemas[0],
+    references
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"draft-2020-12">): MultiDocument {
   let visited$refs = new Set<string>()
-  const definitions = Rec.map(document.definitions, (d, identifier) => {
+  const definitions: Record<string, Standard> = {}
+
+  for (const [identifier, d] of Object.entries(document.definitions)) {
     visited$refs.add(identifier)
     const out = recur(d)
-    if (out._tag === "Reference") return out
-    const annotations = out.annotations
-    return { ...out, annotations: { ...annotations, identifier } }
-  })
+    if (out._tag === "Reference") {
+      definitions[identifier] = out
+    } else {
+      const annotations = out.annotations
+      definitions[identifier] = { ...out, annotations: { ...annotations, identifier } }
+    }
+  }
 
   visited$refs = new Set<string>()
   return {
-    schema: recur(document.schema),
+    schemas: Arr.map(document.schemas, recur),
     references: definitions
   }
 

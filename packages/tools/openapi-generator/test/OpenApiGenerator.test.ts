@@ -38,7 +38,7 @@ function assertTypeOnly(spec: OpenAPISpec) {
 
 describe("OpenApiGenerator", () => {
   describe("schema", () => {
-    it.effect.only("OpenAiFixture", () => assertRuntime(OpenAiFixture as any))
+    it.effect("OpenAiFixture", () => assertRuntime(OpenAiFixture as any))
 
     it.effect("get operation", () =>
       assertRuntime(
