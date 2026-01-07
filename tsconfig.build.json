@@ -10,6 +10,7 @@
     { "path": "packages/opentelemetry/tsconfig.build.json" },
     { "path": "packages/platform-browser/tsconfig.build.json" },
     { "path": "packages/platform-bun/tsconfig.build.json" },
+    { "path": "packages/platform-deno/tsconfig.build.json" },
     { "path": "packages/platform-node/tsconfig.build.json" },
     { "path": "packages/platform-node-shared/tsconfig.build.json" },
     { "path": "packages/sql/clickhouse/tsconfig.build.json" },
