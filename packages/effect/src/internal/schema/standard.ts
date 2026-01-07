@@ -26,8 +26,8 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
   const references: Record<string, SchemaStandard.Standard> = {}
 
   const referenceMap = new Map<AST.AST, string>()
-  const referenceCounter = new Map<string, number>()
-  const referenceUsage = new Set<string>()
+  const uniqueReferences = new Map<string, number>()
+  const usedReferences = new Set<string>()
 
   const schemas = Arr.map(asts, recur)
 
@@ -37,7 +37,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
   }
 
   function isCompactable($ref: string): boolean {
-    return !referenceUsage.has($ref)
+    return !usedReferences.has($ref)
   }
 
   function compact(s: SchemaStandard.Standard): SchemaStandard.Standard {
@@ -77,17 +77,17 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
 
   function gen(seed: string = DEFAULT_SEED): string {
     // Check if base identifier is available
-    let count = referenceCounter.get(seed)
+    let count = uniqueReferences.get(seed)
     if (count === undefined) {
-      referenceCounter.set(seed, 1)
+      uniqueReferences.set(seed, 1)
       return seed
     } else {
       // Find a unique identifier by incrementing until we find one that doesn't exist
       let out
-      while (referenceCounter.has(out = `${seed}${++count}`)) {
+      while (uniqueReferences.has(out = `${seed}${++count}`)) {
         //
       }
-      referenceCounter.set(seed, count)
+      uniqueReferences.set(seed, count)
       return out
     }
   }
@@ -95,7 +95,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
   function recur(ast: AST.AST): SchemaStandard.Standard {
     const found = referenceMap.get(ast)
     if (found !== undefined) {
-      referenceUsage.add(found)
+      usedReferences.add(found)
       return { _tag: "Reference", $ref: found }
     }
 

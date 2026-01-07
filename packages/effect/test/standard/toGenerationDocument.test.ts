@@ -19,125 +19,140 @@ const InnerCategory = Schema.Struct({
   )
 })
 
-describe("defaultSanitizeReference", () => {
+describe("toValidIdentifier", () => {
+  const toValidIdentifier = SchemaStandard.toValidIdentifier
+
   it("should return '_' for empty string", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference(""), "_")
+    strictEqual(toValidIdentifier(""), "_")
   })
 
-  it("should pass through valid JavaScript identifiers", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("validIdentifier"), "validIdentifier")
-    strictEqual(SchemaStandard.defaultSanitizeReference("_validIdentifier"), "validIdentifier")
-    strictEqual(SchemaStandard.defaultSanitizeReference("$validIdentifier"), "$validIdentifier")
-    strictEqual(SchemaStandard.defaultSanitizeReference("valid123"), "valid123")
-    strictEqual(SchemaStandard.defaultSanitizeReference("_123"), "_123")
-    strictEqual(SchemaStandard.defaultSanitizeReference("$123"), "$123")
+  it("should keep a simple valid identifier unchanged", () => {
+    strictEqual(toValidIdentifier("abc"), "abc")
   })
 
-  it("should replace invalid characters with underscores", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my/ref"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my ref"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my.ref"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my@ref"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my#ref"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref-name"), "my_ref_name")
+  it("should keep '$' and '_' identifiers unchanged", () => {
+    strictEqual(toValidIdentifier("_"), "_")
+    strictEqual(toValidIdentifier("$"), "$")
+    strictEqual(toValidIdentifier("_$a9"), "_$a9")
   })
 
-  it("should prefix with underscore if starts with digit", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("123abc"), "_123abc")
-    strictEqual(SchemaStandard.defaultSanitizeReference("0ref"), "_0ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("9test"), "_9test")
-    strictEqual(SchemaStandard.defaultSanitizeReference("123"), "_123")
+  it("should not change a valid identifier that contains digits (not first)", () => {
+    strictEqual(toValidIdentifier("a0"), "a0")
+    strictEqual(toValidIdentifier("a123"), "a123")
+    strictEqual(toValidIdentifier("a1b2c3"), "a1b2c3")
   })
 
-  it("should collapse consecutive underscores", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("my__ref"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my___ref"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my____ref"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("__test__"), "test")
-    strictEqual(SchemaStandard.defaultSanitizeReference("___"), "_")
+  it("should prefix '_' when the first character is not a valid identifier start (digit)", () => {
+    strictEqual(toValidIdentifier("1"), "_1")
+    strictEqual(toValidIdentifier("1a"), "_1a")
+    strictEqual(toValidIdentifier("9lives"), "_9lives")
   })
 
-  it("should remove leading and trailing underscores", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("_test"), "test")
-    strictEqual(SchemaStandard.defaultSanitizeReference("test_"), "test")
-    strictEqual(SchemaStandard.defaultSanitizeReference("_test_"), "test")
-    strictEqual(SchemaStandard.defaultSanitizeReference("__test__"), "test")
-    strictEqual(SchemaStandard.defaultSanitizeReference("___test___"), "test")
+  it("should prefix '_' when the first character is not a valid identifier start (space)", () => {
+    // first pass would replace space with "_", which is already a valid start,
+    // so no extra prefix beyond that replacement
+    strictEqual(toValidIdentifier(" abc"), "_abc")
   })
 
-  it("should keep at least one underscore if result would be empty", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("_"), "_")
-    strictEqual(SchemaStandard.defaultSanitizeReference("__"), "_")
-    strictEqual(SchemaStandard.defaultSanitizeReference("___"), "_")
-    strictEqual(SchemaStandard.defaultSanitizeReference("____"), "_")
+  it("should replace invalid characters with '_' (single)", () => {
+    strictEqual(toValidIdentifier("a-b"), "a_b")
+    strictEqual(toValidIdentifier("a b"), "a_b")
+    strictEqual(toValidIdentifier("a.b"), "a_b")
+    strictEqual(toValidIdentifier("a/b"), "a_b")
   })
 
-  it("should handle mixed invalid characters", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref/name.test"), "my_ref_name_test")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my@ref#name$test"), "my_ref_name$test")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref-name-123"), "my_ref_name_123")
+  it("should replace invalid characters with '_' (multiple)", () => {
+    strictEqual(toValidIdentifier("a-b c"), "a_b_c")
+    strictEqual(toValidIdentifier("a..b"), "a__b")
+    strictEqual(toValidIdentifier("a--b"), "a__b")
+    strictEqual(toValidIdentifier("a b\tc"), "a_b_c")
   })
 
-  it("should handle special characters", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref!"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("!my-ref"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref!"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref@name"), "my_ref_name")
+  it("should replace non-ascii characters with '_' under ASCII rules", () => {
+    strictEqual(toValidIdentifier("café"), "caf_")
+    strictEqual(toValidIdentifier("你好"), "__")
+    strictEqual(toValidIdentifier("🤖"), "_")
+    strictEqual(toValidIdentifier("a🤖b"), "a_b")
   })
 
-  it("should handle unicode characters", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("my-ñame"), "my_ame")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my-émoji"), "my_moji")
-    strictEqual(SchemaStandard.defaultSanitizeReference("测试"), "_")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my-测试-ref"), "my_ref")
+  it("should allow '$' and '_' anywhere", () => {
+    strictEqual(toValidIdentifier("a$b"), "a$b")
+    strictEqual(toValidIdentifier("a_b"), "a_b")
+    strictEqual(toValidIdentifier("$a_b9"), "$a_b9")
   })
 
-  it("should handle complex edge cases", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("123-456"), "_123_456")
-    strictEqual(SchemaStandard.defaultSanitizeReference("---"), "_")
-    strictEqual(SchemaStandard.defaultSanitizeReference("123---456"), "_123_456")
-    strictEqual(SchemaStandard.defaultSanitizeReference("_123_"), "_123")
-    strictEqual(SchemaStandard.defaultSanitizeReference("__123__"), "_123")
+  it("should handle leading invalid characters by replacing them (not necessarily extra prefix)", () => {
+    strictEqual(toValidIdentifier("-a"), "_a")
+    strictEqual(toValidIdentifier(".a"), "_a")
+    strictEqual(toValidIdentifier(" a"), "_a")
+    strictEqual(toValidIdentifier("\ta"), "_a")
   })
 
-  it("should preserve dollar signs", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("$ref"), "$ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my$ref"), "my$ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("$my-ref"), "$my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my-$ref"), "my_$ref")
+  it("should keep already-sanitized results stable (idempotent)", () => {
+    const cases = [
+      "",
+      "abc",
+      "_",
+      "$",
+      "a1b2",
+      "a-b",
+      "a b",
+      "1a",
+      "-a",
+      "class",
+      "café",
+      "a🤖b"
+    ] as const
+
+    for (const input of cases) {
+      const once = toValidIdentifier(input)
+      const twice = toValidIdentifier(once)
+      strictEqual(twice, once)
+    }
   })
 
-  it("should handle camelCase and PascalCase", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("camelCase"), "camelCase")
-    strictEqual(SchemaStandard.defaultSanitizeReference("PascalCase"), "PascalCase")
-    strictEqual(SchemaStandard.defaultSanitizeReference("camel-Case"), "camel_Case")
-    strictEqual(SchemaStandard.defaultSanitizeReference("Pascal-Case"), "Pascal_Case")
+  it("should avoid reserved words by prefixing '_'", () => {
+    strictEqual(toValidIdentifier("class"), "_class")
+    strictEqual(toValidIdentifier("return"), "_return")
+    strictEqual(toValidIdentifier("null"), "_null")
+    strictEqual(toValidIdentifier("true"), "_true")
+    strictEqual(toValidIdentifier("false"), "_false")
   })
 
-  it("should handle numbers in middle and end", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("ref123"), "ref123")
-    strictEqual(SchemaStandard.defaultSanitizeReference("ref-123"), "ref_123")
-    strictEqual(SchemaStandard.defaultSanitizeReference("ref123test"), "ref123test")
+  it("should avoid reserved words even if the input is otherwise valid", () => {
+    // ensures the 'reserved' check happens after basic validation
+    strictEqual(toValidIdentifier("for"), "_for")
+    strictEqual(toValidIdentifier("while"), "_while")
+    strictEqual(toValidIdentifier("switch"), "_switch")
   })
 
-  it("should handle only numbers", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("123"), "_123")
-    strictEqual(SchemaStandard.defaultSanitizeReference("0"), "_0")
-    strictEqual(SchemaStandard.defaultSanitizeReference("999"), "_999")
+  it("should not treat non-reserved lookalikes as reserved", () => {
+    strictEqual(toValidIdentifier("class_"), "class_")
+    strictEqual(toValidIdentifier("_class"), "_class")
+    strictEqual(toValidIdentifier("Class"), "Class")
+    strictEqual(toValidIdentifier("trueValue"), "trueValue")
   })
 
-  it("should handle only special characters", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("---"), "_")
-    strictEqual(SchemaStandard.defaultSanitizeReference("!!!"), "_")
-    strictEqual(SchemaStandard.defaultSanitizeReference("@#$"), "$")
+  it("should combine rules: replace invalid chars, then avoid reserved words", () => {
+    // "class-name" -> "class_name" (now not reserved)
+    strictEqual(toValidIdentifier("class-name"), "class_name")
+
+    // "class" is reserved, but "class " becomes "class_" and is not reserved
+    strictEqual(toValidIdentifier("class "), "class_")
   })
 
-  it("should handle whitespace", () => {
-    strictEqual(SchemaStandard.defaultSanitizeReference("my ref"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("my  ref"), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference(" my ref "), "my_ref")
-    strictEqual(SchemaStandard.defaultSanitizeReference("   "), "_")
+  it("should preserve length when only replacements are needed", () => {
+    strictEqual(toValidIdentifier("a-b").length, "a-b".length)
+    strictEqual(toValidIdentifier("a b").length, "a b".length)
+    strictEqual(toValidIdentifier("..").length, "..".length)
+  })
+
+  it("should increase length only when prefixing is required (digit-start or reserved word)", () => {
+    strictEqual(toValidIdentifier("1a"), "_1a")
+    strictEqual(toValidIdentifier("1a").length, "1a".length + 1)
+
+    strictEqual(toValidIdentifier("class"), "_class")
+    strictEqual(toValidIdentifier("class").length, "class".length + 1)
   })
 })
 
@@ -628,22 +643,22 @@ describe("toGenerationDocument", () => {
       assertToGenerationDocument(
         { schema: Schema.UniqueSymbol(Symbol("a")) },
         {
-          generations: makeGeneration(`Schema.UniqueSymbol(sym)`, "typeof sym"),
+          generations: makeGeneration(`Schema.UniqueSymbol(_symbol)`, "typeof _symbol"),
           artifacts: [{
             _tag: "Symbol",
-            identifier: "sym",
-            generation: makeGeneration(`Symbol("a")`, `typeof sym`)
+            identifier: "_symbol",
+            generation: makeGeneration(`Symbol("a")`, `typeof _symbol`)
           }]
         }
       )
       assertToGenerationDocument(
         { schema: Schema.UniqueSymbol(Symbol()) },
         {
-          generations: makeGeneration(`Schema.UniqueSymbol(sym)`, "typeof sym"),
+          generations: makeGeneration(`Schema.UniqueSymbol(_symbol)`, "typeof _symbol"),
           artifacts: [{
             _tag: "Symbol",
-            identifier: "sym",
-            generation: makeGeneration(`Symbol()`, `typeof sym`)
+            identifier: "_symbol",
+            generation: makeGeneration(`Symbol()`, `typeof _symbol`)
           }]
         }
       )
@@ -653,11 +668,11 @@ describe("toGenerationDocument", () => {
       assertToGenerationDocument(
         { schema: Schema.UniqueSymbol(Symbol.for("a")) },
         {
-          generations: makeGeneration(`Schema.UniqueSymbol(sym)`, "typeof sym"),
+          generations: makeGeneration(`Schema.UniqueSymbol(_symbol)`, "typeof _symbol"),
           artifacts: [{
             _tag: "Symbol",
-            identifier: "sym",
-            generation: makeGeneration(`Symbol.for("a")`, `typeof sym`)
+            identifier: "_symbol",
+            generation: makeGeneration(`Symbol.for("a")`, `typeof _symbol`)
           }]
         }
       )
@@ -665,13 +680,13 @@ describe("toGenerationDocument", () => {
         { schema: Schema.UniqueSymbol(Symbol.for("a")).annotate({ "description": "a" }) },
         {
           generations: makeGeneration(
-            `Schema.UniqueSymbol(sym).annotate({ "description": "a" })`,
-            "typeof sym"
+            `Schema.UniqueSymbol(_symbol).annotate({ "description": "a" })`,
+            "typeof _symbol"
           ),
           artifacts: [{
             _tag: "Symbol",
-            identifier: "sym",
-            generation: makeGeneration(`Symbol.for("a")`, `typeof sym`)
+            identifier: "_symbol",
+            generation: makeGeneration(`Symbol.for("a")`, `typeof _symbol`)
           }]
         }
       )
@@ -688,11 +703,11 @@ describe("toGenerationDocument", () => {
           })
         },
         {
-          generations: makeGeneration(`Schema.Enum(Enum)`, `typeof Enum`),
+          generations: makeGeneration(`Schema.Enum(_Enum)`, `typeof _Enum`),
           artifacts: [{
             _tag: "Enum",
-            identifier: "Enum",
-            generation: makeGeneration(`enum Enum { "A": "a", "B": "b" }`, `typeof Enum`)
+            identifier: "_Enum",
+            generation: makeGeneration(`enum _Enum { "A": "a", "B": "b" }`, `typeof _Enum`)
           }]
         }
       )
@@ -705,13 +720,13 @@ describe("toGenerationDocument", () => {
         },
         {
           generations: makeGeneration(
-            `Schema.Enum(Enum).annotate({ "description": "a" })`,
-            `typeof Enum`
+            `Schema.Enum(_Enum).annotate({ "description": "a" })`,
+            `typeof _Enum`
           ),
           artifacts: [{
             _tag: "Enum",
-            identifier: "Enum",
-            generation: makeGeneration(`enum Enum { "A": "a", "B": "b" }`, `typeof Enum`)
+            identifier: "_Enum",
+            generation: makeGeneration(`enum _Enum { "A": "a", "B": "b" }`, `typeof _Enum`)
           }]
         }
       )
@@ -726,11 +741,11 @@ describe("toGenerationDocument", () => {
           })
         },
         {
-          generations: makeGeneration(`Schema.Enum(Enum)`, `typeof Enum`),
+          generations: makeGeneration(`Schema.Enum(_Enum)`, `typeof _Enum`),
           artifacts: [{
             _tag: "Enum",
-            identifier: "Enum",
-            generation: makeGeneration(`enum Enum { "One": 1, "Two": 2 }`, `typeof Enum`)
+            identifier: "_Enum",
+            generation: makeGeneration(`enum _Enum { "One": 1, "Two": 2 }`, `typeof _Enum`)
           }]
         }
       )
@@ -743,13 +758,13 @@ describe("toGenerationDocument", () => {
         },
         {
           generations: makeGeneration(
-            `Schema.Enum(Enum).annotate({ "description": "a" })`,
-            `typeof Enum`
+            `Schema.Enum(_Enum).annotate({ "description": "a" })`,
+            `typeof _Enum`
           ),
           artifacts: [{
             _tag: "Enum",
-            identifier: "Enum",
-            generation: makeGeneration(`enum Enum { "One": 1, "Two": 2 }`, `typeof Enum`)
+            identifier: "_Enum",
+            generation: makeGeneration(`enum _Enum { "One": 1, "Two": 2 }`, `typeof _Enum`)
           }]
         }
       )
@@ -764,11 +779,11 @@ describe("toGenerationDocument", () => {
           })
         },
         {
-          generations: makeGeneration(`Schema.Enum(Enum)`, `typeof Enum`),
+          generations: makeGeneration(`Schema.Enum(_Enum)`, `typeof _Enum`),
           artifacts: [{
             _tag: "Enum",
-            identifier: "Enum",
-            generation: makeGeneration(`enum Enum { "A": "a", "One": 1 }`, `typeof Enum`)
+            identifier: "_Enum",
+            generation: makeGeneration(`enum _Enum { "A": "a", "One": 1 }`, `typeof _Enum`)
           }]
         }
       )
@@ -781,13 +796,13 @@ describe("toGenerationDocument", () => {
         },
         {
           generations: makeGeneration(
-            `Schema.Enum(Enum).annotate({ "description": "a" })`,
-            `typeof Enum`
+            `Schema.Enum(_Enum).annotate({ "description": "a" })`,
+            `typeof _Enum`
           ),
           artifacts: [{
             _tag: "Enum",
-            identifier: "Enum",
-            generation: makeGeneration(`enum Enum { "A": "a", "One": 1 }`, `typeof Enum`)
+            identifier: "_Enum",
+            generation: makeGeneration(`enum _Enum { "A": "a", "One": 1 }`, `typeof _Enum`)
           }]
         }
       )
@@ -1274,13 +1289,13 @@ describe("toGenerationDocument", () => {
         },
         {
           generations: makeGeneration(
-            `Schema.Struct({ [sym]: Schema.String })`,
-            `{ readonly [typeof sym]: string }`
+            `Schema.Struct({ [_symbol]: Schema.String })`,
+            `{ readonly [typeof _symbol]: string }`
           ),
           artifacts: [{
             _tag: "Symbol",
-            identifier: "sym",
-            generation: makeGeneration(`Symbol.for("a")`, `typeof sym`)
+            identifier: "_symbol",
+            generation: makeGeneration(`Symbol.for("a")`, `typeof _symbol`)
           }]
         }
       )

@@ -1476,23 +1476,97 @@ export type GenerationDocument = {
   readonly artifacts: ReadonlyArray<Artifact>
 }
 
+// Basic reserved words (ECMAScript keywords + a few strict-mode literals).
+const reserved = new Set<string>([
+  "await",
+  "break",
+  "case",
+  "catch",
+  "class",
+  "const",
+  "continue",
+  "debugger",
+  "default",
+  "delete",
+  "do",
+  "else",
+  "enum",
+  "export",
+  "extends",
+  "false",
+  "finally",
+  "for",
+  "function",
+  "if",
+  "implements",
+  "import",
+  "in",
+  "instanceof",
+  "interface",
+  "let",
+  "new",
+  "null",
+  "package",
+  "private",
+  "protected",
+  "public",
+  "return",
+  "static",
+  "super",
+  "switch",
+  "this",
+  "throw",
+  "true",
+  "try",
+  "typeof",
+  "var",
+  "void",
+  "while",
+  "with",
+  "yield"
+])
+
+function isAsciiIdStart(ch: string): boolean {
+  return ch === "_" ||
+    ch === "$" ||
+    (ch >= "A" && ch <= "Z") ||
+    (ch >= "a" && ch <= "z")
+}
+
+function isAsciiIdPart(ch: string): boolean {
+  return isAsciiIdStart(ch) || (ch >= "0" && ch <= "9")
+}
+
 /** @internal */
-export function defaultSanitizeReference(reference: string): string {
-  if (reference.length === 0) {
-    return "_"
+export function toValidIdentifier(input: string): string {
+  if (input.length === 0) return "_"
+
+  let needsPrefix = false
+  let out = ""
+
+  let i = 0
+  for (const ch of input) {
+    if (i === 0) {
+      if (isAsciiIdStart(ch)) {
+        out += ch
+      } else if (isAsciiIdPart(ch)) {
+        // Digit (or otherwise valid "part") at start: keep it and prefix "_" later.
+        out += ch
+        needsPrefix = true
+      } else {
+        // Invalid start char: replace with "_"
+        out += "_"
+      }
+    } else {
+      out += isAsciiIdPart(ch) ? ch : "_"
+    }
+    i++
   }
-  // Replace invalid characters (non-alphanumeric except _ and $) with underscores
-  let sanitized = reference.replace(/[^a-zA-Z0-9_$]/g, "_")
-  // Collapse consecutive underscores
-  sanitized = sanitized.replace(/_+/g, "_")
-  // Remove leading/trailing underscores (but preserve if needed for valid identifier)
-  sanitized = sanitized.replace(/^_+|_+$/g, "")
-  // Ensure it starts with a letter, underscore, or dollar sign (not a digit)
-  if (/^[0-9]/.test(sanitized)) {
-    sanitized = "_" + sanitized
-  }
-  // If result is empty, return underscore
-  return sanitized.length === 0 ? "_" : sanitized
+
+  if (needsPrefix) out = "_" + out
+  if (reserved.has(out)) out = "_" + out
+
+  return out
 }
 
 /**
@@ -1508,15 +1582,14 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
    */
   readonly sanitizeReference?: ((reference: string) => string) | undefined
 }): GenerationDocument {
-  const sanitizeReference = options?.sanitizeReference ?? defaultSanitizeReference
+  const sanitizeReference = options?.sanitizeReference ?? toValidIdentifier
   const artifacts: Array<Artifact> = []
-  const referenceCounter = new Map<string, number>()
 
   const ts = topologicalSort(multiDocument.references)
 
   // Phase 1: Build sanitization map with collision handling
-  const sanitizedRefMap = new Map<string, string>()
-  const usedSanitizedRefs = new Set<string>()
+  const sanitizedReferenceMap = new Map<string, string>()
+  const uniqueSanitizedReferences = new Set<string>()
 
   // Process all references first to build the map
   const allRefs = [
@@ -1530,11 +1603,11 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
 
   // Phase 2: Use the map when processing references
   const nonRecursives = ts.nonRecursives.map(({ $ref, schema }) => ({
-    $ref: sanitizedRefMap.get($ref)!,
+    $ref: sanitizedReferenceMap.get($ref)!,
     schema: recur(schema)
   }))
   const recursives = Rec.mapEntries(ts.recursives, (schema, $ref) => [
-    sanitizedRefMap.get($ref)!,
+    sanitizedReferenceMap.get($ref)!,
     recur(schema)
   ])
   const generations = multiDocument.schemas.map(recur)
@@ -1550,43 +1623,26 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
 
   function ensureUniqueSanitized(originalRef: string): string {
     // Check if already mapped (consistency)
-    if (sanitizedRefMap.has(originalRef)) {
-      return sanitizedRefMap.get(originalRef)!
+    if (sanitizedReferenceMap.has(originalRef)) {
+      return sanitizedReferenceMap.get(originalRef)!
     }
 
     // Find unique sanitized name
-    const baseSanitized = sanitizeReference(originalRef)
-    let candidate = baseSanitized
+    const seed = sanitizeReference(originalRef)
+    let candidate = seed
     let suffix = 0
 
-    while (usedSanitizedRefs.has(candidate)) {
-      candidate = `${baseSanitized}_${++suffix}`
+    while (uniqueSanitizedReferences.has(candidate)) {
+      candidate = `${seed}${++suffix}`
     }
 
-    usedSanitizedRefs.add(candidate)
-    sanitizedRefMap.set(originalRef, candidate)
+    uniqueSanitizedReferences.add(candidate)
+    sanitizedReferenceMap.set(originalRef, candidate)
     return candidate
   }
 
-  function gen(seed: string = InternalStandard.DEFAULT_SEED): string {
-    // Check if base identifier is available
-    let count = referenceCounter.get(seed)
-    if (count === undefined) {
-      referenceCounter.set(seed, 1)
-      return seed
-    } else {
-      // Find a unique identifier by incrementing until we find one that doesn't exist
-      let out
-      while (referenceCounter.has(out = `${seed}${++count}`)) {
-        //
-      }
-      referenceCounter.set(seed, count)
-      return out
-    }
-  }
-
   function addSymbol(s: symbol): string {
-    const identifier = gen("sym")
+    const identifier = ensureUniqueSanitized("_symbol")
     const key = globalThis.Symbol.keyFor(s)
     const description = s.description
     const generation = key === undefined
@@ -1597,7 +1653,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
   }
 
   function addEnum(s: Enum): string {
-    const identifier = gen("Enum")
+    const identifier = ensureUniqueSanitized("_Enum")
     artifacts.push({
       _tag: "Enum",
       identifier,
@@ -1666,7 +1722,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
         return recur(s.encodedSchema)
       }
       case "Reference": {
-        const sanitized = sanitizedRefMap.get(s.$ref) ?? ensureUniqueSanitized(s.$ref)
+        const sanitized = sanitizedReferenceMap.get(s.$ref) ?? ensureUniqueSanitized(s.$ref)
         return makeGeneration(sanitized, sanitized)
       }
       case "Suspend": {
