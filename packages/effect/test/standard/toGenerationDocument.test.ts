@@ -250,7 +250,7 @@ describe("toGenerationDocument", () => {
       assertToGenerationDocument(
         { schema: Schema.Option(Schema.String) },
         {
-          generations: makeGeneration("Schema.Option(_2)", "Option.Option<_2>", "Option.Option<_2Encoded>"),
+          generations: makeGeneration("Schema.Option(_2)", "Option.Option<_2>"),
           references: {
             nonRecursives: [
               {
@@ -271,11 +271,7 @@ describe("toGenerationDocument", () => {
       assertToGenerationDocument(
         { schema: Schema.Result(Schema.String, Schema.Number) },
         {
-          generations: makeGeneration(
-            "Schema.Result(_2, _3)",
-            "Result.Result<_2, _3>",
-            "Result.Result<_2Encoded, _3Encoded>"
-          ),
+          generations: makeGeneration("Schema.Result(_2, _3)", "Result.Result<_2, _3>"),
           references: {
             nonRecursives: [
               {
@@ -298,11 +294,7 @@ describe("toGenerationDocument", () => {
 
     it("CauseFailure(String, Number)", () => {
       assertToGenerationDocument({ schema: Schema.CauseFailure(Schema.String, Schema.Number) }, {
-        generations: makeGeneration(
-          "Schema.CauseFailure(_2, _3)",
-          "Cause.Failure<_2, _3>",
-          "Cause.Failure<_2Encoded, _3Encoded>"
-        ),
+        generations: makeGeneration("Schema.CauseFailure(_2, _3)", "Cause.Failure<_2, _3>"),
         references: {
           nonRecursives: [
             {
@@ -321,11 +313,7 @@ describe("toGenerationDocument", () => {
 
     it("Cause(String, Number)", () => {
       assertToGenerationDocument({ schema: Schema.Cause(Schema.String, Schema.Number) }, {
-        generations: makeGeneration(
-          "Schema.Cause(_2, _3)",
-          "Cause.Cause<_2, _3>",
-          "Cause.Cause<_2Encoded, _3Encoded>"
-        ),
+        generations: makeGeneration("Schema.Cause(_2, _3)", "Cause.Cause<_2, _3>"),
         references: {
           nonRecursives: [
             {
@@ -344,11 +332,7 @@ describe("toGenerationDocument", () => {
 
     it("Exit(String, Number, String)", () => {
       assertToGenerationDocument({ schema: Schema.Exit(Schema.String, Schema.Number, Schema.Boolean) }, {
-        generations: makeGeneration(
-          "Schema.Exit(_2, _3, _4)",
-          "Exit.Exit<_2, _3, _4>",
-          "Exit.Exit<_2Encoded, _3Encoded, _4Encoded>"
-        ),
+        generations: makeGeneration("Schema.Exit(_2, _3, _4)", "Exit.Exit<_2, _3, _4>"),
         references: {
           nonRecursives: [
             {
@@ -1435,7 +1419,7 @@ describe("toGenerationDocument", () => {
           schema: Schema.suspend(() => Schema.String)
         },
         {
-          generations: makeGeneration(`Schema.suspend((): Schema.Codec<string, string> => Schema.String)`, "string")
+          generations: makeGeneration(`Schema.suspend((): Schema.Codec<string> => Schema.String)`, "string")
         }
       )
     })
@@ -1449,13 +1433,12 @@ describe("toGenerationDocument", () => {
       })
 
       assertToGenerationDocument({ schema: A }, {
-        generations: makeGeneration(`_`, `_`, `_Encoded`),
+        generations: makeGeneration(`_`, `_`),
         references: {
           recursives: {
             _: makeGeneration(
-              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<_, _Encoded> => _)) })`,
-              `{ readonly "a"?: _ }`,
-              `{ readonly "a"?: _Encoded }`
+              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<_> => _)) })`,
+              `{ readonly "a"?: _ }`
             )
           }
         }
@@ -1471,13 +1454,12 @@ describe("toGenerationDocument", () => {
       }).annotate({ identifier: "A" }) // outer identifier annotation
 
       assertToGenerationDocument({ schema: A }, {
-        generations: makeGeneration(`A`, `A`, `AEncoded`),
+        generations: makeGeneration(`A`, `A`),
         references: {
           recursives: {
             A: makeGeneration(
-              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<A, AEncoded> => A)) }).annotate({ "identifier": "A" })`,
-              `{ readonly "a"?: A }`,
-              `{ readonly "a"?: AEncoded }`
+              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<A> => A)) }).annotate({ "identifier": "A" })`,
+              `{ readonly "a"?: A }`
             )
           }
         }
@@ -1495,15 +1477,13 @@ describe("toGenerationDocument", () => {
       assertToGenerationDocument({ schema: A }, {
         generations: makeGeneration(
           `Schema.Struct({ "a": Schema.optionalKey(_2) })`,
-          `{ readonly "a"?: _2 }`,
-          `{ readonly "a"?: _2Encoded }`
+          `{ readonly "a"?: _2 }`
         ),
         references: {
           recursives: {
             _2: makeGeneration(
-              `Schema.suspend((): Schema.Codec<{ readonly "a"?: _2 }, { readonly "a"?: _2Encoded }> => Schema.Struct({ "a": Schema.optionalKey(_2) }).annotate({ "identifier": "A" }))`,
-              `{ readonly "a"?: _2 }`,
-              `{ readonly "a"?: _2Encoded }`
+              `Schema.suspend((): Schema.Codec<{ readonly "a"?: _2 }> => Schema.Struct({ "a": Schema.optionalKey(_2) }).annotate({ "identifier": "A" }))`,
+              `{ readonly "a"?: _2 }`
             )
           }
         }
@@ -1519,13 +1499,12 @@ describe("toGenerationDocument", () => {
       })
 
       assertToGenerationDocument({ schema: A }, {
-        generations: makeGeneration(`_`, `_`, `_Encoded`),
+        generations: makeGeneration(`_`, `_`),
         references: {
           recursives: {
             _: makeGeneration(
-              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<_, _Encoded> => _).annotate({ "identifier": "A" })) })`,
-              `{ readonly "a"?: _ }`,
-              `{ readonly "a"?: _Encoded }`
+              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<_> => _).annotate({ "identifier": "A" })) })`,
+              `{ readonly "a"?: _ }`
             )
           }
         }

@@ -85,10 +85,7 @@ export function make() {
 
     function renderSchema($ref: string, schema: SchemaStandard.Generation) {
       const strings = [
-        `export type ${$ref} = ${schema.Type}`,
-        schema.Encoded !== schema.Type
-          ? `export type ${$ref}Encoded = ${schema.Encoded}`
-          : `export type ${$ref}Encoded = ${$ref}`
+        `export type ${$ref} = ${schema.Type}`
       ]
       if (!typeOnly) {
         strings.push(`export const ${$ref} = ${schema.runtime}`)

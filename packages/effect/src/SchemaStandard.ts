@@ -1431,14 +1431,13 @@ export const toJsonSchemaMultiDocument: (
 export type Generation = {
   readonly runtime: string
   readonly Type: string
-  readonly Encoded: string
 }
 
 /**
  * @since 4.0.0
  */
-export function makeGeneration(runtime: string, Type: string, Encoded: string = Type): Generation {
-  return { runtime, Type, Encoded }
+export function makeGeneration(runtime: string, Type: string): Generation {
+  return { runtime, Type }
 }
 
 /**
@@ -1620,7 +1619,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
     const g = on(s)
     switch (s._tag) {
       default:
-        return makeGeneration(g.runtime + toRuntimeAnnotate(s.annotations), g.Type, g.Encoded)
+        return makeGeneration(g.runtime + toRuntimeAnnotate(s.annotations), g.Type)
       case "Reference":
         return g
       case "Declaration":
@@ -1632,8 +1631,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
       case "Suspend":
         return makeGeneration(
           g.runtime + toRuntimeAnnotate(s.annotations) + toRuntimeChecks(s.checks),
-          g.Type,
-          g.Encoded
+          g.Type
         )
     }
   }
@@ -1656,14 +1654,12 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
           typeof generation.Type === "string"
         ) {
           const typeParameters = s.typeParameters.map(recur)
-          const Encoded = typeof generation.Encoded === "string" ? generation.Encoded : generation.Type
           if (typeof generation.importDeclaration === "string") {
             addImport(generation.importDeclaration)
           }
           return makeGeneration(
             fill(generation.runtime, typeParameters.map((p) => p.runtime)),
-            fill(generation.Type, typeParameters.map((p) => p.Type)),
-            fill(Encoded, typeParameters.map((p) => p.Encoded))
+            fill(generation.Type, typeParameters.map((p) => p.Type))
           )
         }
         // otherwise, use the generation from the encoded schema
@@ -1671,14 +1667,13 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
       }
       case "Reference": {
         const sanitized = sanitizedRefMap.get(s.$ref) ?? ensureUniqueSanitized(s.$ref)
-        return makeGeneration(sanitized, sanitized, `${sanitized}Encoded`)
+        return makeGeneration(sanitized, sanitized)
       }
       case "Suspend": {
         const thunk = recur(s.thunk)
         return makeGeneration(
-          `Schema.suspend((): Schema.Codec<${thunk.Type}, ${thunk.Encoded}> => ${thunk.runtime})`,
-          thunk.Type,
-          thunk.Encoded
+          `Schema.suspend((): Schema.Codec<${thunk.Type}> => ${thunk.runtime})`,
+          thunk.Type
         )
       }
       case "Null":
@@ -1745,8 +1740,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
           if (elements.length === 0 && rest.length === 1) {
             return makeGeneration(
               `Schema.Array(${item.runtime})`,
-              `ReadonlyArray<${item.Type}>`,
-              `ReadonlyArray<${item.Encoded}>`
+              `ReadonlyArray<${item.Type}>`
             )
           }
           const post = rest.slice(1)
@@ -1758,10 +1752,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
             }]), [${rest.map((r) => r.runtime).join(", ")}])`,
             `readonly [${
               elements.map((e) => toTypeIsOptional(e.isOptional, e.type.Type)).join(", ")
-            }, ...Array<${item.Type}>${post.length > 0 ? `, ${post.map((p) => p.Type).join(", ")}` : ""}]`,
-            `readonly [${
-              elements.map((e) => toTypeIsOptional(e.isOptional, e.type.Encoded)).join(", ")
-            }, ...Array<${item.Encoded}>${post.length > 0 ? `, ${post.map((p) => p.Encoded).join(", ")}` : ""}]`
+            }, ...Array<${item.Type}>${post.length > 0 ? `, ${post.map((p) => p.Type).join(", ")}` : ""}]`
           )
         }
         return makeGeneration(
@@ -1769,8 +1760,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
             elements.map((e) => toRuntimeIsOptional(e.isOptional, e.type.runtime) + toRuntimeAnnotateKey(e.annotations))
               .join(", ")
           }])`,
-          `readonly [${elements.map((e) => toTypeIsOptional(e.isOptional, e.type.Type)).join(", ")}]`,
-          `readonly [${elements.map((e) => toTypeIsOptional(e.isOptional, e.type.Encoded)).join(", ")}]`
+          `readonly [${elements.map((e) => toTypeIsOptional(e.isOptional, e.type.Type)).join(", ")}]`
         )
       }
       case "Objects": {
@@ -1787,8 +1777,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
               toRuntimeIsOptional(p.isOptional, toRuntimeIsMutable(p.isMutable, type.runtime))
             }` +
               toRuntimeAnnotateKey(p.annotations),
-            `${nameType}: ${type.Type}`,
-            `${nameType}: ${type.Encoded}`
+            `${nameType}: ${type.Type}`
           )
         })
 
@@ -1803,15 +1792,13 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
           // 1) Only properties -> Struct
           return makeGeneration(
             `Schema.Struct({ ${pss.map((p) => p.runtime).join(", ")} })`,
-            `{ ${pss.map((p) => p.Type).join(", ")} }`,
-            `{ ${pss.map((p) => p.Encoded).join(", ")} }`
+            `{ ${pss.map((p) => p.Type).join(", ")} }`
           )
         } else if (pss.length === 0 && iss.length === 1) {
           // 2) Only one index signature and no properties -> Record
           return makeGeneration(
             `Schema.Record(${iss[0].parameter.runtime}, ${iss[0].type.runtime})`,
-            `{ readonly [x: ${iss[0].parameter.Type}]: ${iss[0].type.Type} }`,
-            `{ readonly [x: ${iss[0].parameter.Encoded}]: ${iss[0].type.Encoded} }`
+            `{ readonly [x: ${iss[0].parameter.Type}]: ${iss[0].type.Type} }`
           )
         } else {
           // 3) Properties + index signatures -> StructWithRest
@@ -1821,9 +1808,6 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
             }])`,
             `{ ${pss.map((p) => p.Type).join(", ")}, ${
               iss.map((is) => `readonly [x: ${is.parameter.Type}]: ${is.type.Type}`).join(", ")
-            } }`,
-            `{ ${pss.map((p) => p.Encoded).join(", ")}, ${
-              iss.map((is) => `readonly [x: ${is.parameter.Encoded}]: ${is.type.Encoded}`).join(", ")
             } }`
           )
         }
@@ -1843,8 +1827,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
         const types = s.types.map((t) => recur(t))
         return makeGeneration(
           `Schema.Union([${types.map((t) => t.runtime).join(", ")}]${mode})`,
-          types.map((t) => t.Type).join(" | "),
-          types.map((t) => t.Encoded).join(" | ")
+          types.map((t) => t.Type).join(" | ")
         )
       }
     }
