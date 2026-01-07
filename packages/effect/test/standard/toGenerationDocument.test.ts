@@ -1,6 +1,6 @@
 import { Schema, SchemaStandard } from "effect"
 import { describe, it } from "vitest"
-import { deepStrictEqual } from "../utils/assert.ts"
+import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
 
 type Category = {
   readonly name: string
@@ -17,6 +17,128 @@ const InnerCategory = Schema.Struct({
   children: Schema.Array(
     Schema.suspend((): Schema.Codec<Category> => InnerCategory.annotate({ identifier: "Category" }))
   )
+})
+
+describe("defaultSanitizeReference", () => {
+  it("should return '_' for empty string", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference(""), "_")
+  })
+
+  it("should pass through valid JavaScript identifiers", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("validIdentifier"), "validIdentifier")
+    strictEqual(SchemaStandard.defaultSanitizeReference("_validIdentifier"), "validIdentifier")
+    strictEqual(SchemaStandard.defaultSanitizeReference("$validIdentifier"), "$validIdentifier")
+    strictEqual(SchemaStandard.defaultSanitizeReference("valid123"), "valid123")
+    strictEqual(SchemaStandard.defaultSanitizeReference("_123"), "_123")
+    strictEqual(SchemaStandard.defaultSanitizeReference("$123"), "$123")
+  })
+
+  it("should replace invalid characters with underscores", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my/ref"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my ref"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my.ref"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my@ref"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my#ref"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref-name"), "my_ref_name")
+  })
+
+  it("should prefix with underscore if starts with digit", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("123abc"), "_123abc")
+    strictEqual(SchemaStandard.defaultSanitizeReference("0ref"), "_0ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("9test"), "_9test")
+    strictEqual(SchemaStandard.defaultSanitizeReference("123"), "_123")
+  })
+
+  it("should collapse consecutive underscores", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("my__ref"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my___ref"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my____ref"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("__test__"), "test")
+    strictEqual(SchemaStandard.defaultSanitizeReference("___"), "_")
+  })
+
+  it("should remove leading and trailing underscores", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("_test"), "test")
+    strictEqual(SchemaStandard.defaultSanitizeReference("test_"), "test")
+    strictEqual(SchemaStandard.defaultSanitizeReference("_test_"), "test")
+    strictEqual(SchemaStandard.defaultSanitizeReference("__test__"), "test")
+    strictEqual(SchemaStandard.defaultSanitizeReference("___test___"), "test")
+  })
+
+  it("should keep at least one underscore if result would be empty", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("_"), "_")
+    strictEqual(SchemaStandard.defaultSanitizeReference("__"), "_")
+    strictEqual(SchemaStandard.defaultSanitizeReference("___"), "_")
+    strictEqual(SchemaStandard.defaultSanitizeReference("____"), "_")
+  })
+
+  it("should handle mixed invalid characters", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref/name.test"), "my_ref_name_test")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my@ref#name$test"), "my_ref_name$test")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref-name-123"), "my_ref_name_123")
+  })
+
+  it("should handle special characters", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref!"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("!my-ref"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref!"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my-ref@name"), "my_ref_name")
+  })
+
+  it("should handle unicode characters", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("my-ñame"), "my_ame")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my-émoji"), "my_moji")
+    strictEqual(SchemaStandard.defaultSanitizeReference("测试"), "_")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my-测试-ref"), "my_ref")
+  })
+
+  it("should handle complex edge cases", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("123-456"), "_123_456")
+    strictEqual(SchemaStandard.defaultSanitizeReference("---"), "_")
+    strictEqual(SchemaStandard.defaultSanitizeReference("123---456"), "_123_456")
+    strictEqual(SchemaStandard.defaultSanitizeReference("_123_"), "_123")
+    strictEqual(SchemaStandard.defaultSanitizeReference("__123__"), "_123")
+  })
+
+  it("should preserve dollar signs", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("$ref"), "$ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my$ref"), "my$ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("$my-ref"), "$my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my-$ref"), "my_$ref")
+  })
+
+  it("should handle camelCase and PascalCase", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("camelCase"), "camelCase")
+    strictEqual(SchemaStandard.defaultSanitizeReference("PascalCase"), "PascalCase")
+    strictEqual(SchemaStandard.defaultSanitizeReference("camel-Case"), "camel_Case")
+    strictEqual(SchemaStandard.defaultSanitizeReference("Pascal-Case"), "Pascal_Case")
+  })
+
+  it("should handle numbers in middle and end", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("ref123"), "ref123")
+    strictEqual(SchemaStandard.defaultSanitizeReference("ref-123"), "ref_123")
+    strictEqual(SchemaStandard.defaultSanitizeReference("ref123test"), "ref123test")
+  })
+
+  it("should handle only numbers", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("123"), "_123")
+    strictEqual(SchemaStandard.defaultSanitizeReference("0"), "_0")
+    strictEqual(SchemaStandard.defaultSanitizeReference("999"), "_999")
+  })
+
+  it("should handle only special characters", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("---"), "_")
+    strictEqual(SchemaStandard.defaultSanitizeReference("!!!"), "_")
+    strictEqual(SchemaStandard.defaultSanitizeReference("@#$"), "$")
+  })
+
+  it("should handle whitespace", () => {
+    strictEqual(SchemaStandard.defaultSanitizeReference("my ref"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("my  ref"), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference(" my ref "), "my_ref")
+    strictEqual(SchemaStandard.defaultSanitizeReference("   "), "_")
+  })
 })
 
 describe("toGenerationDocument", () => {
@@ -49,6 +171,11 @@ describe("toGenerationDocument", () => {
   }
 
   const makeGeneration = SchemaStandard.makeGeneration
+
+  describe("options", () => {
+    it("sanitizeReference", () => {
+    })
+  })
 
   describe("Declaration", () => {
     it("declaration without typeConstructor annotation", () => {
