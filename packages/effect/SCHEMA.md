@@ -32,7 +32,7 @@ Ultimately, the intent is to eliminate the need for two separate paths like in v
 - **Default JSON codec generator**: `Schema.toCodecJson(schema)` does round‑trip‑safe network serialization (Maps → pairs, Options → arrays, Dates → ISO strings, etc.).
 - **Explicit helpers**: `Schema.UnknownFromJsonString`, `Schema.fromJsonString`.
 
-### 4. Schema Algebra Goodies
+### 4. Schema Goodies
 
 - `Schema.flip` ‑ swap input/output types (encode ≙ decode of the flipped schema).
 - **Redesigned constructors** (`makeUnsafe`) everywhere, including unions, with smart handling of brands / refinements / defaults (sync or effectful).
@@ -94,7 +94,8 @@ export interface Bottom<
   out TypeConstructorDefault extends ConstructorDefault = "no-default",
   out EncodedMutability extends Mutability = "readonly",
   out EncodedOptionality extends Optionality = "required"
-> extends Pipeable.Pipeable {
+>
+  extends Pipeable.Pipeable {
   readonly [TypeId]: typeof TypeId
 
   readonly ast: Ast
@@ -226,441 +227,236 @@ const schema: Schema.Codec<number, string> = Schema.FiniteFromString
 type TypeMutability2 = (typeof schema)["~type.mutability"] // "readonly" | "mutable"
 ```
 
-# Serializers
+# Canonical Codecs
 
-This tutorial explains how serializers work in Effect Schema and why they are important for converting complex types into JSON-safe representations.
+Canonical codecs turn one schema into another schema (a "codec") that can serialize and deserialize values using a specific format (JSON, strings, `URLSearchParams`, `FormData`, and so on). This helps you map your domain types to formats that can only represent a limited set of values.
 
-## Introduction
+To keep things concrete, the rest of this page focuses on JSON.
 
-Serializers in Effect Schema turn schemas into representations that can be serialized (JSON, XML, form data, etc.). They connect your domain types with the more limited world of serialization formats.
-
-### The Problem
+## JSON Canonical Codec
 
 Many JavaScript values cannot be serialized to JSON in a safe and reversible way:
 
 - `Date`: `JSON.stringify()` converts a date to an ISO string, but `JSON.parse()` does not restore a `Date` object
-- `URL`, `Uint8Array`, `ReadonlyMap`, `ReadonlySet`: `JSON.stringify()` converts them to `{}`, losing all information
+- `Uint8Array`, `ReadonlyMap`, `ReadonlySet`: `JSON.stringify()` converts them to `{}`, so the original data is lost
 - `Symbol`, `BigInt`: `JSON.stringify()` throws errors
-- Custom classes and Effect types (`Option`, `Result`, etc.): `JSON.stringify()` does not know how to handle them
+- Custom classes and Effect data types (`Option`, `Result`, and so on): `JSON.stringify()` does not know how to encode or decode them
 
-This leads to loss of information, runtime errors, or incorrect data when you try to serialize and then deserialize complex values.
+This can lead to data loss, runtime errors, or values that decode into the wrong shape when you try to round-trip complex data through JSON.
 
-### The Solution
+**The solution**
 
-Serializers describe how types should be converted to JSON-safe values. They work by:
+A canonical codec describes how values that match a schema should be converted to a specific format. In practice, canonical codecs work like this:
 
-1. **Annotation-based**: Schemas declare serialization strategies through annotations
-2. **AST transformation**: Serializer functions walk the schema AST and apply transformations
-3. **Automatic composition**: Serializers work recursively through nested structures
+1. **Annotation-based**: you choose a serialization strategy by adding annotations to your schema (for example `toCodecJson`, `toCodecIso`, `toCodecStringTree`, and others).
+2. **AST transformation**: the codec builder walks the schema AST and produces a new schema that represents the serialized form (this traversal is handled by Effect).
+3. **Recursive composition**: codecs apply through nested structures (objects, arrays, unions, and so on) without you having to wire everything manually.
 
-## Core Concepts
+The next example shows why a custom class needs a codec when working with JSON.
 
-### Type vs Encoded vs Serialized
-
-It helps to distinguish three layers:
-
-- **`Type`**: The runtime type of your value (for example, `Date`, `URL`, `ReadonlySet<Date>`)
-- **`Encoded`**: The encoded representation used by the schema (this can still be complex, for example `Date` → `Date`)
-- **Serialized**: The JSON-safe representation (for example `Date` → `unknown`, because JSON can contain different kinds of values)
+**Example** (A custom class that does not round-trip through JSON)
 
 ```ts
 import { Schema } from "effect"
 
-// Original schema
-const DateSchema = Schema.Date
-// Type: Date
-// Encoded: Date (same as Type in this case)
+class Point {
+  constructor(
+    public readonly x: number,
+    public readonly y: number
+  ) {}
 
-// After applying serializer
-const SerializedDate = Schema.toCodecJson(DateSchema)
-// Type: Date (preserved)
-// Encoded: unknown (represents any JSON-safe value)
-// At runtime, Date will be encoded as a string, but the type is `unknown`
-// because JSON can contain strings, numbers, booleans, null, objects, or arrays
+  // Plain method on a class instance
+  distance(other: Point): number {
+    const dx = this.x - other.x
+    const dy = this.y - other.y
+    return Math.sqrt(dx * dx + dy * dy)
+  }
+}
+
+const PointSchema = Schema.instanceOf(Point)
 ```
 
-The `Encoded` type becomes `unknown` because JSON can represent many different shapes. At runtime, a `Date` is encoded as a `string` (ISO format), but the type system uses `unknown` to represent the full range of possible JSON values.
+Even if encoding produces something JSON-looking, decoding cannot rebuild a `Point` instance (including its prototype and methods) from plain JSON data.
 
-### Serializer Annotations
+```ts
+// Encode a Point instance using the schema, then stringify it.
+// This produces a plain JSON object, not a class instance.
+const json = JSON.stringify(Schema.encodeUnknownSync(PointSchema)(new Point(1, 2)))
 
-Schemas can declare serialization strategies through annotations:
+console.log(json)
+// '{"x":1,"y":2}'
 
-- `toCodecJson`: JSON serialization strategy
-- `toCodecIso`: ISO serialization (to the `Iso` type)
-- `toCodec`: Used by both JSON and ISO serializers
+// Decode attempts to create a Point instance from parsed JSON.
+// This fails because JSON.parse returns a plain object, not `new Point(...)`.
+try {
+  Schema.decodeUnknownSync(PointSchema)(JSON.parse(json))
+} catch (error) {
+  console.error(String(error))
+}
+```
 
-**Example** (JSON serializer for `Schema.Date`)
+The same issue shows up when generating a JSON Schema document: since the schema represents a class instance and there is no JSON representation for it, the generator falls back to a placeholder.
+
+```ts
+console.log(Schema.toJsonSchemaDocument(PointSchema))
+// { dialect: 'draft-2020-12', schema: { type: 'null' }, definitions: {} }
+```
+
+## Configuring the Codec
+
+You configure the canonical JSON codec by adding a `toCodecJson` annotation to your schema.
+
+Then you call `Schema.toCodecJson(schema)` to produce a codec schema that can encode and decode values to and from JSON-compatible data.
+
+**Example** (Encoding a class as a JSON tuple)
 
 ```ts
 import { Schema, SchemaTransformation } from "effect"
 
-export const Date = Schema.instanceOf(globalThis.Date, {
-  expected: "Date",
+class Point {
+  constructor(
+    public readonly x: number,
+    public readonly y: number
+  ) {}
+
+  distance(other: Point): number {
+    const dx = this.x - other.x
+    const dy = this.y - other.y
+    return Math.sqrt(dx * dx + dy * dy)
+  }
+}
+
+const PointSchema = Schema.instanceOf(Point, {
   toCodecJson: () =>
-    Schema.link<globalThis.Date>()(
-      // JSON representation: a string that will later be decoded as a Date
-      Schema.String.annotate({
-        description: "a string that will be decoded as a date"
-      }),
+    Schema.link<Point>()(
+      // Pick a JSON representation for Point.
+      // Here we use a fixed-length tuple: [x, y].
+      Schema.Tuple([Schema.Finite, Schema.Finite]),
       SchemaTransformation.transform({
-        // From string (JSON) to Date
-        decode: (s) => new globalThis.Date(s),
-        // From Date to string (JSON)
-        encode: (date) => date.toISOString()
+        // Decode: convert the JSON representation into a Point instance.
+        decode: (args) => new Point(...args),
+
+        // Encode: convert a Point instance into the JSON representation.
+        encode: (instance) => [instance.x, instance.y] as const
       })
     )
 })
-```
 
-## Using Serializers
+// Convert the schema into a JSON codec schema.
+const codecJson = Schema.toCodecJson(PointSchema)
 
-### Basic Usage: `toCodecJson`
+// Encoding produces JSON-safe data, so it can be stringified.
+console.log(JSON.stringify(Schema.encodeUnknownSync(codecJson)(new Point(1, 2))))
+// "[1,2]"
 
-The most common serializer is `toCodecJson`, which converts a schema into a JSON-capable version.
+// Decoding rebuilds the Point instance from parsed JSON.
+console.log(Schema.decodeUnknownSync(codecJson)(JSON.parse("[1,2]")))
+// Point { x: 1, y: 2 }
 
-**Example** (Round-tripping a `ReadonlySet<Date>` through JSON)
-
-```ts
-import { Schema } from "effect"
-
-// Build a schema for ReadonlySet<Date>
-const schema = Schema.ReadonlySet(Schema.Date)
-
-// Ask for a JSON-capable schema
-const serializer = Schema.toCodecJson(schema)
-
-// A sample value to send
-const data = new Set([new Date("2021-01-01"), new Date("2021-01-02")])
-
-// Serialize to a JSON-safe value
-const jsonReady = Schema.encodeUnknownSync(serializer)(data)
-
-// Turn it into a JSON string for transport or storage
-const serialized = JSON.stringify(jsonReady)
-
-console.log(serialized)
-// ["2021-01-01T00:00:00.000Z","2021-01-02T00:00:00.000Z"]
-
-// Parse back from JSON
-const parsed = JSON.parse(serialized)
-
-// Deserialize back to the original value
-const deserialized = Schema.decodeUnknownSync(serializer)(parsed)
-console.log(deserialized)
-// Set(2) { 2021-01-01T00:00:00.000Z, 2021-01-02T00:00:00.000Z }
-```
-
-This schema automatically picks JSON formats based on its parts:
-
-- `ReadonlySet<A>` encodes as a JSON array
-- `Date` encodes as an ISO string
-
-> [!WARNING]
-> **Default JSON formats**
->
-> The default JSON formats aim for portability and round-trip behavior. They may not match domain-specific formats used by public APIs.
-
-### How `toCodecJson` Works
-
-When you call `Schema.toCodecJson(schema)`, the library:
-
-1. **Walks the AST**: Recursively traverses the schema's abstract syntax tree
-2. **Finds annotations**: Looks for `toCodecJson` or `serializer` annotations
-3. **Applies transformations**: Converts complex types to JSON-safe representations
-4. **Composes recursively**: Handles nested structures automatically
-
-**Example** (Nested structures with different types)
-
-```ts
-import { Schema } from "effect"
-
-const PersonSchema = Schema.Struct({
-  name: Schema.String,
-  // Automatically serialized as an ISO string
-  birthDate: Schema.Date,
-  // Automatically serialized as a string
-  website: Schema.URL,
-  // Serialized as an array of strings
-  tags: Schema.ReadonlySet(Schema.String)
-})
-
-const serializer = Schema.toCodecJson(PersonSchema)
-
-const person = {
-  name: "John",
-  birthDate: new Date("1990-01-01"),
-  website: new URL("https://example.com"),
-  tags: new Set(["developer", "typescript"])
-}
-
-// Encode to a JSON-safe shape
-const jsonReady = Schema.encodeUnknownSync(serializer)(person)
-
-console.log(JSON.stringify(jsonReady, null, 2))
+// JSON Schema generation now has a real representation to work with.
+console.dir(Schema.toJsonSchemaDocument(PointSchema), { depth: null })
 /*
 {
-  "name": "John",
-  "birthDate": "1990-01-01T00:00:00.000Z",
-  "website": "https://example.com",
-  "tags": ["developer", "typescript"]
+  dialect: 'draft-2020-12',
+  schema: {
+    type: 'array',
+    prefixItems: [ { '$ref': '#/$defs/_2' }, { '$ref': '#/$defs/_2' } ],
+    maxItems: 2,
+    minItems: 2
+  },
+  definitions: { _2: { type: 'number' } }
 }
 */
 ```
 
-## Default Serialization Behavior
+When you use `toCodecJson`, you describe the JSON shape once (in the schema), and Effect can reuse that description in two places:
 
-Built-in schemas ship with default serialization strategies.
+- `Schema.toCodecJson(...)` uses it to encode and decode JSON data at runtime.
+- `Schema.toJsonSchemaDocument(...)` uses it to produce a JSON Schema document for the same JSON shape.
 
-### Date
+Because both outputs come from the same annotation, they describe the same format (in this example, a two-item array `[x, y]`). If you change the JSON representation in `toCodecJson`, both the codec and the generated JSON Schema will change with it.
 
-```ts
-Schema.Date
-// Serializes to: ISO 8601 string (e.g., "2021-01-01T00:00:00.000Z")
-// Note: JSON.stringify() also converts Date to an ISO string,
-// but it does not know how to convert the string back to a Date.
-// Serializers support round-trip behavior: Date → string → Date
-```
+You can use the JSON Schema to validate or describe the JSON data (for example in OpenAPI), and use the codec schema to encode and decode values in that same format.
 
-### URL
+## How `toCodecJson` Works
 
-```ts
-Schema.URL
-// Serializes to: string (e.g., "https://example.com")
-```
+When you call `Schema.toCodecJson(schema)`, the library:
 
-### Uint8Array
+1. **Walks the AST**: it traverses the schema's abstract syntax tree (AST) recursively. For details, see the `SchemaAST` module.
+2. **Finds annotations**: it looks for `toCodecJson` annotations on nodes.
+3. **Applies transformations**: it replaces types that are not JSON-friendly with types that are.
+4. **Composes recursively**: it builds codecs for nested schemas by combining the codecs of their parts.
 
-```ts
-Schema.Uint8Array
-// Serializes to: Base64-encoded string
-```
+## StringTree Canonical Codec
 
-### ReadonlySet
-
-```ts
-Schema.ReadonlySet(Schema.String)
-// Serializes to: array (e.g., ["a", "b", "c"])
-```
-
-### ReadonlyMap
-
-```ts
-Schema.ReadonlyMap(Schema.String, Schema.Number)
-// Serializes to: array of [key, value] pairs
-// (e.g., [["key1", 1], ["key2", 2]])
-```
-
-### Option
-
-```ts
-Schema.Option(Schema.String)
-// Serializes to: array with 0 or 1 element
-// Some("value") → ["value"]
-// None → []
-```
-
-### Symbol, BigInt
-
-```ts
-Schema.Symbol
-Schema.BigInt
-// Serialize to: string representation
-```
-
-### Undefined, Void
-
-```ts
-Schema.Undefined
-Schema.Void
-// Serialize to: null
-```
-
-## Custom Serializers
-
-### Defining Custom JSON Serializers
-
-You can define custom JSON serialization strategies for your types using the `toCodecJson` annotation.
-
-**Example** (Custom `Date` serialization as epoch milliseconds)
-
-```ts
-import { Schema, SchemaTransformation } from "effect"
-
-// A Date that encodes as a number (epoch milliseconds)
-const DateFromEpochMillis = Schema.Date.pipe(
-  Schema.encodeTo(
-    Schema.Number,
-    SchemaTransformation.transform({
-      // From number to Date
-      decode: (epochMillis) => new Date(epochMillis),
-      // From Date to number
-      encode: (date) => date.getTime()
-    })
-  )
-)
-
-// Use the custom Date inside a ReadonlySet
-const schema = Schema.ReadonlySet(DateFromEpochMillis)
-
-// Request a JSON-capable schema
-const serializer = Schema.toCodecJson(schema)
-
-const data = new Set([new Date("2021-01-01"), new Date("2021-01-02")])
-
-const serialized = JSON.stringify(Schema.encodeUnknownSync(serializer)(data))
-
-console.log(serialized)
-// [1609459200000,1609545600000]
-```
-
-The set still becomes a JSON array, but each `Date` is now represented as a number.
-
-### Custom Serializer for Custom Types
-
-**Example** (Serializer for a custom `Person` class)
-
-```ts
-import { Schema, SchemaTransformation } from "effect"
-
-class Person {
-  constructor(
-    readonly name: string,
-    readonly age: number
-  ) {}
-}
-
-const PersonSchema = Schema.instanceOf(Person, {
-  title: "Person",
-  // Define default JSON serialization
-  toCodecJson: () =>
-    Schema.link<Person>()(
-      // JSON representation: a tuple [name, age]
-      Schema.Tuple([Schema.String, Schema.Number]),
-      SchemaTransformation.transform({
-        // From [name, age] to Person
-        decode: (args) => new Person(...args),
-        // From Person to [name, age]
-        encode: (instance) => [instance.name, instance.age] as const
-      })
-    )
-})
-
-const serializer = Schema.toCodecJson(PersonSchema)
-
-const person = new Person("John", 30)
-
-// Encode to JSON-safe data
-const serialized = Schema.encodeUnknownSync(serializer)(person)
-console.log(serialized)
-// ["John", 30]
-
-// Decode back to a Person instance
-const deserialized = Schema.decodeUnknownSync(serializer)(serialized)
-console.log(deserialized)
-// Person { name: "John", age: 30 }
-```
-
-## StringTree Serializer
-
-The `StringTree` serializer converts all values to strings, keeping the structure but not the original types.
-
-### What is StringTree?
+The `StringTree` codec converts all values to strings, keeping the structure but not the original types.
 
 ```ts
 type StringTree = string | undefined | { readonly [key: string]: StringTree } | ReadonlyArray<StringTree>
 ```
 
-A StringTree serializer turns any value into a structure made only of:
+A StringTree codec turns any value into a structure made only of:
 
 - strings
 - `undefined`
 - plain objects containing other `StringTree` values
 - arrays of `StringTree` values
 
-### When to Use StringTree
+### toCodecJson vs toCodecStringTree
 
-StringTree serializers are helpful when you need a representation that can be stored or transmitted in environments where everything must be string-like, for example:
-
-- Submitting form fields
-- Storing data in systems that do not support rich types
-- Interoperating with APIs that expect only strings
-
-### Comparison: JSON vs StringTree
-
-**Example** (Comparing JSON and StringTree serializers)
+**Example** (Comparing JSON and StringTree codecs)
 
 ```ts
-import { Schema } from "effect"
+import { Schema, SchemaTransformation } from "effect"
 
-const schema = Schema.Struct({
-  name: Schema.String,
-  age: Schema.Number,
-  isAdmin: Schema.Boolean,
-  createdAt: Schema.Date
+class Point {
+  constructor(
+    public readonly x: number,
+    public readonly y: number
+  ) {}
+
+  distance(other: Point): number {
+    const dx = this.x - other.x
+    const dy = this.y - other.y
+    return Math.sqrt(dx * dx + dy * dy)
+  }
+}
+
+const PointSchema = Schema.instanceOf(Point, {
+  toCodecJson: () =>
+    Schema.link<Point>()(
+      Schema.Tuple([Schema.Finite, Schema.Finite]),
+      SchemaTransformation.transform({
+        decode: (args) => new Point(...args),
+        encode: (instance) => [instance.x, instance.y] as const
+      })
+    )
 })
 
-const json = Schema.toCodecJson(schema)
-const stringTree = Schema.toCodecStringTree(schema)
+const point = new Point(1, 2)
 
-const value = {
-  name: "John",
-  age: 30,
-  isAdmin: true,
-  createdAt: new Date()
-}
+const toCodecJson = Schema.toCodecJson(PointSchema)
 
-// JSON serializer: keeps numbers and booleans as numbers and booleans
-console.log(Schema.encodeSync(json)(value))
-/*
-{
-  name: 'John',
-  age: 30, // still a number
-  isAdmin: true, // still a boolean
-  createdAt: '2025-07-25T17:04:40.434Z' // Date represented as a string
-}
-*/
+const json = Schema.encodeUnknownSync(toCodecJson)(point)
 
-// StringTree serializer: every leaf value becomes a string
-console.log(Schema.encodeSync(stringTree)(value))
-/*
-everything is a string
-{
-  name: 'John',
-  age: '30',
-  isAdmin: 'true',
-  createdAt: '2025-07-25T17:04:40.434Z'
-}
-*/
-```
+// keeps numbers as numbers
+console.log(json)
+// [1, 2]
 
-The key difference: JSON keeps numbers, booleans, and nested objects in their original types (except for dates, which become strings). The StringTree serializer converts **every leaf value to a string**, while preserving the original structure.
+const toCodecStringTree = Schema.toCodecStringTree(PointSchema)
 
-### Declarations in StringTree
+const stringTree = Schema.encodeUnknownSync(toCodecStringTree)(point)
 
-**Note**: Schemas representing declarations without a `toCodecJson` or `serializer` annotation are encoded as `undefined`:
-
-```ts
-import { Schema } from "effect"
-
-const schema = Schema.Struct({
-  a: Schema.instanceOf(URL),
-  b: Schema.Number
-})
-
-const stringTree = Schema.toCodecStringTree(schema)
-
-console.log(
-  Schema.encodeUnknownSync(stringTree)({
-    a: new URL("https://effect.website"),
-    b: 1
-  })
-)
-// { a: undefined, b: '1' }
+// every leaf value becomes a string
+console.log(stringTree)
+// [ '1', '2' ]
 ```
 
 ### keepDeclarations: true
 
-The `keepDeclarations: true` option behaves like the StringTree serializer, but it does **not** convert declarations to `undefined`. Instead, it keeps them as they are (unless they have a `toCodecJson` or `serializer` annotation).
+The `keepDeclarations: true` option behaves like the StringTree codec, but it does **not** convert declarations without a `toCodecJson` annotation to `undefined`. Instead, it keeps them as they are.
+
+This is usefult for example when you encode a schema to a `FormData` format and you want to preserve `Blob` values.
 
 ```ts
 import { Schema } from "effect"
@@ -681,7 +477,43 @@ console.log(
 // { a: URL("https://effect.website"), b: '1' }
 ```
 
-## 🆕 XML Encoder
+## ISO Canonical Codec
+
+The ISO canonical codec (`toCodecIso`) converts schemas to their `Iso` representation. This is useful when you want to build isomorphic transformations or optics.
+
+**Example** (Using the ISO canonical codec with a Class)
+
+```ts
+import { Schema } from "effect"
+
+// Define a class schema
+class Person extends Schema.Class<Person>("Person")({
+  name: Schema.String,
+  age: Schema.Number
+}) {}
+
+const isoSerializer = Schema.toCodecIso(Person)
+
+// The Iso type represents the "focus" of the schema.
+// For Class schemas, the Iso type is the struct representation
+// of the class fields: { readonly name: string; readonly age: number }
+// This allows you to convert between the class instance and a plain object
+// with the same shape, which is useful for optics and transformations.
+
+const person = new Person({ name: "John", age: 30 })
+
+const serialized = Schema.encodeUnknownSync(isoSerializer)(person)
+console.log(serialized)
+// { name: 'John', age: 30 }
+
+const deserialized = Schema.decodeUnknownSync(isoSerializer)(serialized)
+console.log(deserialized)
+// Person { name: 'John', age: 30 }
+```
+
+ISO serializers are mainly used internally for building optics and reusable transformations.
+
+## XML Encoder
 
 `Schema.toEncoderXml` lets you serialize values to XML.
 It uses the `toCodecStringTree` serializer internally.
@@ -736,108 +568,16 @@ console.log(
 
 **Note**. Schemas representing custom types are encoded as `undefined`:
 
-## ISO Serializer
+## Custom Encodings
 
-The ISO serializer (`toCodecIso`) converts schemas to their `Iso` representation. This is useful when you want to build isomorphic transformations or optics.
-
-**Example** (Using the ISO serializer with a Class)
-
-```ts
-import { Schema } from "effect"
-
-// Define a class schema
-class Person extends Schema.Class<Person>("Person")({
-  name: Schema.String,
-  age: Schema.Number
-}) {}
-
-const isoSerializer = Schema.toCodecIso(Person)
-
-// The Iso type represents the "focus" of the schema.
-// For Class schemas, the Iso type is the struct representation
-// of the class fields: { readonly name: string; readonly age: number }
-// This allows you to convert between the class instance and a plain object
-// with the same shape, which is useful for optics and transformations.
-
-const person = new Person({ name: "John", age: 30 })
-
-const serialized = Schema.encodeUnknownSync(isoSerializer)(person)
-console.log(serialized)
-// { name: 'John', age: 30 }
-
-const deserialized = Schema.decodeUnknownSync(isoSerializer)(serialized)
-console.log(deserialized)
-// Person { name: 'John', age: 30 }
-```
-
-ISO serializers are mainly used internally for building optics and reusable transformations.
-
-## Advanced Topics
-
-### Serializer Composition
-
-Serializers compose automatically through nested structures. When you call `toCodecJson` on a complex schema, it recursively applies serialization to all nested fields.
-
-**Example** (Complex nested structure)
-
-```ts
-import { Schema } from "effect"
-
-const schema = Schema.Struct({
-  users: Schema.Array(
-    Schema.Struct({
-      id: Schema.String,
-      createdAt: Schema.Date,
-      tags: Schema.ReadonlySet(Schema.String),
-      metadata: Schema.ReadonlyMap(Schema.String, Schema.String)
-    })
-  ),
-  timestamp: Schema.Date
-})
-
-const serializer = Schema.toCodecJson(schema)
-
-const data = {
-  users: [
-    {
-      id: "user-1",
-      createdAt: new Date("2021-01-01"),
-      tags: new Set(["admin", "developer"]),
-      metadata: new Map([["key", "value"]])
-    }
-  ],
-  timestamp: new Date("2021-01-01")
-}
-
-// Encode the whole structure in one call
-const serialized = Schema.encodeUnknownSync(serializer)(data)
-
-console.log(JSON.stringify(serialized, null, 2))
-/*
-{
-  "users": [
-    {
-      "id": "user-1",
-      "createdAt": "2021-01-01T00:00:00.000Z",
-      "tags": ["admin", "developer"],
-      "metadata": [["key", "value"]]
-    }
-  ],
-  "timestamp": "2021-01-01T00:00:00.000Z"
-}
-*/
-```
-
-### Priority: Custom Encodings vs Serializers
-
-`Schema.toCodecJson` respects **explicit encodings** you add to a schema. If you choose a custom representation, that choice takes priority over default serializers.
+`Schema.toCodecJson` respects **explicit encodings** you add to a schema. If you choose a custom representation, that choice takes priority over the default.
 
 **Example** (Custom encoding takes priority over default Date handling)
 
 ```ts
 import { Schema, SchemaTransformation } from "effect"
 
-// Custom Date encoding (Date → number)
+// Custom Date encoding (Date -> number)
 const DateFromEpochMillis = Schema.Date.pipe(
   Schema.encodeTo(
     Schema.Number,
@@ -848,204 +588,99 @@ const DateFromEpochMillis = Schema.Date.pipe(
   )
 )
 
-// When you use this in a serializer, it uses your custom encoding
 const schema = Schema.Struct({
   date1: DateFromEpochMillis,
   date2: Schema.Date
 })
 
-const serializer = Schema.toCodecJson(schema)
+const toCodecJson = Schema.toCodecJson(schema)
 
 const data = { date1: new Date("2021-01-01"), date2: new Date("2021-01-01") }
 
-const serialized = Schema.encodeUnknownSync(serializer)(data)
+const serialized = Schema.encodeUnknownSync(toCodecJson)(data)
 console.log(serialized)
-// { date1: 1609459200000, date2: "2021-01-01T00:00:00.000Z" }  // date1 uses your custom number format, date2 uses the default ISO string format
+// { date1: 1609459200000, date2: "2021-01-01T00:00:00.000Z" }
+// date1 uses your custom number format, date2 uses the default ISO string format
 ```
 
-## Best Practices
+# Standard Representation
 
-### 1. Use Serializers for Network Communication
+The `Standard` module provides a way to encode and decode schemas to and from JSON. This is useful for sending schemas over the wire or storing them on disk.
 
-When sending data over the network, use serializers to support round-trip conversion:
-
-```ts
-// ✅ Good: Use serializer for network - supports round-trip conversion
-const serializer = Schema.toCodecJson(mySchema)
-
-// First encode to a JSON-safe value
-const encoded = Schema.encodeUnknownSync(serializer)(data)
-
-// Then turn it into a JSON string
-const json = JSON.stringify(encoded)
-
-await fetch("/api/endpoint", {
-  method: "POST",
-  body: json
-})
-
-// On the receiving end, decode back to original types
-const response = await fetch("/api/endpoint")
-const jsonData = await response.json()
-const decoded = Schema.decodeUnknownSync(serializer)(jsonData)
-// decoded has the proper runtime types
-
-// ❌ Bad: Direct JSON.stringify loses type information and does not round-trip
-const rawJson = JSON.stringify(data)
-// - Dates become strings and stay strings
-// - Sets/Maps become {} (information lost)
-// - Symbols/BigInt throw errors
-// - URL becomes {} (information lost)
+```mermaid
+flowchart TD
+    Schema -->|fromAST|SSD{"SchemaStandard.Document"}
+    Schema -->|fromASTs|SSMD{"SchemaStandard.MultiDocument"}
+    JS["JSON Schema (draft-07, draft-2020-12, openapi-3.0, openapi-3.1)"] -->NJS
+    NJS --> JS
+    NJS["JsonSchema.Document"] -->|fromJsonSchemaDocument|SSD
+    SSD --> |toJson|JSON
+    JSON --> |fromJson|SSD
+    SSD --> |toJsonSchemaDocument|NJS
+    SSD --> |toSchema|Schema
+    SSMD --> |toGenerationDocument|GenerationDocument["GenerationDocument"]
 ```
 
-### 2. Define Serializers for Custom Types
-
-Define serializers for custom types that you want to send or store:
+**Example** (Encoding and decoding a schema)
 
 ```ts
-// ✅ Good: Define serializer for custom type
-const MyCustomTypeSchema = Schema.instanceOf(MyCustomType, {
-  toCodecJson: () => /* ... */
-})
+import { Schema, SchemaStandard } from "effect"
 
-// ❌ Bad: Custom type without serializer becomes undefined in StringTree
-```
-
-### 3. Prefer Composition Over Manual Transformation
-
-Let serializers handle nested structures automatically:
-
-```ts
-// ✅ Good: Let the serializer handle nested dates
 const schema = Schema.Struct({
-  dates: Schema.Array(Schema.Date)
-})
-const serializer = Schema.toCodecJson(schema)
-
-// ❌ Bad: Manual transformation for each field
-const manual = {
-  dates: data.dates.map((d) => d.toISOString())
-}
-```
-
-### 4. Use the Appropriate Serializer Type
-
-Choose the serializer that matches your use case:
-
-- **`toCodecJson`**: For JSON APIs, storage, and general serialization
-- **`toCodecStringTree`**: For form data and string-only systems
-- **`toCodecIso`**: For isomorphic transformations and optics
-
-## Common Patterns
-
-### Pattern 1: API Request/Response
-
-```ts
-import { Effect, Schema } from "effect"
-
-// Define your domain schema
-const UserSchema = Schema.Struct({
-  id: Schema.String,
-  name: Schema.String,
-  email: Schema.String,
-  createdAt: Schema.Date
-})
-
-// Create serializer for network usage
-const UserSerializer = Schema.toCodecJson(UserSchema)
-
-// Encode for sending
-export const sendUser = (user: (typeof UserSchema)["Type"]) =>
-  Effect.gen(function* () {
-    // Encode to a JSON-safe structure
-    const encoded = yield* Schema.encodeUnknownEffect(UserSerializer)(user)
-
-    // Send it as JSON
-    return yield* Effect.promise(() =>
-      fetch("/api/users", {
-        method: "POST",
-        body: JSON.stringify(encoded),
-        headers: { "Content-Type": "application/json" }
-      })
-    )
+  a: Schema.String.annotate({
+    description: "my description",
+    customAnnotation: 1n
   })
-
-// Decode from response
-export const receiveUser = (response: Response) =>
-  Effect.gen(function* () {
-    const json = yield* Effect.promise(() => response.json())
-    // Decode to a UserSchema value with proper types
-    return yield* Schema.decodeUnknownEffect(UserSerializer)(json)
-  })
-```
-
-### Pattern 2: Form Data
-
-```ts
-import { Schema } from "effect"
-
-const FormSchema = Schema.Struct({
-  name: Schema.String,
-  age: Schema.Number,
-  email: Schema.String
 })
 
-// Use StringTree for form data (everything becomes a string)
-const formSerializer = Schema.toCodecStringTree(FormSchema)
+// Encode the schema into standard Document (includes the AST and definitions).
+const document = SchemaStandard.fromAST(schema.ast)
 
-// Convert to URLSearchParams for submission
-export const toFormData = (data: (typeof FormSchema)["Type"]) => {
-  const encoded = Schema.encodeUnknownSync(formSerializer)(data)
-  const params = new URLSearchParams()
+// Encode the standard AST into a JSON-compatible representation.
+const json = SchemaStandard.toJson(document)
 
-  if (typeof encoded === "object") {
-    for (const [key, value] of Object.entries(encoded)) {
-      if (value !== undefined) {
-        params.append(key, String(value))
+// This output is safe to send over the network or store on disk.
+console.log(JSON.stringify(json, null, 2))
+/*
+{
+  "schema": {
+    "_tag": "Objects",
+    "propertySignatures": [
+      {
+        "name": "a",
+        "type": {
+          "_tag": "String",
+          "annotations": {
+            "description": "my description",
+            "customAnnotation": "1"
+          },
+          "checks": []
+        },
+        "isOptional": false,
+        "isMutable": false
       }
-    }
-  }
-
-  return params
+    ],
+    "indexSignatures": [],
+    "checks": []
+  },
+  "references": {}
 }
-```
+*/
 
-### Pattern 3: Storage
+// Decode the JSON-compatible representation back into a standard AST.
+const decodedAST = SchemaStandard.fromJson(json)
 
-```ts
-import { Effect, Schema } from "effect"
+// Convert the standard AST into a runtime schema.
+const decodedSchema = SchemaStandard.toSchema<typeof schema>(decodedAST)
 
-const StorageSchema = Schema.Struct({
-  preferences: Schema.ReadonlyMap(Schema.String, Schema.Unknown),
-  lastUpdated: Schema.Date
-})
-
-const storageSerializer = Schema.toCodecJson(StorageSchema)
-
-// Save to localStorage
-export const save = (data: (typeof StorageSchema)["Type"]) =>
-  Effect.sync(() => {
-    const encoded = Schema.encodeUnknownSync(storageSerializer)(data)
-    localStorage.setItem("app-data", JSON.stringify(encoded))
-  })
-
-// Load from localStorage
-export const load = () =>
-  Effect.gen(function* () {
-    const stored = localStorage.getItem("app-data")
-    if (!stored) {
-      return yield* Effect.fail("No data found")
-    }
-
-    const parsed = JSON.parse(stored)
-    // Decode and restore types such as Date and ReadonlyMap
-    return yield* Schema.decodeUnknownEffect(storageSerializer)(parsed)
-  })
+// You can read annotations from the decoded schema, since they were preserved through the round trip.
+console.log(decodedSchema.fields.a.ast.annotations)
+// { description: 'my description', customAnnotation: 1n }
 ```
 
 # Features
 
-## 🆕 Separate Requirement Type Parameters
+## Separate Requirement Type Parameters
 
 In real-world applications, decoding and encoding often have different dependencies. For example, decoding may require access to a database, while encoding does not.
 
@@ -1133,7 +768,7 @@ Schema.decodeUnknownSync(schemaFromJsonString)(`{"a":1,"b":2}`)
 // => { a: 1 }
 ```
 
-## 🆕 Flipping Schemas
+## Flipping Schemas
 
 You can now flip a schema to create a new one that reverses its input and output types.
 
@@ -1526,7 +1161,7 @@ console.log(String(Schema.decodeUnknownExit(schema)("")))
 // Failure(Cause([Fail(SchemaError: length must be >= 3, got 0)]))
 ```
 
-### 🆕 Preserving Schema Type After Filtering
+### Preserving Schema Type After Filtering
 
 When you apply a filter using `Schema.check`, the original schema type and methods remain available. You can still access schema-specific properties like `.fields` or call methods like `.makeUnsafe` after adding filters.
 
@@ -1565,7 +1200,7 @@ const schema = Schema.Struct({
 const fields = schema.fields
 ```
 
-### 🆕 Filters as First-Class
+### Filters as First-Class
 
 Filters are standalone values. You can reuse them across schemas, combine them, and apply them to any compatible type. For example, `Schema.isMinLength` works not only with strings but also with arrays or any object that has a `length` property.
 
@@ -1609,7 +1244,7 @@ console.log(String(Schema.decodeUnknownExit(schema)(["a", "b"])))
 // Failure(Cause([Fail(SchemaError: Expected a value with a length of at least 3, got ["a","b"]]))
 ```
 
-### 🆕 Multiple Issues Reporting
+### Multiple Issues Reporting
 
 By default, when `{ errors: "all" }` is passed, all filters are evaluated, even if one fails. This allows multiple issues to be reported at once.
 
@@ -1633,7 +1268,7 @@ Expected a string with no leading or trailing whitespace, got " a")]))
 */
 ```
 
-### 🆕 Aborting Validation
+### Aborting Validation
 
 If you want to stop validation as soon as a filter fails, you can call the `abort` method on the filter.
 
@@ -1657,7 +1292,7 @@ console.log(
 // Failure(Cause([Fail(SchemaError: Expected a value with a length of at least 3, got " a")]))
 ```
 
-### 🆕 Filter Groups
+### Filter Groups
 
 Group filters into a reusable unit with `Schema.makeFilterGroup`. This helps when the same set of checks appears in multiple places.
 
@@ -1707,7 +1342,7 @@ import { Schema } from "effect"
 const branded = Schema.String.pipe(Schema.brand<"UserId">())
 ```
 
-### 🆕 Refinement Groups
+### Refinement Groups
 
 You can group multiple refinements using `Schema.makeFilterGroup` and then layer additional rules with guards or brands.
 
@@ -1905,7 +1540,7 @@ type PositiveInt = typeof PositiveInt.Type
 
 ## Structs
 
-### 🆕 Optional and Mutable Keys
+### Optional and Mutable Keys
 
 You can mark struct properties as optional or mutable using `Schema.optionalKey` and `Schema.mutableKey`.
 
@@ -2476,7 +2111,7 @@ type Encoded = {
 type Encoded = typeof schema.Encoded
 ```
 
-### 🆕 Deriving Structs
+### Deriving Structs
 
 You can map the fields of a struct schema using the `mapFields` static method on `Schema.Struct`. The `mapFields` static method accepts a function from `Struct.Fields` to new fields, and returns a new `Schema.Struct` based on the result.
 
@@ -2807,7 +2442,7 @@ const literal = tagged.fields._tag.schema.literal
 // literal: "A"
 ```
 
-## 🆕 Opaque Structs
+## Opaque Structs
 
 Goal: opaque typing without changing runtime behavior.
 
@@ -3511,7 +3146,7 @@ const schema = Schema.Tuple([Schema.String, Schema.Number, Schema.Boolean]).mapE
 
 ## Arrays
 
-### 🆕 Unique Arrays
+### Unique Arrays
 
 You can deduplicate arrays using `Schema.UniqueArray`.
 
@@ -4085,7 +3720,7 @@ console.log(String(Schema.decodeUnknownExit(schema)(null)))
 // Failure(Cause([Fail(SchemaError: Expected "a" | "b", got null)]))
 ```
 
-### 🆕 Exclusive Unions
+### Exclusive Unions
 
 You can create an exclusive union, where the union matches if exactly one member matches, by passing the `{ mode: "oneOf" }` option.
 
@@ -4173,7 +3808,7 @@ const schema: Schema.Union<readonly [
 const schema = Schema.Union([Schema.String, Schema.Number, Schema.Boolean]).mapMembers(Tuple.map(Schema.Array))
 ```
 
-### 🆕 Union of Literals
+### Union of Literals
 
 You can create a union of literals using `Schema.Literals`.
 
@@ -4213,7 +3848,7 @@ type Type = {
 type Type = (typeof schema)["Type"]
 ```
 
-### 🆕 Tagged Unions
+### Tagged Unions
 
 You can define a tagged union using the `Schema.TaggedUnion` helper. This is useful when combining multiple tagged structs into a union.
 
@@ -4240,7 +3875,7 @@ const schema = Schema.Union([
 
 The result is a tagged union schema with built-in helpers based on the tag values. See the next section for more details.
 
-### 🆕 Augmenting Tagged Unions
+### Augmenting Tagged Unions
 
 The `asTaggedUnion` function enhances a tagged union schema by adding helper methods for working with its members.
 
@@ -4328,7 +3963,7 @@ console.log(matcher({ type: "C", c: true })) // This is a C: true
 
 ## Transformations Redesign
 
-### 🆕 Transformations as First-Class
+### Transformations as First-Class
 
 In previous versions, transformations were directly embedded in schemas. In the current version, they are defined as independent values that can be reused across schemas.
 
@@ -6397,83 +6032,6 @@ The idea is simple: if you have a `Schema` for a type `T`, you can serialize any
   3. Decode the patched JSON back to `T` using the schema.
 
 This approach keeps patches independent from TypeScript types and uses the schema as the guardrail when turning JSON back into `T`.
-
-## Standard Representation
-
-The `Standard` module provides a way to encode and decode schemas to and from JSON. This is useful for sending schemas over the wire or storing them on disk.
-
-```mermaid
-flowchart TD
-    Schema -->|fromAST|StandardAST{"Standard.Document"}
-    JS["JSONSchema (draft-07, draft-2020-12, openapi-3.0, openapi-3.1)"] -->|normalize|NJS
-    NJS --> |denormalize|JS
-    NJS["JsonSchema.Document (draft-2020-12)"] -->|fromJsonSchemaDocument|StandardAST
-    StandardAST --> |toJson|JSON
-    JSON --> |fromJson|StandardAST
-    StandardAST --> |toJsonSchemaDocument|NJS
-    StandardAST --> |toSchema|Schema
-    StandardAST --> |toGeneration|Generation["Generation: { code, types, imports }"]
-    Schema --> |toArbitrary|Arbitrary
-    Schema --> |toEquivalence|Equivalence
-    Schema --> |toFormatter|Formatter
-```
-
-**Example** (Encoding and decoding a schema)
-
-```ts
-import { Schema, SchemaStandard } from "effect"
-
-const schema = Schema.Struct({
-  a: Schema.String.annotate({
-    description: "my description",
-    customAnnotation: 1n
-  })
-})
-
-// Encode the schema into standard Document (includes the AST and definitions).
-const document = SchemaStandard.fromAST(schema.ast)
-
-// Encode the standard AST into a JSON-compatible representation.
-const json = SchemaStandard.toJson(document)
-
-// This output is safe to send over the network or store on disk.
-console.log(JSON.stringify(json, null, 2))
-/*
-{
-  "source": "draft-2020-12",
-  "schema": {
-    "_tag": "Objects",
-    "propertySignatures": [
-      {
-        "name": "a",
-        "type": {
-          "_tag": "String",
-          "annotations": {
-            "description": "my description",
-            "customAnnotation": "1"
-          },
-          "checks": []
-        },
-        "isOptional": false,
-        "isMutable": false
-      }
-    ],
-    "indexSignatures": []
-  },
-  "definitions": {}
-}
-*/
-
-// Decode the JSON-compatible representation back into a standard AST.
-const decodedAST = SchemaStandard.fromJson(json)
-
-// Convert the standard AST into a runtime schema.
-const decodedSchema = SchemaStandard.toSchema<typeof schema>(decodedAST)
-
-// You can read annotations from the decoded schema, since they were preserved through the round trip.
-console.log(decodedSchema.fields.a.ast.annotations)
-// { description: 'my description', customAnnotation: 1n }
-```
 
 ## Formatters
 

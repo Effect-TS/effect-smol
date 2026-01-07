@@ -411,7 +411,6 @@ const Standard$ref = Schema.suspend(() => Standard$)
 const toJsonAnnotationsBlacklist: Set<string> = new Set([
   ...InternalStandard.fromASTBlacklist,
   "expected",
-  "meta",
   "~structural",
   "contentMediaType",
   "contentSchema"

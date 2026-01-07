@@ -358,7 +358,7 @@ export const urlFromString: Transformation<URL, string> = transformOrFail<URL, s
 /**
  * @since 4.0.0
  */
-export const uint8ArrayFromString: Transformation<Uint8Array<ArrayBufferLike>, string> = new Transformation(
+export const uint8ArrayFromBase64String: Transformation<Uint8Array<ArrayBufferLike>, string> = new Transformation(
   Getter.decodeBase64(),
   Getter.encodeBase64()
 )

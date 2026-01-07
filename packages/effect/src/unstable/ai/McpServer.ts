@@ -1023,13 +1023,13 @@ const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: Readonly
   if (schemas.length > 0) {
     const arr: Array<Schema.Top> = []
     for (let i = 0; i < schemas.length; i++) {
-      const schema = Schema.toCodecStringTree(schemas[i])
+      const toCodecStringTree = Schema.toCodecStringTree(schemas[i])
       const segment = segments[i + 1]
       const key = String(i)
-      arr.push(schema)
+      arr.push(toCodecStringTree)
       routerPath += `:${key}${segment.replace(":", "::")}`
-      const paramName = isParam(schema) ? schema.name : `param${key}`
-      params[paramName] = schema
+      const paramName = isParam(toCodecStringTree) ? toCodecStringTree.name : `param${key}`
+      params[paramName] = toCodecStringTree
       uriPath += `{${paramName}}${segment}`
     }
     pathSchema = Schema.Tuple(arr)

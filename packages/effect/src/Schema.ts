@@ -6955,8 +6955,8 @@ export const Uint8Array: Uint8Array = instanceOf(globalThis.Uint8Array<ArrayBuff
   expected: "Uint8Array",
   toCodecJson: () =>
     link<globalThis.Uint8Array<ArrayBufferLike>>()(
-      String.annotate({ expected: "a string that will be decoded as Uint8Array" }),
-      Transformation.uint8ArrayFromString
+      String.annotate({ expected: "a base64 encoded string that will be decoded as Uint8Array" }),
+      Transformation.uint8ArrayFromBase64String
     ),
   toArbitrary: () => (fc) => fc.uint8Array()
 })
@@ -6981,7 +6981,7 @@ export interface Uint8ArrayFromBase64 extends decodeTo<Uint8Array, String> {}
  */
 export const Uint8ArrayFromBase64: Uint8ArrayFromBase64 = String.annotate({
   expected: "a base64 encoded string that will be decoded as a Uint8Array"
-}).pipe(decodeTo(Uint8Array, Transformation.uint8ArrayFromString))
+}).pipe(decodeTo(Uint8Array, Transformation.uint8ArrayFromBase64String))
 
 /**
  * @since 4.0.0
@@ -7792,7 +7792,7 @@ export type StringTree = Tree<string | undefined>
 export function toCodecStringTree<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, StringTree, RD, RE>
 export function toCodecStringTree<T, E, RD, RE>(
   schema: Codec<T, E, RD, RE>,
-  options: { readonly keepDeclarations: true }
+  options: { readonly keepDeclarations: true } // Used in FormData
 ): Codec<T, unknown, RD, RE>
 export function toCodecStringTree<T, E, RD, RE>(
   schema: Codec<T, E, RD, RE>,

@@ -119,6 +119,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
   }
 
   function on(last: AST.AST): SchemaStandard.Standard {
+    const annotations = fromASTAnnotations(last.annotations)
     switch (last._tag) {
       case "Declaration":
         return {
@@ -126,7 +127,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
           typeParameters: last.typeParameters.map(recur),
           encodedSchema: recur(getEncodedSchema(last)),
           checks: fromASTChecks(last.checks),
-          ...fromASTAnnotations(last)
+          ...annotations
         }
       case "Null":
       case "Undefined":
@@ -136,14 +137,14 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
       case "Any":
       case "Boolean":
       case "Symbol":
-        return { _tag: last._tag, ...fromASTAnnotations(last) }
+        return { _tag: last._tag, ...annotations }
       case "String": {
         const contentMediaType = last.annotations?.contentMediaType
         const contentSchema = last.annotations?.contentSchema
         return {
           _tag: last._tag,
           checks: fromASTChecks(last.checks),
-          ...fromASTAnnotations(last),
+          ...annotations,
           ...(typeof contentMediaType === "string" && AST.isAST(contentSchema)
             ? { contentMediaType, contentSchema: recur(contentSchema) }
             : undefined)
@@ -154,36 +155,36 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
         return {
           _tag: last._tag,
           checks: fromASTChecks(last.checks),
-          ...fromASTAnnotations(last)
+          ...annotations
         }
       case "Literal":
         return {
           _tag: last._tag,
           literal: last.literal,
-          ...fromASTAnnotations(last)
+          ...annotations
         }
       case "UniqueSymbol":
         return {
           _tag: last._tag,
           symbol: last.symbol,
-          ...fromASTAnnotations(last)
+          ...annotations
         }
       case "ObjectKeyword":
         return {
           _tag: last._tag,
-          ...fromASTAnnotations(last)
+          ...annotations
         }
       case "Enum":
         return {
           _tag: last._tag,
           enums: last.enums,
-          ...fromASTAnnotations(last)
+          ...annotations
         }
       case "TemplateLiteral":
         return {
           _tag: last._tag,
           parts: last.parts.map(recur),
-          ...fromASTAnnotations(last)
+          ...annotations
         }
       case "Arrays":
         return {
@@ -193,12 +194,12 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
             return {
               isOptional: AST.isOptional(last),
               type: recur(e),
-              ...(last.context?.annotations ? { annotations: last.context?.annotations } : undefined)
+              ...fromASTAnnotations(last.context?.annotations)
             }
           }),
           rest: last.rest.map(recur),
           checks: fromASTChecks(last.checks),
-          ...fromASTAnnotations(last)
+          ...annotations
         }
       case "Objects":
         return {
@@ -210,7 +211,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
               type: recur(ps.type),
               isOptional: AST.isOptional(last),
               isMutable: AST.isMutable(last),
-              ...(last.context?.annotations ? { annotations: last.context?.annotations } : undefined)
+              ...fromASTAnnotations(last.context?.annotations)
             }
           }),
           indexSignatures: last.indexSignatures.map((is) => ({
@@ -218,7 +219,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
             type: recur(is.type)
           })),
           checks: fromASTChecks(last.checks),
-          ...fromASTAnnotations(last)
+          ...annotations
         }
       case "Union": {
         const types = InternalSerializer.jsonReorder(last.types)
@@ -226,7 +227,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
           _tag: last._tag,
           types: types.map(recur),
           mode: last.mode,
-          ...fromASTAnnotations(last)
+          ...annotations
         }
       }
       case "Suspend": {
@@ -234,7 +235,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
           _tag: "Suspend",
           checks: [],
           thunk: recur(last.thunk()),
-          ...fromASTAnnotations(last)
+          ...annotations
         }
       }
     }
@@ -243,6 +244,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
 
 /** @internal */
 export const fromASTBlacklist: Set<string> = new Set([
+  "meta",
   "toArbitrary",
   "toArbitraryConstraint",
   "toEquivalence",
@@ -253,9 +255,11 @@ export const fromASTBlacklist: Set<string> = new Set([
   AST.ClassTypeId
 ])
 
-function fromASTAnnotations(ast: AST.AST): { annotations: Schema.Annotations.Annotations } | undefined {
-  if (ast.annotations) {
-    const filtered = Rec.filter(ast.annotations, (_, k) => !fromASTBlacklist.has(k))
+function fromASTAnnotations(
+  annotations: Schema.Annotations.Annotations | undefined
+): { annotations: Schema.Annotations.Annotations } | undefined {
+  if (annotations !== undefined) {
+    const filtered = Rec.filter(annotations, (_, k) => !fromASTBlacklist.has(k))
     if (!Rec.isEmptyRecord(filtered)) {
       return { annotations: filtered }
     }
@@ -272,7 +276,11 @@ function fromASTChecks(
       case "Filter": {
         const meta = c.annotations?.meta
         if (meta) {
-          return { _tag: "Filter", meta, annotations: c.annotations }
+          return {
+            _tag: "Filter",
+            meta,
+            ...fromASTAnnotations(c.annotations)
+          }
         }
         return undefined
       }
@@ -282,7 +290,7 @@ function fromASTChecks(
           return {
             _tag: "FilterGroup",
             checks,
-            annotations: c.annotations
+            ...fromASTAnnotations(c.annotations)
           }
         }
       }
