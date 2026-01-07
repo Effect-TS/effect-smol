@@ -517,22 +517,22 @@ describe("toGenerationDocument", () => {
       assertToGenerationDocument(
         { schema: Schema.UniqueSymbol(Symbol("a")) },
         {
-          generations: makeGeneration(`Schema.UniqueSymbol(sym_0)`, "typeof sym_0"),
+          generations: makeGeneration(`Schema.UniqueSymbol(sym)`, "typeof sym"),
           artifacts: [{
             _tag: "Symbol",
-            identifier: "sym_0",
-            generation: makeGeneration(`Symbol("a")`, `typeof sym_0`)
+            identifier: "sym",
+            generation: makeGeneration(`Symbol("a")`, `typeof sym`)
           }]
         }
       )
       assertToGenerationDocument(
         { schema: Schema.UniqueSymbol(Symbol()) },
         {
-          generations: makeGeneration(`Schema.UniqueSymbol(sym_0)`, "typeof sym_0"),
+          generations: makeGeneration(`Schema.UniqueSymbol(sym)`, "typeof sym"),
           artifacts: [{
             _tag: "Symbol",
-            identifier: "sym_0",
-            generation: makeGeneration(`Symbol()`, `typeof sym_0`)
+            identifier: "sym",
+            generation: makeGeneration(`Symbol()`, `typeof sym`)
           }]
         }
       )
@@ -542,11 +542,11 @@ describe("toGenerationDocument", () => {
       assertToGenerationDocument(
         { schema: Schema.UniqueSymbol(Symbol.for("a")) },
         {
-          generations: makeGeneration(`Schema.UniqueSymbol(sym_0)`, "typeof sym_0"),
+          generations: makeGeneration(`Schema.UniqueSymbol(sym)`, "typeof sym"),
           artifacts: [{
             _tag: "Symbol",
-            identifier: "sym_0",
-            generation: makeGeneration(`Symbol.for("a")`, `typeof sym_0`)
+            identifier: "sym",
+            generation: makeGeneration(`Symbol.for("a")`, `typeof sym`)
           }]
         }
       )
@@ -554,13 +554,13 @@ describe("toGenerationDocument", () => {
         { schema: Schema.UniqueSymbol(Symbol.for("a")).annotate({ "description": "a" }) },
         {
           generations: makeGeneration(
-            `Schema.UniqueSymbol(sym_0).annotate({ "description": "a" })`,
-            "typeof sym_0"
+            `Schema.UniqueSymbol(sym).annotate({ "description": "a" })`,
+            "typeof sym"
           ),
           artifacts: [{
             _tag: "Symbol",
-            identifier: "sym_0",
-            generation: makeGeneration(`Symbol.for("a")`, `typeof sym_0`)
+            identifier: "sym",
+            generation: makeGeneration(`Symbol.for("a")`, `typeof sym`)
           }]
         }
       )
@@ -577,11 +577,11 @@ describe("toGenerationDocument", () => {
           })
         },
         {
-          generations: makeGeneration(`Schema.Enum(enum_0)`, `typeof enum_0`),
+          generations: makeGeneration(`Schema.Enum(Enum)`, `typeof Enum`),
           artifacts: [{
             _tag: "Enum",
-            identifier: "enum_0",
-            generation: makeGeneration(`enum enum_0 { "A": "a", "B": "b" }`, `typeof enum_0`)
+            identifier: "Enum",
+            generation: makeGeneration(`enum Enum { "A": "a", "B": "b" }`, `typeof Enum`)
           }]
         }
       )
@@ -594,13 +594,13 @@ describe("toGenerationDocument", () => {
         },
         {
           generations: makeGeneration(
-            `Schema.Enum(enum_0).annotate({ "description": "a" })`,
-            `typeof enum_0`
+            `Schema.Enum(Enum).annotate({ "description": "a" })`,
+            `typeof Enum`
           ),
           artifacts: [{
             _tag: "Enum",
-            identifier: "enum_0",
-            generation: makeGeneration(`enum enum_0 { "A": "a", "B": "b" }`, `typeof enum_0`)
+            identifier: "Enum",
+            generation: makeGeneration(`enum Enum { "A": "a", "B": "b" }`, `typeof Enum`)
           }]
         }
       )
@@ -615,11 +615,11 @@ describe("toGenerationDocument", () => {
           })
         },
         {
-          generations: makeGeneration(`Schema.Enum(enum_0)`, `typeof enum_0`),
+          generations: makeGeneration(`Schema.Enum(Enum)`, `typeof Enum`),
           artifacts: [{
             _tag: "Enum",
-            identifier: "enum_0",
-            generation: makeGeneration(`enum enum_0 { "One": 1, "Two": 2 }`, `typeof enum_0`)
+            identifier: "Enum",
+            generation: makeGeneration(`enum Enum { "One": 1, "Two": 2 }`, `typeof Enum`)
           }]
         }
       )
@@ -632,13 +632,13 @@ describe("toGenerationDocument", () => {
         },
         {
           generations: makeGeneration(
-            `Schema.Enum(enum_0).annotate({ "description": "a" })`,
-            `typeof enum_0`
+            `Schema.Enum(Enum).annotate({ "description": "a" })`,
+            `typeof Enum`
           ),
           artifacts: [{
             _tag: "Enum",
-            identifier: "enum_0",
-            generation: makeGeneration(`enum enum_0 { "One": 1, "Two": 2 }`, `typeof enum_0`)
+            identifier: "Enum",
+            generation: makeGeneration(`enum Enum { "One": 1, "Two": 2 }`, `typeof Enum`)
           }]
         }
       )
@@ -653,11 +653,11 @@ describe("toGenerationDocument", () => {
           })
         },
         {
-          generations: makeGeneration(`Schema.Enum(enum_0)`, `typeof enum_0`),
+          generations: makeGeneration(`Schema.Enum(Enum)`, `typeof Enum`),
           artifacts: [{
             _tag: "Enum",
-            identifier: "enum_0",
-            generation: makeGeneration(`enum enum_0 { "A": "a", "One": 1 }`, `typeof enum_0`)
+            identifier: "Enum",
+            generation: makeGeneration(`enum Enum { "A": "a", "One": 1 }`, `typeof Enum`)
           }]
         }
       )
@@ -670,13 +670,13 @@ describe("toGenerationDocument", () => {
         },
         {
           generations: makeGeneration(
-            `Schema.Enum(enum_0).annotate({ "description": "a" })`,
-            `typeof enum_0`
+            `Schema.Enum(Enum).annotate({ "description": "a" })`,
+            `typeof Enum`
           ),
           artifacts: [{
             _tag: "Enum",
-            identifier: "enum_0",
-            generation: makeGeneration(`enum enum_0 { "A": "a", "One": 1 }`, `typeof enum_0`)
+            identifier: "Enum",
+            generation: makeGeneration(`enum Enum { "A": "a", "One": 1 }`, `typeof Enum`)
           }]
         }
       )
@@ -932,123 +932,121 @@ describe("toGenerationDocument", () => {
     })
   })
 
-  describe("Arrays", () => {
-    describe("Tuple", () => {
-      it("empty tuple", () => {
-        assertToGenerationDocument({ schema: Schema.Tuple([]) }, {
-          generations: makeGeneration("Schema.Tuple([])", "readonly []")
-        })
-        assertToGenerationDocument(
-          { schema: Schema.Tuple([]).annotate({ "description": "a" }) },
-          {
-            generations: makeGeneration(`Schema.Tuple([]).annotate({ "description": "a" })`, "readonly []")
-          }
-        )
+  describe("Tuple", () => {
+    it("empty tuple", () => {
+      assertToGenerationDocument({ schema: Schema.Tuple([]) }, {
+        generations: makeGeneration("Schema.Tuple([])", "readonly []")
       })
-
-      it("required element", () => {
-        assertToGenerationDocument(
-          { schema: Schema.Tuple([Schema.String]) },
-          {
-            generations: makeGeneration(`Schema.Tuple([Schema.String])`, "readonly [string]")
-          }
-        )
-        assertToGenerationDocument(
-          { schema: Schema.Tuple([Schema.String]).annotate({ "description": "a" }) },
-          {
-            generations: makeGeneration(
-              `Schema.Tuple([Schema.String]).annotate({ "description": "a" })`,
-              "readonly [string]"
-            )
-          }
-        )
-      })
-
-      it("optional element", () => {
-        assertToGenerationDocument(
-          { schema: Schema.Tuple([Schema.optionalKey(Schema.String)]) },
-          {
-            generations: makeGeneration(`Schema.Tuple([Schema.optionalKey(Schema.String)])`, "readonly [string?]")
-          }
-        )
-        assertToGenerationDocument(
-          { schema: Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ "description": "a" }) },
-          {
-            generations: makeGeneration(
-              `Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ "description": "a" })`,
-              "readonly [string?]"
-            )
-          }
-        )
-      })
-
-      it("annotateKey", () => {
-        assertToGenerationDocument(
-          { schema: Schema.Tuple([Schema.String.annotateKey({ "description": "a" })]) },
-          {
-            generations: makeGeneration(
-              `Schema.Tuple([Schema.String.annotateKey({ "description": "a" })])`,
-              "readonly [string]"
-            )
-          }
-        )
-      })
+      assertToGenerationDocument(
+        { schema: Schema.Tuple([]).annotate({ "description": "a" }) },
+        {
+          generations: makeGeneration(`Schema.Tuple([]).annotate({ "description": "a" })`, "readonly []")
+        }
+      )
     })
 
-    it("Array", () => {
+    it("required element", () => {
       assertToGenerationDocument(
-        { schema: Schema.Array(Schema.String) },
+        { schema: Schema.Tuple([Schema.String]) },
         {
-          generations: makeGeneration("Schema.Array(Schema.String)", "ReadonlyArray<string>")
+          generations: makeGeneration(`Schema.Tuple([Schema.String])`, "readonly [string]")
         }
       )
       assertToGenerationDocument(
-        { schema: Schema.Array(Schema.String).annotate({ "description": "a" }) },
+        { schema: Schema.Tuple([Schema.String]).annotate({ "description": "a" }) },
         {
           generations: makeGeneration(
-            `Schema.Array(Schema.String).annotate({ "description": "a" })`,
-            "ReadonlyArray<string>"
+            `Schema.Tuple([Schema.String]).annotate({ "description": "a" })`,
+            "readonly [string]"
           )
         }
       )
     })
 
-    it("TupleWithRest", () => {
+    it("optional element", () => {
       assertToGenerationDocument(
-        { schema: Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]) },
+        { schema: Schema.Tuple([Schema.optionalKey(Schema.String)]) },
         {
-          generations: makeGeneration(
-            `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number])`,
-            "readonly [string, ...Array<number>]"
-          )
+          generations: makeGeneration(`Schema.Tuple([Schema.optionalKey(Schema.String)])`, "readonly [string?]")
         }
       )
       assertToGenerationDocument(
-        {
-          schema: Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]).annotate({
-            "description": "a"
-          })
-        },
+        { schema: Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ "description": "a" }) },
         {
           generations: makeGeneration(
-            `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]).annotate({ "description": "a" })`,
-            "readonly [string, ...Array<number>]"
+            `Schema.Tuple([Schema.optionalKey(Schema.String)]).annotate({ "description": "a" })`,
+            "readonly [string?]"
           )
         }
       )
+    })
+
+    it("annotateKey", () => {
       assertToGenerationDocument(
-        { schema: Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number, Schema.Boolean]) },
+        { schema: Schema.Tuple([Schema.String.annotateKey({ "description": "a" })]) },
         {
           generations: makeGeneration(
-            `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number, Schema.Boolean])`,
-            "readonly [string, ...Array<number>, boolean]"
+            `Schema.Tuple([Schema.String.annotateKey({ "description": "a" })])`,
+            "readonly [string]"
           )
         }
       )
     })
   })
 
-  describe("Objects", () => {
+  it("Array", () => {
+    assertToGenerationDocument(
+      { schema: Schema.Array(Schema.String) },
+      {
+        generations: makeGeneration("Schema.Array(Schema.String)", "ReadonlyArray<string>")
+      }
+    )
+    assertToGenerationDocument(
+      { schema: Schema.Array(Schema.String).annotate({ "description": "a" }) },
+      {
+        generations: makeGeneration(
+          `Schema.Array(Schema.String).annotate({ "description": "a" })`,
+          "ReadonlyArray<string>"
+        )
+      }
+    )
+  })
+
+  it("TupleWithRest", () => {
+    assertToGenerationDocument(
+      { schema: Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]) },
+      {
+        generations: makeGeneration(
+          `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number])`,
+          "readonly [string, ...Array<number>]"
+        )
+      }
+    )
+    assertToGenerationDocument(
+      {
+        schema: Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]).annotate({
+          "description": "a"
+        })
+      },
+      {
+        generations: makeGeneration(
+          `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number]).annotate({ "description": "a" })`,
+          "readonly [string, ...Array<number>]"
+        )
+      }
+    )
+    assertToGenerationDocument(
+      { schema: Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number, Schema.Boolean]) },
+      {
+        generations: makeGeneration(
+          `Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Schema.Number, Schema.Boolean])`,
+          "readonly [string, ...Array<number>, boolean]"
+        )
+      }
+    )
+  })
+
+  describe("Struct", () => {
     it("empty struct", () => {
       assertToGenerationDocument({ schema: Schema.Struct({}) }, {
         generations: makeGeneration("Schema.Struct({  })", "{  }")
@@ -1165,17 +1163,68 @@ describe("toGenerationDocument", () => {
         },
         {
           generations: makeGeneration(
-            `Schema.Struct({ [sym_0]: Schema.String })`,
-            `{ readonly [typeof sym_0]: string }`
+            `Schema.Struct({ [sym]: Schema.String })`,
+            `{ readonly [typeof sym]: string }`
           ),
           artifacts: [{
             _tag: "Symbol",
-            identifier: "sym_0",
-            generation: makeGeneration(`Symbol.for("a")`, `typeof sym_0`)
+            identifier: "sym",
+            generation: makeGeneration(`Symbol.for("a")`, `typeof sym`)
           }]
         }
       )
     })
+  })
+
+  it("Record(String, Number)", () => {
+    assertToGenerationDocument(
+      {
+        schema: Schema.Record(Schema.String, Schema.Number)
+      },
+      {
+        generations: makeGeneration("Schema.Record(Schema.String, Schema.Number)", "{ readonly [x: string]: number }")
+      }
+    )
+    assertToGenerationDocument(
+      {
+        schema: Schema.Record(Schema.String, Schema.Number).annotate({ "description": "a" })
+      },
+      {
+        generations: makeGeneration(
+          `Schema.Record(Schema.String, Schema.Number).annotate({ "description": "a" })`,
+          "{ readonly [x: string]: number }"
+        )
+      }
+    )
+  })
+
+  it("StructWithRest", () => {
+    assertToGenerationDocument(
+      {
+        schema: Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
+          Schema.Record(Schema.String, Schema.Boolean)
+        ])
+      },
+      {
+        generations: makeGeneration(
+          `Schema.StructWithRest(Schema.Struct({ "a": Schema.Number }), [Schema.Record(Schema.String, Schema.Boolean)])`,
+          `{ readonly "a": number, readonly [x: string]: boolean }`
+        )
+      }
+    )
+    assertToGenerationDocument(
+      {
+        schema: Schema.StructWithRest(Schema.Struct({ a: Schema.Number }), [
+          Schema.Record(Schema.String, Schema.Boolean)
+        ]).annotate({ description: "a" })
+      },
+      {
+        generations: makeGeneration(
+          `Schema.StructWithRest(Schema.Struct({ "a": Schema.Number }), [Schema.Record(Schema.String, Schema.Boolean)]).annotate({ "description": "a" })`,
+          `{ readonly "a": number, readonly [x: string]: boolean }`
+        )
+      }
+    )
   })
 
   describe("Union", () => {

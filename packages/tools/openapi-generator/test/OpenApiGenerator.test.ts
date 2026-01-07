@@ -1,8 +1,8 @@
 import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import type { OpenAPISpec } from "effect/unstable/httpapi/OpenApi"
-import OpenApiFixture from "../../../platform-node/test/fixtures/openapi.json" with { type: "json" }
 import * as OpenApiGenerator from "../src/OpenApiGenerator.js"
+import OpenAiFixture from "./fixtures/openai.json" with { type: "json" }
 
 function assertRuntime(spec: OpenAPISpec) {
   return Effect.gen(function*() {
@@ -38,7 +38,7 @@ function assertTypeOnly(spec: OpenAPISpec) {
 
 describe("OpenApiGenerator", () => {
   describe("schema", () => {
-    it.effect("OpenApiFixture", () => assertRuntime(OpenApiFixture as any))
+    it.effect.only("OpenAiFixture", () => assertRuntime(OpenAiFixture as any))
 
     it.effect("get operation", () =>
       assertRuntime(

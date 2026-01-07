@@ -18,7 +18,8 @@ export function fromAST(ast: AST.AST): SchemaStandard.Document {
   return { schema: schemas[0], references }
 }
 
-const FROM_AST_SEED = "_"
+/** @internal */
+export const DEFAULT_SEED = "_"
 
 /** @internal */
 export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaStandard.MultiDocument {
@@ -74,7 +75,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
     }
   }
 
-  function gen(seed: string = FROM_AST_SEED): string {
+  function gen(seed: string = DEFAULT_SEED): string {
     // Check if base identifier is available
     let count = referenceCounter.get(seed)
     if (count === undefined) {
