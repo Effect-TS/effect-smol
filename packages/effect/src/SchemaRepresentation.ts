@@ -1092,6 +1092,10 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
         return Schema.RegExp
       case "URL":
         return Schema.URL
+      case "Blob":
+        return Schema.Blob
+      case "File":
+        return Schema.File
       case "Date":
         return Schema.Date
       case "effect/Duration":

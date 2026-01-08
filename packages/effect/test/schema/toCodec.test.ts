@@ -954,6 +954,90 @@ describe("Serializers", () => {
         )
       })
 
+      it("URLSearchParams", async () => {
+        const schema = Schema.URLSearchParams
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(
+          new URLSearchParams("a=1&b=two"),
+          "a=1&b=two"
+        )
+
+        const decoding = asserts.decoding()
+        await decoding.succeed(
+          "a=1&b=two",
+          new URLSearchParams("a=1&b=two")
+        )
+      })
+
+      it("Blob", async () => {
+        const schema = Schema.Blob
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(
+          new Blob(["hello"], { type: "text/plain" }),
+          { data: "aGVsbG8=", type: "text/plain" }
+        )
+
+        const decoding = asserts.decoding()
+        await decoding.succeed(
+          { data: "aGVsbG8=", type: "text/plain" },
+          new Blob(["hello"], { type: "text/plain" })
+        )
+      })
+
+      it("File", async () => {
+        const schema = Schema.File
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+        const encoding = asserts.encoding()
+        await encoding.succeed(
+          new File(["hi"], "note.txt", { type: "text/plain", lastModified: 123 }),
+          { data: "aGk=", type: "text/plain", name: "note.txt", lastModified: 123 }
+        )
+
+        const decoding = asserts.decoding()
+        await decoding.succeed(
+          { data: "aGk=", type: "text/plain", name: "note.txt", lastModified: 123 },
+          new File(["hi"], "note.txt", { type: "text/plain", lastModified: 123 })
+        )
+      })
+
+      it("FormData", async () => {
+        const schema = Schema.FormData
+        const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))
+
+        const encoding = asserts.encoding()
+        const formData = new FormData()
+        formData.append("a", "1")
+        formData.append("b", "two")
+        formData.append("c", new File(["hi"], "note.txt", { type: "text/plain", lastModified: 123 }))
+        await encoding.succeed(
+          formData,
+          [
+            ["a", "1"],
+            ["b", "two"],
+            ["c", { data: "aGk=", type: "text/plain", name: "note.txt", lastModified: 123 }]
+          ]
+        )
+
+        const decoding = asserts.decoding()
+        const expected = new FormData()
+        expected.append("a", "1")
+        expected.append("b", "two")
+        expected.append("c", new File(["hi"], "note.txt", { type: "text/plain", lastModified: 123 }))
+        await decoding.succeed(
+          [
+            ["a", "1"],
+            ["b", "two"],
+            ["c", { data: "aGk=", type: "text/plain", name: "note.txt", lastModified: 123 }]
+          ],
+          expected
+        )
+      })
+
       it("RegExp", async () => {
         const schema = Schema.RegExp
         const asserts = new TestSchema.Asserts(Schema.toCodecJson(schema))

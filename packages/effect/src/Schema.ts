@@ -12,6 +12,7 @@ import * as DateTime from "./DateTime.ts"
 import type { Differ } from "./Differ.ts"
 import * as Duration_ from "./Duration.ts"
 import * as Effect from "./Effect.ts"
+import * as Base64 from "./encoding/Base64.ts"
 import * as Equal from "./Equal.ts"
 import * as Equivalence from "./Equivalence.ts"
 import * as Exit_ from "./Exit.ts"
@@ -6582,6 +6583,122 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
 /**
  * @since 4.0.0
  */
+export interface Blob extends instanceOf<globalThis.Blob> {}
+
+/**
+ * @since 4.0.0
+ */
+export const Blob: Blob = instanceOf(globalThis.Blob, {
+  typeConstructor: {
+    _tag: "Blob"
+  },
+  generation: {
+    runtime: `Schema.Blob`,
+    Type: `globalThis.Blob`
+  },
+  expected: "Blob",
+  toCodecJson: () =>
+    link<globalThis.Blob>()(
+      Struct({
+        data: String.check(isBase64()),
+        type: String
+      }),
+      Transformation.transformOrFail({
+        decode: (json) =>
+          Result_.match(Base64.decode(json.data), {
+            onFailure: (error) =>
+              Effect.fail(
+                new Issue.InvalidValue(Option_.some(json.data), {
+                  message: error.message
+                })
+              ),
+            onSuccess: (bytes) => {
+              const buffer = new globalThis.Uint8Array(bytes)
+              return Effect.succeed(new globalThis.Blob([buffer], { type: json.type }))
+            }
+          }),
+        encode: (blob) =>
+          Effect.tryPromise({
+            try: async () => {
+              const bytes = new globalThis.Uint8Array(await blob.arrayBuffer())
+              return {
+                data: Base64.encode(bytes),
+                type: blob.type
+              }
+            },
+            catch: (e) =>
+              new Issue.InvalidValue(Option_.some(blob), {
+                message: globalThis.String(e)
+              })
+          })
+      })
+    )
+})
+
+/**
+ * @since 4.0.0
+ */
+export interface File extends instanceOf<globalThis.File> {}
+
+/**
+ * @since 4.0.0
+ */
+export const File: File = instanceOf(globalThis.File, {
+  typeConstructor: {
+    _tag: "File"
+  },
+  generation: {
+    runtime: `Schema.File`,
+    Type: `globalThis.File`
+  },
+  expected: "File",
+  toCodecJson: () =>
+    link<globalThis.File>()(
+      Struct({
+        data: String.check(isBase64()),
+        type: String,
+        name: String,
+        lastModified: Number
+      }),
+      Transformation.transformOrFail({
+        decode: (json) =>
+          Result_.match(Base64.decode(json.data), {
+            onFailure: (error) =>
+              Effect.fail(
+                new Issue.InvalidValue(Option_.some(json.data), {
+                  message: error.message
+                })
+              ),
+            onSuccess: (bytes) => {
+              const buffer = new globalThis.Uint8Array(bytes)
+              return Effect.succeed(
+                new globalThis.File([buffer], json.name, { type: json.type, lastModified: json.lastModified })
+              )
+            }
+          }),
+        encode: (file) =>
+          Effect.tryPromise({
+            try: async () => {
+              const bytes = new globalThis.Uint8Array(await file.arrayBuffer())
+              return {
+                data: Base64.encode(bytes),
+                type: file.type,
+                name: file.name,
+                lastModified: file.lastModified
+              }
+            },
+            catch: (e) =>
+              new Issue.InvalidValue(Option_.some(file), {
+                message: globalThis.String(e)
+              })
+          })
+      })
+    )
+})
+
+/**
+ * @since 4.0.0
+ */
 export interface FormData extends instanceOf<globalThis.FormData> {}
 
 /**
@@ -6595,7 +6712,21 @@ export const FormData: FormData = instanceOf(globalThis.FormData, {
     runtime: `Schema.FormData`,
     Type: `globalThis.FormData`
   },
-  expected: "FormData"
+  expected: "FormData",
+  toCodecJson: () =>
+    link<globalThis.FormData>()(
+      Array(Tuple([String, Union([String, File, Blob])])),
+      Transformation.transformOrFail({
+        decode: (entries) => {
+          const out = new globalThis.FormData()
+          for (const [key, value] of entries) {
+            out.append(key, value)
+          }
+          return Effect.succeed(out)
+        },
+        encode: (formData) => Effect.succeed(globalThis.Array.from(formData.entries()))
+      })
+    )
 })
 
 /**
@@ -6706,7 +6837,15 @@ export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchP
     runtime: `Schema.URLSearchParams`,
     Type: `globalThis.URLSearchParams`
   },
-  expected: "URLSearchParams"
+  expected: "URLSearchParams",
+  toCodecJson: () =>
+    link<globalThis.URLSearchParams>()(
+      String.annotate({ expected: "a query string that will be decoded as URLSearchParams" }),
+      Transformation.transform({
+        decode: (s) => new globalThis.URLSearchParams(s),
+        encode: (params) => params.toString()
+      })
+    )
 })
 
 /**

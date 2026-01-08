@@ -183,7 +183,11 @@ describe("fromAST", () => {
         checks: [],
         typeParameters: [],
         encodedSchema: {
-          _tag: "Null"
+          _tag: "String",
+          annotations: {
+            expected: "a query string that will be decoded as URLSearchParams"
+          },
+          checks: []
         }
       }
     })

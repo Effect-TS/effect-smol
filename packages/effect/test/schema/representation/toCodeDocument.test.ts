@@ -95,9 +95,43 @@ describe("toCodeDocument", () => {
       })
     })
 
+    it("Blob", () => {
+      assertToCodeDocument({ schema: Schema.Blob }, {
+        codes: makeCode(`Schema.Blob`, "globalThis.Blob")
+      })
+    })
+
+    it("URLSearchParams", () => {
+      assertToCodeDocument({ schema: Schema.URLSearchParams }, {
+        codes: makeCode(`Schema.URLSearchParams`, "globalThis.URLSearchParams")
+      })
+    })
+
+    it("File", () => {
+      assertToCodeDocument({ schema: Schema.File }, {
+        codes: makeCode(`Schema.File`, "globalThis.File"),
+        references: {
+          nonRecursives: [
+            {
+              $ref: "_3",
+              code: makeCode("Schema.String", "string")
+            }
+          ]
+        }
+      })
+    })
+
     it("FormData", () => {
       assertToCodeDocument({ schema: Schema.FormData }, {
-        codes: makeCode(`Schema.FormData`, "globalThis.FormData")
+        codes: makeCode(`Schema.FormData`, "globalThis.FormData"),
+        references: {
+          nonRecursives: [
+            {
+              $ref: "_3",
+              code: makeCode("Schema.String", "string")
+            }
+          ]
+        }
       })
     })
 
