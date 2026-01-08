@@ -23,10 +23,24 @@
     "effect/no-js-extension-imports": "error",
     "effect/no-opaque-instance-fields": "error",
     // Tune native rules
+    // Import rules
     "typescript/no-import-type-side-effects": "error",
     "import/no-duplicates": "error",
     "import/no-self-import": "error",
     "import/no-empty-named-blocks": "error",
+    // TypeScript cleanup
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/no-useless-empty-export": "error",
+    // Code quality
+    "eslint/no-console": "error",
+    "eslint/no-useless-constructor": "error",
+    "eslint/no-unneeded-ternary": "error",
+    "eslint/no-useless-concat": "error",
+    "oxc/misrefactored-assign-op": "error",
+    // Unicorn
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/no-accessor-recursion": "error",
     "oxc/no-map-spread": "off",
     "eslint/object-shorthand": "off",
     "eslint/no-unused-vars": "off",
