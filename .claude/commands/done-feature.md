@@ -1,11 +1,13 @@
 # Feature Completion - Effect Library
 
 ## 🎯 OBJECTIVE
+
 Complete feature development with comprehensive validation, documentation updates, and proper git workflow for the Effect library.
 
 ## 📋 COMPLETION WORKFLOW
 
 ### Phase 1: Final Validation (MANDATORY)
+
 Run all quality gates to ensure implementation meets Effect library standards:
 
 ```bash
@@ -31,15 +33,18 @@ node scripts/analyze-jsdoc.mjs --file=<modified-files>
 **🚨 CRITICAL**: All checks must pass with ZERO errors before proceeding.
 
 ### Phase 2: Documentation Updates
+
 Update project documentation to reflect completed work:
 
 #### Update Specifications
+
 - [ ] Mark completed tasks in `.specs/[feature-name]/plan.md` with ✅
 - [ ] Add implementation summary to plan.md
 - [ ] Document any architectural decisions made
 - [ ] Note any deviations from original design with rationale
 
 #### Update Progress Tracking
+
 ```bash
 # Update overall specs progress if applicable
 # Update any related documentation files
@@ -47,9 +52,11 @@ Update project documentation to reflect completed work:
 ```
 
 ### Phase 3: Git Workflow
+
 Execute proper git workflow with comprehensive commit messages:
 
 #### Stage Changes
+
 ```bash
 # Add all implementation files
 git add packages/effect/src/<new-files>
@@ -64,6 +71,7 @@ git add <other-modified-files>
 ```
 
 #### Commit with Structured Message
+
 ```bash
 git commit -m "$(cat <<'EOF'
 feat: implement [feature-name]
@@ -94,6 +102,7 @@ EOF
 ```
 
 ### Phase 4: Pull Request Creation (if on feature branch)
+
 Create pull request with comprehensive description:
 
 ```bash
@@ -147,9 +156,11 @@ EOF
 ```
 
 ### Phase 5: Final Verification
+
 Ensure all completion criteria are met:
 
 #### Quality Metrics
+
 - [ ] All automated checks pass (`lint`, `docgen`, `check`, `test`, `build`)
 - [ ] Feature works end-to-end as specified
 - [ ] Test coverage adequate with proper Effect patterns
@@ -158,6 +169,7 @@ Ensure all completion criteria are met:
 - [ ] Documentation updated appropriately
 
 #### Effect Library Standards
+
 - [ ] No forbidden patterns used (`try-catch` in generators, type assertions)
 - [ ] Proper Effect patterns throughout (generator functions, error handling)
 - [ ] Resource management follows Effect conventions
@@ -165,12 +177,14 @@ Ensure all completion criteria are met:
 - [ ] All examples compile and demonstrate practical usage
 
 #### Documentation Quality
+
 - [ ] All new APIs have comprehensive @example tags
 - [ ] Examples demonstrate real-world usage patterns
 - [ ] Appropriate @category annotations applied
 - [ ] Integration with existing documentation seamless
 
 ## 🎯 SUCCESS CRITERIA
+
 - ✅ All validation steps pass completely
 - ✅ Documentation updated and accurate
 - ✅ Git workflow completed with structured commits
@@ -179,6 +193,7 @@ Ensure all completion criteria are met:
 - ✅ Zero technical debt introduced
 
 ## 🚨 CRITICAL REMINDERS
+
 - **NEVER skip validation steps** - all checks must pass
 - **NEVER commit with failing tests or compilation errors**
 - **ALWAYS update documentation** to reflect implementation

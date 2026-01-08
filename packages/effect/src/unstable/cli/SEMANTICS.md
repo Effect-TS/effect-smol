@@ -2,36 +2,36 @@
 
 This file records the intended parsing semantics with a short usage example and the test that locks it in. Examples show shell usage, not code.
 
-- **Parent flags allowed before or after subcommand (npm-style)**  
-  Example: `tool --global install --pkg cowsay` and `tool install --pkg cowsay --global`  
+- **Parent flags allowed before or after subcommand (npm-style)**\
+  Example: `tool --global install --pkg cowsay` and `tool install --pkg cowsay --global`\
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should accept parent flags before or after a subcommand (npm-style)"
 
-- **Only the first value token may open a subcommand; later values are operands**  
-  Example: `tool install pkg1 pkg2` → `install` chosen as subcommand; `pkg1 pkg2` are operands  
+- **Only the first value token may open a subcommand; later values are operands**\
+  Example: `tool install pkg1 pkg2` → `install` chosen as subcommand; `pkg1 pkg2` are operands\
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should accept parent flags before or after a subcommand (npm-style)" (second invocation covers later operands)
 
-- **`--` stops option parsing; everything after is an operand (no subcommands/flags)**  
-  Example: `tool -- child --value x` → operands: `child --value x`; subcommand `child` is not entered  
+- **`--` stops option parsing; everything after is an operand (no subcommands/flags)**\
+  Example: `tool -- child --value x` → operands: `child --value x`; subcommand `child` is not entered\
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should treat tokens after -- as operands (no subcommand or flags)"
 
-- **Options may appear before, after, or between operands (relaxed POSIX Guideline 9)**  
-  Examples: `tool copy --recursive src dest`, `tool copy src dest --recursive`, `tool copy --recursive src dest --force`  
+- **Options may appear before, after, or between operands (relaxed POSIX Guideline 9)**\
+  Examples: `tool copy --recursive src dest`, `tool copy src dest --recursive`, `tool copy --recursive src dest --force`\
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should support options before, after, or between operands (relaxed POSIX Syntax Guideline No. 9)"
 
-- **Boolean flags default to true when present; explicit true/false literals are accepted immediately after**  
-  Example: `tool --verbose deploy --target-version 1.0.0`  
+- **Boolean flags default to true when present; explicit true/false literals are accepted immediately after**\
+  Example: `tool --verbose deploy --target-version 1.0.0`\
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should handle boolean flags before subcommands"
 
-- **Unknown subcommands emit suggestions**  
-  Example: `tool cpy` → suggests `copy`  
+- **Unknown subcommands emit suggestions**\
+  Example: `tool cpy` → suggests `copy`\
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should suggest similar subcommands for unknown subcommands"
 
-- **Unknown options emit suggestions (long and short)**  
-  Examples: `tool --debugs copy ...`, `tool -u copy ...`  
+- **Unknown options emit suggestions (long and short)**\
+  Examples: `tool --debugs copy ...`, `tool -u copy ...`\
   Tests: `packages/effect/test/unstable/cli/Command.test.ts` – "should suggest similar options for unrecognized options" and "should suggest similar short options for unrecognized short options"
 
-- **Repeated key=value flags merge into one map**  
-  Example: `tool env --env foo=bar --env cool=dude` → `{ foo: "bar", cool: "dude" }`  
+- **Repeated key=value flags merge into one map**\
+  Example: `tool env --env foo=bar --env cool=dude` → `{ foo: "bar", cool: "dude" }`\
   Test: `packages/effect/test/unstable/cli/Command.test.ts` – "should merge repeated key=value flags into a single record"
 
 - **Parent context is accessible inside subcommands**
@@ -49,7 +49,8 @@ If you add or change semantics, update this file and reference the exact test th
 Below each semantic you’ll find: a short description, a usage example, how major CLI libraries handle it (and whether it’s configurable), and where Effect currently lands (with suggestions if any).
 
 ### Parent flags after a subcommand name (npm-style globals)
-- **What**: Whether options defined on the parent command can appear *after* the subcommand token.
+
+- **What**: Whether options defined on the parent command can appear _after_ the subcommand token.
 - **Example**: `tool install --pkg cowsay --global`
 - **Commander / yargs / clap**: Allowed by default; commander/clap can tighten with options.
 - **Click / argparse / docopt**: Not allowed; options must be before the command they belong to.
@@ -58,6 +59,7 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 - **Suggestion**: Keep permissive default; document clearly (done). If a future app needs strictness, add an opt-in validator rather than changing defaults.
 
 ### Options after operands (relaxed POSIX Guideline 9)
+
 - **What**: Whether flags can appear after or between positional arguments.
 - **Example**: `tool copy src dest --recursive` or `tool copy --recursive src dest --force`
 - **Commander / yargs / clap**: Allowed by default; clap can be configured to prefer subcommand precedence.
@@ -67,6 +69,7 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 - **Suggestion**: Keep permissive; no change.
 
 ### Subcommand selection: only the first value may open a subcommand
+
 - **What**: Whether only the first non-option token can be treated as a subcommand name.
 - **Example**: `tool install pkg1 pkg2` → `install` is subcommand; `pkg1 pkg2` are operands.
 - **Commander / yargs / clap / Click / argparse / docopt / Cobra**: Yes, subcommand chosen at first value (unless special external-subcommand features are enabled).
@@ -74,6 +77,7 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 - **Suggestion**: Keep; this is the least surprising and matches most ecosystems.
 
 ### End-of-options marker `--`
+
 - **What**: Tokens after `--` are treated purely as operands.
 - **Example**: `tool -- child --value x` → operands `child --value x`.
 - **Commander / yargs / clap / Click / argparse / docopt / Cobra**: Supported.
@@ -81,6 +85,7 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 - **Suggestion**: Keep; already locked in by test.
 
 ### Boolean flags defaulting to true when present; optional explicit literal
+
 - **What**: Supplying `--flag` implies true; explicit `--flag false` (or 0/no/off) is accepted.
 - **Example**: `tool --verbose deploy` and `tool --verbose false deploy`.
 - **Commander / yargs / clap**: Yes; boolean options coerce common literals.
@@ -89,6 +94,7 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 - **Suggestion**: Keep; no change.
 
 ### Unknown subcommands/options suggestions
+
 - **What**: Whether unrecognized tokens produce Levenshtein suggestions.
 - **Example**: `tool cpy` → suggest `copy`; `tool --debugs` → suggest `--debug`.
 - **Commander / yargs / clap**: Suggestions configurable (clap has built-in `color`/`suggestions`); commander can display “Did you mean”.
@@ -97,6 +103,7 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 - **Suggestion**: Keep; already aligned with “friendly” CLIs.
 
 ### Parent context accessible in subcommands
+
 - **What**: Ability for subcommand handlers to read the parsed config of their parent.
 - **Example**: `tool --global install --pkg cowsay` → subcommand reads `global`.
 - **Commander / yargs / clap / Cobra**: Supported via shared options or persistent flags; Click/argparse require manual plumbing.
@@ -104,6 +111,7 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 - **Suggestion**: Keep; this is a strength of our design.
 
 ### Repeated key=value flags merging
+
 - **What**: Multiple `--env KEY=VAL` occurrences merge into a single map.
 - **Example**: `tool --env foo=bar --env cool=dude` → `{foo: "bar", cool: "dude"}`.
 - **Commander / yargs / clap**: Arrays/maps supported via custom options; behavior differs unless configured.
@@ -111,12 +119,14 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 - **Suggestion**: Keep; predictable and convenient.
 
 ### Required or mutually exclusive flag sets (validation, not parsing)
+
 - **What**: Constraints like "must provide either --token or --user/--pass", or "--json and --color cannot both be set".
 - **Commander / yargs / clap**: Provide APIs for required/conflicts; Click supports required options and `mutually_exclusive` via groups; argparse has mutually exclusive groups.
 - **Effect (current)**: Not enforced at parser level. Would live in a validation layer if needed.
 - **Suggestion**: Stay out of parsing; add optional validators in configuration if/when a product needs it.
 
 ### Built-in flags (`--version`, `--help`) global precedence
+
 - **What**: Whether `--version` and `--help` take precedence over subcommands and other arguments.
 - **Example**: `tool --version install pkg` or `tool install --version pkg`
 - **git / cargo (clap) / npm**: `--version` anywhere prints version and exits. Subcommand is ignored.
@@ -126,4 +136,5 @@ Below each semantic you’ll find: a short description, a usage example, how maj
 - **Suggestion**: Keep; this is the most user-friendly behavior. Users expect `--version` to work anywhere.
 
 ## Opinionated default
+
 Effect should remain on the permissive, npm/commander-style side: flexible option placement, parent flags usable before or after subcommands, strict `--` handling, and single-shot subcommand selection on the first value. This keeps UX friendly for modern CLIs while remaining predictable via documented rules and tests.

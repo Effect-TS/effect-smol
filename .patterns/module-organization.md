@@ -1,11 +1,13 @@
 # Module Organization Patterns - Effect Library
 
 ## 🎯 OVERVIEW
+
 Established patterns for organizing modules in the Effect library, based on analysis of the core codebase structure and conventions.
 
 ## 📁 DIRECTORY STRUCTURE PATTERNS
 
 ### Core Module Organization
+
 ```
 packages/effect/src/
 ├── collections/          # Data structures (Array, HashMap, etc.)
@@ -20,7 +22,9 @@ packages/effect/src/
 ```
 
 ### Export Pattern Structure
+
 **Index file pattern (packages/effect/src/collections/index.ts):**
+
 ```typescript
 /**
  * @since 2.0.0
@@ -35,7 +39,9 @@ export * as SortedSet from "./SortedSet.js"
 ```
 
 ### Template Files for Build Generation
+
 **Template pattern (packages/effect/src/index.ts.tpl):**
+
 ```typescript
 /**
  * @since 2.0.0
@@ -55,15 +61,16 @@ export * from "./data/index.js"
 ## 🏗️ MODULE STRUCTURE PATTERNS
 
 ### Standard Module File Structure
+
 ```typescript
 /**
  * Module description with @since version
  */
 
 // Imports (organized by category)
+import { dual } from "../Function.js"
 import * as internal from "../internal/moduleName.js"
 import type { TypeLambda } from "../types/HKT.js"
-import { dual } from "../Function.js"
 
 // Type definitions
 export interface ModuleName<A> {
@@ -103,7 +110,9 @@ export const map = dual<
 ```
 
 ### Internal Module Pattern
+
 **Internal organization (packages/effect/src/internal/array.ts):**
+
 ```typescript
 /** @internal */
 
@@ -143,6 +152,7 @@ export const map = <A, B>(
 ## 🏷️ NAMING CONVENTIONS
 
 ### Function Naming Patterns
+
 ```typescript
 // Constructors - create new instances
 export const make = <A>(value: A): Effect<A>
@@ -173,6 +183,7 @@ export const partition = dual<...>()
 ```
 
 ### Type Naming Patterns
+
 ```typescript
 // Core types use PascalCase
 export interface Effect<A, E = never, R = never>
@@ -195,17 +206,18 @@ export type ReadonlyRecord<K extends string | symbol, V> = { readonly [P in K]: 
 ## 🔄 DUAL FUNCTION PATTERN
 
 ### Standard Dual Implementation
-```typescript
+
+````typescript
 /**
  * Maps over a structure using the provided function.
  *
  * @example
  * ```ts
  * import { Array } from "effect/collections"
- * 
+ *
  * // Data-first usage
  * const result1 = Array.map([1, 2, 3], x => x * 2)
- * 
+ *
  * // Data-last usage (pipeable)
  * const result2 = [1, 2, 3].pipe(
  *   Array.map(x => x * 2)
@@ -219,9 +231,10 @@ export const map = dual<
   <A, B>(f: (a: A, index: number) => B) => (self: ReadonlyArray<A>) => Array<B>,
   <A, B>(self: ReadonlyArray<A>, f: (a: A, index: number) => B) => Array<B>
 >(2, (self, f) => self.map(f))
-```
+````
 
 ### Arity-Based Dual Pattern
+
 ```typescript
 // When the number of parameters is fixed
 export const filter = dual<
@@ -239,6 +252,7 @@ export const update = dual<
 ## 🏷️ TYPE IDENTIFICATION PATTERN
 
 ### TypeId Pattern
+
 ```typescript
 /**
  * The type identifier for this data type.
@@ -263,16 +277,17 @@ export interface ModuleName<A> {
 ```
 
 ### Type Guard Pattern
-```typescript
+
+````typescript
 /**
  * Type guard to check if a value is an instance of ModuleName.
  *
  * @example
  * ```ts
  * import { ModuleName } from "effect"
- * 
+ *
  * const value: unknown = ModuleName.make(42)
- * 
+ *
  * if (ModuleName.isModuleName(value)) {
  *   // value is now typed as ModuleName<unknown>
  *   console.log("Is ModuleName")
@@ -284,16 +299,17 @@ export interface ModuleName<A> {
  */
 export const isModuleName = (value: unknown): value is ModuleName<unknown> =>
   typeof value === "object" && value !== null && TypeId in value
-```
+````
 
 ## 📊 VARIANCE ANNOTATION PATTERN
 
 ### Interface Variance
+
 ```typescript
 /**
  * Represents the variance of the type parameters.
  * - `in ROut`: Contravariant (input position)
- * - `out E`: Covariant (output position)  
+ * - `out E`: Covariant (output position)
  * - `out RIn`: Covariant (output position)
  */
 export interface Variance<in ROut, out E, out RIn> {
@@ -304,8 +320,7 @@ export interface Variance<in ROut, out E, out RIn> {
   }
 }
 
-export interface Layer<in ROut, out E = never, out RIn = never>
-  extends Variance<ROut, E, RIn>, Pipeable {
+export interface Layer<in ROut, out E = never, out RIn = never> extends Variance<ROut, E, RIn>, Pipeable {
   // Layer-specific methods
 }
 ```
@@ -313,9 +328,10 @@ export interface Layer<in ROut, out E = never, out RIn = never>
 ## 🔗 PIPEABLE INTEGRATION PATTERN
 
 ### Pipeable Implementation
+
 ```typescript
-import type { Pipeable } from "../interfaces/Pipeable.js"
 import { pipeArguments } from "../Function.js"
+import type { Pipeable } from "../interfaces/Pipeable.js"
 
 const Proto = {
   pipe() {
@@ -343,6 +359,7 @@ export const make = <A>(value: A): ModuleName<A> => {
 ## 📝 SUCCESS CRITERIA
 
 ### Well-Organized Module Checklist
+
 - [ ] Clear directory structure following domain separation
 - [ ] Consistent export patterns using index files
 - [ ] Proper internal vs public API separation

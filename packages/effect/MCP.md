@@ -1,7 +1,6 @@
 ## Introduction
 
-The `McpServer.ts` module provides an implementation of an [MCP (Model Context
-Protocol)](https://modelcontextprotocol.io/docs/getting-started/intro) server using the
+The `McpServer.ts` module provides an implementation of an [MCP (Model Context Protocol)](https://modelcontextprotocol.io/docs/getting-started/intro) server using the
 [Effect](https://effect.website) eco system.
 
 ## Getting Started
@@ -10,10 +9,10 @@ It's important to understand the architecture of the Effect MCP server.
 Here is an example of a MCP server implementation:
 
 ```typescript
+import { NodeRuntime, NodeSink, NodeStream } from "@effect/platform-node"
 import { Effect, Layer, Logger } from "effect"
 import { Schema } from "effect/schema"
 import { McpServer, Tool, Toolkit } from "effect/unstable/ai"
-import { NodeStream, NodeSink, NodeRuntime } from "@effect/platform-node"
 
 // Define a simple tool
 const DemoTool = Tool.make("DemoTool", {
@@ -95,7 +94,7 @@ parameters, completions, and content generation.
 ```typescript
 import { Effect } from "effect"
 import { Schema } from "effect/schema"
-import { McpServer, McpSchema } from "effect/unstable/ai"
+import { McpSchema, McpServer } from "effect/unstable/ai"
 
 const SimpleResource = McpServer.resource({
   uri: "file:///demo.txt",
@@ -113,7 +112,7 @@ const TemplateResource = McpServer.resource`file://path/to/file/${idParam}`({
   completion: {
     id: (_: string) => Effect.succeed([1, 2, 3, 4, 5])
   },
-  content: Effect.fn(function* (_uri, id) {
+  content: Effect.fn(function*(_uri, id) {
     return `# MCP Server Demo - ID: ${id}`
   }),
   mimeType: "text/x-markdown",
@@ -165,7 +164,7 @@ grouped into toolkits, which can be combined and converted into layers.
 ```typescript
 import { Effect, Layer } from "effect"
 import { Schema } from "effect/schema"
-import { Tool, Toolkit, McpServer } from "effect/unstable/ai"
+import { McpServer, Tool, Toolkit } from "effect/unstable/ai"
 
 const DemoTool = Tool.make("DemoTool", {
   description: "This is a demo tool for the documentation",
@@ -237,11 +236,11 @@ is `"no"`.
 Here's a complete, copy/pastable MCP server example that combines all the concepts:
 
 ```typescript
+import { NodeRuntime, NodeSink, NodeStream } from "@effect/platform-node"
 import { Effect, Layer } from "effect"
 import { Logger } from "effect"
 import { Schema } from "effect/schema"
 import { McpServer, Tool, Toolkit } from "effect/unstable/ai"
-import { NodeStream, NodeSink, NodeRuntime } from "@effect/platform-node"
 
 // Define tools
 const GreetTool = Tool.make("GreetTool", {
@@ -289,7 +288,7 @@ const UserResource = McpServer.resource`file://users/${idParam}.json`({
   completion: {
     id: (_: string) => Effect.succeed([1, 2, 3, 4, 5])
   },
-  content: Effect.fn(function* (_uri, id) {
+  content: Effect.fn(function*(_uri, id) {
     return JSON.stringify(
       {
         id,
@@ -330,8 +329,9 @@ const ServerLayer = Layer.mergeAll(
     Layer.provideMerge(
       MyToolkit.toLayer({
         GreetTool: ({ name, style }) => {
-          const greeting =
-            style === "formal" ? `Good day, ${name}. It is a pleasure to meet you.` : `Hey ${name}! What's up?`
+          const greeting = style === "formal"
+            ? `Good day, ${name}. It is a pleasure to meet you.`
+            : `Hey ${name}! What's up?`
           return Effect.succeed(greeting)
         },
         CalculatorTool: ({ operation, a, b }) => {

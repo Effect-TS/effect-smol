@@ -11,7 +11,7 @@
 - **CRITICAL**: This will cause runtime errors and break Effect's error handling
 - **EXAMPLE OF WHAT NOT TO DO**:
   ```ts
-  Effect.gen(function* () {
+  Effect.gen(function*() {
     try {
       // ❌ WRONG - Never do this in Effect.gen
       const result = yield* someEffect
@@ -22,7 +22,7 @@
   ```
 - **CORRECT PATTERN**:
   ```ts
-  Effect.gen(function* () {
+  Effect.gen(function*() {
     // ✅ Use Effect's built-in error handling
     const result = yield* Effect.result(someEffect)
     if (result._tag === "Failure") {
@@ -59,7 +59,7 @@
 - **MANDATORY PATTERN**:
 
   ```ts
-  Effect.gen(function* () {
+  Effect.gen(function*() {
     if (someCondition) {
       // ✅ CORRECT - Always use return yield* for errors
       return yield* Effect.fail("error message")
@@ -78,7 +78,7 @@
 
 - **WRONG PATTERNS**:
   ```ts
-  Effect.gen(function* () {
+  Effect.gen(function*() {
     if (someCondition) {
       // ❌ WRONG - Missing return keyword
       yield* Effect.fail("error message")
@@ -386,7 +386,7 @@ rm scratchpad/temp*.ts scratchpad/example*.ts
 
 ```typescript
 // Core Effect library imports
-import { Schedule, Effect, Duration, Console } from "effect"
+import { Console, Duration, Effect, Schedule } from "effect"
 
 // Schema imports (note: lowercase 'schema')
 import { Schema } from "effect/schema"
@@ -415,13 +415,13 @@ class CustomError extends Data.TaggedError("CustomError")<{
 
 ```typescript
 // Use Effect.gen for monadic composition
-const program = Effect.gen(function* () {
+const program = Effect.gen(function*() {
   const result = yield* someEffect
   return result
 })
 
 // Use proper error handling
-const safeProgram = Effect.gen(function* () {
+const safeProgram = Effect.gen(function*() {
   const result = yield* Effect.tryPromise({
     try: () => someAsyncOperation(),
     catch: (error) => new CustomError({ message: String(error) })
@@ -443,7 +443,7 @@ const result = Schema.decodeUnknownSync(Schema.String)("hello")
 import { Effect } from "effect"
 import { Schema } from "effect/schema"
 
-const program = Effect.gen(function* () {
+const program = Effect.gen(function*() {
   const validated = yield* Schema.decodeUnknownEffect(Schema.Number)(42)
   return validated
 })
@@ -455,7 +455,7 @@ const PersonSchema = Schema.Struct({
 })
 
 // Complex validation with error handling
-const safeValidation = Effect.gen(function* () {
+const safeValidation = Effect.gen(function*() {
   const result = yield* Schema.decodeUnknownEffect(PersonSchema)(input)
   console.log("Valid person:", result)
   return result
@@ -705,7 +705,7 @@ import * as SomeModule from "effect/SomeModule"
 describe("ModuleName", () => {
   describe("feature group", () => {
     it.effect("should do something", () =>
-      Effect.gen(function* () {
+      Effect.gen(function*() {
         const result = yield* SomeModule.operation()
 
         // Use assert methods, not expect
@@ -713,18 +713,16 @@ describe("ModuleName", () => {
         assert.deepStrictEqual(complexResult, expectedObject)
         assert.isTrue(booleanResult)
         assert.isFalse(negativeResult)
-      })
-    )
+      }))
 
     it.effect("should handle errors", () =>
-      Effect.gen(function* () {
+      Effect.gen(function*() {
         const txRef = yield* SomeModule.create()
         yield* SomeModule.update(txRef, newValue)
 
         const value = yield* SomeModule.get(txRef)
         assert.strictEqual(value, newValue)
-      })
-    )
+      }))
   })
 })
 ```
@@ -736,7 +734,7 @@ describe("ModuleName", () => {
 import { describe, expect, it } from "vitest"
 it("test", () => {
   const result = Effect.runSync(
-    Effect.gen(function* () {
+    Effect.gen(function*() {
       return yield* someEffect
     })
   )
@@ -745,11 +743,10 @@ it("test", () => {
 
 // ❌ WRONG - Using expect instead of assert
 it.effect("test", () =>
-  Effect.gen(function* () {
+  Effect.gen(function*() {
     const result = yield* someEffect
     expect(result).toBe(value) // Should use assert.strictEqual
-  })
-)
+  }))
 ```
 
 #### Key it.effect Guidelines:

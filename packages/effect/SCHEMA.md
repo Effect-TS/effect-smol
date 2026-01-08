@@ -94,8 +94,7 @@ export interface Bottom<
   out TypeConstructorDefault extends ConstructorDefault = "no-default",
   out EncodedMutability extends Mutability = "readonly",
   out EncodedOptionality extends Optionality = "required"
->
-  extends Pipeable.Pipeable {
+> extends Pipeable.Pipeable {
   readonly [TypeId]: typeof TypeId
 
   readonly ast: Ast
@@ -1078,7 +1077,7 @@ import { Effect, Option, Schema, SchemaParser } from "effect"
 const schema = Schema.Struct({
   a: Schema.Number.pipe(
     Schema.withConstructorDefault(() =>
-      Effect.gen(function* () {
+      Effect.gen(function*() {
         yield* Effect.sleep(100)
         return Option.some(-1)
       })
@@ -1103,7 +1102,7 @@ class ConstructorService extends ServiceMap.Service<ConstructorService, { defaul
 const schema = Schema.Struct({
   a: Schema.Number.pipe(
     Schema.withConstructorDefault(() =>
-      Effect.gen(function* () {
+      Effect.gen(function*() {
         yield* Effect.sleep(100)
         const oservice = yield* Effect.serviceOption(ConstructorService)
         if (Option.isNone(oservice)) {
@@ -1464,7 +1463,7 @@ import { Effect, Option, Result, Schema, SchemaGetter, SchemaIssue } from "effec
 
 // Simulated API call that fails when userId is 0
 const myapi = (userId: number) =>
-  Effect.gen(function* () {
+  Effect.gen(function*() {
     if (userId === 0) {
       return new Error("not found")
     }
@@ -1474,7 +1473,7 @@ const myapi = (userId: number) =>
 const schema = Schema.Finite.pipe(
   Schema.decode({
     decode: SchemaGetter.checkEffect((n) =>
-      Effect.gen(function* () {
+      Effect.gen(function*() {
         // Call the async API and wrap the result in a Result
         const user = yield* Effect.result(myapi(n))
 
@@ -2316,9 +2315,9 @@ Use `Struct.evolveKeys` to rename field keys while keeping the corresponding val
 **Example** (Uppercasing keys in a struct)
 
 ```ts
-import { Struct } from "effect/data"
 import { String } from "effect"
 import { Schema } from "effect"
+import { Struct } from "effect/data"
 
 /*
 const schema: Schema.Struct<{
@@ -3337,7 +3336,7 @@ class Err extends Data.Error<typeof Props.Type> {
   }
 }
 
-const program = Effect.gen(function* () {
+const program = Effect.gen(function*() {
   yield* new Err({ message: "Uh oh" })
 })
 
@@ -4304,7 +4303,7 @@ You control the optionality of the output by returning an `Option`:
 **Example** (Optional string key transformed to `Option<NonEmptyString>`)
 
 ```ts
-import { Schema, SchemaTransformation, Option } from "effect"
+import { Option, Schema, SchemaTransformation } from "effect"
 
 const OptionFromNonEmptyString = Schema.optionalKey(Schema.String).pipe(
   Schema.decodeTo(
@@ -4408,7 +4407,7 @@ const schema = Schema.revealCodec(
   Schema.revealCodec(
     Schema.String.pipe(
       Schema.catchDecodingWithContext(() =>
-        Effect.gen(function* () {
+        Effect.gen(function*() {
           const service = yield* Service
           return Option.some(yield* service.fallback)
         })
@@ -5381,15 +5380,17 @@ const all: ReadonlyArray<FromJsonSchema.DefinitionGeneration> = [
 // Note: if you use a custom resolver, also include `generation.importDeclarations`.
 const code = `import { Schema } from "effect"
 
-${all
-  .map((g) =>
-    [
-      `export type ${g.identifier} = ${g.generation.types.Type};`,
-      `export type ${g.identifier}Encoded = ${g.generation.types.Encoded};`,
-      `export const ${g.identifier} = ${g.generation.runtime};`
-    ].join("\n")
-  )
-  .join("\n\n")}`
+${
+  all
+    .map((g) =>
+      [
+        `export type ${g.identifier} = ${g.generation.types.Type};`,
+        `export type ${g.identifier}Encoded = ${g.generation.types.Encoded};`,
+        `export const ${g.identifier} = ${g.generation.runtime};`
+      ].join("\n")
+    )
+    .join("\n\n")
+}`
 
 console.log(code)
 /*
@@ -5441,15 +5442,17 @@ const all: ReadonlyArray<SchemaFromJson.DefinitionGeneration> = [
 // build a code string containing all definitions
 const code = `import { Schema } from "effect"
 
-${all
-  .map((g) =>
-    [
-      `export type ${g.identifier} = ${g.generation.types.Type};`,
-      `export type ${g.identifier}Encoded = ${g.generation.types.Encoded};`,
-      `export const ${g.identifier} = ${g.generation.runtime};`
-    ].join("\n")
-  )
-  .join("\n\n")}`
+${
+  all
+    .map((g) =>
+      [
+        `export type ${g.identifier} = ${g.generation.types.Type};`,
+        `export type ${g.identifier}Encoded = ${g.generation.types.Encoded};`,
+        `export const ${g.identifier} = ${g.generation.runtime};`
+      ].join("\n")
+    )
+    .join("\n\n")
+}`
 
 console.log(code)
 /*
@@ -6326,10 +6329,10 @@ Features:
 **Example** (Parse user input and surface form-level errors)
 
 ```tsx
-import React from "react"
 import { useForm } from "@tanstack/react-form"
 import type { AnyFieldApi } from "@tanstack/react-form"
 import { Effect, Schema, SchemaGetter, SchemaTransformation } from "effect"
+import React from "react"
 
 // ----------------------------------------------------
 // Toolkit
@@ -6354,7 +6357,7 @@ function optional<S extends Schema.Top>(schema: S) {
 // Decode helper that returns a `Promise<Result>` with either a typed value
 // or a human-friendly error message string.
 function decode<T, E>(schema: Schema.Codec<T, E>) {
-  return function (value: unknown) {
+  return function(value: unknown) {
     return Schema.decodeUnknownEffect(schema)(value).pipe(
       Effect.mapError((error) => error.message),
       Effect.result,
@@ -6396,9 +6399,9 @@ const schema = Schema.Struct({
 function FieldInfo({ field }: { field: AnyFieldApi }) {
   return (
     <>
-      {field.state.meta.isTouched && !field.state.meta.isValid ? (
-        <em>{field.state.meta.errors.map((error) => error.message).join(", ")}</em>
-      ) : null}
+      {field.state.meta.isTouched && !field.state.meta.isValid ?
+        <em>{field.state.meta.errors.map((error) => error.message).join(", ")}</em> :
+        null}
       {field.state.meta.isValidating ? "Validating..." : null}
     </>
   )
@@ -6490,12 +6493,13 @@ export default function App() {
 
         <form.Subscribe selector={(s) => [s.errorMap]}>
           {([errorMap]) =>
-            errorMap.onSubmit ? (
-              <div role="alert" style={{ marginTop: 12 }}>
-                <em>{String(errorMap.onSubmit)}</em>
-              </div>
-            ) : null
-          }
+            errorMap.onSubmit ?
+              (
+                <div role="alert" style={{ marginTop: 12 }}>
+                  <em>{String(errorMap.onSubmit)}</em>
+                </div>
+              ) :
+              null}
         </form.Subscribe>
 
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
@@ -6516,10 +6520,10 @@ export default function App() {
 ### Elysia
 
 ```ts
-import { Elysia } from "elysia"
-import { openapi } from "@elysiajs/openapi"
 import { node } from "@elysiajs/node"
+import { openapi } from "@elysiajs/openapi"
 import { Schema } from "effect"
+import { Elysia } from "elysia"
 
 // ----------------------------------------------------
 // Utilities
@@ -6634,7 +6638,7 @@ Schema.Null
 To coerce input data to the appropriate type:
 
 ```ts
-import { Schema, Getter, Parser } from "effect/schema"
+import { Getter, Parser, Schema } from "effect/schema"
 
 //      ┌─── Codec<string, unknown>
 //      ▼
@@ -8094,7 +8098,7 @@ const schema = Schema.String.check(Schema.makeFilter((s) => s.length > 0))
 v3
 
 ```ts
-import { Schema, Option } from "effect"
+import { Option, Schema } from "effect"
 
 const schema = Schema.Option(Schema.String).pipe(Schema.filter(Option.isSome))
 ```
@@ -8102,7 +8106,7 @@ const schema = Schema.Option(Schema.String).pipe(Schema.filter(Option.isSome))
 v4
 
 ```ts
-import { Schema, Option } from "effect"
+import { Option, Schema } from "effect"
 
 const schema = Schema.Option(Schema.String).pipe(Schema.refineByGuard(Option.isSome))
 ```

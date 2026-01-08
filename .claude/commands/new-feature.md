@@ -5,13 +5,16 @@
 This command enforces a rigorous **5-phase development process** for substantial new features in the Effect library. This process ensures systematic development, comprehensive documentation, and alignment with Effect library standards.
 
 ### ⚠️ IMPORTANT SCOPE LIMITATION
+
 This workflow is **ONLY** for substantial new features. For other types of work:
+
 - **Bug fixes**: Use standard development workflow
-- **Refactoring**: Use `/refactor` command  
+- **Refactoring**: Use `/refactor` command
 - **JSDoc enhancement**: Use `/add-jsdoc` command
 - **Test fixes**: Use `/fix-tests` command
 
 ### 🔒 AUTHORIZATION PROTOCOL
+
 - **MANDATORY USER AUTHORIZATION** required between each phase
 - **NEVER proceed** to next phase without explicit user approval
 - **PRESENT completed work** from current phase before requesting authorization
@@ -20,9 +23,11 @@ This workflow is **ONLY** for substantial new features. For other types of work:
 ### 📋 PHASE STRUCTURE
 
 #### Phase 1: Instructions Phase
+
 **Objective**: Capture initial requirements and user story
 
 **Deliverables**:
+
 - Create feature branch: `feature/[feature-name]`
 - Create `.specs/[feature-name]/` directory
 - Create `instructions.md` with:
@@ -38,9 +43,11 @@ This workflow is **ONLY** for substantial new features. For other types of work:
 **🔒 AUTHORIZATION GATE**: Present instructions.md and request user approval to proceed to Requirements Phase
 
 #### Phase 2: Requirements Phase
+
 **Objective**: Structured analysis and formal specifications
 
 **Deliverables**:
+
 - Create `requirements.md` with hierarchical numbering:
   - **FR1.x**: Functional Requirements
   - **NFR2.x**: Non-Functional Requirements
@@ -53,9 +60,11 @@ This workflow is **ONLY** for substantial new features. For other types of work:
 **🔒 AUTHORIZATION GATE**: Present requirements.md and request user approval to proceed to Design Phase
 
 #### Phase 3: Design Phase
+
 **Objective**: Technical architecture and implementation strategy
 
 **Deliverables**:
+
 - Create `design.md` including:
   - **Effect Library Patterns**: Generator functions, error handling, resource management
   - **Type Safety Approach**: No `any` types, no type assertions
@@ -68,10 +77,12 @@ This workflow is **ONLY** for substantial new features. For other types of work:
 
 **🔒 AUTHORIZATION GATE**: Present design.md and request user approval to proceed to Plan Phase
 
-#### Phase 4: Plan Phase  
+#### Phase 4: Plan Phase
+
 **Objective**: Implementation roadmap with progress tracking
 
 **Deliverables**:
+
 - Create `plan.md` with:
   - **5-Phase Implementation Structure** with checkboxes
   - **Task Hierarchies** with clear objectives
@@ -83,11 +94,13 @@ This workflow is **ONLY** for substantial new features. For other types of work:
 **🔒 AUTHORIZATION GATE**: Present plan.md and request user approval to proceed to Implementation Phase
 
 #### Phase 5: Implementation Phase
+
 **Objective**: Execute development with continuous validation
 
 **Implementation Requirements**:
 
 ##### 🚨 CRITICAL EFFECT LIBRARY REQUIREMENTS 🚨
+
 - **FORBIDDEN**: `try-catch` blocks inside `Effect.gen` generators
 - **FORBIDDEN**: Type assertions (`as any`, `as never`, `as unknown`)
 - **MANDATORY**: `return yield*` pattern for errors/interrupts in Effect.gen
@@ -97,6 +110,7 @@ This workflow is **ONLY** for substantial new features. For other types of work:
 - **MANDATORY**: Use TestClock for time-dependent testing
 
 ##### Validation Steps (MANDATORY after each implementation step):
+
 ```bash
 # 1. Lint TypeScript files immediately after editing
 pnpm lint --fix packages/effect/src/<modified-file>.ts
@@ -115,6 +129,7 @@ pnpm build
 ```
 
 ##### Implementation Workflow:
+
 1. **Create Implementation Files**
    - Follow existing TypeScript patterns
    - Use proper Effect constructors and combinators
@@ -136,6 +151,7 @@ pnpm build
    - Validate examples compile with docgen
 
 ##### Completion Criteria:
+
 - [ ] All implementation files created and tested
 - [ ] All validation steps pass consistently
 - [ ] JSDoc coverage at 100% for new APIs
@@ -147,6 +163,7 @@ pnpm build
 **🔒 AUTHORIZATION GATE**: Present completed implementation with all validation passing and request user approval for completion
 
 ### 🎯 SUCCESS METRICS
+
 - All 5 phases completed with user authorization
 - Zero compilation errors (`pnpm docgen`, `pnpm check`, `pnpm build`)
 - Comprehensive test coverage with proper Effect patterns
@@ -155,6 +172,7 @@ pnpm build
 - Integration with existing codebase seamless
 
 ### 🚨 CRITICAL REMINDERS
+
 - **NEVER skip phases** or authorization gates
 - **NEVER use forbidden patterns** (try-catch in generators, type assertions)
 - **ALWAYS validate immediately** after changes

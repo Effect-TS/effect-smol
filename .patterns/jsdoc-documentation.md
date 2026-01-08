@@ -1,11 +1,13 @@
 # JSDoc Documentation Patterns - Effect Library
 
 ## 🎯 OVERVIEW
+
 Comprehensive JSDoc documentation patterns used throughout the Effect library, ensuring consistent, practical, and compilable examples for all APIs.
 
 ## 🚨 CRITICAL REQUIREMENTS
 
 ### Documentation Standards
+
 - **MANDATORY**: All JSDoc examples must compile via `pnpm docgen`
 - **ZERO TOLERANCE**: Even pre-existing docgen errors must be fixed
 - **FORBIDDEN**: Removing examples to fix compilation - always fix type issues properly
@@ -15,7 +17,8 @@ Comprehensive JSDoc documentation patterns used throughout the Effect library, e
 ## 📝 STANDARD JSDOC STRUCTURE
 
 ### Complete Function Documentation Template
-```typescript
+
+````typescript
 /**
  * Brief description of what the function does in one line.
  * 
@@ -55,18 +58,19 @@ Comprehensive JSDoc documentation patterns used throughout the Effect library, e
  */
 export const functionName = <A>(param: A): ModuleName<A> => 
   // implementation
-```
+````
 
 ### Module-Level Documentation
-```typescript
+
+````typescript
 /**
  * The `Array` module provides utility functions for working with arrays in TypeScript.
- * 
+ *
  * This module offers a comprehensive set of operations for creating, transforming,
  * and querying arrays while maintaining immutability and type safety.
  *
  * ## Key Features
- * 
+ *
  * - **Immutable operations**: All functions return new arrays without mutating the original
  * - **Type-safe**: Full TypeScript support with proper generic constraints
  * - **Pipeable**: All functions work seamlessly with Effect's pipe function
@@ -79,7 +83,7 @@ export const functionName = <A>(param: A): ModuleName<A> =>
  * // Creating and transforming arrays
  * const numbers = Array.range(1, 5) // [1, 2, 3, 4, 5]
  * const doubled = Array.map(numbers, x => x * 2) // [2, 4, 6, 8, 10]
- * 
+ *
  * // Functional composition with pipe
  * const result = [1, 2, 3, 4, 5].pipe(
  *   Array.filter(x => x % 2 === 0),
@@ -90,17 +94,18 @@ export const functionName = <A>(param: A): ModuleName<A> =>
  *
  * @since 2.0.0
  */
-```
+````
 
 ## 🔧 IMPORT PATTERN STANDARDS
 
 ### Core Effect Library Imports
-```typescript
+
+````typescript
 /**
  * @example
  * ```ts
  * import { Array, Effect, Console } from "effect"
- * 
+ *
  * const program = Effect.gen(function* () {
  *   const items = Array.make(1, 2, 3)
  *   yield* Console.log(`Items: ${Array.join(items, ", ")}`)
@@ -108,22 +113,23 @@ export const functionName = <A>(param: A): ModuleName<A> =>
  * })
  * ```
  */
-```
+````
 
 ### Schema Module Imports (CRITICAL)
-```typescript
+
+````typescript
 /**
  * @example
  * ```ts
  * // ✅ CORRECT - Use lowercase 'schema'
  * import { Schema } from "effect/schema"
  * import { Effect } from "effect"
- * 
+ *
  * const PersonSchema = Schema.Struct({
  *   name: Schema.String,
  *   age: Schema.Number
  * })
- * 
+ *
  * const program = Effect.gen(function* () {
  *   const person = yield* Schema.decodeUnknownEffect(PersonSchema)({
  *     name: "Alice",
@@ -133,17 +139,18 @@ export const functionName = <A>(param: A): ModuleName<A> =>
  * })
  * ```
  */
-```
+````
 
 ### Mixed Usage Imports
-```typescript
+
+````typescript
 /**
  * @example
  * ```ts
  * import { Effect } from "effect"
  * import { Schema } from "effect/schema"
  * import { NodeHttpServer } from "@effect/platform-node"
- * 
+ *
  * const server = Effect.gen(function* () {
  *   const httpServer = yield* NodeHttpServer.make(app, { port: 3000 })
  *   yield* Effect.log("Server started on port 3000")
@@ -151,12 +158,13 @@ export const functionName = <A>(param: A): ModuleName<A> =>
  * })
  * ```
  */
-```
+````
 
 ## 🏗️ EXAMPLE CONTENT PATTERNS
 
 ### Constructor Examples
-```typescript
+
+````typescript
 /**
  * Creates a new Array from the provided elements.
  *
@@ -168,7 +176,7 @@ export const functionName = <A>(param: A): ModuleName<A> =>
  * const numbers = Array.make(1, 2, 3) // Array<number>
  * const strings = Array.make("a", "b", "c") // Array<string>
  * const mixed = Array.make(1, "hello", true) // Array<string | number | boolean>
- * 
+ *
  * console.log(numbers) // [1, 2, 3]
  * ```
  *
@@ -184,10 +192,11 @@ export const functionName = <A>(param: A): ModuleName<A> =>
  * @since 2.0.0
  * @category constructors
  */
-```
+````
 
 ### Combinator Examples
-```typescript
+
+````typescript
 /**
  * Transforms each element of the array using the provided function.
  *
@@ -214,13 +223,14 @@ export const functionName = <A>(param: A): ModuleName<A> =>
  * console.log(result) // 6
  * ```
  *
- * @since 2.0.0  
+ * @since 2.0.0
  * @category combinators
  */
-```
+````
 
 ### Effect Pattern Examples
-```typescript
+
+````typescript
 /**
  * Performs an effectful operation on each element of the array.
  *
@@ -243,10 +253,11 @@ export const functionName = <A>(param: A): ModuleName<A> =>
  * @since 2.0.0
  * @category combinators
  */
-```
+````
 
 ### Error Handling Examples
-```typescript
+
+````typescript
 /**
  * Validates array elements and fails fast on first error.
  *
@@ -262,9 +273,9 @@ export const functionName = <A>(param: A): ModuleName<A> =>
  * const validatePositive = (n: number) =>
  *   n > 0
  *     ? Effect.succeed(n)
- *     : Effect.fail(new ValidationError({ 
- *         value: n, 
- *         message: "Must be positive" 
+ *     : Effect.fail(new ValidationError({
+ *         value: n,
+ *         message: "Must be positive"
  *       }))
  *
  * const program = Effect.gen(function* () {
@@ -272,18 +283,19 @@ export const functionName = <A>(param: A): ModuleName<A> =>
  *   const validated = yield* Array.validate(numbers, validatePositive)
  *   return validated
  * })
- * 
+ *
  * // This will fail with ValidationError for -3
  * ```
  *
  * @since 2.0.0
  * @category combinators
  */
-```
+````
 
 ## 🏷️ CATEGORY ANNOTATION PATTERNS
 
 ### Standard Categories Used
+
 ```typescript
 // Creation functions
 @category constructors
@@ -341,6 +353,7 @@ export const functionName = <A>(param: A): ModuleName<A> =>
 ```
 
 ### Category Usage Examples
+
 ```typescript
 /**
  * @category constructors
@@ -371,7 +384,8 @@ export const TypeId = ...
 ## 🧪 ADVANCED EXAMPLE PATTERNS
 
 ### Type-Level Function Examples
-```typescript
+
+````typescript
 /**
  * Type-level utility for extracting the success type from an Effect.
  *
@@ -381,7 +395,7 @@ export const TypeId = ...
  *
  * // Demonstrate type extraction using conditional types
  * type UserEffect = Effect.Effect<{ name: string; age: number }, Error, never>
- * 
+ *
  * // Extract the success type
  * type User = Effect.Effect.Success<UserEffect>
  * // Result: { name: string; age: number }
@@ -395,10 +409,11 @@ export const TypeId = ...
  * @since 2.0.0
  * @category type level
  */
-```
+````
 
 ### Advanced Usage Examples
-```typescript
+
+````typescript
 /**
  * Advanced function for performance-critical scenarios.
  *
@@ -424,10 +439,11 @@ export const TypeId = ...
  * @since 2.0.0
  * @category utilities
  */
-```
+````
 
 ### Complex Integration Examples
-```typescript
+
+````typescript
 /**
  * Integrates with multiple Effect modules for complex workflows.
  *
@@ -446,17 +462,17 @@ export const TypeId = ...
  * const fetchUserWithRetry = (id: number) =>
  *   Effect.gen(function* () {
  *     const client = yield* HttpClient.HttpClient
- *     
+ *
  *     const response = yield* client.get(`/users/${id}`).pipe(
  *       Effect.retry(Schedule.exponential("100 millis", 2.0).pipe(
  *         Schedule.compose(Schedule.recurs(3))
  *       )),
  *       Effect.timeout("5 seconds")
  *     )
- *     
+ *
  *     const user = yield* Schema.decodeUnknownEffect(UserSchema)(response.json)
  *     yield* Console.log(`Fetched user: ${user.name}`)
- *     
+ *
  *     return user
  *   })
  *
@@ -472,12 +488,13 @@ export const TypeId = ...
  * @since 2.0.0
  * @category combinators
  */
-```
+````
 
 ## 🔍 COMMON DOCUMENTATION ISSUES TO AVOID
 
 ### ❌ Problematic Patterns
-```typescript
+
+````typescript
 // ❌ WRONG - Non-compiling imports
 /**
  * @example
@@ -510,22 +527,23 @@ export const TypeId = ...
  * declare const Service: any // Don't use declare in examples
  * ```
  */
-```
+````
 
 ### ✅ Correct Patterns
-```typescript
+
+````typescript
 // ✅ CORRECT - Proper imports and types
 /**
  * @example
  * ```ts
  * import { Schema } from "effect/schema"
  * import { Effect } from "effect"
- * 
+ *
  * const UserSchema = Schema.Struct({
  *   name: Schema.String,
  *   age: Schema.Number
  * })
- * 
+ *
  * const program = Effect.gen(function* () {
  *   const user = yield* Schema.decodeUnknownEffect(UserSchema)({
  *     name: "Alice",
@@ -542,20 +560,21 @@ export const TypeId = ...
  * ```ts
  * import { Effect, Layer } from "effect"
  * import { Console } from "effect/logging"
- * 
+ *
  * const program = Effect.gen(function* () {
  *   yield* Console.log("Hello, World!")
- *   return "Done"  
+ *   return "Done"
  * }).pipe(
  *   Effect.provide(Console.layer)
  * )
  * ```
  */
-```
+````
 
 ## 🎯 SUCCESS CRITERIA
 
 ### Quality JSDoc Checklist
+
 - [ ] Brief, clear description of functionality
 - [ ] At least one practical, working example
 - [ ] Proper imports using correct module paths

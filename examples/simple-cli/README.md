@@ -15,11 +15,13 @@ A demonstration CLI application showcasing Effect CLI features including shell c
 ## Usage
 
 ### Install dependencies
+
 ```bash
 pnpm install
 ```
 
 ### Run directly with tsx
+
 ```bash
 pnpm dev --help
 pnpm dev copy --help
@@ -29,6 +31,7 @@ pnpm dev db migrate --up --count 3
 ```
 
 ### Build and run
+
 ```bash
 pnpm build
 pnpm start --help
@@ -37,6 +40,7 @@ pnpm start --help
 ## Testing Shell Completions
 
 ### Generate completion scripts
+
 ```bash
 # Bash completions
 pnpm dev --completions bash
@@ -49,6 +53,7 @@ pnpm dev --completions zsh
 ```
 
 ### Install completions (bash example)
+
 ```bash
 # Generate and save completion script
 pnpm dev --completions bash > myapp-completion.bash
@@ -61,7 +66,9 @@ sudo cp myapp-completion.bash /etc/bash_completion.d/myapp
 ```
 
 ### Test tab completion
+
 After installing completions, you can test tab completion:
+
 ```bash
 myapp <TAB>          # Shows: build copy db deploy
 myapp deploy <TAB>   # Shows: production staging

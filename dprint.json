@@ -20,6 +20,7 @@
     "pnpm-lock.yaml"
   ],
   "plugins": [
-    "https://plugins.dprint.dev/typescript-0.93.4.wasm"
+    "https://plugins.dprint.dev/typescript-0.93.4.wasm",
+    "https://plugins.dprint.dev/markdown-0.20.0.wasm"
   ]
 }

@@ -1,11 +1,13 @@
 # Platform Integration Patterns - Effect Library
 
 ## 🎯 OVERVIEW
+
 Patterns for integrating platform-specific functionality within the Effect ecosystem, including service abstractions, layer compositions, and cross-platform compatibility.
 
 ## 🏗️ SERVICE ABSTRACTION PATTERN
 
 ### Core Service Interface Definition
+
 Define platform-agnostic interfaces in the core Effect package:
 
 ```typescript
@@ -23,8 +25,7 @@ export interface FileSystem {
 }
 
 // Service key for dependency injection
-export const FileSystem: ServiceMap.Service<FileSystem, FileSystem> =
-  ServiceMap.Service("effect/platform/FileSystem")
+export const FileSystem: ServiceMap.Service<FileSystem, FileSystem> = ServiceMap.Service("effect/platform/FileSystem")
 
 // Type identification
 const TypeId: unique symbol = Symbol.for("effect/platform/FileSystem")
@@ -32,6 +33,7 @@ export type TypeId = typeof TypeId
 ```
 
 ### Tagged Service Pattern
+
 Use service classes for type-safe dependency injection:
 
 ```typescript
@@ -51,6 +53,7 @@ export class NetSocket extends ServiceMap.Service<NetSocket, Net.Socket>()(
 ## 🔧 PLATFORM IMPLEMENTATION PATTERN
 
 ### Node.js Implementation Structure
+
 ```typescript
 // packages/platform-node-shared/src/NodeFileSystem.ts
 import { Effect, Layer } from "effect"
@@ -71,56 +74,53 @@ const nodeReadFile = effectify(
 // Core implementation
 const make = (): FileSystem.FileSystem => ({
   [FileSystem.TypeId]: FileSystem.TypeId,
-  
+
   access: (path: string, options?: FileSystem.AccessFileOptions) => {
     let mode = NFS.constants.F_OK
     if (options?.readable) mode |= NFS.constants.R_OK
     if (options?.writable) mode |= NFS.constants.W_OK
     return nodeAccess(path, mode)
   },
-  
+
   readFile: (path: string) =>
     nodeReadFile(path).pipe(
-      Effect.map(buffer => new Uint8Array(buffer))
+      Effect.map((buffer) => new Uint8Array(buffer))
     ),
-  
-  writeFile: (path: string, data: Uint8Array) =>
-    nodeWriteFile(path, data),
-  
+
+  writeFile: (path: string, data: Uint8Array) => nodeWriteFile(path, data)
   // ... other methods
 })
 
 // Layer export
-export const layer: Layer.Layer<FileSystem.FileSystem, never, never> = 
-  Layer.succeed(FileSystem.FileSystem, make())
+export const layer: Layer.Layer<FileSystem.FileSystem, never, never> = Layer.succeed(FileSystem.FileSystem, make())
 ```
 
 ### Bun-Specific Optimizations
+
 ```typescript
 // packages/platform-bun/src/BunFileSystem.ts
 import { NodeFileSystem } from "@effect/platform-node-shared"
 
 // Bun can use Node.js FileSystem implementation
-export const layer: Layer.Layer<FileSystem.FileSystem, never, never> = 
-  NodeFileSystem.layer
+export const layer: Layer.Layer<FileSystem.FileSystem, never, never> = NodeFileSystem.layer
 
 // Or provide Bun-specific optimizations
 const bunOptimizedImplementation = (): FileSystem.FileSystem => ({
   [FileSystem.TypeId]: FileSystem.TypeId,
-  
+
   // Use Bun's native file operations where beneficial
   readFile: (path: string) =>
     Effect.tryPromise({
-      try: () => Bun.file(path).arrayBuffer().then(ab => new Uint8Array(ab)),
-      catch: (error) => new PlatformError.SystemError({
-        module: "FileSystem",
-        method: "readFile",
-        reason: "Unknown",
-        pathOrDescriptor: path,
-        cause: error
-      })
-    }),
-  
+      try: () => Bun.file(path).arrayBuffer().then((ab) => new Uint8Array(ab)),
+      catch: (error) =>
+        new PlatformError.SystemError({
+          module: "FileSystem",
+          method: "readFile",
+          reason: "Unknown",
+          pathOrDescriptor: path,
+          cause: error
+        })
+    })
   // ... other optimized methods
 })
 ```
@@ -128,12 +128,13 @@ const bunOptimizedImplementation = (): FileSystem.FileSystem => ({
 ## 🔄 ERROR HANDLING PATTERNS
 
 ### Platform Error Transformation
+
 Convert platform-specific errors to structured Effect errors:
 
 ```typescript
 // packages/platform-node-shared/src/internal/utils.ts
-export const handleErrnoException = (module: string, method: string) => 
-  (err: NodeJS.ErrnoException, args: Array<any>): PlatformError.PlatformError => {
+export const handleErrnoException =
+  (module: string, method: string) => (err: NodeJS.ErrnoException, args: Array<any>): PlatformError.PlatformError => {
     switch (err.code) {
       case "ENOENT":
         return new PlatformError.SystemError({
@@ -143,7 +144,7 @@ export const handleErrnoException = (module: string, method: string) =>
           pathOrDescriptor: args[0],
           cause: err
         })
-      
+
       case "EACCES":
         return new PlatformError.SystemError({
           module,
@@ -152,7 +153,7 @@ export const handleErrnoException = (module: string, method: string) =>
           pathOrDescriptor: args[0],
           cause: err
         })
-      
+
       case "EEXIST":
         return new PlatformError.SystemError({
           module,
@@ -161,7 +162,7 @@ export const handleErrnoException = (module: string, method: string) =>
           pathOrDescriptor: args[0],
           cause: err
         })
-      
+
       default:
         return new PlatformError.SystemError({
           module,
@@ -178,25 +179,26 @@ export const handleErrnoException = (module: string, method: string) =>
 const effectify = <Args extends ReadonlyArray<any>, Return>(
   nodeFunction: (...args: [...Args, (err: any, result: Return) => void]) => void,
   onError: (error: any, args: Args) => PlatformError.PlatformError
-) => 
-  (...args: Args): Effect.Effect<Return, PlatformError.PlatformError, never> =>
-    Effect.async<Return, PlatformError.PlatformError>(resume => {
-      nodeFunction(...args, (err, result) => {
-        if (err) {
-          resume(Effect.fail(onError(err, args)))
-        } else {
-          resume(Effect.succeed(result))
-        }
-      })
+) =>
+(...args: Args): Effect.Effect<Return, PlatformError.PlatformError, never> =>
+  Effect.async<Return, PlatformError.PlatformError>((resume) => {
+    nodeFunction(...args, (err, result) => {
+      if (err) {
+        resume(Effect.fail(onError(err, args)))
+      } else {
+        resume(Effect.succeed(result))
+      }
     })
+  })
 ```
 
 ### Standardized Error Reasons
+
 ```typescript
 // Platform-agnostic error classification
 export type SystemErrorReason =
   | "AlreadyExists"
-  | "BadResource" 
+  | "BadResource"
   | "Busy"
   | "InvalidData"
   | "NotFound"
@@ -221,6 +223,7 @@ export type HttpErrorReason =
 ## 🔗 LAYER COMPOSITION PATTERNS
 
 ### Service Aggregation
+
 Combine related services into unified layers:
 
 ```typescript
@@ -246,6 +249,7 @@ export const layerHttpServices: Layer.Layer<
 ```
 
 ### Test Layer Pattern
+
 Provide test-specific implementations:
 
 ```typescript
@@ -265,13 +269,16 @@ export const layerTest: Layer.Layer<
 )
 
 // In-memory file system for testing
-export const layerMemoryFileSystem: Layer.Layer<FileSystem.FileSystem> =
-  Layer.succeed(FileSystem.FileSystem, makeMemoryFileSystem())
+export const layerMemoryFileSystem: Layer.Layer<FileSystem.FileSystem> = Layer.succeed(
+  FileSystem.FileSystem,
+  makeMemoryFileSystem()
+)
 ```
 
 ## 🌊 STREAM INTEGRATION PATTERNS
 
 ### Node.js Stream Conversion
+
 Convert Node.js streams to Effect streams:
 
 ```typescript
@@ -280,28 +287,28 @@ export const fromReadable = <E = Error>(
   evaluate: LazyArg<NodeReadable>,
   onError?: (error: unknown) => E
 ): Stream.Stream<Uint8Array, E, never> =>
-  Stream.asyncEffect<Uint8Array, E, never>(emit => 
-    Effect.gen(function* () {
+  Stream.asyncEffect<Uint8Array, E, never>((emit) =>
+    Effect.gen(function*() {
       const readable = evaluate()
-      
-      yield* Effect.addFinalizer(() => 
+
+      yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
           readable.destroy()
         })
       )
-      
-      readable.on("data", chunk => {
+
+      readable.on("data", (chunk) => {
         emit.single(new Uint8Array(chunk))
       })
-      
+
       readable.on("end", () => {
         emit.end()
       })
-      
-      readable.on("error", error => {
+
+      readable.on("error", (error) => {
         emit.fail(onError ? onError(error) : error as E)
       })
-      
+
       return Effect.void
     })
   )
@@ -312,7 +319,7 @@ export class NodeHttpClientResponse implements HttpClientResponse.HttpClientResp
     private readonly source: NodeIncomingMessage,
     private readonly request: HttpClientRequest.HttpClientRequest
   ) {}
-  
+
   get stream(): Stream.Stream<Uint8Array, HttpClientError.ResponseError> {
     return NodeStream.fromReadable({
       evaluate: () => this.source,
@@ -331,6 +338,7 @@ export class NodeHttpClientResponse implements HttpClientResponse.HttpClientResp
 ## 🔐 RESOURCE MANAGEMENT PATTERNS
 
 ### Scoped Resource Acquisition
+
 Proper cleanup using Effect's Scope system:
 
 ```typescript
@@ -341,48 +349,49 @@ export const make = Effect.fnUntraced(function*(
 ) {
   const scope = yield* Effect.scope
   const server = evaluate()
-  
+
   // Ensure server is closed when scope closes
   yield* Scope.addFinalizer(
     scope,
-    Effect.promise(() => new Promise<void>((resolve, reject) => {
-      if (!server.listening) return resolve()
-      server.close(error => error ? reject(error) : resolve())
-    }))
-  )
-  
-  // Start the server
-  yield* Effect.async<void, ServeError>(resume => {
-    server.on("error", cause => 
-      resume(Effect.fail(new ServeError({ cause })))
+    Effect.promise(() =>
+      new Promise<void>((resolve, reject) => {
+        if (!server.listening) return resolve()
+        server.close((error) => error ? reject(error) : resolve())
+      })
     )
-    
+  )
+
+  // Start the server
+  yield* Effect.async<void, ServeError>((resume) => {
+    server.on("error", (cause) => resume(Effect.fail(new ServeError({ cause }))))
+
     server.listen(options, () => resume(Effect.void))
-    
+
     return Effect.sync(() => {
       server.removeAllListeners()
     })
   })
-  
+
   return HttpServer.make({
     address: { _tag: "TcpAddress", hostname: "localhost", port: options.port },
-    serve: handler => serveEffect(server, handler)
+    serve: (handler) => serveEffect(server, handler)
   })
 })
 ```
 
 ### Connection Pool Pattern
+
 Managed resource pools for expensive resources:
 
 ```typescript
 // Database connection pool example
 const makeConnectionPool = (config: PoolConfig) =>
-  Effect.gen(function* () {
+  Effect.gen(function*() {
     const pool = yield* Pool.make({
       acquire: createConnection(config.connectionString),
       size: config.poolSize
     })
-    
+
     return {
       withConnection: <A, E, R>(
         operation: (conn: Connection) => Effect.Effect<A, E, R>
@@ -398,49 +407,51 @@ const makeConnectionPool = (config: PoolConfig) =>
 ## 🧪 TESTING PATTERNS
 
 ### Platform Service Mocking
+
 ```typescript
 // Mock implementations for testing
 const mockFileSystem: FileSystem.FileSystem = {
   [FileSystem.TypeId]: FileSystem.TypeId,
-  
+
   access: () => Effect.void,
-  
+
   readFile: (path: string) => {
     const mockFiles: Record<string, string> = {
       "/test.txt": "test content",
       "/config.json": JSON.stringify({ key: "value" })
     }
-    
+
     return path in mockFiles
       ? Effect.succeed(new TextEncoder().encode(mockFiles[path]))
-      : Effect.fail(new PlatformError.SystemError({
+      : Effect.fail(
+        new PlatformError.SystemError({
           module: "FileSystem",
           method: "readFile",
           reason: "NotFound",
           pathOrDescriptor: path
-        }))
-  },
-  
+        })
+      )
+  }
   // ... other mocked methods
 }
 
 // Test layer with mocks
-export const testLayer: Layer.Layer<FileSystem.FileSystem> =
-  Layer.succeed(FileSystem.FileSystem, mockFileSystem)
+export const testLayer: Layer.Layer<FileSystem.FileSystem> = Layer.succeed(FileSystem.FileSystem, mockFileSystem)
 ```
 
 ### Cross-Platform Testing
+
 ```typescript
 // Test that works across all platforms
 describe("FileSystem", () => {
   it.effect("should read and write files", () =>
-    Effect.gen(function* () {
+    Effect.gen(function*() {
       const fs = yield* FileSystem.FileSystem
       const testData = new TextEncoder().encode("test content")
-      
+
       yield* fs.writeFile("/tmp/test.txt", testData)
       const content = yield* fs.readFile("/tmp/test.txt")
-      
+
       assert.deepStrictEqual(content, testData)
     }).pipe(
       Effect.provide(NodeFileSystem.layer) // Can be swapped for other platforms
@@ -451,6 +462,7 @@ describe("FileSystem", () => {
 ## 🎯 SUCCESS CRITERIA
 
 ### Well-Integrated Platform Code Checklist
+
 - [ ] Clean service interfaces in core Effect package
 - [ ] Platform-specific implementations in separate packages
 - [ ] Consistent error handling with structured error types

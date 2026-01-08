@@ -1813,8 +1813,8 @@
 
   ```ts
   import * as Effect from "effect/Effect"
-  import * as SqlClient from "effect/unstable/sql/SqlClient"
   import * as MysqlClient from "effect/unstable/sql/MysqlClient"
+  import * as SqlClient from "effect/unstable/sql/SqlClient"
 
   const DatabaseLive = MysqlClient.layer({
     database: Config.succeed("database"),
@@ -1822,7 +1822,7 @@
     password: Config.succeed(Redacted.make("password"))
   })
 
-  const program = Effect.gen(function* () {
+  const program = Effect.gen(function*() {
     const sql = yield* SqlClient.SqlClient
 
     const result = yield* sql`INSERT INTO usernames VALUES ("Bob")`.raw
@@ -2594,10 +2594,10 @@
   You can now use the `@effect/sql` package to access the client apis:
 
   ```ts
-  import * as Sql from "effect/unstable/sql"
   import { Effect } from "effect"
+  import * as Sql from "effect/unstable/sql"
 
-  Effect.gen(function* () {
+  Effect.gen(function*() {
     const sql = yield* Sql.client.Client
     yield* sql`SELECT * FROM users`
   })
@@ -2610,7 +2610,7 @@
   import * as Sqlite from "@effect/sql-sqlite-node"
   import { Effect } from "effect"
 
-  Effect.gen(function* () {
+  Effect.gen(function*() {
     const sql = yield* Sqlite.client.SqliteClient
     const dump = yield* sql.export
   })
@@ -2619,10 +2619,10 @@
   If you need to run a different query depending on the dialect, you can use the `sql.onDialect` api:
 
   ```ts
-  import * as Sql from "effect/unstable/sql"
   import { Effect } from "effect"
+  import * as Sql from "effect/unstable/sql"
 
-  Effect.gen(function* () {
+  Effect.gen(function*() {
     const sql = yield* Sql.client.Client
     yield* sql.onDialect({
       sqlite: () => sql`SELECT * FROM sqlite_master`,

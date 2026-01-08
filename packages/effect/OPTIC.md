@@ -22,7 +22,7 @@ Suppose we have an employee object, and we want to capitalize the first characte
 **Example** (Uppercasing the first character of a street name)
 
 ```ts
-import { String, Optic } from "effect"
+import { Optic, String } from "effect"
 
 // Define some nested data structures
 interface Street {
@@ -299,13 +299,13 @@ import { Optic } from "effect"
 // A union of two tagged types
 type S =
   | {
-      readonly _tag: "A"
-      readonly a: number
-    }
+    readonly _tag: "A"
+    readonly a: number
+  }
   | {
-      readonly _tag: "B"
-      readonly b: number
-    }
+    readonly _tag: "B"
+    readonly b: number
+  }
 
 // Build an optic that focuses on the "a" field of the "A" variant
 const _a = Optic.id<S>().tag("A").key("a")
