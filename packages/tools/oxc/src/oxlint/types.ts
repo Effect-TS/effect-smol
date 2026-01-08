@@ -2,6 +2,7 @@ export interface RuleMeta {
   type: "problem" | "suggestion" | "layout"
   docs: { description: string }
   fixable?: "code" | "whitespace"
+  schema?: unknown
 }
 
 export interface Fixer {
@@ -12,6 +13,12 @@ export interface Fixer {
 }
 
 export interface RuleContext {
+  id: string
+  filename: string
+  physicalFilename: string
+  options: Array<unknown>
+  getFilename(): string
+  getCwd(): string
   report(options: {
     node: unknown
     message: string

@@ -10,9 +10,29 @@ export interface TestContext {
   context: RuleContext
 }
 
-export const createTestContext = (sourceCode = ""): TestContext => {
+export interface TestContextOptions {
+  sourceCode?: string
+  filename?: string
+  cwd?: string
+  ruleOptions?: Array<unknown>
+}
+
+export const createTestContext = (options: TestContextOptions = {}): TestContext => {
+  const {
+    sourceCode = "",
+    filename = "/test/file.ts",
+    cwd = "/test",
+    ruleOptions = []
+  } = options
+
   const errors: Array<ReportedError> = []
   const context: RuleContext = {
+    id: "test/rule",
+    filename,
+    physicalFilename: filename,
+    options: ruleOptions,
+    getFilename: () => filename,
+    getCwd: () => cwd,
     report(options) {
       errors.push(options)
     },
@@ -29,9 +49,9 @@ export const runRule = <T extends Record<string, (node: unknown) => void>>(
   rule: Rule,
   visitor: keyof T,
   node: unknown,
-  sourceCode = ""
+  options: TestContextOptions = {}
 ): Array<ReportedError> => {
-  const { context, errors } = createTestContext(sourceCode)
+  const { context, errors } = createTestContext(options)
   const visitors = rule.create(context)
   const handler = visitors[visitor as string]
   if (handler) {

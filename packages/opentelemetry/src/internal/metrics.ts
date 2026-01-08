@@ -275,7 +275,7 @@ export class MetricProducerImpl implements MetricProducer {
           }
 
           if (metricDataByName.has(state.id)) {
-            // eslint-disable-next-line no-restricted-syntax
+            // oxlint-disable-next-line no-restricted-syntax
             metricDataByName.get(state.id)!.dataPoints.push(...dataPoints as any)
           } else {
             const descriptor = descriptorFromState(state, attributes)
@@ -341,7 +341,7 @@ export class MetricProducerImpl implements MetricProducer {
           }
 
           if (metricDataByName.has(`${state.id}_quantiles`)) {
-            // eslint-disable-next-line no-restricted-syntax
+            // oxlint-disable-next-line no-restricted-syntax
             metricDataByName.get(`${state.id}_quantiles`)!.dataPoints.push(...dataPoints as any)
             metricDataByName.get(`${state.id}_count`)!.dataPoints.push(countDataPoint as any)
             metricDataByName.get(`${state.id}_sum`)!.dataPoints.push(sumDataPoint as any)

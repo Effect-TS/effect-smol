@@ -16,11 +16,8 @@ import type { Simplify } from "../../Types.ts"
 import * as CliError from "./CliError.ts"
 import * as CliOutput from "./CliOutput.ts"
 import { checkForDuplicateFlags, getHelpForCommandPath, makeCommand, toImpl, type TypeId } from "./internal/command.ts"
-import {
-  generateDynamicCompletion,
-  handleCompletionRequest,
-  isCompletionRequest
-} from "./internal/completions/index.ts"
+import { generateDynamicCompletion, isCompletionRequest } from "./internal/completions/dynamic/core.ts"
+import { handleCompletionRequest } from "./internal/completions/dynamic/handler.ts"
 import { parseConfig } from "./internal/config.ts"
 import * as Lexer from "./internal/lexer.ts"
 import * as Parser from "./internal/parser.ts"

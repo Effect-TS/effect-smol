@@ -1,6 +1,5 @@
 /**
- * Dynamic completion system that generates completions at runtime.
- * This is an alternative to static completion scripts.
+ * Core dynamic completion functions.
  */
 
 import type { Command } from "../../../Command.ts"
@@ -30,26 +29,6 @@ export const generateDynamicCompletion = <Name extends string, I, E, R>(
       return generateDynamicFishCompletion(executableName, executablePath)
   }
 }
-
-// Export individual components for advanced usage
-export {
-  /** @internal */
-  generateDynamicBashCompletion
-} from "./bash.ts"
-export {
-  /** @internal */
-  generateDynamicFishCompletion
-} from "./fish.ts"
-export {
-  /** @internal */
-  generateDynamicCompletions,
-  getCompletionContext,
-  handleCompletionRequest
-} from "./handler.ts"
-export {
-  /** @internal */
-  generateDynamicZshCompletion
-} from "./zsh.ts"
 
 /**
  * Check if the current process is a completion request.

@@ -2,6 +2,7 @@
  * @since 1.0.0
  */
 /// <reference lib="webworker" />
+// oxlint-disable-next-line effect/no-import-from-barrel-package
 import * as WaSqlite from "@effect/wa-sqlite"
 import SQLiteESMFactory from "@effect/wa-sqlite/dist/wa-sqlite.mjs"
 import { AccessHandlePoolVFS } from "@effect/wa-sqlite/src/examples/AccessHandlePoolVFS.js"

@@ -507,7 +507,7 @@ export class NativeSpan implements Span {
   }
 
   addLinks(links: ReadonlyArray<SpanLink>): void {
-    // eslint-disable-next-line no-restricted-syntax
+    // oxlint-disable-next-line no-restricted-syntax
     this.links.push(...links)
   }
 }

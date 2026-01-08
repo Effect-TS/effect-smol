@@ -414,7 +414,7 @@ export class OtelSpan implements Tracer.Span {
   }
 
   addLinks(links: ReadonlyArray<Tracer.SpanLink>): void {
-    // eslint-disable-next-line no-restricted-syntax
+    // oxlint-disable-next-line no-restricted-syntax
     this.links.push(...links)
     this.span.addLinks(links.map((link) => ({
       context: makeSpanContext(link.span),

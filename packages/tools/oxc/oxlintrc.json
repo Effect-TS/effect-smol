@@ -8,7 +8,18 @@
   },
   "rules": {
     // Effect custom rules
-    "effect/no-import-from-barrel-package": "error",
+    "effect/no-import-from-barrel-package": [
+      "error",
+      {
+        "checkPatterns": [
+          "^effect$",
+          "^effect/(.+/)?[a-z][a-z0-9]*$",
+          "^@effect/[^/]+$",
+          "^@effect/[^/]+/(.+/)?[a-z][a-z0-9]*$"
+        ],
+        "checkRelativeIndexImports": true
+      }
+    ],
     "effect/no-js-extension-imports": "error",
     "effect/no-opaque-instance-fields": "error",
     // Tune native rules

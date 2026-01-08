@@ -1,6 +1,7 @@
 /**
  * @since 1.0.0
  */
+// oxlint-disable-next-line effect/no-import-from-barrel-package
 import * as WaSqlite from "@effect/wa-sqlite"
 import SQLiteESMFactory from "@effect/wa-sqlite/dist/wa-sqlite.mjs"
 import { MemoryVFS } from "@effect/wa-sqlite/src/examples/MemoryVFS.js"

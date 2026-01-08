@@ -1,7 +1,8 @@
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Path from "effect/Path"
-import { Command, Flag } from "effect/unstable/cli"
+import * as Command from "effect/unstable/cli/Command"
+import * as Flag from "effect/unstable/cli/Flag"
 import * as Codegen from "../Codegen.ts"
 import * as Glob from "../Glob.ts"
 
