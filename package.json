@@ -50,7 +50,7 @@
     "@changesets/cli": "^2.29.8",
     "@edge-runtime/vm": "^5.0.0",
     "@effect/utils": "workspace:^",
-    "@effect/docgen": "https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@49e99a2",
+    "@effect/docgen": "https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@e7fe055",
     "@effect/oxc": "workspace:^",
     "@effect/language-service": "^0.62.5",
     "@effect/vitest": "workspace:^",

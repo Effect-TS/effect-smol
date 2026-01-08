@@ -53,8 +53,8 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0
       '@effect/docgen':
-        specifier: https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@49e99a2
-        version: https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@49e99a2(tsx@4.21.0)(typescript@5.9.3)
+        specifier: https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@e7fe055
+        version: https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@e7fe055(tsx@4.21.0)(typescript@5.9.3)
       '@effect/language-service':
         specifier: ^0.62.5
         version: 0.62.5
@@ -1230,8 +1230,8 @@ packages:
     resolution: {integrity: sha512-NKBGBSIKUG584qrS1tyxVpX/AKJKQw5HgjYEnPLC0QsTw79JrGn+qUr8CXFb955Iy7GUdiiUv1rJ6JBGvaKb6w==}
     engines: {node: '>=18'}
 
-  '@effect/docgen@https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@49e99a2':
-    resolution: {tarball: https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@49e99a2}
+  '@effect/docgen@https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@e7fe055':
+    resolution: {tarball: https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@e7fe055}
     version: 0.5.2
     engines: {node: '>=18.0.0'}
     hasBin: true
@@ -6476,7 +6476,7 @@ snapshots:
     dependencies:
       '@edge-runtime/primitives': 6.0.0
 
-  '@effect/docgen@https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@49e99a2(tsx@4.21.0)(typescript@5.9.3)':
+  '@effect/docgen@https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@e7fe055(tsx@4.21.0)(typescript@5.9.3)':
     dependencies:
       '@babel/code-frame': 7.27.1
       '@effect/markdown-toc': 0.1.0
