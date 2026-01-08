@@ -22,7 +22,9 @@
     ],
     "effect/no-js-extension-imports": "error",
     "effect/no-opaque-instance-fields": "error",
+    "effect/prefer-top-level-type-import": "error",
     // Tune native rules
+    "import/no-duplicates": "error",
     "oxc/no-map-spread": "off",
     "eslint/object-shorthand": "off",
     "eslint/no-unused-vars": "off",

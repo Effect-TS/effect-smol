@@ -11,6 +11,7 @@
     "url": "https://github.com/Effect-TS/effect.git",
     "directory": "packages/tools/oxc"
   },
+  "sideEffects": [],
   "bugs": {
     "url": "https://github.com/Effect-TS/effect/issues"
   },
@@ -26,7 +27,6 @@
     "linting",
     "oxc"
   ],
-  "sideEffects": [],
   "exports": {
     "./package.json": "./package.json",
     "./oxlint": "./src/oxlint/index.ts",
@@ -42,6 +42,7 @@
     "dist/**/*.d.ts.map"
   ],
   "publishConfig": {
+    "provenance": true,
     "exports": {
       "./package.json": "./package.json",
       "./oxlint": "./dist/oxlint/index.js",
