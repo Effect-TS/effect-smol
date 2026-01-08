@@ -746,7 +746,7 @@ export class Literal extends Base {
   ) {
     super(annotations, checks, encoding, context)
     if (typeof literal === "number" && !globalThis.Number.isFinite(literal)) {
-      throw new Error(`LiteralType must be a finite number, got: ${literal}`)
+      throw new Error(`A numeric literal must be finite, got ${format(literal)}`)
     }
     this.literal = literal
   }
