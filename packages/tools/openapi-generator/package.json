@@ -24,7 +24,7 @@
     "codegen"
   ],
   "bin": {
-    "openapigen": "./dist/bin.js"
+    "openapigen": "./src/bin.ts"
   },
   "sideEffects": [],
   "exports": {
