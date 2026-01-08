@@ -4,15 +4,10 @@
   "typescript.preferences.importModuleSpecifier": "relative",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "editor.formatOnSave": true,
-  "[json]": {
-    "editor.defaultFormatter": "vscode.json-language-features"
-  },
-  "[markdown][javascript][javascriptreact][typescript][typescriptreact]": {
-    "editor.defaultFormatter": "dprint.dprint",
-    "editor.formatOnSaveMode": "file",
-    "editor.codeActionsOnSave": {
-      "source.fixAll.oxc": "explicit"
-    }
+  "editor.defaultFormatter": "dprint.dprint",
+  "editor.formatOnSaveMode": "file",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.oxc": "explicit"
   },
   "editor.quickSuggestions": {
     "other": true,
@@ -28,7 +23,5 @@
   "editor.suggestSelection": "recentlyUsed",
   "editor.wordBasedSuggestions": "matchingDocuments",
   "editor.parameterHints.enabled": true,
-  "files.insertFinalNewline": true,
-  "deno.enable": true,
-  "deno.lint": false
+  "files.insertFinalNewline": true
 }
