@@ -6,21 +6,21 @@ import * as Rec from "../../Record.ts"
 import * as RegEx from "../../RegExp.ts"
 import type * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
-import type * as SchemaStandard from "../../SchemaStandard.ts"
+import type * as SchemaRepresentation from "../../SchemaRepresentation.ts"
 import * as InternalAnnotations from "./annotations.ts"
 import { escapeToken } from "./json-pointer.ts"
 import * as InternalSchema from "./schema.ts"
 import * as InternalSerializer from "./serializer.ts"
 
 /** @internal */
-export function fromAST(ast: AST.AST): SchemaStandard.Document {
-  const { references, schemas } = fromASTs([ast])
-  return { schema: schemas[0], references }
+export function fromAST(ast: AST.AST): SchemaRepresentation.Document {
+  const { references, representations: schemas } = fromASTs([ast])
+  return { representation: schemas[0], references }
 }
 
 /** @internal */
-export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaStandard.MultiDocument {
-  const references: Record<string, SchemaStandard.Standard> = {}
+export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRepresentation.MultiDocument {
+  const references: Record<string, SchemaRepresentation.Representation> = {}
 
   const referenceMap = new Map<AST.AST, string>()
   const uniqueReferences = new Set<string>()
@@ -29,7 +29,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
   const schemas = Arr.map(asts, recur)
 
   return {
-    schemas: Arr.map(schemas, compact),
+    representations: Arr.map(schemas, compact),
     references: Rec.map(Rec.filter(references, (_, k) => !isCompactable(k)), compact)
   }
 
@@ -37,7 +37,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
     return !usedReferences.has($ref)
   }
 
-  function compact(s: SchemaStandard.Standard): SchemaStandard.Standard {
+  function compact(s: SchemaRepresentation.Representation): SchemaRepresentation.Representation {
     switch (s._tag) {
       default:
         return s
@@ -84,7 +84,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
     return candidate
   }
 
-  function recur(ast: AST.AST): SchemaStandard.Standard {
+  function recur(ast: AST.AST): SchemaRepresentation.Representation {
     const found = referenceMap.get(ast)
     if (found !== undefined) {
       usedReferences.add(found)
@@ -118,7 +118,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
     return AST.null
   }
 
-  function on(last: AST.AST): SchemaStandard.Standard {
+  function on(last: AST.AST): SchemaRepresentation.Representation {
     const annotations = fromASTAnnotations(last.annotations)
     switch (last._tag) {
       case "Declaration":
@@ -244,6 +244,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaSta
 
 /** @internal */
 export const fromASTBlacklist: Set<string> = new Set([
+  // `expected` is preserved because is useful to generate descriptions in JSON Schemas
   "meta",
   "toArbitrary",
   "toArbitraryConstraint",
@@ -269,9 +270,9 @@ function fromASTAnnotations(
 
 function fromASTChecks(
   checks: readonly [AST.Check<any>, ...Array<AST.Check<any>>] | undefined
-): Array<SchemaStandard.Check<any>> {
+): Array<SchemaRepresentation.Check<any>> {
   if (!checks) return []
-  function getCheck(c: AST.Check<any>): SchemaStandard.Check<any> | undefined {
+  function getCheck(c: AST.Check<any>): SchemaRepresentation.Check<any> | undefined {
     switch (c._tag) {
       case "Filter": {
         const meta = c.annotations?.meta
@@ -301,11 +302,11 @@ function fromASTChecks(
 
 /** @internal */
 export function toJsonSchemaDocument(
-  document: SchemaStandard.Document,
+  document: SchemaRepresentation.Document,
   options?: Schema.ToJsonSchemaOptions
 ): JsonSchema.Document<"draft-2020-12"> {
   const { definitions, dialect: source, schemas } = toJsonSchemaMultiDocument({
-    schemas: [document.schema],
+    representations: [document.representation],
     references: document.references
   }, options)
   const schema = schemas[0]
@@ -314,7 +315,7 @@ export function toJsonSchemaDocument(
 
 /** @internal */
 export function toJsonSchemaMultiDocument(
-  multiDocument: SchemaStandard.MultiDocument,
+  multiDocument: SchemaRepresentation.MultiDocument,
   options?: Schema.ToJsonSchemaOptions
 ): JsonSchema.MultiDocument<"draft-2020-12"> {
   const generateDescriptions = options?.generateDescriptions ?? false
@@ -324,11 +325,11 @@ export function toJsonSchemaMultiDocument(
 
   return {
     dialect: "draft-2020-12",
-    schemas: Arr.map(multiDocument.schemas, (s) => recur(s)),
+    schemas: Arr.map(multiDocument.representations, (s) => recur(s)),
     definitions
   }
 
-  function recur(s: SchemaStandard.Standard): JsonSchema.JsonSchema {
+  function recur(s: SchemaRepresentation.Representation): JsonSchema.JsonSchema {
     let js: JsonSchema.JsonSchema = on(s)
     if ("annotations" in s) {
       const a = collectJsonSchemaAnnotations(s.annotations)
@@ -345,7 +346,7 @@ export function toJsonSchemaMultiDocument(
     return js
   }
 
-  function on(schema: SchemaStandard.Standard): JsonSchema.JsonSchema {
+  function on(schema: SchemaRepresentation.Representation): JsonSchema.JsonSchema {
     switch (schema._tag) {
       case "Any":
         return {}
@@ -551,12 +552,12 @@ export function toJsonSchemaMultiDocument(
   }
 
   function collectJsonSchemaChecks(
-    checks: ReadonlyArray<SchemaStandard.Check<any>>,
+    checks: ReadonlyArray<SchemaRepresentation.Check<any>>,
     type: unknown
   ): Array<JsonSchema.JsonSchema> {
     return checks.map(recur).filter((c) => c !== undefined)
 
-    function recur(check: SchemaStandard.Check<any>): JsonSchema.JsonSchema | undefined {
+    function recur(check: SchemaRepresentation.Check<any>): JsonSchema.JsonSchema | undefined {
       switch (check._tag) {
         case "Filter":
           return filterToJsonSchema(check, type)
@@ -574,8 +575,11 @@ export function toJsonSchemaMultiDocument(
     }
   }
 
-  function filterToJsonSchema(filter: SchemaStandard.Filter<any>, type: unknown): JsonSchema.JsonSchema | undefined {
-    const meta = filter.meta as SchemaStandard.Meta
+  function filterToJsonSchema(
+    filter: SchemaRepresentation.Filter<any>,
+    type: unknown
+  ): JsonSchema.JsonSchema | undefined {
+    const meta = filter.meta as SchemaRepresentation.Meta
     if (!meta) return undefined
 
     let out = on(meta)
@@ -586,7 +590,7 @@ export function toJsonSchemaMultiDocument(
     return out
 
     function on(
-      meta: SchemaStandard.Meta
+      meta: SchemaRepresentation.Meta
     ): JsonSchema.JsonSchema | undefined {
       switch (meta._tag) {
         case "isMinLength":
@@ -652,7 +656,7 @@ export function toJsonSchemaMultiDocument(
     }
   }
 
-  function getParameterPatterns(parameter: SchemaStandard.Standard): Array<string> {
+  function getParameterPatterns(parameter: SchemaRepresentation.Representation): Array<string> {
     switch (parameter._tag) {
       default:
         throw new globalThis.Error(`Unsupported index signature parameter: ${parameter._tag}`)
@@ -668,10 +672,10 @@ export function toJsonSchemaMultiDocument(
   }
 }
 
-function getPatterns(s: SchemaStandard.String): Array<string> {
+function getPatterns(s: SchemaRepresentation.String): Array<string> {
   return recur(s.checks)
 
-  function recur(checks: ReadonlyArray<SchemaStandard.Check<SchemaStandard.StringMeta>>): Array<string> {
+  function recur(checks: ReadonlyArray<SchemaRepresentation.Check<SchemaRepresentation.StringMeta>>): Array<string> {
     return checks.flatMap((c) => {
       switch (c._tag) {
         case "Filter": {
@@ -687,7 +691,7 @@ function getPatterns(s: SchemaStandard.String): Array<string> {
   }
 }
 
-function hasCheck(checks: ReadonlyArray<SchemaStandard.Check<SchemaStandard.Meta>>, tag: string): boolean {
+function hasCheck(checks: ReadonlyArray<SchemaRepresentation.Check<SchemaRepresentation.Meta>>, tag: string): boolean {
   return checks.some((c) => {
     switch (c._tag) {
       case "Filter":
@@ -715,7 +719,7 @@ function appendJsonSchema(a: JsonSchema.JsonSchema, b: JsonSchema.JsonSchema): J
   return { ...a, allOf: members }
 }
 
-function getPartPattern(part: SchemaStandard.Standard): string {
+function getPartPattern(part: SchemaRepresentation.Representation): string {
   switch (part._tag) {
     case "Literal":
       return RegEx.escape(globalThis.String(part.literal))

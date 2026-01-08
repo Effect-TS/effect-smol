@@ -1,7 +1,7 @@
 import type { JsonSchema } from "effect"
-import { Schema, SchemaStandard } from "effect"
+import { Schema, SchemaRepresentation } from "effect"
 import { describe, it } from "vitest"
-import { deepStrictEqual } from "../utils/assert.ts"
+import { deepStrictEqual } from "../../utils/assert.ts"
 
 describe("toJson", () => {
   function assertToJson(
@@ -11,10 +11,10 @@ describe("toJson", () => {
       readonly references?: Record<string, JsonSchema.JsonSchema>
     }
   ) {
-    const document = SchemaStandard.fromAST(schema.ast)
-    const jd = SchemaStandard.toJson(document)
+    const document = SchemaRepresentation.fromAST(schema.ast)
+    const jd = SchemaRepresentation.toJson(document)
     deepStrictEqual(jd, { references: {}, ...expected })
-    deepStrictEqual(SchemaStandard.toJson(SchemaStandard.fromJson(jd)), jd)
+    deepStrictEqual(SchemaRepresentation.toJson(SchemaRepresentation.fromJson(jd)), jd)
   }
 
   it("String", () => {

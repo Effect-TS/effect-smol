@@ -4,7 +4,7 @@
 import * as Arr from "./Array.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
 import { unescapeToken } from "./internal/schema/json-pointer.ts"
-import * as InternalStandard from "./internal/schema/standard.ts"
+import * as InternalRepresentation from "./internal/schema/representation.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
@@ -23,9 +23,9 @@ import * as Getter from "./SchemaGetter.ts"
 export interface Declaration {
   readonly _tag: "Declaration"
   readonly annotations?: Schema.Annotations.Annotations | undefined
-  readonly typeParameters: ReadonlyArray<Standard>
+  readonly typeParameters: ReadonlyArray<Representation>
   readonly checks: ReadonlyArray<Check<Meta>>
-  readonly encodedSchema: Standard
+  readonly encodedSchema: Representation
 }
 
 /**
@@ -35,7 +35,7 @@ export interface Suspend {
   readonly _tag: "Suspend"
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly checks: readonly []
-  readonly thunk: Standard
+  readonly thunk: Representation
 }
 
 /**
@@ -102,7 +102,7 @@ export interface String {
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly checks: ReadonlyArray<Check<StringMeta>>
   readonly contentMediaType?: string | undefined
-  readonly contentSchema?: Standard | undefined
+  readonly contentSchema?: Representation | undefined
 }
 
 /**
@@ -180,7 +180,7 @@ export interface Enum {
 export interface TemplateLiteral {
   readonly _tag: "TemplateLiteral"
   readonly annotations?: Schema.Annotations.Annotations | undefined
-  readonly parts: ReadonlyArray<Standard>
+  readonly parts: ReadonlyArray<Representation>
 }
 
 /**
@@ -190,7 +190,7 @@ export interface Arrays {
   readonly _tag: "Arrays"
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly elements: ReadonlyArray<Element>
-  readonly rest: ReadonlyArray<Standard>
+  readonly rest: ReadonlyArray<Representation>
   readonly checks: ReadonlyArray<Check<ArraysMeta>>
 }
 
@@ -199,7 +199,7 @@ export interface Arrays {
  */
 export interface Element {
   readonly isOptional: boolean
-  readonly type: Standard
+  readonly type: Representation
   readonly annotations?: Schema.Annotations.Annotations | undefined
 }
 
@@ -219,7 +219,7 @@ export interface Objects {
  */
 export interface PropertySignature {
   readonly name: PropertyKey
-  readonly type: Standard
+  readonly type: Representation
   readonly isOptional: boolean
   readonly isMutable: boolean
   readonly annotations?: Schema.Annotations.Annotations | undefined
@@ -229,8 +229,8 @@ export interface PropertySignature {
  * @since 4.0.0
  */
 export interface IndexSignature {
-  readonly parameter: Standard
-  readonly type: Standard
+  readonly parameter: Representation
+  readonly type: Representation
 }
 
 /**
@@ -239,14 +239,14 @@ export interface IndexSignature {
 export interface Union {
   readonly _tag: "Union"
   readonly annotations?: Schema.Annotations.Annotations | undefined
-  readonly types: ReadonlyArray<Standard>
+  readonly types: ReadonlyArray<Representation>
   readonly mode: "anyOf" | "oneOf"
 }
 
 /**
  * @since 4.0.0
  */
-export type Standard =
+export type Representation =
   | Declaration
   | Reference
   | Suspend
@@ -383,14 +383,14 @@ export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMe
  * @since 4.0.0
  */
 export interface References {
-  readonly [$ref: string]: Standard
+  readonly [$ref: string]: Representation
 }
 
 /**
  * @since 4.0.0
  */
 export type Document = {
-  readonly schema: Standard
+  readonly representation: Representation
   readonly references: References
 }
 
@@ -398,7 +398,7 @@ export type Document = {
  * @since 4.0.0
  */
 export type MultiDocument = {
-  readonly schemas: readonly [Standard, ...Array<Standard>]
+  readonly representations: readonly [Representation, ...Array<Representation>]
   readonly references: References
 }
 
@@ -406,10 +406,10 @@ export type MultiDocument = {
 // schemas
 // -----------------------------------------------------------------------------
 
-const Standard$ref = Schema.suspend(() => Standard$)
+const Representation$ref = Schema.suspend(() => Representation$)
 
 const toJsonAnnotationsBlacklist: Set<string> = new Set([
-  ...InternalStandard.fromASTBlacklist,
+  ...InternalRepresentation.fromASTBlacklist,
   "expected",
   "~structural",
   "contentMediaType",
@@ -640,7 +640,7 @@ export const String$ = Schema.Struct({
   annotations: Schema.optional(Annotations$),
   checks: Schema.Array(makeCheck(StringMeta$, "String")),
   contentMediaType: Schema.optional(Schema.String),
-  contentSchema: Schema.optional(Standard$ref)
+  contentSchema: Schema.optional(Representation$ref)
 }).annotate({ identifier: "String" })
 
 const IsInt$ = Schema.Struct({
@@ -818,7 +818,7 @@ export const Enum$ = Schema.Struct({
 export const TemplateLiteral$ = Schema.Struct({
   _tag: Schema.tag("TemplateLiteral"),
   annotations: Schema.optional(Annotations$),
-  parts: Schema.Array(Standard$ref)
+  parts: Schema.Array(Representation$ref)
 }).annotate({ identifier: "TemplateLiteral" })
 
 /**
@@ -826,7 +826,7 @@ export const TemplateLiteral$ = Schema.Struct({
  */
 export const Element$ = Schema.Struct({
   isOptional: Schema.Boolean,
-  type: Standard$ref,
+  type: Representation$ref,
   annotations: Schema.optional(Annotations$)
 }).annotate({ identifier: "Element" })
 
@@ -848,7 +848,7 @@ export const Arrays$ = Schema.Struct({
   _tag: Schema.tag("Arrays"),
   annotations: Schema.optional(Annotations$),
   elements: Schema.Array(Element$),
-  rest: Schema.Array(Standard$ref),
+  rest: Schema.Array(Representation$ref),
   checks: Schema.Array(makeCheck(ArraysMeta$, "Arrays"))
 }).annotate({ identifier: "Arrays" })
 
@@ -858,7 +858,7 @@ export const Arrays$ = Schema.Struct({
 export const PropertySignature$ = Schema.Struct({
   annotations: Schema.optional(Annotations$),
   name: Schema.PropertyKey,
-  type: Standard$ref,
+  type: Representation$ref,
   isOptional: Schema.Boolean,
   isMutable: Schema.Boolean
 }).annotate({ identifier: "PropertySignature" })
@@ -867,8 +867,8 @@ export const PropertySignature$ = Schema.Struct({
  * @since 4.0.0
  */
 export const IndexSignature$ = Schema.Struct({
-  parameter: Standard$ref,
-  type: Standard$ref
+  parameter: Representation$ref,
+  type: Representation$ref
 }).annotate({ identifier: "IndexSignature" })
 
 const IsMinProperties$ = Schema.Struct({
@@ -909,7 +909,7 @@ export const Objects$ = Schema.Struct({
 export const Union$ = Schema.Struct({
   _tag: Schema.tag("Union"),
   annotations: Schema.optional(Annotations$),
-  types: Schema.Array(Standard$ref),
+  types: Schema.Array(Representation$ref),
   mode: Schema.Literals(["anyOf", "oneOf"])
 }).annotate({ identifier: "Union" })
 
@@ -968,9 +968,9 @@ const DateMeta$ = Schema.Union([
 export const Declaration$ = Schema.Struct({
   _tag: Schema.tag("Declaration"),
   annotations: Schema.optional(Annotations$),
-  typeParameters: Schema.Array(Standard$ref),
+  typeParameters: Schema.Array(Representation$ref),
   checks: Schema.Array(makeCheck(DateMeta$, "Date")),
-  encodedSchema: Standard$ref
+  encodedSchema: Representation$ref
 }).annotate({ identifier: "Declaration" })
 
 /**
@@ -980,18 +980,18 @@ export const Suspend$ = Schema.Struct({
   _tag: Schema.tag("Suspend"),
   annotations: Schema.optional(Annotations$),
   checks: Schema.Tuple([]),
-  thunk: Standard$ref
+  thunk: Representation$ref
 }).annotate({ identifier: "Suspend" })
 
 /**
  * @since 4.0.0
  */
-export interface Standard$ extends Schema.Codec<Standard> {}
+export interface Representation$ extends Schema.Codec<Representation> {}
 
 /**
  * @since 4.0.0
  */
-export const Standard$: Standard$ = Schema.Union([
+export const Representation$: Representation$ = Schema.Union([
   Null$,
   Undefined$,
   Void$,
@@ -1020,8 +1020,8 @@ export const Standard$: Standard$ = Schema.Union([
  * @since 4.0.0
  */
 export const Document$ = Schema.Struct({
-  schema: Standard$,
-  references: Schema.Record(Schema.String, Standard$)
+  representation: Representation$,
+  references: Schema.Record(Schema.String, Representation$)
 }).annotate({ identifier: "Document" })
 
 // -----------------------------------------------------------------------------
@@ -1031,12 +1031,12 @@ export const Document$ = Schema.Struct({
 /**
  * @since 4.0.0
  */
-export const fromAST: (ast: AST.AST) => Document = InternalStandard.fromAST
+export const fromAST: (ast: AST.AST) => Document = InternalRepresentation.fromAST
 
 /**
  * @since 4.0.0
  */
-export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDocument = InternalStandard.fromASTs
+export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDocument = InternalRepresentation.fromASTs
 
 const documentToCodecJson = Schema.toCodecJson(Document$)
 const encodeDocument = Schema.encodeUnknownSync(documentToCodecJson)
@@ -1054,13 +1054,13 @@ export function toJson(document: Document): JsonSchema.JsonSchema {
  * @since 4.0.0
  */
 export function fromJson(u: unknown): Document {
-  return decodeDocument(u)
+  return decodeDocument(u) as Document
 }
 
 /**
  * @since 4.0.0
  */
-export type Reviver<T> = (declaration: Declaration, recur: (standard: Standard) => T) => T | undefined
+export type Reviver<T> = (declaration: Declaration, recur: (representation: Representation) => T) => T | undefined
 
 /**
  * @since 4.0.0
@@ -1123,9 +1123,9 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
 
   const slots = new Map<string, Slot>()
 
-  return recur(document.schema) as S
+  return recur(document.representation) as S
 
-  function recur(node: Standard): Schema.Top {
+  function recur(node: Representation): Schema.Top {
     let out = on(node)
     if ("annotations" in node && node.annotations) out = out.annotate(node.annotations)
     out = toSchemaChecks(out, node)
@@ -1183,7 +1183,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
     }
   }
 
-  function on(s: Standard): Schema.Top {
+  function on(s: Representation): Schema.Top {
     switch (s._tag) {
       case "Declaration":
         return options?.reviver?.(s, recur) ?? recur(s.encodedSchema)
@@ -1281,7 +1281,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
   }
 }
 
-function toSchemaChecks(top: Schema.Top, schema: Standard): Schema.Top {
+function toSchemaChecks(top: Schema.Top, schema: Representation): Schema.Top {
   switch (schema._tag) {
     default:
       return top
@@ -1414,7 +1414,7 @@ function toSchemaFilter(filter: Filter<Meta>): AST.Check<any> {
 export const toJsonSchemaDocument: (
   document: Document,
   options?: Schema.ToJsonSchemaOptions
-) => JsonSchema.Document<"draft-2020-12"> = InternalStandard.toJsonSchemaDocument
+) => JsonSchema.Document<"draft-2020-12"> = InternalRepresentation.toJsonSchemaDocument
 
 /**
  * @since 4.0.0
@@ -1422,12 +1422,12 @@ export const toJsonSchemaDocument: (
 export const toJsonSchemaMultiDocument: (
   document: MultiDocument,
   options?: Schema.ToJsonSchemaOptions
-) => JsonSchema.MultiDocument<"draft-2020-12"> = InternalStandard.toJsonSchemaMultiDocument
+) => JsonSchema.MultiDocument<"draft-2020-12"> = InternalRepresentation.toJsonSchemaMultiDocument
 
 /**
  * @since 4.0.0
  */
-export type Generation = {
+export type Code = {
   readonly runtime: string
   readonly Type: string
 }
@@ -1435,7 +1435,7 @@ export type Generation = {
 /**
  * @since 4.0.0
  */
-export function makeGeneration(runtime: string, Type: string): Generation {
+export function makeCode(runtime: string, Type: string): Code {
   return { runtime, Type }
 }
 
@@ -1446,12 +1446,12 @@ export type Artifact =
   | {
     readonly _tag: "Symbol"
     readonly identifier: string
-    readonly generation: Generation
+    readonly generation: Code
   }
   | {
     readonly _tag: "Enum"
     readonly identifier: string
-    readonly generation: Generation
+    readonly generation: Code
   }
   | {
     readonly _tag: "Import"
@@ -1461,15 +1461,15 @@ export type Artifact =
 /**
  * @since 4.0.0
  */
-export type GenerationDocument = {
-  readonly generations: ReadonlyArray<Generation>
+export type CodeDocument = {
+  readonly codes: ReadonlyArray<Code>
   readonly references: {
     readonly nonRecursives: ReadonlyArray<{
       readonly $ref: string
-      readonly schema: Generation
+      readonly code: Code
     }>
     readonly recursives: {
-      readonly [$ref: string]: Generation
+      readonly [$ref: string]: Code
     }
   }
   readonly artifacts: ReadonlyArray<Artifact>
@@ -1571,16 +1571,16 @@ export function toValidIdentifier(input: string): string {
 /**
  * @since 4.0.0
  */
-export function toGenerationDocument(multiDocument: MultiDocument, options?: {
+export function toCodeDocument(multiDocument: MultiDocument, options?: {
   /**
    * The reviver can return `undefined` to indicate that the generation should be generated by the default logic
    */
-  readonly reviver?: Reviver<Generation> | undefined
+  readonly reviver?: Reviver<Code> | undefined
   /**
    * Sanitizes a reference name to be a valid JavaScript identifier.
    */
   readonly sanitizeReference?: ((reference: string) => string) | undefined
-}): GenerationDocument {
+}): CodeDocument {
   const sanitizeReference = options?.sanitizeReference ?? toValidIdentifier
   const artifacts: Array<Artifact> = []
 
@@ -1601,18 +1601,18 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
   }
 
   // Phase 2: Use the map when processing references
-  const nonRecursives = ts.nonRecursives.map(({ $ref, schema }) => ({
+  const nonRecursives = ts.nonRecursives.map(({ $ref, representation }) => ({
     $ref: sanitizedReferenceMap.get($ref)!,
-    schema: recur(schema)
+    code: recur(representation)
   }))
-  const recursives = Rec.mapEntries(ts.recursives, (schema, $ref) => [
+  const recursives = Rec.mapEntries(ts.recursives, (representation, $ref) => [
     sanitizedReferenceMap.get($ref)!,
-    recur(schema)
+    recur(representation)
   ])
-  const generations = multiDocument.schemas.map(recur)
+  const codes = multiDocument.representations.map(recur)
 
   return {
-    generations,
+    codes,
     references: {
       nonRecursives,
       recursives
@@ -1645,8 +1645,8 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
     const key = globalThis.Symbol.keyFor(s)
     const description = s.description
     const generation = key === undefined
-      ? makeGeneration(`Symbol(${description === undefined ? "" : format(description)})`, `typeof ${identifier}`)
-      : makeGeneration(`Symbol.for(${format(key)})`, `typeof ${identifier}`)
+      ? makeCode(`Symbol(${description === undefined ? "" : format(description)})`, `typeof ${identifier}`)
+      : makeCode(`Symbol.for(${format(key)})`, `typeof ${identifier}`)
     artifacts.push({ _tag: "Symbol", identifier, generation })
     return identifier
   }
@@ -1656,7 +1656,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
     artifacts.push({
       _tag: "Enum",
       identifier,
-      generation: makeGeneration(
+      generation: makeCode(
         `enum ${identifier} { ${s.enums.map(([name, value]) => `${format(name)}: ${format(value)}`).join(", ")} }`,
         `typeof ${identifier}`
       )
@@ -1670,11 +1670,11 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
     }
   }
 
-  function recur(s: Standard): Generation {
+  function recur(s: Representation): Code {
     const g = on(s)
     switch (s._tag) {
       default:
-        return makeGeneration(g.runtime + toRuntimeAnnotate(s.annotations), g.Type)
+        return makeCode(g.runtime + toRuntimeAnnotate(s.annotations), g.Type)
       case "Reference":
         return g
       case "Declaration":
@@ -1684,14 +1684,14 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
       case "Arrays":
       case "Objects":
       case "Suspend":
-        return makeGeneration(
+        return makeCode(
           g.runtime + toRuntimeAnnotate(s.annotations) + toRuntimeChecks(s.checks),
           g.Type
         )
     }
   }
 
-  function on(s: Standard): Generation {
+  function on(s: Representation): Code {
     switch (s._tag) {
       case "Declaration": {
         // if there is a reviver, use it to generate the generation
@@ -1712,7 +1712,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
           if (typeof generation.importDeclaration === "string") {
             addImport(generation.importDeclaration)
           }
-          return makeGeneration(
+          return makeCode(
             fill(generation.runtime, typeParameters.map((p) => p.runtime)),
             fill(generation.Type, typeParameters.map((p) => p.Type))
           )
@@ -1722,62 +1722,62 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
       }
       case "Reference": {
         const sanitized = sanitizedReferenceMap.get(s.$ref) ?? ensureUniqueSanitized(s.$ref)
-        return makeGeneration(sanitized, sanitized)
+        return makeCode(sanitized, sanitized)
       }
       case "Suspend": {
         const thunk = recur(s.thunk)
-        return makeGeneration(
+        return makeCode(
           `Schema.suspend((): Schema.Codec<${thunk.Type}> => ${thunk.runtime})`,
           thunk.Type
         )
       }
       case "Null":
-        return makeGeneration(`Schema.Null`, "null")
+        return makeCode(`Schema.Null`, "null")
       case "Undefined":
-        return makeGeneration(`Schema.Undefined`, "undefined")
+        return makeCode(`Schema.Undefined`, "undefined")
       case "Void":
-        return makeGeneration(`Schema.Void`, "void")
+        return makeCode(`Schema.Void`, "void")
       case "Never":
-        return makeGeneration(`Schema.Never`, "never")
+        return makeCode(`Schema.Never`, "never")
       case "Unknown":
-        return makeGeneration(`Schema.Unknown`, "unknown")
+        return makeCode(`Schema.Unknown`, "unknown")
       case "Any":
-        return makeGeneration(`Schema.Any`, "any")
+        return makeCode(`Schema.Any`, "any")
       case "Number":
-        return makeGeneration(`Schema.Number`, "number")
+        return makeCode(`Schema.Number`, "number")
       case "Boolean":
-        return makeGeneration(`Schema.Boolean`, "boolean")
+        return makeCode(`Schema.Boolean`, "boolean")
       case "BigInt":
-        return makeGeneration(`Schema.BigInt`, "bigint")
+        return makeCode(`Schema.BigInt`, "bigint")
       case "Symbol":
-        return makeGeneration(`Schema.Symbol`, "symbol")
+        return makeCode(`Schema.Symbol`, "symbol")
       case "String": {
         const contentMediaType = s.contentMediaType
         const contentSchema = s.contentSchema
         if (contentMediaType === "application/json" && contentSchema !== undefined) {
-          return makeGeneration(`Schema.fromJsonString(${recur(contentSchema)})`, "string")
+          return makeCode(`Schema.fromJsonString(${recur(contentSchema)})`, "string")
         } else {
-          return makeGeneration(`Schema.String`, "string")
+          return makeCode(`Schema.String`, "string")
         }
       }
       case "Literal": {
         const literal = format(s.literal)
-        return makeGeneration(`Schema.Literal(${literal})`, literal)
+        return makeCode(`Schema.Literal(${literal})`, literal)
       }
       case "UniqueSymbol": {
         const identifier = addSymbol(s.symbol)
-        return makeGeneration(`Schema.UniqueSymbol(${identifier})`, `typeof ${identifier}`)
+        return makeCode(`Schema.UniqueSymbol(${identifier})`, `typeof ${identifier}`)
       }
       case "ObjectKeyword":
-        return makeGeneration(`Schema.ObjectKeyword`, "object")
+        return makeCode(`Schema.ObjectKeyword`, "object")
       case "Enum": {
         const identifier = addEnum(s)
-        return makeGeneration(`Schema.Enum(${identifier})`, `typeof ${identifier}`)
+        return makeCode(`Schema.Enum(${identifier})`, `typeof ${identifier}`)
       }
       case "TemplateLiteral": {
         const parts = s.parts.map(recur)
         const type = toTypeParts(s.parts).map((p) => "`" + p + "`").join(" | ")
-        return makeGeneration(`Schema.TemplateLiteral([${parts.map((p) => p.runtime).join(", ")}])`, type)
+        return makeCode(`Schema.TemplateLiteral([${parts.map((p) => p.runtime).join(", ")}])`, type)
       }
       case "Arrays": {
         const elements = s.elements.map((e) => {
@@ -1793,13 +1793,13 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
         if (Arr.isArrayNonEmpty(rest)) {
           const item = rest[0]
           if (elements.length === 0 && rest.length === 1) {
-            return makeGeneration(
+            return makeCode(
               `Schema.Array(${item.runtime})`,
               `ReadonlyArray<${item.Type}>`
             )
           }
           const post = rest.slice(1)
-          return makeGeneration(
+          return makeCode(
             `Schema.TupleWithRest(Schema.Tuple([${
               elements.map((e) =>
                 toRuntimeIsOptional(e.isOptional, e.type.runtime) + toRuntimeAnnotateKey(e.annotations)
@@ -1810,7 +1810,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
             }, ...Array<${item.Type}>${post.length > 0 ? `, ${post.map((p) => p.Type).join(", ")}` : ""}]`
           )
         }
-        return makeGeneration(
+        return makeCode(
           `Schema.Tuple([${
             elements.map((e) => toRuntimeIsOptional(e.isOptional, e.type.runtime) + toRuntimeAnnotateKey(e.annotations))
               .join(", ")
@@ -1827,7 +1827,7 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
             toTypeIsMutable(p.isMutable, isSymbol ? `[typeof ${name}]` : name)
           )
           const type = recur(p.type)
-          return makeGeneration(
+          return makeCode(
             `${isSymbol ? `[${name}]` : name}: ${
               toRuntimeIsOptional(p.isOptional, toRuntimeIsMutable(p.isMutable, type.runtime))
             }` +
@@ -1845,19 +1845,19 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
 
         if (iss.length === 0) {
           // 1) Only properties -> Struct
-          return makeGeneration(
+          return makeCode(
             `Schema.Struct({ ${pss.map((p) => p.runtime).join(", ")} })`,
             `{ ${pss.map((p) => p.Type).join(", ")} }`
           )
         } else if (pss.length === 0 && iss.length === 1) {
           // 2) Only one index signature and no properties -> Record
-          return makeGeneration(
+          return makeCode(
             `Schema.Record(${iss[0].parameter.runtime}, ${iss[0].type.runtime})`,
             `{ readonly [x: ${iss[0].parameter.Type}]: ${iss[0].type.Type} }`
           )
         } else {
           // 3) Properties + index signatures -> StructWithRest
-          return makeGeneration(
+          return makeCode(
             `Schema.StructWithRest(Schema.Struct({ ${pss.map((p) => p.runtime).join(", ")} }), [${
               iss.map((is) => `Schema.Record(${is.parameter.runtime}, ${is.type.runtime})`).join(", ")
             }])`,
@@ -1869,18 +1869,18 @@ export function toGenerationDocument(multiDocument: MultiDocument, options?: {
       }
       case "Union": {
         if (s.types.length === 0) {
-          return makeGeneration("Schema.Never", "never")
+          return makeCode("Schema.Never", "never")
         }
         if (s.types.every((t) => t._tag === "Literal")) {
           const literals = s.types.map((l) => format(l.literal))
           if (literals.length === 1) {
-            return makeGeneration(`Schema.Literal(${literals[0]})`, literals[0])
+            return makeCode(`Schema.Literal(${literals[0]})`, literals[0])
           }
-          return makeGeneration(`Schema.Literals([${literals.join(", ")}])`, literals.join(" | "))
+          return makeCode(`Schema.Literals([${literals.join(", ")}])`, literals.join(" | "))
         }
         const mode = s.mode === "anyOf" ? "" : `, { mode: "oneOf" }`
         const types = s.types.map((t) => recur(t))
-        return makeGeneration(
+        return makeCode(
           `Schema.Union([${types.map((t) => t.runtime).join(", ")}]${mode})`,
           types.map((t) => t.Type).join(" | ")
         )
@@ -1894,7 +1894,7 @@ function fill(template: string, items: ReadonlyArray<string>) {
   return template.replace(/\?/g, () => items[i++])
 }
 
-function toTypeParts(parts: ReadonlyArray<Standard>): ReadonlyArray<string> {
+function toTypeParts(parts: ReadonlyArray<Representation>): ReadonlyArray<string> {
   if (parts.length === 0) {
     return [""]
   }
@@ -1903,10 +1903,10 @@ function toTypeParts(parts: ReadonlyArray<Standard>): ReadonlyArray<string> {
   return toTypePart(first).flatMap((f) => restPatterns.map((r) => f + r))
 }
 
-function toTypePart(standard: Standard): ReadonlyArray<string> {
-  switch (standard._tag) {
+function toTypePart(r: Representation): ReadonlyArray<string> {
+  switch (r._tag) {
     case "Literal":
-      return [globalThis.String(standard.literal)]
+      return [globalThis.String(r.literal)]
     case "String":
       return ["${string}"]
     case "Number":
@@ -1914,9 +1914,9 @@ function toTypePart(standard: Standard): ReadonlyArray<string> {
     case "BigInt":
       return ["${bigint}"]
     case "TemplateLiteral":
-      return toTypeParts(standard.parts)
+      return toTypeParts(r.parts)
     case "Union":
-      return standard.types.flatMap(toTypePart)
+      return r.types.flatMap(toTypePart)
     default:
       return []
   }
@@ -2077,13 +2077,13 @@ function toRuntimeRegExp(regExp: RegExp): string {
  * @since 4.0.0
  */
 export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020-12">): Document {
-  const { references, schemas } = fromJsonSchemaMultiDocument({
+  const { references, representations: schemas } = fromJsonSchemaMultiDocument({
     dialect: document.dialect,
     schemas: [document.schema],
     definitions: document.definitions
   })
   return {
-    schema: schemas[0],
+    representation: schemas[0],
     references
   }
 }
@@ -2093,7 +2093,7 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
  */
 export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"draft-2020-12">): MultiDocument {
   let visited$refs = new Set<string>()
-  const definitions: Record<string, Standard> = {}
+  const definitions: Record<string, Representation> = {}
 
   for (const [identifier, d] of Object.entries(document.definitions)) {
     visited$refs.add(identifier)
@@ -2108,11 +2108,11 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
 
   visited$refs = new Set<string>()
   return {
-    schemas: Arr.map(document.schemas, recur),
+    representations: Arr.map(document.schemas, recur),
     references: definitions
   }
 
-  function recur(u: unknown): Standard {
+  function recur(u: unknown): Representation {
     if (u === false) return never
     if (!Predicate.isObject(u)) return unknown
 
@@ -2148,7 +2148,7 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
     return out
   }
 
-  function on(js: JsonSchema.JsonSchema): Standard {
+  function on(js: JsonSchema.JsonSchema): Representation {
     if (typeof js.$ref === "string") {
       const $ref = js.$ref.slice(2).split("/").at(-1)
       if ($ref !== undefined) {
@@ -2167,7 +2167,7 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
         return null_
       }
     } else if (Array.isArray(js.enum)) {
-      const types: Array<Standard> = []
+      const types: Array<Representation> = []
       for (const e of js.enum) {
         if (isLiteralValue(e)) {
           types.push({ _tag: "Literal", literal: e })
@@ -2209,7 +2209,7 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
             type: recur(e)
           }))
 
-          const rest: Array<Standard> = js.items !== undefined ?
+          const rest: Array<Representation> = js.items !== undefined ?
             [recur(js.items)]
             : typeof js.maxItems === "number"
             ? []
@@ -2231,7 +2231,7 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
     return { _tag: "Unknown" }
   }
 
-  function combine(a: Standard, b: Standard): Standard {
+  function combine(a: Representation, b: Representation): Representation {
     switch (a._tag) {
       default:
         return never
@@ -2387,9 +2387,9 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
     return out
   }
 
-  function combineRest(a: ReadonlyArray<Standard>, b: ReadonlyArray<Standard>): Array<Standard> {
+  function combineRest(a: ReadonlyArray<Representation>, b: ReadonlyArray<Representation>): Array<Representation> {
     const len = Math.max(a.length, b.length)
-    let out: Array<Standard> = []
+    let out: Array<Representation> = []
     for (let i = 0; i < len; i++) {
       out.push(combine(a[i], b[i]))
     }
@@ -2401,7 +2401,7 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
     return out
   }
 
-  function resolveReference($ref: string): Exclude<Standard, { _tag: "Reference" }> {
+  function resolveReference($ref: string): Exclude<Representation, { _tag: "Reference" }> {
     const definition = definitions[$ref]
     if (definition !== undefined) {
       if (definition._tag === "Reference") {
@@ -2591,67 +2591,67 @@ export type TopologicalSort = {
    */
   readonly nonRecursives: ReadonlyArray<{
     readonly $ref: string
-    readonly schema: Standard
+    readonly representation: Representation
   }>
   /**
    * The recursive definitions (with no particular order).
    */
   readonly recursives: {
-    readonly [$ref: string]: Standard
+    readonly [$ref: string]: Representation
   }
 }
 
 /**
  * @since 4.0.0
  */
-export function topologicalSort(definitions: References): TopologicalSort {
-  const identifiers = Object.keys(definitions)
+export function topologicalSort(references: References): TopologicalSort {
+  const identifiers = Object.keys(references)
   const identifierSet = new Set(identifiers)
 
-  const collectRefs = (root: Standard): Set<string> => {
+  const collectRefs = (root: Representation): Set<string> => {
     const refs = new Set<string>()
     const visited = new WeakSet<object>()
-    const stack: Array<Standard> = [root]
+    const stack: Array<Representation> = [root]
 
     while (stack.length > 0) {
-      const schema = stack.pop()!
-      if (visited.has(schema)) continue
-      visited.add(schema)
+      const r = stack.pop()!
+      if (visited.has(r)) continue
+      visited.add(r)
 
-      if (schema._tag === "Reference") {
-        if (identifierSet.has(schema.$ref)) {
-          refs.add(schema.$ref)
+      if (r._tag === "Reference") {
+        if (identifierSet.has(r.$ref)) {
+          refs.add(r.$ref)
         }
       }
 
-      // Push nested Standard schemas onto the stack
-      switch (schema._tag) {
+      // Push nested Representation schemas onto the stack
+      switch (r._tag) {
         case "Declaration":
-          for (const typeParam of schema.typeParameters) stack.push(typeParam)
-          stack.push(schema.encodedSchema)
+          for (const typeParam of r.typeParameters) stack.push(typeParam)
+          stack.push(r.encodedSchema)
           break
         case "Suspend":
-          stack.push(schema.thunk)
+          stack.push(r.thunk)
           break
         case "String":
-          if (schema.contentSchema !== undefined) stack.push(schema.contentSchema)
+          if (r.contentSchema !== undefined) stack.push(r.contentSchema)
           break
         case "TemplateLiteral":
-          for (const part of schema.parts) stack.push(part)
+          for (const part of r.parts) stack.push(part)
           break
         case "Arrays":
-          for (const element of schema.elements) stack.push(element.type)
-          for (const rest of schema.rest) stack.push(rest)
+          for (const element of r.elements) stack.push(element.type)
+          for (const rest of r.rest) stack.push(rest)
           break
         case "Objects":
-          for (const propertySignature of schema.propertySignatures) stack.push(propertySignature.type)
-          for (const indexSignature of schema.indexSignatures) {
+          for (const propertySignature of r.propertySignatures) stack.push(propertySignature.type)
+          for (const indexSignature of r.indexSignatures) {
             stack.push(indexSignature.parameter)
             stack.push(indexSignature.type)
           }
           break
         case "Union":
-          for (const type of schema.types) stack.push(type)
+          for (const type of r.types) stack.push(type)
           break
       }
     }
@@ -2661,7 +2661,7 @@ export function topologicalSort(definitions: References): TopologicalSort {
 
   // identifier -> internal identifiers it depends on
   const dependencies = new Map<string, Set<string>>(
-    identifiers.map((id) => [id, collectRefs(definitions[id])])
+    identifiers.map((id) => [id, collectRefs(references[id])])
   )
 
   // Mark only nodes that are part of cycles
@@ -2723,10 +2723,10 @@ export function topologicalSort(definitions: References): TopologicalSort {
     if (deg === 0) queue.push(id)
   }
 
-  const nonRecursives: Array<{ readonly $ref: string; readonly schema: Standard }> = []
+  const nonRecursives: Array<{ readonly $ref: string; readonly representation: Representation }> = []
   for (let i = 0; i < queue.length; i++) {
     const $ref = queue[i]
-    nonRecursives.push({ $ref, schema: definitions[$ref] })
+    nonRecursives.push({ $ref, representation: references[$ref] })
 
     for (const next of dependents.get($ref) ?? []) {
       const deg = (inDegree.get(next) ?? 0) - 1
@@ -2735,9 +2735,9 @@ export function topologicalSort(definitions: References): TopologicalSort {
     }
   }
 
-  const recursives: Record<string, Standard> = {}
+  const recursives: Record<string, Representation> = {}
   for (const $ref of recursive) {
-    recursives[$ref] = definitions[$ref]
+    recursives[$ref] = references[$ref]
   }
 
   return { nonRecursives, recursives }

@@ -1,14 +1,14 @@
-import { Schema, SchemaStandard } from "effect"
+import { Schema, SchemaRepresentation } from "effect"
 import { describe, it } from "vitest"
-import { deepStrictEqual } from "../utils/assert.ts"
+import { deepStrictEqual } from "../../utils/assert.ts"
 
 describe("toJsonSchemaMultiDocument", () => {
   it("should handle multiple schemas", () => {
     const A = Schema.String.annotate({ identifier: "id", description: "a" })
     const B = Schema.String.annotate({ identifier: "id", description: "b" })
     const C = Schema.Tuple([A, B])
-    const multiDocument = SchemaStandard.fromASTs([A.ast, B.ast, C.ast])
-    const jsonMultiDocument = SchemaStandard.toJsonSchemaMultiDocument(multiDocument)
+    const multiDocument = SchemaRepresentation.fromASTs([A.ast, B.ast, C.ast])
+    const jsonMultiDocument = SchemaRepresentation.toJsonSchemaMultiDocument(multiDocument)
     deepStrictEqual(jsonMultiDocument, {
       dialect: "draft-2020-12",
       schemas: [

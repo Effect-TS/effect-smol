@@ -1,29 +1,29 @@
-import { JsonSchema, SchemaStandard } from "effect"
+import { JsonSchema, SchemaRepresentation } from "effect"
 import { describe, it } from "vitest"
-import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
+import { deepStrictEqual, strictEqual } from "../../utils/assert.ts"
 
 describe("fromJsonSchemaDocument", () => {
   function assertFromJsonSchema(
     schema: JsonSchema.JsonSchema,
     expected: {
-      readonly schema: SchemaStandard.Standard
-      readonly definitions?: Record<string, SchemaStandard.Standard>
+      readonly representation: SchemaRepresentation.Representation
+      readonly definitions?: Record<string, SchemaRepresentation.Representation>
     },
     runtime?: string
   ) {
-    const expectedDocument: SchemaStandard.Document = {
-      schema: expected.schema,
+    const expectedDocument: SchemaRepresentation.Document = {
+      representation: expected.representation,
       references: expected.definitions ?? {}
     }
     const jsonDocument = JsonSchema.fromSchemaDraft2020_12(schema)
-    const document = SchemaStandard.fromJsonSchemaDocument(jsonDocument)
+    const document = SchemaRepresentation.fromJsonSchemaDocument(jsonDocument)
     deepStrictEqual(document, expectedDocument)
-    const multiDocument: SchemaStandard.MultiDocument = {
-      schemas: [document.schema],
+    const multiDocument: SchemaRepresentation.MultiDocument = {
+      representations: [document.representation],
       references: document.references
     }
     if (runtime !== undefined) {
-      strictEqual(SchemaStandard.toGenerationDocument(multiDocument).generations[0].runtime, runtime)
+      strictEqual(SchemaRepresentation.toCodeDocument(multiDocument).codes[0].runtime, runtime)
     }
   }
 
@@ -31,14 +31,14 @@ describe("fromJsonSchemaDocument", () => {
     assertFromJsonSchema(
       {},
       {
-        schema: { _tag: "Unknown" }
+        representation: { _tag: "Unknown" }
       },
       "Schema.Unknown"
     )
     assertFromJsonSchema(
       { description: "a" },
       {
-        schema: { _tag: "Unknown", annotations: { description: "a" } }
+        representation: { _tag: "Unknown", annotations: { description: "a" } }
       },
       `Schema.Unknown.annotate({ "description": "a" })`
     )
@@ -49,14 +49,14 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { const: "a" },
         {
-          schema: { _tag: "Literal", literal: "a" }
+          representation: { _tag: "Literal", literal: "a" }
         },
         `Schema.Literal("a")`
       )
       assertFromJsonSchema(
         { const: "a", description: "a" },
         {
-          schema: { _tag: "Literal", literal: "a", annotations: { description: "a" } }
+          representation: { _tag: "Literal", literal: "a", annotations: { description: "a" } }
         },
         `Schema.Literal("a").annotate({ "description": "a" })`
       )
@@ -66,7 +66,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { const: 1 },
         {
-          schema: { _tag: "Literal", literal: 1 }
+          representation: { _tag: "Literal", literal: 1 }
         },
         `Schema.Literal(1)`
       )
@@ -76,7 +76,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { const: true },
         {
-          schema: { _tag: "Literal", literal: true }
+          representation: { _tag: "Literal", literal: true }
         },
         `Schema.Literal(true)`
       )
@@ -86,14 +86,14 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { const: null },
         {
-          schema: { _tag: "Null" }
+          representation: { _tag: "Null" }
         },
         `Schema.Null`
       )
       assertFromJsonSchema(
         { const: null, description: "a" },
         {
-          schema: { _tag: "Null", annotations: { description: "a" } }
+          representation: { _tag: "Null", annotations: { description: "a" } }
         },
         `Schema.Null.annotate({ "description": "a" })`
       )
@@ -103,7 +103,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { const: {} },
         {
-          schema: { _tag: "Unknown" }
+          representation: { _tag: "Unknown" }
         },
         `Schema.Unknown`
       )
@@ -115,14 +115,14 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { enum: ["a"] },
         {
-          schema: { _tag: "Literal", literal: "a" }
+          representation: { _tag: "Literal", literal: "a" }
         },
         `Schema.Literal("a")`
       )
       assertFromJsonSchema(
         { enum: ["a"], description: "a" },
         {
-          schema: { _tag: "Literal", literal: "a", annotations: { description: "a" } }
+          representation: { _tag: "Literal", literal: "a", annotations: { description: "a" } }
         },
         `Schema.Literal("a").annotate({ "description": "a" })`
       )
@@ -132,7 +132,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { enum: [1] },
         {
-          schema: { _tag: "Literal", literal: 1 }
+          representation: { _tag: "Literal", literal: 1 }
         },
         `Schema.Literal(1)`
       )
@@ -142,7 +142,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { enum: [true] },
         {
-          schema: { _tag: "Literal", literal: true }
+          representation: { _tag: "Literal", literal: true }
         },
         `Schema.Literal(true)`
       )
@@ -152,7 +152,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { enum: ["a", 1] },
         {
-          schema: {
+          representation: {
             _tag: "Union",
             types: [
               { _tag: "Literal", literal: "a" },
@@ -166,7 +166,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { enum: ["a", 1], description: "a" },
         {
-          schema: {
+          representation: {
             _tag: "Union",
             types: [
               { _tag: "Literal", literal: "a" },
@@ -184,7 +184,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { enum: ["a", null] },
         {
-          schema: {
+          representation: {
             _tag: "Union",
             types: [
               { _tag: "Literal", literal: "a" },
@@ -202,7 +202,7 @@ describe("fromJsonSchemaDocument", () => {
     assertFromJsonSchema(
       { anyOf: [{ const: "a" }, { enum: [1, 2] }] },
       {
-        schema: {
+        representation: {
           _tag: "Union",
           types: [
             { _tag: "Literal", literal: "a" },
@@ -226,7 +226,7 @@ describe("fromJsonSchemaDocument", () => {
     assertFromJsonSchema(
       { oneOf: [{ const: "a" }, { enum: [1, 2] }] },
       {
-        schema: {
+        representation: {
           _tag: "Union",
           types: [
             { _tag: "Literal", literal: "a" },
@@ -251,7 +251,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { type: "null" },
         {
-          schema: { _tag: "Null" }
+          representation: { _tag: "Null" }
         },
         `Schema.Null`
       )
@@ -263,7 +263,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { type: "string" },
         {
-          schema: { _tag: "String", checks: [] }
+          representation: { _tag: "String", checks: [] }
         },
         `Schema.String`
       )
@@ -275,7 +275,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { type: "number" },
         {
-          schema: { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }] }
+          representation: { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }] }
         },
         `Schema.Number.check(Schema.isFinite())`
       )
@@ -287,7 +287,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { type: "integer" },
         {
-          schema: {
+          representation: {
             _tag: "Number",
             checks: [
               { _tag: "Filter", meta: { _tag: "isInt" } }
@@ -304,7 +304,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { type: "boolean" },
         {
-          schema: { _tag: "Boolean" }
+          representation: { _tag: "Boolean" }
         },
         `Schema.Boolean`
       )
@@ -316,7 +316,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { type: "array" },
         {
-          schema: {
+          representation: {
             _tag: "Arrays",
             elements: [],
             rest: [{ _tag: "Unknown" }],
@@ -334,7 +334,7 @@ describe("fromJsonSchemaDocument", () => {
           items: { type: "string" }
         },
         {
-          schema: { _tag: "Arrays", elements: [], rest: [{ _tag: "String", checks: [] }], checks: [] }
+          representation: { _tag: "Arrays", elements: [], rest: [{ _tag: "String", checks: [] }], checks: [] }
         },
         `Schema.Array(Schema.String)`
       )
@@ -348,7 +348,7 @@ describe("fromJsonSchemaDocument", () => {
           maxItems: 1
         },
         {
-          schema: {
+          representation: {
             _tag: "Arrays",
             elements: [
               { isOptional: true, type: { _tag: "String", checks: [] } }
@@ -368,7 +368,7 @@ describe("fromJsonSchemaDocument", () => {
           maxItems: 1
         },
         {
-          schema: {
+          representation: {
             _tag: "Arrays",
             elements: [
               { isOptional: false, type: { _tag: "String", checks: [] } }
@@ -390,7 +390,7 @@ describe("fromJsonSchemaDocument", () => {
           items: { type: "number" }
         },
         {
-          schema: {
+          representation: {
             _tag: "Arrays",
             elements: [
               { isOptional: false, type: { _tag: "String", checks: [] } }
@@ -411,7 +411,7 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { type: "object" },
         {
-          schema: {
+          representation: {
             _tag: "Objects",
             propertySignatures: [],
             indexSignatures: [
@@ -428,7 +428,7 @@ describe("fromJsonSchemaDocument", () => {
           additionalProperties: false
         },
         {
-          schema: {
+          representation: {
             _tag: "Objects",
             propertySignatures: [],
             indexSignatures: [],
@@ -446,7 +446,7 @@ describe("fromJsonSchemaDocument", () => {
           additionalProperties: { type: "boolean" }
         },
         {
-          schema: {
+          representation: {
             _tag: "Objects",
             propertySignatures: [],
             indexSignatures: [
@@ -468,7 +468,7 @@ describe("fromJsonSchemaDocument", () => {
           additionalProperties: false
         },
         {
-          schema: {
+          representation: {
             _tag: "Objects",
             propertySignatures: [
               {
@@ -501,7 +501,7 @@ describe("fromJsonSchemaDocument", () => {
           additionalProperties: { type: "boolean" }
         },
         {
-          schema: {
+          representation: {
             _tag: "Objects",
             propertySignatures: [{
               name: "a",
@@ -526,7 +526,7 @@ describe("fromJsonSchemaDocument", () => {
         type: ["string", "null"]
       },
       {
-        schema: {
+        representation: {
           _tag: "Union",
           types: [{ _tag: "String", checks: [] }, { _tag: "Null" }],
           mode: "anyOf"
@@ -540,7 +540,7 @@ describe("fromJsonSchemaDocument", () => {
         description: "a"
       },
       {
-        schema: {
+        representation: {
           _tag: "Union",
           types: [{ _tag: "String", checks: [] }, { _tag: "Null" }],
           mode: "anyOf",
@@ -563,7 +563,7 @@ describe("fromJsonSchemaDocument", () => {
           }
         },
         {
-          schema: { _tag: "Reference", $ref: "A" },
+          representation: { _tag: "Reference", $ref: "A" },
           definitions: {
             A: {
               _tag: "String",
@@ -588,7 +588,7 @@ describe("fromJsonSchemaDocument", () => {
           }
         },
         {
-          schema: {
+          representation: {
             _tag: "String",
             checks: [],
             annotations: { description: "a", identifier: "A" }
@@ -619,7 +619,7 @@ describe("fromJsonSchemaDocument", () => {
           }
         },
         {
-          schema: {
+          representation: {
             _tag: "String",
             checks: [],
             annotations: { description: "a", identifier: "A" }
@@ -662,7 +662,7 @@ describe("fromJsonSchemaDocument", () => {
           }
         },
         {
-          schema: { _tag: "Reference", $ref: "A" },
+          representation: { _tag: "Reference", $ref: "A" },
           definitions: {
             A: {
               _tag: "Objects",
@@ -713,7 +713,7 @@ describe("fromJsonSchemaDocument", () => {
           ]
         },
         {
-          schema: {
+          representation: {
             _tag: "Objects",
             propertySignatures: [
               {
@@ -740,7 +740,7 @@ describe("fromJsonSchemaDocument", () => {
           ]
         },
         {
-          schema: {
+          representation: {
             _tag: "Objects",
             propertySignatures: [],
             indexSignatures: [

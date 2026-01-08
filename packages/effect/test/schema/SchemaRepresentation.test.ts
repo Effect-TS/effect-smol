@@ -1,4 +1,4 @@
-import { Schema, SchemaStandard } from "effect"
+import { Schema, SchemaRepresentation } from "effect"
 import { describe, it } from "vitest"
 import { deepStrictEqual } from "../utils/assert.ts"
 
@@ -21,10 +21,10 @@ const InnerCategory = Schema.Struct({
 
 describe("Standard", () => {
   describe("toSchema", () => {
-    function assertToSchema(schema: Schema.Top, reviver?: SchemaStandard.Reviver<Schema.Top>) {
-      const document = SchemaStandard.fromAST(schema.ast)
-      const roundtrip = SchemaStandard.fromAST(
-        SchemaStandard.toSchema(document, { reviver }).ast
+    function assertToSchema(schema: Schema.Top, reviver?: SchemaRepresentation.Reviver<Schema.Top>) {
+      const document = SchemaRepresentation.fromAST(schema.ast)
+      const roundtrip = SchemaRepresentation.fromAST(
+        SchemaRepresentation.toSchema(document, { reviver }).ast
       )
       deepStrictEqual(roundtrip, document)
     }
@@ -90,7 +90,7 @@ describe("Standard", () => {
 
     describe("toSchemaDefaultReviver", () => {
       function assertToSchemaWithReviver(schema: Schema.Top) {
-        assertToSchema(schema, SchemaStandard.toSchemaDefaultReviver)
+        assertToSchema(schema, SchemaRepresentation.toSchemaDefaultReviver)
       }
 
       it("Option", () => {
@@ -166,10 +166,10 @@ describe("Standard", () => {
 
   describe("topologicalSort", () => {
     function assertTopologicalSort(
-      definitions: Record<string, SchemaStandard.Standard>,
-      expected: SchemaStandard.TopologicalSort
+      definitions: Record<string, SchemaRepresentation.Representation>,
+      expected: SchemaRepresentation.TopologicalSort
     ) {
-      deepStrictEqual(SchemaStandard.topologicalSort(definitions), expected)
+      deepStrictEqual(SchemaRepresentation.topologicalSort(definitions), expected)
     }
 
     it("empty definitions", () => {
@@ -186,7 +186,7 @@ describe("Standard", () => {
         },
         {
           nonRecursives: [
-            { $ref: "A", schema: { _tag: "String", checks: [] } }
+            { $ref: "A", representation: { _tag: "String", checks: [] } }
           ],
           recursives: {}
         }
@@ -200,9 +200,9 @@ describe("Standard", () => {
         C: { _tag: "Boolean" }
       }, {
         nonRecursives: [
-          { $ref: "A", schema: { _tag: "String", checks: [] } },
-          { $ref: "B", schema: { _tag: "Number", checks: [] } },
-          { $ref: "C", schema: { _tag: "Boolean" } }
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          { $ref: "B", representation: { _tag: "Number", checks: [] } },
+          { $ref: "C", representation: { _tag: "Boolean" } }
         ],
         recursives: {}
       })
@@ -215,9 +215,9 @@ describe("Standard", () => {
         C: { _tag: "Reference", $ref: "B" }
       }, {
         nonRecursives: [
-          { $ref: "A", schema: { _tag: "String", checks: [] } },
-          { $ref: "B", schema: { _tag: "Reference", $ref: "A" } },
-          { $ref: "C", schema: { _tag: "Reference", $ref: "B" } }
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          { $ref: "B", representation: { _tag: "Reference", $ref: "A" } },
+          { $ref: "C", representation: { _tag: "Reference", $ref: "B" } }
         ],
         recursives: {}
       })
@@ -230,9 +230,9 @@ describe("Standard", () => {
         C: { _tag: "Reference", $ref: "A" }
       }, {
         nonRecursives: [
-          { $ref: "A", schema: { _tag: "String", checks: [] } },
-          { $ref: "B", schema: { _tag: "Reference", $ref: "A" } },
-          { $ref: "C", schema: { _tag: "Reference", $ref: "A" } }
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          { $ref: "B", representation: { _tag: "Reference", $ref: "A" } },
+          { $ref: "C", representation: { _tag: "Reference", $ref: "A" } }
         ],
         recursives: {}
       })
@@ -246,10 +246,10 @@ describe("Standard", () => {
         D: { _tag: "Reference", $ref: "A" }
       }, {
         nonRecursives: [
-          { $ref: "A", schema: { _tag: "String", checks: [] } },
-          { $ref: "B", schema: { _tag: "Reference", $ref: "A" } },
-          { $ref: "D", schema: { _tag: "Reference", $ref: "A" } },
-          { $ref: "C", schema: { _tag: "Reference", $ref: "B" } }
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          { $ref: "B", representation: { _tag: "Reference", $ref: "A" } },
+          { $ref: "D", representation: { _tag: "Reference", $ref: "A" } },
+          { $ref: "C", representation: { _tag: "Reference", $ref: "B" } }
         ],
         recursives: {}
       })
@@ -303,8 +303,8 @@ describe("Standard", () => {
         E: { _tag: "Reference", $ref: "D" }
       }, {
         nonRecursives: [
-          { $ref: "A", schema: { _tag: "String", checks: [] } },
-          { $ref: "B", schema: { _tag: "Reference", $ref: "A" } }
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          { $ref: "B", representation: { _tag: "Reference", $ref: "A" } }
         ],
         recursives: {
           C: { _tag: "Reference", $ref: "C" },
@@ -330,10 +330,10 @@ describe("Standard", () => {
         }
       }, {
         nonRecursives: [
-          { $ref: "A", schema: { _tag: "String", checks: [] } },
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
           {
             $ref: "B",
-            schema: {
+            representation: {
               _tag: "Objects",
               propertySignatures: [{
                 name: "value",
@@ -361,8 +361,11 @@ describe("Standard", () => {
         }
       }, {
         nonRecursives: [
-          { $ref: "A", schema: { _tag: "String", checks: [] } },
-          { $ref: "B", schema: { _tag: "Arrays", elements: [], rest: [{ _tag: "Reference", $ref: "A" }], checks: [] } }
+          { $ref: "A", representation: { _tag: "String", checks: [] } },
+          {
+            $ref: "B",
+            representation: { _tag: "Arrays", elements: [], rest: [{ _tag: "Reference", $ref: "A" }], checks: [] }
+          }
         ],
         recursives: {}
       })
@@ -374,8 +377,8 @@ describe("Standard", () => {
         B: { _tag: "Reference", $ref: "A" }
       }, {
         nonRecursives: [
-          { $ref: "A", schema: { _tag: "Reference", $ref: "#/definitions/External" } },
-          { $ref: "B", schema: { _tag: "Reference", $ref: "A" } }
+          { $ref: "A", representation: { _tag: "Reference", $ref: "#/definitions/External" } },
+          { $ref: "B", representation: { _tag: "Reference", $ref: "A" } }
         ],
         recursives: {}
       })
@@ -390,7 +393,7 @@ describe("Standard", () => {
         D: { _tag: "Reference", $ref: "C" }
       }, {
         nonRecursives: [
-          { $ref: "Independent", schema: { _tag: "String", checks: [] } }
+          { $ref: "Independent", representation: { _tag: "String", checks: [] } }
         ],
         recursives: {
           A: { _tag: "Reference", $ref: "B" },
@@ -407,7 +410,7 @@ describe("Standard", () => {
         B: { _tag: "Reference", $ref: "A" }
       }, {
         nonRecursives: [
-          { $ref: "B", schema: { _tag: "Reference", $ref: "A" } }
+          { $ref: "B", representation: { _tag: "Reference", $ref: "A" } }
         ],
         recursives: {
           A: { _tag: "Reference", $ref: "A" }

@@ -1,15 +1,18 @@
-import { Array as Arr, Schema, SchemaStandard } from "effect"
+import { Array as Arr, Schema, SchemaRepresentation } from "effect"
 import { describe, it } from "vitest"
-import { deepStrictEqual } from "../utils/assert.ts"
+import { deepStrictEqual } from "../../utils/assert.ts"
 
 describe("fromASTs", () => {
   function assertFromASTs(schemas: readonly [Schema.Top, ...Array<Schema.Top>], expected: {
-    readonly schemas: readonly [SchemaStandard.Standard, ...Array<SchemaStandard.Standard>]
-    readonly references?: SchemaStandard.References
+    readonly representations: readonly [
+      SchemaRepresentation.Representation,
+      ...Array<SchemaRepresentation.Representation>
+    ]
+    readonly references?: SchemaRepresentation.References
   }) {
-    const document = SchemaStandard.fromASTs(Arr.map(schemas, (s) => s.ast))
+    const document = SchemaRepresentation.fromASTs(Arr.map(schemas, (s) => s.ast))
     deepStrictEqual(document, {
-      schemas: expected.schemas,
+      representations: expected.representations,
       references: expected.references ?? {}
     })
   }
@@ -19,7 +22,7 @@ describe("fromASTs", () => {
     const B = Schema.String.annotate({ identifier: "id", description: "b" })
     const C = Schema.Tuple([A, B])
     assertFromASTs([A, B, C], {
-      schemas: [
+      representations: [
         { _tag: "Reference", $ref: "id" },
         { _tag: "Reference", $ref: "id1" },
         {
@@ -56,12 +59,12 @@ describe("fromASTs", () => {
 
 describe("fromAST", () => {
   function assertFromAST(schema: Schema.Top, expected: {
-    readonly schema: SchemaStandard.Standard
-    readonly references?: SchemaStandard.References
+    readonly representation: SchemaRepresentation.Representation
+    readonly references?: SchemaRepresentation.References
   }) {
-    const document = SchemaStandard.fromAST(schema.ast)
+    const document = SchemaRepresentation.fromAST(schema.ast)
     deepStrictEqual(document, {
-      schema: expected.schema,
+      representation: expected.representation,
       references: expected.references ?? {}
     })
   }
@@ -69,7 +72,7 @@ describe("fromAST", () => {
   describe("String", () => {
     it("String", () => {
       assertFromAST(Schema.String, {
-        schema: {
+        representation: {
           _tag: "String",
           checks: []
         }
@@ -78,7 +81,7 @@ describe("fromAST", () => {
 
     it("String & brand", () => {
       assertFromAST(Schema.String.pipe(Schema.brand("a")), {
-        schema: {
+        representation: {
           _tag: "String",
           checks: [],
           annotations: { brands: ["a"] }
@@ -88,7 +91,7 @@ describe("fromAST", () => {
 
     it("String & brand & brand", () => {
       assertFromAST(Schema.String.pipe(Schema.brand("a"), Schema.brand("b")), {
-        schema: {
+        representation: {
           _tag: "String",
           checks: [],
           annotations: { brands: ["a", "b"] }
@@ -99,7 +102,7 @@ describe("fromAST", () => {
 
   it("URL", () => {
     assertFromAST(Schema.URL, {
-      schema: {
+      representation: {
         _tag: "Declaration",
         annotations: {
           expected: "URL",
@@ -124,7 +127,7 @@ describe("fromAST", () => {
 
   it("RegExp", () => {
     assertFromAST(Schema.RegExp, {
-      schema: {
+      representation: {
         _tag: "Declaration",
         annotations: {
           expected: "RegExp",
@@ -167,7 +170,7 @@ describe("fromAST", () => {
 
   it("URLSearchParams", () => {
     assertFromAST(Schema.URLSearchParams, {
-      schema: {
+      representation: {
         _tag: "Declaration",
         annotations: {
           expected: "URLSearchParams",
@@ -188,7 +191,7 @@ describe("fromAST", () => {
 
   it("Option(Number)", () => {
     assertFromAST(Schema.Option(Schema.Number), {
-      schema: {
+      representation: {
         _tag: "Declaration",
         annotations: {
           expected: "Option",
@@ -257,7 +260,7 @@ describe("fromAST", () => {
         a: Schema.String
       }) {}
       assertFromAST(A, {
-        schema: {
+        representation: {
           _tag: "Objects",
           propertySignatures: [
             {
@@ -281,7 +284,7 @@ describe("fromAST", () => {
         a: Schema.String
       }) {}
       assertFromAST(Schema.toType(A), {
-        schema: {
+        representation: {
           _tag: "Declaration",
           annotations: {
             identifier: "A"
@@ -318,7 +321,7 @@ describe("fromAST", () => {
         a: Schema.String
       }) {}
       assertFromAST(Schema.Tuple([Schema.toType(A), A]), {
-        schema: {
+        representation: {
           _tag: "Arrays",
           elements: [
             {
@@ -367,7 +370,7 @@ describe("fromAST", () => {
     it("using a schema twice should point to the same reference", () => {
       const S = Schema.String
       assertFromAST(Schema.Tuple([S, S]), {
-        schema: {
+        representation: {
           _tag: "Arrays",
           elements: [
             {
@@ -394,7 +397,7 @@ describe("fromAST", () => {
     it("using a schema with an identifier twice should point to the identifier as a reference", () => {
       const S = Schema.String.annotate({ identifier: "id" })
       assertFromAST(Schema.Tuple([S, S]), {
-        schema: {
+        representation: {
           _tag: "Arrays",
           elements: [
             {
@@ -426,7 +429,7 @@ describe("fromAST", () => {
           Schema.String.annotate({ identifier: "id", description: "b" })
         ]),
         {
-          schema: {
+          representation: {
             _tag: "Arrays",
             elements: [
               {
@@ -456,7 +459,7 @@ describe("fromAST", () => {
     describe("suspend", () => {
       it("non-recursive", () => {
         assertFromAST(Schema.suspend(() => Schema.String), {
-          schema: {
+          representation: {
             _tag: "Suspend",
             checks: [],
             thunk: {
@@ -476,7 +479,7 @@ describe("fromAST", () => {
         })
 
         assertFromAST(A, {
-          schema: { _tag: "Reference", $ref: "_" },
+          representation: { _tag: "Reference", $ref: "_" },
           references: {
             _: {
               _tag: "Objects",
@@ -508,7 +511,7 @@ describe("fromAST", () => {
         }).annotate({ identifier: "A" }) // outer identifier annotation
 
         assertFromAST(A, {
-          schema: { _tag: "Reference", $ref: "A" },
+          representation: { _tag: "Reference", $ref: "A" },
           references: {
             A: {
               _tag: "Objects",
@@ -541,7 +544,7 @@ describe("fromAST", () => {
         })
 
         assertFromAST(A, {
-          schema: {
+          representation: {
             _tag: "Objects",
             propertySignatures: [
               {
@@ -586,7 +589,7 @@ describe("fromAST", () => {
         })
 
         assertFromAST(A, {
-          schema: { _tag: "Reference", $ref: "_" },
+          representation: { _tag: "Reference", $ref: "_" },
           references: {
             _: {
               _tag: "Objects",
@@ -627,7 +630,7 @@ describe("fromAST", () => {
 
         const schema = Schema.Tuple([A, A1])
         assertFromAST(schema, {
-          schema: {
+          representation: {
             _tag: "Arrays",
             elements: [
               {

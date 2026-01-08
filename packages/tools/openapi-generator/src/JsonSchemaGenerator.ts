@@ -1,7 +1,7 @@
 import * as Arr from "effect/Array"
 import * as JsonSchema from "effect/JsonSchema"
 import * as Rec from "effect/Record"
-import * as SchemaStandard from "effect/SchemaStandard"
+import * as SchemaRepresentation from "effect/SchemaRepresentation"
 
 export function make() {
   const store: Record<string, JsonSchema.JsonSchema> = {}
@@ -30,25 +30,23 @@ export function make() {
     }
 
     if (Arr.isArrayNonEmpty(schemas)) {
-      const multiDocument: SchemaStandard.MultiDocument = SchemaStandard.fromJsonSchemaMultiDocument({
+      const multiDocument: SchemaRepresentation.MultiDocument = SchemaRepresentation.fromJsonSchemaMultiDocument({
         dialect: "draft-2020-12",
         schemas,
         definitions
       })
 
-      const generationDocument = SchemaStandard.toGenerationDocument(multiDocument)
+      const codeDocument = SchemaRepresentation.toCodeDocument(multiDocument)
 
-      const nonRecursives = generationDocument.references.nonRecursives.map(({ $ref, schema }) =>
-        renderSchema($ref, schema)
+      const nonRecursives = codeDocument.references.nonRecursives.map(({ $ref, code }) => renderSchema($ref, code))
+      const recursives = Object.entries(codeDocument.references.recursives).map(([$ref, code]) =>
+        renderSchema($ref, code)
       )
-      const recursives = Object.entries(generationDocument.references.recursives).map(([$ref, schema]) =>
-        renderSchema($ref, schema)
-      )
-      const generations = generationDocument.generations.map((g, i) => renderSchema(nameMap[i], g))
+      const codes = codeDocument.codes.map((code, i) => renderSchema(nameMap[i], code))
 
       const s = render("non-recursive definitions", nonRecursives) +
         render("recursive definitions", recursives) +
-        render("schemas", generations)
+        render("schemas", codes)
 
       return s
     } else {
@@ -64,10 +62,10 @@ export function make() {
       }
     }
 
-    function renderSchema($ref: string, schema: SchemaStandard.Generation) {
-      const strings = [`export type ${$ref} = ${schema.Type}`]
+    function renderSchema($ref: string, code: SchemaRepresentation.Code) {
+      const strings = [`export type ${$ref} = ${code.Type}`]
       if (!typeOnly) {
-        strings.push(`export const ${$ref} = ${schema.runtime}`)
+        strings.push(`export const ${$ref} = ${code.runtime}`)
       }
       return strings.join("\n")
     }

@@ -2085,7 +2085,7 @@ export * as SchemaParser from "./SchemaParser.ts"
 /**
  * @since 4.0.0
  */
-export * as SchemaStandard from "./SchemaStandard.ts"
+export * as SchemaRepresentation from "./SchemaRepresentation.ts"
 
 /**
  * @since 4.0.0
