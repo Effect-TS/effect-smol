@@ -95,35 +95,20 @@ const make = (): FileSystem.FileSystem => ({
 export const layer: Layer.Layer<FileSystem.FileSystem, never, never> = Layer.succeed(FileSystem.FileSystem, make())
 ```
 
-### Bun-Specific Optimizations
+### Bun Platform Implementation
 
 ```typescript
 // packages/platform-bun/src/BunFileSystem.ts
-import { NodeFileSystem } from "@effect/platform-node-shared"
+import * as NodeFileSystem from "@effect/platform-node-shared/NodeFileSystem"
+import type { FileSystem } from "effect/FileSystem"
+import type * as Layer from "effect/Layer"
 
-// Bun can use Node.js FileSystem implementation
-export const layer: Layer.Layer<FileSystem.FileSystem, never, never> = NodeFileSystem.layer
-
-// Or provide Bun-specific optimizations
-const bunOptimizedImplementation = (): FileSystem.FileSystem => ({
-  [FileSystem.TypeId]: FileSystem.TypeId,
-
-  // Use Bun's native file operations where beneficial
-  readFile: (path: string) =>
-    Effect.tryPromise({
-      try: () => Bun.file(path).arrayBuffer().then((ab) => new Uint8Array(ab)),
-      catch: (error) =>
-        new PlatformError.SystemError({
-          module: "FileSystem",
-          method: "readFile",
-          reason: "Unknown",
-          pathOrDescriptor: path,
-          cause: error
-        })
-    })
-  // ... other optimized methods
-})
+// Bun currently reuses the Node.js FileSystem implementation
+// No Bun-specific optimizations are implemented yet
+export const layer: Layer.Layer<FileSystem, never, never> = NodeFileSystem.layer
 ```
+
+**Note**: Bun's FileSystem layer currently delegates entirely to `@effect/platform-node-shared/NodeFileSystem`. Future Bun-specific optimizations may be added to leverage Bun's native APIs (e.g., `Bun.file()`), but these are not yet implemented.
 
 ## 🔄 ERROR HANDLING PATTERNS
 
@@ -175,20 +160,26 @@ export const handleErrnoException =
     }
   }
 
-// Usage in effectify
-const effectify = <Args extends ReadonlyArray<any>, Return>(
-  nodeFunction: (...args: [...Args, (err: any, result: Return) => void]) => void,
-  onError: (error: any, args: Args) => PlatformError.PlatformError
-) =>
-(...args: Args): Effect.Effect<Return, PlatformError.PlatformError, never> =>
-  Effect.async<Return, PlatformError.PlatformError>((resume) => {
-    nodeFunction(...args, (err, result) => {
-      if (err) {
-        resume(Effect.fail(onError(err, args)))
-      } else {
-        resume(Effect.succeed(result))
-      }
-    })
+// Usage with effectify (from effect/Effect)
+import { effectify } from "effect/Effect"
+
+const nodeAccess = effectify(
+  NFS.access,
+  handleErrnoException("FileSystem", "access"),
+  handleBadArgument("access")
+)
+
+const nodeCopyFile = effectify(
+  NFS.copyFile,
+  handleErrnoException("FileSystem", "copyFile"),
+  handleBadArgument("copyFile")
+)
+
+// handleBadArgument handles synchronous argument validation errors
+const handleBadArgument = (method: string) => (err: unknown) =>
+  new PlatformError.BadArgument({
+    module: "FileSystem",
+    method
   })
 ```
 
@@ -279,60 +270,95 @@ export const layerMemoryFileSystem: Layer.Layer<FileSystem.FileSystem> = Layer.s
 
 ### Node.js Stream Conversion
 
-Convert Node.js streams to Effect streams:
+Convert Node.js streams to Effect streams using `Stream.fromChannel` with `Channel.fromTransform`:
 
 ```typescript
-// packages/platform-node/src/NodeStream.ts
-export const fromReadable = <E = Error>(
-  evaluate: LazyArg<NodeReadable>,
-  onError?: (error: unknown) => E
-): Stream.Stream<Uint8Array, E, never> =>
-  Stream.asyncEffect<Uint8Array, E, never>((emit) =>
-    Effect.gen(function*() {
-      const readable = evaluate()
+// packages/platform-node-shared/src/NodeStream.ts
+import * as Arr from "effect/Array"
+import * as Channel from "effect/Channel"
+import * as Effect from "effect/Effect"
+import type { LazyArg } from "effect/Function"
+import * as Pull from "effect/Pull"
+import * as Scope from "effect/Scope"
+import * as Stream from "effect/Stream"
+import { Readable } from "node:stream"
 
-      yield* Effect.addFinalizer(() =>
-        Effect.sync(() => {
-          readable.destroy()
-        })
-      )
+export const fromReadable = <A = Uint8Array, E = Cause.UnknownError>(options: {
+  readonly evaluate: LazyArg<Readable | NodeJS.ReadableStream>
+  readonly onError?: (error: unknown) => E
+  readonly chunkSize?: number | undefined
+  readonly closeOnDone?: boolean | undefined
+}): Stream.Stream<A, E> => Stream.fromChannel(fromReadableChannel<A, E>(options))
 
-      readable.on("data", (chunk) => {
-        emit.single(new Uint8Array(chunk))
-      })
-
-      readable.on("end", () => {
-        emit.end()
-      })
-
-      readable.on("error", (error) => {
-        emit.fail(onError ? onError(error) : error as E)
-      })
-
-      return Effect.void
+export const fromReadableChannel = <A = Uint8Array, E = Cause.UnknownError>(options: {
+  readonly evaluate: LazyArg<Readable | NodeJS.ReadableStream>
+  readonly onError?: (error: unknown) => E
+  readonly chunkSize?: number | undefined
+  readonly closeOnDone?: boolean | undefined
+}): Channel.Channel<Arr.NonEmptyReadonlyArray<A>, E> =>
+  Channel.fromTransform((_, scope) =>
+    readableToPullUnsafe({
+      scope,
+      readable: options.evaluate(),
+      onError: options.onError ?? defaultOnError as any,
+      chunkSize: options.chunkSize,
+      closeOnDone: options.closeOnDone
     })
   )
+```
 
-// HTTP response body as stream
-export class NodeHttpClientResponse implements HttpClientResponse.HttpClientResponse {
-  constructor(
-    private readonly source: NodeIncomingMessage,
-    private readonly request: HttpClientRequest.HttpClientRequest
-  ) {}
+### Bun ReadableStream Conversion
 
-  get stream(): Stream.Stream<Uint8Array, HttpClientError.ResponseError> {
-    return NodeStream.fromReadable({
-      evaluate: () => this.source,
-      onError: (cause) =>
-        new HttpClientError.ResponseError({
-          request: this.request,
-          response: this,
-          reason: "Decode",
-          cause
-        })
-    })
+Bun provides an optimized stream conversion using the `.readMany()` API:
+
+```typescript
+// packages/platform-bun/src/BunStream.ts
+export const fromReadableStream = <A, E>(
+  options: {
+    readonly evaluate: LazyArg<ReadableStream<A>>
+    readonly onError: (error: unknown) => E
+    readonly releaseLockOnEnd?: boolean | undefined
   }
-}
+): Stream.Stream<A, E> =>
+  Stream.fromChannel(Channel.fromTransform(Effect.fnUntraced(function*(_, scope) {
+    const reader = options.evaluate().getReader()
+    yield* Scope.addFinalizer(
+      scope,
+      options.releaseLockOnEnd ? Effect.sync(() => reader.releaseLock()) : Effect.promise(() => reader.cancel())
+    )
+    const readMany = Effect.callback<Bun.ReadableStreamDefaultReadManyResult<A>, E>((resume) => {
+      const result = reader.readMany()
+      if ("then" in result) {
+        result.then((_) => resume(Effect.succeed(_)), (e) => resume(Effect.fail(options.onError(e))))
+      } else {
+        resume(Effect.succeed(result))
+      }
+    })
+    return Effect.flatMap(
+      readMany,
+      function loop({ done, value }): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> {
+        if (done) return Pull.haltVoid
+        if (!Arr.isReadonlyArrayNonEmpty(value)) return Effect.flatMap(readMany, loop)
+        return Effect.succeed(value)
+      }
+    )
+  })))
+```
+
+### Stream to Node.js Readable
+
+Convert Effect streams back to Node.js Readable streams:
+
+```typescript
+// packages/platform-node-shared/src/NodeStream.ts
+export const toReadable = <E, R>(stream: Stream.Stream<string | Uint8Array, E, R>): Effect.Effect<Readable, never, R> =>
+  Effect.map(
+    Effect.services<R>(),
+    (context) => new StreamAdapter(context, stream)
+  )
+
+export const toReadableNever = <E>(stream: Stream.Stream<string | Uint8Array, E, never>): Readable =>
+  new StreamAdapter(ServiceMap.empty(), stream)
 ```
 
 ## 🔐 RESOURCE MANAGEMENT PATTERNS

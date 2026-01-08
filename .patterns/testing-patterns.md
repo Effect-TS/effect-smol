@@ -85,7 +85,7 @@ Any code that involves timing must use TestClock to avoid flaky tests:
 
 ```typescript
 import { assert, describe, it } from "@effect/vitest"
-import { Duration, Effect, TestClock } from "effect"
+import { Effect, TestClock } from "effect"
 
 describe("time-dependent operations", () => {
   it.effect("should handle delays with TestClock", () =>
@@ -93,13 +93,13 @@ describe("time-dependent operations", () => {
       // Start operation that takes 5 seconds
       const fiber = yield* Effect.fork(
         Effect.gen(function*() {
-          yield* Effect.sleep(Duration.seconds(5))
+          yield* Effect.sleep("5 seconds")
           return "completed"
         })
       )
 
-      // Use TestClock to advance time instead of waiting
-      yield* TestClock.advance(Duration.seconds(5))
+      // Use TestClock.adjust with string duration (preferred pattern)
+      yield* TestClock.adjust("5 seconds")
 
       const result = yield* Effect.join(fiber)
       assert.strictEqual(result, "completed")
@@ -108,17 +108,34 @@ describe("time-dependent operations", () => {
   it.effect("should test timeout behavior", () =>
     Effect.gen(function*() {
       const timeoutEffect = Effect.timeout(
-        Effect.sleep(Duration.seconds(10)),
-        Duration.seconds(5)
+        Effect.sleep("10 seconds"),
+        "5 seconds"
       )
 
       const fiber = yield* Effect.fork(timeoutEffect)
 
       // Advance time to trigger timeout
-      yield* TestClock.advance(Duration.seconds(5))
+      yield* TestClock.adjust("5 seconds")
 
       const result = yield* Effect.exit(Effect.join(fiber))
       assert.isTrue(result._tag === "Failure")
+    }))
+
+  it.effect("should set absolute time with setTime", () =>
+    Effect.gen(function*() {
+      // Set clock to specific timestamp
+      yield* TestClock.setTime(1000)
+
+      const fiber = yield* Effect.fork(
+        Effect.gen(function*() {
+          yield* Effect.sleep("2 seconds")
+          return yield* Effect.clockWith((clock) => clock.currentTimeMillis)
+        })
+      )
+
+      yield* TestClock.adjust("2 seconds")
+      const result = yield* Effect.join(fiber)
+      assert.strictEqual(result, 3000) // 1000 + 2000ms
     }))
 })
 ```
@@ -313,18 +330,37 @@ describe("concurrent operations", () => {
 
 ### Layer and Service Testing Pattern
 
+Use `ServiceMap.Service` for defining services in the Effect codebase:
+
 ```typescript
 import { assert, describe, it } from "@effect/vitest"
-import { Context, Effect, Layer } from "effect"
+import { Effect, Layer, ServiceMap } from "effect"
 import * as ServiceModule from "../src/ServiceModule.js"
 
-// Test service interfaces
-class TestDatabaseService extends Context.Tag("TestDatabaseService")<
-  TestDatabaseService,
-  {
-    readonly query: (sql: string) => Effect.Effect<unknown[], never, never>
-  }
->() {}
+// Define services using ServiceMap.Service pattern
+class DatabaseService extends ServiceMap.Service<DatabaseService, {
+  readonly query: (sql: string) => Effect.Effect<unknown[]>
+}>()("DatabaseService") {
+  // Live implementation for production
+  static Live = Layer.succeed(DatabaseService)({
+    query: (sql) => Effect.succeed([])
+  })
+}
+
+// Test service with mock implementation
+class TestDatabaseService extends ServiceMap.Service<TestDatabaseService, {
+  readonly query: (sql: string) => Effect.Effect<unknown[]>
+}>()("TestDatabaseService") {
+  static Mock = (mockData: unknown[]) =>
+    Layer.succeed(TestDatabaseService)({
+      query: (_sql) => Effect.succeed(mockData)
+    })
+
+  static Failing = (error: string) =>
+    Layer.succeed(TestDatabaseService)({
+      query: () => Effect.fail(error)
+    })
+}
 
 describe("service integration", () => {
   it.effect("should work with mock services", () =>
@@ -332,13 +368,7 @@ describe("service integration", () => {
       const mockData = [{ id: 1, name: "test" }]
 
       const result = yield* ServiceModule.findUser("1")
-        .pipe(
-          Effect.provide(
-            Layer.succeed(TestDatabaseService, {
-              query: (sql) => Effect.succeed(mockData)
-            })
-          )
-        )
+        .pipe(Effect.provide(TestDatabaseService.Mock(mockData)))
 
       assert.deepStrictEqual(result, mockData[0])
     }))
@@ -347,16 +377,25 @@ describe("service integration", () => {
     Effect.gen(function*() {
       const result = yield* Effect.exit(
         ServiceModule.findUser("1")
-          .pipe(
-            Effect.provide(
-              Layer.succeed(TestDatabaseService, {
-                query: () => Effect.fail("Database connection failed")
-              })
-            )
-          )
+          .pipe(Effect.provide(TestDatabaseService.Failing("Database connection failed")))
       )
 
       assert.isTrue(Exit.isFailure(result))
+    }))
+
+  it.effect("should use direct Layer.succeed for simple mocks", () =>
+    Effect.gen(function*() {
+      // For simple one-off mocks, use Layer.succeed directly
+      const result = yield* ServiceModule.getValue()
+        .pipe(
+          Effect.provide(
+            Layer.succeed(DatabaseService)({
+              query: () => Effect.succeed([{ value: 42 }])
+            })
+          )
+        )
+
+      assert.strictEqual(result, 42)
     }))
 })
 ```
@@ -366,13 +405,31 @@ describe("service integration", () => {
 ### Effect-specific Assertions
 
 ```typescript
-// Use assert methods, not expect
-assert.strictEqual(actual, expected)
-assert.deepStrictEqual(actualObject, expectedObject)
+// Equality assertions
+assert.strictEqual(actual, expected) // Reference/primitive equality
+assert.notStrictEqual(actual, expected) // Reference/primitive inequality
+assert.deepStrictEqual(actualObject, expectedObject) // Deep structural equality
+assert.deepEqual(actual, expected) // Uses Equal.equals trait for Effect types
+
+// Boolean assertions
 assert.isTrue(condition)
 assert.isFalse(condition)
+assert.ok(condition, "optional message") // Boolean with custom message
+
+// Null/undefined assertions
 assert.isNull(value)
+assert.isNotNull(value)
 assert.isUndefined(value)
+assert.isDefined(value)
+
+// Numeric comparisons
+assert.isAtLeast(actual, expected) // actual >= expected
+assert.isAtMost(actual, expected) // actual <= expected
+
+// String/regex assertions
+assert.match(string, regex) // String matches regex pattern
+
+// Array assertions
 assert.includeMembers(actualArray, expectedItems)
 
 // For custom error types
@@ -381,6 +438,50 @@ assert.isTrue(MyModule.isCustomError(error))
 // For Exit results
 assert.isTrue(Exit.isSuccess(result))
 assert.isTrue(Exit.isFailure(result))
+```
+
+### Specialized Exit and Result Assertions
+
+Import from `@effect/vitest/utils` for type-safe Exit and Result assertions:
+
+```typescript
+import { assert, describe, it } from "@effect/vitest"
+import { assertExitFailure, assertExitSuccess, assertFailure, assertSuccess } from "@effect/vitest/utils"
+import { Effect, Exit } from "effect"
+
+describe("specialized assertions", () => {
+  it.effect("should assert Exit success", () =>
+    Effect.gen(function*() {
+      const result = yield* Effect.exit(Effect.succeed(42))
+
+      // Type-safe assertion that narrows Exit type
+      assertExitSuccess(result, 42)
+    }))
+
+  it.effect("should assert Exit failure", () =>
+    Effect.gen(function*() {
+      const result = yield* Effect.exit(Effect.fail("error"))
+
+      // Asserts failure and validates cause
+      assertExitFailure(result, "error")
+    }))
+
+  it.effect("should assert Result success", () =>
+    Effect.gen(function*() {
+      const result = yield* Effect.result(Effect.succeed("value"))
+
+      // For Result types (success channel)
+      assertSuccess(result, "value")
+    }))
+
+  it.effect("should assert Result failure", () =>
+    Effect.gen(function*() {
+      const result = yield* Effect.result(Effect.fail("error"))
+
+      // For Result types (failure channel)
+      assertFailure(result, "error")
+    }))
+})
 ```
 
 ### Testing Complex Data Structures

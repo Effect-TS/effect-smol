@@ -114,6 +114,101 @@ const processData = (input: string) =>
   })
 ```
 
+### Effect.gen vs Effect.fn vs Effect.fnUntraced
+
+Choose the right function constructor based on your use case:
+
+| Feature         | `Effect.gen`               | `Effect.fn`                    | `Effect.fnUntraced`            |
+| --------------- | -------------------------- | ------------------------------ | ------------------------------ |
+| **Purpose**     | One-off effect composition | Reusable effectful functions   | Internal/performance-critical  |
+| **Returns**     | `Effect<A, E, R>`          | `(...args) => Effect<A, E, R>` | `(...args) => Effect<A, E, R>` |
+| **Tracing**     | Uses parent span           | Creates new span + stack trace | No tracing overhead            |
+| **Performance** | Standard                   | Overhead for tracing           | Minimal overhead               |
+| **Use case**    | Inline composition         | Public API methods             | Library internals              |
+
+#### Effect.gen - Inline Composition
+
+Use for one-off effect composition that doesn't need to be reused as a function:
+
+```typescript
+import { Effect } from "effect"
+
+// One-off effect, no function wrapper needed
+const program = Effect.gen(function*() {
+  const user = yield* fetchUser(id)
+  const posts = yield* fetchPosts(user.id)
+  return { user, posts }
+})
+```
+
+#### Effect.fn - Traced Reusable Functions (Public API)
+
+Use for reusable effectful functions that benefit from tracing and stack traces:
+
+```typescript
+import { Effect } from "effect"
+
+// Creates a traced function with span + stack capture
+const fetchUserPosts = Effect.fn("fetchUserPosts")(function*(userId: string) {
+  yield* Effect.annotateCurrentSpan("userId", userId)
+  const user = yield* fetchUser(userId)
+  const posts = yield* fetchPosts(user.id)
+  return { user, posts }
+})
+
+// Calling creates a span named "fetchUserPosts" with stack traces
+await Effect.runPromise(fetchUserPosts("123"))
+```
+
+`Effect.fn` also supports piping transformations after the function body:
+
+```typescript
+const fetchWithTimeout = Effect.fn("fetchWithTimeout")(
+  function*(url: string) {
+    return yield* Effect.tryPromise(() => fetch(url))
+  },
+  Effect.timeout("5 seconds"),
+  Effect.retry({ times: 3 })
+)
+```
+
+#### Effect.fnUntraced - Untraced Functions (Library Internals)
+
+Use for internal implementations where tracing overhead is unacceptable:
+
+```typescript
+import { Effect, Scope } from "effect"
+
+// No tracing overhead - used in Stream, Channel, Sink internals
+const internalTransform = Effect.fnUntraced(function*(pull, scope) {
+  const reader = options.evaluate().getReader()
+  yield* Scope.addFinalizer(scope, Effect.sync(() => reader.releaseLock()))
+  // ... internal implementation
+})
+```
+
+#### When to Use What
+
+**Use `Effect.gen`** when:
+
+- Writing inline effect composition
+- One-off operations that don't need to be reused
+- Inside other functions already being traced
+
+**Use `Effect.fn`** when:
+
+- Creating reusable effectful functions
+- Building public API methods
+- You want automatic tracing/spans for debugging
+- Error stack traces matter for users
+
+**Use `Effect.fnUntraced`** when:
+
+- Building internal library implementations
+- Performance is critical (hot paths)
+- Function is called many times per operation
+- Tracing overhead is unacceptable
+
 ### Error Handling with Data.TaggedError
 
 Create structured, typed errors using `Data.TaggedError`:

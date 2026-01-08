@@ -1,112 +1,204 @@
 # Module Organization Patterns - Effect Library
 
-## 🎯 OVERVIEW
+## OVERVIEW
 
 Established patterns for organizing modules in the Effect library, based on analysis of the core codebase structure and conventions.
 
-## 📁 DIRECTORY STRUCTURE PATTERNS
+## DIRECTORY STRUCTURE PATTERNS
 
 ### Core Module Organization
 
 ```
 packages/effect/src/
-├── collections/          # Data structures (Array, HashMap, etc.)
-├── concurrency/          # Concurrent operations (Fiber, Semaphore, etc.)
-├── data/                 # Core data types (Option, Either, etc.)
-├── interfaces/           # Type interfaces (Equal, Hash, etc.)
-├── internal/             # Private implementation details
-├── platform/             # Platform abstractions
-├── streaming/            # Stream operations
-├── utils/                # Utility functions
-└── [module].ts           # Core modules (Effect.ts, Layer.ts, etc.)
+├── encoding/             # Encoding utilities (Base64, Hex, etc.)
+│   ├── Base64.ts
+│   ├── Base64Url.ts
+│   ├── EncodingError.ts
+│   ├── Hex.ts
+│   └── index.ts
+├── internal/             # Private implementation details (~27 files)
+│   ├── array.ts
+│   ├── concurrency.ts
+│   ├── core.ts
+│   ├── effect.ts
+│   ├── layer.ts
+│   ├── schema/
+│   └── ...
+├── testing/              # Test utilities
+│   ├── FastCheck.ts
+│   ├── TestClock.ts
+│   ├── TestConsole.ts
+│   ├── TestSchema.ts
+│   └── index.ts
+├── unstable/             # Experimental features (17 subdirectories)
+│   ├── ai/
+│   ├── cli/
+│   ├── cluster/
+│   ├── http/
+│   ├── httpapi/
+│   ├── persistence/
+│   ├── rpc/
+│   ├── schema/
+│   ├── sql/
+│   ├── workers/
+│   ├── workflow/
+│   └── ...
+├── index.ts              # Main export file
+└── [module].ts           # 122+ top-level modules (flat structure)
+```
+
+### Flat Module Structure
+
+The Effect library uses a **flat module structure** where core modules are top-level `.ts` files:
+
+```
+packages/effect/src/
+├── Array.ts
+├── BigDecimal.ts
+├── Boolean.ts
+├── Brand.ts
+├── Cache.ts
+├── Cause.ts
+├── Channel.ts
+├── Chunk.ts
+├── Clock.ts
+├── Config.ts
+├── Console.ts
+├── Data.ts
+├── DateTime.ts
+├── Deferred.ts
+├── Duration.ts
+├── Effect.ts
+├── Equal.ts
+├── Exit.ts
+├── Fiber.ts
+├── FiberSet.ts
+├── FiberMap.ts
+├── FileSystem.ts
+├── Function.ts
+├── Graph.ts
+├── Hash.ts
+├── HashMap.ts
+├── HashSet.ts
+├── HKT.ts
+├── Layer.ts
+├── Logger.ts
+├── Option.ts
+├── Pool.ts
+├── Queue.ts
+├── Ref.ts
+├── Request.ts
+├── Result.ts
+├── Schedule.ts
+├── Schema.ts
+├── Scope.ts
+├── Stream.ts
+├── ...
 ```
 
 ### Export Pattern Structure
 
-**Index file pattern (packages/effect/src/collections/index.ts):**
-
-```typescript
-/**
- * @since 2.0.0
- */
-export * as Array from "./Array.js"
-export * as Chunk from "./Chunk.js"
-export * as HashMap from "./HashMap.js"
-export * as HashSet from "./HashSet.js"
-export * as List from "./List.js"
-export * as SortedMap from "./SortedMap.js"
-export * as SortedSet from "./SortedSet.js"
-```
-
-### Template Files for Build Generation
-
-**Template pattern (packages/effect/src/index.ts.tpl):**
+**Main index file pattern (packages/effect/src/index.ts):**
 
 ```typescript
 /**
  * @since 2.0.0
  */
 
-// Core Effects
-export * as Effect from "./Effect.js"
-export * as Exit from "./Exit.js"
-export * as Layer from "./Layer.js"
+export {
+  /**
+   * @since 2.0.0
+   */
+  absurd,
+  /**
+   * @since 2.0.0
+   */
+  flow,
+  /**
+   * @since 2.0.0
+   */
+  identity,
+  /**
+   * @since 2.0.0
+   */
+  pipe
+} from "./Function.ts"
 
-// Domain Exports
-export * from "./collections/index.js"
-export * from "./concurrency/index.js"
-export * from "./data/index.js"
+// @barrel: Auto-generated exports. Do not edit manually.
+
+/**
+ * This module provides utility functions for working with arrays in TypeScript.
+ *
+ * @since 2.0.0
+ */
+export * as Array from "./Array.ts"
+
+/**
+ * @since 2.0.0
+ */
+export * as BigDecimal from "./BigDecimal.ts"
+
+/**
+ * @since 2.0.0
+ */
+export * as Effect from "./Effect.ts"
+
+// ... flat namespace exports for all modules
 ```
 
-## 🏗️ MODULE STRUCTURE PATTERNS
+**Key observations:**
+
+- Uses `.ts` extensions in imports (not `.js`)
+- Flat namespace exports (`export * as ModuleName from "./Module.ts"`)
+- No nested index files for collections/concurrency/etc.
+- Barrel exports are auto-generated
+
+## MODULE STRUCTURE PATTERNS
 
 ### Standard Module File Structure
 
 ```typescript
 /**
  * Module description with @since version
+ *
+ * @since 2.0.0
  */
 
-// Imports (organized by category)
-import { dual } from "../Function.js"
-import * as internal from "../internal/moduleName.js"
-import type { TypeLambda } from "../types/HKT.js"
+// Imports (organized by category) - use .ts extensions
+import * as Cause from "./Cause.ts"
+import * as Deferred from "./Deferred.ts"
+import * as Effect from "./Effect.ts"
+import { dual } from "./Function.ts"
+import type * as Inspectable from "./Inspectable.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import { type Pipeable } from "./Pipeable.ts"
+import * as Predicate from "./Predicate.ts"
+import type * as Scope from "./Scope.ts"
 
-// Type definitions
-export interface ModuleName<A> {
-  readonly [TypeId]: TypeId
+// TypeId - string literal pattern (NOT Symbol.for)
+const TypeId = "~effect/ModuleName"
+
+/**
+ * @since 2.0.0
+ * @category models
+ */
+export interface ModuleName<out A = unknown, out E = unknown> extends Pipeable, Inspectable.Inspectable {
+  readonly [TypeId]: typeof TypeId
   // Interface members
 }
 
-// Type Lambda for higher-kinded types
-export interface ModuleNameTypeLambda extends TypeLambda {
-  readonly type: ModuleName<this["Target"]>
+// Type guard using Predicate.hasProperty
+/**
+ * @since 2.0.0
+ * @category refinements
+ */
+export const isModuleName = (u: unknown): u is ModuleName<unknown, unknown> => Predicate.hasProperty(u, TypeId)
+
+// Prototype pattern for implementation
+const Proto = {
+  [TypeId]: TypeId
+  // ... implementation
 }
-
-// Type ID for runtime identification
-const TypeId: unique symbol = Symbol.for("effect/ModuleName") as TypeId
-export type TypeId = typeof TypeId
-
-// Constructors (creation functions)
-/**
- * @example
- * @since version
- * @category constructors
- */
-export const make = <A>(value: A): ModuleName<A> => internal.make(value)
-
-// Combinators (transformation functions)
-/**
- * @example
- * @since version
- * @category combinators
- */
-export const map = dual<
-  <A, B>(f: (a: A) => B) => (self: ModuleName<A>) => ModuleName<B>,
-  <A, B>(self: ModuleName<A>, f: (a: A) => B) => ModuleName<B>
->(2, internal.map)
-
-// Utilities and other functions
 ```
 
 ### Internal Module Pattern
@@ -116,26 +208,25 @@ export const map = dual<
 ```typescript
 /** @internal */
 
+import { identity } from "../Function.ts"
+import { pipeArguments } from "../Pipeable.ts"
+
 // Private implementation details
 const ArrayProto = {
-  [Equal.symbol]<A>(this: ReadonlyArray<A>, that: Equal.Equal): boolean {
-    return isArray(that) && arrayEquals(this, that)
-  },
-  [Hash.symbol]<A>(this: ReadonlyArray<A>): number {
-    return Hash.array(this)
-  },
   pipe() {
     return pipeArguments(this, arguments)
   }
 }
 
 // Internal implementation functions
+/** @internal */
 export const make = <A>(...elements: ReadonlyArray<A>): Array<A> => {
   const arr = [...elements]
   Object.setPrototypeOf(arr, ArrayProto)
-  return arr as any
+  return arr
 }
 
+/** @internal */
 export const map = <A, B>(
   self: ReadonlyArray<A>,
   f: (a: A, i: number) => B
@@ -145,11 +236,11 @@ export const map = <A, B>(
     result[i] = f(self[i]!, i)
   }
   Object.setPrototypeOf(result, ArrayProto)
-  return result as any
+  return result
 }
 ```
 
-## 🏷️ NAMING CONVENTIONS
+## NAMING CONVENTIONS
 
 ### Function Naming Patterns
 
@@ -203,7 +294,7 @@ export type ReadonlyArray<A> = readonly A[]
 export type ReadonlyRecord<K extends string | symbol, V> = { readonly [P in K]: V }
 ```
 
-## 🔄 DUAL FUNCTION PATTERN
+## DUAL FUNCTION PATTERN
 
 ### Standard Dual Implementation
 
@@ -213,7 +304,7 @@ export type ReadonlyRecord<K extends string | symbol, V> = { readonly [P in K]: 
  *
  * @example
  * ```ts
- * import { Array } from "effect/collections"
+ * import { Array } from "effect"
  *
  * // Data-first usage
  * const result1 = Array.map([1, 2, 3], x => x * 2)
@@ -249,16 +340,18 @@ export const update = dual<
 >((args) => Array.isArray(args[0]), internalArray.update)
 ```
 
-## 🏷️ TYPE IDENTIFICATION PATTERN
+## TYPE IDENTIFICATION PATTERN
 
-### TypeId Pattern
+### TypeId Pattern (String Literals)
+
+The Effect library uses **string literal TypeIds** (NOT `Symbol.for`):
 
 ```typescript
 /**
  * The type identifier for this data type.
- * Used for runtime type checking and debugging.
+ * Uses string literal format: "~effect/ModuleName"
  */
-const TypeId: unique symbol = Symbol.for("effect/ModuleName") as TypeId
+const TypeId = "~effect/ModuleName"
 
 /**
  * @category symbols
@@ -271,9 +364,40 @@ export type TypeId = typeof TypeId
  * @since 2.0.0
  */
 export interface ModuleName<A> {
-  readonly [TypeId]: TypeId
+  readonly [TypeId]: typeof TypeId
   // other properties
 }
+```
+
+### TypeId Naming Conventions
+
+```typescript
+// Standard module TypeId
+const TypeId = "~effect/Queue"
+const TypeId = "~effect/FiberSet"
+const TypeId = "~effect/Pool"
+const TypeId = "~effect/Ref"
+const TypeId = "~effect/Deferred"
+
+// Nested/namespaced TypeIds for related types
+const TypeId = "~effect/Queue/Dequeue"
+const FileTypeId = "~effect/platform/FileSystem/File"
+
+// Domain-prefixed TypeIds
+const TypeId = "~effect/collections/Chunk"
+const TypeId = "~effect/data/Redacted"
+const TypeId = "~effect/platform/FileSystem"
+const TypeId = "~effect/platform/PlatformError"
+const TypeId = "~effect/transactions/TxChunk"
+const TypeId = "~effect/transactions/TxSemaphore"
+const TypeId = "~effect/cluster/HashRing"
+
+// Versioned TypeIds (for Effect core types)
+export const EffectTypeId = `~effect/Effect/${version}` as const
+export const ExitTypeId = `~effect/Exit/${version}` as const
+
+// Interface symbols (for Equal, Hash, etc.)
+export const symbol = "~effect/interfaces/Equal"
 ```
 
 ### Type Guard Pattern
@@ -284,24 +408,23 @@ export interface ModuleName<A> {
  *
  * @example
  * ```ts
- * import { ModuleName } from "effect"
+ * import { Effect, FiberSet } from "effect"
  *
- * const value: unknown = ModuleName.make(42)
+ * Effect.gen(function*() {
+ *   const set = yield* FiberSet.make()
  *
- * if (ModuleName.isModuleName(value)) {
- *   // value is now typed as ModuleName<unknown>
- *   console.log("Is ModuleName")
- * }
+ *   console.log(FiberSet.isFiberSet(set)) // true
+ *   console.log(FiberSet.isFiberSet({})) // false
+ * })
  * ```
  *
- * @category guards
+ * @category refinements
  * @since 2.0.0
  */
-export const isModuleName = (value: unknown): value is ModuleName<unknown> =>
-  typeof value === "object" && value !== null && TypeId in value
+export const isModuleName = (u: unknown): u is ModuleName<unknown, unknown> => Predicate.hasProperty(u, TypeId)
 ````
 
-## 📊 VARIANCE ANNOTATION PATTERN
+## VARIANCE ANNOTATION PATTERN
 
 ### Interface Variance
 
@@ -325,49 +448,98 @@ export interface Layer<in ROut, out E = never, out RIn = never> extends Variance
 }
 ```
 
-## 🔗 PIPEABLE INTEGRATION PATTERN
+## PIPEABLE INTEGRATION PATTERN
 
 ### Pipeable Implementation
 
 ```typescript
-import { pipeArguments } from "../Function.js"
-import type { Pipeable } from "../interfaces/Pipeable.js"
+import type * as Inspectable from "./Inspectable.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import { pipeArguments } from "./Pipeable.ts"
+import type { Pipeable } from "./Pipeable.ts"
 
-const Proto = {
-  pipe() {
-    return pipeArguments(this, arguments)
-  }
-}
+const TypeId = "~effect/ModuleName"
 
 /**
  * @category models
  * @since 2.0.0
  */
-export interface ModuleName<A> extends Pipeable {
-  readonly [TypeId]: TypeId
+export interface ModuleName<A> extends Pipeable, Inspectable.Inspectable {
+  readonly [TypeId]: typeof TypeId
   // other properties
+}
+
+// Prototype pattern with pipe support
+const Proto = {
+  [TypeId]: TypeId,
+  ...PipeInspectableProto
+  // other methods
 }
 
 // Attach to prototype for pipe support
 export const make = <A>(value: A): ModuleName<A> => {
-  const instance = { [TypeId]: TypeId, value }
+  const instance = { value }
   Object.setPrototypeOf(instance, Proto)
   return instance as ModuleName<A>
 }
 ```
 
-## 📝 SUCCESS CRITERIA
+## IMPORT CONVENTIONS
+
+### File Extension Rules
+
+**Always use `.ts` extensions in imports:**
+
+```typescript
+// CORRECT - use .ts extensions
+import * as Array from "./Array.ts"
+import * as Effect from "./Effect.ts"
+import { dual } from "./Function.ts"
+import { PipeInspectableProto } from "./internal/core.ts"
+import type * as Scope from "./Scope.ts"
+
+// WRONG - do NOT use .js extensions
+// import * as Effect from "./Effect.js"
+```
+
+### Import Organization
+
+```typescript
+// 1. External imports (if any)
+
+// 2. Effect module imports (alphabetical, .ts extension)
+import * as Cause from "./Cause.ts"
+import * as Deferred from "./Deferred.ts"
+import * as Effect from "./Effect.ts"
+import * as Exit from "./Exit.ts"
+import * as Fiber from "./Fiber.ts"
+
+// 3. Utility imports
+import { constVoid, dual } from "./Function.ts"
+import { type Pipeable } from "./Pipeable.ts"
+import * as Predicate from "./Predicate.ts"
+
+// 4. Internal imports
+import { PipeInspectableProto } from "./internal/core.ts"
+
+// 5. Type-only imports
+import type * as Inspectable from "./Inspectable.ts"
+import type * as Scope from "./Scope.ts"
+```
+
+## SUCCESS CRITERIA
 
 ### Well-Organized Module Checklist
 
-- [ ] Clear directory structure following domain separation
-- [ ] Consistent export patterns using index files
+- [ ] Module placed at correct level (top-level for core, subdirectory for domain-specific)
+- [ ] Uses `.ts` file extension in all imports
+- [ ] TypeId uses string literal format (`"~effect/ModuleName"`)
 - [ ] Proper internal vs public API separation
 - [ ] Standard function naming conventions
 - [ ] Dual function support for data-first/data-last usage
-- [ ] Type identification with TypeId symbols
+- [ ] Type guard using `Predicate.hasProperty`
 - [ ] Variance annotations for type parameters
-- [ ] Pipeable interface integration
+- [ ] Pipeable interface integration via prototype
 - [ ] Comprehensive JSDoc with examples
 - [ ] Version annotations (@since) on all exports
 

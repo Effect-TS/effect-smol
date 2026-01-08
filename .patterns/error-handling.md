@@ -54,12 +54,12 @@ Effect.gen(function*() {
 
 ### Data.TaggedError Pattern
 
-The core pattern for creating structured, typed errors:
+The core pattern for creating structured, typed errors with `_tag` for discrimination:
 
 ```typescript
 import { Data } from "effect"
 
-// Basic tagged error
+// Basic tagged error - has _tag for catchTag discrimination
 class ValidationError extends Data.TaggedError("ValidationError")<{
   field: string
   message: string
@@ -93,12 +93,84 @@ class SystemError extends Data.TaggedError("SystemError")<{
 }
 ```
 
+### Data.Error Pattern
+
+Simpler error pattern without `_tag` - use when discrimination is not needed:
+
+```typescript
+import { Data } from "effect"
+
+// Simple error without _tag - cannot use with catchTag
+class SimpleError extends Data.Error<{
+  message: string
+  cause?: unknown
+}> {}
+
+// When to use:
+// - Errors that won't be caught discriminately
+// - Wrapping external errors without needing tagged discrimination
+// - Simple internal errors in isolated modules
+```
+
+### Schema.ErrorClass Pattern
+
+Major pattern for serializable, schema-validated errors used in CLI, HTTP APIs, and distributed systems:
+
+```typescript
+import { Schema } from "effect"
+
+// Basic schema error class
+class ValidationError extends Schema.ErrorClass(`ValidationError`)({
+  _tag: Schema.tag("ValidationError"),
+  field: Schema.String,
+  message: Schema.optional(Schema.String)
+}) {
+  get message() {
+    return `Validation failed for field: ${this.field}`
+  }
+}
+
+// CLI error example (from CliError.ts pattern)
+class CliError extends Schema.ErrorClass(`TypeId/CliError`)({
+  _tag: Schema.tag("CliError"),
+  pathToConfig: Schema.String,
+  span: Schema.String,
+  message: Schema.String
+}) {}
+
+// HTTP API error with module prefix (from HttpApiError.ts pattern)
+class HttpApiDecodeError extends Schema.ErrorClass(`@effect/platform/HttpApiError/HttpApiDecodeError`)({
+  _tag: Schema.tag("HttpApiDecodeError"),
+  message: Schema.String,
+  issues: Schema.Array(Schema.Any)
+}) {}
+
+// AI service error (from AiError.ts pattern)
+class AiError extends Schema.ErrorClass(`@effect/ai/AiError`)({
+  _tag: Schema.tag("AiError"),
+  module: Schema.String,
+  method: Schema.String,
+  description: Schema.String
+}) {
+  get message() {
+    return `${this.module}.${this.method}: ${this.description}`
+  }
+}
+
+// When to use Schema.ErrorClass:
+// - Errors that need JSON serialization/deserialization
+// - Distributed systems where errors cross service boundaries
+// - CLI tools with structured error output
+// - HTTP APIs with typed error responses
+// - Any error that needs schema validation
+```
+
 ### Error Reason Classification
 
 Standardized error reasons for consistency:
 
 ```typescript
-// Platform errors
+// Platform system errors
 export type SystemErrorReason =
   | "AlreadyExists"
   | "BadResource"
@@ -112,7 +184,21 @@ export type SystemErrorReason =
   | "WouldBlock"
   | "WriteZero"
 
-// HTTP errors
+// HTTP client errors (from HttpClientError.ts)
+export type HttpClientErrorReason =
+  | "Transport" // Network/transport layer failure
+  | "Encode" // Request body encoding failure
+  | "InvalidUrl" // Malformed URL
+  | "StatusCode" // Non-successful HTTP status
+  | "Decode" // Response body decoding failure
+  | "EmptyBody" // Expected body but got none
+
+// Encoding errors (from Body.ts, Schema)
+export type EncodingErrorReason =
+  | "Decode" // Failed to decode from format
+  | "Encode" // Failed to encode to format
+
+// HTTP API status errors
 export type HttpErrorReason =
   | "BadRequest"
   | "Unauthorized"
@@ -123,41 +209,62 @@ export type HttpErrorReason =
   | "ServiceUnavailable"
 
 // Validation errors
-export type ValidationErrorReason = "InvalidFormat" | "OutOfRange" | "Required" | "TooLong" | "TooShort"
+export type ValidationErrorReason =
+  | "InvalidFormat"
+  | "OutOfRange"
+  | "Required"
+  | "TooLong"
+  | "TooShort"
 ```
 
-### Error Hierarchies
+### Error Composition with Union Types
+
+The codebase uses flat error structures with union types for composition, not abstract base classes:
 
 ```typescript
-// Base error class
-abstract class BaseError extends Data.TaggedError<string>()(
-  class {
-    abstract readonly _tag: string
-    abstract readonly message: string
-  }
-) {}
+import { Data } from "effect"
 
-// Specific error implementations
-class ParseError extends BaseError<"ParseError">()<{
-  input: string
-  position: number
-}> {
-  readonly _tag = "ParseError"
-  get message() {
-    return `Parse error at position ${this.position}: ${this.input}`
-  }
-}
+// Define individual error types
+class RequestError extends Data.TaggedError("RequestError")<{
+  reason: "Transport" | "Encode" | "InvalidUrl"
+  url: string
+  cause?: unknown
+}> {}
 
-class ConfigError extends BaseError<"ConfigError">()<{
-  key: string
-  expectedType: string
-}> {
-  readonly _tag = "ConfigError"
-  get message() {
-    return `Configuration error for key '${this.key}': expected ${this.expectedType}`
-  }
-}
+class ResponseError extends Data.TaggedError("ResponseError")<{
+  reason: "StatusCode" | "Decode" | "EmptyBody"
+  status: number
+  cause?: unknown
+}> {}
+
+// Compose errors using union types
+type HttpClientError = RequestError | ResponseError
+
+// Usage in function signatures
+const fetchData = (url: string): Effect.Effect<Data, HttpClientError> =>
+  Effect.gen(function*() {
+    // Implementation...
+  })
+
+// Discriminate using catchTag
+const handleErrors = fetchData(url).pipe(
+  Effect.catchTag("RequestError", (error) => {
+    // Handle request errors
+  }),
+  Effect.catchTag("ResponseError", (error) => {
+    // Handle response errors
+  })
+)
 ```
+
+### Flat Structure Rationale
+
+The codebase prefers flat error structures over inheritance because:
+
+1. **Better type inference** - Union types work seamlessly with Effect's error channel
+2. **Simpler catchTag** - Direct tag matching without instanceof checks
+3. **Serialization-friendly** - No prototype chain complications
+4. **Composition over inheritance** - Combine errors by union, not by extending
 
 ## 🔄 ERROR CREATION PATTERNS
 
@@ -452,15 +559,17 @@ const withFallbacks = <A, E, R>(
 
 ### Well-Handled Errors Checklist
 
-- [ ] All errors use Data.TaggedError pattern
+- [ ] Errors use appropriate pattern: Data.TaggedError (discrimination), Data.Error (simple), or Schema.ErrorClass (serializable)
 - [ ] Error types carry relevant context information
-- [ ] Custom error messages are informative
+- [ ] Custom error messages are informative via `get message()` getter
 - [ ] Error reasons are standardized and consistent
 - [ ] No try-catch blocks in Effect.gen generators
 - [ ] Always use return yield* for error termination
-- [ ] Specific error handling with catchTag
+- [ ] Specific error handling with catchTag for tagged errors
 - [ ] Proper error testing with Effect.exit
 - [ ] Error recovery strategies implemented where appropriate
 - [ ] Error logging provides debugging context
+- [ ] Union types used for error composition, not inheritance
+- [ ] Schema.ErrorClass used for errors crossing service boundaries
 
 This structured approach to error handling ensures type safety, debugging clarity, and robust error recovery throughout Effect applications.

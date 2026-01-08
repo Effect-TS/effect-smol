@@ -121,9 +121,8 @@ export const functionName = <A>(param: A): ModuleName<A> =>
 /**
  * @example
  * ```ts
- * // ✅ CORRECT - Use lowercase 'schema'
- * import { Schema } from "effect/schema"
- * import { Effect } from "effect"
+ * // ✅ CORRECT - Import Schema from main "effect" package
+ * import { Effect, Schema } from "effect"
  *
  * const PersonSchema = Schema.Struct({
  *   name: Schema.String,
@@ -147,8 +146,7 @@ export const functionName = <A>(param: A): ModuleName<A> =>
 /**
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Schema } from "effect/schema"
+ * import { Effect, Schema } from "effect"
  * import { NodeHttpServer } from "@effect/platform-node"
  *
  * const server = Effect.gen(function* () {
@@ -294,14 +292,21 @@ export const functionName = <A>(param: A): ModuleName<A> =>
 
 ## 🏷️ CATEGORY ANNOTATION PATTERNS
 
+### Category Naming Convention
+
+**IMPORTANT**: Always use lowercase for category names. The codebase has some legacy inconsistencies (e.g., `Constructors` vs `constructors`), but new documentation should consistently use lowercase.
+
 ### Standard Categories Used
 
 ```typescript
 // Creation functions
 @category constructors
 
-// Transformation functions  
+// Transformation functions
 @category combinators
+
+// Transformation operations (alternative to combinators)
+@category transforming
 
 // Helper utilities
 @category utilities
@@ -350,6 +355,15 @@ export const functionName = <A>(param: A): ModuleName<A> =>
 
 // Interoperability functions
 @category interop
+
+// Element-level operations (Chunk, Array, etc.)
+@category elements
+
+// Mathematical operations
+@category math
+
+// Mutable operations (when mutability is intentional)
+@category mutations
 ```
 
 ### Category Usage Examples
@@ -449,9 +463,8 @@ export const TypeId = ...
  *
  * @example
  * ```ts
- * import { Effect, Schedule, Layer, Console } from "effect"
+ * import { Effect, Schedule, Layer, Console, Schema } from "effect"
  * import { HttpClient } from "@effect/platform"
- * import { Schema } from "effect/schema"
  *
  * const UserSchema = Schema.Struct({
  *   id: Schema.Number,
@@ -499,8 +512,9 @@ export const TypeId = ...
 /**
  * @example
  * ```ts
- * import { Schema } from "@effect/schema"      // Wrong package
- * import { Schema } from "effect/Schema"       // Wrong casing
+ * import { Schema } from "@effect/schema"      // Wrong package (deprecated)
+ * import { Schema } from "effect/Schema"       // Wrong - not a valid path
+ * import { Schema } from "effect/schema"       // Wrong - use "effect" instead
  * ```
  */
 
@@ -536,8 +550,7 @@ export const TypeId = ...
 /**
  * @example
  * ```ts
- * import { Schema } from "effect/schema"
- * import { Effect } from "effect"
+ * import { Effect, Schema } from "effect"
  *
  * const UserSchema = Schema.Struct({
  *   name: Schema.String,
