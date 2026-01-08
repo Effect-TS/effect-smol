@@ -36,8 +36,7 @@ const config: ViteUserConfig = {
         "**/*.config.*",
         "**/vitest.setup.*",
         "**/vitest.shared.*"
-      ],
-      all: true
+      ]
     }
   }
 }
