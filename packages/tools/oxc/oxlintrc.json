@@ -34,7 +34,9 @@
     "typescript/no-useless-empty-export": "error",
     // Code quality
     "eslint/no-console": "error",
+    "eslint/no-var": "error",
     "eslint/no-useless-constructor": "error",
+    "unicorn/no-abusive-eslint-disable": "error",
     "eslint/no-unneeded-ternary": "error",
     "eslint/no-useless-concat": "error",
     "oxc/misrefactored-assign-op": "error",
