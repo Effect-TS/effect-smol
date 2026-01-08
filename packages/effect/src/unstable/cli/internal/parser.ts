@@ -36,7 +36,7 @@ import * as Primitive from "../Primitive.ts"
 import { suggest } from "./auto-suggest.ts"
 import { completionsFlag, helpFlag, logLevelFlag, versionFlag } from "./builtInFlags.ts"
 import { toImpl } from "./command.ts"
-import { type LexResult, type Token } from "./lexer.ts"
+import type { LexResult, Token } from "./lexer.ts"
 
 /* ========================================================================== */
 /* Public API                                                                 */

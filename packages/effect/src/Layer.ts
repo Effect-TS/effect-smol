@@ -20,7 +20,7 @@
 import type { NonEmptyArray } from "./Array.ts"
 import type * as Cause from "./Cause.ts"
 import * as Deferred from "./Deferred.ts"
-import { type Effect } from "./Effect.ts"
+import type { Effect } from "./Effect.ts"
 import type * as Exit from "./Exit.ts"
 import type { LazyArg } from "./Function.ts"
 import { constant, constTrue, constUndefined, dual, identity } from "./Function.ts"

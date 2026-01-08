@@ -5,7 +5,7 @@ import { dual } from "./Function.ts"
 import * as Hash from "./Hash.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
 import * as Iterable from "./Iterable.ts"
-import { type Pipeable } from "./Pipeable.ts"
+import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as PrimaryKey from "./PrimaryKey.ts"
 
