@@ -1,5 +1,5 @@
+import * as JsonSchemaGenerator from "@effect/openapi-generator/JsonSchemaGenerator"
 import { describe, expect, it } from "@effect/vitest"
-import * as JsonSchemaGenerator from "../src/JsonSchemaGenerator.js"
 
 describe("JsonSchemaGenerator", () => {
   it("schema & no definitions", () => {

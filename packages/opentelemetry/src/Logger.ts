@@ -14,7 +14,7 @@ import * as Predicate from "effect/Predicate"
 import * as ServiceMap from "effect/ServiceMap"
 import * as Tracer from "effect/Tracer"
 import { unknownToAttributeValue } from "./internal/attributes.ts"
-import { Resource } from "./Resource.js"
+import { Resource } from "./Resource.ts"
 
 /**
  * @since 1.0.0

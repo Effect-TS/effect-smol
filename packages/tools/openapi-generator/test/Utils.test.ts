@@ -1,5 +1,5 @@
+import * as Utils from "@effect/openapi-generator/Utils"
 import { describe, expect, it } from "vitest"
-import * as Utils from "../src/Utils.js"
 
 describe("Utils", () => {
   describe("sanitizeSchemaName", () => {

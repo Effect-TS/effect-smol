@@ -12,10 +12,10 @@ import * as Effect from "effect/Effect"
 import { constant, type LazyArg } from "effect/Function"
 import * as Layer from "effect/Layer"
 import { isNonEmpty } from "./internal/utilities.ts"
-import * as Logger from "./Logger.js"
-import * as Metrics from "./Metrics.js"
-import * as Resource from "./Resource.js"
-import * as Tracer from "./Tracer.js"
+import * as Logger from "./Logger.ts"
+import * as Metrics from "./Metrics.ts"
+import * as Resource from "./Resource.ts"
+import * as Tracer from "./Tracer.ts"
 
 /**
  * @since 1.0.0
