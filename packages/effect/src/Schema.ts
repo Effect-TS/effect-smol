@@ -25,7 +25,7 @@ import * as InternalArbitrary from "./internal/schema/arbitrary.ts"
 import * as InternalEquivalence from "./internal/schema/equivalence.ts"
 import * as InternalStandard from "./internal/schema/representation.ts"
 import * as InternalSchema from "./internal/schema/schema.ts"
-import * as InternalSerializer from "./internal/schema/serializer.ts"
+import * as InternalToCodec from "./internal/schema/to-codec.ts"
 import * as JsonPatch from "./JsonPatch.ts"
 import * as JsonSchema from "./JsonSchema.ts"
 import { remainder } from "./Number.ts"
@@ -5300,7 +5300,10 @@ export function Option<A extends Top>(value: A): Option<A> {
       expected: "Option",
       toCodec: ([value]) =>
         link<Option_.Option<A["Encoded"]>>()(
-          Union([Struct({ _tag: Literal("Some"), value }), Struct({ _tag: Literal("None") })]),
+          Union([
+            Struct({ _tag: Literal("Some"), value }),
+            Struct({ _tag: Literal("None") })
+          ]),
           Transformation.transform({
             decode: (input) => input._tag === "None" ? Option_.none() : Option_.some(input.value),
             encode: (o) => (Option_.isSome(o) ? { _tag: "Some", value: o.value } as const : { _tag: "None" } as const)
@@ -5676,9 +5679,9 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
       toCodec: ([error, defect]) =>
         link<Cause_.Failure<E["Encoded"]>>()(
           Union([
-            TaggedStruct("Fail", { error }),
-            TaggedStruct("Die", { defect }),
-            TaggedStruct("Interrupt", { fiberId: UndefinedOr(Finite) })
+            Struct({ _tag: Literal("Fail"), error }),
+            Struct({ _tag: Literal("Die"), defect }),
+            Struct({ _tag: Literal("Interrupt"), fiberId: UndefinedOr(Finite) })
           ]),
           Transformation.transform({
             decode: (input) => {
@@ -5979,8 +5982,8 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
       toCodec: ([value, error, defect]) =>
         link<Exit_.Exit<A["Encoded"], E["Encoded"]>>()(
           Union([
-            TaggedStruct("Success", { value }),
-            TaggedStruct("Failure", { cause: Cause(error, defect) })
+            Struct({ _tag: Literal("Success"), value }),
+            Struct({ _tag: Literal("Failure"), cause: Cause(error, defect) })
           ]),
           Transformation.transform({
             decode: (encoded): Exit_.Exit<A["Encoded"], E["Encoded"]> =>
@@ -6395,24 +6398,29 @@ export const Duration: Duration = declare(
     toCodecJson: () =>
       link<Duration_.Duration>()(
         Union([
-          Int.check(isGreaterThanOrEqualTo(0)),
-          BigInt,
-          Literal("Infinity")
+          Struct({ _tag: Literal("Infinity") }),
+          Struct({ _tag: Literal("Nanos"), nanos: BigInt }),
+          Struct({ _tag: Literal("Millis"), millis: Int.check(isGreaterThanOrEqualTo(0)) })
         ]),
         Transformation.transform({
           decode: (value) => {
-            if (value === "Infinity") return Duration_.infinity
-            if (typeof value === "bigint") return Duration_.nanos(value)
-            return Duration_.millis(value)
+            switch (value._tag) {
+              case "Infinity":
+                return Duration_.infinity
+              case "Nanos":
+                return Duration_.nanos(value.nanos)
+              case "Millis":
+                return Duration_.millis(value.millis)
+            }
           },
           encode: (duration) => {
             switch (duration.value._tag) {
               case "Infinity":
-                return "Infinity"
+                return { _tag: "Infinity" } as const
               case "Nanos":
-                return duration.value.nanos
+                return { _tag: "Nanos", nanos: duration.value.nanos } as const
               case "Millis":
-                return duration.value.millis
+                return { _tag: "Millis", millis: duration.value.millis } as const
             }
           }
         })
@@ -6583,61 +6591,6 @@ export function fromJsonString<S extends Top>(schema: S): fromJsonString<S> {
 /**
  * @since 4.0.0
  */
-export interface Blob extends instanceOf<globalThis.Blob> {}
-
-/**
- * @since 4.0.0
- */
-export const Blob: Blob = instanceOf(globalThis.Blob, {
-  typeConstructor: {
-    _tag: "Blob"
-  },
-  generation: {
-    runtime: `Schema.Blob`,
-    Type: `globalThis.Blob`
-  },
-  expected: "Blob",
-  toCodecJson: () =>
-    link<globalThis.Blob>()(
-      Struct({
-        data: String.check(isBase64()),
-        type: String
-      }),
-      Transformation.transformOrFail({
-        decode: (json) =>
-          Result_.match(Base64.decode(json.data), {
-            onFailure: (error) =>
-              Effect.fail(
-                new Issue.InvalidValue(Option_.some(json.data), {
-                  message: error.message
-                })
-              ),
-            onSuccess: (bytes) => {
-              const buffer = new globalThis.Uint8Array(bytes)
-              return Effect.succeed(new globalThis.Blob([buffer], { type: json.type }))
-            }
-          }),
-        encode: (blob) =>
-          Effect.tryPromise({
-            try: async () => {
-              const bytes = new globalThis.Uint8Array(await blob.arrayBuffer())
-              return {
-                data: Base64.encode(bytes),
-                type: blob.type
-              }
-            },
-            catch: (e) =>
-              new Issue.InvalidValue(Option_.some(blob), {
-                message: globalThis.String(e)
-              })
-          })
-      })
-    )
-})
-
-/**
- * @since 4.0.0
- */
 export interface File extends instanceOf<globalThis.File> {}
 
 /**
@@ -6715,16 +6668,34 @@ export const FormData: FormData = instanceOf(globalThis.FormData, {
   expected: "FormData",
   toCodecJson: () =>
     link<globalThis.FormData>()(
-      Array(Tuple([String, Union([String, File, Blob])])),
+      Array(
+        Tuple([
+          String,
+          Union([
+            Struct({ _tag: tag("String"), value: String }),
+            Struct({ _tag: tag("File"), value: File })
+          ])
+        ])
+      ),
       Transformation.transformOrFail({
         decode: (entries) => {
           const out = new globalThis.FormData()
-          for (const [key, value] of entries) {
-            out.append(key, value)
+          for (const [key, entry] of entries) {
+            out.append(key, entry.value)
           }
           return Effect.succeed(out)
         },
-        encode: (formData) => Effect.succeed(globalThis.Array.from(formData.entries()))
+        encode: (formData) => {
+          return Effect.succeed(
+            globalThis.Array.from(formData.entries()).map(([key, value]) => {
+              if (typeof value === "string") {
+                return [key, { _tag: "String", value }] as const
+              } else {
+                return [key, { _tag: "File", value }] as const
+              }
+            })
+          )
+        }
       })
     )
 })
@@ -7889,7 +7860,7 @@ export function toJsonSchemaDocument(schema: Top, options?: ToJsonSchemaOptions)
  * @since 4.0.0
  */
 export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, unknown, RD, RE> {
-  return make(InternalSerializer.toCodecJson(schema.ast))
+  return make(InternalToCodec.toCodecJson(schema.ast))
 }
 
 /**
@@ -7897,7 +7868,7 @@ export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T,
  * @since 4.0.0
  */
 export function toCodecIso<S extends Top>(schema: S): Codec<S["Type"], S["Iso"]> {
-  return make(InternalSerializer.toCodecIso(AST.toType(schema.ast)))
+  return make(InternalToCodec.toCodecIso(AST.toType(schema.ast)))
 }
 
 /**
@@ -8066,7 +8037,7 @@ function getStringTreePriority(ast: AST.AST): number {
   }
 }
 
-const treeReorder = InternalSerializer.makeReorder(getStringTreePriority)
+const treeReorder = InternalToCodec.makeReorder(getStringTreePriority)
 
 function serializerTree(
   ast: AST.AST,

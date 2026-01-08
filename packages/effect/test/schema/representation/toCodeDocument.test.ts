@@ -95,12 +95,6 @@ describe("toCodeDocument", () => {
       })
     })
 
-    it("Blob", () => {
-      assertToCodeDocument({ schema: Schema.Blob }, {
-        codes: makeCode(`Schema.Blob`, "globalThis.Blob")
-      })
-    })
-
     it("URLSearchParams", () => {
       assertToCodeDocument({ schema: Schema.URLSearchParams }, {
         codes: makeCode(`Schema.URLSearchParams`, "globalThis.URLSearchParams")
