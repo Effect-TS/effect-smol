@@ -9,6 +9,7 @@
   "rules": {
     // Effect custom rules
     "effect/no-import-from-barrel-package": "error",
+    "effect/no-js-extension-imports": "error",
     "effect/no-opaque-instance-fields": "error",
     // Tune native rules
     "oxc/no-map-spread": "off",
