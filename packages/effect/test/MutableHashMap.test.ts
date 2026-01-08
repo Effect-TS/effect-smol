@@ -60,7 +60,7 @@ describe("MutableHashMap", () => {
     if (typeof window !== "undefined") {
       return
     }
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // oxlint-disable-next-line @typescript-eslint/no-require-imports
     const { inspect } = require("node:util")
 
     const map = HM.make(

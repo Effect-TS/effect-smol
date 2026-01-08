@@ -45,7 +45,7 @@ export const make = Effect.fnUntraced(function*(
     conn.on("error", remove)
   }
   let onConnection = defaultOnConnection
-  // eslint-disable-next-line prefer-const
+  // oxlint-disable-next-line prefer-const
   let server: Net.Server | undefined
   yield* Effect.addFinalizer(() =>
     Effect.callback<void>((resume) => {

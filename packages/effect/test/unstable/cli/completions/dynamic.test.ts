@@ -477,12 +477,12 @@ describe("Dynamic Completion Handler", () => {
         )
 
         const originalEnv = { ...process.env }
-        const originalLog = console.log // eslint-disable-line no-console
+        const originalLog = console.log // oxlint-disable-line no-console
         const logs: Array<string> = []
 
         try {
           // Mock console.log
-          console.log = (msg: string) => { // eslint-disable-line no-console
+          console.log = (msg: string) => { // oxlint-disable-line no-console
             logs.push(msg)
           }
 
@@ -497,7 +497,7 @@ describe("Dynamic Completion Handler", () => {
           assert.isTrue(logs.some((log) => log.includes("sub2")))
         } finally {
           process.env = originalEnv
-          console.log = originalLog // eslint-disable-line no-console
+          console.log = originalLog // oxlint-disable-line no-console
         }
       }))
 

@@ -290,7 +290,6 @@ export const make: (options: {
           }
 
           if (metricDataByName.has(state.id)) {
-            // eslint-disable-next-line no-restricted-syntax
             metricDataByName.get(state.id)!.sum!.dataPoints.push(...dataPoints)
           } else {
             addMetricData({
@@ -359,7 +358,6 @@ export const make: (options: {
           }
 
           if (metricDataByName.has(`${state.id}_quantiles`)) {
-            // eslint-disable-next-line no-restricted-syntax
             metricDataByName.get(`${state.id}_quantiles`)!.sum!.dataPoints.push(...dataPoints)
             metricDataByName.get(`${state.id}_count`)!.sum!.dataPoints.push(countDataPoint)
             metricDataByName.get(`${state.id}_sum`)!.sum!.dataPoints.push(sumDataPoint)

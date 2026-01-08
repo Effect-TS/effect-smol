@@ -32,7 +32,7 @@ export {
    * @category Re-exports
    */
   layerK8sHttpClient
-} from "./NodeClusterSocket.js"
+} from "./NodeClusterSocket.ts"
 
 /**
  * @since 1.0.0

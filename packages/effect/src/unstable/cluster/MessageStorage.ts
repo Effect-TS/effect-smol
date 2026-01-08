@@ -13,8 +13,7 @@ import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
-import { EntityNotAssignedToRunner, type PersistenceError } from "./ClusterError.ts"
-import { MalformedMessage } from "./ClusterError.ts"
+import { EntityNotAssignedToRunner, MalformedMessage, type PersistenceError } from "./ClusterError.ts"
 import * as DeliverAt from "./DeliverAt.ts"
 import type { EntityAddress } from "./EntityAddress.ts"
 import * as Envelope from "./Envelope.ts"
@@ -727,7 +726,6 @@ export class MemoryDriver extends ServiceMap.Service<MemoryDriver>()("effect/clu
         const request = requests.get(requestId)
         if (!request) continue
         else if (request.lastReceivedChunk === undefined) {
-          // eslint-disable-next-line no-restricted-syntax
           replies.push(...request.replies)
           continue
         }

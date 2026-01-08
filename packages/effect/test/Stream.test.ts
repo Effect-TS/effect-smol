@@ -1,4 +1,4 @@
-/* eslint-disable no-restricted-syntax */
+/* oxlint-disable no-restricted-syntax */
 import { assert, describe, it } from "@effect/vitest"
 import { assertExitFailure, assertSuccess, assertTrue, deepStrictEqual, strictEqual } from "@effect/vitest/utils"
 import {

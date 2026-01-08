@@ -111,14 +111,12 @@ export const decode = <IE = never, Done = unknown>(): Channel.Channel<
               incomplete = undefined
             }
             try {
-              // eslint-disable-next-line no-restricted-syntax
               out.push(...unpackr.unpackMultiple(buf))
             } catch (cause) {
               const error: any = cause
               if (error.incomplete) {
                 incomplete = buf.subarray(error.lastPosition)
                 if (error.values) {
-                  // eslint-disable-next-line no-restricted-syntax
                   out.push(...error.values)
                 }
               } else {

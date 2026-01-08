@@ -1450,7 +1450,7 @@ const makeDateParts = (
 ) => {
   const parts: Array<DatePart> = []
   let result: RegExpExecArray | null = null
-  // eslint-disable-next-line no-cond-assign
+  // oxlint-disable-next-line no-cond-assign
   while (result = DATE_PART_REGEXP.exec(dateMask)) {
     const match = result.shift()
     const index = result.findIndex((group) => group !== undefined)
@@ -2070,7 +2070,7 @@ const renderChoiceDescription = <A>(
   isActive: boolean
 ) => {
   if (!choice.disabled && choice.description && isActive) {
-    return Ansi.annotate("-" + " " + choice.description, Ansi.blackBright)
+    return Ansi.annotate("- " + choice.description, Ansi.blackBright)
   }
   return ""
 }

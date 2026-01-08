@@ -140,7 +140,7 @@ export const make = (
       [ATTR_SERVER_PORT, options.port ?? 1433]
     ]
 
-    // eslint-disable-next-line prefer-const
+    // oxlint-disable-next-line prefer-const
     let pool: Pool.Pool<MssqlConnection, SqlError>
 
     const makeConnection = Effect.gen(function*() {

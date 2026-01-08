@@ -729,7 +729,6 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
         const content: Array<Response.StreamPart<Tools>> = []
         return stream.pipe(
           Stream.mapArray((parts) => {
-            // eslint-disable-next-line no-restricted-syntax
             content.push(...parts)
             return parts
           }),

@@ -351,6 +351,6 @@ export const handleCompletionRequest = <Name extends string, I, E, R>(
 
   // Output completions one per line for the shell to parse
   for (const completion of completions) {
-    console.log(completion) // eslint-disable-line no-console
+    console.log(completion) // oxlint-disable-line no-console
   }
 }

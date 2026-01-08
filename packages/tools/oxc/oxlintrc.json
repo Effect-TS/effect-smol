@@ -1,0 +1,53 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "oxc", "eslint", "unicorn", "node"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "rules": {
+    // Effect custom rules
+    "effect/no-import-from-barrel-package": "error",
+    "effect/no-opaque-instance-fields": "error",
+    // Tune native rules
+    "oxc/no-map-spread": "off",
+    "eslint/object-shorthand": "off",
+    "eslint/no-unused-vars": "off",
+    "eslint/require-yield": "off",
+    "eslint/no-fallthrough": "off",
+    "eslint/no-await-in-loop": "off",
+    "unicorn/no-new-array": "off",
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/no-array-sort": "off",
+    "unicorn/no-array-reverse": "off",
+    "unicorn/require-post-message-target-origin": "off",
+    "unicorn/prefer-add-event-listener": "off",
+    "unicorn/prefer-set-has": "off",
+    "typescript/no-explicit-any": "off",
+    "typescript/no-empty-interface": "off",
+    "typescript/ban-ts-comment": "off",
+    "typescript/no-namespace": "off",
+    "typescript/no-non-null-assertion": "off",
+    "typescript/no-dynamic-delete": "off",
+    "typescript/no-invalid-void-type": "off",
+    "typescript/no-unsafe-function-type": "off",
+    "typescript/unified-signatures": "off",
+    "typescript/no-empty-object-type": "off",
+    "typescript/no-confusing-non-null-assertion": "off",
+    "typescript/array-type": [
+      "error",
+      {
+        "default": "generic",
+        "readonly": "generic"
+      }
+    ],
+    "typescript/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ]
+  }
+}
