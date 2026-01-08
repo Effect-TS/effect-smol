@@ -7,7 +7,7 @@ describe("toJson", () => {
   function assertToJson(
     schema: Schema.Top,
     expected: {
-      readonly schema: JsonSchema.JsonSchema
+      readonly representation: JsonSchema.JsonSchema
       readonly references?: Record<string, JsonSchema.JsonSchema>
     }
   ) {
@@ -19,7 +19,7 @@ describe("toJson", () => {
 
   it("String", () => {
     assertToJson(Schema.String, {
-      schema: { _tag: "String", checks: [] }
+      representation: { _tag: "String", checks: [] }
     })
   })
 })
