@@ -141,7 +141,7 @@
  * import type * as NonEmptyIterable from "effect/NonEmptyIterable"
  *
  * // The symbol is used internally for type branding
- * declare const data: NonEmptyIterable<number>
+ * declare const data: NonEmptyIterable.NonEmptyIterable<number>
  *
  * // This has the nonEmpty symbol property (not accessible at runtime)
  * // but is still a regular Iterable for all practical purposes

@@ -21,12 +21,12 @@
  *
  * @example
  * ```ts
- * import { FastCheck } from "effect/testing/FastCheck"
+ * import * as FastCheck from "effect/testing/FastCheck"
  *
  * // Property: reverse of reverse should equal original
  * const reverseProp = FastCheck.property(
  *   FastCheck.array(FastCheck.integer()),
- *   (arr) => {
+ *   (arr: Array<number>) => {
  *     const reversed = arr.slice().reverse()
  *     const doubleReversed = reversed.slice().reverse()
  *     return JSON.stringify(arr) === JSON.stringify(doubleReversed)
@@ -39,13 +39,13 @@
  *
  * @example
  * ```ts
- * import { FastCheck } from "effect/testing/FastCheck"
+ * import * as FastCheck from "effect/testing/FastCheck"
  *
  * // Test string concatenation properties
  * const concatProp = FastCheck.property(
  *   FastCheck.string(),
  *   FastCheck.string(),
- *   (a, b) => {
+ *   (a: string, b: string) => {
  *     const result = a + b
  *     return result.length === a.length + b.length &&
  *       result.startsWith(a) &&
@@ -58,7 +58,7 @@
  *
  * @example
  * ```ts
- * import { FastCheck } from "effect/testing/FastCheck"
+ * import * as FastCheck from "effect/testing/FastCheck"
  *
  * // Generate random data for testing
  * const personArbitrary = FastCheck.record({
@@ -70,7 +70,7 @@
  * // Use in property tests
  * const validPersonProp = FastCheck.property(
  *   personArbitrary,
- *   (person) => {
+ *   (person: { name: string; age: number; email: string }) => {
  *     return person.name.length > 0 &&
  *       person.age >= 0 &&
  *       person.age <= 120 &&
