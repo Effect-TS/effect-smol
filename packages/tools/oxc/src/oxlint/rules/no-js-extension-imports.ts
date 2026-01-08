@@ -1,13 +1,4 @@
-import type { Fixer, Rule, RuleContext } from "../types.ts"
-
-interface ImportOrExportDeclaration {
-  type: string
-  source: {
-    value: string
-    range: [number, number]
-  }
-  range: [number, number]
-}
+import type { CreateRule, ESTree, Fixer, Visitor } from "oxlint"
 
 const jsExtensions = [".js", ".jsx", ".mjs", ".cjs"]
 const extensionMap: Record<string, string> = {
@@ -30,7 +21,7 @@ function getJsExtension(source: string): string | undefined {
   return undefined
 }
 
-const rule: Rule = {
+const rule: CreateRule = {
   meta: {
     type: "problem",
     docs: {
@@ -39,32 +30,43 @@ const rule: Rule = {
     },
     fixable: "code"
   },
-  create(context: RuleContext) {
-    function checkImportSource(node: unknown) {
-      const n = node as ImportOrExportDeclaration
-      if (!n.source) return
+  create(context) {
+    function checkSource(source: ESTree.StringLiteral) {
+      const value = source.value
+      if (!isRelativeImport(value)) return
 
-      const source = n.source.value
-      if (!isRelativeImport(source)) return
-
-      const ext = getJsExtension(source)
+      const ext = getJsExtension(value)
       if (!ext) return
 
       const tsExt = extensionMap[ext]
-      const fixedSource = source.slice(0, -ext.length) + tsExt
+      const fixedSource = value.slice(0, -ext.length) + tsExt
 
       context.report({
-        node: n.source,
+        node: source,
         message: `Use "${tsExt}" extension instead of "${ext}" for relative imports`,
-        fix: (fixer: Fixer) => fixer.replaceTextRange(n.source.range, `"${fixedSource}"`)
+        fix: (fixer: Fixer) => fixer.replaceTextRange(source.range, `"${fixedSource}"`)
       })
     }
 
-    return {
-      ImportDeclaration: checkImportSource,
-      ExportAllDeclaration: checkImportSource,
-      ExportNamedDeclaration: checkImportSource
+    function handleImportDeclaration(node: ESTree.ImportDeclaration) {
+      checkSource(node.source)
     }
+
+    function handleExportAllDeclaration(node: ESTree.ExportAllDeclaration) {
+      checkSource(node.source)
+    }
+
+    function handleExportNamedDeclaration(node: ESTree.ExportNamedDeclaration) {
+      if (node.source) {
+        checkSource(node.source)
+      }
+    }
+
+    return {
+      ImportDeclaration: handleImportDeclaration,
+      ExportAllDeclaration: handleExportAllDeclaration,
+      ExportNamedDeclaration: handleExportNamedDeclaration
+    } as Visitor
   }
 }
 

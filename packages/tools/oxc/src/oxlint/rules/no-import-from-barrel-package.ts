@@ -1,40 +1,15 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
-import type { Rule, RuleContext } from "../types.ts"
-
-interface ImportSpecifier {
-  type: string
-  importKind?: "type" | "value"
-  imported: {
-    type: string
-    name?: string
-    value?: string
-  }
-  local: {
-    name: string
-  }
-}
-
-interface ImportDeclaration {
-  type: string
-  importKind?: "type" | "value"
-  source: {
-    value: string
-  }
-  specifiers: Array<ImportSpecifier>
-}
+import type { CreateRule, ESTree, Visitor } from "oxlint"
 
 interface RuleOptions {
-  // Regex patterns to match barrel imports (e.g., "^effect$", "^effect/[a-z]")
   checkPatterns?: Array<string>
-  // Whether to check relative imports that resolve to index files
   checkRelativeIndexImports?: boolean
 }
 
-// Extensions to check when resolving imports
 const extensions = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]
 
-function getModuleName(specifier: ImportSpecifier): string | undefined {
+function getModuleName(specifier: ESTree.ImportSpecifier): string {
   return specifier.imported.type === "Identifier"
     ? specifier.imported.name
     : specifier.imported.value
@@ -55,7 +30,6 @@ function hasIndexFile(dirPath: string): boolean {
 
 function isIndexImport(importPath: string): boolean {
   const basename = path.basename(importPath)
-  // Check if importing "index" directly or "index.ts" etc.
   return basename === "index" || /^index\.(ts|tsx|js|jsx|mts|cts|mjs|cjs)$/.test(basename)
 }
 
@@ -63,12 +37,10 @@ function resolvesToBarrel(importSource: string, currentFile: string): boolean {
   const dir = path.dirname(currentFile)
   const resolved = path.resolve(dir, importSource)
 
-  // Check if importing an index file directly
   if (isIndexImport(importSource)) {
     return true
   }
 
-  // Check if importing a directory with index file
   if (hasIndexFile(resolved)) {
     return true
   }
@@ -81,12 +53,10 @@ function createBarrelMatcher(options: RuleOptions): (source: string, currentFile
   const checkRelative = options.checkRelativeIndexImports !== false
 
   return (source: string, currentFile: string): boolean => {
-    // Check relative imports using file system
     if (isRelativeImport(source)) {
       return checkRelative && resolvesToBarrel(source, currentFile)
     }
 
-    // Check regex patterns
     for (const pattern of patterns) {
       if (pattern.test(source)) {
         return true
@@ -97,7 +67,7 @@ function createBarrelMatcher(options: RuleOptions): (source: string, currentFile
   }
 }
 
-const rule: Rule = {
+const rule: CreateRule = {
   meta: {
     type: "suggestion",
     docs: {
@@ -121,27 +91,23 @@ const rule: Rule = {
       }
     ]
   },
-  create(context: RuleContext) {
+  create(context) {
     const currentFile = context.filename
     const options: RuleOptions = (context.options[0] as RuleOptions) ?? {}
     const isBarrelImport = createBarrelMatcher(options)
 
     return {
-      ImportDeclaration(node: unknown) {
-        const n = node as ImportDeclaration
-        // Skip type-only imports
-        if (n.importKind === "type") return
+      ImportDeclaration(node: ESTree.ImportDeclaration) {
+        if (node.importKind === "type") return
 
-        const importSource = n.source.value
+        const importSource = node.source.value
 
-        // Check if this import resolves to a barrel file
         if (!isBarrelImport(importSource, currentFile)) return
 
-        // Separate specifiers by type
-        const namespaceSpecifiers: Array<ImportSpecifier> = []
-        const namedValueSpecifiers: Array<ImportSpecifier> = []
+        const namespaceSpecifiers: Array<ESTree.ImportNamespaceSpecifier> = []
+        const namedValueSpecifiers: Array<ESTree.ImportSpecifier> = []
 
-        for (const specifier of n.specifiers) {
+        for (const specifier of node.specifiers) {
           if (specifier.type === "ImportNamespaceSpecifier") {
             namespaceSpecifiers.push(specifier)
           } else if (specifier.type === "ImportSpecifier") {
@@ -151,7 +117,6 @@ const rule: Rule = {
           }
         }
 
-        // Report namespace imports
         for (const specifier of namespaceSpecifiers) {
           context.report({
             node: specifier,
@@ -160,7 +125,6 @@ const rule: Rule = {
           })
         }
 
-        // Report named value imports
         for (const specifier of namedValueSpecifiers) {
           const moduleName = getModuleName(specifier)
           const localName = specifier.local.name
@@ -173,7 +137,7 @@ const rule: Rule = {
           })
         }
       }
-    }
+    } as Visitor
   }
 }
 

@@ -1,24 +1,6 @@
-import type { Rule } from "../types.ts"
+import type { CreateRule, ESTree, Visitor } from "oxlint"
 
-interface ASTNode {
-  type: string
-  superClass?: {
-    type: string
-    callee?: {
-      type: string
-      callee?: {
-        type: string
-        object?: { type: string; name: string }
-        property?: { type: string; name: string }
-      }
-    }
-  }
-  body: {
-    body: Array<{ type: string; static: boolean }>
-  }
-}
-
-function isSchemaOpaqueExtension(node: ASTNode): boolean {
+function isSchemaOpaqueExtension(node: ESTree.Class): boolean {
   const sc = node.superClass
   if (!sc || sc.type !== "CallExpression") return false
   const inner = sc.callee
@@ -31,16 +13,15 @@ function isSchemaOpaqueExtension(node: ASTNode): boolean {
     fn.property.name === "Opaque"
 }
 
-const rule: Rule = {
+const rule: CreateRule = {
   meta: {
     type: "problem",
     docs: { description: "Disallow instance fields in Schema.Opaque classes" }
   },
   create(context) {
-    function checkClass(node: unknown) {
-      const n = node as ASTNode
-      if (!isSchemaOpaqueExtension(n)) return
-      for (const element of n.body.body) {
+    function checkClass(node: ESTree.Class) {
+      if (!isSchemaOpaqueExtension(node)) return
+      for (const element of node.body.body) {
         if (element.type === "PropertyDefinition" && !element.static) {
           context.report({
             node: element,
@@ -53,7 +34,7 @@ const rule: Rule = {
     return {
       ClassDeclaration: checkClass,
       ClassExpression: checkClass
-    }
+    } as Visitor
   }
 }
 

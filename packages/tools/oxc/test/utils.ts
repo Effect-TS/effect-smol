@@ -1,13 +1,8 @@
-import type { Rule, RuleContext } from "@effect/oxc/oxlint/types"
+import type { CreateRule, Visitor } from "oxlint"
 
 export interface ReportedError {
   node: unknown
   message: string
-}
-
-export interface TestContext {
-  errors: Array<ReportedError>
-  context: RuleContext
 }
 
 export interface TestContextOptions {
@@ -17,7 +12,7 @@ export interface TestContextOptions {
   ruleOptions?: Array<unknown>
 }
 
-export const createTestContext = (options: TestContextOptions = {}): TestContext => {
+export const createTestContext = (options: TestContextOptions = {}) => {
   const {
     sourceCode = "",
     filename = "/test/file.ts",
@@ -26,15 +21,15 @@ export const createTestContext = (options: TestContextOptions = {}): TestContext
   } = options
 
   const errors: Array<ReportedError> = []
-  const context: RuleContext = {
+  const context = {
     id: "test/rule",
     filename,
     physicalFilename: filename,
     options: ruleOptions,
     getFilename: () => filename,
     getCwd: () => cwd,
-    report(options) {
-      errors.push(options)
+    report(reportOptions: ReportedError) {
+      errors.push(reportOptions)
     },
     sourceCode: {
       getText(_node?: unknown) {
@@ -45,17 +40,17 @@ export const createTestContext = (options: TestContextOptions = {}): TestContext
   return { errors, context }
 }
 
-export const runRule = <T extends Record<string, (node: unknown) => void>>(
-  rule: Rule,
-  visitor: keyof T,
+export const runRule = (
+  rule: CreateRule,
+  visitor: keyof Visitor,
   node: unknown,
   options: TestContextOptions = {}
 ): Array<ReportedError> => {
   const { context, errors } = createTestContext(options)
-  const visitors = rule.create(context)
-  const handler = visitors[visitor as string]
+  const visitors = rule.create(context as never)
+  const handler = visitors[visitor]
   if (handler) {
-    handler(node)
+    ;(handler as (node: unknown) => void)(node)
   }
   return errors
 }

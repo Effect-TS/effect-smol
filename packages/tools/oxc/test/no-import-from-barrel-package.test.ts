@@ -11,31 +11,30 @@ describe("no-import-from-barrel-package", () => {
 
   const createImportDeclaration = (
     source: string,
-    specifiers: Array<{
-      type: string
-      importKind?: "type" | "value"
-      imported?: { type: string; name?: string; value?: string }
-      local: { name: string }
-    }>,
+    specifiers: Array<unknown>,
     importKind?: "type" | "value"
-  ) => ({
-    type: "ImportDeclaration",
-    importKind,
-    source: { value: source },
-    specifiers,
-    range: [0, 50] as [number, number]
-  })
+  ) => {
+    const base = {
+      type: "ImportDeclaration" as const,
+      source: { value: source },
+      specifiers,
+      range: [0, 50] as [number, number]
+    }
+    return importKind !== undefined ? { ...base, importKind } : base
+  }
 
   const createNamedSpecifier = (
     name: string,
     local?: string,
     importKind?: "type" | "value"
-  ) => ({
-    type: "ImportSpecifier",
-    importKind,
-    imported: { type: "Identifier", name },
-    local: { name: local ?? name }
-  })
+  ) => {
+    const base = {
+      type: "ImportSpecifier" as const,
+      imported: { type: "Identifier" as const, name },
+      local: { name: local ?? name }
+    }
+    return importKind !== undefined ? { ...base, importKind } : base
+  }
 
   it("should not report for imports from non-barrel packages", () => {
     const node = createImportDeclaration("effect/Effect", [
