@@ -8,7 +8,7 @@
   "overrides": [
     {
       "files": [
-        "{bundle,scripts}/**/*.{mjs,ts}",
+        "{bundle,scripts,scratchpad}/**/*.{mjs,ts}"
       ],
       "rules": {
         "eslint/no-console": "off"

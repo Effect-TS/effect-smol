@@ -595,20 +595,20 @@
   "components": {
     "schemas": {
       "ComponentsSchema": {
-         "additionalProperties": false,
-         "properties": {
-           "contentType": {
-             "type": "string"
-           },
-           "length": {
-             "type": "integer"
-           }
-         },
-         "required": [
-           "contentType",
-           "length"
-         ],
-         "type": "object"
+        "additionalProperties": false,
+        "properties": {
+          "contentType": {
+            "type": "string"
+          },
+          "length": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "contentType",
+          "length"
+        ],
+        "type": "object"
       },
       "Group": {
         "type": "object",

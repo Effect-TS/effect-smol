@@ -1,5 +1,17 @@
-import type { SchemaAST } from "effect";
-import { Brand, Option, Predicate, Tuple, Struct, ServiceMap, Effect, hole, Schema, SchemaTransformation, SchemaGetter } from "effect"
+import type { SchemaAST } from "effect"
+import {
+  Brand,
+  Effect,
+  hole,
+  Option,
+  Predicate,
+  Schema,
+  SchemaGetter,
+  SchemaTransformation,
+  ServiceMap,
+  Struct,
+  Tuple
+} from "effect"
 import { immerable, produce } from "immer"
 import { describe, expect, it, when } from "tstyche"
 
@@ -230,7 +242,9 @@ describe("Schema", () => {
             ]).pipe(Schema.withConstructorDefault(() => Option.some([] as const)))
           ]
         )
-        expect(schema.makeUnsafe).type.toBe<MakeUnsafe<readonly [(readonly [number?])?], readonly [readonly [number]]>>()
+        expect(schema.makeUnsafe).type.toBe<
+          MakeUnsafe<readonly [(readonly [number?])?], readonly [readonly [number]]>
+        >()
       })
     })
 
@@ -316,7 +330,7 @@ describe("Schema", () => {
 
     it("TupleWithRest", () => {
       const schema = Schema.TupleWithRest(
-          Schema.Tuple([Schema.FiniteFromString.pipe(Schema.brand("a"))]),
+        Schema.Tuple([Schema.FiniteFromString.pipe(Schema.brand("a"))]),
         [Schema.FiniteFromString.pipe(Schema.brand("b")), Schema.FiniteFromString.pipe(Schema.brand("c"))]
       )
       expect(schema.makeUnsafe).type.toBe<
@@ -386,7 +400,7 @@ describe("Schema", () => {
 
   it("annotateKey", () => {
     expect(Schema.String.annotateKey).type.toBeCallableWith(
-      { examples: ['a'] }
+      { examples: ["a"] }
     )
     expect(Schema.String.annotateKey).type.not.toBeCallableWith(
       { examples: [1] }
@@ -780,7 +794,6 @@ describe("Schema", () => {
     })
   })
 
-
   describe("refinements", () => {
     describe("refineByGuard", () => {
       it("String & isString", () => {
@@ -869,7 +882,9 @@ describe("Schema", () => {
   describe("decodeTo", () => {
     it("should allow partial application", () => {
       const f = Schema.decodeTo(Schema.String)
-      expect(f).type.toBe<<From extends Schema.Top>(from: From) => Schema.compose<Schema.String, From>>()
+      expect(f).type.toBe<
+        <From extends Schema.Top>(from: From) => Schema.compose<Schema.String, From>
+      >()
 
       expect(f(Schema.Number)).type.toBe<Schema.compose<Schema.String, Schema.Number>>()
     })
@@ -990,9 +1005,11 @@ describe("Schema", () => {
     })
 
     it("mapFields should throw an error if there is a field with no Schema.mutableKey", () => {
-      expect(Schema.Struct({
-        a: Schema.String,
-      }).mapFields).type.not.toBeCallableWith(Struct.map(Schema.readonlyKey))
+      expect(
+        Schema.Struct({
+          a: Schema.String
+        }).mapFields
+      ).type.not.toBeCallableWith(Struct.map(Schema.readonlyKey))
     })
   })
 
@@ -1003,9 +1020,11 @@ describe("Schema", () => {
     })
 
     it("mapFields should throw an error if there is a field that is not an array or tuple", () => {
-      expect(Schema.Struct({
-        a: Schema.String,
-      }).mapFields).type.not.toBeCallableWith(Struct.map(Schema.mutable))
+      expect(
+        Schema.Struct({
+          a: Schema.String
+        }).mapFields
+      ).type.not.toBeCallableWith(Struct.map(Schema.mutable))
     })
   })
 
@@ -1039,9 +1058,11 @@ describe("Schema", () => {
     })
 
     it("mapFields should throw an error if there is a field with no Schema.optionalKey", () => {
-      expect(Schema.Struct({
-        a: Schema.String,
-      }).mapFields).type.not.toBeCallableWith(Struct.map(Schema.requiredKey))
+      expect(
+        Schema.Struct({
+          a: Schema.String
+        }).mapFields
+      ).type.not.toBeCallableWith(Struct.map(Schema.requiredKey))
     })
   })
 
@@ -1071,9 +1092,11 @@ describe("Schema", () => {
     })
 
     it("mapFields should throw an error if there is a field with no Schema.optional", () => {
-      expect(Schema.Struct({
-        a: Schema.String,
-      }).mapFields).type.not.toBeCallableWith(Struct.map(Schema.required))
+      expect(
+        Schema.Struct({
+          a: Schema.String
+        }).mapFields
+      ).type.not.toBeCallableWith(Struct.map(Schema.required))
     })
   })
 
@@ -1090,7 +1113,17 @@ describe("Schema", () => {
         Schema.Class<A, Schema.Struct<{ readonly a: Schema.String }>, A>
       >()
       expect(A.fields).type.toBe<{ readonly a: Schema.String }>()
-      expect(A.annotate({})).type.toBe<Schema.decodeTo<Schema.declareConstructor<A, { readonly a: string; }, readonly [Schema.Struct<{ readonly a: Schema.String; }>], { readonly a: string; }>, Schema.Struct<{ readonly a: Schema.String; }>>>()
+      expect(A.annotate({})).type.toBe<
+        Schema.decodeTo<
+          Schema.declareConstructor<
+            A,
+            { readonly a: string },
+            readonly [Schema.Struct<{ readonly a: Schema.String }>],
+            { readonly a: string }
+          >,
+          Schema.Struct<{ readonly a: Schema.String }>
+        >
+      >()
     })
 
     it("Struct argument", () => {
@@ -1221,7 +1254,6 @@ describe("Schema", () => {
       f2(E2.makeUnsafe({ a: "a", b: "b" }))
       when(f2).isCalledWith(expect(E1.makeUnsafe).type.not.toBeCallableWith({ a: "a", b: "b" }))
     })
-
   })
 
   describe("Error", () => {
@@ -1432,8 +1464,8 @@ describe("Schema", () => {
 
     expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.withDecodingDefaultKey<Schema.FiniteFromString> }>>()
     expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<{ readonly a: number }, { readonly a?: string }, never, never>
-      >()
+      Schema.Codec<{ readonly a: number }, { readonly a?: string }, never, never>
+    >()
   })
 
   it("withDecodingDefault", () => {
@@ -1443,8 +1475,8 @@ describe("Schema", () => {
 
     expect(schema).type.toBe<Schema.Struct<{ readonly a: Schema.withDecodingDefault<Schema.FiniteFromString> }>>()
     expect(Schema.revealCodec(schema)).type.toBe<
-        Schema.Codec<{ readonly a: number }, { readonly a?: string | undefined }, never, never>
-      >()
+      Schema.Codec<{ readonly a: number }, { readonly a?: string | undefined }, never, never>
+    >()
   })
 
   it("asStandardSchemaV1 should not be callable with a schema with DecodingServices", () => {
@@ -1520,10 +1552,12 @@ describe("Schema", () => {
     })
 
     it("should throw an error if there is a field that is not a struct", () => {
-      expect(Schema.Union([
-        Schema.String,
-        Schema.Number
-      ]).mapMembers).type.not.toBeCallableWith(Tuple.map(Schema.fieldsAssign({ c: Schema.Number })))
+      expect(
+        Schema.Union([
+          Schema.String,
+          Schema.Number
+        ]).mapMembers
+      ).type.not.toBeCallableWith(Tuple.map(Schema.fieldsAssign({ c: Schema.Number })))
     })
   })
 })

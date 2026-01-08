@@ -14,7 +14,7 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "effect-test/*": ["../effect/test/*.ts"],
+      "effect-test/*": ["../effect/test/*.ts"]
     },
     "types": ["node"],
     "plugins": [
