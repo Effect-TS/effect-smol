@@ -5,6 +5,7 @@
   "private": true,
   "license": "MIT",
   "description": "Build tools for the repositories following the Effect standard setup",
+  "homepage": "https://effect.website",
   "sideEffects": [],
   "bin": {
     "effect-utils": "./src/bin.ts"
