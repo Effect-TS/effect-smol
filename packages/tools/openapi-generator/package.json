@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.4.13",
   "license": "MIT",
-  "description": "",
+  "description": "Generate Effect Schema types and HTTP clients from OpenAPI specifications",
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
@@ -24,17 +24,38 @@
     "codegen"
   ],
   "bin": {
-    "openapigen": "./dist/bin.cjs"
+    "openapigen": "./dist/bin.js"
   },
-  "files": [],
+  "sideEffects": [],
+  "exports": {
+    "./package.json": "./package.json",
+    "./*": "./src/*.ts",
+    "./bin": null,
+    "./main": null
+  },
+  "files": [
+    "src/**/*.ts",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
+  ],
   "publishConfig": {
     "provenance": true,
     "bin": {
-      "openapigen": "./dist/bin.cjs"
+      "openapigen": "./dist/bin.js"
+    },
+    "exports": {
+      "./package.json": "./package.json",
+      "./*": "./dist/*.js",
+      "./bin": null,
+      "./main": null
     }
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsc -b tsconfig.build.json && pnpm babel",
+    "build:tsgo": "tsgo -b tsconfig.build.json && pnpm babel",
+    "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
     "coverage": "vitest --coverage"
@@ -48,7 +69,6 @@
     "effect": "workspace:^",
     "json-schema-typed": "^8.0.2",
     "openapi-typescript": "^7.10.1",
-    "swagger2openapi": "^7.0.8",
-    "tsup": "^8.5.1"
+    "swagger2openapi": "^7.0.8"
   }
 }
