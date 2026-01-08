@@ -1059,14 +1059,14 @@ describe("Serializers", () => {
 
         const encoding = asserts.encoding()
         await encoding.succeed(Duration.infinity, { _tag: "Infinity" })
-        await encoding.succeed(Duration.nanos(1000n), { _tag: "Nanos", nanos: "1000" })
-        await encoding.succeed(Duration.millis(1), { _tag: "Millis", millis: 1 })
-        await encoding.succeed(Duration.zero, { _tag: "Millis", millis: 0 })
+        await encoding.succeed(Duration.nanos(1000n), { _tag: "Nanos", value: "1000" })
+        await encoding.succeed(Duration.millis(1), { _tag: "Millis", value: 1 })
+        await encoding.succeed(Duration.zero, { _tag: "Millis", value: 0 })
 
         const decoding = asserts.decoding()
         await decoding.succeed({ _tag: "Infinity" }, Duration.infinity)
-        await decoding.succeed({ _tag: "Millis", millis: 1 }, Duration.millis(1))
-        await decoding.succeed({ _tag: "Nanos", nanos: "1000" }, Duration.nanos(1000n))
+        await decoding.succeed({ _tag: "Millis", value: 1 }, Duration.millis(1))
+        await decoding.succeed({ _tag: "Nanos", value: "1000" }, Duration.nanos(1000n))
       })
 
       it("DateTimeUtc", async () => {

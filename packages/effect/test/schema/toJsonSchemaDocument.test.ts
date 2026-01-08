@@ -300,14 +300,14 @@ describe("toJsonSchemaDocument", () => {
                   "type": "string",
                   "enum": ["Nanos"]
                 },
-                "nanos": {
+                "value": {
                   "type": "string",
                   "allOf": [
                     { "pattern": "^-?\\d+$" }
                   ]
                 }
               },
-              "required": ["_tag", "nanos"],
+              "required": ["_tag", "value"],
               "additionalProperties": false
             },
             {
@@ -317,14 +317,14 @@ describe("toJsonSchemaDocument", () => {
                   "type": "string",
                   "enum": ["Millis"]
                 },
-                "millis": {
+                "value": {
                   "type": "integer",
                   "allOf": [
                     { "minimum": 0 }
                   ]
                 }
               },
-              "required": ["_tag", "millis"],
+              "required": ["_tag", "value"],
               "additionalProperties": false
             }
           ]

@@ -5305,7 +5305,7 @@ export function Option<A extends Top>(value: A): Option<A> {
             Struct({ _tag: Literal("None") })
           ]),
           Transformation.transform({
-            decode: (input) => input._tag === "None" ? Option_.none() : Option_.some(input.value),
+            decode: (e) => e._tag === "None" ? Option_.none() : Option_.some(e.value),
             encode: (o) => (Option_.isSome(o) ? { _tag: "Some", value: o.value } as const : { _tag: "None" } as const)
           })
         ),
@@ -5479,7 +5479,7 @@ export function Result<A extends Top, E extends Top>(
             Struct({ _tag: Literal("Failure"), failure })
           ]),
           Transformation.transform({
-            decode: (input) => input._tag === "Success" ? Result_.succeed(input.success) : Result_.fail(input.failure),
+            decode: (e) => e._tag === "Success" ? Result_.succeed(e.success) : Result_.fail(e.failure),
             encode: (r) =>
               Result_.isSuccess(r)
                 ? { _tag: "Success", success: r.success } as const
@@ -5684,14 +5684,14 @@ export function CauseFailure<E extends Top, D extends Top>(error: E, defect: D):
             Struct({ _tag: Literal("Interrupt"), fiberId: UndefinedOr(Finite) })
           ]),
           Transformation.transform({
-            decode: (input) => {
-              switch (input._tag) {
+            decode: (e) => {
+              switch (e._tag) {
                 case "Fail":
-                  return Cause_.failureFail(input.error)
+                  return Cause_.failureFail(e.error)
                 case "Die":
-                  return Cause_.failureDie(input.defect)
+                  return Cause_.failureDie(e.defect)
                 case "Interrupt":
-                  return Cause_.failureInterrupt(input.fiberId)
+                  return Cause_.failureInterrupt(e.fiberId)
               }
             },
             encode: identity
@@ -5986,8 +5986,8 @@ export function Exit<A extends Top, E extends Top, D extends Top>(value: A, erro
             Struct({ _tag: Literal("Failure"), cause: Cause(error, defect) })
           ]),
           Transformation.transform({
-            decode: (encoded): Exit_.Exit<A["Encoded"], E["Encoded"]> =>
-              encoded._tag === "Success" ? Exit_.succeed(encoded.value) : Exit_.failCause(encoded.cause),
+            decode: (e): Exit_.Exit<A["Encoded"], E["Encoded"]> =>
+              e._tag === "Success" ? Exit_.succeed(e.value) : Exit_.failCause(e.cause),
             encode: (exit) =>
               Exit_.isSuccess(exit)
                 ? { _tag: "Success", value: exit.value } as const
@@ -6090,7 +6090,7 @@ export function ReadonlyMap<Key extends Top, Value extends Top>(key: Key, value:
         link<globalThis.Map<Key["Encoded"], Value["Encoded"]>>()(
           Array(Tuple([key, value])),
           Transformation.transform({
-            decode: (entries) => new globalThis.Map(entries),
+            decode: (e) => new globalThis.Map(e),
             encode: (map) => [...map.entries()]
           })
         ),
@@ -6173,7 +6173,7 @@ export function ReadonlySet<Value extends Top>(value: Value): ReadonlySet$<Value
         link<globalThis.Set<Value["Encoded"]>>()(
           Array(value),
           Transformation.transform({
-            decode: (entries) => new globalThis.Set(entries),
+            decode: (e) => new globalThis.Set(e),
             encode: (set) => [...set.values()]
           })
         ),
@@ -6224,10 +6224,10 @@ export const RegExp: RegExp = instanceOf(
           flags: String
         }),
         Transformation.transformOrFail({
-          decode: (regExp) =>
+          decode: (e) =>
             Effect.try({
-              try: () => new globalThis.RegExp(regExp.source, regExp.flags),
-              catch: (e) => new Issue.InvalidValue(Option_.some(regExp), { message: globalThis.String(e) })
+              try: () => new globalThis.RegExp(e.source, e.flags),
+              catch: (e) => new Issue.InvalidValue(Option_.some(e), { message: globalThis.String(e) })
             }),
           encode: (regExp) =>
             Effect.succeed({
@@ -6399,18 +6399,18 @@ export const Duration: Duration = declare(
       link<Duration_.Duration>()(
         Union([
           Struct({ _tag: Literal("Infinity") }),
-          Struct({ _tag: Literal("Nanos"), nanos: BigInt }),
-          Struct({ _tag: Literal("Millis"), millis: Int.check(isGreaterThanOrEqualTo(0)) })
+          Struct({ _tag: Literal("Nanos"), value: BigInt }),
+          Struct({ _tag: Literal("Millis"), value: Int.check(isGreaterThanOrEqualTo(0)) })
         ]),
         Transformation.transform({
-          decode: (value) => {
-            switch (value._tag) {
+          decode: (e) => {
+            switch (e._tag) {
               case "Infinity":
                 return Duration_.infinity
               case "Nanos":
-                return Duration_.nanos(value.nanos)
+                return Duration_.nanos(e.value)
               case "Millis":
-                return Duration_.millis(value.millis)
+                return Duration_.millis(e.value)
             }
           },
           encode: (duration) => {
@@ -6418,9 +6418,9 @@ export const Duration: Duration = declare(
               case "Infinity":
                 return { _tag: "Infinity" } as const
               case "Nanos":
-                return { _tag: "Nanos", nanos: duration.value.nanos } as const
+                return { _tag: "Nanos", value: duration.value.nanos } as const
               case "Millis":
-                return { _tag: "Millis", millis: duration.value.millis } as const
+                return { _tag: "Millis", value: duration.value.millis } as const
             }
           }
         })
@@ -6614,18 +6614,18 @@ export const File: File = instanceOf(globalThis.File, {
         lastModified: Number
       }),
       Transformation.transformOrFail({
-        decode: (json) =>
-          Result_.match(Base64.decode(json.data), {
+        decode: (e) =>
+          Result_.match(Base64.decode(e.data), {
             onFailure: (error) =>
               Effect.fail(
-                new Issue.InvalidValue(Option_.some(json.data), {
+                new Issue.InvalidValue(Option_.some(e.data), {
                   message: error.message
                 })
               ),
             onSuccess: (bytes) => {
               const buffer = new globalThis.Uint8Array(bytes)
               return Effect.succeed(
-                new globalThis.File([buffer], json.name, { type: json.type, lastModified: json.lastModified })
+                new globalThis.File([buffer], e.name, { type: e.type, lastModified: e.lastModified })
               )
             }
           }),
@@ -6678,9 +6678,9 @@ export const FormData: FormData = instanceOf(globalThis.FormData, {
         ])
       ),
       Transformation.transformOrFail({
-        decode: (entries) => {
+        decode: (e) => {
           const out = new globalThis.FormData()
-          for (const [key, entry] of entries) {
+          for (const [key, entry] of e) {
             out.append(key, entry.value)
           }
           return Effect.succeed(out)
@@ -6813,7 +6813,7 @@ export const URLSearchParams: URLSearchParams = instanceOf(globalThis.URLSearchP
     link<globalThis.URLSearchParams>()(
       String.annotate({ expected: "a query string that will be decoded as URLSearchParams" }),
       Transformation.transform({
-        decode: (s) => new globalThis.URLSearchParams(s),
+        decode: (e) => new globalThis.URLSearchParams(e),
         encode: (params) => params.toString()
       })
     )
