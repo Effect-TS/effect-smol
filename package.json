@@ -23,18 +23,6 @@
     "changeset-version": "changeset version",
     "changeset-publish": "pnpm codemod && pnpm build && changeset publish"
   },
-  "resolutions": {
-    "dependency-tree": "^10.0.9",
-    "detective-amd": "^5.0.2",
-    "detective-cjs": "^5.0.1",
-    "detective-es6": "^4.0.1",
-    "detective-less": "^1.0.2",
-    "detective-postcss": "^6.1.3",
-    "detective-sass": "^5.0.3",
-    "detective-scss": "^4.0.3",
-    "detective-stylus": "^4.0.0",
-    "detective-typescript": "^11.1.0"
-  },
   "imports": {
     "#dist/effect": "./packages/effect/dist/index.js",
     "#dist/effect/*": "./packages/effect/dist/*.js",
@@ -48,13 +36,11 @@
     "@babel/plugin-transform-modules-commonjs": "^7.27.1",
     "@changesets/changelog-github": "^0.5.2",
     "@changesets/cli": "^2.29.8",
-    "@edge-runtime/vm": "^5.0.0",
-    "@effect/utils": "workspace:^",
     "@effect/docgen": "https://pkg.pr.new/Effect-TS/docgen/@effect/docgen@e7fe055",
-    "@effect/oxc": "workspace:^",
     "@effect/language-service": "^0.62.5",
+    "@effect/oxc": "workspace:^",
+    "@effect/utils": "workspace:^",
     "@effect/vitest": "workspace:^",
-    "@faker-js/faker": "^10.1.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^6.0.3",
     "@rollup/plugin-terser": "^0.4.4",
@@ -70,12 +56,10 @@
     "dprint": "^0.51.1",
     "glob": "^13.0.0",
     "happy-dom": "^20.0.11",
-    "i18next": "^25.7.3",
     "jscodeshift": "^17.3.0",
     "madge": "^8.0.0",
     "oxlint": "^1.36.0",
     "playwright": "^1.57.0",
-    "rimraf": "^6.1.2",
     "rollup": "^4.53.5",
     "rollup-plugin-bundle-stats": "^4.21.7",
     "rollup-plugin-esbuild": "^6.2.1",
@@ -83,7 +67,6 @@
     "terser": "^5.44.1",
     "ts-patch": "^3.3.0",
     "tstyche": "^6.0.0-rc.0",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.0",
     "vite-tsconfig-paths": "^5.1.4",
@@ -98,16 +81,18 @@
       "vitest-websocket-mock": "patches/vitest-websocket-mock.patch"
     },
     "ignoredBuiltDependencies": [
+      "core-js",
       "cpu-features",
+      "dprint",
       "esbuild",
       "lmdb",
       "msgpackr-extract",
       "msw",
       "protobufjs",
+      "sharp",
       "ssh2",
-      "workerd",
-      "core-js",
-      "unrs-resolver"
+      "unrs-resolver",
+      "workerd"
     ],
     "onlyBuiltDependencies": [
       "better-sqlite3"

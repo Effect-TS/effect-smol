@@ -11,10 +11,10 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/cli.js",
-    "dev": "tsx src/cli.ts",
-    "cli": "tsx src/cli.ts",
-    "generate-visuals": "tsx scripts/generate-visuals.ts",
-    "generate-gallery": "tsx scripts/generate-gallery.ts"
+    "dev": "node src/cli.ts",
+    "cli": "node src/cli.ts",
+    "generate-visuals": "node scripts/generate-visuals.ts",
+    "generate-gallery": "node scripts/generate-gallery.ts"
   },
   "dependencies": {
     "@effect/platform-node": "workspace:*",
@@ -22,7 +22,6 @@
   },
   "devDependencies": {
     "ansi-to-svg": "^1.4.3",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }

@@ -308,7 +308,7 @@ tsc --noEmit ./scratchpad/test-example.ts
 pnpm lint --fix ./scratchpad/test-example.ts
 
 # Test execution if needed
-pnpm tsx ./scratchpad/test-example.ts
+node ./scratchpad/test-example.ts
 ```
 
 **Scratchpad Benefits:**

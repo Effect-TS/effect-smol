@@ -20,7 +20,7 @@ A demonstration CLI application showcasing Effect CLI features including shell c
 pnpm install
 ```
 
-### Run directly with tsx
+### Run
 
 ```bash
 pnpm dev --help

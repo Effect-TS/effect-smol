@@ -3,7 +3,7 @@
 # Test Shell Completions Script
 # Usage: ./test-completions.sh [bash|fish|zsh|all]
 
-CLI_CMD="pnpm tsx examples/simple-cli/src/cli.ts"
+CLI_CMD="pnpm node examples/simple-cli/src/cli.ts"
 SHELL_TYPE="${1:-all}"
 
 echo "🚀 Testing Effect CLI Completions"

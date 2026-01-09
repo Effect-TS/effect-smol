@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node
 
 import { exec } from "child_process"
 import { mkdir, readFile, writeFile } from "fs/promises"

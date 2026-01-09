@@ -136,7 +136,7 @@ describe("RpcServer", () => {
   //   Layer.provide(
   //     NodeWorker.layerPlatform(() =>
   //       CP.fork(new URL("./fixtures/rpc-worker.ts", import.meta.url), {
-  //         execPath: "tsx"
+  //         execPath: "node"
   //       })
   //     )
   //   ),
