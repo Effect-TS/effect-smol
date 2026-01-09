@@ -1,6 +1,6 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "../../../tsconfig.base.jsonc",
+  "extends": "../../../tsconfig.base.json",
   "include": ["test/**/*.ts", "test/**/*.json"],
   "references": [{ "path": "tsconfig.src.json" }],
   "compilerOptions": {
@@ -10,10 +10,10 @@
     "noEmit": true,
     "erasableSyntaxOnly": false,
     "resolveJsonModule": true,
-    "baseUrl": ".",
     "paths": {
-      "@effect/sql-libsql": ["src/index.ts"],
-      "@effect/sql-libsql/*": ["src/*/index.ts", "src/*.ts"]
+      // TODO: Ideally we avoid setting *any* path aliases.
+      "@effect/sql-libsql": ["./src/index.ts"],
+      "@effect/sql-libsql/*": ["./src/*/index.ts", "./src/*.ts"]
     },
     "plugins": [
       {

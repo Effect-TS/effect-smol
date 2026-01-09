@@ -1,6 +1,6 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "../../tsconfig.base.jsonc",
+  "extends": "../../tsconfig.base.json",
   "include": ["test"],
   "references": [{ "path": "tsconfig.src.json" }],
   "compilerOptions": {
@@ -9,10 +9,10 @@
     "rootDir": "test",
     "noEmit": true,
     "erasableSyntaxOnly": false,
-    "baseUrl": ".",
     "paths": {
-      "@effect/platform-node-shared": ["src/index.ts"],
-      "@effect/platform-node-shared/*": ["src/*/index.ts", "src/*.ts"]
+      // TODO: Ideally we avoid setting *any* path aliases.
+      "@effect/platform-node-shared": ["./src/index.ts"],
+      "@effect/platform-node-shared/*": ["./src/*/index.ts", "./src/*.ts"]
     },
     "types": ["node"],
     "plugins": [

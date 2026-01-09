@@ -1,10 +1,7 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "./tsconfig.base.jsonc",
+  "extends": "./tsconfig.base.json",
   "include": [],
-  "compilerOptions": {
-    "stripInternal": true
-  },
   "references": [
     { "path": "packages/effect/tsconfig.build.json" },
     { "path": "packages/opentelemetry/tsconfig.build.json" },

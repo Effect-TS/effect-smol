@@ -1,6 +1,6 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "../../tsconfig.base.jsonc",
+  "extends": "../../tsconfig.base.json",
   "include": ["src"],
   "compilerOptions": {
     "tsBuildInfoFile": ".tsbuildinfo/src.tsbuildinfo",

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "../../tsconfig.base.jsonc",
+  "extends": "../../tsconfig.base.json",
   "include": ["test/**/*.ts", "test/**/*.json"],
   "references": [
     { "path": "tsconfig.src.json" },
@@ -16,11 +16,11 @@
     "noEmit": true,
     "erasableSyntaxOnly": false,
     "resolveJsonModule": true,
-    "baseUrl": ".",
     "paths": {
+      // TODO: Ideally we avoid setting *any* path aliases.
       "effect-test/*": ["../effect/test/*.ts"],
-      "@effect/platform-node": ["src/index.ts"],
-      "@effect/platform-node/*": ["src/*/index.ts", "src/*.ts"],
+      "@effect/platform-node": ["./src/index.ts"],
+      "@effect/platform-node/*": ["./src/*/index.ts", "./src/*.ts"],
       "@effect/sql-mysql2": ["../sql/mysql2/src/index.ts"],
       "@effect/sql-mysql2/*": ["../sql/mysql2/src/*.ts"],
       "@effect/sql-pg": ["../sql/pg/src/index.ts"],

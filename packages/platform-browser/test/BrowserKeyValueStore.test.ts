@@ -1,7 +1,6 @@
 import * as BrowserKeyValueStore from "@effect/platform-browser/BrowserKeyValueStore"
 import { describe } from "@effect/vitest"
-// @ts-ignore
-import { testLayer } from "../../effect/test/unstable/persistence/KeyValueStore.test.ts"
+import { testLayer } from "effect-test/unstable/persistence/KeyValueStore.test"
 
 describe("KeyValueStore / layerLocalStorage", () => testLayer(BrowserKeyValueStore.layerLocalStorage))
 

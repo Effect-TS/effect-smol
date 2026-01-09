@@ -1,6 +1,10 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "./tsconfig.base.jsonc",
+  "extends": "./tsconfig.base.json",
+  "include": ["*.ts"],
+  "compilerOptions": {
+    "noEmit": true
+  },
   "references": [
     { "path": "packages/effect" },
     { "path": "packages/opentelemetry" },
@@ -23,9 +27,5 @@
     { "path": "packages/tools/oxc" },
     { "path": "packages/tools/utils" },
     { "path": "packages/vitest" }
-  ],
-  "include": ["*.ts"],
-  "compilerOptions": {
-    "noEmit": true
-  }
+  ]
 }

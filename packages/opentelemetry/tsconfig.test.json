@@ -1,6 +1,6 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "../../tsconfig.base.jsonc",
+  "extends": "../../tsconfig.base.json",
   "include": ["test/**/*.ts", "test/**/*.json"],
   "references": [
     { "path": "tsconfig.src.json" },
@@ -12,10 +12,6 @@
     "rootDir": "test",
     "noEmit": true,
     "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": {
-      "effect-test/*": ["../effect/test/*.ts"]
-    },
     "types": ["node"],
     "plugins": [
       {

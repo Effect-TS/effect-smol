@@ -1,6 +1,6 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "../../tsconfig.base.jsonc",
+  "extends": "../../tsconfig.base.json",
   "include": ["test"],
   "references": [{ "path": "tsconfig.src.json" }],
   "compilerOptions": {
@@ -8,8 +8,8 @@
     "outDir": ".tsbuildinfo/test",
     "rootDir": "test",
     "noEmit": true,
-    "baseUrl": ".",
     "paths": {
+      // TODO: Ideally we avoid setting *any* path aliases.
       "@effect/vitest": ["./src/index.ts"],
       "@effect/vitest/*": ["./src/*/index.ts", "./src/*.ts"]
     },

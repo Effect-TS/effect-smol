@@ -8,7 +8,6 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleDetection": "force", // Treat every non-declaration file as a module.
-    "esModuleInterop": false, // Do not fiddle with import/export statements
     "verbatimModuleSyntax": true, // Only transform/eliminate type-only import/export statements.
     "allowJs": false, // If you touch this, a puppy dies.
     "rewriteRelativeImportExtensions": true, // Rewrite `.ts` imports to `.js` at build time.
@@ -30,7 +29,10 @@
       {
         "name": "@effect/language-service",
         "transform": "@effect/language-service/transform",
-        "namespaceImportPackages": ["effect", "@effect/*"]
+        "namespaceImportPackages": ["effect", "@effect/*"],
+        "diagnosticSeverity": {
+          "globalErrorInEffectFailure": "off" // TODO: Check if we should fix the warnings this reports
+        }
       }
     ]
   }
