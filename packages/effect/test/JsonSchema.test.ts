@@ -595,6 +595,22 @@ describe("JsonSchema", () => {
       })
     })
 
+    it("should normalize OpenAPI 3.0 schema example to draft examples array", () => {
+      const input: JsonSchema.JsonSchema = {
+        type: "string",
+        example: "a"
+      }
+      const result = JsonSchema.fromSchemaOpenApi3_0(input)
+      deepStrictEqual(result, {
+        dialect: "draft-2020-12",
+        schema: {
+          type: "string",
+          examples: ["a"]
+        },
+        definitions: {}
+      })
+    })
+
     describe("nullable", () => {
       it("nullable: true", () => {
         assertFromSchemaOpenApi3_0(

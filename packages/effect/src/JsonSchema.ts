@@ -368,6 +368,10 @@ function normalize_OpenApi3_0_to_Draft07(node: unknown): unknown {
     const v = src[k]
     if (k === "$ref" && typeof v === "string") {
       out[k] = v.replace(RE_COMPONENTS_SCHEMAS, "#/definitions")
+    } else if (k === "example") {
+      if (src.examples === undefined) {
+        out.examples = [v]
+      }
     } else if (Array.isArray(v) || Predicate.isObject(v)) {
       out[k] = normalize_OpenApi3_0_to_Draft07(v)
     } else {
