@@ -6,8 +6,12 @@ const MySchema = Schema.Struct({
   bar: Schema.BigInt.check(Schema.isGreaterThanBigInt(0n), Schema.isLessThanBigInt(10n))
 })
 
-const MySchemaAsJson = SchemaRepresentation.toJson(SchemaRepresentation.fromAST(MySchema.ast))
+const MySchemaAsJson = Schema.encodeSync(SchemaRepresentation.DocumentFromJson)(
+  SchemaRepresentation.fromAST(MySchema.ast)
+)
 
 const roundtrip = JSON.parse(JSON.stringify(MySchemaAsJson))
 
-export const Restored = SchemaRepresentation.toSchema(SchemaRepresentation.fromJson(roundtrip))
+export const Restored = SchemaRepresentation.toSchema(
+  Schema.decodeSync(SchemaRepresentation.DocumentFromJson)(roundtrip)
+)
