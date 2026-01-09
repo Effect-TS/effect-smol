@@ -609,10 +609,10 @@ Use it when you need to:
 At a high level:
 
 - `fromAST` / `fromASTs` turn a schema AST into a `Document` / `MultiDocument`
-- `toJson` / `fromJson` round-trip that document through JSON
+- `DocumentFromJson` (schema) round-trip that document through JSON
 - `toSchema` rebuilds a runtime `Schema` from the stored representation
 - `toJsonSchemaDocument` produces a Draft 2020-12 JSON Schema document
-- `toCodeDocument` prepares data for code generation
+- `toCodeDocument` prepares data for code generation (via `toMultiDocument`)
 
 ```mermaid
 flowchart TD
@@ -621,11 +621,13 @@ flowchart TD
     JS["JSON Schema (draft-07, draft-2020-12, openapi-3.0, openapi-3.1)"] -->JSD
     JD --> JS
     JD["JsonSchema.Document"] -->|fromJsonSchemaDocument|D
-    D --> |toJson|JSON
-    JSON --> |fromJson|D
+    D <--> |"DocumentFromJson (schema)"|JSON
     D --> |toJsonSchemaDocument|JD
     D --> |toSchema|S
     MD --> |toCodeDocument|CodeDocument["CodeDocument"]
+    D --> |toMultiDocument|MD
+    MD --> |toJsonSchemaMultiDocument|JMD[JsonSchema.MultiDocument]
+    MD <--> |"MultiDocumentFromJson (schema)"|JSON
 ```
 
 ## The data model

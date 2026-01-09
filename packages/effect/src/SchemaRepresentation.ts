@@ -1024,6 +1024,14 @@ export const Document$ = Schema.Struct({
   references: Schema.Record(Schema.String, Representation$)
 }).annotate({ identifier: "Document" })
 
+/**
+ * @since 4.0.0
+ */
+export const MultiDocument$ = Schema.Struct({
+  representations: Schema.NonEmptyArray(Representation$),
+  references: Schema.Record(Schema.String, Representation$)
+}).annotate({ identifier: "MultiDocument" })
+
 // -----------------------------------------------------------------------------
 // APIs
 // -----------------------------------------------------------------------------
@@ -1038,24 +1046,15 @@ export const fromAST: (ast: AST.AST) => Document = InternalRepresentation.fromAS
  */
 export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDocument = InternalRepresentation.fromASTs
 
-const documentToCodecJson = Schema.toCodecJson(Document$)
-const encodeDocument = Schema.encodeUnknownSync(documentToCodecJson)
-const decodeDocument = Schema.decodeUnknownSync(documentToCodecJson)
+/**
+ * @since 4.0.0
+ */
+export const DocumentFromJson: Schema.Codec<Document, unknown> = Schema.toCodecJson(Document$)
 
 /**
  * @since 4.0.0
  */
-export function toJson(document: Document): JsonSchema.JsonSchema {
-  return encodeDocument(document) as JsonSchema.JsonSchema
-}
-
-// TODO: tests
-/**
- * @since 4.0.0
- */
-export function fromJson(u: unknown): Document {
-  return decodeDocument(u) as Document
-}
+export const MultiDocumentFromJson: Schema.Codec<MultiDocument, unknown> = Schema.toCodecJson(MultiDocument$)
 
 /**
  * @since 4.0.0
