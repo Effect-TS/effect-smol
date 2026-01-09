@@ -6,4 +6,6 @@ const schema = Schema.Struct({
   c: Schema.Array(Schema.String)
 })
 
-Schema.toJsonSchemaDocument(schema)
+Schema.toJsonSchema(schema, {
+  target: "draft-2020-12"
+})
