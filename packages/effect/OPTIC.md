@@ -2,20 +2,67 @@
 
 `effect/Optic` provides tools for building and composing functional optics.
 
-Optics let you focus on parts of immutable data structures to read or update them in a safe, composable way.
+Functional optics let you focus on parts of immutable data structures to read or update them in a safe, composable way.
 
 Immutability keeps previous references valid after an update. This is useful in many domains, not only in concurrent programs.
+
+## Mental model
+
+Think of an optic as a reusable focus into a nested structure. It behaves like a pure, composable "getter + setter":
+
+- **get** a focused value (or no value if the focus does not exist)
+- **replace** the focused value
+- **modify** the focused value with a function
+
+You build small optics and compose them to reach deeper fields, optional data, or union variants.
+
+## Glossary
+
+- **Iso**: reversible focus between two types, like a lossless conversion.
+- **Lens**: focus on a field that is always present.
+- **Prism**: focus on one case of a union.
+- **Optional**: focus that might or might not exist.
+- **Traversal**: focus on zero or more items inside a collection.
 
 ## Features
 
 - **Unified representation of optics.** All optics compose the same way because they share a single data type: `Optional`.
-- **Integration.** Generate `Iso` values from schemas with `Schema.makeIso`.
+- **Integration.** Generate `Iso` values from schemas with `Schema.toIso`.
 
 ## Known Limitations
 
 The `Optic` module only works with **plain JavaScript objects** and collections (structs, records, tuples, and arrays).
 
 ## Getting started
+
+These are the three operations you will use most:
+
+```ts
+import { Optic } from "effect"
+
+type S = { readonly a: number }
+const _a = Optic.id<S>().key("a")
+
+/**
+ * Get the value of the focused field
+ */
+const value = _a.get({ a: 1 })
+console.log(value) // 1
+
+/**
+ * Replace the value of the focused field
+ */
+const replaced = _a.replace(2, { a: 1 })
+console.log(replaced) // { a: 2 }
+
+/**
+ * Modify the value of the focused field
+ */
+const modified = _a.modify((n) => n + 1)({ a: 1 })
+console.log(modified) // { a: 2 }
+```
+
+### Nested data structures
 
 Suppose we have an employee object, and we want to capitalize the first character of the street name of the company address.
 
@@ -75,7 +122,7 @@ console.dir(capitalizeStreetName(from), { depth: null })
     name: 'awesome inc',
     address: {
       city: 'london',
-      street: { num: 23, name: { value: 'High street' } }
+      street: { num: 23, name: 'High street' }
     }
   }
 }
@@ -115,6 +162,17 @@ const _0 = Optic.id<S>().key(0)
 console.log(_0.replace("b", ["a"]))
 // ["b"]
 ```
+
+### Choosing an optic quickly
+
+| Data shape                        | Use                                  |
+| --------------------------------- | ------------------------------------ |
+| Always-present field              | `key`                                |
+| Optional field (keep `undefined`) | `key`                                |
+| Optional field (drop `undefined`) | `optionalKey`                        |
+| Union case                        | `tag`                                |
+| Record or array index             | `at`                                 |
+| Filter and update items           | `forEach` + `check` / `notUndefined` |
 
 ### Accessing a group of keys in a struct
 
@@ -177,14 +235,14 @@ type S = {
 // Lens<S, number | undefined>
 const _a = Optic.id<S>().key("a")
 
-console.log(_a.getResult({ a: 1 }))
-// { _id: 'Result', _tag: 'Success', value: 1 }
+console.log(String(_a.getResult({ a: 1 })))
+// success(1)
 
-console.log(_a.getResult({}))
-// { _id: 'Result', _tag: 'Success', value: undefined }
+console.log(String(_a.getResult({})))
+// success(undefined)
 
-console.log(_a.getResult({ a: undefined }))
-// { _id: 'Result', _tag: 'Success', value: undefined }
+console.log(String(_a.getResult({ a: undefined })))
+// success(undefined)
 
 console.log(_a.replace(2, { a: 1 }))
 // { a: 2 }
@@ -214,11 +272,11 @@ type S = {
 // Lens<S, number | undefined>
 const _a = Optic.id<S>().optionalKey("a")
 
-console.log(_a.getResult({ a: 1 }))
-// { _id: 'Result', _tag: 'Success', value: 1 }
+console.log(String(_a.getResult({ a: 1 })))
+// success(1)
 
-console.log(_a.getResult({}))
-// { _id: 'Result', _tag: 'Success', value: undefined }
+console.log(String(_a.getResult({})))
+// success(undefined)
 
 console.log(_a.replace(2, { a: 1 }))
 // { a: 2 }
@@ -352,9 +410,28 @@ export interface Traversal<in out S, in out A> extends Optional<S, ReadonlyArray
 To operate on each `A` inside a `Traversal<S, A>`, use `forEach`.
 `forEach` takes a function whose argument is an `Iso<A, A>`, so you can keep drilling down by composing that `Iso` with other optics.
 
+### Debugging focus failures
+
+If a focus does not exist, `getResult` lets you see success vs failure explicitly:
+
+```ts
+import { Optic, Result } from "effect"
+
+type S = { readonly a?: number }
+const _a = Optic.id<S>().at("a")
+
+const result = _a.getResult({})
+const message = Result.match(result, {
+  onSuccess: (value) => `value: ${value}`,
+  onFailure: () => "no focus"
+})
+
+console.log(message) // no focus
+```
+
 ## Generating an Optic from a Schema
 
-**Example**
+**Example** (Generating an Optic from a Struct)
 
 ```ts
 import { Schema } from "effect"
@@ -374,6 +451,25 @@ const _b = Schema.toIso(schema).key("b")
 
 console.log(_b.replace(2, { a: "a", b: 1 }))
 // { a: 'a', b: 2 }
+```
+
+You can also call `Schema.toIso` on custom types when their schema supplies `toCodecIso` or `toCodec` annotations. `Schema.Class` provides these, so class-based schemas work out of the box:
+
+**Example** (Generating an Optic from a Class schema)
+
+```ts
+import { Schema } from "effect"
+
+// Define a class schema
+class Person extends Schema.Class<Person>("Person")({
+  name: Schema.String,
+  age: Schema.Number
+}) {}
+
+const _name = Schema.toIso(Person).key("name")
+
+console.log(_name.replace("b", new Person({ name: "a", age: 1 })))
+// Person { name: 'b', age: 1 }
 ```
 
 ## Why use functional optics when we already have Immer?

@@ -483,7 +483,7 @@ class Person extends Schema.Class<Person>("Person")({
   age: Schema.Number
 }) {}
 
-const isoSerializer = Schema.toCodecIso(Person)
+const codecIso = Schema.toCodecIso(Person)
 
 // The Iso type represents the "focus" of the schema.
 // For Class schemas, the Iso type is the struct representation
@@ -493,11 +493,11 @@ const isoSerializer = Schema.toCodecIso(Person)
 
 const person = new Person({ name: "John", age: 30 })
 
-const serialized = Schema.encodeUnknownSync(isoSerializer)(person)
+const serialized = Schema.encodeUnknownSync(codecIso)(person)
 console.log(serialized)
 // { name: 'John', age: 30 }
 
-const deserialized = Schema.decodeUnknownSync(isoSerializer)(serialized)
+const deserialized = Schema.decodeUnknownSync(codecIso)(serialized)
 console.log(deserialized)
 // Person { name: 'John', age: 30 }
 ```
