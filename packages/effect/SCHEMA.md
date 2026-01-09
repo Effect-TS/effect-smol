@@ -4822,6 +4822,8 @@ Use `.annotate(...)` to attach standard JSON Schema annotations:
 - `description`
 - `default`
 - `examples`
+- `readOnly`
+- `writeOnly`
 
 **Example** (Adding basic annotations)
 

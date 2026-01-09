@@ -8456,6 +8456,8 @@ export declare namespace Annotations {
     readonly title?: string | undefined
     readonly description?: string | undefined
     readonly documentation?: string | undefined
+    readonly readOnly?: boolean | undefined
+    readonly writeOnly?: boolean | undefined
   }
 
   /**

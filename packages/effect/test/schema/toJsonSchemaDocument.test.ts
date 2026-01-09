@@ -182,6 +182,28 @@ describe("toJsonSchemaDocument", () => {
       )
     })
 
+    it("should support JSON Schema annotations", () => {
+      const schema = Schema.String.annotate({
+        title: "a",
+        description: "b",
+        default: "c",
+        examples: ["d"],
+        readOnly: true,
+        writeOnly: true
+      })
+      assertJsonSchemaDocument(schema, {
+        schema: {
+          "type": "string",
+          "title": "a",
+          "description": "b",
+          "default": "c",
+          "examples": ["d"],
+          "readOnly": true,
+          "writeOnly": true
+        }
+      })
+    })
+
     it(`refs should escape "~" and "/"`, () => {
       const S = Schema.String.annotate({ identifier: "id~a/b" })
       assertJsonSchemaDocument(

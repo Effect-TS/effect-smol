@@ -140,6 +140,8 @@ export function fromSchemaDraft07(js: JsonSchema): Document<"draft-2020-12"> {
         case "default":
         case "examples":
         case "format":
+        case "readOnly":
+        case "writeOnly":
         case "pattern":
         case "minimum":
         case "maximum":

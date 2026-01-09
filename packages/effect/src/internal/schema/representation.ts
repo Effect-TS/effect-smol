@@ -546,6 +546,8 @@ export function toJsonSchemaMultiDocument(
       else if (generateDescriptions && typeof annotations.expected === "string") out.description = annotations.expected
       if (annotations.default !== undefined) out.default = annotations.default
       if (Array.isArray(annotations.examples)) out.examples = annotations.examples
+      if (typeof annotations.readOnly === "boolean") out.readOnly = annotations.readOnly
+      if (typeof annotations.writeOnly === "boolean") out.writeOnly = annotations.writeOnly
 
       if (Object.keys(out).length > 0) return out
     }

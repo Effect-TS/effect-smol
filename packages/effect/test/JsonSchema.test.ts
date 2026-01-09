@@ -104,7 +104,9 @@ describe("JsonSchema", () => {
         description: "A string value",
         default: "default",
         examples: ["example1", "example2"],
-        format: "email"
+        format: "email",
+        readOnly: true,
+        writeOnly: true
       }
       const result = JsonSchema.fromSchemaDraft07(input)
       deepStrictEqual(result, {
@@ -115,7 +117,9 @@ describe("JsonSchema", () => {
           description: "A string value",
           default: "default",
           examples: ["example1", "example2"],
-          format: "email"
+          format: "email",
+          readOnly: true,
+          writeOnly: true
         },
         definitions: {}
       })
