@@ -18,10 +18,7 @@ describe("fromJsonSchemaDocument", () => {
     const jsonDocument = JsonSchema.fromSchemaDraft2020_12(schema)
     const document = SchemaRepresentation.fromJsonSchemaDocument(jsonDocument)
     deepStrictEqual(document, expectedDocument)
-    const multiDocument: SchemaRepresentation.MultiDocument = {
-      representations: [document.representation],
-      references: document.references
-    }
+    const multiDocument = SchemaRepresentation.toMultiDocument(document)
     if (runtime !== undefined) {
       strictEqual(SchemaRepresentation.toCodeDocument(multiDocument).codes[0].runtime, runtime)
     }
