@@ -2218,8 +2218,13 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
           }
           return number
         }
-        case "integer":
+        case "integer": {
+          const checks = collectNumberChecks(js)
+          if (checks.length > 0) {
+            return { ...integer, checks: combineChecks(integer.checks, checks) }
+          }
           return integer
+        }
         case "boolean":
           return boolean
         case "array": {

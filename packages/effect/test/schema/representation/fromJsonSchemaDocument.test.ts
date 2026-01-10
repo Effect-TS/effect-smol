@@ -443,6 +443,86 @@ describe("fromJsonSchemaDocument", () => {
         `Schema.Number.check(Schema.isInt())`
       )
     })
+
+    it("minimum", () => {
+      assertFromJsonSchema(
+        { type: "integer", minimum: 1 },
+        {
+          representation: {
+            _tag: "Number",
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isInt" } },
+              { _tag: "Filter", meta: { _tag: "isGreaterThanOrEqualTo", minimum: 1 } }
+            ]
+          }
+        },
+        `Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1))`
+      )
+    })
+
+    it("maximum", () => {
+      assertFromJsonSchema(
+        { type: "integer", maximum: 1 },
+        {
+          representation: {
+            _tag: "Number",
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isInt" } },
+              { _tag: "Filter", meta: { _tag: "isLessThanOrEqualTo", maximum: 1 } }
+            ]
+          }
+        },
+        `Schema.Number.check(Schema.isInt(), Schema.isLessThanOrEqualTo(1))`
+      )
+    })
+
+    it("exclusiveMinimum", () => {
+      assertFromJsonSchema(
+        { type: "integer", exclusiveMinimum: 1 },
+        {
+          representation: {
+            _tag: "Number",
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isInt" } },
+              { _tag: "Filter", meta: { _tag: "isGreaterThan", exclusiveMinimum: 1 } }
+            ]
+          }
+        },
+        `Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(1))`
+      )
+    })
+
+    it("exclusiveMaximum", () => {
+      assertFromJsonSchema(
+        { type: "integer", exclusiveMaximum: 1 },
+        {
+          representation: {
+            _tag: "Number",
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isInt" } },
+              { _tag: "Filter", meta: { _tag: "isLessThan", exclusiveMaximum: 1 } }
+            ]
+          }
+        },
+        `Schema.Number.check(Schema.isInt(), Schema.isLessThan(1))`
+      )
+    })
+
+    it("multipleOf", () => {
+      assertFromJsonSchema(
+        { type: "integer", multipleOf: 1 },
+        {
+          representation: {
+            _tag: "Number",
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isInt" } },
+              { _tag: "Filter", meta: { _tag: "isMultipleOf", divisor: 1 } }
+            ]
+          }
+        },
+        `Schema.Number.check(Schema.isInt(), Schema.isMultipleOf(1))`
+      )
+    })
   })
 
   describe("type: boolean", () => {
