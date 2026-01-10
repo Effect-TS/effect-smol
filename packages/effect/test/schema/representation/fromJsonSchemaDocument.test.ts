@@ -866,9 +866,45 @@ describe("fromJsonSchemaDocument", () => {
         `Schema.StructWithRest(Schema.Struct({  }), [Schema.Record(Schema.String.check(Schema.isPattern(new RegExp("a*"))), Schema.String), Schema.Record(Schema.String.check(Schema.isPattern(new RegExp("b*"))), Schema.Number.check(Schema.isFinite()))])`
       )
     })
+
+    describe("checks", () => {
+      it("minProperties", () => {
+        assertFromJsonSchema(
+          { type: "object", minProperties: 1 },
+          {
+            representation: {
+              _tag: "Objects",
+              propertySignatures: [],
+              indexSignatures: [
+                { parameter: { _tag: "String", checks: [] }, type: { _tag: "Unknown" } }
+              ],
+              checks: [{ _tag: "Filter", meta: { _tag: "isMinProperties", minProperties: 1 } }]
+            }
+          },
+          `Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMinProperties(1))`
+        )
+      })
+
+      it("maxProperties", () => {
+        assertFromJsonSchema(
+          { type: "object", maxProperties: 1 },
+          {
+            representation: {
+              _tag: "Objects",
+              propertySignatures: [],
+              indexSignatures: [
+                { parameter: { _tag: "String", checks: [] }, type: { _tag: "Unknown" } }
+              ],
+              checks: [{ _tag: "Filter", meta: { _tag: "isMaxProperties", maxProperties: 1 } }]
+            }
+          },
+          `Schema.Record(Schema.String, Schema.Unknown).check(Schema.isMaxProperties(1))`
+        )
+      })
+    })
   })
 
-  it("type: Array", () => {
+  it("type: array of strings", () => {
     assertFromJsonSchema(
       {
         type: ["string", "null"]

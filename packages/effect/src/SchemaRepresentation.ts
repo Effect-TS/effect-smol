@@ -2244,7 +2244,7 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
             _tag: "Objects",
             propertySignatures: collectProperties(js),
             indexSignatures: collectIndexSignatures(js),
-            checks: []
+            checks: collectObjectsChecks(js)
           }
         }
       }
@@ -2597,6 +2597,17 @@ function collectArraysChecks(js: JsonSchema.JsonSchema): Array<Check<ArraysMeta>
   }
   if (typeof js.uniqueItems === "boolean") {
     checks.push({ _tag: "Filter", meta: { _tag: "isUnique" } })
+  }
+  return checks
+}
+
+function collectObjectsChecks(js: JsonSchema.JsonSchema): Array<Check<ObjectsMeta>> {
+  const checks: Array<Check<ObjectsMeta>> = []
+  if (typeof js.minProperties === "number") {
+    checks.push({ _tag: "Filter", meta: { _tag: "isMinProperties", minProperties: js.minProperties } })
+  }
+  if (typeof js.maxProperties === "number") {
+    checks.push({ _tag: "Filter", meta: { _tag: "isMaxProperties", maxProperties: js.maxProperties } })
   }
   return checks
 }
