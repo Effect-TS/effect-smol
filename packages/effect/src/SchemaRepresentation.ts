@@ -2293,12 +2293,14 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
         switch (b._tag) {
           case "Unknown":
             return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
-          case "String":
+          case "String": {
+            const checks = combineChecks(a.checks, b.checks, b.annotations)
             return {
               _tag: "String",
-              checks: combineChecks(a.checks, b.checks),
-              ...combineAnnotations(a.annotations, b.annotations)
+              checks: checks ?? a.checks,
+              ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
             }
+          }
           case "Union":
             return combine(b, a)
           case "Reference":
@@ -2310,12 +2312,14 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
         switch (b._tag) {
           case "Unknown":
             return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
-          case "Number":
+          case "Number": {
+            const checks = combineNumberChecks(a.checks, b.checks, b.annotations)
             return {
               _tag: "Number",
-              checks: combineChecks(a.checks, b.checks),
-              ...combineAnnotations(a.annotations, b.annotations)
+              checks: checks ?? a.checks,
+              ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
             }
+          }
           case "Union":
             return combine(b, a)
           case "Reference":
@@ -2355,14 +2359,16 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
         switch (b._tag) {
           case "Unknown":
             return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
-          case "Arrays":
+          case "Arrays": {
+            const checks = combineArraysChecks(a.checks, b.checks, b.annotations)
             return {
               _tag: "Arrays",
               elements: combineElements(a.elements, b.elements),
               rest: combineRest(a.rest, b.rest),
-              checks: combineChecks(a.checks, b.checks),
-              ...combineAnnotations(a.annotations, b.annotations)
+              checks: checks ?? a.checks,
+              ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
             }
+          }
           case "Union":
             return combine(b, a)
           case "Reference":
@@ -2374,14 +2380,16 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
         switch (b._tag) {
           case "Unknown":
             return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
-          case "Objects":
+          case "Objects": {
+            const checks = combineChecks(a.checks, b.checks, b.annotations)
             return {
               _tag: "Objects",
               propertySignatures: combinePropertySignatures(a.propertySignatures, b.propertySignatures),
               indexSignatures: combineIndexSignatures(a.indexSignatures, b.indexSignatures),
-              checks: combineChecks(a.checks, b.checks),
-              ...combineAnnotations(a.annotations, b.annotations)
+              checks: checks ?? a.checks,
+              ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
             }
+          }
           case "Union":
             return combine(b, a)
           case "Reference":
@@ -2529,11 +2537,61 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
   }
 }
 
+function asChecks<M>(
+  checks: ReadonlyArray<Check<M>>,
+  annotations: Schema.Annotations.Annotations | undefined
+): ReadonlyArray<Check<M>> | undefined {
+  if (Arr.isReadonlyArrayNonEmpty(checks)) {
+    if (annotations !== undefined) {
+      if (checks.length === 1) {
+        const check = checks[0]
+        if (check.annotations === undefined) {
+          return [{ ...check, annotations }]
+        } else {
+          return [{ _tag: "FilterGroup", checks, annotations }]
+        }
+      } else {
+        return [{ _tag: "FilterGroup", checks, annotations }]
+      }
+    }
+    return checks
+  }
+}
+
 function combineChecks<M>(
   a: ReadonlyArray<Check<M>>,
-  b: ReadonlyArray<Check<M>>
-): Array<Check<M>> {
-  return [...a, ...b]
+  b: ReadonlyArray<Check<M>>,
+  annotations: Schema.Annotations.Annotations | undefined
+): Array<Check<M>> | undefined {
+  const checks = asChecks(b, annotations)
+  if (checks) {
+    return [...a, ...checks]
+  }
+}
+
+function combineNumberChecks(
+  a: ReadonlyArray<Check<NumberMeta>>,
+  b: ReadonlyArray<Check<NumberMeta>>,
+  annotations: Schema.Annotations.Annotations | undefined
+): Array<Check<NumberMeta>> | undefined {
+  if (a.some((c) => c._tag === "Filter" && c.meta._tag === "isFinite")) {
+    b = b.filter((c) => c._tag !== "Filter" || c.meta._tag !== "isFinite")
+  }
+  if (a.some((c) => c._tag === "Filter" && c.meta._tag === "isInt")) {
+    b = b.filter((c) => c._tag !== "Filter" || c.meta._tag !== "isInt")
+  }
+  return combineChecks(a, b, annotations)
+}
+
+function combineArraysChecks(
+  a: ReadonlyArray<Check<ArraysMeta>>,
+  b: ReadonlyArray<Check<ArraysMeta>>,
+  annotations: Schema.Annotations.Annotations | undefined
+): Array<Check<ArraysMeta>> | undefined {
+  if (a.some((c) => c._tag === "Filter" && c.meta._tag === "isUnique")) {
+    b = b.filter((c) => c._tag !== "Filter" || c.meta._tag !== "isUnique")
+  }
+  return combineChecks(a, b, annotations)
 }
 
 function makeAnnotations(
