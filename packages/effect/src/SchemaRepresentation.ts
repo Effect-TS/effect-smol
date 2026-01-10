@@ -2211,20 +2211,16 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
           }
           return string
         }
-        case "number": {
-          const checks = collectNumberChecks(js)
-          if (checks.length > 0) {
-            return { ...number, checks: combineChecks(number.checks, checks) }
+        case "number":
+          return {
+            _tag: "Number",
+            checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }, ...collectNumberChecks(js)]
           }
-          return number
-        }
-        case "integer": {
-          const checks = collectNumberChecks(js)
-          if (checks.length > 0) {
-            return { ...integer, checks: combineChecks(integer.checks, checks) }
+        case "integer":
+          return {
+            _tag: "Number",
+            checks: [{ _tag: "Filter", meta: { _tag: "isInt" } }, ...collectNumberChecks(js)]
           }
-          return integer
-        }
         case "boolean":
           return boolean
         case "array": {
@@ -2237,11 +2233,11 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
 
           const rest: Array<Representation> = js.items !== undefined ?
             [recur(js.items)]
-            : typeof js.maxItems === "number"
+            : js.prefixItems !== undefined && typeof js.maxItems === "number"
             ? []
             : [unknown]
 
-          return { _tag: "Arrays", elements, rest, checks: [] }
+          return { _tag: "Arrays", elements, rest, checks: collectArraysChecks(js) }
         }
         case "object": {
           return {
@@ -2589,12 +2585,26 @@ function collectNumberChecks(js: JsonSchema.JsonSchema): Array<Check<NumberMeta>
   return checks
 }
 
+function collectArraysChecks(js: JsonSchema.JsonSchema): Array<Check<ArraysMeta>> {
+  const checks: Array<Check<ArraysMeta>> = []
+  if (js.prefixItems === undefined) {
+    if (typeof js.minItems === "number") {
+      checks.push({ _tag: "Filter", meta: { _tag: "isMinLength", minLength: js.minItems } })
+    }
+    if (typeof js.maxItems === "number") {
+      checks.push({ _tag: "Filter", meta: { _tag: "isMaxLength", maxLength: js.maxItems } })
+    }
+  }
+  if (typeof js.uniqueItems === "boolean") {
+    checks.push({ _tag: "Filter", meta: { _tag: "isUnique" } })
+  }
+  return checks
+}
+
 const unknown: Unknown = { _tag: "Unknown" }
 const never: Never = { _tag: "Never" }
 const null_: Null = { _tag: "Null" }
 const string: String = { _tag: "String", checks: [] }
-const number: Number = { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }] }
-const integer: Number = { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isInt" } }] }
 const boolean: Boolean = { _tag: "Boolean" }
 
 function collectAnnotations(schema: JsonSchema.JsonSchema): Schema.Annotations.Annotations | undefined {
