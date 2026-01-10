@@ -7,7 +7,9 @@ import * as Fiber from "../../Fiber.ts"
 import { constant } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
+import * as Stream from "../../Stream.ts"
 import * as RpcServer from "../rpc/RpcServer.ts"
+import type * as ClusterDashboard from "./ClusterDashboard.ts"
 import type * as ClusterError from "./ClusterError.ts"
 import * as Message from "./Message.ts"
 import * as MessageStorage from "./MessageStorage.ts"
@@ -125,7 +127,15 @@ export const layerHandlers = Runners.Rpcs.toLayer(Effect.gen(function*() {
           )
         }
       ),
-    Envelope: ({ envelope }) => sharding.send(new Message.IncomingEnvelope({ envelope }))
+    Envelope: ({ envelope }) => sharding.send(new Message.IncomingEnvelope({ envelope })),
+
+    // Dashboard RPCs
+    DashboardSnapshot: () => sharding.getDashboardSnapshot,
+    DashboardSubscribe: () =>
+      Stream.map(
+        sharding.subscribeDashboardEvents,
+        (event): ClusterDashboard.ClusterDashboardEvent => event
+      )
   }
 }))
 
