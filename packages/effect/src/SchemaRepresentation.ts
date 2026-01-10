@@ -2211,8 +2211,13 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
           }
           return string
         }
-        case "number":
+        case "number": {
+          const checks = collectNumberChecks(js)
+          if (checks.length > 0) {
+            return { ...number, checks: combineChecks(number.checks, checks) }
+          }
           return number
+        }
         case "integer":
           return integer
         case "boolean":
@@ -2555,6 +2560,26 @@ function collectStringChecks(js: JsonSchema.JsonSchema): Array<Check<StringMeta>
   }
   if (typeof js.pattern === "string") {
     checks.push({ _tag: "Filter", meta: { _tag: "isPattern", regExp: new RegExp(js.pattern) } })
+  }
+  return checks
+}
+
+function collectNumberChecks(js: JsonSchema.JsonSchema): Array<Check<NumberMeta>> {
+  const checks: Array<Check<NumberMeta>> = []
+  if (typeof js.minimum === "number") {
+    checks.push({ _tag: "Filter", meta: { _tag: "isGreaterThanOrEqualTo", minimum: js.minimum } })
+  }
+  if (typeof js.maximum === "number") {
+    checks.push({ _tag: "Filter", meta: { _tag: "isLessThanOrEqualTo", maximum: js.maximum } })
+  }
+  if (typeof js.exclusiveMinimum === "number") {
+    checks.push({ _tag: "Filter", meta: { _tag: "isGreaterThan", exclusiveMinimum: js.exclusiveMinimum } })
+  }
+  if (typeof js.exclusiveMaximum === "number") {
+    checks.push({ _tag: "Filter", meta: { _tag: "isLessThan", exclusiveMaximum: js.exclusiveMaximum } })
+  }
+  if (typeof js.multipleOf === "number") {
+    checks.push({ _tag: "Filter", meta: { _tag: "isMultipleOf", divisor: js.multipleOf } })
   }
   return checks
 }

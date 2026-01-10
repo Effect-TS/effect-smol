@@ -336,9 +336,94 @@ describe("fromJsonSchemaDocument", () => {
       assertFromJsonSchema(
         { type: "number" },
         {
-          representation: { _tag: "Number", checks: [{ _tag: "Filter", meta: { _tag: "isFinite" } }] }
+          representation: {
+            _tag: "Number",
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isFinite" } }
+            ]
+          }
         },
         `Schema.Number.check(Schema.isFinite())`
+      )
+    })
+
+    it("minimum", () => {
+      assertFromJsonSchema(
+        { type: "number", minimum: 1 },
+        {
+          representation: {
+            _tag: "Number",
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isFinite" } },
+              { _tag: "Filter", meta: { _tag: "isGreaterThanOrEqualTo", minimum: 1 } }
+            ]
+          }
+        },
+        `Schema.Number.check(Schema.isFinite(), Schema.isGreaterThanOrEqualTo(1))`
+      )
+    })
+
+    it("maximum", () => {
+      assertFromJsonSchema(
+        { type: "number", maximum: 1 },
+        {
+          representation: {
+            _tag: "Number",
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isFinite" } },
+              { _tag: "Filter", meta: { _tag: "isLessThanOrEqualTo", maximum: 1 } }
+            ]
+          }
+        },
+        `Schema.Number.check(Schema.isFinite(), Schema.isLessThanOrEqualTo(1))`
+      )
+    })
+
+    it("exclusiveMinimum", () => {
+      assertFromJsonSchema(
+        { type: "number", exclusiveMinimum: 1 },
+        {
+          representation: {
+            _tag: "Number",
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isFinite" } },
+              { _tag: "Filter", meta: { _tag: "isGreaterThan", exclusiveMinimum: 1 } }
+            ]
+          }
+        },
+        `Schema.Number.check(Schema.isFinite(), Schema.isGreaterThan(1))`
+      )
+    })
+
+    it("exclusiveMaximum", () => {
+      assertFromJsonSchema(
+        { type: "number", exclusiveMaximum: 1 },
+        {
+          representation: {
+            _tag: "Number",
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isFinite" } },
+              { _tag: "Filter", meta: { _tag: "isLessThan", exclusiveMaximum: 1 } }
+            ]
+          }
+        },
+        `Schema.Number.check(Schema.isFinite(), Schema.isLessThan(1))`
+      )
+    })
+
+    it("multipleOf", () => {
+      assertFromJsonSchema(
+        { type: "number", multipleOf: 1 },
+        {
+          representation: {
+            _tag: "Number",
+            checks: [
+              { _tag: "Filter", meta: { _tag: "isFinite" } },
+              { _tag: "Filter", meta: { _tag: "isMultipleOf", divisor: 1 } }
+            ]
+          }
+        },
+        `Schema.Number.check(Schema.isFinite(), Schema.isMultipleOf(1))`
       )
     })
   })
