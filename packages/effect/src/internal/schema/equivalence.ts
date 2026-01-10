@@ -137,7 +137,7 @@ function recur(ast: AST.AST, path: ReadonlyArray<PropertyKey>): Equivalence.Equi
     case "Union":
       return Equivalence.make((a, b) => {
         const candidates = AST.getCandidates(a, ast.types)
-        const types = candidates.map(Parser.refinement)
+        const types = candidates.map(Parser._is)
         for (let i = 0; i < candidates.length; i++) {
           const is = types[i]
           if (is(a) && is(b)) {

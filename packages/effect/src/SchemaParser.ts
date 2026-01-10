@@ -77,11 +77,11 @@ export function makeUnsafe<S extends Schema.Top>(schema: S) {
 export function is<S extends Schema.Top & { readonly DecodingServices: never }>(
   schema: S
 ): <I>(input: I) => input is I & S["Type"] {
-  return refinement<S["Type"]>(schema.ast)
+  return _is<S["Type"]>(schema.ast)
 }
 
 /** @internal */
-export function refinement<T>(ast: AST.AST) {
+export function _is<T>(ast: AST.AST) {
   const parser = asExit(run<T, never>(AST.toType(ast)))
   return <I>(input: I): input is I & T => {
     return Exit.isSuccess(parser(input, AST.defaultParseOptions))

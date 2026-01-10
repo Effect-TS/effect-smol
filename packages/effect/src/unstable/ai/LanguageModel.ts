@@ -1075,10 +1075,6 @@ export const getObjectName = <ObjectSchema extends Schema.Top>(
   if (Predicate.isNotUndefined(objectName)) {
     return objectName
   }
-  const _tag = Schema.getTag("_tag", schema.ast)
-  if (typeof _tag === "string") {
-    return _tag
-  }
   if ("identifier" in schema && typeof schema.identifier === "string") {
     return schema.identifier
   }

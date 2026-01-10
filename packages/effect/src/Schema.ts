@@ -3165,15 +3165,13 @@ type TaggedUnionUtils<
 }
 
 /** @internal */
-export function getTag(tag: PropertyKey, ast: AST.AST): PropertyKey | undefined {
-  if (AST.isObjects(ast)) {
-    const ps = ast.propertySignatures.find((p) => p.name === tag)
-    if (ps) {
-      if (AST.isLiteral(ps.type) && Predicate.isPropertyKey(ps.type.literal)) {
-        return ps.type.literal
-      } else if (AST.isUniqueSymbol(ps.type)) {
-        return ps.type.symbol
-      }
+export function _getTagValueIfPropertyKey(tag: PropertyKey, ast: AST.Objects): PropertyKey | undefined {
+  const ps = ast.propertySignatures.find((p) => p.name === tag)
+  if (ps) {
+    if (AST.isLiteral(ps.type) && Predicate.isPropertyKey(ps.type.literal)) {
+      return ps.type.literal
+    } else if (AST.isUniqueSymbol(ps.type)) {
+      return ps.type.symbol
     }
   }
 }
@@ -3199,22 +3197,31 @@ export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
     const guards: Record<PropertyKey, (u: unknown) => boolean> = {}
     const isAnyOf = (keys: ReadonlyArray<PropertyKey>) => (value: Members[number]["Type"]) => keys.includes(value[tag])
 
-    function process(schema: any) {
-      const ast = schema.ast
-      if (AST.isUnion(ast)) {
-        schema.members.forEach(process)
-      } else if (AST.isObjects(ast)) {
-        const value = getTag(tag, ast)
-        if (value) {
-          cases[value] = schema
-          guards[value] = is(toType(schema))
-        }
-      } else {
-        throw new globalThis.Error("No literal found")
-      }
-    }
+    walk(self)
 
-    process(self)
+    return Object.assign(self, { cases, isAnyOf, guards, match }) as any
+
+    function walk(schema: Top) {
+      const ast = schema.ast
+
+      if (
+        AST.isUnion(ast) && "members" in schema && globalThis.Array.isArray(schema.members) &&
+        schema.members.every(isSchema)
+      ) {
+        return schema.members.forEach(walk)
+      }
+
+      if (AST.isObjects(ast)) {
+        const key = _getTagValueIfPropertyKey(tag, ast)
+        if (key !== undefined) {
+          cases[key] = schema
+          guards[key] = is(toType(schema))
+          return
+        }
+      }
+
+      throw new globalThis.Error("No literal found")
+    }
 
     function match() {
       if (arguments.length === 1) {
@@ -3227,8 +3234,6 @@ export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
       const cases = arguments[1]
       return cases[value[tag]](value)
     }
-
-    return Object.assign(self, { cases, isAnyOf, guards, match }) as any
   }
 }
 
@@ -7765,7 +7770,7 @@ export function toFormatter<T>(schema: Schema<T>, options?: {
         const getCandidates = (t: any) => AST.getCandidates(t, ast.types)
         return (t) => {
           const candidates = getCandidates(t)
-          const refinements = candidates.map(Parser.refinement)
+          const refinements = candidates.map(Parser._is)
           for (let i = 0; i < candidates.length; i++) {
             const is = refinements[i]
             if (is(t)) {

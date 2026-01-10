@@ -1129,23 +1129,30 @@ export const FINITE_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?"
 
 const isNumberStringRegExp = new globalThis.RegExp(`(?:${FINITE_PATTERN}|Infinity|-Infinity|NaN)`)
 
-/** @internal */
+/**
+ * Returns the object keys that match the index signature parameter schema.
+ * @internal
+ */
 export function getIndexSignatureKeys(
   input: { readonly [x: PropertyKey]: unknown },
   parameter: AST
 ): ReadonlyArray<PropertyKey> {
-  const p = toEncoded(parameter)
-  switch (p._tag) {
+  const encoded = toEncoded(parameter)
+  switch (encoded._tag) {
+    case "String":
+      return Object.keys(input)
     case "TemplateLiteral": {
-      const regExp = getTemplateLiteralRegExp(p)
-      return Object.keys(input).filter((key) => regExp.test(key))
+      const regExp = getTemplateLiteralRegExp(encoded)
+      return Object.keys(input).filter((k) => regExp.test(k))
     }
     case "Symbol":
       return Object.getOwnPropertySymbols(input)
     case "Number":
-      return Object.keys(input).filter((key) => isNumberStringRegExp.test(key))
+      return Object.keys(input).filter((k) => isNumberStringRegExp.test(k))
+    case "Union":
+      return [...new Set(encoded.types.flatMap((t) => getIndexSignatureKeys(input, t)))]
     default:
-      return Object.keys(input)
+      return []
   }
 }
 

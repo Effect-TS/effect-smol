@@ -332,9 +332,9 @@ const recur: (
           const stat = yield* provider.load(path)
           if (stat && stat._tag === "Record") {
             for (const is of ast.indexSignatures) {
-              const matches = Parser.refinement(is.parameter)
+              const matches = Parser._is(is.parameter)
               for (const key of stat.keys) {
-                if (!Object.prototype.hasOwnProperty.call(out, key) && matches(key)) {
+                if (!Object.hasOwn(out, key) && matches(key)) {
                   const value = yield* recur(is.type, provider, [...path, key])
                   if (value !== undefined) out[key] = value
                 }
