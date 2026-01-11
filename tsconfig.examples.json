@@ -3,6 +3,6 @@
   "extends": "./tsconfig.base.json",
   "include": [],
   "references": [
-    // { "path": "examples/simple-cli" } // This is currently broken.
+    // TODO: Add examples here.
   ]
 }
