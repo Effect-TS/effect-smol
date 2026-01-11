@@ -1,5 +1,5 @@
 {
-  "dprint.path": "node_modules/dprint/dprint",
+  "dprint.path": "node_modules/.bin/dprint",
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.preferences.importModuleSpecifier": "relative",
   "typescript.enablePromptUseWorkspaceTsdk": true,

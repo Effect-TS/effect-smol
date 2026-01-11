@@ -8,22 +8,22 @@
   },
   "rules": {
     // Effect custom rules
-    "effect/no-import-from-barrel-package": [
-      "error",
-      {
-        "checkPatterns": [
-          "^effect$",
-          "^effect/(.+/)?[a-z][a-z0-9]*$",
-          "^@effect/[^/]+$",
-          "^@effect/[^/]+/(.+/)?[a-z][a-z0-9]*$"
-        ],
-        "checkRelativeIndexImports": true
-      }
-    ],
+    "effect/no-import-from-barrel-package": ["error", {
+      "checkPatterns": [
+        "^effect$",
+        "^effect/(.+/)?[a-z][a-z0-9]*$",
+        "^@effect/[^/]+$",
+        "^@effect/[^/]+/(.+/)?[a-z][a-z0-9]*$"
+      ],
+      "checkRelativeIndexImports": true
+    }],
     "effect/no-js-extension-imports": "error",
     "effect/no-opaque-instance-fields": "error",
     // Tune native rules
     // Import rules
+    "typescript/consistent-type-imports": ["error", {
+      "fixStyle": "inline-type-imports"
+    }],
     "typescript/no-import-type-side-effects": "error",
     "import/no-duplicates": "error",
     "import/no-self-import": "error",
@@ -67,19 +67,13 @@
     "typescript/unified-signatures": "off",
     "typescript/no-empty-object-type": "off",
     "typescript/no-confusing-non-null-assertion": "off",
-    "typescript/array-type": [
-      "error",
-      {
-        "default": "generic",
-        "readonly": "generic"
-      }
-    ],
-    "typescript/no-unused-vars": [
-      "error",
-      {
-        "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_"
-      }
-    ]
+    "typescript/array-type": ["error", {
+      "default": "generic",
+      "readonly": "generic"
+    }],
+    "typescript/no-unused-vars": ["error", {
+      "argsIgnorePattern": "^_",
+      "varsIgnorePattern": "^_"
+    }]
   }
 }
