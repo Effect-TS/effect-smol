@@ -1,13 +1,12 @@
 /**
  * @since 4.0.0
  */
-
 import * as Arr from "./Array.ts"
 import * as Cause from "./Cause.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import * as Filter from "./Filter.ts"
-import { memoize } from "./Function.ts"
+import { identity, memoize } from "./Function.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
@@ -85,6 +84,17 @@ export function _is<T>(ast: AST.AST) {
   const parser = asExit(run<T, never>(AST.toType(ast)))
   return <I>(input: I): input is I & T => {
     return Exit.isSuccess(parser(input, AST.defaultParseOptions))
+  }
+}
+
+/** @internal */
+export function _issue<T>(ast: AST.AST) {
+  const parser = run<T, never>(ast)
+  return (input: unknown, options: AST.ParseOptions): Issue.Issue | undefined => {
+    return Effect.runSync(Effect.matchEager(parser(input, options), {
+      onSuccess: () => undefined,
+      onFailure: identity
+    }))
   }
 }
 

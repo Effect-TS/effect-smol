@@ -1660,6 +1660,34 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
           `Expected an object with exactly 2 properties, got {"a":3,Symbol(test1):1,Symbol(test2):2}`
         )
       })
+
+      it("isPropertyNames", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Finite).check(
+          Schema.isPropertyNames(Schema.String.check(Schema.isPattern(/^[A-Z]/)))
+        )
+        const asserts = new TestSchema.Asserts(schema)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed({ Ab: 1 })
+        await decoding.fail(
+          { ab: 1 },
+          `Expected a string matching the RegExp ^[A-Z], got "ab"
+  at ["ab"]`
+        )
+      })
+
+      it("isPropertyNames with Never", async () => {
+        const schema = Schema.Record(Schema.String, Schema.Finite).check(Schema.isPropertyNames(Schema.Never))
+        const asserts = new TestSchema.Asserts(schema)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed({})
+        await decoding.fail(
+          { a: 1 },
+          `Expected never, got "a"
+  at ["a"]`
+        )
+      })
     })
 
     describe("Structural checks", () => {

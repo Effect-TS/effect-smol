@@ -42,7 +42,11 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
       default:
         return s
       case "Declaration":
-        return { ...s, typeParameters: s.typeParameters.map(compact), encodedSchema: compact(s.encodedSchema) }
+        return {
+          ...s,
+          typeParameters: s.typeParameters.map(compact),
+          encodedSchema: compact(s.encodedSchema)
+        }
       case "Reference": {
         if (isCompactable(s.$ref)) {
           return compact(references[s.$ref])
@@ -52,14 +56,22 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
       case "Suspend":
         return { ...s, thunk: compact(s.thunk) }
       case "String":
-        return { ...s, ...(s.contentSchema ? { contentSchema: compact(s.contentSchema) } : undefined) }
+        return {
+          ...s,
+          ...(s.contentSchema ? { contentSchema: compact(s.contentSchema) } : undefined)
+        }
       case "TemplateLiteral":
         return { ...s, parts: s.parts.map(compact) }
       case "Arrays":
-        return { ...s, elements: s.elements.map((e) => ({ ...e, type: compact(e.type) })), rest: s.rest.map(compact) }
+        return {
+          ...s,
+          elements: s.elements.map((e) => ({ ...e, type: compact(e.type) })),
+          rest: s.rest.map(compact)
+        }
       case "Objects":
         return {
           ...s,
+          checks: s.checks.map(compactCheck),
           propertySignatures: s.propertySignatures.map((ps) => ({ ...ps, type: compact(ps.type) })),
           indexSignatures: s.indexSignatures.map((is) => ({
             ...is,
@@ -69,6 +81,22 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
         }
       case "Union":
         return { ...s, types: s.types.map(compact) }
+    }
+  }
+
+  function compactCheck<M extends SchemaRepresentation.Meta>(
+    check: SchemaRepresentation.Check<M>
+  ): SchemaRepresentation.Check<M> {
+    switch (check._tag) {
+      case "Filter":
+        return {
+          ...check,
+          meta: check.meta._tag === "isPropertyNames"
+            ? { _tag: "isPropertyNames", propertyNames: compact(check.meta.propertyNames) } as M
+            : check.meta
+        }
+      case "FilterGroup":
+        return { ...check, checks: Arr.map(check.checks, compactCheck) }
     }
   }
 
@@ -240,11 +268,50 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
       }
     }
   }
+
+  function fromASTChecks(
+    checks: readonly [AST.Check<any>, ...Array<AST.Check<any>>] | undefined
+  ): Array<SchemaRepresentation.Check<any>> {
+    if (!checks) return []
+    return checks.map(getCheck).filter((c) => c !== undefined)
+
+    function getCheck(c: AST.Check<any>): SchemaRepresentation.Check<any> | undefined {
+      switch (c._tag) {
+        case "Filter": {
+          const meta = c.annotations?.meta
+          if (meta) {
+            return {
+              _tag: "Filter",
+              meta: meta._tag === "isPropertyNames"
+                ? {
+                  _tag: "isPropertyNames",
+                  propertyNames: recur(meta.propertyNames)
+                }
+                : meta,
+              ...fromASTAnnotations(c.annotations)
+            }
+          }
+          return undefined
+        }
+        case "FilterGroup": {
+          const checks = fromASTChecks(c.checks)
+          if (Arr.isArrayNonEmpty(checks)) {
+            return {
+              _tag: "FilterGroup",
+              checks,
+              ...fromASTAnnotations(c.annotations)
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 /** @internal */
 export const fromASTBlacklist: Set<string> = new Set([
   // `expected` is preserved because is useful to generate descriptions in JSON Schemas
+  "~structural",
   "meta",
   "toArbitrary",
   "toArbitraryConstraint",
@@ -266,38 +333,6 @@ function fromASTAnnotations(
     }
   }
   return undefined
-}
-
-function fromASTChecks(
-  checks: readonly [AST.Check<any>, ...Array<AST.Check<any>>] | undefined
-): Array<SchemaRepresentation.Check<any>> {
-  if (!checks) return []
-  function getCheck(c: AST.Check<any>): SchemaRepresentation.Check<any> | undefined {
-    switch (c._tag) {
-      case "Filter": {
-        const meta = c.annotations?.meta
-        if (meta) {
-          return {
-            _tag: "Filter",
-            meta,
-            ...fromASTAnnotations(c.annotations)
-          }
-        }
-        return undefined
-      }
-      case "FilterGroup": {
-        const checks = fromASTChecks(c.checks)
-        if (Arr.isArrayNonEmpty(checks)) {
-          return {
-            _tag: "FilterGroup",
-            checks,
-            ...fromASTAnnotations(c.annotations)
-          }
-        }
-      }
-    }
-  }
-  return checks.map(getCheck).filter((c) => c !== undefined)
 }
 
 /** @internal */
@@ -553,18 +588,18 @@ export function toJsonSchemaMultiDocument(
     }
   }
 
-  function collectJsonSchemaChecks(
-    checks: ReadonlyArray<SchemaRepresentation.Check<any>>,
+  function collectJsonSchemaChecks<M>(
+    checks: ReadonlyArray<SchemaRepresentation.Check<M>>,
     type: unknown
   ): Array<JsonSchema.JsonSchema> {
-    return checks.map(recur).filter((c) => c !== undefined)
+    return checks.map(collectJsonSchemaCheck).filter((c) => c !== undefined)
 
-    function recur(check: SchemaRepresentation.Check<any>): JsonSchema.JsonSchema | undefined {
+    function collectJsonSchemaCheck<M>(check: SchemaRepresentation.Check<M>): JsonSchema.JsonSchema | undefined {
       switch (check._tag) {
         case "Filter":
           return filterToJsonSchema(check, type)
         case "FilterGroup": {
-          const checks = check.checks.map(recur).filter((c) => c !== undefined)
+          const checks = check.checks.map(collectJsonSchemaCheck).filter((c) => c !== undefined)
           if (checks.length === 0) return undefined
           let out = { allOf: checks }
           const a = collectJsonSchemaAnnotations(check.annotations)
@@ -651,6 +686,8 @@ export function toJsonSchemaMultiDocument(
           return { maxProperties: meta.maxProperties }
         case "isPropertiesLength":
           return { minProperties: meta.length, maxProperties: meta.length }
+        case "isPropertyNames":
+          return { propertyNames: recur(meta.propertyNames) }
 
         case "isDateValid":
           return { format: "date-time" }

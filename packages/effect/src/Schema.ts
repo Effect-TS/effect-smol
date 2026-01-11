@@ -5127,6 +5127,48 @@ export function isPropertiesLength(length: number, annotations?: Annotations.Fil
 }
 
 /**
+ * Validates that all property names in an object satisfy the provided key
+ * schema (encoded side of the schema).
+ *
+ * **JSON Schema**
+ *
+ * This check corresponds to the `propertyNames` constraint in JSON Schema.
+ *
+ * @category Object checks
+ * @since 4.0.0
+ */
+export function isPropertyNames(keySchema: Top, annotations?: Annotations.Filter) {
+  const propertyNames = toEncoded(keySchema)
+  const parser = Parser._issue(propertyNames.ast)
+  return makeFilter<object>(
+    (input, ast, options) => {
+      const keys = Reflect.ownKeys(input)
+      const issues: Array<Issue.Issue> = []
+      for (const key of keys) {
+        const issue = parser(key, options)
+        if (issue !== undefined) {
+          issues.push(new Issue.Pointer([key], issue))
+          if (options.errors === "first") break
+        }
+      }
+      if (Arr.isArrayNonEmpty(issues)) {
+        return new Issue.Composite(ast, Option_.some(input), issues)
+      }
+      return true
+    },
+    {
+      expected: "an object with property names matching the schema",
+      meta: {
+        _tag: "isPropertyNames",
+        propertyNames: propertyNames.ast
+      },
+      [AST.STRUCTURAL_ANNOTATION_KEY]: true,
+      ...annotations
+    }
+  )
+}
+
+/**
  * Validates that all items in an array are unique according to the provided
  * equivalence function.
  *
@@ -8887,6 +8929,10 @@ export declare namespace Annotations {
     readonly isPropertiesLength: {
       readonly _tag: "isPropertiesLength"
       readonly length: number
+    }
+    readonly isPropertyNames: {
+      readonly _tag: "isPropertyNames"
+      readonly propertyNames: AST.AST
     }
     // Arrays Meta
     readonly isUnique: {

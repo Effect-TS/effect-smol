@@ -258,6 +258,49 @@ describe("fromAST", () => {
     })
   })
 
+  describe("Record", () => {
+    describe("checks", () => {
+      it("Record & isPropertyNames", () => {
+        assertFromAST(
+          Schema.Record(Schema.String, Schema.Number)
+            .check(Schema.isPropertyNames(Schema.String.check(Schema.isPattern(/^[A-Z]/)))),
+          {
+            representation: {
+              _tag: "Objects",
+              propertySignatures: [],
+              indexSignatures: [
+                {
+                  parameter: { _tag: "String", checks: [] },
+                  type: { _tag: "Number", checks: [] }
+                }
+              ],
+              checks: [
+                {
+                  _tag: "Filter",
+                  meta: {
+                    _tag: "isPropertyNames",
+                    propertyNames: {
+                      _tag: "String",
+                      checks: [
+                        {
+                          _tag: "Filter",
+                          meta: { _tag: "isPattern", regExp: new RegExp("^[A-Z]") },
+                          annotations: { expected: "a string matching the RegExp ^[A-Z]" }
+                        }
+                      ]
+                    }
+                  },
+                  annotations: { expected: "an object with property names matching the schema" }
+                }
+              ]
+            },
+            references: {}
+          }
+        )
+      })
+    })
+  })
+
   describe("Class", () => {
     it("Class", () => {
       class A extends Schema.Class<A>("A")({
