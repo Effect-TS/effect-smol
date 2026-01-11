@@ -851,7 +851,7 @@ export const Schema = <
     },
     {
       expected: "AsyncResult",
-      "toCodec*"([value, cause]) {
+      toCodec([value, cause]) {
         const Success = Schema_.TaggedStruct("Success", { value, waiting: Schema_.Boolean, timestamp: Schema_.Number })
         return Schema_.link<AsyncResult<A["Encoded"], E["Encoded"]>>()(
           Schema_.Union([
