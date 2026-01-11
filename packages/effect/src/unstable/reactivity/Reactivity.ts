@@ -183,7 +183,7 @@ export const mutation: {
 } = dual(2, <A, E, R>(
   effect: Effect.Effect<A, E, R>,
   keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
-): Effect.Effect<A, E, R | Reactivity> => Effect.flatMap(Reactivity.asEffect(), (r) => r.mutation(keys, effect)))
+): Effect.Effect<A, E, R | Reactivity> => Reactivity.use((_) => _.mutation(keys, effect)))
 
 /**
  * @since 4.0.0
@@ -203,7 +203,7 @@ export const query: {
   effect: Effect.Effect<A, E, R>,
   keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
 ): Effect.Effect<Queue.Dequeue<A, E>, never, R | Scope.Scope | Reactivity> =>
-  Effect.flatMap(Reactivity.asEffect(), (r) => r.query(keys, effect)))
+  Reactivity.use((r) => r.query(keys, effect)))
 
 /**
  * @since 4.0.0
@@ -221,8 +221,7 @@ export const stream: {
   effect: Effect.Effect<A, E, R>,
   keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
 ): Stream.Stream<A, E, Exclude<R, Scope.Scope> | Reactivity> =>
-  Reactivity.asEffect().pipe(
-    Effect.flatMap((r) => r.query(keys, effect)),
+  Reactivity.use((r) => r.query(keys, effect)).pipe(
     Effect.map(Stream.fromQueue),
     Stream.unwrap
   ))
@@ -233,7 +232,7 @@ export const stream: {
  */
 export const invalidate = (
   keys: ReadonlyArray<unknown> | ReadonlyRecord<string, ReadonlyArray<unknown>>
-): Effect.Effect<void, never, Reactivity> => Effect.flatMap(Reactivity.asEffect(), (r) => r.invalidate(keys))
+): Effect.Effect<void, never, Reactivity> => Reactivity.use((r) => r.invalidate(keys))
 
 /**
  * @since 4.0.0
