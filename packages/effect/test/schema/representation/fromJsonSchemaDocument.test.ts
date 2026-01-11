@@ -1058,7 +1058,6 @@ describe("fromJsonSchemaDocument", () => {
       )
     })
 
-    // TODO: remove unnecessary definition
     it("should resolve the $ref if there are annotations", () => {
       assertFromJsonSchema(
         {
@@ -1075,19 +1074,11 @@ describe("fromJsonSchemaDocument", () => {
             _tag: "String",
             checks: [],
             annotations: { description: "a", identifier: "A" }
-          },
-          definitions: {
-            A: {
-              _tag: "String",
-              checks: [],
-              annotations: { identifier: "A" }
-            }
           }
         }
       )
     })
 
-    // TODO: remove unnecessary definition
     it("should resolve the $ref if there is an allOf", () => {
       assertFromJsonSchema(
         {
@@ -1106,13 +1097,6 @@ describe("fromJsonSchemaDocument", () => {
             _tag: "String",
             checks: [],
             annotations: { description: "a", identifier: "A" }
-          },
-          definitions: {
-            A: {
-              _tag: "String",
-              checks: [],
-              annotations: { identifier: "A" }
-            }
           }
         }
       )

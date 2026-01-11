@@ -2119,11 +2119,11 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
  * @since 4.0.0
  */
 export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"draft-2020-12">): MultiDocument {
-  let visited$refs = new Set<string>()
+  let ref$Count = new Map<string, number>()
   const definitions: Record<string, Representation> = {}
 
   for (const [identifier, d] of Object.entries(document.definitions)) {
-    visited$refs.add(identifier)
+    ref$Count.set(identifier, 1)
     const out = recur(d)
     if (out._tag === "Reference") {
       definitions[identifier] = out
@@ -2133,10 +2133,11 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
     }
   }
 
-  visited$refs = new Set<string>()
+  ref$Count = new Map()
+  const representations = Arr.map(document.schemas, recur)
   return {
-    representations: Arr.map(document.schemas, recur),
-    references: definitions
+    representations,
+    references: Rec.filter(definitions, (_, k) => (ref$Count.get(k) ?? 0) > 0)
   }
 
   function recur(u: unknown): Representation {
@@ -2175,10 +2176,10 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
       const $ref = js.$ref.slice(2).split("/").at(-1)
       if ($ref !== undefined) {
         const reference: Reference = { _tag: "Reference", $ref: unescapeToken($ref) }
-        if (visited$refs.has($ref)) {
+        if (ref$Count.has($ref)) {
           return { _tag: "Suspend", thunk: reference, checks: [] }
         } else {
-          visited$refs.add($ref)
+          ref$Count.set($ref, (ref$Count.get($ref) ?? 0) + 1)
           return reference
         }
       }
@@ -2267,6 +2268,7 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
   function resolveReference($ref: string): Exclude<Representation, { _tag: "Reference" }> {
     const definition = definitions[$ref]
     if (definition !== undefined) {
+      ref$Count.set($ref, (ref$Count.get($ref) ?? 0) - 1)
       if (definition._tag === "Reference") {
         return resolveReference(definition.$ref)
       } else {
