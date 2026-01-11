@@ -1,5 +1,5 @@
 import path from "node:path"
-import viteTsconfigPaths from "vite-tsconfig-paths"
+import aliases from "vite-tsconfig-paths"
 import type { ViteUserConfig } from "vitest/config"
 
 const config: ViteUserConfig = {
@@ -9,7 +9,7 @@ const config: ViteUserConfig = {
   optimizeDeps: {
     exclude: ["bun:sqlite"]
   },
-  plugins: [viteTsconfigPaths()],
+  plugins: [aliases()],
   test: {
     setupFiles: [path.join(__dirname, "vitest.setup.ts")],
     fakeTimers: {
