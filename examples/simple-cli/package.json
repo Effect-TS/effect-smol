@@ -4,7 +4,6 @@
   "private": true,
   "description": "Simple CLI example demonstrating Effect CLI features",
   "type": "module",
-  "main": "dist/cli.js",
   "bin": {
     "myapp": "./dist/cli.js"
   },
