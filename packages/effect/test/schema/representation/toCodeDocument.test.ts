@@ -68,18 +68,9 @@ describe("toCodeDocument", () => {
       })
     })
 
-    // TODO: remove unnecessary reference
     it("RegExp", () => {
       assertToCodeDocument({ schema: Schema.RegExp }, {
-        codes: makeCode(`Schema.RegExp`, "globalThis.RegExp"),
-        references: {
-          nonRecursives: [
-            {
-              $ref: "_2",
-              code: makeCode("Schema.String", "string")
-            }
-          ]
-        }
+        codes: makeCode(`Schema.RegExp`, "globalThis.RegExp")
       })
     })
 
@@ -103,29 +94,13 @@ describe("toCodeDocument", () => {
 
     it("File", () => {
       assertToCodeDocument({ schema: Schema.File }, {
-        codes: makeCode(`Schema.File`, "globalThis.File"),
-        references: {
-          nonRecursives: [
-            {
-              $ref: "_3",
-              code: makeCode("Schema.String", "string")
-            }
-          ]
-        }
+        codes: makeCode(`Schema.File`, "globalThis.File")
       })
     })
 
     it("FormData", () => {
       assertToCodeDocument({ schema: Schema.FormData }, {
-        codes: makeCode(`Schema.FormData`, "globalThis.FormData"),
-        references: {
-          nonRecursives: [
-            {
-              $ref: "_3",
-              code: makeCode("Schema.String", "string")
-            }
-          ]
-        }
+        codes: makeCode(`Schema.FormData`, "globalThis.FormData")
       })
     })
 

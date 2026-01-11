@@ -2582,7 +2582,7 @@ describe("toJsonSchemaDocument", () => {
       )
       assertJsonSchemaDocument(
         Schema.Record(
-          Schema.String.annotate({ description: "k" }), // TODO: where to attach the description?
+          Schema.String.annotate({ description: "k" }), // TODO: where can we attach the description?
           Schema.Finite.annotate({ description: "v" })
         ).annotate({ description: "r" }),
         {

@@ -1609,6 +1609,7 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
   // Phase 1: Build sanitization map with collision handling
   const sanitizedReferenceMap = new Map<string, string>()
   const uniqueSanitizedReferences = new Set<string>()
+  const referenceCount = new Map<string, number>()
 
   // Process all references first to build the map
   const allRefs = [
@@ -1629,13 +1630,14 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
     sanitizedReferenceMap.get($ref)!,
     recur(representation)
   ])
+
   const codes = multiDocument.representations.map(recur)
 
   return {
     codes,
     references: {
-      nonRecursives,
-      recursives
+      nonRecursives: nonRecursives.filter(({ $ref }) => (referenceCount.get($ref) ?? 0) > 0),
+      recursives: Rec.filter(recursives, (_, $ref) => (referenceCount.get($ref) ?? 0) > 0)
     },
     artifacts
   }
@@ -1742,6 +1744,7 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
       }
       case "Reference": {
         const sanitized = sanitizedReferenceMap.get(s.$ref) ?? ensureUniqueSanitized(s.$ref)
+        referenceCount.set(sanitized, (referenceCount.get(sanitized) ?? 0) + 1)
         return makeCode(sanitized, sanitized)
       }
       case "Suspend": {
