@@ -78,8 +78,8 @@ jobs:
           ref: ${{ github.event.pull_request.base.ref }}
       - name: Build
         run: |
-          pnpm build:tsgo &
-          cd base && pnpm install && pnpm build:tsgo &
+          pnpm build &
+          cd base && pnpm install && pnpm build &
           wait
       - name: Compare bundle size
         id: bundle
