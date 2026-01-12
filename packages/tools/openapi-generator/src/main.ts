@@ -5,8 +5,8 @@ import * as CliError from "effect/unstable/cli/CliError"
 import * as Command from "effect/unstable/cli/Command"
 import * as Flag from "effect/unstable/cli/Flag"
 import type { OpenAPISpec } from "effect/unstable/httpapi/OpenApi"
-import * as OpenApiPatch from "./OpenApiPatch.ts"
 import * as OpenApiGenerator from "./OpenApiGenerator.ts"
+import * as OpenApiPatch from "./OpenApiPatch.ts"
 
 const spec = Flag.fileParse("spec").pipe(
   Flag.withAlias("s"),
