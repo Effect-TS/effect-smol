@@ -3393,14 +3393,14 @@ export const unfold = <B, A>(b: B, f: (b: B) => readonly [A, B] | undefined): Ar
  * ```ts
  * import { Array, Order } from "effect"
  *
- * const arrayOrder = Array.getOrder(Order.number)
+ * const arrayOrder = Array.makeOrder(Order.number)
  * console.log(arrayOrder([1, 2], [1, 3])) // -1 (first is less than second)
  * ```
  *
  * @category instances
  * @since 2.0.0
  */
-export const getOrder: <A>(O: Order.Order<A>) => Order.Order<ReadonlyArray<A>> = Order.array
+export const makeOrder: <A>(O: Order.Order<A>) => Order.Order<ReadonlyArray<A>> = Order.array
 
 /**
  * Creates an equivalence relation for arrays.

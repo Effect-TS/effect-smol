@@ -873,8 +873,8 @@ describe("Array", () => {
     )
   })
 
-  it("getOrder", () => {
-    const O = Arr.getOrder(Str.Order)
+  it("makeOrder", () => {
+    const O = Arr.makeOrder(Str.Order)
     deepStrictEqual(O([], []), 0)
     deepStrictEqual(O(["a"], ["a"]), 0)
 

@@ -379,13 +379,13 @@ export const getEquivalence = Equivalence.tuple
  * import * as S from "effect/String"
  *
  * // Creates an order for tuples with string and number elements
- * const tupleOrder = Tuple.getOrder([S.Order, N.Order])
+ * const tupleOrder = Tuple.makeOrder([S.Order, N.Order])
  * ```
  *
  * @category Ordering
  * @since 2.0.0
  */
-export const getOrder = order.tuple
+export const makeOrder = order.tuple
 
 export {
   /**

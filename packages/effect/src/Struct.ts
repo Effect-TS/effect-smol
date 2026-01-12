@@ -373,7 +373,7 @@ export const getEquivalence = Equivalence.struct
  * import * as N from "effect/Number"
  * import * as S from "effect/String"
  *
- * const PersonOrder = Struct.getOrder({
+ * const PersonOrder = Struct.makeOrder({
  *   name: S.Order,
  *   age: N.Order
  * })
@@ -388,7 +388,7 @@ export const getEquivalence = Equivalence.struct
  * @category Ordering
  * @since 2.0.0
  */
-export const getOrder = order.struct
+export const makeOrder = order.struct
 
 /**
  * A higher-kinded type interface for representing type-level functions.

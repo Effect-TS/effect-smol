@@ -1993,7 +1993,7 @@ export const getEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equ
  * import { Option } from "effect"
  * import * as N from "effect/Number"
  *
- * const order = Option.getOrder(N.Order)
+ * const order = Option.makeOrder(N.Order)
  *
  * console.log(order(Option.none(), Option.none()))
  * // Output: 0
@@ -2014,7 +2014,7 @@ export const getEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equ
  * @category Sorting
  * @since 2.0.0
  */
-export const getOrder = <A>(O: Order<A>): Order<Option<A>> =>
+export const makeOrder = <A>(O: Order<A>): Order<Option<A>> =>
   order.make((self, that) => isSome(self) ? (isSome(that) ? O(self.value, that.value) : 1) : -1)
 
 /**
