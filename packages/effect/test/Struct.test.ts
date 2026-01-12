@@ -138,9 +138,9 @@ describe("Struct", () => {
     assertFalse(PersonEquivalence({ a: "a", b: 1 }, { a: "a", b: 2 }))
   })
 
-  describe("getCombiner", () => {
+  describe("makeCombiner", () => {
     it("default omitKeyWhen (never omit)", () => {
-      const C = Struct.getCombiner({
+      const C = Struct.makeCombiner({
         n: Number.ReducerSum,
         s: String.ReducerConcat
       })
@@ -149,10 +149,10 @@ describe("Struct", () => {
     })
 
     it("custom omitKeyWhen", () => {
-      const C = Struct.getCombiner<{ n?: number | undefined; s?: string | undefined }>(
+      const C = Struct.makeCombiner<{ n?: number | undefined; s?: string | undefined }>(
         {
-          n: UndefinedOr.getReducer(Number.ReducerSum),
-          s: UndefinedOr.getReducer(String.ReducerConcat)
+          n: UndefinedOr.makeReducer(Number.ReducerSum),
+          s: UndefinedOr.makeReducer(String.ReducerConcat)
         },
         { omitKeyWhen: (v) => v === undefined }
       )
@@ -165,12 +165,12 @@ describe("Struct", () => {
     })
   })
 
-  describe("getReducer", () => {
+  describe("makeReducer", () => {
     it("custom omitKeyWhen", () => {
-      const R = Struct.getReducer<{ n: number; s?: string | undefined }>(
+      const R = Struct.makeReducer<{ n: number; s?: string | undefined }>(
         {
           n: Number.ReducerSum,
-          s: UndefinedOr.getReducer(String.ReducerConcat)
+          s: UndefinedOr.makeReducer(String.ReducerConcat)
         },
         { omitKeyWhen: (v) => v === undefined }
       )

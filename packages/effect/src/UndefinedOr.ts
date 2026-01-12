@@ -113,7 +113,7 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  *
  * @since 4.0.0
  */
-export function getReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<A | undefined> {
+export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<A | undefined> {
   return Reducer.make((self, that) => {
     if (self === undefined) return that
     if (that === undefined) return self
@@ -137,12 +137,12 @@ export function getReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<A
  * - `undefined` + `b` = `undefined` (fails fast)
  * - `a` + `b` = `a + b` (values combined)
  *
- * @see {@link getReducerFailFast} if you have a `Reducer` and want to lift it
+ * @see {@link makeReducerFailFast} if you have a `Reducer` and want to lift it
  * to `UndefinedOr` values.
  *
  * @since 4.0.0
  */
-export function getCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<A | undefined> {
+export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<A | undefined> {
   return Combiner.make((self, that) => {
     if (self === undefined || that === undefined) return undefined
     return combiner.combine(self, that)
@@ -164,13 +164,13 @@ export function getCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner
  * - Fails fast (returns `undefined`) if any operand is `undefined`
  * - Uses the underlying reducer's combine logic when both values are present
  *
- * @see {@link getCombinerFailFast} if you only have a `Combiner` and want to
+ * @see {@link makeCombinerFailFast} if you only have a `Combiner` and want to
  * lift it to `UndefinedOr` values.
  *
  * @since 4.0.0
  */
-export function getReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<A | undefined> {
-  const combine = getCombinerFailFast(reducer).combine
+export function makeReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<A | undefined> {
+  const combine = makeCombinerFailFast(reducer).combine
   const initialValue = reducer.initialValue as A | undefined
   return Reducer.make(combine, initialValue, (collection) => {
     let out = initialValue

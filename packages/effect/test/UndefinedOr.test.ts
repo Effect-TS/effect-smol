@@ -37,8 +37,8 @@ describe("UndefinedOr", () => {
     strictEqual(UndefinedOr.liftThrowable(f)(0), undefined)
   })
 
-  it("getReducer", () => {
-    const R = UndefinedOr.getReducer(Number.ReducerSum)
+  it("makeReducer", () => {
+    const R = UndefinedOr.makeReducer(Number.ReducerSum)
 
     strictEqual(R.combine(1, 2), 3)
     strictEqual(R.combine(1, undefined), 1)
@@ -46,8 +46,8 @@ describe("UndefinedOr", () => {
     strictEqual(R.combine(undefined, undefined), undefined)
   })
 
-  it("getReducerFailFast", () => {
-    const R = UndefinedOr.getReducerFailFast(Number.ReducerSum)
+  it("makeReducerFailFast", () => {
+    const R = UndefinedOr.makeReducerFailFast(Number.ReducerSum)
 
     strictEqual(R.combine(1, 2), 3)
     strictEqual(R.combine(1, undefined), undefined)

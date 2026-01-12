@@ -3901,7 +3901,7 @@ export function getReadonlyReducerConcat<A>(): Reducer.Reducer<ReadonlyArray<A>>
  *
  * @since 4.0.0
  */
-export function getReducerConcat<A>(): Reducer.Reducer<Array<A>> {
+export function makeReducerConcat<A>(): Reducer.Reducer<Array<A>> {
   return reducer
 }
 

@@ -107,8 +107,8 @@ describe("Tuple", () => {
     ])
   })
 
-  it("getCombiner", () => {
-    const C = Tuple.getCombiner([
+  it("makeCombiner", () => {
+    const C = Tuple.makeCombiner([
       Number.ReducerSum,
       String.ReducerConcat
     ])
@@ -116,8 +116,8 @@ describe("Tuple", () => {
     deepStrictEqual(C.combine([1, "a"], [2, "b"]), [3, "ab"])
   })
 
-  it("getReducer", () => {
-    const R = Tuple.getReducer([
+  it("makeReducer", () => {
+    const R = Tuple.makeReducer([
       Number.ReducerSum,
       String.ReducerConcat
     ])

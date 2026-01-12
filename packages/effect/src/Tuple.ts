@@ -453,7 +453,7 @@ export {
  * ```ts
  * import { Number, String, Tuple } from "effect"
  *
- * const C = Tuple.getCombiner<readonly [number, string]>([
+ * const C = Tuple.makeCombiner<readonly [number, string]>([
  *   Number.ReducerSum,
  *   String.ReducerConcat
  * ])
@@ -461,7 +461,7 @@ export {
  *
  * @since 4.0.0
  */
-export function getCombiner<A extends ReadonlyArray<unknown>>(
+export function makeCombiner<A extends ReadonlyArray<unknown>>(
   combiners: { readonly [K in keyof A]: Combiner.Combiner<A[K]> }
 ): Combiner.Combiner<A> {
   return Combiner.make((self, that) => {
@@ -491,7 +491,7 @@ export function getCombiner<A extends ReadonlyArray<unknown>>(
  * ```ts
  * import { Number, String, Tuple } from "effect"
  *
- * const R = Tuple.getReducer<readonly [number, string]>([
+ * const R = Tuple.makeReducer<readonly [number, string]>([
  *   Number.ReducerSum,
  *   String.ReducerConcat
  * ])
@@ -499,10 +499,10 @@ export function getCombiner<A extends ReadonlyArray<unknown>>(
  *
  * @since 4.0.0
  */
-export function getReducer<A extends ReadonlyArray<unknown>>(
+export function makeReducer<A extends ReadonlyArray<unknown>>(
   reducers: { readonly [K in keyof A]: Reducer.Reducer<A[K]> }
 ): Reducer.Reducer<A> {
-  const combine = getCombiner(reducers).combine
+  const combine = makeCombiner(reducers).combine
   const initialValue = []
   for (let i = 0; i < reducers.length; i++) {
     initialValue.push(reducers[i].initialValue)

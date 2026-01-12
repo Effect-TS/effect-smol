@@ -516,7 +516,7 @@ export function record<A>(value: Equivalence<A>): Equivalence<Record<PropertyKey
 /**
  * @since 4.0.0
  */
-export function getReducer<A>() {
+export function makeReducer<A>() {
   return Reducer.make<Equivalence<A>>(
     combine,
     () => true,

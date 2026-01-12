@@ -336,12 +336,12 @@ describe("Struct", () => {
     >()
   })
 
-  it("getReducer", () => {
-    expect(Struct.getReducer({
+  it("makeReducer", () => {
+    expect(Struct.makeReducer({
       n: Number.ReducerSum,
       s: Str.ReducerConcat
     })).type.toBe<Reducer.Reducer<{ n: number; s: string }>>()
-    expect(Struct.getReducer<{ readonly n: number; readonly s: string }>({
+    expect(Struct.makeReducer<{ readonly n: number; readonly s: string }>({
       n: Number.ReducerSum,
       s: Str.ReducerConcat
     })).type.toBe<Reducer.Reducer<{ readonly n: number; readonly s: string }>>()

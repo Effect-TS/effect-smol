@@ -111,7 +111,7 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  *
  * @since 4.0.0
  */
-export function getReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<A | null> {
+export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<A | null> {
   return Reducer.make((self, that) => {
     if (self === null) return that
     if (that === null) return self
@@ -135,12 +135,12 @@ export function getReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<A
  * - `null` + `b` = `null` (fails fast)
  * - `a` + `b` = `a + b` (values combined)
  *
- * @see {@link getReducerFailFast} if you have a `Reducer` and want to lift it
+ * @see {@link makeReducerFailFast} if you have a `Reducer` and want to lift it
  * to `NullOr` values.
  *
  * @since 4.0.0
  */
-export function getCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<A | null> {
+export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<A | null> {
   return Combiner.make((self, that) => {
     if (self === null || that === null) return null
     return combiner.combine(self, that)
@@ -162,13 +162,13 @@ export function getCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner
  * - Fails fast (returns `null`) if any operand is `null`
  * - Uses the underlying reducer's combine logic when both values are present
  *
- * @see {@link getCombinerFailFast} if you only have a `Combiner` and want to
+ * @see {@link makeCombinerFailFast} if you only have a `Combiner` and want to
  * lift it to `NullOr` values.
  *
  * @since 4.0.0
  */
-export function getReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<A | null> {
-  const combine = getCombinerFailFast(reducer).combine
+export function makeReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<A | null> {
+  const combine = makeCombinerFailFast(reducer).combine
   const initialValue = reducer.initialValue as A | null
   return Reducer.make(combine, initialValue, (collection) => {
     let out = initialValue

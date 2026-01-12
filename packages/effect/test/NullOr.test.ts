@@ -37,8 +37,8 @@ describe("NullOr", () => {
     strictEqual(NullOr.liftThrowable(f)(0), null)
   })
 
-  it("getReducer", () => {
-    const R = NullOr.getReducer(Number.ReducerSum)
+  it("makeReducer", () => {
+    const R = NullOr.makeReducer(Number.ReducerSum)
 
     strictEqual(R.combine(1, 2), 3)
     strictEqual(R.combine(1, null), 1)
@@ -46,8 +46,8 @@ describe("NullOr", () => {
     strictEqual(R.combine(null, null), null)
   })
 
-  it("getReducerFailFast", () => {
-    const R = NullOr.getReducerFailFast(Number.ReducerSum)
+  it("makeReducerFailFast", () => {
+    const R = NullOr.makeReducerFailFast(Number.ReducerSum)
 
     strictEqual(R.combine(1, 2), 3)
     strictEqual(R.combine(1, null), null)

@@ -592,7 +592,7 @@ function buildStruct<
  * ```ts
  * import { Number, String, Struct } from "effect"
  *
- * const C = Struct.getCombiner<{ readonly n: number; readonly s: string }>({
+ * const C = Struct.makeCombiner<{ readonly n: number; readonly s: string }>({
  *   n: Number.ReducerSum,
  *   s: String.ReducerConcat
  * })
@@ -600,7 +600,7 @@ function buildStruct<
  *
  * @since 4.0.0
  */
-export function getCombiner<A>(
+export function makeCombiner<A>(
   combiners: { readonly [K in keyof A]: Combiner.Combiner<A[K]> },
   options?: {
     readonly omitKeyWhen?: ((a: A[keyof A]) => boolean) | undefined
@@ -637,7 +637,7 @@ export function getCombiner<A>(
  * ```ts
  * import { Number, String, Struct } from "effect"
  *
- * const R = Struct.getReducer<{ readonly n: number; readonly s: string }>({
+ * const R = Struct.makeReducer<{ readonly n: number; readonly s: string }>({
  *   n: Number.ReducerSum,
  *   s: String.ReducerConcat
  * })
@@ -645,13 +645,13 @@ export function getCombiner<A>(
  *
  * @since 4.0.0
  */
-export function getReducer<A>(
+export function makeReducer<A>(
   reducers: { readonly [K in keyof A]: Reducer.Reducer<A[K]> },
   options?: {
     readonly omitKeyWhen?: ((a: A[keyof A]) => boolean) | undefined
   }
 ): Reducer.Reducer<A> {
-  const combine = getCombiner(reducers, options).combine
+  const combine = makeCombiner(reducers, options).combine
   const initialValue = {} as A
   for (const key of Reflect.ownKeys(reducers) as Array<keyof A>) {
     const iv = reducers[key].initialValue

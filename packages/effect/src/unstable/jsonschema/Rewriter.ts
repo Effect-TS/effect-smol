@@ -180,7 +180,7 @@ function combine(a: JsonSchema.JsonSchema, b: JsonSchema.JsonSchema): JsonSchema
   return out
 }
 
-const join = UndefinedOr.getReducer(Combiner.make<unknown>((a, b) => {
+const join = UndefinedOr.makeReducer(Combiner.make<unknown>((a, b) => {
   if (typeof a !== "string") return b
   if (typeof b !== "string") return a
   a = a.trim()

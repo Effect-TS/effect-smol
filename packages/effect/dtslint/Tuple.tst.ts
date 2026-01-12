@@ -144,12 +144,12 @@ describe("Tuple", () => {
     >()
   })
 
-  it("getReducer", () => {
-    expect(Tuple.getReducer([
+  it("makeReducer", () => {
+    expect(Tuple.makeReducer([
       Number.ReducerSum,
       Str.ReducerConcat
     ])).type.toBe<Reducer.Reducer<[number, string]>>()
-    expect(Tuple.getReducer<readonly [number, string]>([
+    expect(Tuple.makeReducer<readonly [number, string]>([
       Number.ReducerSum,
       Str.ReducerConcat
     ])).type.toBe<Reducer.Reducer<readonly [number, string]>>()

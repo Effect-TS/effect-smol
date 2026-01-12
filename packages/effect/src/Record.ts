@@ -1415,7 +1415,7 @@ export const singleton = <K extends string | symbol, A>(key: K, value: A): Recor
  *
  * @since 4.0.0
  */
-export function getReducerUnion<K extends string, A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<Record<K, A>> {
+export function makeReducerUnion<K extends string, A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<Record<K, A>> {
   return Reducer.make<Record<K, A>>(
     (self, that) => union(self, that, combiner.combine),
     {} as Record<K, A>
@@ -1429,7 +1429,7 @@ export function getReducerUnion<K extends string, A>(combiner: Combiner.Combiner
  *
  * @since 4.0.0
  */
-export function getReducerIntersection<K extends string, A>(
+export function makeReducerIntersection<K extends string, A>(
   combiner: Combiner.Combiner<A>
 ): Reducer.Reducer<Record<K, A>> {
   return Reducer.make(

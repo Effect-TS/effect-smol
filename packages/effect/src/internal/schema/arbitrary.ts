@@ -43,12 +43,12 @@ function array(fc: typeof FastCheck, ctx: Schema.Annotations.ToArbitrary.Context
   return out
 }
 
-const max = UndefinedOr.getReducer(Number.ReducerMax)
-const min = UndefinedOr.getReducer(Number.ReducerMin)
-const or = UndefinedOr.getReducer(Boolean.ReducerOr)
-const concat = UndefinedOr.getReducer(Array.getReducerConcat())
+const max = UndefinedOr.makeReducer(Number.ReducerMax)
+const min = UndefinedOr.makeReducer(Number.ReducerMin)
+const or = UndefinedOr.makeReducer(Boolean.ReducerOr)
+const concat = UndefinedOr.makeReducer(Array.makeReducerConcat())
 
-const combiner: Combiner.Combiner<any> = Struct.getCombiner({
+const combiner: Combiner.Combiner<any> = Struct.makeCombiner({
   isInteger: or,
   max: min,
   maxExcluded: or,

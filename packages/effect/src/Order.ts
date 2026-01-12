@@ -717,7 +717,7 @@ export const between = <A>(O: Order<A>): {
 /**
  * @since 4.0.0
  */
-export function getReducer<A>() {
+export function makeReducer<A>() {
   return Reducer.make<Order<A>>(
     combine,
     () => 0,
