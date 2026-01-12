@@ -214,7 +214,7 @@ export const decrement = (n: bigint): bigint => n - bigint1
  * @category instances
  * @since 2.0.0
  */
-export const Order: order.Order<bigint> = order.bigint
+export const Order: order.Order<bigint> = order.BigInt
 
 /**
  * Returns `true` if the first argument is less than the second, otherwise `false`.
@@ -327,7 +327,7 @@ export const between: {
     minimum: bigint
     maximum: bigint
   }): boolean
-} = order.between(Order)
+} = order.isBetween(Order)
 
 /**
  * Restricts the given `bigint` to be within the range specified by the `minimum` and `maximum` values.

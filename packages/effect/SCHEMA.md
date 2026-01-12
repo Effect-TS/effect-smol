@@ -6941,7 +6941,7 @@ Schema.Number.check(Schema.isInt32())
 ```ts
 import { BigInt, Order, Schema } from "effect"
 
-const options = { order: Order.bigint }
+const options = { order: Order.BigInt }
 
 const isBetween = Schema.makeIsBetween(options)
 const isGreaterThan = Schema.makeIsGreaterThan(options)

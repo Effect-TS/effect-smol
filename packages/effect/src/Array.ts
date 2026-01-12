@@ -1434,7 +1434,7 @@ export const reverse = <S extends Iterable<any>>(
  * ```ts
  * import { Array, Order } from "effect"
  *
- * const result = Array.sort([3, 1, 4, 1, 5], Order.number)
+ * const result = Array.sort([3, 1, 4, 1, 5], Order.Number)
  * console.log(result) // [1, 1, 3, 4, 5]
  * ```
  *
@@ -1463,12 +1463,12 @@ export const sort: {
  * ```ts
  * import { Array, Order } from "effect"
  *
- * const result = Array.sortWith(["aaa", "b", "cc"], (s) => s.length, Order.number)
+ * const result = Array.sortWith(["aaa", "b", "cc"], (s) => s.length, Order.Number)
  * console.log(result) // ["b", "cc", "aaa"]
  *
  * // Explanation:
  * // The array of strings is sorted based on their lengths. The mapping function `(s) => s.length`
- * // converts each string into its length, and the `Order.number` specifies that the lengths should
+ * // converts each string into its length, and the `Order.Number` specifies that the lengths should
  * // be sorted in ascending order.
  * ```
  *
@@ -1507,8 +1507,8 @@ export const sortWith: {
  * const result = pipe(
  *   users,
  *   Array.sortBy(
- *     Order.mapInput(Order.number, (user: (typeof users)[number]) => user.age),
- *     Order.mapInput(Order.string, (user: (typeof users)[number]) => user.name)
+ *     Order.mapInput(Order.Number, (user: (typeof users)[number]) => user.age),
+ *     Order.mapInput(Order.String, (user: (typeof users)[number]) => user.name)
  *   )
  * )
  *
@@ -3325,7 +3325,7 @@ export const extend: {
  * ```ts
  * import { Array, Order } from "effect"
  *
- * const result = Array.min([3, 1, 2], Order.number)
+ * const result = Array.min([3, 1, 2], Order.Number)
  * console.log(result) // 1
  * ```
  *
@@ -3345,7 +3345,7 @@ export const min: {
  * ```ts
  * import { Array, Order } from "effect"
  *
- * const result = Array.max([3, 1, 2], Order.number)
+ * const result = Array.max([3, 1, 2], Order.Number)
  * console.log(result) // 3
  * ```
  *
@@ -3393,14 +3393,14 @@ export const unfold = <B, A>(b: B, f: (b: B) => readonly [A, B] | undefined): Ar
  * ```ts
  * import { Array, Order } from "effect"
  *
- * const arrayOrder = Array.makeOrder(Order.number)
+ * const arrayOrder = Array.makeOrder(Order.Number)
  * console.log(arrayOrder([1, 2], [1, 3])) // -1 (first is less than second)
  * ```
  *
  * @category instances
  * @since 2.0.0
  */
-export const makeOrder: <A>(O: Order.Order<A>) => Order.Order<ReadonlyArray<A>> = Order.array
+export const makeOrder: <A>(O: Order.Order<A>) => Order.Order<ReadonlyArray<A>> = Order.Array
 
 /**
  * Creates an equivalence relation for arrays.

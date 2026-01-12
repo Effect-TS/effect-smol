@@ -1974,7 +1974,7 @@ class HistogramMetric extends Metric$<number, HistogramState> {
     let min = Number.MAX_VALUE
     let max = Number.MIN_VALUE
 
-    Arr.map(Arr.sort(bounds, Order.number), (n, i) => {
+    Arr.map(Arr.sort(bounds, Order.Number), (n, i) => {
       boundaries[i] = n
     })
 
@@ -2046,7 +2046,7 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
   }
 
   createHooks(): Metric.Hooks<readonly [value: number, timestamp: number], SummaryState> {
-    const sortedQuantiles = Arr.sort(this.#quantiles, Order.number)
+    const sortedQuantiles = Arr.sort(this.#quantiles, Order.Number)
     const observations = Arr.allocate<[number, number]>(this.#maxSize)
 
     for (const quantile of this.#quantiles) {
@@ -2075,7 +2075,7 @@ class SummaryMetric extends Metric$<readonly [value: number, timestamp: number],
         }
         i = i + 1
       }
-      const samples = Arr.sort(builder, Order.number)
+      const samples = Arr.sort(builder, Order.Number)
       const sampleSize = samples.length
       if (sampleSize === 0) {
         return sortedQuantiles.map((q) => [q, undefined])

@@ -813,7 +813,7 @@ describe("Chunk", () => {
       b: number
     }
     const chunk: Chunk.Chunk<X> = Chunk.make({ a: "a", b: 2 }, { a: "b", b: 1 })
-    deepStrictEqual(Chunk.sortWith(chunk, (x) => x.b, Order.number), Chunk.make({ a: "b", b: 1 }, { a: "a", b: 2 }))
+    deepStrictEqual(Chunk.sortWith(chunk, (x) => x.b, Order.Number), Chunk.make({ a: "b", b: 1 }, { a: "a", b: 2 }))
   })
 
   it("makeEquivalence", () => {

@@ -385,7 +385,7 @@ export const makeEquivalence = Equivalence.tuple
  * @category Ordering
  * @since 2.0.0
  */
-export const makeOrder = order.tuple
+export const makeOrder = order.Tuple
 
 export {
   /**

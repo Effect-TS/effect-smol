@@ -3,26 +3,15 @@ import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "@effect/v
 import { Array as Arr, Order, pipe } from "effect"
 
 describe("Order", () => {
-  it("struct", () => {
-    const O = Order.struct({ a: Order.string, b: Order.string })
+  it("Struct", () => {
+    const O = Order.Struct({ a: Order.String, b: Order.String })
     strictEqual(O({ a: "a", b: "b" }, { a: "a", b: "c" }), -1)
     strictEqual(O({ a: "a", b: "b" }, { a: "a", b: "b" }), 0)
     strictEqual(O({ a: "a", b: "c" }, { a: "a", b: "b" }), 1)
   })
 
-  it("tuple", () => {
-    const O = Order.tuple([Order.string, Order.string])
-    strictEqual(O(["a", "b"], ["a", "c"]), -1)
-    strictEqual(O(["a", "b"], ["a", "b"]), 0)
-    strictEqual(O(["a", "b"], ["a", "a"]), 1)
-    strictEqual(O(["a", "b"], ["b", "a"]), -1)
-  })
-
-  it("all", () => {
-    const O = Order.all([Order.string, Order.string, Order.string])
-    strictEqual(O([], []), 0)
-    strictEqual(O(["a", "b"], ["a"]), 0)
-    strictEqual(O(["a"], ["a", "c"]), 0)
+  it("Tuple", () => {
+    const O = Order.Tuple([Order.String, Order.String])
     strictEqual(O(["a", "b"], ["a", "c"]), -1)
     strictEqual(O(["a", "b"], ["a", "b"]), 0)
     strictEqual(O(["a", "b"], ["a", "a"]), 1)
@@ -30,14 +19,14 @@ describe("Order", () => {
   })
 
   it("mapInput", () => {
-    const O = Order.mapInput(Order.number, (s: string) => s.length)
+    const O = Order.mapInput(Order.Number, (s: string) => s.length)
     strictEqual(O("a", "b"), 0)
     strictEqual(O("a", "bb"), -1)
     strictEqual(O("aa", "b"), 1)
   })
 
-  it("number", () => {
-    const O = Order.number
+  it("Number", () => {
+    const O = Order.Number
     strictEqual(O(1, 1), 0)
     strictEqual(O(1, 2), -1)
     strictEqual(O(2, 1), 1)
@@ -56,57 +45,57 @@ describe("Order", () => {
   })
 
   it("clamp", () => {
-    const clamp = Order.clamp(Order.number)({ minimum: 1, maximum: 10 })
+    const clamp = Order.clamp(Order.Number)({ minimum: 1, maximum: 10 })
     strictEqual(clamp(2), 2)
     strictEqual(clamp(10), 10)
     strictEqual(clamp(20), 10)
     strictEqual(clamp(1), 1)
     strictEqual(clamp(-10), 1)
 
-    strictEqual(Order.clamp(Order.number)({ minimum: 1, maximum: 10 })(2), 2)
+    strictEqual(Order.clamp(Order.Number)({ minimum: 1, maximum: 10 })(2), 2)
   })
 
-  it("between", () => {
-    const between = Order.between(Order.number)({ minimum: 1, maximum: 10 })
+  it("isBetween", () => {
+    const between = Order.isBetween(Order.Number)({ minimum: 1, maximum: 10 })
     assertTrue(between(2))
     assertTrue(between(10))
     assertFalse(between(20))
     assertTrue(between(1))
     assertFalse(between(-10))
 
-    assertTrue(Order.between(Order.number)(2, { minimum: 1, maximum: 10 }))
+    assertTrue(Order.isBetween(Order.Number)(2, { minimum: 1, maximum: 10 }))
   })
 
   it("flip", () => {
-    const O = Order.flip(Order.number)
+    const O = Order.flip(Order.Number)
     strictEqual(O(1, 2), 1)
     strictEqual(O(2, 1), -1)
     strictEqual(O(2, 2), 0)
   })
 
   it("lessThan", () => {
-    const lessThan = Order.lessThan(Order.number)
+    const lessThan = Order.lessThan(Order.Number)
     assertTrue(lessThan(0, 1))
     assertFalse(lessThan(1, 1))
     assertFalse(lessThan(2, 1))
   })
 
   it("lessThanOrEqualTo", () => {
-    const lessThanOrEqualTo = Order.lessThanOrEqualTo(Order.number)
+    const lessThanOrEqualTo = Order.lessThanOrEqualTo(Order.Number)
     assertTrue(lessThanOrEqualTo(0, 1))
     assertTrue(lessThanOrEqualTo(1, 1))
     assertFalse(lessThanOrEqualTo(2, 1))
   })
 
   it("greaterThan", () => {
-    const greaterThan = Order.greaterThan(Order.number)
+    const greaterThan = Order.greaterThan(Order.Number)
     assertFalse(greaterThan(0, 1))
     assertFalse(greaterThan(1, 1))
     assertTrue(greaterThan(2, 1))
   })
 
   it("greaterThanOrEqualTo", () => {
-    const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(Order.number)
+    const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(Order.Number)
     assertFalse(greaterThanOrEqualTo(0, 1))
     assertTrue(greaterThanOrEqualTo(1, 1))
     assertTrue(greaterThanOrEqualTo(2, 1))
@@ -116,7 +105,7 @@ describe("Order", () => {
     type A = { a: number }
     const min = Order.min(
       pipe(
-        Order.number,
+        Order.Number,
         Order.mapInput((a: A) => a.a)
       )
     )
@@ -131,7 +120,7 @@ describe("Order", () => {
     type A = { a: number }
     const max = Order.max(
       pipe(
-        Order.number,
+        Order.Number,
         Order.mapInput((a: A) => a.a)
       )
     )
@@ -151,11 +140,11 @@ describe("Order", () => {
       [1, "c"]
     ]
     const sortByFst = pipe(
-      Order.number,
+      Order.Number,
       Order.mapInput((x: T) => x[0])
     )
     const sortBySnd = pipe(
-      Order.string,
+      Order.String,
       Order.mapInput((x: T) => x[1])
     )
     deepStrictEqual(Arr.sort(Order.combine(sortByFst, sortBySnd))(tuples), [

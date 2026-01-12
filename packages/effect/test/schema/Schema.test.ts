@@ -1489,7 +1489,7 @@ Expected a value between -2147483648 and 2147483647, got 9007199254740992`
     })
 
     describe("BigInt Checks", () => {
-      const options = { order: Order.bigint, format: (value: bigint) => `${value}n` }
+      const options = { order: Order.BigInt, format: (value: bigint) => `${value}n` }
 
       const isBetween = Schema.makeIsBetween(options)
       const isGreaterThan = Schema.makeIsGreaterThan(options)

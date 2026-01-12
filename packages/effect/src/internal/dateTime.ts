@@ -537,7 +537,7 @@ export const lessThanOrEqualTo: {
 export const between: {
   (options: { minimum: DateTime.DateTime; maximum: DateTime.DateTime }): (self: DateTime.DateTime) => boolean
   (self: DateTime.DateTime, options: { minimum: DateTime.DateTime; maximum: DateTime.DateTime }): boolean
-} = order.between(Order)
+} = order.isBetween(Order)
 
 /** @internal */
 export const isFuture = (self: DateTime.DateTime): Effect.Effect<boolean> => effect.map(now, lessThan(self))

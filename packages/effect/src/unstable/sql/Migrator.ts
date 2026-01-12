@@ -294,7 +294,7 @@ export const make = <RD = never>({
     return completed
   })
 
-const migrationOrder = Order.make<ResolvedMigration>(([a], [b]) => Order.number(a, b))
+const migrationOrder = Order.make<ResolvedMigration>(([a], [b]) => Order.Number(a, b))
 
 /**
  * @since 4.0.0

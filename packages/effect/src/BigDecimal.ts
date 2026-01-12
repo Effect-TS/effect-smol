@@ -533,20 +533,20 @@ export const divideUnsafe: {
  * @category instances
  */
 export const Order: order.Order<BigDecimal> = order.make((self, that) => {
-  const scmp = order.number(sign(self), sign(that))
+  const scmp = order.Number(sign(self), sign(that))
   if (scmp !== 0) {
     return scmp
   }
 
   if (self.scale > that.scale) {
-    return order.bigint(self.value, scale(that, self.scale).value)
+    return order.BigInt(self.value, scale(that, self.scale).value)
   }
 
   if (self.scale < that.scale) {
-    return order.bigint(scale(self, that.scale).value, that.value)
+    return order.BigInt(scale(self, that.scale).value, that.value)
   }
 
-  return order.bigint(self.value, that.value)
+  return order.BigInt(self.value, that.value)
 })
 
 /**
@@ -699,7 +699,7 @@ export const between: {
     minimum: BigDecimal
     maximum: BigDecimal
   }): boolean
-} = order.between(Order)
+} = order.isBetween(Order)
 
 /**
  * Restricts the given `BigDecimal` to be within the range specified by the `minimum` and `maximum` values.

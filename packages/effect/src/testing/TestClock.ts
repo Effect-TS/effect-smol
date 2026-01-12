@@ -179,9 +179,9 @@ const defaultOptions: Required<TestClock.Options> = {
   warningDelay: "1 second"
 }
 
-const SleepOrder = Order.flip(Order.struct({
-  timestamp: Order.number,
-  sequence: Order.number
+const SleepOrder = Order.flip(Order.Struct({
+  timestamp: Order.Number,
+  sequence: Order.Number
 }))
 
 /**

@@ -1262,7 +1262,7 @@ describe("Array", () => {
       b: number
     }
     const arr: ReadonlyArray<X> = [{ a: "a", b: 2 }, { a: "b", b: 1 }]
-    deepStrictEqual(Arr.sortWith(arr, (x) => x.b, Order.number), [{ a: "b", b: 1 }, { a: "a", b: 2 }])
+    deepStrictEqual(Arr.sortWith(arr, (x) => x.b, Order.Number), [{ a: "b", b: 1 }, { a: "a", b: 2 }])
   })
 
   it("countBy", () => {

@@ -56,7 +56,7 @@ export const isString: Refinement<unknown, string> = predicate.isString
  * @category instances
  * @since 2.0.0
  */
-export const Order: order.Order<string> = order.string
+export const Order: order.Order<string> = order.String
 
 /**
  * The empty string `""`.

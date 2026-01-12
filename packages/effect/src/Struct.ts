@@ -365,7 +365,7 @@ export const makeEquivalence = Equivalence.struct
 /**
  * Creates an `Order` for a struct of values based on the given `Order`s for each property.
  *
- * Alias of {@link order.struct}.
+ * Alias of {@link order.Struct}.
  *
  * @example
  * ```ts
@@ -388,7 +388,7 @@ export const makeEquivalence = Equivalence.struct
  * @category Ordering
  * @since 2.0.0
  */
-export const makeOrder = order.struct
+export const makeOrder = order.Struct
 
 /**
  * A higher-kinded type interface for representing type-level functions.

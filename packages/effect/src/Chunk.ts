@@ -1833,16 +1833,16 @@ export const size = <A>(self: Chunk<A>): number => self.length
  * import * as Order from "effect/Order"
  *
  * const numbers = Chunk.make(3, 1, 4, 1, 5, 9, 2, 6)
- * const sorted = Chunk.sort(numbers, Order.number)
+ * const sorted = Chunk.sort(numbers, Order.Number)
  * console.log(Chunk.toArray(sorted)) // [1, 1, 2, 3, 4, 5, 6, 9]
  *
  * // Reverse order
- * const reverseSorted = Chunk.sort(numbers, Order.flip(Order.number))
+ * const reverseSorted = Chunk.sort(numbers, Order.flip(Order.Number))
  * console.log(Chunk.toArray(reverseSorted)) // [9, 6, 5, 4, 3, 2, 1, 1]
  *
  * // String sorting
  * const words = Chunk.make("banana", "apple", "cherry")
- * const sortedWords = Chunk.sort(words, Order.string)
+ * const sortedWords = Chunk.sort(words, Order.String)
  * console.log(Chunk.toArray(sortedWords)) // ["apple", "banana", "cherry"]
  * ```
  *
@@ -1872,18 +1872,18 @@ export const sort: {
  * )
  *
  * // Sort by age
- * const byAge = Chunk.sortWith(people, (person) => person.age, Order.number)
+ * const byAge = Chunk.sortWith(people, (person) => person.age, Order.Number)
  * console.log(Chunk.toArray(byAge))
  * // [{ name: "Bob", age: 25 }, { name: "Alice", age: 30 }, { name: "Charlie", age: 35 }]
  *
  * // Sort by name
- * const byName = Chunk.sortWith(people, (person) => person.name, Order.string)
+ * const byName = Chunk.sortWith(people, (person) => person.name, Order.String)
  * console.log(Chunk.toArray(byName))
  * // [{ name: "Alice", age: 30 }, { name: "Bob", age: 25 }, { name: "Charlie", age: 35 }]
  *
  * // Sort by string length
  * const words = Chunk.make("a", "abc", "ab")
- * const byLength = Chunk.sortWith(words, (word) => word.length, Order.number)
+ * const byLength = Chunk.sortWith(words, (word) => word.length, Order.Number)
  * console.log(Chunk.toArray(byLength)) // ["a", "ab", "abc"]
  * ```
  *

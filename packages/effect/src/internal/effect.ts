@@ -4915,7 +4915,7 @@ export const logLevelToOrder = (level: LogLevel.LogLevel) => {
 }
 
 /** @internal */
-export const LogLevelOrder = Order.mapInput(Order.number, logLevelToOrder)
+export const LogLevelOrder = Order.mapInput(Order.Number, logLevelToOrder)
 
 /** @internal */
 export const logLevelGreaterThan = Order.greaterThan(LogLevelOrder)

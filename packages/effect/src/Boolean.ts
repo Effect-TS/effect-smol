@@ -101,7 +101,7 @@ export const match: {
  * @category instances
  * @since 2.0.0
  */
-export const Order: order.Order<boolean> = order.boolean
+export const Order: order.Order<boolean> = order.Boolean
 
 /**
  * Negates the given boolean: `!self`

@@ -838,7 +838,7 @@ export const Order: order.Order<Duration> = order.make((self, that) =>
 export const between: {
   (options: { minimum: Duration; maximum: Duration }): (self: Duration) => boolean
   (self: Duration, options: { minimum: Duration; maximum: Duration }): boolean
-} = order.between(Order)
+} = order.isBetween(Order)
 
 /**
  * Equivalence instance for `Duration`, allowing equality comparisons.
