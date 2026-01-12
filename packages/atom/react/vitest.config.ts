@@ -1,12 +1,9 @@
-import { mergeConfig, type ViteUserConfig } from "vitest/config"
+import { mergeConfig } from "vitest/config"
 import shared from "../../../vitest.shared.ts"
 
-const config: ViteUserConfig = {
+export default mergeConfig(shared, {
   test: {
-    include: ["./test/**/*.test.{ts,tsx}"],
     environment: "jsdom",
-    setupFiles: ["./vitest-setup.ts"]
+    setupFiles: ["./vitest.setup.ts"]
   }
-}
-
-export default mergeConfig(shared, config)
+})
