@@ -1644,8 +1644,9 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
 
   function ensureUniqueSanitized(originalRef: string): string {
     // Check if already mapped (consistency)
-    if (sanitizedReferenceMap.has(originalRef)) {
-      return sanitizedReferenceMap.get(originalRef)!
+    const sanitized = sanitizedReferenceMap.get(originalRef)
+    if (sanitized !== undefined) {
+      return sanitized
     }
 
     // Find unique sanitized name
@@ -1743,7 +1744,7 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
         return recur(s.encodedSchema)
       }
       case "Reference": {
-        const sanitized = sanitizedReferenceMap.get(s.$ref) ?? ensureUniqueSanitized(s.$ref)
+        const sanitized = ensureUniqueSanitized(s.$ref)
         referenceCount.set(sanitized, (referenceCount.get(sanitized) ?? 0) + 1)
         return makeCode(sanitized, sanitized)
       }
@@ -2122,25 +2123,25 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
  * @since 4.0.0
  */
 export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"draft-2020-12">): MultiDocument {
-  let ref$Count = new Map<string, number>()
-  const definitions: Record<string, Representation> = {}
+  let visited: Set<string>
+  const references: Record<string, Representation> = {}
 
   for (const [identifier, d] of Object.entries(document.definitions)) {
-    ref$Count.set(identifier, 1)
+    visited = new Set<string>([identifier])
     const out = recur(d)
     if (out._tag === "Reference") {
-      definitions[identifier] = out
+      references[identifier] = out
     } else {
       const annotations = out.annotations
-      definitions[identifier] = { ...out, annotations: { ...annotations, identifier } }
+      references[identifier] = { ...out, annotations: { ...annotations, identifier } }
     }
   }
 
-  ref$Count = new Map()
+  visited = new Set<string>()
   const representations = Arr.map(document.schemas, recur)
   return {
     representations,
-    references: Rec.filter(definitions, (_, k) => (ref$Count.get(k) ?? 0) > 0)
+    references
   }
 
   function recur(u: unknown): Representation {
@@ -2179,10 +2180,9 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
       const $ref = js.$ref.slice(2).split("/").at(-1)
       if ($ref !== undefined) {
         const reference: Reference = { _tag: "Reference", $ref: unescapeToken($ref) }
-        if (ref$Count.has($ref)) {
+        if (visited.has($ref)) {
           return { _tag: "Suspend", thunk: reference, checks: [] }
         } else {
-          ref$Count.set($ref, (ref$Count.get($ref) ?? 0) + 1)
           return reference
         }
       }
@@ -2269,9 +2269,8 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
   }
 
   function resolveReference($ref: string): Exclude<Representation, { _tag: "Reference" }> {
-    const definition = definitions[$ref]
+    const definition = references[$ref]
     if (definition !== undefined) {
-      ref$Count.set($ref, (ref$Count.get($ref) ?? 0) - 1)
       if (definition._tag === "Reference") {
         return resolveReference(definition.$ref)
       } else {

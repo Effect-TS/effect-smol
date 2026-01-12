@@ -7,13 +7,13 @@ describe("fromJsonSchemaDocument", () => {
     schema: JsonSchema.JsonSchema,
     expected: {
       readonly representation: SchemaRepresentation.Representation
-      readonly definitions?: Record<string, SchemaRepresentation.Representation>
+      readonly references?: Record<string, SchemaRepresentation.Representation>
     },
     runtime?: string
   ) {
     const expectedDocument: SchemaRepresentation.Document = {
       representation: expected.representation,
-      references: expected.definitions ?? {}
+      references: expected.references ?? {}
     }
     const jsonDocument = JsonSchema.fromSchemaDraft2020_12(schema)
     const document = SchemaRepresentation.fromJsonSchemaDocument(jsonDocument)
@@ -1047,7 +1047,7 @@ describe("fromJsonSchemaDocument", () => {
         },
         {
           representation: { _tag: "Reference", $ref: "A" },
-          definitions: {
+          references: {
             A: {
               _tag: "String",
               checks: [],
@@ -1074,6 +1074,13 @@ describe("fromJsonSchemaDocument", () => {
             _tag: "String",
             checks: [],
             annotations: { description: "a", identifier: "A" }
+          },
+          references: {
+            A: {
+              _tag: "String",
+              checks: [],
+              annotations: { identifier: "A" }
+            }
           }
         }
       )
@@ -1097,6 +1104,13 @@ describe("fromJsonSchemaDocument", () => {
             _tag: "String",
             checks: [],
             annotations: { description: "a", identifier: "A" }
+          },
+          references: {
+            A: {
+              _tag: "String",
+              checks: [],
+              annotations: { identifier: "A" }
+            }
           }
         }
       )
@@ -1130,7 +1144,7 @@ describe("fromJsonSchemaDocument", () => {
         },
         {
           representation: { _tag: "Reference", $ref: "A" },
-          definitions: {
+          references: {
             A: {
               _tag: "Objects",
               annotations: { identifier: "A" },

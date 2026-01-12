@@ -3,6 +3,7 @@
   "extends": "../tsconfig.base.json",
   "include": ["**/*.ts"],
   "compilerOptions": {
+    "rootDir": ".",
     "noEmit": true,
     "declaration": false,
     "declarationMap": false,

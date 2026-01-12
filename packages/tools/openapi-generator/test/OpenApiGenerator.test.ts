@@ -3,6 +3,7 @@ import { describe, expect, it } from "@effect/vitest"
 import * as Effect from "effect/Effect"
 import type { OpenAPISpec } from "effect/unstable/httpapi/OpenApi"
 import OpenAiFixture from "./fixtures/openai.json" with { type: "json" }
+import StainlessFixture from "./fixtures/stainless.json" with { type: "json" }
 
 function assertRuntime(spec: OpenAPISpec) {
   return Effect.gen(function*() {
@@ -39,6 +40,8 @@ function assertTypeOnly(spec: OpenAPISpec) {
 describe("OpenApiGenerator", () => {
   describe("schema", () => {
     it.effect("OpenAiFixture", () => assertRuntime(OpenAiFixture as any))
+
+    it.effect("StainlessFixture", () => assertRuntime(StainlessFixture as any))
 
     it.effect("get operation", () =>
       assertRuntime(
