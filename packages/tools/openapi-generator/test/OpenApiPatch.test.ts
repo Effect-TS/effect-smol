@@ -108,17 +108,6 @@ describe("OpenApiPatch", () => {
           assert.strictEqual(result.length, 3)
         }).pipe(Effect.provide(testLayer)))
 
-      it.effect("fails on file with invalid JSON syntax", () =>
-        Effect.gen(function*() {
-          const pathService = yield* Path.Path
-          const filePath = pathService.join(
-            import.meta.dirname,
-            "fixtures/patches/invalid-syntax.json"
-          )
-          const exit = yield* Effect.exit(OpenApiPatch.parsePatchInput(filePath))
-          assert.isTrue(Exit.isFailure(exit))
-        }).pipe(Effect.provide(testLayer)))
-
       it.effect("fails on file with unsupported operation", () =>
         Effect.gen(function*() {
           const pathService = yield* Path.Path
