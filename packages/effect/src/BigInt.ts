@@ -221,18 +221,18 @@ export const Order: order.Order<bigint> = order.BigInt
  *
  * @example
  * ```ts
- * import { lessThan } from "effect/BigInt"
+ * import { isLessThan } from "effect/BigInt"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(lessThan(2n, 3n), true)
- * assert.deepStrictEqual(lessThan(3n, 3n), false)
- * assert.deepStrictEqual(lessThan(4n, 3n), false)
+ * assert.deepStrictEqual(isLessThan(2n, 3n), true)
+ * assert.deepStrictEqual(isLessThan(3n, 3n), false)
+ * assert.deepStrictEqual(isLessThan(4n, 3n), false)
  * ```
  *
  * @category predicates
  * @since 2.0.0
  */
-export const lessThan: {
+export const isLessThan: {
   (that: bigint): (self: bigint) => boolean
   (self: bigint, that: bigint): boolean
 } = order.isLessThan(Order)
@@ -242,18 +242,18 @@ export const lessThan: {
  *
  * @example
  * ```ts
- * import { lessThanOrEqualTo } from "effect/BigInt"
+ * import { isLessThanOrEqualTo } from "effect/BigInt"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(lessThanOrEqualTo(2n, 3n), true)
- * assert.deepStrictEqual(lessThanOrEqualTo(3n, 3n), true)
- * assert.deepStrictEqual(lessThanOrEqualTo(4n, 3n), false)
+ * assert.deepStrictEqual(isLessThanOrEqualTo(2n, 3n), true)
+ * assert.deepStrictEqual(isLessThanOrEqualTo(3n, 3n), true)
+ * assert.deepStrictEqual(isLessThanOrEqualTo(4n, 3n), false)
  * ```
  *
  * @category predicates
  * @since 2.0.0
  */
-export const lessThanOrEqualTo: {
+export const isLessThanOrEqualTo: {
   (that: bigint): (self: bigint) => boolean
   (self: bigint, that: bigint): boolean
 } = order.isLessThanOrEqualTo(Order)
@@ -263,18 +263,18 @@ export const lessThanOrEqualTo: {
  *
  * @example
  * ```ts
- * import { greaterThan } from "effect/BigInt"
+ * import { isGreaterThan } from "effect/BigInt"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(greaterThan(2n, 3n), false)
- * assert.deepStrictEqual(greaterThan(3n, 3n), false)
- * assert.deepStrictEqual(greaterThan(4n, 3n), true)
+ * assert.deepStrictEqual(isGreaterThan(2n, 3n), false)
+ * assert.deepStrictEqual(isGreaterThan(3n, 3n), false)
+ * assert.deepStrictEqual(isGreaterThan(4n, 3n), true)
  * ```
  *
  * @category predicates
  * @since 2.0.0
  */
-export const greaterThan: {
+export const isGreaterThan: {
   (that: bigint): (self: bigint) => boolean
   (self: bigint, that: bigint): boolean
 } = order.isGreaterThan(Order)
@@ -284,18 +284,18 @@ export const greaterThan: {
  *
  * @example
  * ```ts
- * import { greaterThanOrEqualTo } from "effect/BigInt"
+ * import { isGreaterThanOrEqualTo } from "effect/BigInt"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(greaterThanOrEqualTo(2n, 3n), false)
- * assert.deepStrictEqual(greaterThanOrEqualTo(3n, 3n), true)
- * assert.deepStrictEqual(greaterThanOrEqualTo(4n, 3n), true)
+ * assert.deepStrictEqual(isGreaterThanOrEqualTo(2n, 3n), false)
+ * assert.deepStrictEqual(isGreaterThanOrEqualTo(3n, 3n), true)
+ * assert.deepStrictEqual(isGreaterThanOrEqualTo(4n, 3n), true)
  * ```
  *
  * @category predicates
  * @since 2.0.0
  */
-export const greaterThanOrEqualTo: {
+export const isGreaterThanOrEqualTo: {
   (that: bigint): (self: bigint) => boolean
   (self: bigint, that: bigint): boolean
 } = order.isGreaterThanOrEqualTo(Order)
@@ -533,7 +533,7 @@ export const sqrtUnsafe = (n: bigint): bigint => {
  * @category math
  * @since 2.0.0
  */
-export const sqrt = (n: bigint): bigint | undefined => greaterThanOrEqualTo(n, bigint0) ? sqrtUnsafe(n) : undefined
+export const sqrt = (n: bigint): bigint | undefined => isGreaterThanOrEqualTo(n, bigint0) ? sqrtUnsafe(n) : undefined
 
 /**
  * Takes an `Iterable` of `bigint`s and returns their sum as a single `bigint

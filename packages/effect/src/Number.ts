@@ -183,18 +183,18 @@ export const Order: order.Order<number> = order.Number
  *
  * @example
  * ```ts
- * import { lessThan } from "effect/Number"
+ * import { isLessThan } from "effect/Number"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(lessThan(2, 3), true)
- * assert.deepStrictEqual(lessThan(3, 3), false)
- * assert.deepStrictEqual(lessThan(4, 3), false)
+ * assert.deepStrictEqual(isLessThan(2, 3), true)
+ * assert.deepStrictEqual(isLessThan(3, 3), false)
+ * assert.deepStrictEqual(isLessThan(4, 3), false)
  * ```
  *
  * @category predicates
  * @since 2.0.0
  */
-export const lessThan: {
+export const isLessThan: {
   (that: number): (self: number) => boolean
   (self: number, that: number): boolean
 } = order.isLessThan(Order)
@@ -204,18 +204,18 @@ export const lessThan: {
  *
  * @example
  * ```ts
- * import { lessThanOrEqualTo } from "effect/Number"
+ * import { isLessThanOrEqualTo } from "effect/Number"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(lessThanOrEqualTo(2, 3), true)
- * assert.deepStrictEqual(lessThanOrEqualTo(3, 3), true)
- * assert.deepStrictEqual(lessThanOrEqualTo(4, 3), false)
+ * assert.deepStrictEqual(isLessThanOrEqualTo(2, 3), true)
+ * assert.deepStrictEqual(isLessThanOrEqualTo(3, 3), true)
+ * assert.deepStrictEqual(isLessThanOrEqualTo(4, 3), false)
  * ```
  *
  * @category predicates
  * @since 2.0.0
  */
-export const lessThanOrEqualTo: {
+export const isLessThanOrEqualTo: {
   (that: number): (self: number) => boolean
   (self: number, that: number): boolean
 } = order.isLessThanOrEqualTo(Order)
@@ -225,18 +225,18 @@ export const lessThanOrEqualTo: {
  *
  * @example
  * ```ts
- * import { greaterThan } from "effect/Number"
+ * import { isGreaterThan } from "effect/Number"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(greaterThan(2, 3), false)
- * assert.deepStrictEqual(greaterThan(3, 3), false)
- * assert.deepStrictEqual(greaterThan(4, 3), true)
+ * assert.deepStrictEqual(isGreaterThan(2, 3), false)
+ * assert.deepStrictEqual(isGreaterThan(3, 3), false)
+ * assert.deepStrictEqual(isGreaterThan(4, 3), true)
  * ```
  *
  * @category predicates
  * @since 2.0.0
  */
-export const greaterThan: {
+export const isGreaterThan: {
   (that: number): (self: number) => boolean
   (self: number, that: number): boolean
 } = order.isGreaterThan(Order)
@@ -246,18 +246,18 @@ export const greaterThan: {
  *
  * @example
  * ```ts
- * import { greaterThanOrEqualTo } from "effect/Number"
+ * import { isGreaterThanOrEqualTo } from "effect/Number"
  * import * as assert from "node:assert"
  *
- * assert.deepStrictEqual(greaterThanOrEqualTo(2, 3), false)
- * assert.deepStrictEqual(greaterThanOrEqualTo(3, 3), true)
- * assert.deepStrictEqual(greaterThanOrEqualTo(4, 3), true)
+ * assert.deepStrictEqual(isGreaterThanOrEqualTo(2, 3), false)
+ * assert.deepStrictEqual(isGreaterThanOrEqualTo(3, 3), true)
+ * assert.deepStrictEqual(isGreaterThanOrEqualTo(4, 3), true)
  * ```
  *
  * @category predicates
  * @since 2.0.0
  */
-export const greaterThanOrEqualTo: {
+export const isGreaterThanOrEqualTo: {
   (that: number): (self: number) => boolean
   (self: number, that: number): boolean
 } = order.isGreaterThanOrEqualTo(Order)

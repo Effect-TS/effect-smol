@@ -510,25 +510,25 @@ export const max: {
 } = order.max(Order)
 
 /** @internal */
-export const greaterThan: {
+export const isGreaterThan: {
   (that: DateTime.DateTime): (self: DateTime.DateTime) => boolean
   (self: DateTime.DateTime, that: DateTime.DateTime): boolean
 } = order.isGreaterThan(Order)
 
 /** @internal */
-export const greaterThanOrEqualTo: {
+export const isGreaterThanOrEqualTo: {
   (that: DateTime.DateTime): (self: DateTime.DateTime) => boolean
   (self: DateTime.DateTime, that: DateTime.DateTime): boolean
 } = order.isGreaterThanOrEqualTo(Order)
 
 /** @internal */
-export const lessThan: {
+export const isLessThan: {
   (that: DateTime.DateTime): (self: DateTime.DateTime) => boolean
   (self: DateTime.DateTime, that: DateTime.DateTime): boolean
 } = order.isLessThan(Order)
 
 /** @internal */
-export const lessThanOrEqualTo: {
+export const isLessThanOrEqualTo: {
   (that: DateTime.DateTime): (self: DateTime.DateTime) => boolean
   (self: DateTime.DateTime, that: DateTime.DateTime): boolean
 } = order.isLessThanOrEqualTo(Order)
@@ -540,16 +540,16 @@ export const between: {
 } = order.isBetween(Order)
 
 /** @internal */
-export const isFuture = (self: DateTime.DateTime): Effect.Effect<boolean> => effect.map(now, lessThan(self))
+export const isFuture = (self: DateTime.DateTime): Effect.Effect<boolean> => effect.map(now, isLessThan(self))
 
 /** @internal */
-export const isFutureUnsafe = (self: DateTime.DateTime): boolean => lessThan(nowUnsafe(), self)
+export const isFutureUnsafe = (self: DateTime.DateTime): boolean => isLessThan(nowUnsafe(), self)
 
 /** @internal */
-export const isPast = (self: DateTime.DateTime): Effect.Effect<boolean> => effect.map(now, greaterThan(self))
+export const isPast = (self: DateTime.DateTime): Effect.Effect<boolean> => effect.map(now, isGreaterThan(self))
 
 /** @internal */
-export const isPastUnsafe = (self: DateTime.DateTime): boolean => greaterThan(nowUnsafe(), self)
+export const isPastUnsafe = (self: DateTime.DateTime): boolean => isGreaterThan(nowUnsafe(), self)
 
 // =============================================================================
 // conversions

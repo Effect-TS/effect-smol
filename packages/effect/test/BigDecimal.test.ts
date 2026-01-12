@@ -158,28 +158,28 @@ describe("BigDecimal", () => {
     strictEqual(BigDecimal.Order($("5"), $("50.00")), -1)
   })
 
-  it("lessThan", () => {
-    assertTrue(BigDecimal.lessThan($("2"), $("3")))
-    assertFalse(BigDecimal.lessThan($("3"), $("3")))
-    assertFalse(BigDecimal.lessThan($("4"), $("3")))
+  it("isLessThan", () => {
+    assertTrue(BigDecimal.isLessThan($("2"), $("3")))
+    assertFalse(BigDecimal.isLessThan($("3"), $("3")))
+    assertFalse(BigDecimal.isLessThan($("4"), $("3")))
   })
 
-  it("lessThanOrEqualTo", () => {
-    assertTrue(BigDecimal.lessThanOrEqualTo($("2"), $("3")))
-    assertTrue(BigDecimal.lessThanOrEqualTo($("3"), $("3")))
-    assertFalse(BigDecimal.lessThanOrEqualTo($("4"), $("3")))
+  it("isLessThanOrEqualTo", () => {
+    assertTrue(BigDecimal.isLessThanOrEqualTo($("2"), $("3")))
+    assertTrue(BigDecimal.isLessThanOrEqualTo($("3"), $("3")))
+    assertFalse(BigDecimal.isLessThanOrEqualTo($("4"), $("3")))
   })
 
-  it("greaterThan", () => {
-    assertFalse(BigDecimal.greaterThan($("2"), $("3")))
-    assertFalse(BigDecimal.greaterThan($("3"), $("3")))
-    assertTrue(BigDecimal.greaterThan($("4"), $("3")))
+  it("isGreaterThan", () => {
+    assertFalse(BigDecimal.isGreaterThan($("2"), $("3")))
+    assertFalse(BigDecimal.isGreaterThan($("3"), $("3")))
+    assertTrue(BigDecimal.isGreaterThan($("4"), $("3")))
   })
 
-  it("greaterThanOrEqualTo", () => {
-    assertFalse(BigDecimal.greaterThanOrEqualTo($("2"), $("3")))
-    assertTrue(BigDecimal.greaterThanOrEqualTo($("3"), $("3")))
-    assertTrue(BigDecimal.greaterThanOrEqualTo($("4"), $("3")))
+  it("isGreaterThanOrEqualTo", () => {
+    assertFalse(BigDecimal.isGreaterThanOrEqualTo($("2"), $("3")))
+    assertTrue(BigDecimal.isGreaterThanOrEqualTo($("3"), $("3")))
+    assertTrue(BigDecimal.isGreaterThanOrEqualTo($("4"), $("3")))
   })
 
   it("between", () => {

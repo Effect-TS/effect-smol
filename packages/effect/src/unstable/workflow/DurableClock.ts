@@ -81,7 +81,7 @@ export const sleep: (
     ? Duration.fromDurationInputUnsafe(options.inMemoryThreshold)
     : defaultInMemoryThreshold
 
-  if (Duration.lessThanOrEqualTo(duration, inMemoryThreshold)) {
+  if (Duration.isLessThanOrEqualTo(duration, inMemoryThreshold)) {
     return yield* Activity.make({
       name: `DurableClock/${options.name}`,
       execute: Effect.sleep(duration)

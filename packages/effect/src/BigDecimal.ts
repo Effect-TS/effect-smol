@@ -554,19 +554,19 @@ export const Order: order.Order<BigDecimal> = order.make((self, that) => {
  *
  * @example
  * ```ts
- * import { fromStringUnsafe, lessThan } from "effect/BigDecimal"
+ * import { fromStringUnsafe, isLessThan } from "effect/BigDecimal"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
- *   lessThan(fromStringUnsafe("2"), fromStringUnsafe("3")),
+ *   isLessThan(fromStringUnsafe("2"), fromStringUnsafe("3")),
  *   true
  * )
  * assert.deepStrictEqual(
- *   lessThan(fromStringUnsafe("3"), fromStringUnsafe("3")),
+ *   isLessThan(fromStringUnsafe("3"), fromStringUnsafe("3")),
  *   false
  * )
  * assert.deepStrictEqual(
- *   lessThan(fromStringUnsafe("4"), fromStringUnsafe("3")),
+ *   isLessThan(fromStringUnsafe("4"), fromStringUnsafe("3")),
  *   false
  * )
  * ```
@@ -574,7 +574,7 @@ export const Order: order.Order<BigDecimal> = order.make((self, that) => {
  * @since 2.0.0
  * @category predicates
  */
-export const lessThan: {
+export const isLessThan: {
   (that: BigDecimal): (self: BigDecimal) => boolean
   (self: BigDecimal, that: BigDecimal): boolean
 } = order.isLessThan(Order)
@@ -584,19 +584,19 @@ export const lessThan: {
  *
  * @example
  * ```ts
- * import { fromStringUnsafe, lessThanOrEqualTo } from "effect/BigDecimal"
+ * import { fromStringUnsafe, isLessThanOrEqualTo } from "effect/BigDecimal"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
- *   lessThanOrEqualTo(fromStringUnsafe("2"), fromStringUnsafe("3")),
+ *   isLessThanOrEqualTo(fromStringUnsafe("2"), fromStringUnsafe("3")),
  *   true
  * )
  * assert.deepStrictEqual(
- *   lessThanOrEqualTo(fromStringUnsafe("3"), fromStringUnsafe("3")),
+ *   isLessThanOrEqualTo(fromStringUnsafe("3"), fromStringUnsafe("3")),
  *   true
  * )
  * assert.deepStrictEqual(
- *   lessThanOrEqualTo(fromStringUnsafe("4"), fromStringUnsafe("3")),
+ *   isLessThanOrEqualTo(fromStringUnsafe("4"), fromStringUnsafe("3")),
  *   false
  * )
  * ```
@@ -604,7 +604,7 @@ export const lessThan: {
  * @since 2.0.0
  * @category predicates
  */
-export const lessThanOrEqualTo: {
+export const isLessThanOrEqualTo: {
   (that: BigDecimal): (self: BigDecimal) => boolean
   (self: BigDecimal, that: BigDecimal): boolean
 } = order.isLessThanOrEqualTo(Order)
@@ -614,19 +614,19 @@ export const lessThanOrEqualTo: {
  *
  * @example
  * ```ts
- * import { fromStringUnsafe, greaterThan } from "effect/BigDecimal"
+ * import { fromStringUnsafe, isGreaterThan } from "effect/BigDecimal"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
- *   greaterThan(fromStringUnsafe("2"), fromStringUnsafe("3")),
+ *   isGreaterThan(fromStringUnsafe("2"), fromStringUnsafe("3")),
  *   false
  * )
  * assert.deepStrictEqual(
- *   greaterThan(fromStringUnsafe("3"), fromStringUnsafe("3")),
+ *   isGreaterThan(fromStringUnsafe("3"), fromStringUnsafe("3")),
  *   false
  * )
  * assert.deepStrictEqual(
- *   greaterThan(fromStringUnsafe("4"), fromStringUnsafe("3")),
+ *   isGreaterThan(fromStringUnsafe("4"), fromStringUnsafe("3")),
  *   true
  * )
  * ```
@@ -634,7 +634,7 @@ export const lessThanOrEqualTo: {
  * @since 2.0.0
  * @category predicates
  */
-export const greaterThan: {
+export const isGreaterThan: {
   (that: BigDecimal): (self: BigDecimal) => boolean
   (self: BigDecimal, that: BigDecimal): boolean
 } = order.isGreaterThan(Order)
@@ -644,19 +644,19 @@ export const greaterThan: {
  *
  * @example
  * ```ts
- * import { fromStringUnsafe, greaterThanOrEqualTo } from "effect/BigDecimal"
+ * import { fromStringUnsafe, isGreaterThanOrEqualTo } from "effect/BigDecimal"
  * import * as assert from "node:assert"
  *
  * assert.deepStrictEqual(
- *   greaterThanOrEqualTo(fromStringUnsafe("2"), fromStringUnsafe("3")),
+ *   isGreaterThanOrEqualTo(fromStringUnsafe("2"), fromStringUnsafe("3")),
  *   false
  * )
  * assert.deepStrictEqual(
- *   greaterThanOrEqualTo(fromStringUnsafe("3"), fromStringUnsafe("3")),
+ *   isGreaterThanOrEqualTo(fromStringUnsafe("3"), fromStringUnsafe("3")),
  *   true
  * )
  * assert.deepStrictEqual(
- *   greaterThanOrEqualTo(fromStringUnsafe("4"), fromStringUnsafe("3")),
+ *   isGreaterThanOrEqualTo(fromStringUnsafe("4"), fromStringUnsafe("3")),
  *   true
  * )
  * ```
@@ -664,7 +664,7 @@ export const greaterThan: {
  * @since 2.0.0
  * @category predicates
  */
-export const greaterThanOrEqualTo: {
+export const isGreaterThanOrEqualTo: {
   (that: BigDecimal): (self: BigDecimal) => boolean
   (self: BigDecimal, that: BigDecimal): boolean
 } = order.isGreaterThanOrEqualTo(Order)
@@ -1483,7 +1483,7 @@ export const ceil: {
 } = dual(isBigDecimalArgs, (self: BigDecimal, scale: number = 0): BigDecimal => {
   const truncated = truncate(self, scale)
 
-  if (isPositive(self) && lessThan(truncated, self)) {
+  if (isPositive(self) && isLessThan(truncated, self)) {
     return sum(truncated, make(1n, scale))
   }
 
@@ -1536,7 +1536,7 @@ export const floor: {
 } = dual(isBigDecimalArgs, (self: BigDecimal, scale: number = 0): BigDecimal => {
   const truncated = truncate(self, scale)
 
-  if (isNegative(self) && greaterThan(truncated, self)) {
+  if (isNegative(self) && isGreaterThan(truncated, self)) {
     return sum(truncated, make(-1n, scale))
   }
 

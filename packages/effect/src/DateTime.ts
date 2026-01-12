@@ -1099,17 +1099,17 @@ export const max: {
  * const date1 = DateTime.makeUnsafe("2024-02-01")
  * const date2 = DateTime.makeUnsafe("2024-01-01")
  *
- * console.log(DateTime.greaterThan(date1, date2)) // true
- * console.log(DateTime.greaterThan(date2, date1)) // false
+ * console.log(DateTime.isGreaterThan(date1, date2)) // true
+ * console.log(DateTime.isGreaterThan(date2, date1)) // false
  * ```
  *
  * @category comparisons
  * @since 3.6.0
  */
-export const greaterThan: {
+export const isGreaterThan: {
   (that: DateTime): (self: DateTime) => boolean
   (self: DateTime, that: DateTime): boolean
-} = Internal.greaterThan
+} = Internal.isGreaterThan
 
 /**
  * Checks if the first `DateTime` is after or equal to the second `DateTime`.
@@ -1122,18 +1122,18 @@ export const greaterThan: {
  * const date2 = DateTime.makeUnsafe("2024-01-01")
  * const date3 = DateTime.makeUnsafe("2024-02-01")
  *
- * console.log(DateTime.greaterThanOrEqualTo(date1, date2)) // true
- * console.log(DateTime.greaterThanOrEqualTo(date3, date1)) // true
- * console.log(DateTime.greaterThanOrEqualTo(date1, date3)) // false
+ * console.log(DateTime.isGreaterThanOrEqualTo(date1, date2)) // true
+ * console.log(DateTime.isGreaterThanOrEqualTo(date3, date1)) // true
+ * console.log(DateTime.isGreaterThanOrEqualTo(date1, date3)) // false
  * ```
  *
  * @category comparisons
  * @since 3.6.0
  */
-export const greaterThanOrEqualTo: {
+export const isGreaterThanOrEqualTo: {
   (that: DateTime): (self: DateTime) => boolean
   (self: DateTime, that: DateTime): boolean
-} = Internal.greaterThanOrEqualTo
+} = Internal.isGreaterThanOrEqualTo
 
 /**
  * Checks if the first `DateTime` is before the second `DateTime`.
@@ -1145,17 +1145,17 @@ export const greaterThanOrEqualTo: {
  * const date1 = DateTime.makeUnsafe("2024-01-01")
  * const date2 = DateTime.makeUnsafe("2024-02-01")
  *
- * console.log(DateTime.lessThan(date1, date2)) // true
- * console.log(DateTime.lessThan(date2, date1)) // false
+ * console.log(DateTime.isLessThan(date1, date2)) // true
+ * console.log(DateTime.isLessThan(date2, date1)) // false
  * ```
  *
  * @category comparisons
  * @since 3.6.0
  */
-export const lessThan: {
+export const isLessThan: {
   (that: DateTime): (self: DateTime) => boolean
   (self: DateTime, that: DateTime): boolean
-} = Internal.lessThan
+} = Internal.isLessThan
 
 /**
  * Checks if the first `DateTime` is before or equal to the second `DateTime`.
@@ -1168,18 +1168,18 @@ export const lessThan: {
  * const date2 = DateTime.makeUnsafe("2024-01-01")
  * const date3 = DateTime.makeUnsafe("2024-02-01")
  *
- * console.log(DateTime.lessThanOrEqualTo(date1, date2)) // true
- * console.log(DateTime.lessThanOrEqualTo(date1, date3)) // true
- * console.log(DateTime.lessThanOrEqualTo(date3, date1)) // false
+ * console.log(DateTime.isLessThanOrEqualTo(date1, date2)) // true
+ * console.log(DateTime.isLessThanOrEqualTo(date1, date3)) // true
+ * console.log(DateTime.isLessThanOrEqualTo(date3, date1)) // false
  * ```
  *
  * @category comparisons
  * @since 3.6.0
  */
-export const lessThanOrEqualTo: {
+export const isLessThanOrEqualTo: {
   (that: DateTime): (self: DateTime) => boolean
   (self: DateTime, that: DateTime): boolean
-} = Internal.lessThanOrEqualTo
+} = Internal.isLessThanOrEqualTo
 
 /**
  * Checks if a `DateTime` is between two other `DateTime` values (inclusive).

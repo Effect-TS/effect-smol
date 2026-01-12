@@ -266,7 +266,7 @@ export const flakyTest = <A, E, R>(
       pipe(
         Schedule.recurs(10),
         Schedule.while((_) =>
-          Duration.lessThanOrEqualTo(
+          Duration.isLessThanOrEqualTo(
             Duration.fromDurationInputUnsafe(_.elapsed),
             Duration.fromDurationInputUnsafe(timeout)
           )

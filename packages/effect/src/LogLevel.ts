@@ -40,12 +40,12 @@
  * import { LogLevel } from "effect"
  *
  * // Check if one level is more severe than another
- * console.log(LogLevel.greaterThan("Error", "Info")) // true
- * console.log(LogLevel.greaterThan("Debug", "Error")) // false
+ * console.log(LogLevel.isGreaterThan("Error", "Info")) // true
+ * console.log(LogLevel.isGreaterThan("Debug", "Error")) // false
  *
  * // Check if level meets minimum threshold
- * console.log(LogLevel.greaterThanOrEqualTo("Info", "Debug")) // true
- * console.log(LogLevel.lessThan("Trace", "Info")) // true
+ * console.log(LogLevel.isGreaterThanOrEqualTo("Info", "Debug")) // true
+ * console.log(LogLevel.isLessThan("Trace", "Info")) // true
  * ```
  *
  * ## Filtering by Level
@@ -55,14 +55,14 @@
  *
  * // Create a logger that only logs Error and above
  * const errorLogger = Logger.make((options) => {
- *   if (LogLevel.greaterThanOrEqualTo(options.logLevel, "Error")) {
+ *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Error")) {
  *     console.log(`[${options.logLevel}] ${options.message}`)
  *   }
  * })
  *
  * // Production logger - Info and above
  * const productionLogger = Logger.make((options) => {
- *   if (LogLevel.greaterThanOrEqualTo(options.logLevel, "Info")) {
+ *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Info")) {
  *     console.log(
  *       `${options.date.toISOString()} [${options.logLevel}] ${options.message}`
  *     )
@@ -71,7 +71,7 @@
  *
  * // Development logger - Debug and above
  * const devLogger = Logger.make((options) => {
- *   if (LogLevel.greaterThanOrEqualTo(options.logLevel, "Debug")) {
+ *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Debug")) {
  *     console.log(`[${options.logLevel}] ${options.message}`)
  *   }
  * })
@@ -91,7 +91,7 @@
  *   const minLevel = yield* logLevelConfig
  *
  *   return Logger.make((options) => {
- *     if (LogLevel.greaterThanOrEqualTo(options.logLevel, minLevel)) {
+ *     if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, minLevel)) {
  *       console.log(`[${options.logLevel}] ${options.message}`)
  *     }
  *   })
@@ -184,19 +184,19 @@ export const getOrdinal = (self: LogLevel): number => effect.logLevelToOrder(sel
  * import { LogLevel } from "effect"
  *
  * // Check if Error is more severe than Info
- * console.log(LogLevel.greaterThan("Error", "Info")) // true
- * console.log(LogLevel.greaterThan("Debug", "Error")) // false
+ * console.log(LogLevel.isGreaterThan("Error", "Info")) // true
+ * console.log(LogLevel.isGreaterThan("Debug", "Error")) // false
  *
  * // Use with filtering
- * const isFatal = LogLevel.greaterThan("Fatal", "Warn")
- * const isError = LogLevel.greaterThan("Error", "Warn")
- * const isDebug = LogLevel.greaterThan("Debug", "Warn")
+ * const isFatal = LogLevel.isGreaterThan("Fatal", "Warn")
+ * const isError = LogLevel.isGreaterThan("Error", "Warn")
+ * const isDebug = LogLevel.isGreaterThan("Debug", "Warn")
  * console.log(isFatal) // true
  * console.log(isError) // true
  * console.log(isDebug) // false
  *
  * // Curried usage
- * const isMoreSevereThanInfo = LogLevel.greaterThan("Info")
+ * const isMoreSevereThanInfo = LogLevel.isGreaterThan("Info")
  * console.log(isMoreSevereThanInfo("Error")) // true
  * console.log(isMoreSevereThanInfo("Debug")) // false
  * ```
@@ -204,10 +204,10 @@ export const getOrdinal = (self: LogLevel): number => effect.logLevelToOrder(sel
  * @since 2.0.0
  * @category ordering
  */
-export const greaterThan: {
+export const isGreaterThan: {
   (that: LogLevel): (self: LogLevel) => boolean
   (self: LogLevel, that: LogLevel): boolean
-} = effect.logLevelGreaterThan
+} = effect.isLogLevelGreaterThan
 
 /**
  * Determines if the first log level is more severe than or equal to the second.
@@ -220,20 +220,20 @@ export const greaterThan: {
  * import { Logger, LogLevel } from "effect"
  *
  * // Check if level meets minimum threshold
- * console.log(LogLevel.greaterThanOrEqualTo("Error", "Error")) // true
- * console.log(LogLevel.greaterThanOrEqualTo("Error", "Info")) // true
- * console.log(LogLevel.greaterThanOrEqualTo("Debug", "Info")) // false
+ * console.log(LogLevel.isGreaterThanOrEqualTo("Error", "Error")) // true
+ * console.log(LogLevel.isGreaterThanOrEqualTo("Error", "Info")) // true
+ * console.log(LogLevel.isGreaterThanOrEqualTo("Debug", "Info")) // false
  *
  * // Create a logger that only logs Info and above
  * const infoLogger = Logger.make((options) => {
- *   if (LogLevel.greaterThanOrEqualTo(options.logLevel, "Info")) {
+ *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Info")) {
  *     console.log(`[${options.logLevel}] ${options.message}`)
  *   }
  * })
  *
  * // Production logger - only Error and Fatal
  * const productionLogger = Logger.make((options) => {
- *   if (LogLevel.greaterThanOrEqualTo(options.logLevel, "Error")) {
+ *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Error")) {
  *     console.error(
  *       `${options.date.toISOString()} [${options.logLevel}] ${options.message}`
  *     )
@@ -241,14 +241,14 @@ export const greaterThan: {
  * })
  *
  * // Curried usage for filtering
- * const isInfoOrAbove = LogLevel.greaterThanOrEqualTo("Info")
+ * const isInfoOrAbove = LogLevel.isGreaterThanOrEqualTo("Info")
  * const shouldLog = isInfoOrAbove("Error") // true
  * ```
  *
  * @since 2.0.0
  * @category ordering
  */
-export const greaterThanOrEqualTo: {
+export const isGreaterThanOrEqualTo: {
   (that: LogLevel): (self: LogLevel) => boolean
   (self: LogLevel, that: LogLevel): boolean
 } = Ord.isGreaterThanOrEqualTo(Order)
@@ -264,19 +264,19 @@ export const greaterThanOrEqualTo: {
  * import { LogLevel } from "effect"
  *
  * // Check if Debug is less severe than Info
- * console.log(LogLevel.lessThan("Debug", "Info")) // true
- * console.log(LogLevel.lessThan("Error", "Info")) // false
+ * console.log(LogLevel.isLessThan("Debug", "Info")) // true
+ * console.log(LogLevel.isLessThan("Error", "Info")) // false
  *
  * // Filter out verbose logs
- * const isFatalVerbose = LogLevel.lessThan("Fatal", "Info")
- * const isErrorVerbose = LogLevel.lessThan("Error", "Info")
- * const isTraceVerbose = LogLevel.lessThan("Trace", "Info")
+ * const isFatalVerbose = LogLevel.isLessThan("Fatal", "Info")
+ * const isErrorVerbose = LogLevel.isLessThan("Error", "Info")
+ * const isTraceVerbose = LogLevel.isLessThan("Trace", "Info")
  * console.log(isFatalVerbose) // false (Fatal is not verbose)
  * console.log(isErrorVerbose) // false (Error is not verbose)
  * console.log(isTraceVerbose) // true (Trace is verbose)
  *
  * // Curried usage
- * const isLessSevereThanError = LogLevel.lessThan("Error")
+ * const isLessSevereThanError = LogLevel.isLessThan("Error")
  * console.log(isLessSevereThanError("Info")) // true
  * console.log(isLessSevereThanError("Fatal")) // false
  * ```
@@ -284,7 +284,7 @@ export const greaterThanOrEqualTo: {
  * @since 2.0.0
  * @category ordering
  */
-export const lessThan: {
+export const isLessThan: {
   (that: LogLevel): (self: LogLevel) => boolean
   (self: LogLevel, that: LogLevel): boolean
 } = Ord.isLessThan(Order)
@@ -300,33 +300,33 @@ export const lessThan: {
  * import { Logger, LogLevel } from "effect"
  *
  * // Check if level is at or below threshold
- * console.log(LogLevel.lessThanOrEqualTo("Info", "Info")) // true
- * console.log(LogLevel.lessThanOrEqualTo("Debug", "Info")) // true
- * console.log(LogLevel.lessThanOrEqualTo("Error", "Info")) // false
+ * console.log(LogLevel.isLessThanOrEqualTo("Info", "Info")) // true
+ * console.log(LogLevel.isLessThanOrEqualTo("Debug", "Info")) // true
+ * console.log(LogLevel.isLessThanOrEqualTo("Error", "Info")) // false
  *
  * // Create a logger that suppresses verbose logs
  * const quietLogger = Logger.make((options) => {
- *   if (LogLevel.lessThanOrEqualTo(options.logLevel, "Info")) {
+ *   if (LogLevel.isLessThanOrEqualTo(options.logLevel, "Info")) {
  *     console.log(`[${options.logLevel}] ${options.message}`)
  *   }
  * })
  *
  * // Development logger - suppress trace logs
  * const devLogger = Logger.make((options) => {
- *   if (LogLevel.lessThanOrEqualTo(options.logLevel, "Debug")) {
+ *   if (LogLevel.isLessThanOrEqualTo(options.logLevel, "Debug")) {
  *     console.log(`[${options.logLevel}] ${options.message}`)
  *   }
  * })
  *
  * // Curried usage for filtering
- * const isInfoOrBelow = LogLevel.lessThanOrEqualTo("Info")
+ * const isInfoOrBelow = LogLevel.isLessThanOrEqualTo("Info")
  * const shouldLog = isInfoOrBelow("Debug") // true
  * ```
  *
  * @since 2.0.0
  * @category ordering
  */
-export const lessThanOrEqualTo: {
+export const isLessThanOrEqualTo: {
   (that: LogLevel): (self: LogLevel) => boolean
   (self: LogLevel, that: LogLevel): boolean
 } = Ord.isLessThanOrEqualTo(Order)

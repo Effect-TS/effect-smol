@@ -242,7 +242,7 @@ export declare namespace Refinement {
  * import * as N from "effect/Number"
  * import * as assert from "node:assert"
  *
- * const minLength3 = Predicate.mapInput(N.greaterThan(2), (s: string) => s.length)
+ * const minLength3 = Predicate.mapInput(N.isGreaterThan(2), (s: string) => s.length)
  *
  * assert.deepStrictEqual(minLength3("a"), false)
  * assert.deepStrictEqual(minLength3("aa"), false)
@@ -1136,7 +1136,7 @@ export const struct: {
  * import * as N from "effect/Number"
  * import * as assert from "node:assert"
  *
- * const isPositive = Predicate.not(N.lessThan(0))
+ * const isPositive = Predicate.not(N.isLessThan(0))
  *
  * assert.deepStrictEqual(isPositive(-1), false)
  * assert.deepStrictEqual(isPositive(0), true)
@@ -1157,7 +1157,7 @@ export const not = <A>(self: Predicate<A>): Predicate<A> => (a) => !self(a)
  * import * as N from "effect/Number"
  * import * as assert from "node:assert"
  *
- * const nonZero = Predicate.or(N.lessThan(0), N.greaterThan(0))
+ * const nonZero = Predicate.or(N.isLessThan(0), N.isGreaterThan(0))
  *
  * assert.deepStrictEqual(nonZero(-1), true)
  * assert.deepStrictEqual(nonZero(0), false)

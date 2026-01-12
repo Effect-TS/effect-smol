@@ -4918,7 +4918,7 @@ export const logLevelToOrder = (level: LogLevel.LogLevel) => {
 export const LogLevelOrder = Order.mapInput(Order.Number, logLevelToOrder)
 
 /** @internal */
-export const logLevelGreaterThan = Order.isGreaterThan(LogLevelOrder)
+export const isLogLevelGreaterThan = Order.isGreaterThan(LogLevelOrder)
 
 // ----------------------------------------------------------------------------
 // Logger
@@ -5014,7 +5014,7 @@ export const logWithLevel = (level?: LogLevel.LogLevel) =>
   return withFiber((fiber) => {
     const logLevel = level ?? fiber.getRef(CurrentLogLevel)
     const minimumLogLevel = fiber.getRef(MinimumLogLevel)
-    if (logLevelGreaterThan(minimumLogLevel, logLevel)) {
+    if (isLogLevelGreaterThan(minimumLogLevel, logLevel)) {
       return void_
     }
     const clock = fiber.getRef(ClockRef)

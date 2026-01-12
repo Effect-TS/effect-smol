@@ -1108,14 +1108,14 @@ export const sum: {
  * ```ts
  * import { Duration } from "effect"
  *
- * const isLess = Duration.lessThan(Duration.seconds(3), Duration.seconds(5))
+ * const isLess = Duration.isLessThan(Duration.seconds(3), Duration.seconds(5))
  * console.log(isLess) // true
  * ```
  *
  * @since 2.0.0
  * @category predicates
  */
-export const lessThan: {
+export const isLessThan: {
   (that: Duration): (self: Duration) => boolean
   (self: Duration, that: Duration): boolean
 } = order.isLessThan(Order)
@@ -1127,7 +1127,7 @@ export const lessThan: {
  * ```ts
  * import { Duration } from "effect"
  *
- * const isLessOrEqual = Duration.lessThanOrEqualTo(
+ * const isLessOrEqual = Duration.isLessThanOrEqualTo(
  *   Duration.seconds(5),
  *   Duration.seconds(5)
  * )
@@ -1137,7 +1137,7 @@ export const lessThan: {
  * @since 2.0.0
  * @category predicates
  */
-export const lessThanOrEqualTo: {
+export const isLessThanOrEqualTo: {
   (that: Duration): (self: Duration) => boolean
   (self: Duration, that: Duration): boolean
 } = order.isLessThanOrEqualTo(Order)
@@ -1149,14 +1149,14 @@ export const lessThanOrEqualTo: {
  * ```ts
  * import { Duration } from "effect"
  *
- * const isGreater = Duration.greaterThan(Duration.seconds(5), Duration.seconds(3))
+ * const isGreater = Duration.isGreaterThan(Duration.seconds(5), Duration.seconds(3))
  * console.log(isGreater) // true
  * ```
  *
  * @since 2.0.0
  * @category predicates
  */
-export const greaterThan: {
+export const isGreaterThan: {
   (that: Duration): (self: Duration) => boolean
   (self: Duration, that: Duration): boolean
 } = order.isGreaterThan(Order)
@@ -1168,7 +1168,7 @@ export const greaterThan: {
  * ```ts
  * import { Duration } from "effect"
  *
- * const isGreaterOrEqual = Duration.greaterThanOrEqualTo(
+ * const isGreaterOrEqual = Duration.isGreaterThanOrEqualTo(
  *   Duration.seconds(5),
  *   Duration.seconds(5)
  * )
@@ -1178,7 +1178,7 @@ export const greaterThan: {
  * @since 2.0.0
  * @category predicates
  */
-export const greaterThanOrEqualTo: {
+export const isGreaterThanOrEqualTo: {
   (that: Duration): (self: Duration) => boolean
   (self: Duration, that: Duration): boolean
 } = order.isGreaterThanOrEqualTo(Order)

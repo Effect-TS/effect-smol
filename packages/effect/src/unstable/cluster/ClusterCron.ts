@@ -82,7 +82,7 @@ export const make = <E, R>(options: {
 
   const effect = Effect.fnUntraced(function*(dateTime: DateTime.Utc) {
     const now = yield* DateTime.now
-    if (DateTime.lessThan(dateTime, DateTime.subtractDuration(now, skipIfOlderThan))) {
+    if (DateTime.isLessThan(dateTime, DateTime.subtractDuration(now, skipIfOlderThan))) {
       return
     }
     return yield* options.execute

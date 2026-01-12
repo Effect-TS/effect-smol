@@ -1138,12 +1138,12 @@ export * as Logger from "./Logger.ts"
  * import { LogLevel } from "effect"
  *
  * // Check if one level is more severe than another
- * console.log(LogLevel.greaterThan("Error", "Info")) // true
- * console.log(LogLevel.greaterThan("Debug", "Error")) // false
+ * console.log(LogLevel.isGreaterThan("Error", "Info")) // true
+ * console.log(LogLevel.isGreaterThan("Debug", "Error")) // false
  *
  * // Check if level meets minimum threshold
- * console.log(LogLevel.greaterThanOrEqualTo("Info", "Debug")) // true
- * console.log(LogLevel.lessThan("Trace", "Info")) // true
+ * console.log(LogLevel.isGreaterThanOrEqualTo("Info", "Debug")) // true
+ * console.log(LogLevel.isLessThan("Trace", "Info")) // true
  * ```
  *
  * ## Filtering by Level
@@ -1153,14 +1153,14 @@ export * as Logger from "./Logger.ts"
  *
  * // Create a logger that only logs Error and above
  * const errorLogger = Logger.make((options) => {
- *   if (LogLevel.greaterThanOrEqualTo(options.logLevel, "Error")) {
+ *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Error")) {
  *     console.log(`[${options.logLevel}] ${options.message}`)
  *   }
  * })
  *
  * // Production logger - Info and above
  * const productionLogger = Logger.make((options) => {
- *   if (LogLevel.greaterThanOrEqualTo(options.logLevel, "Info")) {
+ *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Info")) {
  *     console.log(
  *       `${options.date.toISOString()} [${options.logLevel}] ${options.message}`
  *     )
@@ -1169,7 +1169,7 @@ export * as Logger from "./Logger.ts"
  *
  * // Development logger - Debug and above
  * const devLogger = Logger.make((options) => {
- *   if (LogLevel.greaterThanOrEqualTo(options.logLevel, "Debug")) {
+ *   if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, "Debug")) {
  *     console.log(`[${options.logLevel}] ${options.message}`)
  *   }
  * })
@@ -1189,7 +1189,7 @@ export * as Logger from "./Logger.ts"
  *   const minLevel = yield* logLevelConfig
  *
  *   return Logger.make((options) => {
- *     if (LogLevel.greaterThanOrEqualTo(options.logLevel, minLevel)) {
+ *     if (LogLevel.isGreaterThanOrEqualTo(options.logLevel, minLevel)) {
  *       console.log(`[${options.logLevel}] ${options.message}`)
  *     }
  *   })

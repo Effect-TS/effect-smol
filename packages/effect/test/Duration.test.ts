@@ -279,52 +279,52 @@ describe("Duration", () => {
     deepStrictEqual(Duration.subtract(Duration.infinity, Duration.infinity), Duration.zero)
   })
 
-  it("greaterThan", () => {
-    assertTrue(pipe(Duration.seconds(30), Duration.greaterThan(Duration.seconds(20))))
-    assertFalse(pipe(Duration.seconds(30), Duration.greaterThan(Duration.seconds(30))))
-    assertFalse(pipe(Duration.seconds(30), Duration.greaterThan(Duration.seconds(60))))
+  it("isGreaterThan", () => {
+    assertTrue(pipe(Duration.seconds(30), Duration.isGreaterThan(Duration.seconds(20))))
+    assertFalse(pipe(Duration.seconds(30), Duration.isGreaterThan(Duration.seconds(30))))
+    assertFalse(pipe(Duration.seconds(30), Duration.isGreaterThan(Duration.seconds(60))))
 
-    assertTrue(pipe(Duration.nanos(30n), Duration.greaterThan(Duration.nanos(20n))))
-    assertFalse(pipe(Duration.nanos(30n), Duration.greaterThan(Duration.nanos(30n))))
-    assertFalse(pipe(Duration.nanos(30n), Duration.greaterThan(Duration.nanos(60n))))
+    assertTrue(pipe(Duration.nanos(30n), Duration.isGreaterThan(Duration.nanos(20n))))
+    assertFalse(pipe(Duration.nanos(30n), Duration.isGreaterThan(Duration.nanos(30n))))
+    assertFalse(pipe(Duration.nanos(30n), Duration.isGreaterThan(Duration.nanos(60n))))
 
-    assertTrue(pipe(Duration.millis(1), Duration.greaterThan(Duration.nanos(1n))))
+    assertTrue(pipe(Duration.millis(1), Duration.isGreaterThan(Duration.nanos(1n))))
 
-    assertTrue(pipe(Duration.infinity, Duration.greaterThan(Duration.seconds(20))))
-    assertFalse(pipe(Duration.seconds(-Infinity), Duration.greaterThan(Duration.infinity)))
-    assertFalse(pipe(Duration.nanos(1n), Duration.greaterThan(Duration.infinity)))
+    assertTrue(pipe(Duration.infinity, Duration.isGreaterThan(Duration.seconds(20))))
+    assertFalse(pipe(Duration.seconds(-Infinity), Duration.isGreaterThan(Duration.infinity)))
+    assertFalse(pipe(Duration.nanos(1n), Duration.isGreaterThan(Duration.infinity)))
   })
 
-  it("greaterThanOrEqualTo", () => {
-    assertTrue(pipe(Duration.seconds(30), Duration.greaterThanOrEqualTo(Duration.seconds(20))))
-    assertTrue(pipe(Duration.seconds(30), Duration.greaterThanOrEqualTo(Duration.seconds(30))))
-    assertFalse(pipe(Duration.seconds(30), Duration.greaterThanOrEqualTo(Duration.seconds(60))))
+  it("isGreaterThanOrEqualTo", () => {
+    assertTrue(pipe(Duration.seconds(30), Duration.isGreaterThanOrEqualTo(Duration.seconds(20))))
+    assertTrue(pipe(Duration.seconds(30), Duration.isGreaterThanOrEqualTo(Duration.seconds(30))))
+    assertFalse(pipe(Duration.seconds(30), Duration.isGreaterThanOrEqualTo(Duration.seconds(60))))
 
-    assertTrue(pipe(Duration.nanos(30n), Duration.greaterThanOrEqualTo(Duration.nanos(20n))))
-    assertTrue(pipe(Duration.nanos(30n), Duration.greaterThanOrEqualTo(Duration.nanos(30n))))
-    assertFalse(pipe(Duration.nanos(30n), Duration.greaterThanOrEqualTo(Duration.nanos(60n))))
+    assertTrue(pipe(Duration.nanos(30n), Duration.isGreaterThanOrEqualTo(Duration.nanos(20n))))
+    assertTrue(pipe(Duration.nanos(30n), Duration.isGreaterThanOrEqualTo(Duration.nanos(30n))))
+    assertFalse(pipe(Duration.nanos(30n), Duration.isGreaterThanOrEqualTo(Duration.nanos(60n))))
   })
 
-  it("lessThan", () => {
-    assertTrue(pipe(Duration.seconds(20), Duration.lessThan(Duration.seconds(30))))
-    assertFalse(pipe(Duration.seconds(30), Duration.lessThan(Duration.seconds(30))))
-    assertFalse(pipe(Duration.seconds(60), Duration.lessThan(Duration.seconds(30))))
+  it("isLessThan", () => {
+    assertTrue(pipe(Duration.seconds(20), Duration.isLessThan(Duration.seconds(30))))
+    assertFalse(pipe(Duration.seconds(30), Duration.isLessThan(Duration.seconds(30))))
+    assertFalse(pipe(Duration.seconds(60), Duration.isLessThan(Duration.seconds(30))))
 
-    assertTrue(pipe(Duration.nanos(20n), Duration.lessThan(Duration.nanos(30n))))
-    assertFalse(pipe(Duration.nanos(30n), Duration.lessThan(Duration.nanos(30n))))
-    assertFalse(pipe(Duration.nanos(60n), Duration.lessThan(Duration.nanos(30n))))
+    assertTrue(pipe(Duration.nanos(20n), Duration.isLessThan(Duration.nanos(30n))))
+    assertFalse(pipe(Duration.nanos(30n), Duration.isLessThan(Duration.nanos(30n))))
+    assertFalse(pipe(Duration.nanos(60n), Duration.isLessThan(Duration.nanos(30n))))
 
-    assertTrue(pipe(Duration.nanos(1n), Duration.lessThan(Duration.millis(1))))
+    assertTrue(pipe(Duration.nanos(1n), Duration.isLessThan(Duration.millis(1))))
   })
 
-  it("lessThanOrEqualTo", () => {
-    assertTrue(pipe(Duration.seconds(20), Duration.lessThanOrEqualTo(Duration.seconds(30))))
-    assertTrue(pipe(Duration.seconds(30), Duration.lessThanOrEqualTo(Duration.seconds(30))))
-    assertFalse(pipe(Duration.seconds(60), Duration.lessThanOrEqualTo(Duration.seconds(30))))
+  it("isLessThanOrEqualTo", () => {
+    assertTrue(pipe(Duration.seconds(20), Duration.isLessThanOrEqualTo(Duration.seconds(30))))
+    assertTrue(pipe(Duration.seconds(30), Duration.isLessThanOrEqualTo(Duration.seconds(30))))
+    assertFalse(pipe(Duration.seconds(60), Duration.isLessThanOrEqualTo(Duration.seconds(30))))
 
-    assertTrue(pipe(Duration.nanos(20n), Duration.lessThanOrEqualTo(Duration.nanos(30n))))
-    assertTrue(pipe(Duration.nanos(30n), Duration.lessThanOrEqualTo(Duration.nanos(30n))))
-    assertFalse(pipe(Duration.nanos(60n), Duration.lessThanOrEqualTo(Duration.nanos(30n))))
+    assertTrue(pipe(Duration.nanos(20n), Duration.isLessThanOrEqualTo(Duration.nanos(30n))))
+    assertTrue(pipe(Duration.nanos(30n), Duration.isLessThanOrEqualTo(Duration.nanos(30n))))
+    assertFalse(pipe(Duration.nanos(60n), Duration.isLessThanOrEqualTo(Duration.nanos(30n))))
   })
 
   it("toString()", () => {
