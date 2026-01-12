@@ -5,6 +5,7 @@ const isDeno = process.versions.deno !== undefined
 
 export default mergeConfig(shared, {
   test: {
+    // @see https://github.com/denoland/deno/issues/23882
     exclude: (isDeno ? ["test/cluster/**"] : [])
   }
 })
