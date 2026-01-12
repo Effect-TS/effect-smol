@@ -1688,20 +1688,53 @@ export * as Optic from "./Optic.ts"
 export * as Option from "./Option.ts"
 
 /**
- * This module provides an implementation of the `Order` type class which is used to define a total ordering on some type `A`.
- * An order is defined by a relation `<=`, which obeys the following laws:
+ * This module provides the `Order` type class for defining total orderings on types.
+ * An `Order` is a comparison function that returns `-1` (less than), `0` (equal), or `1` (greater than).
  *
- * - either `x <= y` or `y <= x` (totality)
- * - if `x <= y` and `y <= x`, then `x == y` (antisymmetry)
- * - if `x <= y` and `y <= z`, then `x <= z` (transitivity)
+ * Mental model:
+ * - An `Order<A>` is a pure function `(a: A, b: A) => Ordering` that compares two values
+ * - The result `-1` means the first value is less than the second
+ * - The result `0` means the values are equal according to this ordering
+ * - The result `1` means the first value is greater than the second
+ * - Orders must satisfy total ordering laws: totality (either `x <= y` or `y <= x`), antisymmetry (if `x <= y` and `y <= x` then `x == y`), and transitivity (if `x <= y` and `y <= z` then `x <= z`)
+ * - Orders can be composed using {@link combine} and {@link combineAll} to create multi-criteria comparisons
+ * - Orders can be transformed using {@link mapInput} to compare values by extracting a comparable property
+ * - Built-in orders exist for common types: {@link Number}, {@link String}, {@link Boolean}, {@link BigInt}, {@link Date}
  *
- * The truth table for compare is defined as follows:
+ * Common tasks:
+ * - Creating custom orders → {@link make}
+ * - Using built-in orders → {@link Number}, {@link String}, {@link Boolean}, {@link BigInt}, {@link Date}
+ * - Combining multiple orders → {@link combine}, {@link combineAll}
+ * - Transforming orders → {@link mapInput}
+ * - Comparing values → {@link isLessThan}, {@link isGreaterThan}, {@link isLessThanOrEqualTo}, {@link isGreaterThanOrEqualTo}
+ * - Finding min/max → {@link min}, {@link max}
+ * - Clamping values → {@link clamp}, {@link isBetween}
+ * - Ordering collections → {@link Array}, {@link Tuple}, {@link Struct}
  *
- * | `x <= y` | `x >= y` | Ordering |                       |
- * | -------- | -------- | -------- | --------------------- |
- * | `true`   | `true`   | `0`      | corresponds to x == y |
- * | `true`   | `false`  | `< 0`    | corresponds to x < y  |
- * | `false`  | `true`   | `> 0`    | corresponds to x > y  |
+ * Gotchas:
+ * - `Order.Number` treats all `NaN` values as equal and less than any other number
+ * - `Order.make` uses reference equality (`===`) as a shortcut: if `self === that`, it returns `0` without calling the comparison function
+ * - `Order.Array` compares arrays element-by-element, then by length if all elements are equal; `Order.all` only compares elements up to the shorter array's length
+ * - `Order.Tuple` requires a fixed-length tuple with matching order types; `Order.Array` works with variable-length arrays
+ * - `Order.min` and `Order.max` return the first argument when values are equal
+ *
+ * Quickstart:
+ *
+ * **Example** (Basic Usage)
+ *
+ * ```ts
+ * import { Order } from "effect"
+ *
+ * const result = Order.Number(5, 10)
+ * console.log(result) // -1 (5 is less than 10)
+ *
+ * const isLessThan = Order.isLessThan(Order.Number)(5, 10)
+ * console.log(isLessThan) // true
+ * ```
+ *
+ * See also:
+ * - {@link Ordering} - The result type of comparisons
+ * - {@link Reducer} - For combining orders in collections
  *
  * @since 2.0.0
  */
