@@ -11,6 +11,7 @@ export default defineConfig({
       "packages/sql/*/vitest.config.ts",
       ...(isDeno ?
         [
+          "!packages/atom",
           "!packages/platform-bun",
           "!packages/platform-node",
           "!packages/platform-node-shared",
