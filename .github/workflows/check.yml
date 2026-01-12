@@ -53,7 +53,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
         with:
-          deno-version: v2.5.x
+          deno-version: v2.6.x
       - run: deno check .
 
   bundle:
@@ -138,7 +138,7 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1/2, 2/2]
-        runtime: [Node] # [Node, Deno] Deno temporarily disabled
+        runtime: [Node, Deno]
     steps:
       - uses: actions/checkout@v4
 
@@ -155,7 +155,7 @@ jobs:
         if: matrix.runtime == 'Deno'
         uses: ./.github/actions/setup
         with:
-          deno-version: v2.5.x
+          deno-version: v2.6.x
       - name: Test
         if: matrix.runtime == 'Deno'
         run: deno task test --shard ${{ matrix.shard }}
