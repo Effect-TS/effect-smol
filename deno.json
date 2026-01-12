@@ -18,6 +18,7 @@
     "scratchpad/",
     "packages/*/dtslint/",
     "packages/*/benchmark/",
+    "packages/atom",
     "packages/effect/test/cluster/",
     "packages/opentelemetry/",
     "packages/platform-browser/",
