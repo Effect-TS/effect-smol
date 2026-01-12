@@ -1,7 +1,7 @@
-# `@effect/sql-clickhouse`
+# `@effect/atom-react`
 
-An `@effect/sql` implementation for [ClickHouse](https://clickhouse.com/).
+React bindings for the Effect Atom modules.
 
 ## Documentation
 
-- **API Reference**: [View the full documentation](https://effect-ts.github.io/effect/docs/sql-clickhouse).
+- **API Reference**: [View the full documentation](https://effect-ts.github.io/effect/docs/atom-react).
