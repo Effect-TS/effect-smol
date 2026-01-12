@@ -9,6 +9,10 @@
     "./packages/*/test/**/*.json",
     "./packages/*/dtslint/**/*.ts",
     "./packages/*/benchmark/**/*.ts",
+    "./packages/ai/*/test/**/*.ts",
+    "./packages/ai/*/test/**/*.json",
+    "./packages/ai/*/dtslint/**/*.ts",
+    "./packages/ai/*/benchmark/**/*.ts",
     "./packages/atom/*/test/**/*.ts",
     "./packages/atom/*/test/**/*.json",
     "./packages/atom/*/dtslint/**/*.ts",
@@ -33,6 +37,8 @@
       // that would otherwise be considered cyclic dependencies (e.g. loading `@effect/sql-sqlite-node` in the test
       // suite of `@effect/platform-node` which itself depends on `@effect/platform-node`).
       "effect/*": ["./packages/effect/src/*.ts"],
+      "@effect/ai-openai": ["./packages/ai/openai/src/index.ts"],
+      "@effect/ai-openai/*": ["./packages/ai/openai/src/*.ts"],
       "@effect/atom-react": ["./packages/atom/react/src/index.ts"],
       "@effect/atom-react/*": ["./packages/atom/react/src/*.ts"],
       "@effect/opentelemetry": ["./packages/opentelemetry/src/index.ts"],
@@ -67,6 +73,8 @@
       "@effect/sql-sqlite-react-native/*": ["./packages/sql/sqlite-react-native/src/*.ts"],
       "@effect/sql-sqlite-wasm": ["./packages/sql/sqlite-wasm/src/index.ts"],
       "@effect/sql-sqlite-wasm/*": ["./packages/sql/sqlite-wasm/src/*.ts"],
+      "@effect/ai-codegen": ["./packages/tools/ai-codegen/src/index.ts"],
+      "@effect/ai-codegen/*": ["./packages/tools/ai-codegen/src/*.ts"],
       "@effect/openapi-generator": ["./packages/tools/openapi-generator/src/index.ts"],
       "@effect/openapi-generator/*": ["./packages/tools/openapi-generator/src/*.ts"],
       "@effect/oxc": ["./packages/tools/oxc/src/index.ts"],

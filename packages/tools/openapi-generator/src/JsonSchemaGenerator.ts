@@ -42,7 +42,16 @@ export function make() {
       const recursives = Object.entries(codeDocument.references.recursives).map(([$ref, code]) =>
         renderSchema($ref, code)
       )
-      const codes = codeDocument.codes.map((code, i) => renderSchema(nameMap[i], code))
+      // Collect all defined schema names to avoid duplicates
+      const definedNames = new Set([
+        ...codeDocument.references.nonRecursives.map(({ $ref }) => $ref),
+        ...Object.keys(codeDocument.references.recursives)
+      ])
+      // Filter out schemas that are already defined or are self-referential
+      const codes = codeDocument.codes
+        .map((code, i) => ({ name: nameMap[i], code }))
+        .filter(({ name, code }) => !definedNames.has(name) && code.Type !== name && code.runtime !== name)
+        .map(({ name, code }) => renderSchema(name, code))
 
       const s = render("non-recursive definitions", nonRecursives) +
         render("recursive definitions", recursives) +

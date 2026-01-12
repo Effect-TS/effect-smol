@@ -284,27 +284,32 @@ const Proto = {
         }
         return schemas
       }
-      const handle = Effect.fnUntraced(function*(name: string, params: unknown) {
+      const handle = Effect.fnUntraced(function*(name: string, params: unknown, toolCallId?: string) {
         yield* Effect.annotateCurrentSpan({ tool: name, parameters: params })
         const tool = tools[name]
         if (Predicate.isUndefined(tool)) {
-          const toolNames = Object.keys(tools).join(",")
-          return yield* new AiError.MalformedOutput({
-            module: "Toolkit",
-            method: `${name}.handle`,
-            description: `Failed to find tool with name '${name}' in toolkit - available tools: ${toolNames}`
+          return yield* new AiError.ToolNotFoundError({
+            operation: "toolCall",
+            provider: "unknown",
+            timestamp: new Date(),
+            toolName: name,
+            availableTools: Object.keys(tools)
           })
         }
         const schemas = getSchemas(tool)
         const decodedParams = yield* Effect.mapError(
           schemas.decodeParameters(params),
           (cause) =>
-            new AiError.MalformedOutput({
-              module: "Toolkit",
-              method: `${name}.handle`,
-              description: `Failed to decode tool call parameters for tool '${name}' from:\n'${
-                JSON.stringify(params, undefined, 2)
-              }'`,
+            new AiError.ToolParameterError({
+              operation: "toolCall",
+              provider: "unknown",
+              timestamp: new Date(),
+              toolName: name,
+              toolCallId: toolCallId ?? "unknown",
+              parameters: params,
+              validationError: `Failed to decode tool call parameters: ${
+                Schema.isSchemaError(cause) ? cause.message : String(cause)
+              }`,
               cause
             })
         )
@@ -324,10 +329,14 @@ const Proto = {
           Effect.updateServices((input) => ServiceMap.merge(schemas.services, input)),
           Effect.mapError((cause) =>
             Schema.isSchemaError(cause)
-              ? new AiError.MalformedInput({
-                module: "Toolkit",
-                method: `${name}.handle`,
-                description: `Failed to validate tool call result for tool '${name}'`,
+              ? new AiError.ToolExecutionError({
+                operation: "toolExecution",
+                provider: "unknown",
+                timestamp: new Date(),
+                toolName: name,
+                toolCallId: toolCallId ?? "unknown",
+                parameters: decodedParams,
+                executionError: cause,
                 cause
               })
               : cause
@@ -336,10 +345,13 @@ const Proto = {
         const encodedResult = yield* Effect.mapError(
           schemas.encodeResult(result),
           (cause) =>
-            new AiError.MalformedInput({
-              module: "Toolkit",
-              method: `${name}.handle`,
-              description: `Failed to encode tool call result for tool '${name}'`,
+            new AiError.ToolResultEncodingError({
+              operation: "toolExecution",
+              provider: "unknown",
+              timestamp: new Date(),
+              toolName: name,
+              toolCallId: toolCallId ?? "unknown",
+              result,
               cause
             })
         )

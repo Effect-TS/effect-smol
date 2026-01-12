@@ -1,0 +1,188 @@
+/**
+ * Configuration schema and types for AI provider code generation.
+ *
+ * @since 1.0.0
+ */
+import * as Data from "effect/Data"
+import type * as Path from "effect/Path"
+import * as Schema from "effect/Schema"
+
+/**
+ * Configuration for AI provider code generation.
+ *
+ * @example
+ * ```ts
+ * import * as Config from "@effect/ai-codegen/Config"
+ * import * as Schema from "effect/Schema"
+ *
+ * const config = Schema.decodeUnknownSync(Config.CodegenConfig)({
+ *   spec: "https://example.com/openapi.json",
+ *   output: "Generated.ts",
+ *   name: "MyClient"
+ * })
+ *
+ * console.log(config.spec)
+ * // "https://example.com/openapi.json"
+ * ```
+ *
+ * @since 1.0.0
+ * @category models
+ */
+export class CodegenConfig extends Schema.Class<CodegenConfig>("CodegenConfig")({
+  spec: Schema.String,
+  output: Schema.String,
+  name: Schema.optional(Schema.String),
+  typeOnly: Schema.optional(Schema.Boolean),
+  patches: Schema.optional(Schema.Array(Schema.String))
+}) {
+  /**
+   * Get the client name, defaulting to "Client" if not specified.
+   *
+   * @since 1.0.0
+   */
+  get clientName(): string {
+    return this.name ?? "Client"
+  }
+
+  /**
+   * Check if type-only generation is enabled.
+   *
+   * @since 1.0.0
+   */
+  get isTypeOnly(): boolean {
+    return this.typeOnly ?? false
+  }
+
+  /**
+   * Get the list of patch files/strings to apply.
+   *
+   * @since 1.0.0
+   */
+  get patchList(): ReadonlyArray<string> {
+    return this.patches ?? []
+  }
+}
+
+/**
+ * Represents the source of an OpenAPI specification.
+ *
+ * @since 1.0.0
+ * @category models
+ */
+export type SpecSource = SpecSource.Url | SpecSource.File
+
+/**
+ * @since 1.0.0
+ * @category models
+ */
+export declare namespace SpecSource {
+  /**
+   * A URL-based spec source.
+   *
+   * @since 1.0.0
+   * @category models
+   */
+  export interface Url {
+    readonly _tag: "Url"
+    readonly url: string
+  }
+
+  /**
+   * A file-based spec source.
+   *
+   * @since 1.0.0
+   * @category models
+   */
+  export interface File {
+    readonly _tag: "File"
+    readonly path: string
+  }
+}
+
+/**
+ * Constructors and utilities for `SpecSource`.
+ *
+ * @example
+ * ```ts
+ * import * as Config from "@effect/ai-codegen/Config"
+ *
+ * // Create a URL-based source
+ * const urlSource = Config.SpecSource.Url("https://example.com/openapi.json")
+ *
+ * // Create a file-based source
+ * const fileSource = Config.SpecSource.File("/path/to/spec.json")
+ * ```
+ *
+ * @since 1.0.0
+ * @category constructors
+ */
+export const SpecSource = {
+  /**
+   * Create a URL-based spec source.
+   *
+   * @since 1.0.0
+   */
+  Url: (url: string): SpecSource => ({ _tag: "Url", url }),
+
+  /**
+   * Create a file-based spec source.
+   *
+   * @since 1.0.0
+   */
+  File: (path: string): SpecSource => ({ _tag: "File", path }),
+
+  /**
+   * Parse a spec string into a `SpecSource`.
+   * URLs (http:// or https://) become `Url`, otherwise `File`.
+   *
+   * @since 1.0.0
+   */
+  fromString: (spec: string, packagePath: string, pathService: Path.Path): SpecSource => {
+    if (spec.startsWith("http://") || spec.startsWith("https://")) {
+      return SpecSource.Url(spec)
+    }
+    return SpecSource.File(pathService.join(packagePath, spec))
+  }
+}
+
+/**
+ * Error when parsing a codegen configuration file fails.
+ *
+ * @example
+ * ```ts
+ * import * as Config from "@effect/ai-codegen/Config"
+ *
+ * const error = new Config.ConfigParseError({
+ *   path: "/path/to/codegen.json",
+ *   cause: new Error("Invalid JSON")
+ * })
+ * ```
+ *
+ * @since 1.0.0
+ * @category errors
+ */
+export class ConfigParseError extends Data.TaggedError("ConfigParseError")<{
+  readonly path: string
+  readonly cause: unknown
+}> {}
+
+/**
+ * Error when a codegen configuration file is not found.
+ *
+ * @example
+ * ```ts
+ * import * as Config from "@effect/ai-codegen/Config"
+ *
+ * const error = new Config.ConfigNotFoundError({
+ *   provider: "openai",
+ *   expectedPath: "/path/to/packages/ai/openai/codegen.json"
+ * })
+ * ```
+ *
+ * @since 1.0.0
+ * @category errors
+ */
+export class ConfigNotFoundError extends Data.TaggedError("ConfigNotFoundError")<{
+  readonly provider: string
+  readonly expectedPath: string
+}> {}

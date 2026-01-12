@@ -1,0 +1,5 @@
+name: OpenAiClient
+spec: https://app.stainless.com/api/spec/documented/openai/openapi.documented.yml
+output: src/Generated.ts
+patches:
+  - '[{"op":"replace","path":"/openapi","value":"3.0.0"}]'
