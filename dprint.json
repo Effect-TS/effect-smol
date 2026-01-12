@@ -16,7 +16,9 @@
     "**/build",
     "**/docs",
     "**/coverage",
-    "!scratchpad/**/*"
+    "!scratchpad/**/*",
+    // TODO: adding a nested config file results in an error - find a way to make this work
+    "packages/tools/openapi-generator/test/fixtures/**/*.json"
   ],
   "plugins": [
     "https://plugins.dprint.dev/typescript-0.93.4.wasm",

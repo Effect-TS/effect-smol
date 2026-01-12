@@ -260,14 +260,16 @@ describe("OpenApiPatch", () => {
         }]
         const exit = yield* Effect.exit(OpenApiPatch.applyPatches(patches, document))
         assert.isTrue(Exit.isFailure(exit))
-        if (Exit.isFailure(exit) && exit.cause._tag === "Fail") {
-          const error = exit.cause.error as OpenApiPatch.JsonPatchAggregateError
-          assert.strictEqual(error._tag, "JsonPatchAggregateError")
-          assert.strictEqual(error.errors.length, 3)
-          assert.include(error.message, "3 patch operations failed")
-          assert.include(error.message, "/info/nonexistent1")
-          assert.include(error.message, "/info/nonexistent2")
-          assert.include(error.message, "/info/nonexistent3")
+        if (Exit.isFailure(exit)) {
+          const failure = exit.cause.failures[0]
+          if (failure._tag === "Fail") {
+            assert.strictEqual(failure.error._tag, "JsonPatchAggregateError")
+            assert.strictEqual(failure.error.errors.length, 3)
+            assert.include(failure.error.message, "3 patch operations failed")
+            assert.include(failure.error.message, "/info/nonexistent1")
+            assert.include(failure.error.message, "/info/nonexistent2")
+            assert.include(failure.error.message, "/info/nonexistent3")
+          }
         }
       }))
 
@@ -286,11 +288,13 @@ describe("OpenApiPatch", () => {
         ]
         const exit = yield* Effect.exit(OpenApiPatch.applyPatches(patches, document))
         assert.isTrue(Exit.isFailure(exit))
-        if (Exit.isFailure(exit) && exit.cause._tag === "Fail") {
-          const error = exit.cause.error as OpenApiPatch.JsonPatchAggregateError
-          assert.strictEqual(error.errors.length, 2)
-          assert.include(error.message, "patch1.json")
-          assert.include(error.message, "patch2.json")
+        if (Exit.isFailure(exit)) {
+          const failure = exit.cause.failures[0]
+          if (failure._tag === "Fail") {
+            assert.strictEqual(failure.error.errors.length, 2)
+            assert.include(failure.error.message, "patch1.json")
+            assert.include(failure.error.message, "patch2.json")
+          }
         }
       }))
 
