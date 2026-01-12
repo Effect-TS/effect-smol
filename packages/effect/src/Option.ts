@@ -1951,7 +1951,7 @@ export const filter: {
  * ```ts
  * import { Equivalence, Option } from "effect"
  *
- * const isEquivalent = Option.getEquivalence(Equivalence.strict<number>())
+ * const isEquivalent = Option.makeEquivalence(Equivalence.strict<number>())
  *
  * console.log(isEquivalent(Option.none(), Option.none()))
  * // Output: true
@@ -1972,7 +1972,7 @@ export const filter: {
  * @category Equivalence
  * @since 2.0.0
  */
-export const getEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Option<A>> =>
+export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Option<A>> =>
   Equivalence.make((x, y) => isNone(x) ? isNone(y) : isNone(y) ? false : isEquivalent(x.value, y.value))
 
 /**

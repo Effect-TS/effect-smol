@@ -262,8 +262,8 @@ describe("Result", () => {
   })
 
   describe("Equivalence", () => {
-    it("getEquivalence", () => {
-      const isEquivalent = Result.getEquivalence(
+    it("makeEquivalence", () => {
+      const isEquivalent = Result.makeEquivalence(
         Equivalence.strict<number>(),
         Equivalence.strict<string>()
       )

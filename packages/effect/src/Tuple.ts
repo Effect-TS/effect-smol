@@ -358,7 +358,7 @@ export const mapOmit: {
  * import { Equivalence, Tuple } from "effect"
  *
  * // Creates an equivalence for tuples with string and number elements
- * const equivalence = Tuple.getEquivalence([
+ * const equivalence = Tuple.makeEquivalence([
  *   Equivalence.strict<string>(),
  *   Equivalence.strict<number>()
  * ])
@@ -367,7 +367,7 @@ export const mapOmit: {
  * @category Equivalence
  * @since 2.0.0
  */
-export const getEquivalence = Equivalence.tuple
+export const makeEquivalence = Equivalence.tuple
 
 /**
  * Creates an `Order` for tuples by comparing corresponding elements using the provided `Order`s.

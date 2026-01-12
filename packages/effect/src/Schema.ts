@@ -5363,7 +5363,7 @@ export function Option<A extends Top>(value: A): Option<A> {
           value.map(Option_.some)
         )
       },
-      toEquivalence: ([value]) => Option_.getEquivalence(value),
+      toEquivalence: ([value]) => Option_.makeEquivalence(value),
       toFormatter: ([value]) =>
         Option_.match({
           onNone: () => "none()",
@@ -5540,7 +5540,7 @@ export function Result<A extends Top, E extends Top>(
           failure.map(Result_.fail)
         )
       },
-      toEquivalence: ([success, failure]) => Result_.getEquivalence(success, failure),
+      toEquivalence: ([success, failure]) => Result_.makeEquivalence(success, failure),
       toFormatter: ([success, failure]) =>
         Result_.match({
           onSuccess: (t) => `success(${success(t)})`,
@@ -5643,7 +5643,7 @@ export function Redacted<S extends Top>(value: S, options?: {
         ),
       toArbitrary: ([value]) => () => value.map((a) => Redacted_.make(a, { label: options?.label })),
       toFormatter: () => globalThis.String,
-      toEquivalence: ([value]) => Redacted_.getEquivalence(value)
+      toEquivalence: ([value]) => Redacted_.makeEquivalence(value)
     }
   )
   return make(schema.ast, { value })

@@ -484,7 +484,7 @@ export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFai
  * const stringEquivalence = Equivalence.strict<string>()
  * const numberEquivalence = Equivalence.strict<number>()
  *
- * const resultEquivalence = Result.getEquivalence(
+ * const resultEquivalence = Result.makeEquivalence(
  *   numberEquivalence,
  *   stringEquivalence
  * )
@@ -500,7 +500,7 @@ export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFai
  * @category Equivalence
  * @since 4.0.0
  */
-export const getEquivalence = <A, E>(
+export const makeEquivalence = <A, E>(
   success: Equivalence.Equivalence<A>,
   failure: Equivalence.Equivalence<E>
 ): Equivalence.Equivalence<Result<A, E>> =>

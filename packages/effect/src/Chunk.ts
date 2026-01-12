@@ -214,7 +214,7 @@ const emptyArray: ReadonlyArray<never> = []
  * const chunk2 = Chunk.make(1, 2, 3)
  * const chunk3 = Chunk.make(1, 2, 4)
  *
- * const eq = Chunk.getEquivalence(Equivalence.strict<number>())
+ * const eq = Chunk.makeEquivalence(Equivalence.strict<number>())
  * console.log(eq(chunk1, chunk2)) // true
  * console.log(eq(chunk1, chunk3)) // false
  * ```
@@ -222,12 +222,12 @@ const emptyArray: ReadonlyArray<never> = []
  * @category equivalence
  * @since 2.0.0
  */
-export const getEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Chunk<A>> =>
+export const makeEquivalence = <A>(isEquivalent: Equivalence.Equivalence<A>): Equivalence.Equivalence<Chunk<A>> =>
   Equivalence.make((self, that) =>
     self.length === that.length && toReadonlyArray(self).every((value, i) => isEquivalent(value, getUnsafe(that, i)))
   )
 
-const _equivalence = getEquivalence(Equal.equals)
+const _equivalence = makeEquivalence(Equal.equals)
 
 const ChunkProto: Omit<Chunk<unknown>, "backing" | "depth" | "left" | "length" | "right"> = {
   [TypeId]: {

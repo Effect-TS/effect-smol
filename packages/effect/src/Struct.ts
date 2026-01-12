@@ -341,7 +341,7 @@ export const renameKeys: {
  * ```ts
  * import { Equivalence, Struct } from "effect"
  *
- * const PersonEquivalence = Struct.getEquivalence({
+ * const PersonEquivalence = Struct.makeEquivalence({
  *   name: Equivalence.strict<string>(),
  *   age: Equivalence.strict<number>()
  * })
@@ -360,7 +360,7 @@ export const renameKeys: {
  * @category Equivalence
  * @since 2.0.0
  */
-export const getEquivalence = Equivalence.struct
+export const makeEquivalence = Equivalence.struct
 
 /**
  * Creates an `Order` for a struct of values based on the given `Order`s for each property.

@@ -1374,7 +1374,7 @@ export const difference: {
  * import { Equal, Record } from "effect"
  * import * as assert from "node:assert"
  *
- * const recordEquivalence = Record.getEquivalence(Equal.asEquivalence<number>())
+ * const recordEquivalence = Record.makeEquivalence(Equal.asEquivalence<number>())
  *
  * assert.deepStrictEqual(recordEquivalence({ a: 1, b: 2 }, { a: 1, b: 2 }), true)
  * assert.deepStrictEqual(recordEquivalence({ a: 1, b: 2 }, { a: 1, b: 3 }), false)
@@ -1383,7 +1383,7 @@ export const difference: {
  * @category instances
  * @since 2.0.0
  */
-export const getEquivalence = <K extends string, A>(
+export const makeEquivalence = <K extends string, A>(
   equivalence: Equivalence<A>
 ): Equivalence<ReadonlyRecord<K, A>> => {
   const is = isSubrecordBy(equivalence)

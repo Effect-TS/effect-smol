@@ -816,8 +816,8 @@ describe("Chunk", () => {
     deepStrictEqual(Chunk.sortWith(chunk, (x) => x.b, Order.number), Chunk.make({ a: "b", b: 1 }, { a: "a", b: 2 }))
   })
 
-  it("getEquivalence", () => {
-    const equivalence = Chunk.getEquivalence(Equivalence.strict<number>())
+  it("makeEquivalence", () => {
+    const equivalence = Chunk.makeEquivalence(Equivalence.strict<number>())
     assertTrue(equivalence(Chunk.empty(), Chunk.empty()))
     assertTrue(equivalence(Chunk.make(1, 2, 3), Chunk.make(1, 2, 3)))
     assertFalse(equivalence(Chunk.make(1, 2, 3), Chunk.make(1, 2)))

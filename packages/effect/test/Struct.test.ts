@@ -128,8 +128,8 @@ describe("Struct", () => {
     )
   })
 
-  it("getEquivalence", () => {
-    const PersonEquivalence = Struct.getEquivalence({
+  it("makeEquivalence", () => {
+    const PersonEquivalence = Struct.makeEquivalence({
       a: Equivalence.strict<string>(),
       b: Equivalence.strict<number>()
     })

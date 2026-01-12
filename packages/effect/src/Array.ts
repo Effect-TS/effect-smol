@@ -3410,14 +3410,14 @@ export const makeOrder: <A>(O: Order.Order<A>) => Order.Order<ReadonlyArray<A>> 
  * ```ts
  * import { Array } from "effect"
  *
- * const eq = Array.getEquivalence<number>((a, b) => a === b)
+ * const eq = Array.makeEquivalence<number>((a, b) => a === b)
  * console.log(eq([1, 2, 3], [1, 2, 3])) // true
  * ```
  *
  * @category instances
  * @since 2.0.0
  */
-export const getEquivalence: <A>(
+export const makeEquivalence: <A>(
   isEquivalent: Equivalence.Equivalence<A>
 ) => Equivalence.Equivalence<ReadonlyArray<A>> = Equivalence.array
 

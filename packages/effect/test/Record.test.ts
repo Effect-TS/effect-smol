@@ -353,13 +353,13 @@ describe("Record", () => {
       })
     })
 
-    it("getEquivalence", () => {
-      deepStrictEqual(Record.getEquivalence(Equivalence.strict<number>())({ a: 1 }, { a: 1 }), true)
-      deepStrictEqual(Record.getEquivalence(Equivalence.strict<number>())({ a: 1 }, stringRecord), true)
-      deepStrictEqual(Record.getEquivalence(Equivalence.strict<number>())({ a: 1 }, { a: 2 }), false)
-      deepStrictEqual(Record.getEquivalence(Equivalence.strict<number>())({ a: 1 }, { b: 1 }), false)
+    it("makeEquivalence", () => {
+      deepStrictEqual(Record.makeEquivalence(Equivalence.strict<number>())({ a: 1 }, { a: 1 }), true)
+      deepStrictEqual(Record.makeEquivalence(Equivalence.strict<number>())({ a: 1 }, stringRecord), true)
+      deepStrictEqual(Record.makeEquivalence(Equivalence.strict<number>())({ a: 1 }, { a: 2 }), false)
+      deepStrictEqual(Record.makeEquivalence(Equivalence.strict<number>())({ a: 1 }, { b: 1 }), false)
       const noPrototypeObject = Object.create(null)
-      deepStrictEqual(Record.getEquivalence(Equivalence.strict<number>())(noPrototypeObject, { b: 1 }), false)
+      deepStrictEqual(Record.makeEquivalence(Equivalence.strict<number>())(noPrototypeObject, { b: 1 }), false)
     })
 
     it("mapKeys", () => {
