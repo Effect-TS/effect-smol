@@ -5185,7 +5185,7 @@ export function isPropertyNames(keySchema: Top, annotations?: Annotations.Filter
  * @since 4.0.0
  */
 export function isUnique<T>(annotations?: Annotations.Filter) {
-  const equivalence = Equal.equivalence()
+  const equivalence = Equal.asEquivalence<T>()
   return makeFilter<ReadonlyArray<T>>(
     (input) => Arr.dedupeWith(input, equivalence).length === input.length,
     {

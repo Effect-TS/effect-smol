@@ -2142,8 +2142,6 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
   (self: Option<A>, a: A): boolean
 } => dual(2, (self: Option<A>, a: A): boolean => isNone(self) ? false : isEquivalent(self.value, a))
 
-const _equivalence = Equal.equivalence()
-
 /**
  * Returns a function that checks if an `Option` contains a specified value
  * using the default `Equivalence`.
@@ -2178,7 +2176,7 @@ const _equivalence = Equal.equivalence()
 export const contains: {
   <A>(a: A): (self: Option<A>) => boolean
   <A>(self: Option<A>, a: A): boolean
-} = containsWith(_equivalence)
+} = containsWith(Equal.asEquivalence())
 
 /**
  * Checks if a value in an `Option` satisfies a given predicate or refinement.

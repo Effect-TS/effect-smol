@@ -8,7 +8,7 @@ function assertUnsupportedSchema(schema: Schema.Top, message: string) {
   throws(() => Schema.toArbitrary(schema), message)
 }
 
-function assertFragments(schema: Schema.Schema<any>, ctx: Schema.Annotations.ToArbitrary.Context) {
+function assertContext(schema: Schema.Schema<any>, ctx: Schema.Annotations.ToArbitrary.Context) {
   const ast = schema.ast
   const filters = InternalArbitrary.getFilters(ast.checks)
   const f = InternalArbitrary.constraintContext(filters)
@@ -624,15 +624,15 @@ describe("Arbitrary generation", () => {
     })
   })
 
-  describe("fragments", () => {
+  describe("context constraints", () => {
     it("String", () => {
-      assertFragments(Schema.String, {
+      assertContext(Schema.String, {
         constraints: {}
       })
     })
 
     it("String & nonEmpty", () => {
-      assertFragments(Schema.NonEmptyString, {
+      assertContext(Schema.NonEmptyString, {
         constraints: {
           array: {
             minLength: 1
@@ -645,7 +645,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("String & isNonEmpty & isMinLength(2)", () => {
-      assertFragments(Schema.String.check(Schema.isNonEmpty()).check(Schema.isMinLength(2)), {
+      assertContext(Schema.String.check(Schema.isNonEmpty()).check(Schema.isMinLength(2)), {
         constraints: {
           array: {
             minLength: 2
@@ -658,7 +658,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("String & isMinLength(2) & isNonEmpty", () => {
-      assertFragments(Schema.String.check(Schema.isMinLength(2)).check(Schema.isNonEmpty()), {
+      assertContext(Schema.String.check(Schema.isMinLength(2)).check(Schema.isNonEmpty()), {
         constraints: {
           array: {
             minLength: 2
@@ -671,7 +671,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("String & isNonEmpty & isMaxLength(2)", () => {
-      assertFragments(Schema.String.check(Schema.isNonEmpty()).check(Schema.isMaxLength(2)), {
+      assertContext(Schema.String.check(Schema.isNonEmpty()).check(Schema.isMaxLength(2)), {
         constraints: {
           array: {
             minLength: 1,
@@ -686,7 +686,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("String & isLength(2)", () => {
-      assertFragments(Schema.String.check(Schema.isLength(2)), {
+      assertContext(Schema.String.check(Schema.isLength(2)), {
         constraints: {
           array: {
             minLength: 2,
@@ -701,7 +701,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isStartsWith", () => {
-      assertFragments(Schema.String.check(Schema.isStartsWith("a")), {
+      assertContext(Schema.String.check(Schema.isStartsWith("a")), {
         constraints: {
           string: {
             patterns: ["^a"]
@@ -711,7 +711,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isEndsWith", () => {
-      assertFragments(Schema.String.check(Schema.isEndsWith("a")), {
+      assertContext(Schema.String.check(Schema.isEndsWith("a")), {
         constraints: {
           string: {
             patterns: ["a$"]
@@ -721,13 +721,13 @@ describe("Arbitrary generation", () => {
     })
 
     it("Number", () => {
-      assertFragments(Schema.Number, {
+      assertContext(Schema.Number, {
         constraints: {}
       })
     })
 
     it("isFinite", () => {
-      assertFragments(Schema.Number.check(Schema.isFinite()), {
+      assertContext(Schema.Number.check(Schema.isFinite()), {
         constraints: {
           number: {
             noDefaultInfinity: true,
@@ -738,7 +738,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isInt", () => {
-      assertFragments(Schema.Number.check(Schema.isInt()), {
+      assertContext(Schema.Number.check(Schema.isInt()), {
         constraints: {
           number: {
             isInteger: true
@@ -748,7 +748,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isFinite & isInt", () => {
-      assertFragments(Schema.Number.check(Schema.isFinite(), Schema.isInt()), {
+      assertContext(Schema.Number.check(Schema.isFinite(), Schema.isInt()), {
         constraints: {
           number: {
             noDefaultInfinity: true,
@@ -760,7 +760,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isInt32", () => {
-      assertFragments(Schema.Number.check(Schema.isInt32()), {
+      assertContext(Schema.Number.check(Schema.isInt32()), {
         constraints: {
           number: {
             isInteger: true,
@@ -772,7 +772,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isGreaterThan", () => {
-      assertFragments(Schema.Number.check(Schema.isGreaterThan(10)), {
+      assertContext(Schema.Number.check(Schema.isGreaterThan(10)), {
         constraints: {
           number: {
             min: 10,
@@ -783,7 +783,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isGreaterThanOrEqualToDate", () => {
-      assertFragments(Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0))), {
+      assertContext(Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0))), {
         constraints: {
           date: {
             min: new Date(0)
@@ -793,7 +793,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isLessThanOrEqualToDate", () => {
-      assertFragments(Schema.Date.check(Schema.isLessThanOrEqualToDate(new Date(10))), {
+      assertContext(Schema.Date.check(Schema.isLessThanOrEqualToDate(new Date(10))), {
         constraints: {
           date: {
             max: new Date(10)
@@ -803,7 +803,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isBetweenDate", () => {
-      assertFragments(Schema.Date.check(Schema.isBetweenDate({ minimum: new Date(0), maximum: new Date(10) })), {
+      assertContext(Schema.Date.check(Schema.isBetweenDate({ minimum: new Date(0), maximum: new Date(10) })), {
         constraints: {
           date: {
             min: new Date(0),
@@ -814,7 +814,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isValidDate", () => {
-      assertFragments(Schema.Date.check(Schema.isDateValid()), {
+      assertContext(Schema.Date.check(Schema.isDateValid()), {
         constraints: {
           date: {
             noInvalidDate: true
@@ -824,7 +824,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isValidDate & isGreaterThanOrEqualToDate", () => {
-      assertFragments(Schema.Date.check(Schema.isDateValid(), Schema.isGreaterThanOrEqualToDate(new Date(0))), {
+      assertContext(Schema.Date.check(Schema.isDateValid(), Schema.isGreaterThanOrEqualToDate(new Date(0))), {
         constraints: {
           date: {
             noInvalidDate: true,
@@ -835,7 +835,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isGreaterThanOrEqualToBigInt", () => {
-      assertFragments(Schema.BigInt.check(Schema.isGreaterThanOrEqualToBigInt(BigInt(0))), {
+      assertContext(Schema.BigInt.check(Schema.isGreaterThanOrEqualToBigInt(BigInt(0))), {
         constraints: {
           bigint: {
             min: BigInt(0)
@@ -845,7 +845,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isLessThanOrEqualToBigInt", () => {
-      assertFragments(Schema.BigInt.check(Schema.isLessThanOrEqualToBigInt(BigInt(10))), {
+      assertContext(Schema.BigInt.check(Schema.isLessThanOrEqualToBigInt(BigInt(10))), {
         constraints: {
           bigint: {
             max: BigInt(10)
@@ -855,7 +855,7 @@ describe("Arbitrary generation", () => {
     })
 
     it("isBetweenBigInt", () => {
-      assertFragments(Schema.BigInt.check(Schema.isBetweenBigInt({ minimum: BigInt(0), maximum: BigInt(10) })), {
+      assertContext(Schema.BigInt.check(Schema.isBetweenBigInt({ minimum: BigInt(0), maximum: BigInt(10) })), {
         constraints: {
           bigint: {
             min: BigInt(0),
@@ -867,14 +867,14 @@ describe("Arbitrary generation", () => {
 
     it("UniqueArray", () => {
       const comparator = Schema.toEquivalence(Schema.String)
-      assertFragments(Schema.UniqueArray(Schema.String), {
+      assertContext(Schema.UniqueArray(Schema.String), {
         constraints: {
           array: {
             comparator
           }
         }
       })
-      assertFragments(Schema.UniqueArray(Schema.String).check(Schema.isMaxLength(2)), {
+      assertContext(Schema.UniqueArray(Schema.String).check(Schema.isMaxLength(2)), {
         constraints: {
           array: {
             maxLength: 2,

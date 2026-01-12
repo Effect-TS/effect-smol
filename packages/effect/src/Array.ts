@@ -1839,8 +1839,6 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
     return false
   })
 
-const _equivalence = Equal.equivalence()
-
 /**
  * Returns a function that checks if a `ReadonlyArray` contains a given value using the default `Equivalence`.
  *
@@ -1859,7 +1857,7 @@ const _equivalence = Equal.equivalence()
 export const contains: {
   <A>(a: A): (self: Iterable<A>) => boolean
   <A>(self: Iterable<A>, a: A): boolean
-} = containsWith(_equivalence)
+} = containsWith(Equal.asEquivalence())
 
 /**
  * A useful recursion pattern for processing an `Iterable` to produce a new `Array`, often used for "chopping" up the input
@@ -2214,7 +2212,7 @@ export const groupWith: {
  * @since 2.0.0
  */
 export const group: <A>(self: NonEmptyReadonlyArray<A>) => NonEmptyArray<NonEmptyArray<A>> = groupWith(
-  Equal.equivalence()
+  Equal.asEquivalence()
 )
 
 /**
@@ -2335,7 +2333,10 @@ export const union: {
   <A, B>(self: NonEmptyReadonlyArray<A>, that: ReadonlyArray<B>): NonEmptyArray<A | B>
   <A, B>(self: ReadonlyArray<A>, that: NonEmptyReadonlyArray<B>): NonEmptyArray<A | B>
   <A, B>(self: Iterable<A>, that: Iterable<B>): Array<A | B>
-} = dual(2, <A, B>(self: Iterable<A>, that: Iterable<B>): Array<A | B> => unionWith(self, that, _equivalence))
+} = dual(
+  2,
+  <A, B>(self: Iterable<A>, that: Iterable<B>): Array<A | B> => unionWith(self, that, Equal.asEquivalence<A | B>())
+)
 
 /**
  * Creates an `Array` of unique values that are included in all given `Iterable`s using the provided `isEquivalent` function.
@@ -2386,7 +2387,7 @@ export const intersectionWith = <A>(isEquivalent: (self: A, that: A) => boolean)
 export const intersection: {
   <B>(that: Iterable<B>): <A>(self: Iterable<A>) => Array<A & B>
   <A, B>(self: Iterable<A>, that: Iterable<B>): Array<A & B>
-} = intersectionWith(_equivalence)
+} = intersectionWith(Equal.asEquivalence())
 
 /**
  * Creates a `Array` of values not included in the other given `Iterable` using the provided `isEquivalent` function.
@@ -2439,7 +2440,7 @@ export const differenceWith = <A>(isEquivalent: (self: A, that: A) => boolean): 
 export const difference: {
   <A>(that: Iterable<A>): (self: Iterable<A>) => Array<A>
   <A>(self: Iterable<A>, that: Iterable<A>): Array<A>
-} = differenceWith(_equivalence)
+} = differenceWith(Equal.asEquivalence())
 
 /**
  * Creates an empty array.
@@ -3497,7 +3498,7 @@ export const dedupeWith: {
 export const dedupe = <S extends Iterable<any>>(
   self: S
 ): S extends NonEmptyReadonlyArray<infer A> ? NonEmptyArray<A> : S extends Iterable<infer A> ? Array<A> : never =>
-  dedupeWith(self, Equal.equivalence()) as any
+  dedupeWith(self, Equal.asEquivalence()) as any
 
 /**
  * Deduplicates adjacent elements that are identical using the provided `isEquivalent` function.
@@ -3544,7 +3545,7 @@ export const dedupeAdjacentWith: {
  * @category elements
  * @since 2.0.0
  */
-export const dedupeAdjacent: <A>(self: Iterable<A>) => Array<A> = dedupeAdjacentWith(Equal.equivalence())
+export const dedupeAdjacent: <A>(self: Iterable<A>) => Array<A> = dedupeAdjacentWith(Equal.asEquivalence())
 
 /**
  * Joins the elements together with "sep" in the middle.

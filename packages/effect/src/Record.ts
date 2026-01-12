@@ -1099,7 +1099,7 @@ export const isSubrecordBy = <A>(equivalence: Equivalence<A>): {
 export const isSubrecord: {
   <K extends string, A>(that: ReadonlyRecord<K, A>): (self: ReadonlyRecord<K, A>) => boolean
   <K extends string, A>(self: ReadonlyRecord<K, A>, that: ReadonlyRecord<K, A>): boolean
-} = isSubrecordBy(Equal.equivalence())
+} = isSubrecordBy(Equal.asEquivalence())
 
 /**
  * Reduce a record to a single value by combining its entries with a specified function.

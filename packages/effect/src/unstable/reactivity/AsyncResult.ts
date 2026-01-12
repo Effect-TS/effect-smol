@@ -904,7 +904,7 @@ export const Schema = <
           })
         )
       },
-      toEquivalence: Equal.equivalence,
+      toEquivalence: Equal.asEquivalence,
       toFormatter: ([value, cause]) => (t) => {
         switch (t._tag) {
           case "Success":

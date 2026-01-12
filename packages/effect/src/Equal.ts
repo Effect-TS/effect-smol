@@ -347,7 +347,7 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  * ```ts
  * import { Array, Equal } from "effect"
  *
- * const eq = Equal.equivalence<number>()
+ * const eq = Equal.asEquivalence<number>()
  * const result = Array.dedupeWith([1, 2, 2, 3, 1], eq)
  * console.log(result) // [1, 2, 3]
  * ```
@@ -355,7 +355,7 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  * @category instances
  * @since 2.0.0
  */
-export const equivalence: <A>() => Equivalence<A> = () => equals
+export const asEquivalence: <A>() => Equivalence<A> = () => equals
 
 /**
  * Creates a proxy of an object that uses reference equality instead of structural equality.

@@ -988,8 +988,6 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
     return false
   })
 
-const _equivalence = Equal.equivalence()
-
 /**
  * Returns a function that checks if a `Iterable` contains a given value using the default `Equivalence`.
  *
@@ -1022,7 +1020,7 @@ const _equivalence = Equal.equivalence()
 export const contains: {
   <A>(a: A): (self: Iterable<A>) => boolean
   <A>(self: Iterable<A>, a: A): boolean
-} = containsWith(_equivalence)
+} = containsWith(Equal.asEquivalence())
 
 /**
  * Splits an `Iterable` into length-`n` pieces. The last piece will be shorter if `n` does not evenly divide the length of
@@ -1204,7 +1202,7 @@ export const groupWith: {
  * @since 2.0.0
  */
 export const group: <A>(self: Iterable<A>) => Iterable<NonEmptyArray<A>> = groupWith(
-  Equal.equivalence()
+  Equal.asEquivalence()
 )
 
 /**
@@ -2161,7 +2159,7 @@ export const dedupeAdjacentWith: {
  * @category filtering
  * @since 2.0.0
  */
-export const dedupeAdjacent: <A>(self: Iterable<A>) => Iterable<A> = dedupeAdjacentWith(Equal.equivalence())
+export const dedupeAdjacent: <A>(self: Iterable<A>) => Iterable<A> = dedupeAdjacentWith(Equal.asEquivalence())
 
 /**
  * Zips this Iterable crosswise with the specified Iterable using the specified combiner.
