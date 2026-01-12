@@ -577,7 +577,7 @@ export const Order: order.Order<BigDecimal> = order.make((self, that) => {
 export const lessThan: {
   (that: BigDecimal): (self: BigDecimal) => boolean
   (self: BigDecimal, that: BigDecimal): boolean
-} = order.lessThan(Order)
+} = order.isLessThan(Order)
 
 /**
  * Checks if a given `BigDecimal` is less than or equal to the provided one.
@@ -607,7 +607,7 @@ export const lessThan: {
 export const lessThanOrEqualTo: {
   (that: BigDecimal): (self: BigDecimal) => boolean
   (self: BigDecimal, that: BigDecimal): boolean
-} = order.lessThanOrEqualTo(Order)
+} = order.isLessThanOrEqualTo(Order)
 
 /**
  * Returns `true` if the first argument is greater than the second, otherwise `false`.
@@ -637,7 +637,7 @@ export const lessThanOrEqualTo: {
 export const greaterThan: {
   (that: BigDecimal): (self: BigDecimal) => boolean
   (self: BigDecimal, that: BigDecimal): boolean
-} = order.greaterThan(Order)
+} = order.isGreaterThan(Order)
 
 /**
  * Checks if a given `BigDecimal` is greater than or equal to the provided one.
@@ -667,7 +667,7 @@ export const greaterThan: {
 export const greaterThanOrEqualTo: {
   (that: BigDecimal): (self: BigDecimal) => boolean
   (self: BigDecimal, that: BigDecimal): boolean
-} = order.greaterThanOrEqualTo(Order)
+} = order.isGreaterThanOrEqualTo(Order)
 
 /**
  * Checks if a `BigDecimal` is between a `minimum` and `maximum` value (inclusive).

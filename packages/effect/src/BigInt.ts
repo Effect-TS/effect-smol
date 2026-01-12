@@ -235,7 +235,7 @@ export const Order: order.Order<bigint> = order.BigInt
 export const lessThan: {
   (that: bigint): (self: bigint) => boolean
   (self: bigint, that: bigint): boolean
-} = order.lessThan(Order)
+} = order.isLessThan(Order)
 
 /**
  * Returns a function that checks if a given `bigint` is less than or equal to the provided one.
@@ -256,7 +256,7 @@ export const lessThan: {
 export const lessThanOrEqualTo: {
   (that: bigint): (self: bigint) => boolean
   (self: bigint, that: bigint): boolean
-} = order.lessThanOrEqualTo(Order)
+} = order.isLessThanOrEqualTo(Order)
 
 /**
  * Returns `true` if the first argument is greater than the second, otherwise `false`.
@@ -277,7 +277,7 @@ export const lessThanOrEqualTo: {
 export const greaterThan: {
   (that: bigint): (self: bigint) => boolean
   (self: bigint, that: bigint): boolean
-} = order.greaterThan(Order)
+} = order.isGreaterThan(Order)
 
 /**
  * Returns a function that checks if a given `bigint` is greater than or equal to the provided one.
@@ -298,7 +298,7 @@ export const greaterThan: {
 export const greaterThanOrEqualTo: {
   (that: bigint): (self: bigint) => boolean
   (self: bigint, that: bigint): boolean
-} = order.greaterThanOrEqualTo(Order)
+} = order.isGreaterThanOrEqualTo(Order)
 
 /**
  * Checks if a `bigint` is between a `minimum` and `maximum` value (inclusive).

@@ -73,29 +73,29 @@ describe("Order", () => {
     strictEqual(O(2, 2), 0)
   })
 
-  it("lessThan", () => {
-    const lessThan = Order.lessThan(Order.Number)
+  it("isLessThan", () => {
+    const lessThan = Order.isLessThan(Order.Number)
     assertTrue(lessThan(0, 1))
     assertFalse(lessThan(1, 1))
     assertFalse(lessThan(2, 1))
   })
 
-  it("lessThanOrEqualTo", () => {
-    const lessThanOrEqualTo = Order.lessThanOrEqualTo(Order.Number)
+  it("isLessThanOrEqualTo", () => {
+    const lessThanOrEqualTo = Order.isLessThanOrEqualTo(Order.Number)
     assertTrue(lessThanOrEqualTo(0, 1))
     assertTrue(lessThanOrEqualTo(1, 1))
     assertFalse(lessThanOrEqualTo(2, 1))
   })
 
-  it("greaterThan", () => {
-    const greaterThan = Order.greaterThan(Order.Number)
+  it("isGreaterThan", () => {
+    const greaterThan = Order.isGreaterThan(Order.Number)
     assertFalse(greaterThan(0, 1))
     assertFalse(greaterThan(1, 1))
     assertTrue(greaterThan(2, 1))
   })
 
-  it("greaterThanOrEqualTo", () => {
-    const greaterThanOrEqualTo = Order.greaterThanOrEqualTo(Order.Number)
+  it("isGreaterThanOrEqualTo", () => {
+    const greaterThanOrEqualTo = Order.isGreaterThanOrEqualTo(Order.Number)
     assertFalse(greaterThanOrEqualTo(0, 1))
     assertTrue(greaterThanOrEqualTo(1, 1))
     assertTrue(greaterThanOrEqualTo(2, 1))

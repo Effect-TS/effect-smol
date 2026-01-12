@@ -17,7 +17,7 @@
  * - Using built-in orders → {@link Number}, {@link String}, {@link Boolean}, {@link BigInt}, {@link Date}
  * - Combining multiple orders → {@link combine}, {@link combineAll}
  * - Transforming orders → {@link mapInput}
- * - Comparing values → {@link lessThan}, {@link greaterThan}, {@link lessThanOrEqualTo}, {@link greaterThanOrEqualTo}
+ * - Comparing values → {@link isLessThan}, {@link isGreaterThan}, {@link isLessThanOrEqualTo}, {@link isGreaterThanOrEqualTo}
  * - Finding min/max → {@link min}, {@link max}
  * - Clamping values → {@link clamp}, {@link isBetween}
  * - Ordering collections → {@link Array}, {@link Tuple}, {@link Struct}
@@ -39,8 +39,8 @@
  * const result = Order.Number(5, 10)
  * console.log(result) // -1 (5 is less than 10)
  *
- * const isLess = Order.lessThan(Order.Number)(5, 10)
- * console.log(isLess) // true
+ * const isLessThan = Order.isLessThan(Order.Number)(5, 10)
+ * console.log(isLessThan) // true
  * ```
  *
  * See also:
@@ -729,21 +729,21 @@ export function Struct<const R extends { readonly [x: string]: Order<any> }>(
  * ```ts
  * import { Order } from "effect"
  *
- * const lessThanNumber = Order.lessThan(Order.Number)
+ * const isLessThanNumber = Order.isLessThan(Order.Number)
  *
- * console.log(lessThanNumber(1, 2)) // true
- * console.log(lessThanNumber(2, 1)) // false
- * console.log(lessThanNumber(1, 1)) // false
+ * console.log(isLessThanNumber(1, 2)) // true
+ * console.log(isLessThanNumber(2, 1)) // false
+ * console.log(isLessThanNumber(1, 1)) // false
  * ```
  *
  * See also:
- * - {@link lessThanOrEqualTo} - Non-strict less than or equal
- * - {@link greaterThan} - Strict greater than
+ * - {@link isLessThanOrEqualTo} - Non-strict less than or equal
+ * - {@link isGreaterThan} - Strict greater than
  *
  * @category predicates
  * @since 2.0.0
  */
-export const lessThan = <A>(O: Order<A>): {
+export const isLessThan = <A>(O: Order<A>): {
   (that: A): (self: A) => boolean
   (self: A, that: A): boolean
 } => dual(2, (self: A, that: A) => O(self, that) === -1)
@@ -767,21 +767,21 @@ export const lessThan = <A>(O: Order<A>): {
  * ```ts
  * import { Order } from "effect"
  *
- * const greaterThanNumber = Order.greaterThan(Order.Number)
+ * const isGreaterThanNumber = Order.isGreaterThan(Order.Number)
  *
- * console.log(greaterThanNumber(2, 1)) // true
- * console.log(greaterThanNumber(1, 2)) // false
- * console.log(greaterThanNumber(1, 1)) // false
+ * console.log(isGreaterThanNumber(2, 1)) // true
+ * console.log(isGreaterThanNumber(1, 2)) // false
+ * console.log(isGreaterThanNumber(1, 1)) // false
  * ```
  *
  * See also:
- * - {@link greaterThanOrEqualTo} - Non-strict greater than or equal
- * - {@link lessThan} - Strict less than
+ * - {@link isGreaterThanOrEqualTo} - Non-strict greater than or equal
+ * - {@link isLessThan} - Strict less than
  *
  * @category predicates
  * @since 2.0.0
  */
-export const greaterThan = <A>(O: Order<A>): {
+export const isGreaterThan = <A>(O: Order<A>): {
   (that: A): (self: A) => boolean
   (self: A, that: A): boolean
 } => dual(2, (self: A, that: A) => O(self, that) === 1)
@@ -805,21 +805,21 @@ export const greaterThan = <A>(O: Order<A>): {
  * ```ts
  * import { Order } from "effect"
  *
- * const lessThanOrEqualToNumber = Order.lessThanOrEqualTo(Order.Number)
+ * const isLessThanOrEqualToNumber = Order.isLessThanOrEqualTo(Order.Number)
  *
- * console.log(lessThanOrEqualToNumber(1, 2)) // true
- * console.log(lessThanOrEqualToNumber(1, 1)) // true
- * console.log(lessThanOrEqualToNumber(2, 1)) // false
+ * console.log(isLessThanOrEqualToNumber(1, 2)) // true
+ * console.log(isLessThanOrEqualToNumber(1, 1)) // true
+ * console.log(isLessThanOrEqualToNumber(2, 1)) // false
  * ```
  *
  * See also:
- * - {@link lessThan} - Strict less than
- * - {@link greaterThanOrEqualTo} - Greater than or equal
+ * - {@link isLessThan} - Strict less than
+ * - {@link isGreaterThan} - Strict greater than
  *
  * @category predicates
  * @since 2.0.0
  */
-export const lessThanOrEqualTo = <A>(O: Order<A>): {
+export const isLessThanOrEqualTo = <A>(O: Order<A>): {
   (that: A): (self: A) => boolean
   (self: A, that: A): boolean
 } => dual(2, (self: A, that: A) => O(self, that) !== 1)
@@ -843,21 +843,21 @@ export const lessThanOrEqualTo = <A>(O: Order<A>): {
  * ```ts
  * import { Order } from "effect"
  *
- * const greaterThanOrEqualToNumber = Order.greaterThanOrEqualTo(Order.Number)
+ * const isGreaterThanOrEqualToNumber = Order.isGreaterThanOrEqualTo(Order.Number)
  *
- * console.log(greaterThanOrEqualToNumber(2, 1)) // true
- * console.log(greaterThanOrEqualToNumber(1, 1)) // true
- * console.log(greaterThanOrEqualToNumber(1, 2)) // false
+ * console.log(isGreaterThanOrEqualToNumber(2, 1)) // true
+ * console.log(isGreaterThanOrEqualToNumber(1, 1)) // true
+ * console.log(isGreaterThanOrEqualToNumber(1, 2)) // false
  * ```
  *
  * See also:
- * - {@link greaterThan} - Strict greater than
- * - {@link lessThanOrEqualTo} - Less than or equal
+ * - {@link isGreaterThan} - Strict greater than
+ * - {@link isLessThanOrEqualTo} - Less than or equal
  *
  * @category predicates
  * @since 2.0.0
  */
-export const greaterThanOrEqualTo = <A>(O: Order<A>): {
+export const isGreaterThanOrEqualTo = <A>(O: Order<A>): {
   (that: A): (self: A) => boolean
   (self: A, that: A): boolean
 } => dual(2, (self: A, that: A) => O(self, that) !== -1)
@@ -1023,8 +1023,8 @@ export const clamp = <A>(O: Order<A>): {
  *
  * See also:
  * - {@link clamp} - Clamp a value to a range
- * - {@link lessThanOrEqualTo} - Less than or equal check
- * - {@link greaterThanOrEqualTo} - Greater than or equal check
+ * - {@link isLessThanOrEqualTo} - Less than or equal check
+ * - {@link isGreaterThanOrEqualTo} - Greater than or equal check
  *
  * @category predicates
  * @since 4.0.0
@@ -1044,7 +1044,7 @@ export const isBetween = <A>(O: Order<A>): {
     (self: A, options: {
       minimum: A
       maximum: A
-    }): boolean => !lessThan(O)(self, options.minimum) && !greaterThan(O)(self, options.maximum)
+    }): boolean => !isLessThan(O)(self, options.minimum) && !isGreaterThan(O)(self, options.maximum)
   )
 
 /**

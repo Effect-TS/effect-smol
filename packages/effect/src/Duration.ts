@@ -1118,7 +1118,7 @@ export const sum: {
 export const lessThan: {
   (that: Duration): (self: Duration) => boolean
   (self: Duration, that: Duration): boolean
-} = order.lessThan(Order)
+} = order.isLessThan(Order)
 
 /**
  * Checks if the first Duration is less than or equal to the second.
@@ -1140,7 +1140,7 @@ export const lessThan: {
 export const lessThanOrEqualTo: {
   (that: Duration): (self: Duration) => boolean
   (self: Duration, that: Duration): boolean
-} = order.lessThanOrEqualTo(Order)
+} = order.isLessThanOrEqualTo(Order)
 
 /**
  * Checks if the first Duration is greater than the second.
@@ -1159,7 +1159,7 @@ export const lessThanOrEqualTo: {
 export const greaterThan: {
   (that: Duration): (self: Duration) => boolean
   (self: Duration, that: Duration): boolean
-} = order.greaterThan(Order)
+} = order.isGreaterThan(Order)
 
 /**
  * Checks if the first Duration is greater than or equal to the second.
@@ -1181,7 +1181,7 @@ export const greaterThan: {
 export const greaterThanOrEqualTo: {
   (that: Duration): (self: Duration) => boolean
   (self: Duration, that: Duration): boolean
-} = order.greaterThanOrEqualTo(Order)
+} = order.isGreaterThanOrEqualTo(Order)
 
 /**
  * Checks if two Durations are equal.

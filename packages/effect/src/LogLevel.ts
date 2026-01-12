@@ -251,7 +251,7 @@ export const greaterThan: {
 export const greaterThanOrEqualTo: {
   (that: LogLevel): (self: LogLevel) => boolean
   (self: LogLevel, that: LogLevel): boolean
-} = Ord.greaterThanOrEqualTo(Order)
+} = Ord.isGreaterThanOrEqualTo(Order)
 
 /**
  * Determines if the first log level is less severe than the second.
@@ -287,7 +287,7 @@ export const greaterThanOrEqualTo: {
 export const lessThan: {
   (that: LogLevel): (self: LogLevel) => boolean
   (self: LogLevel, that: LogLevel): boolean
-} = Ord.lessThan(Order)
+} = Ord.isLessThan(Order)
 
 /**
  * Determines if the first log level is less severe than or equal to the second.
@@ -329,4 +329,4 @@ export const lessThan: {
 export const lessThanOrEqualTo: {
   (that: LogLevel): (self: LogLevel) => boolean
   (self: LogLevel, that: LogLevel): boolean
-} = Ord.lessThanOrEqualTo(Order)
+} = Ord.isLessThanOrEqualTo(Order)

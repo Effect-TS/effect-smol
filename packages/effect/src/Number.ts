@@ -197,7 +197,7 @@ export const Order: order.Order<number> = order.Number
 export const lessThan: {
   (that: number): (self: number) => boolean
   (self: number, that: number): boolean
-} = order.lessThan(Order)
+} = order.isLessThan(Order)
 
 /**
  * Returns a function that checks if a given `number` is less than or equal to the provided one.
@@ -218,7 +218,7 @@ export const lessThan: {
 export const lessThanOrEqualTo: {
   (that: number): (self: number) => boolean
   (self: number, that: number): boolean
-} = order.lessThanOrEqualTo(Order)
+} = order.isLessThanOrEqualTo(Order)
 
 /**
  * Returns `true` if the first argument is greater than the second, otherwise `false`.
@@ -239,7 +239,7 @@ export const lessThanOrEqualTo: {
 export const greaterThan: {
   (that: number): (self: number) => boolean
   (self: number, that: number): boolean
-} = order.greaterThan(Order)
+} = order.isGreaterThan(Order)
 
 /**
  * Returns a function that checks if a given `number` is greater than or equal to the provided one.
@@ -260,7 +260,7 @@ export const greaterThan: {
 export const greaterThanOrEqualTo: {
   (that: number): (self: number) => boolean
   (self: number, that: number): boolean
-} = order.greaterThanOrEqualTo(Order)
+} = order.isGreaterThanOrEqualTo(Order)
 
 /**
  * Checks if a `number` is between a `minimum` and `maximum` value (inclusive).
