@@ -130,8 +130,8 @@ describe("Struct", () => {
 
   it("makeEquivalence", () => {
     const PersonEquivalence = Struct.makeEquivalence({
-      a: Equivalence.strict<string>(),
-      b: Equivalence.strict<number>()
+      a: Equivalence.strictEqual<string>(),
+      b: Equivalence.strictEqual<number>()
     })
 
     assertTrue(PersonEquivalence({ a: "a", b: 1 }, { a: "a", b: 1 }))

@@ -3419,7 +3419,7 @@ export const makeOrder: <A>(O: Order.Order<A>) => Order.Order<ReadonlyArray<A>> 
  */
 export const makeEquivalence: <A>(
   isEquivalent: Equivalence.Equivalence<A>
-) => Equivalence.Equivalence<ReadonlyArray<A>> = Equivalence.array
+) => Equivalence.Equivalence<ReadonlyArray<A>> = Equivalence.Array
 
 /**
  * Performs a side-effect for each element of the `Iterable`.

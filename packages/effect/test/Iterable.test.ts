@@ -232,7 +232,7 @@ describe("Iterable", () => {
     })
 
     it("containsWith", () => {
-      const contains = Iter.containsWith(Equivalence.strict<number>())
+      const contains = Iter.containsWith(Equivalence.strictEqual<number>())
       assertTrue(pipe([1, 2, 3], contains(2)))
       assertFalse(pipe([1, 2, 3], contains(0)))
 
@@ -250,7 +250,7 @@ describe("Iterable", () => {
     })
 
     it("dedupeAdjacentWith", () => {
-      const dedupeAdjacent = Iter.dedupeAdjacentWith(Equivalence.strict<number>())
+      const dedupeAdjacent = Iter.dedupeAdjacentWith(Equivalence.strictEqual<number>())
       deepStrictEqual(toArray(dedupeAdjacent([])), [])
       deepStrictEqual(toArray(dedupeAdjacent([1, 2, 3])), [1, 2, 3])
       deepStrictEqual(toArray(dedupeAdjacent([1, 2, 2, 3, 3])), [1, 2, 3])
@@ -373,7 +373,7 @@ describe("Iterable", () => {
   })
 
   it("groupWith", () => {
-    const groupWith = Iter.groupWith(Equivalence.strict<number>())
+    const groupWith = Iter.groupWith(Equivalence.strictEqual<number>())
     deepStrictEqual(toArray(groupWith([1, 2, 1, 1])), [[1], [2], [1, 1]])
     deepStrictEqual(toArray(groupWith([1, 2, 1, 1, 3])), [[1], [2], [1, 1], [3]])
   })

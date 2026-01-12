@@ -5863,7 +5863,7 @@ function causeToArbitrary<E, D>(error: FastCheck.Arbitrary<E>, defect: FastCheck
 }
 
 function causeToEquivalence<E>(error: Equivalence.Equivalence<E>, defect: Equivalence.Equivalence<unknown>) {
-  const failures = Equivalence.array(causeFailureToEquivalence(error, defect))
+  const failures = Equivalence.Array(causeFailureToEquivalence(error, defect))
   return (a: Cause_.Cause<E>, b: Cause_.Cause<E>) => failures(a.failures, b.failures)
 }
 

@@ -1951,7 +1951,7 @@ export const filter: {
  * ```ts
  * import { Equivalence, Option } from "effect"
  *
- * const isEquivalent = Option.makeEquivalence(Equivalence.strict<number>())
+ * const isEquivalent = Option.makeEquivalence(Equivalence.strictEqual<number>())
  *
  * console.log(isEquivalent(Option.none(), Option.none()))
  * // Output: true
@@ -2120,7 +2120,7 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  * ```ts
  * import { Equivalence, Option } from "effect"
  *
- * const contains = Option.containsWith(Equivalence.strict<number>())
+ * const contains = Option.containsWith(Equivalence.strictEqual<number>())
  *
  * console.log(Option.some(2).pipe(contains(2)))
  * // Output: true

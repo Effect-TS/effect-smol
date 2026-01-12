@@ -817,7 +817,7 @@ describe("Chunk", () => {
   })
 
   it("makeEquivalence", () => {
-    const equivalence = Chunk.makeEquivalence(Equivalence.strict<number>())
+    const equivalence = Chunk.makeEquivalence(Equivalence.strictEqual<number>())
     assertTrue(equivalence(Chunk.empty(), Chunk.empty()))
     assertTrue(equivalence(Chunk.make(1, 2, 3), Chunk.make(1, 2, 3)))
     assertFalse(equivalence(Chunk.make(1, 2, 3), Chunk.make(1, 2)))

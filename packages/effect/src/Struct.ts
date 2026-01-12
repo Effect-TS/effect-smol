@@ -335,15 +335,15 @@ export const renameKeys: {
  * Given a struct of `Equivalence`s returns a new `Equivalence` that compares values of a struct
  * by applying each `Equivalence` to the corresponding property of the struct.
  *
- * Alias of {@link Equivalence.struct}.
+ * Alias of {@link Equivalence.Struct}.
  *
  * @example
  * ```ts
  * import { Equivalence, Struct } from "effect"
  *
  * const PersonEquivalence = Struct.makeEquivalence({
- *   name: Equivalence.strict<string>(),
- *   age: Equivalence.strict<number>()
+ *   name: Equivalence.strictEqual<string>(),
+ *   age: Equivalence.strictEqual<number>()
  * })
  *
  * console.log(
@@ -360,7 +360,7 @@ export const renameKeys: {
  * @category Equivalence
  * @since 2.0.0
  */
-export const makeEquivalence = Equivalence.struct
+export const makeEquivalence = Equivalence.Struct
 
 /**
  * Creates an `Order` for a struct of values based on the given `Order`s for each property.

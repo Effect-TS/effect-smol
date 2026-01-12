@@ -359,15 +359,15 @@ export const mapOmit: {
  *
  * // Creates an equivalence for tuples with string and number elements
  * const equivalence = Tuple.makeEquivalence([
- *   Equivalence.strict<string>(),
- *   Equivalence.strict<number>()
+ *   Equivalence.strictEqual<string>(),
+ *   Equivalence.strictEqual<number>()
  * ])
  * ```
  *
  * @category Equivalence
  * @since 2.0.0
  */
-export const makeEquivalence = Equivalence.tuple
+export const makeEquivalence = Equivalence.Tuple
 
 /**
  * Creates an `Order` for tuples by comparing corresponding elements using the provided `Order`s.

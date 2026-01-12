@@ -220,7 +220,7 @@ export const wipeUnsafe = <T>(self: Redacted<T>): boolean => redactedRegistry.de
  * const API_KEY2 = Redacted.make("1-34567890")
  * const API_KEY3 = Redacted.make("1234567890")
  *
- * const equivalence = Redacted.makeEquivalence(Equivalence.strict<string>())
+ * const equivalence = Redacted.makeEquivalence(Equivalence.strictEqual<string>())
  *
  * assert.equal(equivalence(API_KEY1, API_KEY2), false)
  * assert.equal(equivalence(API_KEY1, API_KEY3), true)

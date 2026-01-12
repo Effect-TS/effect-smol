@@ -70,7 +70,7 @@ const make = (input: Record.ReadonlyRecord<string, string>): Mutable<Headers> =>
  * @since 4.0.0
  * @category Equivalence
  */
-export const Equivalence: Equivalence_.Equivalence<Headers> = Record.makeEquivalence(Equivalence_.strict<string>())
+export const Equivalence: Equivalence_.Equivalence<Headers> = Record.makeEquivalence(Equivalence_.strictEqual<string>())
 
 /**
  * @since 4.0.0

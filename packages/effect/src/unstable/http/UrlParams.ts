@@ -140,7 +140,7 @@ export const Equivalence: Equivalence_.Equivalence<UrlParams> = Equivalence_.mak
 )
 
 const arrayEquivalence = Arr.makeEquivalence(
-  Tuple.makeEquivalence([Equivalence_.strict<string>(), Equivalence_.strict<string>()])
+  Tuple.makeEquivalence([Equivalence_.strictEqual<string>(), Equivalence_.strictEqual<string>()])
 )
 
 /**

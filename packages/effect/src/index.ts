@@ -613,40 +613,55 @@ export * as Effect from "./Effect.ts"
 export * as Equal from "./Equal.ts"
 
 /**
- * This module provides utilities for working with equivalence relations - binary relations that are
- * reflexive, symmetric, and transitive. Equivalence relations define when two values of the same type
- * should be considered equivalent, which is fundamental for comparing, deduplicating, and organizing data.
+ * Utilities for defining equivalence relations - binary relations that determine when two values
+ * should be considered equivalent. Equivalence relations are used for comparing, deduplicating,
+ * and organizing data in collections and data structures.
  *
- * An equivalence relation must satisfy three properties:
- * - **Reflexive**: Every value is equivalent to itself
- * - **Symmetric**: If `a` is equivalent to `b`, then `b` is equivalent to `a`
- * - **Transitive**: If `a` is equivalent to `b` and `b` is equivalent to `c`, then `a` is equivalent to `c`
+ * ## Mental model
  *
- * @example
+ * - **Equivalence relation**: A function `(a: A, b: A) => boolean` that returns `true` when values are equivalent
+ * - **Reflexive property**: Every value is equivalent to itself (`eq(a, a) === true`)
+ * - **Symmetric property**: If `a` is equivalent to `b`, then `b` is equivalent to `a` (`eq(a, b) === eq(b, a)`)
+ * - **Transitive property**: If `a` is equivalent to `b` and `b` is equivalent to `c`, then `a` is equivalent to `c`
+ * - **Reference equality optimization**: {@link make} checks `===` first for performance before calling the custom function
+ * - **Composition**: Equivalences can be combined using {@link combine} and {@link combineAll} to create more complex relations
+ *
+ * ## Common tasks
+ *
+ * - Creating custom equivalences → {@link make}
+ * - Using strict equality (`===`) → {@link strictEqual}
+ * - Combining multiple equivalences (AND logic) → {@link combine}, {@link combineAll}
+ * - Transforming input before comparison → {@link mapInput}
+ * - Creating equivalences for structured types → {@link Struct}, {@link Tuple}, {@link Array}, {@link Record}
+ *
+ * ## Gotchas
+ *
+ * - `strictEqual` uses `===`, so `NaN !== NaN` and objects are compared by reference, not structure
+ * - `make` optimizes with a reference equality check, so identical references return `true` without calling the function
+ * - `combineAll` with an empty collection returns an equivalence that always returns `true`
+ * - `Tuple` and `Array` require matching lengths; different lengths are never equivalent
+ *
+ * ## Quickstart
+ *
+ * **Example** (Case-insensitive string equivalence)
+ *
  * ```ts
  * import { Array, Equivalence } from "effect"
  *
- * // Case-insensitive string equivalence
  * const caseInsensitive = Equivalence.make<string>((a, b) =>
  *   a.toLowerCase() === b.toLowerCase()
  * )
  *
- * // Use with array deduplication
  * const strings = ["Hello", "world", "HELLO", "World"]
  * const deduplicated = Array.dedupeWith(strings, caseInsensitive)
  * console.log(deduplicated) // ["Hello", "world"]
- *
- * // Product type equivalence
- * interface Person {
- *   name: string
- *   age: number
- * }
- *
- * const personEquivalence = Equivalence.struct({
- *   name: caseInsensitive,
- *   age: Equivalence.strict<number>()
- * })
  * ```
+ *
+ * ## See also
+ *
+ * - {@link Equal} - For structural equality (can convert to Equivalence)
+ * - {@link Array.dedupeWith} - Remove duplicates using an equivalence
+ * - {@link Chunk} - Collections that use equivalences for operations
  *
  * @since 2.0.0
  */

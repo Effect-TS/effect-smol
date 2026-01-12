@@ -214,7 +214,7 @@ const emptyArray: ReadonlyArray<never> = []
  * const chunk2 = Chunk.make(1, 2, 3)
  * const chunk3 = Chunk.make(1, 2, 4)
  *
- * const eq = Chunk.makeEquivalence(Equivalence.strict<number>())
+ * const eq = Chunk.makeEquivalence(Equivalence.strictEqual<number>())
  * console.log(eq(chunk1, chunk2)) // true
  * console.log(eq(chunk1, chunk3)) // false
  * ```

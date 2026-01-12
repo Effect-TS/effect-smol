@@ -264,8 +264,8 @@ describe("Result", () => {
   describe("Equivalence", () => {
     it("makeEquivalence", () => {
       const isEquivalent = Result.makeEquivalence(
-        Equivalence.strict<number>(),
-        Equivalence.strict<string>()
+        Equivalence.strictEqual<number>(),
+        Equivalence.strictEqual<string>()
       )
       deepStrictEqual(isEquivalent(Result.succeed(1), Result.succeed(1)), true)
       deepStrictEqual(isEquivalent(Result.succeed(1), Result.succeed(2)), false)

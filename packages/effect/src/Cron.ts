@@ -785,7 +785,7 @@ export const Equivalence: equivalence.Equivalence<Cron> = equivalence.make((self
   restrictionsEquals(self.weekdays, that.weekdays)
 )
 
-const restrictionsArrayEquals = equivalence.array(equivalence.strict<number>())
+const restrictionsArrayEquals = equivalence.Array(equivalence.strictEqual<number>())
 const restrictionsEquals = (self: ReadonlySet<number>, that: ReadonlySet<number>): boolean =>
   restrictionsArrayEquals(Arr.fromIterable(self), Arr.fromIterable(that))
 

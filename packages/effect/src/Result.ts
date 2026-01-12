@@ -481,8 +481,8 @@ export const getFailure: <A, E>(self: Result<A, E>) => Option<E> = result.getFai
  * ```ts
  * import { Equivalence, Result } from "effect"
  *
- * const stringEquivalence = Equivalence.strict<string>()
- * const numberEquivalence = Equivalence.strict<number>()
+ * const stringEquivalence = Equivalence.strictEqual<string>()
+ * const numberEquivalence = Equivalence.strictEqual<number>()
  *
  * const resultEquivalence = Result.makeEquivalence(
  *   numberEquivalence,

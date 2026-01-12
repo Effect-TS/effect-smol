@@ -8,7 +8,7 @@ describe("Equivalence", () => {
       readonly name: string
       readonly age: number
     }
-    const eqPerson = pipe(Equivalence.strict<string>(), Equivalence.mapInput((p: Person) => p.name))
+    const eqPerson = pipe(Equivalence.strictEqual<string>(), Equivalence.mapInput((p: Person) => p.name))
     assertTrue(eqPerson({ name: "a", age: 1 }, { name: "a", age: 2 }))
     assertTrue(eqPerson({ name: "a", age: 1 }, { name: "a", age: 1 }))
     assertFalse(eqPerson({ name: "a", age: 1 }, { name: "b", age: 1 }))
@@ -17,8 +17,8 @@ describe("Equivalence", () => {
 
   it("combine", () => {
     type T = readonly [string, number, boolean]
-    const E0: Equivalence.Equivalence<T> = Equivalence.mapInput((x: T) => x[0])(Equivalence.strict<string>())
-    const E1: Equivalence.Equivalence<T> = Equivalence.mapInput((x: T) => x[1])(Equivalence.strict<number>())
+    const E0: Equivalence.Equivalence<T> = Equivalence.mapInput((x: T) => x[0])(Equivalence.strictEqual<string>())
+    const E1: Equivalence.Equivalence<T> = Equivalence.mapInput((x: T) => x[1])(Equivalence.strictEqual<number>())
     const eqE0E1 = Equivalence.combine(E0, E1)
     assertTrue(eqE0E1(["a", 1, true], ["a", 1, true]))
     assertTrue(eqE0E1(["a", 1, true], ["a", 1, false]))
@@ -28,9 +28,9 @@ describe("Equivalence", () => {
 
   it("combineAll", () => {
     type T = readonly [string, number, boolean]
-    const E0: Equivalence.Equivalence<T> = Equivalence.mapInput((x: T) => x[0])(Equivalence.strict<string>())
-    const E1: Equivalence.Equivalence<T> = Equivalence.mapInput((x: T) => x[1])(Equivalence.strict<number>())
-    const E2: Equivalence.Equivalence<T> = Equivalence.mapInput((x: T) => x[2])(Equivalence.strict<boolean>())
+    const E0: Equivalence.Equivalence<T> = Equivalence.mapInput((x: T) => x[0])(Equivalence.strictEqual<string>())
+    const E1: Equivalence.Equivalence<T> = Equivalence.mapInput((x: T) => x[1])(Equivalence.strictEqual<number>())
+    const E2: Equivalence.Equivalence<T> = Equivalence.mapInput((x: T) => x[2])(Equivalence.strictEqual<boolean>())
     const eqE0E1E2 = Equivalence.combineAll([E0, E1, E2])
     assertTrue(eqE0E1E2(["a", 1, true], ["a", 1, true]))
     assertFalse(eqE0E1E2(["a", 1, true], ["b", 1, true]))
@@ -38,16 +38,16 @@ describe("Equivalence", () => {
     assertFalse(eqE0E1E2(["a", 1, true], ["a", 1, false]))
   })
 
-  it("tuple", () => {
-    const eq = Equivalence.tuple([Equivalence.strict<string>(), Equivalence.strict<number>()])
+  it("Tuple", () => {
+    const eq = Equivalence.Tuple([Equivalence.strictEqual<string>(), Equivalence.strictEqual<number>()])
 
     assertTrue(eq(["a", 1], ["a", 1]))
     assertFalse(eq(["a", 1], ["c", 1]))
     assertFalse(eq(["a", 1], ["a", 2]))
   })
 
-  it("array", () => {
-    const eq = Equivalence.array(Equivalence.strict<number>())
+  it("Array", () => {
+    const eq = Equivalence.Array(Equivalence.strictEqual<number>())
 
     assertTrue(eq([], []))
     assertTrue(eq([1, 2, 3], [1, 2, 3]))
@@ -55,11 +55,11 @@ describe("Equivalence", () => {
     assertFalse(eq([1, 2, 3], [1, 2]))
   })
 
-  describe("struct", () => {
+  describe("Struct", () => {
     it("string keys", () => {
-      const eq = Equivalence.struct({
-        a: Equivalence.strict<string>(),
-        b: Equivalence.strict<number>()
+      const eq = Equivalence.Struct({
+        a: Equivalence.strictEqual<string>(),
+        b: Equivalence.strictEqual<number>()
       })
 
       assertTrue(eq({ a: "a", b: 1 }, { a: "a", b: 1 }))
@@ -70,9 +70,9 @@ describe("Equivalence", () => {
     it("symbol keys", () => {
       const a = Symbol.for("a")
       const b = Symbol.for("b")
-      const eq = Equivalence.struct({
-        [a]: Equivalence.strict<string>(),
-        [b]: Equivalence.strict<number>()
+      const eq = Equivalence.Struct({
+        [a]: Equivalence.strictEqual<string>(),
+        [b]: Equivalence.strictEqual<number>()
       })
 
       assertTrue(eq({ [a]: "a", [b]: 1 }, { [a]: "a", [b]: 1 }))
@@ -82,9 +82,9 @@ describe("Equivalence", () => {
 
     it("mixed keys", () => {
       const b = Symbol.for("b")
-      const eq = Equivalence.struct({
-        a: Equivalence.strict<string>(),
-        [b]: Equivalence.strict<number>()
+      const eq = Equivalence.Struct({
+        a: Equivalence.strictEqual<string>(),
+        [b]: Equivalence.strictEqual<number>()
       })
 
       assertTrue(eq({ a: "a", [b]: 1 }, { a: "a", [b]: 1 }))
@@ -93,9 +93,9 @@ describe("Equivalence", () => {
     })
   })
 
-  describe("record", () => {
+  describe("Record", () => {
     it("string keys", () => {
-      const eq = Equivalence.record(Equivalence.strict<number>())
+      const eq = Equivalence.Record(Equivalence.strictEqual<number>())
 
       assertTrue(eq({ a: 1, b: 2 }, { a: 1, b: 2 }))
       assertFalse(eq({ a: 1, b: 2 }, { a: 1, b: 3 }))
@@ -106,7 +106,7 @@ describe("Equivalence", () => {
     it("symbol keys", () => {
       const a = Symbol.for("a")
       const b = Symbol.for("b")
-      const eq = Equivalence.record(Equivalence.strict<number>())
+      const eq = Equivalence.Record(Equivalence.strictEqual<number>())
 
       assertTrue(eq({ [a]: 1, [b]: 2 }, { [a]: 1, [b]: 2 }))
       assertFalse(eq({ [a]: 1, [b]: 2 }, { [a]: 1, [b]: 3 }))
@@ -116,7 +116,7 @@ describe("Equivalence", () => {
 
     it("mixed keys", () => {
       const b = Symbol.for("b")
-      const eq = Equivalence.record(Equivalence.strict<number>())
+      const eq = Equivalence.Record(Equivalence.strictEqual<number>())
 
       assertTrue(eq({ a: 1, [b]: 2 }, { a: 1, [b]: 2 }))
       assertFalse(eq({ a: 1, [b]: 2 }, { a: 1, [b]: 3 }))
