@@ -5,10 +5,5 @@
   "references": [
     { "path": "../../effect" },
     { "path": "../../platform-node" }
-  ],
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
-    "types": ["node"]
-  }
+  ]
 }

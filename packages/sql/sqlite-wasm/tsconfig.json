@@ -4,11 +4,5 @@
   "include": ["src"],
   "references": [
     { "path": "../../effect" }
-  ],
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
-    "types": ["node"],
-    "allowSyntheticDefaultImports": true
-  }
+  ]
 }

@@ -6,8 +6,6 @@
     { "path": "../effect" }
   ],
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
     "types": ["node"]
   }
 }

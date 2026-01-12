@@ -4,21 +4,26 @@
   "references": [{ "path": "tsconfig.packages.json" }],
   "include": [
     "**/vitest.*.ts", // All vitest config files across all packages
-    "bundle/**/*.ts", // Bundle size test files
-    "packages/*/test/**/*.ts",
-    "packages/*/dtslint/**/*.ts",
-    "packages/*/benchmark/**/*.ts",
-    "packages/atom/*/test/**/*.ts",
-    "packages/atom/*/dtslint/**/*.ts",
-    "packages/atom/*/benchmark/**/*.ts",
-    "packages/sql/*/test/**/*.ts",
-    "packages/sql/*/dtslint/**/*.ts",
-    "packages/sql/*/benchmark/**/*.ts",
-    "packages/tools/*/test/**/*.ts",
-    "packages/tools/*/dtslint/**/*.ts",
-    "packages/tools/*/benchmark/**/*.ts"
+    "./bundle/**/*.ts", // Bundle size test files
+    "./packages/*/test/**/*.ts",
+    "./packages/*/test/**/*.json",
+    "./packages/*/dtslint/**/*.ts",
+    "./packages/*/benchmark/**/*.ts",
+    "./packages/atom/*/test/**/*.ts",
+    "./packages/atom/*/test/**/*.json",
+    "./packages/atom/*/dtslint/**/*.ts",
+    "./packages/atom/*/benchmark/**/*.ts",
+    "./packages/sql/*/test/**/*.ts",
+    "./packages/sql/*/test/**/*.json",
+    "./packages/sql/*/dtslint/**/*.ts",
+    "./packages/sql/*/benchmark/**/*.ts",
+    "./packages/tools/*/test/**/*.ts",
+    "./packages/tools/*/test/**/*.json",
+    "./packages/tools/*/dtslint/**/*.ts",
+    "./packages/tools/*/benchmark/**/*.ts"
   ],
   "compilerOptions": {
+    "rootDir": ".",
     "noEmit": true,
     "erasableSyntaxOnly": false,
     "resolveJsonModule": true,
