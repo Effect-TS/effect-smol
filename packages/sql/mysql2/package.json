@@ -58,7 +58,7 @@
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@testcontainers/mysql": "^11.10.0",
+    "@testcontainers/mysql": "^11.11.0",
     "effect": "workspace:^"
   },
   "peerDependencies": {

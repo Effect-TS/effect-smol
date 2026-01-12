@@ -104,11 +104,11 @@
   },
   "devDependencies": {
     "@types/ini": "^4.1.1",
-    "@types/node": "^25.0.2",
+    "@types/node": "^25.0.6",
     "ajv": "^8.17.1",
     "arktype": "^2.1.29",
     "ast-types": "^0.14.2",
-    "immer": "^11.0.1",
+    "immer": "^11.1.3",
     "tinybench": "^6.0.0",
     "valibot": "^1.2.0"
   },
