@@ -535,6 +535,9 @@ importers:
       swagger2openapi:
         specifier: ^7.0.8
         version: 7.0.8
+      yaml:
+        specifier: ^2.8.2
+        version: 2.8.2
 
   packages/tools/oxc:
     devDependencies:

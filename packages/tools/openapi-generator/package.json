@@ -69,6 +69,7 @@
     "effect": "workspace:^",
     "json-schema-typed": "^8.0.2",
     "openapi-typescript": "^7.10.1",
-    "swagger2openapi": "^7.0.8"
+    "swagger2openapi": "^7.0.8",
+    "yaml": "^2.8.2"
   }
 }

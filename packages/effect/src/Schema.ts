@@ -8402,6 +8402,12 @@ export type Json = null | number | boolean | string | JsonArray | JsonObject
  * @category JSON
  * @since 4.0.0
  */
+export const Json: Codec<Json> = Tree(Union([Null, Number, Boolean, String]))
+
+/**
+ * @category JSON
+ * @since 4.0.0
+ */
 export interface JsonArray extends ReadonlyArray<Json> {}
 
 /**
@@ -8417,6 +8423,12 @@ export interface JsonObject {
  * @since 4.0.0
  */
 export type MutableJson = null | number | boolean | string | MutableJsonArray | MutableJsonObject
+
+/**
+ * @category JSON
+ * @since 4.0.0
+ */
+export const MutableJson: Codec<MutableJson> = MutableTree(Union([Null, Number, Boolean, String]))
 
 /**
  * @category JSON
