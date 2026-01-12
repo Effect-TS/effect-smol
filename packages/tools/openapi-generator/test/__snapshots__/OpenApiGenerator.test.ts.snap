@@ -1,5 +1,129 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`OpenApiGenerator > identifier sanitization > handles collision when sanitized name already exists 1`] = `
+"import * as Data from "effect/Data"
+import * as Effect from "effect/Effect"
+import type { SchemaError } from "effect/Schema"
+import * as Schema from "effect/Schema"
+import type * as HttpClient from "effect/unstable/http/HttpClient"
+import * as HttpClientError from "effect/unstable/http/HttpClientError"
+import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
+import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
+// schemas
+export type GetUser200 = { readonly "id": string, readonly "name": string }
+export const GetUser200 = Schema.Struct({ "id": Schema.String, "name": Schema.String }).annotate({ "description": "User object" })
+
+export interface OperationConfig {
+  /**
+   * Whether or not the response should be included in the value returned from
+   * an operation.
+   *
+   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned,
+   * where \`A\` is the success type of the operation.
+   *
+   * If set to \`false\`, only the success type of the operation will be returned.
+   */
+  readonly includeResponse?: boolean | undefined
+}
+
+/**
+ * A utility type which optionally includes the response in the return result
+ * of an operation based upon the value of the \`includeResponse\` configuration
+ * option.
+ */
+export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
+  readonly includeResponse: true
+} ? [A, HttpClientResponse.HttpClientResponse] : A
+
+export const make = (
+  httpClient: HttpClient.HttpClient,
+  options: {
+    readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
+  } = {}
+): TestClient => {
+  const unexpectedStatus = (response: HttpClientResponse.HttpClientResponse) =>
+    Effect.flatMap(
+      Effect.orElseSucceed(response.json, () => "Unexpected status code"),
+      (description) =>
+        Effect.fail(
+          new HttpClientError.ResponseError({
+            request: response.request,
+            response,
+            reason: "StatusCode",
+            description: typeof description === "string" ? description : JSON.stringify(description),
+          }),
+        ),
+    )
+  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => <A, E>(
+    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
+  ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
+    const withOptionalResponse = (
+      config?.includeResponse
+        ? (response: HttpClientResponse.HttpClientResponse) => Effect.map(f(response), (a) => [a, response])
+        : (response: HttpClientResponse.HttpClientResponse) => f(response)
+    ) as any
+    return options?.transformClient
+      ? (request) =>
+          Effect.flatMap(
+            Effect.flatMap(options.transformClient!(httpClient), (client) => client.execute(request)),
+            withOptionalResponse
+          )
+      : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
+  }
+  const decodeSuccess =
+    <Schema extends Schema.Top>(schema: Schema) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      HttpClientResponse.schemaBodyJson(schema)(response)
+  const decodeError =
+    <const Tag extends string, Schema extends Schema.Top>(tag: Tag, schema: Schema) =>
+    (response: HttpClientResponse.HttpClientResponse) =>
+      Effect.flatMap(
+        HttpClientResponse.schemaBodyJson(schema)(response),
+        (cause) => Effect.fail(TestClientError(tag, cause, response)),
+      )
+  return {
+    httpClient,
+    "getUser": (id, options) => HttpClientRequest.get(\`/users/\${id}\`).pipe(
+    withResponse(options?.config)(HttpClientResponse.matchStatus({
+      "2xx": decodeSuccess(GetUser200),
+      orElse: unexpectedStatus
+    }))
+  )
+  }
+}
+
+export interface TestClient {
+  readonly httpClient: HttpClient.HttpClient
+  readonly "getUser": <Config extends OperationConfig>(id: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof GetUser200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+}
+
+export interface TestClientError<Tag extends string, E> {
+  readonly _tag: Tag
+  readonly request: HttpClientRequest.HttpClientRequest
+  readonly response: HttpClientResponse.HttpClientResponse
+  readonly cause: E
+}
+
+class TestClientErrorImpl extends Data.Error<{
+  _tag: string
+  cause: any
+  request: HttpClientRequest.HttpClientRequest
+  response: HttpClientResponse.HttpClientResponse
+}> {}
+
+export const TestClientError = <Tag extends string, E>(
+  tag: Tag,
+  cause: E,
+  response: HttpClientResponse.HttpClientResponse,
+): TestClientError<Tag, E> =>
+  new TestClientErrorImpl({
+    _tag: tag,
+    cause,
+    response,
+    request: response.request,
+  }) as any"
+`;
+
 exports[`OpenApiGenerator > identifier sanitization > preserves valid schema names unchanged 1`] = `
 "import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
@@ -124,7 +248,7 @@ export const TestClientError = <Tag extends string, E>(
   }) as any"
 `;
 
-exports[`OpenApiGenerator > identifier sanitization > preserves valid schema names unchanged 2`] = `
+exports[`OpenApiGenerator > identifier sanitization > sanitizes schema names with hyphens 1`] = `
 "import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import type { SchemaError } from "effect/Schema"
@@ -248,7 +372,7 @@ export const TestClientError = <Tag extends string, E>(
   }) as any"
 `;
 
-exports[`OpenApiGenerator > identifier sanitization > sanitizes schema names with hyphens 1`] = `
+exports[`OpenApiGenerator > schema > OpenAiFixture 1`] = `
 "import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import type { SchemaError } from "effect/Schema"
@@ -2882,7 +3006,7 @@ export const TestClientError = <Tag extends string, E>(
   }) as any"
 `;
 
-exports[`OpenApiGenerator > identifier sanitization > sanitizes schema names with hyphens 2`] = `
+exports[`OpenApiGenerator > schema > StainlessFixture 1`] = `
 "import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import type { SchemaError } from "effect/Schema"
@@ -5514,7 +5638,7 @@ export const TestClientError = <Tag extends string, E>(
   }) as any"
 `;
 
-exports[`OpenApiGenerator > identifier sanitization > sanitizes schema names with hyphens 3`] = `
+exports[`OpenApiGenerator > schema > get operation 1`] = `
 "import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import type { SchemaError } from "effect/Schema"
@@ -5638,7 +5762,7 @@ export const TestClientError = <Tag extends string, E>(
   }) as any"
 `;
 
-exports[`OpenApiGenerator > identifier sanitization > sanitizes schema names with hyphens 4`] = `
+exports[`OpenApiGenerator > type-only > get operation 1`] = `
 "import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import type * as HttpClient from "effect/unstable/http/HttpClient"
@@ -5750,130 +5874,6 @@ export const make = (
 export interface TestClient {
   readonly httpClient: HttpClient.HttpClient
   readonly "getUser": <Config extends OperationConfig>(id: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<GetUser200, Config>, HttpClientError.HttpClientError>
-}
-
-export interface TestClientError<Tag extends string, E> {
-  readonly _tag: Tag
-  readonly request: HttpClientRequest.HttpClientRequest
-  readonly response: HttpClientResponse.HttpClientResponse
-  readonly cause: E
-}
-
-class TestClientErrorImpl extends Data.Error<{
-  _tag: string
-  cause: any
-  request: HttpClientRequest.HttpClientRequest
-  response: HttpClientResponse.HttpClientResponse
-}> {}
-
-export const TestClientError = <Tag extends string, E>(
-  tag: Tag,
-  cause: E,
-  response: HttpClientResponse.HttpClientResponse,
-): TestClientError<Tag, E> =>
-  new TestClientErrorImpl({
-    _tag: tag,
-    cause,
-    response,
-    request: response.request,
-  }) as any"
-`;
-
-exports[`OpenApiGenerator > identifier sanitization > sanitizes schema names with hyphens 5`] = `
-"import * as Data from "effect/Data"
-import * as Effect from "effect/Effect"
-import type { SchemaError } from "effect/Schema"
-import * as Schema from "effect/Schema"
-import type * as HttpClient from "effect/unstable/http/HttpClient"
-import * as HttpClientError from "effect/unstable/http/HttpClientError"
-import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
-// schemas
-export type GetUser200 = { readonly "id": string, readonly "name": string }
-export const GetUser200 = Schema.Struct({ "id": Schema.String, "name": Schema.String }).annotate({ "description": "User object" })
-
-export interface OperationConfig {
-  /**
-   * Whether or not the response should be included in the value returned from
-   * an operation.
-   *
-   * If set to \`true\`, a tuple of \`[A, HttpClientResponse]\` will be returned,
-   * where \`A\` is the success type of the operation.
-   *
-   * If set to \`false\`, only the success type of the operation will be returned.
-   */
-  readonly includeResponse?: boolean | undefined
-}
-
-/**
- * A utility type which optionally includes the response in the return result
- * of an operation based upon the value of the \`includeResponse\` configuration
- * option.
- */
-export type WithOptionalResponse<A, Config extends OperationConfig> = Config extends {
-  readonly includeResponse: true
-} ? [A, HttpClientResponse.HttpClientResponse] : A
-
-export const make = (
-  httpClient: HttpClient.HttpClient,
-  options: {
-    readonly transformClient?: ((client: HttpClient.HttpClient) => Effect.Effect<HttpClient.HttpClient>) | undefined
-  } = {}
-): TestClient => {
-  const unexpectedStatus = (response: HttpClientResponse.HttpClientResponse) =>
-    Effect.flatMap(
-      Effect.orElseSucceed(response.json, () => "Unexpected status code"),
-      (description) =>
-        Effect.fail(
-          new HttpClientError.ResponseError({
-            request: response.request,
-            response,
-            reason: "StatusCode",
-            description: typeof description === "string" ? description : JSON.stringify(description),
-          }),
-        ),
-    )
-  const withResponse = <Config extends OperationConfig>(config: Config | undefined) => <A, E>(
-    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<A, E>,
-  ): (request: HttpClientRequest.HttpClientRequest) => Effect.Effect<any, any> => {
-    const withOptionalResponse = (
-      config?.includeResponse
-        ? (response: HttpClientResponse.HttpClientResponse) => Effect.map(f(response), (a) => [a, response])
-        : (response: HttpClientResponse.HttpClientResponse) => f(response)
-    ) as any
-    return options?.transformClient
-      ? (request) =>
-          Effect.flatMap(
-            Effect.flatMap(options.transformClient!(httpClient), (client) => client.execute(request)),
-            withOptionalResponse
-          )
-      : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
-  }
-  const decodeSuccess =
-    <Schema extends Schema.Top>(schema: Schema) =>
-    (response: HttpClientResponse.HttpClientResponse) =>
-      HttpClientResponse.schemaBodyJson(schema)(response)
-  const decodeError =
-    <const Tag extends string, Schema extends Schema.Top>(tag: Tag, schema: Schema) =>
-    (response: HttpClientResponse.HttpClientResponse) =>
-      Effect.flatMap(
-        HttpClientResponse.schemaBodyJson(schema)(response),
-        (cause) => Effect.fail(TestClientError(tag, cause, response)),
-      )
-  return {
-    httpClient,
-    "getUser": (id, options) => HttpClientRequest.get(\`/users/\${id}\`).pipe(
-    withResponse(options?.config)(HttpClientResponse.matchStatus({
-      "2xx": decodeSuccess(GetUser200),
-      orElse: unexpectedStatus
-    }))
-  )
-  }
-}
-
-export interface TestClient {
-  readonly httpClient: HttpClient.HttpClient
-  readonly "getUser": <Config extends OperationConfig>(id: string, options: { readonly config?: Config | undefined } | undefined) => Effect.Effect<WithOptionalResponse<typeof GetUser200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
 }
 
 export interface TestClientError<Tag extends string, E> {
