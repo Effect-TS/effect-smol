@@ -323,9 +323,9 @@ describe("HttpApi", () => {
       })
     }).pipe(Effect.provide(HttpLive)))
 
-  describe.todo("OpenAPI spec", () => {
+  describe("OpenAPI spec", () => {
     describe("error", () => {
-      it("check & httpApiStatus annotation", () => {
+      it("check & httpApiStatus annotation (single endpoint)", () => {
         class Group extends HttpApiGroup.make("users")
           .add(HttpApiEndpoint.post("create", "/", {
             payload: Schema.String,
@@ -342,13 +342,83 @@ describe("HttpApi", () => {
             "application/json": {
               "schema": {
                 "anyOf": [
-                  { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "_tag": {
+                        "type": "string",
+                        "enum": ["HttpApiSchemaError"]
+                      },
+                      "message": {
+                        "$ref": "#/components/schemas/_1"
+                      }
+                    },
+                    "required": ["_tag", "message"],
+                    "additionalProperties": false
+                  },
                   {
                     "type": "integer"
                   }
                 ]
               }
             }
+          }
+        })
+        assert.deepStrictEqual(spec.components.schemas, {
+          _1: {
+            "type": "string"
+          }
+        })
+      })
+
+      it("check & httpApiStatus annotation (multiple endpoints)", () => {
+        class Group extends HttpApiGroup.make("users")
+          .add(HttpApiEndpoint.post("a", "/a", {
+            payload: Schema.String,
+            success: Schema.String,
+            error: Schema.Int.annotate({ httpApiStatus: 400 })
+          }))
+          .add(HttpApiEndpoint.post("b", "/b", {
+            payload: Schema.String,
+            success: Schema.String,
+            error: Schema.Int.annotate({ httpApiStatus: 400 })
+          }))
+        {}
+
+        class Api extends HttpApi.make("api").add(Group) {}
+        const spec = OpenApi.fromApi(Api)
+        assert.deepStrictEqual(spec.paths["/a"].post?.responses["400"], {
+          "description": "The request or response did not match the expected schema",
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  { "$ref": "#/components/schemas/_3" },
+                  {
+                    "type": "integer"
+                  }
+                ]
+              }
+            }
+          }
+        })
+        assert.deepStrictEqual(spec.components.schemas, {
+          _1: {
+            "type": "string"
+          },
+          _3: {
+            "type": "object",
+            "properties": {
+              "_tag": {
+                "type": "string",
+                "enum": ["HttpApiSchemaError"]
+              },
+              "message": {
+                "$ref": "#/components/schemas/_1"
+              }
+            },
+            "required": ["_tag", "message"],
+            "additionalProperties": false
           }
         })
       })
@@ -370,16 +440,34 @@ describe("HttpApi", () => {
             "application/json": {
               "schema": {
                 "anyOf": [
-                  { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "_tag": {
+                        "type": "string",
+                        "enum": ["HttpApiSchemaError"]
+                      },
+                      "message": {
+                        "$ref": "#/components/schemas/_1"
+                      }
+                    },
+                    "required": ["_tag", "message"],
+                    "additionalProperties": false
+                  },
                   {
                     "anyOf": [
-                      { "type": "string" },
+                      { "$ref": "#/components/schemas/_1" },
                       { "type": "number" }
                     ]
                   }
                 ]
               }
             }
+          }
+        })
+        assert.deepStrictEqual(spec.components.schemas, {
+          _1: {
+            "type": "string"
           }
         })
       })
@@ -400,9 +488,19 @@ describe("HttpApi", () => {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ID"
+                "anyOf": [
+                  { "$ref": "#/components/schemas/_1" },
+                  {
+                    "type": "number"
+                  }
+                ]
               }
             }
+          }
+        })
+        assert.deepStrictEqual(spec.components.schemas, {
+          _1: {
+            "type": "string"
           }
         })
       })
@@ -426,7 +524,20 @@ describe("HttpApi", () => {
             "application/json": {
               "schema": {
                 "anyOf": [
-                  { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "_tag": {
+                        "type": "string",
+                        "enum": ["HttpApiSchemaError"]
+                      },
+                      "message": {
+                        "$ref": "#/components/schemas/_1"
+                      }
+                    },
+                    "required": ["_tag", "message"],
+                    "additionalProperties": false
+                  },
                   {
                     "type": "string",
                     "allOf": [
@@ -446,6 +557,11 @@ describe("HttpApi", () => {
                 "type": "number"
               }
             }
+          }
+        })
+        assert.deepStrictEqual(spec.components.schemas, {
+          _1: {
+            "type": "string"
           }
         })
       })
@@ -469,16 +585,34 @@ describe("HttpApi", () => {
             "application/json": {
               "schema": {
                 "anyOf": [
-                  { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "_tag": {
+                        "type": "string",
+                        "enum": ["HttpApiSchemaError"]
+                      },
+                      "message": {
+                        "$ref": "#/components/schemas/_1"
+                      }
+                    },
+                    "required": ["_tag", "message"],
+                    "additionalProperties": false
+                  },
                   {
                     "anyOf": [
-                      { "type": "string" },
+                      { "$ref": "#/components/schemas/_1" },
                       { "type": "number" }
                     ]
                   }
                 ]
               }
             }
+          }
+        })
+        assert.deepStrictEqual(spec.components.schemas, {
+          _1: {
+            "type": "string"
           }
         })
       })
@@ -505,19 +639,37 @@ describe("HttpApi", () => {
             "application/json": {
               "schema": {
                 "anyOf": [
-                  { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
-                    "type": "string"
+                    "type": "object",
+                    "properties": {
+                      "_tag": {
+                        "type": "string",
+                        "enum": ["HttpApiSchemaError"]
+                      },
+                      "message": {
+                        "$ref": "#/components/schemas/_1"
+                      }
+                    },
+                    "required": ["_tag", "message"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "$ref": "#/components/schemas/_1"
                   }
                 ]
               }
             }
           }
         })
+        assert.deepStrictEqual(spec.components.schemas, {
+          _1: {
+            "type": "string"
+          }
+        })
       })
     })
 
-    it("fixture", () => {
+    it.todo("fixture", () => {
       const spec = OpenApi.fromApi(Api)
       assert.deepStrictEqual(spec, OpenApiFixture as any)
     })

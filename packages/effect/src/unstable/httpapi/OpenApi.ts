@@ -1,13 +1,16 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "../../Array.ts"
 import type { NonEmptyArray } from "../../Array.ts"
-import * as Equal from "../../Equal.ts"
 import { constFalse } from "../../Function.ts"
+import * as JsonPatch from "../../JsonPatch.ts"
+import { escapeToken } from "../../JsonPointer.ts"
 import * as JsonSchema from "../../JsonSchema.ts"
 import * as Option from "../../Option.ts"
-import * as Schema from "../../Schema.ts"
-import type * as AST from "../../SchemaAST.ts"
+import type * as Schema from "../../Schema.ts"
+import * as AST from "../../SchemaAST.ts"
+import * as SchemaRepresentation from "../../SchemaRepresentation.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as HttpMethod from "../http/HttpMethod.ts"
 import * as HttpApi from "./HttpApi.ts"
@@ -216,7 +219,6 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   if (cached !== undefined) {
     return cached
   }
-  const jsonSchemaDefs: JsonSchema.Definitions = {}
   let spec: OpenAPISpec = {
     openapi: "3.1.0",
     info: {
@@ -225,27 +227,24 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
     },
     paths: {},
     components: {
-      schemas: jsonSchemaDefs,
+      schemas: {},
       securitySchemes: {}
     },
     security: [],
     tags: []
   }
 
-  function processAST(ast: AST.AST): JsonSchema.JsonSchema {
-    const document = JsonSchema.toDocumentOpenApi3_1(Schema.toJsonSchemaDocument(Schema.make(ast), {
-      additionalProperties: options?.additionalProperties
-    }))
-    for (const [key, definition] of Object.entries(document.definitions)) {
-      const existing = jsonSchemaDefs[key]
-      if (existing !== undefined && !Equal.equals(existing, definition)) {
-        throw new globalThis.Error(`Duplicate identifier: ${key}`)
-      } else {
-        jsonSchemaDefs[key] = definition
-      }
+  const irOps: Array<
+    {
+      readonly _tag: "schema"
+      readonly ast: AST.AST
+      readonly path: ReadonlyArray<string>
+    } | {
+      readonly _tag: "parameter"
+      readonly ast: AST.AST
+      readonly path: ReadonlyArray<string>
     }
-    return document.schema
-  }
+  > = []
 
   function processHttpApiSecurity(
     name: string,
@@ -257,8 +256,14 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
     spec.components.securitySchemes[name] = makeSecurityScheme(security)
   }
 
+  // TODO: what's the purpose of additional schemas?
   processAnnotation(api.annotations, HttpApi.AdditionalSchemas, (componentSchemas) => {
-    componentSchemas.forEach((componentSchema) => processAST(componentSchema.ast))
+    componentSchemas.forEach((componentSchema) => {
+      const identifier = AST.resolveIdentifier(componentSchema.ast)
+      if (identifier !== undefined) {
+        irOps.push({ _tag: "schema", ast: componentSchema.ast, path: ["components", "schemas"] })
+      }
+    })
   })
   processAnnotation(api.annotations, Description, (description) => {
     spec.info.description = description
@@ -312,6 +317,9 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
         responses: {}
       }
 
+      const path = endpoint.path.replace(/:(\w+)\??/g, "{$1}")
+      const method = endpoint.method.toLowerCase() as OpenAPISpecMethodName
+
       function processResponseMap(
         map: ReadonlyMap<number, {
           readonly ast: AST.AST | undefined
@@ -326,9 +334,14 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
           }
           if (ast && !HttpApiSchema.resolveHttpApiIsEmpty(ast)) {
             const encoding = HttpApiSchema.getEncoding(ast)
+            irOps.push({
+              _tag: "schema",
+              ast,
+              path: ["paths", path, method, "responses", String(status), "content", encoding.contentType, "schema"]
+            })
             op.responses[status].content = {
               [encoding.contentType]: {
-                schema: processAST(ast)
+                schema: {}
               }
             }
           }
@@ -337,16 +350,20 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
 
       function processParameters(schema: Schema.Schema<any> | undefined, i: OpenAPISpecParameter["in"]) {
         if (schema) {
-          const jsonSchema = processAST(schema.ast) as any
-          const required = Array.isArray(jsonSchema.required) ? jsonSchema.required : []
-          if ("properties" in jsonSchema) {
-            Object.entries(jsonSchema.properties as Record<string, any>).forEach(([name, psJsonSchema]) => {
+          const ast = schema.ast
+          if (ast._tag === "Objects") {
+            ast.propertySignatures.forEach((ps, j) => {
               op.parameters.push({
-                name,
+                name: String(ps.name),
                 in: i,
-                schema: psJsonSchema,
-                required: required.includes(name),
-                ...(psJsonSchema.description !== undefined ? { description: psJsonSchema.description } : undefined)
+                schema: {},
+                required: !AST.isOptional(ps.type)
+              })
+
+              irOps.push({
+                _tag: "parameter",
+                ast: ps.type,
+                path: ["paths", path, method, "parameters", String(j), "schema"]
               })
             })
           }
@@ -379,8 +396,13 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
       if (hasBody && payloads.size > 0) {
         const content: OpenApiSpecContent = {}
         payloads.forEach(({ ast }, contentType) => {
+          irOps.push({
+            _tag: "schema",
+            ast,
+            path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
+          })
           content[contentType as OpenApiSpecContentType] = {
-            schema: processAST(ast)
+            schema: {}
           }
         })
         op.requestBody = { content, required: true }
@@ -396,8 +418,6 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
       processResponseMap(successes, () => "Success")
       processResponseMap(errors, () => "Error")
 
-      const path = endpoint.path.replace(/:(\w+)\??/g, "{$1}")
-      const method = endpoint.method.toLowerCase() as OpenAPISpecMethodName
       if (!spec.paths[path]) {
         spec.paths[path] = {}
       }
@@ -412,6 +432,34 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
       spec.paths[path][method] = op
     }
   })
+
+  function escapePath(path: ReadonlyArray<string>): string {
+    return "/" + path.map(escapeToken).join("/")
+  }
+
+  if (Arr.isArrayNonEmpty(irOps)) {
+    const multiDocument = SchemaRepresentation.fromASTs(Arr.map(irOps, ({ ast }) => ast))
+    const jsonSchemaMultiDocument = SchemaRepresentation.toJsonSchemaMultiDocument(multiDocument)
+    const patchOps: Array<JsonPatch.JsonPatchOperation> = irOps.map((op, i) => {
+      const oppath = escapePath(op.path)
+      const value = JsonSchema.toSchemaOpenApi3_1(jsonSchemaMultiDocument.schemas[i])
+      return {
+        op: "replace",
+        path: oppath,
+        value: value as Schema.Json
+      }
+    })
+
+    Object.entries(jsonSchemaMultiDocument.definitions).forEach(([name, definition]) => {
+      patchOps.push({
+        op: "add",
+        path: escapePath(["components", "schemas", name]),
+        value: JsonSchema.toSchemaOpenApi3_1(definition) as Schema.Json
+      })
+    })
+
+    spec = JsonPatch.apply(patchOps, spec as any) as any
+  }
 
   processAnnotation(api.annotations, Override, (override) => {
     Object.assign(spec, override)
