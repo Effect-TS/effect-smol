@@ -15,7 +15,7 @@
             "name": "id",
             "in": "path",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/String$"
             },
             "required": true
           }
@@ -83,7 +83,7 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/String$1"
                   }
                 },
                 "required": ["name"],
@@ -95,7 +95,7 @@
                 "type": "object",
                 "properties": {
                   "foo": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/String$1"
                   }
                 },
                 "required": ["foo"],
@@ -107,7 +107,7 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/String$1"
                   }
                 },
                 "required": ["name"],
@@ -128,7 +128,7 @@
             "name": "id",
             "in": "path",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/String$"
             },
             "required": true
           }
@@ -143,10 +143,10 @@
                   "type": "object",
                   "properties": {
                     "id": {
-                      "type": "number"
+                      "$ref": "#/components/schemas/Number$1"
                     },
                     "name": {
-                      "type": "string"
+                      "$ref": "#/components/schemas/String$1"
                     }
                   },
                   "required": ["id", "name"],
@@ -173,7 +173,7 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/String$1"
                   }
                 },
                 "required": ["name"],
@@ -194,7 +194,7 @@
             "name": "id",
             "in": "path",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/String$"
             },
             "required": true
           }
@@ -209,10 +209,10 @@
                   "type": "object",
                   "properties": {
                     "id": {
-                      "type": "number"
+                      "$ref": "#/components/schemas/Number$1"
                     },
                     "name": {
-                      "type": "string"
+                      "$ref": "#/components/schemas/String$1"
                     }
                   },
                   "required": ["id", "name"],
@@ -239,7 +239,7 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/String$1"
                   }
                 },
                 "required": ["name"],
@@ -260,7 +260,7 @@
             "name": "id",
             "in": "path",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/String$"
             },
             "required": true
           }
@@ -310,7 +310,7 @@
             "name": "id",
             "in": "query",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/String$"
             },
             "required": true
           }
@@ -356,10 +356,10 @@
                 "type": "object",
                 "properties": {
                   "uuid": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/Union$"
                   },
                   "name": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/String$1"
                   }
                 },
                 "required": ["name"],
@@ -383,12 +383,18 @@
             "required": false
           },
           {
-            "description": "search query",
             "name": "query",
             "in": "query",
             "schema": {
-              "type": "string",
-              "description": "search query"
+              "description": "search query",
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/String$1"
+                },
+                {
+                  "$ref": "#/components/schemas/Undefined$"
+                }
+              ]
             },
             "required": false
           }
@@ -427,7 +433,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NoStatusError"
+                  "type": "object",
+                  "properties": {
+                    "_tag": {
+                      "type": "string",
+                      "enum": ["NoStatusError"]
+                    }
+                  },
+                  "required": ["_tag"],
+                  "additionalProperties": false
                 }
               }
             }
@@ -446,7 +460,14 @@
             "name": "0",
             "in": "path",
             "schema": {
-              "type": "string"
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/String$1"
+                },
+                {
+                  "$ref": "#/components/schemas/Undefined$"
+                }
+              ]
             },
             "required": false
           }
@@ -465,10 +486,10 @@
                   "type": "object",
                   "properties": {
                     "contentType": {
-                      "type": "string"
+                      "$ref": "#/components/schemas/String$1"
                     },
                     "length": {
-                      "type": "integer"
+                      "$ref": "#/components/schemas/Number$"
                     }
                   },
                   "required": ["contentType", "length"],
@@ -495,7 +516,7 @@
                 "type": "object",
                 "properties": {
                   "file": {
-                    "$ref": "#/components/schemas/PersistedFile"
+                    "$ref": "#/components/schemas/Arrays$1"
                   }
                 },
                 "required": ["file"],
@@ -526,10 +547,10 @@
                   "type": "object",
                   "properties": {
                     "contentType": {
-                      "type": "string"
+                      "$ref": "#/components/schemas/String$1"
                     },
                     "length": {
-                      "type": "integer"
+                      "$ref": "#/components/schemas/Number$"
                     }
                   },
                   "required": ["contentType", "length"],
@@ -556,7 +577,7 @@
                 "type": "object",
                 "properties": {
                   "file": {
-                    "$ref": "#/components/schemas/PersistedFile"
+                    "$ref": "#/components/schemas/Arrays$1"
                   }
                 },
                 "required": ["file"],
@@ -594,14 +615,74 @@
   },
   "components": {
     "schemas": {
+      "Number$": {
+        "type": "integer"
+      },
+      "Number$1": {
+        "type": "number"
+      },
+      "String$": {
+        "type": "string"
+      },
+      "String$1": {
+        "type": "string"
+      },
+      "Undefined$": {
+        "type": "null"
+      },
+      "Union$": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/String$1"
+          },
+          {
+            "$ref": "#/components/schemas/Undefined$"
+          }
+        ]
+      },
+      "Arrays$1": {
+        "allOf": [
+          {
+            "minItems": 1
+          },
+          {
+            "maxItems": 1
+          }
+        ],
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "contentType": {
+              "$ref": "#/components/schemas/String$1"
+            },
+            "key": {
+              "$ref": "#/components/schemas/String$1"
+            },
+            "name": {
+              "$ref": "#/components/schemas/String$1"
+            },
+            "path": {
+              "$ref": "#/components/schemas/String$1"
+            }
+          },
+          "required": [
+            "key",
+            "name",
+            "contentType",
+            "path"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
       "ComponentsSchema": {
         "additionalProperties": false,
         "properties": {
           "contentType": {
-            "type": "string"
+            "$ref": "#/components/schemas/String$1"
           },
           "length": {
-            "type": "integer"
+            "$ref": "#/components/schemas/Number$"
           }
         },
         "required": [
@@ -614,10 +695,10 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "$ref": "#/components/schemas/Number$"
           },
           "name": {
-            "type": "string"
+            "$ref": "#/components/schemas/String$1"
           }
         },
         "required": ["id", "name"],
@@ -631,42 +712,23 @@
             "enum": ["HttpApiSchemaError"]
           },
           "message": {
-            "type": "string"
+            "$ref": "#/components/schemas/String$1"
           }
         },
         "required": ["_tag", "message"],
-        "additionalProperties": false
-      },
-      "PersistedFile": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "contentType": {
-            "type": "string"
-          },
-          "path": {
-            "type": "string"
-          }
-        },
-        "required": ["key", "name", "contentType", "path"],
         "additionalProperties": false
       },
       "User": {
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "$ref": "#/components/schemas/Number$"
           },
           "uuid": {
-            "type": "string"
+            "$ref": "#/components/schemas/Union$"
           },
           "name": {
-            "type": "string"
+            "$ref": "#/components/schemas/String$1"
           },
           "createdAt": {
             "type": "string"
@@ -681,17 +743,6 @@
           "_tag": {
             "type": "string",
             "enum": ["UserError"]
-          }
-        },
-        "required": ["_tag"],
-        "additionalProperties": false
-      },
-      "NoStatusError": {
-        "type": "object",
-        "properties": {
-          "_tag": {
-            "type": "string",
-            "enum": ["NoStatusError"]
           }
         },
         "required": ["_tag"],

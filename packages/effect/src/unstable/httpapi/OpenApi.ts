@@ -256,15 +256,6 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
     spec.components.securitySchemes[name] = makeSecurityScheme(security)
   }
 
-  // TODO: what's the purpose of additional schemas?
-  processAnnotation(api.annotations, HttpApi.AdditionalSchemas, (componentSchemas) => {
-    componentSchemas.forEach((componentSchema) => {
-      const identifier = AST.resolveIdentifier(componentSchema.ast)
-      if (identifier !== undefined) {
-        irOps.push({ _tag: "schema", ast: componentSchema.ast, path: ["components", "schemas"] })
-      }
-    })
-  })
   processAnnotation(api.annotations, Description, (description) => {
     spec.info.description = description
   })
@@ -352,7 +343,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
         if (schema) {
           const ast = schema.ast
           if (ast._tag === "Objects") {
-            ast.propertySignatures.forEach((ps, j) => {
+            ast.propertySignatures.forEach((ps) => {
               op.parameters.push({
                 name: String(ps.name),
                 in: i,
@@ -363,7 +354,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
               irOps.push({
                 _tag: "parameter",
                 ast: ps.type,
-                path: ["paths", path, method, "parameters", String(j), "schema"]
+                path: ["paths", path, method, "parameters", String(op.parameters.length - 1), "schema"]
               })
             })
           }
@@ -431,6 +422,17 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
 
       spec.paths[path][method] = op
     }
+  })
+
+  // TODO: what's the purpose of additional schemas?
+  processAnnotation(api.annotations, HttpApi.AdditionalSchemas, (componentSchemas) => {
+    componentSchemas.forEach((componentSchema) => {
+      const identifier = AST.resolveIdentifier(componentSchema.ast)
+      if (identifier !== undefined) {
+        spec.components.schemas[identifier] = {}
+        irOps.push({ _tag: "schema", ast: componentSchema.ast, path: ["components", "schemas", identifier] })
+      }
+    })
   })
 
   function escapePath(path: ReadonlyArray<string>): string {

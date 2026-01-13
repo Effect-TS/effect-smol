@@ -153,7 +153,6 @@ export interface PersistedFileSchema extends Schema.declare<PersistedFile> {}
 export const PersistedFileSchema: PersistedFileSchema = Schema.declare(
   isPersistedFile,
   {
-    identifier: "PersistedFile",
     typeConstructor: {
       _tag: "effect/http/PersistedFile"
     },
