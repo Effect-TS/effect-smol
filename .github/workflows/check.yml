@@ -82,7 +82,7 @@ jobs:
           sed -i 's/"stripInternal": false/"stripInternal": true/' base/tsconfig.base.json
       - name: Build
         run: |
-          pnpm build:tsgo &
+          pnpm build &
           cd base && pnpm install && pnpm build:tsgo &
           wait
       - name: Compare bundle size
