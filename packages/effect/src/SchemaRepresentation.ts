@@ -3,8 +3,8 @@
  */
 import * as Arr from "./Array.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
-import { unescapeToken } from "./internal/schema/json-pointer.ts"
 import * as InternalRepresentation from "./internal/schema/representation.ts"
+import { unescapeToken } from "./JsonPointer.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"

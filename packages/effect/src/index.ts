@@ -979,6 +979,18 @@ export * as Iterable from "./Iterable.ts"
 export * as JsonPatch from "./JsonPatch.ts"
 
 /**
+ * Utilities for working with JSON Pointer reference tokens.
+ *
+ * JSON Pointer (RFC 6901) defines a string syntax for identifying a specific value
+ * within a JSON document. A JSON Pointer is a sequence of reference tokens separated
+ * by forward slashes (`/`). Each reference token may need to be escaped when it contains
+ * special characters.
+ *
+ * @since 4.0.0
+ */
+export * as JsonPointer from "./JsonPointer.ts"
+
+/**
  * @since 4.0.0
  */
 export * as JsonSchema from "./JsonSchema.ts"

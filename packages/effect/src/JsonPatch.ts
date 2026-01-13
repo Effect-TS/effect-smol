@@ -2,7 +2,7 @@
  * @since 4.0.0
  */
 import { format } from "./Formatter.ts"
-import { escapeToken, unescapeToken } from "./internal/schema/json-pointer.ts"
+import { escapeToken, unescapeToken } from "./JsonPointer.ts"
 import * as Predicate from "./Predicate.ts"
 import type * as Schema from "./Schema.ts"
 

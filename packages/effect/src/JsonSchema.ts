@@ -1,7 +1,7 @@
 /**
  * @since 4.0.0
  */
-import { unescapeToken } from "./internal/schema/json-pointer.ts"
+import { unescapeToken } from "./JsonPointer.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
 
@@ -211,9 +211,16 @@ export function fromSchemaOpenApi3_0(schema: JsonSchema): Document<"draft-2020-1
 export function toDocumentDraft07(document: Document<"draft-2020-12">): Document<"draft-07"> {
   return {
     dialect: "draft-07",
-    schema: rewrite(document.schema),
-    definitions: Rec.map(document.definitions, rewrite)
+    schema: toSchemaDraft07(document.schema),
+    definitions: Rec.map(document.definitions, toSchemaDraft07)
   }
+}
+
+/**
+ * @since 4.0.0
+ */
+export function toSchemaDraft07(schema: JsonSchema): JsonSchema {
+  return rewrite(schema)
 
   function rewrite(node: unknown): JsonSchema {
     return walk(rewrite_refs(node, RE_DEFS, "#/definitions"), true) as JsonSchema
@@ -319,13 +326,16 @@ export function toDocumentDraft07(document: Document<"draft-2020-12">): Document
 export function toDocumentOpenApi3_1(document: Document<"draft-2020-12">): Document<"openapi-3.1"> {
   return {
     dialect: "openapi-3.1",
-    schema: rewrite(document.schema),
-    definitions: Rec.map(document.definitions, rewrite)
+    schema: toSchemaOpenApi3_1(document.schema),
+    definitions: Rec.map(document.definitions, toSchemaOpenApi3_1)
   }
+}
 
-  function rewrite(js: JsonSchema) {
-    return rewrite_refs(js, RE_DEFS, "#/components/schemas") as JsonSchema
-  }
+/**
+ * @since 4.0.0
+ */
+export function toSchemaOpenApi3_1(schema: JsonSchema): JsonSchema {
+  return rewrite_refs(schema, RE_DEFS, "#/components/schemas") as JsonSchema
 }
 
 function rewrite_refs(node: unknown, re: RegExp, replacement: string): unknown {
