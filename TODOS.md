@@ -17,6 +17,7 @@ Releases are snapshot only
 - [ ] Consider adding stack trace info to tracing / cause
 - [ ] Use Predicate for filtering functions
 - [ ] Add AI provider packages
+- [ ] Add test lalph
 
 ## Beta
 

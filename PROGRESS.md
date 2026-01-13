@@ -1,0 +1,5 @@
+- EFF-166: add "Add test lalph" item under Alpha
+- Decision: place in Alpha list to track current work
+- Files: `TODOS.md`
+- Checks: `pnpm check` failed (missing `node_modules` / `tspc`)
+- Next: install deps and rerun checks if needed
