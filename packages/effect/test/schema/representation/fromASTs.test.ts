@@ -144,13 +144,13 @@ describe("fromAST", () => {
           propertySignatures: [
             {
               name: "source",
-              type: { _tag: "Reference", $ref: "_2" },
+              type: { _tag: "Reference", $ref: "String$" },
               isOptional: false,
               isMutable: false
             },
             {
               name: "flags",
-              type: { _tag: "Reference", $ref: "_2" },
+              type: { _tag: "Reference", $ref: "String$" },
               isOptional: false,
               isMutable: false
             }
@@ -160,7 +160,7 @@ describe("fromAST", () => {
         }
       },
       references: {
-        _2: {
+        String$: {
           _tag: "String",
           checks: []
         }
@@ -208,7 +208,7 @@ describe("fromAST", () => {
         },
         checks: [],
         typeParameters: [
-          { _tag: "Reference", $ref: "_1" }
+          { _tag: "Reference", $ref: "Number$" }
         ],
         encodedSchema: {
           _tag: "Union",
@@ -224,7 +224,7 @@ describe("fromAST", () => {
                 },
                 {
                   name: "value",
-                  type: { _tag: "Reference", $ref: "_1" },
+                  type: { _tag: "Reference", $ref: "Number$" },
                   isOptional: false,
                   isMutable: false
                 }
@@ -250,7 +250,7 @@ describe("fromAST", () => {
         }
       },
       references: {
-        _1: {
+        Number$: {
           _tag: "Number",
           checks: []
         }
@@ -338,12 +338,12 @@ describe("fromAST", () => {
           },
           checks: [],
           typeParameters: [
-            { _tag: "Reference", $ref: "_" }
+            { _tag: "Reference", $ref: "A" }
           ],
-          encodedSchema: { _tag: "Reference", $ref: "_" }
+          encodedSchema: { _tag: "Reference", $ref: "A" }
         },
         references: {
-          _: {
+          A: {
             _tag: "Objects",
             propertySignatures: [
               {
@@ -378,21 +378,21 @@ describe("fromAST", () => {
                 annotations: { identifier: "A" },
                 checks: [],
                 typeParameters: [
-                  { _tag: "Reference", $ref: "_1" }
+                  { _tag: "Reference", $ref: "A" }
                 ],
-                encodedSchema: { _tag: "Reference", $ref: "_1" }
+                encodedSchema: { _tag: "Reference", $ref: "A" }
               }
             },
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "_1" }
+              type: { _tag: "Reference", $ref: "A" }
             }
           ],
           rest: [],
           checks: []
         },
         references: {
-          _1: {
+          A: {
             _tag: "Objects",
             propertySignatures: [
               {
@@ -422,18 +422,18 @@ describe("fromAST", () => {
           elements: [
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "_1" }
+              type: { _tag: "Reference", $ref: "String$" }
             },
             {
               isOptional: false,
-              type: { _tag: "Reference", $ref: "_1" }
+              type: { _tag: "Reference", $ref: "String$" }
             }
           ],
           rest: [],
           checks: []
         },
         references: {
-          _1: {
+          String$: {
             _tag: "String",
             checks: []
           }
@@ -526,9 +526,9 @@ describe("fromAST", () => {
         })
 
         assertFromAST(A, {
-          representation: { _tag: "Reference", $ref: "_" },
+          representation: { _tag: "Reference", $ref: "Objects$" },
           references: {
-            _: {
+            Objects$: {
               _tag: "Objects",
               propertySignatures: [
                 {
@@ -536,7 +536,7 @@ describe("fromAST", () => {
                   type: {
                     _tag: "Suspend",
                     checks: [],
-                    thunk: { _tag: "Reference", $ref: "_" }
+                    thunk: { _tag: "Reference", $ref: "Objects$" }
                   },
                   isOptional: true,
                   isMutable: false
@@ -596,7 +596,7 @@ describe("fromAST", () => {
             propertySignatures: [
               {
                 name: "a",
-                type: { _tag: "Reference", $ref: "_1" },
+                type: { _tag: "Reference", $ref: "Suspend$" },
                 isOptional: true,
                 isMutable: false
               }
@@ -605,7 +605,7 @@ describe("fromAST", () => {
             checks: []
           },
           references: {
-            _1: {
+            Suspend$: {
               _tag: "Suspend",
               checks: [],
               thunk: {
@@ -614,7 +614,7 @@ describe("fromAST", () => {
                 propertySignatures: [
                   {
                     name: "a",
-                    type: { _tag: "Reference", $ref: "_1" },
+                    type: { _tag: "Reference", $ref: "Suspend$" },
                     isOptional: true,
                     isMutable: false
                   }
@@ -636,9 +636,9 @@ describe("fromAST", () => {
         })
 
         assertFromAST(A, {
-          representation: { _tag: "Reference", $ref: "_" },
+          representation: { _tag: "Reference", $ref: "Objects$" },
           references: {
-            _: {
+            Objects$: {
               _tag: "Objects",
               propertySignatures: [
                 {
@@ -647,7 +647,7 @@ describe("fromAST", () => {
                     _tag: "Suspend",
                     annotations: { identifier: "A" },
                     checks: [],
-                    thunk: { _tag: "Reference", $ref: "_" }
+                    thunk: { _tag: "Reference", $ref: "Objects$" }
                   },
                   isOptional: true,
                   isMutable: false

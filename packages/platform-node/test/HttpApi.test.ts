@@ -350,7 +350,7 @@ describe("HttpApi", () => {
                         "enum": ["HttpApiSchemaError"]
                       },
                       "message": {
-                        "$ref": "#/components/schemas/_1"
+                        "$ref": "#/components/schemas/String$1"
                       }
                     },
                     "required": ["_tag", "message"],
@@ -365,7 +365,7 @@ describe("HttpApi", () => {
           }
         })
         assert.deepStrictEqual(spec.components.schemas, {
-          _1: {
+          String$1: {
             "type": "string"
           }
         })
@@ -403,7 +403,7 @@ describe("HttpApi", () => {
           }
         })
         assert.deepStrictEqual(spec.components.schemas, {
-          _1: {
+          String$1: {
             "type": "string"
           },
           "effect/HttpApiSchemaError": {
@@ -414,7 +414,7 @@ describe("HttpApi", () => {
                 "enum": ["HttpApiSchemaError"]
               },
               "message": {
-                "$ref": "#/components/schemas/_1"
+                "$ref": "#/components/schemas/String$1"
               }
             },
             "required": ["_tag", "message"],
@@ -448,7 +448,7 @@ describe("HttpApi", () => {
                         "enum": ["HttpApiSchemaError"]
                       },
                       "message": {
-                        "$ref": "#/components/schemas/_1"
+                        "$ref": "#/components/schemas/String$1"
                       }
                     },
                     "required": ["_tag", "message"],
@@ -456,7 +456,7 @@ describe("HttpApi", () => {
                   },
                   {
                     "anyOf": [
-                      { "$ref": "#/components/schemas/_1" },
+                      { "$ref": "#/components/schemas/String$1" },
                       { "type": "number" }
                     ]
                   }
@@ -466,7 +466,7 @@ describe("HttpApi", () => {
           }
         })
         assert.deepStrictEqual(spec.components.schemas, {
-          _1: {
+          String$1: {
             "type": "string"
           }
         })
@@ -489,7 +489,7 @@ describe("HttpApi", () => {
             "application/json": {
               "schema": {
                 "anyOf": [
-                  { "$ref": "#/components/schemas/_1" },
+                  { "$ref": "#/components/schemas/String$1" },
                   {
                     "type": "number"
                   }
@@ -499,7 +499,7 @@ describe("HttpApi", () => {
           }
         })
         assert.deepStrictEqual(spec.components.schemas, {
-          _1: {
+          String$1: {
             "type": "string"
           }
         })
@@ -532,7 +532,7 @@ describe("HttpApi", () => {
                         "enum": ["HttpApiSchemaError"]
                       },
                       "message": {
-                        "$ref": "#/components/schemas/_1"
+                        "$ref": "#/components/schemas/String$1"
                       }
                     },
                     "required": ["_tag", "message"],
@@ -560,7 +560,7 @@ describe("HttpApi", () => {
           }
         })
         assert.deepStrictEqual(spec.components.schemas, {
-          _1: {
+          String$1: {
             "type": "string"
           }
         })
@@ -593,7 +593,7 @@ describe("HttpApi", () => {
                         "enum": ["HttpApiSchemaError"]
                       },
                       "message": {
-                        "$ref": "#/components/schemas/_1"
+                        "$ref": "#/components/schemas/String$1"
                       }
                     },
                     "required": ["_tag", "message"],
@@ -601,7 +601,7 @@ describe("HttpApi", () => {
                   },
                   {
                     "anyOf": [
-                      { "$ref": "#/components/schemas/_1" },
+                      { "$ref": "#/components/schemas/String$1" },
                       { "type": "number" }
                     ]
                   }
@@ -611,7 +611,7 @@ describe("HttpApi", () => {
           }
         })
         assert.deepStrictEqual(spec.components.schemas, {
-          _1: {
+          String$1: {
             "type": "string"
           }
         })
@@ -647,14 +647,14 @@ describe("HttpApi", () => {
                         "enum": ["HttpApiSchemaError"]
                       },
                       "message": {
-                        "$ref": "#/components/schemas/_1"
+                        "$ref": "#/components/schemas/String$1"
                       }
                     },
                     "required": ["_tag", "message"],
                     "additionalProperties": false
                   },
                   {
-                    "$ref": "#/components/schemas/_1"
+                    "$ref": "#/components/schemas/String$1"
                   }
                 ]
               }
@@ -662,7 +662,7 @@ describe("HttpApi", () => {
           }
         })
         assert.deepStrictEqual(spec.components.schemas, {
-          _1: {
+          String$1: {
             "type": "string"
           }
         })

@@ -131,11 +131,11 @@ describe("toCodeDocument", () => {
       assertToCodeDocument(
         { schema: Schema.Option(Schema.String) },
         {
-          codes: makeCode("Schema.Option(_1)", "Option.Option<_1>"),
+          codes: makeCode("Schema.Option(String$)", "Option.Option<String$>"),
           references: {
             nonRecursives: [
               {
-                $ref: "_1",
+                $ref: "String$",
                 code: makeCode("Schema.String", "string")
               }
             ]
@@ -152,15 +152,15 @@ describe("toCodeDocument", () => {
       assertToCodeDocument(
         { schema: Schema.Result(Schema.String, Schema.Number) },
         {
-          codes: makeCode("Schema.Result(_1, _2)", "Result.Result<_1, _2>"),
+          codes: makeCode("Schema.Result(String$, Number$)", "Result.Result<String$, Number$>"),
           references: {
             nonRecursives: [
               {
-                $ref: "_1",
+                $ref: "String$",
                 code: makeCode("Schema.String", "string")
               },
               {
-                $ref: "_2",
+                $ref: "Number$",
                 code: makeCode("Schema.Number", "number")
               }
             ]
@@ -175,15 +175,15 @@ describe("toCodeDocument", () => {
 
     it("CauseFailure(String, Number)", () => {
       assertToCodeDocument({ schema: Schema.CauseFailure(Schema.String, Schema.Number) }, {
-        codes: makeCode("Schema.CauseFailure(_1, _2)", "Cause.Failure<_1, _2>"),
+        codes: makeCode("Schema.CauseFailure(String$, Number$)", "Cause.Failure<String$, Number$>"),
         references: {
           nonRecursives: [
             {
-              $ref: "_1",
+              $ref: "String$",
               code: makeCode("Schema.String", "string")
             },
             {
-              $ref: "_2",
+              $ref: "Number$",
               code: makeCode("Schema.Number", "number")
             }
           ]
@@ -194,15 +194,15 @@ describe("toCodeDocument", () => {
 
     it("Cause(String, Number)", () => {
       assertToCodeDocument({ schema: Schema.Cause(Schema.String, Schema.Number) }, {
-        codes: makeCode("Schema.Cause(_1, _2)", "Cause.Cause<_1, _2>"),
+        codes: makeCode("Schema.Cause(String$, Number$)", "Cause.Cause<String$, Number$>"),
         references: {
           nonRecursives: [
             {
-              $ref: "_1",
+              $ref: "String$",
               code: makeCode("Schema.String", "string")
             },
             {
-              $ref: "_2",
+              $ref: "Number$",
               code: makeCode("Schema.Number", "number")
             }
           ]
@@ -213,19 +213,19 @@ describe("toCodeDocument", () => {
 
     it("Exit(String, Number, String)", () => {
       assertToCodeDocument({ schema: Schema.Exit(Schema.String, Schema.Number, Schema.Boolean) }, {
-        codes: makeCode("Schema.Exit(_1, _2, _3)", "Exit.Exit<_1, _2, _3>"),
+        codes: makeCode("Schema.Exit(String$, Number$, Boolean$)", "Exit.Exit<String$, Number$, Boolean$>"),
         references: {
           nonRecursives: [
             {
-              $ref: "_1",
+              $ref: "String$",
               code: makeCode("Schema.String", "string")
             },
             {
-              $ref: "_2",
+              $ref: "Number$",
               code: makeCode("Schema.Number", "number")
             },
             {
-              $ref: "_3",
+              $ref: "Boolean$",
               code: makeCode("Schema.Boolean", "boolean")
             }
           ]
@@ -1314,12 +1314,12 @@ describe("toCodeDocument", () => {
       })
 
       assertToCodeDocument({ schema: A }, {
-        codes: makeCode(`_`, `_`),
+        codes: makeCode(`Objects$`, `Objects$`),
         references: {
           recursives: {
-            _: makeCode(
-              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<_> => _)) })`,
-              `{ readonly "a"?: _ }`
+            Objects$: makeCode(
+              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<Objects$> => Objects$)) })`,
+              `{ readonly "a"?: Objects$ }`
             )
           }
         }
@@ -1357,14 +1357,14 @@ describe("toCodeDocument", () => {
 
       assertToCodeDocument({ schema: A }, {
         codes: makeCode(
-          `Schema.Struct({ "a": Schema.optionalKey(_1) })`,
-          `{ readonly "a"?: _1 }`
+          `Schema.Struct({ "a": Schema.optionalKey(Suspend$) })`,
+          `{ readonly "a"?: Suspend$ }`
         ),
         references: {
           recursives: {
-            _1: makeCode(
-              `Schema.suspend((): Schema.Codec<{ readonly "a"?: _1 }> => Schema.Struct({ "a": Schema.optionalKey(_1) }).annotate({ "identifier": "A" }))`,
-              `{ readonly "a"?: _1 }`
+            Suspend$: makeCode(
+              `Schema.suspend((): Schema.Codec<{ readonly "a"?: Suspend$ }> => Schema.Struct({ "a": Schema.optionalKey(Suspend$) }).annotate({ "identifier": "A" }))`,
+              `{ readonly "a"?: Suspend$ }`
             )
           }
         }
@@ -1380,12 +1380,12 @@ describe("toCodeDocument", () => {
       })
 
       assertToCodeDocument({ schema: A }, {
-        codes: makeCode(`_`, `_`),
+        codes: makeCode(`Objects$`, `Objects$`),
         references: {
           recursives: {
-            _: makeCode(
-              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<_> => _).annotate({ "identifier": "A" })) })`,
-              `{ readonly "a"?: _ }`
+            Objects$: makeCode(
+              `Schema.Struct({ "a": Schema.optionalKey(Schema.suspend((): Schema.Codec<Objects$> => Objects$).annotate({ "identifier": "A" })) })`,
+              `{ readonly "a"?: Objects$ }`
             )
           }
         }
