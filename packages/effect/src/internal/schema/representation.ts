@@ -26,7 +26,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
   const uniqueReferences = new Set<string>()
   const usedReferences = new Set<string>()
 
-  const schemas = Arr.map(asts, recur)
+  const schemas = Arr.map(asts, (ast) => recur(ast))
 
   return {
     representations: Arr.map(schemas, compact),
@@ -100,19 +100,19 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
     }
   }
 
-  function gen(seed: string = "_"): string {
-    let candidate = seed
+  function gen(prefix: string = "_"): string {
+    let candidate = prefix
     let suffix = 0
 
     while (uniqueReferences.has(candidate)) {
-      candidate = `${seed}${++suffix}`
+      candidate = `${prefix}${++suffix}`
     }
 
     uniqueReferences.add(candidate)
     return candidate
   }
 
-  function recur(ast: AST.AST): SchemaRepresentation.Representation {
+  function recur(ast: AST.AST, prefix?: string): SchemaRepresentation.Representation {
     const found = referenceMap.get(ast)
     if (found !== undefined) {
       usedReferences.add(found)
@@ -122,13 +122,13 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
     const last = getLastEncoding(ast)
 
     if (ast === last) {
-      const reference = gen(InternalAnnotations.resolveIdentifier(ast))
+      const reference = gen(InternalAnnotations.resolveIdentifier(ast) ?? prefix)
       referenceMap.set(ast, reference)
       const out = on(ast)
       references[reference] = out
       return { _tag: "Reference", $ref: reference }
     } else {
-      return recur(last)
+      return recur(last, InternalAnnotations.resolveIdentifier(ast) ?? prefix)
     }
   }
 
@@ -152,7 +152,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
       case "Declaration":
         return {
           _tag: "Declaration",
-          typeParameters: last.typeParameters.map(recur),
+          typeParameters: last.typeParameters.map((ast) => recur(ast)),
           encodedSchema: recur(getEncodedSchema(last)),
           checks: fromASTChecks(last.checks),
           ...annotations
@@ -211,7 +211,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
       case "TemplateLiteral":
         return {
           _tag: last._tag,
-          parts: last.parts.map(recur),
+          parts: last.parts.map((ast) => recur(ast)),
           ...annotations
         }
       case "Arrays":
@@ -225,7 +225,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
               ...fromASTAnnotations(last.context?.annotations)
             }
           }),
-          rest: last.rest.map(recur),
+          rest: last.rest.map((ast) => recur(ast)),
           checks: fromASTChecks(last.checks),
           ...annotations
         }
@@ -253,7 +253,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
         const types = InternalToCodec.jsonReorder(last.types)
         return {
           _tag: last._tag,
-          types: types.map(recur),
+          types: types.map((ast) => recur(ast)),
           mode: last.mode,
           ...annotations
         }

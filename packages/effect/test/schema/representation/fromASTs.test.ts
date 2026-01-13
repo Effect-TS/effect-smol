@@ -733,5 +733,45 @@ describe("fromAST", () => {
         })
       })
     })
+
+    describe("transformation schemas with identifiers", () => {
+      it("Class", () => {
+        class A extends Schema.Class<A>("A")({
+          a: Schema.String
+        }) {}
+        assertFromAST(Schema.Tuple([A, A]), {
+          representation: {
+            _tag: "Arrays",
+            elements: [
+              {
+                isOptional: false,
+                type: { _tag: "Reference", $ref: "A" }
+              },
+              {
+                isOptional: false,
+                type: { _tag: "Reference", $ref: "A" }
+              }
+            ],
+            rest: [],
+            checks: []
+          },
+          references: {
+            A: {
+              _tag: "Objects",
+              propertySignatures: [
+                {
+                  name: "a",
+                  type: { _tag: "String", checks: [] },
+                  isOptional: false,
+                  isMutable: false
+                }
+              ],
+              indexSignatures: [],
+              checks: []
+            }
+          }
+        })
+      })
+    })
   })
 })

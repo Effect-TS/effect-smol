@@ -393,7 +393,7 @@ describe("HttpApi", () => {
             "application/json": {
               "schema": {
                 "anyOf": [
-                  { "$ref": "#/components/schemas/_3" },
+                  { "$ref": "#/components/schemas/effect~1HttpApiSchemaError" },
                   {
                     "type": "integer"
                   }
@@ -406,7 +406,7 @@ describe("HttpApi", () => {
           _1: {
             "type": "string"
           },
-          _3: {
+          "effect/HttpApiSchemaError": {
             "type": "object",
             "properties": {
               "_tag": {
