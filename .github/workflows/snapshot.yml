@@ -30,7 +30,7 @@ jobs:
       - name: Run codemods
         run: pnpm codemod
       - name: Build package
-        run: pnpm build
+        run: pnpm build:tsgo
       - name: Create snapshot
         id: snapshot
         run: pnpx pkg-pr-new@0.0.28 publish --pnpm --comment=off ./packages/* ./packages/sql/* ./packages/tools/*

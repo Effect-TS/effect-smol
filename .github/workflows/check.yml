@@ -39,7 +39,7 @@ jobs:
         uses: ./.github/actions/setup
         with:
           node-version: 24.10.0
-      - run: pnpm check
+      - run: pnpm check:tsgo
       - run: pnpm test-types --target '>=5.8'
 
   types-deno:
@@ -82,8 +82,8 @@ jobs:
           sed -i 's/"stripInternal": false/"stripInternal": true/' base/tsconfig.base.json
       - name: Build
         run: |
-          pnpm build &
-          cd base && pnpm install && pnpm build &
+          pnpm build:tsgo &
+          cd base && pnpm install && pnpm build:tsgo &
           wait
       - name: Compare bundle size
         id: bundle
