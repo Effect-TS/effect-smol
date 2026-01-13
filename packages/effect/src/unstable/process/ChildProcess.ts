@@ -49,7 +49,7 @@ import type * as PlatformError from "../../PlatformError.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as Sink from "../../Sink.ts"
-import type * as Stream from "../../Stream.ts"
+import * as Stream from "../../Stream.ts"
 import type { ChildProcessHandle } from "./ChildProcessSpawner.ts"
 import { ChildProcessSpawner } from "./ChildProcessSpawner.ts"
 
@@ -763,14 +763,102 @@ export const pipeTo: {
  * @since 4.0.0
  * @category Execution
  */
-export const spawn: (command: Command) => Effect.Effect<
+export const spawn = (command: Command): Effect.Effect<
   ChildProcessHandle,
   PlatformError.PlatformError,
   ChildProcessSpawner | Scope.Scope
-> = Effect.fnUntraced(function*(command) {
-  const executor = yield* ChildProcessSpawner
-  return yield* executor.spawn(command)
-})
+> => ChildProcessSpawner.use((_) => _.spawn(command))
+
+/**
+ * @since 4.0.0
+ * @category Execution
+ */
+export const streamString: {
+  (options?: {
+    readonly includeStderr?: boolean | undefined
+  }): (self: Command) => Stream.Stream<string, PlatformError.PlatformError>
+  (self: Command, options?: {
+    readonly includeStderr?: boolean | undefined
+  }): Stream.Stream<string, PlatformError.PlatformError>
+} = dual(
+  (args) => isCommand(args[0]),
+  (
+    self: Command,
+    options?: { readonly includeStderr?: boolean | undefined }
+  ): Stream.Stream<
+    string,
+    PlatformError.PlatformError,
+    ChildProcessSpawner
+  > =>
+    spawn(self).pipe(
+      Effect.map((handle) =>
+        Stream.decodeText(
+          options?.includeStderr === true ? handle.all : handle.stdout
+        )
+      ),
+      Stream.unwrap
+    )
+)
+
+/**
+ * @since 4.0.0
+ * @category Execution
+ */
+export const streamLines: {
+  (options?: {
+    readonly includeStderr?: boolean | undefined
+  }): (self: Command) => Stream.Stream<string, PlatformError.PlatformError>
+  (self: Command, options?: {
+    readonly includeStderr?: boolean | undefined
+  }): Stream.Stream<string, PlatformError.PlatformError>
+} = dual(
+  (args) => isCommand(args[0]),
+  (self: Command, options?: { readonly includeStderr?: boolean | undefined }): Stream.Stream<
+    string,
+    PlatformError.PlatformError
+  > => Stream.splitLines(streamString(self, options))
+)
+
+/**
+ * @since 4.0.0
+ * @category Execution
+ */
+export const lines: {
+  (options?: {
+    readonly includeStderr?: boolean | undefined
+  }): (self: Command) => Effect.Effect<Array<string>, PlatformError.PlatformError>
+  (self: Command, options?: {
+    readonly includeStderr?: boolean | undefined
+  }): Effect.Effect<Array<string>, PlatformError.PlatformError>
+} = dual(
+  (args) => isCommand(args[0]),
+  (
+    self: Command,
+    options?: { readonly includeStderr?: boolean | undefined }
+  ): Effect.Effect<
+    Array<string>,
+    PlatformError.PlatformError
+  > => Stream.runCollect(streamLines(self, options))
+)
+
+/**
+ * @since 4.0.0
+ * @category Execution
+ */
+export const string: {
+  (options?: {
+    readonly includeStderr?: boolean | undefined
+  }): (self: Command) => Effect.Effect<string, PlatformError.PlatformError>
+  (self: Command, options?: {
+    readonly includeStderr?: boolean | undefined
+  }): Effect.Effect<string, PlatformError.PlatformError>
+} = dual(
+  (args) => isCommand(args[0]),
+  (
+    self: Command,
+    options?: { readonly includeStderr?: boolean | undefined }
+  ): Effect.Effect<string, PlatformError.PlatformError> => Stream.mkString(streamString(self, options))
+)
 
 const isTemplateString = (u: unknown): u is TemplateStringsArray =>
   Array.isArray(u) && "raw" in u && Array.isArray(u.raw)

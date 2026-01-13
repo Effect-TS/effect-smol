@@ -6714,6 +6714,30 @@ export const mkString = <E, R>(self: Stream<string, E, R>): Effect.Effect<string
   )
 
 /**
+ * @since 4.0.0
+ * @category destructors
+ */
+export const mkUint8Array = <E, R>(self: Stream<Uint8Array, E, R>): Effect.Effect<Uint8Array, E, R> =>
+  Channel.runFold(
+    self.channel,
+    () => new Uint8Array(0),
+    (acc, chunk) => {
+      let chunkLength = 0
+      for (let i = 0; i < chunk.length; i++) {
+        chunkLength += chunk[i].length
+      }
+      const result = new Uint8Array(acc.length + chunkLength)
+      result.set(acc, 0)
+      let offset = acc.length
+      for (let i = 0; i < chunk.length; i++) {
+        result.set(chunk[i], offset)
+        offset += chunk[i].length
+      }
+      return result
+    }
+  )
+
+/**
  * Converts the stream to a `ReadableStream`.
  *
  * See https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream.
