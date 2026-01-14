@@ -6,7 +6,6 @@ import type { NoSuchElementError } from "../../Cause.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as FileSystem from "../../FileSystem.ts"
-import * as Filter from "../../Filter.ts"
 import { dual, pipe } from "../../Function.ts"
 import { YieldableProto } from "../../internal/core.ts"
 import * as EffectNumber from "../../Number.ts"
@@ -1822,7 +1821,7 @@ const getFileList = Effect.fnUntraced(function*(directory: string, options: File
         (info) => info.type === "Directory"
       )
       : Effect.succeed(true)
-    return Effect.zipWith(userDefinedFilter, directoryFilter, (a, b) => a && b ? file : Filter.failVoid)
+    return Effect.zipWith(userDefinedFilter, directoryFilter, (a, b) => a && b)
   }, { concurrency: files.length })
 })
 

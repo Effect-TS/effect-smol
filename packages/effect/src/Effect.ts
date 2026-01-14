@@ -3774,13 +3774,13 @@ export const raceFirst: {
 // -----------------------------------------------------------------------------
 
 /**
- * Filters an iterable using the specified effectful Filter.
+ * Filters an iterable using the specified effectful predicate.
  *
  * @example
  * ```ts
- * import { Effect, Filter } from "effect"
+ * import { Effect } from "effect"
  *
- * const isEven = (n: number) => Effect.succeed(n % 2 === 0 ? n : Filter.fail(n))
+ * const isEven = (n: number) => Effect.succeed(n % 2 === 0)
  *
  * const program = Effect.filter([1, 2, 3, 4, 5], isEven)
  *
@@ -3791,11 +3791,17 @@ export const raceFirst: {
  * @since 2.0.0
  * @category Filtering
  */
-export const filter: <A, B, X, E, R>(
-  iterable: Iterable<A>,
-  f: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
-  options?: { readonly concurrency?: Concurrency | undefined }
-) => Effect<Array<B>, E, R> = internal.filter
+export const filter: {
+  <A, E, R>(
+    predicate: (a: NoInfer<A>, i: number) => Effect<boolean, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): (iterable: Iterable<A>) => Effect<Array<A>, E, R>
+  <A, E, R>(
+    iterable: Iterable<A>,
+    predicate: (a: NoInfer<A>, i: number) => Effect<boolean, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): Effect<Array<A>, E, R>
+} = internal.filter
 
 /**
  * Filters an effect, providing an alternative effect if the predicate fails.

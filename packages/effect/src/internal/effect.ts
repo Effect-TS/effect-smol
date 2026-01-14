@@ -3832,32 +3832,43 @@ export const filterOrElse: {
   ))
 
 /** @internal */
-export const filter = <A, B, X, E, R>(
-  iterable: Iterable<A>,
-  f: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
-  options?: {
-    readonly concurrency?: Concurrency | undefined
-  }
-): Effect.Effect<Array<B>, E, R> =>
-  suspend(() => {
-    const out: Array<B> = []
-    return as(
-      forEach(
-        iterable,
-        (a) =>
-          map(f(a), (o) => {
-            if (Filter.isPass(o)) {
-              out.push(o)
-            }
-          }),
-        {
-          discard: true,
-          concurrency: options?.concurrency
-        }
-      ),
-      out
-    )
-  })
+export const filter: {
+  <A, E, R>(
+    predicate: (a: NoInfer<A>, i: number) => Effect.Effect<boolean, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): (elements: Iterable<A>) => Effect.Effect<Array<A>, E, R>
+  <A, E, R>(
+    elements: Iterable<A>,
+    predicate: (a: NoInfer<A>, i: number) => Effect.Effect<boolean, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): Effect.Effect<Array<A>, E, R>
+} = dual(
+  (args) => isIterable(args[0]) && !isEffect(args[0]),
+  <A, E, R>(
+    elements: Iterable<A>,
+    predicate: (a: NoInfer<A>, i: number) => Effect.Effect<boolean, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): Effect.Effect<Array<A>, E, R> =>
+    suspend(() => {
+      const out: Array<A> = []
+      return as(
+        forEach(
+          elements,
+          (a, i) =>
+            map(predicate(a, i), (keep) => {
+              if (keep) {
+                out.push(a)
+              }
+            }),
+          {
+            discard: true,
+            concurrency: options?.concurrency
+          }
+        ),
+        out
+      )
+    })
+)
 
 // ----------------------------------------------------------------------------
 // do notation

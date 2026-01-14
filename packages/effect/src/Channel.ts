@@ -3083,7 +3083,22 @@ export const filterArrayEffect: {
   filter_: Filter.FilterEffect<OutElem, B, X, E, R>
 ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
   transformPull(self, (pull) => {
-    const filter = Effect.flatMap(pull, (arr) => Effect.filter(arr, filter_))
+    const filter = Effect.flatMap(pull, (arr) => {
+      const out: Array<B> = []
+      return Effect.as(
+        Effect.forEach(
+          arr,
+          (elem) =>
+            Effect.map(filter_(elem), (result) => {
+              if (Filter.isPass(result)) {
+                out.push(result)
+              }
+            }),
+          { discard: true }
+        ),
+        out
+      )
+    })
     return Effect.succeed(Effect.flatMap(
       filter,
       function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, Env | R> {
