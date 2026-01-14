@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "./Array.ts"
 import { unescapeToken } from "./JsonPointer.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
@@ -323,18 +324,15 @@ export function toSchemaDraft07(schema: JsonSchema): JsonSchema {
 /**
  * @since 4.0.0
  */
-export function toDocumentOpenApi3_1(document: Document<"draft-2020-12">): Document<"openapi-3.1"> {
+export function toMultiDocumentOpenApi3_1(multiDocument: MultiDocument<"draft-2020-12">): MultiDocument<"openapi-3.1"> {
   return {
     dialect: "openapi-3.1",
-    schema: toSchemaOpenApi3_1(document.schema),
-    definitions: Rec.map(document.definitions, toSchemaOpenApi3_1)
+    schemas: Arr.map(multiDocument.schemas, toSchemaOpenApi3_1),
+    definitions: Rec.map(multiDocument.definitions, toSchemaOpenApi3_1)
   }
 }
 
-/**
- * @since 4.0.0
- */
-export function toSchemaOpenApi3_1(schema: JsonSchema): JsonSchema {
+function toSchemaOpenApi3_1(schema: JsonSchema): JsonSchema {
   return rewrite_refs(schema, RE_DEFS, "#/components/schemas") as JsonSchema
 }
 

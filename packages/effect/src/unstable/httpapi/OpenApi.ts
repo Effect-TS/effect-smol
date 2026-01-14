@@ -431,6 +431,9 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
     componentSchemas.forEach((componentSchema) => {
       const identifier = AST.resolveIdentifier(componentSchema.ast)
       if (identifier !== undefined) {
+        if (identifier in spec.components.schemas) {
+          throw new globalThis.Error(`Duplicate component schema identifier: ${identifier}`)
+        }
         spec.components.schemas[identifier] = {}
         irOps.push({ _tag: "schema", ast: componentSchema.ast, path: ["components", "schemas", identifier] })
       }
@@ -443,10 +446,12 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
 
   if (Arr.isArrayNonEmpty(irOps)) {
     const multiDocument = SchemaRepresentation.fromASTs(Arr.map(irOps, ({ ast }) => ast))
-    const jsonSchemaMultiDocument = SchemaRepresentation.toJsonSchemaMultiDocument(multiDocument)
+    const jsonSchemaMultiDocument = JsonSchema.toMultiDocumentOpenApi3_1(
+      SchemaRepresentation.toJsonSchemaMultiDocument(multiDocument)
+    )
     const patchOps: Array<JsonPatch.JsonPatchOperation> = irOps.map((op, i) => {
       const oppath = escapePath(op.path)
-      const value = JsonSchema.toSchemaOpenApi3_1(jsonSchemaMultiDocument.schemas[i])
+      const value = jsonSchemaMultiDocument.schemas[i]
       return {
         op: "replace",
         path: oppath,
@@ -458,7 +463,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
       patchOps.push({
         op: "add",
         path: escapePath(["components", "schemas", name]),
-        value: JsonSchema.toSchemaOpenApi3_1(definition) as Schema.Json
+        value: definition as Schema.Json
       })
     })
 
