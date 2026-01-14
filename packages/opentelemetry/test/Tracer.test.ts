@@ -4,7 +4,11 @@ import { assert, describe, it } from "@effect/vitest"
 import * as OtelApi from "@opentelemetry/api"
 import { AsyncHooksContextManager } from "@opentelemetry/context-async-hooks"
 import { InMemorySpanExporter, SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base"
+import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node"
+import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
+import * as ServiceMap from "effect/ServiceMap"
 
 const TracingLive = NodeSdk.layer(Effect.sync(() => ({
   resource: {
@@ -70,6 +74,43 @@ describe("Tracer", () => {
         Effect.withSpan("ok"),
         Effect.provide(TracingLive)
       ))
+
+    it.effect("records every pretty error", () =>
+      Effect.gen(function*() {
+        const exporter = new InMemorySpanExporter()
+        const spanProcessor = new SimpleSpanProcessor(exporter)
+        const provider = new NodeTracerProvider({
+          spanProcessors: [spanProcessor]
+        })
+        const tracer = provider.getTracer("test")
+        const firstFailure = Cause.fail(new Error("first")).failures[0]
+        const secondFailure = Cause.fail(new Error("second")).failures[0]
+        const cause = Cause.fromFailures([firstFailure, secondFailure])
+        const span = new Tracer.OtelSpan(
+          OtelApi.context,
+          OtelApi.trace,
+          tracer,
+          "boom",
+          undefined,
+          ServiceMap.empty(),
+          [],
+          BigInt(0),
+          "internal",
+          undefined
+        )
+
+        span.end(BigInt(1), Exit.failCause(cause))
+        yield* Effect.promise(() => spanProcessor.forceFlush())
+
+        const spanData = exporter.getFinishedSpans()[0]
+        if (spanData === undefined) {
+          return yield* Effect.die("Missing span data")
+        }
+        const exceptionEvents = spanData.events.filter((event) => event.name === "exception")
+        assert.lengthOf(exceptionEvents, 2)
+        assert.strictEqual(spanData.status.message, "first")
+        yield* Effect.promise(() => provider.shutdown())
+      }))
 
     it.effect("withSpanContext", () =>
       Effect.gen(function*() {

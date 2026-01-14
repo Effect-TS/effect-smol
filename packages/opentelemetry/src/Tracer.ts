@@ -442,13 +442,16 @@ export class OtelSpan implements Tracer.Span {
         this.span.setAttribute("span.label", "⚠︎ Interrupted")
         this.span.setAttribute("status.interrupted", true)
       } else {
-        const firstError = Cause.prettyErrors(exit.cause)[0]
-        if (firstError) {
-          firstError.stack = Cause.pretty(exit.cause)
-          this.span.recordException(firstError, hrTime)
+        const errors = Cause.prettyErrors(exit.cause)
+        if (errors.length > 0) {
+          const prettyCause = Cause.pretty(exit.cause)
+          for (const error of errors) {
+            error.stack = prettyCause
+            this.span.recordException(error, hrTime)
+          }
           this.span.setStatus({
             code: Otel.SpanStatusCode.ERROR,
-            message: firstError.message
+            message: errors[0].message
           })
         } else {
           // empty cause means no error
