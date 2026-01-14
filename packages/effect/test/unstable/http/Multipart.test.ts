@@ -46,23 +46,23 @@ describe("Multipart", () => {
           "type": "object",
           "properties": {
             "key": {
-              "$ref": "#/$defs/String$"
+              "$ref": "#/$defs/String_"
             },
             "name": {
-              "$ref": "#/$defs/String$"
+              "$ref": "#/$defs/String_"
             },
             "contentType": {
-              "$ref": "#/$defs/String$"
+              "$ref": "#/$defs/String_"
             },
             "path": {
-              "$ref": "#/$defs/String$"
+              "$ref": "#/$defs/String_"
             }
           },
           "required": ["key", "name", "contentType", "path"],
           "additionalProperties": false
         },
         definitions: {
-          String$: {
+          String_: {
             "type": "string"
           }
         }

@@ -465,6 +465,13 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
     spec = JsonPatch.apply(patchOps, spec as any) as any
   }
 
+  // TODO
+  // Object.keys(spec.components.schemas).forEach((key) => {
+  //   if (!componetsKeyRegExp.test(key)) {
+  //     throw new globalThis.Error(`Invalid component schema key: ${key}`)
+  //   }
+  // })
+
   processAnnotation(api.annotations, Override, (override) => {
     Object.assign(spec, override)
   })
@@ -476,6 +483,8 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
 
   return spec
 }
+
+// const componetsKeyRegExp = /^[a-zA-Z0-9.\-_]+$/
 
 const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme => {
   const meta: Partial<OpenAPISecurityScheme> = {}

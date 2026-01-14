@@ -124,7 +124,7 @@ export function fromASTs(asts: readonly [AST.AST, ...Array<AST.AST>]): SchemaRep
     if (ast === last) {
       const reference = ast._tag === "Declaration"
         ? gen(ast._tag)
-        : gen(InternalAnnotations.resolveIdentifier(ast) ?? prefix ?? `${ast._tag}$`)
+        : gen(InternalAnnotations.resolveIdentifier(ast) ?? prefix ?? `${ast._tag}_`)
 
       const encodedSchemaPrefix = ast._tag === "Declaration"
         ? InternalAnnotations.resolveIdentifier(ast) ?? prefix
