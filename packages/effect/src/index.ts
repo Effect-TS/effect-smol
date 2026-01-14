@@ -974,17 +974,111 @@ export * as Inspectable from "./Inspectable.ts"
 export * as Iterable from "./Iterable.ts"
 
 /**
+ * JSON Patch operations for transforming JSON documents.
+ *
+ * This module implements a subset of RFC 6902, providing operations that can be applied deterministically without additional context. It supports computing structural diffs between JSON values and applying patches to transform documents.
+ *
+ * ## Mental model
+ *
+ * - **JSON Patch**: An ordered sequence of operations that transform a document from one state to another
+ * - **JSON Pointer**: Path syntax for targeting specific locations in a JSON document (e.g., `/users/0/name`)
+ * - **Operations**: Three types - `add` (insert value), `remove` (delete value), `replace` (update value)
+ * - **Immutable transformations**: All operations return new values; inputs are never mutated
+ * - **Sequential application**: Operations are applied in order, with later operations observing changes from earlier ones
+ * - **Structural diff**: The `get` function computes differences by comparing structure, not content semantics
+ *
+ * ## Common tasks
+ *
+ * - Computing diffs between JSON values → {@link get}
+ * - Applying patches to transform documents → {@link apply}
+ * - Creating patches manually → {@link JsonPatchOperation}
+ * - Storing and validating patch documents → {@link JsonPatch}
+ *
+ * ## Gotchas
+ *
+ * - Array removals are emitted from highest index to lowest to avoid index shifting during application
+ * - Root operations use an empty string path `""` to target the entire document
+ * - Array append operations use `-` as the last token in the path (e.g., `/items/-`)
+ * - Generated patches are deterministic but not guaranteed to be minimal
+ * - Empty patches return the original document reference (no allocation)
+ * - Invalid paths or operations throw errors rather than returning a result type
+ *
+ * ## Quickstart
+ *
+ * **Example** (Computing and applying a patch)
+ *
+ * ```ts
+ * import * as JsonPatch from "effect/JsonPatch"
+ *
+ * const oldValue = { name: "Alice", age: 30 }
+ * const newValue = { name: "Alice", age: 31, city: "NYC" }
+ *
+ * const patch = JsonPatch.get(oldValue, newValue)
+ * // [{ op: "replace", path: "/age", value: 31 }, { op: "add", path: "/city", value: "NYC" }]
+ *
+ * const result = JsonPatch.apply(patch, oldValue)
+ * // { name: "Alice", age: 31, city: "NYC" }
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link JsonPointer} - Utilities for working with JSON Pointer paths
+ * - {@link Schema.Json} - The JSON value type used by this module
+ *
  * @since 4.0.0
  */
 export * as JsonPatch from "./JsonPatch.ts"
 
 /**
- * Utilities for working with JSON Pointer reference tokens.
+ * Utilities for escaping and unescaping JSON Pointer reference tokens according to RFC 6901.
  *
- * JSON Pointer (RFC 6901) defines a string syntax for identifying a specific value
- * within a JSON document. A JSON Pointer is a sequence of reference tokens separated
- * by forward slashes (`/`). Each reference token may need to be escaped when it contains
- * special characters.
+ * JSON Pointer (RFC 6901) defines a string syntax for identifying a specific value within a JSON document.
+ * A JSON Pointer is a sequence of reference tokens separated by forward slashes (`/`). Each reference token
+ * must be escaped when it contains special characters (`~` or `/`).
+ *
+ * ## Mental model
+ *
+ * - **Reference token**: A single segment of a JSON Pointer path (e.g., `"foo"`, `"bar/baz"`, `"key~with~tilde"`)
+ * - **Escaping**: Encoding special characters in a token so it can be safely used in a JSON Pointer (`~` → `~0`, `/` → `~1`)
+ * - **Unescaping**: Decoding escaped characters back to their original form (`~0` → `~`, `~1` → `/`)
+ * - **RFC 6901 compliance**: These functions implement the standard escaping rules for JSON Pointer reference tokens
+ * - **Pure functions**: Both operations are pure, immutable, and have no side effects
+ *
+ * ## Common tasks
+ *
+ * - Building JSON Pointers from path segments → {@link escapeToken}
+ * - Parsing JSON Pointers to extract original token values → {@link unescapeToken}
+ * - Escaping object keys or path segments before constructing JSON Pointers → {@link escapeToken}
+ * - Extracting unescaped identifiers from JSON Pointer strings → {@link unescapeToken}
+ *
+ * ## Gotchas
+ *
+ * - These functions operate on **reference tokens**, not full JSON Pointers. A full JSON Pointer like `/foo/bar` must be split into tokens (`["foo", "bar"]`) before escaping/unescaping
+ * - The order of replacement operations matters: `escapeToken` replaces `~` before `/` to avoid double-escaping
+ * - Empty strings are valid tokens and are returned unchanged
+ * - These functions do not validate JSON Pointer syntax; they only handle token-level escaping
+ *
+ * ## Quickstart
+ *
+ * **Example** (Building and parsing a JSON Pointer)
+ *
+ * ```ts
+ * import { escapeToken, unescapeToken } from "effect/JsonPointer"
+ *
+ * // Build a JSON Pointer from path segments
+ * const segments = ["users", "name/alias", "value"]
+ * const pointer = "/" + segments.map(escapeToken).join("/")
+ * // "/users/name~1alias/value"
+ *
+ * // Parse a JSON Pointer back to segments
+ * const tokens = pointer.split("/").slice(1).map(unescapeToken)
+ * // ["users", "name/alias", "value"]
+ * ```
+ *
+ * ## See also
+ *
+ * - {@link JsonPatch} - Uses these utilities for JSON Patch operations
+ * - {@link JsonSchema} - Uses these utilities for schema reference resolution
  *
  * @since 4.0.0
  */
