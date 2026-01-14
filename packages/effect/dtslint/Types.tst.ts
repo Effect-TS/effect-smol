@@ -322,4 +322,47 @@ describe("Types", () => {
       expect<Types.MatchRecord<{ a: number }, 1, 0>>().type.toBe<0>()
     })
   })
+
+  describe("ReasonOf", () => {
+    it("extracts reason type from error with reason field", () => {
+      type RateLimitError = { readonly _tag: "RateLimitError"; readonly retryAfter: number }
+      type QuotaError = { readonly _tag: "QuotaError"; readonly limit: number }
+      type AiError = { readonly _tag: "AiError"; readonly reason: RateLimitError | QuotaError }
+      expect<Types.ReasonOf<AiError>>().type.toBe<RateLimitError | QuotaError>()
+    })
+
+    it("returns never for error without reason field", () => {
+      type SimpleError = { readonly _tag: "SimpleError"; readonly code: number }
+      expect<Types.ReasonOf<SimpleError>>().type.toBe<never>()
+    })
+  })
+
+  describe("ReasonTags", () => {
+    it("extracts reason tags from error", () => {
+      type RateLimitError = { readonly _tag: "RateLimitError" }
+      type QuotaError = { readonly _tag: "QuotaError" }
+      type AiError = { readonly _tag: "AiError"; readonly reason: RateLimitError | QuotaError }
+      expect<Types.ReasonTags<AiError> & unknown>().type.toBe<"RateLimitError" | "QuotaError">()
+    })
+
+    it("returns never for error without reason field", () => {
+      type SimpleError = { readonly _tag: "SimpleError"; readonly code: number }
+      expect<Types.ReasonTags<SimpleError>>().type.toBe<never>()
+    })
+  })
+
+  describe("ExtractReason", () => {
+    it("extracts specific reason variant by tag", () => {
+      type RateLimitError = { readonly _tag: "RateLimitError"; readonly retryAfter: number }
+      type QuotaError = { readonly _tag: "QuotaError"; readonly limit: number }
+      type AiError = { readonly _tag: "AiError"; readonly reason: RateLimitError | QuotaError }
+      expect<Types.ExtractReason<AiError, "RateLimitError">>().type.toBe<RateLimitError>()
+    })
+
+    it("returns never for non-matching tag", () => {
+      type RateLimitError = { readonly _tag: "RateLimitError" }
+      type AiError = { readonly _tag: "AiError"; readonly reason: RateLimitError }
+      expect<Types.ExtractReason<AiError, "Invalid">>().type.toBe<never>()
+    })
+  })
 })

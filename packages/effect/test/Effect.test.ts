@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
+import { assertExitFailure } from "@effect/vitest/utils"
 import {
   Cause,
   Data,
@@ -1618,5 +1619,164 @@ describe("Effect", () => {
         assert.deepStrictEqual(result, [1, "a"])
       })
     })
+  })
+
+  describe("catchReason", () => {
+    class RateLimitError extends Data.TaggedError("RateLimitError")<{
+      readonly retryAfter: number
+    }> {}
+
+    class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+      readonly limit: number
+    }> {}
+
+    class AiError extends Data.TaggedError("AiError")<{
+      readonly reason: RateLimitError | QuotaExceededError
+    }> {}
+
+    class OtherError extends Data.TaggedError("OtherError")<{
+      readonly message: string
+    }> {}
+
+    it.effect("catches matching reason - handler succeeds", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.fail(
+          new AiError({ reason: new RateLimitError({ retryAfter: 60 }) })
+        ).pipe(
+          Effect.catchReason("AiError", "RateLimitError", (r) => Effect.succeed(`retry: ${r.retryAfter}`))
+        )
+        assert.strictEqual(result, "retry: 60")
+      }))
+
+    it.effect("catches matching reason - handler fails", () =>
+      Effect.gen(function*() {
+        const reason = new RateLimitError({ retryAfter: 60 })
+        const error = new OtherError({ message: "handled" })
+        const exit = yield* Effect.fail(new AiError({ reason })).pipe(
+          Effect.catchReason("AiError", "RateLimitError", () => Effect.fail(error)),
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail(error))
+      }))
+
+    it.effect("ignores non-matching reason", () =>
+      Effect.gen(function*() {
+        const reason = new QuotaExceededError({ limit: 100 })
+        const exit = yield* Effect.fail(new AiError({ reason })).pipe(
+          Effect.catchReason("AiError", "RateLimitError", () => Effect.succeed("no")),
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail(new AiError({ reason })))
+      }))
+
+    it.effect("ignores non-matching parent tag", () =>
+      Effect.gen(function*() {
+        const error = new OtherError({ message: "test" })
+        const exit = yield* (Effect.fail(error) as Effect.Effect<never, AiError | OtherError>).pipe(
+          Effect.catchReason("AiError", "RateLimitError", () => Effect.succeed("no")),
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail(error))
+      }))
+  })
+
+  describe("catchReasons", () => {
+    class RateLimitError extends Data.TaggedError("RateLimitError")<{
+      readonly retryAfter: number
+    }> {}
+
+    class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+      readonly limit: number
+    }> {}
+
+    class AiError extends Data.TaggedError("AiError")<{
+      readonly reason: RateLimitError | QuotaExceededError
+    }> {}
+
+    it.effect("catches with object handlers", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.fail(
+          new AiError({ reason: new RateLimitError({ retryAfter: 60 }) })
+        ).pipe(
+          Effect.catchReasons("AiError", {
+            RateLimitError: (r) => Effect.succeed(`rate: ${r.retryAfter}`),
+            QuotaExceededError: (r) => Effect.succeed(`quota: ${r.limit}`)
+          })
+        )
+        assert.strictEqual(result, "rate: 60")
+      }))
+
+    it.effect("catches second reason type", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.fail(
+          new AiError({ reason: new QuotaExceededError({ limit: 100 }) })
+        ).pipe(
+          Effect.catchReasons("AiError", {
+            RateLimitError: (r) => Effect.succeed(`rate: ${r.retryAfter}`),
+            QuotaExceededError: (r) => Effect.succeed(`quota: ${r.limit}`)
+          })
+        )
+        assert.strictEqual(result, "quota: 100")
+      }))
+
+    it.effect("partial handlers - unhandled passes through", () =>
+      Effect.gen(function*() {
+        const reason = new QuotaExceededError({ limit: 100 })
+        const exit = yield* Effect.fail(new AiError({ reason })).pipe(
+          Effect.catchReasons("AiError", {
+            RateLimitError: () => Effect.succeed("handled")
+          }),
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail(new AiError({ reason })))
+      }))
+  })
+
+  describe("unwrapReason", () => {
+    class RateLimitError extends Data.TaggedError("RateLimitError")<{
+      readonly retryAfter: number
+    }> {}
+
+    class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+      readonly limit: number
+    }> {}
+
+    class AiError extends Data.TaggedError("AiError")<{
+      readonly reason: RateLimitError | QuotaExceededError
+    }> {}
+
+    class OtherError extends Data.TaggedError("OtherError")<{
+      readonly message: string
+    }> {}
+
+    it.effect("extracts reason into error channel", () =>
+      Effect.gen(function*() {
+        const reason = new RateLimitError({ retryAfter: 60 })
+        const exit = yield* Effect.fail(new AiError({ reason })).pipe(
+          Effect.unwrapReason("AiError"),
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail(reason))
+      }))
+
+    it.effect("extracts second reason type", () =>
+      Effect.gen(function*() {
+        const reason = new QuotaExceededError({ limit: 100 })
+        const exit = yield* Effect.fail(new AiError({ reason })).pipe(
+          Effect.unwrapReason("AiError"),
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail(reason))
+      }))
+
+    it.effect("preserves other errors", () =>
+      Effect.gen(function*() {
+        const error = new OtherError({ message: "test" })
+        const exit = yield* (Effect.fail(error) as Effect.Effect<never, AiError | OtherError>).pipe(
+          Effect.unwrapReason("AiError"),
+          Effect.exit
+        )
+        assertExitFailure(exit, Cause.fail(error))
+      }))
   })
 })

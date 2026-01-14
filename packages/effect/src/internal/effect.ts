@@ -39,7 +39,18 @@ import * as Scheduler from "../Scheduler.ts"
 import type * as Scope from "../Scope.ts"
 import * as ServiceMap from "../ServiceMap.ts"
 import * as Tracer from "../Tracer.ts"
-import type { Concurrency, ExcludeTag, ExtractTag, NoInfer, NotFunction, Simplify, Tags } from "../Types.ts"
+import type {
+  Concurrency,
+  ExcludeTag,
+  ExtractReason,
+  ExtractTag,
+  NoInfer,
+  NotFunction,
+  ReasonOf,
+  ReasonTags,
+  Simplify,
+  Tags
+} from "../Types.ts"
 import { internalCall } from "../Utils.ts"
 import type { Primitive } from "./core.ts"
 import {
@@ -2650,6 +2661,180 @@ export const catchTags: {
     (e) => internalCall(() => cases[e["_tag"] as string](e))
   )
 })
+
+/** @internal */
+export const catchReason: {
+  <
+    K extends Tags<E>,
+    E,
+    RK extends ReasonTags<ExtractTag<NoInfer<E>, K>>,
+    A2,
+    E2,
+    R2
+  >(
+    errorTag: K,
+    reasonTag: RK,
+    f: (reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>) => Effect.Effect<A2, E2, R2>
+  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A | A2, E | E2, R | R2>
+  <
+    A,
+    E,
+    R,
+    K extends Tags<E>,
+    RK extends ReasonTags<ExtractTag<E, K>>,
+    A2,
+    E2,
+    R2
+  >(
+    self: Effect.Effect<A, E, R>,
+    errorTag: K,
+    reasonTag: RK,
+    f: (reason: ExtractReason<ExtractTag<E, K>, RK>) => Effect.Effect<A2, E2, R2>
+  ): Effect.Effect<A | A2, E | E2, R | R2>
+} = dual(
+  4,
+  <
+    A,
+    E,
+    R,
+    K extends Tags<E>,
+    RK extends ReasonTags<ExtractTag<E, K>>,
+    A2,
+    E2,
+    R2
+  >(
+    self: Effect.Effect<A, E, R>,
+    errorTag: K,
+    reasonTag: RK,
+    f: (reason: ExtractReason<ExtractTag<E, K>, RK>) => Effect.Effect<A2, E2, R2>
+  ): Effect.Effect<A | A2, E | E2, R | R2> =>
+    catchFilter(
+      self,
+      (e) => {
+        if (isTagged(e, errorTag) && hasProperty(e, "reason") && isTagged(e.reason, reasonTag)) {
+          return e.reason
+        }
+        return Filter.fail(e)
+      },
+      f as any
+    )
+)
+
+/** @internal */
+export const catchReasons: {
+  <
+    K extends Tags<E>,
+    E,
+    Cases extends {
+      [RK in ReasonTags<ExtractTag<NoInfer<E>, K>>]+?: (
+        reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>
+      ) => Effect.Effect<any, any, any>
+    }
+  >(
+    errorTag: K,
+    cases: Cases
+  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<
+    | A
+    | { [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect.Effect<infer A, any, any> ? A : never }[
+      keyof Cases
+    ],
+    | E
+    | { [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect.Effect<any, infer E, any> ? E : never }[
+      keyof Cases
+    ],
+    | R
+    | { [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect.Effect<any, any, infer R> ? R : never }[
+      keyof Cases
+    ]
+  >
+  <
+    A,
+    E,
+    R,
+    K extends Tags<E>,
+    Cases extends {
+      [RK in ReasonTags<ExtractTag<E, K>>]+?: (
+        reason: ExtractReason<ExtractTag<E, K>, RK>
+      ) => Effect.Effect<any, any, any>
+    }
+  >(
+    self: Effect.Effect<A, E, R>,
+    errorTag: K,
+    cases: Cases
+  ): Effect.Effect<
+    | A
+    | { [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect.Effect<infer A, any, any> ? A : never }[
+      keyof Cases
+    ],
+    | E
+    | { [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect.Effect<any, infer E, any> ? E : never }[
+      keyof Cases
+    ],
+    | R
+    | { [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect.Effect<any, any, infer R> ? R : never }[
+      keyof Cases
+    ]
+  >
+} = dual(3, (self, errorTag, cases) => {
+  let keys: Array<string>
+  return catchFilter(
+    self,
+    (e: any) => {
+      keys ??= Object.keys(cases)
+      if (
+        isTagged(e, errorTag) &&
+        hasProperty(e, "reason") &&
+        hasProperty(e.reason, "_tag") &&
+        isString(e.reason._tag) &&
+        keys.includes(e.reason._tag)
+      ) {
+        return e.reason
+      }
+      return Filter.fail(e)
+    },
+    (reason: any) => internalCall(() => (cases as any)[reason._tag](reason))
+  )
+})
+
+/** @internal */
+export const unwrapReason: {
+  <
+    K extends Effect.TagsWithReason<E>,
+    E
+  >(
+    errorTag: K
+  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, ExcludeTag<E, K> | ReasonOf<ExtractTag<E, K>>, R>
+  <
+    A,
+    E,
+    R,
+    K extends Effect.TagsWithReason<E>
+  >(
+    self: Effect.Effect<A, E, R>,
+    errorTag: K
+  ): Effect.Effect<A, ExcludeTag<E, K> | ReasonOf<ExtractTag<E, K>>, R>
+} = dual(
+  2,
+  <
+    A,
+    E,
+    R,
+    K extends Effect.TagsWithReason<E>
+  >(
+    self: Effect.Effect<A, E, R>,
+    errorTag: K
+  ): Effect.Effect<A, ExcludeTag<E, K> | ReasonOf<ExtractTag<E, K>>, R> =>
+    catchFilter(
+      self,
+      (e) => {
+        if (isTagged(e, errorTag) && hasProperty(e, "reason")) {
+          return e.reason
+        }
+        return Filter.fail(e)
+      },
+      fail as any
+    )
+)
 
 /** @internal */
 export const mapErrorCause: {

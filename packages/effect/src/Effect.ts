@@ -108,7 +108,19 @@ import type {
   Tracer
 } from "./Tracer.ts"
 import type { TxRef } from "./TxRef.ts"
-import type { Concurrency, Covariant, ExcludeTag, ExtractTag, NoInfer, NotFunction, Tags, unassigned } from "./Types.ts"
+import type {
+  Concurrency,
+  Covariant,
+  ExcludeTag,
+  ExtractReason,
+  ExtractTag,
+  NoInfer,
+  NotFunction,
+  ReasonOf,
+  ReasonTags,
+  Tags,
+  unassigned
+} from "./Types.ts"
 import type * as Unify from "./Unify.ts"
 import { internalCall, SingleShotGen } from "./Utils.ts"
 
@@ -2537,6 +2549,219 @@ export const catchTags: {
     }[keyof Cases]
   >
 } = internal.catchTags
+
+/**
+ * Catches a specific reason within a tagged error.
+ *
+ * Use this to handle nested error causes without removing the parent error
+ * from the error channel. The handler receives the unwrapped reason.
+ *
+ * @example
+ * ```ts
+ * import { Data, Effect } from "effect"
+ *
+ * class RateLimitError extends Data.TaggedError("RateLimitError")<{
+ *   retryAfter: number
+ * }> {}
+ *
+ * class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+ *   limit: number
+ * }> {}
+ *
+ * class AiError extends Data.TaggedError("AiError")<{
+ *   reason: RateLimitError | QuotaExceededError
+ * }> {}
+ *
+ * declare const program: Effect.Effect<string, AiError>
+ *
+ * // Handle rate limits specifically
+ * const handled = program.pipe(
+ *   Effect.catchReason("AiError", "RateLimitError", (reason) =>
+ *     Effect.succeed(`Retry after ${reason.retryAfter}s`)
+ *   )
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchReason: {
+  <
+    K extends Tags<E>,
+    E,
+    RK extends ReasonTags<ExtractTag<NoInfer<E>, K>>,
+    A2,
+    E2,
+    R2
+  >(
+    errorTag: K,
+    reasonTag: RK,
+    f: (reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>) => Effect<A2, E2, R2>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A | A2, E | E2, R | R2>
+  <
+    A,
+    E,
+    R,
+    K extends Tags<E>,
+    RK extends ReasonTags<ExtractTag<E, K>>,
+    A2,
+    E2,
+    R2
+  >(
+    self: Effect<A, E, R>,
+    errorTag: K,
+    reasonTag: RK,
+    f: (reason: ExtractReason<ExtractTag<E, K>, RK>) => Effect<A2, E2, R2>
+  ): Effect<A | A2, E | E2, R | R2>
+} = internal.catchReason
+
+/**
+ * Catches multiple reasons within a tagged error using an object of handlers.
+ *
+ * @example
+ * ```ts
+ * import { Data, Effect } from "effect"
+ *
+ * class RateLimitError extends Data.TaggedError("RateLimitError")<{
+ *   retryAfter: number
+ * }> {}
+ *
+ * class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+ *   limit: number
+ * }> {}
+ *
+ * class AiError extends Data.TaggedError("AiError")<{
+ *   reason: RateLimitError | QuotaExceededError
+ * }> {}
+ *
+ * declare const program: Effect.Effect<string, AiError>
+ *
+ * const handled = program.pipe(
+ *   Effect.catchReasons("AiError", {
+ *     RateLimitError: (reason) =>
+ *       Effect.succeed(`Retry after ${reason.retryAfter}s`),
+ *     QuotaExceededError: (reason) =>
+ *       Effect.succeed(`Quota exceeded: ${reason.limit}`)
+ *   })
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchReasons: {
+  <
+    K extends Tags<E>,
+    E,
+    Cases extends {
+      [RK in ReasonTags<ExtractTag<NoInfer<E>, K>>]+?: (
+        reason: ExtractReason<ExtractTag<NoInfer<E>, K>, RK>
+      ) => Effect<any, any, any>
+    }
+  >(
+    errorTag: K,
+    cases: Cases
+  ): <A, R>(self: Effect<A, E, R>) => Effect<
+    | A
+    | {
+      [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect<infer A, any, any> ? A : never
+    }[keyof Cases],
+    | E
+    | {
+      [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect<any, infer E, any> ? E : never
+    }[keyof Cases],
+    | R
+    | {
+      [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect<any, any, infer R> ? R : never
+    }[keyof Cases]
+  >
+  <
+    A,
+    E,
+    R,
+    K extends Tags<E>,
+    Cases extends {
+      [RK in ReasonTags<ExtractTag<E, K>>]+?: (
+        reason: ExtractReason<ExtractTag<E, K>, RK>
+      ) => Effect<any, any, any>
+    }
+  >(
+    self: Effect<A, E, R>,
+    errorTag: K,
+    cases: Cases
+  ): Effect<
+    | A
+    | {
+      [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect<infer A, any, any> ? A : never
+    }[keyof Cases],
+    | E
+    | {
+      [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect<any, infer E, any> ? E : never
+    }[keyof Cases],
+    | R
+    | {
+      [RK in keyof Cases]: Cases[RK] extends (...args: Array<any>) => Effect<any, any, infer R> ? R : never
+    }[keyof Cases]
+  >
+} = internal.catchReasons
+
+/**
+ * A helper type to filter tags that have reason fields with tagged variants.
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export type TagsWithReason<E> = {
+  [T in Tags<E>]: ReasonTags<ExtractTag<E, T>> extends never ? never : T
+}[Tags<E>]
+
+/**
+ * Promotes nested reason errors into the Effect error channel, replacing
+ * the parent error.
+ *
+ * @example
+ * ```ts
+ * import { Data, Effect } from "effect"
+ *
+ * class RateLimitError extends Data.TaggedError("RateLimitError")<{
+ *   retryAfter: number
+ * }> {}
+ *
+ * class QuotaExceededError extends Data.TaggedError("QuotaExceededError")<{
+ *   limit: number
+ * }> {}
+ *
+ * class AiError extends Data.TaggedError("AiError")<{
+ *   reason: RateLimitError | QuotaExceededError
+ * }> {}
+ *
+ * declare const program: Effect.Effect<string, AiError>
+ *
+ * // Before: Effect<string, AiError>
+ * // After:  Effect<string, RateLimitError | QuotaExceededError>
+ * const unwrapped = program.pipe(Effect.unwrapReason("AiError"))
+ * ```
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const unwrapReason: {
+  <
+    K extends TagsWithReason<E>,
+    E
+  >(
+    errorTag: K
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, ExcludeTag<E, K> | ReasonOf<ExtractTag<E, K>>, R>
+  <
+    A,
+    E,
+    R,
+    K extends TagsWithReason<E>
+  >(
+    self: Effect<A, E, R>,
+    errorTag: K
+  ): Effect<A, ExcludeTag<E, K> | ReasonOf<ExtractTag<E, K>>, R>
+} = internal.unwrapReason
 
 /**
  * Handles both recoverable and unrecoverable errors by providing a recovery

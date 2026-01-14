@@ -549,3 +549,63 @@ export interface unhandled {
  * @category types
  */
 export type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true
+
+/**
+ * Extracts the reason type from an error that has a `reason` field.
+ * @example
+ * ```ts
+ * import type * as Types from "effect/Types"
+ *
+ * type RateLimitError = { readonly _tag: "RateLimitError"; readonly retryAfter: number }
+ * type QuotaError = { readonly _tag: "QuotaError"; readonly limit: number }
+ * type AiError = { readonly _tag: "AiError"; readonly reason: RateLimitError | QuotaError }
+ *
+ * type Res = Types.ReasonOf<AiError>
+ * // RateLimitError | QuotaError
+ * ```
+ *
+ * @since 4.0.0
+ * @category types
+ */
+export type ReasonOf<E> = E extends { readonly reason: infer R } ? R : never
+
+/**
+ * Extracts the `_tag` values from nested reason types.
+ * @example
+ * ```ts
+ * import type * as Types from "effect/Types"
+ *
+ * type RateLimitError = { readonly _tag: "RateLimitError"; readonly retryAfter: number }
+ * type QuotaError = { readonly _tag: "QuotaError"; readonly limit: number }
+ * type AiError = { readonly _tag: "AiError"; readonly reason: RateLimitError | QuotaError }
+ *
+ * type Res = Types.ReasonTags<AiError>
+ * // "RateLimitError" | "QuotaError"
+ * ```
+ *
+ * @since 4.0.0
+ * @category types
+ */
+export type ReasonTags<E> = E extends { readonly reason: { readonly _tag: string } } ? E["reason"]["_tag"]
+  : never
+
+/**
+ * Extracts a specific reason variant by its `_tag`.
+ * @example
+ * ```ts
+ * import type * as Types from "effect/Types"
+ *
+ * type RateLimitError = { readonly _tag: "RateLimitError"; readonly retryAfter: number }
+ * type QuotaError = { readonly _tag: "QuotaError"; readonly limit: number }
+ * type AiError = { readonly _tag: "AiError"; readonly reason: RateLimitError | QuotaError }
+ *
+ * type Res = Types.ExtractReason<AiError, "RateLimitError">
+ * // { readonly _tag: "RateLimitError"; readonly retryAfter: number }
+ * ```
+ *
+ * @since 4.0.0
+ * @category types
+ */
+export type ExtractReason<E, K extends string> = E extends { readonly reason: infer R }
+  ? Extract<R, { readonly _tag: K }>
+  : never
