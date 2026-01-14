@@ -12,3 +12,7 @@
 - Files: packages/effect/src/Effect.ts, packages/effect/src/internal/effect.ts, packages/effect/src/Channel.ts, packages/effect/src/unstable/cli/Prompt.ts, packages/effect/test/Effect.test.ts, PROGRESS.md
 - Notes: Effect.filter now uses boolean predicate; Channel.filterArrayEffect collects passes manually; Prompt filter uses boolean
 - Blockers: lint-fix fails in .agents/effect-old (pre-existing)
+- Task EFF-176: verification pass after lint-fix
+- Files: packages/effect/test/Effect.test.ts, PROGRESS.md
+- Notes: lint-fix reformatted Effect.filter test; ran test/check/build/docgen
+- Blockers: none
