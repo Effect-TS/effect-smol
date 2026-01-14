@@ -529,7 +529,7 @@ describe("HttpApi", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                   }
                 }
               }
@@ -561,7 +561,7 @@ describe("HttpApi", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                   }
                 }
               }
@@ -581,7 +581,7 @@ describe("HttpApi", () => {
             String_1: {
               "type": "string"
             },
-            "effect/HttpApiSchemaError": {
+            "effect_HttpApiSchemaError": {
               "type": "object",
               "properties": {
                 "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
@@ -626,7 +626,7 @@ describe("HttpApi", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                   }
                 }
               }
@@ -658,7 +658,7 @@ describe("HttpApi", () => {
               content: {
                 "application/json": {
                   schema: {
-                    "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                    "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                   }
                 }
               }
@@ -678,7 +678,7 @@ describe("HttpApi", () => {
             String_1: {
               "type": "string"
             },
-            "effect/HttpApiSchemaError": {
+            "effect_HttpApiSchemaError": {
               "type": "object",
               "properties": {
                 "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },
@@ -725,7 +725,7 @@ describe("HttpApi", () => {
                   schema: {
                     "anyOf": [
                       {
-                        "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                        "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                       },
                       {
                         "type": "string"
@@ -754,7 +754,7 @@ describe("HttpApi", () => {
                   schema: {
                     "anyOf": [
                       {
-                        "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                        "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                       },
                       {
                         "type": "string"
@@ -769,7 +769,7 @@ describe("HttpApi", () => {
             String_1: {
               "type": "string"
             },
-            "effect/HttpApiSchemaError": {
+            "effect_HttpApiSchemaError": {
               "type": "object",
               "properties": {
                 "_tag": { "type": "string", "enum": ["HttpApiSchemaError"] },

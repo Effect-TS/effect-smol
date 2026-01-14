@@ -28,7 +28,7 @@ function assertTypeOnly(spec: OpenAPISpec, expected: string) {
       typeOnly: true
     })
 
-    console.log(result)
+    // console.log(result)
     assert.strictEqual(result, expected)
   }).pipe(
     Effect.provide(OpenApiGenerator.layerTransformerTs)
