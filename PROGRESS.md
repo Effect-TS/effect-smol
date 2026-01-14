@@ -16,3 +16,10 @@
 - Files: packages/effect/test/Effect.test.ts, PROGRESS.md
 - Notes: lint-fix reformatted Effect.filter test; ran test/check/build/docgen
 - Blockers: none
+
+## 2026-01-15
+
+- Task EFF-176: shift Channel.filterArrayEffect to effectful predicate; rename filter test variable
+- Files: packages/effect/src/Channel.ts, packages/effect/test/Effect.test.ts, PROGRESS.md
+- Notes: filterArrayEffect uses Effect.filter predicate; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none

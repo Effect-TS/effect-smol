@@ -3069,39 +3069,24 @@ export const filterArray: {
  * @category Filtering
  */
 export const filterArrayEffect: {
-  <OutElem, B, X, E, R>(
-    filter: Filter.FilterEffect<OutElem, B, X, E, R>
+  <OutElem, E, R>(
+    predicate: (a: Types.NoInfer<OutElem>, index: number) => Effect.Effect<boolean, E, R>
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  ) => Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
-  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X, E, R>(
+  ) => Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, E, R>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    filter: Filter.FilterEffect<OutElem, B, X, E, R>
-  ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X, E, R>(
+    predicate: (a: Types.NoInfer<OutElem>, index: number) => Effect.Effect<boolean, E, R>
+  ): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, E, R>(
   self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter_: Filter.FilterEffect<OutElem, B, X, E, R>
-): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
+  predicate: (a: Types.NoInfer<OutElem>, index: number) => Effect.Effect<boolean, E, R>
+): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr | E, OutDone, InElem, InErr, InDone, Env | R> =>
   transformPull(self, (pull) => {
-    const filter = Effect.flatMap(pull, (arr) => {
-      const out: Array<B> = []
-      return Effect.as(
-        Effect.forEach(
-          arr,
-          (elem) =>
-            Effect.map(filter_(elem), (result) => {
-              if (Filter.isPass(result)) {
-                out.push(result)
-              }
-            }),
-          { discard: true }
-        ),
-        out
-      )
-    })
+    const filter = Effect.flatMap(pull, (arr) => Effect.filter(arr, predicate))
     return Effect.succeed(Effect.flatMap(
       filter,
-      function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<B>, OutErr | E, OutDone, Env | R> {
+      function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<OutElem>, OutErr | E, OutDone, Env | R> {
         return Arr.isReadonlyArrayNonEmpty(arr) ? Effect.succeed(arr) : Effect.flatMap(filter, loop)
       }
     ))

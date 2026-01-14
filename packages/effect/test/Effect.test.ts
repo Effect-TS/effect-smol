@@ -356,13 +356,13 @@ describe("Effect", () => {
   describe("filter", () => {
     it.live("odd numbers", () =>
       Effect.gen(function*() {
-        const results = yield* Effect.filter([1, 2, 3, 4, 5], (_) => Effect.succeed(_ % 2 === 1))
+        const results = yield* Effect.filter([1, 2, 3, 4, 5], (value) => Effect.succeed(value % 2 === 1))
         assert.deepStrictEqual(results, [1, 3, 5])
       }))
 
     it.live("iterable", () =>
       Effect.gen(function*() {
-        const results = yield* Effect.filter(new Set([1, 2, 3, 4, 5]), (_) => Effect.succeed(_ % 2 === 1))
+        const results = yield* Effect.filter(new Set([1, 2, 3, 4, 5]), (value) => Effect.succeed(value % 2 === 1))
         assert.deepStrictEqual(results, [1, 3, 5])
       }))
   })
