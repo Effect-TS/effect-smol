@@ -88,7 +88,7 @@ export const whiteBright = `${ESC}97m`
 
 export const annotate = (text: string, ...styles: Array<string | Array<string>>) => {
   const flat = styles.flat()
-  return `${flat.join("")}${text}${reset} `
+  return `${flat.join("")}${text}${reset}`
 }
 
 export const combine = (...styles: Array<string>): Array<string> => styles
