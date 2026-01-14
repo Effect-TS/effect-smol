@@ -1,6 +1,7 @@
 /**
  * @since 4.0.0
  */
+import * as Arr from "./Array.ts"
 import { unescapeToken } from "./JsonPointer.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
@@ -193,7 +194,7 @@ export function fromSchemaDraft2020_12(js: JsonSchema): Document<"draft-2020-12"
  * @since 4.0.0
  */
 export function fromSchemaOpenApi3_1(js: JsonSchema): Document<"draft-2020-12"> {
-  const schema = rewrite_refs(js, RE_COMPONENTS_SCHEMAS, "#/$defs") as JsonSchema
+  const schema = rewrite_refs(js, (ref) => ref.replace(RE_COMPONENTS_SCHEMAS, "#/$defs")) as JsonSchema
   return fromSchemaDraft2020_12(schema)
 }
 
@@ -223,7 +224,7 @@ export function toSchemaDraft07(schema: JsonSchema): JsonSchema {
   return rewrite(schema)
 
   function rewrite(node: unknown): JsonSchema {
-    return walk(rewrite_refs(node, RE_DEFS, "#/definitions"), true) as JsonSchema
+    return walk(rewrite_refs(node, (ref) => ref.replace(RE_DEFS, "#/definitions")), true) as JsonSchema
   }
 
   function walk(node: unknown, _isRoot: boolean): unknown {
@@ -323,23 +324,71 @@ export function toSchemaDraft07(schema: JsonSchema): JsonSchema {
 /**
  * @since 4.0.0
  */
-export function toDocumentOpenApi3_1(document: Document<"draft-2020-12">): Document<"openapi-3.1"> {
+export function toMultiDocumentOpenApi3_1(multiDocument: MultiDocument<"draft-2020-12">): MultiDocument<"openapi-3.1"> {
+  const keyMap = new Map<string, string>()
+  for (const key of Object.keys(multiDocument.definitions)) {
+    keyMap.set(key, sanitizeOpenApiComponentsKey(key))
+  }
+
+  function rewrite(schema: JsonSchema): JsonSchema {
+    return rewrite_refs(schema, ($ref) => {
+      const tokens = $ref.split("/")
+      if (tokens.length > 0) {
+        const identifier = unescapeToken(tokens[tokens.length - 1])
+        const key = keyMap.get(identifier)
+        if (key !== undefined) {
+          $ref = tokens.slice(0, -1).join("/") + "/" + key
+        }
+      }
+      return $ref.replace(RE_DEFS, "#/components/schemas")
+    }) as JsonSchema
+  }
+
   return {
     dialect: "openapi-3.1",
-    schema: toSchemaOpenApi3_1(document.schema),
-    definitions: Rec.map(document.definitions, toSchemaOpenApi3_1)
+    schemas: Arr.map(multiDocument.schemas, rewrite),
+    definitions: Rec.mapEntries(
+      multiDocument.definitions,
+      (definition, key) => [keyMap.get(key) ?? key, rewrite(definition)]
+    )
   }
 }
 
 /**
  * @since 4.0.0
  */
-export function toSchemaOpenApi3_1(schema: JsonSchema): JsonSchema {
-  return rewrite_refs(schema, RE_DEFS, "#/components/schemas") as JsonSchema
+export const openApiComponentsKeyRegExp = /^[a-zA-Z0-9.\-_]+$/
+
+/**
+ * Returns a sanitized key for an OpenAPI component schema.
+ * Should match the `openApiComponentsKeyRegExp` regular expression.
+ */
+function sanitizeOpenApiComponentsKey(key: string): string {
+  if (openApiComponentsKeyRegExp.test(key)) return key
+  if (key.length === 0) return "_"
+
+  let out = ""
+  for (let i = 0; i < key.length; i++) {
+    const code = key.charCodeAt(i)
+    if (
+      (code >= 48 && code <= 57) ||
+      (code >= 65 && code <= 90) ||
+      (code >= 97 && code <= 122) ||
+      code === 46 ||
+      code === 45 ||
+      code === 95
+    ) {
+      out += key[i]
+    } else {
+      out += "_"
+    }
+  }
+
+  return out.length === 0 ? "_" : out
 }
 
-function rewrite_refs(node: unknown, re: RegExp, replacement: string): unknown {
-  if (Array.isArray(node)) return node.map((v) => rewrite_refs(v, re, replacement))
+function rewrite_refs(node: unknown, f: ($ref: string) => string): unknown {
+  if (Array.isArray(node)) return node.map((v) => rewrite_refs(v, f))
   if (!Predicate.isObject(node)) return node
 
   const out: Record<string, unknown> = {}
@@ -348,9 +397,9 @@ function rewrite_refs(node: unknown, re: RegExp, replacement: string): unknown {
     const v = node[k]
 
     if (k === "$ref") {
-      out[k] = typeof v === "string" ? v.replace(re, replacement) : v
+      out[k] = typeof v === "string" ? f(v) : v
     } else if (Array.isArray(v) || Predicate.isObject(v)) {
-      out[k] = rewrite_refs(v, re, replacement)
+      out[k] = rewrite_refs(v, f)
     } else {
       out[k] = v
     }

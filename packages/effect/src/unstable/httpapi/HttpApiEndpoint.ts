@@ -992,7 +992,7 @@ const Proto = {
   }
 }
 
-const makeProto = <
+function makeProto<
   Name extends string,
   Method extends HttpMethod,
   const Path extends string,
@@ -1028,7 +1028,9 @@ const makeProto = <
   Error,
   Middleware,
   MiddlewareR
-> => Object.assign(Object.create(Proto), options)
+> {
+  return Object.assign(Object.create(Proto), options)
+}
 
 /**
  * @since 4.0.0
@@ -1080,11 +1082,11 @@ export const make = <Method extends HttpMethod>(method: Method) =>
     name,
     path,
     method,
-    pathSchema: UndefinedOr.map(options?.path, structToSchema),
-    urlParamsSchema: UndefinedOr.map(options?.urlParams, structToSchema),
-    payloadSchema: UndefinedOr.map(options?.payload, structToSchema),
-    headersSchema: UndefinedOr.map(options?.headers, structToSchema),
-    successSchema: options?.success ? structToSchema(options.success) : HttpApiSchema.NoContent as any,
+    pathSchema: UndefinedOr.map(options?.path, fieldsToSchema),
+    urlParamsSchema: UndefinedOr.map(options?.urlParams, fieldsToSchema),
+    payloadSchema: UndefinedOr.map(options?.payload, fieldsToSchema),
+    headersSchema: UndefinedOr.map(options?.headers, fieldsToSchema),
+    successSchema: options?.success ? fieldsToSchema(options.success) : HttpApiSchema.NoContent as any,
     errorSchema: options?.error ?
       HttpApiSchema.UnionUnify(
         HttpApiSchemaError,
@@ -1096,10 +1098,9 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   })
 }
 
-const structToSchema = <S>(
-  schema: S
-): S extends Schema.Struct.Fields ? Schema.Struct<S> : S =>
-  Schema.isSchema(schema) ? schema as any : Schema.Struct(schema as any) as any
+function fieldsToSchema<S>(schema: S): S extends Schema.Struct.Fields ? Schema.Struct<S> : S {
+  return Schema.isSchema(schema) ? schema as any : Schema.Struct(schema as any) as any
+}
 
 /**
  * @since 4.0.0

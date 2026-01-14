@@ -15,7 +15,7 @@
             "name": "id",
             "in": "path",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/String_"
             },
             "required": true
           }
@@ -37,7 +37,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                 }
               }
             }
@@ -70,7 +70,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                 }
               }
             }
@@ -83,7 +83,7 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/String_1"
                   }
                 },
                 "required": ["name"],
@@ -95,7 +95,7 @@
                 "type": "object",
                 "properties": {
                   "foo": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/String_1"
                   }
                 },
                 "required": ["foo"],
@@ -107,7 +107,7 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/String_1"
                   }
                 },
                 "required": ["name"],
@@ -128,7 +128,7 @@
             "name": "id",
             "in": "path",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/String_"
             },
             "required": true
           }
@@ -143,10 +143,10 @@
                   "type": "object",
                   "properties": {
                     "id": {
-                      "type": "number"
+                      "$ref": "#/components/schemas/Number_1"
                     },
                     "name": {
-                      "type": "string"
+                      "$ref": "#/components/schemas/String_1"
                     }
                   },
                   "required": ["id", "name"],
@@ -160,7 +160,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                 }
               }
             }
@@ -173,7 +173,7 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/String_1"
                   }
                 },
                 "required": ["name"],
@@ -194,7 +194,7 @@
             "name": "id",
             "in": "path",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/String_"
             },
             "required": true
           }
@@ -209,10 +209,10 @@
                   "type": "object",
                   "properties": {
                     "id": {
-                      "type": "number"
+                      "$ref": "#/components/schemas/Number_1"
                     },
                     "name": {
-                      "type": "string"
+                      "$ref": "#/components/schemas/String_1"
                     }
                   },
                   "required": ["id", "name"],
@@ -226,7 +226,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                 }
               }
             }
@@ -239,7 +239,7 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/String_1"
                   }
                 },
                 "required": ["name"],
@@ -260,7 +260,7 @@
             "name": "id",
             "in": "path",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/String_"
             },
             "required": true
           }
@@ -288,7 +288,7 @@
                 "schema": {
                   "anyOf": [
                     {
-                      "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                     },
                     {
                       "$ref": "#/components/schemas/UserError"
@@ -310,7 +310,7 @@
             "name": "id",
             "in": "query",
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/String_"
             },
             "required": true
           }
@@ -338,7 +338,7 @@
                 "schema": {
                   "anyOf": [
                     {
-                      "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                      "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                     },
                     {
                       "$ref": "#/components/schemas/UserError"
@@ -356,10 +356,10 @@
                 "type": "object",
                 "properties": {
                   "uuid": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/Union_"
                   },
                   "name": {
-                    "type": "string"
+                    "$ref": "#/components/schemas/String_1"
                   }
                 },
                 "required": ["name"],
@@ -383,12 +383,18 @@
             "required": false
           },
           {
-            "description": "search query",
             "name": "query",
             "in": "query",
             "schema": {
-              "type": "string",
-              "description": "search query"
+              "description": "search query",
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/String_1"
+                },
+                {
+                  "$ref": "#/components/schemas/Undefined_"
+                }
+              ]
             },
             "required": false
           }
@@ -417,7 +423,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                 }
               }
             }
@@ -427,7 +433,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NoStatusError"
+                  "type": "object",
+                  "properties": {
+                    "_tag": {
+                      "type": "string",
+                      "enum": ["NoStatusError"]
+                    }
+                  },
+                  "required": ["_tag"],
+                  "additionalProperties": false
                 }
               }
             }
@@ -446,9 +460,16 @@
             "name": "0",
             "in": "path",
             "schema": {
-              "type": "string"
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/String_1"
+                },
+                {
+                  "$ref": "#/components/schemas/Undefined_"
+                }
+              ]
             },
-            "required": false
+            "required": true
           }
         ],
         "security": [
@@ -465,10 +486,10 @@
                   "type": "object",
                   "properties": {
                     "contentType": {
-                      "type": "string"
+                      "$ref": "#/components/schemas/String_1"
                     },
                     "length": {
-                      "type": "integer"
+                      "$ref": "#/components/schemas/Number_"
                     }
                   },
                   "required": ["contentType", "length"],
@@ -482,7 +503,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                 }
               }
             }
@@ -495,7 +516,7 @@
                 "type": "object",
                 "properties": {
                   "file": {
-                    "$ref": "#/components/schemas/PersistedFile"
+                    "$ref": "#/components/schemas/Arrays_1"
                   }
                 },
                 "required": ["file"],
@@ -526,10 +547,10 @@
                   "type": "object",
                   "properties": {
                     "contentType": {
-                      "type": "string"
+                      "$ref": "#/components/schemas/String_1"
                     },
                     "length": {
-                      "type": "integer"
+                      "$ref": "#/components/schemas/Number_"
                     }
                   },
                   "required": ["contentType", "length"],
@@ -543,7 +564,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                 }
               }
             }
@@ -556,7 +577,7 @@
                 "type": "object",
                 "properties": {
                   "file": {
-                    "$ref": "#/components/schemas/PersistedFile"
+                    "$ref": "#/components/schemas/Arrays_1"
                   }
                 },
                 "required": ["file"],
@@ -583,7 +604,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/effect~1HttpApiSchemaError"
+                  "$ref": "#/components/schemas/effect_HttpApiSchemaError"
                 }
               }
             }
@@ -594,14 +615,74 @@
   },
   "components": {
     "schemas": {
+      "Number_": {
+        "type": "integer"
+      },
+      "Number_1": {
+        "type": "number"
+      },
+      "String_": {
+        "type": "string"
+      },
+      "String_1": {
+        "type": "string"
+      },
+      "Undefined_": {
+        "type": "null"
+      },
+      "Union_": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/String_1"
+          },
+          {
+            "$ref": "#/components/schemas/Undefined_"
+          }
+        ]
+      },
+      "Arrays_1": {
+        "allOf": [
+          {
+            "minItems": 1
+          },
+          {
+            "maxItems": 1
+          }
+        ],
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "contentType": {
+              "$ref": "#/components/schemas/String_1"
+            },
+            "key": {
+              "$ref": "#/components/schemas/String_1"
+            },
+            "name": {
+              "$ref": "#/components/schemas/String_1"
+            },
+            "path": {
+              "$ref": "#/components/schemas/String_1"
+            }
+          },
+          "required": [
+            "key",
+            "name",
+            "contentType",
+            "path"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
       "ComponentsSchema": {
         "additionalProperties": false,
         "properties": {
           "contentType": {
-            "type": "string"
+            "$ref": "#/components/schemas/String_1"
           },
           "length": {
-            "type": "integer"
+            "$ref": "#/components/schemas/Number_"
           }
         },
         "required": [
@@ -614,16 +695,16 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "$ref": "#/components/schemas/Number_"
           },
           "name": {
-            "type": "string"
+            "$ref": "#/components/schemas/String_1"
           }
         },
         "required": ["id", "name"],
         "additionalProperties": false
       },
-      "effect/HttpApiSchemaError": {
+      "effect_HttpApiSchemaError": {
         "type": "object",
         "properties": {
           "_tag": {
@@ -631,42 +712,23 @@
             "enum": ["HttpApiSchemaError"]
           },
           "message": {
-            "type": "string"
+            "$ref": "#/components/schemas/String_1"
           }
         },
         "required": ["_tag", "message"],
-        "additionalProperties": false
-      },
-      "PersistedFile": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "contentType": {
-            "type": "string"
-          },
-          "path": {
-            "type": "string"
-          }
-        },
-        "required": ["key", "name", "contentType", "path"],
         "additionalProperties": false
       },
       "User": {
         "type": "object",
         "properties": {
           "id": {
-            "type": "integer"
+            "$ref": "#/components/schemas/Number_"
           },
           "uuid": {
-            "type": "string"
+            "$ref": "#/components/schemas/Union_"
           },
           "name": {
-            "type": "string"
+            "$ref": "#/components/schemas/String_1"
           },
           "createdAt": {
             "type": "string"
@@ -681,17 +743,6 @@
           "_tag": {
             "type": "string",
             "enum": ["UserError"]
-          }
-        },
-        "required": ["_tag"],
-        "additionalProperties": false
-      },
-      "NoStatusError": {
-        "type": "object",
-        "properties": {
-          "_tag": {
-            "type": "string",
-            "enum": ["NoStatusError"]
           }
         },
         "required": ["_tag"],

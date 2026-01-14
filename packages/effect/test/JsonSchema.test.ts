@@ -1050,16 +1050,18 @@ describe("JsonSchema", () => {
   })
 
   describe("toDocumentOpenApi3_1", () => {
-    it("should rewrite $defs references to definitions", () => {
-      const input: JsonSchema.Document<"draft-2020-12"> = {
+    it("should rewrite `$defs` references to `components/schemas`", () => {
+      const input: JsonSchema.MultiDocument<"draft-2020-12"> = {
         dialect: "draft-2020-12",
-        schema: {
-          type: "object",
-          properties: {
-            a: { $ref: "#/$defs/A" },
-            b: { $ref: "#/$defs/B" }
+        schemas: [
+          {
+            type: "object",
+            properties: {
+              a: { $ref: "#/$defs/A" },
+              b: { $ref: "#/$defs/B" }
+            }
           }
-        },
+        ],
         definitions: {
           A: {
             type: "string",
@@ -1070,16 +1072,18 @@ describe("JsonSchema", () => {
           }
         }
       }
-      const result = JsonSchema.toDocumentOpenApi3_1(input)
+      const result = JsonSchema.toMultiDocumentOpenApi3_1(input)
       deepStrictEqual(result, {
         dialect: "openapi-3.1",
-        schema: {
-          type: "object",
-          properties: {
-            a: { $ref: "#/components/schemas/A" },
-            b: { $ref: "#/components/schemas/B" }
+        schemas: [
+          {
+            type: "object",
+            properties: {
+              a: { $ref: "#/components/schemas/A" },
+              b: { $ref: "#/components/schemas/B" }
+            }
           }
-        },
+        ],
         definitions: {
           A: {
             type: "string",
@@ -1088,6 +1092,40 @@ describe("JsonSchema", () => {
           B: {
             type: "number"
           }
+        }
+      })
+    })
+
+    it("should sanitize component schema keys", () => {
+      const input: JsonSchema.MultiDocument<"draft-2020-12"> = {
+        dialect: "draft-2020-12",
+        schemas: [
+          {
+            type: "object",
+            properties: {
+              "A.B": { "$ref": "#/$defs/A$B" }
+            }
+          }
+        ],
+        definitions: {
+          "A$B": { "$ref": "#/$defs/B$C" },
+          "B$C": { type: "string" }
+        }
+      }
+      const result = JsonSchema.toMultiDocumentOpenApi3_1(input)
+      deepStrictEqual(result, {
+        dialect: "openapi-3.1",
+        schemas: [
+          {
+            type: "object",
+            properties: {
+              "A.B": { "$ref": "#/components/schemas/A_B" }
+            }
+          }
+        ],
+        definitions: {
+          "A_B": { "$ref": "#/components/schemas/B_C" },
+          "B_C": { type: "string" }
         }
       })
     })
@@ -1141,47 +1179,6 @@ describe("JsonSchema", () => {
       deepStrictEqual(backTo07.definitions, {
         MyType: {
           type: "string"
-        }
-      })
-    })
-
-    it("should roundtrip openapi-3.1 -> draft-2020-12 -> openapi-3.1", () => {
-      const original: JsonSchema.JsonSchema = {
-        type: "object",
-        properties: {
-          name: { type: "string" },
-          items: {
-            type: "array",
-            items: [
-              { type: "string" },
-              { type: "number" }
-            ],
-            additionalItems: { type: "boolean" }
-          },
-          ref: {
-            $ref: "#/components/schemas/MyType"
-          }
-        }
-      }
-
-      const to2020_12 = JsonSchema.fromSchemaOpenApi3_1(original)
-      const backTo31 = JsonSchema.toDocumentOpenApi3_1(to2020_12)
-
-      deepStrictEqual(backTo31.schema, {
-        type: "object",
-        properties: {
-          name: { type: "string" },
-          items: {
-            type: "array",
-            items: [
-              { type: "string" },
-              { type: "number" }
-            ],
-            additionalItems: { type: "boolean" }
-          },
-          ref: {
-            $ref: "#/components/schemas/MyType"
-          }
         }
       })
     })
