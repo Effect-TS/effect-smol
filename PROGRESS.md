@@ -4,3 +4,7 @@
 - Files: packages/opentelemetry/src/Tracer.ts, packages/opentelemetry/test/Tracer.test.ts
 - Notes: direct OtelSpan test via NodeTracerProvider
 - Blockers: none
+- Task EFF-169: audit Filter usage in Effect/Stream APIs for Predicate/Refinement revert
+- Files: packages/effect/src/Effect.ts, packages/effect/src/Stream.ts, PROGRESS.md, .lalph/prd.json
+- Notes: Effect exports using Filter (catchFilter, catchCauseFilter, tapCauseFilter, filter, filterOrElse, filterOrFail, onErrorFilter, onExitFilter); Stream exports using Filter (filter, partition, partitionQueue, partitionEffect, catchFilter, catchTag/catchTags, catchCauseFilter, split)
+- Blockers: none
