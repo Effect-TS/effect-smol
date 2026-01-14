@@ -469,7 +469,7 @@
                 }
               ]
             },
-            "required": false
+            "required": true
           }
         ],
         "security": [

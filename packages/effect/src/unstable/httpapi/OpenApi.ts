@@ -341,14 +341,14 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
 
       function processParameters(schema: Schema.Schema<any> | undefined, i: OpenAPISpecParameter["in"]) {
         if (schema) {
-          const ast = schema.ast
-          if (ast._tag === "Objects") {
+          const ast = AST.toEncoded(schema.ast)
+          if (AST.isObjects(ast)) {
             ast.propertySignatures.forEach((ps) => {
               op.parameters.push({
                 name: String(ps.name),
                 in: i,
                 schema: {},
-                required: !AST.isOptional(ps.type)
+                required: i === "path" || !AST.isOptional(ps.type)
               })
 
               irOps.push({
@@ -357,6 +357,8 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
                 path: ["paths", path, method, "parameters", String(op.parameters.length - 1), "schema"]
               })
             })
+          } else {
+            throw new globalThis.Error(`Unsupported parameter schema ${ast._tag} at ${path}/${method}`)
           }
         }
       }
