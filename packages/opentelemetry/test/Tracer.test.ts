@@ -79,28 +79,21 @@ describe("Tracer", () => {
       Effect.gen(function*() {
         const exporter = new InMemorySpanExporter()
         const spanProcessor = new SimpleSpanProcessor(exporter)
-        const provider = new NodeTracerProvider({
-          spanProcessors: [spanProcessor]
-        })
-        const tracer = provider.getTracer("test")
-        const firstFailure = Cause.fail(new Error("first")).failures[0]
-        const secondFailure = Cause.fail(new Error("second")).failures[0]
-        const cause = Cause.fromFailures([firstFailure, secondFailure])
-        const span = new Tracer.OtelSpan(
-          OtelApi.context,
-          OtelApi.trace,
-          tracer,
-          "boom",
-          undefined,
-          ServiceMap.empty(),
-          [],
-          BigInt(0),
-          "internal",
-          undefined
-        )
+        const firstFailure = Cause.fail(new Error("first"))
+        const secondFailure = Cause.fail(new Error("second"))
+        const cause = Cause.merge(firstFailure, secondFailure)
 
-        span.end(BigInt(1), Exit.failCause(cause))
-        yield* Effect.promise(() => spanProcessor.forceFlush())
+        yield* Effect.failCause(cause).pipe(
+          Effect.withSpan("error-span"),
+          Effect.andThen(Effect.never), // keep the exporter alive
+          Effect.provide(NodeSdk.layer(() => ({
+            resource: {
+              serviceName: "test"
+            },
+            spanProcessor: [spanProcessor]
+          }))),
+          Effect.forkChild({ startImmediately: true })
+        )
 
         const spanData = exporter.getFinishedSpans()[0]
         if (spanData === undefined) {
@@ -109,7 +102,6 @@ describe("Tracer", () => {
         const exceptionEvents = spanData.events.filter((event) => event.name === "exception")
         assert.lengthOf(exceptionEvents, 2)
         assert.strictEqual(spanData.status.message, "first")
-        yield* Effect.promise(() => provider.shutdown())
       }))
 
     it.effect("withSpanContext", () =>
