@@ -58,6 +58,11 @@ This is the Effect library repository, focusing on functional programming patter
 - Always verify implementations with tests
 - Run specific tests with: `pnpm test <filename>`
 
+## References
+
+- If you ever need to research the previous version of the Effect library, the
+  source code is available in `.agents/effect-old/`
+
 ### Time-Dependent Testing
 
 - **CRITICAL**: When testing time-dependent code (delays, timeouts, scheduling), always use `TestClock` to avoid flaky tests
