@@ -1,0 +1,1 @@
+- 2026-01-14 EFF-167: adjust Prompt.text cursor offset to remove end-gap (only text type); files: packages/effect/src/unstable/cli/Prompt.ts; notes: `pnpm lint --fix packages/effect/src/unstable/cli/Prompt.ts` fails because `dprint check` rejects `--fix`, ran `pnpm lint-fix -- packages/effect/src/unstable/cli/Prompt.ts` after `pnpm install`.

@@ -2791,7 +2791,10 @@ const renderTextNextFrame = Effect.fnUntraced(function*(state: TextState, option
   const promptMsg = renderTextOutput(state, leadingSymbol, trailingSymbol, options)
   const errorMsg = renderTextError(state, figures.pointerSmall)
   const offset = state.cursor - state.value.length
-  return promptMsg + errorMsg + Ansi.cursorMove(offset)
+  const cursorOffset = options.type === "text" && state.cursor === state.value.length && state.value.length > 0
+    ? offset - 1
+    : offset
+  return promptMsg + errorMsg + Ansi.cursorMove(cursorOffset)
 })
 
 const renderTextSubmission = Effect.fnUntraced(function*(state: TextState, options: TextOptionsReq) {
