@@ -372,11 +372,29 @@ describe("toCodeDocument", () => {
     })
 
     describe("checks", () => {
-      it.todo("isStartsWith", () => {
+      it("isStartsWith", () => {
         assertToCodeDocument(
           { schema: Schema.String.check(Schema.isStartsWith("a")) },
           {
             codes: makeCode(`Schema.String.check(Schema.isStartsWith("a"))`, "string")
+          }
+        )
+      })
+
+      it("isEndsWith", () => {
+        assertToCodeDocument(
+          { schema: Schema.String.check(Schema.isEndsWith("a")) },
+          {
+            codes: makeCode(`Schema.String.check(Schema.isEndsWith("a"))`, "string")
+          }
+        )
+      })
+
+      it("isIncludes", () => {
+        assertToCodeDocument(
+          { schema: Schema.String.check(Schema.isIncludes("a")) },
+          {
+            codes: makeCode(`Schema.String.check(Schema.isIncludes("a"))`, "string")
           }
         )
       })

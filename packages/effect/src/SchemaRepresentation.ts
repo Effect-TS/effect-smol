@@ -1888,11 +1888,11 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
       case "isUUID":
         return `Schema.isUUID(${filter.meta.version}${ca})`
       case "isStartsWith":
-        return `Schema.isStartsWith(${filter.meta.startsWith}${ca})`
+        return `Schema.isStartsWith(${format(filter.meta.startsWith)}${ca})`
       case "isEndsWith":
-        return `Schema.isEndsWith(${filter.meta.endsWith}${ca})`
+        return `Schema.isEndsWith(${format(filter.meta.endsWith)}${ca})`
       case "isIncludes":
-        return `Schema.isIncludes(${filter.meta.includes}${ca})`
+        return `Schema.isIncludes(${format(filter.meta.includes)}${ca})`
 
       case "isGreaterThan":
       case "isGreaterThanBigInt":
@@ -2074,10 +2074,8 @@ function toTypeIsMutable(isMutable: boolean, type: string): string {
 function toRuntimeValue(value: undefined | number | boolean | bigint | Date): string {
   if (value instanceof Date) {
     return `new Date(${value.getTime()})`
-  } else if (typeof value === "bigint") {
-    return `${value}n`
   }
-  return `${value}`
+  return format(value)
 }
 
 function toRuntimeRegExp(regExp: RegExp): string {
