@@ -4081,7 +4081,7 @@ export const filterOrElse: {
  *
  * @example
  * ```ts
- * import { Effect, Filter } from "effect"
+ * import { Effect } from "effect"
  *
  * // An effect that produces a number
  * const program = Effect.succeed(5)
@@ -4089,7 +4089,7 @@ export const filterOrElse: {
  * // Filter for even numbers, fail for odd numbers
  * const filtered = Effect.filterOrFail(
  *   program,
- *   (n) => n % 2 === 0 ? n : Filter.fail(n),
+ *   (n) => n % 2 === 0,
  *   (n) => `Expected even number, got ${n}`
  * )
  *
@@ -4100,22 +4100,38 @@ export const filterOrElse: {
  * @category Filtering
  */
 export const filterOrFail: {
-  <A, E2, B, X>(
-    filter: Filter.Filter<NoInfer<A>, B, X>,
-    orFailWith: (a: X) => E2
+  <A, E2, B extends A>(
+    refinement: Predicate.Refinement<NoInfer<A>, B>,
+    orFailWith: (a: NoInfer<A>) => E2
   ): <E, R>(self: Effect<A, E, R>) => Effect<B, E2 | E, R>
-  <A, E, R, E2, B, X>(
-    self: Effect<A, E, R>,
-    filter: Filter.Filter<NoInfer<A>, B, X>,
-    orFailWith: (a: X) => E2
-  ): Effect<B, E2 | E, R>
-  <A, B, X>(
-    filter: Filter.Filter<NoInfer<A>, B, X>
+  <A, E2>(
+    predicate: Predicate.Predicate<NoInfer<A>>,
+    orFailWith: (a: NoInfer<A>) => E2
+  ): <E, R>(self: Effect<A, E, R>) => Effect<A, E2 | E, R>
+  <A, B extends A>(
+    refinement: Predicate.Refinement<NoInfer<A>, B>
   ): <E, R>(self: Effect<A, E, R>) => Effect<B, Cause.NoSuchElementError | E, R>
-  <A, E, R, B, X>(
+  <A>(
+    predicate: Predicate.Predicate<NoInfer<A>>
+  ): <E, R>(self: Effect<A, E, R>) => Effect<A, Cause.NoSuchElementError | E, R>
+  <A, E, R, E2, B extends A>(
     self: Effect<A, E, R>,
-    filter: Filter.Filter<NoInfer<A>, B, X>
+    refinement: Predicate.Refinement<NoInfer<A>, B>,
+    orFailWith: (a: NoInfer<A>) => E2
+  ): Effect<B, E2 | E, R>
+  <A, E, R, E2>(
+    self: Effect<A, E, R>,
+    predicate: Predicate.Predicate<NoInfer<A>>,
+    orFailWith: (a: NoInfer<A>) => E2
+  ): Effect<A, E2 | E, R>
+  <A, E, R, B extends A>(
+    self: Effect<A, E, R>,
+    refinement: Predicate.Refinement<NoInfer<A>, B>
   ): Effect<B, E | Cause.NoSuchElementError, R>
+  <A, E, R>(
+    self: Effect<A, E, R>,
+    predicate: Predicate.Predicate<NoInfer<A>>
+  ): Effect<A, E | Cause.NoSuchElementError, R>
 } = internal.filterOrFail
 
 // -----------------------------------------------------------------------------

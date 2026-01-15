@@ -429,14 +429,23 @@ export const filterOrElse: {
  * @category filters
  */
 export const filterOrFail: {
-  <B, E2>(
-    filter: Filter.Filter<HttpClientResponse.HttpClientResponse, B>,
-    orFailWith: (response: B) => E2
+  <B extends HttpClientResponse.HttpClientResponse, E2>(
+    refinement: Predicate.Refinement<NoInfer<HttpClientResponse.HttpClientResponse>, B>,
+    orFailWith: (response: NoInfer<HttpClientResponse.HttpClientResponse>) => E2
   ): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E2 | E, R>
-  <E, R, B, E2>(
+  <E2>(
+    predicate: Predicate.Predicate<NoInfer<HttpClientResponse.HttpClientResponse>>,
+    orFailWith: (response: NoInfer<HttpClientResponse.HttpClientResponse>) => E2
+  ): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E2 | E, R>
+  <E, R, B extends HttpClientResponse.HttpClientResponse, E2>(
     self: HttpClient.With<E, R>,
-    filter: Filter.Filter<HttpClientResponse.HttpClientResponse, B>,
-    orFailWith: (response: B) => E2
+    refinement: Predicate.Refinement<NoInfer<HttpClientResponse.HttpClientResponse>, B>,
+    orFailWith: (response: NoInfer<HttpClientResponse.HttpClientResponse>) => E2
+  ): HttpClient.With<E2 | E, R>
+  <E, R, E2>(
+    self: HttpClient.With<E, R>,
+    predicate: Predicate.Predicate<NoInfer<HttpClientResponse.HttpClientResponse>>,
+    orFailWith: (response: NoInfer<HttpClientResponse.HttpClientResponse>) => E2
   ): HttpClient.With<E2 | E, R>
 } = dual(3, (self, f, orFailWith) => transformResponse(self, Effect.filterOrFail(f, orFailWith)))
 

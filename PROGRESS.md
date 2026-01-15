@@ -42,3 +42,9 @@
 - Files: packages/effect/src/Channel.ts, packages/effect/src/Stream.ts, .lalph/prd.json, PROGRESS.md
 - Notes: Channel.filter uses Predicate/Refinement via Filter.fromPredicate; filterArray uses Arr.filter with non-empty guard; zipLatestAll filters undefined via refinement; tapError uses Effect.as to normalize; ran pnpm lint-fix/test/check/build/docgen
 - Blockers: none
+
+### Task EFF-178: refactor Effect.filterOrFail
+
+- Files: packages/effect/src/Effect.ts, packages/effect/src/internal/effect.ts, packages/effect/src/unstable/http/HttpClient.ts, packages/effect/src/unstable/sql/Migrator.ts, PROGRESS.md
+- Notes: filterOrFail now accepts predicate/refinement; internal impl checks predicate directly; Migrator uses Effect.isEffect; HttpClient filterOrFail updated; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none
