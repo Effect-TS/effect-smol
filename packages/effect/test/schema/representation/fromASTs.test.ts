@@ -260,7 +260,7 @@ describe("fromAST", () => {
 
   describe("Record", () => {
     describe("checks", () => {
-      it("Record & isPropertyNames", () => {
+      it("isPropertyNames", () => {
         assertFromAST(
           Schema.Record(Schema.String, Schema.Number)
             .check(Schema.isPropertyNames(Schema.String.check(Schema.isPattern(/^[A-Z]/)))),

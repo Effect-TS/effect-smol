@@ -12,7 +12,7 @@ describe("toSchema", () => {
       SchemaRepresentation.toSchema(document, { reviver: input.reviver }).ast
     )
     deepStrictEqual(roundtrip, document)
-    const codeDocument = SchemaRepresentation.toCodeDocument(SchemaRepresentation.toMultiDocument(document))
+    const codeDocument = SchemaRepresentation.toCodeDocument(SchemaRepresentation.toMultiDocument(roundtrip))
     strictEqual(codeDocument.codes[0].runtime, runtime)
   }
 
@@ -270,11 +270,50 @@ describe("toSchema", () => {
       )
     })
 
-    it("Date", () => {
-      assertToSchemaWithReviver(
-        Schema.Date,
-        `Schema.Date`
-      )
+    describe("Date", () => {
+      it("Date", () => {
+        assertToSchemaWithReviver(
+          Schema.Date,
+          `Schema.Date`
+        )
+      })
+
+      describe("checks", () => {
+        it("isDateValid", () => {
+          assertToSchemaWithReviver(
+            Schema.Date.check(Schema.isDateValid()),
+            `Schema.Date.check(Schema.isDateValid())`
+          )
+        })
+
+        it("isGreaterThanDate", () => {
+          assertToSchemaWithReviver(
+            Schema.Date.check(Schema.isGreaterThanDate(new Date(0))),
+            `Schema.Date.check(Schema.isGreaterThanDate(new Date(0)))`
+          )
+        })
+
+        it("isGreaterThanOrEqualToDate", () => {
+          assertToSchemaWithReviver(
+            Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0))),
+            `Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0)))`
+          )
+        })
+
+        it("isLessThanDate", () => {
+          assertToSchemaWithReviver(
+            Schema.Date.check(Schema.isLessThanDate(new Date(0))),
+            `Schema.Date.check(Schema.isLessThanDate(new Date(0)))`
+          )
+        })
+
+        it("isLessThanOrEqualToDate", () => {
+          assertToSchemaWithReviver(
+            Schema.Date.check(Schema.isLessThanOrEqualToDate(new Date(0))),
+            `Schema.Date.check(Schema.isLessThanOrEqualToDate(new Date(0)))`
+          )
+        })
+      })
     })
 
     it("Duration", () => {
@@ -310,6 +349,38 @@ describe("toSchema", () => {
         Schema.DateTimeUtc,
         `Schema.DateTimeUtc`
       )
+    })
+
+    describe("ReadonlySet", () => {
+      it("ReadonlySet(String)", () => {
+        assertToSchemaWithReviver(
+          Schema.ReadonlySet(Schema.String),
+          `Schema.ReadonlySet(String_)`
+        )
+      })
+
+      describe("checks", () => {
+        it("isMinSize", () => {
+          assertToSchemaWithReviver(
+            Schema.ReadonlySet(Schema.String).check(Schema.isMinSize(2)),
+            `Schema.ReadonlySet(String_).check(Schema.isMinSize(2))`
+          )
+        })
+
+        it("isMaxSize", () => {
+          assertToSchemaWithReviver(
+            Schema.ReadonlySet(Schema.String).check(Schema.isMaxSize(2)),
+            `Schema.ReadonlySet(String_).check(Schema.isMaxSize(2))`
+          )
+        })
+      })
+
+      it("isSize", () => {
+        assertToSchemaWithReviver(
+          Schema.ReadonlySet(Schema.String).check(Schema.isSize(2)),
+          `Schema.ReadonlySet(String_).check(Schema.isSize(2))`
+        )
+      })
     })
   })
 })

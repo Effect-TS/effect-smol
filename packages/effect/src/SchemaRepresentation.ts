@@ -25,7 +25,7 @@ export interface Declaration {
   readonly _tag: "Declaration"
   readonly annotations?: Schema.Annotations.Annotations | undefined
   readonly typeParameters: ReadonlyArray<Representation>
-  readonly checks: ReadonlyArray<Check<Meta>>
+  readonly checks: ReadonlyArray<Check<DeclarationMeta>>
   readonly encodedSchema: Representation
 }
 
@@ -376,10 +376,25 @@ export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isLessThanOrEqualToDate"
   | "isBetweenDate"
 ]
+
 /**
  * @since 4.0.0
  */
-export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMeta | DateMeta
+export type SizeMeta = Schema.Annotations.BuiltInMetaDefinitions[
+  | "isMinSize"
+  | "isMaxSize"
+  | "isSize"
+]
+
+/**
+ * @since 4.0.0
+ */
+export type DeclarationMeta = DateMeta | SizeMeta
+
+/**
+ * @since 4.0.0
+ */
+export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMeta | DeclarationMeta
 
 /**
  * @since 4.0.0
@@ -424,7 +439,14 @@ const toJsonAnnotationsBlacklist: Set<string> = new Set([
 export type PrimitiveTree = Schema.Tree<null | number | boolean | bigint | symbol | string>
 
 const PrimitiveTree$: Schema.Codec<PrimitiveTree> = Schema.Tree(
-  Schema.Union([Schema.Null, Schema.Number, Schema.Boolean, Schema.BigInt, Schema.Symbol, Schema.String])
+  Schema.Union([
+    Schema.Null,
+    Schema.Number, // allows NaN, Infinity, -Infinity
+    Schema.Boolean,
+    Schema.BigInt,
+    Schema.Symbol,
+    Schema.String
+  ])
 )
 
 const isPrimitiveTree = Schema.is(PrimitiveTree$)
@@ -574,25 +596,27 @@ const IsUncapitalized$ = Schema.Struct({
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsUncapitalized" })
 
+const PositiveInt = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
+
 const IsMinLength$ = Schema.Struct({
   _tag: Schema.tag("isMinLength"),
-  minLength: Schema.Number
+  minLength: PositiveInt
 }).annotate({ identifier: "IsMinLength" })
 
 const IsMaxLength$ = Schema.Struct({
   _tag: Schema.tag("isMaxLength"),
-  maxLength: Schema.Number
+  maxLength: PositiveInt
 }).annotate({ identifier: "IsMaxLength" })
+
+const IsLength$ = Schema.Struct({
+  _tag: Schema.tag("isLength"),
+  length: PositiveInt
+}).annotate({ identifier: "IsLength" })
 
 const IsPattern$ = Schema.Struct({
   _tag: Schema.tag("isPattern"),
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsPattern" })
-
-const IsLength$ = Schema.Struct({
-  _tag: Schema.tag("isLength"),
-  length: Schema.Number
-}).annotate({ identifier: "IsLength" })
 
 const StringMeta$ = Schema.Union([
   IsStringFinite$,
@@ -650,7 +674,7 @@ const IsInt$ = Schema.Struct({
 
 const IsMultipleOf$ = Schema.Struct({
   _tag: Schema.tag("isMultipleOf"),
-  divisor: Schema.Number
+  divisor: Schema.Finite
 }).annotate({ identifier: "IsMultipleOf" })
 
 const IsFinite$ = Schema.Struct({
@@ -659,28 +683,28 @@ const IsFinite$ = Schema.Struct({
 
 const IsGreaterThan$ = Schema.Struct({
   _tag: Schema.tag("isGreaterThan"),
-  exclusiveMinimum: Schema.Number
+  exclusiveMinimum: Schema.Finite
 }).annotate({ identifier: "IsGreaterThan" })
 
 const IsGreaterThanOrEqualTo$ = Schema.Struct({
   _tag: Schema.tag("isGreaterThanOrEqualTo"),
-  minimum: Schema.Number
+  minimum: Schema.Finite
 }).annotate({ identifier: "IsGreaterThanOrEqualTo" })
 
 const IsLessThan$ = Schema.Struct({
   _tag: Schema.tag("isLessThan"),
-  exclusiveMaximum: Schema.Number
+  exclusiveMaximum: Schema.Finite
 }).annotate({ identifier: "IsLessThan" })
 
 const IsLessThanOrEqualTo$ = Schema.Struct({
   _tag: Schema.tag("isLessThanOrEqualTo"),
-  maximum: Schema.Number
+  maximum: Schema.Finite
 }).annotate({ identifier: "IsLessThanOrEqualTo" })
 
 const IsBetween$ = Schema.Struct({
   _tag: Schema.tag("isBetween"),
-  minimum: Schema.Number,
-  maximum: Schema.Number,
+  minimum: Schema.Finite,
+  maximum: Schema.Finite,
   exclusiveMinimum: Schema.optional(Schema.Boolean),
   exclusiveMaximum: Schema.optional(Schema.Boolean)
 }).annotate({ identifier: "IsBetween" })
@@ -771,7 +795,7 @@ export const Symbol$ = Schema.Struct({
  */
 export const LiteralValue$ = Schema.Union([
   Schema.String,
-  Schema.Number,
+  Schema.Finite,
   Schema.Boolean,
   Schema.BigInt
 ]).annotate({ identifier: "LiteralValue" })
@@ -809,7 +833,13 @@ export const Enum$ = Schema.Struct({
   _tag: Schema.tag("Enum"),
   annotations: Schema.optional(Annotations$),
   enums: Schema.Array(
-    Schema.Tuple([Schema.String, Schema.Union([Schema.String, Schema.Number])])
+    Schema.Tuple([
+      Schema.String,
+      Schema.Union([
+        Schema.String,
+        Schema.Number // NaN, Infinity, -Infinity are allowed enum values
+      ])
+    ])
   )
 }).annotate({ identifier: "Enum" })
 
@@ -874,17 +904,17 @@ export const IndexSignature$ = Schema.Struct({
 
 const IsMinProperties$ = Schema.Struct({
   _tag: Schema.tag("isMinProperties"),
-  minProperties: Schema.Number
+  minProperties: PositiveInt
 }).annotate({ identifier: "IsMinProperties" })
 
 const IsMaxProperties$ = Schema.Struct({
   _tag: Schema.tag("isMaxProperties"),
-  maxProperties: Schema.Number
+  maxProperties: PositiveInt
 }).annotate({ identifier: "IsMaxProperties" })
 
 const IsPropertiesLength$ = Schema.Struct({
   _tag: Schema.tag("isPropertiesLength"),
-  length: Schema.Number
+  length: PositiveInt
 }).annotate({ identifier: "IsPropertiesLength" })
 
 const IsPropertyNames$ = Schema.Struct({
@@ -967,7 +997,33 @@ const DateMeta$ = Schema.Union([
   IsLessThanDate$,
   IsLessThanOrEqualToDate$,
   IsBetweenDate$
-]).annotate({ identifier: "BigIntMeta" })
+]).annotate({ identifier: "DateMeta" })
+
+const IsMinSize$ = Schema.Struct({
+  _tag: Schema.tag("isMinSize"),
+  minSize: PositiveInt
+}).annotate({ identifier: "IsMinSize" })
+
+const IsMaxSize$ = Schema.Struct({
+  _tag: Schema.tag("isMaxSize"),
+  maxSize: PositiveInt
+}).annotate({ identifier: "IsMaxSize" })
+
+const IsSize$ = Schema.Struct({
+  _tag: Schema.tag("isSize"),
+  size: PositiveInt
+}).annotate({ identifier: "IsSize" })
+
+const SizeMeta$ = Schema.Union([
+  IsMinSize$,
+  IsMaxSize$,
+  IsSize$
+]).annotate({ identifier: "SizeMeta" })
+
+const DeclarationMeta$ = Schema.Union([
+  DateMeta$,
+  SizeMeta$
+]).annotate({ identifier: "DeclarationMeta" })
 
 /**
  * @since 4.0.0
@@ -976,7 +1032,7 @@ export const Declaration$ = Schema.Struct({
   _tag: Schema.tag("Declaration"),
   annotations: Schema.optional(Annotations$),
   typeParameters: Schema.Array(Representation$ref),
-  checks: Schema.Array(makeCheck(DateMeta$, "Date")),
+  checks: Schema.Array(makeCheck(DeclarationMeta$, "Declaration")),
   encodedSchema: Representation$ref
 }).annotate({ identifier: "Declaration" })
 
@@ -1306,7 +1362,8 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
       case "Number":
       case "BigInt":
       case "Arrays":
-      case "Objects": {
+      case "Objects":
+      case "Declaration": {
         const checks = schema.checks.map(toSchemaCheck)
         return Arr.isArrayNonEmpty(checks) ? top.check(...checks) : top
       }
@@ -1423,6 +1480,14 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
         return Schema.isLessThanOrEqualToDate(filter.meta.maximum, a)
       case "isBetweenDate":
         return Schema.isBetweenDate(filter.meta, a)
+
+      // Size Meta
+      case "isMinSize":
+        return Schema.isMinSize(filter.meta.minSize, a)
+      case "isMaxSize":
+        return Schema.isMaxSize(filter.meta.maxSize, a)
+      case "isSize":
+        return Schema.isSize(filter.meta.size, a)
     }
   }
 }
@@ -1930,6 +1995,13 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
         return `Schema.isPropertiesLength(${filter.meta.length}${ca})`
       case "isPropertyNames":
         return `Schema.isPropertyNames(${recur(filter.meta.propertyNames).runtime}${ca})`
+
+      case "isMinSize":
+        return `Schema.isMinSize(${filter.meta.minSize}${ca})`
+      case "isMaxSize":
+        return `Schema.isMaxSize(${filter.meta.maxSize}${ca})`
+      case "isSize":
+        return `Schema.isSize(${filter.meta.size}${ca})`
     }
   }
 }

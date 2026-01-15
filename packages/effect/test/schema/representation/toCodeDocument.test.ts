@@ -1514,56 +1514,149 @@ describe("toCodeDocument", () => {
     })
   })
 
-  describe("nested structures", () => {
-    it("tuple with struct elements", () => {
-      assertToCodeDocument(
-        {
-          schema: Schema.Tuple([
-            Schema.Struct({ a: Schema.String }),
-            Schema.Struct({ b: Schema.Number })
-          ])
-        },
-        {
-          codes: makeCode(
-            `Schema.Tuple([Schema.Struct({ "a": Schema.String }), Schema.Struct({ "b": Schema.Number })])`,
-            `readonly [{ readonly "a": string }, { readonly "b": number }]`
-          )
-        }
-      )
+  describe("Date", () => {
+    it("Date", () => {
+      assertToCodeDocument({ schema: Schema.Date }, {
+        codes: makeCode(`Schema.Date`, "globalThis.Date")
+      })
     })
 
-    it("nested struct", () => {
-      assertToCodeDocument(
-        {
-          schema: Schema.Struct({
-            user: Schema.Struct({
-              a: Schema.String,
-              b: Schema.Number
-            })
-          })
-        },
-        {
-          codes: makeCode(
-            `Schema.Struct({ "user": Schema.Struct({ "a": Schema.String, "b": Schema.Number }) })`,
-            `{ readonly "user": { readonly "a": string, readonly "b": number } }`
-          )
+    describe("checks", () => {
+      it("isDateValid", () => {
+        assertToCodeDocument(
+          { schema: Schema.Date.check(Schema.isDateValid()) },
+          {
+            codes: makeCode(`Schema.Date.check(Schema.isDateValid())`, "globalThis.Date")
+          }
+        )
+      })
+
+      it("isGreaterThanDate", () => {
+        assertToCodeDocument(
+          { schema: Schema.Date.check(Schema.isGreaterThanDate(new Date(0))) },
+          {
+            codes: makeCode(`Schema.Date.check(Schema.isGreaterThanDate(new Date(0)))`, "globalThis.Date")
+          }
+        )
+      })
+
+      it("isGreaterThanOrEqualToDate", () => {
+        assertToCodeDocument(
+          { schema: Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0))) },
+          {
+            codes: makeCode(`Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0)))`, "globalThis.Date")
+          }
+        )
+      })
+
+      it("isLessThanDate", () => {
+        assertToCodeDocument(
+          { schema: Schema.Date.check(Schema.isLessThanDate(new Date(0))) },
+          {
+            codes: makeCode(`Schema.Date.check(Schema.isLessThanDate(new Date(0)))`, "globalThis.Date")
+          }
+        )
+      })
+
+      it("isLessThanOrEqualToDate", () => {
+        assertToCodeDocument(
+          { schema: Schema.Date.check(Schema.isLessThanOrEqualToDate(new Date(0))) },
+          {
+            codes: makeCode(`Schema.Date.check(Schema.isLessThanOrEqualToDate(new Date(0)))`, "globalThis.Date")
+          }
+        )
+      })
+
+      it("isBetweenDate", () => {
+        assertToCodeDocument(
+          { schema: Schema.Date.check(Schema.isBetweenDate({ minimum: new Date(0), maximum: new Date(1) })) },
+          {
+            codes: makeCode(
+              `Schema.Date.check(Schema.isBetweenDate({ minimum: new Date(0), maximum: new Date(1), exclusiveMinimum: undefined, exclusiveMaximum: undefined))`,
+              "globalThis.Date"
+            )
+          }
+        )
+      })
+    })
+  })
+
+  describe("ReadonlySet", () => {
+    it("ReadonlySet(String)", () => {
+      assertToCodeDocument({ schema: Schema.ReadonlySet(Schema.String) }, {
+        codes: makeCode(
+          `Schema.ReadonlySet(String_)`,
+          "globalThis.ReadonlySet<String_>"
+        ),
+        references: {
+          nonRecursives: [
+            {
+              $ref: "String_",
+              code: makeCode(`Schema.String`, "string")
+            }
+          ]
         }
-      )
+      })
     })
 
-    it("union of structs", () => {
+    describe("checks", () => {
+      it("isMinSize", () => {
+        assertToCodeDocument(
+          { schema: Schema.ReadonlySet(Schema.String).check(Schema.isMinSize(2)) },
+          {
+            codes: makeCode(
+              `Schema.ReadonlySet(String_).check(Schema.isMinSize(2))`,
+              "globalThis.ReadonlySet<String_>"
+            ),
+            references: {
+              nonRecursives: [
+                {
+                  $ref: "String_",
+                  code: makeCode(`Schema.String`, "string")
+                }
+              ]
+            }
+          }
+        )
+      })
+
+      it("isMaxSize", () => {
+        assertToCodeDocument(
+          { schema: Schema.ReadonlySet(Schema.String).check(Schema.isMaxSize(2)) },
+          {
+            codes: makeCode(
+              `Schema.ReadonlySet(String_).check(Schema.isMaxSize(2))`,
+              "globalThis.ReadonlySet<String_>"
+            ),
+            references: {
+              nonRecursives: [
+                {
+                  $ref: "String_",
+                  code: makeCode(`Schema.String`, "string")
+                }
+              ]
+            }
+          }
+        )
+      })
+    })
+
+    it("isSize", () => {
       assertToCodeDocument(
-        {
-          schema: Schema.Union([
-            Schema.Struct({ type: Schema.Literal("a"), value: Schema.String }),
-            Schema.Struct({ type: Schema.Literal("b"), value: Schema.Number })
-          ])
-        },
+        { schema: Schema.ReadonlySet(Schema.String).check(Schema.isSize(2)) },
         {
           codes: makeCode(
-            `Schema.Union([Schema.Struct({ "type": Schema.Literal("a"), "value": Schema.String }), Schema.Struct({ "type": Schema.Literal("b"), "value": Schema.Number })])`,
-            `{ readonly "type": "a", readonly "value": string } | { readonly "type": "b", readonly "value": number }`
-          )
+            `Schema.ReadonlySet(String_).check(Schema.isSize(2))`,
+            "globalThis.ReadonlySet<String_>"
+          ),
+          references: {
+            nonRecursives: [
+              {
+                $ref: "String_",
+                code: makeCode(`Schema.String`, "string")
+              }
+            ]
+          }
         }
       )
     })
