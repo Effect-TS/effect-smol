@@ -1065,6 +1065,16 @@ export const MultiDocumentFromJson: Schema.Codec<MultiDocument, unknown> = Schem
 /**
  * @since 4.0.0
  */
+export function toMultiDocument(document: Document): MultiDocument {
+  return {
+    representations: [document.representation],
+    references: document.references
+  }
+}
+
+/**
+ * @since 4.0.0
+ */
 export type Reviver<T> = (declaration: Declaration, recur: (representation: Representation) => T) => T | undefined
 
 /**
@@ -1485,109 +1495,6 @@ export type CodeDocument = {
   readonly artifacts: ReadonlyArray<Artifact>
 }
 
-// Basic reserved words (ECMAScript keywords + a few strict-mode literals).
-const reserved = new Set<string>([
-  "await",
-  "break",
-  "case",
-  "catch",
-  "class",
-  "const",
-  "continue",
-  "debugger",
-  "default",
-  "delete",
-  "do",
-  "else",
-  "enum",
-  "export",
-  "extends",
-  "false",
-  "finally",
-  "for",
-  "function",
-  "if",
-  "implements",
-  "import",
-  "in",
-  "instanceof",
-  "interface",
-  "let",
-  "new",
-  "null",
-  "package",
-  "private",
-  "protected",
-  "public",
-  "return",
-  "static",
-  "super",
-  "switch",
-  "this",
-  "throw",
-  "true",
-  "try",
-  "typeof",
-  "var",
-  "void",
-  "while",
-  "with",
-  "yield"
-])
-
-function isAsciiIdStart(ch: string): boolean {
-  return ch === "_" ||
-    ch === "$" ||
-    (ch >= "A" && ch <= "Z") ||
-    (ch >= "a" && ch <= "z")
-}
-
-function isAsciiIdPart(ch: string): boolean {
-  return isAsciiIdStart(ch) || (ch >= "0" && ch <= "9")
-}
-
-/** @internal */
-export function toValidIdentifier(input: string): string {
-  if (input.length === 0) return "_"
-
-  let needsPrefix = false
-  let out = ""
-
-  let i = 0
-  for (const ch of input) {
-    if (i === 0) {
-      if (isAsciiIdStart(ch)) {
-        out += ch
-      } else if (isAsciiIdPart(ch)) {
-        // Digit (or otherwise valid "part") at start: keep it and prefix "_" later.
-        out += ch
-        needsPrefix = true
-      } else {
-        // Invalid start char: replace with "_"
-        out += "_"
-      }
-    } else {
-      out += isAsciiIdPart(ch) ? ch : "_"
-    }
-    i++
-  }
-
-  if (needsPrefix) out = "_" + out
-  if (reserved.has(out)) out = "_" + out
-
-  return out
-}
-
-/**
- * @since 4.0.0
- */
-export function toMultiDocument(document: Document): MultiDocument {
-  return {
-    representations: [document.representation],
-    references: document.references
-  }
-}
-
 /**
  * @since 4.0.0
  */
@@ -2006,6 +1913,108 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
         return `Schema.isPropertyNames(${recur(filter.meta.propertyNames).runtime}${ca})`
     }
   }
+}
+
+// Basic reserved words (ECMAScript keywords + a few strict-mode literals).
+const reserved = new Set<string>([
+  "await",
+  "break",
+  "case",
+  "catch",
+  "class",
+  "const",
+  "continue",
+  "debugger",
+  "default",
+  "delete",
+  "do",
+  "else",
+  "enum",
+  "export",
+  "extends",
+  "false",
+  "finally",
+  "for",
+  "function",
+  "if",
+  "implements",
+  "import",
+  "in",
+  "instanceof",
+  "interface",
+  "let",
+  "new",
+  "null",
+  "package",
+  "private",
+  "protected",
+  "public",
+  "return",
+  "static",
+  "super",
+  "switch",
+  "this",
+  "throw",
+  "true",
+  "try",
+  "typeof",
+  "var",
+  "void",
+  "while",
+  "with",
+  "yield"
+])
+
+function isAsciiIdStart(ch: string): boolean {
+  return ch === "_" ||
+    ch === "$" ||
+    (ch >= "A" && ch <= "Z") ||
+    (ch >= "a" && ch <= "z")
+}
+
+function isAsciiIdPart(ch: string): boolean {
+  return isAsciiIdStart(ch) || (ch >= "0" && ch <= "9")
+}
+
+/**
+ * Converts an arbitrary string into a valid (ASCII) TypeScript identifier.
+ *
+ * - Replaces invalid identifier characters with `_`
+ * - If the first character is a digit, prefixes `_`
+ * - If the result is a reserved word, prefixes `_`
+ * - Empty input becomes `_`
+ *
+ * @internal
+ */
+export function toValidIdentifier(input: string): string {
+  if (input.length === 0) return "_"
+
+  let needsPrefix = false
+  let out = ""
+
+  let i = 0
+  for (const ch of input) {
+    if (i === 0) {
+      if (isAsciiIdStart(ch)) {
+        out += ch
+      } else if (isAsciiIdPart(ch)) {
+        // Digit (or otherwise valid "part") at start: keep it and prefix "_" later.
+        out += ch
+        needsPrefix = true
+      } else {
+        // Invalid start char: replace with "_"
+        out += "_"
+      }
+    } else {
+      out += isAsciiIdPart(ch) ? ch : "_"
+    }
+    i++
+  }
+
+  if (needsPrefix) out = "_" + out
+  if (reserved.has(out)) out = "_" + out
+
+  return out
 }
 
 function fill(template: string, items: ReadonlyArray<string>) {
