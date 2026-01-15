@@ -370,6 +370,17 @@ describe("toCodeDocument", () => {
         }
       )
     })
+
+    describe("checks", () => {
+      it.todo("isStartsWith", () => {
+        assertToCodeDocument(
+          { schema: Schema.String.check(Schema.isStartsWith("a")) },
+          {
+            codes: makeCode(`Schema.String.check(Schema.isStartsWith("a"))`, "string")
+          }
+        )
+      })
+    })
   })
 
   describe("Number", () => {
@@ -1390,6 +1401,98 @@ describe("toCodeDocument", () => {
           }
         }
       })
+    })
+  })
+
+  describe("brand", () => {
+    it("brand", () => {
+      assertToCodeDocument(
+        {
+          schema: Schema.String.pipe(Schema.brand("a"))
+        },
+        {
+          codes: makeCode(
+            `Schema.String.pipe(Schema.brand("a"))`,
+            `string & Brand.Brand<"a">`
+          ),
+          artifacts: [{
+            _tag: "Import",
+            importDeclaration: `import type * as Brand from "effect/Brand"`
+          }]
+        }
+      )
+    })
+
+    it("brand & brand", () => {
+      assertToCodeDocument(
+        {
+          schema: Schema.String.pipe(Schema.brand("a"), Schema.brand("b"))
+        },
+        {
+          codes: makeCode(
+            `Schema.String.pipe(Schema.brand("a"), Schema.brand("b"))`,
+            `string & Brand.Brand<"a"> & Brand.Brand<"b">`
+          ),
+          artifacts: [{
+            _tag: "Import",
+            importDeclaration: `import type * as Brand from "effect/Brand"`
+          }]
+        }
+      )
+    })
+
+    it("check & brand", () => {
+      assertToCodeDocument(
+        {
+          schema: Schema.String.check(Schema.isMinLength(1)).pipe(Schema.brand("b"))
+        },
+        {
+          codes: makeCode(
+            `Schema.String.check(Schema.isMinLength(1)).pipe(Schema.brand("b"))`,
+            `string & Brand.Brand<"b">`
+          ),
+          artifacts: [{
+            _tag: "Import",
+            importDeclaration: `import type * as Brand from "effect/Brand"`
+          }]
+        }
+      )
+    })
+
+    it("brand & check & brand", () => {
+      assertToCodeDocument(
+        {
+          schema: Schema.String.pipe(Schema.brand("a")).check(Schema.isMinLength(1)).pipe(Schema.brand("b"))
+        },
+        {
+          codes: makeCode(
+            `Schema.String.pipe(Schema.brand("a")).check(Schema.isMinLength(1)).pipe(Schema.brand("b"))`,
+            `string & Brand.Brand<"a"> & Brand.Brand<"b">`
+          ),
+          artifacts: [{
+            _tag: "Import",
+            importDeclaration: `import type * as Brand from "effect/Brand"`
+          }]
+        }
+      )
+    })
+
+    it("check & brand & check", () => {
+      assertToCodeDocument(
+        {
+          schema: Schema.String.check(Schema.isMinLength(1)).pipe(Schema.brand("b")).check(Schema.isMaxLength(2))
+        },
+        {
+          codes: makeCode(
+            `Schema.String.check(Schema.isMinLength(1)).pipe(Schema.brand("b")).check(Schema.isMaxLength(2))`,
+            `string & Brand.Brand<"b">`
+          ),
+          artifacts: [{
+            _tag: "Import",
+            importDeclaration: `import type * as Brand from "effect/Brand"`
+          }]
+        }
+      )
     })
   })
 

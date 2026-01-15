@@ -1514,7 +1514,7 @@ import { Schema } from "effect"
 
 //      ┌─── Schema.brand<Schema.String, "UserId">
 //      ▼
-const branded = Schema.String.pipe(Schema.brand<"UserId">())
+const branded = Schema.String.pipe(Schema.brand("UserId"))
 ```
 
 ### Structural Filters

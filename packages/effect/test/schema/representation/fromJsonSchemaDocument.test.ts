@@ -368,7 +368,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isFinite(), Schema.isGreaterThanOrEqualTo(1))`
+          `Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(1))`
         )
       })
 
@@ -384,7 +384,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isFinite(), Schema.isLessThanOrEqualTo(1))`
+          `Schema.Number.check(Schema.isFinite()).check(Schema.isLessThanOrEqualTo(1))`
         )
       })
 
@@ -400,7 +400,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isFinite(), Schema.isGreaterThan(1))`
+          `Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThan(1))`
         )
       })
 
@@ -416,7 +416,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isFinite(), Schema.isLessThan(1))`
+          `Schema.Number.check(Schema.isFinite()).check(Schema.isLessThan(1))`
         )
       })
 
@@ -432,7 +432,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isFinite(), Schema.isMultipleOf(1))`
+          `Schema.Number.check(Schema.isFinite()).check(Schema.isMultipleOf(1))`
         )
       })
     })
@@ -467,7 +467,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1))`
+          `Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1))`
         )
       })
 
@@ -483,7 +483,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isInt(), Schema.isLessThanOrEqualTo(1))`
+          `Schema.Number.check(Schema.isInt()).check(Schema.isLessThanOrEqualTo(1))`
         )
       })
 
@@ -499,7 +499,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(1))`
+          `Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(1))`
         )
       })
 
@@ -515,7 +515,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isInt(), Schema.isLessThan(1))`
+          `Schema.Number.check(Schema.isInt()).check(Schema.isLessThan(1))`
         )
       })
 
@@ -531,7 +531,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isInt(), Schema.isMultipleOf(1))`
+          `Schema.Number.check(Schema.isInt()).check(Schema.isMultipleOf(1))`
         )
       })
     })
@@ -997,7 +997,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Record(Schema.String, Schema.Unknown).check(Schema.isPropertyNames(Schema.String.check(Schema.isPattern(new RegExp("^[A-Z]")))), Schema.isPropertyNames(Schema.String.check(Schema.isMinLength(2))))`
+          `Schema.Record(Schema.String, Schema.Unknown).check(Schema.isPropertyNames(Schema.String.check(Schema.isPattern(new RegExp("^[A-Z]"))))).check(Schema.isPropertyNames(Schema.String.check(Schema.isMinLength(2))))`
         )
       })
     })
@@ -1287,7 +1287,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.String.check(Schema.isMaxLength(2), Schema.isMinLength(1))`
+          `Schema.String.check(Schema.isMaxLength(2)).check(Schema.isMinLength(1))`
         )
       })
 
@@ -1311,7 +1311,7 @@ describe("fromJsonSchemaDocument", () => {
               annotations: { description: "a" }
             }
           },
-          `Schema.String.annotate({ "description": "a" }).check(Schema.isMaxLength(2), Schema.isMinLength(1))`
+          `Schema.String.annotate({ "description": "a" }).check(Schema.isMaxLength(2)).check(Schema.isMinLength(1))`
         )
       })
 
@@ -1335,7 +1335,7 @@ describe("fromJsonSchemaDocument", () => {
               annotations: { description: "a" }
             }
           },
-          `Schema.String.annotate({ "description": "a" }).check(Schema.isMaxLength(2), Schema.isMinLength(1, { "description": "b" }))`
+          `Schema.String.annotate({ "description": "a" }).check(Schema.isMaxLength(2)).check(Schema.isMinLength(1, { "description": "b" }))`
         )
       })
 
@@ -1356,7 +1356,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(2))`
+          `Schema.String.check(Schema.isMinLength(1)).check(Schema.isMaxLength(2))`
         )
       })
 
@@ -1404,7 +1404,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(2, { "description": "c" }))`
+          `Schema.String.check(Schema.isMinLength(1)).check(Schema.isMaxLength(2, { "description": "c" }))`
         )
       })
 
@@ -1454,7 +1454,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isFinite(), Schema.isInt())`
+          `Schema.Number.check(Schema.isFinite()).check(Schema.isInt())`
         )
       })
 
@@ -1478,7 +1478,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isFinite(), Schema.isInt(), Schema.isGreaterThanOrEqualTo(2), Schema.isLessThanOrEqualTo(2))`
+          `Schema.Number.check(Schema.isFinite()).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(2)).check(Schema.isLessThanOrEqualTo(2))`
         )
       })
 
@@ -1499,7 +1499,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isInt(), Schema.isFinite())`
+          `Schema.Number.check(Schema.isInt()).check(Schema.isFinite())`
         )
       })
 
@@ -1531,7 +1531,7 @@ describe("fromJsonSchemaDocument", () => {
               ]
             }
           },
-          `Schema.Number.check(Schema.isFinite(), Schema.makeFilterGroup([Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(2, { "description": "c" })], { "description": "b" }))`
+          `Schema.Number.check(Schema.isFinite()).check(Schema.makeFilterGroup([Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(2, { "description": "c" })], { "description": "b" }))`
         )
       })
     })

@@ -3,6 +3,7 @@
  */
 import * as Arr from "./Array.ts"
 import { format, formatPropertyKey } from "./Formatter.ts"
+import { collectBrands } from "./internal/schema/annotations.ts"
 import * as InternalRepresentation from "./internal/schema/representation.ts"
 import { unescapeToken } from "./JsonPointer.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
@@ -1599,7 +1600,10 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
     const g = on(s)
     switch (s._tag) {
       default:
-        return makeCode(g.runtime + toRuntimeAnnotate(s.annotations), g.Type)
+        return makeCode(
+          g.runtime + toRuntimeAnnotate(s.annotations) + toRuntimeBrand(s.annotations),
+          g.Type + toTypeBrand(s.annotations)
+        )
       case "Reference":
         return g
       case "Declaration":
@@ -1610,8 +1614,8 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
       case "Objects":
       case "Suspend":
         return makeCode(
-          g.runtime + toRuntimeAnnotate(s.annotations) + toRuntimeChecks(s.checks),
-          g.Type
+          g.runtime + toRuntimeAnnotate(s.annotations) + toRuntimeBrand(s.annotations) + toRuntimeChecks(s.checks),
+          g.Type + toTypeBrand(s.annotations) + toTypeChecks(s.checks)
         )
     }
   }
@@ -1814,9 +1818,29 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
     }
   }
 
+  function toTypeBrand(annotations: Schema.Annotations.Annotations | undefined): string {
+    const brands = collectBrands(annotations)
+    if (brands.length === 0) return ""
+    addImport(`import type * as Brand from "effect/Brand"`)
+    return brands.map((b) => ` & Brand.Brand<${format(b)}>`).join("")
+  }
+
+  function toTypeChecks(checks: ReadonlyArray<Check<Meta>>): string {
+    return checks.map((c) => toTypeCheck(c)).join("")
+  }
+
+  function toTypeCheck(check: Check<Meta>): string {
+    switch (check._tag) {
+      case "Filter":
+        return toTypeBrand(check.annotations)
+      case "FilterGroup": {
+        return toTypeChecks(check.checks)
+      }
+    }
+  }
+
   function toRuntimeChecks(checks: ReadonlyArray<Check<Meta>>): string {
-    if (checks.length === 0) return ""
-    return `.check(${checks.map((c) => toRuntimeCheck(c)).join(", ")})`
+    return checks.map((c) => `.check(${toRuntimeCheck(c)})` + toRuntimeBrand(c.annotations)).join("")
   }
 
   function toRuntimeCheck(check: Check<Meta>): string {
@@ -2001,7 +2025,8 @@ function toTypePart(r: Representation): ReadonlyArray<string> {
 const toCodeAnnotationsBlacklist: Set<string> = new Set([
   ...toJsonAnnotationsBlacklist,
   "typeConstructor",
-  "generation"
+  "generation",
+  "brands"
 ])
 
 function toRuntimeAnnotations(annotations: Schema.Annotations.Annotations | undefined): string {
@@ -2015,16 +2040,19 @@ function toRuntimeAnnotations(annotations: Schema.Annotations.Annotations | unde
   return `{ ${entries.join(", ")} }`
 }
 
+function toRuntimeBrand(annotations: Schema.Annotations.Annotations | undefined): string {
+  const brands = collectBrands(annotations)
+  return brands.length > 0 ? `.pipe(${brands.map((b) => `Schema.brand(${format(b)})`).join(", ")})` : ""
+}
+
 function toRuntimeAnnotate(annotations: Schema.Annotations.Annotations | undefined): string {
   const s = toRuntimeAnnotations(annotations)
-  if (s === "") return ""
-  return `.annotate(${s})`
+  return s === "" ? "" : `.annotate(${s})`
 }
 
 function toRuntimeAnnotateKey(annotations: Schema.Annotations.Annotations | undefined): string {
   const s = toRuntimeAnnotations(annotations)
-  if (s === "") return ""
-  return `.annotateKey(${s})`
+  return s === "" ? "" : `.annotateKey(${s})`
 }
 
 function toRuntimeIsOptional(isOptional: boolean, runtime: string): string {

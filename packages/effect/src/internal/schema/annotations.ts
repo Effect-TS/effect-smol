@@ -28,3 +28,8 @@ export const resolveBrands = resolveAt<ReadonlyArray<string>>("brands")
 export const getExpected = memoize((ast: AST.AST): string => {
   return ast.getExpected(getExpected)
 })
+
+/** @internal */
+export function collectBrands(annotations: Schema.Annotations.Annotations | undefined): ReadonlyArray<string> {
+  return annotations !== undefined && Array.isArray(annotations.brands) ? annotations.brands : []
+}
