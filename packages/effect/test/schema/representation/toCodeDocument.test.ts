@@ -37,8 +37,8 @@ describe("toCodeDocument", () => {
     readonly artifacts?: ReadonlyArray<SchemaRepresentation.Artifact>
   }) {
     const multiDocument = SchemaRepresentation.fromASTs([input.schema.ast])
-    const generationDocument = SchemaRepresentation.toCodeDocument(multiDocument, { reviver: input.reviver })
-    deepStrictEqual(generationDocument, {
+    const codeDocument = SchemaRepresentation.toCodeDocument(multiDocument, { reviver: input.reviver })
+    deepStrictEqual(codeDocument, {
       codes: Array.isArray(expected.codes) ? expected.codes : [expected.codes],
       references: {
         nonRecursives: expected.references?.nonRecursives ?? [],
@@ -1665,5 +1665,260 @@ describe("sanitizeJavaScriptIdentifier", () => {
   it("increases length only when prefixing is required", () => {
     strictEqual(sanitizeJavaScriptIdentifier("1a"), "_1a")
     strictEqual(sanitizeJavaScriptIdentifier("1a").length, "1a".length + 1)
+  })
+})
+
+describe("topologicalSort", () => {
+  function assertTopologicalSort(
+    definitions: Record<string, SchemaRepresentation.Representation>,
+    expected: SchemaRepresentation.TopologicalSort
+  ) {
+    deepStrictEqual(SchemaRepresentation.topologicalSort(definitions), expected)
+  }
+
+  it("empty definitions", () => {
+    assertTopologicalSort(
+      {},
+      { nonRecursives: [], recursives: {} }
+    )
+  })
+
+  it("single definition with no dependencies", () => {
+    assertTopologicalSort(
+      {
+        A: { _tag: "String", checks: [] }
+      },
+      {
+        nonRecursives: [
+          { $ref: "A", representation: { _tag: "String", checks: [] } }
+        ],
+        recursives: {}
+      }
+    )
+  })
+
+  it("multiple independent definitions", () => {
+    assertTopologicalSort({
+      A: { _tag: "String", checks: [] },
+      B: { _tag: "Number", checks: [] },
+      C: { _tag: "Boolean" }
+    }, {
+      nonRecursives: [
+        { $ref: "A", representation: { _tag: "String", checks: [] } },
+        { $ref: "B", representation: { _tag: "Number", checks: [] } },
+        { $ref: "C", representation: { _tag: "Boolean" } }
+      ],
+      recursives: {}
+    })
+  })
+
+  it("A -> B -> C", () => {
+    assertTopologicalSort({
+      A: { _tag: "String", checks: [] },
+      B: { _tag: "Reference", $ref: "A" },
+      C: { _tag: "Reference", $ref: "B" }
+    }, {
+      nonRecursives: [
+        { $ref: "A", representation: { _tag: "String", checks: [] } },
+        { $ref: "B", representation: { _tag: "Reference", $ref: "A" } },
+        { $ref: "C", representation: { _tag: "Reference", $ref: "B" } }
+      ],
+      recursives: {}
+    })
+  })
+
+  it("A -> B, A -> C", () => {
+    assertTopologicalSort({
+      A: { _tag: "String", checks: [] },
+      B: { _tag: "Reference", $ref: "A" },
+      C: { _tag: "Reference", $ref: "A" }
+    }, {
+      nonRecursives: [
+        { $ref: "A", representation: { _tag: "String", checks: [] } },
+        { $ref: "B", representation: { _tag: "Reference", $ref: "A" } },
+        { $ref: "C", representation: { _tag: "Reference", $ref: "A" } }
+      ],
+      recursives: {}
+    })
+  })
+
+  it("A -> B -> C, A -> D", () => {
+    assertTopologicalSort({
+      A: { _tag: "String", checks: [] },
+      B: { _tag: "Reference", $ref: "A" },
+      C: { _tag: "Reference", $ref: "B" },
+      D: { _tag: "Reference", $ref: "A" }
+    }, {
+      nonRecursives: [
+        { $ref: "A", representation: { _tag: "String", checks: [] } },
+        { $ref: "B", representation: { _tag: "Reference", $ref: "A" } },
+        { $ref: "D", representation: { _tag: "Reference", $ref: "A" } },
+        { $ref: "C", representation: { _tag: "Reference", $ref: "B" } }
+      ],
+      recursives: {}
+    })
+  })
+
+  it("self-referential definition (A -> A)", () => {
+    assertTopologicalSort({
+      A: { _tag: "Reference", $ref: "A" }
+    }, {
+      nonRecursives: [],
+      recursives: {
+        A: { _tag: "Reference", $ref: "A" }
+      }
+    })
+  })
+
+  it("mutual recursion (A -> B -> A)", () => {
+    assertTopologicalSort({
+      A: { _tag: "Reference", $ref: "B" },
+      B: { _tag: "Reference", $ref: "A" }
+    }, {
+      nonRecursives: [],
+      recursives: {
+        A: { _tag: "Reference", $ref: "B" },
+        B: { _tag: "Reference", $ref: "A" }
+      }
+    })
+  })
+
+  it("complex cycle (A -> B -> C -> A)", () => {
+    assertTopologicalSort({
+      A: { _tag: "Reference", $ref: "B" },
+      B: { _tag: "Reference", $ref: "C" },
+      C: { _tag: "Reference", $ref: "A" }
+    }, {
+      nonRecursives: [],
+      recursives: {
+        A: { _tag: "Reference", $ref: "B" },
+        B: { _tag: "Reference", $ref: "C" },
+        C: { _tag: "Reference", $ref: "A" }
+      }
+    })
+  })
+
+  it("mixed recursive and non-recursive definitions", () => {
+    assertTopologicalSort({
+      A: { _tag: "String", checks: [] },
+      B: { _tag: "Reference", $ref: "A" },
+      C: { _tag: "Reference", $ref: "C" },
+      D: { _tag: "Reference", $ref: "E" },
+      E: { _tag: "Reference", $ref: "D" }
+    }, {
+      nonRecursives: [
+        { $ref: "A", representation: { _tag: "String", checks: [] } },
+        { $ref: "B", representation: { _tag: "Reference", $ref: "A" } }
+      ],
+      recursives: {
+        C: { _tag: "Reference", $ref: "C" },
+        D: { _tag: "Reference", $ref: "E" },
+        E: { _tag: "Reference", $ref: "D" }
+      }
+    })
+  })
+
+  it("nested $ref in object properties", () => {
+    assertTopologicalSort({
+      A: { _tag: "String", checks: [] },
+      B: {
+        _tag: "Objects",
+        propertySignatures: [{
+          name: "value",
+          type: { _tag: "Reference", $ref: "A" },
+          isOptional: false,
+          isMutable: false
+        }],
+        indexSignatures: [],
+        checks: []
+      }
+    }, {
+      nonRecursives: [
+        { $ref: "A", representation: { _tag: "String", checks: [] } },
+        {
+          $ref: "B",
+          representation: {
+            _tag: "Objects",
+            propertySignatures: [{
+              name: "value",
+              type: { _tag: "Reference", $ref: "A" },
+              isOptional: false,
+              isMutable: false
+            }],
+            indexSignatures: [],
+            checks: []
+          }
+        }
+      ],
+      recursives: {}
+    })
+  })
+
+  it("nested $ref in array rest", () => {
+    assertTopologicalSort({
+      A: { _tag: "String", checks: [] },
+      B: {
+        _tag: "Arrays",
+        elements: [],
+        rest: [{ _tag: "Reference", $ref: "A" }],
+        checks: []
+      }
+    }, {
+      nonRecursives: [
+        { $ref: "A", representation: { _tag: "String", checks: [] } },
+        {
+          $ref: "B",
+          representation: { _tag: "Arrays", elements: [], rest: [{ _tag: "Reference", $ref: "A" }], checks: [] }
+        }
+      ],
+      recursives: {}
+    })
+  })
+
+  it("external $ref (not in definitions) should be ignored", () => {
+    assertTopologicalSort({
+      A: { _tag: "Reference", $ref: "#/definitions/External" },
+      B: { _tag: "Reference", $ref: "A" }
+    }, {
+      nonRecursives: [
+        { $ref: "A", representation: { _tag: "Reference", $ref: "#/definitions/External" } },
+        { $ref: "B", representation: { _tag: "Reference", $ref: "A" } }
+      ],
+      recursives: {}
+    })
+  })
+
+  it("multiple cycles with independent definitions", () => {
+    assertTopologicalSort({
+      Independent: { _tag: "String", checks: [] },
+      A: { _tag: "Reference", $ref: "B" },
+      B: { _tag: "Reference", $ref: "A" },
+      C: { _tag: "Reference", $ref: "D" },
+      D: { _tag: "Reference", $ref: "C" }
+    }, {
+      nonRecursives: [
+        { $ref: "Independent", representation: { _tag: "String", checks: [] } }
+      ],
+      recursives: {
+        A: { _tag: "Reference", $ref: "B" },
+        B: { _tag: "Reference", $ref: "A" },
+        C: { _tag: "Reference", $ref: "D" },
+        D: { _tag: "Reference", $ref: "C" }
+      }
+    })
+  })
+
+  it("definition depending on recursive definition", () => {
+    assertTopologicalSort({
+      A: { _tag: "Reference", $ref: "A" },
+      B: { _tag: "Reference", $ref: "A" }
+    }, {
+      nonRecursives: [
+        { $ref: "B", representation: { _tag: "Reference", $ref: "A" } }
+      ],
+      recursives: {
+        A: { _tag: "Reference", $ref: "A" }
+      }
+    })
   })
 })
