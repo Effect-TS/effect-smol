@@ -48,3 +48,9 @@
 - Files: packages/effect/src/Effect.ts, packages/effect/src/internal/effect.ts, packages/effect/src/unstable/http/HttpClient.ts, packages/effect/src/unstable/sql/Migrator.ts, PROGRESS.md
 - Notes: filterOrFail now accepts predicate/refinement; internal impl checks predicate directly; Migrator uses Effect.isEffect; HttpClient filterOrFail updated; ran pnpm lint-fix/test/check/build/docgen
 - Blockers: none
+
+### Task EFF-189: refactor Stream.split
+
+- Files: packages/effect/src/Stream.ts, packages/effect/test/Stream.test.ts, PROGRESS.md
+- Notes: split now uses predicate/refinement delimiter; updated split tests/docs; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none

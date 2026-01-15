@@ -4165,14 +4165,14 @@ export const slidingSize: {
 )
 
 /**
- * Splits elements based on a filter function.
+ * Splits elements based on a predicate or refinement.
  *
  * ```ts
- * import { Filter, pipe, Stream } from "effect"
+ * import { pipe, Stream } from "effect"
  *
  * pipe(
  *   Stream.range(1, 10),
- *   Stream.split((n) => n % 4 === 0 ? n : Filter.fail(n)),
+ *   Stream.split((n) => n % 4 === 0),
  *   Stream.runCollect
  * )
  * // => [[1, 2, 3], [5, 6, 7], [9, 10]]
@@ -4182,26 +4182,29 @@ export const slidingSize: {
  * @category utils
  */
 export const split: {
-  <A, B, X>(
-    filter: Filter.Filter<A, B, X>
-  ): <E, R>(self: Stream<A, E, R>) => Stream<Arr.NonEmptyReadonlyArray<X>, E, R>
-  <A, E, R, B, X>(
+  <A, B extends A>(
+    refinement: Refinement<NoInfer<A>, B>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<Arr.NonEmptyReadonlyArray<Exclude<A, B>>, E, R>
+  <A>(predicate: Predicate<NoInfer<A>>): <E, R>(self: Stream<A, E, R>) => Stream<Arr.NonEmptyReadonlyArray<A>, E, R>
+  <A, E, R, B extends A>(
     self: Stream<A, E, R>,
-    filter: Filter.Filter<A, B, X>
-  ): Stream<Arr.NonEmptyReadonlyArray<X>, E, R>
-} = dual(2, <A, E, R, B, X>(
+    refinement: Refinement<A, B>
+  ): Stream<Arr.NonEmptyReadonlyArray<Exclude<A, B>>, E, R>
+  <A, E, R>(self: Stream<A, E, R>, predicate: Predicate<A>): Stream<Arr.NonEmptyReadonlyArray<A>, E, R>
+} = dual(2, <A, E, R>(
   self: Stream<A, E, R>,
-  filter: Filter.Filter<A, B, X>
-): Stream<Arr.NonEmptyReadonlyArray<X>, E, R> =>
-  mapAccumArray(self, Arr.empty<X>, (acc, arr) => {
-    const out = Arr.empty<Arr.NonEmptyReadonlyArray<X>>()
+  predicate: Predicate<NoInfer<A>>
+): Stream<Arr.NonEmptyReadonlyArray<A>, E, R> =>
+  mapAccumArray(self, Arr.empty<A>, (acc, arr) => {
+    const out = Arr.empty<Arr.NonEmptyReadonlyArray<A>>()
     for (let i = 0; i < arr.length; i++) {
-      const result = filter(arr[i])
-      if (Filter.isFail(result)) {
-        acc.push(result.fail)
-      } else if (Arr.isArrayNonEmpty(acc)) {
-        out.push(acc)
-        acc = []
+      if (predicate(arr[i])) {
+        if (Arr.isArrayNonEmpty(acc)) {
+          out.push(acc)
+          acc = []
+        }
+      } else {
+        acc.push(arr[i])
       }
     }
     return [acc, out]

@@ -3418,12 +3418,12 @@ describe("Stream", () => {
         const { result1, result2 } = yield* (Effect.all({
           result1: pipe(
             Stream.range(0, 9),
-            Stream.split((n) => n % 4 === 0 ? n : Filter.fail(n)),
+            Stream.split((n) => n % 4 === 0),
             Stream.runCollect
           ),
           result2: pipe(
             Stream.fromArrays(...chunks),
-            Stream.split((n) => n % 3 === 0 ? n : Filter.fail(n)),
+            Stream.split((n) => n % 3 === 0),
             Stream.runCollect
           )
         }))
@@ -3441,7 +3441,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const stream = Stream.range(1, 10)
         const { result1, result2 } = yield* (Effect.all({
-          result1: pipe(stream, Stream.split((n) => n % 11 === 0 ? n : Filter.fail(n)), Stream.runCollect),
+          result1: pipe(stream, Stream.split((n) => n % 11 === 0), Stream.runCollect),
           result2: pipe(
             Stream.runCollect(stream),
             Effect.map((chunk) => pipe(Array.of(chunk), Array.filter(Array.isArrayNonEmpty)))
@@ -3455,7 +3455,7 @@ describe("Stream", () => {
       Effect.gen(function*() {
         const result = yield* pipe(
           Stream.empty,
-          Stream.split((n: number) => n % 11 === 0 ? n : Filter.fail(n)),
+          Stream.split((n: number) => n % 11 === 0),
           Stream.runCollect
         )
         deepStrictEqual(result, [])
