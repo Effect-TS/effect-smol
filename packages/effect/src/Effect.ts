@@ -2870,8 +2870,7 @@ export const catchDefect: {
  *
  * **When to Use**
  *
- * `catchIf` works similarly to {@link catchSome}, but it allows you to
- * recover from errors by providing a predicate function. If the predicate
+ * `catchIf` lets you recover from errors with a predicate. If the predicate
  * matches the error, the recovery effect is applied. This function doesn't
  * alter the error type, so the resulting effect still carries the original
  * error type unless a user-defined type guard is used to narrow the type.
@@ -2938,11 +2937,11 @@ export const catchIf: {
  *
  * **When to Use**
  *
- * `catchFilter` works similarly to {@link catchSome}, but it allows you to
- * recover from errors by providing a predicate function. If the predicate
- * matches the error, the recovery effect is applied. This function doesn't
- * alter the error type, so the resulting effect still carries the original
- * error type unless a user-defined type guard is used to narrow the type.
+ * `catchFilter` lets you recover from errors with a predicate. If the
+ * predicate matches the error, the recovery effect is applied. This function
+ * doesn't alter the error type, so the resulting effect still carries the
+ * original error type unless a user-defined type guard is used to narrow the
+ * type.
  *
  * @example
  * ```ts

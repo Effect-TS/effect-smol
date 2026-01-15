@@ -61,6 +61,12 @@
 - Notes: added catchIf implementation + docs; added error-handling test; ran pnpm lint-fix/test/check/build/docgen
 - Blockers: none
 
+### Task EFF-207: update catchIf/catchFilter docs
+
+- Files: packages/effect/src/Effect.ts, PROGRESS.md
+- Notes: removed catchSome reference in docs; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none
+
 ### Task EFF-177: refactor Effect.filterOrElse
 
 - Files: packages/effect/src/internal/effect.ts, packages/effect/src/Effect.ts, packages/effect/src/unstable/http/HttpClient.ts, PROGRESS.md
