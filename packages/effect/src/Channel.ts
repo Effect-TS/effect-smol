@@ -3849,7 +3849,10 @@ export const tapError: {
   transformPull(
     self,
     (pull) =>
-      Effect.succeed(Effect.tapError(pull, (err) => Pull.isHalt(err) ? Effect.void : Effect.as(f(err), undefined)))
+      Effect.succeed(Effect.tapError(
+        pull,
+        (err) => Pull.isHalt(err) ? Effect.void : Effect.asVoid(f(err))
+      ))
   ))
 
 /**
