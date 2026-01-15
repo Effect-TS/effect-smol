@@ -19,11 +19,20 @@
 
 ## 2026-01-15
 
-- Task EFF-176: shift Channel.filterArrayEffect to effectful predicate; rename filter test variable
+### Task EFF-176: shift Channel.filterArrayEffect to effectful predicate; rename filter test variable
+
 - Files: packages/effect/src/Channel.ts, packages/effect/test/Effect.test.ts, PROGRESS.md
 - Notes: filterArrayEffect uses Effect.filter predicate; ran pnpm lint-fix/test/check/build/docgen
 - Blockers: none
-- Task EFF-198: update Channel.filterArray to Predicate/Refinement
+
+### Task EFF-198: update Channel.filterArray to Predicate/Refinement
+
 - Files: packages/effect/src/Channel.ts, packages/effect/src/Stream.ts, packages/effect/src/unstable/encoding/Ndjson.ts, .lalph/prd.json, PROGRESS.md
 - Notes: filterArray uses Array.filter + non-empty guard; Stream.filter keeps Filter.Filter via partitionFilter; Ndjson uses predicate; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none
+
+### Task EFF-181: refactor Stream.filter to Predicate/Refinement
+
+- Files: packages/effect/src/Stream.ts, packages/effect/src/unstable/reactivity/AtomRegistry.ts, packages/effect/test/Stream.test.ts, packages/platform-node/test/HttpApi.test.ts, PROGRESS.md
+- Notes: Stream.filter uses Predicate/Refinement via Filter.fromPredicate; updated callers to use guards; ran pnpm lint-fix/test/check/build/docgen
 - Blockers: none

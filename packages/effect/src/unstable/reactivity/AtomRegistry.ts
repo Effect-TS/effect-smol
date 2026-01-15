@@ -4,7 +4,6 @@
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
-import * as Filter from "../../Filter.ts"
 import { constVoid, dual } from "../../Function.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
@@ -159,7 +158,7 @@ export const toStreamResult: {
   2,
   <A, E>(self: AtomRegistry, atom: Atom.Atom<Result.AsyncResult<A, E>>): Stream.Stream<A, E> =>
     toStream(self, atom).pipe(
-      Stream.filter(Filter.fromPredicate(Result.isNotInitial)),
+      Stream.filter(Result.isNotInitial),
       Stream.mapEffect((result) =>
         result._tag === "Success" ? Effect.succeed(result.value) : Effect.failCause(result.cause)
       )
@@ -882,7 +881,7 @@ const LifetimeProto: Omit<Lifetime<any>, "node" | "finalizers" | "disposed" | "i
     readonly bufferSize?: number
   }): Stream.Stream<A, E> {
     return this.stream(atom, options).pipe(
-      Stream.filter(Filter.fromPredicate(Result.isNotInitial)),
+      Stream.filter(Result.isNotInitial),
       Stream.mapEffect((result) =>
         result._tag === "Success" ? Effect.succeed(result.value) : Effect.failCause(result.cause)
       )

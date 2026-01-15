@@ -25,6 +25,7 @@ import * as MutableHashMap from "./MutableHashMap.ts"
 import * as MutableList from "./MutableList.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
+import type { Predicate, Refinement } from "./Predicate.ts"
 import { hasProperty, isTagged } from "./Predicate.ts"
 import type * as PubSub from "./PubSub.ts"
 import * as Pull from "./Pull.ts"
@@ -2809,17 +2810,14 @@ export const race: {
  * @category Filtering
  */
 export const filter: {
-  <A, B, X>(filter: Filter.Filter<A, B, X>): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
-  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>): Stream<B, E, R>
+  <A, B extends A>(refinement: Refinement<NoInfer<A>, B>): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
+  <A>(predicate: Predicate<NoInfer<A>>): <E, R>(self: Stream<A, E, R>) => Stream<A, E, R>
+  <A, E, R, B extends A>(self: Stream<A, E, R>, refinement: Refinement<A, B>): Stream<B, E, R>
+  <A, E, R>(self: Stream<A, E, R>, predicate: Predicate<A>): Stream<A, E, R>
 } = dual(
   2,
-  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>): Stream<B, E, R> =>
-    fromChannel(
-      Channel.filter(toChannel(self), (chunk) => {
-        const [passes] = Arr.partitionFilter(chunk, filter)
-        return Arr.isReadonlyArrayNonEmpty(passes) ? passes : Filter.fail(chunk)
-      })
-    )
+  <A, E, R>(self: Stream<A, E, R>, predicate: Predicate<NoInfer<A>>): Stream<A, E, R> =>
+    fromChannel(Channel.filterArray(toChannel(self), predicate))
 )
 
 /**

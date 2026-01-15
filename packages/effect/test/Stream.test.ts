@@ -303,7 +303,7 @@ describe("Stream", () => {
     },
     Effect.fnUntraced(function*({ chunks, size }) {
       const actual = yield* Stream.fromArray(chunks).pipe(
-        Stream.filter((a) => isReadonlyArrayNonEmpty(a) ? a : Filter.fail(a)),
+        Stream.filter((chunk): chunk is NonEmptyArray<number> => isReadonlyArrayNonEmpty(chunk)),
         Stream.flattenArray,
         Stream.rechunk(size),
         Stream.chunks,

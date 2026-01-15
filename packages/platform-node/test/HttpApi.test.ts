@@ -5,7 +5,6 @@ import {
   DateTime,
   Effect,
   FileSystem,
-  Filter,
   Layer,
   Redacted,
   Ref,
@@ -1092,7 +1091,7 @@ const HttpUsersLive = HttpApiBuilder.group(
       .handle("uploadStream", (_) =>
         Effect.gen(function*() {
           const { content, file } = yield* _.payload.pipe(
-            Stream.filter((part) => part._tag === "File" ? part : Filter.fail(part)),
+            Stream.filter(Multipart.isFile),
             Stream.mapEffect((file) =>
               file.contentEffect.pipe(
                 Effect.map((content) => ({ file, content }))
