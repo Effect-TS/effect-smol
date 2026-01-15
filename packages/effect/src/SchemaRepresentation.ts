@@ -1638,8 +1638,8 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
             addImport(generation.importDeclaration)
           }
           return makeCode(
-            fill(generation.runtime, typeParameters.map((p) => p.runtime)),
-            fill(generation.Type, typeParameters.map((p) => p.Type))
+            replacePlaceholders(generation.runtime, typeParameters.map((p) => p.runtime)),
+            replacePlaceholders(generation.Type, typeParameters.map((p) => p.Type))
           )
         }
         // otherwise, use the generation from the encoded schema
@@ -1965,7 +1965,7 @@ function isAsciiIdPart(ch: string): boolean {
   return isAsciiIdStart(ch) || (ch >= "0" && ch <= "9")
 }
 
-function fill(template: string, items: ReadonlyArray<string>) {
+function replacePlaceholders(template: string, items: ReadonlyArray<string>) {
   let i = 0
   return template.replace(/\?/g, () => items[i++])
 }
