@@ -472,7 +472,7 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
 
   // TODO
   Object.keys(spec.components.schemas).forEach((key) => {
-    if (!JsonSchema.openApiComponentsKeyRegExp.test(key)) {
+    if (!JsonSchema.VALID_OPEN_API_COMPONENTS_SCHEMAS_KEY_REGEXP.test(key)) {
       throw new globalThis.Error(`Invalid component schema key: ${key}`)
     }
   })

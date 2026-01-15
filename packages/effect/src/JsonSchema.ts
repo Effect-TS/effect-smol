@@ -327,7 +327,7 @@ export function toSchemaDraft07(schema: JsonSchema): JsonSchema {
 export function toMultiDocumentOpenApi3_1(multiDocument: MultiDocument<"draft-2020-12">): MultiDocument<"openapi-3.1"> {
   const keyMap = new Map<string, string>()
   for (const key of Object.keys(multiDocument.definitions)) {
-    const sanitized = sanitizeOpenApiComponentsKey(key)
+    const sanitized = sanitizeOpenApiComponentsSchemasKey(key)
     if (sanitized !== key) {
       keyMap.set(key, sanitized)
     }
@@ -358,34 +358,38 @@ export function toMultiDocumentOpenApi3_1(multiDocument: MultiDocument<"draft-20
 }
 
 /** @internal */
-export const openApiComponentsKeyRegExp = /^[a-zA-Z0-9.\-_]+$/
+export const VALID_OPEN_API_COMPONENTS_SCHEMAS_KEY_REGEXP = /^[a-zA-Z0-9.\-_]+$/
 
 /**
  * Returns a sanitized key for an OpenAPI component schema.
  * Should match the `^[a-zA-Z0-9.\-_]+$` regular expression.
+ *
+ * @internal
  */
-function sanitizeOpenApiComponentsKey(key: string): string {
-  if (openApiComponentsKeyRegExp.test(key)) return key
-  if (key.length === 0) return "_"
+export function sanitizeOpenApiComponentsSchemasKey(s: string): string {
+  if (s.length === 0) return "_"
+  if (VALID_OPEN_API_COMPONENTS_SCHEMAS_KEY_REGEXP.test(s)) return s
 
-  let out = ""
-  for (let i = 0; i < key.length; i++) {
-    const code = key.charCodeAt(i)
+  const out: Array<string> = []
+
+  for (const ch of s) {
+    const code = ch.codePointAt(0)
     if (
-      (code >= 48 && code <= 57) ||
-      (code >= 65 && code <= 90) ||
-      (code >= 97 && code <= 122) ||
-      code === 46 ||
-      code === 45 ||
-      code === 95
+      code !== undefined &&
+      ((code >= 48 && code <= 57) || // 0-9
+        (code >= 65 && code <= 90) || // A-Z
+        (code >= 97 && code <= 122) || // a-z
+        code === 46 || // .
+        code === 45 || // -
+        code === 95) // _
     ) {
-      out += key[i]
+      out.push(ch)
     } else {
-      out += "_"
+      out.push("_")
     }
   }
 
-  return out
+  return out.join("")
 }
 
 function rewrite_refs(node: unknown, f: ($ref: string) => string): unknown {
