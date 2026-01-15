@@ -2215,11 +2215,16 @@ export const filterOrFailCause: {
     predicate: Predicate.Predicate<A>,
     orFailWith: (a: A) => Cause.Cause<E2>
   ): Effect.Effect<A, E2 | E, R>
-} = dual((args) => isEffect(args[0]), <A, E, R, B extends A, E2>(
+} = dual((args) => isEffect(args[0]), <A, E, R, E2>(
   self: Effect.Effect<A, E, R>,
-  refinement: Predicate.Refinement<A, B>,
+  predicate: Predicate.Predicate<A>,
   orFailWith: (a: A) => Cause.Cause<E2>
-): Effect.Effect<B, E2 | E, R> => flatMap(self, (a) => refinement(a) ? succeed(a) : failCause(orFailWith(a))))
+): Effect.Effect<A, E2 | E, R> =>
+  filterOrElse(
+    self,
+    predicate,
+    (a) => failCause(orFailWith(a))
+  ))
 
 /* @internal */
 export const filterOrFail: {
