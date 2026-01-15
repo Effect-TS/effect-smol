@@ -3003,22 +3003,17 @@ export const filter: {
 } = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B extends OutElem = OutElem>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
   predicate: Predicate.Predicate<OutElem> | Predicate.Refinement<OutElem, B>
-): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env> => {
-  const filter = Filter.fromPredicate<OutElem, B>(predicate as Predicate.Refinement<OutElem, B>)
-  return fromTransform((upstream, scope) =>
+): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+  fromTransform((upstream, scope) =>
     Effect.map(
       toTransform(self)(upstream, scope),
       (pull) =>
         Effect.flatMap(pull, function loop(elem): Pull.Pull<B, OutErr, OutDone> {
-          const result = filter(elem)
-          if (Filter.isFail(result)) {
-            return Effect.flatMap(pull, loop)
-          }
-          return Effect.succeed(result)
+          const pass = predicate(elem)
+          return pass ? Effect.succeed(elem as B) : Effect.flatMap(pull, loop)
         })
     )
-  )
-})
+  ))
 
 /**
  * Filters arrays of elements emitted by a channel, applying the filter
@@ -3078,17 +3073,16 @@ export const filterArray: {
   self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
   predicate: Predicate.Predicate<OutElem> | Predicate.Refinement<OutElem, B>
 ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
-  transformPull(self, (pull) => {
-    const filter = Effect.map(pull, (arr) => Arr.filter(arr, predicate as Predicate.Refinement<OutElem, B>))
-    return Effect.succeed(Effect.flatMap(
-      filter,
+  transformPull(self, (pull) =>
+    Effect.succeed(Effect.flatMap(
+      pull,
       function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone> {
-        return Arr.isReadonlyArrayNonEmpty(arr)
-          ? Effect.succeed(arr)
-          : Effect.flatMap(filter, loop)
+        const filtered = Arr.filter(arr, predicate as Predicate.Refinement<OutElem, B>)
+        return Arr.isReadonlyArrayNonEmpty(filtered)
+          ? Effect.succeed(filtered)
+          : Effect.flatMap(pull, loop)
       }
-    ))
-  }))
+    ))))
 
 /**
  * @since 4.0.0
