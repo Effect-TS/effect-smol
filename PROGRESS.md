@@ -60,3 +60,15 @@
 - Files: packages/effect/src/internal/effect.ts, packages/effect/src/Effect.ts, packages/effect/test/Effect.test.ts, PROGRESS.md
 - Notes: added catchIf implementation + docs; added error-handling test; ran pnpm lint-fix/test/check/build/docgen
 - Blockers: none
+
+### Task EFF-177: refactor Effect.filterOrElse
+
+- Files: packages/effect/src/internal/effect.ts, packages/effect/src/Effect.ts, packages/effect/src/unstable/http/HttpClient.ts, PROGRESS.md
+- Notes: filterOrElse uses Predicate/Refinement; filterOrFail/filterOrFailCause inline Filter handling; HttpClient filterOrElse accepts predicate/refinement; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none
+
+### Task EFF-177: refactor Effect.filterOrElse follow-ups
+
+- Files: packages/effect/src/internal/effect.ts, packages/effect/src/unstable/http/HttpClient.ts, PROGRESS.md
+- Notes: filterOrFailCause uses Predicate/Refinement overloads; removed unused Filter import; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none

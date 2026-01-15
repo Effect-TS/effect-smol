@@ -42,6 +42,7 @@ import * as ServiceMap from "../ServiceMap.ts"
 import * as Tracer from "../Tracer.ts"
 import type {
   Concurrency,
+  EqualsWith,
   ExcludeTag,
   ExtractReason,
   ExtractTag,
@@ -2194,31 +2195,6 @@ export const zipWith: {
 // filtering & conditionals
 // ----------------------------------------------------------------------------
 
-/** @internal */
-export const filterOrFailCause: {
-  <A, E2, B, X>(
-    filter: Filter.Filter<NoInfer<A>, B, X>,
-    orFailWith: (a: X) => Cause.Cause<E2>
-  ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<B, E | E2, R>
-  <A, E, R, E2, B, X>(
-    self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<A, B, X>,
-    orFailWith: (a: X) => Cause.Cause<E2>
-  ): Effect.Effect<B, E2 | E, R>
-} = dual(
-  (args) => isEffect(args[0]),
-  <A, E, R, E2, B, X>(
-    self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<A, B, X>,
-    orFailWith: (a: X) => Cause.Cause<E2>
-  ): Effect.Effect<B, E2 | E, R> =>
-    filterOrElse(
-      self,
-      filter,
-      (a) => failCause(orFailWith(a))
-    )
-)
-
 /* @internal */
 export const filterOrFail: {
   <A, E2, B extends A>(
@@ -2253,17 +2229,15 @@ export const filterOrFail: {
     self: Effect.Effect<A, E, R>,
     predicate: Predicate.Predicate<NoInfer<A>>
   ): Effect.Effect<A, E | Cause.NoSuchElementError, R>
-} = dual((args) => isEffect(args[0]), <A, E, R, E2, B extends A = A>(
+} = dual((args) => isEffect(args[0]), <A, E, R, E2>(
   self: Effect.Effect<A, E, R>,
-  predicate: Predicate.Predicate<NoInfer<A>> | Predicate.Refinement<NoInfer<A>, B>,
+  predicate: Predicate.Predicate<NoInfer<A>>,
   orFailWith?: (a: NoInfer<A>) => E2
-): Effect.Effect<B, E | E2 | Cause.NoSuchElementError, R> =>
-  flatMap(
+): Effect.Effect<A, E | E2 | Cause.NoSuchElementError, R> =>
+  filterOrElse(
     self,
-    (a): Effect.Effect<B, E2 | Cause.NoSuchElementError, R> =>
-      predicate(a)
-        ? succeed(a as B)
-        : failSync(() => orFailWith === undefined ? new NoSuchElementError() : orFailWith(a))
+    predicate,
+    orFailWith ? (a) => fail(orFailWith(a)) : () => fail(new NoSuchElementError() as E2)
   ))
 
 /** @internal */
@@ -4045,26 +4019,32 @@ const forEachSequential = <A, B, E, R>(
 
 /* @internal */
 export const filterOrElse: {
-  <A, C, E2, R2, B, X>(
-    filter: Filter.Filter<NoInfer<A>, B, X>,
-    orElse: (a: X) => Effect.Effect<C, E2, R2>
+  <A, C, E2, R2, B extends A>(
+    refinement: Predicate.Refinement<NoInfer<A>, B>,
+    orElse: (a: EqualsWith<A, B, NoInfer<A>, Exclude<NoInfer<A>, B>>) => Effect.Effect<C, E2, R2>
   ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<B | C, E2 | E, R2 | R>
-  <A, E, R, C, E2, R2, B, X>(
+  <A, C, E2, R2>(
+    predicate: Predicate.Predicate<NoInfer<A>>,
+    orElse: (a: NoInfer<A>) => Effect.Effect<C, E2, R2>
+  ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A | C, E2 | E, R2 | R>
+  <A, E, R, C, E2, R2, B extends A>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<NoInfer<A>, B, X>,
-    orElse: (a: X) => Effect.Effect<C, E2, R2>
+    refinement: Predicate.Refinement<A, B>,
+    orElse: (a: EqualsWith<A, B, A, Exclude<A, B>>) => Effect.Effect<C, E2, R2>
   ): Effect.Effect<B | C, E | E2, R | R2>
-} = dual(3, <A, E, R, C, E2, R2, B, X>(
+  <A, E, R, C, E2, R2>(
+    self: Effect.Effect<A, E, R>,
+    predicate: Predicate.Predicate<A>,
+    orElse: (a: A) => Effect.Effect<C, E2, R2>
+  ): Effect.Effect<A | C, E | E2, R | R2>
+} = dual(3, <A, E, R, B, E2, R2>(
   self: Effect.Effect<A, E, R>,
-  filter: Filter.Filter<NoInfer<A>, B, X>,
-  orElse: (a: X) => Effect.Effect<C, E2, R2>
-): Effect.Effect<B | C, E | E2, R | R2> =>
+  predicate: Predicate.Predicate<A>,
+  orElse: (a: A) => Effect.Effect<B, E2, R2>
+): Effect.Effect<A | B, E | E2, R | R2> =>
   flatMap(
     self,
-    (a): Effect.Effect<B | C, E2, R2> => {
-      const b = filter(a)
-      return Filter.isFail(b) ? internalCall(() => orElse(b.fail)) : succeed(b)
-    }
+    (a) => predicate(a) ? succeed<A | B>(a) : orElse(a)
   ))
 
 /** @internal */

@@ -111,6 +111,7 @@ import type { TxRef } from "./TxRef.ts"
 import type {
   Concurrency,
   Covariant,
+  EqualsWith,
   ExcludeTag,
   ExtractReason,
   ExtractTag,
@@ -4108,7 +4109,7 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Effect, Filter } from "effect"
+ * import { Effect } from "effect"
  *
  * // An effect that produces a number
  * const program = Effect.succeed(5)
@@ -4116,7 +4117,7 @@ export const filter: {
  * // Filter for even numbers, provide alternative for odd numbers
  * const filtered = Effect.filterOrElse(
  *   program,
- *   (n) => n % 2 === 0 ? n : Filter.fail(n),
+ *   (n) => n % 2 === 0,
  *   (n) => Effect.succeed(`Number ${n} is odd`)
  * )
  *
@@ -4127,15 +4128,24 @@ export const filter: {
  * @category Filtering
  */
 export const filterOrElse: {
-  <A, C, E2, R2, B, X>(
-    filter: Filter.Filter<NoInfer<A>, B, X>,
-    orElse: (a: X) => Effect<C, E2, R2>
+  <A, C, E2, R2, B extends A>(
+    refinement: Predicate.Refinement<NoInfer<A>, B>,
+    orElse: (a: EqualsWith<A, B, NoInfer<A>, Exclude<NoInfer<A>, B>>) => Effect<C, E2, R2>
   ): <E, R>(self: Effect<A, E, R>) => Effect<B | C, E2 | E, R2 | R>
-  <A, E, R, C, E2, R2, B, X>(
+  <A, C, E2, R2>(
+    predicate: Predicate.Predicate<NoInfer<A>>,
+    orElse: (a: NoInfer<A>) => Effect<C, E2, R2>
+  ): <E, R>(self: Effect<A, E, R>) => Effect<A | C, E2 | E, R2 | R>
+  <A, E, R, C, E2, R2, B extends A>(
     self: Effect<A, E, R>,
-    filter: Filter.Filter<NoInfer<A>, B, X>,
-    orElse: (a: X) => Effect<C, E2, R2>
+    refinement: Predicate.Refinement<A, B>,
+    orElse: (a: EqualsWith<A, B, A, Exclude<A, B>>) => Effect<C, E2, R2>
   ): Effect<B | C, E | E2, R | R2>
+  <A, E, R, C, E2, R2>(
+    self: Effect<A, E, R>,
+    predicate: Predicate.Predicate<A>,
+    orElse: (a: A) => Effect<C, E2, R2>
+  ): Effect<A | C, E | E2, R | R2>
 } = internal.filterOrElse
 
 /**
