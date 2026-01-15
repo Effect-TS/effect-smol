@@ -2197,27 +2197,29 @@ export const zipWith: {
 
 /** @internal */
 export const filterOrFailCause: {
-  <A, E2, B, X>(
-    filter: Filter.Filter<NoInfer<A>, B, X>,
-    orFailWith: (a: X) => Cause.Cause<E2>
+  <A, B extends A, E2>(
+    refinement: Predicate.Refinement<NoInfer<A>, B>,
+    orFailWith: (a: NoInfer<A>) => Cause.Cause<E2>
   ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<B, E | E2, R>
-  <A, E, R, E2, B, X>(
+  <A, E2>(
+    predicate: Predicate.Predicate<NoInfer<A>>,
+    orFailWith: (a: NoInfer<A>) => Cause.Cause<E2>
+  ): <E, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | E2, R>
+  <A, E, R, B extends A, E2>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<A, B, X>,
-    orFailWith: (a: X) => Cause.Cause<E2>
+    refinement: Predicate.Refinement<A, B>,
+    orFailWith: (a: A) => Cause.Cause<E2>
   ): Effect.Effect<B, E2 | E, R>
-} = dual(
-  (args) => isEffect(args[0]),
-  <A, E, R, E2, B, X>(
+  <A, E, R, E2>(
     self: Effect.Effect<A, E, R>,
-    filter: Filter.Filter<A, B, X>,
-    orFailWith: (a: X) => Cause.Cause<E2>
-  ): Effect.Effect<B, E2 | E, R> =>
-    flatMap(self, (a): Effect.Effect<B, E2, R> => {
-      const b = filter(a)
-      return Filter.isFail(b) ? failCause(orFailWith(b.fail)) : succeed(b)
-    })
-)
+    predicate: Predicate.Predicate<A>,
+    orFailWith: (a: A) => Cause.Cause<E2>
+  ): Effect.Effect<A, E2 | E, R>
+} = dual((args) => isEffect(args[0]), <A, E, R, B extends A, E2>(
+  self: Effect.Effect<A, E, R>,
+  refinement: Predicate.Refinement<A, B>,
+  orFailWith: (a: A) => Cause.Cause<E2>
+): Effect.Effect<B, E2 | E, R> => flatMap(self, (a) => refinement(a) ? succeed(a) : failCause(orFailWith(a))))
 
 /* @internal */
 export const filterOrFail: {
