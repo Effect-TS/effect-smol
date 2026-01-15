@@ -54,3 +54,9 @@
 - Files: packages/effect/src/Stream.ts, packages/effect/test/Stream.test.ts, PROGRESS.md
 - Notes: split now uses predicate/refinement delimiter; updated split tests/docs; ran pnpm lint-fix/test/check/build/docgen
 - Blockers: none
+
+### Task EFF-177: refactor Effect.filterOrElse
+
+- Files: packages/effect/src/internal/effect.ts, packages/effect/src/Effect.ts, packages/effect/src/unstable/http/HttpClient.ts, PROGRESS.md
+- Notes: filterOrElse uses Predicate/Refinement; filterOrFail/filterOrFailCause inline Filter handling; HttpClient filterOrElse accepts predicate/refinement; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none

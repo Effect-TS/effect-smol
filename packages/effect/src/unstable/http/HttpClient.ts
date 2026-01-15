@@ -19,7 +19,7 @@ import type * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import * as Stream from "../../Stream.ts"
 import * as Tracer from "../../Tracer.ts"
-import type { ExcludeTag, ExtractTag, NoExcessProperties, NoInfer, Tags } from "../../Types.ts"
+import type { EqualsWith, ExcludeTag, ExtractTag, NoExcessProperties, NoInfer, Tags } from "../../Types.ts"
 import * as Cookies from "./Cookies.ts"
 import * as Headers from "./Headers.ts"
 import * as Error from "./HttpClientError.ts"
@@ -407,17 +407,40 @@ export const catchTags: {
  * @category filters
  */
 export const filterOrElse: {
-  <B, E2, R2>(
-    filter: Filter.Filter<HttpClientResponse.HttpClientResponse, B>,
+  <B extends HttpClientResponse.HttpClientResponse, E2, R2>(
+    refinement: Predicate.Refinement<NoInfer<HttpClientResponse.HttpClientResponse>, B>,
     orElse: (
-      response: B
+      response: EqualsWith<
+        HttpClientResponse.HttpClientResponse,
+        B,
+        NoInfer<HttpClientResponse.HttpClientResponse>,
+        Exclude<NoInfer<HttpClientResponse.HttpClientResponse>, B>
+      >
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E2, R2>
   ): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E2 | E, R2 | R>
-  <E, R, B, E2, R2>(
-    self: HttpClient.With<E, R>,
-    filter: Filter.Filter<HttpClientResponse.HttpClientResponse, B>,
+  <E2, R2>(
+    predicate: Predicate.Predicate<NoInfer<HttpClientResponse.HttpClientResponse>>,
     orElse: (
-      response: B
+      response: NoInfer<HttpClientResponse.HttpClientResponse>
+    ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E2, R2>
+  ): <E, R>(self: HttpClient.With<E, R>) => HttpClient.With<E2 | E, R2 | R>
+  <E, R, B extends HttpClientResponse.HttpClientResponse, E2, R2>(
+    self: HttpClient.With<E, R>,
+    refinement: Predicate.Refinement<HttpClientResponse.HttpClientResponse, B>,
+    orElse: (
+      response: EqualsWith<
+        HttpClientResponse.HttpClientResponse,
+        B,
+        HttpClientResponse.HttpClientResponse,
+        Exclude<HttpClientResponse.HttpClientResponse, B>
+      >
+    ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E2, R2>
+  ): HttpClient.With<E2 | E, R2 | R>
+  <E, R, E2, R2>(
+    self: HttpClient.With<E, R>,
+    predicate: Predicate.Predicate<HttpClientResponse.HttpClientResponse>,
+    orElse: (
+      response: HttpClientResponse.HttpClientResponse
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E2, R2>
   ): HttpClient.With<E2 | E, R2 | R>
 } = dual(3, (self, f, orElse) => transformResponse(self, Effect.filterOrElse(f, orElse)))
