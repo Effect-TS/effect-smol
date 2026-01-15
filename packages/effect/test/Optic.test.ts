@@ -1,4 +1,4 @@
-import { Optic, Option, Result, Schema, SchemaAST } from "effect"
+import { Optic, Option, Result, Schema } from "effect"
 import { describe, it } from "vitest"
 import { assertFailure, assertSuccess, assertTrue, deepStrictEqual, strictEqual, throws } from "./utils/assert.ts"
 
@@ -230,7 +230,8 @@ Expected a value greater than 0, got -1.1`
     type B = { readonly _tag: "b"; readonly b: number }
     type S = { readonly _tag: "a"; readonly a: string } | B
     const optic = Optic.id<S>().refine(
-      Schema.makeRefinedByGuard((s: S): s is B => s._tag === "b", { expected: `"b" tag` })
+      (s: S): s is B => s._tag === "b",
+      { expected: `"b" tag` }
     ).key("b")
 
     assertSuccess(optic.getResult({ _tag: "b", b: 1 }), 1)
@@ -419,12 +420,6 @@ Expected a value greater than 0, got -1.1`
     assertSuccess(optic.getResult(1), 1)
     assertFailure(optic.getResult(0), `Expected a value greater than 0, got 0`)
     assertFailure(optic.getResult(1.1), `Expected an integer, got 1.1`)
-  })
-
-  it("fromRefine", () => {
-    const optic = Optic.id<Option.Option<number>>().compose(Optic.fromRefine(SchemaAST.isSome())).key("value")
-    assertSuccess(optic.getResult(Option.some(1)), 1)
-    assertFailure(optic.getResult(Option.none()), `Expected a Some value, got none()`)
   })
 
   describe("Option", () => {

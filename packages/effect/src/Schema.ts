@@ -2557,20 +2557,12 @@ export interface refine<T extends S["Type"], S extends Top> extends
  * @category Filtering
  * @since 4.0.0
  */
-export function refine<T extends E, E>(refine: AST.Refine<T, E>) {
-  return <S extends Schema<E>>(schema: S): refine<S["Type"] & T, S> =>
-    make(AST.appendChecks(schema.ast, [refine]), { schema })
-}
-
-/**
- * @category Filtering
- * @since 4.0.0
- */
-export function refineByGuard<T extends S["Type"], S extends Top>(
-  is: (value: S["Type"]) => value is T,
+export function refine<S extends Top, T extends S["Type"]>(
+  refinement: (value: S["Type"]) => value is T,
   annotations?: Annotations.Filter
 ) {
-  return (self: S): refine<T, S> => self.pipe(refine(makeRefinedByGuard(is, annotations)))
+  return (schema: S): refine<T, S> =>
+    make(AST.appendChecks(schema.ast, [AST.makeFilterByGuard(refinement, annotations)]), { schema })
 }
 
 type DistributeBrands<B> = UnionToIntersection<B extends infer U extends string ? Brand.Brand<U> : never>
@@ -3364,38 +3356,6 @@ export function link<T>() { // TODO: better name
 // -----------------------------------------------------------------------------
 // Checks
 // -----------------------------------------------------------------------------
-
-/**
- * @category Checks Constructors
- * @since 4.0.0
- */
-export const makeRefinedByGuard: <T extends E, E>(
-  is: (value: E) => value is T,
-  annotations?: Annotations.Filter
-) => AST.Refinement<T, E> = AST.makeRefinedByGuard
-
-/**
- * @category Checks Combinators
- * @since 4.0.0
- */
-export function isRefinedByGuard<T extends E, E>(
-  is: (value: E) => value is T,
-  annotations?: Annotations.Filter
-) {
-  return (self: AST.Check<E>): AST.RefinementGroup<T, E> => {
-    return self.and(makeRefinedByGuard(is, annotations))
-  }
-}
-
-/**
- * @category Checks Combinators
- * @since 4.0.0
- */
-export function isBranded<B extends string>() {
-  return <T>(self: AST.Check<T>): AST.RefinementGroup<T & Brand.Brand<B>, T> => {
-    return self as any
-  }
-}
 
 /**
  * @category Checks Constructors
@@ -5201,70 +5161,6 @@ export function isUnique<T>(annotations?: Annotations.Filter) {
       },
       ...annotations
     }
-  )
-}
-
-/**
- * Validates that a value is not `undefined`.
- *
- * **JSON Schema**
- *
- * This check does not have a direct JSON Schema equivalent, as JSON Schema does
- * not distinguish `undefined` (it's not part of JSON). It can be represented
- * by excluding `undefined` from a union type in TypeScript.
- *
- * **Arbitrary**
- *
- * When generating test data with fast-check, this ensures generated values are
- * not `undefined`.
- *
- * @since 4.0.0
- */
-export const isNotUndefined: <A>(annotations?: Annotations.Filter) => AST.Refinement<Exclude<A, undefined>, A> =
-  AST.isNotUndefined
-
-/**
- * Validates that a value is not `null`.
- *
- * **JSON Schema**
- *
- * This check does not have a direct JSON Schema equivalent, but can be
- * represented by excluding `null` from a union type.
- *
- * **Arbitrary**
- *
- * When generating test data with fast-check, this ensures generated values
- * are not `null`.
- *
- * @since 4.0.0
- */
-export function isNotNull<A>(annotations?: Annotations.Filter) {
-  return makeRefinedByGuard<Exclude<A, null>, A>(
-    Predicate.isNotNull,
-    { expected: "a value other than `null`", ...annotations }
-  )
-}
-
-/**
- * Validates that a value is neither `null` nor `undefined`.
- *
- * **JSON Schema**
- *
- * This check does not have a direct JSON Schema equivalent, but can be
- * represented by excluding `null` from a union type. Note that JSON Schema
- * does not distinguish `undefined` as it's not part of JSON.
- *
- * **Arbitrary**
- *
- * When generating test data with fast-check, this ensures generated values
- * are neither `null` nor `undefined`.
- *
- * @since 4.0.0
- */
-export function isNotNullish<A>(annotations?: Annotations.Filter) {
-  return makeRefinedByGuard<NonNullable<A>, A>(
-    Predicate.isNotNullish,
-    { expected: "a value other than `null` or `undefined  `", ...annotations }
   )
 }
 

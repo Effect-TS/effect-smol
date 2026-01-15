@@ -9,8 +9,11 @@
 import { format } from "./Formatter.ts"
 import { identity, memoize } from "./Function.ts"
 import * as Option from "./Option.ts"
+import * as Predicate from "./Predicate.ts"
 import * as Result from "./Result.ts"
+import type * as Schema from "./Schema.ts"
 import * as AST from "./SchemaAST.ts"
+import type * as Issue from "./SchemaIssue.ts"
 import * as Struct from "./Struct.ts"
 import type { IsUnion } from "./Types.ts"
 
@@ -66,14 +69,6 @@ export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, s
  */
 export function fromChecks<T>(...checks: readonly [AST.Check<T>, ...Array<AST.Check<T>>]): Prism<T, T> {
   return make(new CheckNode(checks))
-}
-
-/**
- * @category Constructors
- * @since 4.0.0
- */
-export function fromRefine<T extends E, E>(refine: AST.Refine<T, E>): Prism<E, T> {
-  return make(new CheckNode([refine]))
 }
 
 type Node =
@@ -254,8 +249,16 @@ export interface Optional<in out S, in out A> {
   check<S, A>(this: Prism<S, A>, ...checks: readonly [AST.Check<A>, ...Array<AST.Check<A>>]): Prism<S, A>
   check<S, A>(this: Optional<S, A>, ...checks: readonly [AST.Check<A>, ...Array<AST.Check<A>>]): Optional<S, A>
 
-  refine<S, A, B extends A>(this: Prism<S, A>, refine: AST.Refine<B, A>): Prism<S, B>
-  refine<S, A, B extends A>(this: Optional<S, A>, refine: AST.Refine<B, A>): Optional<S, B>
+  refine<S, A, B extends A>(
+    this: Prism<S, A>,
+    refinement: (a: A) => a is B,
+    annotations?: Schema.Annotations.Filter
+  ): Prism<S, B>
+  refine<S, A, B extends A>(
+    this: Optional<S, A>,
+    refinement: (a: A) => a is B,
+    annotations?: Schema.Annotations.Filter
+  ): Optional<S, B>
 
   tag<S, A extends { readonly _tag: AST.LiteralValue }, Tag extends A["_tag"]>(
     this: Prism<S, A>,
@@ -396,8 +399,8 @@ class OptionalImpl<S, A> implements Optional<S, A> {
   check(...checks: readonly [AST.Check<any>, ...Array<AST.Check<any>>]): any {
     return make(compose(this.node, new CheckNode(checks)))
   }
-  refine(refine: AST.Refine<any, any>): any {
-    return make(compose(this.node, new CheckNode([refine])))
+  refine<B extends A>(refinement: (a: A) => a is B, annotations?: Schema.Annotations.Filter): any {
+    return make(compose(this.node, new CheckNode([AST.makeFilterByGuard(refinement, annotations)])))
   }
   tag(tag: string): any {
     return make(
@@ -440,7 +443,7 @@ class OptionalImpl<S, A> implements Optional<S, A> {
     return this.compose(makeLens(Struct.omit(keys), (o, a) => ({ ...a, ...o })))
   }
   notUndefined(): Prism<S, Exclude<A, undefined>> {
-    return this.refine(AST.isNotUndefined())
+    return this.refine(Predicate.isNotUndefined, { expected: "a value other than `undefined`" })
   }
   forEach<S, A, B>(this: Traversal<S, A>, f: (iso: Iso<A, A>) => Optional<A, B>): Traversal<S, B> {
     const inner = f(id<A>())
@@ -739,9 +742,10 @@ export function entries<A>(): Iso<Record<string, A>, ReadonlyArray<readonly [str
  * @since 4.0.0
  */
 export function some<A>(): Prism<Option.Option<A>, A> {
+  const run = runRefinement(Option.isSome, { expected: "a Some value" })
   return makePrism(
     (s) =>
-      Result.mapBoth(AST.runRefine(AST.isSome<A>(), s), {
+      Result.mapBoth(run(s), {
         onFailure: String,
         onSuccess: (s) => s.value
       }),
@@ -754,9 +758,10 @@ export function some<A>(): Prism<Option.Option<A>, A> {
  * @since 4.0.0
  */
 export function none<A>(): Prism<Option.Option<A>, undefined> {
+  const run = runRefinement(Option.isNone, { expected: "a None value" })
   return makePrism(
     (s) =>
-      Result.mapBoth(AST.runRefine(AST.isNone<A>(), s), {
+      Result.mapBoth(run(s), {
         onFailure: String,
         onSuccess: () => undefined
       }),
@@ -769,9 +774,10 @@ export function none<A>(): Prism<Option.Option<A>, undefined> {
  * @since 4.0.0
  */
 export function success<A, E>(): Prism<Result.Result<A, E>, A> {
+  const run = runRefinement(Result.isSuccess, { expected: "a Result.Success value" })
   return makePrism(
     (s) =>
-      Result.mapBoth(AST.runRefine(AST.isResultSuccess<A, E>(), s), {
+      Result.mapBoth(run(s), {
         onFailure: String,
         onSuccess: (s) => s.success
       }),
@@ -784,12 +790,20 @@ export function success<A, E>(): Prism<Result.Result<A, E>, A> {
  * @since 4.0.0
  */
 export function failure<A, E>(): Prism<Result.Result<A, E>, E> {
+  const run = runRefinement(Result.isFailure, { expected: "a Result.Failure value" })
   return makePrism(
     (s) =>
-      Result.mapBoth(AST.runRefine(AST.isResultFailure<A, E>(), s), {
+      Result.mapBoth(run(s), {
         onFailure: String,
         onSuccess: (s) => s.failure
       }),
     Result.fail
   )
+}
+
+function runRefinement<T extends E, E>(
+  refinement: (e: E) => e is T,
+  annotations?: Schema.Annotations.Filter
+): (e: E) => Result.Result<T, Issue.Issue> {
+  return (e) => AST.runChecks([AST.makeFilterByGuard(refinement, annotations)], e) as any
 }

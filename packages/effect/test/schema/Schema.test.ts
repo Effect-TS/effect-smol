@@ -1035,31 +1035,8 @@ Expected a string including "c", got "ab"`
           `Expected a value with a length of at least 2, got "a"`
         )
       })
-    })
 
-    describe("refinements", () => {
-      it("refineByGuard", async () => {
-        const schema = Schema.Option(Schema.String).pipe(
-          Schema.refineByGuard(Option.isSome, { expected: "isSome" }),
-          Schema.check(
-            Schema.makeFilter(({ value }) => value.length > 0, { expected: "length > 0" })
-          )
-        )
-        const asserts = new TestSchema.Asserts(schema)
-
-        const decoding = asserts.decoding()
-        await decoding.succeed(Option.some("a"))
-        await decoding.fail(
-          Option.some(""),
-          `Expected length > 0, got some("")`
-        )
-        await decoding.fail(
-          Option.none(),
-          `Expected isSome, got none()`
-        )
-      })
-
-      it("group", async () => {
+      it("makeFilterGroup", async () => {
         const usernameGroup = Schema.makeFilterGroup(
           [
             Schema.isMinLength(3),
@@ -1073,9 +1050,9 @@ Expected a string including "c", got "ab"`
             title: "username",
             description: "a valid username"
           }
-        ).pipe(Schema.isBranded<"Username">())
+        )
 
-        const Username = Schema.String.pipe(Schema.refine(usernameGroup))
+        const Username = Schema.String.check(usernameGroup)
         const asserts = new TestSchema.Asserts(Username)
 
         const decoding = asserts.decoding()
@@ -1085,6 +1062,27 @@ Expected a string including "c", got "ab"`
           `Expected a value with a length of at least 3, got ""`
         )
       })
+    })
+
+    it("refine", async () => {
+      const schema = Schema.Option(Schema.String).pipe(
+        Schema.refine(Option.isSome, { expected: "isSome" }),
+        Schema.check(
+          Schema.makeFilter(({ value }) => value.length > 0, { expected: "length > 0" })
+        )
+      )
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(Option.some("a"))
+      await decoding.fail(
+        Option.some(""),
+        `Expected length > 0, got some("")`
+      )
+      await decoding.fail(
+        Option.none(),
+        `Expected isSome, got none()`
+      )
     })
 
     describe("String checks", () => {

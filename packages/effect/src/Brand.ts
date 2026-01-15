@@ -221,15 +221,6 @@ export function check<A extends Brand<any>>(
 }
 
 /**
- * @since 4.0.0
- */
-export function refine<B extends string, T>(
-  refine: AST.Refine<T & Brand<B>, T>
-): Constructor<T & Brand<B>> {
-  return check(refine as any)
-}
-
-/**
  * Combines two or more brands together to form a single branded type. This API
  * is useful when you want to validate that the input data passes multiple brand
  * validators.

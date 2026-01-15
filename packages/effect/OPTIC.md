@@ -600,6 +600,14 @@ const state: S = {
 
 // Modify only the focused values (titles)
 console.log(_title.modifyAll((title) => title.toUpperCase())(state))
+/*
+{
+  todos: [
+    { title: 'MILK', description: 'buy milk' },
+    { description: 'buy bread' }
+  ]
+}
+*/
 ```
 
 ### Composition over nesting

@@ -1111,7 +1111,7 @@ For refined schemas, the constructor accepts the unrefined type and returns the 
 ```ts
 import { Option, Schema } from "effect"
 
-const schema = Schema.Option(Schema.String).pipe(Schema.refineByGuard(Option.isSome))
+const schema = Schema.Option(Schema.String).pipe(Schema.refine(Option.isSome))
 
 // makeUnsafe(input: Option.Option<string>, options?: Schema.MakeOptions): Option.Some<string>
 schema.makeUnsafe
@@ -1123,7 +1123,7 @@ As with branding, when used in a composite schema, the refined value must be pro
 import { Option, Schema } from "effect"
 
 const schema = Schema.Struct({
-  a: Schema.Option(Schema.String).pipe(Schema.refineByGuard(Option.isSome)),
+  a: Schema.Option(Schema.String).pipe(Schema.refine(Option.isSome)),
   b: Schema.Number
 })
 
@@ -1498,8 +1498,8 @@ import { Schema } from "effect"
 
 //      ┌─── refine<readonly [string, string, ...string[]], Schema.Array$<Schema.String>>
 //      ▼
-const guarded = Schema.Array(Schema.String).pipe(
-  Schema.refineByGuard((arr): arr is readonly [string, string, ...Array<string>] => arr.length >= 2)
+const refined = Schema.Array(Schema.String).pipe(
+  Schema.refine((arr): arr is readonly [string, string, ...Array<string>] => arr.length >= 2)
 )
 ```
 
@@ -1515,82 +1515,6 @@ import { Schema } from "effect"
 //      ┌─── Schema.brand<Schema.String, "UserId">
 //      ▼
 const branded = Schema.String.pipe(Schema.brand<"UserId">())
-```
-
-### Refinement Groups
-
-You can group multiple refinements using `Schema.makeFilterGroup` and then layer additional rules with guards or brands.
-
-**Example** (Group with a type guard and other checks)
-
-```ts
-import { Schema } from "effect"
-
-// A group that checks:
-// - minimum length of 3
-// - all letters are lowercase
-//
-//      ┌─── RefinementGroup<Lowercase<string>, string>
-//      ▼
-export const guardedGroup = Schema.makeFilterGroup([Schema.isMinLength(3), Schema.isTrimmed()]).pipe(
-  Schema.isRefinedByGuard((s): s is Lowercase<string> => s.toLowerCase() === s)
-)
-```
-
-**Example** (Group that adds a brand)
-
-```ts
-import { Schema } from "effect"
-
-// A group that checks:
-// - minimum length of 3
-// - the string is trimmed
-// - the value is branded as "my-string"
-//
-//      ┌─── Check.RefinementGroup<string & Brand<"my-string">, string>
-//      ▼
-const brandedGroup = Schema.makeFilterGroup([Schema.isMinLength(3), Schema.isTrimmed()]).pipe(
-  Schema.isBranded<"my-string">()
-)
-```
-
-A more complete example:
-
-**Example** (Branded `Username` schema with grouped refinements)
-
-Usernames must:
-
-- Be at least 3 characters
-- Contain only alphanumeric characters
-- Have no leading or trailing whitespace
-- Be treated as a distinct type (`Username`) once validated
-
-Group these constraints and brand the result for reuse.
-
-```ts
-import { Schema } from "effect"
-
-// Group for a valid username
-const username = Schema.makeFilterGroup(
-  [
-    Schema.isMinLength(3),
-    Schema.isPattern(/^[a-zA-Z0-9]+$/, {
-      title: "alphanumeric",
-      description: "must contain only letters and numbers"
-    }),
-    Schema.isTrimmed()
-  ],
-  {
-    title: "username",
-    description: "a valid username"
-  }
-).pipe(Schema.isBranded<"Username">())
-
-// Apply the group to a string
-//
-//      ┌─── refine<string & Brand<"Username">, Schema.String>
-//      ▼
-const Username = Schema.String.pipe(Schema.refine(username))
 ```
 
 ### Structural Filters
@@ -1691,26 +1615,6 @@ export const makeGreaterThan = <T>(options: {
     })
   }
 }
-```
-
-#### Filters with brands
-
-You can combine `Schema.refine` with `Schema.isBranded` to build branded filters.
-
-```ts
-import { Schema } from "effect"
-
-// Constrain to integers and add "Int" brand
-const int = Schema.refine(Schema.isInt().pipe(Schema.isBranded<"Int">()))
-
-// Constrain to positive numbers and add "Positive" brand
-const positive = Schema.refine(Schema.isGreaterThan(0).pipe(Schema.isBranded<"Positive">()))
-
-// Compose both refinements to get a PositiveInt
-export const PositiveInt = Schema.Number.pipe(int, positive)
-
-// type PositiveInt = number & Brand<"Int"> & Brand<"Positive">
-type PositiveInt = typeof PositiveInt.Type
 ```
 
 ## Structs
@@ -8267,7 +8171,7 @@ v4
 ```ts
 import { Option, Schema } from "effect"
 
-const schema = Schema.Option(Schema.String).pipe(Schema.refineByGuard(Option.isSome))
+const schema = Schema.Option(Schema.String).pipe(Schema.refine(Option.isSome))
 ```
 
 ### filterEffect

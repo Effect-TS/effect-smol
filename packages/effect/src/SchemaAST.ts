@@ -1953,7 +1953,6 @@ export class Filter<in E> extends Pipeable.Class {
   abort(): Filter<E> {
     return new Filter(this.run, this.annotations, true)
   }
-  and<T extends E>(other: Refine<T, E>, annotations?: Schema.Annotations.Filter): RefinementGroup<T, E>
   and(other: Check<E>, annotations?: Schema.Annotations.Filter): FilterGroup<E>
   and(other: Check<E>, annotations?: Schema.Annotations.Filter): FilterGroup<E> {
     return new FilterGroup([this, other], annotations)
@@ -1980,7 +1979,6 @@ export class FilterGroup<in E> extends Pipeable.Class {
   annotate(annotations: Schema.Annotations.Filter): FilterGroup<E> {
     return new FilterGroup(this.checks, { ...this.annotations, ...annotations })
   }
-  and<T extends E>(other: Refine<T, E>, annotations?: Schema.Annotations.Filter): RefinementGroup<T, E>
   and(other: Check<E>, annotations?: Schema.Annotations.Filter): FilterGroup<E>
   and(other: Check<E>, annotations?: Schema.Annotations.Filter): FilterGroup<E> {
     return new FilterGroup([this, other], annotations)
@@ -1992,40 +1990,6 @@ export class FilterGroup<in E> extends Pipeable.Class {
  * @since 4.0.0
  */
 export type Check<T> = Filter<T> | FilterGroup<T>
-
-/**
- * @category model
- * @since 4.0.0
- */
-export interface Refinement<out T extends E, in E> extends Filter<E> {
-  readonly Type: T
-  annotate(annotations: Schema.Annotations.Filter): Refinement<T, E>
-  and<T2 extends E2, E2>(
-    other: Refine<T2, E2>,
-    annotations?: Schema.Annotations.Filter
-  ): RefinementGroup<T & T2, E & E2>
-  and(other: Check<E>, annotations?: Schema.Annotations.Filter): RefinementGroup<T, E>
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export interface RefinementGroup<T extends E, E> extends FilterGroup<E> {
-  readonly Type: T
-  annotate(annotations: Schema.Annotations.Filter): RefinementGroup<T, E>
-  and<T2 extends E2, E2>(
-    other: Refine<T2, E2>,
-    annotations?: Schema.Annotations.Filter
-  ): RefinementGroup<T & T2, E & E2>
-  and(other: Check<E>, annotations?: Schema.Annotations.Filter): RefinementGroup<T, E>
-}
-
-/**
- * @category model
- * @since 4.0.0
- */
-export type Refine<T extends E, E> = Refinement<T, E> | RefinementGroup<T, E>
 
 /** @internal */
 export function makeFilter<T>(
@@ -2048,54 +2012,14 @@ export function makeFilter<T>(
 }
 
 /** @internal */
-export function makeRefinedByGuard<T extends E, E>(
+export function makeFilterByGuard<T extends E, E>(
   is: (value: E) => value is T,
   annotations?: Schema.Annotations.Filter
-): Refinement<T, E> {
+): Filter<any> {
   return new Filter(
     (input: E) => is(input) ? undefined : new Issue.InvalidValue(Option.some(input)),
     annotations,
     true // after a guard, we always want to abort
-  ) as any
-}
-
-/** @internal */
-export function isNotUndefined<A>(annotations?: Schema.Annotations.Filter) {
-  return makeRefinedByGuard<Exclude<A, undefined>, A>(
-    Predicate.isNotUndefined,
-    { expected: "a value other than `undefined`", ...annotations }
-  )
-}
-
-/** @internal */
-export function isSome<A>(annotations?: Schema.Annotations.Filter) {
-  return makeRefinedByGuard<Option.Some<A>, Option.Option<A>>(
-    Option.isSome,
-    { expected: "a Some value", ...annotations }
-  )
-}
-
-/** @internal */
-export function isNone<A>(annotations?: Schema.Annotations.Filter) {
-  return makeRefinedByGuard<Option.None<A>, Option.Option<A>>(
-    Option.isNone,
-    { expected: "a None value", ...annotations }
-  )
-}
-
-/** @internal */
-export function isResultSuccess<A, E>(annotations?: Schema.Annotations.Filter) {
-  return makeRefinedByGuard<Result.Success<A, E>, Result.Result<A, E>>(
-    Result.isSuccess,
-    { expected: "a Result.Success value", ...annotations }
-  )
-}
-
-/** @internal */
-export function isResultFailure<A, E>(annotations?: Schema.Annotations.Filter) {
-  return makeRefinedByGuard<Result.Failure<A, E>, Result.Result<A, E>>(
-    Result.isFailure,
-    { expected: "a Result.Failure value", ...annotations }
   )
 }
 
@@ -2698,11 +2622,6 @@ export function runChecks<T>(
     return Result.fail(issue)
   }
   return Result.succeed(s)
-}
-
-/** @internal */
-export function runRefine<T extends E, E>(refine: Refine<T, E>, s: E): Result.Result<T, Issue.Issue> {
-  return runChecks([refine], s) as any
 }
 
 /** @internal */
