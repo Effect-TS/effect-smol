@@ -26,7 +26,7 @@ import * as MutableList from "./MutableList.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import type { Predicate, Refinement } from "./Predicate.ts"
-import { hasProperty, isTagged } from "./Predicate.ts"
+import { hasProperty, isNotUndefined, isTagged } from "./Predicate.ts"
 import type * as PubSub from "./PubSub.ts"
 import * as Pull from "./Pull.ts"
 import * as Queue from "./Queue.ts"
@@ -2619,7 +2619,7 @@ export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
               }
               return Effect.succeed(Arr.of(latest.slice()))
             }),
-            Channel.filter((a): a is Exclude<typeof a, undefined> => a !== undefined)
+            Channel.filter(isNotUndefined)
           )
         )
       ),
