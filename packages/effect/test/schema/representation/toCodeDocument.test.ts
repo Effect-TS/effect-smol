@@ -1449,76 +1449,70 @@ describe("toCodeDocument", () => {
   })
 })
 
-describe("toValidIdentifier", () => {
-  const toValidIdentifier = SchemaRepresentation.toValidIdentifier
+describe("sanitizeJavaScriptIdentifier", () => {
+  const sanitizeJavaScriptIdentifier = SchemaRepresentation.sanitizeJavaScriptIdentifier
 
-  it("should return '_' for empty string", () => {
-    strictEqual(toValidIdentifier(""), "_")
+  it("returns '_' for empty input", () => {
+    strictEqual(sanitizeJavaScriptIdentifier(""), "_")
   })
 
-  it("should keep a simple valid identifier unchanged", () => {
-    strictEqual(toValidIdentifier("abc"), "abc")
+  it("returns input when already a valid uppercase-start identifier", () => {
+    strictEqual(sanitizeJavaScriptIdentifier("Abc"), "Abc")
+    strictEqual(sanitizeJavaScriptIdentifier("_"), "_")
+    strictEqual(sanitizeJavaScriptIdentifier("$"), "$")
+    strictEqual(sanitizeJavaScriptIdentifier("$a_b9"), "$a_b9")
+    strictEqual(sanitizeJavaScriptIdentifier("A1b2"), "A1b2")
   })
 
-  it("should keep '$' and '_' identifiers unchanged", () => {
-    strictEqual(toValidIdentifier("_"), "_")
-    strictEqual(toValidIdentifier("$"), "$")
-    strictEqual(toValidIdentifier("_$a9"), "_$a9")
+  it("uppercases a leading ASCII letter", () => {
+    strictEqual(sanitizeJavaScriptIdentifier("abc"), "Abc")
+    strictEqual(sanitizeJavaScriptIdentifier("a0"), "A0")
+    strictEqual(sanitizeJavaScriptIdentifier("a1b2c3"), "A1b2c3")
+    strictEqual(sanitizeJavaScriptIdentifier("class"), "Class")
   })
 
-  it("should not change a valid identifier that contains digits (not first)", () => {
-    strictEqual(toValidIdentifier("a0"), "a0")
-    strictEqual(toValidIdentifier("a123"), "a123")
-    strictEqual(toValidIdentifier("a1b2c3"), "a1b2c3")
+  it("prefixes '_' when starting with a digit", () => {
+    strictEqual(sanitizeJavaScriptIdentifier("1"), "_1")
+    strictEqual(sanitizeJavaScriptIdentifier("1a"), "_1a")
+    strictEqual(sanitizeJavaScriptIdentifier("9lives"), "_9lives")
   })
 
-  it("should prefix '_' when the first character is not a valid identifier start (digit)", () => {
-    strictEqual(toValidIdentifier("1"), "_1")
-    strictEqual(toValidIdentifier("1a"), "_1a")
-    strictEqual(toValidIdentifier("9lives"), "_9lives")
+  it("replaces invalid leading characters with '_'", () => {
+    strictEqual(sanitizeJavaScriptIdentifier(" abc"), "_abc")
+    strictEqual(sanitizeJavaScriptIdentifier("-a"), "_a")
+    strictEqual(sanitizeJavaScriptIdentifier(".a"), "_a")
+    strictEqual(sanitizeJavaScriptIdentifier(" a"), "_a")
+    strictEqual(sanitizeJavaScriptIdentifier("\ta"), "_a")
   })
 
-  it("should prefix '_' when the first character is not a valid identifier start (space)", () => {
-    // first pass would replace space with "_", which is already a valid start,
-    // so no extra prefix beyond that replacement
-    strictEqual(toValidIdentifier(" abc"), "_abc")
+  it("replaces invalid characters with '_'", () => {
+    strictEqual(sanitizeJavaScriptIdentifier("a-b"), "A_b")
+    strictEqual(sanitizeJavaScriptIdentifier("a b"), "A_b")
+    strictEqual(sanitizeJavaScriptIdentifier("a.b"), "A_b")
+    strictEqual(sanitizeJavaScriptIdentifier("a/b"), "A_b")
   })
 
-  it("should replace invalid characters with '_' (single)", () => {
-    strictEqual(toValidIdentifier("a-b"), "a_b")
-    strictEqual(toValidIdentifier("a b"), "a_b")
-    strictEqual(toValidIdentifier("a.b"), "a_b")
-    strictEqual(toValidIdentifier("a/b"), "a_b")
+  it("replaces multiple invalid characters with '_'", () => {
+    strictEqual(sanitizeJavaScriptIdentifier("a-b c"), "A_b_c")
+    strictEqual(sanitizeJavaScriptIdentifier("a..b"), "A__b")
+    strictEqual(sanitizeJavaScriptIdentifier("a--b"), "A__b")
+    strictEqual(sanitizeJavaScriptIdentifier("a b\tc"), "A_b_c")
   })
 
-  it("should replace invalid characters with '_' (multiple)", () => {
-    strictEqual(toValidIdentifier("a-b c"), "a_b_c")
-    strictEqual(toValidIdentifier("a..b"), "a__b")
-    strictEqual(toValidIdentifier("a--b"), "a__b")
-    strictEqual(toValidIdentifier("a b\tc"), "a_b_c")
+  it("replaces non-ascii characters with '_' under ASCII rules", () => {
+    strictEqual(sanitizeJavaScriptIdentifier("café"), "Caf_")
+    strictEqual(sanitizeJavaScriptIdentifier("你好"), "__")
+    strictEqual(sanitizeJavaScriptIdentifier("🤖"), "_")
+    strictEqual(sanitizeJavaScriptIdentifier("a🤖b"), "A_b")
   })
 
-  it("should replace non-ascii characters with '_' under ASCII rules", () => {
-    strictEqual(toValidIdentifier("café"), "caf_")
-    strictEqual(toValidIdentifier("你好"), "__")
-    strictEqual(toValidIdentifier("🤖"), "_")
-    strictEqual(toValidIdentifier("a🤖b"), "a_b")
+  it("allows '$' and '_' anywhere", () => {
+    strictEqual(sanitizeJavaScriptIdentifier("a$b"), "A$b")
+    strictEqual(sanitizeJavaScriptIdentifier("a_b"), "A_b")
+    strictEqual(sanitizeJavaScriptIdentifier("$a_b9"), "$a_b9")
   })
 
-  it("should allow '$' and '_' anywhere", () => {
-    strictEqual(toValidIdentifier("a$b"), "a$b")
-    strictEqual(toValidIdentifier("a_b"), "a_b")
-    strictEqual(toValidIdentifier("$a_b9"), "$a_b9")
-  })
-
-  it("should handle leading invalid characters by replacing them (not necessarily extra prefix)", () => {
-    strictEqual(toValidIdentifier("-a"), "_a")
-    strictEqual(toValidIdentifier(".a"), "_a")
-    strictEqual(toValidIdentifier(" a"), "_a")
-    strictEqual(toValidIdentifier("\ta"), "_a")
-  })
-
-  it("should keep already-sanitized results stable (idempotent)", () => {
+  it("keeps already-sanitized results stable (idempotent)", () => {
     const cases = [
       "",
       "abc",
@@ -1535,53 +1529,20 @@ describe("toValidIdentifier", () => {
     ] as const
 
     for (const input of cases) {
-      const once = toValidIdentifier(input)
-      const twice = toValidIdentifier(once)
+      const once = sanitizeJavaScriptIdentifier(input)
+      const twice = sanitizeJavaScriptIdentifier(once)
       strictEqual(twice, once)
     }
   })
 
-  it("should avoid reserved words by prefixing '_'", () => {
-    strictEqual(toValidIdentifier("class"), "_class")
-    strictEqual(toValidIdentifier("return"), "_return")
-    strictEqual(toValidIdentifier("null"), "_null")
-    strictEqual(toValidIdentifier("true"), "_true")
-    strictEqual(toValidIdentifier("false"), "_false")
+  it("preserves length when only replacements are needed", () => {
+    strictEqual(sanitizeJavaScriptIdentifier("a-b").length, "a-b".length)
+    strictEqual(sanitizeJavaScriptIdentifier("a b").length, "a b".length)
+    strictEqual(sanitizeJavaScriptIdentifier("..").length, "..".length)
   })
 
-  it("should avoid reserved words even if the input is otherwise valid", () => {
-    // ensures the 'reserved' check happens after basic validation
-    strictEqual(toValidIdentifier("for"), "_for")
-    strictEqual(toValidIdentifier("while"), "_while")
-    strictEqual(toValidIdentifier("switch"), "_switch")
-  })
-
-  it("should not treat non-reserved lookalikes as reserved", () => {
-    strictEqual(toValidIdentifier("class_"), "class_")
-    strictEqual(toValidIdentifier("_class"), "_class")
-    strictEqual(toValidIdentifier("Class"), "Class")
-    strictEqual(toValidIdentifier("trueValue"), "trueValue")
-  })
-
-  it("should combine rules: replace invalid chars, then avoid reserved words", () => {
-    // "class-name" -> "class_name" (now not reserved)
-    strictEqual(toValidIdentifier("class-name"), "class_name")
-
-    // "class" is reserved, but "class " becomes "class_" and is not reserved
-    strictEqual(toValidIdentifier("class "), "class_")
-  })
-
-  it("should preserve length when only replacements are needed", () => {
-    strictEqual(toValidIdentifier("a-b").length, "a-b".length)
-    strictEqual(toValidIdentifier("a b").length, "a b".length)
-    strictEqual(toValidIdentifier("..").length, "..".length)
-  })
-
-  it("should increase length only when prefixing is required (digit-start or reserved word)", () => {
-    strictEqual(toValidIdentifier("1a"), "_1a")
-    strictEqual(toValidIdentifier("1a").length, "1a".length + 1)
-
-    strictEqual(toValidIdentifier("class"), "_class")
-    strictEqual(toValidIdentifier("class").length, "class".length + 1)
+  it("increases length only when prefixing is required", () => {
+    strictEqual(sanitizeJavaScriptIdentifier("1a"), "_1a")
+    strictEqual(sanitizeJavaScriptIdentifier("1a").length, "1a".length + 1)
   })
 })

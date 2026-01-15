@@ -3,6 +3,73 @@ import { deepStrictEqual } from "@effect/vitest/utils"
 import * as JsonSchema from "effect/JsonSchema"
 
 describe("JsonSchema", () => {
+  describe("sanitizeOpenApiComponentsKey", () => {
+    const sanitizeOpenApiComponentsKey = JsonSchema.sanitizeOpenApiComponentsSchemasKey
+
+    it("returns '_' for empty input", () => {
+      deepStrictEqual(sanitizeOpenApiComponentsKey(""), "_")
+    })
+
+    it("returns input when already valid", () => {
+      deepStrictEqual(sanitizeOpenApiComponentsKey("Simple"), "Simple")
+      deepStrictEqual(sanitizeOpenApiComponentsKey("with-dash"), "with-dash")
+      deepStrictEqual(sanitizeOpenApiComponentsKey("with_underscore"), "with_underscore")
+      deepStrictEqual(sanitizeOpenApiComponentsKey("with.dot"), "with.dot")
+      deepStrictEqual(sanitizeOpenApiComponentsKey("A1.B2-_"), "A1.B2-_")
+    })
+
+    it("replaces invalid characters with '_'", () => {
+      const cases: ReadonlyArray<readonly [string, string]> = [
+        ["a b", "a_b"],
+        ["a/b", "a_b"],
+        ["a:b", "a_b"],
+        ["a@b", "a_b"],
+        ["a#b", "a_b"],
+        ["a?b", "a_b"],
+        ["a+b", "a_b"],
+        ["a*b", "a_b"],
+        ["a,b", "a_b"],
+        ["a;b", "a_b"],
+        ["a|b", "a_b"],
+        ["a=b", "a_b"]
+      ]
+      for (const [input, expected] of cases) {
+        deepStrictEqual(sanitizeOpenApiComponentsKey(input), expected)
+      }
+    })
+
+    it("preserves length when only replacements are needed", () => {
+      deepStrictEqual(sanitizeOpenApiComponentsKey("a b").length, "a b".length)
+      deepStrictEqual(sanitizeOpenApiComponentsKey("..").length, "..".length)
+      deepStrictEqual(sanitizeOpenApiComponentsKey("a--b").length, "a--b".length)
+    })
+
+    it("replaces non-ascii characters with '_'", () => {
+      deepStrictEqual(sanitizeOpenApiComponentsKey("café"), "caf_")
+      deepStrictEqual(sanitizeOpenApiComponentsKey("你好"), "__")
+      deepStrictEqual(sanitizeOpenApiComponentsKey("🤖"), "_")
+      deepStrictEqual(sanitizeOpenApiComponentsKey("a🤖b"), "a_b")
+    })
+
+    it("is idempotent", () => {
+      const inputs = [
+        "",
+        "Simple",
+        "a b",
+        "a/b",
+        "a..b",
+        "café",
+        "🤖",
+        "A1.B2-_"
+      ] as const
+      for (const input of inputs) {
+        const once = sanitizeOpenApiComponentsKey(input)
+        const twice = sanitizeOpenApiComponentsKey(once)
+        deepStrictEqual(twice, once)
+      }
+    })
+  })
+
   describe("fromSchemaDraft07", () => {
     it("should convert a simple schema without definitions", () => {
       const input: JsonSchema.JsonSchema = {
