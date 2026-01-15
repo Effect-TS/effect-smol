@@ -36,3 +36,9 @@
 - Files: packages/effect/src/Stream.ts, packages/effect/src/unstable/reactivity/AtomRegistry.ts, packages/effect/test/Stream.test.ts, packages/platform-node/test/HttpApi.test.ts, PROGRESS.md
 - Notes: Stream.filter uses Predicate/Refinement via Filter.fromPredicate; updated callers to use guards; ran pnpm lint-fix/test/check/build/docgen
 - Blockers: none
+
+### Task EFF-197: update Channel.filter overloads
+
+- Files: packages/effect/src/Channel.ts, packages/effect/src/Stream.ts, .lalph/prd.json, PROGRESS.md
+- Notes: Channel.filter uses Predicate/Refinement via Filter.fromPredicate; filterArray uses Arr.filter with non-empty guard; zipLatestAll filters undefined via refinement; tapError uses Effect.as to normalize; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none

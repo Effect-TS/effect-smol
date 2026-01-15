@@ -2619,7 +2619,7 @@ export const zipLatestAll = <T extends ReadonlyArray<Stream<any, any, any>>>(
               }
               return Effect.succeed(Arr.of(latest.slice()))
             }),
-            Channel.filter((a) => a === undefined ? Filter.failVoid : a)
+            Channel.filter((a): a is Exclude<typeof a, undefined> => a !== undefined)
           )
         )
       ),

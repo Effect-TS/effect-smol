@@ -2982,20 +2982,30 @@ export const schedule: {
  * @category Filtering
  */
 export const filter: {
-  <OutElem, B, X>(
-    filter: Filter.Filter<OutElem, B, X>
+  <OutElem, B extends OutElem>(
+    refinement: Predicate.Refinement<OutElem, B>
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
-  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
+  <OutElem>(
+    predicate: Predicate.Predicate<OutElem>
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B extends OutElem>(
     self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    filter: Filter.Filter<OutElem, B, X>
+    refinement: Predicate.Refinement<OutElem, B>
   ): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    predicate: Predicate.Predicate<OutElem>
+  ): Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B extends OutElem = OutElem>(
   self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter: Filter.Filter<OutElem, B, X>
-): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env> =>
-  fromTransform((upstream, scope) =>
+  predicate: Predicate.Predicate<OutElem> | Predicate.Refinement<OutElem, B>
+): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env> => {
+  const filter = Filter.fromPredicate<OutElem, B>(predicate as Predicate.Refinement<OutElem, B>)
+  return fromTransform((upstream, scope) =>
     Effect.map(
       toTransform(self)(upstream, scope),
       (pull) =>
@@ -3007,7 +3017,8 @@ export const filter: {
           return Effect.succeed(result)
         })
     )
-  ))
+  )
+})
 
 /**
  * Filters arrays of elements emitted by a channel, applying the filter
@@ -3015,20 +3026,16 @@ export const filter: {
  *
  * @example
  * ```ts
- * import { Array, Channel, Filter } from "effect"
+ * import { Array, Channel } from "effect"
  *
- * const nonEmptyArrayFilter: Filter.Filter<
- *   Array<number>,
- *   Array.NonEmptyReadonlyArray<number>,
- *   Array<number>
- * > = (array) => Array.isReadonlyArrayNonEmpty(array) ? array : Filter.fail(array)
+ * const nonEmptyArrayPredicate = Array.isReadonlyArrayNonEmpty
  *
  * // Create a channel that outputs arrays of mixed data
  * const arrayChannel = Channel.fromIterable([
- *   [1, 2, 3, 4, 5],
- *   [6, 7, 8, 9, 10],
- *   [11, 12, 13, 14, 15]
- * ]).pipe(Channel.filter(nonEmptyArrayFilter))
+ *   Array.make(1, 2, 3, 4, 5),
+ *   Array.make(6, 7, 8, 9, 10),
+ *   Array.make(11, 12, 13, 14, 15)
+ * ]).pipe(Channel.filter(nonEmptyArrayPredicate))
  *
  * // Filter arrays to keep only even numbers
  * const evenArraysChannel = Channel.filterArray(arrayChannel, (n) => n % 2 === 0)
@@ -3036,9 +3043,11 @@ export const filter: {
  * // Note: Only non-empty filtered arrays are emitted
  *
  * // Arrays that would become empty after filtering are discarded entirely
- * const oddChannel = Channel.fromIterable([[1, 3, 5], [2, 4], [7, 9]]).pipe(
- *   Channel.filter(nonEmptyArrayFilter)
- * )
+ * const oddChannel = Channel.fromIterable([
+ *   Array.make(1, 3, 5),
+ *   Array.make(2, 4),
+ *   Array.make(7, 9)
+ * ]).pipe(Channel.filter(nonEmptyArrayPredicate))
  * const filteredOddChannel = Channel.filterArray(oddChannel, (n) => n % 2 === 0)
  * // Outputs: [2, 4] (the arrays [1,3,5] and [7,9] are discarded)
  * ```
@@ -3065,13 +3074,20 @@ export const filterArray: {
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
     predicate: Predicate.Predicate<OutElem>
   ): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B extends OutElem = OutElem>(
   self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  predicate: Predicate.Predicate<OutElem>
-): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
-  filter(self, (arr) => {
-    const filtered = Arr.filter(arr, predicate)
-    return Arr.isReadonlyArrayNonEmpty(filtered) ? filtered : Filter.fail(arr)
+  predicate: Predicate.Predicate<OutElem> | Predicate.Refinement<OutElem, B>
+): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+  transformPull(self, (pull) => {
+    const filter = Effect.map(pull, (arr) => Arr.filter(arr, predicate as Predicate.Refinement<OutElem, B>))
+    return Effect.succeed(Effect.flatMap(
+      filter,
+      function loop(arr): Pull.Pull<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone> {
+        return Arr.isReadonlyArrayNonEmpty(arr)
+          ? Effect.succeed(arr)
+          : Effect.flatMap(filter, loop)
+      }
+    ))
   }))
 
 /**
@@ -3838,7 +3854,8 @@ export const tapError: {
 > =>
   transformPull(
     self,
-    (pull) => Effect.succeed(Effect.tapError(pull, (err) => Pull.isHalt(err) ? Effect.void : f(err)))
+    (pull) =>
+      Effect.succeed(Effect.tapError(pull, (err) => Pull.isHalt(err) ? Effect.void : Effect.as(f(err), undefined)))
   ))
 
 /**
