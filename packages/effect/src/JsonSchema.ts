@@ -327,7 +327,10 @@ export function toSchemaDraft07(schema: JsonSchema): JsonSchema {
 export function toMultiDocumentOpenApi3_1(multiDocument: MultiDocument<"draft-2020-12">): MultiDocument<"openapi-3.1"> {
   const keyMap = new Map<string, string>()
   for (const key of Object.keys(multiDocument.definitions)) {
-    keyMap.set(key, sanitizeOpenApiComponentsKey(key))
+    const sanitized = sanitizeOpenApiComponentsKey(key)
+    if (sanitized !== key) {
+      keyMap.set(key, sanitized)
+    }
   }
 
   function rewrite(schema: JsonSchema): JsonSchema {
@@ -335,9 +338,9 @@ export function toMultiDocumentOpenApi3_1(multiDocument: MultiDocument<"draft-20
       const tokens = $ref.split("/")
       if (tokens.length > 0) {
         const identifier = unescapeToken(tokens[tokens.length - 1])
-        const key = keyMap.get(identifier)
-        if (key !== undefined) {
-          $ref = tokens.slice(0, -1).join("/") + "/" + key
+        const sanitized = keyMap.get(identifier)
+        if (sanitized !== undefined) {
+          $ref = tokens.slice(0, -1).join("/") + "/" + sanitized
         }
       }
       return $ref.replace(RE_DEFS, "#/components/schemas")
@@ -354,14 +357,12 @@ export function toMultiDocumentOpenApi3_1(multiDocument: MultiDocument<"draft-20
   }
 }
 
-/**
- * @since 4.0.0
- */
+/** @internal */
 export const openApiComponentsKeyRegExp = /^[a-zA-Z0-9.\-_]+$/
 
 /**
  * Returns a sanitized key for an OpenAPI component schema.
- * Should match the `openApiComponentsKeyRegExp` regular expression.
+ * Should match the `^[a-zA-Z0-9.\-_]+$` regular expression.
  */
 function sanitizeOpenApiComponentsKey(key: string): string {
   if (openApiComponentsKeyRegExp.test(key)) return key
@@ -384,7 +385,7 @@ function sanitizeOpenApiComponentsKey(key: string): string {
     }
   }
 
-  return out.length === 0 ? "_" : out
+  return out
 }
 
 function rewrite_refs(node: unknown, f: ($ref: string) => string): unknown {

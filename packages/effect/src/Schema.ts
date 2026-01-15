@@ -43,6 +43,7 @@ import * as AST from "./SchemaAST.ts"
 import * as Getter from "./SchemaGetter.ts"
 import * as Issue from "./SchemaIssue.ts"
 import * as Parser from "./SchemaParser.ts"
+import type * as SchemaRepresentation from "./SchemaRepresentation.ts"
 import * as Transformation from "./SchemaTransformation.ts"
 import type { Assign, Lambda, Mutable, Simplify } from "./Struct.ts"
 import * as Struct_ from "./Struct.ts"
@@ -7856,6 +7857,18 @@ export function toEquivalence<T>(schema: Schema<T>): Equivalence.Equivalence<T> 
 }
 
 // -----------------------------------------------------------------------------
+// Representation
+// -----------------------------------------------------------------------------
+
+/**
+ * @category Representation
+ * @since 4.0.0
+ */
+export function toRepresentation(schema: Top): SchemaRepresentation.Document {
+  return InternalStandard.fromAST(schema.ast)
+}
+
+// -----------------------------------------------------------------------------
 // JsonSchema
 // -----------------------------------------------------------------------------
 
@@ -7889,7 +7902,7 @@ export interface ToJsonSchemaOptions {
  * @since 4.0.0
  */
 export function toJsonSchemaDocument(schema: Top, options?: ToJsonSchemaOptions): JsonSchema.Document<"draft-2020-12"> {
-  const sd = InternalStandard.fromAST(schema.ast)
+  const sd = toRepresentation(schema)
   const jd = InternalStandard.toJsonSchemaDocument(sd, options)
   return {
     dialect: "draft-2020-12",

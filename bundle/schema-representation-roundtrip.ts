@@ -1,17 +1,16 @@
 import * as Schema from "#dist/effect/Schema"
 import * as SchemaRepresentation from "#dist/effect/SchemaRepresentation"
 
-const MySchema = Schema.Struct({
-  foo: Schema.Literals(["a", "b"]),
-  bar: Schema.BigInt.check(Schema.isGreaterThanBigInt(0n), Schema.isLessThanBigInt(10n))
-})
+const schema = Schema.toCodecJson(Schema.Struct({
+  a: Schema.String,
+  b: Schema.optional(Schema.FiniteFromString),
+  c: Schema.Array(Schema.String)
+}))
 
-const MySchemaAsJson = Schema.encodeSync(SchemaRepresentation.DocumentFromJson)(
-  SchemaRepresentation.fromAST(MySchema.ast)
+const json = Schema.encodeSync(SchemaRepresentation.DocumentFromJson)(
+  SchemaRepresentation.fromAST(schema.ast)
 )
 
-const roundtrip = JSON.parse(JSON.stringify(MySchemaAsJson))
-
-export const Restored = SchemaRepresentation.toSchema(
-  Schema.decodeSync(SchemaRepresentation.DocumentFromJson)(roundtrip)
+SchemaRepresentation.toSchema(
+  Schema.decodeSync(SchemaRepresentation.DocumentFromJson)(JSON.parse(JSON.stringify(json)))
 )
