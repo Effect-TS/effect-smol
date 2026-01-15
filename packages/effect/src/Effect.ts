@@ -2937,11 +2937,10 @@ export const catchIf: {
  *
  * **When to Use**
  *
- * `catchFilter` lets you recover from errors with a predicate. If the
- * predicate matches the error, the recovery effect is applied. This function
- * doesn't alter the error type, so the resulting effect still carries the
- * original error type unless a user-defined type guard is used to narrow the
- * type.
+ * `catchFilter` lets you recover from errors with a `Filter`. If the filter
+ * matches the error, the recovery effect is applied. This function doesn't
+ * alter the error type, so the resulting effect still carries the original
+ * error type unless a user-defined type guard is used to narrow the type.
  *
  * @example
  * ```ts
