@@ -74,14 +74,19 @@
 - Blockers: none
 
 ### Task EFF-177: refactor Effect.filterOrElse follow-ups
- 
- - Files: packages/effect/src/internal/effect.ts, packages/effect/src/unstable/http/HttpClient.ts, PROGRESS.md
- - Notes: filterOrFailCause uses Predicate/Refinement overloads; removed unused Filter import; ran pnpm lint-fix/test/check/build/docgen
- - Blockers: none
- 
-### Task EFF-207: adjust catchFilter docs wording
- 
- - Files: packages/effect/src/Effect.ts, PROGRESS.md
- - Notes: clarify catchFilter docs use Filter module; ran pnpm lint-fix/test/check/build/docgen
- - Blockers: none
 
+- Files: packages/effect/src/internal/effect.ts, packages/effect/src/unstable/http/HttpClient.ts, PROGRESS.md
+- Notes: filterOrFailCause uses Predicate/Refinement overloads; removed unused Filter import; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none
+
+### Task EFF-207: adjust catchFilter docs wording
+
+- Files: packages/effect/src/Effect.ts, PROGRESS.md
+- Notes: clarify catchFilter docs use Filter module; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none
+
+### Task EFF-207: refresh catchFilter docs example
+
+- Files: packages/effect/src/Effect.ts, PROGRESS.md
+- Notes: use Filter module in catchFilter docs/example; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none

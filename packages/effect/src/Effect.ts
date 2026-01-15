@@ -2933,18 +2933,18 @@ export const catchIf: {
 } = internal.catchIf
 
 /**
- * Recovers from specific errors based on a predicate.
+ * Recovers from specific errors using a `Filter`.
  *
  * **When to Use**
  *
- * `catchFilter` lets you recover from errors with a `Filter`. If the filter
- * matches the error, the recovery effect is applied. This function doesn't
- * alter the error type, so the resulting effect still carries the original
- * error type unless a user-defined type guard is used to narrow the type.
+ * `catchFilter` lets you recover from errors with a `Filter` from the `Filter`
+ * module. If the filter matches the error, the recovery effect is applied. This
+ * function doesn't alter the error type, so the resulting effect still carries
+ * the original error type unless a type-guarding filter narrows the type.
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Effect, Filter } from "effect"
  *
  * // An effect that might fail with a number
  * const program = Effect.fail(42)
@@ -2952,7 +2952,7 @@ export const catchIf: {
  * // Recover only from specific error values
  * const recovered = Effect.catchFilter(
  *   program,
- *   (error) => error === 42,
+ *   Filter.fromPredicate((error: number) => error === 42),
  *   (error) => Effect.succeed(`Recovered from error: ${error}`)
  * )
  * ```
