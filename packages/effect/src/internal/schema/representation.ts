@@ -383,7 +383,7 @@ export function toJsonSchemaMultiDocument(
       }
     }
     if ("checks" in s) {
-      const checks = collectJsonSchemaChecks(s.checks, js.type)
+      const checks = collectJsonSchemaChecks<SchemaRepresentation.Meta>(s.checks, js.type)
       for (const check of checks) {
         js = appendJsonSchema(js, check)
       }
