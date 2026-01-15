@@ -17,12 +17,12 @@ This is the Effect library repository, focusing on functional programming patter
 
 ### Mandatory Validation Steps
 
-- **🚨 CRITICAL FIRST STEP**: IMMEDIATELY run `pnpm lint-fix` after editing ANY TypeScript file
+- Run `pnpm lint-fix` after editing ANY TypeScript file
 - Always run tests after making changes: `pnpm test <test_file.ts>`
 - Run type checking: `pnpm check`
+  - If type checking continues to fail, run `pnpm clean` to clear caches, then re-run `pnpm check`
 - Build the project: `pnpm build`
-- **CRITICAL**: Check JSDoc examples compile: `pnpm docgen` - MUST PASS before committing
-- Always check for type errors before committing: `pnpm check`
+- Check JSDoc examples compile: `pnpm docgen`
 
 ## Rules and Guidelines
 
@@ -65,16 +65,16 @@ This is the Effect library repository, focusing on functional programming patter
 
 ### Time-Dependent Testing
 
-- **CRITICAL**: When testing time-dependent code (delays, timeouts, scheduling), always use `TestClock` to avoid flaky tests
-- Import `TestClock` from `effect/TestClock` and use `TestClock.advance()` to control time progression
+When testing time-dependent code (delays, timeouts, scheduling), always use `TestClock` to avoid flaky tests
+
+- Import `TestClock` from `effect/TestClock`
+- Pattern: Use `TestClock.adjust("duration")` to simulate time passage instead of actual delays
 - Never rely on real wall-clock time (`Effect.sleep`, `Effect.timeout`) in tests without TestClock
 - Examples of time-dependent operations that need TestClock:
   - `Effect.sleep()` and `Effect.delay()`
   - `Effect.timeout()` and `Effect.race()` with timeouts
   - Scheduled operations and retry logic
-  - Queue operations with time-based completion
   - Any concurrent operations that depend on timing
-- Pattern: Use `TestClock.adjust("duration")` to simulate time passage instead of actual delays
 
 ### Testing Framework Selection
 
@@ -87,10 +87,10 @@ This is the Effect library repository, focusing on functional programming patter
 
 ### it.effect Testing Pattern
 
-- **MANDATORY**: Use `it.effect` for all Effect-based tests, not `Effect.runSync` with regular `it`
-- **CRITICAL**: Import `{ assert, describe, it }` from `@effect/vitest`
-- **FORBIDDEN**: Never use `expect` from vitest in Effect tests - use `assert` methods instead
-- **PATTERN**: All tests should use `it.effect("description", () => Effect.gen(function*() { ... }))`
+- Use `it.effect` for all Effect-based tests, not `Effect.runSync` with regular `it`
+- Import `{ assert, describe, it }` from `@effect/vitest`
+- Never use `expect` from vitest in Effect tests - use `assert` methods instead
+- All tests should use `it.effect("description", () => Effect.gen(function*() { ... }))`
 
 Before writing tests, look at existing tests in the codebase for similar
 functionality to follow established patterns.
