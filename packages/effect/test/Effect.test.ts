@@ -1286,6 +1286,23 @@ describe("Effect", () => {
         error = new ErrorC()
         assert.strictEqual(yield* effect, 3)
       }))
+
+    it.effect("catchIf", () =>
+      Effect.gen(function*() {
+        interface ErrorA {
+          readonly _tag: "ErrorA"
+        }
+        interface ErrorB {
+          readonly _tag: "ErrorB"
+        }
+        const effect: Effect.Effect<never, ErrorA | ErrorB> = Effect.fail({ _tag: "ErrorB" as const })
+        const result = yield* pipe(
+          effect,
+          Effect.catchIf((e): e is ErrorA => e._tag === "ErrorA", Effect.succeed),
+          Effect.exit
+        )
+        assert.deepStrictEqual(result, Exit.fail({ _tag: "ErrorB" as const }))
+      }))
   })
 
   describe("zip", () => {

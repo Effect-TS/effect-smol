@@ -54,3 +54,9 @@
 - Files: packages/effect/src/Stream.ts, packages/effect/test/Stream.test.ts, PROGRESS.md
 - Notes: split now uses predicate/refinement delimiter; updated split tests/docs; ran pnpm lint-fix/test/check/build/docgen
 - Blockers: none
+
+### Task EFF-207: port Effect.catchIf from effect 3
+
+- Files: packages/effect/src/internal/effect.ts, packages/effect/src/Effect.ts, packages/effect/test/Effect.test.ts, PROGRESS.md
+- Notes: added catchIf implementation + docs; added error-handling test; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none

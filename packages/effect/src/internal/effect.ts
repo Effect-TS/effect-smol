@@ -2548,6 +2548,39 @@ export const tapDefect: {
 )
 
 /** @internal */
+export const catchIf: {
+  <E, EB extends E, A2, E2, R2>(
+    refinement: Predicate.Refinement<NoInfer<E>, EB>,
+    f: (e: EB) => Effect.Effect<A2, E2, R2>
+  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A2 | A, E2 | Exclude<E, EB>, R2 | R>
+  <E, A2, E2, R2>(
+    predicate: Predicate.Predicate<NoInfer<E>>,
+    f: (e: NoInfer<E>) => Effect.Effect<A2, E2, R2>
+  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A2 | A, E | E2, R2 | R>
+  <A, E, R, EB extends E, A2, E2, R2>(
+    self: Effect.Effect<A, E, R>,
+    refinement: Predicate.Refinement<E, EB>,
+    f: (e: EB) => Effect.Effect<A2, E2, R2>
+  ): Effect.Effect<A | A2, E2 | Exclude<E, EB>, R | R2>
+  <A, E, R, A2, E2, R2>(
+    self: Effect.Effect<A, E, R>,
+    predicate: Predicate.Predicate<E>,
+    f: (e: E) => Effect.Effect<A2, E2, R2>
+  ): Effect.Effect<A | A2, E | E2, R | R2>
+} = dual(3, <A, E, R, A2, E2, R2>(
+  self: Effect.Effect<A, E, R>,
+  predicate: Predicate.Predicate<E>,
+  f: (e: E) => Effect.Effect<A2, E2, R2>
+): Effect.Effect<A | A2, E | E2, R | R2> =>
+  catchCause(self, (cause): Effect.Effect<A | A2, E | E2, R | R2> => {
+    const error = causeFilterError(cause)
+    if (Filter.isFail(error)) {
+      return failCause(error.fail)
+    }
+    return predicate(error) ? internalCall(() => f(error)) : failCause(cause)
+  }))
+
+/** @internal */
 export const catchFilter: {
   <E, EB, A2, E2, R2, X>(
     filter: Filter.Filter<NoInfer<E>, EB, X>,
