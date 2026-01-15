@@ -23,3 +23,7 @@
 - Files: packages/effect/src/Channel.ts, packages/effect/test/Effect.test.ts, PROGRESS.md
 - Notes: filterArrayEffect uses Effect.filter predicate; ran pnpm lint-fix/test/check/build/docgen
 - Blockers: none
+- Task EFF-198: update Channel.filterArray to Predicate/Refinement
+- Files: packages/effect/src/Channel.ts, packages/effect/src/Stream.ts, packages/effect/src/unstable/encoding/Ndjson.ts, .lalph/prd.json, PROGRESS.md
+- Notes: filterArray uses Array.filter + non-empty guard; Stream.filter keeps Filter.Filter via partitionFilter; Ndjson uses predicate; ran pnpm lint-fix/test/check/build/docgen
+- Blockers: none

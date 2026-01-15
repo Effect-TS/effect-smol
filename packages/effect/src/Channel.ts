@@ -73,6 +73,7 @@ import * as Layer from "./Layer.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { pipeArguments } from "./Pipeable.ts"
+import type * as Predicate from "./Predicate.ts"
 import { hasProperty, isTagged } from "./Predicate.ts"
 import * as PubSub from "./PubSub.ts"
 import * as Pull from "./Pull.ts"
@@ -3046,22 +3047,31 @@ export const filter: {
  * @category Filtering
  */
 export const filterArray: {
-  <OutElem, B, X>(
-    filter: Filter.Filter<OutElem, B, X>
+  <OutElem, B extends OutElem>(
+    refinement: Predicate.Refinement<OutElem, B>
   ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
   ) => Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
-  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
+  <OutElem>(
+    predicate: Predicate.Predicate<OutElem>
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B extends OutElem>(
     self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-    filter: Filter.Filter<OutElem, B, X>
+    refinement: Predicate.Refinement<OutElem, B>
   ): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env>
-} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    predicate: Predicate.Predicate<OutElem>
+  ): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>(
   self: Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env>,
-  filter_: Filter.Filter<OutElem, B, X>
-): Channel<Arr.NonEmptyReadonlyArray<B>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+  predicate: Predicate.Predicate<OutElem>
+): Channel<Arr.NonEmptyReadonlyArray<OutElem>, OutErr, OutDone, InElem, InErr, InDone, Env> =>
   filter(self, (arr) => {
-    const [passes] = Arr.partitionFilter(arr, filter_)
-    return Arr.isReadonlyArrayNonEmpty(passes) ? passes : Filter.fail(arr)
+    const filtered = Arr.filter(arr, predicate)
+    return Arr.isReadonlyArrayNonEmpty(filtered) ? filtered : Filter.fail(arr)
   }))
 
 /**

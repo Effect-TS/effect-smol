@@ -6,7 +6,6 @@ import * as Channel from "../../Channel.ts"
 import * as ChannelSchema from "../../ChannelSchema.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
-import * as Filter from "../../Filter.ts"
 import { dual, identity } from "../../Function.ts"
 import type * as Schema from "../../Schema.ts"
 
@@ -120,7 +119,7 @@ export const decodeString = <IE = never, Done = unknown>(options?: {
 > => {
   const lines = Channel.splitLines<IE, Done>().pipe(
     options?.ignoreEmptyLines === true ?
-      Channel.filterArray(Filter.fromPredicate((line) => line.length > 0)) :
+      Channel.filterArray((line) => line.length > 0) :
       identity
   )
   return Channel.mapEffect(lines, (chunk) => {

@@ -2814,7 +2814,12 @@ export const filter: {
 } = dual(
   2,
   <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>): Stream<B, E, R> =>
-    fromChannel(Channel.filterArray(toChannel(self), filter))
+    fromChannel(
+      Channel.filter(toChannel(self), (chunk) => {
+        const [passes] = Arr.partitionFilter(chunk, filter)
+        return Arr.isReadonlyArrayNonEmpty(passes) ? passes : Filter.fail(chunk)
+      })
+    )
 )
 
 /**
