@@ -38,6 +38,36 @@ import {
 import OpenApiFixture from "./fixtures/openapi.json" with { type: "json" }
 
 describe("HttpApi", () => {
+  describe("path", () => {
+    it.effect("setPath method should accept a record of schemas", () => {
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group").add(
+          HttpApiEndpoint.get("get", "/:id", {
+            success: Schema.String
+          }).setPath({
+            id: Schema.FiniteFromString
+          })
+        )
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) => handlers.handle("get", () => Effect.succeed("Joe"))
+      )
+
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        const client = yield* HttpApiClient.make(Api)
+        const result = yield* client.group.get({ path: { id: 1 } })
+        assert.strictEqual(result, "Joe")
+      }).pipe(Effect.provide(ApiLive))
+    })
+  })
+
   describe("payload", () => {
     it.effect("is decoded / encoded", () =>
       Effect.gen(function*() {
