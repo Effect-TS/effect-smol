@@ -23,3 +23,5 @@ scratchpad/**/*
 
 # lalph
 .lalph/
+
+.pnpm-store/
