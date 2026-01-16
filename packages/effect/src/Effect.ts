@@ -3178,6 +3178,11 @@ export const tapError: {
 /**
  * Inspect errors matching a specific tag without altering the original effect.
  *
+ * **When to Use**
+ *
+ * Use this function when your errors are modeled as tagged unions and you want
+ * to run a side effect for a matching tag without changing the error channel.
+ *
  * **Details**
  *
  * This function allows you to inspect and handle specific error types based on
