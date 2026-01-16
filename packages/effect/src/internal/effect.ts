@@ -2505,6 +2505,56 @@ export const tapError: {
 )
 
 /** @internal */
+export const tapErrorTag: {
+  <const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, E, A1, E1, R1>(
+    k: K,
+    f: (
+      e: ExtractTag<NoInfer<E>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>
+    ) => Effect.Effect<A1, E1, R1>
+  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E | E1, R1 | R>
+  <
+    A,
+    E,
+    R,
+    const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
+    R1,
+    E1,
+    A1
+  >(
+    self: Effect.Effect<A, E, R>,
+    k: K,
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Effect.Effect<A1, E1, R1>
+  ): Effect.Effect<A, E | E1, R | R1>
+} = dual(
+  3,
+  <
+    A,
+    E,
+    R,
+    const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
+    R1,
+    E1,
+    A1
+  >(
+    self: Effect.Effect<A, E, R>,
+    k: K,
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Effect.Effect<A1, E1, R1>
+  ): Effect.Effect<A, E | E1, R | R1> => {
+    const predicate = Array.isArray(k)
+      ? ((e: E): e is ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K> =>
+        hasProperty(e, "_tag") && k.includes(e._tag))
+      : isTagged(k as string)
+    return tapError(
+      self,
+      (error) =>
+        predicate(error)
+          ? f(error as ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>)
+          : void_
+    )
+  }
+)
+
+/** @internal */
 export const tapDefect: {
   <E, B, E2, R2>(
     f: (defect: unknown) => Effect.Effect<B, E2, R2>

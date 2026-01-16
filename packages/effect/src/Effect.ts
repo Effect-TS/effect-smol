@@ -3176,6 +3176,69 @@ export const tapError: {
 } = internal.tapError
 
 /**
+ * Inspect errors matching a specific tag without altering the original effect.
+ *
+ * **Details**
+ *
+ * This function allows you to inspect and handle specific error types based on
+ * their `_tag` property. It is useful when errors are modeled with tagged
+ * unions, letting you log or perform actions on matched errors while leaving the
+ * error channel unchanged.
+ *
+ * If the error doesn't match the specified tag, this function does nothing and
+ * the effect proceeds as usual.
+ *
+ * **Example**
+ *
+ * ```ts
+ * import { Console, Effect } from "effect"
+ *
+ * class NetworkError {
+ *   readonly _tag = "NetworkError"
+ *   constructor(readonly statusCode: number) {}
+ * }
+ *
+ * class ValidationError {
+ *   readonly _tag = "ValidationError"
+ *   constructor(readonly field: string) {}
+ * }
+ *
+ * const task: Effect.Effect<number, NetworkError | ValidationError> =
+ *   Effect.fail(new NetworkError(504))
+ *
+ * const tapping = Effect.tapErrorTag(task, "NetworkError", (error) =>
+ *   Console.log(`expected error: ${error.statusCode}`)
+ * )
+ *
+ * Effect.runFork(tapping)
+ * // Output:
+ * // expected error: 504
+ * ```
+ *
+ * @since 2.0.0
+ * @category Sequencing
+ */
+export const tapErrorTag: {
+  <const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>, E, A1, E1, R1>(
+    k: K,
+    f: (e: ExtractTag<NoInfer<E>, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Effect<A1, E1, R1>
+  ): <A, R>(self: Effect<A, E, R>) => Effect<A, E | E1, R1 | R>
+  <
+    A,
+    E,
+    R,
+    const K extends Tags<E> | Arr.NonEmptyReadonlyArray<Tags<E>>,
+    R1,
+    E1,
+    A1
+  >(
+    self: Effect<A, E, R>,
+    k: K,
+    f: (e: ExtractTag<E, K extends Arr.NonEmptyReadonlyArray<string> ? K[number] : K>) => Effect<A1, E1, R1>
+  ): Effect<A, E | E1, R | R1>
+} = internal.tapErrorTag
+
+/**
  * The `tapCause` function allows you to inspect the complete cause
  * of an error, including failures and defects.
  *

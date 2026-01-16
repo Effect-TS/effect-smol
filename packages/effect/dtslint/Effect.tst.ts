@@ -120,6 +120,35 @@ describe("Effect.catchReasons", () => {
   })
 })
 
+describe("Effect.tapErrorTag", () => {
+  it("narrows tagged errors", () => {
+    const result = pipe(
+      mixedEffect,
+      Effect.tapErrorTag("AiError", (error) => {
+        expect(error).type.toBe<AiError>()
+        return Effect.succeed("ok")
+      })
+    )
+    expect(result).type.toBe<Effect.Effect<string, AiError | OtherError>>()
+  })
+
+  it("unifies additional error types", () => {
+    const result = pipe(
+      mixedEffect,
+      Effect.tapErrorTag("AiError", () => Effect.fail(new SimpleError({ code: 1 })))
+    )
+    expect(result).type.toBe<Effect.Effect<string, AiError | OtherError | SimpleError>>()
+  })
+
+  it("supports tacit pipe", () => {
+    const result = pipe(
+      simpleEffect,
+      Effect.tapErrorTag("SimpleError", Effect.log)
+    )
+    expect(result).type.toBe<Effect.Effect<string, SimpleError>>()
+  })
+})
+
 describe("Effect.unwrapReason", () => {
   it("replaces parent error with reasons", () => {
     const result = pipe(aiEffect, Effect.unwrapReason("AiError"))
