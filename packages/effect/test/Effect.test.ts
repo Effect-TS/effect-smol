@@ -1287,6 +1287,35 @@ describe("Effect", () => {
         assert.strictEqual(yield* effect, 3)
       }))
 
+    it.effect("tapErrorTag", () =>
+      Effect.gen(function*() {
+        let error: ErrorA | ErrorB | ErrorC = new ErrorA()
+        const tapped: Array<string> = []
+        const effect = Effect.failSync(() => error).pipe(
+          Effect.tapErrorTag("A", () =>
+            Effect.sync(() => {
+              tapped.push("A")
+            })),
+          Effect.tapErrorTag("B", () =>
+            Effect.sync(() => {
+              tapped.push("B")
+            })),
+          Effect.exit
+        )
+        assert.deepStrictEqual(yield* effect, Exit.fail(error))
+        assert.deepStrictEqual(tapped, ["A"])
+
+        tapped.length = 0
+        error = new ErrorB()
+        assert.deepStrictEqual(yield* effect, Exit.fail(error))
+        assert.deepStrictEqual(tapped, ["B"])
+
+        tapped.length = 0
+        error = new ErrorC()
+        assert.deepStrictEqual(yield* effect, Exit.fail(error))
+        assert.deepStrictEqual(tapped, [])
+      }))
+
     it.effect("catchIf", () =>
       Effect.gen(function*() {
         interface ErrorA {
