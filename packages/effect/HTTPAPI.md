@@ -269,20 +269,26 @@ The `path` option or the `setPath` method allows you to explicitly define path p
 import { Schema } from "effect"
 import { HttpApiEndpoint } from "effect/unstable/httpapi"
 
-const User = Schema.Struct({
-  id: Schema.Finite,
-  name: Schema.String,
-  createdAt: Schema.DateValid
-})
-
 // Define a GET endpoint with a path parameter ":id"
 const getUser = HttpApiEndpoint.get("getUser", "/user/:id", {
   path: {
     // Define a schema for the "id" path parameter
-    id: Schema.FiniteFromString
+    id: Schema.Int
   },
-  success: User
+  success: Schema.String
 })
+
+const GroupLive = HttpApiBuilder.group(
+  Api,
+  "Users",
+  (handlers) =>
+    handlers.handle("getUser", (ctx) => {
+      //     ┌─── number
+      //     ▼
+      const id = ctx.path.id
+      return Effect.succeed(`User ${id}`)
+    })
+)
 ```
 
 **Example** (`setPath` method)
@@ -291,16 +297,10 @@ const getUser = HttpApiEndpoint.get("getUser", "/user/:id", {
 import { Schema } from "effect"
 import { HttpApiEndpoint } from "effect/unstable/httpapi"
 
-const User = Schema.Struct({
-  id: Schema.Finite,
-  name: Schema.String,
-  createdAt: Schema.DateValid
-})
-
 const getUser = HttpApiEndpoint.get("getUser", "/user/:id", {
-  success: User
+  success: Schema.String
 }).setPath(Schema.Struct({
-  id: Schema.FiniteFromString
+  id: Schema.Int
 }))
 ```
 

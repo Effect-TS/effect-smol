@@ -143,8 +143,8 @@ export interface HttpApiEndpoint<
    */
   setPath<
     PathSchema extends
-      | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-      | Record<string, Schema.Codec<any, string | undefined, any, any>> = never
+      | Schema.Top
+      | Record<string, Schema.Top> = never
   >(
     schema: PathSchema
   ): HttpApiEndpoint<
@@ -1046,8 +1046,8 @@ export const make = <Method extends HttpMethod>(method: Method) =>
   const Name extends string,
   const Path extends HttpRouter.PathInput,
   PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+    | Schema.Top
+    | Record<string, Schema.Top> = never,
   UrlParams extends
     | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
     | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
@@ -1115,8 +1115,8 @@ export const get: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
   PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+    | Schema.Top
+    | Record<string, Schema.Top> = never,
   UrlParams extends
     | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
     | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
@@ -1161,8 +1161,8 @@ export const post: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
   PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+    | Schema.Top
+    | Record<string, Schema.Top> = never,
   UrlParams extends
     | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
     | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
@@ -1205,8 +1205,8 @@ export const put: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
   PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+    | Schema.Top
+    | Record<string, Schema.Top> = never,
   UrlParams extends
     | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
     | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
@@ -1249,8 +1249,8 @@ export const patch: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
   PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+    | Schema.Top
+    | Record<string, Schema.Top> = never,
   UrlParams extends
     | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
     | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
@@ -1293,8 +1293,8 @@ export const del: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
   PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+    | Schema.Top
+    | Record<string, Schema.Top> = never,
   UrlParams extends
     | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
     | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
@@ -1337,8 +1337,8 @@ export const head: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
   PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+    | Schema.Top
+    | Record<string, Schema.Top> = never,
   UrlParams extends
     | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
     | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
@@ -1383,8 +1383,8 @@ export const options: <
   const Name extends string,
   const Path extends HttpRouter.PathInput,
   PathSchema extends
-    | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
-    | Record<string, Schema.Codec<any, string | undefined, any, any>> = never,
+    | Schema.Top
+    | Record<string, Schema.Top> = never,
   UrlParams extends
     | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
     | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>> = never,
