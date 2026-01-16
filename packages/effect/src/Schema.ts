@@ -8259,11 +8259,14 @@ export interface TreeObject<A> {
  * @category Tree
  * @since 4.0.0
  */
-export function Tree<S extends Top>(
-  node: S
-): Codec<Tree<S["Type"]>, Tree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> {
-  const Tree$ref = suspend(() => Tree)
-  const Tree: Codec<Tree<S["Type"]>, Tree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> = Union([
+export function Tree<S extends Top>(node: S) {
+  const Tree$ref = suspend((): Codec<
+    Tree<S["Type"]>,
+    Tree<S["Encoded"]>,
+    S["DecodingServices"],
+    S["EncodingServices"]
+  > => Tree)
+  const Tree = Union([
     node,
     Array(Tree$ref),
     Record(String, Tree$ref)
@@ -8289,12 +8292,15 @@ export interface MutableTreeRecord<A> {
  * @category Tree
  * @since 4.0.0
  */
-export function MutableTree<S extends Top>(
-  schema: S
-): Codec<MutableTree<S["Type"]>, MutableTree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> {
-  const MutableTree$ref = suspend(() => MutableTree)
-  const MutableTree: Codec<Tree<S["Type"]>, Tree<S["Encoded"]>, S["DecodingServices"], S["EncodingServices"]> = Union([
-    schema,
+export function MutableTree<S extends Top>(node: S) {
+  const MutableTree$ref = suspend((): Codec<
+    MutableTree<S["Type"]>,
+    MutableTree<S["Encoded"]>,
+    S["DecodingServices"],
+    S["EncodingServices"]
+  > => MutableTree)
+  const MutableTree = Union([
+    node,
     mutable(Array(MutableTree$ref)),
     Record(String, mutableKey(MutableTree$ref))
   ])

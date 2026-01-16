@@ -596,21 +596,21 @@ const IsUncapitalized$ = Schema.Struct({
   regExp: Schema.RegExp
 }).annotate({ identifier: "IsUncapitalized" })
 
-const PositiveInt = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
+const NonNegativeInt = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
 
 const IsMinLength$ = Schema.Struct({
   _tag: Schema.tag("isMinLength"),
-  minLength: PositiveInt
+  minLength: NonNegativeInt
 }).annotate({ identifier: "IsMinLength" })
 
 const IsMaxLength$ = Schema.Struct({
   _tag: Schema.tag("isMaxLength"),
-  maxLength: PositiveInt
+  maxLength: NonNegativeInt
 }).annotate({ identifier: "IsMaxLength" })
 
 const IsLength$ = Schema.Struct({
   _tag: Schema.tag("isLength"),
-  length: PositiveInt
+  length: NonNegativeInt
 }).annotate({ identifier: "IsLength" })
 
 const IsPattern$ = Schema.Struct({
@@ -904,17 +904,17 @@ export const IndexSignature$ = Schema.Struct({
 
 const IsMinProperties$ = Schema.Struct({
   _tag: Schema.tag("isMinProperties"),
-  minProperties: PositiveInt
+  minProperties: NonNegativeInt
 }).annotate({ identifier: "IsMinProperties" })
 
 const IsMaxProperties$ = Schema.Struct({
   _tag: Schema.tag("isMaxProperties"),
-  maxProperties: PositiveInt
+  maxProperties: NonNegativeInt
 }).annotate({ identifier: "IsMaxProperties" })
 
 const IsPropertiesLength$ = Schema.Struct({
   _tag: Schema.tag("isPropertiesLength"),
-  length: PositiveInt
+  length: NonNegativeInt
 }).annotate({ identifier: "IsPropertiesLength" })
 
 const IsPropertyNames$ = Schema.Struct({
@@ -1001,17 +1001,17 @@ const DateMeta$ = Schema.Union([
 
 const IsMinSize$ = Schema.Struct({
   _tag: Schema.tag("isMinSize"),
-  minSize: PositiveInt
+  minSize: NonNegativeInt
 }).annotate({ identifier: "IsMinSize" })
 
 const IsMaxSize$ = Schema.Struct({
   _tag: Schema.tag("isMaxSize"),
-  maxSize: PositiveInt
+  maxSize: NonNegativeInt
 }).annotate({ identifier: "IsMaxSize" })
 
 const IsSize$ = Schema.Struct({
   _tag: Schema.tag("isSize"),
-  size: PositiveInt
+  size: NonNegativeInt
 }).annotate({ identifier: "IsSize" })
 
 const SizeMeta$ = Schema.Union([
