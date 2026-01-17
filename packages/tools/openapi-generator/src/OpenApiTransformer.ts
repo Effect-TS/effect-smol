@@ -165,7 +165,7 @@ export const make = (
 
     const payloadVarName = "options.payload"
     if (operation.payloadFormData) {
-      pipeline.push(`HttpClientRequest.bodyFormDataRecord(${payloadVarName} as any)`)
+      pipeline.push(`HttpClientRequest.bodyFormData(${payloadVarName} as any)`)
     } else if (operation.payload) {
       pipeline.push(`HttpClientRequest.bodyJsonUnsafe(${payloadVarName})`)
     }
