@@ -142,16 +142,16 @@ export interface HttpApiEndpoint<
    * used to validate the path parameters before the handler is called.
    */
   setPath<
-    PathSchema extends
+    P extends
       | Schema.Codec<any, ReadonlyRecord<string, string | undefined>, any, any>
       | Record<string, Schema.Codec<any, string | undefined, any, any>> = never
   >(
-    schema: PathSchema
+    schema: P
   ): HttpApiEndpoint<
     Name,
     Method,
     Path,
-    PathSchema extends Schema.Struct.Fields ? Schema.Struct<PathSchema> : PathSchema,
+    P extends Schema.Struct.Fields ? Schema.Struct<P> : P,
     UrlParams,
     Payload,
     Headers,
@@ -165,15 +165,15 @@ export interface HttpApiEndpoint<
    * Set the schema for the url search parameters of the endpoint.
    */
   setUrlParams<
-    UrlParams extends
+    UP extends
       | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
       | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>>
-  >(schema: UrlParams): HttpApiEndpoint<
+  >(schema: UP): HttpApiEndpoint<
     Name,
     Method,
     Path,
     PathSchema,
-    UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
+    UP extends Schema.Struct.Fields ? Schema.Struct<UP> : UP,
     Payload,
     Headers,
     Success,
@@ -186,7 +186,11 @@ export interface HttpApiEndpoint<
    * Set the schema for the headers of the endpoint. The schema will be
    * used to validate the headers before the handler is called.
    */
-  setHeaders<H extends Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>>(
+  setHeaders<
+    H extends
+      | Schema.Codec<any, Readonly<Record<string, string | undefined>>, any, any>
+      | Record<string, Schema.Codec<any, string | undefined, any, any>>
+  >(
     schema: H
   ): HttpApiEndpoint<
     Name,
@@ -195,7 +199,7 @@ export interface HttpApiEndpoint<
     PathSchema,
     UrlParams,
     Payload,
-    H,
+    H extends Schema.Struct.Fields ? Schema.Struct<H> : H,
     Success,
     Error,
     Middleware,
@@ -949,22 +953,22 @@ const Proto = {
       payloadSchema: schema
     })
   },
-  setPath(this: AnyWithProps, schema: Schema.Top) {
+  setPath(this: AnyWithProps, schema: Schema.Struct.Fields | Schema.Top) {
     return makeProto({
       ...this,
       pathSchema: fieldsToSchema(schema)
     })
   },
-  setUrlParams(this: AnyWithProps, schema: Schema.Top) {
+  setUrlParams(this: AnyWithProps, schema: Schema.Struct.Fields | Schema.Top) {
     return makeProto({
       ...this,
       urlParamsSchema: fieldsToSchema(schema)
     })
   },
-  setHeaders(this: AnyWithProps, schema: Schema.Top) {
+  setHeaders(this: AnyWithProps, schema: Schema.Struct.Fields | Schema.Top) {
     return makeProto({
       ...this,
-      headersSchema: schema
+      headersSchema: fieldsToSchema(schema)
     })
   },
   prefix(this: AnyWithProps, prefix: HttpRouter.PathInput) {
