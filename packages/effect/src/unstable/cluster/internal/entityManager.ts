@@ -42,6 +42,19 @@ import { ResourceMap } from "./resourceMap.ts"
 import { ResourceRef } from "./resourceRef.ts"
 
 /** @internal */
+export interface EntityInstanceInfo {
+  readonly entityId: string
+  readonly entityType: string
+  readonly shardId: ShardId
+  readonly runnerHost: string
+  readonly runnerPort: number
+  readonly activeRequestCount: number
+  readonly mailboxSize: number
+  readonly lastActiveAt: number
+  readonly keepAliveEnabled: boolean
+}
+
+/** @internal */
 export interface EntityManager {
   readonly sendLocal: <R extends Rpc.Any>(
     message: Message.IncomingLocal<R>
@@ -59,6 +72,8 @@ export interface EntityManager {
   readonly interruptShard: (shardId: ShardId) => Effect.Effect<void>
 
   readonly activeEntityCount: Effect.Effect<number>
+
+  readonly getEntityInstances: Effect.Effect<ReadonlyArray<EntityInstanceInfo>>
 }
 
 // Represents the entities managed by this entity manager
@@ -567,7 +582,24 @@ export const make = Effect.fnUntraced(function*<
         }),
         Effect.provideServices(services as ServiceMap.ServiceMap<unknown>)
       ),
-    activeEntityCount: Effect.sync(() => activeServers.size)
+    activeEntityCount: Effect.sync(() => activeServers.size),
+    getEntityInstances: Effect.sync(() => {
+      const instances: Array<EntityInstanceInfo> = []
+      activeServers.forEach((state) => {
+        instances.push({
+          entityId: state.address.entityId,
+          entityType: entity.type,
+          shardId: state.address.shardId,
+          runnerHost: options.runnerAddress.host,
+          runnerPort: options.runnerAddress.port,
+          activeRequestCount: state.activeRequests.size,
+          mailboxSize: state.activeRequests.size,
+          lastActiveAt: state.lastActiveCheck,
+          keepAliveEnabled: state.keepAliveEnabled
+        })
+      })
+      return instances
+    })
   })
 })
 

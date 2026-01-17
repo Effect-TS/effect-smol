@@ -28,6 +28,7 @@ import * as Stream from "../../Stream.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
 import * as RpcClient from "../rpc/RpcClient.ts"
 import { type FromServer, RequestId } from "../rpc/RpcMessage.ts"
+import * as ClusterDashboard from "./ClusterDashboard.ts"
 import type { MailboxFull, PersistenceError } from "./ClusterError.ts"
 import { AlreadyProcessingMessage, EntityNotAssignedToRunner } from "./ClusterError.ts"
 import * as ClusterMetrics from "./ClusterMetrics.ts"
@@ -183,6 +184,18 @@ export class Sharding extends ServiceMap.Service<Sharding, {
    * Retrieves the active entity count for the current runner.
    */
   readonly activeEntityCount: Effect.Effect<number>
+
+  /**
+   * Returns a snapshot of this runner's state for dashboard purposes.
+   * @internal Used by dashboard RPCs
+   */
+  readonly getDashboardSnapshot: Effect.Effect<ClusterDashboard.RunnerSnapshot>
+
+  /**
+   * Returns a stream of dashboard events for real-time updates.
+   * @internal Used by dashboard RPCs
+   */
+  readonly subscribeDashboardEvents: Stream.Stream<ClusterDashboard.ClusterDashboardEvent>
 }>()("effect/cluster/Sharding") {}
 
 // -----------------------------------------------------------------------------
@@ -225,6 +238,11 @@ const make = Effect.gen(function*() {
 
   const events = yield* PubSub.unbounded<ShardingRegistrationEvent>()
   const getRegistrationEvents: Stream.Stream<ShardingRegistrationEvent> = Stream.fromPubSub(events)
+
+  const dashboardEvents = yield* PubSub.unbounded<ClusterDashboard.ClusterDashboardEvent>()
+  const subscribeDashboardEvents: Stream.Stream<ClusterDashboard.ClusterDashboardEvent> = Stream.fromPubSub(
+    dashboardEvents
+  )
 
   const isLocalRunner = (address: RunnerAddress) => Equal.equals(address, config.runnerAddress)
 
@@ -271,6 +289,14 @@ const make = Effect.gen(function*() {
         yield* runnerStorage.release(selfAddress, shardId)
         MutableHashSet.remove(releasingShards, shardId)
         yield* storage.unregisterShardReplyHandlers(shardId)
+        yield* PubSub.publish(
+          dashboardEvents,
+          new ClusterDashboard.ShardReleased({
+            shardId,
+            runnerHost: selfAddress.host,
+            runnerPort: selfAddress.port
+          })
+        )
       },
       Effect.sandbox,
       (effect, shardId) =>
@@ -344,6 +370,14 @@ const make = Effect.gen(function*() {
             continue
           }
           MutableHashSet.add(acquiredShards, shardId)
+          yield* PubSub.publish(
+            dashboardEvents,
+            new ClusterDashboard.ShardAcquired({
+              shardId,
+              runnerHost: selfAddress.host,
+              runnerPort: selfAddress.port
+            })
+          )
         }
         if (acquired.length > 0) {
           yield* storageReadLatch.open
@@ -1211,11 +1245,27 @@ const make = Effect.gen(function*() {
       MutableHashMap.set(map, address, wrappedRun)
 
       yield* PubSub.publish(events, SingletonRegistered({ address }))
+      yield* PubSub.publish(
+        dashboardEvents,
+        new ClusterDashboard.SingletonRegistered({
+          name: address.name,
+          shardId: address.shardId
+        })
+      )
 
       // start if we are on the right shard
       if (MutableHashSet.has(acquiredShards, address.shardId)) {
         yield* Effect.logDebug("Starting singleton", address)
         yield* FiberMap.run(singletonFibers, address, wrappedRun)
+        yield* PubSub.publish(
+          dashboardEvents,
+          new ClusterDashboard.SingletonStarted({
+            name: address.name,
+            shardId: address.shardId,
+            runnerHost: config.runnerAddress!.host,
+            runnerPort: config.runnerAddress!.port
+          })
+        )
       }
 
       yield* Effect.addFinalizer(() => {
@@ -1236,9 +1286,25 @@ const make = Effect.gen(function*() {
           yield* Effect.logDebug("Stopping singleton", address)
           internalInterruptors.add(yield* Effect.fiberId)
           yield* FiberMap.remove(singletonFibers, address)
+          yield* PubSub.publish(
+            dashboardEvents,
+            new ClusterDashboard.SingletonStopped({
+              name: address.name,
+              shardId: address.shardId
+            })
+          )
         } else if (!running && shouldBeRunning) {
           yield* Effect.logDebug("Starting singleton", address)
           yield* FiberMap.run(singletonFibers, address, run)
+          yield* PubSub.publish(
+            dashboardEvents,
+            new ClusterDashboard.SingletonStarted({
+              name: address.name,
+              shardId: address.shardId,
+              runnerHost: config.runnerAddress!.host,
+              runnerPort: config.runnerAddress!.port
+            })
+          )
         }
       }
     }
@@ -1302,6 +1368,13 @@ const make = Effect.gen(function*() {
       }))
 
       yield* PubSub.publish(events, EntityRegistered({ entity }))
+      yield* PubSub.publish(
+        dashboardEvents,
+        new ClusterDashboard.EntityTypeRegistered({
+          entityType: entity.type,
+          registeredAt: Date.now()
+        })
+      )
     }
   )
 
@@ -1387,6 +1460,88 @@ const make = Effect.gen(function*() {
     return count
   })
 
+  const getDashboardSnapshot = Effect.gen(function*() {
+    const entityInstances: Array<ClusterDashboard.EntityInstanceInfo> = []
+    const registeredTypes: Array<ClusterDashboard.EntityTypeInfo> = []
+    const now = clock.currentTimeMillisUnsafe()
+
+    for (const [type, state] of entityManagers) {
+      registeredTypes.push(
+        new ClusterDashboard.EntityTypeInfo({
+          entityType: type,
+          activeInstanceCount: yield* state.manager.activeEntityCount,
+          registeredAt: now
+        }, { disableValidation: true })
+      )
+
+      const instances = yield* state.manager.getEntityInstances
+      for (const instance of instances) {
+        entityInstances.push(
+          new ClusterDashboard.EntityInstanceInfo({
+            entityId: instance.entityId,
+            entityType: instance.entityType,
+            shardId: instance.shardId,
+            runnerHost: instance.runnerHost,
+            runnerPort: instance.runnerPort,
+            activeRequestCount: instance.activeRequestCount,
+            mailboxSize: instance.mailboxSize,
+            lastActiveAt: instance.lastActiveAt,
+            keepAliveEnabled: instance.keepAliveEnabled
+          }, { disableValidation: true })
+        )
+      }
+    }
+
+    const shardInfo: Array<ClusterDashboard.ShardInfo> = []
+    for (const [shardId, runnerAddress] of shardAssignments) {
+      const isAcquired = MutableHashSet.has(acquiredShards, shardId)
+      const isReleasing = MutableHashSet.has(releasingShards, shardId)
+      const isSelf = isLocalRunner(runnerAddress)
+
+      shardInfo.push(
+        new ClusterDashboard.ShardInfo({
+          shardId,
+          runnerHost: runnerAddress.host,
+          runnerPort: runnerAddress.port,
+          status: isReleasing ? "releasing" : isAcquired ? "assigned" : isSelf ? "acquiring" : "assigned",
+          entityCount: entityInstances.filter((e) =>
+            e.shardId.group === shardId.group && e.shardId.id === shardId.id
+          ).length
+        }, { disableValidation: true })
+      )
+    }
+
+    const singletonInfo: Array<ClusterDashboard.SingletonInfo> = []
+    for (const [shardId, map] of singletons) {
+      for (const [address] of map) {
+        const running = FiberMap.hasUnsafe(singletonFibers, address)
+        const ownsThis = MutableHashSet.has(acquiredShards, shardId)
+        singletonInfo.push(
+          new ClusterDashboard.SingletonInfo({
+            name: address.name,
+            shardId: address.shardId,
+            running,
+            runnerHost: ownsThis && selfRunner ? selfRunner.address.host : undefined,
+            runnerPort: ownsThis && selfRunner ? selfRunner.address.port : undefined
+          }, { disableValidation: true })
+        )
+      }
+    }
+
+    return new ClusterDashboard.RunnerSnapshot({
+      host: config.runnerAddress?.host ?? "unknown",
+      port: config.runnerAddress?.port ?? 0,
+      groups: config.shardGroups as Array<string>,
+      weight: config.runnerShardWeight,
+      healthy: !MutableRef.get(isShutdown),
+      isShutdown: MutableRef.get(isShutdown),
+      registeredEntityTypes: registeredTypes,
+      entityInstances,
+      shards: shardInfo,
+      singletons: singletonInfo
+    }, { disableValidation: true })
+  })
+
   const sharding = Sharding.of({
     getRegistrationEvents,
     getShardId,
@@ -1404,7 +1559,9 @@ const make = Effect.gen(function*() {
     notify: (message, options) => notifyLocal(message, false, options),
     activeEntityCount,
     pollStorage: storageReadLatch.open,
-    reset
+    reset,
+    getDashboardSnapshot,
+    subscribeDashboardEvents
   })
 
   return sharding
