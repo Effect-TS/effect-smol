@@ -42,6 +42,11 @@ export * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 /**
  * @since 4.0.0
  */
+export * as HttpApiScalar from "./HttpApiScalar.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as HttpApiSchema from "./HttpApiSchema.ts"
 
 /**
