@@ -165,18 +165,15 @@ export interface HttpApiEndpoint<
    * Set the schema for the url search parameters of the endpoint.
    */
   setUrlParams<
-    UrlParams extends Schema.Codec<
-      any,
-      Readonly<Record<string, string | ReadonlyArray<string> | undefined>>,
-      any,
-      any
-    >
+    UrlParams extends
+      | Schema.Codec<any, ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>, any, any>
+      | Record<string, Schema.Codec<any, string | ReadonlyArray<string> | undefined, any, any>>
   >(schema: UrlParams): HttpApiEndpoint<
     Name,
     Method,
     Path,
     PathSchema,
-    UrlParams,
+    UrlParams extends Schema.Struct.Fields ? Schema.Struct<UrlParams> : UrlParams,
     Payload,
     Headers,
     Success,
@@ -961,7 +958,7 @@ const Proto = {
   setUrlParams(this: AnyWithProps, schema: Schema.Top) {
     return makeProto({
       ...this,
-      urlParamsSchema: schema
+      urlParamsSchema: fieldsToSchema(schema)
     })
   },
   setHeaders(this: AnyWithProps, schema: Schema.Top) {

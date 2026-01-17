@@ -52,7 +52,7 @@ describe("HttpApi", () => {
       const GroupLive = HttpApiBuilder.group(
         Api,
         "group",
-        (handlers) => handlers.handle("get", () => Effect.succeed("Joe"))
+        (handlers) => handlers.handle("get", (ctx) => Effect.succeed(`User ${ctx.path.id}`))
       )
 
       const ApiLive = HttpRouter.serve(
@@ -63,7 +63,37 @@ describe("HttpApi", () => {
       return Effect.gen(function*() {
         const client = yield* HttpApiClient.make(Api)
         const result = yield* client.group.get({ path: { id: 1 } })
-        assert.strictEqual(result, "Joe")
+        assert.strictEqual(result, "User 1")
+      }).pipe(Effect.provide(ApiLive))
+    })
+  })
+
+  describe("urlParams", () => {
+    it.effect("setUrlParams method should accept a record of schemas", () => {
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("group").add(
+          HttpApiEndpoint.get("get", "/", {
+            success: Schema.String
+          }).setUrlParams({
+            id: Schema.FiniteFromString
+          })
+        )
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "group",
+        (handlers) => handlers.handle("get", (ctx) => Effect.succeed(`User ${ctx.urlParams.id}`))
+      )
+
+      const ApiLive = HttpRouter.serve(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive)),
+        { disableListenLog: true, disableLogger: true }
+      ).pipe(Layer.provideMerge(NodeHttpServer.layerTest))
+
+      return Effect.gen(function*() {
+        const client = yield* HttpApiClient.make(Api)
+        const result = yield* client.group.get({ urlParams: { id: 1 } })
+        assert.strictEqual(result, "User 1")
       }).pipe(Effect.provide(ApiLive))
     })
   })
