@@ -3,6 +3,7 @@
   "type": "module",
   "packageManager": "pnpm@10.17.1",
   "scripts": {
+    "postinstall": "pnpm ai:rulesync",
     "clean": "node scripts/clean.mjs",
     "codegen": "pnpm --recursive --parallel --filter \"./packages/**/*\" run codegen",
     "codemod": "node scripts/codemod.mjs",
