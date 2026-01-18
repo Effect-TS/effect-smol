@@ -26,6 +26,10 @@ scratchpad/**/*
 lalph-plan.md
 .lalph-setup.sh
 
+# ralph
+.ralph/
+.ralph-auto/
+
 .pnpm-store/
 
 # Managed by rulesync
