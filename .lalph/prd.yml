@@ -33,10 +33,10 @@
     * Mailbox in Effect 3 maps to Queue Dequeue in Effect 4 (`Queue.make`, `Queue.offerAll`, `Queue.shutdown`).
   priority: 3
   estimate: null
-  state: in-progress
+  state: in-review
   blockedBy: []
-  complete: false
-  githubPrNumber: null
+  complete: true
+  githubPrNumber: 971
 - id: EFF-230
   title: Define EventLogRemote protocol schemas
   description: |-
