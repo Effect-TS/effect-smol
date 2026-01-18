@@ -189,13 +189,24 @@ export declare namespace Handlers {
     never
 }
 
-const RegistryTypeId = "~effect/eventlog/EventLogRegistry"
+/**
+ * @since 4.0.0
+ * @category type ids
+ */
+export type RegistryTypeId = "~effect/eventlog/EventLogRegistry"
+
+/**
+ * @since 4.0.0
+ * @category type ids
+ */
+export const RegistryTypeId: RegistryTypeId = "~effect/eventlog/EventLogRegistry"
 
 /**
  * @since 4.0.0
  * @category tags
  */
 export interface Registry {
+  readonly [RegistryTypeId]: RegistryTypeId
   readonly add: (handlers: Handlers.Any) => Effect.Effect<void>
   readonly handlers: Effect.Effect<Record.ReadonlyRecord<string, Handlers.Item<unknown>>>
 }
@@ -206,13 +217,24 @@ export interface Registry {
  */
 export const Registry: ServiceMap.Service<Registry, Registry> = ServiceMap.Service(RegistryTypeId)
 
-const IdentityTypeId = "~effect/eventlog/EventLogIdentity"
+/**
+ * @since 4.0.0
+ * @category type ids
+ */
+export type IdentityTypeId = "~effect/eventlog/EventLogIdentity"
+
+/**
+ * @since 4.0.0
+ * @category type ids
+ */
+export const IdentityTypeId: IdentityTypeId = "~effect/eventlog/EventLogIdentity"
 
 /**
  * @since 4.0.0
  * @category models
  */
 export interface Identity {
+  readonly [IdentityTypeId]: IdentityTypeId
   readonly publicKey: string
   readonly privateKey: Redacted.Redacted<Uint8Array>
 }
@@ -240,6 +262,7 @@ const IdentityStringSchema = Schema.fromJsonString(IdentityEncodedSchema)
 export const decodeIdentityString = (value: string): Identity => {
   const decoded = Schema.decodeUnknownSync(IdentityStringSchema)(value)
   return {
+    [IdentityTypeId]: IdentityTypeId,
     publicKey: decoded.publicKey,
     privateKey: Redacted.make(decoded.privateKey)
   }
@@ -260,6 +283,7 @@ export const encodeIdentityString = (identity: Identity): string =>
  * @category constructors
  */
 export const makeIdentity = (): Identity => ({
+  [IdentityTypeId]: IdentityTypeId,
   publicKey: globalThis.crypto.randomUUID(),
   privateKey: Redacted.make(globalThis.crypto.getRandomValues(new Uint8Array(32)))
 })
