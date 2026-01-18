@@ -13,7 +13,7 @@ import * as EventApi from "./Event.ts"
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("~effect/eventlog/EventGroup")
+export const TypeId = "~effect/eventlog/EventGroup"
 
 /**
  * @since 4.0.0
