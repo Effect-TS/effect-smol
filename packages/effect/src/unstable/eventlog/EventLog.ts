@@ -317,7 +317,7 @@ const handlersProto = {
   handle<Tag extends string, R1>(
     this: Handlers<any, any>,
     tag: Tag,
-    handler: (payload: any) => Effect.Effect<any, R1>
+    handler: (payload: unknown) => Effect.Effect<unknown, unknown, R1>
   ): Handlers<any, any> {
     return makeHandlers({
       group: this.group,
@@ -330,7 +330,7 @@ const handlersProto = {
           handler
         }
       }
-    }) as unknown as Handlers<any, any>
+    })
   },
   pipe() {
     return pipeArguments(this, arguments)
@@ -349,21 +349,24 @@ const makeHandlers = (options: {
  */
 export const group = <Events extends Event.Any, Return>(
   group: EventGroup<Events>,
-  f: (handlers: Handlers<any, Events>) => Handlers.ValidateReturn<Return>
+  f: (handlers: Handlers<never, Events>) => Handlers.ValidateReturn<Return>
 ): Layer.Layer<Event.ToService<Events>, Handlers.Error<Return>, Exclude<Handlers.Context<Return>, Scope.Scope>> =>
-  Layer.effectDiscard(Effect.gen(function*() {
-    const services = yield* Effect.services<Handlers.Context<Return>>()
-    const result = f(makeHandlers({
-      group: group as unknown as EventGroup.AnyWithProps,
-      handlers: {},
-      services
-    }) as Handlers<any, Events>)
-    const handlers = Effect.isEffect(result)
-      ? (yield* (result as unknown as Effect.Effect<Handlers.Any>))
-      : (result as unknown as Handlers.Any)
-    const registry = yield* Registry
-    yield* registry.add(handlers)
-  })).pipe(
+  Layer.effectServices(
+    Effect.gen(function*() {
+      const services = yield* Effect.services<Handlers.Context<Return>>()
+      const result = f(makeHandlers({
+        group: group as EventGroup.AnyWithProps,
+        handlers: {},
+        services
+      }) as unknown as Handlers<never, Events>)
+      const handlers = Effect.isEffect(result)
+        ? (yield* (result as unknown as Effect.Effect<Handlers.Any>))
+        : (result as unknown as Handlers.Any)
+      const registry = yield* Registry
+      yield* registry.add(handlers)
+      return ServiceMap.empty()
+    })
+  ).pipe(
     Layer.provide(layerRegistry)
   ) as unknown as Layer.Layer<
     Event.ToService<Events>,
@@ -384,85 +387,90 @@ export const groupCompaction = <Events extends Event.Any, R>(
     readonly write: <Tag extends Event.Tag<Events>>(
       tag: Tag,
       payload: Event.PayloadWithTag<Events, Tag>
-    ) => Effect.Effect<void>
+    ) => Effect.Effect<void, never, Event.ContextWithTag<Events, Tag> | R>
   }) => Effect.Effect<void, never, R>
 ): Layer.Layer<never, never, Identity | EventJournal | R | Event.Context<Events>> =>
-  Layer.effectDiscard(Effect.gen(function*() {
-    const log = yield* EventLog
-    const services = yield* Effect.services<R | Event.Context<Events>>()
+  Layer.effectDiscard(
+    Effect.gen(function*() {
+      const log = yield* EventLog
+      const services = yield* Effect.services<R | Event.Context<Events>>()
 
-    yield* log.registerCompaction({
-      events: Object.keys(group.events),
-      effect: Effect.fnUntraced(function*({ entries, write }) {
-        const writePayload = (timestamp: number, tag: string, payload: unknown) =>
-          Effect.gen(function*() {
-            const event = group.events[tag] as unknown as Event.AnyWithProps
-            const entry = new Entry({
-              id: makeEntryId({ msecs: timestamp }),
-              event: tag,
-              payload: yield* Schema.encodeUnknownEffect(event.payloadMsgPack)(payload).pipe(
-                Effect.updateServices((input) => ServiceMap.merge(services, input) as ServiceMap.ServiceMap<any>),
-                Effect.orDie
-              ),
-              primaryKey: event.primaryKey(payload as never)
-            }, { disableValidation: true })
-            yield* write(entry)
-          })
-
-        const byPrimaryKey = new Map<
-          string,
-          {
-            readonly entries: Array<Entry>
-            readonly taggedPayloads: Array<{
-              readonly _tag: string
-              readonly payload: unknown
-            }>
-          }
-        >()
-        for (const entry of entries) {
-          const payload = yield* Schema.decodeUnknownEffect(
-            (group.events[entry.event] as unknown as Event.AnyWithProps).payloadMsgPack
-          )(entry.payload).pipe(
-            Effect.updateServices((input) => ServiceMap.merge(services, input) as ServiceMap.ServiceMap<any>)
-          )
-
-          if (byPrimaryKey.has(entry.primaryKey)) {
-            const record = byPrimaryKey.get(entry.primaryKey)!
-            record.entries.push(entry)
-            record.taggedPayloads.push({
-              _tag: entry.event,
-              payload
-            })
-          } else {
-            byPrimaryKey.set(entry.primaryKey, {
-              entries: [entry],
-              taggedPayloads: [{ _tag: entry.event, payload }]
-            })
-          }
-        }
-
-        for (const [primaryKey, { entries, taggedPayloads }] of byPrimaryKey) {
-          yield* Effect.orDie(
-            effect({
-              primaryKey,
-              entries,
-              events: taggedPayloads as unknown as ReadonlyArray<Event.TaggedPayload<Events>>,
-              write(tag, payload) {
-                return Effect.orDie(writePayload(entries[0].createdAtMillis, tag, payload)) as Effect.Effect<void>
-              }
-            }).pipe(
-              Effect.updateServices((input) => ServiceMap.merge(services, input) as ServiceMap.ServiceMap<any>)
+      yield* log.registerCompaction({
+        events: Object.keys(group.events),
+        effect: Effect.fnUntraced(function*({ entries, write }) {
+          const isEventTag = (tag: string): tag is Event.Tag<Events> => tag in group.events
+          const decodePayload = <Tag extends Event.Tag<Events>>(tag: Tag, payload: Uint8Array) =>
+            Schema.decodeUnknownEffect(group.events[tag].payloadMsgPack)(payload).pipe(
+              Effect.updateServices((input) => ServiceMap.merge(services, input)),
+              Effect.orDie
             )
-          )
-        }
-      }) as unknown as (options: {
-        readonly entries: ReadonlyArray<Entry>
-        readonly write: (entry: Entry) => Effect.Effect<void>
-      }) => Effect.Effect<void>
+          const writePayload = <Tag extends Event.Tag<Events>>(
+            timestamp: number,
+            tag: Tag,
+            payload: Event.PayloadWithTag<Events, Tag>
+          ): Effect.Effect<void, never, Event.ContextWithTag<Events, Tag> | R> =>
+            Effect.gen(function*() {
+              const event = group.events[tag]
+              const entry = new Entry({
+                id: makeEntryId({ msecs: timestamp }),
+                event: tag,
+                payload: yield* Schema.encodeUnknownEffect(event.payloadMsgPack)(payload).pipe(
+                  Effect.updateServices((input) => ServiceMap.merge(services, input)),
+                  Effect.orDie
+                ),
+                primaryKey: event.primaryKey(payload)
+              }, { disableValidation: true })
+              yield* write(entry)
+            }) as Effect.Effect<void, never, Event.ContextWithTag<Events, Tag> | R>
+
+          const byPrimaryKey = new Map<
+            string,
+            {
+              readonly entries: Array<Entry>
+              readonly taggedPayloads: Array<Event.TaggedPayload<Events>>
+            }
+          >()
+          for (const entry of entries) {
+            if (!isEventTag(entry.event)) {
+              continue
+            }
+            const payload = yield* decodePayload(entry.event, entry.payload)
+            const record = byPrimaryKey.get(entry.primaryKey)
+            const taggedPayload = { _tag: entry.event, payload } as unknown as Event.TaggedPayload<Events>
+            if (record) {
+              record.entries.push(entry)
+              record.taggedPayloads.push(taggedPayload)
+            } else {
+              byPrimaryKey.set(entry.primaryKey, {
+                entries: [entry],
+                taggedPayloads: [taggedPayload]
+              })
+            }
+          }
+
+          for (const [primaryKey, { entries, taggedPayloads }] of byPrimaryKey) {
+            yield* Effect.orDie(
+              effect({
+                primaryKey,
+                entries,
+                events: taggedPayloads,
+                write(tag, payload) {
+                  return Effect.orDie(writePayload(entries[0].createdAtMillis, tag, payload))
+                }
+              }).pipe(
+                Effect.updateServices((input) => ServiceMap.merge(services, input))
+              )
+            )
+          }
+        }) as (options: {
+          readonly entries: ReadonlyArray<Entry>
+          readonly write: (entry: Entry) => Effect.Effect<void>
+        }) => Effect.Effect<void>
+      })
     })
-  })).pipe(
+  ).pipe(
     Layer.provide(layerEventLog)
-  ) as unknown as Layer.Layer<never, never, Identity | EventJournal | R | Event.Context<Events>>
+  )
 
 /**
  * @since 4.0.0
@@ -547,6 +555,11 @@ const make = Effect.gen(function*() {
   const registry = yield* Registry
   const journal = yield* EventJournal
   const handlers = yield* registry.handlers
+  const handlersMap = handlers as unknown as Record.ReadonlyRecord<
+    string,
+    Handlers.Item<EventJournalError>
+  >
+
   const remotes = yield* FiberMap.make<RemoteId>()
   const compactors = new Map<string, {
     readonly events: ReadonlySet<string>
@@ -627,12 +640,12 @@ const make = Effect.gen(function*() {
               : undefined,
             effect: Effect.fnUntraced(
               function*({ conflicts, entry }) {
-                const handler = handlers[entry.event]
+                const handler = handlersMap[entry.event]
                 if (!handler) {
                   return yield* Effect.logDebug(`Event handler not found for: "${entry.event}"`)
                 }
                 const decodePayload = Schema.decodeUnknownEffect(
-                  handlers[entry.event].event.payloadMsgPack
+                  handler.event.payloadMsgPack
                 )
                 const decodedConflicts: Array<{ entry: Entry; payload: unknown }> = new Array(conflicts.length)
                 for (let i = 0; i < conflicts.length; i++) {
@@ -646,9 +659,7 @@ const make = Effect.gen(function*() {
                   entry,
                   conflicts: decodedConflicts
                 }).pipe(
-                  Effect.updateServices((input) =>
-                    ServiceMap.merge(handler.services, input) as ServiceMap.ServiceMap<any>
-                  ),
+                  Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
                   Effect.asVoid
                 )
                 if (reactivityKeys[entry.event]) {
@@ -717,7 +728,7 @@ const make = Effect.gen(function*() {
           entry,
           conflicts: []
         }).pipe(
-          Effect.updateServices((input) => ServiceMap.merge(handler.services, input) as ServiceMap.ServiceMap<any>),
+          Effect.updateServices((input) => ServiceMap.merge(handler.services, input)),
           Effect.tap(() => {
             if (reactivityKeys[entry.event]) {
               for (const key of reactivityKeys[entry.event]) {
@@ -740,11 +751,11 @@ const make = Effect.gen(function*() {
     if (handler === undefined) {
       return Effect.die(`Event handler not found for: "${options.event}"`)
     }
-    return writeHandler(handler, options) as Effect.Effect<any, any, any>
+    return writeHandler(handler, options) as Effect.Effect<unknown, unknown, unknown>
   }
 
   return EventLog.of({
-    write: eventLogWrite as unknown as EventLog["write"],
+    write: eventLogWrite as EventLog["write"],
     entries: journal.entries,
     registerRemote: (remote) =>
       Effect.acquireRelease(
@@ -775,7 +786,7 @@ const make = Effect.gen(function*() {
         Object.assign(reactivityKeys, keys)
       }),
     destroy: journal.destroy
-  }) as unknown as EventLog
+  }) as EventLog
 })
 
 /**
@@ -784,7 +795,7 @@ const make = Effect.gen(function*() {
  */
 export const layerEventLog: Layer.Layer<EventLog, never, EventJournal | Identity> = Layer.effect(EventLog, make).pipe(
   Layer.provide([layerRegistry, ReactivityLayer.layer])
-) as unknown as Layer.Layer<EventLog, never, EventJournal | Identity>
+) as Layer.Layer<EventLog, never, EventJournal | Identity>
 
 /**
  * @since 4.0.0

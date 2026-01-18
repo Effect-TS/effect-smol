@@ -136,7 +136,10 @@ function shouldExtractUnion(ast: AST.Union): boolean {
 export const UnionUnify = <
   A extends Schema.Top,
   B extends Schema.Top
->(self: A, that: B): Schema.Top => Schema.make(UnionUnifyAST(self.ast, that.ast))
+>(
+  self: A,
+  that: B
+): Schema.Schema<Schema.Schema.Type<A> | Schema.Schema.Type<B>> => Schema.make(UnionUnifyAST(self.ast, that.ast))
 
 /**
  * @since 4.0.0
