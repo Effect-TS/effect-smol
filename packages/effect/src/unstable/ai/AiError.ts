@@ -72,6 +72,7 @@
  *
  * @since 4.0.0
  */
+import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import { format } from "../../Formatter.ts"
 import * as Predicate from "../../Predicate.ts"
@@ -338,6 +339,317 @@ export const HttpContext = Schema.Struct({
   response: Schema.optional(HttpResponseDetails),
   body: Schema.optional(Schema.String)
 }).annotate({ identifier: "HttpContext" })
+
+// =============================================================================
+// Reason Classes
+// =============================================================================
+
+/**
+ * Error indicating the request was rate limited.
+ *
+ * Rate limit errors are always retryable. When `retryAfter` is provided,
+ * callers should wait that duration before retrying.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const rateLimitError = new AiError.RateLimitError({
+ *   limit: "requests",
+ *   remaining: 0,
+ *   retryAfter: "60 seconds"
+ * })
+ *
+ * console.log(rateLimitError.isRetryable) // true
+ * console.log(rateLimitError.message) // "Rate limit exceeded (requests). Retry after 1 minute"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
+  "effect/ai/AiError/RateLimitError"
+)({
+  _tag: Schema.tag("RateLimitError"),
+  retryAfter: Schema.optional(Schema.Duration),
+  limit: Schema.optional(Schema.String),
+  remaining: Schema.optional(Schema.Number),
+  resetAt: Schema.optional(Schema.DateTimeUtc),
+  provider: Schema.optional(ProviderMetadata),
+  http: Schema.optional(HttpContext),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Rate limit errors are always retryable.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return true
+  }
+
+  override get message(): string {
+    let msg = "Rate limit exceeded"
+    if (this.limit) msg += ` (${this.limit})`
+    if (this.retryAfter) msg += `. Retry after ${Duration.format(this.retryAfter)}`
+    return msg
+  }
+}
+
+/**
+ * Error indicating account or billing limits have been reached.
+ *
+ * Quota exhausted errors are not retryable without user action.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const quotaError = new AiError.QuotaExhaustedError({
+ *   quotaType: "tokens"
+ * })
+ *
+ * console.log(quotaError.isRetryable) // false
+ * console.log(quotaError.message)
+ * // "Quota exhausted (tokens). Check your account billing and usage limits."
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
+  "effect/ai/AiError/QuotaExhaustedError"
+)({
+  _tag: Schema.tag("QuotaExhaustedError"),
+  quotaType: Schema.optional(Schema.String),
+  resetAt: Schema.optional(Schema.DateTimeUtc),
+  provider: Schema.optional(ProviderMetadata),
+  http: Schema.optional(HttpContext),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Quota exhausted errors require user action and are not retryable.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+
+  override get message(): string {
+    let msg = "Quota exhausted"
+    if (this.quotaType) msg += ` (${this.quotaType})`
+    if (this.resetAt) msg += `. Resets at ${this.resetAt}`
+    return `${msg}. Check your account billing and usage limits.`
+  }
+}
+
+/**
+ * Error indicating authentication or authorization failure.
+ *
+ * Authentication errors are never retryable without credential changes.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const authError = new AiError.AuthenticationError({
+ *   kind: "InvalidKey"
+ * })
+ *
+ * console.log(authError.isRetryable) // false
+ * console.log(authError.message)
+ * // "InvalidKey: Verify your API key is correct"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
+  "effect/ai/AiError/AuthenticationError"
+)({
+  _tag: Schema.tag("AuthenticationError"),
+  kind: Schema.Literals(["InvalidKey", "ExpiredKey", "MissingKey", "InsufficientPermissions", "Unknown"]),
+  provider: Schema.optional(ProviderMetadata),
+  http: Schema.optional(HttpContext),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Authentication errors require credential changes and are not retryable.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+
+  override get message(): string {
+    const suggestions: Record<string, string> = {
+      InvalidKey: "Verify your API key is correct",
+      ExpiredKey: "Your API key has expired. Generate a new one",
+      MissingKey: "No API key provided. Set the appropriate environment variable",
+      InsufficientPermissions: "Your API key lacks required permissions",
+      Unknown: "Authentication failed. Check your credentials"
+    }
+    return `${this.kind}: ${suggestions[this.kind]}`
+  }
+}
+
+/**
+ * Error indicating content policy violation.
+ *
+ * Content policy errors are never retryable without content changes.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const policyError = new AiError.ContentPolicyError({
+ *   violationType: "hate",
+ *   flaggedInput: true
+ * })
+ *
+ * console.log(policyError.isRetryable) // false
+ * console.log(policyError.message)
+ * // "Content policy violation: hate in input"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
+  "effect/ai/AiError/ContentPolicyError"
+)({
+  _tag: Schema.tag("ContentPolicyError"),
+  violationType: Schema.optional(Schema.String),
+  flaggedInput: Schema.optional(Schema.Boolean),
+  flaggedOutput: Schema.optional(Schema.Boolean),
+  flaggedContent: Schema.optional(Schema.String),
+  categories: Schema.optional(Schema.Array(Schema.String)),
+  provider: Schema.optional(ProviderMetadata),
+  http: Schema.optional(HttpContext),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Content policy errors require content changes and are not retryable.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+
+  override get message(): string {
+    let msg = "Content policy violation"
+    if (this.violationType) msg += `: ${this.violationType}`
+    if (this.flaggedInput) msg += " in input"
+    if (this.flaggedOutput) msg += " in output"
+    return msg
+  }
+}
+
+/**
+ * Error indicating the requested model is unavailable.
+ *
+ * Model unavailable errors are retryable only for temporary conditions
+ * like `Overloaded` or `Maintenance`.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const modelError = new AiError.ModelUnavailableError({
+ *   model: "gpt-5",
+ *   kind: "NotFound",
+ *   alternativeModels: ["gpt-4", "gpt-4-turbo"]
+ * })
+ *
+ * console.log(modelError.isRetryable) // false
+ * console.log(modelError.message)
+ * // "Model 'gpt-5' unavailable: NotFound. Try: gpt-4, gpt-4-turbo"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class ModelUnavailableError extends Schema.ErrorClass<ModelUnavailableError>(
+  "effect/ai/AiError/ModelUnavailableError"
+)({
+  _tag: Schema.tag("ModelUnavailableError"),
+  model: Schema.String,
+  kind: Schema.Literals(["NotFound", "Deprecated", "Overloaded", "Maintenance", "Unknown"]),
+  alternativeModels: Schema.optional(Schema.Array(Schema.String)),
+  provider: Schema.optional(ProviderMetadata),
+  http: Schema.optional(HttpContext),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Model unavailable errors are retryable only for temporary conditions.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return this.kind === "Overloaded" || this.kind === "Maintenance"
+  }
+
+  override get message(): string {
+    let msg = `Model '${this.model}' unavailable: ${this.kind}`
+    if (this.alternativeModels && this.alternativeModels.length > 0) {
+      msg += `. Try: ${this.alternativeModels.join(", ")}`
+    }
+    return msg
+  }
+}
+
+/**
+ * Error indicating the request exceeded the model's context length.
+ *
+ * Context length errors require reducing input size and are not retryable.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const contextError = new AiError.ContextLengthError({
+ *   maxTokens: 8192,
+ *   requestedTokens: 12000
+ * })
+ *
+ * console.log(contextError.isRetryable) // false
+ * console.log(contextError.message)
+ * // "Context length exceeded: requested 12000 tokens, max 8192. Reduce input size or use a model with larger context window."
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class ContextLengthError extends Schema.ErrorClass<ContextLengthError>(
+  "effect/ai/AiError/ContextLengthError"
+)({
+  _tag: Schema.tag("ContextLengthError"),
+  maxTokens: Schema.optional(Schema.Number),
+  requestedTokens: Schema.optional(Schema.Number),
+  provider: Schema.optional(ProviderMetadata),
+  http: Schema.optional(HttpContext),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Context length errors require reducing input and are not retryable.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+
+  override get message(): string {
+    let msg = "Context length exceeded"
+    if (this.requestedTokens && this.maxTokens) {
+      msg += `: requested ${this.requestedTokens} tokens, max ${this.maxTokens}`
+    }
+    return `${msg}. Reduce input size or use a model with larger context window.`
+  }
+}
 
 /**
  * Error that occurs during HTTP response processing.

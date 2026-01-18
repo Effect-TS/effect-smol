@@ -34,3 +34,8 @@
 **Task**: Add ProviderMetadata, UsageInfo, HttpContext supporting schemas
 **Status**: complete
 ---
+
+## Iteration 1 - 2026-01-18 17:19
+**Task**: Add RateLimitError, QuotaExhaustedError, AuthenticationError, ContentPolicyError, ModelUnavailableError, ContextLengthError reason classes
+**Status**: complete
+---

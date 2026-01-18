@@ -667,14 +667,14 @@ export const reasonFromHttpStatus = (params: {
 
 **Tasks**:
 
-- [ ] **2.1** Create `RateLimitError` with `isRetryable` getter (returns `true`), `retryAfter: Duration`, `limit`, `remaining`, `resetAt`
-- [ ] **2.2** Create `QuotaExhaustedError` with `isRetryable` getter (returns `false`), `quotaType`, `resetAt`
-- [ ] **2.3** Create `AuthenticationError` with `isRetryable` getter (returns `false`), `kind` discriminant
-- [ ] **2.4** Create `ContentPolicyError` with `isRetryable` getter (returns `false`), `violationType`, `flaggedInput`, `flaggedOutput`, `flaggedContent`, `categories`
-- [ ] **2.5** Create `ModelUnavailableError` with `isRetryable` getter (computed from `kind`), `model`, `kind`, `alternativeModels`
-- [ ] **2.6** Create `ContextLengthError` with `isRetryable` getter (returns `false`), `maxTokens`, `requestedTokens`
-- [ ] **2.7** Run `pnpm lint-fix`
-- [ ] **2.8** Run `pnpm check`
+- [x] **2.1** Create `RateLimitError` with `isRetryable` getter (returns `true`), `retryAfter: Duration`, `limit`, `remaining`, `resetAt`
+- [x] **2.2** Create `QuotaExhaustedError` with `isRetryable` getter (returns `false`), `quotaType`, `resetAt`
+- [x] **2.3** Create `AuthenticationError` with `isRetryable` getter (returns `false`), `kind` discriminant
+- [x] **2.4** Create `ContentPolicyError` with `isRetryable` getter (returns `false`), `violationType`, `flaggedInput`, `flaggedOutput`, `flaggedContent`, `categories`
+- [x] **2.5** Create `ModelUnavailableError` with `isRetryable` getter (computed from `kind`), `model`, `kind`, `alternativeModels`
+- [x] **2.6** Create `ContextLengthError` with `isRetryable` getter (returns `false`), `maxTokens`, `requestedTokens`
+- [x] **2.7** Run `pnpm lint-fix`
+- [x] **2.8** Run `pnpm check`
 
 **Verification**: `pnpm check` passes
 
