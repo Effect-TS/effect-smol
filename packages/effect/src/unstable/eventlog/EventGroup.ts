@@ -13,13 +13,13 @@ import * as EventApi from "./Event.ts"
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId = "~effect/eventlog/EventGroup"
+export type TypeId = "~effect/eventlog/EventGroup"
 
 /**
  * @since 4.0.0
  * @category type ids
  */
-export type TypeId = typeof TypeId
+export const TypeId: TypeId = "~effect/eventlog/EventGroup"
 
 /**
  * @since 4.0.0
