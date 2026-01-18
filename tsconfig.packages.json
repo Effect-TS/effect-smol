@@ -4,6 +4,7 @@
   "include": [],
   "references": [
     { "path": "packages/effect" },
+    { "path": "packages/ai/openai" },
     { "path": "packages/atom/react" },
     { "path": "packages/opentelemetry" },
     { "path": "packages/platform-browser" },
@@ -21,6 +22,7 @@
     { "path": "packages/sql/sqlite-node" },
     { "path": "packages/sql/sqlite-react-native" },
     { "path": "packages/sql/sqlite-wasm" },
+    { "path": "packages/tools/ai-codegen" },
     { "path": "packages/tools/openapi-generator" },
     { "path": "packages/tools/oxc" },
     { "path": "packages/tools/utils" },

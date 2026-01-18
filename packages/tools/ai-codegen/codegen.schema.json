@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://effect.website/schemas/ai-codegen.json",
+  "title": "Effect AI Codegen Configuration",
+  "description": "Configuration for @effect/ai-codegen code generation",
+  "type": "object",
+  "required": ["spec", "output"],
+  "properties": {
+    "spec": {
+      "type": "string",
+      "description": "URL or file path to the OpenAPI specification"
+    },
+    "output": {
+      "type": "string",
+      "description": "Output file path relative to the package directory"
+    },
+    "name": {
+      "type": "string",
+      "description": "Name for the generated client (defaults to 'Client')"
+    },
+    "typeOnly": {
+      "type": "boolean",
+      "description": "Generate type-only output without runtime code",
+      "default": false
+    },
+    "patches": {
+      "type": "array",
+      "description": "JSON Patch documents to apply to the spec before generation. Each item can be a file path or inline JSON array.",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}
