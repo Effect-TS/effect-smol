@@ -5,6 +5,7 @@ import * as Data from "../../Data.ts"
 import * as Deferred from "../../Deferred.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
+import * as Layer from "../../Layer.ts"
 import * as Queue from "../../Queue.ts"
 import * as RcMap from "../../RcMap.ts"
 import * as Schedule from "../../Schedule.ts"
@@ -14,7 +15,7 @@ import * as Msgpack from "../encoding/Msgpack.ts"
 import * as Socket from "../socket/Socket.ts"
 import { type Entry, EntryId, RemoteEntry, RemoteId } from "./EventJournal.ts"
 import type { Identity } from "./EventLog.ts"
-import { EncryptedEntry, EncryptedRemoteEntry, EventLogEncryption } from "./EventLogEncryption.ts"
+import { EncryptedEntry, EncryptedRemoteEntry, EventLogEncryption, layerSubtle } from "./EventLogEncryption.ts"
 
 /**
  * @since 4.0.0
@@ -426,3 +427,46 @@ export const fromSocket = (options?: {
         })
     }
   })
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export const fromWebSocket = (
+  url: string,
+  options?: {
+    readonly disablePing?: boolean
+  }
+): Effect.Effect<EventLogRemote, never, Scope.Scope | EventLogEncryption | Socket.WebSocketConstructor> =>
+  Effect.gen(function*() {
+    const socket = yield* Socket.makeWebSocket(url)
+    return yield* fromSocket(options).pipe(
+      Effect.provideService(Socket.Socket, socket)
+    )
+  })
+
+/**
+ * @since 4.0.0
+ * @category layers
+ */
+export const layerWebSocket = (
+  url: string,
+  options?: {
+    readonly disablePing?: boolean
+  }
+): Layer.Layer<never, never, Socket.WebSocketConstructor | EventLogEncryption> =>
+  Layer.effectDiscard(fromWebSocket(url, options))
+
+/**
+ * @since 4.0.0
+ * @category layers
+ */
+export const layerWebSocketBrowser = (
+  url: string,
+  options?: {
+    readonly disablePing?: boolean
+  }
+): Layer.Layer<never> =>
+  layerWebSocket(url, options).pipe(
+    Layer.provide([layerSubtle, Socket.layerWebSocketConstructorGlobal])
+  )
