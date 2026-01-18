@@ -3711,6 +3711,12 @@ export const ignore: <A, E, R>(
 ) => Effect<void, never, R> = internal.ignore
 
 /**
+ * @since 2.0.0
+ * @category Error handling
+ */
+export const ignoreLogged: <A, E, R>(self: Effect<A, E, R>) => Effect<void, never, R> = internal.ignoreLogged
+
+/**
  * Apply an `ExecutionPlan` to the effect, which allows you to fallback to
  * different resources in case of failure.
  *
