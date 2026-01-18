@@ -1,0 +1,295 @@
+- id: EFF-232
+  title: Add EventLogRemote WebSocket helpers and layers
+  description: |-
+    Summary: expose WebSocket client helpers for EventLogRemote.
+
+    Steps:
+
+    * Implement `fromWebSocket` for client creation wiring dependencies.
+    * Implement `layerWebSocket` and any helper layers needed.
+    * Validate integration with socket handlers and protocol helpers.
+  priority: 3
+  estimate: null
+  state: todo
+  blockedBy:
+    - EFF-231
+  complete: false
+  githubPrNumber: null
+- id: EFF-231
+  title: Implement EventLogRemote socket replication handlers
+  description: |-
+    Summary: port socket handler logic for replication and ping flow.
+
+    Steps:
+
+    * Add chunked messaging encode/decode for socket transport.
+    * Port remote replication handler pipeline with current Socket/Mailbox APIs.
+    * Ensure ping/heartbeat handling matches protocol expectations.
+
+    Notes:
+
+    * Prior implementation to port lives in `.agents/effect-old/packages/experimental/src/EventLogRemote.ts` (fromSocket handler with pending writes, ping/pong, chunked message join/split, and mailbox subscription map).
+    * Related server-side chunked message handling is in `.agents/effect-old/packages/experimental/src/EventLogServer.ts` for reference.
+    * Mailbox in Effect 3 maps to Queue Dequeue in Effect 4 (`Queue.make`, `Queue.offerAll`, `Queue.shutdown`).
+  priority: 3
+  estimate: null
+  state: in-progress
+  blockedBy: []
+  complete: false
+  githubPrNumber: null
+- id: EFF-230
+  title: Define EventLogRemote protocol schemas
+  description: |-
+    Summary: add protocol message/entry schemas and encoding helpers.
+
+    Steps:
+
+    * Define tagged protocol message types in EventLogRemote.
+    * Implement MsgPack encode/decode helpers for messages.
+    * Verify schema helpers align with EventLog entries.
+
+    Notes:
+
+    * Added EventLogRemote protocol message schemas, chunk helpers, and Msgpack encode/decode helpers in `packages/effect/src/unstable/eventlog/EventLogRemote.ts`.
+    * Tests not present yet for eventlog; `pnpm test packages/effect/test/unstable/eventlog/EventLogRemote.test.ts` reported no test files found.
+  priority: 3
+  estimate: null
+  state: done
+  blockedBy: []
+  complete: true
+  githubPrNumber: null
+- id: EFF-229
+  title: Add TypeIds to EventLog services
+  description: |-
+    To ensure they are unique at the type level (Registry and Identity)
+
+    Notes:
+
+    * Added type ids to Registry and Identity service models.
+    * Updated identity constructors to stamp the type id.
+  priority: 1
+  estimate: null
+  state: done
+  blockedBy: []
+  complete: true
+  githubPrNumber: null
+- id: EFF-228
+  title: Verify EventLog handler/compaction flow
+  description: |-
+    Summary: validate handler execution and compaction logic correctness.
+
+    Steps:
+
+    * Review handler execution pipeline for ordering/termination.
+    * Validate compaction logic integrates with registry/identity tags.
+    * Ensure no forbidden type assertions or Effect.gen rule breaks.
+  priority: 3
+  estimate: null
+  state: todo
+  blockedBy:
+    - EFF-227
+  complete: false
+  githubPrNumber: null
+- id: EFF-227
+  title: Implement EventLog service behaviors
+  description: |-
+    Summary: implement EventLog service lifecycle and APIs.
+
+    Steps:
+
+    * Implement write/register handlers and compaction pipeline.
+    * Wire Reactivity service integration for updates.
+    * Add entries and destroy behavior consistent with Effect 4 services.
+
+    Notes:
+
+    * EventLog.ts currently only defines schema/tags; old implementation in `.agents/effect-old/packages/experimental/src/EventLog.ts` covers handlers, registry, compaction, reactivity, and EventLog make/layer logic to port.
+    * EventLogRemote old implementation shows socket flow in `.agents/effect-old/packages/experimental/src/EventLogRemote.ts` for ping/changes interactions.
+    * Current Reactivity service is `effect/src/unstable/reactivity/Reactivity.ts` and uses `invalidateUnsafe` or `invalidate` instead of `unsafeInvalidate`.
+    * ServiceMap-based handler context should use `Effect.services()` + `Effect.updateServices(ServiceMap.merge(...))` like `RpcGroup.toHandlers`.
+  priority: 3
+  estimate: null
+  state: in-progress
+  blockedBy: []
+  complete: false
+  githubPrNumber: null
+- id: EFF-226
+  title: Define EventLog schema and tags
+  description: |-
+    Summary: draft core EventLog schema helpers and service tags.
+
+    Steps:
+
+    * Add schema helpers and type ids for EventLog entries.
+    * Define Handlers, Registry, and Identity tags.
+    * Align imports with Effect 4 schema utilities.
+
+    Notes:
+
+    * Added EventLog schema/handlers definitions plus Registry/Identity tags and identity encoding helpers.
+    * Tests missing for eventlog; `pnpm test packages/effect/test/unstable/eventlog/EventLog.test.ts` reports no test files found.
+  priority: 3
+  estimate: null
+  state: done
+  blockedBy: []
+  complete: true
+  githubPrNumber: null
+- id: EFF-225
+  title: TypeId's should use strings like the other modules
+  description: See the Atom modules for examples
+  priority: 2
+  estimate: null
+  state: done
+  blockedBy: []
+  complete: true
+  githubPrNumber: null
+- id: EFF-224
+  title: Add baseline EventLog tests
+  description: |-
+    Summary: add minimal tests to validate core eventlog behavior.
+
+    Steps:
+
+    * Add tests under `packages/effect/test/unstable/eventlog` for EventJournal memory and EventLog handler writes.
+    * Cover a small remote replication or encryption smoke test (disable ping or use TestClock).
+    * Use @effect/vitest `it.effect` style for all Effect-based tests.
+  priority: 3
+  estimate: 3
+  state: todo
+  blockedBy:
+    - EFF-223
+  complete: false
+  githubPrNumber: null
+- id: EFF-223
+  title: Export unstable eventlog modules
+  description: |-
+    Summary: expose eventlog modules under effect/unstable/eventlog.
+
+    Steps:
+
+    * Add `packages/effect/src/unstable/eventlog` to the barrel exports.
+    * Run `pnpm codegen` to generate the new index exports.
+    * Verify the new modules are reachable from `effect/unstable/eventlog`.
+  priority: 3
+  estimate: 1
+  state: todo
+  blockedBy:
+    - EFF-222
+    - EFF-221
+  complete: false
+  githubPrNumber: null
+- id: EFF-221
+  title: Port EventLogServer core and memory storage
+  description: |-
+    Summary: add server-side protocol handler, storage tag, and memory storage.
+
+    Steps:
+
+    * Create `packages/effect/src/unstable/eventlog/EventLogServer.ts` with PersistedEntry schema, Storage tag, and websocket handler.
+    * Port in-memory storage implementation with mailbox/pubsub support.
+    * Add the Http upgrade handler and wire protocol encoding via EventLogRemote.
+  priority: 3
+  estimate: 3
+  state: todo
+  blockedBy: []
+  complete: false
+  githubPrNumber: null
+- id: EFF-220
+  title: Port EventLogRemote protocol and client helpers
+  description: |-
+    Summary: implement wire protocol schemas and Socket/WebSocket client helpers.
+
+    Steps:
+
+    * Create `packages/effect/src/unstable/eventlog/EventLogRemote.ts` with protocol tagged classes and MsgPack encode/decode helpers.
+    * Port socket handlers for remote replication, including chunked messaging and ping handling, using current Socket/Mailbox APIs.
+    * Add `fromWebSocket` and `layerWebSocket` helpers with dependency wiring.
+  priority: 3
+  estimate: 5
+  state: done
+  blockedBy: []
+  complete: true
+  githubPrNumber: null
+- id: EFF-219
+  title: Port EventLogEncryption module
+  description: |-
+    Summary: add encryption helpers for EventLog remote replication.
+
+    Steps:
+
+    * Create `packages/effect/src/unstable/eventlog/EventLogEncryption.ts` with encrypted entry schemas and EventLogEncryption tag.
+    * Port SubtleCrypto encryption/decryption and hashing helpers aligned with current Redacted/Schema APIs.
+    * Provide `layerSubtle` based on global crypto.
+
+    Notes:
+
+    * Added EventLogEncryption module with AES-GCM helpers, sha256 utilities, and SubtleCrypto layer.
+    * Introduced buffer conversion helpers to satisfy BufferSource typing for WebCrypto.
+    * Tests pending once EventLog test suite exists; used lint, check, build, and docgen.
+  priority: 3
+  estimate: 2
+  state: done
+  blockedBy: []
+  complete: true
+  githubPrNumber: null
+- id: EFF-218
+  title: Port EventLog core service
+  description: |-
+    Summary: implement EventLog schema, handlers, registry, and identity services.
+
+    Steps:
+
+    * Create `packages/effect/src/unstable/eventlog/EventLog.ts` with schema helpers, Handlers group builder, Registry tag, and Identity tag.
+    * Implement the EventLog service (write, registerRemote/compaction/reactivity, entries/destroy) using the current Reactivity service API.
+    * Ensure handler execution and compaction logic uses Effect 4 patterns without forbidden type assertions.
+  priority: 3
+  estimate: 5
+  state: done
+  blockedBy: []
+  complete: true
+  githubPrNumber: null
+- id: EFF-217
+  title: Port EventJournal core and storage
+  description: |-
+    Summary: add journal entry types, remote ids, and memory/indexeddb implementations.
+
+    Steps:
+
+    * Create `packages/effect/src/unstable/eventlog/EventJournal.ts` with Entry/RemoteEntry schemas, EventJournal tag, and error types.
+    * Port memory and IndexedDB implementations with updated Effect APIs and current MsgPack/Uuid imports.
+    * Expose `layerMemory` and `layerIndexedDb` for the new journal service.
+
+    Notes:
+
+    * PR #961: added EventJournal schema/service, memory + indexed db implementations, Msgpack array helpers, and layers.
+    * Tests pending: `pnpm test packages/effect/test/unstable/eventlog/EventJournal.test.ts` (no test file yet).
+
+    Please rebase and resolve merge conflicts before continuing.
+  priority: 3
+  estimate: 3
+  state: done
+  blockedBy: []
+  complete: true
+  githubPrNumber: null
+- id: EFF-216
+  title: Port Event and EventGroup modules
+  description: |-
+    Summary: add Event and EventGroup definitions under unstable eventlog.
+
+    Steps:
+
+    * Create `packages/effect/src/unstable/eventlog/Event.ts` with event schema helpers, service types, and tag utilities, adapting Effect 3 APIs without forbidden type assertions.
+    * Create `packages/effect/src/unstable/eventlog/EventGroup.ts` with group builder helpers aligned to current Schema/Predicate utilities.
+    * Align `@since` tags and imports to Effect 4 module paths.
+
+    Notes:
+
+    * Implemented Event and EventGroup modules using Effect 4 schema/Msgpack utilities, with union error helpers and updated type ids.
+
+    Please rebase and resolve merge conflicts before continuing.
+  priority: 3
+  estimate: 2
+  state: done
+  blockedBy: []
+  complete: true
+  githubPrNumber: null
