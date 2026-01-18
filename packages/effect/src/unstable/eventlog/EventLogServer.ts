@@ -16,7 +16,7 @@ import * as HttpServerRequest from "../http/HttpServerRequest.ts"
 import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 import type * as Socket from "../socket/Socket.ts"
 import { EntryId, makeRemoteId, type RemoteId } from "./EventJournal.ts"
-import { type EncryptedRemoteEntry } from "./EventLogEncryption.ts"
+import type { EncryptedRemoteEntry } from "./EventLogEncryption.ts"
 import {
   Ack,
   Changes,
@@ -123,7 +123,7 @@ export const makeHandler: Effect.Effect<
                   write(
                     new Changes({
                       publicKey: request.publicKey,
-                      entries
+                      entries: latestEntries
                     })
                   )
                 )
