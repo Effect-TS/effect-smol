@@ -54,3 +54,8 @@
 **Task**: Update LanguageModel.ts and Toolkit.ts to use AiErrorWithReason pattern
 **Status**: complete
 ---
+
+## Iteration 5 - 2026-01-18 17:33
+**Task**: Add comprehensive tests for AiError reason types and AiErrorWithReason
+**Status**: complete
+---

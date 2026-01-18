@@ -755,19 +755,19 @@ export const reasonFromHttpStatus = (params: {
 
 **Tasks**:
 
-- [ ] **6.1** Test `AiError` construction with each reason type
-- [ ] **6.2** Test message generation for `AiError` and each reason
-- [ ] **6.3** Test `isRetryable` getter returns correct value for each reason type
-- [ ] **6.4** Test `AiError.isRetryable` delegates to reason's `isRetryable`
-- [ ] **6.5** Test `AiError.retryAfter` delegates to reason's `retryAfter` when present
-- [ ] **6.6** Test `Effect.catchReason("AiError", "<reason>", ...)` for all reasons
-- [ ] **6.7** Test `Effect.catchReasons("AiError", {...})` with multiple handlers
-- [ ] **6.8** Test `Effect.unwrapReason("AiError")` promotes reason to error channel
-- [ ] **6.9** Test `reasonFromHttpStatus` mapping
-- [ ] **6.10** Test `OutputParseError.fromSchemaError` static method
-- [ ] **6.11** Test `isAiError` type guard
-- [ ] **6.12** Test schema encoding/decoding roundtrip for all types
-- [ ] **6.13** Run `pnpm test AiError`
+- [x] **6.1** Test `AiError` construction with each reason type
+- [x] **6.2** Test message generation for `AiError` and each reason
+- [x] **6.3** Test `isRetryable` getter returns correct value for each reason type
+- [x] **6.4** Test `AiError.isRetryable` delegates to reason's `isRetryable`
+- [x] **6.5** Test `AiError.retryAfter` delegates to reason's `retryAfter` when present
+- [ ] **6.6** Test `Effect.catchReason("AiError", "<reason>", ...)` for all reasons (blocked: catchReason not implemented)
+- [ ] **6.7** Test `Effect.catchReasons("AiError", {...})` with multiple handlers (blocked: catchReasons not implemented)
+- [ ] **6.8** Test `Effect.unwrapReason("AiError")` promotes reason to error channel (blocked: unwrapReason not implemented)
+- [x] **6.9** Test `reasonFromHttpStatus` mapping
+- [x] **6.10** Test `OutputParseError.fromSchemaError` static method
+- [x] **6.11** Test `isAiError` type guard
+- [x] **6.12** Test schema encoding/decoding roundtrip for all types
+- [x] **6.13** Run `pnpm test AiError`
 
 **Verification**: All tests pass
 
