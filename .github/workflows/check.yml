@@ -54,6 +54,7 @@ jobs:
         uses: ./.github/actions/setup
         with:
           deno-version: v2.6.x
+          node-version: 24.10.0
       - run: deno check .
 
   bundle:
@@ -156,6 +157,7 @@ jobs:
         uses: ./.github/actions/setup
         with:
           deno-version: v2.6.x
+          node-version: 24.10.0
       - name: Test
         if: matrix.runtime == 'Deno'
         run: deno task test --shard ${{ matrix.shard }}
