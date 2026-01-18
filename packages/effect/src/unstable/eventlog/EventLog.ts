@@ -585,55 +585,49 @@ const make = Effect.gen(function*() {
             entries: entries.flat(),
             compact: compactors.size > 0
               ? Effect.fnUntraced(function*(remoteEntries) {
-                let unprocessed = remoteEntries as Array<RemoteEntry>
                 const brackets: Array<[Array<Entry>, Array<RemoteEntry>]> = []
                 let uncompacted: Array<Entry> = []
                 let uncompactedRemote: Array<RemoteEntry> = []
-                while (true) {
-                  let i = 0
-                  for (; i < unprocessed.length; i++) {
-                    const remoteEntry = unprocessed[i]
-                    if (!compactors.has(remoteEntry.entry.event)) {
-                      uncompacted.push(remoteEntry.entry)
-                      uncompactedRemote.push(remoteEntry)
-                      continue
-                    }
-                    if (uncompacted.length > 0) {
-                      brackets.push([uncompacted, uncompactedRemote])
-                      uncompacted = []
-                      uncompactedRemote = []
-                    }
-                    const compactor = compactors.get(remoteEntry.entry.event)!
-                    const entry = remoteEntry.entry
-                    const entries = [entry]
-                    const remoteEntries = [remoteEntry]
-                    const compacted: Array<Entry> = []
-                    const currentEntries = unprocessed
-                    unprocessed = []
-                    for (let j = i + 1; j < currentEntries.length; j++) {
-                      const nextRemoteEntry = currentEntries[j]
-                      if (!compactor.events.has(nextRemoteEntry.entry.event)) {
-                        unprocessed.push(nextRemoteEntry)
-                        continue
-                      }
-                      entries.push(nextRemoteEntry.entry)
-                      remoteEntries.push(nextRemoteEntry)
-                    }
-                    yield* compactor.effect({
-                      entries,
-                      write(entry) {
-                        return Effect.sync(() => {
-                          compacted.push(entry)
-                        })
-                      }
-                    }).pipe(Effect.orDie)
-                    brackets.push([compacted, remoteEntries])
-                    break
+                let index = 0
+                while (index < remoteEntries.length) {
+                  const remoteEntry = remoteEntries[index]
+                  const compactor = compactors.get(remoteEntry.entry.event)
+                  if (!compactor) {
+                    uncompacted.push(remoteEntry.entry)
+                    uncompactedRemote.push(remoteEntry)
+                    index++
+                    continue
                   }
-                  if (i === unprocessed.length) {
-                    brackets.push([unprocessed.map((_) => _.entry), unprocessed])
-                    break
+                  if (uncompacted.length > 0) {
+                    brackets.push([uncompacted, uncompactedRemote])
+                    uncompacted = []
+                    uncompactedRemote = []
                   }
+                  const entries = [remoteEntry.entry]
+                  const remoteGroup = [remoteEntry]
+                  const compacted: Array<Entry> = []
+                  index++
+                  while (index < remoteEntries.length) {
+                    const nextRemoteEntry = remoteEntries[index]
+                    if (!compactor.events.has(nextRemoteEntry.entry.event)) {
+                      break
+                    }
+                    entries.push(nextRemoteEntry.entry)
+                    remoteGroup.push(nextRemoteEntry)
+                    index++
+                  }
+                  yield* compactor.effect({
+                    entries,
+                    write(entry) {
+                      return Effect.sync(() => {
+                        compacted.push(entry)
+                      })
+                    }
+                  }).pipe(Effect.orDie)
+                  brackets.push([compacted, remoteGroup])
+                }
+                if (uncompacted.length > 0) {
+                  brackets.push([uncompacted, uncompactedRemote])
                 }
                 return brackets
               })
