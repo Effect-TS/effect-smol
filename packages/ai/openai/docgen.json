@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/@effect/docgen/schema.json",
   "srcLink": "https://github.com/Effect-TS/effect/tree/main/packages/ai/openai/src/",
-  "exclude": ["src/internal/**/*.ts"],
+  "exclude": ["src/Generated.ts", "src/internal/**/*.ts"],
   "examplesCompilerOptions": {
     "noEmit": true,
     "strict": true,
