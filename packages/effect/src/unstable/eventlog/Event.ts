@@ -5,6 +5,7 @@ import { pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
+import * as HttpApiSchema from "../httpapi/HttpApiSchema.ts"
 
 /**
  * @since 4.0.0
@@ -125,12 +126,20 @@ export declare namespace Event {
    * @since 4.0.0
    * @category models
    */
+  export type MergeError<ErrorA extends Schema.Top, ErrorB extends Schema.Top> = Schema.Schema<
+    Schema.Schema.Type<ErrorA> | Schema.Schema.Type<ErrorB>
+  >
+
+  /**
+   * @since 4.0.0
+   * @category models
+   */
   export type AddError<A extends Any, Error extends Schema.Top> = A extends Event<
     infer _Tag,
     infer _Payload,
     infer _Success,
     infer _Error
-  > ? Event<_Tag, _Payload, _Success, _Error | Error>
+  > ? Event<_Tag, _Payload, _Success, MergeError<_Error, Error>>
     : never
 
   /**
@@ -279,5 +288,23 @@ export function make(options: {
     payloadMsgPack: Msgpack.schema(payload),
     success,
     error
+  })
+}
+
+/**
+ * @since 4.0.0
+ * @category constructors
+ */
+export function addError<A extends Event.Any, Error2 extends Schema.Top>(
+  event: A,
+  error: Error2
+): Event.AddError<A, Error2>
+export function addError(event: Event.Any, error: Schema.Top): Event.Any {
+  return make({
+    tag: event.tag,
+    primaryKey: event.primaryKey,
+    payload: event.payload,
+    success: event.success,
+    error: HttpApiSchema.UnionUnify(event.error, error)
   })
 }
