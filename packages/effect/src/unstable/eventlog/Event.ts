@@ -10,13 +10,13 @@ import * as Msgpack from "../encoding/Msgpack.ts"
  * @since 4.0.0
  * @category type ids
  */
-export const TypeId: unique symbol = Symbol.for("~effect/eventlog/Event")
+export type TypeId = "~effect/eventlog/Event"
 
 /**
  * @since 4.0.0
  * @category type ids
  */
-export type TypeId = typeof TypeId
+export const TypeId: TypeId = "~effect/eventlog/Event"
 
 /**
  * @since 4.0.0
