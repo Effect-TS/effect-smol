@@ -29,3 +29,8 @@
 ## Iteration 7 - 2026-01-18 16:15
 **Task**: Partial work (no explicit completion signal)
 ---
+
+## Iteration 1 - 2026-01-18 17:15
+**Task**: Add ProviderMetadata, UsageInfo, HttpContext supporting schemas
+**Status**: complete
+---

@@ -647,13 +647,13 @@ export const reasonFromHttpStatus = (params: {
 
 **Tasks**:
 
-- [ ] **1.1** Add `ProviderMetadata` schema with `name`, `errorCode`, `errorType`, `requestId`, `raw` fields
-- [ ] **1.2** Add `UsageInfo` schema with token count fields
-- [ ] **1.3** Keep existing `HttpRequestDetails` schema (already well-defined)
-- [ ] **1.4** Keep existing `HttpResponseDetails` schema
-- [ ] **1.5** Add `HttpContext` schema combining request/response/body
-- [ ] **1.6** Run `pnpm lint-fix`
-- [ ] **1.7** Run `pnpm check`
+- [x] **1.1** Add `ProviderMetadata` schema with `name`, `errorCode`, `errorType`, `requestId`, `raw` fields
+- [x] **1.2** Add `UsageInfo` schema with token count fields
+- [x] **1.3** Keep existing `HttpRequestDetails` schema (already well-defined)
+- [x] **1.4** Keep existing `HttpResponseDetails` schema
+- [x] **1.5** Add `HttpContext` schema combining request/response/body
+- [x] **1.6** Run `pnpm lint-fix`
+- [x] **1.7** Run `pnpm check`
 
 **Verification**: `pnpm check` passes
 

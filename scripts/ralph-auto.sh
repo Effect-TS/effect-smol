@@ -88,7 +88,7 @@ PROGRESS_FILE="${SCRIPT_DIR}/progress-auto.txt"
 PROMPT_TEMPLATE="${PROJECT_ROOT}/RALPH_PROMPT_AUTO.md"
 COMPLETE_MARKER="NOTHING_LEFT_TO_DO"
 OUTPUT_DIR=".ralph-auto"
-AGENT_CMD="opencode run --model anthropic/claude-opus-4 --format json"
+AGENT_CMD="opencode run --model anthropic/claude-opus-4-5 --format json"
 
 # Colors for output
 RED='\033[0;31m'

@@ -297,6 +297,48 @@ export const HttpResponseDetails = Schema.Struct({
   headers: Schema.Record(Schema.String, Schema.String)
 }).annotate({ identifier: "HttpResponseDetails" })
 
+// =============================================================================
+// Supporting Schemas
+// =============================================================================
+
+/**
+ * Metadata about the AI provider that originated an error.
+ *
+ * @since 4.0.0
+ * @category schemas
+ */
+export const ProviderMetadata = Schema.Struct({
+  name: Schema.String,
+  errorCode: Schema.optional(Schema.String),
+  errorType: Schema.optional(Schema.String),
+  requestId: Schema.optional(Schema.String),
+  raw: Schema.optional(Schema.Unknown)
+}).annotate({ identifier: "ProviderMetadata" })
+
+/**
+ * Token usage information from AI operations.
+ *
+ * @since 4.0.0
+ * @category schemas
+ */
+export const UsageInfo = Schema.Struct({
+  promptTokens: Schema.optional(Schema.Number),
+  completionTokens: Schema.optional(Schema.Number),
+  totalTokens: Schema.optional(Schema.Number)
+}).annotate({ identifier: "UsageInfo" })
+
+/**
+ * Combined HTTP context for error reporting.
+ *
+ * @since 4.0.0
+ * @category schemas
+ */
+export const HttpContext = Schema.Struct({
+  request: HttpRequestDetails,
+  response: Schema.optional(HttpResponseDetails),
+  body: Schema.optional(Schema.String)
+}).annotate({ identifier: "HttpContext" })
+
 /**
  * Error that occurs during HTTP response processing.
  *
