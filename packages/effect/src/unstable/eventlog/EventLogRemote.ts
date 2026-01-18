@@ -27,7 +27,7 @@ export class EventLogRemote extends ServiceMap.Service<EventLogRemote, {
   readonly changes: (
     identity: Identity["Service"],
     startSequence: number
-  ) => Effect.Effect<Queue.Dequeue<ReadonlyArray<RemoteEntry>, Queue.Done>, never, Scope.Scope>
+  ) => Effect.Effect<Queue.Dequeue<RemoteEntry>, never, Scope.Scope>
   readonly write: (identity: Identity["Service"], entries: ReadonlyArray<Entry>) => Effect.Effect<void>
 }>()("effect/eventlog/EventLogRemote") {}
 
@@ -289,7 +289,7 @@ export const fromSocket = (options?: {
     const subscriptions = yield* RcMap.make({
       lookup: (publicKey: string) =>
         Effect.acquireRelease(
-          Queue.make<ReadonlyArray<RemoteEntry>>(),
+          Queue.make<RemoteEntry>(),
           (queue) =>
             Queue.shutdown(queue).pipe(
               Effect.andThen(Effect.ignore(writeRequest(new StopChanges({ publicKey }))))
@@ -337,7 +337,7 @@ export const fromSocket = (options?: {
               })
             })
             const queue = yield* RcMap.get(subscriptions, publicKey)
-            yield* Queue.offerAll(queue, [remoteEntries])
+            yield* Queue.offerAll(queue, remoteEntries)
             yield* Deferred.done(deferred, Exit.void)
           }).pipe(Effect.scoped)
         }
@@ -358,7 +358,7 @@ export const fromSocket = (options?: {
               return
             }
             const entries = yield* encryption.decrypt(identity, res.entries)
-            yield* Queue.offerAll(queue, [entries])
+            yield* Queue.offerAll(queue, entries)
           }).pipe(Effect.scoped)
         }
         case "ChunkedMessage": {
