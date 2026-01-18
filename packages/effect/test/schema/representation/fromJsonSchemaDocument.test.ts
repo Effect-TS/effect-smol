@@ -1184,6 +1184,23 @@ describe("fromJsonSchemaDocument", () => {
   })
 
   describe("allOf", () => {
+    it("no type", () => {
+      assertFromJsonSchema(
+        {
+          allOf: [
+            { type: "string" }
+          ]
+        },
+        {
+          representation: {
+            _tag: "String",
+            checks: []
+          }
+        },
+        `Schema.String`
+      )
+    })
+
     describe("type: string", () => {
       it("& minLength", () => {
         assertFromJsonSchema(
@@ -1434,6 +1451,81 @@ describe("fromJsonSchemaDocument", () => {
           `Schema.String.check(Schema.makeFilterGroup([Schema.isMinLength(1), Schema.isMaxLength(2, { "description": "c" })], { "description": "b" }))`
         )
       })
+
+      it("& string enum", () => {
+        assertFromJsonSchema(
+          {
+            type: "string",
+            allOf: [
+              { enum: ["a"] }
+            ]
+          },
+          {
+            representation: {
+              _tag: "Literal",
+              literal: "a"
+            }
+          },
+          `Schema.Literal("a")`
+        )
+        assertFromJsonSchema(
+          {
+            type: "string",
+            description: "a",
+            allOf: [
+              { enum: ["a"], description: "b" }
+            ]
+          },
+          {
+            representation: {
+              _tag: "Literal",
+              literal: "a",
+              annotations: { description: "b" }
+            }
+          },
+          `Schema.Literal("a").annotate({ "description": "b" })`
+        )
+        assertFromJsonSchema(
+          {
+            type: "string",
+            allOf: [
+              { enum: ["a", "b"] }
+            ]
+          },
+          {
+            representation: {
+              _tag: "Union",
+              types: [
+                { _tag: "Literal", literal: "a" },
+                { _tag: "Literal", literal: "b" }
+              ],
+              mode: "anyOf"
+            }
+          },
+          `Schema.Literals(["a", "b"])`
+        )
+      })
+
+      it("& mixed enum", () => {
+        assertFromJsonSchema(
+          {
+            type: "string",
+            allOf: [
+              { enum: ["a", 1] }
+            ]
+          },
+          {
+            representation: {
+              _tag: "Union",
+              types: [
+                { _tag: "Literal", literal: "a" }
+              ],
+              mode: "anyOf"
+            }
+          },
+          `Schema.Literal("a")`
+        )
+      })
     })
 
     describe("type: number", () => {
@@ -1532,6 +1624,97 @@ describe("fromJsonSchemaDocument", () => {
             }
           },
           `Schema.Number.check(Schema.isFinite()).check(Schema.makeFilterGroup([Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(2, { "description": "c" })], { "description": "b" }))`
+        )
+      })
+
+      it("& number enum", () => {
+        assertFromJsonSchema(
+          {
+            type: "number",
+            allOf: [
+              { enum: [1] }
+            ]
+          },
+          {
+            representation: {
+              _tag: "Literal",
+              literal: 1
+            }
+          },
+          `Schema.Literal(1)`
+        )
+        assertFromJsonSchema(
+          {
+            type: "number",
+            description: "a",
+            allOf: [
+              { enum: [1], description: "b" }
+            ]
+          },
+          {
+            representation: {
+              _tag: "Literal",
+              literal: 1,
+              annotations: { description: "b" }
+            }
+          },
+          `Schema.Literal(1).annotate({ "description": "b" })`
+        )
+        assertFromJsonSchema(
+          {
+            type: "number",
+            allOf: [
+              { enum: [1, 2] }
+            ]
+          },
+          {
+            representation: {
+              _tag: "Union",
+              types: [
+                { _tag: "Literal", literal: 1 },
+                { _tag: "Literal", literal: 2 }
+              ],
+              mode: "anyOf"
+            }
+          },
+          `Schema.Literals([1, 2])`
+        )
+      })
+    })
+
+    describe("type: boolean", () => {
+      it("& boolean enum", () => {
+        assertFromJsonSchema(
+          {
+            type: "boolean",
+            allOf: [
+              { enum: [true] }
+            ]
+          },
+          {
+            representation: {
+              _tag: "Literal",
+              literal: true
+            }
+          },
+          `Schema.Literal(true)`
+        )
+        assertFromJsonSchema(
+          {
+            type: "boolean",
+            description: "a",
+            allOf: [
+              { enum: [true], description: "b" }
+            ]
+          },
+          {
+            representation: {
+              _tag: "Literal",
+              literal: true,
+              annotations: { description: "b" }
+            }
+          },
+          `Schema.Literal(true).annotate({ "description": "b" })`
         )
       })
     })

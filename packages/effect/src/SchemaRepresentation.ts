@@ -2354,14 +2354,17 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
     switch (a._tag) {
       default:
         return never
+      case "Reference":
+        return combine(resolveReference(a.$ref), b)
       case "Never":
         return a
-      case "Unknown": {
-        if (b._tag === "Reference") {
-          b = resolveReference(b.$ref)
+      case "Unknown":
+        switch (b._tag) {
+          case "Reference":
+            return combine(a, resolveReference(b.$ref))
+          default:
+            return { ...b, ...combineAnnotations(a.annotations, b.annotations) }
         }
-        return { ...b, ...combineAnnotations(a.annotations, b.annotations) }
-      }
       case "Null":
         switch (b._tag) {
           case "Unknown":
@@ -2386,6 +2389,8 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
               ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
             }
           }
+          case "Literal":
+            return typeof b.literal === "string" ? { ...b, ...combineAnnotations(a.annotations, b.annotations) } : never
           case "Union":
             return combine(b, a)
           case "Reference":
@@ -2405,6 +2410,8 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
               ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
             }
           }
+          case "Literal":
+            return typeof b.literal === "number" ? { ...b, ...combineAnnotations(a.annotations, b.annotations) } : never
           case "Union":
             return combine(b, a)
           case "Reference":
@@ -2418,6 +2425,10 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
             return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
           case "Boolean":
             return { _tag: "Boolean", ...combineAnnotations(a.annotations, b.annotations) }
+          case "Literal":
+            return typeof b.literal === "boolean"
+              ? { ...b, ...combineAnnotations(a.annotations, b.annotations) }
+              : never
           case "Union":
             return combine(b, a)
           case "Reference":
@@ -2431,7 +2442,15 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
             return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
           case "Literal":
             return a.literal === b.literal
-              ? { _tag: "Literal", literal: a.literal, ...combineAnnotations(a.annotations, b.annotations) }
+              ? { ...a, ...combineAnnotations(a.annotations, b.annotations) }
+              : never
+          case "String":
+            return typeof a.literal === "string" ? { ...a, ...combineAnnotations(a.annotations, b.annotations) } : never
+          case "Number":
+            return typeof a.literal === "number" ? { ...a, ...combineAnnotations(a.annotations, b.annotations) } : never
+          case "Boolean":
+            return typeof a.literal === "boolean"
+              ? { ...a, ...combineAnnotations(a.annotations, b.annotations) }
               : never
           case "Union":
             return combine(b, a)
@@ -2491,15 +2510,13 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
             if (types.length === 0) return never
             return {
               _tag: "Union",
-              types: a.types.map((s) => combine(s, b)),
+              types,
               mode: "anyOf",
               ...makeAnnotations(a.annotations)
             }
           }
         }
       }
-      case "Reference":
-        return combine(resolveReference(a.$ref), b)
     }
   }
 
