@@ -4200,6 +4200,22 @@ export const filter: {
 } = internal.filter
 
 /**
+ * @since 2.0.0
+ * @category Filtering
+ */
+export const filterMap: {
+  <A, B, X, E, R>(
+    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): (elements: Iterable<A>) => Effect<Array<B>, E, R>
+  <A, B, X, E, R>(
+    elements: Iterable<A>,
+    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): Effect<Array<B>, E, R>
+} = internal.filterMap
+
+/**
  * Filters an effect, providing an alternative effect if the predicate fails.
  *
  * **Details**

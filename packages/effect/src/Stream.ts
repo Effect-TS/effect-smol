@@ -2824,6 +2824,39 @@ export const filter: {
  * @since 2.0.0
  * @category Filtering
  */
+export const filterMap: {
+  <A, B, X>(filter: Filter.Filter<A, B, X>): <E, R>(self: Stream<A, E, R>) => Stream<B, E, R>
+  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>): Stream<B, E, R>
+} = dual(
+  2,
+  <A, E, R, B, X>(self: Stream<A, E, R>, filter: Filter.Filter<A, B, X>): Stream<B, E, R> =>
+    fromChannel(Channel.filterMapArray(toChannel(self), filter))
+)
+
+/**
+ * @since 2.0.0
+ * @category Filtering
+ */
+export const filterMapEffect: {
+  <A, B, X, EX, RX>(
+    filter: Filter.FilterEffect<A, B, X, EX, RX>
+  ): <E, R>(self: Stream<A, E, R>) => Stream<B, E | EX, R | RX>
+  <A, E, R, B, X, EX, RX>(
+    self: Stream<A, E, R>,
+    filter: Filter.FilterEffect<A, B, X, EX, RX>
+  ): Stream<B, E | EX, R | RX>
+} = dual(
+  2,
+  <A, E, R, B, X, EX, RX>(
+    self: Stream<A, E, R>,
+    filter: Filter.FilterEffect<A, B, X, EX, RX>
+  ): Stream<B, E | EX, R | RX> => fromChannel(Channel.filterMapArrayEffect(toChannel(self), filter))
+)
+
+/**
+ * @since 2.0.0
+ * @category Filtering
+ */
 export const partition: {
   <A, B, X>(filter: Filter.Filter<A, B, X>, options?: {
     readonly capacity?: number | "unbounded" | undefined

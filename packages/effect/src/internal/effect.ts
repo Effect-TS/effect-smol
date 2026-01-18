@@ -4136,6 +4136,45 @@ export const filter: {
     })
 )
 
+/** @internal */
+export const filterMap: {
+  <A, B, X, E, R>(
+    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): (elements: Iterable<A>) => Effect.Effect<Array<B>, E, R>
+  <A, B, X, E, R>(
+    elements: Iterable<A>,
+    filter: Filter.FilterEffect<NoInfer<A>, B, X, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): Effect.Effect<Array<B>, E, R>
+} = dual(
+  (args) => isIterable(args[0]) && !isEffect(args[0]),
+  <A, B, X, E, R>(
+    elements: Iterable<A>,
+    filter: Filter.FilterEffect<A, B, X, E, R>,
+    options?: { readonly concurrency?: Concurrency | undefined }
+  ): Effect.Effect<Array<B>, E, R> =>
+    suspend(() => {
+      const out: Array<B> = []
+      return as(
+        forEach(
+          elements,
+          (a) =>
+            map(filter(a), (result) => {
+              if (!Filter.isFail(result)) {
+                out.push(result)
+              }
+            }),
+          {
+            discard: true,
+            concurrency: options?.concurrency
+          }
+        ),
+        out
+      )
+    })
+)
+
 // ----------------------------------------------------------------------------
 // do notation
 // ----------------------------------------------------------------------------
