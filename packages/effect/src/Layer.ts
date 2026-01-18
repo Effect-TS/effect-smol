@@ -727,6 +727,12 @@ export const syncServices = <A>(evaluate: LazyArg<ServiceMap.ServiceMap<A>>): La
  * The Effect is executed in the scope of the layer, allowing for proper
  * resource management.
  *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Layer.scoped`
+ *
  * @example
  * ```ts
  * import { Effect, Layer, ServiceMap } from "effect"
@@ -811,6 +817,12 @@ export const effectServices = <A, E, R>(
  *
  * This is useful when you want to run an Effect for its side effects during
  * layer construction, but don't need to provide any services.
+ *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Layer.scopedDiscard`
  *
  * @example
  * ```ts

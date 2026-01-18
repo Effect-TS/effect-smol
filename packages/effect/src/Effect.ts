@@ -1812,6 +1812,12 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  * **Note:** `andThen` works well with both `Option` and `Result` types,
  * treating them as effects.
  *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Effect.zipRight`
+ *
  * @example Applying a Discount Based on Fetched Amount
  * ```ts
  * import { Effect, pipe } from "effect"
@@ -1893,6 +1899,12 @@ export const andThen: {
  * passed to it. The value from the previous effect remains available for the
  * next part of the chain. Note that if the side effect fails, the entire chain
  * will fail too.
+ *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Effect.zipLeft`
  *
  * @example
  * ```ts
@@ -2400,6 +2412,12 @@ export {
    *
    * @see {@link catchCause} for a version that can recover from both recoverable and unrecoverable errors.
    *
+   * **Previously Known As**
+   *
+   * This API replaces the following from Effect 3.x:
+   *
+   * - `Effect.catchAll`
+   *
    * @since 4.0.0
    * @category Error handling
    */
@@ -2781,6 +2799,12 @@ export const unwrapReason: {
  * they often indicate serious issues. However, in some cases, such as
  * dynamically loaded plugins, controlled recovery might be needed.
  *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Effect.catchAllCause`
+ *
  * @example
  * ```ts
  * import { Cause, Console, Effect } from "effect"
@@ -2834,6 +2858,12 @@ export const catchCause: {
  * Defects are unexpected errors that typically shouldn't be recovered from, as
  * they often indicate serious issues. However, in some cases, such as
  * dynamically loaded plugins, controlled recovery might be needed.
+ *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Effect.catchAllDefect`
  *
  * @example
  * ```ts

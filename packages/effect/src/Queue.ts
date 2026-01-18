@@ -134,6 +134,12 @@ export declare namespace Dequeue {
  *
  * It also supports signaling that it is done or failed.
  *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Mailbox`
+ *
  * @example
  * ```ts
  * import { Effect, Queue } from "effect"
@@ -244,6 +250,12 @@ const QueueProto = {
  * A `Queue` is an asynchronous queue that can be offered to and taken from.
  *
  * It also supports signaling that it is done or failed.
+ *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Mailbox.make`
  *
  * @since 3.8.0
  * @category constructors
