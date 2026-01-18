@@ -5,8 +5,7 @@ import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
-import type { Event } from "./Event.ts"
-import * as EventApi from "./Event.ts"
+import * as Event from "./Event.ts"
 
 /**
  * @since 4.0.0
@@ -24,7 +23,7 @@ export const TypeId: TypeId = "~effect/eventlog/EventGroup"
  * @since 4.0.0
  * @category guards
  */
-export const isEventGroup = (u: unknown): u is EventGroup.Any => Predicate.hasProperty(u, TypeId)
+export const isEventGroup = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
 /**
  * An `EventGroup` is a collection of `Event`s. You can use an `EventGroup` to
@@ -57,7 +56,7 @@ export interface EventGroup<
     readonly payload?: Payload
     readonly success?: Success
     readonly error?: Error
-  }): EventGroup<Events | Event<Tag, Payload, Success, Error>>
+  }): EventGroup<Events | Event.Event<Tag, Payload, Success, Error>>
 
   /**
    * Add an error schema to all the events in the `EventGroup`.
@@ -69,41 +68,41 @@ export interface EventGroup<
  * @since 4.0.0
  * @category models
  */
-export declare namespace EventGroup {
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export interface Any {
-    readonly [TypeId]: TypeId
-  }
-
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export type AnyWithProps = EventGroup<Event.Any>
-
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export type ToService<A> = A extends EventGroup<infer _Events> ? Event.ToService<_Events>
-    : never
-
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export type Events<Group> = Group extends EventGroup<infer _Events> ? _Events
-    : never
-
-  /**
-   * @since 4.0.0
-   * @category models
-   */
-  export type Context<Group> = Event.Context<Events<Group>>
+export interface Any {
+  readonly [TypeId]: TypeId
 }
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type AnyWithProps = EventGroup<Event.Any>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ToService<A> = A extends EventGroup<infer _Events> ? Event.ToService<_Events>
+  : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type Events<Group> = Group extends EventGroup<infer _Events> ? _Events
+  : never
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ServicesClient<Group> = Event.ServicesClient<Events<Group>>
+
+/**
+ * @since 4.0.0
+ * @category models
+ */
+export type ServicesServer<Group> = Event.ServicesServer<Events<Group>>
 
 const makeProto = <
   Events extends Event.Any
@@ -130,11 +129,11 @@ const makeProto = <
         readonly success?: Success
         readonly error?: Error
       }
-    ): EventGroup<Events | Event<Tag, Payload, Success, Error>> {
+    ): EventGroup<Events | Event.Event<Tag, Payload, Success, Error>> {
       return makeProto({
         events: {
           ...this.events,
-          [addOptions.tag]: EventApi.make(addOptions)
+          [addOptions.tag]: Event.make(addOptions)
         }
       })
     },
@@ -144,7 +143,7 @@ const makeProto = <
     ): EventGroup<Event.AddError<Events, Error>> {
       const events = Record.map<string, Events, Event.AddError<Events, Error>>(
         this.events,
-        (event) => EventApi.addError(event, error)
+        (event) => Event.addError(event, error)
       )
       return makeProto({ events })
     },

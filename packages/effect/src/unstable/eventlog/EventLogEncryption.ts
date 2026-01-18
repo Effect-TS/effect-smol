@@ -7,6 +7,7 @@ import * as Redacted from "../../Redacted.ts"
 import * as Schema from "../../Schema.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
 import { Entry, EntryId, RemoteEntry } from "./EventJournal.ts"
+import type { Identity } from "./EventLog.ts"
 
 /**
  * @since 4.0.0
@@ -44,61 +45,32 @@ const toBufferSource = (data: Uint8Array): ArrayBufferView<ArrayBuffer> => new U
 
 /**
  * @since 4.0.0
- * @category type ids
- */
-export const TypeId = "~effect/eventlog/EventLogEncryption"
-
-/**
- * @since 4.0.0
- * @category type ids
- */
-export type EventLogEncryptionTypeId = typeof TypeId
-
-/**
- * @since 4.0.0
  * @category services
  */
-export interface EventLogEncryption {
-  readonly [TypeId]: EventLogEncryptionTypeId
+export class EventLogEncryption extends ServiceMap.Service<EventLogEncryption, {
   readonly encrypt: (
-    identity: EventLogEncryptionIdentity,
+    identity: Identity["Service"],
     entries: ReadonlyArray<Entry>
   ) => Effect.Effect<{
     readonly iv: Uint8Array
     readonly encryptedEntries: ReadonlyArray<Uint8Array>
   }>
   readonly decrypt: (
-    identity: EventLogEncryptionIdentity,
+    identity: Identity["Service"],
     entries: ReadonlyArray<EncryptedRemoteEntry>
   ) => Effect.Effect<Array<RemoteEntry>>
   readonly sha256String: (data: Uint8Array) => Effect.Effect<string>
   readonly sha256: (data: Uint8Array) => Effect.Effect<Uint8Array>
-}
-
-/**
- * @since 4.0.0
- * @category services
- */
-export interface EventLogEncryptionIdentity {
-  readonly privateKey: Redacted.Redacted<Uint8Array>
-}
-
-/**
- * @since 4.0.0
- * @category services
- */
-export const EventLogEncryption: ServiceMap.Service<EventLogEncryption, EventLogEncryption> = ServiceMap.Service(
-  TypeId
-)
+}>()("effect/eventlog/EventLogEncryption") {}
 
 /**
  * @since 4.0.0
  * @category encryption
  */
-export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncryption> =>
+export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncryption["Service"]> =>
   Effect.sync(() => {
-    const keyCache = new WeakMap<EventLogEncryptionIdentity, CryptoKey>()
-    const getKey = (identity: EventLogEncryptionIdentity) =>
+    const keyCache = new WeakMap<Identity["Service"], CryptoKey>()
+    const getKey = (identity: Identity["Service"]) =>
       Effect.suspend(() => {
         if (keyCache.has(identity)) {
           return Effect.succeed(keyCache.get(identity)!)
@@ -119,7 +91,6 @@ export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncr
       })
 
     return EventLogEncryption.of({
-      [TypeId]: TypeId,
       encrypt: (identity, entries) =>
         Effect.gen(function*() {
           const data = yield* Effect.orDie(Entry.encodeArray(entries))

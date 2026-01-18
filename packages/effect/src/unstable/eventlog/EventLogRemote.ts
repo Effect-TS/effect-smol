@@ -11,6 +11,7 @@ import * as RcMap from "../../RcMap.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
+import * as ServiceMap from "../../ServiceMap.ts"
 import * as Msgpack from "../encoding/Msgpack.ts"
 import * as Socket from "../socket/Socket.ts"
 import { type Entry, EntryId, RemoteEntry, RemoteId } from "./EventJournal.ts"
@@ -21,20 +22,20 @@ import { EncryptedEntry, EncryptedRemoteEntry, EventLogEncryption, layerSubtle }
  * @since 4.0.0
  * @category models
  */
-export interface EventLogRemote {
+export class EventLogRemote extends ServiceMap.Service<EventLogRemote, {
   readonly id: RemoteId
   readonly changes: (
-    identity: Identity,
+    identity: Identity["Service"],
     startSequence: number
   ) => Effect.Effect<Queue.Dequeue<ReadonlyArray<RemoteEntry>, Queue.Done>, never, Scope.Scope>
-  readonly write: (identity: Identity, entries: ReadonlyArray<Entry>) => Effect.Effect<void>
-}
+  readonly write: (identity: Identity["Service"], entries: ReadonlyArray<Entry>) => Effect.Effect<void>
+}>()("effect/eventlog/EventLogRemote") {}
 
 /**
  * @since 4.0.0
  * @category protocol
  */
-export class Hello extends Schema.Class<Hello>("effect/unstable/EventLogRemote/Hello")({
+export class Hello extends Schema.Class<Hello>("effect/eventlog/EventLogRemote/Hello")({
   _tag: Schema.tag("Hello"),
   remoteId: RemoteId
 }) {}
@@ -43,7 +44,7 @@ export class Hello extends Schema.Class<Hello>("effect/unstable/EventLogRemote/H
  * @since 4.0.0
  * @category protocol
  */
-export class ChunkedMessage extends Schema.Class<ChunkedMessage>("effect/unstable/EventLogRemote/ChunkedMessage")({
+export class ChunkedMessage extends Schema.Class<ChunkedMessage>("effect/eventlog/EventLogRemote/ChunkedMessage")({
   _tag: Schema.tag("ChunkedMessage"),
   id: Schema.Number,
   part: Schema.Tuple([Schema.Number, Schema.Number]),
@@ -110,7 +111,7 @@ export class ChunkedMessage extends Schema.Class<ChunkedMessage>("effect/unstabl
  * @since 4.0.0
  * @category protocol
  */
-export class WriteEntries extends Schema.Class<WriteEntries>("effect/unstable/EventLogRemote/WriteEntries")({
+export class WriteEntries extends Schema.Class<WriteEntries>("effect/eventlog/EventLogRemote/WriteEntries")({
   _tag: Schema.tag("WriteEntries"),
   publicKey: Schema.String,
   id: Schema.Number,
@@ -122,7 +123,7 @@ export class WriteEntries extends Schema.Class<WriteEntries>("effect/unstable/Ev
  * @since 4.0.0
  * @category protocol
  */
-export class Ack extends Schema.Class<Ack>("effect/unstable/EventLogRemote/Ack")({
+export class Ack extends Schema.Class<Ack>("effect/eventlog/EventLogRemote/Ack")({
   _tag: Schema.tag("Ack"),
   id: Schema.Number,
   sequenceNumbers: Schema.Array(Schema.Number)
@@ -132,7 +133,7 @@ export class Ack extends Schema.Class<Ack>("effect/unstable/EventLogRemote/Ack")
  * @since 4.0.0
  * @category protocol
  */
-export class RequestChanges extends Schema.Class<RequestChanges>("effect/unstable/EventLogRemote/RequestChanges")({
+export class RequestChanges extends Schema.Class<RequestChanges>("effect/eventlog/EventLogRemote/RequestChanges")({
   _tag: Schema.tag("RequestChanges"),
   publicKey: Schema.String,
   startSequence: Schema.Number
@@ -142,7 +143,7 @@ export class RequestChanges extends Schema.Class<RequestChanges>("effect/unstabl
  * @since 4.0.0
  * @category protocol
  */
-export class Changes extends Schema.Class<Changes>("effect/unstable/EventLogRemote/Changes")({
+export class Changes extends Schema.Class<Changes>("effect/eventlog/EventLogRemote/Changes")({
   _tag: Schema.tag("Changes"),
   publicKey: Schema.String,
   entries: Schema.Array(EncryptedRemoteEntry)
@@ -152,7 +153,7 @@ export class Changes extends Schema.Class<Changes>("effect/unstable/EventLogRemo
  * @since 4.0.0
  * @category protocol
  */
-export class StopChanges extends Schema.Class<StopChanges>("effect/unstable/EventLogRemote/StopChanges")({
+export class StopChanges extends Schema.Class<StopChanges>("effect/eventlog/EventLogRemote/StopChanges")({
   _tag: Schema.tag("StopChanges"),
   publicKey: Schema.String
 }) {}
@@ -161,7 +162,7 @@ export class StopChanges extends Schema.Class<StopChanges>("effect/unstable/Even
  * @since 4.0.0
  * @category protocol
  */
-export class Ping extends Schema.Class<Ping>("effect/unstable/EventLogRemote/Ping")({
+export class Ping extends Schema.Class<Ping>("effect/eventlog/EventLogRemote/Ping")({
   _tag: Schema.tag("Ping"),
   id: Schema.Number
 }) {}
@@ -170,7 +171,7 @@ export class Ping extends Schema.Class<Ping>("effect/unstable/EventLogRemote/Pin
  * @since 4.0.0
  * @category protocol
  */
-export class Pong extends Schema.Class<Pong>("effect/unstable/EventLogRemote/Pong")({
+export class Pong extends Schema.Class<Pong>("effect/eventlog/EventLogRemote/Pong")({
   _tag: Schema.tag("Pong"),
   id: Schema.Number
 }) {}
@@ -227,7 +228,7 @@ export const encodeResponse = Schema.encodeUnknownEffect(ProtocolResponseMsgpack
  * @since 4.0.0
  * @category change
  */
-export class RemoteAdditions extends Schema.Class<RemoteAdditions>("effect/unstable/EventLogRemote/RemoteAdditions")({
+export class RemoteAdditions extends Schema.Class<RemoteAdditions>("effect/eventlog/EventLogRemote/RemoteAdditions")({
   _tag: Schema.tag("RemoteAdditions"),
   entries: Schema.Array(RemoteEntry)
 }) {}
@@ -255,7 +256,7 @@ export const RemoteEntryChange = Schema.Tuple([RemoteId, Schema.Array(EntryId)])
  */
 export const fromSocket = (options?: {
   readonly disablePing?: boolean
-}): Effect.Effect<EventLogRemote, never, Scope.Scope | EventLogEncryption | Socket.Socket> =>
+}): Effect.Effect<EventLogRemote["Service"], never, Scope.Scope | EventLogEncryption | Socket.Socket> =>
   Effect.gen(function*() {
     const socket = yield* Socket.Socket
     const encryption = yield* EventLogEncryption
@@ -295,7 +296,7 @@ export const fromSocket = (options?: {
             )
         )
     })
-    const identities = new Map<string, Identity>()
+    const identities = new Map<string, Identity["Service"]>()
     const badPing = yield* Deferred.make<never, Error>()
     const remoteId = yield* Deferred.make<RemoteId>()
 
@@ -437,7 +438,7 @@ export const fromWebSocket = (
   options?: {
     readonly disablePing?: boolean
   }
-): Effect.Effect<EventLogRemote, never, Scope.Scope | EventLogEncryption | Socket.WebSocketConstructor> =>
+): Effect.Effect<EventLogRemote["Service"], never, Scope.Scope | EventLogEncryption | Socket.WebSocketConstructor> =>
   Effect.gen(function*() {
     const socket = yield* Socket.makeWebSocket(url)
     return yield* fromSocket(options).pipe(

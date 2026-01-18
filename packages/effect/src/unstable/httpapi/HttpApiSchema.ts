@@ -139,7 +139,7 @@ export const UnionUnify = <
 >(
   self: A,
   that: B
-): Schema.Schema<Schema.Schema.Type<A> | Schema.Schema.Type<B>> => Schema.make(UnionUnifyAST(self.ast, that.ast))
+): Schema.Top => Schema.make(UnionUnifyAST(self.ast, that.ast))
 
 /**
  * @since 4.0.0

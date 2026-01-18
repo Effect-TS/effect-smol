@@ -30,7 +30,7 @@ const handlerLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
 const logLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
   EventLog.layer(schema).pipe(
     Layer.provideMerge(EventJournal.layerMemory),
-    Layer.provideMerge(Layer.succeed(EventLog.Identity, EventLog.makeIdentity())),
+    Layer.provideMerge(Layer.succeed(EventLog.Identity, EventLog.makeIdentityUnsafe())),
     Layer.provideMerge(handlerLayer(handled))
   )
 
@@ -56,9 +56,9 @@ describe("EventLog", () => {
   it.effect("encrypts and decrypts entries", () =>
     Effect.gen(function*() {
       const encryption = yield* EventLogEncryption.EventLogEncryption
-      const identity = EventLog.makeIdentity()
+      const identity = EventLog.makeIdentityUnsafe()
       const entry = new EventJournal.Entry({
-        id: EventJournal.makeEntryId(),
+        id: EventJournal.makeEntryIdUnsafe(),
         event: "UserCreated",
         primaryKey: "user-1",
         payload: new Uint8Array([1, 2, 3])
