@@ -37,6 +37,8 @@ export interface EventJournal {
 
   /**
    * Write events from a remote source to the journal.
+   *
+   * Effects run sequentially in compaction bracket order.
    */
   readonly writeFromRemote: (
     options: {
