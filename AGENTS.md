@@ -12,25 +12,16 @@ This is the Effect library repository, focusing on functional programming patter
 - **Zero Tolerance for Errors**: All automated checks must pass
 - **Clarity over Cleverness**: Choose clear, maintainable solutions
 - **Conciseness**: Keep code and any wording concise and to the point. Sacrifice grammar for the sake of concision.
-- **Reduce comments**: Avoid comments unless absolutely required to explain
-  unusual or complex logic
+- **Reduce comments**: Avoid comments unless absolutely required to explain unusual or complex logic
 
 ### Mandatory Validation Steps
 
-- Run `pnpm lint-fix` after editing ANY TypeScript file
+- Run `pnpm lint-fix` after editing files
 - Always run tests after making changes: `pnpm test <test_file.ts>`
 - Run type checking: `pnpm check`
   - If type checking continues to fail, run `pnpm clean` to clear caches, then re-run `pnpm check`
 - Build the project: `pnpm build`
 - Check JSDoc examples compile: `pnpm docgen`
-
-## Rules and Guidelines
-
-- **NEVER use `try-catch` blocks inside `Effect.gen` generators!**
-- **NEVER EVER use `as never`, `as any`, or `as unknown` type assertions!**
-- **ALWAYS use `return yield*` when yielding errors or interrupts in Effect.gen!**
-  - When yielding `Effect.fail`, `Effect.interrupt`, or other terminal effects, always use `return yield*`
-  - This makes it clear that the generator function terminates at that point
 
 ## Code Style Guidelines
 
@@ -42,7 +33,6 @@ This is the Effect library repository, focusing on functional programming patter
 - Use proper Effect constructors (e.g., `Array.make()`, `Chunk.fromIterable()`)
 - Prefer `Effect.gen` for monadic composition
 - Use `Data.TaggedError` for custom error types
-- Implement resource safety with automatic cleanup patterns
 
 ### Code Organization
 
