@@ -652,6 +652,321 @@ export class ContextLengthError extends Schema.ErrorClass<ContextLengthError>(
 }
 
 /**
+ * Error indicating the request had invalid or malformed parameters.
+ *
+ * Invalid request errors require fixing the request and are not retryable.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const invalidRequestError = new AiError.InvalidRequestError({
+ *   parameter: "temperature",
+ *   constraint: "must be between 0 and 2",
+ *   description: "Temperature value 5 is out of range"
+ * })
+ *
+ * console.log(invalidRequestError.isRetryable) // false
+ * console.log(invalidRequestError.message)
+ * // "Invalid request: parameter 'temperature' must be between 0 and 2. Temperature value 5 is out of range"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
+  "effect/ai/AiError/InvalidRequestError"
+)({
+  _tag: Schema.tag("InvalidRequestError"),
+  parameter: Schema.optional(Schema.String),
+  constraint: Schema.optional(Schema.String),
+  description: Schema.optional(Schema.String),
+  provider: Schema.optional(ProviderMetadata),
+  http: Schema.optional(HttpContext),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Invalid request errors require fixing the request and are not retryable.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+
+  override get message(): string {
+    let msg = "Invalid request"
+    if (this.parameter) msg += `: parameter '${this.parameter}'`
+    if (this.constraint) msg += ` ${this.constraint}`
+    if (this.description) msg += `. ${this.description}`
+    return msg
+  }
+}
+
+/**
+ * Error indicating the AI provider experienced an internal error.
+ *
+ * Provider internal errors are typically transient and are retryable.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const providerError = new AiError.ProviderInternalError({
+ *   retryAfter: "30 seconds"
+ * })
+ *
+ * console.log(providerError.isRetryable) // true
+ * console.log(providerError.message)
+ * // "Provider internal error. Retry after 30 seconds. This is likely temporary."
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class ProviderInternalError extends Schema.ErrorClass<ProviderInternalError>(
+  "effect/ai/AiError/ProviderInternalError"
+)({
+  _tag: Schema.tag("ProviderInternalError"),
+  retryAfter: Schema.optional(Schema.Duration),
+  provider: Schema.optional(ProviderMetadata),
+  http: Schema.optional(HttpContext),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Provider internal errors are typically transient and are retryable.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return true
+  }
+
+  override get message(): string {
+    let msg = "Provider internal error"
+    if (this.provider?.name) msg = `${this.provider.name} internal error`
+    if (this.retryAfter) msg += `. Retry after ${Duration.format(this.retryAfter)}`
+    return `${msg}. This is likely temporary.`
+  }
+}
+
+/**
+ * Error indicating a request timeout.
+ *
+ * Timeout errors are typically transient and are retryable.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const timeoutError = new AiError.AiTimeoutError({
+ *   phase: "Response",
+ *   duration: "30 seconds"
+ * })
+ *
+ * console.log(timeoutError.isRetryable) // true
+ * console.log(timeoutError.message)
+ * // "Response timeout after 30 seconds"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class AiTimeoutError extends Schema.ErrorClass<AiTimeoutError>(
+  "effect/ai/AiError/AiTimeoutError"
+)({
+  _tag: Schema.tag("AiTimeoutError"),
+  phase: Schema.Literals(["Connection", "Request", "Response"]),
+  duration: Schema.optional(Schema.Duration),
+  provider: Schema.optional(ProviderMetadata),
+  http: Schema.optional(HttpContext),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Timeout errors are typically transient and are retryable.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return true
+  }
+
+  override get message(): string {
+    let msg = `${this.phase} timeout`
+    if (this.duration) msg += ` after ${Duration.format(this.duration)}`
+    return msg
+  }
+}
+
+/**
+ * Error indicating a network-level failure.
+ *
+ * Network errors are typically transient and are retryable.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const networkError = new AiError.NetworkError({
+ *   kind: "ConnectionRefused"
+ * })
+ *
+ * console.log(networkError.isRetryable) // true
+ * console.log(networkError.message)
+ * // "ConnectionRefused: Check network connectivity and firewall settings"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class NetworkError extends Schema.ErrorClass<NetworkError>(
+  "effect/ai/AiError/NetworkError"
+)({
+  _tag: Schema.tag("NetworkError"),
+  kind: Schema.Literals(["ConnectionRefused", "DnsLookupFailed", "TlsError", "Unknown"]),
+  http: Schema.optional(HttpContext),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Network errors are typically transient and are retryable.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return true
+  }
+
+  override get message(): string {
+    const suggestions: Record<string, string> = {
+      ConnectionRefused: "Check network connectivity and firewall settings",
+      DnsLookupFailed: "Verify the API endpoint hostname is correct",
+      TlsError: "TLS/SSL handshake failed. Check certificate validity",
+      Unknown: "Network error occurred. Check your connection"
+    }
+    return `${this.kind}: ${suggestions[this.kind]}`
+  }
+}
+
+/**
+ * Error indicating failure to parse LLM output.
+ *
+ * Output parse errors are retryable since LLM outputs are non-deterministic.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const parseError = new AiError.OutputParseError({
+ *   rawOutput: '{"invalid": json}',
+ *   expectedSchema: "UserResponse"
+ * })
+ *
+ * console.log(parseError.isRetryable) // true
+ * console.log(parseError.message)
+ * // "Failed to parse LLM output into expected schema"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class OutputParseError extends Schema.ErrorClass<OutputParseError>(
+  "effect/ai/AiError/OutputParseError"
+)({
+  _tag: Schema.tag("OutputParseError"),
+  rawOutput: Schema.optional(Schema.String),
+  expectedSchema: Schema.optional(Schema.String),
+  provider: Schema.optional(ProviderMetadata),
+  usage: Schema.optional(UsageInfo),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Output parse errors are retryable since LLM outputs are non-deterministic.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return true
+  }
+
+  /**
+   * Creates an OutputParseError from a Schema error.
+   *
+   * @example
+   * ```ts
+   * import { Schema } from "effect"
+   * import { AiError } from "effect/unstable/ai"
+   *
+   * declare const schemaError: Schema.SchemaError
+   *
+   * const parseError = AiError.OutputParseError.fromSchemaError({
+   *   rawOutput: "invalid json",
+   *   error: schemaError
+   * })
+   * ```
+   *
+   * @since 4.0.0
+   * @category constructors
+   */
+  static fromSchemaError(params: {
+    readonly rawOutput?: string
+    readonly error: Schema.SchemaError
+  }): OutputParseError {
+    return new OutputParseError({
+      rawOutput: params.rawOutput,
+      cause: params.error
+    })
+  }
+
+  override get message(): string {
+    return "Failed to parse LLM output into expected schema"
+  }
+}
+
+/**
+ * Catch-all error for unknown or unexpected errors.
+ *
+ * Unknown errors are not retryable by default since the cause is unknown.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const unknownError = new AiError.AiUnknownError({
+ *   description: "An unexpected error occurred"
+ * })
+ *
+ * console.log(unknownError.isRetryable) // false
+ * console.log(unknownError.message)
+ * // "An unexpected error occurred"
+ * ```
+ *
+ * @since 4.0.0
+ * @category reason
+ */
+export class AiUnknownError extends Schema.ErrorClass<AiUnknownError>(
+  "effect/ai/AiError/AiUnknownError"
+)({
+  _tag: Schema.tag("AiUnknownError"),
+  description: Schema.optional(Schema.String),
+  provider: Schema.optional(ProviderMetadata),
+  http: Schema.optional(HttpContext),
+  cause: Schema.optional(Schema.Defect)
+}) {
+  /**
+   * Unknown errors are not retryable by default.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return false
+  }
+
+  override get message(): string {
+    return this.description ?? "Unknown error"
+  }
+}
+
+/**
  * Error that occurs during HTTP response processing.
  *
  * This error is thrown when issues arise after receiving an HTTP response,

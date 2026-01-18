@@ -688,14 +688,14 @@ export const reasonFromHttpStatus = (params: {
 
 **Tasks**:
 
-- [ ] **3.1** Create `InvalidRequestError` with `isRetryable` getter (returns `false`), `parameter`, `constraint`, `description`
-- [ ] **3.2** Create `ProviderInternalError` with `isRetryable` getter (returns `true`), `retryAfter: Duration`
-- [ ] **3.3** Create `TimeoutError` with `isRetryable` getter (returns `true`), `phase` discriminant, `duration: Duration`
-- [ ] **3.4** Create `NetworkError` with `isRetryable` getter (returns `true`), `kind` discriminant
-- [ ] **3.5** Create `OutputParseError` with `isRetryable` getter (returns `true`), `rawOutput`, `expectedSchema`, `fromSchemaError` static method
-- [ ] **3.6** Create `UnknownError` with `isRetryable` getter (returns `false`), `description`
-- [ ] **3.7** Run `pnpm lint-fix`
-- [ ] **3.8** Run `pnpm check`
+- [x] **3.1** Create `InvalidRequestError` with `isRetryable` getter (returns `false`), `parameter`, `constraint`, `description`
+- [x] **3.2** Create `ProviderInternalError` with `isRetryable` getter (returns `true`), `retryAfter: Duration`
+- [x] **3.3** Create `AiTimeoutError` with `isRetryable` getter (returns `true`), `phase` discriminant, `duration: Duration`
+- [x] **3.4** Create `NetworkError` with `isRetryable` getter (returns `true`), `kind` discriminant
+- [x] **3.5** Create `OutputParseError` with `isRetryable` getter (returns `true`), `rawOutput`, `expectedSchema`, `fromSchemaError` static method
+- [x] **3.6** Create `AiUnknownError` with `isRetryable` getter (returns `false`), `description`
+- [x] **3.7** Run `pnpm lint-fix`
+- [x] **3.8** Run `pnpm check`
 
 **Verification**: `pnpm check` passes
 

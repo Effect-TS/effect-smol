@@ -39,3 +39,8 @@
 **Task**: Add RateLimitError, QuotaExhaustedError, AuthenticationError, ContentPolicyError, ModelUnavailableError, ContextLengthError reason classes
 **Status**: complete
 ---
+
+## Iteration 2 - 2026-01-18 17:21
+**Task**: Add InvalidRequestError, ProviderInternalError, AiTimeoutError, NetworkError, OutputParseError, AiUnknownError reason classes
+**Status**: complete
+---
