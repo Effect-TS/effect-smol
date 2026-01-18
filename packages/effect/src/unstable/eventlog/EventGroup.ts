@@ -37,10 +37,10 @@ export const isEventGroup = (u: unknown): u is EventGroup.Any => Predicate.hasPr
  * @category models
  */
 export interface EventGroup<
-  out Events extends Event.Any = never
+  out Events extends Event.Any = Event.Any
 > extends Pipeable {
-  new(_: never): {}
-
+  readonly _?: symbol
+  readonly __type?: Events | undefined
   readonly [TypeId]: TypeId
   readonly events: Record.ReadonlyRecord<string, Events>
 
@@ -83,7 +83,7 @@ export declare namespace EventGroup {
    * @since 4.0.0
    * @category models
    */
-  export type AnyWithProps = EventGroup<Event.AnyWithProps>
+  export type AnyWithProps = EventGroup<Event.Any>
 
   /**
    * @since 4.0.0
@@ -106,44 +106,59 @@ export declare namespace EventGroup {
   export type Context<Group> = Event.Context<Events<Group>>
 }
 
-const Proto = {
-  [TypeId]: TypeId,
-  add(this: EventGroup.AnyWithProps, options: {
-    readonly tag: string
-    readonly primaryKey: (payload: Schema.Top["Type"]) => string
-    readonly payload?: Schema.Top
-    readonly success?: Schema.Top
-    readonly error?: Schema.Top
-  }) {
-    return makeProto({
-      events: {
-        ...this.events,
-        [options.tag]: EventApi.make(options)
-      }
-    })
-  },
-  addError(this: EventGroup.AnyWithProps, error: Schema.Top) {
-    return makeProto({
-      events: Record.map(this.events, (event) =>
-        EventApi.make({
-          ...event,
-          error: HttpApiSchema.UnionUnify(event.error, error)
-        }))
-    })
-  },
-  pipe() {
-    return pipeArguments(this, arguments)
-  }
-}
-
 const makeProto = <
   Events extends Event.Any
 >(options: {
   readonly events: Record.ReadonlyRecord<string, Events>
 }): EventGroup<Events> => {
-  function EventGroup() {}
-  Object.setPrototypeOf(EventGroup, Proto)
-  return Object.assign(EventGroup, options) as any
+  const EventGroupClass = (_: never) => {}
+  const group = Object.assign(EventGroupClass, {
+    [TypeId]: TypeId,
+    _: Symbol.for("~effect/eventlog/EventGroup"),
+    __type: undefined,
+    events: options.events,
+    add<
+      Tag extends string,
+      Payload extends Schema.Top = typeof Schema.Void,
+      Success extends Schema.Top = typeof Schema.Void,
+      Error extends Schema.Top = typeof Schema.Never
+    >(
+      this: EventGroup<Events>,
+      addOptions: {
+        readonly tag: Tag
+        readonly primaryKey: (payload: Schema.Schema.Type<Payload>) => string
+        readonly payload?: Payload
+        readonly success?: Success
+        readonly error?: Error
+      }
+    ): EventGroup<Events | Event<Tag, Payload, Success, Error>> {
+      return makeProto({
+        events: {
+          ...this.events,
+          [addOptions.tag]: EventApi.make(addOptions)
+        }
+      })
+    },
+    addError<Error extends Schema.Top>(
+      this: EventGroup<Events>,
+      error: Error
+    ): EventGroup<Event.AddError<Events, Error>> {
+      return makeProto({
+        events: Record.map(this.events, (event) =>
+          EventApi.make({
+            tag: event.tag,
+            primaryKey: event.primaryKey,
+            payload: event.payload,
+            success: event.success,
+            error: HttpApiSchema.UnionUnify(event.error, error)
+          }))
+      }) as EventGroup<Event.AddError<Events, Error>>
+    },
+    pipe() {
+      return pipeArguments(this, arguments)
+    }
+  })
+  return group
 }
 
 /**
