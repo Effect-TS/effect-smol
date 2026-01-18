@@ -346,13 +346,13 @@ export const groupCompaction = <Events extends Event.Any, R>(
 
       yield* log.registerCompaction({
         events: Object.keys(group.events),
-        effect: Effect.fnUntraced(function*({ entries, write }) {
+        effect: Effect.fnUntraced(function*({ entries, write }): Effect.fn.Return<void> {
           const isEventTag = (tag: string): tag is Event.Tag<Events> => tag in group.events
           const decodePayload = <Tag extends Event.Tag<Events>>(tag: Tag, payload: Uint8Array) =>
             Schema.decodeUnknownEffect(group.events[tag].payloadMsgPack)(payload).pipe(
               Effect.updateServices((input) => ServiceMap.merge(services, input)),
               Effect.orDie
-            )
+            ) as unknown as Effect.Effect<Event.PayloadWithTag<Events, Tag>>
           const writePayload = Effect.fnUntraced(function*<Tag extends Event.Tag<Events>>(
             timestamp: number,
             tag: Tag,
@@ -407,12 +407,9 @@ export const groupCompaction = <Events extends Event.Any, R>(
               }).pipe(
                 Effect.updateServices((input) => ServiceMap.merge(services, input))
               )
-            )
+            ) as any
           }
-        }) as (options: {
-          readonly entries: ReadonlyArray<Entry>
-          readonly write: (entry: Entry) => Effect.Effect<void>
-        }) => Effect.Effect<void>
+        })
       })
     })
   ).pipe(
@@ -554,9 +551,7 @@ const make = Effect.gen(function*() {
                 if (!handler) {
                   return yield* Effect.logDebug(`Event handler not found for: "${entry.event}"`)
                 }
-                const decodePayload = Schema.decodeUnknownEffect(
-                  handler.event.payloadMsgPack
-                )
+                const decodePayload = Schema.decodeUnknownEffect(handler.event.payloadMsgPack)
                 const decodedConflicts: Array<{ entry: Entry; payload: unknown }> = new Array(conflicts.length)
                 for (let i = 0; i < conflicts.length; i++) {
                   decodedConflicts[i] = {
