@@ -1,3 +1,8 @@
+---
+description: "Develop a plan for implementing a new feature"
+targets: ["*"]
+---
+
 # New Feature Development - Effect Library
 
 ## 🚨 MANDATORY SPEC-DRIVEN DEVELOPMENT 🚨

@@ -27,3 +27,8 @@ lalph-plan.md
 .lalph-setup.sh
 
 .pnpm-store/
+
+# Managed by rulesync
+.claude
+.codex
+.opencode

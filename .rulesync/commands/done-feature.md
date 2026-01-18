@@ -1,3 +1,8 @@
+---
+description: "Validate a newly implemented feature"
+targets: ["*"]
+---
+
 # Feature Completion - Effect Library
 
 ## 🎯 OBJECTIVE
