@@ -289,30 +289,34 @@ const Proto = {
         const tool = tools[name]
         if (Predicate.isUndefined(tool)) {
           const toolNames = Object.keys(tools).join(",")
-          return yield* new AiError.MalformedOutput({
+          return yield* AiError.makeWithReason({
             module: "Toolkit",
             method: `${name}.handle`,
-            description: `Failed to find tool with name '${name}' in toolkit - available tools: ${toolNames}`
+            reason: new AiError.OutputParseError({
+              rawOutput: JSON.stringify(params, undefined, 2),
+              expectedSchema: `Tool '${name}' not found in toolkit - available tools: ${toolNames}`
+            })
           })
         }
         const schemas = getSchemas(tool)
         const decodedParams = yield* Effect.mapError(
           schemas.decodeParameters(params),
           (cause) =>
-            new AiError.MalformedOutput({
+            AiError.makeWithReason({
               module: "Toolkit",
               method: `${name}.handle`,
-              description: `Failed to decode tool call parameters for tool '${name}' from:\n'${
-                JSON.stringify(params, undefined, 2)
-              }'`,
-              cause
+              reason: new AiError.OutputParseError({
+                rawOutput: JSON.stringify(params, undefined, 2),
+                expectedSchema: name,
+                cause
+              })
             })
         )
         const { isFailure, result } = yield* schemas.handler(decodedParams).pipe(
           Effect.map((result) => ({ result, isFailure: false })),
           Effect.catch((error) => {
             // AiErrors are always failures
-            if (AiError.isAiError(error)) {
+            if (AiError.isAiError(error) || AiError.isAiErrorWithReason(error)) {
               return Effect.fail(error)
             }
             // If the tool handler failed, check the tool's failure mode to
@@ -324,11 +328,14 @@ const Proto = {
           Effect.updateServices((input) => ServiceMap.merge(schemas.services, input)),
           Effect.mapError((cause) =>
             Schema.isSchemaError(cause)
-              ? new AiError.MalformedInput({
+              ? AiError.makeWithReason({
                 module: "Toolkit",
                 method: `${name}.handle`,
-                description: `Failed to validate tool call result for tool '${name}'`,
-                cause
+                reason: new AiError.InvalidRequestError({
+                  parameter: name,
+                  description: `Failed to validate tool call result for tool '${name}'`,
+                  cause
+                })
               })
               : cause
           )
@@ -336,11 +343,14 @@ const Proto = {
         const encodedResult = yield* Effect.mapError(
           schemas.encodeResult(result),
           (cause) =>
-            new AiError.MalformedInput({
+            AiError.makeWithReason({
               module: "Toolkit",
               method: `${name}.handle`,
-              description: `Failed to encode tool call result for tool '${name}'`,
-              cause
+              reason: new AiError.InvalidRequestError({
+                parameter: name,
+                description: `Failed to encode tool call result for tool '${name}'`,
+                cause
+              })
             })
         )
         return {

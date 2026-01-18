@@ -206,11 +206,13 @@ describe("Tool", () => {
           Effect.flip
         )
 
-        assert.strictEqual(response._tag, "MalformedOutput")
-        assert.strictEqual(
-          response.description,
-          "Failed to decode tool call parameters for tool 'FailureModeReturn' from:\n'{}'"
-        )
+        assert.strictEqual(response._tag, "AiErrorWithReason")
+        if (response._tag === "AiErrorWithReason") {
+          assert.strictEqual(response.reason._tag, "OutputParseError")
+          if (response.reason._tag === "OutputParseError") {
+            assert.strictEqual(response.reason.expectedSchema, "FailureModeReturn")
+          }
+        }
       }))
   })
 
@@ -488,11 +490,13 @@ describe("Tool", () => {
           Effect.flip
         )
 
-        assert.strictEqual(response._tag, "MalformedOutput")
-        assert.strictEqual(
-          response.description,
-          "Failed to decode tool call parameters for tool 'HandlerRequired' from:\n'{}'"
-        )
+        assert.strictEqual(response._tag, "AiErrorWithReason")
+        if (response._tag === "AiErrorWithReason") {
+          assert.strictEqual(response.reason._tag, "OutputParseError")
+          if (response.reason._tag === "OutputParseError") {
+            assert.strictEqual(response.reason.expectedSchema, "HandlerRequired")
+          }
+        }
       }))
   })
 })

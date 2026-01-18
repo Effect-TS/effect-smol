@@ -49,3 +49,8 @@
 **Task**: Add AiErrorReason union, AiErrorWithReason wrapper, makeWithReason constructor, reasonFromHttpStatus utility
 **Status**: complete
 ---
+
+## Iteration 4 - 2026-01-18 17:29
+**Task**: Update LanguageModel.ts and Toolkit.ts to use AiErrorWithReason pattern
+**Status**: complete
+---

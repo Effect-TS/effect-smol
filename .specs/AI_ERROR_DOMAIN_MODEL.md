@@ -737,11 +737,11 @@ export const reasonFromHttpStatus = (params: {
 - [ ] **5.3** Remove `MalformedInput` class (replaced by `InvalidRequestError`)
 - [ ] **5.4** Remove `MalformedOutput` class (replaced by `OutputParseError`)
 - [ ] **5.5** Remove old `UnknownError` class
-- [ ] **5.6** Update `LanguageModel.ts` to use new `AiError` with `reason`
-- [ ] **5.7** Update `Toolkit.ts` to use new `AiError` with `reason`
-- [ ] **5.8** Update `isAiError` checks throughout codebase
-- [ ] **5.9** Run `pnpm lint-fix`
-- [ ] **5.10** Run `pnpm check`
+- [x] **5.6** Update `LanguageModel.ts` to use new `AiError` with `reason`
+- [x] **5.7** Update `Toolkit.ts` to use new `AiError` with `reason`
+- [x] **5.8** Update `isAiError` checks throughout codebase
+- [x] **5.9** Run `pnpm lint-fix`
+- [x] **5.10** Run `pnpm check`
 
 **Verification**: `pnpm check` passes
 
