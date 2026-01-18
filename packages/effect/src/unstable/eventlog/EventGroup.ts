@@ -5,7 +5,6 @@ import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
-import * as HttpApiSchema from "../httpapi/HttpApiSchema.ts"
 import type { Event } from "./Event.ts"
 import * as EventApi from "./Event.ts"
 
@@ -143,16 +142,11 @@ const makeProto = <
       this: EventGroup<Events>,
       error: Error
     ): EventGroup<Event.AddError<Events, Error>> {
-      return makeProto({
-        events: Record.map(this.events, (event) =>
-          EventApi.make({
-            tag: event.tag,
-            primaryKey: event.primaryKey,
-            payload: event.payload,
-            success: event.success,
-            error: HttpApiSchema.UnionUnify(event.error, error)
-          }))
-      }) as EventGroup<Event.AddError<Events, Error>>
+      const events = Record.map<string, Events, Event.AddError<Events, Error>>(
+        this.events,
+        (event) => EventApi.addError(event, error)
+      )
+      return makeProto({ events })
     },
     pipe() {
       return pipeArguments(this, arguments)
