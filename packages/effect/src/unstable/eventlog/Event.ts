@@ -66,13 +66,18 @@ export declare namespace Event {
   export interface Any {
     readonly [TypeId]: TypeId
     readonly tag: string
+    readonly primaryKey: (payload: Schema.Schema.Type<Schema.Top>) => string
+    readonly payload: Schema.Top
+    readonly payloadMsgPack: Msgpack.schema<Schema.Top>
+    readonly success: Schema.Top
+    readonly error: Schema.Top
   }
 
   /**
    * @since 4.0.0
    * @category models
    */
-  export interface AnyWithProps extends Event<string, Schema.Top, Schema.Top, Schema.Top> {}
+  export interface AnyWithProps extends Any {}
 
   /**
    * @since 4.0.0
@@ -245,7 +250,7 @@ const Proto = {
  * @since 4.0.0
  * @category constructors
  */
-export const make = <
+export function make<
   Tag extends string,
   Payload extends Schema.Top = typeof Schema.Void,
   Success extends Schema.Top = typeof Schema.Void,
@@ -256,10 +261,17 @@ export const make = <
   readonly payload?: Payload | undefined
   readonly success?: Success | undefined
   readonly error?: Error | undefined
-}): Event<Tag, Payload, Success, Error> => {
-  const payload = options.payload ?? (Schema.Void as any as Payload)
-  const success = options.success ?? (Schema.Void as any as Success)
-  const error = options.error ?? (Schema.Never as any as Error)
+}): Event<Tag, Payload, Success, Error>
+export function make(options: {
+  readonly tag: string
+  readonly primaryKey: (payload: Schema.Schema.Type<Schema.Top>) => string
+  readonly payload?: Schema.Top | undefined
+  readonly success?: Schema.Top | undefined
+  readonly error?: Schema.Top | undefined
+}): Event<string, Schema.Top, Schema.Top, typeof Schema.Never> {
+  const payload = options.payload ?? Schema.Void
+  const success = options.success ?? Schema.Void
+  const error = options.error ?? Schema.Never
   return Object.assign(Object.create(Proto), {
     tag: options.tag,
     primaryKey: options.primaryKey,
