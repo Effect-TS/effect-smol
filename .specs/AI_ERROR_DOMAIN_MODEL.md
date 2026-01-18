@@ -709,14 +709,14 @@ export const reasonFromHttpStatus = (params: {
 
 **Tasks**:
 
-- [ ] **4.1** Create `AiErrorReason` type union of all reason types
-- [ ] **4.2** Create `AiErrorReason` schema union
-- [ ] **4.3** Create top-level `AiError` class with `module`, `method`, `reason: AiErrorReason`, `isRetryable` getter, `retryAfter` getter
-- [ ] **4.4** Implement `make` constructor function
-- [ ] **4.5** Implement `reasonFromHttpStatus` utility function
-- [ ] **4.6** Update `isAiError` type guard
-- [ ] **4.7** Run `pnpm lint-fix`
-- [ ] **4.8** Run `pnpm check`
+- [x] **4.1** Create `AiErrorReason` type union of all reason types
+- [x] **4.2** Create `AiErrorReason` schema union
+- [x] **4.3** Create top-level `AiErrorWithReason` class with `module`, `method`, `reason: AiErrorReason`, `isRetryable` getter, `retryAfter` getter
+- [x] **4.4** Implement `makeWithReason` constructor function
+- [x] **4.5** Implement `reasonFromHttpStatus` utility function
+- [x] **4.6** Add `isAiErrorWithReason` type guard
+- [x] **4.7** Run `pnpm lint-fix`
+- [x] **4.8** Run `pnpm check`
 
 **Verification**: `pnpm check` passes
 

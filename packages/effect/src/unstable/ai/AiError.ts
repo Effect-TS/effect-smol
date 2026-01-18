@@ -352,12 +352,13 @@ export const HttpContext = Schema.Struct({
  *
  * @example
  * ```ts
+ * import { Duration } from "effect"
  * import { AiError } from "effect/unstable/ai"
  *
  * const rateLimitError = new AiError.RateLimitError({
  *   limit: "requests",
  *   remaining: 0,
- *   retryAfter: "60 seconds"
+ *   retryAfter: Duration.seconds(60)
  * })
  *
  * console.log(rateLimitError.isRetryable) // true
@@ -710,10 +711,11 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
  *
  * @example
  * ```ts
+ * import { Duration } from "effect"
  * import { AiError } from "effect/unstable/ai"
  *
  * const providerError = new AiError.ProviderInternalError({
- *   retryAfter: "30 seconds"
+ *   retryAfter: Duration.seconds(30)
  * })
  *
  * console.log(providerError.isRetryable) // true
@@ -757,11 +759,12 @@ export class ProviderInternalError extends Schema.ErrorClass<ProviderInternalErr
  *
  * @example
  * ```ts
+ * import { Duration } from "effect"
  * import { AiError } from "effect/unstable/ai"
  *
  * const timeoutError = new AiError.AiTimeoutError({
  *   phase: "Response",
- *   duration: "30 seconds"
+ *   duration: Duration.seconds(30)
  * })
  *
  * console.log(timeoutError.isRetryable) // true
@@ -965,6 +968,234 @@ export class AiUnknownError extends Schema.ErrorClass<AiUnknownError>(
     return this.description ?? "Unknown error"
   }
 }
+
+// =============================================================================
+// AiErrorReason Union
+// =============================================================================
+
+/**
+ * Union type of all semantic error reasons that can occur during AI operations.
+ *
+ * Each reason type provides:
+ * - Semantic categorization of the failure mode
+ * - `isRetryable` getter indicating if the error is transient
+ * - Optional `retryAfter` duration for rate limit/throttling errors
+ * - Rich context including provider metadata and HTTP details
+ *
+ * @since 4.0.0
+ * @category models
+ */
+export type AiErrorReason =
+  | RateLimitError
+  | QuotaExhaustedError
+  | AuthenticationError
+  | ContentPolicyError
+  | ModelUnavailableError
+  | ContextLengthError
+  | InvalidRequestError
+  | ProviderInternalError
+  | AiTimeoutError
+  | NetworkError
+  | OutputParseError
+  | AiUnknownError
+
+/**
+ * Schema for validating and parsing AI error reasons.
+ *
+ * @since 4.0.0
+ * @category schemas
+ */
+export const AiErrorReason: Schema.Union<[
+  typeof RateLimitError,
+  typeof QuotaExhaustedError,
+  typeof AuthenticationError,
+  typeof ContentPolicyError,
+  typeof ModelUnavailableError,
+  typeof ContextLengthError,
+  typeof InvalidRequestError,
+  typeof ProviderInternalError,
+  typeof AiTimeoutError,
+  typeof NetworkError,
+  typeof OutputParseError,
+  typeof AiUnknownError
+]> = Schema.Union([
+  RateLimitError,
+  QuotaExhaustedError,
+  AuthenticationError,
+  ContentPolicyError,
+  ModelUnavailableError,
+  ContextLengthError,
+  InvalidRequestError,
+  ProviderInternalError,
+  AiTimeoutError,
+  NetworkError,
+  OutputParseError,
+  AiUnknownError
+])
+
+// =============================================================================
+// Top-Level AiErrorWithReason
+// =============================================================================
+
+const ReasonTypeId = "~effect/unstable/ai/AiErrorWithReason" as const
+
+/**
+ * Top-level AI error wrapper using the `reason` pattern.
+ *
+ * This error wraps semantic error reasons and provides:
+ * - `module` and `method` context for where the error occurred
+ * - `reason` field containing the semantic error type
+ * - Delegated `isRetryable` and `retryAfter` to the underlying reason
+ *
+ * Use with `Effect.catchReason` for ergonomic error handling:
+ *
+ * @example
+ * ```ts
+ * import { Effect } from "effect"
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * declare const aiOperation: Effect.Effect<string, AiError.AiErrorWithReason>
+ *
+ * // Handle specific reason types
+ * const handled = aiOperation.pipe(
+ *   Effect.catchTag("AiErrorWithReason", (error) => {
+ *     if (error.reason._tag === "RateLimitError") {
+ *       return Effect.succeed(`Retry after ${error.retryAfter}`)
+ *     }
+ *     return Effect.fail(error)
+ *   })
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category schemas
+ */
+export class AiErrorWithReason extends Schema.ErrorClass<AiErrorWithReason>(
+  "effect/ai/AiError/AiErrorWithReason"
+)({
+  _tag: Schema.tag("AiErrorWithReason"),
+  module: Schema.String,
+  method: Schema.String,
+  reason: AiErrorReason
+}) {
+  /**
+   * @since 4.0.0
+   */
+  readonly [ReasonTypeId] = ReasonTypeId
+
+  /**
+   * Delegates to the underlying reason's `isRetryable` getter.
+   *
+   * @since 4.0.0
+   */
+  get isRetryable(): boolean {
+    return this.reason.isRetryable
+  }
+
+  /**
+   * Delegates to the underlying reason's `retryAfter` if present.
+   *
+   * @since 4.0.0
+   */
+  get retryAfter(): Duration.Duration | undefined {
+    return "retryAfter" in this.reason ? this.reason.retryAfter : undefined
+  }
+
+  override get message(): string {
+    return `${this.module}.${this.method}: ${this.reason.message}`
+  }
+}
+
+/**
+ * Type guard to check if a value is an `AiErrorWithReason`.
+ *
+ * @param u - The value to check
+ * @returns `true` if the value is an `AiErrorWithReason`, `false` otherwise
+ *
+ * @since 4.0.0
+ * @category guards
+ */
+export const isAiErrorWithReason = (u: unknown): u is AiErrorWithReason => Predicate.hasProperty(u, ReasonTypeId)
+
+/**
+ * Creates an `AiErrorWithReason` with the given reason.
+ *
+ * @example
+ * ```ts
+ * import { Duration } from "effect"
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const error = AiError.makeWithReason({
+ *   module: "OpenAI",
+ *   method: "completion",
+ *   reason: new AiError.RateLimitError({
+ *     limit: "requests",
+ *     retryAfter: Duration.seconds(60)
+ *   })
+ * })
+ *
+ * console.log(error.message)
+ * // "OpenAI.completion: Rate limit exceeded (requests). Retry after 1 minute"
+ * ```
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const makeWithReason = (params: {
+  readonly module: string
+  readonly method: string
+  readonly reason: AiErrorReason
+}): AiErrorWithReason => new AiErrorWithReason(params)
+
+/**
+ * Maps HTTP status codes to semantic error reasons.
+ *
+ * Provider packages can use this as a base for provider-specific mapping.
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const reason = AiError.reasonFromHttpStatus({
+ *   status: 429,
+ *   body: { error: "Rate limit exceeded" }
+ * })
+ *
+ * console.log(reason._tag) // "RateLimitError"
+ * ```
+ *
+ * @since 4.0.0
+ * @category constructors
+ */
+export const reasonFromHttpStatus = (params: {
+  readonly status: number
+  readonly body?: unknown
+  readonly http?: typeof HttpContext.Type
+  readonly provider?: typeof ProviderMetadata.Type
+}): AiErrorReason => {
+  const { status, body, http, provider } = params
+  switch (status) {
+    case 400:
+      return new InvalidRequestError({ http, provider, cause: body })
+    case 401:
+      return new AuthenticationError({ kind: "InvalidKey", http, provider, cause: body })
+    case 403:
+      return new AuthenticationError({ kind: "InsufficientPermissions", http, provider, cause: body })
+    case 408:
+      return new AiTimeoutError({ phase: "Request", http, provider, cause: body })
+    case 429:
+      return new RateLimitError({ http, provider, cause: body })
+    default:
+      if (status >= 500) {
+        return new ProviderInternalError({ http, provider, cause: body })
+      }
+      return new AiUnknownError({ http, provider, cause: body })
+  }
+}
+
+// =============================================================================
+// Deprecated Error Types (To Be Removed in Phase 5)
+// =============================================================================
 
 /**
  * Error that occurs during HTTP response processing.

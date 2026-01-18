@@ -44,3 +44,8 @@
 **Task**: Add InvalidRequestError, ProviderInternalError, AiTimeoutError, NetworkError, OutputParseError, AiUnknownError reason classes
 **Status**: complete
 ---
+
+## Iteration 3 - 2026-01-18 17:24
+**Task**: Add AiErrorReason union, AiErrorWithReason wrapper, makeWithReason constructor, reasonFromHttpStatus utility
+**Status**: complete
+---
