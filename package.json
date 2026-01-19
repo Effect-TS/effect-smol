@@ -17,7 +17,7 @@
     "check-recursive": "pnpm --recursive --filter \"./packages/**/*\" exec tspc -b tsconfig.json",
     "lint": "oxlint && dprint check",
     "lint-fix": "oxlint --fix && dprint fmt",
-    "ai:rulesync": "rulesync generate --targets=claudecode,codexcli,opencode --features=commands,skills",
+    "ai:rulesync": "rulesync generate --targets=claudecode,codexcli,opencode --features=commands,rules,skills",
     "docgen": "pnpm --recursive --filter \"./packages/**/*\" exec docgen && node scripts/docs.mjs",
     "analyze-jsdoc": "node scripts/analyze-jsdoc.mjs",
     "test-types": "tstyche",

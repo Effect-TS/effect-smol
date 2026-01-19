@@ -1,15 +1,9 @@
-Please also reference the following rules as needed. The list below is provided in TOON format, and `@` stands for the project root directory.
-
-rules[3]:
-  - path: @.opencode/memories/barrel-files.md
-    description: Rules for auto-generated barrel files (index.ts)
-    applyTo[1]: **/index.ts
-  - path: @.opencode/memories/code-style.md
-    description: Effect library conventions and code organization guidelines
-    applyTo[2]: **/*.ts,**/*.tsx
-  - path: @.opencode/memories/testing.md
-    description: Testing guidelines for Effect-based tests using @effect/vitest and TestClock
-    applyTo[3]: **/test/**/*.ts,**/*.test.ts,**/*.spec.ts
+---
+root: true
+targets: ["*"]
+description: "Core instructions for the Effect library repository"
+globs: ["**/*"]
+---
 
 # Agent Instructions
 
