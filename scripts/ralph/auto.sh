@@ -5,14 +5,14 @@
 # This script runs an autonomous agent to implement a specific task.
 # A focus prompt is REQUIRED - the agent will only do what you ask.
 #
-# Usage: ./scripts/ralph-auto.sh <focus prompt> [options]
+# Usage: ./scripts/ralph/auto.sh <focus prompt> [options]
 #
 # Options:
 #   --max-iterations <n>     Stop after n iterations (default: unlimited)
 #
 # Examples:
-#   ./scripts/ralph-auto.sh "Fix the authentication bug in login flow"
-#   ./scripts/ralph-auto.sh "Implement the Stream.mapAccum function" --max-iterations 5
+#   ./scripts/ralph/auto.sh "Fix the authentication bug in login flow"
+#   ./scripts/ralph/auto.sh "Implement the Stream.mapAccum function" --max-iterations 5
 #
 # The loop continues until the task is complete (TASK_COMPLETE signal)
 # COMMITS ARE HANDLED BY THIS SCRIPT, NOT THE AGENT.
@@ -36,7 +36,7 @@ while [[ $# -gt 0 ]]; do
             fi
             ;;
         --help|-h)
-            echo "Usage: ./scripts/ralph-auto.sh <focus prompt> [options]"
+            echo "Usage: ./scripts/ralph/auto.sh <focus prompt> [options]"
             echo ""
             echo "A focus prompt is REQUIRED. The agent will only do what you ask."
             echo ""
@@ -45,8 +45,8 @@ while [[ $# -gt 0 ]]; do
             echo "  --help, -h               Show this help message"
             echo ""
             echo "Examples:"
-            echo "  ./scripts/ralph-auto.sh \"Fix the type inference bug\""
-            echo "  ./scripts/ralph-auto.sh \"Implement Stream.mapAccum\" --max-iterations 5"
+            echo "  ./scripts/ralph/auto.sh \"Fix the type inference bug\""
+            echo "  ./scripts/ralph/auto.sh \"Implement Stream.mapAccum\" --max-iterations 5"
             exit 0
             ;;
         -*)
@@ -71,11 +71,11 @@ done
 if [[ -z "$FOCUS_PROMPT" ]]; then
     echo "Error: A focus prompt is required"
     echo ""
-    echo "Usage: ./scripts/ralph-auto.sh <focus prompt> [options]"
+    echo "Usage: ./scripts/ralph/auto.sh <focus prompt> [options]"
     echo ""
     echo "Examples:"
-    echo "  ./scripts/ralph-auto.sh \"Fix the type inference bug\""
-    echo "  ./scripts/ralph-auto.sh \"Implement Stream.mapAccum\""
+    echo "  ./scripts/ralph/auto.sh \"Fix the type inference bug\""
+    echo "  ./scripts/ralph/auto.sh \"Implement Stream.mapAccum\""
     echo ""
     echo "Use --help for more information"
     exit 1
@@ -83,11 +83,11 @@ fi
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-PROGRESS_FILE="${SCRIPT_DIR}/progress-auto.txt"
-PROMPT_TEMPLATE="${PROJECT_ROOT}/RALPH_PROMPT_AUTO.md"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+PROGRESS_FILE="${SCRIPT_DIR}/progress.txt"
+PROMPT_TEMPLATE="${SCRIPT_DIR}/prompt.md"
 COMPLETE_MARKER="NOTHING_LEFT_TO_DO"
-OUTPUT_DIR=".ralph-auto"
+OUTPUT_DIR="${PROJECT_ROOT}/.ralph-auto"
 AGENT_CMD="opencode run --model anthropic/claude-opus-4-5 --format json"
 
 # Colors for output
@@ -196,18 +196,18 @@ check_prerequisites() {
     init_submodules
 
     # Check for .specs directory (optional)
-    if [ -d ".specs" ]; then
+    if [ -d "${PROJECT_ROOT}/.specs" ]; then
         local spec_count
-        spec_count=$(find .specs -name "*.md" -type f | wc -l | tr -d ' ')
+        spec_count=$(find "${PROJECT_ROOT}/.specs" -name "*.md" -type f | wc -l | tr -d ' ')
         if [ "${spec_count}" -gt 0 ]; then
             log "INFO" "Found ${spec_count} spec file(s) in .specs/"
         fi
     fi
 
     # Check for .patterns directory (optional)
-    if [ -d ".patterns" ]; then
+    if [ -d "${PROJECT_ROOT}/.patterns" ]; then
         local pattern_count
-        pattern_count=$(find .patterns -name "*.md" -type f | wc -l | tr -d ' ')
+        pattern_count=$(find "${PROJECT_ROOT}/.patterns" -name "*.md" -type f | wc -l | tr -d ' ')
         if [ "${pattern_count}" -gt 0 ]; then
             log "INFO" "Found ${pattern_count} pattern file(s) in .patterns/"
         fi
@@ -427,14 +427,14 @@ Work exclusively on this task. When the task is complete, signal TASK_COMPLETE. 
 
     # Get list of specs files
     local specs_list=""
-    if [ -d ".specs" ]; then
-        specs_list=$(find .specs -name "*.md" -type f | sort | while read -r f; do echo "- \`${f}\`"; done)
+    if [ -d "${PROJECT_ROOT}/.specs" ]; then
+        specs_list=$(find "${PROJECT_ROOT}/.specs" -name "*.md" -type f | sort | while read -r f; do echo "- \`${f}\`"; done)
     fi
 
     # Get list of pattern files
     local patterns_list=""
-    if [ -d ".patterns" ]; then
-        patterns_list=$(find .patterns -name "*.md" -type f | sort | while read -r f; do echo "- \`${f}\`"; done)
+    if [ -d "${PROJECT_ROOT}/.patterns" ]; then
+        patterns_list=$(find "${PROJECT_ROOT}/.patterns" -name "*.md" -type f | sort | while read -r f; do echo "- \`${f}\`"; done)
     fi
 
     # Combine specs and patterns

@@ -26,8 +26,7 @@ scratchpad/**/*
 lalph-plan.md
 .lalph-setup.sh
 
-# ralph
-.ralph/
+# ralph auto loop (runtime output)
 .ralph-auto/
 
 .pnpm-store/
