@@ -138,6 +138,7 @@ export const causeResponse = <E>(
   let effect = succeedInternalServerError
   const failures: Array<Cause.Failure<E>> = []
   let interrupt: Cause.Interrupt | undefined
+  let isClientInterrupt = false
   for (let i = 0; i < cause.failures.length; i++) {
     const f = cause.failures[i]
     switch (f._tag) {
@@ -156,6 +157,7 @@ export const causeResponse = <E>(
         break
       }
       case "Interrupt": {
+        isClientInterrupt = isClientInterrupt || f.fiberId === clientAbortFiberId
         if (failures.length > 0) break
         effect = f.fiberId === clientAbortFiberId ? clientAbortError : serverAbortError
         interrupt = f
@@ -166,7 +168,7 @@ export const causeResponse = <E>(
   if (response) {
     return Effect.succeed([response, Cause.fromFailures(failures)] as const)
   } else if (interrupt && failures.length === 0) {
-    failures.push(interrupt)
+    failures.push(isClientInterrupt ? Cause.failureInterrupt(clientAbortFiberId) : interrupt)
   }
   return Effect.mapEager(effect, (response) => {
     failures.push(Cause.failureDie(response))
