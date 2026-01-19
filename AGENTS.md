@@ -66,7 +66,7 @@ The `index.ts` files are automatically generated. Do not manually edit them. Use
 ## References
 
 - If you ever need to research the previous version of the Effect library, the
-  source code is available in `.agents/effect-old/`
+  source code is available in `.repos/effect-old/`
 
 ### Time-Dependent Testing
 
