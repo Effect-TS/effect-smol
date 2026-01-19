@@ -7,6 +7,10 @@ import * as HttpClientError from "effect/unstable/http/HttpClientError"
 import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest"
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse"
 // non-recursive definitions
+export type AddUploadPartRequest = { readonly "data": string }
+export const AddUploadPartRequest = Schema.Struct({
+  "data": Schema.String.annotate({ "description": "The chunk of bytes for this Part.\n", "format": "binary" })
+}).annotate({ "identifier": "AddUploadPartRequest" })
 export type AdminApiKey = {
   readonly "object": string
   readonly "id": string
@@ -266,6 +270,48 @@ export const AudioResponseFormat = Schema.Literals(["json", "text", "srt", "verb
     "default": "json",
     "identifier": "AudioResponseFormat"
   })
+export type AudioTranscription = {
+  readonly "model"?:
+    | string
+    | "whisper-1"
+    | "gpt-4o-mini-transcribe"
+    | "gpt-4o-mini-transcribe-2025-12-15"
+    | "gpt-4o-transcribe"
+    | "gpt-4o-transcribe-diarize"
+  readonly "language"?: string
+  readonly "prompt"?: string
+  readonly [x: string]: unknown
+}
+export const AudioTranscription = Schema.StructWithRest(
+  Schema.Struct({
+    "model": Schema.optionalKey(
+      Schema.Union([
+        Schema.String,
+        Schema.Literals([
+          "whisper-1",
+          "gpt-4o-mini-transcribe",
+          "gpt-4o-mini-transcribe-2025-12-15",
+          "gpt-4o-transcribe",
+          "gpt-4o-transcribe-diarize"
+        ])
+      ]).annotate({
+        "description":
+          "The model to use for transcription. Current options are `whisper-1`, `gpt-4o-mini-transcribe`, `gpt-4o-mini-transcribe-2025-12-15`, `gpt-4o-transcribe`, and `gpt-4o-transcribe-diarize`. Use `gpt-4o-transcribe-diarize` when you need diarization with speaker labels.\n"
+      })
+    ),
+    "language": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "The language of the input audio. Supplying the input language in\n[ISO-639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (e.g. `en`) format\nwill improve accuracy and latency.\n"
+      })
+    ),
+    "prompt": Schema.optionalKey(Schema.String.annotate({
+      "description":
+        "An optional text to guide the model's style or continue a previous audio\nsegment.\nFor `whisper-1`, the [prompt is a list of keywords](https://platform.openai.com/docs/guides/speech-to-text#prompting).\nFor `gpt-4o-transcribe` models (excluding `gpt-4o-transcribe-diarize`), the prompt is a free text string, for example \"expect words related to technology\".\n"
+    }))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "AudioTranscription" })
 export type AuditLogActorServiceAccount = { readonly "id"?: string; readonly [x: string]: unknown }
 export const AuditLogActorServiceAccount = Schema.StructWithRest(
   Schema.Struct({ "id": Schema.optionalKey(Schema.String.annotate({ "description": "The service account id." })) }),
@@ -396,6 +442,118 @@ export const AutoChunkingStrategyRequestParam = Schema.Struct({
     "The default strategy. This strategy currently uses a `max_chunk_size_tokens` of `800` and `chunk_overlap_tokens` of `400`.",
   "identifier": "AutoChunkingStrategyRequestParam"
 })
+export type BatchFileExpirationAfter = {
+  readonly "anchor": "created_at"
+  readonly "seconds": number
+  readonly [x: string]: unknown
+}
+export const BatchFileExpirationAfter = Schema.StructWithRest(
+  Schema.Struct({
+    "anchor": Schema.Literal("created_at").annotate({
+      "description":
+        "Anchor timestamp after which the expiration policy applies. Supported anchors: `created_at`. Note that the anchor is the file creation time, not the time the batch is created."
+    }),
+    "seconds": Schema.Number.annotate({
+      "description":
+        "The number of seconds after the anchor time that the file will expire. Must be between 3600 (1 hour) and 2592000 (30 days)."
+    }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(3600)).check(Schema.isLessThanOrEqualTo(2592000))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "File expiration policy",
+  "description": "The expiration policy for the output and/or error file that are generated for a batch.",
+  "identifier": "BatchFileExpirationAfter"
+})
+export type BatchRequestInput = {
+  readonly "custom_id"?: string
+  readonly "method"?: "POST"
+  readonly "url"?: string
+  readonly [x: string]: unknown
+}
+export const BatchRequestInput = Schema.StructWithRest(
+  Schema.Struct({
+    "custom_id": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "A developer-provided per-request id that will be used to match outputs to inputs. Must be unique for each request in a batch."
+      })
+    ),
+    "method": Schema.optionalKey(
+      Schema.Literal("POST").annotate({
+        "description": "The HTTP method to be used for the request. Currently only `POST` is supported."
+      })
+    ),
+    "url": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "The OpenAI API relative URL to be used for the request. Currently `/v1/responses`, `/v1/chat/completions`, `/v1/embeddings`, `/v1/completions`, and `/v1/moderations` are supported."
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "description": "The per-line object of the batch input file", "identifier": "BatchRequestInput" })
+export type BatchRequestOutput = {
+  readonly "id"?: string
+  readonly "custom_id"?: string
+  readonly "response"?: {
+    readonly "status_code"?: number
+    readonly "request_id"?: string
+    readonly "body"?: { readonly [x: string]: unknown }
+    readonly [x: string]: unknown
+  } | null
+  readonly "error"?: { readonly "code"?: string; readonly "message"?: string; readonly [x: string]: unknown } | null
+  readonly [x: string]: unknown
+}
+export const BatchRequestOutput = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.optionalKey(Schema.String),
+    "custom_id": Schema.optionalKey(
+      Schema.String.annotate({
+        "description": "A developer-provided per-request id that will be used to match outputs to inputs."
+      })
+    ),
+    "response": Schema.optionalKey(Schema.Union([
+      Schema.StructWithRest(
+        Schema.Struct({
+          "status_code": Schema.optionalKey(
+            Schema.Number.annotate({ "description": "The HTTP status code of the response" }).check(Schema.isInt())
+          ),
+          "request_id": Schema.optionalKey(
+            Schema.String.annotate({
+              "description":
+                "An unique identifier for the OpenAI API request. Please include this request ID when contacting support."
+            })
+          ),
+          "body": Schema.optionalKey(
+            Schema.Record(Schema.String, Schema.Unknown).annotate({ "description": "The JSON body of the response" })
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ),
+      Schema.Null
+    ])),
+    "error": Schema.optionalKey(Schema.Union([
+      Schema.StructWithRest(
+        Schema.Struct({
+          "code": Schema.optionalKey(Schema.String.annotate({
+            "description":
+              "A machine-readable error code.\n\nPossible values:\n- `batch_expired`: The request could not be executed before the\n  completion window ended.\n- `batch_cancelled`: The batch was cancelled before this request\n  executed.\n- `request_timeout`: The underlying call to the model timed out.\n"
+          })),
+          "message": Schema.optionalKey(Schema.String.annotate({ "description": "A human-readable error message." }))
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "description":
+          "For requests that failed with a non-HTTP error, this will contain more information on the cause of the failure."
+      }),
+      Schema.Null
+    ]))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "The per-line object of the batch output and error files",
+  "identifier": "BatchRequestOutput"
+})
 export type Certificate = {
   readonly "object": "certificate" | "organization.certificate" | "organization.project.certificate"
   readonly "id": string
@@ -478,6 +636,22 @@ export const ChatCompletionAllowedTools = Schema.StructWithRest(
   "description": "Constrains the tools available to the model to a pre-defined set.\n",
   "identifier": "ChatCompletionAllowedTools"
 })
+export type ChatCompletionDeleted = {
+  readonly "object": "chat.completion.deleted"
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const ChatCompletionDeleted = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("chat.completion.deleted").annotate({
+      "description": "The type of object being deleted."
+    }),
+    "id": Schema.String.annotate({ "description": "The ID of the chat completion that was deleted." }),
+    "deleted": Schema.Boolean.annotate({ "description": "Whether the chat completion was deleted." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ChatCompletionDeleted" })
 export type ChatCompletionFunctionCallOption = { readonly "name": string; readonly [x: string]: unknown }
 export const ChatCompletionFunctionCallOption = Schema.StructWithRest(
   Schema.Struct({ "name": Schema.String.annotate({ "description": "The name of the function to call." }) }),
@@ -569,6 +743,14 @@ export const ChatCompletionMessageToolCallChunk = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "identifier": "ChatCompletionMessageToolCallChunk" })
+export type ChatCompletionModalities = ReadonlyArray<"text" | "audio"> | null
+export const ChatCompletionModalities = Schema.Union([
+  Schema.Array(Schema.Literals(["text", "audio"])).annotate({
+    "description":
+      "Output types that you would like the model to generate for this request.\nMost models are capable of generating text, which is the default:\n\n`[\"text\"]`\n\nThe `gpt-4o-audio-preview` model can also be used to [generate audio](https://platform.openai.com/docs/guides/audio). To\nrequest that this model generate both text and audio responses, you can\nuse:\n\n`[\"text\", \"audio\"]`\n"
+  }),
+  Schema.Null
+]).annotate({ "identifier": "ChatCompletionModalities" })
 export type ChatCompletionNamedToolChoice = {
   readonly "type": "function"
   readonly "function": { readonly "name": string; readonly [x: string]: unknown }
@@ -757,6 +939,9 @@ export const ChatCompletionRequestMessageContentPartText = Schema.StructWithRest
   "description": "Learn about [text inputs](https://platform.openai.com/docs/guides/text-generation).\n",
   "identifier": "ChatCompletionRequestMessageContentPartText"
 })
+export type ChatCompletionRole = "developer" | "system" | "user" | "assistant" | "tool" | "function"
+export const ChatCompletionRole = Schema.Literals(["developer", "system", "user", "assistant", "tool", "function"])
+  .annotate({ "description": "The role of the author of a message", "identifier": "ChatCompletionRole" })
 export type ChatCompletionStreamOptions = {
   readonly "include_usage"?: boolean
   readonly "include_obfuscation"?: boolean
@@ -829,6 +1014,62 @@ export const ChatCompletionTokenLogprob = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "identifier": "ChatCompletionTokenLogprob" })
+export type CodeInterpreterFileOutput = {
+  readonly "type": "files"
+  readonly "files": ReadonlyArray<
+    { readonly "mime_type": string; readonly "file_id": string; readonly [x: string]: unknown }
+  >
+  readonly [x: string]: unknown
+}
+export const CodeInterpreterFileOutput = Schema.StructWithRest(
+  Schema.Struct({
+    "type": Schema.Literal("files").annotate({
+      "description": "The type of the code interpreter file output. Always `files`.\n"
+    }),
+    "files": Schema.Array(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "mime_type": Schema.String.annotate({ "description": "The MIME type of the file.\n" }),
+          "file_id": Schema.String.annotate({ "description": "The ID of the file.\n" })
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      )
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Code interpreter file output",
+  "description": "The output of a code interpreter tool call that is a file.\n",
+  "identifier": "CodeInterpreterFileOutput"
+})
+export type CodeInterpreterTextOutput = {
+  readonly "type": "logs"
+  readonly "logs": string
+  readonly [x: string]: unknown
+}
+export const CodeInterpreterTextOutput = Schema.StructWithRest(
+  Schema.Struct({
+    "type": Schema.Literal("logs").annotate({
+      "description": "The type of the code interpreter text output. Always `logs`.\n"
+    }),
+    "logs": Schema.String.annotate({ "description": "The logs of the code interpreter tool call.\n" })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Code interpreter text output",
+  "description": "The output of a code interpreter tool call that is text.\n",
+  "identifier": "CodeInterpreterTextOutput"
+})
+export type CompleteUploadRequest = { readonly "part_ids": ReadonlyArray<string>; readonly "md5"?: string }
+export const CompleteUploadRequest = Schema.Struct({
+  "part_ids": Schema.Array(Schema.String).annotate({ "description": "The ordered list of Part IDs.\n" }),
+  "md5": Schema.optionalKey(
+    Schema.String.annotate({
+      "description":
+        "The optional md5 checksum for the file contents to verify if the bytes uploaded matches what you expect.\n"
+    })
+  )
+}).annotate({ "identifier": "CompleteUploadRequest" })
 export type CompletionUsage = {
   readonly "completion_tokens": number
   readonly "prompt_tokens": number
@@ -1012,6 +1253,16 @@ export const ContainerResource = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "title": "The container object", "identifier": "ContainerResource" })
+export type Content = unknown | unknown
+export const Content = Schema.Union([
+  Schema.Unknown.annotate({ "title": "Input content types" }),
+  Schema.Unknown.annotate({ "title": "Output content types" })
+]).annotate({ "description": "Multi-modal input and output contents.\n", "identifier": "Content" })
+export type Conversation = unknown
+export const Conversation = Schema.Unknown.annotate({
+  "title": "The conversation object",
+  "identifier": "Conversation"
+})
 export type CostsResult = {
   readonly "object": "organization.costs.result"
   readonly "amount"?: { readonly "value"?: number; readonly "currency"?: string; readonly [x: string]: unknown }
@@ -1054,6 +1305,118 @@ export const CostsResult = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "The aggregated costs details of the specific time bucket.", "identifier": "CostsResult" })
+export type CreateContainerBody = {
+  readonly "name": string
+  readonly "file_ids"?: ReadonlyArray<string>
+  readonly "expires_after"?: {
+    readonly "anchor": "last_active_at"
+    readonly "minutes": number
+    readonly [x: string]: unknown
+  }
+  readonly "memory_limit"?: "1g" | "4g" | "16g" | "64g"
+  readonly [x: string]: unknown
+}
+export const CreateContainerBody = Schema.StructWithRest(
+  Schema.Struct({
+    "name": Schema.String.annotate({ "description": "Name of the container to create." }),
+    "file_ids": Schema.optionalKey(
+      Schema.Array(Schema.String).annotate({ "description": "IDs of files to copy to the container." })
+    ),
+    "expires_after": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "anchor": Schema.Literal("last_active_at").annotate({
+            "description": "Time anchor for the expiration time. Currently only 'last_active_at' is supported."
+          }),
+          "minutes": Schema.Number.check(Schema.isInt())
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({ "description": "Container expiration time in seconds relative to the 'anchor' time." })
+    ),
+    "memory_limit": Schema.optionalKey(
+      Schema.Literals(["1g", "4g", "16g", "64g"]).annotate({
+        "description": "Optional memory limit for the container. Defaults to \"1g\"."
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateContainerBody" })
+export type CreateContainerFileBody = {
+  readonly "file_id"?: string
+  readonly "file"?: string
+  readonly [x: string]: unknown
+}
+export const CreateContainerFileBody = Schema.StructWithRest(
+  Schema.Struct({
+    "file_id": Schema.optionalKey(Schema.String.annotate({ "description": "Name of the file to create." })),
+    "file": Schema.optionalKey(
+      Schema.String.annotate({ "description": "The File object (not file name) to be uploaded.\n", "format": "binary" })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateContainerFileBody" })
+export type CreateEmbeddingRequest = {
+  readonly "input": string | ReadonlyArray<string> | ReadonlyArray<number> | ReadonlyArray<ReadonlyArray<number>>
+  readonly "model": string | "text-embedding-ada-002" | "text-embedding-3-small" | "text-embedding-3-large"
+  readonly "encoding_format"?: "float" | "base64"
+  readonly "dimensions"?: number
+  readonly "user"?: string
+}
+export const CreateEmbeddingRequest = Schema.Struct({
+  "input": Schema.Union([
+    Schema.String.annotate({
+      "title": "string",
+      "description": "The string that will be turned into an embedding.",
+      "default": "",
+      "examples": ["This is a test."]
+    }),
+    Schema.Array(Schema.String.annotate({ "default": "", "examples": ["['This is a test.']"] })).annotate({
+      "title": "Array of strings",
+      "description": "The array of strings that will be turned into an embedding."
+    }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(2048)),
+    Schema.Array(Schema.Number.check(Schema.isInt())).annotate({
+      "title": "Array of tokens",
+      "description": "The array of integers that will be turned into an embedding."
+    }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(2048)),
+    Schema.Array(Schema.Array(Schema.Number.check(Schema.isInt())).check(Schema.isMinLength(1))).annotate({
+      "title": "Array of token arrays",
+      "description": "The array of arrays containing integers that will be turned into an embedding."
+    }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(2048))
+  ]).annotate({
+    "description":
+      "Input text to embed, encoded as a string or array of tokens. To embed multiple inputs in a single request, pass an array of strings or array of token arrays. The input must not exceed the max input tokens for the model (8192 tokens for all embedding models), cannot be an empty string, and any array must be 2048 dimensions or less. [Example Python code](https://cookbook.openai.com/examples/how_to_count_tokens_with_tiktoken) for counting tokens. In addition to the per-input token limit, all embedding  models enforce a maximum of 300,000 tokens summed across all inputs in a  single request.\n",
+    "examples": ["The quick brown fox jumped over the lazy dog"]
+  }),
+  "model": Schema.Union([
+    Schema.String,
+    Schema.Literals(["text-embedding-ada-002", "text-embedding-3-small", "text-embedding-3-large"])
+  ]).annotate({
+    "description":
+      "ID of the model to use. You can use the [List models](https://platform.openai.com/docs/api-reference/models/list) API to see all of your available models, or see our [Model overview](https://platform.openai.com/docs/models) for descriptions of them.\n",
+    "examples": ["text-embedding-3-small"]
+  }),
+  "encoding_format": Schema.optionalKey(
+    Schema.Literals(["float", "base64"]).annotate({
+      "description":
+        "The format to return the embeddings in. Can be either `float` or [`base64`](https://pypi.org/project/pybase64/).",
+      "default": "float",
+      "examples": ["float"]
+    })
+  ),
+  "dimensions": Schema.optionalKey(
+    Schema.Number.annotate({
+      "description":
+        "The number of dimensions the resulting output embeddings should have. Only supported in `text-embedding-3` and later models.\n"
+    }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1))
+  ),
+  "user": Schema.optionalKey(
+    Schema.String.annotate({
+      "description":
+        "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices#end-user-ids).\n",
+      "examples": ["user-1234"]
+    })
+  )
+}).annotate({ "identifier": "CreateEmbeddingRequest" })
 export type CreateEvalCustomDataSourceConfig = {
   readonly "type": "custom"
   readonly "item_schema": { readonly [x: string]: unknown }
@@ -1131,6 +1494,487 @@ export const CreateEvalStoredCompletionsDataSourceConfig = Schema.StructWithRest
   "description": "Deprecated in favor of LogsDataSourceConfig.\n",
   "identifier": "CreateEvalStoredCompletionsDataSourceConfig"
 })
+export type CreateFineTuningCheckpointPermissionRequest = { readonly "project_ids": ReadonlyArray<string> }
+export const CreateFineTuningCheckpointPermissionRequest = Schema.Struct({
+  "project_ids": Schema.Array(Schema.String).annotate({ "description": "The project identifiers to grant access to." })
+}).annotate({ "identifier": "CreateFineTuningCheckpointPermissionRequest" })
+export type CreateGroupBody = { readonly "name": string; readonly [x: string]: unknown }
+export const CreateGroupBody = Schema.StructWithRest(
+  Schema.Struct({
+    "name": Schema.String.annotate({ "description": "Human readable name for the group." }).check(Schema.isMinLength(1))
+      .check(Schema.isMaxLength(255))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Request payload for creating a new group in the organization.",
+  "identifier": "CreateGroupBody"
+})
+export type CreateGroupUserBody = { readonly "user_id": string; readonly [x: string]: unknown }
+export const CreateGroupUserBody = Schema.StructWithRest(
+  Schema.Struct({
+    "user_id": Schema.String.annotate({ "description": "Identifier of the user to add to the group." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "description": "Request payload for adding a user to a group.", "identifier": "CreateGroupUserBody" })
+export type CreateImageVariationRequest = {
+  readonly "image": string
+  readonly "model"?: string | "dall-e-2" | null
+  readonly "n"?: number | null
+  readonly "response_format"?: "url" | "b64_json" | null
+  readonly "size"?: "256x256" | "512x512" | "1024x1024" | null
+  readonly "user"?: string
+  readonly [x: string]: unknown
+}
+export const CreateImageVariationRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "image": Schema.String.annotate({
+      "description":
+        "The image to use as the basis for the variation(s). Must be a valid PNG file, less than 4MB, and square.",
+      "format": "binary"
+    }),
+    "model": Schema.optionalKey(
+      Schema.Union([
+        Schema.Union([Schema.String, Schema.Literal("dall-e-2")]).annotate({
+          "description": "The model to use for image generation. Only `dall-e-2` is supported at this time."
+        }),
+        Schema.Null
+      ])
+    ),
+    "n": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description": "The number of images to generate. Must be between 1 and 10.",
+        "default": 1,
+        "examples": [1]
+      })
+    ),
+    "response_format": Schema.optionalKey(
+      Schema.Union([Schema.Literal("url"), Schema.Literal("b64_json"), Schema.Null]).annotate({
+        "description":
+          "The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated.",
+        "default": "url",
+        "examples": ["url"]
+      })
+    ),
+    "size": Schema.optionalKey(
+      Schema.Union([Schema.Literal("256x256"), Schema.Literal("512x512"), Schema.Literal("1024x1024"), Schema.Null])
+        .annotate({
+          "description": "The size of the generated images. Must be one of `256x256`, `512x512`, or `1024x1024`.",
+          "default": "1024x1024",
+          "examples": ["1024x1024"]
+        })
+    ),
+    "user": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices#end-user-ids).\n",
+        "examples": ["user-1234"]
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateImageVariationRequest" })
+export type CreateModelResponseProperties = { readonly "top_logprobs"?: number; readonly [x: string]: unknown }
+export const CreateModelResponseProperties = Schema.StructWithRest(
+  Schema.Struct({
+    "top_logprobs": Schema.optionalKey(
+      Schema.Number.annotate({
+        "description":
+          "An integer between 0 and 20 specifying the number of most likely tokens to\nreturn at each token position, each with an associated log probability.\n"
+      }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(20))
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateModelResponseProperties" })
+export type CreateModerationResponse = {
+  readonly "id": string
+  readonly "model": string
+  readonly "results": ReadonlyArray<
+    {
+      readonly "flagged": boolean
+      readonly "categories": {
+        readonly "hate": boolean
+        readonly "hate/threatening": boolean
+        readonly "harassment": boolean
+        readonly "harassment/threatening": boolean
+        readonly "illicit": boolean | null
+        readonly "illicit/violent": boolean | null
+        readonly "self-harm": boolean
+        readonly "self-harm/intent": boolean
+        readonly "self-harm/instructions": boolean
+        readonly "sexual": boolean
+        readonly "sexual/minors": boolean
+        readonly "violence": boolean
+        readonly "violence/graphic": boolean
+        readonly [x: string]: unknown
+      }
+      readonly "category_scores": {
+        readonly "hate": number
+        readonly "hate/threatening": number
+        readonly "harassment": number
+        readonly "harassment/threatening": number
+        readonly "illicit": number
+        readonly "illicit/violent": number
+        readonly "self-harm": number
+        readonly "self-harm/intent": number
+        readonly "self-harm/instructions": number
+        readonly "sexual": number
+        readonly "sexual/minors": number
+        readonly "violence": number
+        readonly "violence/graphic": number
+        readonly [x: string]: unknown
+      }
+      readonly "category_applied_input_types": {
+        readonly "hate": ReadonlyArray<"text">
+        readonly "hate/threatening": ReadonlyArray<"text">
+        readonly "harassment": ReadonlyArray<"text">
+        readonly "harassment/threatening": ReadonlyArray<"text">
+        readonly "illicit": ReadonlyArray<"text">
+        readonly "illicit/violent": ReadonlyArray<"text">
+        readonly "self-harm": ReadonlyArray<"text" | "image">
+        readonly "self-harm/intent": ReadonlyArray<"text" | "image">
+        readonly "self-harm/instructions": ReadonlyArray<"text" | "image">
+        readonly "sexual": ReadonlyArray<"text" | "image">
+        readonly "sexual/minors": ReadonlyArray<"text">
+        readonly "violence": ReadonlyArray<"text" | "image">
+        readonly "violence/graphic": ReadonlyArray<"text" | "image">
+        readonly [x: string]: unknown
+      }
+      readonly [x: string]: unknown
+    }
+  >
+  readonly [x: string]: unknown
+}
+export const CreateModerationResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({ "description": "The unique identifier for the moderation request." }),
+    "model": Schema.String.annotate({ "description": "The model used to generate the moderation results." }),
+    "results": Schema.Array(Schema.StructWithRest(
+      Schema.Struct({
+        "flagged": Schema.Boolean.annotate({ "description": "Whether any of the below categories are flagged." }),
+        "categories": Schema.StructWithRest(
+          Schema.Struct({
+            "hate": Schema.Boolean.annotate({
+              "description":
+                "Content that expresses, incites, or promotes hate based on race, gender, ethnicity, religion, nationality, sexual orientation, disability status, or caste. Hateful content aimed at non-protected groups (e.g., chess players) is harassment."
+            }),
+            "hate/threatening": Schema.Boolean.annotate({
+              "description":
+                "Hateful content that also includes violence or serious harm towards the targeted group based on race, gender, ethnicity, religion, nationality, sexual orientation, disability status, or caste."
+            }),
+            "harassment": Schema.Boolean.annotate({
+              "description": "Content that expresses, incites, or promotes harassing language towards any target."
+            }),
+            "harassment/threatening": Schema.Boolean.annotate({
+              "description": "Harassment content that also includes violence or serious harm towards any target."
+            }),
+            "illicit": Schema.Union([
+              Schema.Boolean.annotate({
+                "description":
+                  "Content that includes instructions or advice that facilitate the planning or execution of wrongdoing, or that gives advice or instruction on how to commit illicit acts. For example, \"how to shoplift\" would fit this category."
+              }),
+              Schema.Null
+            ]),
+            "illicit/violent": Schema.Union([
+              Schema.Boolean.annotate({
+                "description":
+                  "Content that includes instructions or advice that facilitate the planning or execution of wrongdoing that also includes violence, or that gives advice or instruction on the procurement of any weapon."
+              }),
+              Schema.Null
+            ]),
+            "self-harm": Schema.Boolean.annotate({
+              "description":
+                "Content that promotes, encourages, or depicts acts of self-harm, such as suicide, cutting, and eating disorders."
+            }),
+            "self-harm/intent": Schema.Boolean.annotate({
+              "description":
+                "Content where the speaker expresses that they are engaging or intend to engage in acts of self-harm, such as suicide, cutting, and eating disorders."
+            }),
+            "self-harm/instructions": Schema.Boolean.annotate({
+              "description":
+                "Content that encourages performing acts of self-harm, such as suicide, cutting, and eating disorders, or that gives instructions or advice on how to commit such acts."
+            }),
+            "sexual": Schema.Boolean.annotate({
+              "description":
+                "Content meant to arouse sexual excitement, such as the description of sexual activity, or that promotes sexual services (excluding sex education and wellness)."
+            }),
+            "sexual/minors": Schema.Boolean.annotate({
+              "description": "Sexual content that includes an individual who is under 18 years old."
+            }),
+            "violence": Schema.Boolean.annotate({
+              "description": "Content that depicts death, violence, or physical injury."
+            }),
+            "violence/graphic": Schema.Boolean.annotate({
+              "description": "Content that depicts death, violence, or physical injury in graphic detail."
+            })
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ).annotate({ "description": "A list of the categories, and whether they are flagged or not." }),
+        "category_scores": Schema.StructWithRest(
+          Schema.Struct({
+            "hate": Schema.Number.annotate({ "description": "The score for the category 'hate'." }).check(
+              Schema.isFinite()
+            ),
+            "hate/threatening": Schema.Number.annotate({
+              "description": "The score for the category 'hate/threatening'."
+            }).check(Schema.isFinite()),
+            "harassment": Schema.Number.annotate({ "description": "The score for the category 'harassment'." }).check(
+              Schema.isFinite()
+            ),
+            "harassment/threatening": Schema.Number.annotate({
+              "description": "The score for the category 'harassment/threatening'."
+            }).check(Schema.isFinite()),
+            "illicit": Schema.Number.annotate({ "description": "The score for the category 'illicit'." }).check(
+              Schema.isFinite()
+            ),
+            "illicit/violent": Schema.Number.annotate({
+              "description": "The score for the category 'illicit/violent'."
+            }).check(Schema.isFinite()),
+            "self-harm": Schema.Number.annotate({ "description": "The score for the category 'self-harm'." }).check(
+              Schema.isFinite()
+            ),
+            "self-harm/intent": Schema.Number.annotate({
+              "description": "The score for the category 'self-harm/intent'."
+            }).check(Schema.isFinite()),
+            "self-harm/instructions": Schema.Number.annotate({
+              "description": "The score for the category 'self-harm/instructions'."
+            }).check(Schema.isFinite()),
+            "sexual": Schema.Number.annotate({ "description": "The score for the category 'sexual'." }).check(
+              Schema.isFinite()
+            ),
+            "sexual/minors": Schema.Number.annotate({ "description": "The score for the category 'sexual/minors'." })
+              .check(Schema.isFinite()),
+            "violence": Schema.Number.annotate({ "description": "The score for the category 'violence'." }).check(
+              Schema.isFinite()
+            ),
+            "violence/graphic": Schema.Number.annotate({
+              "description": "The score for the category 'violence/graphic'."
+            }).check(Schema.isFinite())
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ).annotate({ "description": "A list of the categories along with their scores as predicted by model." }),
+        "category_applied_input_types": Schema.StructWithRest(
+          Schema.Struct({
+            "hate": Schema.Array(Schema.Literal("text")).annotate({
+              "description": "The applied input type(s) for the category 'hate'."
+            }),
+            "hate/threatening": Schema.Array(Schema.Literal("text")).annotate({
+              "description": "The applied input type(s) for the category 'hate/threatening'."
+            }),
+            "harassment": Schema.Array(Schema.Literal("text")).annotate({
+              "description": "The applied input type(s) for the category 'harassment'."
+            }),
+            "harassment/threatening": Schema.Array(Schema.Literal("text")).annotate({
+              "description": "The applied input type(s) for the category 'harassment/threatening'."
+            }),
+            "illicit": Schema.Array(Schema.Literal("text")).annotate({
+              "description": "The applied input type(s) for the category 'illicit'."
+            }),
+            "illicit/violent": Schema.Array(Schema.Literal("text")).annotate({
+              "description": "The applied input type(s) for the category 'illicit/violent'."
+            }),
+            "self-harm": Schema.Array(Schema.Literals(["text", "image"])).annotate({
+              "description": "The applied input type(s) for the category 'self-harm'."
+            }),
+            "self-harm/intent": Schema.Array(Schema.Literals(["text", "image"])).annotate({
+              "description": "The applied input type(s) for the category 'self-harm/intent'."
+            }),
+            "self-harm/instructions": Schema.Array(Schema.Literals(["text", "image"])).annotate({
+              "description": "The applied input type(s) for the category 'self-harm/instructions'."
+            }),
+            "sexual": Schema.Array(Schema.Literals(["text", "image"])).annotate({
+              "description": "The applied input type(s) for the category 'sexual'."
+            }),
+            "sexual/minors": Schema.Array(Schema.Literal("text")).annotate({
+              "description": "The applied input type(s) for the category 'sexual/minors'."
+            }),
+            "violence": Schema.Array(Schema.Literals(["text", "image"])).annotate({
+              "description": "The applied input type(s) for the category 'violence'."
+            }),
+            "violence/graphic": Schema.Array(Schema.Literals(["text", "image"])).annotate({
+              "description": "The applied input type(s) for the category 'violence/graphic'."
+            })
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ).annotate({
+          "description": "A list of the categories along with the input type(s) that the score applies to."
+        })
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    )).annotate({ "description": "A list of moderation objects." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Represents if a given text input is potentially harmful.",
+  "identifier": "CreateModerationResponse"
+})
+export type CreateSpeechRequest = {
+  readonly "model": string | "tts-1" | "tts-1-hd" | "gpt-4o-mini-tts" | "gpt-4o-mini-tts-2025-12-15"
+  readonly "input": string
+  readonly "instructions"?: string
+  readonly "voice": unknown
+  readonly "response_format"?: "mp3" | "opus" | "aac" | "flac" | "wav" | "pcm"
+  readonly "speed"?: number
+  readonly "stream_format"?: "sse" | "audio"
+}
+export const CreateSpeechRequest = Schema.Struct({
+  "model": Schema.Union([
+    Schema.String,
+    Schema.Literals(["tts-1", "tts-1-hd", "gpt-4o-mini-tts", "gpt-4o-mini-tts-2025-12-15"])
+  ]).annotate({
+    "description":
+      "One of the available [TTS models](https://platform.openai.com/docs/models#tts): `tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`, or `gpt-4o-mini-tts-2025-12-15`.\n"
+  }),
+  "input": Schema.String.annotate({
+    "description": "The text to generate audio for. The maximum length is 4096 characters."
+  }).check(Schema.isMaxLength(4096)),
+  "instructions": Schema.optionalKey(
+    Schema.String.annotate({
+      "description":
+        "Control the voice of your generated audio with additional instructions. Does not work with `tts-1` or `tts-1-hd`."
+    }).check(Schema.isMaxLength(4096))
+  ),
+  "voice": Schema.Unknown.annotate({
+    "description":
+      "The voice to use when generating the audio. Supported built-in voices are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, `verse`, `marin`, and `cedar`. Previews of the voices are available in the [Text to speech guide](https://platform.openai.com/docs/guides/text-to-speech#voice-options)."
+  }),
+  "response_format": Schema.optionalKey(
+    Schema.Literals(["mp3", "opus", "aac", "flac", "wav", "pcm"]).annotate({
+      "description": "The format to audio in. Supported formats are `mp3`, `opus`, `aac`, `flac`, `wav`, and `pcm`.",
+      "default": "mp3"
+    })
+  ),
+  "speed": Schema.optionalKey(
+    Schema.Number.annotate({
+      "description": "The speed of the generated audio. Select a value from `0.25` to `4.0`. `1.0` is the default.",
+      "default": 1
+    }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0.25)).check(Schema.isLessThanOrEqualTo(4))
+  ),
+  "stream_format": Schema.optionalKey(
+    Schema.Literals(["sse", "audio"]).annotate({
+      "description":
+        "The format to stream the audio in. Supported formats are `sse` and `audio`. `sse` is not supported for `tts-1` or `tts-1-hd`.",
+      "default": "audio"
+    })
+  )
+}).annotate({ "identifier": "CreateSpeechRequest" })
+export type CreateTranscriptionResponseJson = {
+  readonly "text": string
+  readonly "logprobs"?: ReadonlyArray<
+    {
+      readonly "token"?: string
+      readonly "logprob"?: number
+      readonly "bytes"?: ReadonlyArray<number>
+      readonly [x: string]: unknown
+    }
+  >
+  readonly "usage"?: unknown | unknown
+  readonly [x: string]: unknown
+}
+export const CreateTranscriptionResponseJson = Schema.StructWithRest(
+  Schema.Struct({
+    "text": Schema.String.annotate({ "description": "The transcribed text." }),
+    "logprobs": Schema.optionalKey(
+      Schema.Array(Schema.StructWithRest(
+        Schema.Struct({
+          "token": Schema.optionalKey(Schema.String.annotate({ "description": "The token in the transcription." })),
+          "logprob": Schema.optionalKey(
+            Schema.Number.annotate({ "description": "The log probability of the token." }).check(Schema.isFinite())
+          ),
+          "bytes": Schema.optionalKey(
+            Schema.Array(Schema.Number.check(Schema.isFinite())).annotate({ "description": "The bytes of the token." })
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      )).annotate({
+        "description":
+          "The log probabilities of the tokens in the transcription. Only returned with the models `gpt-4o-transcribe` and `gpt-4o-mini-transcribe` if `logprobs` is added to the `include` array.\n"
+      })
+    ),
+    "usage": Schema.optionalKey(
+      Schema.Union([
+        Schema.Unknown.annotate({ "title": "Token Usage" }),
+        Schema.Unknown.annotate({ "title": "Duration Usage" })
+      ]).annotate({ "description": "Token usage statistics for the request." })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Represents a transcription response returned by model, based on the provided input.",
+  "identifier": "CreateTranscriptionResponseJson"
+})
+export type CreateTranslationRequest = {
+  readonly "file": string
+  readonly "model": string | "whisper-1"
+  readonly "prompt"?: string
+  readonly "response_format"?: "json" | "text" | "srt" | "verbose_json" | "vtt"
+  readonly "temperature"?: number
+}
+export const CreateTranslationRequest = Schema.Struct({
+  "file": Schema.String.annotate({
+    "description":
+      "The audio file object (not file name) translate, in one of these formats: flac, mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm.\n",
+    "format": "binary"
+  }),
+  "model": Schema.Union([Schema.String, Schema.Literal("whisper-1")]).annotate({
+    "description":
+      "ID of the model to use. Only `whisper-1` (which is powered by our open source Whisper V2 model) is currently available.\n",
+    "examples": ["whisper-1"]
+  }),
+  "prompt": Schema.optionalKey(
+    Schema.String.annotate({
+      "description":
+        "An optional text to guide the model's style or continue a previous audio segment. The [prompt](https://platform.openai.com/docs/guides/speech-to-text#prompting) should be in English.\n"
+    })
+  ),
+  "response_format": Schema.optionalKey(
+    Schema.Literals(["json", "text", "srt", "verbose_json", "vtt"]).annotate({
+      "description":
+        "The format of the output, in one of these options: `json`, `text`, `srt`, `verbose_json`, or `vtt`.\n",
+      "default": "json"
+    })
+  ),
+  "temperature": Schema.optionalKey(
+    Schema.Number.annotate({
+      "description":
+        "The sampling temperature, between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. If set to 0, the model will use [log probability](https://en.wikipedia.org/wiki/Log_probability) to automatically increase the temperature until certain thresholds are hit.\n",
+      "default": 0
+    }).check(Schema.isFinite())
+  )
+}).annotate({ "identifier": "CreateTranslationRequest" })
+export type CreateTranslationResponseJson = { readonly "text": string; readonly [x: string]: unknown }
+export const CreateTranslationResponseJson = Schema.StructWithRest(Schema.Struct({ "text": Schema.String }), [
+  Schema.Record(Schema.String, Schema.Unknown)
+]).annotate({ "identifier": "CreateTranslationResponseJson" })
+export type CreateVoiceConsentRequest = {
+  readonly "name": string
+  readonly "recording": string
+  readonly "language": string
+}
+export const CreateVoiceConsentRequest = Schema.Struct({
+  "name": Schema.String.annotate({ "description": "The label to use for this consent recording." }),
+  "recording": Schema.String.annotate({
+    "description":
+      "The consent audio recording file. Maximum size is 10 MiB.\n\nSupported MIME types:\n`audio/mpeg`, `audio/wav`, `audio/x-wav`, `audio/ogg`, `audio/aac`, `audio/flac`, `audio/webm`, `audio/mp4`.\n",
+    "format": "binary"
+  }),
+  "language": Schema.String.annotate({
+    "description": "The BCP 47 language tag for the consent phrase (for example, `en-US`)."
+  })
+}).annotate({ "identifier": "CreateVoiceConsentRequest" })
+export type CreateVoiceRequest = {
+  readonly "name": string
+  readonly "audio_sample": string
+  readonly "consent": string
+}
+export const CreateVoiceRequest = Schema.Struct({
+  "name": Schema.String.annotate({ "description": "The name of the new voice." }),
+  "audio_sample": Schema.String.annotate({
+    "description":
+      "The sample audio recording file. Maximum size is 10 MiB.\n\nSupported MIME types:\n`audio/mpeg`, `audio/wav`, `audio/x-wav`, `audio/ogg`, `audio/aac`, `audio/flac`, `audio/webm`, `audio/mp4`.\n",
+    "format": "binary"
+  }),
+  "consent": Schema.String.annotate({ "description": "The consent recording ID (for example, `cons_1234`)." })
+}).annotate({ "identifier": "CreateVoiceRequest" })
 export type CustomToolCall = {
   readonly "type": "custom_tool_call"
   readonly "id"?: string
@@ -1218,6 +2062,141 @@ export const CustomToolChatCompletions = Schema.StructWithRest(
   "description": "A custom tool that processes input using a specified format.\n",
   "identifier": "CustomToolChatCompletions"
 })
+export type DeleteAssistantResponse = {
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly "object": "assistant.deleted"
+  readonly [x: string]: unknown
+}
+export const DeleteAssistantResponse = Schema.StructWithRest(
+  Schema.Struct({ "id": Schema.String, "deleted": Schema.Boolean, "object": Schema.Literal("assistant.deleted") }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "DeleteAssistantResponse" })
+export type DeleteCertificateResponse = {
+  readonly "object": "certificate.deleted"
+  readonly "id": string
+  readonly [x: string]: unknown
+}
+export const DeleteCertificateResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("certificate.deleted").annotate({
+      "description": "The object type, must be `certificate.deleted`."
+    }),
+    "id": Schema.String.annotate({ "description": "The ID of the certificate that was deleted." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "DeleteCertificateResponse" })
+export type DeleteFileResponse = {
+  readonly "id": string
+  readonly "object": "file"
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const DeleteFileResponse = Schema.StructWithRest(
+  Schema.Struct({ "id": Schema.String, "object": Schema.Literal("file"), "deleted": Schema.Boolean }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "DeleteFileResponse" })
+export type DeleteFineTuningCheckpointPermissionResponse = {
+  readonly "id": string
+  readonly "object": "checkpoint.permission"
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const DeleteFineTuningCheckpointPermissionResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({
+      "description": "The ID of the fine-tuned model checkpoint permission that was deleted."
+    }),
+    "object": Schema.Literal("checkpoint.permission").annotate({
+      "description": "The object type, which is always \"checkpoint.permission\"."
+    }),
+    "deleted": Schema.Boolean.annotate({
+      "description": "Whether the fine-tuned model checkpoint permission was successfully deleted."
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "DeleteFineTuningCheckpointPermissionResponse" })
+export type DeleteMessageResponse = {
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly "object": "thread.message.deleted"
+  readonly [x: string]: unknown
+}
+export const DeleteMessageResponse = Schema.StructWithRest(
+  Schema.Struct({ "id": Schema.String, "deleted": Schema.Boolean, "object": Schema.Literal("thread.message.deleted") }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "DeleteMessageResponse" })
+export type DeleteModelResponse = {
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly "object": string
+  readonly [x: string]: unknown
+}
+export const DeleteModelResponse = Schema.StructWithRest(
+  Schema.Struct({ "id": Schema.String, "deleted": Schema.Boolean, "object": Schema.String }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "DeleteModelResponse" })
+export type DeleteThreadResponse = {
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly "object": "thread.deleted"
+  readonly [x: string]: unknown
+}
+export const DeleteThreadResponse = Schema.StructWithRest(
+  Schema.Struct({ "id": Schema.String, "deleted": Schema.Boolean, "object": Schema.Literal("thread.deleted") }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "DeleteThreadResponse" })
+export type DeleteVectorStoreFileResponse = {
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly "object": "vector_store.file.deleted"
+  readonly [x: string]: unknown
+}
+export const DeleteVectorStoreFileResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String,
+    "deleted": Schema.Boolean,
+    "object": Schema.Literal("vector_store.file.deleted")
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "DeleteVectorStoreFileResponse" })
+export type DeleteVectorStoreResponse = {
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly "object": "vector_store.deleted"
+  readonly [x: string]: unknown
+}
+export const DeleteVectorStoreResponse = Schema.StructWithRest(
+  Schema.Struct({ "id": Schema.String, "deleted": Schema.Boolean, "object": Schema.Literal("vector_store.deleted") }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "DeleteVectorStoreResponse" })
+export type DeletedConversation = unknown
+export const DeletedConversation = Schema.Unknown.annotate({
+  "title": "The deleted conversation object",
+  "identifier": "DeletedConversation"
+})
+export type DeletedRoleAssignmentResource = {
+  readonly "object": string
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const DeletedRoleAssignmentResource = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.String.annotate({
+      "description": "Identifier for the deleted assignment, such as `group.role.deleted` or `user.role.deleted`."
+    }),
+    "deleted": Schema.Boolean.annotate({ "description": "Whether the assignment was removed." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Confirmation payload returned after unassigning a role.",
+  "identifier": "DeletedRoleAssignmentResource"
+})
+export type DoneEvent = { readonly "event": "done"; readonly "data": "[DONE]"; readonly [x: string]: unknown }
+export const DoneEvent = Schema.StructWithRest(
+  Schema.Struct({ "event": Schema.Literal("done"), "data": Schema.Literal("[DONE]") }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "description": "Occurs when a stream ends.", "identifier": "DoneEvent" })
 export type Embedding = {
   readonly "index": number
   readonly "embedding": ReadonlyArray<number>
@@ -2139,6 +3118,44 @@ export const Group = Schema.StructWithRest(
   "description": "Summary information about a group returned in role assignment responses.",
   "identifier": "Group"
 })
+export type GroupDeletedResource = {
+  readonly "object": "group.deleted"
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const GroupDeletedResource = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("group.deleted").annotate({ "description": "Always `group.deleted`." }),
+    "id": Schema.String.annotate({ "description": "Identifier of the deleted group." }),
+    "deleted": Schema.Boolean.annotate({ "description": "Whether the group was deleted." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Confirmation payload returned after deleting a group.",
+  "identifier": "GroupDeletedResource"
+})
+export type GroupResourceWithSuccess = {
+  readonly "id": string
+  readonly "name": string
+  readonly "created_at": number
+  readonly "is_scim_managed": boolean
+  readonly [x: string]: unknown
+}
+export const GroupResourceWithSuccess = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({ "description": "Identifier for the group." }),
+    "name": Schema.String.annotate({ "description": "Updated display name for the group." }),
+    "created_at": Schema.Number.annotate({
+      "description": "Unix timestamp (in seconds) when the group was created.",
+      "format": "int64"
+    }).check(Schema.isInt()),
+    "is_scim_managed": Schema.Boolean.annotate({
+      "description": "Whether the group is managed through SCIM and controlled by your identity provider."
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "description": "Response returned after updating a group.", "identifier": "GroupResourceWithSuccess" })
 export type GroupResponse = {
   readonly "id": string
   readonly "name": string
@@ -2160,6 +3177,38 @@ export const GroupResponse = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "Details about an organization group.", "identifier": "GroupResponse" })
+export type GroupUserAssignment = {
+  readonly "object": "group.user"
+  readonly "user_id": string
+  readonly "group_id": string
+  readonly [x: string]: unknown
+}
+export const GroupUserAssignment = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("group.user").annotate({ "description": "Always `group.user`." }),
+    "user_id": Schema.String.annotate({ "description": "Identifier of the user that was added." }),
+    "group_id": Schema.String.annotate({ "description": "Identifier of the group the user was added to." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Confirmation payload returned after adding a user to a group.",
+  "identifier": "GroupUserAssignment"
+})
+export type GroupUserDeletedResource = {
+  readonly "object": "group.user.deleted"
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const GroupUserDeletedResource = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("group.user.deleted").annotate({ "description": "Always `group.user.deleted`." }),
+    "deleted": Schema.Boolean.annotate({ "description": "Whether the group membership was removed." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Confirmation payload returned after removing a user from a group.",
+  "identifier": "GroupUserDeletedResource"
+})
 export type Image = {
   readonly "b64_json"?: string
   readonly "url"?: string
@@ -2416,6 +3465,66 @@ export const Invite = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "Represents an individual `invite` to the organization.", "identifier": "Invite" })
+export type InviteDeleteResponse = {
+  readonly "object": "organization.invite.deleted"
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const InviteDeleteResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("organization.invite.deleted").annotate({
+      "description": "The object type, which is always `organization.invite.deleted`"
+    }),
+    "id": Schema.String,
+    "deleted": Schema.Boolean
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "InviteDeleteResponse" })
+export type InviteProjectGroupBody = {
+  readonly "group_id": string
+  readonly "role": string
+  readonly [x: string]: unknown
+}
+export const InviteProjectGroupBody = Schema.StructWithRest(
+  Schema.Struct({
+    "group_id": Schema.String.annotate({ "description": "Identifier of the group to add to the project." }),
+    "role": Schema.String.annotate({ "description": "Identifier of the project role to grant to the group." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Request payload for granting a group access to a project.",
+  "identifier": "InviteProjectGroupBody"
+})
+export type InviteRequest = {
+  readonly "email": string
+  readonly "role": "reader" | "owner"
+  readonly "projects"?: ReadonlyArray<
+    { readonly "id": string; readonly "role": "member" | "owner"; readonly [x: string]: unknown }
+  >
+  readonly [x: string]: unknown
+}
+export const InviteRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "email": Schema.String.annotate({ "description": "Send an email to this address" }),
+    "role": Schema.Literals(["reader", "owner"]).annotate({ "description": "`owner` or `reader`" }),
+    "projects": Schema.optionalKey(
+      Schema.Array(
+        Schema.StructWithRest(
+          Schema.Struct({
+            "id": Schema.String.annotate({ "description": "Project's public ID" }),
+            "role": Schema.Literals(["member", "owner"]).annotate({ "description": "Project membership role" })
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        )
+      ).annotate({
+        "description":
+          "An array of projects to which membership is granted at the same time the org invite is accepted. If omitted, the user will be invited to the default project for compatibility with legacy behavior."
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "InviteRequest" })
 export type LocalShellToolCallOutput = {
   readonly "type": "local_shell_call_output"
   readonly "id": string
@@ -2830,6 +3939,66 @@ export const MessageDeltaContentImageFileObject = Schema.StructWithRest(
     "References an image [File](https://platform.openai.com/docs/api-reference/files) in the content of a message.",
   "identifier": "MessageDeltaContentImageFileObject"
 })
+export type MessageDeltaContentImageUrlObject = {
+  readonly "index": number
+  readonly "type": "image_url"
+  readonly "image_url"?: {
+    readonly "url"?: string
+    readonly "detail"?: "auto" | "low" | "high"
+    readonly [x: string]: unknown
+  }
+  readonly [x: string]: unknown
+}
+export const MessageDeltaContentImageUrlObject = Schema.StructWithRest(
+  Schema.Struct({
+    "index": Schema.Number.annotate({ "description": "The index of the content part in the message." }).check(
+      Schema.isInt()
+    ),
+    "type": Schema.Literal("image_url").annotate({ "description": "Always `image_url`." }),
+    "image_url": Schema.optionalKey(Schema.StructWithRest(
+      Schema.Struct({
+        "url": Schema.optionalKey(
+          Schema.String.annotate({
+            "description": "The URL of the image, must be a supported image types: jpeg, jpg, png, gif, webp."
+          })
+        ),
+        "detail": Schema.optionalKey(
+          Schema.Literals(["auto", "low", "high"]).annotate({
+            "description":
+              "Specifies the detail level of the image. `low` uses fewer tokens, you can opt in to high resolution using `high`.",
+            "default": "auto"
+          })
+        )
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Image URL",
+  "description": "References an image URL in the content of a message.",
+  "identifier": "MessageDeltaContentImageUrlObject"
+})
+export type MessageDeltaContentRefusalObject = {
+  readonly "index": number
+  readonly "type": "refusal"
+  readonly "refusal"?: string
+  readonly [x: string]: unknown
+}
+export const MessageDeltaContentRefusalObject = Schema.StructWithRest(
+  Schema.Struct({
+    "index": Schema.Number.annotate({ "description": "The index of the refusal part in the message." }).check(
+      Schema.isInt()
+    ),
+    "type": Schema.Literal("refusal").annotate({ "description": "Always `refusal`." }),
+    "refusal": Schema.optionalKey(Schema.String)
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Refusal",
+  "description": "The refusal content that is part of a message.",
+  "identifier": "MessageDeltaContentRefusalObject"
+})
 export type MessageDeltaContentTextAnnotationsFileCitationObject = {
   readonly "index": number
   readonly "type": "file_citation"
@@ -2954,6 +4123,11 @@ export const Model = Schema.StructWithRest(
   "description": "Describes an OpenAI model offering that can be used with the API.",
   "identifier": "Model"
 })
+export type ModifyCertificateRequest = { readonly "name": string; readonly [x: string]: unknown }
+export const ModifyCertificateRequest = Schema.StructWithRest(
+  Schema.Struct({ "name": Schema.String.annotate({ "description": "The updated name for the certificate" }) }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ModifyCertificateRequest" })
 export type Move = {
   readonly "type": "move"
   readonly "x": number
@@ -3052,6 +4226,22 @@ export const OtherChunkingStrategyResponseParam = Schema.Struct({
     "This is returned when the chunking strategy is unknown. Typically, this is because the file was indexed before the `chunking_strategy` concept was introduced in the API.",
   "identifier": "OtherChunkingStrategyResponseParam"
 })
+export type OutputAudio = {
+  readonly "type": "output_audio"
+  readonly "data": string
+  readonly "transcript": string
+  readonly [x: string]: unknown
+}
+export const OutputAudio = Schema.StructWithRest(
+  Schema.Struct({
+    "type": Schema.Literal("output_audio").annotate({
+      "description": "The type of the output audio. Always `output_audio`.\n"
+    }),
+    "data": Schema.String.annotate({ "description": "Base64-encoded audio data from the model.\n" }),
+    "transcript": Schema.String.annotate({ "description": "The transcript of the audio data from the model.\n" })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "title": "Output audio", "description": "An audio output from the model.\n", "identifier": "OutputAudio" })
 export type ParallelToolCalls = boolean
 export const ParallelToolCalls = Schema.Boolean.annotate({
   "description":
@@ -3100,6 +4290,39 @@ export const Project = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "Represents an individual project.", "identifier": "Project" })
+export type ProjectApiKeyDeleteResponse = {
+  readonly "object": "organization.project.api_key.deleted"
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const ProjectApiKeyDeleteResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("organization.project.api_key.deleted"),
+    "id": Schema.String,
+    "deleted": Schema.Boolean
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ProjectApiKeyDeleteResponse" })
+export type ProjectCreateRequest = {
+  readonly "name": string
+  readonly "geography"?: "US" | "EU" | "JP" | "IN" | "KR" | "CA" | "AU" | "SG"
+  readonly [x: string]: unknown
+}
+export const ProjectCreateRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "name": Schema.String.annotate({
+      "description": "The friendly name of the project, this name appears in reports."
+    }),
+    "geography": Schema.optionalKey(
+      Schema.Literals(["US", "EU", "JP", "IN", "KR", "CA", "AU", "SG"]).annotate({
+        "description":
+          "Create the project with the specified data residency region. Your organization must have access to Data residency functionality in order to use. See [data residency controls](https://platform.openai.com/docs/guides/your-data#data-residency-controls) to review the functionality and limitations of setting this field."
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ProjectCreateRequest" })
 export type ProjectGroup = {
   readonly "object": "project.group"
   readonly "project_id": string
@@ -3121,6 +4344,21 @@ export const ProjectGroup = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "Details about a group's membership in a project.", "identifier": "ProjectGroup" })
+export type ProjectGroupDeletedResource = {
+  readonly "object": "project.group.deleted"
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const ProjectGroupDeletedResource = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("project.group.deleted").annotate({ "description": "Always `project.group.deleted`." }),
+    "deleted": Schema.Boolean.annotate({ "description": "Whether the group membership in the project was removed." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Confirmation payload returned after removing a group from a project.",
+  "identifier": "ProjectGroupDeletedResource"
+})
 export type ProjectRateLimit = {
   readonly "object": "project.rate_limit"
   readonly "id": string
@@ -3167,6 +4405,44 @@ export const ProjectRateLimit = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "Represents a project rate limit config.", "identifier": "ProjectRateLimit" })
+export type ProjectRateLimitUpdateRequest = {
+  readonly "max_requests_per_1_minute"?: number
+  readonly "max_tokens_per_1_minute"?: number
+  readonly "max_images_per_1_minute"?: number
+  readonly "max_audio_megabytes_per_1_minute"?: number
+  readonly "max_requests_per_1_day"?: number
+  readonly "batch_1_day_max_input_tokens"?: number
+  readonly [x: string]: unknown
+}
+export const ProjectRateLimitUpdateRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "max_requests_per_1_minute": Schema.optionalKey(
+      Schema.Number.annotate({ "description": "The maximum requests per minute." }).check(Schema.isInt())
+    ),
+    "max_tokens_per_1_minute": Schema.optionalKey(
+      Schema.Number.annotate({ "description": "The maximum tokens per minute." }).check(Schema.isInt())
+    ),
+    "max_images_per_1_minute": Schema.optionalKey(
+      Schema.Number.annotate({ "description": "The maximum images per minute. Only relevant for certain models." })
+        .check(Schema.isInt())
+    ),
+    "max_audio_megabytes_per_1_minute": Schema.optionalKey(
+      Schema.Number.annotate({
+        "description": "The maximum audio megabytes per minute. Only relevant for certain models."
+      }).check(Schema.isInt())
+    ),
+    "max_requests_per_1_day": Schema.optionalKey(
+      Schema.Number.annotate({ "description": "The maximum requests per day. Only relevant for certain models." })
+        .check(Schema.isInt())
+    ),
+    "batch_1_day_max_input_tokens": Schema.optionalKey(
+      Schema.Number.annotate({
+        "description": "The maximum batch input tokens per day. Only relevant for certain models."
+      }).check(Schema.isInt())
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ProjectRateLimitUpdateRequest" })
 export type ProjectServiceAccount = {
   readonly "object": "organization.project.service_account"
   readonly "id": string
@@ -3212,6 +4488,34 @@ export const ProjectServiceAccountApiKey = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "identifier": "ProjectServiceAccountApiKey" })
+export type ProjectServiceAccountCreateRequest = { readonly "name": string; readonly [x: string]: unknown }
+export const ProjectServiceAccountCreateRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "name": Schema.String.annotate({ "description": "The name of the service account being created." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ProjectServiceAccountCreateRequest" })
+export type ProjectServiceAccountDeleteResponse = {
+  readonly "object": "organization.project.service_account.deleted"
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const ProjectServiceAccountDeleteResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("organization.project.service_account.deleted"),
+    "id": Schema.String,
+    "deleted": Schema.Boolean
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ProjectServiceAccountDeleteResponse" })
+export type ProjectUpdateRequest = { readonly "name": string; readonly [x: string]: unknown }
+export const ProjectUpdateRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "name": Schema.String.annotate({ "description": "The updated name of the project, this name appears in reports." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ProjectUpdateRequest" })
 export type ProjectUser = {
   readonly "object": "organization.project.user"
   readonly "id": string
@@ -3236,6 +4540,89 @@ export const ProjectUser = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "Represents an individual user in a project.", "identifier": "ProjectUser" })
+export type ProjectUserCreateRequest = {
+  readonly "user_id": string
+  readonly "role": "owner" | "member"
+  readonly [x: string]: unknown
+}
+export const ProjectUserCreateRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "user_id": Schema.String.annotate({ "description": "The ID of the user." }),
+    "role": Schema.Literals(["owner", "member"]).annotate({ "description": "`owner` or `member`" })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ProjectUserCreateRequest" })
+export type ProjectUserDeleteResponse = {
+  readonly "object": "organization.project.user.deleted"
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const ProjectUserDeleteResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("organization.project.user.deleted"),
+    "id": Schema.String,
+    "deleted": Schema.Boolean
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ProjectUserDeleteResponse" })
+export type ProjectUserUpdateRequest = { readonly "role": "owner" | "member"; readonly [x: string]: unknown }
+export const ProjectUserUpdateRequest = Schema.StructWithRest(
+  Schema.Struct({ "role": Schema.Literals(["owner", "member"]).annotate({ "description": "`owner` or `member`" }) }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ProjectUserUpdateRequest" })
+export type PublicAssignOrganizationGroupRoleBody = { readonly "role_id": string; readonly [x: string]: unknown }
+export const PublicAssignOrganizationGroupRoleBody = Schema.StructWithRest(
+  Schema.Struct({ "role_id": Schema.String.annotate({ "description": "Identifier of the role to assign." }) }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Request payload for assigning a role to a group or user.",
+  "identifier": "PublicAssignOrganizationGroupRoleBody"
+})
+export type PublicCreateOrganizationRoleBody = {
+  readonly "role_name": string
+  readonly "permissions": ReadonlyArray<string>
+  readonly "description"?: string | null
+  readonly [x: string]: unknown
+}
+export const PublicCreateOrganizationRoleBody = Schema.StructWithRest(
+  Schema.Struct({
+    "role_name": Schema.String.annotate({ "description": "Unique name for the role." }),
+    "permissions": Schema.Array(Schema.String).annotate({ "description": "Permissions to grant to the role." }),
+    "description": Schema.optionalKey(
+      Schema.Union([Schema.String, Schema.Null]).annotate({ "description": "Optional description of the role." })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Request payload for creating a custom role.",
+  "identifier": "PublicCreateOrganizationRoleBody"
+})
+export type PublicUpdateOrganizationRoleBody = {
+  readonly "permissions"?: ReadonlyArray<string> | null
+  readonly "description"?: string | null
+  readonly "role_name"?: string | null
+  readonly [x: string]: unknown
+}
+export const PublicUpdateOrganizationRoleBody = Schema.StructWithRest(
+  Schema.Struct({
+    "permissions": Schema.optionalKey(
+      Schema.Union([Schema.Array(Schema.String), Schema.Null]).annotate({
+        "description": "Updated set of permissions for the role."
+      })
+    ),
+    "description": Schema.optionalKey(
+      Schema.Union([Schema.String, Schema.Null]).annotate({ "description": "New description for the role." })
+    ),
+    "role_name": Schema.optionalKey(
+      Schema.Union([Schema.String, Schema.Null]).annotate({ "description": "New name for the role." })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Request payload for updating an existing role.",
+  "identifier": "PublicUpdateOrganizationRoleBody"
+})
 export type RealtimeAudioFormats =
   | { readonly "type"?: "audio/pcm"; readonly "rate"?: 24000; readonly [x: string]: unknown }
   | { readonly "type"?: "audio/pcmu"; readonly [x: string]: unknown }
@@ -3272,6 +4659,1100 @@ export const RealtimeAudioFormats = Schema.Union([
     [Schema.Record(Schema.String, Schema.Unknown)]
   ).annotate({ "title": "PCMA audio format", "description": "The G.711 A-law format." })
 ]).annotate({ "identifier": "RealtimeAudioFormats" })
+export type RealtimeBetaClientEventConversationItemDelete = {
+  readonly "event_id"?: string
+  readonly "type": "conversation.item.delete"
+  readonly "item_id": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaClientEventConversationItemDelete = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional client-generated ID used to identify this event." })
+    ),
+    "type": Schema.Literal("conversation.item.delete").annotate({
+      "description": "The event type, must be `conversation.item.delete`."
+    }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item to delete." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Send this event when you want to remove any item from the conversation \nhistory. The server will respond with a `conversation.item.deleted` event, \nunless the item does not exist in the conversation history, in which case the \nserver will respond with an error.\n",
+  "identifier": "RealtimeBetaClientEventConversationItemDelete"
+})
+export type RealtimeBetaClientEventConversationItemRetrieve = {
+  readonly "event_id"?: string
+  readonly "type": "conversation.item.retrieve"
+  readonly "item_id": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaClientEventConversationItemRetrieve = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional client-generated ID used to identify this event." })
+    ),
+    "type": Schema.Literal("conversation.item.retrieve").annotate({
+      "description": "The event type, must be `conversation.item.retrieve`."
+    }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item to retrieve." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Send this event when you want to retrieve the server's representation of a specific item in the conversation history. This is useful, for example, to inspect user audio after noise cancellation and VAD.\nThe server will respond with a `conversation.item.retrieved` event, \nunless the item does not exist in the conversation history, in which case the \nserver will respond with an error.\n",
+  "identifier": "RealtimeBetaClientEventConversationItemRetrieve"
+})
+export type RealtimeBetaClientEventConversationItemTruncate = {
+  readonly "event_id"?: string
+  readonly "type": "conversation.item.truncate"
+  readonly "item_id": string
+  readonly "content_index": number
+  readonly "audio_end_ms": number
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaClientEventConversationItemTruncate = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional client-generated ID used to identify this event." })
+    ),
+    "type": Schema.Literal("conversation.item.truncate").annotate({
+      "description": "The event type, must be `conversation.item.truncate`."
+    }),
+    "item_id": Schema.String.annotate({
+      "description":
+        "The ID of the assistant message item to truncate. Only assistant message \nitems can be truncated.\n"
+    }),
+    "content_index": Schema.Number.annotate({
+      "description": "The index of the content part to truncate. Set this to 0."
+    }).check(Schema.isInt()),
+    "audio_end_ms": Schema.Number.annotate({
+      "description":
+        "Inclusive duration up to which audio is truncated, in milliseconds. If \nthe audio_end_ms is greater than the actual audio duration, the server \nwill respond with an error.\n"
+    }).check(Schema.isInt())
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Send this event to truncate a previous assistant message’s audio. The server \nwill produce audio faster than realtime, so this event is useful when the user \ninterrupts to truncate audio that has already been sent to the client but not \nyet played. This will synchronize the server's understanding of the audio with \nthe client's playback.\n\nTruncating audio will delete the server-side text transcript to ensure there \nis not text in the context that hasn't been heard by the user.\n\nIf successful, the server will respond with a `conversation.item.truncated` \nevent. \n",
+  "identifier": "RealtimeBetaClientEventConversationItemTruncate"
+})
+export type RealtimeBetaClientEventInputAudioBufferAppend = {
+  readonly "event_id"?: string
+  readonly "type": "input_audio_buffer.append"
+  readonly "audio": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaClientEventInputAudioBufferAppend = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional client-generated ID used to identify this event." })
+    ),
+    "type": Schema.Literal("input_audio_buffer.append").annotate({
+      "description": "The event type, must be `input_audio_buffer.append`."
+    }),
+    "audio": Schema.String.annotate({
+      "description":
+        "Base64-encoded audio bytes. This must be in the format specified by the \n`input_audio_format` field in the session configuration.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Send this event to append audio bytes to the input audio buffer. The audio \nbuffer is temporary storage you can write to and later commit. In Server VAD \nmode, the audio buffer is used to detect speech and the server will decide \nwhen to commit. When Server VAD is disabled, you must commit the audio buffer\nmanually.\n\nThe client may choose how much audio to place in each event up to a maximum \nof 15 MiB, for example streaming smaller chunks from the client may allow the \nVAD to be more responsive. Unlike made other client events, the server will \nnot send a confirmation response to this event.\n",
+  "identifier": "RealtimeBetaClientEventInputAudioBufferAppend"
+})
+export type RealtimeBetaClientEventInputAudioBufferClear = {
+  readonly "event_id"?: string
+  readonly "type": "input_audio_buffer.clear"
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaClientEventInputAudioBufferClear = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional client-generated ID used to identify this event." })
+    ),
+    "type": Schema.Literal("input_audio_buffer.clear").annotate({
+      "description": "The event type, must be `input_audio_buffer.clear`."
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Send this event to clear the audio bytes in the buffer. The server will \nrespond with an `input_audio_buffer.cleared` event.\n",
+  "identifier": "RealtimeBetaClientEventInputAudioBufferClear"
+})
+export type RealtimeBetaClientEventInputAudioBufferCommit = {
+  readonly "event_id"?: string
+  readonly "type": "input_audio_buffer.commit"
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaClientEventInputAudioBufferCommit = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional client-generated ID used to identify this event." })
+    ),
+    "type": Schema.Literal("input_audio_buffer.commit").annotate({
+      "description": "The event type, must be `input_audio_buffer.commit`."
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Send this event to commit the user input audio buffer, which will create a \nnew user message item in the conversation. This event will produce an error \nif the input audio buffer is empty. When in Server VAD mode, the client does \nnot need to send this event, the server will commit the audio buffer \nautomatically.\n\nCommitting the input audio buffer will trigger input audio transcription \n(if enabled in session configuration), but it will not create a response \nfrom the model. The server will respond with an `input_audio_buffer.committed` \nevent.\n",
+  "identifier": "RealtimeBetaClientEventInputAudioBufferCommit"
+})
+export type RealtimeBetaClientEventOutputAudioBufferClear = {
+  readonly "event_id"?: string
+  readonly "type": "output_audio_buffer.clear"
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaClientEventOutputAudioBufferClear = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "The unique ID of the client event used for error handling." })
+    ),
+    "type": Schema.Literal("output_audio_buffer.clear").annotate({
+      "description": "The event type, must be `output_audio_buffer.clear`."
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "**WebRTC/SIP Only:** Emit to cut off the current audio response. This will trigger the server to\nstop generating audio and emit a `output_audio_buffer.cleared` event. This\nevent should be preceded by a `response.cancel` client event to stop the\ngeneration of the current response.\n[Learn more](https://platform.openai.com/docs/guides/realtime-conversations#client-and-server-events-for-audio-in-webrtc).\n",
+  "identifier": "RealtimeBetaClientEventOutputAudioBufferClear"
+})
+export type RealtimeBetaClientEventResponseCancel = {
+  readonly "event_id"?: string
+  readonly "type": "response.cancel"
+  readonly "response_id"?: string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaClientEventResponseCancel = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional client-generated ID used to identify this event." })
+    ),
+    "type": Schema.Literal("response.cancel").annotate({ "description": "The event type, must be `response.cancel`." }),
+    "response_id": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "A specific response ID to cancel - if not provided, will cancel an \nin-progress response in the default conversation.\n"
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Send this event to cancel an in-progress response. The server will respond \nwith a `response.done` event with a status of `response.status=cancelled`. If \nthere is no response to cancel, the server will respond with an error.\n",
+  "identifier": "RealtimeBetaClientEventResponseCancel"
+})
+export type RealtimeBetaServerEventConversationItemDeleted = {
+  readonly "event_id": string
+  readonly "type": "conversation.item.deleted"
+  readonly "item_id": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventConversationItemDeleted = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("conversation.item.deleted").annotate({
+      "description": "The event type, must be `conversation.item.deleted`."
+    }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item that was deleted." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when an item in the conversation is deleted by the client with a \n`conversation.item.delete` event. This event is used to synchronize the \nserver's understanding of the conversation history with the client's view.\n",
+  "identifier": "RealtimeBetaServerEventConversationItemDeleted"
+})
+export type RealtimeBetaServerEventConversationItemInputAudioTranscriptionFailed = {
+  readonly "event_id": string
+  readonly "type": "conversation.item.input_audio_transcription.failed"
+  readonly "item_id": string
+  readonly "content_index": number
+  readonly "error": {
+    readonly "type"?: string
+    readonly "code"?: string
+    readonly "message"?: string
+    readonly "param"?: string
+    readonly [x: string]: unknown
+  }
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventConversationItemInputAudioTranscriptionFailed = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("conversation.item.input_audio_transcription.failed").annotate({
+      "description": "The event type, must be\n`conversation.item.input_audio_transcription.failed`.\n"
+    }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the user message item." }),
+    "content_index": Schema.Number.annotate({ "description": "The index of the content part containing the audio." })
+      .check(Schema.isInt()),
+    "error": Schema.StructWithRest(
+      Schema.Struct({
+        "type": Schema.optionalKey(Schema.String.annotate({ "description": "The type of error." })),
+        "code": Schema.optionalKey(Schema.String.annotate({ "description": "Error code, if any." })),
+        "message": Schema.optionalKey(Schema.String.annotate({ "description": "A human-readable error message." })),
+        "param": Schema.optionalKey(
+          Schema.String.annotate({ "description": "Parameter related to the error, if any." })
+        )
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Details of the transcription error." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when input audio transcription is configured, and a transcription \nrequest for a user message failed. These events are separate from other \n`error` events so that the client can identify the related Item.\n",
+  "identifier": "RealtimeBetaServerEventConversationItemInputAudioTranscriptionFailed"
+})
+export type RealtimeBetaServerEventConversationItemInputAudioTranscriptionSegment = {
+  readonly "event_id": string
+  readonly "type": "conversation.item.input_audio_transcription.segment"
+  readonly "item_id": string
+  readonly "content_index": number
+  readonly "text": string
+  readonly "id": string
+  readonly "speaker": string
+  readonly "start": number
+  readonly "end": number
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventConversationItemInputAudioTranscriptionSegment = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("conversation.item.input_audio_transcription.segment").annotate({
+      "description": "The event type, must be `conversation.item.input_audio_transcription.segment`."
+    }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item containing the input audio content." }),
+    "content_index": Schema.Number.annotate({
+      "description": "The index of the input audio content part within the item."
+    }).check(Schema.isInt()),
+    "text": Schema.String.annotate({ "description": "The text for this segment." }),
+    "id": Schema.String.annotate({ "description": "The segment identifier." }),
+    "speaker": Schema.String.annotate({ "description": "The detected speaker label for this segment." }),
+    "start": Schema.Number.annotate({ "description": "Start time of the segment in seconds.", "format": "float" })
+      .check(Schema.isFinite()),
+    "end": Schema.Number.annotate({ "description": "End time of the segment in seconds.", "format": "float" }).check(
+      Schema.isFinite()
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when an input audio transcription segment is identified for an item.",
+  "identifier": "RealtimeBetaServerEventConversationItemInputAudioTranscriptionSegment"
+})
+export type RealtimeBetaServerEventConversationItemTruncated = {
+  readonly "event_id": string
+  readonly "type": "conversation.item.truncated"
+  readonly "item_id": string
+  readonly "content_index": number
+  readonly "audio_end_ms": number
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventConversationItemTruncated = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("conversation.item.truncated").annotate({
+      "description": "The event type, must be `conversation.item.truncated`."
+    }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the assistant message item that was truncated." }),
+    "content_index": Schema.Number.annotate({ "description": "The index of the content part that was truncated." })
+      .check(Schema.isInt()),
+    "audio_end_ms": Schema.Number.annotate({
+      "description": "The duration up to which the audio was truncated, in milliseconds.\n"
+    }).check(Schema.isInt())
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when an earlier assistant audio message item is truncated by the \nclient with a `conversation.item.truncate` event. This event is used to \nsynchronize the server's understanding of the audio with the client's playback.\n\nThis action will truncate the audio and remove the server-side text transcript \nto ensure there is no text in the context that hasn't been heard by the user.\n",
+  "identifier": "RealtimeBetaServerEventConversationItemTruncated"
+})
+export type RealtimeBetaServerEventError = {
+  readonly "event_id": string
+  readonly "type": "error"
+  readonly "error": {
+    readonly "type": string
+    readonly "code"?: string | null
+    readonly "message": string
+    readonly "param"?: string | null
+    readonly "event_id"?: string | null
+    readonly [x: string]: unknown
+  }
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventError = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("error").annotate({ "description": "The event type, must be `error`." }),
+    "error": Schema.StructWithRest(
+      Schema.Struct({
+        "type": Schema.String.annotate({
+          "description": "The type of error (e.g., \"invalid_request_error\", \"server_error\").\n"
+        }),
+        "code": Schema.optionalKey(
+          Schema.Union([Schema.String.annotate({ "description": "Error code, if any." }), Schema.Null])
+        ),
+        "message": Schema.String.annotate({ "description": "A human-readable error message." }),
+        "param": Schema.optionalKey(
+          Schema.Union([
+            Schema.String.annotate({ "description": "Parameter related to the error, if any." }),
+            Schema.Null
+          ])
+        ),
+        "event_id": Schema.optionalKey(
+          Schema.Union([
+            Schema.String.annotate({
+              "description": "The event_id of the client event that caused the error, if applicable.\n"
+            }),
+            Schema.Null
+          ])
+        )
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Details of the error." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when an error occurs, which could be a client problem or a server\nproblem. Most errors are recoverable and the session will stay open, we\nrecommend to implementors to monitor and log error messages by default.\n",
+  "identifier": "RealtimeBetaServerEventError"
+})
+export type RealtimeBetaServerEventInputAudioBufferCleared = {
+  readonly "event_id": string
+  readonly "type": "input_audio_buffer.cleared"
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventInputAudioBufferCleared = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("input_audio_buffer.cleared").annotate({
+      "description": "The event type, must be `input_audio_buffer.cleared`."
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when the input audio buffer is cleared by the client with a \n`input_audio_buffer.clear` event.\n",
+  "identifier": "RealtimeBetaServerEventInputAudioBufferCleared"
+})
+export type RealtimeBetaServerEventInputAudioBufferCommitted = {
+  readonly "event_id": string
+  readonly "type": "input_audio_buffer.committed"
+  readonly "previous_item_id"?: string | null
+  readonly "item_id": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventInputAudioBufferCommitted = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("input_audio_buffer.committed").annotate({
+      "description": "The event type, must be `input_audio_buffer.committed`."
+    }),
+    "previous_item_id": Schema.optionalKey(
+      Schema.Union([
+        Schema.String.annotate({
+          "description":
+            "The ID of the preceding item after which the new item will be inserted.\nCan be `null` if the item has no predecessor.\n"
+        }),
+        Schema.Null
+      ])
+    ),
+    "item_id": Schema.String.annotate({ "description": "The ID of the user message item that will be created." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when an input audio buffer is committed, either by the client or\nautomatically in server VAD mode. The `item_id` property is the ID of the user\nmessage item that will be created, thus a `conversation.item.created` event\nwill also be sent to the client.\n",
+  "identifier": "RealtimeBetaServerEventInputAudioBufferCommitted"
+})
+export type RealtimeBetaServerEventInputAudioBufferSpeechStarted = {
+  readonly "event_id": string
+  readonly "type": "input_audio_buffer.speech_started"
+  readonly "audio_start_ms": number
+  readonly "item_id": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventInputAudioBufferSpeechStarted = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("input_audio_buffer.speech_started").annotate({
+      "description": "The event type, must be `input_audio_buffer.speech_started`."
+    }),
+    "audio_start_ms": Schema.Number.annotate({
+      "description":
+        "Milliseconds from the start of all audio written to the buffer during the \nsession when speech was first detected. This will correspond to the \nbeginning of audio sent to the model, and thus includes the \n`prefix_padding_ms` configured in the Session.\n"
+    }).check(Schema.isInt()),
+    "item_id": Schema.String.annotate({
+      "description": "The ID of the user message item that will be created when speech stops.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Sent by the server when in `server_vad` mode to indicate that speech has been \ndetected in the audio buffer. This can happen any time audio is added to the \nbuffer (unless speech is already detected). The client may want to use this \nevent to interrupt audio playback or provide visual feedback to the user. \n\nThe client should expect to receive a `input_audio_buffer.speech_stopped` event \nwhen speech stops. The `item_id` property is the ID of the user message item \nthat will be created when speech stops and will also be included in the \n`input_audio_buffer.speech_stopped` event (unless the client manually commits \nthe audio buffer during VAD activation).\n",
+  "identifier": "RealtimeBetaServerEventInputAudioBufferSpeechStarted"
+})
+export type RealtimeBetaServerEventInputAudioBufferSpeechStopped = {
+  readonly "event_id": string
+  readonly "type": "input_audio_buffer.speech_stopped"
+  readonly "audio_end_ms": number
+  readonly "item_id": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventInputAudioBufferSpeechStopped = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("input_audio_buffer.speech_stopped").annotate({
+      "description": "The event type, must be `input_audio_buffer.speech_stopped`."
+    }),
+    "audio_end_ms": Schema.Number.annotate({
+      "description":
+        "Milliseconds since the session started when speech stopped. This will \ncorrespond to the end of audio sent to the model, and thus includes the \n`min_silence_duration_ms` configured in the Session.\n"
+    }).check(Schema.isInt()),
+    "item_id": Schema.String.annotate({ "description": "The ID of the user message item that will be created." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned in `server_vad` mode when the server detects the end of speech in \nthe audio buffer. The server will also send an `conversation.item.created` \nevent with the user message item that is created from the audio buffer.\n",
+  "identifier": "RealtimeBetaServerEventInputAudioBufferSpeechStopped"
+})
+export type RealtimeBetaServerEventMCPListToolsCompleted = {
+  readonly "event_id": string
+  readonly "type": "mcp_list_tools.completed"
+  readonly "item_id": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventMCPListToolsCompleted = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("mcp_list_tools.completed").annotate({
+      "description": "The event type, must be `mcp_list_tools.completed`."
+    }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the MCP list tools item." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when listing MCP tools has completed for an item.",
+  "identifier": "RealtimeBetaServerEventMCPListToolsCompleted"
+})
+export type RealtimeBetaServerEventMCPListToolsFailed = {
+  readonly "event_id": string
+  readonly "type": "mcp_list_tools.failed"
+  readonly "item_id": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventMCPListToolsFailed = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("mcp_list_tools.failed").annotate({
+      "description": "The event type, must be `mcp_list_tools.failed`."
+    }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the MCP list tools item." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when listing MCP tools has failed for an item.",
+  "identifier": "RealtimeBetaServerEventMCPListToolsFailed"
+})
+export type RealtimeBetaServerEventMCPListToolsInProgress = {
+  readonly "event_id": string
+  readonly "type": "mcp_list_tools.in_progress"
+  readonly "item_id": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventMCPListToolsInProgress = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("mcp_list_tools.in_progress").annotate({
+      "description": "The event type, must be `mcp_list_tools.in_progress`."
+    }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the MCP list tools item." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when listing MCP tools is in progress for an item.",
+  "identifier": "RealtimeBetaServerEventMCPListToolsInProgress"
+})
+export type RealtimeBetaServerEventRateLimitsUpdated = {
+  readonly "event_id": string
+  readonly "type": "rate_limits.updated"
+  readonly "rate_limits": ReadonlyArray<
+    {
+      readonly "name"?: "requests" | "tokens"
+      readonly "limit"?: number
+      readonly "remaining"?: number
+      readonly "reset_seconds"?: number
+      readonly [x: string]: unknown
+    }
+  >
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventRateLimitsUpdated = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("rate_limits.updated").annotate({
+      "description": "The event type, must be `rate_limits.updated`."
+    }),
+    "rate_limits": Schema.Array(Schema.StructWithRest(
+      Schema.Struct({
+        "name": Schema.optionalKey(
+          Schema.Literals(["requests", "tokens"]).annotate({
+            "description": "The name of the rate limit (`requests`, `tokens`).\n"
+          })
+        ),
+        "limit": Schema.optionalKey(
+          Schema.Number.annotate({ "description": "The maximum allowed value for the rate limit." }).check(
+            Schema.isInt()
+          )
+        ),
+        "remaining": Schema.optionalKey(
+          Schema.Number.annotate({ "description": "The remaining value before the limit is reached." }).check(
+            Schema.isInt()
+          )
+        ),
+        "reset_seconds": Schema.optionalKey(
+          Schema.Number.annotate({ "description": "Seconds until the rate limit resets." }).check(Schema.isFinite())
+        )
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    )).annotate({ "description": "List of rate limit information." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Emitted at the beginning of a Response to indicate the updated rate limits. \nWhen a Response is created some tokens will be \"reserved\" for the output \ntokens, the rate limits shown here reflect that reservation, which is then \nadjusted accordingly once the Response is completed.\n",
+  "identifier": "RealtimeBetaServerEventRateLimitsUpdated"
+})
+export type RealtimeBetaServerEventResponseAudioDelta = {
+  readonly "event_id": string
+  readonly "type": "response.output_audio.delta"
+  readonly "response_id": string
+  readonly "item_id": string
+  readonly "output_index": number
+  readonly "content_index": number
+  readonly "delta": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseAudioDelta = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.output_audio.delta").annotate({
+      "description": "The event type, must be `response.output_audio.delta`."
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the response." }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "content_index": Schema.Number.annotate({
+      "description": "The index of the content part in the item's content array."
+    }).check(Schema.isInt()),
+    "delta": Schema.String.annotate({ "description": "Base64-encoded audio data delta." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when the model-generated audio is updated.",
+  "identifier": "RealtimeBetaServerEventResponseAudioDelta"
+})
+export type RealtimeBetaServerEventResponseAudioDone = {
+  readonly "event_id": string
+  readonly "type": "response.output_audio.done"
+  readonly "response_id": string
+  readonly "item_id": string
+  readonly "output_index": number
+  readonly "content_index": number
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseAudioDone = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.output_audio.done").annotate({
+      "description": "The event type, must be `response.output_audio.done`."
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the response." }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "content_index": Schema.Number.annotate({
+      "description": "The index of the content part in the item's content array."
+    }).check(Schema.isInt())
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when the model-generated audio is done. Also emitted when a Response\nis interrupted, incomplete, or cancelled.\n",
+  "identifier": "RealtimeBetaServerEventResponseAudioDone"
+})
+export type RealtimeBetaServerEventResponseAudioTranscriptDelta = {
+  readonly "event_id": string
+  readonly "type": "response.output_audio_transcript.delta"
+  readonly "response_id": string
+  readonly "item_id": string
+  readonly "output_index": number
+  readonly "content_index": number
+  readonly "delta": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseAudioTranscriptDelta = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.output_audio_transcript.delta").annotate({
+      "description": "The event type, must be `response.output_audio_transcript.delta`."
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the response." }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "content_index": Schema.Number.annotate({
+      "description": "The index of the content part in the item's content array."
+    }).check(Schema.isInt()),
+    "delta": Schema.String.annotate({ "description": "The transcript delta." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when the model-generated transcription of audio output is updated.\n",
+  "identifier": "RealtimeBetaServerEventResponseAudioTranscriptDelta"
+})
+export type RealtimeBetaServerEventResponseAudioTranscriptDone = {
+  readonly "event_id": string
+  readonly "type": "response.output_audio_transcript.done"
+  readonly "response_id": string
+  readonly "item_id": string
+  readonly "output_index": number
+  readonly "content_index": number
+  readonly "transcript": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseAudioTranscriptDone = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.output_audio_transcript.done").annotate({
+      "description": "The event type, must be `response.output_audio_transcript.done`."
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the response." }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "content_index": Schema.Number.annotate({
+      "description": "The index of the content part in the item's content array."
+    }).check(Schema.isInt()),
+    "transcript": Schema.String.annotate({ "description": "The final transcript of the audio." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when the model-generated transcription of audio output is done\nstreaming. Also emitted when a Response is interrupted, incomplete, or\ncancelled.\n",
+  "identifier": "RealtimeBetaServerEventResponseAudioTranscriptDone"
+})
+export type RealtimeBetaServerEventResponseContentPartAdded = {
+  readonly "event_id": string
+  readonly "type": "response.content_part.added"
+  readonly "response_id": string
+  readonly "item_id": string
+  readonly "output_index": number
+  readonly "content_index": number
+  readonly "part": {
+    readonly "type"?: "text" | "audio"
+    readonly "text"?: string
+    readonly "audio"?: string
+    readonly "transcript"?: string
+    readonly [x: string]: unknown
+  }
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseContentPartAdded = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.content_part.added").annotate({
+      "description": "The event type, must be `response.content_part.added`."
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the response." }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item to which the content part was added." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "content_index": Schema.Number.annotate({
+      "description": "The index of the content part in the item's content array."
+    }).check(Schema.isInt()),
+    "part": Schema.StructWithRest(
+      Schema.Struct({
+        "type": Schema.optionalKey(
+          Schema.Literals(["text", "audio"]).annotate({ "description": "The content type (\"text\", \"audio\")." })
+        ),
+        "text": Schema.optionalKey(
+          Schema.String.annotate({ "description": "The text content (if type is \"text\")." })
+        ),
+        "audio": Schema.optionalKey(
+          Schema.String.annotate({ "description": "Base64-encoded audio data (if type is \"audio\")." })
+        ),
+        "transcript": Schema.optionalKey(
+          Schema.String.annotate({ "description": "The transcript of the audio (if type is \"audio\")." })
+        )
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "The content part that was added." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when a new content part is added to an assistant message item during\nresponse generation.\n",
+  "identifier": "RealtimeBetaServerEventResponseContentPartAdded"
+})
+export type RealtimeBetaServerEventResponseContentPartDone = {
+  readonly "event_id": string
+  readonly "type": "response.content_part.done"
+  readonly "response_id": string
+  readonly "item_id": string
+  readonly "output_index": number
+  readonly "content_index": number
+  readonly "part": {
+    readonly "type"?: "text" | "audio"
+    readonly "text"?: string
+    readonly "audio"?: string
+    readonly "transcript"?: string
+    readonly [x: string]: unknown
+  }
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseContentPartDone = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.content_part.done").annotate({
+      "description": "The event type, must be `response.content_part.done`."
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the response." }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "content_index": Schema.Number.annotate({
+      "description": "The index of the content part in the item's content array."
+    }).check(Schema.isInt()),
+    "part": Schema.StructWithRest(
+      Schema.Struct({
+        "type": Schema.optionalKey(
+          Schema.Literals(["text", "audio"]).annotate({ "description": "The content type (\"text\", \"audio\")." })
+        ),
+        "text": Schema.optionalKey(
+          Schema.String.annotate({ "description": "The text content (if type is \"text\")." })
+        ),
+        "audio": Schema.optionalKey(
+          Schema.String.annotate({ "description": "Base64-encoded audio data (if type is \"audio\")." })
+        ),
+        "transcript": Schema.optionalKey(
+          Schema.String.annotate({ "description": "The transcript of the audio (if type is \"audio\")." })
+        )
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "The content part that is done." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when a content part is done streaming in an assistant message item.\nAlso emitted when a Response is interrupted, incomplete, or cancelled.\n",
+  "identifier": "RealtimeBetaServerEventResponseContentPartDone"
+})
+export type RealtimeBetaServerEventResponseFunctionCallArgumentsDelta = {
+  readonly "event_id": string
+  readonly "type": "response.function_call_arguments.delta"
+  readonly "response_id": string
+  readonly "item_id": string
+  readonly "output_index": number
+  readonly "call_id": string
+  readonly "delta": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseFunctionCallArgumentsDelta = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.function_call_arguments.delta").annotate({
+      "description": "The event type, must be `response.function_call_arguments.delta`.\n"
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the response." }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the function call item." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "call_id": Schema.String.annotate({ "description": "The ID of the function call." }),
+    "delta": Schema.String.annotate({ "description": "The arguments delta as a JSON string." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when the model-generated function call arguments are updated.\n",
+  "identifier": "RealtimeBetaServerEventResponseFunctionCallArgumentsDelta"
+})
+export type RealtimeBetaServerEventResponseFunctionCallArgumentsDone = {
+  readonly "event_id": string
+  readonly "type": "response.function_call_arguments.done"
+  readonly "response_id": string
+  readonly "item_id": string
+  readonly "output_index": number
+  readonly "call_id": string
+  readonly "arguments": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseFunctionCallArgumentsDone = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.function_call_arguments.done").annotate({
+      "description": "The event type, must be `response.function_call_arguments.done`.\n"
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the response." }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the function call item." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "call_id": Schema.String.annotate({ "description": "The ID of the function call." }),
+    "arguments": Schema.String.annotate({ "description": "The final arguments as a JSON string." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when the model-generated function call arguments are done streaming.\nAlso emitted when a Response is interrupted, incomplete, or cancelled.\n",
+  "identifier": "RealtimeBetaServerEventResponseFunctionCallArgumentsDone"
+})
+export type RealtimeBetaServerEventResponseMCPCallArgumentsDelta = {
+  readonly "event_id": string
+  readonly "type": "response.mcp_call_arguments.delta"
+  readonly "response_id": string
+  readonly "item_id": string
+  readonly "output_index": number
+  readonly "delta": string
+  readonly "obfuscation"?: string | null
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseMCPCallArgumentsDelta = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.mcp_call_arguments.delta").annotate({
+      "description": "The event type, must be `response.mcp_call_arguments.delta`."
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the response." }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the MCP tool call item." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "delta": Schema.String.annotate({ "description": "The JSON-encoded arguments delta." }),
+    "obfuscation": Schema.optionalKey(
+      Schema.Union([
+        Schema.String.annotate({ "description": "If present, indicates the delta text was obfuscated." }),
+        Schema.Null
+      ])
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when MCP tool call arguments are updated during response generation.",
+  "identifier": "RealtimeBetaServerEventResponseMCPCallArgumentsDelta"
+})
+export type RealtimeBetaServerEventResponseMCPCallArgumentsDone = {
+  readonly "event_id": string
+  readonly "type": "response.mcp_call_arguments.done"
+  readonly "response_id": string
+  readonly "item_id": string
+  readonly "output_index": number
+  readonly "arguments": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseMCPCallArgumentsDone = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.mcp_call_arguments.done").annotate({
+      "description": "The event type, must be `response.mcp_call_arguments.done`."
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the response." }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the MCP tool call item." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "arguments": Schema.String.annotate({ "description": "The final JSON-encoded arguments string." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when MCP tool call arguments are finalized during response generation.",
+  "identifier": "RealtimeBetaServerEventResponseMCPCallArgumentsDone"
+})
+export type RealtimeBetaServerEventResponseMCPCallCompleted = {
+  readonly "event_id": string
+  readonly "type": "response.mcp_call.completed"
+  readonly "output_index": number
+  readonly "item_id": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseMCPCallCompleted = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.mcp_call.completed").annotate({
+      "description": "The event type, must be `response.mcp_call.completed`."
+    }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "item_id": Schema.String.annotate({ "description": "The ID of the MCP tool call item." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when an MCP tool call has completed successfully.",
+  "identifier": "RealtimeBetaServerEventResponseMCPCallCompleted"
+})
+export type RealtimeBetaServerEventResponseMCPCallFailed = {
+  readonly "event_id": string
+  readonly "type": "response.mcp_call.failed"
+  readonly "output_index": number
+  readonly "item_id": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseMCPCallFailed = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.mcp_call.failed").annotate({
+      "description": "The event type, must be `response.mcp_call.failed`."
+    }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "item_id": Schema.String.annotate({ "description": "The ID of the MCP tool call item." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when an MCP tool call has failed.",
+  "identifier": "RealtimeBetaServerEventResponseMCPCallFailed"
+})
+export type RealtimeBetaServerEventResponseMCPCallInProgress = {
+  readonly "event_id": string
+  readonly "type": "response.mcp_call.in_progress"
+  readonly "output_index": number
+  readonly "item_id": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseMCPCallInProgress = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.mcp_call.in_progress").annotate({
+      "description": "The event type, must be `response.mcp_call.in_progress`."
+    }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "item_id": Schema.String.annotate({ "description": "The ID of the MCP tool call item." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when an MCP tool call has started and is in progress.",
+  "identifier": "RealtimeBetaServerEventResponseMCPCallInProgress"
+})
+export type RealtimeBetaServerEventResponseTextDelta = {
+  readonly "event_id": string
+  readonly "type": "response.output_text.delta"
+  readonly "response_id": string
+  readonly "item_id": string
+  readonly "output_index": number
+  readonly "content_index": number
+  readonly "delta": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseTextDelta = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.output_text.delta").annotate({
+      "description": "The event type, must be `response.output_text.delta`."
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the response." }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "content_index": Schema.Number.annotate({
+      "description": "The index of the content part in the item's content array."
+    }).check(Schema.isInt()),
+    "delta": Schema.String.annotate({ "description": "The text delta." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when the text value of an \"output_text\" content part is updated.",
+  "identifier": "RealtimeBetaServerEventResponseTextDelta"
+})
+export type RealtimeBetaServerEventResponseTextDone = {
+  readonly "event_id": string
+  readonly "type": "response.output_text.done"
+  readonly "response_id": string
+  readonly "item_id": string
+  readonly "output_index": number
+  readonly "content_index": number
+  readonly "text": string
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseTextDone = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.output_text.done").annotate({
+      "description": "The event type, must be `response.output_text.done`."
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the response." }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the response." }).check(
+      Schema.isInt()
+    ),
+    "content_index": Schema.Number.annotate({
+      "description": "The index of the content part in the item's content array."
+    }).check(Schema.isInt()),
+    "text": Schema.String.annotate({ "description": "The final text content." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when the text value of an \"output_text\" content part is done streaming. Also\nemitted when a Response is interrupted, incomplete, or cancelled.\n",
+  "identifier": "RealtimeBetaServerEventResponseTextDone"
+})
+export type RealtimeCallCreateRequest = { readonly "sdp": string; readonly "session"?: unknown }
+export const RealtimeCallCreateRequest = Schema.Struct({
+  "sdp": Schema.String.annotate({
+    "description": "WebRTC Session Description Protocol (SDP) offer generated by the caller."
+  }),
+  "session": Schema.optionalKey(Schema.Unknown.annotate({
+    "title": "Session configuration",
+    "description":
+      "Optional session configuration to apply before the realtime session is\ncreated. Use the same parameters you would send in a [`create client secret`](https://platform.openai.com/docs/api-reference/realtime-sessions/create-realtime-client-secret)\nrequest."
+  }))
+}).annotate({
+  "title": "Realtime call creation request",
+  "description":
+    "Parameters required to initiate a realtime call and receive the SDP answer\nneeded to complete a WebRTC peer connection. Provide an SDP offer generated\nby your client and optionally configure the session that will answer the call.",
+  "identifier": "RealtimeCallCreateRequest"
+})
+export type RealtimeCallReferRequest = { readonly "target_uri": string }
+export const RealtimeCallReferRequest = Schema.Struct({
+  "target_uri": Schema.String.annotate({
+    "description":
+      "URI that should appear in the SIP Refer-To header. Supports values like\n`tel:+14155550123` or `sip:agent@example.com`.",
+    "examples": ["tel:+14155550123"]
+  })
+}).annotate({
+  "title": "Realtime call refer request",
+  "description": "Parameters required to transfer a SIP call to a new destination using the\nRealtime API.",
+  "identifier": "RealtimeCallReferRequest"
+})
+export type RealtimeCallRejectRequest = { readonly "status_code"?: number }
+export const RealtimeCallRejectRequest = Schema.Struct({
+  "status_code": Schema.optionalKey(
+    Schema.Number.annotate({
+      "description": "SIP response code to send back to the caller. Defaults to `603` (Decline)\nwhen omitted.",
+      "examples": [486]
+    }).check(Schema.isInt())
+  )
+}).annotate({
+  "title": "Realtime call reject request",
+  "description": "Parameters used to decline an incoming SIP call handled by the Realtime API.",
+  "identifier": "RealtimeCallRejectRequest"
+})
 export type RealtimeClientEventConversationItemDelete = {
   readonly "event_id"?: string
   readonly "type": "conversation.item.delete"
@@ -3762,6 +6243,113 @@ export const RealtimeConversationItemMessageUser = Schema.StructWithRest(
   "title": "Realtime user message item",
   "description": "A user message item in a Realtime conversation.",
   "identifier": "RealtimeConversationItemMessageUser"
+})
+export type RealtimeConversationItemWithReference = {
+  readonly "id"?: string
+  readonly "type"?: "message" | "function_call" | "function_call_output" | "item_reference"
+  readonly "object"?: "realtime.item"
+  readonly "status"?: "completed" | "incomplete" | "in_progress"
+  readonly "role"?: "user" | "assistant" | "system"
+  readonly "content"?: ReadonlyArray<
+    {
+      readonly "type"?: "input_text" | "input_audio" | "item_reference" | "text"
+      readonly "text"?: string
+      readonly "id"?: string
+      readonly "audio"?: string
+      readonly "transcript"?: string
+      readonly [x: string]: unknown
+    }
+  >
+  readonly "call_id"?: string
+  readonly "name"?: string
+  readonly "arguments"?: string
+  readonly "output"?: string
+  readonly [x: string]: unknown
+}
+export const RealtimeConversationItemWithReference = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.optionalKey(Schema.String.annotate({
+      "description":
+        "For an item of type (`message` | `function_call` | `function_call_output`)\nthis field allows the client to assign the unique ID of the item. It is\nnot required because the server will generate one if not provided.\n\nFor an item of type `item_reference`, this field is required and is a\nreference to any item that has previously existed in the conversation.\n"
+    })),
+    "type": Schema.optionalKey(
+      Schema.Literals(["message", "function_call", "function_call_output", "item_reference"]).annotate({
+        "description": "The type of the item (`message`, `function_call`, `function_call_output`, `item_reference`).\n"
+      })
+    ),
+    "object": Schema.optionalKey(
+      Schema.Literal("realtime.item").annotate({
+        "description": "Identifier for the API object being returned - always `realtime.item`.\n"
+      })
+    ),
+    "status": Schema.optionalKey(
+      Schema.Literals(["completed", "incomplete", "in_progress"]).annotate({
+        "description":
+          "The status of the item (`completed`, `incomplete`, `in_progress`). These have no effect \non the conversation, but are accepted for consistency with the \n`conversation.item.created` event.\n"
+      })
+    ),
+    "role": Schema.optionalKey(
+      Schema.Literals(["user", "assistant", "system"]).annotate({
+        "description":
+          "The role of the message sender (`user`, `assistant`, `system`), only \napplicable for `message` items.\n"
+      })
+    ),
+    "content": Schema.optionalKey(
+      Schema.Array(Schema.StructWithRest(
+        Schema.Struct({
+          "type": Schema.optionalKey(
+            Schema.Literals(["input_text", "input_audio", "item_reference", "text"]).annotate({
+              "description": "The content type (`input_text`, `input_audio`, `item_reference`, `text`).\n"
+            })
+          ),
+          "text": Schema.optionalKey(
+            Schema.String.annotate({
+              "description": "The text content, used for `input_text` and `text` content types.\n"
+            })
+          ),
+          "id": Schema.optionalKey(
+            Schema.String.annotate({
+              "description":
+                "ID of a previous conversation item to reference (for `item_reference`\ncontent types in `response.create` events). These can reference both\nclient and server created items.\n"
+            })
+          ),
+          "audio": Schema.optionalKey(
+            Schema.String.annotate({
+              "description": "Base64-encoded audio bytes, used for `input_audio` content type.\n"
+            })
+          ),
+          "transcript": Schema.optionalKey(
+            Schema.String.annotate({
+              "description": "The transcript of the audio, used for `input_audio` content type.\n"
+            })
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      )).annotate({
+        "description":
+          "The content of the message, applicable for `message` items. \n- Message items of role `system` support only `input_text` content\n- Message items of role `user` support `input_text` and `input_audio` \n  content\n- Message items of role `assistant` support `text` content.\n"
+      })
+    ),
+    "call_id": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "The ID of the function call (for `function_call` and \n`function_call_output` items). If passed on a `function_call_output` \nitem, the server will check that a `function_call` item with the same \nID exists in the conversation history.\n"
+      })
+    ),
+    "name": Schema.optionalKey(
+      Schema.String.annotate({ "description": "The name of the function being called (for `function_call` items).\n" })
+    ),
+    "arguments": Schema.optionalKey(
+      Schema.String.annotate({ "description": "The arguments of the function call (for `function_call` items).\n" })
+    ),
+    "output": Schema.optionalKey(
+      Schema.String.annotate({ "description": "The output of the function call (for `function_call_output` items).\n" })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "The item to add to the conversation.",
+  "identifier": "RealtimeConversationItemWithReference"
 })
 export type RealtimeFunctionTool = {
   readonly "type"?: "function"
@@ -5631,6 +8219,39 @@ export const ResponseFormatText = Schema.StructWithRest(
   "description": "Default response format. Used to generate text responses.\n",
   "identifier": "ResponseFormatText"
 })
+export type ResponseFormatTextGrammar = {
+  readonly "type": "grammar"
+  readonly "grammar": string
+  readonly [x: string]: unknown
+}
+export const ResponseFormatTextGrammar = Schema.StructWithRest(
+  Schema.Struct({
+    "type": Schema.Literal("grammar").annotate({
+      "description": "The type of response format being defined. Always `grammar`."
+    }),
+    "grammar": Schema.String.annotate({ "description": "The custom grammar for the model to follow." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Text grammar",
+  "description":
+    "A custom grammar for the model to follow when generating text.\nLearn more in the [custom grammars guide](https://platform.openai.com/docs/guides/custom-grammars).\n",
+  "identifier": "ResponseFormatTextGrammar"
+})
+export type ResponseFormatTextPython = { readonly "type": "python"; readonly [x: string]: unknown }
+export const ResponseFormatTextPython = Schema.StructWithRest(
+  Schema.Struct({
+    "type": Schema.Literal("python").annotate({
+      "description": "The type of response format being defined. Always `python`."
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Python grammar",
+  "description":
+    "Configure the model to generate valid Python code. See the\n[custom grammars guide](https://platform.openai.com/docs/guides/custom-grammars) for more details.\n",
+  "identifier": "ResponseFormatTextPython"
+})
 export type ResponseFunctionCallArgumentsDeltaEvent = {
   readonly "type": "response.function_call_arguments.delta"
   readonly "item_id": string
@@ -6540,6 +9161,23 @@ export const Role = Schema.StructWithRest(
   "description": "Details about a role that can be assigned through the public Roles API.",
   "identifier": "Role"
 })
+export type RoleDeletedResource = {
+  readonly "object": "role.deleted"
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const RoleDeletedResource = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("role.deleted").annotate({ "description": "Always `role.deleted`." }),
+    "id": Schema.String.annotate({ "description": "Identifier of the deleted role." }),
+    "deleted": Schema.Boolean.annotate({ "description": "Whether the role was deleted." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Confirmation payload returned after deleting a role.",
+  "identifier": "RoleDeletedResource"
+})
 export type RunCompletionUsage = {
   readonly "completion_tokens": number
   readonly "prompt_tokens": number
@@ -6565,6 +9203,76 @@ export const RunCompletionUsage = Schema.Union([
   }),
   Schema.Null
 ]).annotate({ "identifier": "RunCompletionUsage" })
+export type RunGraderResponse = {
+  readonly "reward": number
+  readonly "metadata": {
+    readonly "name": string
+    readonly "type": string
+    readonly "errors": {
+      readonly "formula_parse_error": boolean
+      readonly "sample_parse_error": boolean
+      readonly "truncated_observation_error": boolean
+      readonly "unresponsive_reward_error": boolean
+      readonly "invalid_variable_error": boolean
+      readonly "other_error": boolean
+      readonly "python_grader_server_error": boolean
+      readonly "python_grader_server_error_type": string | null
+      readonly "python_grader_runtime_error": boolean
+      readonly "python_grader_runtime_error_details": string | null
+      readonly "model_grader_server_error": boolean
+      readonly "model_grader_refusal_error": boolean
+      readonly "model_grader_parse_error": boolean
+      readonly "model_grader_server_error_details": string | null
+      readonly [x: string]: unknown
+    }
+    readonly "execution_time": number
+    readonly "scores": { readonly [x: string]: unknown }
+    readonly "token_usage": number | null
+    readonly "sampled_model_name": string | null
+    readonly [x: string]: unknown
+  }
+  readonly "sub_rewards": { readonly [x: string]: unknown }
+  readonly "model_grader_token_usage_per_model": { readonly [x: string]: unknown }
+  readonly [x: string]: unknown
+}
+export const RunGraderResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "reward": Schema.Number.check(Schema.isFinite()),
+    "metadata": Schema.StructWithRest(
+      Schema.Struct({
+        "name": Schema.String,
+        "type": Schema.String,
+        "errors": Schema.StructWithRest(
+          Schema.Struct({
+            "formula_parse_error": Schema.Boolean,
+            "sample_parse_error": Schema.Boolean,
+            "truncated_observation_error": Schema.Boolean,
+            "unresponsive_reward_error": Schema.Boolean,
+            "invalid_variable_error": Schema.Boolean,
+            "other_error": Schema.Boolean,
+            "python_grader_server_error": Schema.Boolean,
+            "python_grader_server_error_type": Schema.Union([Schema.String, Schema.Null]),
+            "python_grader_runtime_error": Schema.Boolean,
+            "python_grader_runtime_error_details": Schema.Union([Schema.String, Schema.Null]),
+            "model_grader_server_error": Schema.Boolean,
+            "model_grader_refusal_error": Schema.Boolean,
+            "model_grader_parse_error": Schema.Boolean,
+            "model_grader_server_error_details": Schema.Union([Schema.String, Schema.Null])
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ),
+        "execution_time": Schema.Number.check(Schema.isFinite()),
+        "scores": Schema.Record(Schema.String, Schema.Unknown),
+        "token_usage": Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]),
+        "sampled_model_name": Schema.Union([Schema.String, Schema.Null])
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ),
+    "sub_rewards": Schema.Record(Schema.String, Schema.Unknown),
+    "model_grader_token_usage_per_model": Schema.Record(Schema.String, Schema.Unknown)
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "RunGraderResponse" })
 export type RunStepCompletionUsage = {
   readonly "completion_tokens": number
   readonly "prompt_tokens": number
@@ -6862,6 +9570,33 @@ export const RunStepDetailsToolCallsFunctionObject = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "title": "Function tool call", "identifier": "RunStepDetailsToolCallsFunctionObject" })
+export type RunToolCallObject = {
+  readonly "id": string
+  readonly "type": "function"
+  readonly "function": { readonly "name": string; readonly "arguments": string; readonly [x: string]: unknown }
+  readonly [x: string]: unknown
+}
+export const RunToolCallObject = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({
+      "description":
+        "The ID of the tool call. This ID must be referenced when you submit the tool outputs in using the [Submit tool outputs to run](https://platform.openai.com/docs/api-reference/runs/submitToolOutputs) endpoint."
+    }),
+    "type": Schema.Literal("function").annotate({
+      "description": "The type of tool call the output is required for. For now, this is always `function`."
+    }),
+    "function": Schema.StructWithRest(
+      Schema.Struct({
+        "name": Schema.String.annotate({ "description": "The name of the function." }),
+        "arguments": Schema.String.annotate({
+          "description": "The arguments that the model expects you to pass to the function."
+        })
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "The function definition." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "description": "Tool call objects", "identifier": "RunToolCallObject" })
 export type Screenshot = { readonly "type": "screenshot"; readonly [x: string]: unknown }
 export const Screenshot = Schema.StructWithRest(
   Schema.Struct({
@@ -6985,6 +9720,48 @@ export const StopConfiguration = Schema.Union([
   }),
   Schema.Null
 ]).annotate({ "identifier": "StopConfiguration" })
+export type SubmitToolOutputsRunRequest = {
+  readonly "tool_outputs": ReadonlyArray<
+    { readonly "tool_call_id"?: string; readonly "output"?: string; readonly [x: string]: unknown }
+  >
+  readonly "stream"?: boolean | null
+}
+export const SubmitToolOutputsRunRequest = Schema.Struct({
+  "tool_outputs": Schema.Array(Schema.StructWithRest(
+    Schema.Struct({
+      "tool_call_id": Schema.optionalKey(
+        Schema.String.annotate({
+          "description":
+            "The ID of the tool call in the `required_action` object within the run object the output is being submitted for."
+        })
+      ),
+      "output": Schema.optionalKey(
+        Schema.String.annotate({ "description": "The output of the tool call to be submitted to continue the run." })
+      )
+    }),
+    [Schema.Record(Schema.String, Schema.Unknown)]
+  )).annotate({ "description": "A list of tools for which the outputs are being submitted." }),
+  "stream": Schema.optionalKey(
+    Schema.Union([
+      Schema.Boolean.annotate({
+        "description":
+          "If `true`, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a `data: [DONE]` message.\n"
+      }),
+      Schema.Null
+    ])
+  )
+}).annotate({ "identifier": "SubmitToolOutputsRunRequest" })
+export type ToggleCertificatesRequest = {
+  readonly "certificate_ids": ReadonlyArray<string>
+  readonly [x: string]: unknown
+}
+export const ToggleCertificatesRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "certificate_ids": Schema.Array(Schema.String.annotate({ "examples": ["cert_abc"] })).check(Schema.isMinLength(1))
+      .check(Schema.isMaxLength(10))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ToggleCertificatesRequest" })
 export type ToolChoiceAllowed = {
   readonly "type": "allowed_tools"
   readonly "mode": "auto" | "required"
@@ -7353,6 +10130,33 @@ export const TranscriptionWord = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "identifier": "TranscriptionWord" })
+export type TruncationObject = {
+  readonly "type": "auto" | "last_messages"
+  readonly "last_messages"?: number | null
+  readonly [x: string]: unknown
+}
+export const TruncationObject = Schema.StructWithRest(
+  Schema.Struct({
+    "type": Schema.Literals(["auto", "last_messages"]).annotate({
+      "description":
+        "The truncation strategy to use for the thread. The default is `auto`. If set to `last_messages`, the thread will be truncated to the n most recent messages in the thread. When set to `auto`, messages in the middle of the thread will be dropped to fit the context length of the model, `max_prompt_tokens`."
+    }),
+    "last_messages": Schema.optionalKey(
+      Schema.Union([
+        Schema.Number.annotate({
+          "description": "The number of most recent messages from the thread when constructing the context for the run."
+        }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)),
+        Schema.Null
+      ])
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Thread Truncation Controls",
+  "description":
+    "Controls for how a thread will be truncated prior to the run. Use this to control the initial context window of the run.",
+  "identifier": "TruncationObject"
+})
 export type Type = { readonly "type": "type"; readonly "text": string; readonly [x: string]: unknown }
 export const Type = Schema.StructWithRest(
   Schema.Struct({
@@ -7364,6 +10168,167 @@ export const Type = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "title": "Type", "description": "An action to type in text.\n", "identifier": "Type" })
+export type UpdateGroupBody = { readonly "name": string; readonly [x: string]: unknown }
+export const UpdateGroupBody = Schema.StructWithRest(
+  Schema.Struct({
+    "name": Schema.String.annotate({ "description": "New display name for the group." }).check(Schema.isMinLength(1))
+      .check(Schema.isMaxLength(255))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Request payload for updating the details of an existing group.",
+  "identifier": "UpdateGroupBody"
+})
+export type UpdateVoiceConsentRequest = { readonly "name": string }
+export const UpdateVoiceConsentRequest = Schema.Struct({
+  "name": Schema.String.annotate({ "description": "The updated label for this consent recording." })
+}).annotate({ "identifier": "UpdateVoiceConsentRequest" })
+export type Upload = {
+  readonly "id": string
+  readonly "created_at": number
+  readonly "filename": string
+  readonly "bytes": number
+  readonly "purpose": string
+  readonly "status": "pending" | "completed" | "cancelled" | "expired"
+  readonly "expires_at": number
+  readonly "object": "upload"
+  readonly "file"?: {
+    readonly "id": string
+    readonly "bytes": number
+    readonly "created_at": number
+    readonly "expires_at"?: number
+    readonly "filename": string
+    readonly "object": "file"
+    readonly "purpose":
+      | "assistants"
+      | "assistants_output"
+      | "batch"
+      | "batch_output"
+      | "fine-tune"
+      | "fine-tune-results"
+      | "vision"
+      | "user_data"
+    readonly "status": "uploaded" | "processed" | "error"
+    readonly "status_details"?: string
+    readonly [x: string]: unknown
+  }
+  readonly [x: string]: unknown
+}
+export const Upload = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({
+      "description": "The Upload unique identifier, which can be referenced in API endpoints."
+    }),
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) for when the Upload was created."
+    }).check(Schema.isInt()),
+    "filename": Schema.String.annotate({ "description": "The name of the file to be uploaded." }),
+    "bytes": Schema.Number.annotate({ "description": "The intended number of bytes to be uploaded." }).check(
+      Schema.isInt()
+    ),
+    "purpose": Schema.String.annotate({
+      "description":
+        "The intended purpose of the file. [Please refer here](https://platform.openai.com/docs/api-reference/files/object#files/object-purpose) for acceptable values."
+    }),
+    "status": Schema.Literals(["pending", "completed", "cancelled", "expired"]).annotate({
+      "description": "The status of the Upload."
+    }),
+    "expires_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) for when the Upload will expire."
+    }).check(Schema.isInt()),
+    "object": Schema.Literal("upload").annotate({ "description": "The object type, which is always \"upload\"." }),
+    "file": Schema.optionalKey(Schema.Union([
+      Schema.StructWithRest(
+        Schema.Struct({
+          "id": Schema.String.annotate({
+            "description": "The file identifier, which can be referenced in the API endpoints."
+          }),
+          "bytes": Schema.Number.annotate({ "description": "The size of the file, in bytes." }).check(Schema.isInt()),
+          "created_at": Schema.Number.annotate({
+            "description": "The Unix timestamp (in seconds) for when the file was created."
+          }).check(Schema.isInt()),
+          "expires_at": Schema.optionalKey(
+            Schema.Number.annotate({ "description": "The Unix timestamp (in seconds) for when the file will expire." })
+              .check(Schema.isInt())
+          ),
+          "filename": Schema.String.annotate({ "description": "The name of the file." }),
+          "object": Schema.Literal("file").annotate({ "description": "The object type, which is always `file`." }),
+          "purpose": Schema.Literals([
+            "assistants",
+            "assistants_output",
+            "batch",
+            "batch_output",
+            "fine-tune",
+            "fine-tune-results",
+            "vision",
+            "user_data"
+          ]).annotate({
+            "description":
+              "The intended purpose of the file. Supported values are `assistants`, `assistants_output`, `batch`, `batch_output`, `fine-tune`, `fine-tune-results`, `vision`, and `user_data`."
+          }),
+          "status": Schema.Literals(["uploaded", "processed", "error"]).annotate({
+            "description":
+              "Deprecated. The current status of the file, which can be either `uploaded`, `processed`, or `error`."
+          }),
+          "status_details": Schema.optionalKey(
+            Schema.String.annotate({
+              "description":
+                "Deprecated. For details on why a fine-tuning training file failed validation, see the `error` field on `fine_tuning.job`."
+            })
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "description": "The `File` object represents a document that has been uploaded to OpenAI.",
+        "title": "OpenAIFile",
+        "identifier": "OpenAIFile"
+      })
+    ]))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Upload",
+  "description": "The Upload object can accept byte chunks in the form of Parts.\n",
+  "identifier": "Upload"
+})
+export type UploadCertificateRequest = {
+  readonly "name"?: string
+  readonly "content": string
+  readonly [x: string]: unknown
+}
+export const UploadCertificateRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "name": Schema.optionalKey(Schema.String.annotate({ "description": "An optional name for the certificate" })),
+    "content": Schema.String.annotate({ "description": "The certificate content in PEM format" })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "UploadCertificateRequest" })
+export type UploadPart = {
+  readonly "id": string
+  readonly "created_at": number
+  readonly "upload_id": string
+  readonly "object": "upload.part"
+  readonly [x: string]: unknown
+}
+export const UploadPart = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({
+      "description": "The upload Part unique identifier, which can be referenced in API endpoints."
+    }),
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) for when the Part was created."
+    }).check(Schema.isInt()),
+    "upload_id": Schema.String.annotate({ "description": "The ID of the Upload object that this Part was added to." }),
+    "object": Schema.Literal("upload.part").annotate({
+      "description": "The object type, which is always `upload.part`."
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "UploadPart",
+  "description": "The upload Part represents a chunk of bytes we can add to an Upload object.\n",
+  "identifier": "UploadPart"
+})
 export type UsageAudioSpeechesResult = {
   readonly "object": "organization.usage.audio_speeches.result"
   readonly "characters": number
@@ -7840,6 +10805,25 @@ export const User = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "Represents an individual `user` within an organization.", "identifier": "User" })
+export type UserDeleteResponse = {
+  readonly "object": "organization.user.deleted"
+  readonly "id": string
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const UserDeleteResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("organization.user.deleted"),
+    "id": Schema.String,
+    "deleted": Schema.Boolean
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "UserDeleteResponse" })
+export type UserRoleUpdateRequest = { readonly "role": "owner" | "reader"; readonly [x: string]: unknown }
+export const UserRoleUpdateRequest = Schema.StructWithRest(
+  Schema.Struct({ "role": Schema.Literals(["owner", "reader"]).annotate({ "description": "`owner` or `reader`" }) }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "UserRoleUpdateRequest" })
 export type VadConfig = {
   readonly "type": "server_vad"
   readonly "prefix_padding_ms"?: number
@@ -8008,6 +10992,16 @@ export const Verbosity = Schema.Union([
   }),
   Schema.Null
 ]).annotate({ "identifier": "Verbosity" })
+export type VoiceConsentDeletedResource = {
+  readonly "id": string
+  readonly "object": "audio.voice_consent"
+  readonly "deleted": boolean
+}
+export const VoiceConsentDeletedResource = Schema.Struct({
+  "id": Schema.String.annotate({ "description": "The consent recording identifier.", "examples": ["cons_1234"] }),
+  "object": Schema.Literal("audio.voice_consent"),
+  "deleted": Schema.Boolean
+}).annotate({ "identifier": "VoiceConsentDeletedResource" })
 export type VoiceConsentResource = {
   readonly "object": "audio.voice_consent"
   readonly "id": string
@@ -8032,6 +11026,20 @@ export const VoiceConsentResource = Schema.Struct({
   "description": "A consent recording used to authorize creation of a custom voice.",
   "identifier": "VoiceConsentResource"
 })
+export type VoiceIdsOrCustomVoice = string | { readonly "id": string }
+export const VoiceIdsOrCustomVoice = Schema.Union([
+  Schema.String,
+  Schema.Struct({
+    "id": Schema.String.annotate({
+      "description": "The custom voice ID, e.g. `voice_1234`.",
+      "examples": ["voice_1234"]
+    })
+  }).annotate({ "description": "Custom voice reference." })
+]).annotate({
+  "title": "Voice",
+  "description": "A built-in voice name or a custom voice reference.\n",
+  "identifier": "VoiceIdsOrCustomVoice"
+})
 export type VoiceIdsShared =
   | string
   | "alloy"
@@ -8048,6 +11056,26 @@ export const VoiceIdsShared = Schema.Union([
   Schema.String,
   Schema.Literals(["alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar"])
 ]).annotate({ "examples": ["ash"], "identifier": "VoiceIdsShared" })
+export type VoiceResource = {
+  readonly "object": "audio.voice"
+  readonly "id": string
+  readonly "name": string
+  readonly "created_at": number
+}
+export const VoiceResource = Schema.Struct({
+  "object": Schema.Literal("audio.voice").annotate({
+    "description": "The object type, which is always `audio.voice`."
+  }),
+  "id": Schema.String.annotate({ "description": "The voice identifier, which can be referenced in API endpoints." }),
+  "name": Schema.String.annotate({ "description": "The name of the voice." }),
+  "created_at": Schema.Number.annotate({
+    "description": "The Unix timestamp (in seconds) for when the voice was created."
+  }).check(Schema.isInt())
+}).annotate({
+  "title": "Voice",
+  "description": "A custom voice that can be used for audio output.",
+  "identifier": "VoiceResource"
+})
 export type Wait = { readonly "type": "wait"; readonly [x: string]: unknown }
 export const Wait = Schema.StructWithRest(
   Schema.Struct({
@@ -8189,6 +11217,522 @@ export const WebSearchContextSize = Schema.Literals(["low", "medium", "high"]).a
   "default": "medium",
   "identifier": "WebSearchContextSize"
 })
+export type WebSearchLocation = {
+  readonly "country"?: string
+  readonly "region"?: string
+  readonly "city"?: string
+  readonly "timezone"?: string
+  readonly [x: string]: unknown
+}
+export const WebSearchLocation = Schema.StructWithRest(
+  Schema.Struct({
+    "country": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "The two-letter \n[ISO country code](https://en.wikipedia.org/wiki/ISO_3166-1) of the user,\ne.g. `US`.\n"
+      })
+    ),
+    "region": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Free text input for the region of the user, e.g. `California`.\n" })
+    ),
+    "city": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Free text input for the city of the user, e.g. `San Francisco`.\n" })
+    ),
+    "timezone": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "The [IANA timezone](https://timeapi.io/documentation/iana-timezones) \nof the user, e.g. `America/Los_Angeles`.\n"
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Web search location",
+  "description": "Approximate location parameters for the search.",
+  "identifier": "WebSearchLocation"
+})
+export type WebhookBatchCancelled = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "batch.cancelled"
+  readonly [x: string]: unknown
+}
+export const WebhookBatchCancelled = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the batch API request was cancelled.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the batch API request.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("batch.cancelled").annotate({
+      "description": "The type of the event. Always `batch.cancelled`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "batch.cancelled",
+  "description": "Sent when a batch API request has been cancelled.\n",
+  "identifier": "WebhookBatchCancelled"
+})
+export type WebhookBatchCompleted = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "batch.completed"
+  readonly [x: string]: unknown
+}
+export const WebhookBatchCompleted = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the batch API request was completed.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the batch API request.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("batch.completed").annotate({
+      "description": "The type of the event. Always `batch.completed`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "batch.completed",
+  "description": "Sent when a batch API request has been completed.\n",
+  "identifier": "WebhookBatchCompleted"
+})
+export type WebhookBatchExpired = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "batch.expired"
+  readonly [x: string]: unknown
+}
+export const WebhookBatchExpired = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the batch API request expired.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the batch API request.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("batch.expired").annotate({
+      "description": "The type of the event. Always `batch.expired`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "batch.expired",
+  "description": "Sent when a batch API request has expired.\n",
+  "identifier": "WebhookBatchExpired"
+})
+export type WebhookBatchFailed = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "batch.failed"
+  readonly [x: string]: unknown
+}
+export const WebhookBatchFailed = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the batch API request failed.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the batch API request.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("batch.failed").annotate({
+      "description": "The type of the event. Always `batch.failed`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "batch.failed",
+  "description": "Sent when a batch API request has failed.\n",
+  "identifier": "WebhookBatchFailed"
+})
+export type WebhookEvalRunCanceled = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "eval.run.canceled"
+  readonly [x: string]: unknown
+}
+export const WebhookEvalRunCanceled = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the eval run was canceled.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the eval run.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("eval.run.canceled").annotate({
+      "description": "The type of the event. Always `eval.run.canceled`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "eval.run.canceled",
+  "description": "Sent when an eval run has been canceled.\n",
+  "identifier": "WebhookEvalRunCanceled"
+})
+export type WebhookEvalRunFailed = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "eval.run.failed"
+  readonly [x: string]: unknown
+}
+export const WebhookEvalRunFailed = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the eval run failed.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the eval run.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("eval.run.failed").annotate({
+      "description": "The type of the event. Always `eval.run.failed`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "eval.run.failed",
+  "description": "Sent when an eval run has failed.\n",
+  "identifier": "WebhookEvalRunFailed"
+})
+export type WebhookEvalRunSucceeded = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "eval.run.succeeded"
+  readonly [x: string]: unknown
+}
+export const WebhookEvalRunSucceeded = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the eval run succeeded.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the eval run.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("eval.run.succeeded").annotate({
+      "description": "The type of the event. Always `eval.run.succeeded`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "eval.run.succeeded",
+  "description": "Sent when an eval run has succeeded.\n",
+  "identifier": "WebhookEvalRunSucceeded"
+})
+export type WebhookFineTuningJobCancelled = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "fine_tuning.job.cancelled"
+  readonly [x: string]: unknown
+}
+export const WebhookFineTuningJobCancelled = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the fine-tuning job was cancelled.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the fine-tuning job.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("fine_tuning.job.cancelled").annotate({
+      "description": "The type of the event. Always `fine_tuning.job.cancelled`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "fine_tuning.job.cancelled",
+  "description": "Sent when a fine-tuning job has been cancelled.\n",
+  "identifier": "WebhookFineTuningJobCancelled"
+})
+export type WebhookFineTuningJobFailed = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "fine_tuning.job.failed"
+  readonly [x: string]: unknown
+}
+export const WebhookFineTuningJobFailed = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the fine-tuning job failed.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the fine-tuning job.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("fine_tuning.job.failed").annotate({
+      "description": "The type of the event. Always `fine_tuning.job.failed`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "fine_tuning.job.failed",
+  "description": "Sent when a fine-tuning job has failed.\n",
+  "identifier": "WebhookFineTuningJobFailed"
+})
+export type WebhookFineTuningJobSucceeded = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "fine_tuning.job.succeeded"
+  readonly [x: string]: unknown
+}
+export const WebhookFineTuningJobSucceeded = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the fine-tuning job succeeded.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the fine-tuning job.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("fine_tuning.job.succeeded").annotate({
+      "description": "The type of the event. Always `fine_tuning.job.succeeded`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "fine_tuning.job.succeeded",
+  "description": "Sent when a fine-tuning job has succeeded.\n",
+  "identifier": "WebhookFineTuningJobSucceeded"
+})
+export type WebhookRealtimeCallIncoming = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": {
+    readonly "call_id": string
+    readonly "sip_headers": ReadonlyArray<
+      { readonly "name": string; readonly "value": string; readonly [x: string]: unknown }
+    >
+    readonly [x: string]: unknown
+  }
+  readonly "object"?: "event"
+  readonly "type": "realtime.call.incoming"
+  readonly [x: string]: unknown
+}
+export const WebhookRealtimeCallIncoming = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the model response was completed.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({
+        "call_id": Schema.String.annotate({ "description": "The unique ID of this call.\n" }),
+        "sip_headers": Schema.Array(
+          Schema.StructWithRest(
+            Schema.Struct({
+              "name": Schema.String.annotate({ "description": "Name of the SIP Header.\n" }),
+              "value": Schema.String.annotate({ "description": "Value of the SIP Header.\n" })
+            }),
+            [Schema.Record(Schema.String, Schema.Unknown)]
+          ).annotate({ "description": "A header from the SIP Invite.\n" })
+        ).annotate({ "description": "Headers from the SIP Invite.\n" })
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("realtime.call.incoming").annotate({
+      "description": "The type of the event. Always `realtime.call.incoming`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "realtime.call.incoming",
+  "description": "Sent when Realtime API Receives a incoming SIP call.\n",
+  "identifier": "WebhookRealtimeCallIncoming"
+})
+export type WebhookResponseCancelled = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "response.cancelled"
+  readonly [x: string]: unknown
+}
+export const WebhookResponseCancelled = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the model response was cancelled.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the model response.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("response.cancelled").annotate({
+      "description": "The type of the event. Always `response.cancelled`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "response.cancelled",
+  "description": "Sent when a background response has been cancelled.\n",
+  "identifier": "WebhookResponseCancelled"
+})
+export type WebhookResponseCompleted = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "response.completed"
+  readonly [x: string]: unknown
+}
+export const WebhookResponseCompleted = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the model response was completed.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the model response.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("response.completed").annotate({
+      "description": "The type of the event. Always `response.completed`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "response.completed",
+  "description": "Sent when a background response has been completed.\n",
+  "identifier": "WebhookResponseCompleted"
+})
+export type WebhookResponseFailed = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "response.failed"
+  readonly [x: string]: unknown
+}
+export const WebhookResponseFailed = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the model response failed.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the model response.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("response.failed").annotate({
+      "description": "The type of the event. Always `response.failed`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "response.failed",
+  "description": "Sent when a background response has failed.\n",
+  "identifier": "WebhookResponseFailed"
+})
+export type WebhookResponseIncomplete = {
+  readonly "created_at": number
+  readonly "id": string
+  readonly "data": { readonly "id": string; readonly [x: string]: unknown }
+  readonly "object"?: "event"
+  readonly "type": "response.incomplete"
+  readonly [x: string]: unknown
+}
+export const WebhookResponseIncomplete = Schema.StructWithRest(
+  Schema.Struct({
+    "created_at": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the model response was interrupted.\n"
+    }).check(Schema.isInt()),
+    "id": Schema.String.annotate({ "description": "The unique ID of the event.\n" }),
+    "data": Schema.StructWithRest(
+      Schema.Struct({ "id": Schema.String.annotate({ "description": "The unique ID of the model response.\n" }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "Event data payload.\n" }),
+    "object": Schema.optionalKey(
+      Schema.Literal("event").annotate({ "description": "The object of the event. Always `event`.\n" })
+    ),
+    "type": Schema.Literal("response.incomplete").annotate({
+      "description": "The type of the event. Always `response.incomplete`.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "response.incomplete",
+  "description": "Sent when a background response has been interrupted.\n",
+  "identifier": "WebhookResponseIncomplete"
+})
 export type IncludeEnum =
   | "file_search_call.results"
   | "web_search_call.results"
@@ -8212,6 +11756,29 @@ export const IncludeEnum = Schema.Literals([
     "Specify additional output data to include in the model response. Currently supported values are:\n- `web_search_call.action.sources`: Include the sources of the web search tool call.\n- `code_interpreter_call.outputs`: Includes the outputs of python code execution in code interpreter tool call items.\n- `computer_call_output.output.image_url`: Include image urls from the computer call output.\n- `file_search_call.results`: Include the search results of the file search tool call.\n- `message.input_image.image_url`: Include image urls from the input message.\n- `message.output_text.logprobs`: Include logprobs with assistant messages.\n- `reasoning.encrypted_content`: Includes an encrypted version of reasoning tokens in reasoning item outputs. This enables reasoning items to be used in multi-turn conversations when using the Responses API statelessly (like when the `store` parameter is set to `false`, or when an organization is enrolled in the zero data retention program).",
   "identifier": "IncludeEnum"
 })
+export type MessageStatus = "in_progress" | "completed" | "incomplete"
+export const MessageStatus = Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+  "identifier": "MessageStatus"
+})
+export type MessageRole =
+  | "unknown"
+  | "user"
+  | "assistant"
+  | "system"
+  | "critic"
+  | "discriminator"
+  | "developer"
+  | "tool"
+export const MessageRole = Schema.Literals([
+  "unknown",
+  "user",
+  "assistant",
+  "system",
+  "critic",
+  "discriminator",
+  "developer",
+  "tool"
+]).annotate({ "identifier": "MessageRole" })
 export type InputTextContent = { readonly "type": "input_text"; readonly "text": string; readonly [x: string]: unknown }
 export const InputTextContent = Schema.StructWithRest(
   Schema.Struct({
@@ -8376,6 +11943,8 @@ export const RefusalContent = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "title": "Refusal", "description": "A refusal from the model.", "identifier": "RefusalContent" })
+export type ImageDetail = "low" | "high" | "auto"
+export const ImageDetail = Schema.Literals(["low", "high", "auto"]).annotate({ "identifier": "ImageDetail" })
 export type InputImageContent = {
   readonly "type": "input_image"
   readonly "image_url"?: string | null
@@ -8477,6 +12046,10 @@ export const InputFileContent = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "title": "Input file", "description": "A file input to the model.", "identifier": "InputFileContent" })
+export type ClickButtonType = "left" | "right" | "wheel" | "back" | "forward"
+export const ClickButtonType = Schema.Literals(["left", "right", "wheel", "back", "forward"]).annotate({
+  "identifier": "ClickButtonType"
+})
 export type ClickParam = {
   readonly "type": "click"
   readonly "button": "left" | "right" | "wheel" | "back" | "forward"
@@ -8660,6 +12233,37 @@ export const LocalShellExecAction = Schema.StructWithRest(
   "description": "Execute a shell command on the server.",
   "identifier": "LocalShellExecAction"
 })
+export type FunctionShellAction = {
+  readonly "commands": ReadonlyArray<string>
+  readonly "timeout_ms": number | null
+  readonly "max_output_length": number | null
+  readonly [x: string]: unknown
+}
+export const FunctionShellAction = Schema.StructWithRest(
+  Schema.Struct({
+    "commands": Schema.Array(Schema.String.annotate({ "description": "A list of commands to run." })),
+    "timeout_ms": Schema.Union([
+      Schema.Number.annotate({ "description": "Optional timeout in milliseconds for the commands." }).check(
+        Schema.isInt()
+      ),
+      Schema.Null
+    ]),
+    "max_output_length": Schema.Union([
+      Schema.Number.annotate({ "description": "Optional maximum number of characters to return from each command." })
+        .check(Schema.isInt()),
+      Schema.Null
+    ])
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Shell exec action",
+  "description": "Execute a shell command.",
+  "identifier": "FunctionShellAction"
+})
+export type LocalShellCallStatus = "in_progress" | "completed" | "incomplete"
+export const LocalShellCallStatus = Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+  "identifier": "LocalShellCallStatus"
+})
 export type FunctionShellCall = {
   readonly "type": "shell_call"
   readonly "id": string
@@ -8752,6 +12356,10 @@ export const FunctionShellCallOutputExitOutcome = Schema.StructWithRest(
   "description": "Indicates that the shell commands finished and returned an exit code.",
   "identifier": "FunctionShellCallOutputExitOutcome"
 })
+export type ApplyPatchCallStatus = "in_progress" | "completed"
+export const ApplyPatchCallStatus = Schema.Literals(["in_progress", "completed"]).annotate({
+  "identifier": "ApplyPatchCallStatus"
+})
 export type ApplyPatchCreateFileOperation = {
   readonly "type": "create_file"
   readonly "path": string
@@ -8813,6 +12421,10 @@ export const ApplyPatchUpdateFileOperation = Schema.StructWithRest(
   "description": "Instruction describing how to update a file via the apply_patch tool.",
   "identifier": "ApplyPatchUpdateFileOperation"
 })
+export type ApplyPatchCallOutputStatus = "completed" | "failed"
+export const ApplyPatchCallOutputStatus = Schema.Literals(["completed", "failed"]).annotate({
+  "identifier": "ApplyPatchCallOutputStatus"
+})
 export type ApplyPatchToolCallOutput = {
   readonly "type": "apply_patch_call_output"
   readonly "id": string
@@ -8853,6 +12465,15 @@ export const ApplyPatchToolCallOutput = Schema.StructWithRest(
   "title": "Apply patch tool call output",
   "description": "The output emitted by an apply patch tool call.",
   "identifier": "ApplyPatchToolCallOutput"
+})
+export type MCPToolCallStatus = "in_progress" | "completed" | "incomplete" | "calling" | "failed"
+export const MCPToolCallStatus = Schema.Literals(["in_progress", "completed", "incomplete", "calling", "failed"])
+  .annotate({ "identifier": "MCPToolCallStatus" })
+export type DetailEnum = "low" | "high" | "auto"
+export const DetailEnum = Schema.Literals(["low", "high", "auto"]).annotate({ "identifier": "DetailEnum" })
+export type FunctionCallItemStatus = "in_progress" | "completed" | "incomplete"
+export const FunctionCallItemStatus = Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+  "identifier": "FunctionCallItemStatus"
 })
 export type InputTextContentParam = {
   readonly "type": "input_text"
@@ -9002,6 +12623,46 @@ export const CompactionSummaryItemParam = Schema.StructWithRest(
     "A compaction item generated by the [`v1/responses/compact` API](https://platform.openai.com/docs/api-reference/responses/compact).",
   "identifier": "CompactionSummaryItemParam"
 })
+export type FunctionShellActionParam = {
+  readonly "commands": ReadonlyArray<string>
+  readonly "timeout_ms"?: number | null
+  readonly "max_output_length"?: number | null
+  readonly [x: string]: unknown
+}
+export const FunctionShellActionParam = Schema.StructWithRest(
+  Schema.Struct({
+    "commands": Schema.Array(Schema.String).annotate({
+      "description": "Ordered shell commands for the execution environment to run."
+    }),
+    "timeout_ms": Schema.optionalKey(
+      Schema.Union([
+        Schema.Number.annotate({
+          "description": "Maximum wall-clock time in milliseconds to allow the shell commands to run."
+        }).check(Schema.isInt()),
+        Schema.Null
+      ])
+    ),
+    "max_output_length": Schema.optionalKey(
+      Schema.Union([
+        Schema.Number.annotate({
+          "description": "Maximum number of UTF-8 characters to capture from combined stdout and stderr output."
+        }).check(Schema.isInt()),
+        Schema.Null
+      ])
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Shell action",
+  "description": "Commands and limits describing how to run the shell tool call.",
+  "identifier": "FunctionShellActionParam"
+})
+export type FunctionShellCallItemStatus = "in_progress" | "completed" | "incomplete"
+export const FunctionShellCallItemStatus = Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+  "title": "Shell call status",
+  "description": "Status values reported for shell tool calls.",
+  "identifier": "FunctionShellCallItemStatus"
+})
 export type FunctionShellCallItemParam = {
   readonly "id"?: string | null
   readonly "call_id": string
@@ -9109,6 +12770,12 @@ export const FunctionShellCallOutputExitOutcomeParam = Schema.StructWithRest(
   "description": "Indicates that the shell commands finished and returned an exit code.",
   "identifier": "FunctionShellCallOutputExitOutcomeParam"
 })
+export type ApplyPatchCallStatusParam = "in_progress" | "completed"
+export const ApplyPatchCallStatusParam = Schema.Literals(["in_progress", "completed"]).annotate({
+  "title": "Apply patch call status",
+  "description": "Status values reported for apply_patch tool calls.",
+  "identifier": "ApplyPatchCallStatusParam"
+})
 export type ApplyPatchCreateFileOperationParam = {
   readonly "type": "create_file"
   readonly "path": string
@@ -9176,6 +12843,12 @@ export const ApplyPatchUpdateFileOperationParam = Schema.StructWithRest(
   "title": "Apply patch update file operation",
   "description": "Instruction for updating an existing file via the apply_patch tool.",
   "identifier": "ApplyPatchUpdateFileOperationParam"
+})
+export type ApplyPatchCallOutputStatusParam = "completed" | "failed"
+export const ApplyPatchCallOutputStatusParam = Schema.Literals(["completed", "failed"]).annotate({
+  "title": "Apply patch call output status",
+  "description": "Outcome values reported for apply_patch tool call outputs.",
+  "identifier": "ApplyPatchCallOutputStatusParam"
 })
 export type ApplyPatchToolCallOutputItemParam = {
   readonly "type": "apply_patch_call_output"
@@ -9314,6 +12987,73 @@ export const FunctionTool = Schema.StructWithRest(
     "Defines a function in your own code the model can choose to call. Learn more about [function calling](https://platform.openai.com/docs/guides/function-calling).",
   "identifier": "FunctionTool"
 })
+export type RankerVersionType = "auto" | "default-2024-11-15"
+export const RankerVersionType = Schema.Literals(["auto", "default-2024-11-15"]).annotate({
+  "identifier": "RankerVersionType"
+})
+export type HybridSearchOptions = {
+  readonly "embedding_weight": number
+  readonly "text_weight": number
+  readonly [x: string]: unknown
+}
+export const HybridSearchOptions = Schema.StructWithRest(
+  Schema.Struct({
+    "embedding_weight": Schema.Number.annotate({
+      "description": "The weight of the embedding in the reciprocal ranking fusion."
+    }).check(Schema.isFinite()),
+    "text_weight": Schema.Number.annotate({ "description": "The weight of the text in the reciprocal ranking fusion." })
+      .check(Schema.isFinite())
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "HybridSearchOptions" })
+export type RankingOptions = {
+  readonly "ranker"?: "auto" | "default-2024-11-15"
+  readonly "score_threshold"?: number
+  readonly "hybrid_search"?: {
+    readonly "embedding_weight": number
+    readonly "text_weight": number
+    readonly [x: string]: unknown
+  }
+  readonly [x: string]: unknown
+}
+export const RankingOptions = Schema.StructWithRest(
+  Schema.Struct({
+    "ranker": Schema.optionalKey(
+      Schema.Literals(["auto", "default-2024-11-15"]).annotate({
+        "identifier": "RankerVersionType",
+        "description": "The ranker to use for the file search."
+      })
+    ),
+    "score_threshold": Schema.optionalKey(
+      Schema.Number.annotate({
+        "description":
+          "The score threshold for the file search, a number between 0 and 1. Numbers closer to 1 will attempt to return only the most relevant results, but may return fewer results."
+      }).check(Schema.isFinite())
+    ),
+    "hybrid_search": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "embedding_weight": Schema.Number.annotate({
+            "description": "The weight of the embedding in the reciprocal ranking fusion."
+          }).check(Schema.isFinite()),
+          "text_weight": Schema.Number.annotate({
+            "description": "The weight of the text in the reciprocal ranking fusion."
+          }).check(Schema.isFinite())
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "identifier": "HybridSearchOptions",
+        "description":
+          "Weights that control how reciprocal rank fusion balances semantic embedding matches versus sparse keyword matches when hybrid search is enabled."
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "RankingOptions" })
+export type ComputerEnvironment = "windows" | "mac" | "linux" | "ubuntu" | "browser"
+export const ComputerEnvironment = Schema.Literals(["windows", "mac", "linux", "ubuntu", "browser"]).annotate({
+  "identifier": "ComputerEnvironment"
+})
 export type ComputerUsePreviewTool = {
   readonly "type": "computer_use_preview"
   readonly "environment": "windows" | "mac" | "linux" | "ubuntu" | "browser"
@@ -9344,6 +13084,10 @@ export const ComputerUsePreviewTool = Schema.StructWithRest(
   "description":
     "A tool that controls a virtual computer. Learn more about the [computer tool](https://platform.openai.com/docs/guides/tools-computer-use).",
   "identifier": "ComputerUsePreviewTool"
+})
+export type ContainerMemoryLimit = "1g" | "4g" | "16g" | "64g"
+export const ContainerMemoryLimit = Schema.Literals(["1g", "4g", "16g", "64g"]).annotate({
+  "identifier": "ContainerMemoryLimit"
 })
 export type AutoCodeInterpreterToolParam = {
   readonly "type": "auto"
@@ -9424,6 +13168,8 @@ export const CustomTextFormatParam = Schema.StructWithRest(
   "description": "Unconstrained free-form text.",
   "identifier": "CustomTextFormatParam"
 })
+export type GrammarSyntax1 = "lark" | "regex"
+export const GrammarSyntax1 = Schema.Literals(["lark", "regex"]).annotate({ "identifier": "GrammarSyntax1" })
 export type CustomGrammarFormatParam = {
   readonly "type": "grammar"
   readonly "syntax": "lark" | "regex"
@@ -9447,6 +13193,57 @@ export const CustomGrammarFormatParam = Schema.StructWithRest(
   "title": "Grammar format",
   "description": "A grammar defined by the user.",
   "identifier": "CustomGrammarFormatParam"
+})
+export type ApproximateLocation = {
+  readonly "type": "approximate"
+  readonly "country"?: string | null
+  readonly "region"?: string | null
+  readonly "city"?: string | null
+  readonly "timezone"?: string | null
+  readonly [x: string]: unknown
+}
+export const ApproximateLocation = Schema.StructWithRest(
+  Schema.Struct({
+    "type": Schema.Literal("approximate").annotate({
+      "description": "The type of location approximation. Always `approximate`.",
+      "default": "approximate"
+    }),
+    "country": Schema.optionalKey(
+      Schema.Union([
+        Schema.String.annotate({
+          "description":
+            "The two-letter [ISO country code](https://en.wikipedia.org/wiki/ISO_3166-1) of the user, e.g. `US`."
+        }),
+        Schema.Null
+      ])
+    ),
+    "region": Schema.optionalKey(
+      Schema.Union([
+        Schema.String.annotate({ "description": "Free text input for the region of the user, e.g. `California`." }),
+        Schema.Null
+      ])
+    ),
+    "city": Schema.optionalKey(
+      Schema.Union([
+        Schema.String.annotate({ "description": "Free text input for the city of the user, e.g. `San Francisco`." }),
+        Schema.Null
+      ])
+    ),
+    "timezone": Schema.optionalKey(
+      Schema.Union([
+        Schema.String.annotate({
+          "description":
+            "The [IANA timezone](https://timeapi.io/documentation/iana-timezones) of the user, e.g. `America/Los_Angeles`."
+        }),
+        Schema.Null
+      ])
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ApproximateLocation" })
+export type SearchContextSize = "low" | "medium" | "high"
+export const SearchContextSize = Schema.Literals(["low", "medium", "high"]).annotate({
+  "identifier": "SearchContextSize"
 })
 export type WebSearchPreviewTool = {
   readonly "type": "web_search_preview" | "web_search_preview_2025_03_11"
@@ -9658,8 +13455,79 @@ export const Conversation_2 = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "Inline conversation object", "identifier": "Conversation-2" })
+export type UpdateConversationBody = {
+  readonly "metadata": { readonly [x: string]: string } | null
+  readonly [x: string]: unknown
+}
+export const UpdateConversationBody = Schema.StructWithRest(
+  Schema.Struct({
+    "metadata": Schema.Union([
+      Schema.Record(Schema.String, Schema.String).annotate({
+        "description":
+          "Set of 16 key-value pairs that can be attached to an object. This can be\nuseful for storing additional information about the object in a structured\nformat, and querying for objects via API or the dashboard.\n\nKeys are strings with a maximum length of 64 characters. Values are strings\nwith a maximum length of 512 characters.\n"
+      }),
+      Schema.Null
+    ]).annotate({
+      "identifier": "Metadata",
+      "description":
+        "Set of 16 key-value pairs that can be attached to an object. This can be         useful for storing additional information about the object in a structured         format, and querying for objects via API or the dashboard.\n        Keys are strings with a maximum length of 64 characters. Values are strings         with a maximum length of 512 characters."
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "UpdateConversationBody" })
+export type DeletedConversationResource = {
+  readonly "object": "conversation.deleted"
+  readonly "deleted": boolean
+  readonly "id": string
+  readonly [x: string]: unknown
+}
+export const DeletedConversationResource = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("conversation.deleted").annotate({ "default": "conversation.deleted" }),
+    "deleted": Schema.Boolean,
+    "id": Schema.String
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "DeletedConversationResource" })
 export type OrderEnum = "asc" | "desc"
 export const OrderEnum = Schema.Literals(["asc", "desc"]).annotate({ "identifier": "OrderEnum" })
+export type VideoModel =
+  | string
+  | "sora-2"
+  | "sora-2-pro"
+  | "sora-2-2025-10-06"
+  | "sora-2-pro-2025-10-06"
+  | "sora-2-2025-12-08"
+export const VideoModel = Schema.Union([
+  Schema.String,
+  Schema.Literals(["sora-2", "sora-2-pro", "sora-2-2025-10-06", "sora-2-pro-2025-10-06", "sora-2-2025-12-08"])
+]).annotate({ "identifier": "VideoModel" })
+export type VideoStatus = "queued" | "in_progress" | "completed" | "failed"
+export const VideoStatus = Schema.Literals(["queued", "in_progress", "completed", "failed"]).annotate({
+  "identifier": "VideoStatus"
+})
+export type VideoSize = "720x1280" | "1280x720" | "1024x1792" | "1792x1024"
+export const VideoSize = Schema.Literals(["720x1280", "1280x720", "1024x1792", "1792x1024"]).annotate({
+  "identifier": "VideoSize"
+})
+export type VideoSeconds = "4" | "8" | "12"
+export const VideoSeconds = Schema.Literals(["4", "8", "12"]).annotate({ "identifier": "VideoSeconds" })
+export type Error_2 = {
+  readonly "code"?: string
+  readonly "message"?: string
+  readonly "param"?: string | null
+  readonly "type"?: string
+  readonly [x: string]: unknown
+}
+export const Error_2 = Schema.StructWithRest(
+  Schema.Struct({
+    "code": Schema.optionalKey(Schema.String),
+    "message": Schema.optionalKey(Schema.String),
+    "param": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
+    "type": Schema.optionalKey(Schema.String)
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "description": "Error object variant", "identifier": "Error-2" })
 export type VideoResource = {
   readonly "id": string
   readonly "object": "video"
@@ -9756,9 +13624,948 @@ export const VideoResource = Schema.StructWithRest(
   "description": "Structured information describing a generated video job.",
   "identifier": "VideoResource"
 })
+export type CreateVideoBody = {
+  readonly "model"?:
+    | string
+    | "sora-2"
+    | "sora-2-pro"
+    | "sora-2-2025-10-06"
+    | "sora-2-pro-2025-10-06"
+    | "sora-2-2025-12-08"
+  readonly "prompt": string
+  readonly "input_reference"?: string
+  readonly "seconds"?: "4" | "8" | "12"
+  readonly "size"?: "720x1280" | "1280x720" | "1024x1792" | "1792x1024"
+  readonly [x: string]: unknown
+}
+export const CreateVideoBody = Schema.StructWithRest(
+  Schema.Struct({
+    "model": Schema.optionalKey(
+      Schema.Union([
+        Schema.String,
+        Schema.Literals(["sora-2", "sora-2-pro", "sora-2-2025-10-06", "sora-2-pro-2025-10-06", "sora-2-2025-12-08"])
+      ]).annotate({
+        "identifier": "VideoModel",
+        "description": "The video generation model to use (allowed values: sora-2, sora-2-pro). Defaults to `sora-2`."
+      })
+    ),
+    "prompt": Schema.String.annotate({ "description": "Text prompt that describes the video to generate." }).check(
+      Schema.isMinLength(1)
+    ).check(Schema.isMaxLength(32000)),
+    "input_reference": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional image reference that guides generation.", "format": "binary" })
+    ),
+    "seconds": Schema.optionalKey(
+      Schema.Literals(["4", "8", "12"]).annotate({
+        "identifier": "VideoSeconds",
+        "description": "Clip duration in seconds (allowed values: 4, 8, 12). Defaults to 4 seconds."
+      })
+    ),
+    "size": Schema.optionalKey(
+      Schema.Literals(["720x1280", "1280x720", "1024x1792", "1792x1024"]).annotate({
+        "identifier": "VideoSize",
+        "description":
+          "Output resolution formatted as width x height (allowed values: 720x1280, 1280x720, 1024x1792, 1792x1024). Defaults to 720x1280."
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Create video request",
+  "description": "Parameters for creating a new video generation job.",
+  "identifier": "CreateVideoBody"
+})
+export type DeletedVideoResource = {
+  readonly "object": "video.deleted"
+  readonly "deleted": boolean
+  readonly "id": string
+  readonly [x: string]: unknown
+}
+export const DeletedVideoResource = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("video.deleted").annotate({
+      "description": "The object type that signals the deletion response.",
+      "default": "video.deleted"
+    }),
+    "deleted": Schema.Boolean.annotate({ "description": "Indicates that the video resource was deleted." }),
+    "id": Schema.String.annotate({ "description": "Identifier of the deleted video." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Deleted video response",
+  "description": "Confirmation payload returned after deleting a video.",
+  "identifier": "DeletedVideoResource"
+})
 export type VideoContentVariant = "video" | "thumbnail" | "spritesheet"
 export const VideoContentVariant = Schema.Literals(["video", "thumbnail", "spritesheet"]).annotate({
   "identifier": "VideoContentVariant"
+})
+export type CreateVideoRemixBody = { readonly "prompt": string; readonly [x: string]: unknown }
+export const CreateVideoRemixBody = Schema.StructWithRest(
+  Schema.Struct({
+    "prompt": Schema.String.annotate({ "description": "Updated text prompt that directs the remix generation." }).check(
+      Schema.isMinLength(1)
+    ).check(Schema.isMaxLength(32000))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Create video remix request",
+  "description": "Parameters for remixing an existing generated video.",
+  "identifier": "CreateVideoRemixBody"
+})
+export type TruncationEnum = "auto" | "disabled"
+export const TruncationEnum = Schema.Literals(["auto", "disabled"]).annotate({ "identifier": "TruncationEnum" })
+export type TokenCountsResource = {
+  readonly "object": "response.input_tokens"
+  readonly "input_tokens": number
+  readonly [x: string]: unknown
+}
+export const TokenCountsResource = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("response.input_tokens").annotate({ "default": "response.input_tokens" }),
+    "input_tokens": Schema.Number.check(Schema.isInt())
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Token counts",
+  "examples": [{ "object": "response.input_tokens", "input_tokens": 123 }],
+  "identifier": "TokenCountsResource"
+})
+export type ChatkitWorkflowTracing = { readonly "enabled": boolean; readonly [x: string]: unknown }
+export const ChatkitWorkflowTracing = Schema.StructWithRest(
+  Schema.Struct({ "enabled": Schema.Boolean.annotate({ "description": "Indicates whether tracing is enabled." }) }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Tracing Configuration",
+  "description": "Controls diagnostic tracing during the session.",
+  "identifier": "ChatkitWorkflowTracing"
+})
+export type ChatkitWorkflow = {
+  readonly "id": string
+  readonly "version": string | null
+  readonly "state_variables": { readonly [x: string]: string | number | boolean | number } | null
+  readonly "tracing": { readonly "enabled": boolean; readonly [x: string]: unknown }
+  readonly [x: string]: unknown
+}
+export const ChatkitWorkflow = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({ "description": "Identifier of the workflow backing the session." }),
+    "version": Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "Specific workflow version used for the session. Defaults to null when using the latest deployment."
+      }),
+      Schema.Null
+    ]),
+    "state_variables": Schema.Union([
+      Schema.Record(
+        Schema.String,
+        Schema.Union([
+          Schema.String,
+          Schema.Number.check(Schema.isInt()),
+          Schema.Boolean,
+          Schema.Number.check(Schema.isFinite())
+        ])
+      ).annotate({
+        "description":
+          "State variable key-value pairs applied when invoking the workflow. Defaults to null when no overrides were provided."
+      }),
+      Schema.Null
+    ]),
+    "tracing": Schema.StructWithRest(
+      Schema.Struct({ "enabled": Schema.Boolean.annotate({ "description": "Indicates whether tracing is enabled." }) }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({
+      "title": "Tracing Configuration",
+      "description": "Tracing settings applied to the workflow.",
+      "identifier": "ChatkitWorkflowTracing"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Workflow",
+  "description": "Workflow metadata and state returned for the session.",
+  "identifier": "ChatkitWorkflow"
+})
+export type ChatSessionRateLimits = { readonly "max_requests_per_1_minute": number; readonly [x: string]: unknown }
+export const ChatSessionRateLimits = Schema.StructWithRest(
+  Schema.Struct({
+    "max_requests_per_1_minute": Schema.Number.annotate({
+      "description": "Maximum allowed requests per one-minute window."
+    }).check(Schema.isInt())
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Rate limits",
+  "description": "Active per-minute request limit for the session.",
+  "identifier": "ChatSessionRateLimits"
+})
+export type ChatSessionStatus = "active" | "expired" | "cancelled"
+export const ChatSessionStatus = Schema.Literals(["active", "expired", "cancelled"]).annotate({
+  "identifier": "ChatSessionStatus"
+})
+export type ChatSessionAutomaticThreadTitling = { readonly "enabled": boolean; readonly [x: string]: unknown }
+export const ChatSessionAutomaticThreadTitling = Schema.StructWithRest(
+  Schema.Struct({
+    "enabled": Schema.Boolean.annotate({ "description": "Whether automatic thread titling is enabled." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Automatic thread titling",
+  "description": "Automatic thread title preferences for the session.",
+  "identifier": "ChatSessionAutomaticThreadTitling"
+})
+export type ChatSessionFileUpload = {
+  readonly "enabled": boolean
+  readonly "max_file_size": number | null
+  readonly "max_files": number | null
+  readonly [x: string]: unknown
+}
+export const ChatSessionFileUpload = Schema.StructWithRest(
+  Schema.Struct({
+    "enabled": Schema.Boolean.annotate({ "description": "Indicates if uploads are enabled for the session." }),
+    "max_file_size": Schema.Union([
+      Schema.Number.annotate({ "description": "Maximum upload size in megabytes." }).check(Schema.isInt()),
+      Schema.Null
+    ]),
+    "max_files": Schema.Union([
+      Schema.Number.annotate({ "description": "Maximum number of uploads allowed during the session." }).check(
+        Schema.isInt()
+      ),
+      Schema.Null
+    ])
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "File upload settings",
+  "description": "Upload permissions and limits applied to the session.",
+  "identifier": "ChatSessionFileUpload"
+})
+export type ChatSessionHistory = {
+  readonly "enabled": boolean
+  readonly "recent_threads": number | null
+  readonly [x: string]: unknown
+}
+export const ChatSessionHistory = Schema.StructWithRest(
+  Schema.Struct({
+    "enabled": Schema.Boolean.annotate({ "description": "Indicates if chat history is persisted for the session." }),
+    "recent_threads": Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "Number of prior threads surfaced in history views. Defaults to null when all history is retained."
+      }).check(Schema.isInt()),
+      Schema.Null
+    ])
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "History settings",
+  "description": "History retention preferences returned for the session.",
+  "identifier": "ChatSessionHistory"
+})
+export type ChatSessionChatkitConfiguration = {
+  readonly "automatic_thread_titling": { readonly "enabled": boolean; readonly [x: string]: unknown }
+  readonly "file_upload": {
+    readonly "enabled": boolean
+    readonly "max_file_size": number | null
+    readonly "max_files": number | null
+    readonly [x: string]: unknown
+  }
+  readonly "history": {
+    readonly "enabled": boolean
+    readonly "recent_threads": number | null
+    readonly [x: string]: unknown
+  }
+  readonly [x: string]: unknown
+}
+export const ChatSessionChatkitConfiguration = Schema.StructWithRest(
+  Schema.Struct({
+    "automatic_thread_titling": Schema.StructWithRest(
+      Schema.Struct({
+        "enabled": Schema.Boolean.annotate({ "description": "Whether automatic thread titling is enabled." })
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({
+      "title": "Automatic thread titling",
+      "description": "Automatic thread titling preferences.",
+      "identifier": "ChatSessionAutomaticThreadTitling"
+    }),
+    "file_upload": Schema.StructWithRest(
+      Schema.Struct({
+        "enabled": Schema.Boolean.annotate({ "description": "Indicates if uploads are enabled for the session." }),
+        "max_file_size": Schema.Union([
+          Schema.Number.annotate({ "description": "Maximum upload size in megabytes." }).check(Schema.isInt()),
+          Schema.Null
+        ]),
+        "max_files": Schema.Union([
+          Schema.Number.annotate({ "description": "Maximum number of uploads allowed during the session." }).check(
+            Schema.isInt()
+          ),
+          Schema.Null
+        ])
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({
+      "title": "File upload settings",
+      "description": "Upload settings for the session.",
+      "identifier": "ChatSessionFileUpload"
+    }),
+    "history": Schema.StructWithRest(
+      Schema.Struct({
+        "enabled": Schema.Boolean.annotate({
+          "description": "Indicates if chat history is persisted for the session."
+        }),
+        "recent_threads": Schema.Union([
+          Schema.Number.annotate({
+            "description":
+              "Number of prior threads surfaced in history views. Defaults to null when all history is retained."
+          }).check(Schema.isInt()),
+          Schema.Null
+        ])
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({
+      "title": "History settings",
+      "description": "History retention configuration.",
+      "identifier": "ChatSessionHistory"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "ChatKit configuration",
+  "description": "ChatKit configuration for the session.",
+  "identifier": "ChatSessionChatkitConfiguration"
+})
+export type ChatSessionResource = {
+  readonly "id": string
+  readonly "object": "chatkit.session"
+  readonly "expires_at": number
+  readonly "client_secret": string
+  readonly "workflow": {
+    readonly "id": string
+    readonly "version": string | null
+    readonly "state_variables": { readonly [x: string]: string | number | boolean | number } | null
+    readonly "tracing": { readonly "enabled": boolean; readonly [x: string]: unknown }
+    readonly [x: string]: unknown
+  }
+  readonly "user": string
+  readonly "rate_limits": { readonly "max_requests_per_1_minute": number; readonly [x: string]: unknown }
+  readonly "max_requests_per_1_minute": number
+  readonly "status": "active" | "expired" | "cancelled"
+  readonly "chatkit_configuration": {
+    readonly "automatic_thread_titling": { readonly "enabled": boolean; readonly [x: string]: unknown }
+    readonly "file_upload": {
+      readonly "enabled": boolean
+      readonly "max_file_size": number | null
+      readonly "max_files": number | null
+      readonly [x: string]: unknown
+    }
+    readonly "history": {
+      readonly "enabled": boolean
+      readonly "recent_threads": number | null
+      readonly [x: string]: unknown
+    }
+    readonly [x: string]: unknown
+  }
+  readonly [x: string]: unknown
+}
+export const ChatSessionResource = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({ "description": "Identifier for the ChatKit session." }),
+    "object": Schema.Literal("chatkit.session").annotate({
+      "description": "Type discriminator that is always `chatkit.session`.",
+      "default": "chatkit.session"
+    }),
+    "expires_at": Schema.Number.annotate({ "description": "Unix timestamp (in seconds) for when the session expires." })
+      .check(Schema.isInt()),
+    "client_secret": Schema.String.annotate({
+      "description": "Ephemeral client secret that authenticates session requests."
+    }),
+    "workflow": Schema.StructWithRest(
+      Schema.Struct({
+        "id": Schema.String.annotate({ "description": "Identifier of the workflow backing the session." }),
+        "version": Schema.Union([
+          Schema.String.annotate({
+            "description":
+              "Specific workflow version used for the session. Defaults to null when using the latest deployment."
+          }),
+          Schema.Null
+        ]),
+        "state_variables": Schema.Union([
+          Schema.Record(
+            Schema.String,
+            Schema.Union([
+              Schema.String,
+              Schema.Number.check(Schema.isInt()),
+              Schema.Boolean,
+              Schema.Number.check(Schema.isFinite())
+            ])
+          ).annotate({
+            "description":
+              "State variable key-value pairs applied when invoking the workflow. Defaults to null when no overrides were provided."
+          }),
+          Schema.Null
+        ]),
+        "tracing": Schema.StructWithRest(
+          Schema.Struct({
+            "enabled": Schema.Boolean.annotate({ "description": "Indicates whether tracing is enabled." })
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ).annotate({
+          "title": "Tracing Configuration",
+          "description": "Tracing settings applied to the workflow.",
+          "identifier": "ChatkitWorkflowTracing"
+        })
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({
+      "title": "Workflow",
+      "description": "Workflow metadata for the session.",
+      "identifier": "ChatkitWorkflow"
+    }),
+    "user": Schema.String.annotate({ "description": "User identifier associated with the session." }),
+    "rate_limits": Schema.StructWithRest(
+      Schema.Struct({
+        "max_requests_per_1_minute": Schema.Number.annotate({
+          "description": "Maximum allowed requests per one-minute window."
+        }).check(Schema.isInt())
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({
+      "title": "Rate limits",
+      "description": "Resolved rate limit values.",
+      "identifier": "ChatSessionRateLimits"
+    }),
+    "max_requests_per_1_minute": Schema.Number.annotate({
+      "description": "Convenience copy of the per-minute request limit."
+    }).check(Schema.isInt()),
+    "status": Schema.Literals(["active", "expired", "cancelled"]).annotate({
+      "identifier": "ChatSessionStatus",
+      "description": "Current lifecycle state of the session."
+    }),
+    "chatkit_configuration": Schema.StructWithRest(
+      Schema.Struct({
+        "automatic_thread_titling": Schema.StructWithRest(
+          Schema.Struct({
+            "enabled": Schema.Boolean.annotate({ "description": "Whether automatic thread titling is enabled." })
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ).annotate({
+          "title": "Automatic thread titling",
+          "description": "Automatic thread titling preferences.",
+          "identifier": "ChatSessionAutomaticThreadTitling"
+        }),
+        "file_upload": Schema.StructWithRest(
+          Schema.Struct({
+            "enabled": Schema.Boolean.annotate({ "description": "Indicates if uploads are enabled for the session." }),
+            "max_file_size": Schema.Union([
+              Schema.Number.annotate({ "description": "Maximum upload size in megabytes." }).check(Schema.isInt()),
+              Schema.Null
+            ]),
+            "max_files": Schema.Union([
+              Schema.Number.annotate({ "description": "Maximum number of uploads allowed during the session." }).check(
+                Schema.isInt()
+              ),
+              Schema.Null
+            ])
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ).annotate({
+          "title": "File upload settings",
+          "description": "Upload settings for the session.",
+          "identifier": "ChatSessionFileUpload"
+        }),
+        "history": Schema.StructWithRest(
+          Schema.Struct({
+            "enabled": Schema.Boolean.annotate({
+              "description": "Indicates if chat history is persisted for the session."
+            }),
+            "recent_threads": Schema.Union([
+              Schema.Number.annotate({
+                "description":
+                  "Number of prior threads surfaced in history views. Defaults to null when all history is retained."
+              }).check(Schema.isInt()),
+              Schema.Null
+            ])
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ).annotate({
+          "title": "History settings",
+          "description": "History retention configuration.",
+          "identifier": "ChatSessionHistory"
+        })
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({
+      "title": "ChatKit configuration",
+      "description": "Resolved ChatKit feature configuration for the session.",
+      "identifier": "ChatSessionChatkitConfiguration"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "The chat session object",
+  "description": "Represents a ChatKit session and its resolved configuration.",
+  "identifier": "ChatSessionResource"
+})
+export type WorkflowTracingParam = { readonly "enabled"?: boolean; readonly [x: string]: unknown }
+export const WorkflowTracingParam = Schema.StructWithRest(
+  Schema.Struct({
+    "enabled": Schema.optionalKey(
+      Schema.Boolean.annotate({ "description": "Whether tracing is enabled during the session. Defaults to true." })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Tracing Configuration",
+  "description": "Controls diagnostic tracing during the session.",
+  "identifier": "WorkflowTracingParam"
+})
+export type WorkflowParam = {
+  readonly "id": string
+  readonly "version"?: string
+  readonly "state_variables"?: { readonly [x: string]: string | number | boolean | number }
+  readonly "tracing"?: { readonly "enabled"?: boolean; readonly [x: string]: unknown }
+  readonly [x: string]: unknown
+}
+export const WorkflowParam = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({ "description": "Identifier for the workflow invoked by the session." }),
+    "version": Schema.optionalKey(
+      Schema.String.annotate({
+        "description": "Specific workflow version to run. Defaults to the latest deployed version."
+      })
+    ),
+    "state_variables": Schema.optionalKey(
+      Schema.Record(
+        Schema.String,
+        Schema.Union([
+          Schema.String.check(Schema.isMaxLength(10485760)),
+          Schema.Number.check(Schema.isInt()),
+          Schema.Boolean,
+          Schema.Number.check(Schema.isFinite())
+        ])
+      ).annotate({
+        "description":
+          "State variables forwarded to the workflow. Keys may be up to 64 characters, values must be primitive types, and the map defaults to an empty object."
+      }).check(Schema.isMaxProperties(64))
+    ),
+    "tracing": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "enabled": Schema.optionalKey(
+            Schema.Boolean.annotate({
+              "description": "Whether tracing is enabled during the session. Defaults to true."
+            })
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "title": "Tracing Configuration",
+        "description":
+          "Optional tracing overrides for the workflow invocation. When omitted, tracing is enabled by default.",
+        "identifier": "WorkflowTracingParam"
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Workflow settings",
+  "description": "Workflow reference and overrides applied to the chat session.",
+  "identifier": "WorkflowParam"
+})
+export type ExpiresAfterParam = {
+  readonly "anchor": "created_at"
+  readonly "seconds": number
+  readonly [x: string]: unknown
+}
+export const ExpiresAfterParam = Schema.StructWithRest(
+  Schema.Struct({
+    "anchor": Schema.Literal("created_at").annotate({
+      "description": "Base timestamp used to calculate expiration. Currently fixed to `created_at`.",
+      "default": "created_at"
+    }),
+    "seconds": Schema.Number.annotate({ "description": "Number of seconds after the anchor when the session expires." })
+      .check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)).check(Schema.isLessThanOrEqualTo(600))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Expiration overrides",
+  "description": "Controls when the session expires relative to an anchor timestamp.",
+  "identifier": "ExpiresAfterParam"
+})
+export type RateLimitsParam = { readonly "max_requests_per_1_minute"?: number; readonly [x: string]: unknown }
+export const RateLimitsParam = Schema.StructWithRest(
+  Schema.Struct({
+    "max_requests_per_1_minute": Schema.optionalKey(
+      Schema.Number.annotate({
+        "description": "Maximum number of requests allowed per minute for the session. Defaults to 10."
+      }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1))
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Rate limit overrides",
+  "description": "Controls request rate limits for the session.",
+  "identifier": "RateLimitsParam"
+})
+export type AutomaticThreadTitlingParam = { readonly "enabled"?: boolean; readonly [x: string]: unknown }
+export const AutomaticThreadTitlingParam = Schema.StructWithRest(
+  Schema.Struct({
+    "enabled": Schema.optionalKey(
+      Schema.Boolean.annotate({ "description": "Enable automatic thread title generation. Defaults to true." })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Automatic thread titling configuration",
+  "description": "Controls whether ChatKit automatically generates thread titles.",
+  "identifier": "AutomaticThreadTitlingParam"
+})
+export type FileUploadParam = {
+  readonly "enabled"?: boolean
+  readonly "max_file_size"?: number
+  readonly "max_files"?: number
+  readonly [x: string]: unknown
+}
+export const FileUploadParam = Schema.StructWithRest(
+  Schema.Struct({
+    "enabled": Schema.optionalKey(
+      Schema.Boolean.annotate({ "description": "Enable uploads for this session. Defaults to false." })
+    ),
+    "max_file_size": Schema.optionalKey(
+      Schema.Number.annotate({
+        "description":
+          "Maximum size in megabytes for each uploaded file. Defaults to 512 MB, which is the maximum allowable size."
+      }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)).check(Schema.isLessThanOrEqualTo(512))
+    ),
+    "max_files": Schema.optionalKey(
+      Schema.Number.annotate({
+        "description": "Maximum number of files that can be uploaded to the session. Defaults to 10."
+      }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1))
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "File upload configuration",
+  "description": "Controls whether users can upload files.",
+  "identifier": "FileUploadParam"
+})
+export type HistoryParam = {
+  readonly "enabled"?: boolean
+  readonly "recent_threads"?: number
+  readonly [x: string]: unknown
+}
+export const HistoryParam = Schema.StructWithRest(
+  Schema.Struct({
+    "enabled": Schema.optionalKey(
+      Schema.Boolean.annotate({
+        "description": "Enables chat users to access previous ChatKit threads. Defaults to true."
+      })
+    ),
+    "recent_threads": Schema.optionalKey(
+      Schema.Number.annotate({
+        "description": "Number of recent ChatKit threads users have access to. Defaults to unlimited when unset."
+      }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1))
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Chat history configuration",
+  "description": "Controls how much historical context is retained for the session.",
+  "identifier": "HistoryParam"
+})
+export type ChatkitConfigurationParam = {
+  readonly "automatic_thread_titling"?: { readonly "enabled"?: boolean; readonly [x: string]: unknown }
+  readonly "file_upload"?: {
+    readonly "enabled"?: boolean
+    readonly "max_file_size"?: number
+    readonly "max_files"?: number
+    readonly [x: string]: unknown
+  }
+  readonly "history"?: {
+    readonly "enabled"?: boolean
+    readonly "recent_threads"?: number
+    readonly [x: string]: unknown
+  }
+  readonly [x: string]: unknown
+}
+export const ChatkitConfigurationParam = Schema.StructWithRest(
+  Schema.Struct({
+    "automatic_thread_titling": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "enabled": Schema.optionalKey(
+            Schema.Boolean.annotate({ "description": "Enable automatic thread title generation. Defaults to true." })
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "title": "Automatic thread titling configuration",
+        "description":
+          "Configuration for automatic thread titling. When omitted, automatic thread titling is enabled by default.",
+        "identifier": "AutomaticThreadTitlingParam"
+      })
+    ),
+    "file_upload": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "enabled": Schema.optionalKey(
+            Schema.Boolean.annotate({ "description": "Enable uploads for this session. Defaults to false." })
+          ),
+          "max_file_size": Schema.optionalKey(
+            Schema.Number.annotate({
+              "description":
+                "Maximum size in megabytes for each uploaded file. Defaults to 512 MB, which is the maximum allowable size."
+            }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)).check(Schema.isLessThanOrEqualTo(512))
+          ),
+          "max_files": Schema.optionalKey(
+            Schema.Number.annotate({
+              "description": "Maximum number of files that can be uploaded to the session. Defaults to 10."
+            }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1))
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "title": "File upload configuration",
+        "description":
+          "Configuration for upload enablement and limits. When omitted, uploads are disabled by default (max_files 10, max_file_size 512 MB).",
+        "identifier": "FileUploadParam"
+      })
+    ),
+    "history": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "enabled": Schema.optionalKey(
+            Schema.Boolean.annotate({
+              "description": "Enables chat users to access previous ChatKit threads. Defaults to true."
+            })
+          ),
+          "recent_threads": Schema.optionalKey(
+            Schema.Number.annotate({
+              "description": "Number of recent ChatKit threads users have access to. Defaults to unlimited when unset."
+            }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1))
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "title": "Chat history configuration",
+        "description":
+          "Configuration for chat history retention. When omitted, history is enabled by default with no limit on recent_threads (null).",
+        "identifier": "HistoryParam"
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "ChatKit configuration overrides",
+  "description": "Optional per-session configuration settings for ChatKit behavior.",
+  "identifier": "ChatkitConfigurationParam"
+})
+export type CreateChatSessionBody = {
+  readonly "workflow": {
+    readonly "id": string
+    readonly "version"?: string
+    readonly "state_variables"?: { readonly [x: string]: string | number | boolean | number }
+    readonly "tracing"?: { readonly "enabled"?: boolean; readonly [x: string]: unknown }
+    readonly [x: string]: unknown
+  }
+  readonly "user": string
+  readonly "expires_after"?: {
+    readonly "anchor": "created_at"
+    readonly "seconds": number
+    readonly [x: string]: unknown
+  }
+  readonly "rate_limits"?: { readonly "max_requests_per_1_minute"?: number; readonly [x: string]: unknown }
+  readonly "chatkit_configuration"?: {
+    readonly "automatic_thread_titling"?: { readonly "enabled"?: boolean; readonly [x: string]: unknown }
+    readonly "file_upload"?: {
+      readonly "enabled"?: boolean
+      readonly "max_file_size"?: number
+      readonly "max_files"?: number
+      readonly [x: string]: unknown
+    }
+    readonly "history"?: {
+      readonly "enabled"?: boolean
+      readonly "recent_threads"?: number
+      readonly [x: string]: unknown
+    }
+    readonly [x: string]: unknown
+  }
+  readonly [x: string]: unknown
+}
+export const CreateChatSessionBody = Schema.StructWithRest(
+  Schema.Struct({
+    "workflow": Schema.StructWithRest(
+      Schema.Struct({
+        "id": Schema.String.annotate({ "description": "Identifier for the workflow invoked by the session." }),
+        "version": Schema.optionalKey(
+          Schema.String.annotate({
+            "description": "Specific workflow version to run. Defaults to the latest deployed version."
+          })
+        ),
+        "state_variables": Schema.optionalKey(
+          Schema.Record(
+            Schema.String,
+            Schema.Union([
+              Schema.String.check(Schema.isMaxLength(10485760)),
+              Schema.Number.check(Schema.isInt()),
+              Schema.Boolean,
+              Schema.Number.check(Schema.isFinite())
+            ])
+          ).annotate({
+            "description":
+              "State variables forwarded to the workflow. Keys may be up to 64 characters, values must be primitive types, and the map defaults to an empty object."
+          }).check(Schema.isMaxProperties(64))
+        ),
+        "tracing": Schema.optionalKey(
+          Schema.StructWithRest(
+            Schema.Struct({
+              "enabled": Schema.optionalKey(
+                Schema.Boolean.annotate({
+                  "description": "Whether tracing is enabled during the session. Defaults to true."
+                })
+              )
+            }),
+            [Schema.Record(Schema.String, Schema.Unknown)]
+          ).annotate({
+            "title": "Tracing Configuration",
+            "description":
+              "Optional tracing overrides for the workflow invocation. When omitted, tracing is enabled by default.",
+            "identifier": "WorkflowTracingParam"
+          })
+        )
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({
+      "title": "Workflow settings",
+      "description": "Workflow that powers the session.",
+      "identifier": "WorkflowParam"
+    }),
+    "user": Schema.String.annotate({
+      "description":
+        "A free-form string that identifies your end user; ensures this Session can access other objects that have the same `user` scope."
+    }).check(Schema.isMinLength(1)),
+    "expires_after": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "anchor": Schema.Literal("created_at").annotate({
+            "description": "Base timestamp used to calculate expiration. Currently fixed to `created_at`.",
+            "default": "created_at"
+          }),
+          "seconds": Schema.Number.annotate({
+            "description": "Number of seconds after the anchor when the session expires."
+          }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)).check(Schema.isLessThanOrEqualTo(600))
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "title": "Expiration overrides",
+        "description":
+          "Optional override for session expiration timing in seconds from creation. Defaults to 10 minutes.",
+        "identifier": "ExpiresAfterParam"
+      })
+    ),
+    "rate_limits": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "max_requests_per_1_minute": Schema.optionalKey(
+            Schema.Number.annotate({
+              "description": "Maximum number of requests allowed per minute for the session. Defaults to 10."
+            }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1))
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "title": "Rate limit overrides",
+        "description": "Optional override for per-minute request limits. When omitted, defaults to 10.",
+        "identifier": "RateLimitsParam"
+      })
+    ),
+    "chatkit_configuration": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "automatic_thread_titling": Schema.optionalKey(
+            Schema.StructWithRest(
+              Schema.Struct({
+                "enabled": Schema.optionalKey(
+                  Schema.Boolean.annotate({
+                    "description": "Enable automatic thread title generation. Defaults to true."
+                  })
+                )
+              }),
+              [Schema.Record(Schema.String, Schema.Unknown)]
+            ).annotate({
+              "title": "Automatic thread titling configuration",
+              "description":
+                "Configuration for automatic thread titling. When omitted, automatic thread titling is enabled by default.",
+              "identifier": "AutomaticThreadTitlingParam"
+            })
+          ),
+          "file_upload": Schema.optionalKey(
+            Schema.StructWithRest(
+              Schema.Struct({
+                "enabled": Schema.optionalKey(
+                  Schema.Boolean.annotate({ "description": "Enable uploads for this session. Defaults to false." })
+                ),
+                "max_file_size": Schema.optionalKey(
+                  Schema.Number.annotate({
+                    "description":
+                      "Maximum size in megabytes for each uploaded file. Defaults to 512 MB, which is the maximum allowable size."
+                  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)).check(
+                    Schema.isLessThanOrEqualTo(512)
+                  )
+                ),
+                "max_files": Schema.optionalKey(
+                  Schema.Number.annotate({
+                    "description": "Maximum number of files that can be uploaded to the session. Defaults to 10."
+                  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1))
+                )
+              }),
+              [Schema.Record(Schema.String, Schema.Unknown)]
+            ).annotate({
+              "title": "File upload configuration",
+              "description":
+                "Configuration for upload enablement and limits. When omitted, uploads are disabled by default (max_files 10, max_file_size 512 MB).",
+              "identifier": "FileUploadParam"
+            })
+          ),
+          "history": Schema.optionalKey(
+            Schema.StructWithRest(
+              Schema.Struct({
+                "enabled": Schema.optionalKey(
+                  Schema.Boolean.annotate({
+                    "description": "Enables chat users to access previous ChatKit threads. Defaults to true."
+                  })
+                ),
+                "recent_threads": Schema.optionalKey(
+                  Schema.Number.annotate({
+                    "description":
+                      "Number of recent ChatKit threads users have access to. Defaults to unlimited when unset."
+                  }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1))
+                )
+              }),
+              [Schema.Record(Schema.String, Schema.Unknown)]
+            ).annotate({
+              "title": "Chat history configuration",
+              "description":
+                "Configuration for chat history retention. When omitted, history is enabled by default with no limit on recent_threads (null).",
+              "identifier": "HistoryParam"
+            })
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "title": "ChatKit configuration overrides",
+        "description": "Optional overrides for ChatKit runtime configuration features",
+        "identifier": "ChatkitConfigurationParam"
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Create chat session request",
+  "description": "Parameters for provisioning a new ChatKit session.",
+  "identifier": "CreateChatSessionBody"
 })
 export type UserMessageInputText = {
   readonly "type": "input_text"
@@ -9798,6 +14605,8 @@ export const UserMessageQuotedText = Schema.StructWithRest(
   "description": "Quoted snippet that the user referenced in their message.",
   "identifier": "UserMessageQuotedText"
 })
+export type AttachmentType = "image" | "file"
+export const AttachmentType = Schema.Literals(["image", "file"]).annotate({ "identifier": "AttachmentType" })
 export type Attachment = {
   readonly "type": "image" | "file"
   readonly "id": string
@@ -9825,6 +14634,65 @@ export const Attachment = Schema.StructWithRest(
   "title": "Attachment",
   "description": "Attachment metadata included on thread items.",
   "identifier": "Attachment"
+})
+export type ToolChoice = { readonly "id": string; readonly [x: string]: unknown }
+export const ToolChoice = Schema.StructWithRest(
+  Schema.Struct({ "id": Schema.String.annotate({ "description": "Identifier of the requested tool." }) }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Tool choice",
+  "description": "Tool selection that the assistant should honor when executing the item.",
+  "identifier": "ToolChoice"
+})
+export type InferenceOptions = {
+  readonly "tool_choice": { readonly "id": string; readonly [x: string]: unknown } | null
+  readonly "model": string | null
+  readonly [x: string]: unknown
+}
+export const InferenceOptions = Schema.StructWithRest(
+  Schema.Struct({
+    "tool_choice": Schema.Union([
+      Schema.StructWithRest(
+        Schema.Struct({ "id": Schema.String.annotate({ "description": "Identifier of the requested tool." }) }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "title": "Tool choice",
+        "description": "Preferred tool to invoke. Defaults to null when ChatKit should auto-select.",
+        "identifier": "ToolChoice"
+      }),
+      Schema.Null
+    ]),
+    "model": Schema.Union([
+      Schema.String.annotate({
+        "description": "Model name that generated the response. Defaults to null when using the session default."
+      }),
+      Schema.Null
+    ])
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Inference options",
+  "description": "Model and tool overrides applied when generating the assistant response.",
+  "identifier": "InferenceOptions"
+})
+export type FileAnnotationSource = {
+  readonly "type": "file"
+  readonly "filename": string
+  readonly [x: string]: unknown
+}
+export const FileAnnotationSource = Schema.StructWithRest(
+  Schema.Struct({
+    "type": Schema.Literal("file").annotate({
+      "description": "Type discriminator that is always `file`.",
+      "default": "file"
+    }),
+    "filename": Schema.String.annotate({ "description": "Filename referenced by the annotation." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "File annotation source",
+  "description": "Attachment source referenced by an annotation.",
+  "identifier": "FileAnnotationSource"
 })
 export type FileAnnotation = {
   readonly "type": "file"
@@ -9857,6 +14725,21 @@ export const FileAnnotation = Schema.StructWithRest(
   "title": "File annotation",
   "description": "Annotation that references an uploaded file.",
   "identifier": "FileAnnotation"
+})
+export type UrlAnnotationSource = { readonly "type": "url"; readonly "url": string; readonly [x: string]: unknown }
+export const UrlAnnotationSource = Schema.StructWithRest(
+  Schema.Struct({
+    "type": Schema.Literal("url").annotate({
+      "description": "Type discriminator that is always `url`.",
+      "default": "url"
+    }),
+    "url": Schema.String.annotate({ "description": "URL referenced by the annotation." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "URL annotation source",
+  "description": "URL backing an annotation entry.",
+  "identifier": "UrlAnnotationSource"
 })
 export type UrlAnnotation = {
   readonly "type": "url"
@@ -9922,6 +14805,10 @@ export const WidgetMessageItem = Schema.StructWithRest(
   "description": "Thread item that renders a widget payload.",
   "identifier": "WidgetMessageItem"
 })
+export type ClientToolCallStatus = "in_progress" | "completed"
+export const ClientToolCallStatus = Schema.Literals(["in_progress", "completed"]).annotate({
+  "identifier": "ClientToolCallStatus"
+})
 export type ClientToolCallItem = {
   readonly "id": string
   readonly "object": "chatkit.thread_item"
@@ -9970,6 +14857,8 @@ export const ClientToolCallItem = Schema.StructWithRest(
   "description": "Record of a client side tool invocation initiated by the assistant.",
   "identifier": "ClientToolCallItem"
 })
+export type TaskType = "custom" | "thought"
+export const TaskType = Schema.Literals(["custom", "thought"]).annotate({ "identifier": "TaskType" })
 export type TaskItem = {
   readonly "id": string
   readonly "object": "chatkit.thread_item"
@@ -10110,6 +14999,36 @@ export const ClosedStatus = Schema.StructWithRest(
   "description": "Indicates that a thread has been closed.",
   "identifier": "ClosedStatus"
 })
+export type DeletedThreadResource = {
+  readonly "id": string
+  readonly "object": "chatkit.thread.deleted"
+  readonly "deleted": boolean
+  readonly [x: string]: unknown
+}
+export const DeletedThreadResource = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({ "description": "Identifier of the deleted thread." }),
+    "object": Schema.Literal("chatkit.thread.deleted").annotate({
+      "description": "Type discriminator that is always `chatkit.thread.deleted`.",
+      "default": "chatkit.thread.deleted"
+    }),
+    "deleted": Schema.Boolean.annotate({ "description": "Indicates that the thread has been deleted." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Deleted thread",
+  "description": "Confirmation payload returned after deleting a thread.",
+  "identifier": "DeletedThreadResource"
+})
+export type RealtimeConnectParams = {
+  readonly "model"?: string
+  readonly "call_id"?: string
+  readonly [x: string]: unknown
+}
+export const RealtimeConnectParams = Schema.StructWithRest(
+  Schema.Struct({ "model": Schema.optionalKey(Schema.String), "call_id": Schema.optionalKey(Schema.String) }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "RealtimeConnectParams" })
 export type BatchError = {
   readonly "code"?: string
   readonly "message"?: string
@@ -10241,6 +15160,19 @@ export const RoleListResource = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "Paginated list of roles assigned to a principal.", "identifier": "RoleListResource" })
+export type AssistantsApiToolChoiceOption = "none" | "auto" | "required" | AssistantsNamedToolChoice
+export const AssistantsApiToolChoiceOption = Schema.Union([
+  Schema.Literals(["none", "auto", "required"]).annotate({
+    "title": "Auto",
+    "description":
+      "`none` means the model will not call any tools and instead generates a message. `auto` means the model can pick between generating a message or calling one or more tools. `required` means the model must call one or more tools before responding to the user.\n"
+  }),
+  AssistantsNamedToolChoice
+]).annotate({
+  "description":
+    "Controls which (if any) tool is called by the model.\n`none` means the model will not call any tools and instead generates a message.\n`auto` is the default value and means the model can pick between generating a message or calling one or more tools.\n`required` means the model must call one or more tools before responding to the user.\nSpecifying a particular tool like `{\"type\": \"file_search\"}` or `{\"type\": \"function\", \"function\": {\"name\": \"my_function\"}}` forces the model to call that tool.\n",
+  "identifier": "AssistantsApiToolChoiceOption"
+})
 export type AuditLogActorApiKey = {
   readonly "id"?: string
   readonly "type"?: "user" | "service_account"
@@ -10513,6 +15445,79 @@ export const PredictionContent = Schema.StructWithRest(
   "description": "Static predicted output content, such as the content of a text file that is\nbeing regenerated.\n",
   "identifier": "PredictionContent"
 })
+export type CreateCompletionResponse = {
+  readonly "id": string
+  readonly "choices": ReadonlyArray<
+    {
+      readonly "finish_reason": "stop" | "length" | "content_filter"
+      readonly "index": number
+      readonly "logprobs": {
+        readonly "text_offset"?: ReadonlyArray<number>
+        readonly "token_logprobs"?: ReadonlyArray<number>
+        readonly "tokens"?: ReadonlyArray<string>
+        readonly "top_logprobs"?: ReadonlyArray<{ readonly [x: string]: number }>
+        readonly [x: string]: unknown
+      } | null
+      readonly "text": string
+      readonly [x: string]: unknown
+    }
+  >
+  readonly "created": number
+  readonly "model": string
+  readonly "system_fingerprint"?: string
+  readonly "object": "text_completion"
+  readonly "usage"?: CompletionUsage
+  readonly [x: string]: unknown
+}
+export const CreateCompletionResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({ "description": "A unique identifier for the completion." }),
+    "choices": Schema.Array(Schema.StructWithRest(
+      Schema.Struct({
+        "finish_reason": Schema.Literals(["stop", "length", "content_filter"]).annotate({
+          "description":
+            "The reason the model stopped generating tokens. This will be `stop` if the model hit a natural stop point or a provided stop sequence,\n`length` if the maximum number of tokens specified in the request was reached,\nor `content_filter` if content was omitted due to a flag from our content filters.\n"
+        }),
+        "index": Schema.Number.check(Schema.isInt()),
+        "logprobs": Schema.Union([
+          Schema.StructWithRest(
+            Schema.Struct({
+              "text_offset": Schema.optionalKey(Schema.Array(Schema.Number.check(Schema.isInt()))),
+              "token_logprobs": Schema.optionalKey(Schema.Array(Schema.Number.check(Schema.isFinite()))),
+              "tokens": Schema.optionalKey(Schema.Array(Schema.String)),
+              "top_logprobs": Schema.optionalKey(
+                Schema.Array(Schema.Record(Schema.String, Schema.Number.check(Schema.isFinite())))
+              )
+            }),
+            [Schema.Record(Schema.String, Schema.Unknown)]
+          ),
+          Schema.Null
+        ]),
+        "text": Schema.String
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    )).annotate({ "description": "The list of completion choices the model generated for the input prompt." }),
+    "created": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the completion was created."
+    }).check(Schema.isInt()),
+    "model": Schema.String.annotate({ "description": "The model used for completion." }),
+    "system_fingerprint": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "This fingerprint represents the backend configuration that the model runs with.\n\nCan be used in conjunction with the `seed` request parameter to understand when backend changes have been made that might impact determinism.\n"
+      })
+    ),
+    "object": Schema.Literal("text_completion").annotate({
+      "description": "The object type, which is always \"text_completion\""
+    }),
+    "usage": Schema.optionalKey(CompletionUsage)
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Represents a completion response from the API. Note: both the streamed and non-streamed response objects share the same shape (unlike the chat endpoint).\n",
+  "identifier": "CreateCompletionResponse"
+})
 export type ContainerFileListResource = {
   readonly "object": "list"
   readonly "data": ReadonlyArray<ContainerFileResource>
@@ -10549,6 +15554,31 @@ export const ContainerListResource = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "identifier": "ContainerListResource" })
+export type CreateEmbeddingResponse = {
+  readonly "data": ReadonlyArray<Embedding>
+  readonly "model": string
+  readonly "object": "list"
+  readonly "usage": { readonly "prompt_tokens": number; readonly "total_tokens": number; readonly [x: string]: unknown }
+  readonly [x: string]: unknown
+}
+export const CreateEmbeddingResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "data": Schema.Array(Embedding).annotate({ "description": "The list of embeddings generated by the model." }),
+    "model": Schema.String.annotate({ "description": "The name of the model used to generate the embedding." }),
+    "object": Schema.Literal("list").annotate({ "description": "The object type, which is always \"list\"." }),
+    "usage": Schema.StructWithRest(
+      Schema.Struct({
+        "prompt_tokens": Schema.Number.annotate({ "description": "The number of tokens used by the prompt." }).check(
+          Schema.isInt()
+        ),
+        "total_tokens": Schema.Number.annotate({ "description": "The total number of tokens used by the request." })
+          .check(Schema.isInt())
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({ "description": "The usage information for the request." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateEmbeddingResponse" })
 export type ErrorEvent = { readonly "event": "error"; readonly "data": Error; readonly [x: string]: unknown }
 export const ErrorEvent = Schema.StructWithRest(Schema.Struct({ "event": Schema.Literal("error"), "data": Error }), [
   Schema.Record(Schema.String, Schema.Unknown)
@@ -10709,6 +15739,28 @@ export const EvalRunOutputItem = Schema.StructWithRest(
   "description": "A schema representing an evaluation run output item.\n",
   "identifier": "EvalRunOutputItem"
 })
+export type CreateUploadRequest = {
+  readonly "filename": string
+  readonly "purpose": "assistants" | "batch" | "fine-tune" | "vision"
+  readonly "bytes": number
+  readonly "mime_type": string
+  readonly "expires_after"?: FileExpirationAfter
+}
+export const CreateUploadRequest = Schema.Struct({
+  "filename": Schema.String.annotate({ "description": "The name of the file to upload.\n" }),
+  "purpose": Schema.Literals(["assistants", "batch", "fine-tune", "vision"]).annotate({
+    "description":
+      "The intended purpose of the uploaded file.\n\nSee the [documentation on File purposes](https://platform.openai.com/docs/api-reference/files/create#files-create-purpose).\n"
+  }),
+  "bytes": Schema.Number.annotate({ "description": "The number of bytes in the file you are uploading.\n" }).check(
+    Schema.isInt()
+  ),
+  "mime_type": Schema.String.annotate({
+    "description":
+      "The MIME type of the file.\n\nThis must fall within the supported MIME types for your file purpose. See the supported MIME types for assistants and vision.\n"
+  }),
+  "expires_after": Schema.optionalKey(FileExpirationAfter)
+}).annotate({ "identifier": "CreateUploadRequest" })
 export type FileSearchRankingOptions = {
   readonly "ranker"?: FileSearchRanker
   readonly "score_threshold": number
@@ -10996,6 +16048,77 @@ export const InviteListResponse = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "identifier": "InviteListResponse" })
+export type RealtimeBetaServerEventConversationItemInputAudioTranscriptionCompleted = {
+  readonly "event_id": string
+  readonly "type": "conversation.item.input_audio_transcription.completed"
+  readonly "item_id": string
+  readonly "content_index": number
+  readonly "transcript": string
+  readonly "logprobs"?: ReadonlyArray<LogProbProperties> | null
+  readonly "usage": unknown | unknown
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventConversationItemInputAudioTranscriptionCompleted = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("conversation.item.input_audio_transcription.completed").annotate({
+      "description": "The event type, must be\n`conversation.item.input_audio_transcription.completed`.\n"
+    }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the user message item containing the audio." }),
+    "content_index": Schema.Number.annotate({ "description": "The index of the content part containing the audio." })
+      .check(Schema.isInt()),
+    "transcript": Schema.String.annotate({ "description": "The transcribed text." }),
+    "logprobs": Schema.optionalKey(
+      Schema.Union([
+        Schema.Array(LogProbProperties).annotate({ "description": "The log probabilities of the transcription." }),
+        Schema.Null
+      ])
+    ),
+    "usage": Schema.Union([
+      Schema.Unknown.annotate({ "title": "Token Usage" }),
+      Schema.Unknown.annotate({ "title": "Duration Usage" })
+    ]).annotate({ "description": "Usage statistics for the transcription." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "This event is the output of audio transcription for user audio written to the\nuser audio buffer. Transcription begins when the input audio buffer is\ncommitted by the client or server (in `server_vad` mode). Transcription runs\nasynchronously with Response creation, so this event may come before or after\nthe Response events.\n\nRealtime API models accept audio natively, and thus input transcription is a\nseparate process run on a separate ASR (Automatic Speech Recognition) model.\nThe transcript may diverge somewhat from the model's interpretation, and\nshould be treated as a rough guide.\n",
+  "identifier": "RealtimeBetaServerEventConversationItemInputAudioTranscriptionCompleted"
+})
+export type RealtimeBetaServerEventConversationItemInputAudioTranscriptionDelta = {
+  readonly "event_id": string
+  readonly "type": "conversation.item.input_audio_transcription.delta"
+  readonly "item_id": string
+  readonly "content_index"?: number
+  readonly "delta"?: string
+  readonly "logprobs"?: ReadonlyArray<LogProbProperties> | null
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventConversationItemInputAudioTranscriptionDelta = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("conversation.item.input_audio_transcription.delta").annotate({
+      "description": "The event type, must be `conversation.item.input_audio_transcription.delta`."
+    }),
+    "item_id": Schema.String.annotate({ "description": "The ID of the item." }),
+    "content_index": Schema.optionalKey(
+      Schema.Number.annotate({ "description": "The index of the content part in the item's content array." }).check(
+        Schema.isInt()
+      )
+    ),
+    "delta": Schema.optionalKey(Schema.String.annotate({ "description": "The text delta." })),
+    "logprobs": Schema.optionalKey(
+      Schema.Union([
+        Schema.Array(LogProbProperties).annotate({ "description": "The log probabilities of the transcription." }),
+        Schema.Null
+      ])
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when the text value of an input audio transcription content part is updated.\n",
+  "identifier": "RealtimeBetaServerEventConversationItemInputAudioTranscriptionDelta"
+})
 export type RealtimeServerEventConversationItemInputAudioTranscriptionCompleted = {
   readonly "event_id": string
   readonly "type": "conversation.item.input_audio_transcription.completed"
@@ -11404,6 +16527,59 @@ export const EvalStoredCompletionsSource = Schema.StructWithRest(
   "description": "A StoredCompletionsRunDataSource configuration describing a set of filters\n",
   "identifier": "EvalStoredCompletionsSource"
 })
+export type ModifyMessageRequest = { readonly "metadata"?: Metadata }
+export const ModifyMessageRequest = Schema.Struct({ "metadata": Schema.optionalKey(Metadata) }).annotate({
+  "identifier": "ModifyMessageRequest"
+})
+export type ModifyRunRequest = { readonly "metadata"?: Metadata }
+export const ModifyRunRequest = Schema.Struct({ "metadata": Schema.optionalKey(Metadata) }).annotate({
+  "identifier": "ModifyRunRequest"
+})
+export type ModifyThreadRequest = {
+  readonly "tool_resources"?: {
+    readonly "code_interpreter"?: { readonly "file_ids"?: ReadonlyArray<string>; readonly [x: string]: unknown }
+    readonly "file_search"?: { readonly "vector_store_ids"?: ReadonlyArray<string>; readonly [x: string]: unknown }
+    readonly [x: string]: unknown
+  } | null
+  readonly "metadata"?: Metadata
+}
+export const ModifyThreadRequest = Schema.Struct({
+  "tool_resources": Schema.optionalKey(Schema.Union([
+    Schema.StructWithRest(
+      Schema.Struct({
+        "code_interpreter": Schema.optionalKey(Schema.StructWithRest(
+          Schema.Struct({
+            "file_ids": Schema.optionalKey(
+              Schema.Array(Schema.String).annotate({
+                "description":
+                  "A list of [file](https://platform.openai.com/docs/api-reference/files) IDs made available to the `code_interpreter` tool. There can be a maximum of 20 files associated with the tool.\n",
+                "default": []
+              }).check(Schema.isMaxLength(20))
+            )
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        )),
+        "file_search": Schema.optionalKey(Schema.StructWithRest(
+          Schema.Struct({
+            "vector_store_ids": Schema.optionalKey(
+              Schema.Array(Schema.String).annotate({
+                "description":
+                  "The [vector store](https://platform.openai.com/docs/api-reference/vector-stores/object) attached to this thread. There can be a maximum of 1 vector store attached to the thread.\n"
+              }).check(Schema.isMaxLength(1))
+            )
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ))
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({
+      "description":
+        "A set of resources that are made available to the assistant's tools in this thread. The resources are specific to the type of tool. For example, the `code_interpreter` tool requires a list of file IDs, while the `file_search` tool requires a list of vector store IDs.\n"
+    }),
+    Schema.Null
+  ])),
+  "metadata": Schema.optionalKey(Metadata)
+}).annotate({ "identifier": "ModifyThreadRequest" })
 export type ThreadObject = {
   readonly "id": string
   readonly "object": "thread"
@@ -11466,6 +16642,18 @@ export const ThreadObject = Schema.StructWithRest(
     "Represents a thread that contains [messages](https://platform.openai.com/docs/api-reference/messages).",
   "identifier": "ThreadObject"
 })
+export type UpdateVectorStoreRequest = {
+  readonly "name"?: string | null
+  readonly "expires_after"?: unknown | null
+  readonly "metadata"?: Metadata
+}
+export const UpdateVectorStoreRequest = Schema.Struct({
+  "name": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({ "description": "The name of the vector store." })
+  ),
+  "expires_after": Schema.optionalKey(Schema.Union([Schema.Unknown, Schema.Null])),
+  "metadata": Schema.optionalKey(Metadata)
+}).annotate({ "identifier": "UpdateVectorStoreRequest" })
 export type ListModelsResponse = {
   readonly "object": "list"
   readonly "data": ReadonlyArray<Model>
@@ -11618,6 +16806,161 @@ export const ListFilesResponse = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "identifier": "ListFilesResponse" })
+export type CreateImageRequest = {
+  readonly "prompt": string
+  readonly "model"?: string | "gpt-image-1.5" | "dall-e-2" | "dall-e-3" | "gpt-image-1" | "gpt-image-1-mini" | null
+  readonly "n"?: number | null
+  readonly "quality"?: "standard" | "hd" | "low" | "medium" | "high" | "auto" | null
+  readonly "response_format"?: "url" | "b64_json" | null
+  readonly "output_format"?: "png" | "jpeg" | "webp" | null
+  readonly "output_compression"?: number | null
+  readonly "stream"?: boolean | null
+  readonly "partial_images"?: PartialImages
+  readonly "size"?:
+    | "auto"
+    | "1024x1024"
+    | "1536x1024"
+    | "1024x1536"
+    | "256x256"
+    | "512x512"
+    | "1792x1024"
+    | "1024x1792"
+    | null
+  readonly "moderation"?: "low" | "auto" | null
+  readonly "background"?: "transparent" | "opaque" | "auto" | null
+  readonly "style"?: "vivid" | "natural" | null
+  readonly "user"?: string
+  readonly [x: string]: unknown
+}
+export const CreateImageRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "prompt": Schema.String.annotate({
+      "description":
+        "A text description of the desired image(s). The maximum length is 32000 characters for the GPT image models, 1000 characters for `dall-e-2` and 4000 characters for `dall-e-3`.",
+      "examples": ["A cute baby sea otter"]
+    }),
+    "model": Schema.optionalKey(
+      Schema.Union([
+        Schema.Union([
+          Schema.String,
+          Schema.Literals(["gpt-image-1.5", "dall-e-2", "dall-e-3", "gpt-image-1", "gpt-image-1-mini"])
+        ]).annotate({
+          "description":
+            "The model to use for image generation. One of `dall-e-2`, `dall-e-3`, or a GPT image model (`gpt-image-1`, `gpt-image-1-mini`, `gpt-image-1.5`). Defaults to `dall-e-2` unless a parameter specific to the GPT image models is used."
+        }),
+        Schema.Null
+      ])
+    ),
+    "n": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "The number of images to generate. Must be between 1 and 10. For `dall-e-3`, only `n=1` is supported.",
+        "default": 1,
+        "examples": [1]
+      })
+    ),
+    "quality": Schema.optionalKey(
+      Schema.Union([
+        Schema.Literal("standard"),
+        Schema.Literal("hd"),
+        Schema.Literal("low"),
+        Schema.Literal("medium"),
+        Schema.Literal("high"),
+        Schema.Literal("auto"),
+        Schema.Null
+      ]).annotate({
+        "description":
+          "The quality of the image that will be generated.\n\n- `auto` (default value) will automatically select the best quality for the given model.\n- `high`, `medium` and `low` are supported for the GPT image models.\n- `hd` and `standard` are supported for `dall-e-3`.\n- `standard` is the only option for `dall-e-2`.\n",
+        "default": "auto",
+        "examples": ["medium"]
+      })
+    ),
+    "response_format": Schema.optionalKey(
+      Schema.Union([Schema.Literal("url"), Schema.Literal("b64_json"), Schema.Null]).annotate({
+        "description":
+          "The format in which generated images with `dall-e-2` and `dall-e-3` are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated. This parameter isn't supported for the GPT image models, which always return base64-encoded images.",
+        "default": "url",
+        "examples": ["url"]
+      })
+    ),
+    "output_format": Schema.optionalKey(
+      Schema.Union([Schema.Literal("png"), Schema.Literal("jpeg"), Schema.Literal("webp"), Schema.Null]).annotate({
+        "description":
+          "The format in which the generated images are returned. This parameter is only supported for the GPT image models. Must be one of `png`, `jpeg`, or `webp`.",
+        "default": "png",
+        "examples": ["png"]
+      })
+    ),
+    "output_compression": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "The compression level (0-100%) for the generated images. This parameter is only supported for the GPT image models with the `webp` or `jpeg` output formats, and defaults to 100.",
+        "default": 100,
+        "examples": [100]
+      })
+    ),
+    "stream": Schema.optionalKey(
+      Schema.Union([Schema.Boolean, Schema.Null]).annotate({
+        "description":
+          "Generate the image in streaming mode. Defaults to `false`. See the\n[Image generation guide](https://platform.openai.com/docs/guides/image-generation) for more information.\nThis parameter is only supported for the GPT image models.\n",
+        "default": false,
+        "examples": [false]
+      })
+    ),
+    "partial_images": Schema.optionalKey(PartialImages),
+    "size": Schema.optionalKey(
+      Schema.Union([
+        Schema.Literal("auto"),
+        Schema.Literal("1024x1024"),
+        Schema.Literal("1536x1024"),
+        Schema.Literal("1024x1536"),
+        Schema.Literal("256x256"),
+        Schema.Literal("512x512"),
+        Schema.Literal("1792x1024"),
+        Schema.Literal("1024x1792"),
+        Schema.Null
+      ]).annotate({
+        "description":
+          "The size of the generated images. Must be one of `1024x1024`, `1536x1024` (landscape), `1024x1536` (portrait), or `auto` (default value) for the GPT image models, one of `256x256`, `512x512`, or `1024x1024` for `dall-e-2`, and one of `1024x1024`, `1792x1024`, or `1024x1792` for `dall-e-3`.",
+        "default": "auto",
+        "examples": ["1024x1024"]
+      })
+    ),
+    "moderation": Schema.optionalKey(
+      Schema.Union([Schema.Literal("low"), Schema.Literal("auto"), Schema.Null]).annotate({
+        "description":
+          "Control the content-moderation level for images generated by the GPT image models. Must be either `low` for less restrictive filtering or `auto` (default value).",
+        "default": "auto",
+        "examples": ["low"]
+      })
+    ),
+    "background": Schema.optionalKey(
+      Schema.Union([Schema.Literal("transparent"), Schema.Literal("opaque"), Schema.Literal("auto"), Schema.Null])
+        .annotate({
+          "description":
+            "Allows to set transparency for the background of the generated image(s).\nThis parameter is only supported for the GPT image models. Must be one of\n`transparent`, `opaque` or `auto` (default value). When `auto` is used, the\nmodel will automatically determine the best background for the image.\n\nIf `transparent`, the output format needs to support transparency, so it\nshould be set to either `png` (default value) or `webp`.\n",
+          "default": "auto",
+          "examples": ["transparent"]
+        })
+    ),
+    "style": Schema.optionalKey(
+      Schema.Union([Schema.Literal("vivid"), Schema.Literal("natural"), Schema.Null]).annotate({
+        "description":
+          "The style of the generated images. This parameter is only supported for `dall-e-3`. Must be one of `vivid` or `natural`. Vivid causes the model to lean towards generating hyper-real and dramatic images. Natural causes the model to produce more natural, less hyper-real looking images.",
+        "default": "vivid",
+        "examples": ["vivid"]
+      })
+    ),
+    "user": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices#end-user-ids).\n",
+        "examples": ["user-1234"]
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateImageRequest" })
 export type ProjectListResponse = {
   readonly "object": "list"
   readonly "data": ReadonlyArray<Project>
@@ -11697,6 +17040,28 @@ export const ProjectServiceAccountListResponse = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "identifier": "ProjectServiceAccountListResponse" })
+export type ProjectServiceAccountCreateResponse = {
+  readonly "object": "organization.project.service_account"
+  readonly "id": string
+  readonly "name": string
+  readonly "role": "member"
+  readonly "created_at": number
+  readonly "api_key": ProjectServiceAccountApiKey
+  readonly [x: string]: unknown
+}
+export const ProjectServiceAccountCreateResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("organization.project.service_account"),
+    "id": Schema.String,
+    "name": Schema.String,
+    "role": Schema.Literal("member").annotate({
+      "description": "Service accounts can only have one role of type `member`"
+    }),
+    "created_at": Schema.Number.check(Schema.isInt()),
+    "api_key": ProjectServiceAccountApiKey
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ProjectServiceAccountCreateResponse" })
 export type ProjectApiKey = {
   readonly "object": "organization.project.api_key"
   readonly "redacted_value": string
@@ -11946,6 +17311,65 @@ export const RealtimeMCPToolCall = Schema.StructWithRest(
   "title": "Realtime MCP tool call",
   "description": "A Realtime item representing an invocation of a tool on an MCP server.\n",
   "identifier": "RealtimeMCPToolCall"
+})
+export type RealtimeBetaServerEventTranscriptionSessionCreated = {
+  readonly "event_id": string
+  readonly "type": "transcription_session.created"
+  readonly "session": RealtimeTranscriptionSessionCreateResponse
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventTranscriptionSessionCreated = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("transcription_session.created").annotate({
+      "description": "The event type, must be `transcription_session.created`."
+    }),
+    "session": RealtimeTranscriptionSessionCreateResponse
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when a transcription session is created.\n",
+  "identifier": "RealtimeBetaServerEventTranscriptionSessionCreated"
+})
+export type RealtimeBetaServerEventTranscriptionSessionUpdated = {
+  readonly "event_id": string
+  readonly "type": "transcription_session.updated"
+  readonly "session": RealtimeTranscriptionSessionCreateResponse
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventTranscriptionSessionUpdated = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("transcription_session.updated").annotate({
+      "description": "The event type, must be `transcription_session.updated`."
+    }),
+    "session": RealtimeTranscriptionSessionCreateResponse
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when a transcription session is updated with a `transcription_session.update` event, unless \nthere is an error.\n",
+  "identifier": "RealtimeBetaServerEventTranscriptionSessionUpdated"
+})
+export type RealtimeServerEventTranscriptionSessionUpdated = {
+  readonly "event_id": string
+  readonly "type": "transcription_session.updated"
+  readonly "session": RealtimeTranscriptionSessionCreateResponse
+  readonly [x: string]: unknown
+}
+export const RealtimeServerEventTranscriptionSessionUpdated = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("transcription_session.updated").annotate({
+      "description": "The event type, must be `transcription_session.updated`."
+    }),
+    "session": RealtimeTranscriptionSessionCreateResponse
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when a transcription session is updated with a `transcription_session.update` event, unless \nthere is an error.\n",
+  "identifier": "RealtimeServerEventTranscriptionSessionUpdated"
 })
 export type RealtimeTranscriptionSessionCreateRequestGA = {
   readonly "type": "transcription"
@@ -12256,6 +17680,20 @@ export const ResponseTextDoneEvent = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "Emitted when text content is finalized.", "identifier": "ResponseTextDoneEvent" })
+export type GroupRoleAssignment = {
+  readonly "object": "group.role"
+  readonly "group": Group
+  readonly "role": Role
+  readonly [x: string]: unknown
+}
+export const GroupRoleAssignment = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("group.role").annotate({ "description": "Always `group.role`." }),
+    "group": Group,
+    "role": Role
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "description": "Role assignment linking a group to a role.", "identifier": "GroupRoleAssignment" })
 export type PublicRoleListResource = {
   readonly "object": "list"
   readonly "data": ReadonlyArray<Role>
@@ -12364,6 +17802,80 @@ export const RunStepDetailsToolCallsCodeObject = Schema.StructWithRest(
   "description": "Details of the Code Interpreter tool call the run step was involved in.",
   "identifier": "RunStepDetailsToolCallsCodeObject"
 })
+export type ModelResponseProperties = {
+  readonly "metadata"?: Metadata
+  readonly "top_logprobs"?: number | null
+  readonly "temperature"?: number | null
+  readonly "top_p"?: number | null
+  readonly "user"?: string
+  readonly "safety_identifier"?: string
+  readonly "prompt_cache_key"?: string
+  readonly "service_tier"?: ServiceTier
+  readonly "prompt_cache_retention"?: "in-memory" | "24h" | null
+  readonly [x: string]: unknown
+}
+export const ModelResponseProperties = Schema.StructWithRest(
+  Schema.Struct({
+    "metadata": Schema.optionalKey(Metadata),
+    "top_logprobs": Schema.optionalKey(
+      Schema.Union([
+        Schema.Number.annotate({
+          "description":
+            "An integer between 0 and 20 specifying the number of most likely tokens to\nreturn at each token position, each with an associated log probability.\n"
+        }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(20)),
+        Schema.Null
+      ])
+    ),
+    "temperature": Schema.optionalKey(Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.\nWe generally recommend altering this or `top_p` but not both.\n",
+        "default": 1,
+        "examples": [1]
+      }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(2)),
+      Schema.Null
+    ])),
+    "top_p": Schema.optionalKey(Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "An alternative to sampling with temperature, called nucleus sampling,\nwhere the model considers the results of the tokens with top_p probability\nmass. So 0.1 means only the tokens comprising the top 10% probability mass\nare considered.\n\nWe generally recommend altering this or `temperature` but not both.\n",
+        "default": 1,
+        "examples": [1]
+      }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1)),
+      Schema.Null
+    ])),
+    "user": Schema.optionalKey(Schema.String.annotate({
+      "description":
+        "This field is being replaced by `safety_identifier` and `prompt_cache_key`. Use `prompt_cache_key` instead to maintain caching optimizations.\nA stable identifier for your end-users.\nUsed to boost cache hit rates by better bucketing similar requests and  to help OpenAI detect and prevent abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices#safety-identifiers).\n",
+      "examples": ["user-1234"]
+    })),
+    "safety_identifier": Schema.optionalKey(Schema.String.annotate({
+      "description":
+        "A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies.\nThe IDs should be a string that uniquely identifies each user. We recommend hashing their username or email address, in order to avoid sending us any identifying information. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices#safety-identifiers).\n",
+      "examples": ["safety-identifier-1234"]
+    })),
+    "prompt_cache_key": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "Used by OpenAI to cache responses for similar requests to optimize your cache hit rates. Replaces the `user` field. [Learn more](https://platform.openai.com/docs/guides/prompt-caching).\n",
+        "examples": ["prompt-cache-key-1234"]
+      })
+    ),
+    "service_tier": Schema.optionalKey(ServiceTier),
+    "prompt_cache_retention": Schema.optionalKey(Schema.Union([
+      Schema.Literals(["in-memory", "24h"]).annotate({
+        "description":
+          "The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](https://platform.openai.com/docs/guides/prompt-caching#prompt-cache-retention).\n"
+      }),
+      Schema.Null
+    ]))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ModelResponseProperties" })
+export type CreateSpeechResponseStreamEvent = SpeechAudioDeltaEvent | SpeechAudioDoneEvent
+export const CreateSpeechResponseStreamEvent = Schema.Union([SpeechAudioDeltaEvent, SpeechAudioDoneEvent]).annotate({
+  "identifier": "CreateSpeechResponseStreamEvent"
+})
 export type StaticChunkingStrategyRequestParam = {
   readonly "type": "static"
   readonly "static": StaticChunkingStrategy
@@ -12384,6 +17896,166 @@ export const StaticChunkingStrategyResponseParam = Schema.Struct({
   "type": Schema.Literal("static").annotate({ "description": "Always `static`." }),
   "static": StaticChunkingStrategy
 }).annotate({ "title": "Static Chunking Strategy", "identifier": "StaticChunkingStrategyResponseParam" })
+export type CreateCompletionRequest = {
+  readonly "model": string | "gpt-3.5-turbo-instruct" | "davinci-002" | "babbage-002"
+  readonly "prompt":
+    | string
+    | ReadonlyArray<string>
+    | ReadonlyArray<number>
+    | ReadonlyArray<ReadonlyArray<number>>
+    | null
+  readonly "best_of"?: number | null
+  readonly "echo"?: boolean | null
+  readonly "frequency_penalty"?: number | null
+  readonly "logit_bias"?: { readonly [x: string]: unknown } | null
+  readonly "logprobs"?: number | null
+  readonly "max_tokens"?: number | null
+  readonly "n"?: number | null
+  readonly "presence_penalty"?: number | null
+  readonly "seed"?: number | null
+  readonly "stop"?: StopConfiguration
+  readonly "stream"?: boolean | null
+  readonly "stream_options"?: ChatCompletionStreamOptions
+  readonly "suffix"?: string | null
+  readonly "temperature"?: number | null
+  readonly "top_p"?: number | null
+  readonly "user"?: string
+  readonly [x: string]: unknown
+}
+export const CreateCompletionRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "model": Schema.Union([
+      Schema.String,
+      Schema.Literals(["gpt-3.5-turbo-instruct", "davinci-002", "babbage-002"]).annotate({ "title": "Preset" })
+    ]).annotate({
+      "description":
+        "ID of the model to use. You can use the [List models](https://platform.openai.com/docs/api-reference/models/list) API to see all of your available models, or see our [Model overview](https://platform.openai.com/docs/models) for descriptions of them.\n"
+    }),
+    "prompt": Schema.Union([
+      Schema.Union([
+        Schema.String.annotate({ "default": "", "examples": ["This is a test."] }),
+        Schema.Array(Schema.String.annotate({ "default": "", "examples": ["This is a test."] })).annotate({
+          "title": "Array of strings"
+        }),
+        Schema.Array(Schema.Number.check(Schema.isInt())).annotate({ "title": "Array of tokens" }).check(
+          Schema.isMinLength(1)
+        ),
+        Schema.Array(Schema.Array(Schema.Number.check(Schema.isInt())).check(Schema.isMinLength(1))).annotate({
+          "title": "Array of token arrays"
+        }).check(Schema.isMinLength(1))
+      ]).annotate({
+        "description":
+          "The prompt(s) to generate completions for, encoded as a string, array of strings, array of tokens, or array of token arrays.\n\nNote that <|endoftext|> is the document separator that the model sees during training, so if a prompt is not specified the model will generate as if from the beginning of a new document.\n"
+      }),
+      Schema.Null
+    ]),
+    "best_of": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "Generates `best_of` completions server-side and returns the \"best\" (the one with the highest log probability per token). Results cannot be streamed.\n\nWhen used with `n`, `best_of` controls the number of candidate completions and `n` specifies how many to return – `best_of` must be greater than `n`.\n\n**Note:** Because this parameter generates many completions, it can quickly consume your token quota. Use carefully and ensure that you have reasonable settings for `max_tokens` and `stop`.\n",
+        "default": 1
+      })
+    ),
+    "echo": Schema.optionalKey(
+      Schema.Union([Schema.Boolean, Schema.Null]).annotate({
+        "description": "Echo back the prompt in addition to the completion\n",
+        "default": false
+      })
+    ),
+    "frequency_penalty": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null]).annotate({
+        "description":
+          "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.\n\n[See more information about frequency and presence penalties.](https://platform.openai.com/docs/guides/text-generation)\n",
+        "default": 0
+      })
+    ),
+    "logit_bias": Schema.optionalKey(
+      Schema.Union([Schema.Record(Schema.String, Schema.Unknown), Schema.Null]).annotate({
+        "description":
+          "Modify the likelihood of specified tokens appearing in the completion.\n\nAccepts a JSON object that maps tokens (specified by their token ID in the GPT tokenizer) to an associated bias value from -100 to 100. You can use this [tokenizer tool](/tokenizer?view=bpe) to convert text to token IDs. Mathematically, the bias is added to the logits generated by the model prior to sampling. The exact effect will vary per model, but values between -1 and 1 should decrease or increase likelihood of selection; values like -100 or 100 should result in a ban or exclusive selection of the relevant token.\n\nAs an example, you can pass `{\"50256\": -100}` to prevent the <|endoftext|> token from being generated.\n",
+        "default": null
+      })
+    ),
+    "logprobs": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "Include the log probabilities on the `logprobs` most likely output tokens, as well the chosen tokens. For example, if `logprobs` is 5, the API will return a list of the 5 most likely tokens. The API will always return the `logprob` of the sampled token, so there may be up to `logprobs+1` elements in the response.\n\nThe maximum value for `logprobs` is 5.\n",
+        "default": null
+      })
+    ),
+    "max_tokens": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "The maximum number of [tokens](/tokenizer) that can be generated in the completion.\n\nThe token count of your prompt plus `max_tokens` cannot exceed the model's context length. [Example Python code](https://cookbook.openai.com/examples/how_to_count_tokens_with_tiktoken) for counting tokens.\n",
+        "default": 16,
+        "examples": [16]
+      })
+    ),
+    "n": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "How many completions to generate for each prompt.\n\n**Note:** Because this parameter generates many completions, it can quickly consume your token quota. Use carefully and ensure that you have reasonable settings for `max_tokens` and `stop`.\n",
+        "default": 1,
+        "examples": [1]
+      })
+    ),
+    "presence_penalty": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null]).annotate({
+        "description":
+          "Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.\n\n[See more information about frequency and presence penalties.](https://platform.openai.com/docs/guides/text-generation)\n",
+        "default": 0
+      })
+    ),
+    "seed": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "If specified, our system will make a best effort to sample deterministically, such that repeated requests with the same `seed` and parameters should return the same result.\n\nDeterminism is not guaranteed, and you should refer to the `system_fingerprint` response parameter to monitor changes in the backend.\n",
+        "format": "int64"
+      })
+    ),
+    "stop": Schema.optionalKey(StopConfiguration),
+    "stream": Schema.optionalKey(
+      Schema.Union([Schema.Boolean, Schema.Null]).annotate({
+        "description":
+          "Whether to stream back partial progress. If set, tokens will be sent as data-only [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format) as they become available, with the stream terminated by a `data: [DONE]` message. [Example Python code](https://cookbook.openai.com/examples/how_to_stream_completions).\n",
+        "default": false
+      })
+    ),
+    "stream_options": Schema.optionalKey(ChatCompletionStreamOptions),
+    "suffix": Schema.optionalKey(
+      Schema.Union([Schema.String, Schema.Null]).annotate({
+        "description":
+          "The suffix that comes after a completion of inserted text.\n\nThis parameter is only supported for `gpt-3.5-turbo-instruct`.\n",
+        "default": null,
+        "examples": ["test."]
+      })
+    ),
+    "temperature": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null]).annotate({
+        "description":
+          "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.\n\nWe generally recommend altering this or `top_p` but not both.\n",
+        "default": 1,
+        "examples": [1]
+      })
+    ),
+    "top_p": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null]).annotate({
+        "description":
+          "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.\n\nWe generally recommend altering this or `temperature` but not both.\n",
+        "default": 1,
+        "examples": [1]
+      })
+    ),
+    "user": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices#end-user-ids).\n",
+        "examples": ["user-1234"]
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateCompletionRequest" })
 export type TranscriptTextDoneEvent = {
   readonly "type": "transcript.text.done"
   readonly "text": string
@@ -12432,6 +18104,88 @@ export const TranscriptTextDoneEvent = Schema.StructWithRest(
   "description":
     "Emitted when the transcription is complete. Contains the complete transcription text. Only emitted when you [create a transcription](https://platform.openai.com/docs/api-reference/audio/create-transcription) with the `Stream` parameter set to `true`.",
   "identifier": "TranscriptTextDoneEvent"
+})
+export type CreateTranscriptionResponseDiarizedJson = {
+  readonly "task": "transcribe"
+  readonly "duration": number
+  readonly "text": string
+  readonly "segments": ReadonlyArray<TranscriptionDiarizedSegment>
+  readonly "usage"?: unknown | unknown
+  readonly [x: string]: unknown
+}
+export const CreateTranscriptionResponseDiarizedJson = Schema.StructWithRest(
+  Schema.Struct({
+    "task": Schema.Literal("transcribe").annotate({
+      "description": "The type of task that was run. Always `transcribe`."
+    }),
+    "duration": Schema.Number.annotate({ "description": "Duration of the input audio in seconds." }).check(
+      Schema.isFinite()
+    ),
+    "text": Schema.String.annotate({ "description": "The concatenated transcript text for the entire audio input." }),
+    "segments": Schema.Array(TranscriptionDiarizedSegment).annotate({
+      "description": "Segments of the transcript annotated with timestamps and speaker labels."
+    }),
+    "usage": Schema.optionalKey(
+      Schema.Union([
+        Schema.Unknown.annotate({ "title": "Token Usage" }),
+        Schema.Unknown.annotate({ "title": "Duration Usage" })
+      ]).annotate({ "description": "Token or duration usage statistics for the request." })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Represents a diarized transcription response returned by the model, including the combined transcript and speaker-segment annotations.\n",
+  "identifier": "CreateTranscriptionResponseDiarizedJson"
+})
+export type CreateTranslationResponseVerboseJson = {
+  readonly "language": string
+  readonly "duration": number
+  readonly "text": string
+  readonly "segments"?: ReadonlyArray<TranscriptionSegment>
+  readonly [x: string]: unknown
+}
+export const CreateTranslationResponseVerboseJson = Schema.StructWithRest(
+  Schema.Struct({
+    "language": Schema.String.annotate({ "description": "The language of the output translation (always `english`)." }),
+    "duration": Schema.Number.annotate({ "description": "The duration of the input audio." }).check(Schema.isFinite()),
+    "text": Schema.String.annotate({ "description": "The translated text." }),
+    "segments": Schema.optionalKey(
+      Schema.Array(TranscriptionSegment).annotate({
+        "description": "Segments of the translated text and their corresponding details."
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateTranslationResponseVerboseJson" })
+export type CreateTranscriptionResponseVerboseJson = {
+  readonly "language": string
+  readonly "duration": number
+  readonly "text": string
+  readonly "words"?: ReadonlyArray<TranscriptionWord>
+  readonly "segments"?: ReadonlyArray<TranscriptionSegment>
+  readonly "usage"?: TranscriptTextUsageDuration
+  readonly [x: string]: unknown
+}
+export const CreateTranscriptionResponseVerboseJson = Schema.StructWithRest(
+  Schema.Struct({
+    "language": Schema.String.annotate({ "description": "The language of the input audio." }),
+    "duration": Schema.Number.annotate({ "description": "The duration of the input audio." }).check(Schema.isFinite()),
+    "text": Schema.String.annotate({ "description": "The transcribed text." }),
+    "words": Schema.optionalKey(
+      Schema.Array(TranscriptionWord).annotate({ "description": "Extracted words and their corresponding timestamps." })
+    ),
+    "segments": Schema.optionalKey(
+      Schema.Array(TranscriptionSegment).annotate({
+        "description": "Segments of the transcribed text and their corresponding details."
+      })
+    ),
+    "usage": Schema.optionalKey(TranscriptTextUsageDuration)
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Represents a verbose json transcription response returned by model, based on the provided input.",
+  "identifier": "CreateTranscriptionResponseVerboseJson"
 })
 export type UsageTimeBucket = {
   readonly "object": "bucket"
@@ -12510,6 +18264,20 @@ export const UserListResponse = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "identifier": "UserListResponse" })
+export type UserRoleAssignment = {
+  readonly "object": "user.role"
+  readonly "user": User
+  readonly "role": Role
+  readonly [x: string]: unknown
+}
+export const UserRoleAssignment = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.Literal("user.role").annotate({ "description": "Always `user.role`." }),
+    "user": User,
+    "role": Role
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "description": "Role assignment linking a user to a role.", "identifier": "UserRoleAssignment" })
 export type TranscriptionChunkingStrategy = "auto" | VadConfig
 export const TranscriptionChunkingStrategy = Schema.Union([
   Schema.Literal("auto").annotate({
@@ -12658,6 +18426,9 @@ export const FileSearchToolCall = Schema.StructWithRest(
     "The results of a file search tool call. See the\n[file search guide](https://platform.openai.com/docs/guides/tools-file-search) for more information.\n",
   "identifier": "FileSearchToolCall"
 })
+export type UpdateVectorStoreFileAttributesRequest = { readonly "attributes": VectorStoreFileAttributes }
+export const UpdateVectorStoreFileAttributesRequest = Schema.Struct({ "attributes": VectorStoreFileAttributes })
+  .annotate({ "identifier": "UpdateVectorStoreFileAttributesRequest" })
 export type VectorStoreSearchResultItem = {
   readonly "file_id": string
   readonly "filename": string
@@ -12689,6 +18460,263 @@ export const VoiceConsentListResource = Schema.Struct({
   "last_id": Schema.optionalKey(Schema.Union([Schema.String, Schema.Null])),
   "has_more": Schema.Boolean
 }).annotate({ "identifier": "VoiceConsentListResource" })
+export type RealtimeSessionCreateResponse = {
+  readonly "id"?: string
+  readonly "object"?: string
+  readonly "expires_at"?: number
+  readonly "include"?: ReadonlyArray<"item.input_audio_transcription.logprobs">
+  readonly "model"?: string
+  readonly "output_modalities"?: ReadonlyArray<"text" | "audio">
+  readonly "instructions"?: string
+  readonly "audio"?: {
+    readonly "input"?: {
+      readonly "format"?: RealtimeAudioFormats
+      readonly "transcription"?: {
+        readonly "model"?:
+          | string
+          | "whisper-1"
+          | "gpt-4o-mini-transcribe"
+          | "gpt-4o-mini-transcribe-2025-12-15"
+          | "gpt-4o-transcribe"
+          | "gpt-4o-transcribe-diarize"
+        readonly "language"?: string
+        readonly "prompt"?: string
+        readonly [x: string]: unknown
+      }
+      readonly "noise_reduction"?: { readonly "type"?: NoiseReductionType; readonly [x: string]: unknown }
+      readonly "turn_detection"?: {
+        readonly "type"?: string
+        readonly "threshold"?: number
+        readonly "prefix_padding_ms"?: number
+        readonly "silence_duration_ms"?: number
+        readonly [x: string]: unknown
+      }
+      readonly [x: string]: unknown
+    }
+    readonly "output"?: {
+      readonly "format"?: RealtimeAudioFormats
+      readonly "voice"?: VoiceIdsShared
+      readonly "speed"?: number
+      readonly [x: string]: unknown
+    }
+    readonly [x: string]: unknown
+  }
+  readonly "tracing"?: "auto" | {
+    readonly "workflow_name"?: string
+    readonly "group_id"?: string
+    readonly "metadata"?: { readonly [x: string]: unknown }
+    readonly [x: string]: unknown
+  }
+  readonly "turn_detection"?: {
+    readonly "type"?: string
+    readonly "threshold"?: number
+    readonly "prefix_padding_ms"?: number
+    readonly "silence_duration_ms"?: number
+    readonly [x: string]: unknown
+  }
+  readonly "tools"?: ReadonlyArray<RealtimeFunctionTool>
+  readonly "tool_choice"?: string
+  readonly "max_output_tokens"?: number | "inf"
+  readonly [x: string]: unknown
+}
+export const RealtimeSessionCreateResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.optionalKey(
+      Schema.String.annotate({
+        "description": "Unique identifier for the session that looks like `sess_1234567890abcdef`.\n"
+      })
+    ),
+    "object": Schema.optionalKey(
+      Schema.String.annotate({ "description": "The object type. Always `realtime.session`." })
+    ),
+    "expires_at": Schema.optionalKey(
+      Schema.Number.annotate({ "description": "Expiration timestamp for the session, in seconds since epoch." }).check(
+        Schema.isInt()
+      )
+    ),
+    "include": Schema.optionalKey(
+      Schema.Array(Schema.Literal("item.input_audio_transcription.logprobs")).annotate({
+        "description":
+          "Additional fields to include in server outputs.\n- `item.input_audio_transcription.logprobs`: Include logprobs for input audio transcription.\n"
+      })
+    ),
+    "model": Schema.optionalKey(Schema.String.annotate({ "description": "The Realtime model used for this session." })),
+    "output_modalities": Schema.optionalKey(
+      Schema.Array(Schema.Literals(["text", "audio"])).annotate({
+        "description": "The set of modalities the model can respond with. To disable audio,\nset this to [\"text\"].\n"
+      })
+    ),
+    "instructions": Schema.optionalKey(Schema.String.annotate({
+      "description":
+        "The default system instructions (i.e. system message) prepended to model\ncalls. This field allows the client to guide the model on desired\nresponses. The model can be instructed on response content and format,\n(e.g. \"be extremely succinct\", \"act friendly\", \"here are examples of good\nresponses\") and on audio behavior (e.g. \"talk quickly\", \"inject emotion\ninto your voice\", \"laugh frequently\"). The instructions are not guaranteed\nto be followed by the model, but they provide guidance to the model on the\ndesired behavior.\n\nNote that the server sets default instructions which will be used if this\nfield is not set and are visible in the `session.created` event at the\nstart of the session.\n"
+    })),
+    "audio": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "input": Schema.optionalKey(Schema.StructWithRest(
+            Schema.Struct({
+              "format": Schema.optionalKey(RealtimeAudioFormats),
+              "transcription": Schema.optionalKey(
+                Schema.StructWithRest(
+                  Schema.Struct({
+                    "model": Schema.optionalKey(
+                      Schema.Union([
+                        Schema.String,
+                        Schema.Literals([
+                          "whisper-1",
+                          "gpt-4o-mini-transcribe",
+                          "gpt-4o-mini-transcribe-2025-12-15",
+                          "gpt-4o-transcribe",
+                          "gpt-4o-transcribe-diarize"
+                        ])
+                      ]).annotate({
+                        "description":
+                          "The model to use for transcription. Current options are `whisper-1`, `gpt-4o-mini-transcribe`, `gpt-4o-mini-transcribe-2025-12-15`, `gpt-4o-transcribe`, and `gpt-4o-transcribe-diarize`. Use `gpt-4o-transcribe-diarize` when you need diarization with speaker labels.\n"
+                      })
+                    ),
+                    "language": Schema.optionalKey(
+                      Schema.String.annotate({
+                        "description":
+                          "The language of the input audio. Supplying the input language in\n[ISO-639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (e.g. `en`) format\nwill improve accuracy and latency.\n"
+                      })
+                    ),
+                    "prompt": Schema.optionalKey(Schema.String.annotate({
+                      "description":
+                        "An optional text to guide the model's style or continue a previous audio\nsegment.\nFor `whisper-1`, the [prompt is a list of keywords](https://platform.openai.com/docs/guides/speech-to-text#prompting).\nFor `gpt-4o-transcribe` models (excluding `gpt-4o-transcribe-diarize`), the prompt is a free text string, for example \"expect words related to technology\".\n"
+                    }))
+                  }),
+                  [Schema.Record(Schema.String, Schema.Unknown)]
+                ).annotate({
+                  "identifier": "AudioTranscription",
+                  "description": "Configuration for input audio transcription.\n"
+                })
+              ),
+              "noise_reduction": Schema.optionalKey(
+                Schema.StructWithRest(Schema.Struct({ "type": Schema.optionalKey(NoiseReductionType) }), [
+                  Schema.Record(Schema.String, Schema.Unknown)
+                ]).annotate({ "description": "Configuration for input audio noise reduction.\n" })
+              ),
+              "turn_detection": Schema.optionalKey(
+                Schema.StructWithRest(
+                  Schema.Struct({
+                    "type": Schema.optionalKey(
+                      Schema.String.annotate({
+                        "description": "Type of turn detection, only `server_vad` is currently supported.\n"
+                      })
+                    ),
+                    "threshold": Schema.optionalKey(Schema.Number.check(Schema.isFinite())),
+                    "prefix_padding_ms": Schema.optionalKey(Schema.Number.check(Schema.isInt())),
+                    "silence_duration_ms": Schema.optionalKey(Schema.Number.check(Schema.isInt()))
+                  }),
+                  [Schema.Record(Schema.String, Schema.Unknown)]
+                ).annotate({ "description": "Configuration for turn detection.\n" })
+              )
+            }),
+            [Schema.Record(Schema.String, Schema.Unknown)]
+          )),
+          "output": Schema.optionalKey(
+            Schema.StructWithRest(
+              Schema.Struct({
+                "format": Schema.optionalKey(RealtimeAudioFormats),
+                "voice": Schema.optionalKey(VoiceIdsShared),
+                "speed": Schema.optionalKey(Schema.Number.check(Schema.isFinite()))
+              }),
+              [Schema.Record(Schema.String, Schema.Unknown)]
+            )
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({ "description": "Configuration for input and output audio for the session.\n" })
+    ),
+    "tracing": Schema.optionalKey(
+      Schema.Union([
+        Schema.Literal("auto").annotate({
+          "description": "Default tracing mode for the session.\n",
+          "default": "auto"
+        }),
+        Schema.StructWithRest(
+          Schema.Struct({
+            "workflow_name": Schema.optionalKey(
+              Schema.String.annotate({
+                "description":
+                  "The name of the workflow to attach to this trace. This is used to\nname the trace in the traces dashboard.\n"
+              })
+            ),
+            "group_id": Schema.optionalKey(
+              Schema.String.annotate({
+                "description":
+                  "The group id to attach to this trace to enable filtering and\ngrouping in the traces dashboard.\n"
+              })
+            ),
+            "metadata": Schema.optionalKey(
+              Schema.Record(Schema.String, Schema.Unknown).annotate({
+                "description":
+                  "The arbitrary metadata to attach to this trace to enable\nfiltering in the traces dashboard.\n"
+              })
+            )
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ).annotate({ "title": "Tracing Configuration", "description": "Granular configuration for tracing.\n" })
+      ]).annotate({
+        "title": "Tracing Configuration",
+        "description":
+          "Configuration options for tracing. Set to null to disable tracing. Once\ntracing is enabled for a session, the configuration cannot be modified.\n\n`auto` will create a trace for the session with default values for the\nworkflow name, group id, and metadata.\n"
+      })
+    ),
+    "turn_detection": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "type": Schema.optionalKey(
+            Schema.String.annotate({
+              "description": "Type of turn detection, only `server_vad` is currently supported.\n"
+            })
+          ),
+          "threshold": Schema.optionalKey(
+            Schema.Number.annotate({
+              "description":
+                "Activation threshold for VAD (0.0 to 1.0), this defaults to 0.5. A\nhigher threshold will require louder audio to activate the model, and\nthus might perform better in noisy environments.\n"
+            }).check(Schema.isFinite())
+          ),
+          "prefix_padding_ms": Schema.optionalKey(
+            Schema.Number.annotate({
+              "description":
+                "Amount of audio to include before the VAD detected speech (in\nmilliseconds). Defaults to 300ms.\n"
+            }).check(Schema.isInt())
+          ),
+          "silence_duration_ms": Schema.optionalKey(
+            Schema.Number.annotate({
+              "description":
+                "Duration of silence to detect speech stop (in milliseconds). Defaults\nto 500ms. With shorter values the model will respond more quickly,\nbut may jump in on short pauses from the user.\n"
+            }).check(Schema.isInt())
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "description":
+          "Configuration for turn detection. Can be set to `null` to turn off. Server\nVAD means that the model will detect the start and end of speech based on\naudio volume and respond at the end of user speech.\n"
+      })
+    ),
+    "tools": Schema.optionalKey(
+      Schema.Array(RealtimeFunctionTool).annotate({ "description": "Tools (functions) available to the model." })
+    ),
+    "tool_choice": Schema.optionalKey(
+      Schema.String.annotate({
+        "description": "How the model chooses tools. Options are `auto`, `none`, `required`, or\nspecify a function.\n"
+      })
+    ),
+    "max_output_tokens": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Literal("inf")]).annotate({
+        "description":
+          "Maximum number of output tokens for a single assistant response,\ninclusive of tool calls. Provide an integer between 1 and 4096 to\nlimit output tokens, or `inf` for the maximum available tokens for a\ngiven model. Defaults to `inf`.\n"
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Realtime session configuration object",
+  "description": "A Realtime session configuration object.\n",
+  "identifier": "RealtimeSessionCreateResponse"
+})
 export type WebSearchToolCall = {
   readonly "id": string
   readonly "type": "web_search_call"
@@ -12838,6 +18866,44 @@ export const Drag = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "title": "Drag", "description": "A drag action.\n", "identifier": "Drag" })
+export type ComputerToolCallOutput = {
+  readonly "type": "computer_call_output"
+  readonly "id"?: string
+  readonly "call_id": string
+  readonly "acknowledged_safety_checks"?: ReadonlyArray<ComputerCallSafetyCheckParam>
+  readonly "output": ComputerScreenshotImage
+  readonly "status"?: "in_progress" | "completed" | "incomplete"
+  readonly [x: string]: unknown
+}
+export const ComputerToolCallOutput = Schema.StructWithRest(
+  Schema.Struct({
+    "type": Schema.Literal("computer_call_output").annotate({
+      "description": "The type of the computer tool call output. Always `computer_call_output`.\n",
+      "default": "computer_call_output"
+    }),
+    "id": Schema.optionalKey(Schema.String.annotate({ "description": "The ID of the computer tool call output.\n" })),
+    "call_id": Schema.String.annotate({
+      "description": "The ID of the computer tool call that produced the output.\n"
+    }),
+    "acknowledged_safety_checks": Schema.optionalKey(
+      Schema.Array(ComputerCallSafetyCheckParam).annotate({
+        "description": "The safety checks reported by the API that have been acknowledged by the\ndeveloper.\n"
+      })
+    ),
+    "output": ComputerScreenshotImage,
+    "status": Schema.optionalKey(
+      Schema.Literals(["in_progress", "completed", "incomplete"]).annotate({
+        "description":
+          "The status of the message input. One of `in_progress`, `completed`, or\n`incomplete`. Populated when input items are returned via API.\n"
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Computer tool call output",
+  "description": "The output of a computer tool call.\n",
+  "identifier": "ComputerToolCallOutput"
+})
 export type ComputerToolCallOutputResource = {
   readonly "type": "computer_call_output"
   readonly "id": string
@@ -13117,6 +19183,17 @@ export const FunctionCallOutputItemParam = Schema.StructWithRest(
   "description": "The output of a function tool call.",
   "identifier": "FunctionCallOutputItemParam"
 })
+export type FunctionShellCallOutputOutcomeParam =
+  | FunctionShellCallOutputTimeoutOutcomeParam
+  | FunctionShellCallOutputExitOutcomeParam
+export const FunctionShellCallOutputOutcomeParam = Schema.Union([
+  FunctionShellCallOutputTimeoutOutcomeParam,
+  FunctionShellCallOutputExitOutcomeParam
+]).annotate({
+  "title": "Shell call outcome",
+  "description": "The exit or timeout outcome associated with this shell call.",
+  "identifier": "FunctionShellCallOutputOutcomeParam"
+})
 export type FunctionShellCallOutputContentParam = {
   readonly "stdout": string
   readonly "stderr": string
@@ -13143,6 +19220,19 @@ export const FunctionShellCallOutputContentParam = Schema.StructWithRest(
   "title": "Shell output content",
   "description": "Captured stdout and stderr for a portion of a shell tool call output.",
   "identifier": "FunctionShellCallOutputContentParam"
+})
+export type ApplyPatchOperationParam =
+  | ApplyPatchCreateFileOperationParam
+  | ApplyPatchDeleteFileOperationParam
+  | ApplyPatchUpdateFileOperationParam
+export const ApplyPatchOperationParam = Schema.Union([
+  ApplyPatchCreateFileOperationParam,
+  ApplyPatchDeleteFileOperationParam,
+  ApplyPatchUpdateFileOperationParam
+]).annotate({
+  "title": "Apply patch operation",
+  "description": "One of the create_file, delete_file, or update_file operations supplied to the apply_patch tool.",
+  "identifier": "ApplyPatchOperationParam"
 })
 export type ApplyPatchToolCallItemParam = {
   readonly "type": "apply_patch_call"
@@ -13196,6 +19286,144 @@ export const ApplyPatchToolCallItemParam = Schema.StructWithRest(
 })
 export type CodeInterpreterContainerAuto = AutoCodeInterpreterToolParam
 export const CodeInterpreterContainerAuto = AutoCodeInterpreterToolParam
+export type CreateImageEditRequest = {
+  readonly "image": string | ReadonlyArray<string>
+  readonly "prompt": string
+  readonly "mask"?: string
+  readonly "background"?: "transparent" | "opaque" | "auto" | null
+  readonly "model"?: string | "gpt-image-1.5" | "dall-e-2" | "gpt-image-1" | "gpt-image-1-mini" | null
+  readonly "n"?: number | null
+  readonly "size"?: "256x256" | "512x512" | "1024x1024" | "1536x1024" | "1024x1536" | "auto" | null
+  readonly "response_format"?: "url" | "b64_json" | null
+  readonly "output_format"?: "png" | "jpeg" | "webp" | null
+  readonly "output_compression"?: number | null
+  readonly "user"?: string
+  readonly "input_fidelity"?: InputFidelity | null
+  readonly "stream"?: boolean | null
+  readonly "partial_images"?: PartialImages
+  readonly "quality"?: "standard" | "low" | "medium" | "high" | "auto" | null
+  readonly [x: string]: unknown
+}
+export const CreateImageEditRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "image": Schema.Union([
+      Schema.String.annotate({ "format": "binary" }),
+      Schema.Array(Schema.String.annotate({ "format": "binary" })).check(Schema.isMaxLength(16))
+    ]).annotate({
+      "description":
+        "The image(s) to edit. Must be a supported image file or an array of images.\n\nFor the GPT image models (`gpt-image-1`, `gpt-image-1-mini`, and `gpt-image-1.5`), each image should be a `png`, `webp`, or `jpg`\nfile less than 50MB. You can provide up to 16 images.\n\nFor `dall-e-2`, you can only provide one image, and it should be a square\n`png` file less than 4MB.\n"
+    }),
+    "prompt": Schema.String.annotate({
+      "description":
+        "A text description of the desired image(s). The maximum length is 1000 characters for `dall-e-2`, and 32000 characters for the GPT image models.",
+      "examples": ["A cute baby sea otter wearing a beret"]
+    }),
+    "mask": Schema.optionalKey(Schema.String.annotate({
+      "description":
+        "An additional image whose fully transparent areas (e.g. where alpha is zero) indicate where `image` should be edited. If there are multiple images provided, the mask will be applied on the first image. Must be a valid PNG file, less than 4MB, and have the same dimensions as `image`.",
+      "format": "binary"
+    })),
+    "background": Schema.optionalKey(
+      Schema.Union([Schema.Literal("transparent"), Schema.Literal("opaque"), Schema.Literal("auto"), Schema.Null])
+        .annotate({
+          "description":
+            "Allows to set transparency for the background of the generated image(s).\nThis parameter is only supported for the GPT image models. Must be one of\n`transparent`, `opaque` or `auto` (default value). When `auto` is used, the\nmodel will automatically determine the best background for the image.\n\nIf `transparent`, the output format needs to support transparency, so it\nshould be set to either `png` (default value) or `webp`.\n",
+          "default": "auto",
+          "examples": ["transparent"]
+        })
+    ),
+    "model": Schema.optionalKey(
+      Schema.Union([
+        Schema.Union([Schema.String, Schema.Literals(["gpt-image-1.5", "dall-e-2", "gpt-image-1", "gpt-image-1-mini"])])
+          .annotate({
+            "description":
+              "The model to use for image generation. Only `dall-e-2` and the GPT image models are supported. Defaults to `dall-e-2` unless a parameter specific to the GPT image models is used."
+          }),
+        Schema.Null
+      ])
+    ),
+    "n": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description": "The number of images to generate. Must be between 1 and 10.",
+        "default": 1,
+        "examples": [1]
+      })
+    ),
+    "size": Schema.optionalKey(
+      Schema.Union([
+        Schema.Literal("256x256"),
+        Schema.Literal("512x512"),
+        Schema.Literal("1024x1024"),
+        Schema.Literal("1536x1024"),
+        Schema.Literal("1024x1536"),
+        Schema.Literal("auto"),
+        Schema.Null
+      ]).annotate({
+        "description":
+          "The size of the generated images. Must be one of `1024x1024`, `1536x1024` (landscape), `1024x1536` (portrait), or `auto` (default value) for the GPT image models, and one of `256x256`, `512x512`, or `1024x1024` for `dall-e-2`.",
+        "default": "1024x1024",
+        "examples": ["1024x1024"]
+      })
+    ),
+    "response_format": Schema.optionalKey(
+      Schema.Union([Schema.Literal("url"), Schema.Literal("b64_json"), Schema.Null]).annotate({
+        "description":
+          "The format in which the generated images are returned. Must be one of `url` or `b64_json`. URLs are only valid for 60 minutes after the image has been generated. This parameter is only supported for `dall-e-2`, as the GPT image models always return base64-encoded images.",
+        "default": "url",
+        "examples": ["url"]
+      })
+    ),
+    "output_format": Schema.optionalKey(
+      Schema.Union([Schema.Literal("png"), Schema.Literal("jpeg"), Schema.Literal("webp"), Schema.Null]).annotate({
+        "description":
+          "The format in which the generated images are returned. This parameter is\nonly supported for the GPT image models. Must be one of `png`, `jpeg`, or `webp`.\nThe default value is `png`.\n",
+        "default": "png",
+        "examples": ["png"]
+      })
+    ),
+    "output_compression": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "The compression level (0-100%) for the generated images. This parameter\nis only supported for the GPT image models with the `webp` or `jpeg` output\nformats, and defaults to 100.\n",
+        "default": 100,
+        "examples": [100]
+      })
+    ),
+    "user": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices#end-user-ids).\n",
+        "examples": ["user-1234"]
+      })
+    ),
+    "input_fidelity": Schema.optionalKey(Schema.Union([InputFidelity, Schema.Null])),
+    "stream": Schema.optionalKey(
+      Schema.Union([Schema.Boolean, Schema.Null]).annotate({
+        "description":
+          "Edit the image in streaming mode. Defaults to `false`. See the\n[Image generation guide](https://platform.openai.com/docs/guides/image-generation) for more information.\n",
+        "default": false,
+        "examples": [false]
+      })
+    ),
+    "partial_images": Schema.optionalKey(PartialImages),
+    "quality": Schema.optionalKey(
+      Schema.Union([
+        Schema.Literal("standard"),
+        Schema.Literal("low"),
+        Schema.Literal("medium"),
+        Schema.Literal("high"),
+        Schema.Literal("auto"),
+        Schema.Null
+      ]).annotate({
+        "description":
+          "The quality of the image that will be generated. `high`, `medium` and `low` are only supported for the GPT image models. `dall-e-2` only supports `standard` quality. Defaults to `auto`.\n",
+        "default": "auto",
+        "examples": ["high"]
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateImageEditRequest" })
 export type ImageGenTool = {
   readonly "type": "image_generation"
   readonly "model"?: string | "gpt-image-1" | "gpt-image-1-mini"
@@ -13779,6 +20007,65 @@ export const ComparisonFilter = Schema.Struct({
     "A filter used to compare a specified attribute key to a given value using a defined comparison operation.\n",
   "identifier": "ComparisonFilter"
 })
+export type CreateFileRequest = {
+  readonly "file": string
+  readonly "purpose": FilePurpose
+  readonly "expires_after"?: FileExpirationAfter
+}
+export const CreateFileRequest = Schema.Struct({
+  "file": Schema.String.annotate({
+    "description": "The File object (not file name) to be uploaded.\n",
+    "format": "binary"
+  }),
+  "purpose": FilePurpose,
+  "expires_after": Schema.optionalKey(FileExpirationAfter)
+}).annotate({ "identifier": "CreateFileRequest" })
+export type CreateModerationRequest = {
+  readonly "input": string | ReadonlyArray<string> | ReadonlyArray<ModerationImageURLInput | ModerationTextInput>
+  readonly "model"?:
+    | string
+    | "omni-moderation-latest"
+    | "omni-moderation-2024-09-26"
+    | "text-moderation-latest"
+    | "text-moderation-stable"
+  readonly [x: string]: unknown
+}
+export const CreateModerationRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "input": Schema.Union([
+      Schema.String.annotate({
+        "description": "A string of text to classify for moderation.",
+        "default": "",
+        "examples": ["I want to kill them."]
+      }),
+      Schema.Array(Schema.String.annotate({ "default": "", "examples": ["I want to kill them."] })).annotate({
+        "description": "An array of strings to classify for moderation."
+      }),
+      Schema.Array(Schema.Union([ModerationImageURLInput, ModerationTextInput])).annotate({
+        "title": "Moderation Multi Modal Array",
+        "description": "An array of multi-modal inputs to the moderation model."
+      })
+    ]).annotate({
+      "description":
+        "Input (or inputs) to classify. Can be a single string, an array of strings, or\nan array of multi-modal input objects similar to other models.\n"
+    }),
+    "model": Schema.optionalKey(
+      Schema.Union([
+        Schema.String,
+        Schema.Literals([
+          "omni-moderation-latest",
+          "omni-moderation-2024-09-26",
+          "text-moderation-latest",
+          "text-moderation-stable"
+        ])
+      ]).annotate({
+        "description":
+          "The content moderation model you would like to use. Learn more in\n[the moderation guide](https://platform.openai.com/docs/guides/moderation), and learn about\navailable models [here](https://platform.openai.com/docs/models#moderation).\n"
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateModerationRequest" })
 export type AuditLogActor = {
   readonly "type"?: "session" | "api_key"
   readonly "session"?: AuditLogActorSession
@@ -13924,6 +20211,166 @@ export const ChatCompletionResponseMessage = Schema.StructWithRest(
 ).annotate({
   "description": "A chat completion message generated by the model.",
   "identifier": "ChatCompletionResponseMessage"
+})
+export type CreateChatCompletionStreamResponse = {
+  readonly "id": string
+  readonly "choices": ReadonlyArray<
+    {
+      readonly "delta": ChatCompletionStreamResponseDelta
+      readonly "logprobs"?: { readonly [x: string]: unknown } | null
+      readonly "finish_reason": "stop" | "length" | "tool_calls" | "content_filter" | "function_call" | null
+      readonly "index": number
+      readonly [x: string]: unknown
+    }
+  >
+  readonly "created": number
+  readonly "model": string
+  readonly "service_tier"?: ServiceTier
+  readonly "system_fingerprint"?: string
+  readonly "object": "chat.completion.chunk"
+  readonly "usage"?: {
+    readonly "completion_tokens": number
+    readonly "prompt_tokens": number
+    readonly "total_tokens": number
+    readonly "completion_tokens_details"?: {
+      readonly "accepted_prediction_tokens"?: number
+      readonly "audio_tokens"?: number
+      readonly "reasoning_tokens"?: number
+      readonly "rejected_prediction_tokens"?: number
+      readonly [x: string]: unknown
+    }
+    readonly "prompt_tokens_details"?: {
+      readonly "audio_tokens"?: number
+      readonly "cached_tokens"?: number
+      readonly [x: string]: unknown
+    }
+    readonly [x: string]: unknown
+  } | null
+  readonly [x: string]: unknown
+}
+export const CreateChatCompletionStreamResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({
+      "description": "A unique identifier for the chat completion. Each chunk has the same ID."
+    }),
+    "choices": Schema.Array(Schema.StructWithRest(
+      Schema.Struct({
+        "delta": ChatCompletionStreamResponseDelta,
+        "logprobs": Schema.optionalKey(
+          Schema.Union([Schema.Record(Schema.String, Schema.Unknown), Schema.Null]).annotate({
+            "description": "Log probability information for the choice."
+          })
+        ),
+        "finish_reason": Schema.Union([
+          Schema.Literal("stop"),
+          Schema.Literal("length"),
+          Schema.Literal("tool_calls"),
+          Schema.Literal("content_filter"),
+          Schema.Literal("function_call"),
+          Schema.Null
+        ]).annotate({
+          "description":
+            "The reason the model stopped generating tokens. This will be `stop` if the model hit a natural stop point or a provided stop sequence,\n`length` if the maximum number of tokens specified in the request was reached,\n`content_filter` if content was omitted due to a flag from our content filters,\n`tool_calls` if the model called a tool, or `function_call` (deprecated) if the model called a function.\n"
+        }),
+        "index": Schema.Number.annotate({ "description": "The index of the choice in the list of choices." }).check(
+          Schema.isInt()
+        )
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    )).annotate({
+      "description":
+        "A list of chat completion choices. Can contain more than one elements if `n` is greater than 1. Can also be empty for the\nlast chunk if you set `stream_options: {\"include_usage\": true}`.\n"
+    }),
+    "created": Schema.Number.annotate({
+      "description":
+        "The Unix timestamp (in seconds) of when the chat completion was created. Each chunk has the same timestamp."
+    }).check(Schema.isInt()),
+    "model": Schema.String.annotate({ "description": "The model to generate the completion." }),
+    "service_tier": Schema.optionalKey(ServiceTier),
+    "system_fingerprint": Schema.optionalKey(
+      Schema.String.annotate({
+        "description":
+          "This fingerprint represents the backend configuration that the model runs with.\nCan be used in conjunction with the `seed` request parameter to understand when backend changes have been made that might impact determinism.\n"
+      })
+    ),
+    "object": Schema.Literal("chat.completion.chunk").annotate({
+      "description": "The object type, which is always `chat.completion.chunk`."
+    }),
+    "usage": Schema.optionalKey(Schema.Union([
+      Schema.StructWithRest(
+        Schema.Struct({
+          "completion_tokens": Schema.Number.annotate({
+            "description": "Number of tokens in the generated completion.",
+            "default": 0
+          }).check(Schema.isInt()),
+          "prompt_tokens": Schema.Number.annotate({ "description": "Number of tokens in the prompt.", "default": 0 })
+            .check(Schema.isInt()),
+          "total_tokens": Schema.Number.annotate({
+            "description": "Total number of tokens used in the request (prompt + completion).",
+            "default": 0
+          }).check(Schema.isInt()),
+          "completion_tokens_details": Schema.optionalKey(
+            Schema.StructWithRest(
+              Schema.Struct({
+                "accepted_prediction_tokens": Schema.optionalKey(
+                  Schema.Number.annotate({
+                    "description":
+                      "When using Predicted Outputs, the number of tokens in the\nprediction that appeared in the completion.\n",
+                    "default": 0
+                  }).check(Schema.isInt())
+                ),
+                "audio_tokens": Schema.optionalKey(
+                  Schema.Number.annotate({ "description": "Audio input tokens generated by the model.", "default": 0 })
+                    .check(Schema.isInt())
+                ),
+                "reasoning_tokens": Schema.optionalKey(
+                  Schema.Number.annotate({
+                    "description": "Tokens generated by the model for reasoning.",
+                    "default": 0
+                  }).check(Schema.isInt())
+                ),
+                "rejected_prediction_tokens": Schema.optionalKey(
+                  Schema.Number.annotate({
+                    "description":
+                      "When using Predicted Outputs, the number of tokens in the\nprediction that did not appear in the completion. However, like\nreasoning tokens, these tokens are still counted in the total\ncompletion tokens for purposes of billing, output, and context window\nlimits.\n",
+                    "default": 0
+                  }).check(Schema.isInt())
+                )
+              }),
+              [Schema.Record(Schema.String, Schema.Unknown)]
+            ).annotate({ "description": "Breakdown of tokens used in a completion." })
+          ),
+          "prompt_tokens_details": Schema.optionalKey(
+            Schema.StructWithRest(
+              Schema.Struct({
+                "audio_tokens": Schema.optionalKey(
+                  Schema.Number.annotate({ "description": "Audio input tokens present in the prompt.", "default": 0 })
+                    .check(Schema.isInt())
+                ),
+                "cached_tokens": Schema.optionalKey(
+                  Schema.Number.annotate({ "description": "Cached tokens present in the prompt.", "default": 0 }).check(
+                    Schema.isInt()
+                  )
+                )
+              }),
+              [Schema.Record(Schema.String, Schema.Unknown)]
+            ).annotate({ "description": "Breakdown of tokens used in the prompt." })
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "description":
+          "An optional field that will only be present when you set\n`stream_options: {\"include_usage\": true}` in your request. When present, it\ncontains a null value **except for the last chunk** which contains the\ntoken usage statistics for the entire request.\n\n**NOTE:** If the stream is interrupted or cancelled, you may not\nreceive the final usage chunk which contains the total token usage for\nthe request.\n",
+        "identifier": "CompletionUsage"
+      }),
+      Schema.Null
+    ]))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Represents a streamed chunk of a chat completion response returned\nby the model, based on the provided input. \n[Learn more](https://platform.openai.com/docs/guides/streaming-responses).\n",
+  "identifier": "CreateChatCompletionStreamResponse"
 })
 export type ChatCompletionRequestAssistantMessage = {
   readonly "content"?: string | ReadonlyArray<ChatCompletionRequestAssistantMessageContentPart> | null
@@ -14299,6 +20746,14 @@ export const ChatCompletionTool = Schema.StructWithRest(
   "description": "A function tool that can be used to generate a response.\n",
   "identifier": "ChatCompletionTool"
 })
+export type ImageEditStreamEvent = ImageEditPartialImageEvent | ImageEditCompletedEvent
+export const ImageEditStreamEvent = Schema.Union([ImageEditPartialImageEvent, ImageEditCompletedEvent]).annotate({
+  "identifier": "ImageEditStreamEvent"
+})
+export type ImageGenStreamEvent = ImageGenPartialImageEvent | ImageGenCompletedEvent
+export const ImageGenStreamEvent = Schema.Union([ImageGenPartialImageEvent, ImageGenCompletedEvent]).annotate({
+  "identifier": "ImageGenStreamEvent"
+})
 export type MessageContentTextObject = {
   readonly "type": "text"
   readonly "text": {
@@ -14485,6 +20940,48 @@ export const ThreadStreamEvent = Schema.Union([
       "Occurs when a new [thread](https://platform.openai.com/docs/api-reference/threads/object) is created."
   })
 ]).annotate({ "identifier": "ThreadStreamEvent" })
+export type RealtimeBetaClientEventTranscriptionSessionUpdate = {
+  readonly "event_id"?: string
+  readonly "type": "transcription_session.update"
+  readonly "session": RealtimeTranscriptionSessionCreateRequest
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaClientEventTranscriptionSessionUpdate = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional client-generated ID used to identify this event." })
+    ),
+    "type": Schema.Literal("transcription_session.update").annotate({
+      "description": "The event type, must be `transcription_session.update`."
+    }),
+    "session": RealtimeTranscriptionSessionCreateRequest
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Send this event to update a transcription session.\n",
+  "identifier": "RealtimeBetaClientEventTranscriptionSessionUpdate"
+})
+export type RealtimeClientEventTranscriptionSessionUpdate = {
+  readonly "event_id"?: string
+  readonly "type": "transcription_session.update"
+  readonly "session": RealtimeTranscriptionSessionCreateRequest
+  readonly [x: string]: unknown
+}
+export const RealtimeClientEventTranscriptionSessionUpdate = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional client-generated ID used to identify this event." })
+    ),
+    "type": Schema.Literal("transcription_session.update").annotate({
+      "description": "The event type, must be `transcription_session.update`."
+    }),
+    "session": RealtimeTranscriptionSessionCreateRequest
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Send this event to update a transcription session.\n",
+  "identifier": "RealtimeClientEventTranscriptionSessionUpdate"
+})
 export type ProjectApiKeyListResponse = {
   readonly "object": "list"
   readonly "data": ReadonlyArray<ProjectApiKey>
@@ -14583,6 +21080,15 @@ export const ChunkingStrategyResponse = Schema.Union([
   "description": "The chunking strategy used for the vector store.",
   "identifier": "ChunkingStrategyResponse"
 })
+export type CreateTranscriptionResponseStreamEvent =
+  | TranscriptTextSegmentEvent
+  | TranscriptTextDeltaEvent
+  | TranscriptTextDoneEvent
+export const CreateTranscriptionResponseStreamEvent = Schema.Union([
+  TranscriptTextSegmentEvent,
+  TranscriptTextDeltaEvent,
+  TranscriptTextDoneEvent
+]).annotate({ "identifier": "CreateTranscriptionResponseStreamEvent" })
 export type UsageResponse = {
   readonly "object": "page"
   readonly "data": ReadonlyArray<UsageTimeBucket>
@@ -14599,6 +21105,99 @@ export const UsageResponse = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "identifier": "UsageResponse" })
+export type CreateTranscriptionRequest = {
+  readonly "file": string
+  readonly "model":
+    | string
+    | "whisper-1"
+    | "gpt-4o-transcribe"
+    | "gpt-4o-mini-transcribe"
+    | "gpt-4o-mini-transcribe-2025-12-15"
+    | "gpt-4o-transcribe-diarize"
+  readonly "language"?: string
+  readonly "prompt"?: string
+  readonly "response_format"?: AudioResponseFormat
+  readonly "temperature"?: number
+  readonly "include"?: ReadonlyArray<TranscriptionInclude>
+  readonly "timestamp_granularities"?: ReadonlyArray<"word" | "segment">
+  readonly "stream"?: boolean | null
+  readonly "chunking_strategy"?: TranscriptionChunkingStrategy
+  readonly "known_speaker_names"?: ReadonlyArray<string>
+  readonly "known_speaker_references"?: ReadonlyArray<string>
+}
+export const CreateTranscriptionRequest = Schema.Struct({
+  "file": Schema.String.annotate({
+    "description":
+      "The audio file object (not file name) to transcribe, in one of these formats: flac, mp3, mp4, mpeg, mpga, m4a, ogg, wav, or webm.\n",
+    "format": "binary"
+  }),
+  "model": Schema.Union([
+    Schema.String,
+    Schema.Literals([
+      "whisper-1",
+      "gpt-4o-transcribe",
+      "gpt-4o-mini-transcribe",
+      "gpt-4o-mini-transcribe-2025-12-15",
+      "gpt-4o-transcribe-diarize"
+    ])
+  ]).annotate({
+    "description":
+      "ID of the model to use. The options are `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`, `gpt-4o-mini-transcribe-2025-12-15`, `whisper-1` (which is powered by our open source Whisper V2 model), and `gpt-4o-transcribe-diarize`.\n",
+    "examples": ["gpt-4o-transcribe"]
+  }),
+  "language": Schema.optionalKey(
+    Schema.String.annotate({
+      "description":
+        "The language of the input audio. Supplying the input language in [ISO-639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (e.g. `en`) format will improve accuracy and latency.\n"
+    })
+  ),
+  "prompt": Schema.optionalKey(Schema.String.annotate({
+    "description":
+      "An optional text to guide the model's style or continue a previous audio segment. The [prompt](https://platform.openai.com/docs/guides/speech-to-text#prompting) should match the audio language. This field is not supported when using `gpt-4o-transcribe-diarize`.\n"
+  })),
+  "response_format": Schema.optionalKey(AudioResponseFormat),
+  "temperature": Schema.optionalKey(
+    Schema.Number.annotate({
+      "description":
+        "The sampling temperature, between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. If set to 0, the model will use [log probability](https://en.wikipedia.org/wiki/Log_probability) to automatically increase the temperature until certain thresholds are hit.\n",
+      "default": 0
+    }).check(Schema.isFinite())
+  ),
+  "include": Schema.optionalKey(
+    Schema.Array(TranscriptionInclude).annotate({
+      "description":
+        "Additional information to include in the transcription response.\n`logprobs` will return the log probabilities of the tokens in the\nresponse to understand the model's confidence in the transcription.\n`logprobs` only works with response_format set to `json` and only with\nthe models `gpt-4o-transcribe`, `gpt-4o-mini-transcribe`, and `gpt-4o-mini-transcribe-2025-12-15`. This field is not supported when using `gpt-4o-transcribe-diarize`.\n"
+    })
+  ),
+  "timestamp_granularities": Schema.optionalKey(
+    Schema.Array(Schema.Literals(["word", "segment"])).annotate({
+      "description":
+        "The timestamp granularities to populate for this transcription. `response_format` must be set `verbose_json` to use timestamp granularities. Either or both of these options are supported: `word`, or `segment`. Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.\nThis option is not available for `gpt-4o-transcribe-diarize`.\n",
+      "default": ["segment"]
+    })
+  ),
+  "stream": Schema.optionalKey(Schema.Union([
+    Schema.Boolean.annotate({
+      "description":
+        "If set to true, the model response data will be streamed to the client\nas it is generated using [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).\nSee the [Streaming section of the Speech-to-Text guide](https://platform.openai.com/docs/guides/speech-to-text?lang=curl#streaming-transcriptions)\nfor more information.\n\nNote: Streaming is not supported for the `whisper-1` model and will be ignored.\n",
+      "default": false
+    }),
+    Schema.Null
+  ])),
+  "chunking_strategy": Schema.optionalKey(TranscriptionChunkingStrategy),
+  "known_speaker_names": Schema.optionalKey(
+    Schema.Array(Schema.String).annotate({
+      "description":
+        "Optional list of speaker names that correspond to the audio samples provided in `known_speaker_references[]`. Each entry should be a short identifier (for example `customer` or `agent`). Up to 4 speakers are supported.\n"
+    }).check(Schema.isMaxLength(4))
+  ),
+  "known_speaker_references": Schema.optionalKey(
+    Schema.Array(Schema.String).annotate({
+      "description":
+        "Optional list of audio samples (as [data URLs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs)) that contain known speaker references matching `known_speaker_names[]`. Each sample must be between 2 and 10 seconds, and can use any of the same input audio formats supported by `file`.\n"
+    }).check(Schema.isMaxLength(4))
+  )
+}).annotate({ "identifier": "CreateTranscriptionRequest" })
 export type ListVectorStoresResponse = {
   readonly "object": string
   readonly "data": ReadonlyArray<VectorStoreObject>
@@ -14617,6 +21216,25 @@ export const ListVectorStoresResponse = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "identifier": "ListVectorStoresResponse" })
+export type VectorStoreSearchResultsPage = {
+  readonly "object": "vector_store.search_results.page"
+  readonly "search_query": ReadonlyArray<string>
+  readonly "data": ReadonlyArray<VectorStoreSearchResultItem>
+  readonly "has_more": boolean
+  readonly "next_page": string | null
+}
+export const VectorStoreSearchResultsPage = Schema.Struct({
+  "object": Schema.Literal("vector_store.search_results.page").annotate({
+    "description": "The object type, which is always `vector_store.search_results.page`"
+  }),
+  "search_query": Schema.Array(Schema.String.annotate({ "description": "The query used for this search." })),
+  "data": Schema.Array(VectorStoreSearchResultItem).annotate({ "description": "The list of search result items." }),
+  "has_more": Schema.Boolean.annotate({ "description": "Indicates if there are more results to fetch." }),
+  "next_page": Schema.Union([
+    Schema.String.annotate({ "description": "The token for the next page, if any." }),
+    Schema.Null
+  ])
+}).annotate({ "identifier": "VectorStoreSearchResultsPage" })
 export type EvalItemContentArray = ReadonlyArray<EvalItemContentItem>
 export const EvalItemContentArray = Schema.Array(EvalItemContentItem).annotate({
   "title": "An array of Input text, Output text, Input image, and Input audio",
@@ -14977,6 +21595,50 @@ export const CodeInterpreterTool = Schema.StructWithRest(
   "title": "Code interpreter",
   "description": "A tool that runs Python code to help generate a response to a prompt.\n",
   "identifier": "CodeInterpreterTool"
+})
+export type ImagesResponse = {
+  readonly "created": number
+  readonly "data"?: ReadonlyArray<Image>
+  readonly "background"?: "transparent" | "opaque"
+  readonly "output_format"?: "png" | "webp" | "jpeg"
+  readonly "size"?: "1024x1024" | "1024x1536" | "1536x1024"
+  readonly "quality"?: "low" | "medium" | "high"
+  readonly "usage"?: ImageGenUsage
+  readonly [x: string]: unknown
+}
+export const ImagesResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "created": Schema.Number.annotate({
+      "description": "The Unix timestamp (in seconds) of when the image was created."
+    }).check(Schema.isInt()),
+    "data": Schema.optionalKey(Schema.Array(Image).annotate({ "description": "The list of generated images." })),
+    "background": Schema.optionalKey(
+      Schema.Literals(["transparent", "opaque"]).annotate({
+        "description": "The background parameter used for the image generation. Either `transparent` or `opaque`."
+      })
+    ),
+    "output_format": Schema.optionalKey(
+      Schema.Literals(["png", "webp", "jpeg"]).annotate({
+        "description": "The output format of the image generation. Either `png`, `webp`, or `jpeg`."
+      })
+    ),
+    "size": Schema.optionalKey(
+      Schema.Literals(["1024x1024", "1024x1536", "1536x1024"]).annotate({
+        "description": "The size of the image generated. Either `1024x1024`, `1024x1536`, or `1536x1024`."
+      })
+    ),
+    "quality": Schema.optionalKey(
+      Schema.Literals(["low", "medium", "high"]).annotate({
+        "description": "The quality of the image generated. Either `low`, `medium`, or `high`."
+      })
+    ),
+    "usage": Schema.optionalKey(ImageGenUsage)
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Image generation response",
+  "description": "The response from the image generation endpoint.",
+  "identifier": "ImagesResponse"
 })
 export type AssistantMessageItem = {
   readonly "id": string
@@ -16181,6 +22843,140 @@ export type AssistantTool = AssistantToolsCode | AssistantToolsFileSearch | Assi
 export const AssistantTool = Schema.Union([AssistantToolsCode, AssistantToolsFileSearch, AssistantToolsFunction], {
   mode: "oneOf"
 }).annotate({ "description": "A tool enabled on the assistant.", "identifier": "AssistantTool" })
+export type FineTuneChatRequestInput = {
+  readonly "messages"?: ReadonlyArray<
+    | ChatCompletionRequestSystemMessage
+    | ChatCompletionRequestUserMessage
+    | FineTuneChatCompletionRequestAssistantMessage
+    | ChatCompletionRequestToolMessage
+    | ChatCompletionRequestFunctionMessage
+  >
+  readonly "tools"?: ReadonlyArray<ChatCompletionTool>
+  readonly "parallel_tool_calls"?: ParallelToolCalls
+  readonly "functions"?: ReadonlyArray<ChatCompletionFunctions>
+  readonly [x: string]: unknown
+}
+export const FineTuneChatRequestInput = Schema.StructWithRest(
+  Schema.Struct({
+    "messages": Schema.optionalKey(
+      Schema.Array(
+        Schema.Union([
+          ChatCompletionRequestSystemMessage,
+          ChatCompletionRequestUserMessage,
+          FineTuneChatCompletionRequestAssistantMessage,
+          ChatCompletionRequestToolMessage,
+          ChatCompletionRequestFunctionMessage
+        ])
+      ).check(Schema.isMinLength(1))
+    ),
+    "tools": Schema.optionalKey(
+      Schema.Array(ChatCompletionTool).annotate({
+        "description": "A list of tools the model may generate JSON inputs for."
+      })
+    ),
+    "parallel_tool_calls": Schema.optionalKey(ParallelToolCalls),
+    "functions": Schema.optionalKey(
+      Schema.Array(ChatCompletionFunctions).annotate({
+        "description": "A list of functions the model may generate JSON inputs for."
+      }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(128))
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "The per-line training example of a fine-tuning input file for chat models using the supervised method.\nInput messages may contain text or image content only. Audio and file input messages\nare not currently supported for fine-tuning.\n",
+  "identifier": "FineTuneChatRequestInput"
+})
+export type FineTunePreferenceRequestInput = {
+  readonly "input"?: {
+    readonly "messages"?: ReadonlyArray<
+      | ChatCompletionRequestSystemMessage
+      | ChatCompletionRequestUserMessage
+      | FineTuneChatCompletionRequestAssistantMessage
+      | ChatCompletionRequestToolMessage
+      | ChatCompletionRequestFunctionMessage
+    >
+    readonly "tools"?: ReadonlyArray<ChatCompletionTool>
+    readonly "parallel_tool_calls"?: ParallelToolCalls
+    readonly [x: string]: unknown
+  }
+  readonly "preferred_output"?: ReadonlyArray<ChatCompletionRequestAssistantMessage>
+  readonly "non_preferred_output"?: ReadonlyArray<ChatCompletionRequestAssistantMessage>
+  readonly [x: string]: unknown
+}
+export const FineTunePreferenceRequestInput = Schema.StructWithRest(
+  Schema.Struct({
+    "input": Schema.optionalKey(Schema.StructWithRest(
+      Schema.Struct({
+        "messages": Schema.optionalKey(
+          Schema.Array(
+            Schema.Union([
+              ChatCompletionRequestSystemMessage,
+              ChatCompletionRequestUserMessage,
+              FineTuneChatCompletionRequestAssistantMessage,
+              ChatCompletionRequestToolMessage,
+              ChatCompletionRequestFunctionMessage
+            ])
+          ).check(Schema.isMinLength(1))
+        ),
+        "tools": Schema.optionalKey(
+          Schema.Array(ChatCompletionTool).annotate({
+            "description": "A list of tools the model may generate JSON inputs for."
+          })
+        ),
+        "parallel_tool_calls": Schema.optionalKey(ParallelToolCalls)
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    )),
+    "preferred_output": Schema.optionalKey(
+      Schema.Array(Schema.Union([ChatCompletionRequestAssistantMessage])).annotate({
+        "description": "The preferred completion message for the output."
+      }).check(Schema.isMaxLength(1))
+    ),
+    "non_preferred_output": Schema.optionalKey(
+      Schema.Array(Schema.Union([ChatCompletionRequestAssistantMessage])).annotate({
+        "description": "The non-preferred completion message for the output."
+      }).check(Schema.isMaxLength(1))
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "The per-line training example of a fine-tuning input file for chat models using the dpo method.\nInput messages may contain text or image content only. Audio and file input messages\nare not currently supported for fine-tuning.\n",
+  "identifier": "FineTunePreferenceRequestInput"
+})
+export type FineTuneReinforcementRequestInput = {
+  readonly "messages": ReadonlyArray<
+    | ChatCompletionRequestDeveloperMessage
+    | ChatCompletionRequestUserMessage
+    | FineTuneChatCompletionRequestAssistantMessage
+    | ChatCompletionRequestToolMessage
+  >
+  readonly "tools"?: ReadonlyArray<ChatCompletionTool>
+  readonly [x: string]: unknown
+}
+export const FineTuneReinforcementRequestInput = Schema.StructWithRest(
+  Schema.Struct({
+    "messages": Schema.Array(
+      Schema.Union([
+        ChatCompletionRequestDeveloperMessage,
+        ChatCompletionRequestUserMessage,
+        FineTuneChatCompletionRequestAssistantMessage,
+        ChatCompletionRequestToolMessage
+      ])
+    ).check(Schema.isMinLength(1)),
+    "tools": Schema.optionalKey(
+      Schema.Array(ChatCompletionTool).annotate({
+        "description": "A list of tools the model may generate JSON inputs for."
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Per-line training example for reinforcement fine-tuning. Note that `messages` and `tools` are the only reserved keywords.\nAny other arbitrary key-value data can be included on training datapoints and will be available to reference during grading under the `{{ item.XXX }}` template variable.\nInput messages may contain text or image content only. Audio and file input messages\nare not currently supported for fine-tuning.\n",
+  "identifier": "FineTuneReinforcementRequestInput"
+})
 export type MessageContent =
   | MessageContentImageFileObject
   | MessageContentImageUrlObject
@@ -16220,6 +23016,35 @@ export const EvalList = Schema.StructWithRest(
   "title": "EvalList",
   "description": "An object representing a list of evals.\n",
   "identifier": "EvalList"
+})
+export type RealtimeBetaClientEventConversationItemCreate = {
+  readonly "event_id"?: string
+  readonly "type": "conversation.item.create"
+  readonly "previous_item_id"?: string
+  readonly "item": RealtimeConversationItem
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaClientEventConversationItemCreate = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional client-generated ID used to identify this event." }).check(
+        Schema.isMaxLength(512)
+      )
+    ),
+    "type": Schema.Literal("conversation.item.create").annotate({
+      "description": "The event type, must be `conversation.item.create`."
+    }),
+    "previous_item_id": Schema.optionalKey(Schema.String.annotate({
+      "description":
+        "The ID of the preceding item after which the new item will be inserted. \nIf not set, the new item will be appended to the end of the conversation.\nIf set to `root`, the new item will be added to the beginning of the conversation.\nIf set to an existing ID, it allows an item to be inserted mid-conversation. If the\nID cannot be found, an error will be returned and the item will not be added.\n"
+    })),
+    "item": RealtimeConversationItem
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Add a new Item to the Conversation's context, including messages, function \ncalls, and function call responses. This event can be used both to populate a \n\"history\" of the conversation and to add new items mid-stream, but has the \ncurrent limitation that it cannot populate assistant audio messages.\n\nIf successful, the server will respond with a `conversation.item.created` \nevent, otherwise an `error` event will be sent.\n",
+  "identifier": "RealtimeBetaClientEventConversationItemCreate"
 })
 export type RealtimeBetaResponse = {
   readonly "id"?: string
@@ -16440,6 +23265,106 @@ export const RealtimeBetaResponse = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "The response resource.", "identifier": "RealtimeBetaResponse" })
+export type RealtimeBetaServerEventConversationItemCreated = {
+  readonly "event_id": string
+  readonly "type": "conversation.item.created"
+  readonly "previous_item_id"?: string | null
+  readonly "item": RealtimeConversationItem
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventConversationItemCreated = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("conversation.item.created").annotate({
+      "description": "The event type, must be `conversation.item.created`."
+    }),
+    "previous_item_id": Schema.optionalKey(
+      Schema.Union([
+        Schema.String.annotate({
+          "description":
+            "The ID of the preceding item in the Conversation context, allows the\nclient to understand the order of the conversation. Can be `null` if the\nitem has no predecessor.\n"
+        }),
+        Schema.Null
+      ])
+    ),
+    "item": RealtimeConversationItem
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when a conversation item is created. There are several scenarios that produce this event:\n  - The server is generating a Response, which if successful will produce\n    either one or two Items, which will be of type `message`\n    (role `assistant`) or type `function_call`.\n  - The input audio buffer has been committed, either by the client or the\n    server (in `server_vad` mode). The server will take the content of the\n    input audio buffer and add it to a new user message Item.\n  - The client has sent a `conversation.item.create` event to add a new Item\n    to the Conversation.\n",
+  "identifier": "RealtimeBetaServerEventConversationItemCreated"
+})
+export type RealtimeBetaServerEventConversationItemRetrieved = {
+  readonly "event_id": string
+  readonly "type": "conversation.item.retrieved"
+  readonly "item": RealtimeConversationItem
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventConversationItemRetrieved = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("conversation.item.retrieved").annotate({
+      "description": "The event type, must be `conversation.item.retrieved`."
+    }),
+    "item": RealtimeConversationItem
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when a conversation item is retrieved with `conversation.item.retrieve`.\n",
+  "identifier": "RealtimeBetaServerEventConversationItemRetrieved"
+})
+export type RealtimeBetaServerEventResponseOutputItemAdded = {
+  readonly "event_id": string
+  readonly "type": "response.output_item.added"
+  readonly "response_id": string
+  readonly "output_index": number
+  readonly "item": RealtimeConversationItem
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseOutputItemAdded = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.output_item.added").annotate({
+      "description": "The event type, must be `response.output_item.added`."
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the Response to which the item belongs." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the Response." }).check(
+      Schema.isInt()
+    ),
+    "item": RealtimeConversationItem
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when a new Item is created during Response generation.",
+  "identifier": "RealtimeBetaServerEventResponseOutputItemAdded"
+})
+export type RealtimeBetaServerEventResponseOutputItemDone = {
+  readonly "event_id": string
+  readonly "type": "response.output_item.done"
+  readonly "response_id": string
+  readonly "output_index": number
+  readonly "item": RealtimeConversationItem
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseOutputItemDone = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.output_item.done").annotate({
+      "description": "The event type, must be `response.output_item.done`."
+    }),
+    "response_id": Schema.String.annotate({ "description": "The ID of the Response to which the item belongs." }),
+    "output_index": Schema.Number.annotate({ "description": "The index of the output item in the Response." }).check(
+      Schema.isInt()
+    ),
+    "item": RealtimeConversationItem
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when an Item is done streaming. Also emitted when a Response is \ninterrupted, incomplete, or cancelled.\n",
+  "identifier": "RealtimeBetaServerEventResponseOutputItemDone"
+})
 export type RealtimeClientEventConversationItemCreate = {
   readonly "event_id"?: string
   readonly "type": "conversation.item.create"
@@ -16903,6 +23828,350 @@ export const RealtimeServerEventResponseOutputItemDone = Schema.StructWithRest(
     "Returned when an Item is done streaming. Also emitted when a Response is \ninterrupted, incomplete, or cancelled.\n",
   "identifier": "RealtimeServerEventResponseOutputItemDone"
 })
+export type CreateRunRequest = {
+  readonly "assistant_id": string
+  readonly "model"?: string | AssistantSupportedModels | null
+  readonly "reasoning_effort"?: ReasoningEffort
+  readonly "instructions"?: string | null
+  readonly "additional_instructions"?: string | null
+  readonly "additional_messages"?: ReadonlyArray<unknown> | null
+  readonly "tools"?: ReadonlyArray<unknown> | null
+  readonly "metadata"?: Metadata
+  readonly "temperature"?: number | null
+  readonly "top_p"?: number | null
+  readonly "stream"?: boolean | null
+  readonly "max_prompt_tokens"?: number | null
+  readonly "max_completion_tokens"?: number | null
+  readonly "truncation_strategy"?: unknown | null
+  readonly "tool_choice"?: "none" | "auto" | "required" | {
+    readonly "type": "function" | "code_interpreter" | "file_search"
+    readonly "function"?: { readonly "name": string; readonly [x: string]: unknown }
+    readonly [x: string]: unknown
+  }
+  readonly "parallel_tool_calls"?: ParallelToolCalls
+  readonly "response_format"?: AssistantsApiResponseFormatOption | null
+}
+export const CreateRunRequest = Schema.Struct({
+  "assistant_id": Schema.String.annotate({
+    "description":
+      "The ID of the [assistant](https://platform.openai.com/docs/api-reference/assistants) to use to execute this run."
+  }),
+  "model": Schema.optionalKey(
+    Schema.Union([
+      Schema.Union([Schema.String, AssistantSupportedModels]).annotate({
+        "description":
+          "The ID of the [Model](https://platform.openai.com/docs/api-reference/models) to be used to execute this run. If a value is provided here, it will override the model associated with the assistant. If not, the model associated with the assistant will be used."
+      }),
+      Schema.Null
+    ])
+  ),
+  "reasoning_effort": Schema.optionalKey(ReasoningEffort),
+  "instructions": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "description":
+        "Overrides the [instructions](https://platform.openai.com/docs/api-reference/assistants/createAssistant) of the assistant. This is useful for modifying the behavior on a per-run basis."
+    })
+  ),
+  "additional_instructions": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "description":
+        "Appends additional instructions at the end of the instructions for the run. This is useful for modifying the behavior on a per-run basis without overriding other instructions."
+    })
+  ),
+  "additional_messages": Schema.optionalKey(
+    Schema.Union([Schema.Array(Schema.Unknown), Schema.Null]).annotate({
+      "description": "Adds additional messages to the thread before creating the run."
+    })
+  ),
+  "tools": Schema.optionalKey(
+    Schema.Union([Schema.Array(Schema.Unknown), Schema.Null]).annotate({
+      "description":
+        "Override the tools the assistant can use for this run. This is useful for modifying the behavior on a per-run basis."
+    })
+  ),
+  "metadata": Schema.optionalKey(Metadata),
+  "temperature": Schema.optionalKey(
+    Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null]).annotate({
+      "description":
+        "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.\n",
+      "default": 1,
+      "examples": [1]
+    })
+  ),
+  "top_p": Schema.optionalKey(
+    Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null]).annotate({
+      "description":
+        "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.\n\nWe generally recommend altering this or temperature but not both.\n",
+      "default": 1,
+      "examples": [1]
+    })
+  ),
+  "stream": Schema.optionalKey(
+    Schema.Union([Schema.Boolean, Schema.Null]).annotate({
+      "description":
+        "If `true`, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a `data: [DONE]` message.\n"
+    })
+  ),
+  "max_prompt_tokens": Schema.optionalKey(
+    Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+      "description":
+        "The maximum number of prompt tokens that may be used over the course of the run. The run will make a best effort to use only the number of prompt tokens specified, across multiple turns of the run. If the run exceeds the number of prompt tokens specified, the run will end with status `incomplete`. See `incomplete_details` for more info.\n"
+    })
+  ),
+  "max_completion_tokens": Schema.optionalKey(
+    Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+      "description":
+        "The maximum number of completion tokens that may be used over the course of the run. The run will make a best effort to use only the number of completion tokens specified, across multiple turns of the run. If the run exceeds the number of completion tokens specified, the run will end with status `incomplete`. See `incomplete_details` for more info.\n"
+    })
+  ),
+  "truncation_strategy": Schema.optionalKey(Schema.Union([Schema.Unknown, Schema.Null])),
+  "tool_choice": Schema.optionalKey(
+    Schema.Union([
+      Schema.Union([Schema.Literal("none"), Schema.Literal("auto"), Schema.Literal("required")]).annotate({
+        "title": "Auto",
+        "description":
+          "`none` means the model will not call any tools and instead generates a message. `auto` means the model can pick between generating a message or calling one or more tools. `required` means the model must call one or more tools before responding to the user.\n"
+      }),
+      Schema.Union([
+        Schema.StructWithRest(
+          Schema.Struct({
+            "type": Schema.Literals(["function", "code_interpreter", "file_search"]).annotate({
+              "description": "The type of the tool. If type is `function`, the function name must be set"
+            }),
+            "function": Schema.optionalKey(
+              Schema.StructWithRest(
+                Schema.Struct({
+                  "name": Schema.String.annotate({ "description": "The name of the function to call." })
+                }),
+                [Schema.Record(Schema.String, Schema.Unknown)]
+              )
+            )
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ).annotate({
+          "description": "Specifies a tool the model should use. Use to force the model to call a specific tool.",
+          "identifier": "AssistantsNamedToolChoice"
+        })
+      ])
+    ]).annotate({
+      "description":
+        "Controls which (if any) tool is called by the model.\n`none` means the model will not call any tools and instead generates a message.\n`auto` is the default value and means the model can pick between generating a message or calling one or more tools.\n`required` means the model must call one or more tools before responding to the user.\nSpecifying a particular tool like `{\"type\": \"file_search\"}` or `{\"type\": \"function\", \"function\": {\"name\": \"my_function\"}}` forces the model to call that tool.\n",
+      "identifier": "AssistantsApiToolChoiceOption"
+    })
+  ),
+  "parallel_tool_calls": Schema.optionalKey(ParallelToolCalls),
+  "response_format": Schema.optionalKey(Schema.Union([AssistantsApiResponseFormatOption, Schema.Null]))
+}).annotate({ "identifier": "CreateRunRequest" })
+export type CreateThreadAndRunRequest = {
+  readonly "assistant_id": string
+  readonly "thread"?: CreateThreadRequest
+  readonly "model"?:
+    | string
+    | "gpt-5"
+    | "gpt-5-mini"
+    | "gpt-5-nano"
+    | "gpt-5-2025-08-07"
+    | "gpt-5-mini-2025-08-07"
+    | "gpt-5-nano-2025-08-07"
+    | "gpt-4.1"
+    | "gpt-4.1-mini"
+    | "gpt-4.1-nano"
+    | "gpt-4.1-2025-04-14"
+    | "gpt-4.1-mini-2025-04-14"
+    | "gpt-4.1-nano-2025-04-14"
+    | "gpt-4o"
+    | "gpt-4o-2024-11-20"
+    | "gpt-4o-2024-08-06"
+    | "gpt-4o-2024-05-13"
+    | "gpt-4o-mini"
+    | "gpt-4o-mini-2024-07-18"
+    | "gpt-4.5-preview"
+    | "gpt-4.5-preview-2025-02-27"
+    | "gpt-4-turbo"
+    | "gpt-4-turbo-2024-04-09"
+    | "gpt-4-0125-preview"
+    | "gpt-4-turbo-preview"
+    | "gpt-4-1106-preview"
+    | "gpt-4-vision-preview"
+    | "gpt-4"
+    | "gpt-4-0314"
+    | "gpt-4-0613"
+    | "gpt-4-32k"
+    | "gpt-4-32k-0314"
+    | "gpt-4-32k-0613"
+    | "gpt-3.5-turbo"
+    | "gpt-3.5-turbo-16k"
+    | "gpt-3.5-turbo-0613"
+    | "gpt-3.5-turbo-1106"
+    | "gpt-3.5-turbo-0125"
+    | "gpt-3.5-turbo-16k-0613"
+    | null
+  readonly "instructions"?: string | null
+  readonly "tools"?: ReadonlyArray<unknown> | null
+  readonly "tool_resources"?: { readonly [x: string]: unknown } | null
+  readonly "metadata"?: Metadata
+  readonly "temperature"?: number | null
+  readonly "top_p"?: number | null
+  readonly "stream"?: boolean | null
+  readonly "max_prompt_tokens"?: number | null
+  readonly "max_completion_tokens"?: number | null
+  readonly "truncation_strategy"?: unknown | null
+  readonly "tool_choice"?: "none" | "auto" | "required" | {
+    readonly "type": "function" | "code_interpreter" | "file_search"
+    readonly "function"?: { readonly "name": string; readonly [x: string]: unknown }
+    readonly [x: string]: unknown
+  }
+  readonly "parallel_tool_calls"?: ParallelToolCalls
+  readonly "response_format"?: AssistantsApiResponseFormatOption | null
+}
+export const CreateThreadAndRunRequest = Schema.Struct({
+  "assistant_id": Schema.String.annotate({
+    "description":
+      "The ID of the [assistant](https://platform.openai.com/docs/api-reference/assistants) to use to execute this run."
+  }),
+  "thread": Schema.optionalKey(CreateThreadRequest),
+  "model": Schema.optionalKey(
+    Schema.Union([
+      Schema.Union([
+        Schema.String,
+        Schema.Literals([
+          "gpt-5",
+          "gpt-5-mini",
+          "gpt-5-nano",
+          "gpt-5-2025-08-07",
+          "gpt-5-mini-2025-08-07",
+          "gpt-5-nano-2025-08-07",
+          "gpt-4.1",
+          "gpt-4.1-mini",
+          "gpt-4.1-nano",
+          "gpt-4.1-2025-04-14",
+          "gpt-4.1-mini-2025-04-14",
+          "gpt-4.1-nano-2025-04-14",
+          "gpt-4o",
+          "gpt-4o-2024-11-20",
+          "gpt-4o-2024-08-06",
+          "gpt-4o-2024-05-13",
+          "gpt-4o-mini",
+          "gpt-4o-mini-2024-07-18",
+          "gpt-4.5-preview",
+          "gpt-4.5-preview-2025-02-27",
+          "gpt-4-turbo",
+          "gpt-4-turbo-2024-04-09",
+          "gpt-4-0125-preview",
+          "gpt-4-turbo-preview",
+          "gpt-4-1106-preview",
+          "gpt-4-vision-preview",
+          "gpt-4",
+          "gpt-4-0314",
+          "gpt-4-0613",
+          "gpt-4-32k",
+          "gpt-4-32k-0314",
+          "gpt-4-32k-0613",
+          "gpt-3.5-turbo",
+          "gpt-3.5-turbo-16k",
+          "gpt-3.5-turbo-0613",
+          "gpt-3.5-turbo-1106",
+          "gpt-3.5-turbo-0125",
+          "gpt-3.5-turbo-16k-0613"
+        ])
+      ]).annotate({
+        "description":
+          "The ID of the [Model](https://platform.openai.com/docs/api-reference/models) to be used to execute this run. If a value is provided here, it will override the model associated with the assistant. If not, the model associated with the assistant will be used."
+      }),
+      Schema.Null
+    ])
+  ),
+  "instructions": Schema.optionalKey(
+    Schema.Union([Schema.String, Schema.Null]).annotate({
+      "description":
+        "Override the default system message of the assistant. This is useful for modifying the behavior on a per-run basis."
+    })
+  ),
+  "tools": Schema.optionalKey(
+    Schema.Union([Schema.Array(Schema.Unknown), Schema.Null]).annotate({
+      "description":
+        "Override the tools the assistant can use for this run. This is useful for modifying the behavior on a per-run basis."
+    })
+  ),
+  "tool_resources": Schema.optionalKey(
+    Schema.Union([Schema.Record(Schema.String, Schema.Unknown), Schema.Null]).annotate({
+      "description":
+        "A set of resources that are used by the assistant's tools. The resources are specific to the type of tool. For example, the `code_interpreter` tool requires a list of file IDs, while the `file_search` tool requires a list of vector store IDs.\n"
+    })
+  ),
+  "metadata": Schema.optionalKey(Metadata),
+  "temperature": Schema.optionalKey(
+    Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null]).annotate({
+      "description":
+        "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.\n",
+      "default": 1,
+      "examples": [1]
+    })
+  ),
+  "top_p": Schema.optionalKey(
+    Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null]).annotate({
+      "description":
+        "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.\n\nWe generally recommend altering this or temperature but not both.\n",
+      "default": 1,
+      "examples": [1]
+    })
+  ),
+  "stream": Schema.optionalKey(
+    Schema.Union([Schema.Boolean, Schema.Null]).annotate({
+      "description":
+        "If `true`, returns a stream of events that happen during the Run as server-sent events, terminating when the Run enters a terminal state with a `data: [DONE]` message.\n"
+    })
+  ),
+  "max_prompt_tokens": Schema.optionalKey(
+    Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+      "description":
+        "The maximum number of prompt tokens that may be used over the course of the run. The run will make a best effort to use only the number of prompt tokens specified, across multiple turns of the run. If the run exceeds the number of prompt tokens specified, the run will end with status `incomplete`. See `incomplete_details` for more info.\n"
+    })
+  ),
+  "max_completion_tokens": Schema.optionalKey(
+    Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+      "description":
+        "The maximum number of completion tokens that may be used over the course of the run. The run will make a best effort to use only the number of completion tokens specified, across multiple turns of the run. If the run exceeds the number of completion tokens specified, the run will end with status `incomplete`. See `incomplete_details` for more info.\n"
+    })
+  ),
+  "truncation_strategy": Schema.optionalKey(Schema.Union([Schema.Unknown, Schema.Null])),
+  "tool_choice": Schema.optionalKey(
+    Schema.Union([
+      Schema.Union([Schema.Literal("none"), Schema.Literal("auto"), Schema.Literal("required")]).annotate({
+        "title": "Auto",
+        "description":
+          "`none` means the model will not call any tools and instead generates a message. `auto` means the model can pick between generating a message or calling one or more tools. `required` means the model must call one or more tools before responding to the user.\n"
+      }),
+      Schema.Union([
+        Schema.StructWithRest(
+          Schema.Struct({
+            "type": Schema.Literals(["function", "code_interpreter", "file_search"]).annotate({
+              "description": "The type of the tool. If type is `function`, the function name must be set"
+            }),
+            "function": Schema.optionalKey(
+              Schema.StructWithRest(
+                Schema.Struct({
+                  "name": Schema.String.annotate({ "description": "The name of the function to call." })
+                }),
+                [Schema.Record(Schema.String, Schema.Unknown)]
+              )
+            )
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ).annotate({
+          "description": "Specifies a tool the model should use. Use to force the model to call a specific tool.",
+          "identifier": "AssistantsNamedToolChoice"
+        })
+      ])
+    ]).annotate({
+      "description":
+        "Controls which (if any) tool is called by the model.\n`none` means the model will not call any tools and instead generates a message.\n`auto` is the default value and means the model can pick between generating a message or calling one or more tools.\n`required` means the model must call one or more tools before responding to the user.\nSpecifying a particular tool like `{\"type\": \"file_search\"}` or `{\"type\": \"function\", \"function\": {\"name\": \"my_function\"}}` forces the model to call that tool.\n",
+      "identifier": "AssistantsApiToolChoiceOption"
+    })
+  ),
+  "parallel_tool_calls": Schema.optionalKey(ParallelToolCalls),
+  "response_format": Schema.optionalKey(Schema.Union([AssistantsApiResponseFormatOption, Schema.Null]))
+}).annotate({ "identifier": "CreateThreadAndRunRequest" })
 export type ResponseTextParam = {
   readonly "format"?: TextResponseFormatConfiguration
   readonly "verbosity"?: Verbosity
@@ -16953,6 +24222,31 @@ export const CreateVectorStoreFileRequest = Schema.Struct({
   "chunking_strategy": Schema.optionalKey(ChunkingStrategyRequestParam),
   "attributes": Schema.optionalKey(VectorStoreFileAttributes)
 }).annotate({ "identifier": "CreateVectorStoreFileRequest" })
+export type CreateVectorStoreRequest = {
+  readonly "file_ids"?: ReadonlyArray<string>
+  readonly "name"?: string
+  readonly "description"?: string
+  readonly "expires_after"?: VectorStoreExpirationAfter
+  readonly "chunking_strategy"?: ChunkingStrategyRequestParam
+  readonly "metadata"?: Metadata
+}
+export const CreateVectorStoreRequest = Schema.Struct({
+  "file_ids": Schema.optionalKey(
+    Schema.Array(Schema.String).annotate({
+      "description":
+        "A list of [File](https://platform.openai.com/docs/api-reference/files) IDs that the vector store should use. Useful for tools like `file_search` that can access files."
+    }).check(Schema.isMaxLength(500))
+  ),
+  "name": Schema.optionalKey(Schema.String.annotate({ "description": "The name of the vector store." })),
+  "description": Schema.optionalKey(
+    Schema.String.annotate({
+      "description": "A description for the vector store. Can be used to describe the vector store's purpose."
+    })
+  ),
+  "expires_after": Schema.optionalKey(VectorStoreExpirationAfter),
+  "chunking_strategy": Schema.optionalKey(ChunkingStrategyRequestParam),
+  "metadata": Schema.optionalKey(Metadata)
+}).annotate({ "identifier": "CreateVectorStoreRequest" })
 export type VectorStoreFileObject = {
   readonly "id": string
   readonly "object": "vector_store.file"
@@ -17019,6 +24313,10 @@ export const EvalItemContent = Schema.Union([EvalItemContentItem, EvalItemConten
   "description":
     "Inputs to the model - can contain template strings. Supports text, output text, input images, and input audio, either as a single item or an array of items.\n",
   "identifier": "EvalItemContent"
+})
+export type OutputContent = OutputTextContent | RefusalContent | ReasoningTextContent
+export const OutputContent = Schema.Union([OutputTextContent, RefusalContent, ReasoningTextContent]).annotate({
+  "identifier": "OutputContent"
 })
 export type OutputMessageContent = OutputTextContent | RefusalContent
 export const OutputMessageContent = Schema.Union([OutputTextContent, RefusalContent]).annotate({
@@ -18655,12 +25953,64 @@ export const ThreadItem = Schema.Union([
   TaskItem,
   TaskGroupItem
 ]).annotate({ "title": "The thread item", "identifier": "ThreadItem" })
+export type ModelIds = ModelIdsShared | ModelIdsResponses
+export const ModelIds = Schema.Union([ModelIdsShared, ModelIdsResponses]).annotate({ "identifier": "ModelIds" })
 export type ModelIdsCompaction = ModelIdsResponses | string | null
 export const ModelIdsCompaction = Schema.Union([ModelIdsResponses, Schema.String, Schema.Null]).annotate({
   "description":
     "Model ID used to generate the response, like `gpt-5` or `o3`. OpenAI offers a wide range of models with different capabilities, performance characteristics, and price points. Refer to the [model guide](https://platform.openai.com/docs/models) to browse and compare available models.",
   "identifier": "ModelIdsCompaction"
 })
+export type VectorStoreSearchRequest = {
+  readonly "query": string | ReadonlyArray<string>
+  readonly "rewrite_query"?: boolean
+  readonly "max_num_results"?: number
+  readonly "filters"?: ComparisonFilter | CompoundFilter
+  readonly "ranking_options"?: {
+    readonly "ranker"?: "none" | "auto" | "default-2024-11-15"
+    readonly "score_threshold"?: number
+  }
+}
+export const VectorStoreSearchRequest = Schema.Struct({
+  "query": Schema.Union([
+    Schema.String,
+    Schema.Array(Schema.String.annotate({ "description": "A list of queries to search for." }))
+  ]).annotate({ "description": "A query string for a search" }),
+  "rewrite_query": Schema.optionalKey(
+    Schema.Boolean.annotate({
+      "description": "Whether to rewrite the natural language query for vector search.",
+      "default": false
+    })
+  ),
+  "max_num_results": Schema.optionalKey(
+    Schema.Number.annotate({
+      "description": "The maximum number of results to return. This number should be between 1 and 50 inclusive.",
+      "default": 10
+    }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)).check(Schema.isLessThanOrEqualTo(50))
+  ),
+  "filters": Schema.optionalKey(
+    Schema.Union([ComparisonFilter, CompoundFilter]).annotate({
+      "description": "A filter to apply based on file attributes."
+    })
+  ),
+  "ranking_options": Schema.optionalKey(
+    Schema.Struct({
+      "ranker": Schema.optionalKey(
+        Schema.Literals(["none", "auto", "default-2024-11-15"]).annotate({
+          "description": "Enable re-ranking; set to `none` to disable, which can help reduce latency.",
+          "default": "auto"
+        })
+      ),
+      "score_threshold": Schema.optionalKey(
+        Schema.Number.annotate({ "default": 0 }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(
+          Schema.isLessThanOrEqualTo(1)
+        )
+      )
+    }).annotate({ "description": "Ranking options for search." })
+  )
+}).annotate({ "identifier": "VectorStoreSearchRequest" })
+export type Filters = ComparisonFilter | CompoundFilter
+export const Filters = Schema.Union([ComparisonFilter, CompoundFilter]).annotate({ "identifier": "Filters" })
 export type FileSearchTool = {
   readonly "type": "file_search"
   readonly "vector_store_ids": ReadonlyArray<string>
@@ -18796,6 +26146,195 @@ export const ChatCompletionList = Schema.StructWithRest(
   "description": "An object representing a list of Chat Completions.\n",
   "identifier": "ChatCompletionList"
 })
+export type CreateChatCompletionRequest = {
+  readonly "messages": ReadonlyArray<ChatCompletionRequestMessage>
+  readonly "model": unknown
+  readonly "modalities"?: ResponseModalities
+  readonly "verbosity"?: Verbosity
+  readonly "reasoning_effort"?: ReasoningEffort
+  readonly "max_completion_tokens"?: number | null
+  readonly "frequency_penalty"?: number | null
+  readonly "presence_penalty"?: number | null
+  readonly "web_search_options"?: {
+    readonly "user_location"?: { readonly [x: string]: unknown } | null
+    readonly "search_context_size"?: WebSearchContextSize
+    readonly [x: string]: unknown
+  }
+  readonly "top_logprobs"?: number | null
+  readonly "response_format"?: ResponseFormatText | ResponseFormatJsonSchema | ResponseFormatJsonObject
+  readonly "audio"?: { readonly [x: string]: unknown } | null
+  readonly "store"?: boolean | null
+  readonly "stream"?: boolean | null
+  readonly "stop"?: StopConfiguration
+  readonly "logit_bias"?: { readonly [x: string]: unknown } | null
+  readonly "logprobs"?: boolean | null
+  readonly "max_tokens"?: number | null
+  readonly "n"?: number | null
+  readonly "prediction"?: PredictionContent | null
+  readonly "seed"?: number | null
+  readonly "stream_options"?: ChatCompletionStreamOptions
+  readonly "tools"?: ReadonlyArray<ChatCompletionTool | CustomToolChatCompletions>
+  readonly "tool_choice"?: ChatCompletionToolChoiceOption
+  readonly "parallel_tool_calls"?: ParallelToolCalls
+  readonly "function_call"?: "none" | "auto" | ChatCompletionFunctionCallOption
+  readonly "functions"?: ReadonlyArray<ChatCompletionFunctions>
+  readonly [x: string]: unknown
+}
+export const CreateChatCompletionRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "messages": Schema.Array(ChatCompletionRequestMessage).annotate({
+      "description":
+        "A list of messages comprising the conversation so far. Depending on the\n[model](https://platform.openai.com/docs/models) you use, different message types (modalities) are\nsupported, like [text](https://platform.openai.com/docs/guides/text-generation),\n[images](https://platform.openai.com/docs/guides/vision), and [audio](https://platform.openai.com/docs/guides/audio).\n"
+    }).check(Schema.isMinLength(1)),
+    "model": Schema.Unknown.annotate({
+      "description":
+        "Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI\noffers a wide range of models with different capabilities, performance\ncharacteristics, and price points. Refer to the [model guide](https://platform.openai.com/docs/models)\nto browse and compare available models.\n"
+    }),
+    "modalities": Schema.optionalKey(ResponseModalities),
+    "verbosity": Schema.optionalKey(Verbosity),
+    "reasoning_effort": Schema.optionalKey(ReasoningEffort),
+    "max_completion_tokens": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "An upper bound for the number of tokens that can be generated for a completion, including visible output tokens and [reasoning tokens](https://platform.openai.com/docs/guides/reasoning).\n"
+      })
+    ),
+    "frequency_penalty": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null]).annotate({
+        "description":
+          "Number between -2.0 and 2.0. Positive values penalize new tokens based on\ntheir existing frequency in the text so far, decreasing the model's\nlikelihood to repeat the same line verbatim.\n",
+        "default": 0
+      })
+    ),
+    "presence_penalty": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isFinite()), Schema.Null]).annotate({
+        "description":
+          "Number between -2.0 and 2.0. Positive values penalize new tokens based on\nwhether they appear in the text so far, increasing the model's likelihood\nto talk about new topics.\n",
+        "default": 0
+      })
+    ),
+    "web_search_options": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "user_location": Schema.optionalKey(
+            Schema.Union([Schema.Record(Schema.String, Schema.Unknown), Schema.Null]).annotate({
+              "description": "Approximate location parameters for the search.\n"
+            })
+          ),
+          "search_context_size": Schema.optionalKey(WebSearchContextSize)
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "title": "Web search",
+        "description":
+          "This tool searches the web for relevant results to use in a response.\nLearn more about the [web search tool](https://platform.openai.com/docs/guides/tools-web-search?api-mode=chat).\n"
+      })
+    ),
+    "top_logprobs": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "An integer between 0 and 20 specifying the number of most likely tokens to\nreturn at each token position, each with an associated log probability.\n`logprobs` must be set to `true` if this parameter is used.\n"
+      })
+    ),
+    "response_format": Schema.optionalKey(
+      Schema.Union([ResponseFormatText, ResponseFormatJsonSchema, ResponseFormatJsonObject]).annotate({
+        "description":
+          "An object specifying the format that the model must output.\n\nSetting to `{ \"type\": \"json_schema\", \"json_schema\": {...} }` enables\nStructured Outputs which ensures the model will match your supplied JSON\nschema. Learn more in the [Structured Outputs\nguide](https://platform.openai.com/docs/guides/structured-outputs).\n\nSetting to `{ \"type\": \"json_object\" }` enables the older JSON mode, which\nensures the message the model generates is valid JSON. Using `json_schema`\nis preferred for models that support it.\n"
+      })
+    ),
+    "audio": Schema.optionalKey(
+      Schema.Union([Schema.Record(Schema.String, Schema.Unknown), Schema.Null]).annotate({
+        "description":
+          "Parameters for audio output. Required when audio output is requested with\n`modalities: [\"audio\"]`. [Learn more](https://platform.openai.com/docs/guides/audio).\n"
+      })
+    ),
+    "store": Schema.optionalKey(
+      Schema.Union([Schema.Boolean, Schema.Null]).annotate({
+        "description":
+          "Whether or not to store the output of this chat completion request for\nuse in our [model distillation](https://platform.openai.com/docs/guides/distillation) or\n[evals](https://platform.openai.com/docs/guides/evals) products.\n\nSupports text and image inputs. Note: image inputs over 8MB will be dropped.\n",
+        "default": false
+      })
+    ),
+    "stream": Schema.optionalKey(
+      Schema.Union([Schema.Boolean, Schema.Null]).annotate({
+        "description":
+          "If set to true, the model response data will be streamed to the client\nas it is generated using [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).\nSee the [Streaming section below](https://platform.openai.com/docs/api-reference/chat/streaming)\nfor more information, along with the [streaming responses](https://platform.openai.com/docs/guides/streaming-responses)\nguide for more information on how to handle the streaming events.\n",
+        "default": false
+      })
+    ),
+    "stop": Schema.optionalKey(StopConfiguration),
+    "logit_bias": Schema.optionalKey(
+      Schema.Union([Schema.Record(Schema.String, Schema.Unknown), Schema.Null]).annotate({
+        "description":
+          "Modify the likelihood of specified tokens appearing in the completion.\n\nAccepts a JSON object that maps tokens (specified by their token ID in the\ntokenizer) to an associated bias value from -100 to 100. Mathematically,\nthe bias is added to the logits generated by the model prior to sampling.\nThe exact effect will vary per model, but values between -1 and 1 should\ndecrease or increase likelihood of selection; values like -100 or 100\nshould result in a ban or exclusive selection of the relevant token.\n",
+        "default": null
+      })
+    ),
+    "logprobs": Schema.optionalKey(
+      Schema.Union([Schema.Boolean, Schema.Null]).annotate({
+        "description":
+          "Whether to return log probabilities of the output tokens or not. If true,\nreturns the log probabilities of each output token returned in the\n`content` of `message`.\n",
+        "default": false
+      })
+    ),
+    "max_tokens": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "The maximum number of [tokens](/tokenizer) that can be generated in the\nchat completion. This value can be used to control\n[costs](https://openai.com/api/pricing/) for text generated via API.\n\nThis value is now deprecated in favor of `max_completion_tokens`, and is\nnot compatible with [o-series models](https://platform.openai.com/docs/guides/reasoning).\n"
+      })
+    ),
+    "n": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "How many chat completion choices to generate for each input message. Note that you will be charged based on the number of generated tokens across all of the choices. Keep `n` as `1` to minimize costs.",
+        "default": 1,
+        "examples": [1]
+      })
+    ),
+    "prediction": Schema.optionalKey(Schema.Union([
+      Schema.Union([PredictionContent]).annotate({
+        "description":
+          "Configuration for a [Predicted Output](https://platform.openai.com/docs/guides/predicted-outputs),\nwhich can greatly improve response times when large parts of the model\nresponse are known ahead of time. This is most common when you are\nregenerating a file with only minor changes to most of the content.\n"
+      }),
+      Schema.Null
+    ])),
+    "seed": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "This feature is in Beta.\nIf specified, our system will make a best effort to sample deterministically, such that repeated requests with the same `seed` and parameters should return the same result.\nDeterminism is not guaranteed, and you should refer to the `system_fingerprint` response parameter to monitor changes in the backend.\n"
+      })
+    ),
+    "stream_options": Schema.optionalKey(ChatCompletionStreamOptions),
+    "tools": Schema.optionalKey(
+      Schema.Array(Schema.Union([ChatCompletionTool, CustomToolChatCompletions])).annotate({
+        "description":
+          "A list of tools the model may call. You can provide either\n[custom tools](https://platform.openai.com/docs/guides/function-calling#custom-tools) or\n[function tools](https://platform.openai.com/docs/guides/function-calling).\n"
+      })
+    ),
+    "tool_choice": Schema.optionalKey(ChatCompletionToolChoiceOption),
+    "parallel_tool_calls": Schema.optionalKey(ParallelToolCalls),
+    "function_call": Schema.optionalKey(
+      Schema.Union([
+        Schema.Literals(["none", "auto"]).annotate({
+          "title": "function call mode",
+          "description":
+            "`none` means the model will not call a function and instead generates a message. `auto` means the model can pick between generating a message or calling a function.\n"
+        }),
+        ChatCompletionFunctionCallOption
+      ]).annotate({
+        "description":
+          "Deprecated in favor of `tool_choice`.\n\nControls which (if any) function is called by the model.\n\n`none` means the model will not call a function and instead generates a\nmessage.\n\n`auto` means the model can pick between generating a message or calling a\nfunction.\n\nSpecifying a particular function via `{\"name\": \"my_function\"}` forces the\nmodel to call that function.\n\n`none` is the default when no functions are present. `auto` is the default\nif functions are present.\n"
+      })
+    ),
+    "functions": Schema.optionalKey(
+      Schema.Array(ChatCompletionFunctions).annotate({
+        "description":
+          "Deprecated in favor of `tools`.\n\nA list of functions the model may generate JSON inputs for.\n"
+      }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(128))
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateChatCompletionRequest" })
 export type RunStepDetailsToolCallsObject = {
   readonly "type": "tool_calls"
   readonly "tool_calls": ReadonlyArray<RunStepDetailsToolCall>
@@ -18931,6 +26470,231 @@ export const AssistantObject = Schema.StructWithRest(
   "description": "Represents an `assistant` that can call the model and use tools.",
   "identifier": "AssistantObject"
 })
+export type CreateAssistantRequest = {
+  readonly "model": string | AssistantSupportedModels
+  readonly "name"?: string | null
+  readonly "description"?: string | null
+  readonly "instructions"?: string | null
+  readonly "reasoning_effort"?: ReasoningEffort
+  readonly "tools"?: ReadonlyArray<AssistantTool>
+  readonly "tool_resources"?: {
+    readonly "code_interpreter"?: { readonly "file_ids"?: ReadonlyArray<string>; readonly [x: string]: unknown }
+    readonly "file_search"?: { readonly "vector_store_ids": unknown; readonly [x: string]: unknown } | {
+      readonly "vector_stores": unknown
+      readonly [x: string]: unknown
+    }
+    readonly [x: string]: unknown
+  } | null
+  readonly "metadata"?: Metadata
+  readonly "temperature"?: number | null
+  readonly "top_p"?: number | null
+  readonly "response_format"?: AssistantsApiResponseFormatOption | null
+}
+export const CreateAssistantRequest = Schema.Struct({
+  "model": Schema.Union([Schema.String, AssistantSupportedModels]).annotate({
+    "description":
+      "ID of the model to use. You can use the [List models](https://platform.openai.com/docs/api-reference/models/list) API to see all of your available models, or see our [Model overview](https://platform.openai.com/docs/models) for descriptions of them.\n",
+    "examples": ["gpt-4o"]
+  }),
+  "name": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({ "description": "The name of the assistant. The maximum length is 256 characters.\n" })
+        .check(Schema.isMaxLength(256)),
+      Schema.Null
+    ])
+  ),
+  "description": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description": "The description of the assistant. The maximum length is 512 characters.\n"
+      }).check(Schema.isMaxLength(512)),
+      Schema.Null
+    ])
+  ),
+  "instructions": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description": "The system instructions that the assistant uses. The maximum length is 256,000 characters.\n"
+      }).check(Schema.isMaxLength(256000)),
+      Schema.Null
+    ])
+  ),
+  "reasoning_effort": Schema.optionalKey(ReasoningEffort),
+  "tools": Schema.optionalKey(
+    Schema.Array(AssistantTool).annotate({
+      "description":
+        "A list of tool enabled on the assistant. There can be a maximum of 128 tools per assistant. Tools can be of types `code_interpreter`, `file_search`, or `function`.\n",
+      "default": []
+    }).check(Schema.isMaxLength(128))
+  ),
+  "tool_resources": Schema.optionalKey(Schema.Union([
+    Schema.StructWithRest(
+      Schema.Struct({
+        "code_interpreter": Schema.optionalKey(Schema.StructWithRest(
+          Schema.Struct({
+            "file_ids": Schema.optionalKey(
+              Schema.Array(Schema.String).annotate({
+                "description":
+                  "A list of [file](https://platform.openai.com/docs/api-reference/files) IDs made available to the `code_interpreter` tool. There can be a maximum of 20 files associated with the tool.\n",
+                "default": []
+              }).check(Schema.isMaxLength(20))
+            )
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        )),
+        "file_search": Schema.optionalKey(
+          Schema.Union([
+            Schema.StructWithRest(Schema.Struct({ "vector_store_ids": Schema.Unknown }), [
+              Schema.Record(Schema.String, Schema.Unknown)
+            ]),
+            Schema.StructWithRest(Schema.Struct({ "vector_stores": Schema.Unknown }), [
+              Schema.Record(Schema.String, Schema.Unknown)
+            ])
+          ])
+        )
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({
+      "description":
+        "A set of resources that are used by the assistant's tools. The resources are specific to the type of tool. For example, the `code_interpreter` tool requires a list of file IDs, while the `file_search` tool requires a list of vector store IDs.\n"
+    }),
+    Schema.Null
+  ])),
+  "metadata": Schema.optionalKey(Metadata),
+  "temperature": Schema.optionalKey(
+    Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.\n",
+        "default": 1,
+        "examples": [1]
+      }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(2)),
+      Schema.Null
+    ])
+  ),
+  "top_p": Schema.optionalKey(Schema.Union([
+    Schema.Number.annotate({
+      "description":
+        "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.\n\nWe generally recommend altering this or temperature but not both.\n",
+      "default": 1,
+      "examples": [1]
+    }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1)),
+    Schema.Null
+  ])),
+  "response_format": Schema.optionalKey(Schema.Union([AssistantsApiResponseFormatOption, Schema.Null]))
+}).annotate({ "identifier": "CreateAssistantRequest" })
+export type ModifyAssistantRequest = {
+  readonly "model"?: string | AssistantSupportedModels
+  readonly "reasoning_effort"?: ReasoningEffort
+  readonly "name"?: string | null
+  readonly "description"?: string | null
+  readonly "instructions"?: string | null
+  readonly "tools"?: ReadonlyArray<AssistantTool>
+  readonly "tool_resources"?: {
+    readonly "code_interpreter"?: { readonly "file_ids"?: ReadonlyArray<string>; readonly [x: string]: unknown }
+    readonly "file_search"?: { readonly "vector_store_ids"?: ReadonlyArray<string>; readonly [x: string]: unknown }
+    readonly [x: string]: unknown
+  } | null
+  readonly "metadata"?: Metadata
+  readonly "temperature"?: number | null
+  readonly "top_p"?: number | null
+  readonly "response_format"?: AssistantsApiResponseFormatOption | null
+}
+export const ModifyAssistantRequest = Schema.Struct({
+  "model": Schema.optionalKey(
+    Schema.Union([Schema.String, AssistantSupportedModels]).annotate({
+      "description":
+        "ID of the model to use. You can use the [List models](https://platform.openai.com/docs/api-reference/models/list) API to see all of your available models, or see our [Model overview](https://platform.openai.com/docs/models) for descriptions of them.\n"
+    })
+  ),
+  "reasoning_effort": Schema.optionalKey(ReasoningEffort),
+  "name": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({ "description": "The name of the assistant. The maximum length is 256 characters.\n" })
+        .check(Schema.isMaxLength(256)),
+      Schema.Null
+    ])
+  ),
+  "description": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description": "The description of the assistant. The maximum length is 512 characters.\n"
+      }).check(Schema.isMaxLength(512)),
+      Schema.Null
+    ])
+  ),
+  "instructions": Schema.optionalKey(
+    Schema.Union([
+      Schema.String.annotate({
+        "description": "The system instructions that the assistant uses. The maximum length is 256,000 characters.\n"
+      }).check(Schema.isMaxLength(256000)),
+      Schema.Null
+    ])
+  ),
+  "tools": Schema.optionalKey(
+    Schema.Array(AssistantTool).annotate({
+      "description":
+        "A list of tool enabled on the assistant. There can be a maximum of 128 tools per assistant. Tools can be of types `code_interpreter`, `file_search`, or `function`.\n",
+      "default": []
+    }).check(Schema.isMaxLength(128))
+  ),
+  "tool_resources": Schema.optionalKey(Schema.Union([
+    Schema.StructWithRest(
+      Schema.Struct({
+        "code_interpreter": Schema.optionalKey(Schema.StructWithRest(
+          Schema.Struct({
+            "file_ids": Schema.optionalKey(
+              Schema.Array(Schema.String).annotate({
+                "description":
+                  "Overrides the list of [file](https://platform.openai.com/docs/api-reference/files) IDs made available to the `code_interpreter` tool. There can be a maximum of 20 files associated with the tool.\n",
+                "default": []
+              }).check(Schema.isMaxLength(20))
+            )
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        )),
+        "file_search": Schema.optionalKey(Schema.StructWithRest(
+          Schema.Struct({
+            "vector_store_ids": Schema.optionalKey(
+              Schema.Array(Schema.String).annotate({
+                "description":
+                  "Overrides the [vector store](https://platform.openai.com/docs/api-reference/vector-stores/object) attached to this assistant. There can be a maximum of 1 vector store attached to the assistant.\n"
+              }).check(Schema.isMaxLength(1))
+            )
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ))
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({
+      "description":
+        "A set of resources that are used by the assistant's tools. The resources are specific to the type of tool. For example, the `code_interpreter` tool requires a list of file IDs, while the `file_search` tool requires a list of vector store IDs.\n"
+    }),
+    Schema.Null
+  ])),
+  "metadata": Schema.optionalKey(Metadata),
+  "temperature": Schema.optionalKey(
+    Schema.Union([
+      Schema.Number.annotate({
+        "description":
+          "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.\n",
+        "default": 1,
+        "examples": [1]
+      }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(2)),
+      Schema.Null
+    ])
+  ),
+  "top_p": Schema.optionalKey(Schema.Union([
+    Schema.Number.annotate({
+      "description":
+        "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.\n\nWe generally recommend altering this or temperature but not both.\n",
+      "default": 1,
+      "examples": [1]
+    }).check(Schema.isFinite()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(1)),
+    Schema.Null
+  ])),
+  "response_format": Schema.optionalKey(Schema.Union([AssistantsApiResponseFormatOption, Schema.Null]))
+}).annotate({ "identifier": "ModifyAssistantRequest" })
 export type RunObject = {
   readonly "id": string
   readonly "object": "thread.run"
@@ -19229,6 +26993,44 @@ export const MessageDeltaObject = Schema.StructWithRest(
   "description": "Represents a message delta i.e. any changed fields on a message during streaming.\n",
   "identifier": "MessageDeltaObject"
 })
+export type RealtimeBetaServerEventResponseCreated = {
+  readonly "event_id": string
+  readonly "type": "response.created"
+  readonly "response": RealtimeBetaResponse
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseCreated = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.created").annotate({
+      "description": "The event type, must be `response.created`."
+    }),
+    "response": RealtimeBetaResponse
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when a new Response is created. The first event of response creation,\nwhere the response is in an initial state of `in_progress`.\n",
+  "identifier": "RealtimeBetaServerEventResponseCreated"
+})
+export type RealtimeBetaServerEventResponseDone = {
+  readonly "event_id": string
+  readonly "type": "response.done"
+  readonly "response": RealtimeBetaResponse
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventResponseDone = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("response.done").annotate({ "description": "The event type, must be `response.done`." }),
+    "response": RealtimeBetaResponse
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when a Response is done streaming. Always emitted, no matter the \nfinal state. The Response object included in the `response.done` event will \ninclude all output Items in the Response but will omit the raw audio data.\n",
+  "identifier": "RealtimeBetaServerEventResponseDone"
+})
 export type RealtimeServerEventResponseCreated = {
   readonly "event_id": string
   readonly "type": "response.created"
@@ -19281,6 +27083,28 @@ export const RunStepDeltaObjectDelta = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "identifier": "RunStepDeltaObjectDelta" })
+export type CreateVectorStoreFileBatchRequest = {
+  readonly "file_ids"?: ReadonlyArray<string>
+  readonly "files"?: ReadonlyArray<CreateVectorStoreFileRequest>
+  readonly "chunking_strategy"?: ChunkingStrategyRequestParam
+  readonly "attributes"?: VectorStoreFileAttributes
+}
+export const CreateVectorStoreFileBatchRequest = Schema.Struct({
+  "file_ids": Schema.optionalKey(
+    Schema.Array(Schema.String).annotate({
+      "description":
+        "A list of [File](https://platform.openai.com/docs/api-reference/files) IDs that the vector store should use. Useful for tools like `file_search` that can access files.  If `attributes` or `chunking_strategy` are provided, they will be  applied to all files in the batch. Mutually exclusive with `files`."
+    }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(500))
+  ),
+  "files": Schema.optionalKey(
+    Schema.Array(CreateVectorStoreFileRequest).annotate({
+      "description":
+        "A list of objects that each include a `file_id` plus optional `attributes` or `chunking_strategy`. Use this when you need to override metadata for specific files. The global `attributes` or `chunking_strategy` will be ignored and must be specified for each file. Mutually exclusive with `file_ids`."
+    }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(500))
+  ),
+  "chunking_strategy": Schema.optionalKey(ChunkingStrategyRequestParam),
+  "attributes": Schema.optionalKey(VectorStoreFileAttributes)
+}).annotate({ "identifier": "CreateVectorStoreFileBatchRequest" })
 export type ListVectorStoreFilesResponse = {
   readonly "object": string
   readonly "data": ReadonlyArray<VectorStoreFileObject>
@@ -19361,6 +27185,26 @@ export const InputItem = Schema.Union([
   }),
   ItemReferenceParam
 ]).annotate({ "identifier": "InputItem" })
+export type RealtimeBetaClientEventResponseCreate = {
+  readonly "event_id"?: string
+  readonly "type": "response.create"
+  readonly "response"?: RealtimeBetaResponseCreateParams
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaClientEventResponseCreate = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional client-generated ID used to identify this event." })
+    ),
+    "type": Schema.Literal("response.create").annotate({ "description": "The event type, must be `response.create`." }),
+    "response": Schema.optionalKey(RealtimeBetaResponseCreateParams)
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "This event instructs the server to create a Response, which means triggering \nmodel inference. When in Server VAD mode, the server will create Responses \nautomatically.\n\nA Response will include at least one Item, and may have two, in which case \nthe second will be a function call. These Items will be appended to the \nconversation history.\n\nThe server will respond with a `response.created` event, events for Items \nand content created, and finally a `response.done` event to indicate the \nResponse is complete.\n\nThe `response.create` event can optionally include inference configuration like \n`instructions`, and `temperature`. These fields will override the Session's \nconfiguration for this Response only.\n\nResponses can be created out-of-band of the default Conversation, meaning that they can\nhave arbitrary input, and it's possible to disable writing the output to the Conversation.\nOnly one Response can write to the default Conversation at a time, but otherwise multiple\nResponses can be created in parallel.\n\nClients can set `conversation` to `none` to create a Response that does not write to the default\nConversation. Arbitrary input can be provided with the `input` field, which is an array accepting\nraw Items and references to existing Items.\n",
+  "identifier": "RealtimeBetaClientEventResponseCreate"
+})
 export type RealtimeClientEventResponseCreate = {
   readonly "event_id"?: string
   readonly "type": "response.create"
@@ -19382,6 +27226,61 @@ export const RealtimeClientEventResponseCreate = Schema.StructWithRest(
   "description":
     "This event instructs the server to create a Response, which means triggering \nmodel inference. When in Server VAD mode, the server will create Responses \nautomatically.\n\nA Response will include at least one Item, and may have two, in which case \nthe second will be a function call. These Items will be appended to the \nconversation history by default.\n\nThe server will respond with a `response.created` event, events for Items \nand content created, and finally a `response.done` event to indicate the \nResponse is complete.\n\nThe `response.create` event includes inference configuration like \n`instructions` and `tools`. If these are set, they will override the Session's \nconfiguration for this Response only.\n\nResponses can be created out-of-band of the default Conversation, meaning that they can\nhave arbitrary input, and it's possible to disable writing the output to the Conversation.\nOnly one Response can write to the default Conversation at a time, but otherwise multiple\nResponses can be created in parallel. The `metadata` field is a good way to disambiguate\nmultiple simultaneous Responses.\n\nClients can set `conversation` to `none` to create a Response that does not write to the default\nConversation. Arbitrary input can be provided with the `input` field, which is an array accepting\nraw Items and references to existing Items.\n",
   "identifier": "RealtimeClientEventResponseCreate"
+})
+export type RealtimeBetaServerEventSessionCreated = {
+  readonly "event_id": string
+  readonly "type": "session.created"
+  readonly "session": RealtimeSession
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventSessionCreated = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("session.created").annotate({ "description": "The event type, must be `session.created`." }),
+    "session": RealtimeSession
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Returned when a Session is created. Emitted automatically when a new\nconnection is established as the first server event. This event will contain\nthe default Session configuration.\n",
+  "identifier": "RealtimeBetaServerEventSessionCreated"
+})
+export type RealtimeBetaServerEventSessionUpdated = {
+  readonly "event_id": string
+  readonly "type": "session.updated"
+  readonly "session": RealtimeSession
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaServerEventSessionUpdated = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.String.annotate({ "description": "The unique ID of the server event." }),
+    "type": Schema.Literal("session.updated").annotate({ "description": "The event type, must be `session.updated`." }),
+    "session": RealtimeSession
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description": "Returned when a session is updated with a `session.update` event, unless\nthere is an error.\n",
+  "identifier": "RealtimeBetaServerEventSessionUpdated"
+})
+export type RealtimeBetaClientEventSessionUpdate = {
+  readonly "event_id"?: string
+  readonly "type": "session.update"
+  readonly "session": RealtimeSessionCreateRequest
+  readonly [x: string]: unknown
+}
+export const RealtimeBetaClientEventSessionUpdate = Schema.StructWithRest(
+  Schema.Struct({
+    "event_id": Schema.optionalKey(
+      Schema.String.annotate({ "description": "Optional client-generated ID used to identify this event." })
+    ),
+    "type": Schema.Literal("session.update").annotate({ "description": "The event type, must be `session.update`." }),
+    "session": RealtimeSessionCreateRequest
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "description":
+    "Send this event to update the session’s default configuration.\nThe client may send this event at any time to update any field,\nexcept for `voice`. However, note that once a session has been\ninitialized with a particular `model`, it can’t be changed to\nanother model using `session.update`.\n\nWhen the server receives a `session.update`, it will respond\nwith a `session.updated` event showing the full, effective configuration.\nOnly the fields that are present are updated. To clear a field like\n`instructions`, pass an empty string.\n",
+  "identifier": "RealtimeBetaClientEventSessionUpdate"
 })
 export type RealtimeClientEventSessionUpdate = {
   readonly "event_id"?: string
@@ -19407,6 +27306,57 @@ export const RealtimeClientEventSessionUpdate = Schema.StructWithRest(
   "description":
     "Send this event to update the session’s configuration.\nThe client may send this event at any time to update any field\nexcept for `voice` and `model`. `voice` can be updated only if there have been no other audio outputs yet.\n\nWhen the server receives a `session.update`, it will respond\nwith a `session.updated` event showing the full, effective configuration.\nOnly the fields that are present in the `session.update` are updated. To clear a field like\n`instructions`, pass an empty string. To clear a field like `tools`, pass an empty array.\nTo clear a field like `turn_detection`, pass `null`.\n",
   "identifier": "RealtimeClientEventSessionUpdate"
+})
+export type RealtimeCreateClientSecretRequest = {
+  readonly "expires_after"?: {
+    readonly "anchor"?: "created_at"
+    readonly "seconds"?: number
+    readonly [x: string]: unknown
+  }
+  readonly "session"?: RealtimeSessionCreateRequestGA | RealtimeTranscriptionSessionCreateRequestGA
+  readonly [x: string]: unknown
+}
+export const RealtimeCreateClientSecretRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "expires_after": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "anchor": Schema.optionalKey(
+            Schema.Literal("created_at").annotate({
+              "description":
+                "The anchor point for the client secret expiration, meaning that `seconds` will be added to the `created_at` time of the client secret to produce an expiration timestamp. Only `created_at` is currently supported.\n",
+              "default": "created_at"
+            })
+          ),
+          "seconds": Schema.optionalKey(
+            Schema.Number.annotate({
+              "description":
+                "The number of seconds from the anchor point to the expiration. Select a value between `10` and `7200` (2 hours). This default to 600 seconds (10 minutes) if not specified.\n",
+              "default": 600
+            }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(10)).check(Schema.isLessThanOrEqualTo(7200))
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "title": "Client secret expiration",
+        "description":
+          "Configuration for the client secret expiration. Expiration refers to the time after which\na client secret will no longer be valid for creating sessions. The session itself may\ncontinue after that time once started. A secret can be used to create multiple sessions\nuntil it expires.\n"
+      })
+    ),
+    "session": Schema.optionalKey(
+      Schema.Union([RealtimeSessionCreateRequestGA, RealtimeTranscriptionSessionCreateRequestGA]).annotate({
+        "title": "Session configuration",
+        "description":
+          "Session configuration to use for the client secret. Choose either a realtime\nsession or a transcription session.\n"
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Realtime client secret creation request",
+  "description":
+    "Create a session and client secret for the Realtime API. The request can specify\neither a realtime or a transcription session configuration.\n[Learn more about the Realtime API](https://platform.openai.com/docs/guides/realtime).\n",
+  "identifier": "RealtimeCreateClientSecretRequest"
 })
 export type RealtimeServerEventSessionCreated = {
   readonly "event_id": string
@@ -19446,6 +27396,29 @@ export const RealtimeServerEventSessionUpdated = Schema.StructWithRest(
 ).annotate({
   "description": "Returned when a session is updated with a `session.update` event, unless\nthere is an error.\n",
   "identifier": "RealtimeServerEventSessionUpdated"
+})
+export type RealtimeCreateClientSecretResponse = {
+  readonly "value": string
+  readonly "expires_at": number
+  readonly "session": RealtimeSessionCreateResponseGA | RealtimeTranscriptionSessionCreateResponseGA
+  readonly [x: string]: unknown
+}
+export const RealtimeCreateClientSecretResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "value": Schema.String.annotate({ "description": "The generated client secret value." }),
+    "expires_at": Schema.Number.annotate({
+      "description": "Expiration timestamp for the client secret, in seconds since epoch."
+    }).check(Schema.isInt()),
+    "session": Schema.Union([RealtimeSessionCreateResponseGA, RealtimeTranscriptionSessionCreateResponseGA]).annotate({
+      "title": "Session configuration",
+      "description": "The session configuration for either a realtime or transcription session.\n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({
+  "title": "Realtime session and client secret",
+  "description": "Response from creating a session and client secret for the Realtime API.\n",
+  "identifier": "RealtimeCreateClientSecretResponse"
 })
 export type ConversationItem =
   | Message
@@ -19498,6 +27471,58 @@ export const ConversationItem = Schema.Union([
   "description":
     "A single item within a conversation. The set of possible types are the same as the `output` type of a [Response object](https://platform.openai.com/docs/api-reference/responses/object#responses/object-output).",
   "identifier": "ConversationItem"
+})
+export type ItemField =
+  | Message
+  | FunctionToolCall
+  | FunctionToolCallOutput
+  | FileSearchToolCall
+  | WebSearchToolCall
+  | ImageGenToolCall
+  | ComputerToolCall
+  | ComputerToolCallOutputResource
+  | ReasoningItem
+  | CompactionBody
+  | CodeInterpreterToolCall
+  | LocalShellToolCall
+  | LocalShellToolCallOutput
+  | FunctionShellCall
+  | FunctionShellCallOutput
+  | ApplyPatchToolCall
+  | ApplyPatchToolCallOutput
+  | MCPListTools
+  | MCPApprovalRequest
+  | MCPApprovalResponseResource
+  | MCPToolCall
+  | CustomToolCall
+  | CustomToolCallOutput
+export const ItemField = Schema.Union([
+  Message,
+  FunctionToolCall,
+  FunctionToolCallOutput,
+  FileSearchToolCall,
+  WebSearchToolCall,
+  ImageGenToolCall,
+  ComputerToolCall,
+  ComputerToolCallOutputResource,
+  ReasoningItem,
+  CompactionBody,
+  CodeInterpreterToolCall,
+  LocalShellToolCall,
+  LocalShellToolCallOutput,
+  FunctionShellCall,
+  FunctionShellCallOutput,
+  ApplyPatchToolCall,
+  ApplyPatchToolCallOutput,
+  MCPListTools,
+  MCPApprovalRequest,
+  MCPApprovalResponseResource,
+  MCPToolCall,
+  CustomToolCall,
+  CustomToolCallOutput
+]).annotate({
+  "description": "An item representing a message, tool call, tool output, reasoning, or other response element.",
+  "identifier": "ItemField"
 })
 export type ThreadItemListResource = {
   readonly "object": "list"
@@ -20086,6 +28111,57 @@ export const GraderScoreModel = Schema.StructWithRest(
   "description": "A ScoreModelGrader object that uses a model to assign a score to the input.\n",
   "identifier": "GraderScoreModel"
 })
+export type Item =
+  | InputMessage
+  | OutputMessage
+  | FileSearchToolCall
+  | ComputerToolCall
+  | ComputerCallOutputItemParam
+  | WebSearchToolCall
+  | FunctionToolCall
+  | FunctionCallOutputItemParam
+  | ReasoningItem
+  | CompactionSummaryItemParam
+  | ImageGenToolCall
+  | CodeInterpreterToolCall
+  | LocalShellToolCall
+  | LocalShellToolCallOutput
+  | FunctionShellCallItemParam
+  | FunctionShellCallOutputItemParam
+  | ApplyPatchToolCallItemParam
+  | ApplyPatchToolCallOutputItemParam
+  | MCPListTools
+  | MCPApprovalRequest
+  | MCPApprovalResponse
+  | MCPToolCall
+  | CustomToolCallOutput
+  | CustomToolCall
+export const Item = Schema.Union([
+  InputMessage,
+  OutputMessage,
+  FileSearchToolCall,
+  ComputerToolCall,
+  ComputerCallOutputItemParam,
+  WebSearchToolCall,
+  FunctionToolCall,
+  FunctionCallOutputItemParam,
+  ReasoningItem,
+  CompactionSummaryItemParam,
+  ImageGenToolCall,
+  CodeInterpreterToolCall,
+  LocalShellToolCall,
+  LocalShellToolCallOutput,
+  FunctionShellCallItemParam,
+  FunctionShellCallOutputItemParam,
+  ApplyPatchToolCallItemParam,
+  ApplyPatchToolCallOutputItemParam,
+  MCPListTools,
+  MCPApprovalRequest,
+  MCPApprovalResponse,
+  MCPToolCall,
+  CustomToolCallOutput,
+  CustomToolCall
+]).annotate({ "description": "Content item used to generate a response.\n", "identifier": "Item" })
 export type ItemResource =
   | InputMessageResource
   | OutputMessage
@@ -20303,6 +28379,199 @@ export const InputParam = Schema.Union([
     "Text, image, or file inputs to the model, used to generate a response.\n\nLearn more:\n- [Text inputs and outputs](https://platform.openai.com/docs/guides/text)\n- [Image inputs](https://platform.openai.com/docs/guides/images)\n- [File inputs](https://platform.openai.com/docs/guides/pdf-files)\n- [Conversation state](https://platform.openai.com/docs/guides/conversation-state)\n- [Function calling](https://platform.openai.com/docs/guides/function-calling)\n",
   "identifier": "InputParam"
 })
+export type CreateConversationBody = {
+  readonly "metadata"?: { readonly [x: string]: string } | null | null
+  readonly "items"?: ReadonlyArray<InputItem> | null
+  readonly [x: string]: unknown
+}
+export const CreateConversationBody = Schema.StructWithRest(
+  Schema.Struct({
+    "metadata": Schema.optionalKey(Schema.Union([
+      Schema.Union([
+        Schema.Record(Schema.String, Schema.String).annotate({
+          "description":
+            "Set of 16 key-value pairs that can be attached to an object. This can be\nuseful for storing additional information about the object in a structured\nformat, and querying for objects via API or the dashboard.\n\nKeys are strings with a maximum length of 64 characters. Values are strings\nwith a maximum length of 512 characters.\n"
+        }),
+        Schema.Null
+      ]).annotate({
+        "identifier": "Metadata",
+        "description":
+          "Set of 16 key-value pairs that can be attached to an object. This can be         useful for storing additional information about the object in a structured         format, and querying for objects via API or the dashboard.\n        Keys are strings with a maximum length of 64 characters. Values are strings         with a maximum length of 512 characters."
+      }),
+      Schema.Null
+    ])),
+    "items": Schema.optionalKey(
+      Schema.Union([
+        Schema.Array(InputItem).annotate({
+          "description": "Initial items to include in the conversation context. You may add up to 20 items at a time."
+        }).check(Schema.isMaxLength(20)),
+        Schema.Null
+      ])
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateConversationBody" })
+export type CompactResponseMethodPublicBody = {
+  readonly "model": ModelIdsCompaction
+  readonly "input"?: string | ReadonlyArray<InputItem> | null
+  readonly "previous_response_id"?: string | null
+  readonly "instructions"?: string | null
+  readonly [x: string]: unknown
+}
+export const CompactResponseMethodPublicBody = Schema.StructWithRest(
+  Schema.Struct({
+    "model": ModelIdsCompaction,
+    "input": Schema.optionalKey(
+      Schema.Union([
+        Schema.Union([
+          Schema.String.annotate({
+            "description": "A text input to the model, equivalent to a text input with the `user` role."
+          }).check(Schema.isMaxLength(10485760)),
+          Schema.Array(InputItem).annotate({
+            "description": "A list of one or many input items to the model, containing different content types."
+          })
+        ]).annotate({ "description": "Text, image, or file inputs to the model, used to generate a response" }),
+        Schema.Null
+      ])
+    ),
+    "previous_response_id": Schema.optionalKey(Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "The unique ID of the previous response to the model. Use this to create multi-turn conversations. Learn more about [conversation state](https://platform.openai.com/docs/guides/conversation-state). Cannot be used in conjunction with `conversation`.",
+        "examples": ["resp_123"]
+      }),
+      Schema.Null
+    ])),
+    "instructions": Schema.optionalKey(Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "A system (or developer) message inserted into the model's context.\nWhen used along with `previous_response_id`, the instructions from a previous response will not be carried over to the next response. This makes it simple to swap out system (or developer) messages in new responses."
+      }),
+      Schema.Null
+    ]))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CompactResponseMethodPublicBody" })
+export type RealtimeClientEvent =
+  | RealtimeClientEventConversationItemCreate
+  | RealtimeClientEventConversationItemDelete
+  | RealtimeClientEventConversationItemRetrieve
+  | RealtimeClientEventConversationItemTruncate
+  | RealtimeClientEventInputAudioBufferAppend
+  | RealtimeClientEventInputAudioBufferClear
+  | RealtimeClientEventOutputAudioBufferClear
+  | RealtimeClientEventInputAudioBufferCommit
+  | RealtimeClientEventResponseCancel
+  | RealtimeClientEventResponseCreate
+  | RealtimeClientEventSessionUpdate
+export const RealtimeClientEvent = Schema.Union([
+  RealtimeClientEventConversationItemCreate,
+  RealtimeClientEventConversationItemDelete,
+  RealtimeClientEventConversationItemRetrieve,
+  RealtimeClientEventConversationItemTruncate,
+  RealtimeClientEventInputAudioBufferAppend,
+  RealtimeClientEventInputAudioBufferClear,
+  RealtimeClientEventOutputAudioBufferClear,
+  RealtimeClientEventInputAudioBufferCommit,
+  RealtimeClientEventResponseCancel,
+  RealtimeClientEventResponseCreate,
+  RealtimeClientEventSessionUpdate
+]).annotate({ "description": "A realtime client event.\n", "identifier": "RealtimeClientEvent" })
+export type RealtimeServerEvent =
+  | RealtimeServerEventConversationCreated
+  | RealtimeServerEventConversationItemCreated
+  | RealtimeServerEventConversationItemDeleted
+  | RealtimeServerEventConversationItemInputAudioTranscriptionCompleted
+  | RealtimeServerEventConversationItemInputAudioTranscriptionDelta
+  | RealtimeServerEventConversationItemInputAudioTranscriptionFailed
+  | RealtimeServerEventConversationItemRetrieved
+  | RealtimeServerEventConversationItemTruncated
+  | RealtimeServerEventError
+  | RealtimeServerEventInputAudioBufferCleared
+  | RealtimeServerEventInputAudioBufferCommitted
+  | RealtimeServerEventInputAudioBufferDtmfEventReceived
+  | RealtimeServerEventInputAudioBufferSpeechStarted
+  | RealtimeServerEventInputAudioBufferSpeechStopped
+  | RealtimeServerEventRateLimitsUpdated
+  | RealtimeServerEventResponseAudioDelta
+  | RealtimeServerEventResponseAudioDone
+  | RealtimeServerEventResponseAudioTranscriptDelta
+  | RealtimeServerEventResponseAudioTranscriptDone
+  | RealtimeServerEventResponseContentPartAdded
+  | RealtimeServerEventResponseContentPartDone
+  | RealtimeServerEventResponseCreated
+  | RealtimeServerEventResponseDone
+  | RealtimeServerEventResponseFunctionCallArgumentsDelta
+  | RealtimeServerEventResponseFunctionCallArgumentsDone
+  | RealtimeServerEventResponseOutputItemAdded
+  | RealtimeServerEventResponseOutputItemDone
+  | RealtimeServerEventResponseTextDelta
+  | RealtimeServerEventResponseTextDone
+  | RealtimeServerEventSessionCreated
+  | RealtimeServerEventSessionUpdated
+  | RealtimeServerEventOutputAudioBufferStarted
+  | RealtimeServerEventOutputAudioBufferStopped
+  | RealtimeServerEventOutputAudioBufferCleared
+  | RealtimeServerEventConversationItemAdded
+  | RealtimeServerEventConversationItemDone
+  | RealtimeServerEventInputAudioBufferTimeoutTriggered
+  | RealtimeServerEventConversationItemInputAudioTranscriptionSegment
+  | RealtimeServerEventMCPListToolsInProgress
+  | RealtimeServerEventMCPListToolsCompleted
+  | RealtimeServerEventMCPListToolsFailed
+  | RealtimeServerEventResponseMCPCallArgumentsDelta
+  | RealtimeServerEventResponseMCPCallArgumentsDone
+  | RealtimeServerEventResponseMCPCallInProgress
+  | RealtimeServerEventResponseMCPCallCompleted
+  | RealtimeServerEventResponseMCPCallFailed
+export const RealtimeServerEvent = Schema.Union([
+  RealtimeServerEventConversationCreated,
+  RealtimeServerEventConversationItemCreated,
+  RealtimeServerEventConversationItemDeleted,
+  RealtimeServerEventConversationItemInputAudioTranscriptionCompleted,
+  RealtimeServerEventConversationItemInputAudioTranscriptionDelta,
+  RealtimeServerEventConversationItemInputAudioTranscriptionFailed,
+  RealtimeServerEventConversationItemRetrieved,
+  RealtimeServerEventConversationItemTruncated,
+  RealtimeServerEventError,
+  RealtimeServerEventInputAudioBufferCleared,
+  RealtimeServerEventInputAudioBufferCommitted,
+  RealtimeServerEventInputAudioBufferDtmfEventReceived,
+  RealtimeServerEventInputAudioBufferSpeechStarted,
+  RealtimeServerEventInputAudioBufferSpeechStopped,
+  RealtimeServerEventRateLimitsUpdated,
+  RealtimeServerEventResponseAudioDelta,
+  RealtimeServerEventResponseAudioDone,
+  RealtimeServerEventResponseAudioTranscriptDelta,
+  RealtimeServerEventResponseAudioTranscriptDone,
+  RealtimeServerEventResponseContentPartAdded,
+  RealtimeServerEventResponseContentPartDone,
+  RealtimeServerEventResponseCreated,
+  RealtimeServerEventResponseDone,
+  RealtimeServerEventResponseFunctionCallArgumentsDelta,
+  RealtimeServerEventResponseFunctionCallArgumentsDone,
+  RealtimeServerEventResponseOutputItemAdded,
+  RealtimeServerEventResponseOutputItemDone,
+  RealtimeServerEventResponseTextDelta,
+  RealtimeServerEventResponseTextDone,
+  RealtimeServerEventSessionCreated,
+  RealtimeServerEventSessionUpdated,
+  RealtimeServerEventOutputAudioBufferStarted,
+  RealtimeServerEventOutputAudioBufferStopped,
+  RealtimeServerEventOutputAudioBufferCleared,
+  RealtimeServerEventConversationItemAdded,
+  RealtimeServerEventConversationItemDone,
+  RealtimeServerEventInputAudioBufferTimeoutTriggered,
+  RealtimeServerEventConversationItemInputAudioTranscriptionSegment,
+  RealtimeServerEventMCPListToolsInProgress,
+  RealtimeServerEventMCPListToolsCompleted,
+  RealtimeServerEventMCPListToolsFailed,
+  RealtimeServerEventResponseMCPCallArgumentsDelta,
+  RealtimeServerEventResponseMCPCallArgumentsDone,
+  RealtimeServerEventResponseMCPCallInProgress,
+  RealtimeServerEventResponseMCPCallCompleted,
+  RealtimeServerEventResponseMCPCallFailed
+]).annotate({ "description": "A realtime server event.\n", "identifier": "RealtimeServerEvent" })
 export type ConversationItemList = {
   readonly "object": "list"
   readonly "data": ReadonlyArray<ConversationItem>
@@ -20461,6 +28730,146 @@ export const ToolsArray = Schema.Array(Tool).annotate({
     "An array of tools the model may call while generating a response. You\ncan specify which tool to use by setting the `tool_choice` parameter.\n\nWe support the following categories of tools:\n- **Built-in tools**: Tools that are provided by OpenAI that extend the\n  model's capabilities, like [web search](https://platform.openai.com/docs/guides/tools-web-search)\n  or [file search](https://platform.openai.com/docs/guides/tools-file-search). Learn more about\n  [built-in tools](https://platform.openai.com/docs/guides/tools).\n- **MCP Tools**: Integrations with third-party systems via custom MCP servers\n  or predefined connectors such as Google Drive and SharePoint. Learn more about\n  [MCP Tools](https://platform.openai.com/docs/guides/tools-connectors-mcp).\n- **Function calls (custom tools)**: Functions that are defined by you,\n  enabling the model to call your own code with strongly typed arguments\n  and outputs. Learn more about\n  [function calling](https://platform.openai.com/docs/guides/function-calling). You can also use\n  custom tools to call your own code.\n",
   "identifier": "ToolsArray"
 })
+export type TokenCountsBody = {
+  readonly "model"?: string | null
+  readonly "input"?: string | ReadonlyArray<InputItem> | null
+  readonly "previous_response_id"?: string | null
+  readonly "tools"?: ReadonlyArray<Tool> | null
+  readonly "text"?: ResponseTextParam | null
+  readonly "reasoning"?: {
+    readonly "effort"?: ReasoningEffort
+    readonly "summary"?: "auto" | "concise" | "detailed" | null
+    readonly "generate_summary"?: "auto" | "concise" | "detailed" | null
+    readonly [x: string]: unknown
+  } | null
+  readonly "truncation"?: "auto" | "disabled"
+  readonly "instructions"?: string | null
+  readonly "conversation"?: ConversationParam | null
+  readonly "tool_choice"?:
+    | ToolChoiceOptions
+    | ToolChoiceAllowed
+    | ToolChoiceTypes
+    | ToolChoiceFunction
+    | ToolChoiceMCP
+    | ToolChoiceCustom
+    | SpecificApplyPatchParam
+    | SpecificFunctionShellParam
+    | null
+  readonly "parallel_tool_calls"?: boolean | null
+  readonly [x: string]: unknown
+}
+export const TokenCountsBody = Schema.StructWithRest(
+  Schema.Struct({
+    "model": Schema.optionalKey(Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a wide range of models with different capabilities, performance characteristics, and price points. Refer to the [model guide](https://platform.openai.com/docs/models) to browse and compare available models."
+      }),
+      Schema.Null
+    ])),
+    "input": Schema.optionalKey(
+      Schema.Union([
+        Schema.Union([
+          Schema.String.annotate({
+            "description": "A text input to the model, equivalent to a text input with the `user` role."
+          }).check(Schema.isMaxLength(10485760)),
+          Schema.Array(InputItem).annotate({
+            "description": "A list of one or many input items to the model, containing different content types."
+          })
+        ]).annotate({ "description": "Text, image, or file inputs to the model, used to generate a response" }),
+        Schema.Null
+      ])
+    ),
+    "previous_response_id": Schema.optionalKey(Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "The unique ID of the previous response to the model. Use this to create multi-turn conversations. Learn more about [conversation state](https://platform.openai.com/docs/guides/conversation-state). Cannot be used in conjunction with `conversation`.",
+        "examples": ["resp_123"]
+      }),
+      Schema.Null
+    ])),
+    "tools": Schema.optionalKey(
+      Schema.Union([
+        Schema.Array(Tool).annotate({
+          "description":
+            "An array of tools the model may call while generating a response. You can specify which tool to use by setting the `tool_choice` parameter."
+        }),
+        Schema.Null
+      ])
+    ),
+    "text": Schema.optionalKey(Schema.Union([ResponseTextParam, Schema.Null])),
+    "reasoning": Schema.optionalKey(Schema.Union([
+      Schema.StructWithRest(
+        Schema.Struct({
+          "effort": Schema.optionalKey(ReasoningEffort),
+          "summary": Schema.optionalKey(Schema.Union([
+            Schema.Literals(["auto", "concise", "detailed"]).annotate({
+              "description":
+                "A summary of the reasoning performed by the model. This can be\nuseful for debugging and understanding the model's reasoning process.\nOne of `auto`, `concise`, or `detailed`.\n\n`concise` is supported for `computer-use-preview` models and all reasoning models after `gpt-5`.\n"
+            }),
+            Schema.Null
+          ])),
+          "generate_summary": Schema.optionalKey(
+            Schema.Union([
+              Schema.Literals(["auto", "concise", "detailed"]).annotate({
+                "description":
+                  "**Deprecated:** use `summary` instead.\n\nA summary of the reasoning performed by the model. This can be\nuseful for debugging and understanding the model's reasoning process.\nOne of `auto`, `concise`, or `detailed`.\n"
+              }),
+              Schema.Null
+            ])
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "title": "Reasoning",
+        "description":
+          "**gpt-5 and o-series models only** Configuration options for [reasoning models](https://platform.openai.com/docs/guides/reasoning).",
+        "identifier": "Reasoning"
+      }),
+      Schema.Null
+    ])),
+    "truncation": Schema.optionalKey(
+      Schema.Literals(["auto", "disabled"]).annotate({
+        "identifier": "TruncationEnum",
+        "description":
+          "The truncation strategy to use for the model response. - `auto`: If the input to this Response exceeds the model's context window size, the model will truncate the response to fit the context window by dropping items from the beginning of the conversation. - `disabled` (default): If the input size will exceed the context window size for a model, the request will fail with a 400 error."
+      })
+    ),
+    "instructions": Schema.optionalKey(Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "A system (or developer) message inserted into the model's context.\nWhen used along with `previous_response_id`, the instructions from a previous response will not be carried over to the next response. This makes it simple to swap out system (or developer) messages in new responses."
+      }),
+      Schema.Null
+    ])),
+    "conversation": Schema.optionalKey(Schema.Union([ConversationParam, Schema.Null])),
+    "tool_choice": Schema.optionalKey(
+      Schema.Union([
+        Schema.Union([
+          ToolChoiceOptions,
+          ToolChoiceAllowed,
+          ToolChoiceTypes,
+          ToolChoiceFunction,
+          ToolChoiceMCP,
+          ToolChoiceCustom,
+          SpecificApplyPatchParam,
+          SpecificFunctionShellParam
+        ]).annotate({
+          "description": "Controls which tool the model should use, if any.",
+          "identifier": "ToolChoiceParam"
+        }),
+        Schema.Null
+      ])
+    ),
+    "parallel_tool_calls": Schema.optionalKey(
+      Schema.Union([
+        Schema.Boolean.annotate({ "description": "Whether to allow the model to run tool calls in parallel." }),
+        Schema.Null
+      ])
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "TokenCountsBody" })
 export type ListRunStepsResponse = {
   readonly "object": string
   readonly "data": ReadonlyArray<RunStepObject>
@@ -21925,6 +30334,157 @@ export const ResponseQueuedEvent = Schema.StructWithRest(
   "description": "Emitted when a response is queued and waiting to be processed.\n",
   "identifier": "ResponseQueuedEvent"
 })
+export type CompactResource = {
+  readonly "id": string
+  readonly "object": "response.compaction"
+  readonly "output": ReadonlyArray<OutputItem>
+  readonly "created_at": number
+  readonly "usage": {
+    readonly "input_tokens": number
+    readonly "input_tokens_details": { readonly "cached_tokens": number; readonly [x: string]: unknown }
+    readonly "output_tokens": number
+    readonly "output_tokens_details": { readonly "reasoning_tokens": number; readonly [x: string]: unknown }
+    readonly "total_tokens": number
+    readonly [x: string]: unknown
+  }
+  readonly [x: string]: unknown
+}
+export const CompactResource = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.String.annotate({ "description": "The unique identifier for the compacted response." }),
+    "object": Schema.Literal("response.compaction").annotate({
+      "description": "The object type. Always `response.compaction`.",
+      "default": "response.compaction"
+    }),
+    "output": Schema.Array(OutputItem).annotate({
+      "description":
+        "The compacted list of output items. This is a list of all user messages, followed by a single compaction item."
+    }),
+    "created_at": Schema.Number.annotate({
+      "description": "Unix timestamp (in seconds) when the compacted conversation was created."
+    }).check(Schema.isInt()),
+    "usage": Schema.StructWithRest(
+      Schema.Struct({
+        "input_tokens": Schema.Number.annotate({ "description": "The number of input tokens." }).check(Schema.isInt()),
+        "input_tokens_details": Schema.StructWithRest(
+          Schema.Struct({
+            "cached_tokens": Schema.Number.annotate({
+              "description":
+                "The number of tokens that were retrieved from the cache. \n[More on prompt caching](https://platform.openai.com/docs/guides/prompt-caching).\n"
+            }).check(Schema.isInt())
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ).annotate({ "description": "A detailed breakdown of the input tokens." }),
+        "output_tokens": Schema.Number.annotate({ "description": "The number of output tokens." }).check(
+          Schema.isInt()
+        ),
+        "output_tokens_details": Schema.StructWithRest(
+          Schema.Struct({
+            "reasoning_tokens": Schema.Number.annotate({ "description": "The number of reasoning tokens." }).check(
+              Schema.isInt()
+            )
+          }),
+          [Schema.Record(Schema.String, Schema.Unknown)]
+        ).annotate({ "description": "A detailed breakdown of the output tokens." }),
+        "total_tokens": Schema.Number.annotate({ "description": "The total number of tokens used." }).check(
+          Schema.isInt()
+        )
+      }),
+      [Schema.Record(Schema.String, Schema.Unknown)]
+    ).annotate({
+      "description": "Token accounting for the compaction pass, including cached, reasoning, and total tokens.",
+      "identifier": "ResponseUsage"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "title": "The compacted response object", "identifier": "CompactResource" })
+export type CreateResponse = {
+  readonly "top_logprobs"?: number
+  readonly "input"?: InputParam
+  readonly "include"?: ReadonlyArray<IncludeEnum> | null
+  readonly "parallel_tool_calls"?: boolean | null
+  readonly "store"?: boolean | null
+  readonly "instructions"?: string | null
+  readonly "stream"?: boolean | null
+  readonly "stream_options"?: ResponseStreamOptions
+  readonly "conversation"?: ConversationParam | null
+  readonly [x: string]: unknown
+}
+export const CreateResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "top_logprobs": Schema.optionalKey(
+      Schema.Number.annotate({
+        "description":
+          "An integer between 0 and 20 specifying the number of most likely tokens to\nreturn at each token position, each with an associated log probability.\n"
+      }).check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0)).check(Schema.isLessThanOrEqualTo(20))
+    ),
+    "input": Schema.optionalKey(InputParam),
+    "include": Schema.optionalKey(Schema.Union([
+      Schema.Array(IncludeEnum).annotate({
+        "description":
+          "Specify additional output data to include in the model response. Currently supported values are:\n- `web_search_call.action.sources`: Include the sources of the web search tool call.\n- `code_interpreter_call.outputs`: Includes the outputs of python code execution in code interpreter tool call items.\n- `computer_call_output.output.image_url`: Include image urls from the computer call output.\n- `file_search_call.results`: Include the search results of the file search tool call.\n- `message.input_image.image_url`: Include image urls from the input message.\n- `message.output_text.logprobs`: Include logprobs with assistant messages.\n- `reasoning.encrypted_content`: Includes an encrypted version of reasoning tokens in reasoning item outputs. This enables reasoning items to be used in multi-turn conversations when using the Responses API statelessly (like when the `store` parameter is set to `false`, or when an organization is enrolled in the zero data retention program)."
+      }),
+      Schema.Null
+    ])),
+    "parallel_tool_calls": Schema.optionalKey(
+      Schema.Union([
+        Schema.Boolean.annotate({
+          "description": "Whether to allow the model to run tool calls in parallel.\n",
+          "default": true
+        }),
+        Schema.Null
+      ])
+    ),
+    "store": Schema.optionalKey(
+      Schema.Union([
+        Schema.Boolean.annotate({
+          "description": "Whether to store the generated model response for later retrieval via\nAPI.\n",
+          "default": true
+        }),
+        Schema.Null
+      ])
+    ),
+    "instructions": Schema.optionalKey(Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "A system (or developer) message inserted into the model's context.\n\nWhen using along with `previous_response_id`, the instructions from a previous\nresponse will not be carried over to the next response. This makes it simple\nto swap out system (or developer) messages in new responses.\n"
+      }),
+      Schema.Null
+    ])),
+    "stream": Schema.optionalKey(Schema.Union([
+      Schema.Boolean.annotate({
+        "description":
+          "If set to true, the model response data will be streamed to the client\nas it is generated using [server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format).\nSee the [Streaming section below](https://platform.openai.com/docs/api-reference/responses-streaming)\nfor more information.\n",
+        "default": false
+      }),
+      Schema.Null
+    ])),
+    "stream_options": Schema.optionalKey(ResponseStreamOptions),
+    "conversation": Schema.optionalKey(Schema.Union([ConversationParam, Schema.Null]))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateResponse" })
+export type CreateEvalRunRequest = {
+  readonly "name"?: string
+  readonly "metadata"?: Metadata
+  readonly "data_source":
+    | CreateEvalJsonlRunDataSource
+    | CreateEvalCompletionsRunDataSource
+    | CreateEvalResponsesRunDataSource
+  readonly [x: string]: unknown
+}
+export const CreateEvalRunRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "name": Schema.optionalKey(Schema.String.annotate({ "description": "The name of the run." })),
+    "metadata": Schema.optionalKey(Metadata),
+    "data_source": Schema.Union([
+      CreateEvalJsonlRunDataSource,
+      CreateEvalCompletionsRunDataSource,
+      CreateEvalResponsesRunDataSource
+    ]).annotate({ "description": "Details about the run's data source." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "title": "CreateEvalRunRequest", "identifier": "CreateEvalRunRequest" })
 export type EvalRun = {
   readonly "object": "eval.run"
   readonly "id": string
@@ -22044,6 +30604,174 @@ export const EvalRun = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "title": "EvalRun", "description": "A schema representing an evaluation run.\n", "identifier": "EvalRun" })
+export type ResponseProperties = {
+  readonly "previous_response_id"?: string | null
+  readonly "model"?:
+    | ModelIdsShared
+    | "o1-pro"
+    | "o1-pro-2025-03-19"
+    | "o3-pro"
+    | "o3-pro-2025-06-10"
+    | "o3-deep-research"
+    | "o3-deep-research-2025-06-26"
+    | "o4-mini-deep-research"
+    | "o4-mini-deep-research-2025-06-26"
+    | "computer-use-preview"
+    | "computer-use-preview-2025-03-11"
+    | "gpt-5-codex"
+    | "gpt-5-pro"
+    | "gpt-5-pro-2025-10-06"
+    | "gpt-5.1-codex-max"
+  readonly "reasoning"?: Reasoning | null
+  readonly "background"?: boolean | null
+  readonly "max_output_tokens"?: number | null
+  readonly "max_tool_calls"?: number | null
+  readonly "text"?: ResponseTextParam
+  readonly "tools"?: ToolsArray
+  readonly "tool_choice"?: ToolChoiceParam
+  readonly "prompt"?: Prompt
+  readonly "truncation"?: "auto" | "disabled" | null
+  readonly [x: string]: unknown
+}
+export const ResponseProperties = Schema.StructWithRest(
+  Schema.Struct({
+    "previous_response_id": Schema.optionalKey(Schema.Union([
+      Schema.String.annotate({
+        "description":
+          "The unique ID of the previous response to the model. Use this to\ncreate multi-turn conversations. Learn more about\n[conversation state](https://platform.openai.com/docs/guides/conversation-state). Cannot be used in conjunction with `conversation`.\n"
+      }),
+      Schema.Null
+    ])),
+    "model": Schema.optionalKey(
+      Schema.Union([
+        ModelIdsShared,
+        Schema.Literals([
+          "o1-pro",
+          "o1-pro-2025-03-19",
+          "o3-pro",
+          "o3-pro-2025-06-10",
+          "o3-deep-research",
+          "o3-deep-research-2025-06-26",
+          "o4-mini-deep-research",
+          "o4-mini-deep-research-2025-06-26",
+          "computer-use-preview",
+          "computer-use-preview-2025-03-11",
+          "gpt-5-codex",
+          "gpt-5-pro",
+          "gpt-5-pro-2025-10-06",
+          "gpt-5.1-codex-max"
+        ]).annotate({ "title": "ResponsesOnlyModel" })
+      ]).annotate({
+        "examples": ["gpt-5.1"],
+        "identifier": "ModelIdsResponses",
+        "description":
+          "Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI\noffers a wide range of models with different capabilities, performance\ncharacteristics, and price points. Refer to the [model guide](https://platform.openai.com/docs/models)\nto browse and compare available models.\n"
+      })
+    ),
+    "reasoning": Schema.optionalKey(Schema.Union([Reasoning, Schema.Null])),
+    "background": Schema.optionalKey(
+      Schema.Union([
+        Schema.Boolean.annotate({
+          "description":
+            "Whether to run the model response in the background.\n[Learn more](https://platform.openai.com/docs/guides/background).\n",
+          "default": false
+        }),
+        Schema.Null
+      ])
+    ),
+    "max_output_tokens": Schema.optionalKey(
+      Schema.Union([
+        Schema.Number.annotate({
+          "description":
+            "An upper bound for the number of tokens that can be generated for a response, including visible output tokens and [reasoning tokens](https://platform.openai.com/docs/guides/reasoning).\n"
+        }).check(Schema.isInt()),
+        Schema.Null
+      ])
+    ),
+    "max_tool_calls": Schema.optionalKey(
+      Schema.Union([
+        Schema.Number.annotate({
+          "description":
+            "The maximum number of total calls to built-in tools that can be processed in a response. This maximum number applies across all built-in tool calls, not per individual tool. Any further attempts to call a tool by the model will be ignored.\n"
+        }).check(Schema.isInt()),
+        Schema.Null
+      ])
+    ),
+    "text": Schema.optionalKey(ResponseTextParam),
+    "tools": Schema.optionalKey(ToolsArray),
+    "tool_choice": Schema.optionalKey(ToolChoiceParam),
+    "prompt": Schema.optionalKey(Prompt),
+    "truncation": Schema.optionalKey(Schema.Union([
+      Schema.Literals(["auto", "disabled"]).annotate({
+        "description":
+          "The truncation strategy to use for the model response.\n- `auto`: If the input to this Response exceeds\n  the model's context window size, the model will truncate the\n  response to fit the context window by dropping items from the beginning of the conversation.\n- `disabled` (default): If the input size will exceed the context window\n  size for a model, the request will fail with a 400 error.\n",
+        "default": "disabled"
+      }),
+      Schema.Null
+    ]))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "ResponseProperties" })
+export type AssistantStreamEvent =
+  | ThreadStreamEvent
+  | RunStreamEvent
+  | RunStepStreamEvent
+  | MessageStreamEvent
+  | ErrorEvent
+export const AssistantStreamEvent = Schema.Union([
+  ThreadStreamEvent,
+  RunStreamEvent,
+  RunStepStreamEvent,
+  MessageStreamEvent,
+  ErrorEvent
+]).annotate({
+  "description":
+    "Represents an event emitted when streaming a Run.\n\nEach event in a server-sent events stream has an `event` and `data` property:\n\n```\nevent: thread.created\ndata: {\"id\": \"thread_123\", \"object\": \"thread\", ...}\n```\n\nWe emit events whenever a new object is created, transitions to a new state, or is being\nstreamed in parts (deltas). For example, we emit `thread.run.created` when a new run\nis created, `thread.run.completed` when a run completes, and so on. When an Assistant chooses\nto create a message during a run, we emit a `thread.message.created event`, a\n`thread.message.in_progress` event, many `thread.message.delta` events, and finally a\n`thread.message.completed` event.\n\nWe may add additional events over time, so we recommend handling unknown events gracefully\nin your code. See the [Assistants API quickstart](https://platform.openai.com/docs/assistants/overview) to learn how to\nintegrate the Assistants API with streaming.\n",
+  "identifier": "AssistantStreamEvent"
+})
+export type CreateEvalRequest = {
+  readonly "name"?: string
+  readonly "metadata"?: Metadata
+  readonly "data_source_config":
+    | CreateEvalCustomDataSourceConfig
+    | CreateEvalLogsDataSourceConfig
+    | CreateEvalStoredCompletionsDataSourceConfig
+  readonly "testing_criteria": ReadonlyArray<
+    | CreateEvalLabelModelGrader
+    | EvalGraderStringCheck
+    | EvalGraderTextSimilarity
+    | EvalGraderPython
+    | EvalGraderScoreModel
+  >
+  readonly [x: string]: unknown
+}
+export const CreateEvalRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "name": Schema.optionalKey(Schema.String.annotate({ "description": "The name of the evaluation." })),
+    "metadata": Schema.optionalKey(Metadata),
+    "data_source_config": Schema.Union([
+      CreateEvalCustomDataSourceConfig,
+      CreateEvalLogsDataSourceConfig,
+      CreateEvalStoredCompletionsDataSourceConfig
+    ]).annotate({
+      "description":
+        "The configuration for the data source used for the evaluation runs. Dictates the schema of the data used in the evaluation."
+    }),
+    "testing_criteria": Schema.Array(
+      Schema.Union([
+        CreateEvalLabelModelGrader,
+        EvalGraderStringCheck,
+        EvalGraderTextSimilarity,
+        EvalGraderPython,
+        EvalGraderScoreModel
+      ])
+    ).annotate({
+      "description":
+        "A list of graders for all eval runs in this group. Graders can reference variables in the data source using double curly braces notation, like `{{item.variable_name}}`. To reference the model's output, use the `sample` namespace (ie, `{{sample.output_text}}`)."
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "title": "CreateEvalRequest", "identifier": "CreateEvalRequest" })
 export type FineTuneReinforcementMethod = {
   readonly "grader": GraderStringCheck | GraderTextSimilarity | GraderPython | GraderScoreModel | GraderMulti
   readonly "hyperparameters"?: FineTuneReinforcementHyperparameters
@@ -22060,6 +30788,163 @@ export const FineTuneReinforcementMethod = Schema.StructWithRest(
   "description": "Configuration for the reinforcement fine-tuning method.",
   "identifier": "FineTuneReinforcementMethod"
 })
+export type RunGraderRequest = {
+  readonly "grader": GraderStringCheck | GraderTextSimilarity | GraderPython | GraderScoreModel | GraderMulti
+  readonly "item"?: { readonly [x: string]: unknown }
+  readonly "model_sample": string
+  readonly [x: string]: unknown
+}
+export const RunGraderRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "grader": Schema.Union([GraderStringCheck, GraderTextSimilarity, GraderPython, GraderScoreModel, GraderMulti])
+      .annotate({ "description": "The grader used for the fine-tuning job." }),
+    "item": Schema.optionalKey(
+      Schema.Record(Schema.String, Schema.Unknown).annotate({
+        "description":
+          "The dataset item provided to the grader. This will be used to populate \nthe `item` namespace. See [the guide](https://platform.openai.com/docs/guides/graders) for more details. \n"
+      })
+    ),
+    "model_sample": Schema.String.annotate({
+      "description":
+        "The model sample to be evaluated. This value will be used to populate \nthe `sample` namespace. See [the guide](https://platform.openai.com/docs/guides/graders) for more details.\nThe `output_json` variable will be populated if the model sample is a \nvalid JSON string.\n \n"
+    })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "title": "RunGraderRequest", "identifier": "RunGraderRequest" })
+export type ValidateGraderRequest = {
+  readonly "grader": GraderStringCheck | GraderTextSimilarity | GraderPython | GraderScoreModel | GraderMulti
+  readonly [x: string]: unknown
+}
+export const ValidateGraderRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "grader": Schema.Union([GraderStringCheck, GraderTextSimilarity, GraderPython, GraderScoreModel, GraderMulti])
+      .annotate({ "description": "The grader used for the fine-tuning job." })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "title": "ValidateGraderRequest", "identifier": "ValidateGraderRequest" })
+export type ValidateGraderResponse = {
+  readonly "grader"?: GraderStringCheck | GraderTextSimilarity | GraderPython | GraderScoreModel | GraderMulti
+  readonly [x: string]: unknown
+}
+export const ValidateGraderResponse = Schema.StructWithRest(
+  Schema.Struct({
+    "grader": Schema.optionalKey(
+      Schema.Union([GraderStringCheck, GraderTextSimilarity, GraderPython, GraderScoreModel, GraderMulti]).annotate({
+        "description": "The grader used for the fine-tuning job."
+      })
+    )
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "title": "ValidateGraderResponse", "identifier": "ValidateGraderResponse" })
+export type ResponseStreamEvent =
+  | ResponseAudioDeltaEvent
+  | ResponseAudioDoneEvent
+  | ResponseAudioTranscriptDeltaEvent
+  | ResponseAudioTranscriptDoneEvent
+  | ResponseCodeInterpreterCallCodeDeltaEvent
+  | ResponseCodeInterpreterCallCodeDoneEvent
+  | ResponseCodeInterpreterCallCompletedEvent
+  | ResponseCodeInterpreterCallInProgressEvent
+  | ResponseCodeInterpreterCallInterpretingEvent
+  | ResponseCompletedEvent
+  | ResponseContentPartAddedEvent
+  | ResponseContentPartDoneEvent
+  | ResponseCreatedEvent
+  | ResponseErrorEvent
+  | ResponseFileSearchCallCompletedEvent
+  | ResponseFileSearchCallInProgressEvent
+  | ResponseFileSearchCallSearchingEvent
+  | ResponseFunctionCallArgumentsDeltaEvent
+  | ResponseFunctionCallArgumentsDoneEvent
+  | ResponseInProgressEvent
+  | ResponseFailedEvent
+  | ResponseIncompleteEvent
+  | ResponseOutputItemAddedEvent
+  | ResponseOutputItemDoneEvent
+  | ResponseReasoningSummaryPartAddedEvent
+  | ResponseReasoningSummaryPartDoneEvent
+  | ResponseReasoningSummaryTextDeltaEvent
+  | ResponseReasoningSummaryTextDoneEvent
+  | ResponseReasoningTextDeltaEvent
+  | ResponseReasoningTextDoneEvent
+  | ResponseRefusalDeltaEvent
+  | ResponseRefusalDoneEvent
+  | ResponseTextDeltaEvent
+  | ResponseTextDoneEvent
+  | ResponseWebSearchCallCompletedEvent
+  | ResponseWebSearchCallInProgressEvent
+  | ResponseWebSearchCallSearchingEvent
+  | ResponseImageGenCallCompletedEvent
+  | ResponseImageGenCallGeneratingEvent
+  | ResponseImageGenCallInProgressEvent
+  | ResponseImageGenCallPartialImageEvent
+  | ResponseMCPCallArgumentsDeltaEvent
+  | ResponseMCPCallArgumentsDoneEvent
+  | ResponseMCPCallCompletedEvent
+  | ResponseMCPCallFailedEvent
+  | ResponseMCPCallInProgressEvent
+  | ResponseMCPListToolsCompletedEvent
+  | ResponseMCPListToolsFailedEvent
+  | ResponseMCPListToolsInProgressEvent
+  | ResponseOutputTextAnnotationAddedEvent
+  | ResponseQueuedEvent
+  | ResponseCustomToolCallInputDeltaEvent
+  | ResponseCustomToolCallInputDoneEvent
+export const ResponseStreamEvent = Schema.Union([
+  ResponseAudioDeltaEvent,
+  ResponseAudioDoneEvent,
+  ResponseAudioTranscriptDeltaEvent,
+  ResponseAudioTranscriptDoneEvent,
+  ResponseCodeInterpreterCallCodeDeltaEvent,
+  ResponseCodeInterpreterCallCodeDoneEvent,
+  ResponseCodeInterpreterCallCompletedEvent,
+  ResponseCodeInterpreterCallInProgressEvent,
+  ResponseCodeInterpreterCallInterpretingEvent,
+  ResponseCompletedEvent,
+  ResponseContentPartAddedEvent,
+  ResponseContentPartDoneEvent,
+  ResponseCreatedEvent,
+  ResponseErrorEvent,
+  ResponseFileSearchCallCompletedEvent,
+  ResponseFileSearchCallInProgressEvent,
+  ResponseFileSearchCallSearchingEvent,
+  ResponseFunctionCallArgumentsDeltaEvent,
+  ResponseFunctionCallArgumentsDoneEvent,
+  ResponseInProgressEvent,
+  ResponseFailedEvent,
+  ResponseIncompleteEvent,
+  ResponseOutputItemAddedEvent,
+  ResponseOutputItemDoneEvent,
+  ResponseReasoningSummaryPartAddedEvent,
+  ResponseReasoningSummaryPartDoneEvent,
+  ResponseReasoningSummaryTextDeltaEvent,
+  ResponseReasoningSummaryTextDoneEvent,
+  ResponseReasoningTextDeltaEvent,
+  ResponseReasoningTextDoneEvent,
+  ResponseRefusalDeltaEvent,
+  ResponseRefusalDoneEvent,
+  ResponseTextDeltaEvent,
+  ResponseTextDoneEvent,
+  ResponseWebSearchCallCompletedEvent,
+  ResponseWebSearchCallInProgressEvent,
+  ResponseWebSearchCallSearchingEvent,
+  ResponseImageGenCallCompletedEvent,
+  ResponseImageGenCallGeneratingEvent,
+  ResponseImageGenCallInProgressEvent,
+  ResponseImageGenCallPartialImageEvent,
+  ResponseMCPCallArgumentsDeltaEvent,
+  ResponseMCPCallArgumentsDoneEvent,
+  ResponseMCPCallCompletedEvent,
+  ResponseMCPCallFailedEvent,
+  ResponseMCPCallInProgressEvent,
+  ResponseMCPListToolsCompletedEvent,
+  ResponseMCPListToolsFailedEvent,
+  ResponseMCPListToolsInProgressEvent,
+  ResponseOutputTextAnnotationAddedEvent,
+  ResponseQueuedEvent,
+  ResponseCustomToolCallInputDeltaEvent,
+  ResponseCustomToolCallInputDoneEvent
+]).annotate({ "identifier": "ResponseStreamEvent" })
 export type EvalRunList = {
   readonly "object": "list"
   readonly "data": ReadonlyArray<EvalRun>
@@ -22103,6 +30988,112 @@ export const FineTuneMethod = Schema.StructWithRest(
   }),
   [Schema.Record(Schema.String, Schema.Unknown)]
 ).annotate({ "description": "The method used for fine-tuning.", "identifier": "FineTuneMethod" })
+export type CreateFineTuningJobRequest = {
+  readonly "model": string | "babbage-002" | "davinci-002" | "gpt-3.5-turbo" | "gpt-4o-mini"
+  readonly "training_file": string
+  readonly "hyperparameters"?: {
+    readonly "batch_size"?: "auto" | number
+    readonly "learning_rate_multiplier"?: "auto" | number
+    readonly "n_epochs"?: "auto" | number
+    readonly [x: string]: unknown
+  }
+  readonly "suffix"?: string | null
+  readonly "validation_file"?: string | null
+  readonly "integrations"?: ReadonlyArray<unknown> | null
+  readonly "seed"?: number | null
+  readonly "method"?: FineTuneMethod
+  readonly "metadata"?: Metadata
+  readonly [x: string]: unknown
+}
+export const CreateFineTuningJobRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "model": Schema.Union([
+      Schema.String,
+      Schema.Literals(["babbage-002", "davinci-002", "gpt-3.5-turbo", "gpt-4o-mini"]).annotate({ "title": "Preset" })
+    ]).annotate({
+      "description":
+        "The name of the model to fine-tune. You can select one of the\n[supported models](https://platform.openai.com/docs/guides/fine-tuning#which-models-can-be-fine-tuned).\n",
+      "examples": ["gpt-4o-mini"]
+    }),
+    "training_file": Schema.String.annotate({
+      "description":
+        "The ID of an uploaded file that contains training data.\n\nSee [upload file](https://platform.openai.com/docs/api-reference/files/create) for how to upload a file.\n\nYour dataset must be formatted as a JSONL file. Additionally, you must upload your file with the purpose `fine-tune`.\n\nThe contents of the file should differ depending on if the model uses the [chat](https://platform.openai.com/docs/api-reference/fine-tuning/chat-input), [completions](https://platform.openai.com/docs/api-reference/fine-tuning/completions-input) format, or if the fine-tuning method uses the [preference](https://platform.openai.com/docs/api-reference/fine-tuning/preference-input) format.\n\nSee the [fine-tuning guide](https://platform.openai.com/docs/guides/model-optimization) for more details.\n",
+      "examples": ["file-abc123"]
+    }),
+    "hyperparameters": Schema.optionalKey(
+      Schema.StructWithRest(
+        Schema.Struct({
+          "batch_size": Schema.optionalKey(
+            Schema.Union([
+              Schema.Literal("auto").annotate({ "title": "Auto" }),
+              Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)).check(
+                Schema.isLessThanOrEqualTo(256)
+              )
+            ]).annotate({
+              "description":
+                "Number of examples in each batch. A larger batch size means that model parameters\nare updated less frequently, but with lower variance.\n",
+              "default": "auto"
+            })
+          ),
+          "learning_rate_multiplier": Schema.optionalKey(
+            Schema.Union([
+              Schema.Literal("auto").annotate({ "title": "Auto" }),
+              Schema.Number.check(Schema.isFinite()).check(Schema.isGreaterThan(0))
+            ]).annotate({
+              "description":
+                "Scaling factor for the learning rate. A smaller learning rate may be useful to avoid\noverfitting.\n"
+            })
+          ),
+          "n_epochs": Schema.optionalKey(
+            Schema.Union([
+              Schema.Literal("auto").annotate({ "title": "Auto" }),
+              Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(1)).check(
+                Schema.isLessThanOrEqualTo(50)
+              )
+            ]).annotate({
+              "description":
+                "The number of epochs to train the model for. An epoch refers to one full cycle\nthrough the training dataset.\n",
+              "default": "auto"
+            })
+          )
+        }),
+        [Schema.Record(Schema.String, Schema.Unknown)]
+      ).annotate({
+        "description":
+          "The hyperparameters used for the fine-tuning job.\nThis value is now deprecated in favor of `method`, and should be passed in under the `method` parameter.\n"
+      })
+    ),
+    "suffix": Schema.optionalKey(
+      Schema.Union([Schema.String, Schema.Null]).annotate({
+        "description":
+          "A string of up to 64 characters that will be added to your fine-tuned model name.\n\nFor example, a `suffix` of \"custom-model-name\" would produce a model name like `ft:gpt-4o-mini:openai:custom-model-name:7p4lURel`.\n",
+        "default": null
+      })
+    ),
+    "validation_file": Schema.optionalKey(
+      Schema.Union([Schema.String, Schema.Null]).annotate({
+        "description":
+          "The ID of an uploaded file that contains validation data.\n\nIf you provide this file, the data is used to generate validation\nmetrics periodically during fine-tuning. These metrics can be viewed in\nthe fine-tuning results file.\nThe same data should not be present in both train and validation files.\n\nYour dataset must be formatted as a JSONL file. You must upload your file with the purpose `fine-tune`.\n\nSee the [fine-tuning guide](https://platform.openai.com/docs/guides/model-optimization) for more details.\n",
+        "examples": ["file-abc123"]
+      })
+    ),
+    "integrations": Schema.optionalKey(
+      Schema.Union([Schema.Array(Schema.Unknown), Schema.Null]).annotate({
+        "description": "A list of integrations to enable for your fine-tuning job."
+      })
+    ),
+    "seed": Schema.optionalKey(
+      Schema.Union([Schema.Number.check(Schema.isInt()), Schema.Null]).annotate({
+        "description":
+          "The seed controls the reproducibility of the job. Passing in the same seed and job parameters should produce the same results, but may differ in rare cases.\nIf a seed is not specified, one will be generated for you.\n",
+        "examples": [42]
+      })
+    ),
+    "method": Schema.optionalKey(FineTuneMethod),
+    "metadata": Schema.optionalKey(Metadata)
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+).annotate({ "identifier": "CreateFineTuningJobRequest" })
 export type FineTuningJob = {
   readonly "id": string
   readonly "created_at": number
@@ -22303,28 +31294,64 @@ export const ListAssistantsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "before": Schema.optionalKey(Schema.String)
 })
-export type ListAssistants200 = ListAssistantsResponse
-export const ListAssistants200 = ListAssistantsResponse
-export type GetAssistant200 = AssistantObject
-export const GetAssistant200 = AssistantObject
+export type CreateTranscription200 =
+  | CreateTranscriptionResponseJson
+  | CreateTranscriptionResponseDiarizedJson
+  | CreateTranscriptionResponseVerboseJson
+export const CreateTranscription200 = Schema.Union([
+  CreateTranscriptionResponseJson,
+  CreateTranscriptionResponseDiarizedJson,
+  CreateTranscriptionResponseVerboseJson
+])
+export type CreateTranslation200 = CreateTranslationResponseJson | CreateTranslationResponseVerboseJson
+export const CreateTranslation200 = Schema.Union([CreateTranslationResponseJson, CreateTranslationResponseVerboseJson])
 export type ListVoiceConsentsParams = { readonly "after"?: string; readonly "limit"?: number }
 export const ListVoiceConsentsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 20 }).check(Schema.isInt()))
 })
-export type ListVoiceConsents200 = VoiceConsentListResource
-export const ListVoiceConsents200 = VoiceConsentListResource
-export type GetVoiceConsent200 = VoiceConsentResource
-export const GetVoiceConsent200 = VoiceConsentResource
 export type ListBatchesParams = { readonly "after"?: string; readonly "limit"?: number }
 export const ListBatchesParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 20 }).check(Schema.isInt()))
 })
-export type ListBatches200 = ListBatchesResponse
-export const ListBatches200 = ListBatchesResponse
-export type RetrieveBatch200 = Batch
-export const RetrieveBatch200 = Batch
+export type CreateBatchRequest = {
+  readonly "input_file_id": string
+  readonly "endpoint":
+    | "/v1/responses"
+    | "/v1/chat/completions"
+    | "/v1/embeddings"
+    | "/v1/completions"
+    | "/v1/moderations"
+  readonly "completion_window": "24h"
+  readonly "metadata"?: Metadata
+  readonly "output_expires_after"?: BatchFileExpirationAfter
+  readonly [x: string]: unknown
+}
+export const CreateBatchRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "input_file_id": Schema.String.annotate({
+      "description":
+        "The ID of an uploaded file that contains requests for the new batch.\n\nSee [upload file](https://platform.openai.com/docs/api-reference/files/create) for how to upload a file.\n\nYour input file must be formatted as a [JSONL file](https://platform.openai.com/docs/api-reference/batch/request-input), and must be uploaded with the purpose `batch`. The file can contain up to 50,000 requests, and can be up to 200 MB in size.\n"
+    }),
+    "endpoint": Schema.Literals([
+      "/v1/responses",
+      "/v1/chat/completions",
+      "/v1/embeddings",
+      "/v1/completions",
+      "/v1/moderations"
+    ]).annotate({
+      "description":
+        "The endpoint to be used for all requests in the batch. Currently `/v1/responses`, `/v1/chat/completions`, `/v1/embeddings`, `/v1/completions`, and `/v1/moderations` are supported. Note that `/v1/embeddings` batches are also restricted to a maximum of 50,000 embedding inputs across all requests in the batch."
+    }),
+    "completion_window": Schema.Literal("24h").annotate({
+      "description": "The time frame within which the batch should be processed. Currently only `24h` is supported."
+    }),
+    "metadata": Schema.optionalKey(Metadata),
+    "output_expires_after": Schema.optionalKey(BatchFileExpirationAfter)
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+)
 export type ListChatCompletionsParams = {
   readonly "model"?: string
   readonly "metadata"?: Metadata
@@ -22339,10 +31366,10 @@ export const ListChatCompletionsParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 20 }).check(Schema.isInt())),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "asc" }))
 })
-export type ListChatCompletions200 = ChatCompletionList
-export const ListChatCompletions200 = ChatCompletionList
-export type GetChatCompletion200 = CreateChatCompletionResponse
-export const GetChatCompletion200 = CreateChatCompletionResponse
+export type UpdateChatCompletionRequest = { readonly "metadata": Metadata; readonly [x: string]: unknown }
+export const UpdateChatCompletionRequest = Schema.StructWithRest(Schema.Struct({ "metadata": Metadata }), [
+  Schema.Record(Schema.String, Schema.Unknown)
+])
 export type GetChatCompletionMessagesParams = {
   readonly "after"?: string
   readonly "limit"?: number
@@ -22353,8 +31380,6 @@ export const GetChatCompletionMessagesParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 20 }).check(Schema.isInt())),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "asc" }))
 })
-export type GetChatCompletionMessages200 = ChatCompletionMessageList
-export const GetChatCompletionMessages200 = ChatCompletionMessageList
 export type ListContainersParams = {
   readonly "limit"?: number
   readonly "order"?: "asc" | "desc"
@@ -22365,10 +31390,6 @@ export const ListContainersParams = Schema.Struct({
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "desc" })),
   "after": Schema.optionalKey(Schema.String)
 })
-export type ListContainers200 = ContainerListResource
-export const ListContainers200 = ContainerListResource
-export type RetrieveContainer200 = ContainerResource
-export const RetrieveContainer200 = ContainerResource
 export type ListContainerFilesParams = {
   readonly "limit"?: number
   readonly "order"?: "asc" | "desc"
@@ -22379,10 +31400,6 @@ export const ListContainerFilesParams = Schema.Struct({
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "desc" })),
   "after": Schema.optionalKey(Schema.String)
 })
-export type ListContainerFiles200 = ContainerFileListResource
-export const ListContainerFiles200 = ContainerFileListResource
-export type RetrieveContainerFile200 = ContainerFileResource
-export const RetrieveContainerFile200 = ContainerFileResource
 export type ListConversationItemsParams = {
   readonly "limit"?: number
   readonly "order"?: "asc" | "desc"
@@ -22395,12 +31412,22 @@ export const ListConversationItemsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "include": Schema.optionalKey(Schema.Array(IncludeEnum))
 })
-export type ListConversationItems200 = ConversationItemList
-export const ListConversationItems200 = ConversationItemList
+export type CreateConversationItemsParams = { readonly "include"?: ReadonlyArray<IncludeEnum> }
+export const CreateConversationItemsParams = Schema.Struct({ "include": Schema.optionalKey(Schema.Array(IncludeEnum)) })
+export type CreateConversationItemsRequest = {
+  readonly "items": ReadonlyArray<InputItem>
+  readonly [x: string]: unknown
+}
+export const CreateConversationItemsRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "items": Schema.Array(InputItem).annotate({
+      "description": "The items to add to the conversation. You may add up to 20 items at a time.\n"
+    }).check(Schema.isMaxLength(20))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+)
 export type GetConversationItemParams = { readonly "include"?: ReadonlyArray<IncludeEnum> }
 export const GetConversationItemParams = Schema.Struct({ "include": Schema.optionalKey(Schema.Array(IncludeEnum)) })
-export type GetConversationItem200 = ConversationItem
-export const GetConversationItem200 = ConversationItem
 export type ListEvalsParams = {
   readonly "after"?: string
   readonly "limit"?: number
@@ -22413,10 +31440,32 @@ export const ListEvalsParams = Schema.Struct({
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "asc" })),
   "order_by": Schema.optionalKey(Schema.Literals(["created_at", "updated_at"]).annotate({ "default": "created_at" }))
 })
-export type ListEvals200 = EvalList
-export const ListEvals200 = EvalList
-export type GetEval200 = Eval
-export const GetEval200 = Eval
+export type UpdateEvalRequest = {
+  readonly "name"?: string
+  readonly "metadata"?: Metadata
+  readonly [x: string]: unknown
+}
+export const UpdateEvalRequest = Schema.StructWithRest(
+  Schema.Struct({
+    "name": Schema.optionalKey(Schema.String.annotate({ "description": "Rename the evaluation." })),
+    "metadata": Schema.optionalKey(Metadata)
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+)
+export type DeleteEval200 = {
+  readonly "object": string
+  readonly "deleted": boolean
+  readonly "eval_id": string
+  readonly [x: string]: unknown
+}
+export const DeleteEval200 = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.String.annotate({ "examples": ["eval.deleted"] }),
+    "deleted": Schema.Boolean.annotate({ "examples": [true] }),
+    "eval_id": Schema.String.annotate({ "examples": ["eval_abc123"] })
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+)
 export type GetEvalRunsParams = {
   readonly "after"?: string
   readonly "limit"?: number
@@ -22429,10 +31478,20 @@ export const GetEvalRunsParams = Schema.Struct({
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "asc" })),
   "status": Schema.optionalKey(Schema.Literals(["queued", "in_progress", "completed", "canceled", "failed"]))
 })
-export type GetEvalRuns200 = EvalRunList
-export const GetEvalRuns200 = EvalRunList
-export type GetEvalRun200 = EvalRun
-export const GetEvalRun200 = EvalRun
+export type DeleteEvalRun200 = {
+  readonly "object"?: string
+  readonly "deleted"?: boolean
+  readonly "run_id"?: string
+  readonly [x: string]: unknown
+}
+export const DeleteEvalRun200 = Schema.StructWithRest(
+  Schema.Struct({
+    "object": Schema.optionalKey(Schema.String.annotate({ "examples": ["eval.run.deleted"] })),
+    "deleted": Schema.optionalKey(Schema.Boolean.annotate({ "examples": [true] })),
+    "run_id": Schema.optionalKey(Schema.String.annotate({ "examples": ["evalrun_677469f564d48190807532a852da3afb"] }))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+)
 export type GetEvalRunOutputItemsParams = {
   readonly "after"?: string
   readonly "limit"?: number
@@ -22445,10 +31504,6 @@ export const GetEvalRunOutputItemsParams = Schema.Struct({
   "status": Schema.optionalKey(Schema.Literals(["fail", "pass"])),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "asc" }))
 })
-export type GetEvalRunOutputItems200 = EvalRunOutputItemList
-export const GetEvalRunOutputItems200 = EvalRunOutputItemList
-export type GetEvalRunOutputItem200 = EvalRunOutputItem
-export const GetEvalRunOutputItem200 = EvalRunOutputItem
 export type ListFilesParams = {
   readonly "purpose"?: string
   readonly "limit"?: number
@@ -22461,10 +31516,6 @@ export const ListFilesParams = Schema.Struct({
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "desc" })),
   "after": Schema.optionalKey(Schema.String)
 })
-export type ListFiles200 = ListFilesResponse
-export const ListFiles200 = ListFilesResponse
-export type RetrieveFile200 = OpenAIFile
-export const RetrieveFile200 = OpenAIFile
 export type DownloadFile200 = string
 export const DownloadFile200 = Schema.String
 export type ListFineTuningCheckpointPermissionsParams = {
@@ -22479,8 +31530,6 @@ export const ListFineTuningCheckpointPermissionsParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 10 }).check(Schema.isInt())),
   "order": Schema.optionalKey(Schema.Literals(["ascending", "descending"]).annotate({ "default": "descending" }))
 })
-export type ListFineTuningCheckpointPermissions200 = ListFineTuningCheckpointPermissionResponse
-export const ListFineTuningCheckpointPermissions200 = ListFineTuningCheckpointPermissionResponse
 export type ListPaginatedFineTuningJobsParams = {
   readonly "after"?: string
   readonly "limit"?: number
@@ -22491,28 +31540,16 @@ export const ListPaginatedFineTuningJobsParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 20 }).check(Schema.isInt())),
   "metadata": Schema.optionalKey(Schema.Union([Schema.Record(Schema.String, Schema.Unknown), Schema.Null]))
 })
-export type ListPaginatedFineTuningJobs200 = ListPaginatedFineTuningJobsResponse
-export const ListPaginatedFineTuningJobs200 = ListPaginatedFineTuningJobsResponse
-export type RetrieveFineTuningJob200 = FineTuningJob
-export const RetrieveFineTuningJob200 = FineTuningJob
 export type ListFineTuningJobCheckpointsParams = { readonly "after"?: string; readonly "limit"?: number }
 export const ListFineTuningJobCheckpointsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 10 }).check(Schema.isInt()))
 })
-export type ListFineTuningJobCheckpoints200 = ListFineTuningJobCheckpointsResponse
-export const ListFineTuningJobCheckpoints200 = ListFineTuningJobCheckpointsResponse
 export type ListFineTuningEventsParams = { readonly "after"?: string; readonly "limit"?: number }
 export const ListFineTuningEventsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 20 }).check(Schema.isInt()))
 })
-export type ListFineTuningEvents200 = ListFineTuningJobEventsResponse
-export const ListFineTuningEvents200 = ListFineTuningJobEventsResponse
-export type ListModels200 = ListModelsResponse
-export const ListModels200 = ListModelsResponse
-export type RetrieveModel200 = Model
-export const RetrieveModel200 = Model
 export type AdminApiKeysListParams = {
   readonly "after"?: string | null
   readonly "order"?: "asc" | "desc"
@@ -22534,10 +31571,25 @@ export const AdminApiKeysListParams = Schema.Struct({
     Schema.Number.annotate({ "description": "Maximum number of keys to return.", "default": 20 }).check(Schema.isInt())
   )
 })
-export type AdminApiKeysList200 = ApiKeyList
-export const AdminApiKeysList200 = ApiKeyList
-export type AdminApiKeysGet200 = AdminApiKey
-export const AdminApiKeysGet200 = AdminApiKey
+export type AdminApiKeysCreateRequest = { readonly "name": string; readonly [x: string]: unknown }
+export const AdminApiKeysCreateRequest = Schema.StructWithRest(
+  Schema.Struct({ "name": Schema.String.annotate({ "examples": ["New Admin Key"] }) }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+)
+export type AdminApiKeysDelete200 = {
+  readonly "id"?: string
+  readonly "object"?: string
+  readonly "deleted"?: boolean
+  readonly [x: string]: unknown
+}
+export const AdminApiKeysDelete200 = Schema.StructWithRest(
+  Schema.Struct({
+    "id": Schema.optionalKey(Schema.String.annotate({ "examples": ["key_abc"] })),
+    "object": Schema.optionalKey(Schema.String.annotate({ "examples": ["organization.admin_api_key.deleted"] })),
+    "deleted": Schema.optionalKey(Schema.Boolean.annotate({ "examples": [true] }))
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)]
+)
 export type ListAuditLogsParams = {
   readonly "effective_at[gt]"?: number
   readonly "effective_at[gte]"?: number
@@ -22582,8 +31634,6 @@ export const ListAuditLogsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "before": Schema.optionalKey(Schema.String)
 })
-export type ListAuditLogs200 = ListAuditLogsResponse
-export const ListAuditLogs200 = ListAuditLogsResponse
 export type ListOrganizationCertificatesParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -22594,14 +31644,10 @@ export const ListOrganizationCertificatesParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "desc" }))
 })
-export type ListOrganizationCertificates200 = ListCertificatesResponse
-export const ListOrganizationCertificates200 = ListCertificatesResponse
 export type GetCertificateParams = { readonly "include"?: ReadonlyArray<"content"> }
 export const GetCertificateParams = Schema.Struct({
   "include": Schema.optionalKey(Schema.Array(Schema.Literal("content")))
 })
-export type GetCertificate200 = Certificate
-export const GetCertificate200 = Certificate
 export type UsageCostsParams = {
   readonly "start_time": number
   readonly "end_time"?: number
@@ -22620,8 +31666,6 @@ export const UsageCostsParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 7 }).check(Schema.isInt())),
   "page": Schema.optionalKey(Schema.String)
 })
-export type UsageCosts200 = UsageResponse
-export const UsageCosts200 = UsageResponse
 export type ListGroupsParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -22636,8 +31680,6 @@ export const ListGroupsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "asc" }))
 })
-export type ListGroups200 = GroupListResource
-export const ListGroups200 = GroupListResource
 export type ListGroupRoleAssignmentsParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -22650,8 +31692,6 @@ export const ListGroupRoleAssignmentsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]))
 })
-export type ListGroupRoleAssignments200 = RoleListResource
-export const ListGroupRoleAssignments200 = RoleListResource
 export type ListGroupUsersParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -22666,17 +31706,11 @@ export const ListGroupUsersParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "desc" }))
 })
-export type ListGroupUsers200 = UserListResource
-export const ListGroupUsers200 = UserListResource
 export type ListInvitesParams = { readonly "limit"?: number; readonly "after"?: string }
 export const ListInvitesParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 20 }).check(Schema.isInt())),
   "after": Schema.optionalKey(Schema.String)
 })
-export type ListInvites200 = InviteListResponse
-export const ListInvites200 = InviteListResponse
-export type RetrieveInvite200 = Invite
-export const RetrieveInvite200 = Invite
 export type ListProjectsParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -22687,19 +31721,11 @@ export const ListProjectsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "include_archived": Schema.optionalKey(Schema.Boolean.annotate({ "default": false }))
 })
-export type ListProjects200 = ProjectListResponse
-export const ListProjects200 = ProjectListResponse
-export type RetrieveProject200 = Project
-export const RetrieveProject200 = Project
 export type ListProjectApiKeysParams = { readonly "limit"?: number; readonly "after"?: string }
 export const ListProjectApiKeysParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 20 }).check(Schema.isInt())),
   "after": Schema.optionalKey(Schema.String)
 })
-export type ListProjectApiKeys200 = ProjectApiKeyListResponse
-export const ListProjectApiKeys200 = ProjectApiKeyListResponse
-export type RetrieveProjectApiKey200 = ProjectApiKey
-export const RetrieveProjectApiKey200 = ProjectApiKey
 export type ListProjectCertificatesParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -22710,8 +31736,6 @@ export const ListProjectCertificatesParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "desc" }))
 })
-export type ListProjectCertificates200 = ListCertificatesResponse
-export const ListProjectCertificates200 = ListCertificatesResponse
 export type ListProjectGroupsParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -22726,8 +31750,6 @@ export const ListProjectGroupsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "asc" }))
 })
-export type ListProjectGroups200 = ProjectGroupListResource
-export const ListProjectGroups200 = ProjectGroupListResource
 export type ListProjectRateLimitsParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -22738,30 +31760,16 @@ export const ListProjectRateLimitsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "before": Schema.optionalKey(Schema.String)
 })
-export type ListProjectRateLimits200 = ProjectRateLimitListResponse
-export const ListProjectRateLimits200 = ProjectRateLimitListResponse
 export type ListProjectServiceAccountsParams = { readonly "limit"?: number; readonly "after"?: string }
 export const ListProjectServiceAccountsParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 20 }).check(Schema.isInt())),
   "after": Schema.optionalKey(Schema.String)
 })
-export type ListProjectServiceAccounts200 = ProjectServiceAccountListResponse
-export const ListProjectServiceAccounts200 = ProjectServiceAccountListResponse
-export type ListProjectServiceAccounts400 = ErrorResponse
-export const ListProjectServiceAccounts400 = ErrorResponse
-export type RetrieveProjectServiceAccount200 = ProjectServiceAccount
-export const RetrieveProjectServiceAccount200 = ProjectServiceAccount
 export type ListProjectUsersParams = { readonly "limit"?: number; readonly "after"?: string }
 export const ListProjectUsersParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.annotate({ "default": 20 }).check(Schema.isInt())),
   "after": Schema.optionalKey(Schema.String)
 })
-export type ListProjectUsers200 = ProjectUserListResponse
-export const ListProjectUsers200 = ProjectUserListResponse
-export type ListProjectUsers400 = ErrorResponse
-export const ListProjectUsers400 = ErrorResponse
-export type RetrieveProjectUser200 = ProjectUser
-export const RetrieveProjectUser200 = ProjectUser
 export type ListRolesParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -22776,8 +31784,6 @@ export const ListRolesParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "asc" }))
 })
-export type ListRoles200 = PublicRoleListResource
-export const ListRoles200 = PublicRoleListResource
 export type UsageAudioSpeechesParams = {
   readonly "start_time": number
   readonly "end_time"?: number
@@ -22802,8 +31808,6 @@ export const UsageAudioSpeechesParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.check(Schema.isInt())),
   "page": Schema.optionalKey(Schema.String)
 })
-export type UsageAudioSpeeches200 = UsageResponse
-export const UsageAudioSpeeches200 = UsageResponse
 export type UsageAudioTranscriptionsParams = {
   readonly "start_time": number
   readonly "end_time"?: number
@@ -22828,8 +31832,6 @@ export const UsageAudioTranscriptionsParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.check(Schema.isInt())),
   "page": Schema.optionalKey(Schema.String)
 })
-export type UsageAudioTranscriptions200 = UsageResponse
-export const UsageAudioTranscriptions200 = UsageResponse
 export type UsageCodeInterpreterSessionsParams = {
   readonly "start_time": number
   readonly "end_time"?: number
@@ -22848,8 +31850,6 @@ export const UsageCodeInterpreterSessionsParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.check(Schema.isInt())),
   "page": Schema.optionalKey(Schema.String)
 })
-export type UsageCodeInterpreterSessions200 = UsageResponse
-export const UsageCodeInterpreterSessions200 = UsageResponse
 export type UsageCompletionsParams = {
   readonly "start_time": number
   readonly "end_time"?: number
@@ -22878,8 +31878,6 @@ export const UsageCompletionsParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.check(Schema.isInt())),
   "page": Schema.optionalKey(Schema.String)
 })
-export type UsageCompletions200 = UsageResponse
-export const UsageCompletions200 = UsageResponse
 export type UsageEmbeddingsParams = {
   readonly "start_time": number
   readonly "end_time"?: number
@@ -22904,8 +31902,6 @@ export const UsageEmbeddingsParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.check(Schema.isInt())),
   "page": Schema.optionalKey(Schema.String)
 })
-export type UsageEmbeddings200 = UsageResponse
-export const UsageEmbeddings200 = UsageResponse
 export type UsageImagesParams = {
   readonly "start_time": number
   readonly "end_time"?: number
@@ -22938,8 +31934,6 @@ export const UsageImagesParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.check(Schema.isInt())),
   "page": Schema.optionalKey(Schema.String)
 })
-export type UsageImages200 = UsageResponse
-export const UsageImages200 = UsageResponse
 export type UsageModerationsParams = {
   readonly "start_time": number
   readonly "end_time"?: number
@@ -22964,8 +31958,6 @@ export const UsageModerationsParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.check(Schema.isInt())),
   "page": Schema.optionalKey(Schema.String)
 })
-export type UsageModerations200 = UsageResponse
-export const UsageModerations200 = UsageResponse
 export type UsageVectorStoresParams = {
   readonly "start_time": number
   readonly "end_time"?: number
@@ -22984,8 +31976,6 @@ export const UsageVectorStoresParams = Schema.Struct({
   "limit": Schema.optionalKey(Schema.Number.check(Schema.isInt())),
   "page": Schema.optionalKey(Schema.String)
 })
-export type UsageVectorStores200 = UsageResponse
-export const UsageVectorStores200 = UsageResponse
 export type ListUsersParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -22996,10 +31986,6 @@ export const ListUsersParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "emails": Schema.optionalKey(Schema.Array(Schema.String))
 })
-export type ListUsers200 = UserListResponse
-export const ListUsers200 = UserListResponse
-export type RetrieveUser200 = User
-export const RetrieveUser200 = User
 export type ListUserRoleAssignmentsParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -23012,8 +31998,6 @@ export const ListUserRoleAssignmentsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]))
 })
-export type ListUserRoleAssignments200 = RoleListResource
-export const ListUserRoleAssignments200 = RoleListResource
 export type ListProjectGroupRoleAssignmentsParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -23026,8 +32010,6 @@ export const ListProjectGroupRoleAssignmentsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]))
 })
-export type ListProjectGroupRoleAssignments200 = RoleListResource
-export const ListProjectGroupRoleAssignments200 = RoleListResource
 export type ListProjectRolesParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -23042,8 +32024,6 @@ export const ListProjectRolesParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]).annotate({ "default": "asc" }))
 })
-export type ListProjectRoles200 = PublicRoleListResource
-export const ListProjectRoles200 = PublicRoleListResource
 export type ListProjectUserRoleAssignmentsParams = {
   readonly "limit"?: number
   readonly "after"?: string
@@ -23056,8 +32036,6 @@ export const ListProjectUserRoleAssignmentsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "order": Schema.optionalKey(Schema.Literals(["asc", "desc"]))
 })
-export type ListProjectUserRoleAssignments200 = RoleListResource
-export const ListProjectUserRoleAssignments200 = RoleListResource
 export type GetResponseParams = {
   readonly "include"?: ReadonlyArray<IncludeEnum>
   readonly "stream"?: boolean
@@ -23070,8 +32048,6 @@ export const GetResponseParams = Schema.Struct({
   "starting_after": Schema.optionalKey(Schema.Number.check(Schema.isInt())),
   "include_obfuscation": Schema.optionalKey(Schema.Boolean)
 })
-export type GetResponse200 = Response
-export const GetResponse200 = Response
 export type ListInputItemsParams = {
   readonly "limit"?: number
   readonly "order"?: "asc" | "desc"
@@ -23084,10 +32060,6 @@ export const ListInputItemsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "include": Schema.optionalKey(Schema.Array(IncludeEnum))
 })
-export type ListInputItems200 = ResponseItemList
-export const ListInputItems200 = ResponseItemList
-export type GetThread200 = ThreadObject
-export const GetThread200 = ThreadObject
 export type ListMessagesParams = {
   readonly "limit"?: number
   readonly "order"?: "asc" | "desc"
@@ -23102,10 +32074,6 @@ export const ListMessagesParams = Schema.Struct({
   "before": Schema.optionalKey(Schema.String),
   "run_id": Schema.optionalKey(Schema.String)
 })
-export type ListMessages200 = ListMessagesResponse
-export const ListMessages200 = ListMessagesResponse
-export type GetMessage200 = MessageObject
-export const GetMessage200 = MessageObject
 export type ListRunsParams = {
   readonly "limit"?: number
   readonly "order"?: "asc" | "desc"
@@ -23118,10 +32086,14 @@ export const ListRunsParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "before": Schema.optionalKey(Schema.String)
 })
-export type ListRuns200 = ListRunsResponse
-export const ListRuns200 = ListRunsResponse
-export type GetRun200 = RunObject
-export const GetRun200 = RunObject
+export type CreateRunParams = {
+  readonly "include[]"?: ReadonlyArray<"step_details.tool_calls[*].file_search.results[*].content">
+}
+export const CreateRunParams = Schema.Struct({
+  "include[]": Schema.optionalKey(
+    Schema.Array(Schema.Literal("step_details.tool_calls[*].file_search.results[*].content"))
+  )
+})
 export type ListRunStepsParams = {
   readonly "limit"?: number
   readonly "order"?: "asc" | "desc"
@@ -23138,8 +32110,6 @@ export const ListRunStepsParams = Schema.Struct({
     Schema.Array(Schema.Literal("step_details.tool_calls[*].file_search.results[*].content"))
   )
 })
-export type ListRunSteps200 = ListRunStepsResponse
-export const ListRunSteps200 = ListRunStepsResponse
 export type GetRunStepParams = {
   readonly "include[]"?: ReadonlyArray<"step_details.tool_calls[*].file_search.results[*].content">
 }
@@ -23148,8 +32118,6 @@ export const GetRunStepParams = Schema.Struct({
     Schema.Array(Schema.Literal("step_details.tool_calls[*].file_search.results[*].content"))
   )
 })
-export type GetRunStep200 = RunStepObject
-export const GetRunStep200 = RunStepObject
 export type ListVectorStoresParams = {
   readonly "limit"?: number
   readonly "order"?: "asc" | "desc"
@@ -23162,12 +32130,6 @@ export const ListVectorStoresParams = Schema.Struct({
   "after": Schema.optionalKey(Schema.String),
   "before": Schema.optionalKey(Schema.String)
 })
-export type ListVectorStores200 = ListVectorStoresResponse
-export const ListVectorStores200 = ListVectorStoresResponse
-export type GetVectorStore200 = VectorStoreObject
-export const GetVectorStore200 = VectorStoreObject
-export type GetVectorStoreFileBatch200 = VectorStoreFileBatchObject
-export const GetVectorStoreFileBatch200 = VectorStoreFileBatchObject
 export type ListFilesInVectorStoreBatchParams = {
   readonly "limit"?: number
   readonly "order"?: "asc" | "desc"
@@ -23182,8 +32144,6 @@ export const ListFilesInVectorStoreBatchParams = Schema.Struct({
   "before": Schema.optionalKey(Schema.String),
   "filter": Schema.optionalKey(Schema.Literals(["in_progress", "completed", "failed", "cancelled"]))
 })
-export type ListFilesInVectorStoreBatch200 = ListVectorStoreFilesResponse
-export const ListFilesInVectorStoreBatch200 = ListVectorStoreFilesResponse
 export type ListVectorStoreFilesParams = {
   readonly "limit"?: number
   readonly "order"?: "asc" | "desc"
@@ -23198,14 +32158,6 @@ export const ListVectorStoreFilesParams = Schema.Struct({
   "before": Schema.optionalKey(Schema.String),
   "filter": Schema.optionalKey(Schema.Literals(["in_progress", "completed", "failed", "cancelled"]))
 })
-export type ListVectorStoreFiles200 = ListVectorStoreFilesResponse
-export const ListVectorStoreFiles200 = ListVectorStoreFilesResponse
-export type GetVectorStoreFile200 = VectorStoreFileObject
-export const GetVectorStoreFile200 = VectorStoreFileObject
-export type RetrieveVectorStoreFileContent200 = VectorStoreFileContentResponse
-export const RetrieveVectorStoreFileContent200 = VectorStoreFileContentResponse
-export type GetConversation200 = ConversationResource
-export const GetConversation200 = ConversationResource
 export type ListVideosParams = { readonly "limit"?: number; readonly "order"?: OrderEnum; readonly "after"?: string }
 export const ListVideosParams = Schema.Struct({
   "limit": Schema.optionalKey(
@@ -23216,10 +32168,6 @@ export const ListVideosParams = Schema.Struct({
     Schema.String.annotate({ "description": "Identifier for the last item from the previous pagination request" })
   )
 })
-export type ListVideos200 = VideoListResource
-export const ListVideos200 = VideoListResource
-export type GetVideo200 = VideoResource
-export const GetVideo200 = VideoResource
 export type RetrieveVideoContentParams = { readonly "variant"?: VideoContentVariant }
 export const RetrieveVideoContentParams = Schema.Struct({ "variant": Schema.optionalKey(VideoContentVariant) })
 export type RetrieveVideoContent200 = string
@@ -23246,10 +32194,6 @@ export const ListThreadItemsMethodParams = Schema.Struct({
     })
   )
 })
-export type ListThreadItemsMethod200 = ThreadItemListResource
-export const ListThreadItemsMethod200 = ThreadItemListResource
-export type GetThreadMethod200 = ThreadResource
-export const GetThreadMethod200 = ThreadResource
 export type ListThreadsMethodParams = {
   readonly "limit"?: number
   readonly "order"?: OrderEnum
@@ -23278,8 +32222,6 @@ export const ListThreadsMethodParams = Schema.Struct({
     }).check(Schema.isMinLength(1)).check(Schema.isMaxLength(512))
   )
 })
-export type ListThreadsMethod200 = ThreadListResource
-export const ListThreadsMethod200 = ThreadListResource
 
 export interface OperationConfig {
   /**
@@ -23361,14 +32303,60 @@ export const make = (
           "before": options?.params?.["before"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListAssistants200),
+          "2xx": decodeSuccess(ListAssistantsResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createAssistant": (options) =>
+      HttpClientRequest.post(`/assistants`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(AssistantObject),
           orElse: unexpectedStatus
         }))
       ),
     "getAssistant": (assistantId, options) =>
       HttpClientRequest.get(`/assistants/${assistantId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetAssistant200),
+          "2xx": decodeSuccess(AssistantObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "modifyAssistant": (assistantId, options) =>
+      HttpClientRequest.post(`/assistants/${assistantId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(AssistantObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteAssistant": (assistantId, options) =>
+      HttpClientRequest.del(`/assistants/${assistantId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteAssistantResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createSpeech": (options) =>
+      HttpClientRequest.post(`/audio/speech`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createTranscription": (options) =>
+      HttpClientRequest.post(`/audio/transcriptions`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CreateTranscription200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createTranslation": (options) =>
+      HttpClientRequest.post(`/audio/translations`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CreateTranslation200),
           orElse: unexpectedStatus
         }))
       ),
@@ -23379,14 +32367,45 @@ export const make = (
           "limit": options?.params?.["limit"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListVoiceConsents200),
+          "2xx": decodeSuccess(VoiceConsentListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createVoiceConsent": (options) =>
+      HttpClientRequest.post(`/audio/voice_consents`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VoiceConsentResource),
           orElse: unexpectedStatus
         }))
       ),
     "getVoiceConsent": (consentId, options) =>
       HttpClientRequest.get(`/audio/voice_consents/${consentId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetVoiceConsent200),
+          "2xx": decodeSuccess(VoiceConsentResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateVoiceConsent": (consentId, options) =>
+      HttpClientRequest.post(`/audio/voice_consents/${consentId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VoiceConsentResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteVoiceConsent": (consentId, options) =>
+      HttpClientRequest.del(`/audio/voice_consents/${consentId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VoiceConsentDeletedResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createVoice": (options) =>
+      HttpClientRequest.post(`/audio/voices`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VoiceResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -23397,14 +32416,29 @@ export const make = (
           "limit": options?.params?.["limit"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListBatches200),
+          "2xx": decodeSuccess(ListBatchesResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createBatch": (options) =>
+      HttpClientRequest.post(`/batches`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Batch),
           orElse: unexpectedStatus
         }))
       ),
     "retrieveBatch": (batchId, options) =>
       HttpClientRequest.get(`/batches/${batchId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveBatch200),
+          "2xx": decodeSuccess(Batch),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "cancelBatch": (batchId, options) =>
+      HttpClientRequest.post(`/batches/${batchId}/cancel`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Batch),
           orElse: unexpectedStatus
         }))
       ),
@@ -23418,14 +32452,37 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListChatCompletions200),
+          "2xx": decodeSuccess(ChatCompletionList),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createChatCompletion": (options) =>
+      HttpClientRequest.post(`/chat/completions`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CreateChatCompletionResponse),
           orElse: unexpectedStatus
         }))
       ),
     "getChatCompletion": (completionId, options) =>
       HttpClientRequest.get(`/chat/completions/${completionId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetChatCompletion200),
+          "2xx": decodeSuccess(CreateChatCompletionResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateChatCompletion": (completionId, options) =>
+      HttpClientRequest.post(`/chat/completions/${completionId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CreateChatCompletionResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteChatCompletion": (completionId, options) =>
+      HttpClientRequest.del(`/chat/completions/${completionId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ChatCompletionDeleted),
           orElse: unexpectedStatus
         }))
       ),
@@ -23437,7 +32494,15 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetChatCompletionMessages200),
+          "2xx": decodeSuccess(ChatCompletionMessageList),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createCompletion": (options) =>
+      HttpClientRequest.post(`/completions`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CreateCompletionResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23449,14 +32514,29 @@ export const make = (
           "after": options?.params?.["after"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListContainers200),
+          "2xx": decodeSuccess(ContainerListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "CreateContainer": (options) =>
+      HttpClientRequest.post(`/containers`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ContainerResource),
           orElse: unexpectedStatus
         }))
       ),
     "RetrieveContainer": (containerId, options) =>
       HttpClientRequest.get(`/containers/${containerId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveContainer200),
+          "2xx": decodeSuccess(ContainerResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "DeleteContainer": (containerId, options) =>
+      HttpClientRequest.del(`/containers/${containerId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "200": () => Effect.void,
           orElse: unexpectedStatus
         }))
       ),
@@ -23468,14 +32548,29 @@ export const make = (
           "after": options?.params?.["after"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListContainerFiles200),
+          "2xx": decodeSuccess(ContainerFileListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "CreateContainerFile": (containerId, options) =>
+      HttpClientRequest.post(`/containers/${containerId}/files`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ContainerFileResource),
           orElse: unexpectedStatus
         }))
       ),
     "RetrieveContainerFile": (containerId, fileId, options) =>
       HttpClientRequest.get(`/containers/${containerId}/files/${fileId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveContainerFile200),
+          "2xx": decodeSuccess(ContainerFileResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "DeleteContainerFile": (containerId, fileId, options) =>
+      HttpClientRequest.del(`/containers/${containerId}/files/${fileId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "200": () => Effect.void,
           orElse: unexpectedStatus
         }))
       ),
@@ -23495,7 +32590,16 @@ export const make = (
           "include": options?.params?.["include"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListConversationItems200),
+          "2xx": decodeSuccess(ConversationItemList),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createConversationItems": (conversationId, options) =>
+      HttpClientRequest.post(`/conversations/${conversationId}/items`).pipe(
+        HttpClientRequest.setUrlParams({ "include": options.params?.["include"] as any }),
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ConversationItemList),
           orElse: unexpectedStatus
         }))
       ),
@@ -23503,7 +32607,22 @@ export const make = (
       HttpClientRequest.get(`/conversations/${conversationId}/items/${itemId}`).pipe(
         HttpClientRequest.setUrlParams({ "include": options?.params?.["include"] as any }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetConversationItem200),
+          "2xx": decodeSuccess(ConversationItem),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteConversationItem": (conversationId, itemId, options) =>
+      HttpClientRequest.del(`/conversations/${conversationId}/items/${itemId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ConversationResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createEmbedding": (options) =>
+      HttpClientRequest.post(`/embeddings`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CreateEmbeddingResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23516,14 +32635,38 @@ export const make = (
           "order_by": options?.params?.["order_by"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListEvals200),
+          "2xx": decodeSuccess(EvalList),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createEval": (options) =>
+      HttpClientRequest.post(`/evals`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Eval),
           orElse: unexpectedStatus
         }))
       ),
     "getEval": (evalId, options) =>
       HttpClientRequest.get(`/evals/${evalId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetEval200),
+          "2xx": decodeSuccess(Eval),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateEval": (evalId, options) =>
+      HttpClientRequest.post(`/evals/${evalId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Eval),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteEval": (evalId, options) =>
+      HttpClientRequest.del(`/evals/${evalId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteEval200),
+          "404": decodeError("Error", Error),
           orElse: unexpectedStatus
         }))
       ),
@@ -23536,14 +32679,38 @@ export const make = (
           "status": options?.params?.["status"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetEvalRuns200),
+          "2xx": decodeSuccess(EvalRunList),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createEvalRun": (evalId, options) =>
+      HttpClientRequest.post(`/evals/${evalId}/runs`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(EvalRun),
+          "400": decodeError("Error", Error),
           orElse: unexpectedStatus
         }))
       ),
     "getEvalRun": (evalId, runId, options) =>
       HttpClientRequest.get(`/evals/${evalId}/runs/${runId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetEvalRun200),
+          "2xx": decodeSuccess(EvalRun),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "cancelEvalRun": (evalId, runId, options) =>
+      HttpClientRequest.post(`/evals/${evalId}/runs/${runId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(EvalRun),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteEvalRun": (evalId, runId, options) =>
+      HttpClientRequest.del(`/evals/${evalId}/runs/${runId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteEvalRun200),
+          "404": decodeError("Error", Error),
           orElse: unexpectedStatus
         }))
       ),
@@ -23556,14 +32723,14 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetEvalRunOutputItems200),
+          "2xx": decodeSuccess(EvalRunOutputItemList),
           orElse: unexpectedStatus
         }))
       ),
     "getEvalRunOutputItem": (evalId, runId, outputItemId, options) =>
       HttpClientRequest.get(`/evals/${evalId}/runs/${runId}/output_items/${outputItemId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetEvalRunOutputItem200),
+          "2xx": decodeSuccess(EvalRunOutputItem),
           orElse: unexpectedStatus
         }))
       ),
@@ -23576,14 +32743,29 @@ export const make = (
           "after": options?.params?.["after"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListFiles200),
+          "2xx": decodeSuccess(ListFilesResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createFile": (options) =>
+      HttpClientRequest.post(`/files`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(OpenAIFile),
           orElse: unexpectedStatus
         }))
       ),
     "retrieveFile": (fileId, options) =>
       HttpClientRequest.get(`/files/${fileId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveFile200),
+          "2xx": decodeSuccess(OpenAIFile),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteFile": (fileId, options) =>
+      HttpClientRequest.del(`/files/${fileId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteFileResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23591,6 +32773,22 @@ export const make = (
       HttpClientRequest.get(`/files/${fileId}/content`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(DownloadFile200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "runGrader": (options) =>
+      HttpClientRequest.post(`/fine_tuning/alpha/graders/run`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RunGraderResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "validateGrader": (options) =>
+      HttpClientRequest.post(`/fine_tuning/alpha/graders/validate`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ValidateGraderResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23603,7 +32801,22 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListFineTuningCheckpointPermissions200),
+          "2xx": decodeSuccess(ListFineTuningCheckpointPermissionResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createFineTuningCheckpointPermission": (fineTunedModelCheckpoint, options) =>
+      HttpClientRequest.post(`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ListFineTuningCheckpointPermissionResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteFineTuningCheckpointPermission": (fineTunedModelCheckpoint, permissionId, options) =>
+      HttpClientRequest.del(`/fine_tuning/checkpoints/${fineTunedModelCheckpoint}/permissions/${permissionId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteFineTuningCheckpointPermissionResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23615,14 +32828,29 @@ export const make = (
           "metadata": options?.params?.["metadata"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListPaginatedFineTuningJobs200),
+          "2xx": decodeSuccess(ListPaginatedFineTuningJobsResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createFineTuningJob": (options) =>
+      HttpClientRequest.post(`/fine_tuning/jobs`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(FineTuningJob),
           orElse: unexpectedStatus
         }))
       ),
     "retrieveFineTuningJob": (fineTuningJobId, options) =>
       HttpClientRequest.get(`/fine_tuning/jobs/${fineTuningJobId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveFineTuningJob200),
+          "2xx": decodeSuccess(FineTuningJob),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "cancelFineTuningJob": (fineTuningJobId, options) =>
+      HttpClientRequest.post(`/fine_tuning/jobs/${fineTuningJobId}/cancel`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(FineTuningJob),
           orElse: unexpectedStatus
         }))
       ),
@@ -23633,7 +32861,7 @@ export const make = (
           "limit": options?.params?.["limit"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListFineTuningJobCheckpoints200),
+          "2xx": decodeSuccess(ListFineTuningJobCheckpointsResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23644,21 +32872,74 @@ export const make = (
           "limit": options?.params?.["limit"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListFineTuningEvents200),
+          "2xx": decodeSuccess(ListFineTuningJobEventsResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "pauseFineTuningJob": (fineTuningJobId, options) =>
+      HttpClientRequest.post(`/fine_tuning/jobs/${fineTuningJobId}/pause`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(FineTuningJob),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "resumeFineTuningJob": (fineTuningJobId, options) =>
+      HttpClientRequest.post(`/fine_tuning/jobs/${fineTuningJobId}/resume`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(FineTuningJob),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createImageEdit": (options) =>
+      HttpClientRequest.post(`/images/edits`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ImagesResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createImage": (options) =>
+      HttpClientRequest.post(`/images/generations`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ImagesResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createImageVariation": (options) =>
+      HttpClientRequest.post(`/images/variations`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ImagesResponse),
           orElse: unexpectedStatus
         }))
       ),
     "listModels": (options) =>
       HttpClientRequest.get(`/models`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListModels200),
+          "2xx": decodeSuccess(ListModelsResponse),
           orElse: unexpectedStatus
         }))
       ),
     "retrieveModel": (model, options) =>
       HttpClientRequest.get(`/models/${model}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveModel200),
+          "2xx": decodeSuccess(Model),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteModel": (model, options) =>
+      HttpClientRequest.del(`/models/${model}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteModelResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createModeration": (options) =>
+      HttpClientRequest.post(`/moderations`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CreateModerationResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23670,14 +32951,29 @@ export const make = (
           "limit": options?.params?.["limit"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(AdminApiKeysList200),
+          "2xx": decodeSuccess(ApiKeyList),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "adminApiKeysCreate": (options) =>
+      HttpClientRequest.post(`/organization/admin_api_keys`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(AdminApiKey),
           orElse: unexpectedStatus
         }))
       ),
     "adminApiKeysGet": (keyId, options) =>
       HttpClientRequest.get(`/organization/admin_api_keys/${keyId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(AdminApiKeysGet200),
+          "2xx": decodeSuccess(AdminApiKey),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "adminApiKeysDelete": (keyId, options) =>
+      HttpClientRequest.del(`/organization/admin_api_keys/${keyId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(AdminApiKeysDelete200),
           orElse: unexpectedStatus
         }))
       ),
@@ -23698,7 +32994,7 @@ export const make = (
           "before": options?.params?.["before"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListAuditLogs200),
+          "2xx": decodeSuccess(ListAuditLogsResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23710,7 +33006,31 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListOrganizationCertificates200),
+          "2xx": decodeSuccess(ListCertificatesResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "uploadCertificate": (options) =>
+      HttpClientRequest.post(`/organization/certificates`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Certificate),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "activateOrganizationCertificates": (options) =>
+      HttpClientRequest.post(`/organization/certificates/activate`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ListCertificatesResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deactivateOrganizationCertificates": (options) =>
+      HttpClientRequest.post(`/organization/certificates/deactivate`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ListCertificatesResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23718,7 +33038,22 @@ export const make = (
       HttpClientRequest.get(`/organization/certificates/${certificateId}`).pipe(
         HttpClientRequest.setUrlParams({ "include": options?.params?.["include"] as any }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetCertificate200),
+          "2xx": decodeSuccess(Certificate),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "modifyCertificate": (certificateId, options) =>
+      HttpClientRequest.post(`/organization/certificates/${certificateId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Certificate),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteCertificate": (certificateId, options) =>
+      HttpClientRequest.del(`/organization/certificates/${certificateId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteCertificateResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23734,7 +33069,7 @@ export const make = (
           "page": options.params["page"] as any
         }),
         withResponse(options.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(UsageCosts200),
+          "2xx": decodeSuccess(UsageResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23746,7 +33081,30 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListGroups200),
+          "2xx": decodeSuccess(GroupListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createGroup": (options) =>
+      HttpClientRequest.post(`/organization/groups`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(GroupResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateGroup": (groupId, options) =>
+      HttpClientRequest.post(`/organization/groups/${groupId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(GroupResourceWithSuccess),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteGroup": (groupId, options) =>
+      HttpClientRequest.del(`/organization/groups/${groupId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(GroupDeletedResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -23758,7 +33116,22 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListGroupRoleAssignments200),
+          "2xx": decodeSuccess(RoleListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "assignGroupRole": (groupId, options) =>
+      HttpClientRequest.post(`/organization/groups/${groupId}/roles`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(GroupRoleAssignment),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "unassignGroupRole": (groupId, roleId, options) =>
+      HttpClientRequest.del(`/organization/groups/${groupId}/roles/${roleId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeletedRoleAssignmentResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -23770,7 +33143,22 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListGroupUsers200),
+          "2xx": decodeSuccess(UserListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "addGroupUser": (groupId, options) =>
+      HttpClientRequest.post(`/organization/groups/${groupId}/users`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(GroupUserAssignment),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "removeGroupUser": (groupId, userId, options) =>
+      HttpClientRequest.del(`/organization/groups/${groupId}/users/${userId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(GroupUserDeletedResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -23781,14 +33169,29 @@ export const make = (
           "after": options?.params?.["after"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListInvites200),
+          "2xx": decodeSuccess(InviteListResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "inviteUser": (options) =>
+      HttpClientRequest.post(`/organization/invites`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Invite),
           orElse: unexpectedStatus
         }))
       ),
     "retrieveInvite": (inviteId, options) =>
       HttpClientRequest.get(`/organization/invites/${inviteId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveInvite200),
+          "2xx": decodeSuccess(Invite),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteInvite": (inviteId, options) =>
+      HttpClientRequest.del(`/organization/invites/${inviteId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(InviteDeleteResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23800,14 +33203,31 @@ export const make = (
           "include_archived": options?.params?.["include_archived"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListProjects200),
+          "2xx": decodeSuccess(ProjectListResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createProject": (options) =>
+      HttpClientRequest.post(`/organization/projects`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Project),
           orElse: unexpectedStatus
         }))
       ),
     "retrieveProject": (projectId, options) =>
       HttpClientRequest.get(`/organization/projects/${projectId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveProject200),
+          "2xx": decodeSuccess(Project),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "modifyProject": (projectId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Project),
+          "400": decodeError("ErrorResponse", ErrorResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23818,14 +33238,29 @@ export const make = (
           "after": options?.params?.["after"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListProjectApiKeys200),
+          "2xx": decodeSuccess(ProjectApiKeyListResponse),
           orElse: unexpectedStatus
         }))
       ),
     "retrieveProjectApiKey": (projectId, keyId, options) =>
       HttpClientRequest.get(`/organization/projects/${projectId}/api_keys/${keyId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveProjectApiKey200),
+          "2xx": decodeSuccess(ProjectApiKey),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteProjectApiKey": (projectId, keyId, options) =>
+      HttpClientRequest.del(`/organization/projects/${projectId}/api_keys/${keyId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ProjectApiKeyDeleteResponse),
+          "400": decodeError("ErrorResponse", ErrorResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "archiveProject": (projectId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}/archive`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Project),
           orElse: unexpectedStatus
         }))
       ),
@@ -23837,7 +33272,23 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListProjectCertificates200),
+          "2xx": decodeSuccess(ListCertificatesResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "activateProjectCertificates": (projectId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}/certificates/activate`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ListCertificatesResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deactivateProjectCertificates": (projectId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}/certificates/deactivate`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ListCertificatesResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23849,7 +33300,22 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListProjectGroups200),
+          "2xx": decodeSuccess(ProjectGroupListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "addProjectGroup": (projectId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}/groups`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ProjectGroup),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "removeProjectGroup": (projectId, groupId, options) =>
+      HttpClientRequest.del(`/organization/projects/${projectId}/groups/${groupId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ProjectGroupDeletedResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -23861,7 +33327,16 @@ export const make = (
           "before": options?.params?.["before"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListProjectRateLimits200),
+          "2xx": decodeSuccess(ProjectRateLimitListResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateProjectRateLimits": (projectId, rateLimitId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}/rate_limits/${rateLimitId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ProjectRateLimit),
+          "400": decodeError("ErrorResponse", ErrorResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23872,15 +33347,31 @@ export const make = (
           "after": options?.params?.["after"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListProjectServiceAccounts200),
-          "400": decodeError("ListProjectServiceAccounts400", ListProjectServiceAccounts400),
+          "2xx": decodeSuccess(ProjectServiceAccountListResponse),
+          "400": decodeError("ErrorResponse", ErrorResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createProjectServiceAccount": (projectId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}/service_accounts`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ProjectServiceAccountCreateResponse),
+          "400": decodeError("ErrorResponse", ErrorResponse),
           orElse: unexpectedStatus
         }))
       ),
     "retrieveProjectServiceAccount": (projectId, serviceAccountId, options) =>
       HttpClientRequest.get(`/organization/projects/${projectId}/service_accounts/${serviceAccountId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveProjectServiceAccount200),
+          "2xx": decodeSuccess(ProjectServiceAccount),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteProjectServiceAccount": (projectId, serviceAccountId, options) =>
+      HttpClientRequest.del(`/organization/projects/${projectId}/service_accounts/${serviceAccountId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ProjectServiceAccountDeleteResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23891,15 +33382,41 @@ export const make = (
           "after": options?.params?.["after"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListProjectUsers200),
-          "400": decodeError("ListProjectUsers400", ListProjectUsers400),
+          "2xx": decodeSuccess(ProjectUserListResponse),
+          "400": decodeError("ErrorResponse", ErrorResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createProjectUser": (projectId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}/users`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ProjectUser),
+          "400": decodeError("ErrorResponse", ErrorResponse),
           orElse: unexpectedStatus
         }))
       ),
     "retrieveProjectUser": (projectId, userId, options) =>
       HttpClientRequest.get(`/organization/projects/${projectId}/users/${userId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveProjectUser200),
+          "2xx": decodeSuccess(ProjectUser),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "modifyProjectUser": (projectId, userId, options) =>
+      HttpClientRequest.post(`/organization/projects/${projectId}/users/${userId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ProjectUser),
+          "400": decodeError("ErrorResponse", ErrorResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteProjectUser": (projectId, userId, options) =>
+      HttpClientRequest.del(`/organization/projects/${projectId}/users/${userId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ProjectUserDeleteResponse),
+          "400": decodeError("ErrorResponse", ErrorResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23911,7 +33428,30 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListRoles200),
+          "2xx": decodeSuccess(PublicRoleListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createRole": (options) =>
+      HttpClientRequest.post(`/organization/roles`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Role),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateRole": (roleId, options) =>
+      HttpClientRequest.post(`/organization/roles/${roleId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Role),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteRole": (roleId, options) =>
+      HttpClientRequest.del(`/organization/roles/${roleId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RoleDeletedResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -23930,7 +33470,7 @@ export const make = (
           "page": options.params["page"] as any
         }),
         withResponse(options.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(UsageAudioSpeeches200),
+          "2xx": decodeSuccess(UsageResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23949,7 +33489,7 @@ export const make = (
           "page": options.params["page"] as any
         }),
         withResponse(options.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(UsageAudioTranscriptions200),
+          "2xx": decodeSuccess(UsageResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23965,7 +33505,7 @@ export const make = (
           "page": options.params["page"] as any
         }),
         withResponse(options.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(UsageCodeInterpreterSessions200),
+          "2xx": decodeSuccess(UsageResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -23985,7 +33525,7 @@ export const make = (
           "page": options.params["page"] as any
         }),
         withResponse(options.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(UsageCompletions200),
+          "2xx": decodeSuccess(UsageResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -24004,7 +33544,7 @@ export const make = (
           "page": options.params["page"] as any
         }),
         withResponse(options.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(UsageEmbeddings200),
+          "2xx": decodeSuccess(UsageResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -24025,7 +33565,7 @@ export const make = (
           "page": options.params["page"] as any
         }),
         withResponse(options.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(UsageImages200),
+          "2xx": decodeSuccess(UsageResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -24044,7 +33584,7 @@ export const make = (
           "page": options.params["page"] as any
         }),
         withResponse(options.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(UsageModerations200),
+          "2xx": decodeSuccess(UsageResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -24060,7 +33600,7 @@ export const make = (
           "page": options.params["page"] as any
         }),
         withResponse(options.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(UsageVectorStores200),
+          "2xx": decodeSuccess(UsageResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -24072,14 +33612,29 @@ export const make = (
           "emails": options?.params?.["emails"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListUsers200),
+          "2xx": decodeSuccess(UserListResponse),
           orElse: unexpectedStatus
         }))
       ),
     "retrieveUser": (userId, options) =>
       HttpClientRequest.get(`/organization/users/${userId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveUser200),
+          "2xx": decodeSuccess(User),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "modifyUser": (userId, options) =>
+      HttpClientRequest.post(`/organization/users/${userId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(User),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteUser": (userId, options) =>
+      HttpClientRequest.del(`/organization/users/${userId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(UserDeleteResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -24091,7 +33646,22 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListUserRoleAssignments200),
+          "2xx": decodeSuccess(RoleListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "assignUserRole": (userId, options) =>
+      HttpClientRequest.post(`/organization/users/${userId}/roles`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(UserRoleAssignment),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "unassignUserRole": (userId, roleId, options) =>
+      HttpClientRequest.del(`/organization/users/${userId}/roles/${roleId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeletedRoleAssignmentResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -24103,7 +33673,22 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListProjectGroupRoleAssignments200),
+          "2xx": decodeSuccess(RoleListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "assignProjectGroupRole": (projectId, groupId, options) =>
+      HttpClientRequest.post(`/projects/${projectId}/groups/${groupId}/roles`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(GroupRoleAssignment),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "unassignProjectGroupRole": (projectId, groupId, roleId, options) =>
+      HttpClientRequest.del(`/projects/${projectId}/groups/${groupId}/roles/${roleId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeletedRoleAssignmentResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -24115,7 +33700,30 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListProjectRoles200),
+          "2xx": decodeSuccess(PublicRoleListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createProjectRole": (projectId, options) =>
+      HttpClientRequest.post(`/projects/${projectId}/roles`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Role),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateProjectRole": (projectId, roleId, options) =>
+      HttpClientRequest.post(`/projects/${projectId}/roles/${roleId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Role),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteProjectRole": (projectId, roleId, options) =>
+      HttpClientRequest.del(`/projects/${projectId}/roles/${roleId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RoleDeletedResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -24127,7 +33735,92 @@ export const make = (
           "order": options?.params?.["order"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListProjectUserRoleAssignments200),
+          "2xx": decodeSuccess(RoleListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "assignProjectUserRole": (projectId, userId, options) =>
+      HttpClientRequest.post(`/projects/${projectId}/users/${userId}/roles`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(UserRoleAssignment),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "unassignProjectUserRole": (projectId, userId, roleId, options) =>
+      HttpClientRequest.del(`/projects/${projectId}/users/${userId}/roles/${roleId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeletedRoleAssignmentResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createRealtimeCall": (options) =>
+      HttpClientRequest.post(`/realtime/calls`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          orElse: unexpectedStatus
+        }))
+      ),
+    "acceptRealtimeCall": (callId, options) =>
+      HttpClientRequest.post(`/realtime/calls/${callId}/accept`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "200": () => Effect.void,
+          orElse: unexpectedStatus
+        }))
+      ),
+    "hangupRealtimeCall": (callId, options) =>
+      HttpClientRequest.post(`/realtime/calls/${callId}/hangup`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "200": () => Effect.void,
+          orElse: unexpectedStatus
+        }))
+      ),
+    "referRealtimeCall": (callId, options) =>
+      HttpClientRequest.post(`/realtime/calls/${callId}/refer`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "200": () => Effect.void,
+          orElse: unexpectedStatus
+        }))
+      ),
+    "rejectRealtimeCall": (callId, options) =>
+      HttpClientRequest.post(`/realtime/calls/${callId}/reject`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "200": () => Effect.void,
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createRealtimeClientSecret": (options) =>
+      HttpClientRequest.post(`/realtime/client_secrets`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RealtimeCreateClientSecretResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createRealtimeSession": (options) =>
+      HttpClientRequest.post(`/realtime/sessions`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RealtimeSessionCreateResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createRealtimeTranscriptionSession": (options) =>
+      HttpClientRequest.post(`/realtime/transcription_sessions`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RealtimeTranscriptionSessionCreateResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createResponse": (options) =>
+      HttpClientRequest.post(`/responses`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Response),
           orElse: unexpectedStatus
         }))
       ),
@@ -24140,7 +33833,23 @@ export const make = (
           "include_obfuscation": options?.params?.["include_obfuscation"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetResponse200),
+          "2xx": decodeSuccess(Response),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteResponse": (responseId, options) =>
+      HttpClientRequest.del(`/responses/${responseId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "404": decodeError("Error", Error),
+          "200": () => Effect.void,
+          orElse: unexpectedStatus
+        }))
+      ),
+    "cancelResponse": (responseId, options) =>
+      HttpClientRequest.post(`/responses/${responseId}/cancel`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Response),
+          "404": decodeError("Error", Error),
           orElse: unexpectedStatus
         }))
       ),
@@ -24153,14 +33862,45 @@ export const make = (
           "include": options?.params?.["include"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListInputItems200),
+          "2xx": decodeSuccess(ResponseItemList),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createThread": (options) =>
+      HttpClientRequest.post(`/threads`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ThreadObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createThreadAndRun": (options) =>
+      HttpClientRequest.post(`/threads/runs`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RunObject),
           orElse: unexpectedStatus
         }))
       ),
     "getThread": (threadId, options) =>
       HttpClientRequest.get(`/threads/${threadId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetThread200),
+          "2xx": decodeSuccess(ThreadObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "modifyThread": (threadId, options) =>
+      HttpClientRequest.post(`/threads/${threadId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ThreadObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteThread": (threadId, options) =>
+      HttpClientRequest.del(`/threads/${threadId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteThreadResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -24174,14 +33914,37 @@ export const make = (
           "run_id": options?.params?.["run_id"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListMessages200),
+          "2xx": decodeSuccess(ListMessagesResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createMessage": (threadId, options) =>
+      HttpClientRequest.post(`/threads/${threadId}/messages`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(MessageObject),
           orElse: unexpectedStatus
         }))
       ),
     "getMessage": (threadId, messageId, options) =>
       HttpClientRequest.get(`/threads/${threadId}/messages/${messageId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetMessage200),
+          "2xx": decodeSuccess(MessageObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "modifyMessage": (threadId, messageId, options) =>
+      HttpClientRequest.post(`/threads/${threadId}/messages/${messageId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(MessageObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteMessage": (threadId, messageId, options) =>
+      HttpClientRequest.del(`/threads/${threadId}/messages/${messageId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteMessageResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -24194,14 +33957,38 @@ export const make = (
           "before": options?.params?.["before"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListRuns200),
+          "2xx": decodeSuccess(ListRunsResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createRun": (threadId, options) =>
+      HttpClientRequest.post(`/threads/${threadId}/runs`).pipe(
+        HttpClientRequest.setUrlParams({ "include[]": options.params?.["include[]"] as any }),
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RunObject),
           orElse: unexpectedStatus
         }))
       ),
     "getRun": (threadId, runId, options) =>
       HttpClientRequest.get(`/threads/${threadId}/runs/${runId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetRun200),
+          "2xx": decodeSuccess(RunObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "modifyRun": (threadId, runId, options) =>
+      HttpClientRequest.post(`/threads/${threadId}/runs/${runId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RunObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "cancelRun": (threadId, runId, options) =>
+      HttpClientRequest.post(`/threads/${threadId}/runs/${runId}/cancel`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RunObject),
           orElse: unexpectedStatus
         }))
       ),
@@ -24215,7 +34002,7 @@ export const make = (
           "include[]": options?.params?.["include[]"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListRunSteps200),
+          "2xx": decodeSuccess(ListRunStepsResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -24223,7 +34010,46 @@ export const make = (
       HttpClientRequest.get(`/threads/${threadId}/runs/${runId}/steps/${stepId}`).pipe(
         HttpClientRequest.setUrlParams({ "include[]": options?.params?.["include[]"] as any }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetRunStep200),
+          "2xx": decodeSuccess(RunStepObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "submitToolOuputsToRun": (threadId, runId, options) =>
+      HttpClientRequest.post(`/threads/${threadId}/runs/${runId}/submit_tool_outputs`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(RunObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createUpload": (options) =>
+      HttpClientRequest.post(`/uploads`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Upload),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "cancelUpload": (uploadId, options) =>
+      HttpClientRequest.post(`/uploads/${uploadId}/cancel`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Upload),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "completeUpload": (uploadId, options) =>
+      HttpClientRequest.post(`/uploads/${uploadId}/complete`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(Upload),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "addUploadPart": (uploadId, options) =>
+      HttpClientRequest.post(`/uploads/${uploadId}/parts`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(UploadPart),
           orElse: unexpectedStatus
         }))
       ),
@@ -24236,21 +34062,59 @@ export const make = (
           "before": options?.params?.["before"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListVectorStores200),
+          "2xx": decodeSuccess(ListVectorStoresResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createVectorStore": (options) =>
+      HttpClientRequest.post(`/vector_stores`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VectorStoreObject),
           orElse: unexpectedStatus
         }))
       ),
     "getVectorStore": (vectorStoreId, options) =>
       HttpClientRequest.get(`/vector_stores/${vectorStoreId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetVectorStore200),
+          "2xx": decodeSuccess(VectorStoreObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "modifyVectorStore": (vectorStoreId, options) =>
+      HttpClientRequest.post(`/vector_stores/${vectorStoreId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VectorStoreObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteVectorStore": (vectorStoreId, options) =>
+      HttpClientRequest.del(`/vector_stores/${vectorStoreId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteVectorStoreResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createVectorStoreFileBatch": (vectorStoreId, options) =>
+      HttpClientRequest.post(`/vector_stores/${vectorStoreId}/file_batches`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VectorStoreFileBatchObject),
           orElse: unexpectedStatus
         }))
       ),
     "getVectorStoreFileBatch": (vectorStoreId, batchId, options) =>
       HttpClientRequest.get(`/vector_stores/${vectorStoreId}/file_batches/${batchId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetVectorStoreFileBatch200),
+          "2xx": decodeSuccess(VectorStoreFileBatchObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "cancelVectorStoreFileBatch": (vectorStoreId, batchId, options) =>
+      HttpClientRequest.post(`/vector_stores/${vectorStoreId}/file_batches/${batchId}/cancel`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VectorStoreFileBatchObject),
           orElse: unexpectedStatus
         }))
       ),
@@ -24264,7 +34128,7 @@ export const make = (
           "filter": options?.params?.["filter"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListFilesInVectorStoreBatch200),
+          "2xx": decodeSuccess(ListVectorStoreFilesResponse),
           orElse: unexpectedStatus
         }))
       ),
@@ -24278,28 +34142,82 @@ export const make = (
           "filter": options?.params?.["filter"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListVectorStoreFiles200),
+          "2xx": decodeSuccess(ListVectorStoreFilesResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createVectorStoreFile": (vectorStoreId, options) =>
+      HttpClientRequest.post(`/vector_stores/${vectorStoreId}/files`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VectorStoreFileObject),
           orElse: unexpectedStatus
         }))
       ),
     "getVectorStoreFile": (vectorStoreId, fileId, options) =>
       HttpClientRequest.get(`/vector_stores/${vectorStoreId}/files/${fileId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetVectorStoreFile200),
+          "2xx": decodeSuccess(VectorStoreFileObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateVectorStoreFileAttributes": (vectorStoreId, fileId, options) =>
+      HttpClientRequest.post(`/vector_stores/${vectorStoreId}/files/${fileId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VectorStoreFileObject),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteVectorStoreFile": (vectorStoreId, fileId, options) =>
+      HttpClientRequest.del(`/vector_stores/${vectorStoreId}/files/${fileId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeleteVectorStoreFileResponse),
           orElse: unexpectedStatus
         }))
       ),
     "retrieveVectorStoreFileContent": (vectorStoreId, fileId, options) =>
       HttpClientRequest.get(`/vector_stores/${vectorStoreId}/files/${fileId}/content`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(RetrieveVectorStoreFileContent200),
+          "2xx": decodeSuccess(VectorStoreFileContentResponse),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "searchVectorStore": (vectorStoreId, options) =>
+      HttpClientRequest.post(`/vector_stores/${vectorStoreId}/search`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VectorStoreSearchResultsPage),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createConversation": (options) =>
+      HttpClientRequest.post(`/conversations`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ConversationResource),
           orElse: unexpectedStatus
         }))
       ),
     "getConversation": (conversationId, options) =>
       HttpClientRequest.get(`/conversations/${conversationId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetConversation200),
+          "2xx": decodeSuccess(ConversationResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "updateConversation": (conversationId, options) =>
+      HttpClientRequest.post(`/conversations/${conversationId}`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ConversationResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "deleteConversation": (conversationId, options) =>
+      HttpClientRequest.del(`/conversations/${conversationId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeletedConversationResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -24311,14 +34229,29 @@ export const make = (
           "after": options?.params?.["after"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListVideos200),
+          "2xx": decodeSuccess(VideoListResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "createVideo": (options) =>
+      HttpClientRequest.post(`/videos`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VideoResource),
           orElse: unexpectedStatus
         }))
       ),
     "GetVideo": (videoId, options) =>
       HttpClientRequest.get(`/videos/${videoId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetVideo200),
+          "2xx": decodeSuccess(VideoResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "DeleteVideo": (videoId, options) =>
+      HttpClientRequest.del(`/videos/${videoId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeletedVideoResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -24327,6 +34260,45 @@ export const make = (
         HttpClientRequest.setUrlParams({ "variant": options?.params?.["variant"] as any }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
           "2xx": decodeSuccess(RetrieveVideoContent200),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "CreateVideoRemix": (videoId, options) =>
+      HttpClientRequest.post(`/videos/${videoId}/remix`).pipe(
+        HttpClientRequest.bodyFormData(options.payload as any),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(VideoResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "Getinputtokencounts": (options) =>
+      HttpClientRequest.post(`/responses/input_tokens`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(TokenCountsResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "Compactconversation": (options) =>
+      HttpClientRequest.post(`/responses/compact`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(CompactResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "CancelChatSessionMethod": (sessionId, options) =>
+      HttpClientRequest.post(`/chatkit/sessions/${sessionId}/cancel`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ChatSessionResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "CreateChatSessionMethod": (options) =>
+      HttpClientRequest.post(`/chatkit/sessions`).pipe(
+        HttpClientRequest.bodyJsonUnsafe(options.payload),
+        withResponse(options.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(ChatSessionResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -24339,14 +34311,21 @@ export const make = (
           "before": options?.params?.["before"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListThreadItemsMethod200),
+          "2xx": decodeSuccess(ThreadItemListResource),
           orElse: unexpectedStatus
         }))
       ),
     "GetThreadMethod": (threadId, options) =>
       HttpClientRequest.get(`/chatkit/threads/${threadId}`).pipe(
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(GetThreadMethod200),
+          "2xx": decodeSuccess(ThreadResource),
+          orElse: unexpectedStatus
+        }))
+      ),
+    "DeleteThreadMethod": (threadId, options) =>
+      HttpClientRequest.del(`/chatkit/threads/${threadId}`).pipe(
+        withResponse(options?.config)(HttpClientResponse.matchStatus({
+          "2xx": decodeSuccess(DeletedThreadResource),
           orElse: unexpectedStatus
         }))
       ),
@@ -24360,7 +34339,7 @@ export const make = (
           "user": options?.params?.["user"] as any
         }),
         withResponse(options?.config)(HttpClientResponse.matchStatus({
-          "2xx": decodeSuccess(ListThreadsMethod200),
+          "2xx": decodeSuccess(ThreadListResource),
           orElse: unexpectedStatus
         }))
       )
@@ -24377,7 +34356,16 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListAssistantsParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListAssistants200.Type, Config>,
+    WithOptionalResponse<typeof ListAssistantsResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create an assistant with a model and instructions.
+   */
+  readonly "createAssistant": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateAssistantRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof AssistantObject.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24387,7 +34375,51 @@ export interface OpenAiClient {
     assistantId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetAssistant200.Type, Config>,
+    WithOptionalResponse<typeof AssistantObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Modifies an assistant.
+   */
+  readonly "modifyAssistant": <Config extends OperationConfig>(
+    assistantId: string,
+    options: { readonly payload: typeof ModifyAssistantRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof AssistantObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Delete an assistant.
+   */
+  readonly "deleteAssistant": <Config extends OperationConfig>(
+    assistantId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeleteAssistantResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Generates audio from the input text.
+   */
+  readonly "createSpeech": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateSpeechRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Transcribes audio into the input language.
+   */
+  readonly "createTranscription": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateTranscriptionRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CreateTranscription200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Translates audio into English.
+   */
+  readonly "createTranslation": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateTranslationRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CreateTranslation200.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24399,7 +34431,16 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListVoiceConsents200.Type, Config>,
+    WithOptionalResponse<typeof VoiceConsentListResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Upload a voice consent recording.
+   */
+  readonly "createVoiceConsent": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateVoiceConsentRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VoiceConsentResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24409,7 +34450,36 @@ export interface OpenAiClient {
     consentId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetVoiceConsent200.Type, Config>,
+    WithOptionalResponse<typeof VoiceConsentResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Updates a voice consent recording (metadata only).
+   */
+  readonly "updateVoiceConsent": <Config extends OperationConfig>(
+    consentId: string,
+    options: { readonly payload: typeof UpdateVoiceConsentRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VoiceConsentResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Deletes a voice consent recording.
+   */
+  readonly "deleteVoiceConsent": <Config extends OperationConfig>(
+    consentId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VoiceConsentDeletedResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates a custom voice.
+   */
+  readonly "createVoice": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateVoiceRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VoiceResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24420,19 +34490,29 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListBatchesParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListBatches200.Type, Config>,
+    WithOptionalResponse<typeof ListBatchesResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
+  /**
+   * Creates and executes a batch from an uploaded file of requests
+   */
+  readonly "createBatch": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateBatchRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof Batch.Type, Config>, HttpClientError.HttpClientError | SchemaError>
   /**
    * Retrieves a batch.
    */
   readonly "retrieveBatch": <Config extends OperationConfig>(
     batchId: string,
     options: { readonly config?: Config | undefined } | undefined
-  ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveBatch200.Type, Config>,
-    HttpClientError.HttpClientError | SchemaError
-  >
+  ) => Effect.Effect<WithOptionalResponse<typeof Batch.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Cancels an in-progress batch. The batch will be in status `cancelling` for up to 10 minutes, before changing to `cancelled`, where it will have partial results (if any) available in the output file.
+   */
+  readonly "cancelBatch": <Config extends OperationConfig>(
+    batchId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<typeof Batch.Type, Config>, HttpClientError.HttpClientError | SchemaError>
   /**
    * List stored Chat Completions. Only Chat Completions that have been stored
    * with the `store` parameter set to `true` will be returned.
@@ -24443,7 +34523,30 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListChatCompletions200.Type, Config>,
+    WithOptionalResponse<typeof ChatCompletionList.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * **Starting a new project?** We recommend trying [Responses](https://platform.openai.com/docs/api-reference/responses)
+   * to take advantage of the latest OpenAI platform features. Compare
+   * [Chat Completions with Responses](https://platform.openai.com/docs/guides/responses-vs-chat-completions?api-mode=responses).
+   *
+   * ---
+   *
+   * Creates a model response for the given chat conversation. Learn more in the
+   * [text generation](https://platform.openai.com/docs/guides/text-generation), [vision](https://platform.openai.com/docs/guides/vision),
+   * and [audio](https://platform.openai.com/docs/guides/audio) guides.
+   *
+   * Parameter support can differ depending on the model used to generate the
+   * response, particularly for newer reasoning models. Parameters that are only
+   * supported for reasoning models are noted below. For the current state of
+   * unsupported parameters in reasoning models,
+   * [refer to the reasoning guide](https://platform.openai.com/docs/guides/reasoning).
+   */
+  readonly "createChatCompletion": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateChatCompletionRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CreateChatCompletionResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24454,7 +34557,30 @@ export interface OpenAiClient {
     completionId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetChatCompletion200.Type, Config>,
+    WithOptionalResponse<typeof CreateChatCompletionResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Modify a stored chat completion. Only Chat Completions that have been
+   * created with the `store` parameter set to `true` can be modified. Currently,
+   * the only supported modification is to update the `metadata` field.
+   */
+  readonly "updateChatCompletion": <Config extends OperationConfig>(
+    completionId: string,
+    options: { readonly payload: typeof UpdateChatCompletionRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CreateChatCompletionResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Delete a stored chat completion. Only Chat Completions that have been
+   * created with the `store` parameter set to `true` can be deleted.
+   */
+  readonly "deleteChatCompletion": <Config extends OperationConfig>(
+    completionId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ChatCompletionDeleted.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24469,7 +34595,16 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetChatCompletionMessages200.Type, Config>,
+    WithOptionalResponse<typeof ChatCompletionMessageList.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates a completion for the provided prompt and parameters.
+   */
+  readonly "createCompletion": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateCompletionRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CreateCompletionResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24480,7 +34615,16 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListContainersParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListContainers200.Type, Config>,
+    WithOptionalResponse<typeof ContainerListResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create Container
+   */
+  readonly "CreateContainer": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateContainerBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ContainerResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24490,9 +34634,16 @@ export interface OpenAiClient {
     containerId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveContainer200.Type, Config>,
+    WithOptionalResponse<typeof ContainerResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
+  /**
+   * Delete Container
+   */
+  readonly "DeleteContainer": <Config extends OperationConfig>(
+    containerId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
   /**
    * List Container files
    */
@@ -24503,7 +34654,19 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListContainerFiles200.Type, Config>,
+    WithOptionalResponse<typeof ContainerFileListResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create a Container File
+   *
+   * You can send either a multipart/form-data request with the raw file content, or a JSON request with a file ID.
+   */
+  readonly "CreateContainerFile": <Config extends OperationConfig>(
+    containerId: string,
+    options: { readonly payload: typeof CreateContainerFileBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ContainerFileResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24514,9 +34677,17 @@ export interface OpenAiClient {
     fileId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveContainerFile200.Type, Config>,
+    WithOptionalResponse<typeof ContainerFileResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
+  /**
+   * Delete Container File
+   */
+  readonly "DeleteContainerFile": <Config extends OperationConfig>(
+    containerId: string,
+    fileId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
   /**
    * Retrieve Container File Content
    */
@@ -24535,7 +34706,21 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListConversationItems200.Type, Config>,
+    WithOptionalResponse<typeof ConversationItemList.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create items in a conversation with the given ID.
+   */
+  readonly "createConversationItems": <Config extends OperationConfig>(
+    conversationId: string,
+    options: {
+      readonly params?: typeof CreateConversationItemsParams.Encoded | undefined
+      readonly payload: typeof CreateConversationItemsRequest.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ConversationItemList.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24549,7 +34734,27 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetConversationItem200.Type, Config>,
+    WithOptionalResponse<typeof ConversationItem.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Delete an item from a conversation with the given IDs.
+   */
+  readonly "deleteConversationItem": <Config extends OperationConfig>(
+    conversationId: string,
+    itemId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ConversationResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates an embedding vector representing the input text.
+   */
+  readonly "createEmbedding": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateEmbeddingRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CreateEmbeddingResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24559,19 +34764,38 @@ export interface OpenAiClient {
     options:
       | { readonly params?: typeof ListEvalsParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
-  ) => Effect.Effect<
-    WithOptionalResponse<typeof ListEvals200.Type, Config>,
-    HttpClientError.HttpClientError | SchemaError
-  >
+  ) => Effect.Effect<WithOptionalResponse<typeof EvalList.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Create the structure of an evaluation that can be used to test a model's performance.
+   * An evaluation is a set of testing criteria and the config for a data source, which dictates the schema of the data used in the evaluation. After creating an evaluation, you can run it on different models and model parameters. We support several types of graders and datasources.
+   * For more information, see the [Evals guide](https://platform.openai.com/docs/guides/evals).
+   */
+  readonly "createEval": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateEvalRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof Eval.Type, Config>, HttpClientError.HttpClientError | SchemaError>
   /**
    * Get an evaluation by ID.
    */
   readonly "getEval": <Config extends OperationConfig>(
     evalId: string,
     options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<typeof Eval.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Update certain properties of an evaluation.
+   */
+  readonly "updateEval": <Config extends OperationConfig>(
+    evalId: string,
+    options: { readonly payload: typeof UpdateEvalRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof Eval.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Delete an evaluation.
+   */
+  readonly "deleteEval": <Config extends OperationConfig>(
+    evalId: string,
+    options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetEval200.Type, Config>,
-    HttpClientError.HttpClientError | SchemaError
+    WithOptionalResponse<typeof DeleteEval200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"Error", typeof Error.Type>
   >
   /**
    * Get a list of runs for an evaluation.
@@ -24582,8 +34806,18 @@ export interface OpenAiClient {
       | { readonly params?: typeof GetEvalRunsParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetEvalRuns200.Type, Config>,
+    WithOptionalResponse<typeof EvalRunList.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Kicks off a new run for a given evaluation, specifying the data source, and what model configuration to use to test. The datasource will be validated against the schema specified in the config of the evaluation.
+   */
+  readonly "createEvalRun": <Config extends OperationConfig>(
+    evalId: string,
+    options: { readonly payload: typeof CreateEvalRunRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof EvalRun.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"Error", typeof Error.Type>
   >
   /**
    * Get an evaluation run by ID.
@@ -24592,9 +34826,25 @@ export interface OpenAiClient {
     evalId: string,
     runId: string,
     options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<typeof EvalRun.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Cancel an ongoing evaluation run.
+   */
+  readonly "cancelEvalRun": <Config extends OperationConfig>(
+    evalId: string,
+    runId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<typeof EvalRun.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Delete an eval run.
+   */
+  readonly "deleteEvalRun": <Config extends OperationConfig>(
+    evalId: string,
+    runId: string,
+    options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetEvalRun200.Type, Config>,
-    HttpClientError.HttpClientError | SchemaError
+    WithOptionalResponse<typeof DeleteEvalRun200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"Error", typeof Error.Type>
   >
   /**
    * Get a list of output items for an evaluation run.
@@ -24607,7 +34857,7 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetEvalRunOutputItems200.Type, Config>,
+    WithOptionalResponse<typeof EvalRunOutputItemList.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24619,7 +34869,7 @@ export interface OpenAiClient {
     outputItemId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetEvalRunOutputItem200.Type, Config>,
+    WithOptionalResponse<typeof EvalRunOutputItem.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24630,7 +34880,32 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListFilesParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListFiles200.Type, Config>,
+    WithOptionalResponse<typeof ListFilesResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Upload a file that can be used across various endpoints. Individual files
+   * can be up to 512 MB, and the size of all files uploaded by one organization
+   * can be up to 1 TB.
+   *
+   * - The Assistants API supports files up to 2 million tokens and of specific
+   *   file types. See the [Assistants Tools guide](https://platform.openai.com/docs/assistants/tools) for
+   *   details.
+   * - The Fine-tuning API only supports `.jsonl` files. The input also has
+   *   certain required formats for fine-tuning
+   *   [chat](https://platform.openai.com/docs/api-reference/fine-tuning/chat-input) or
+   *   [completions](https://platform.openai.com/docs/api-reference/fine-tuning/completions-input) models.
+   * - The Batch API only supports `.jsonl` files up to 200 MB in size. The input
+   *   also has a specific required
+   *   [format](https://platform.openai.com/docs/api-reference/batch/request-input).
+   *
+   * Please [contact us](https://help.openai.com/) if you need to increase these
+   * storage limits.
+   */
+  readonly "createFile": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateFileRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof OpenAIFile.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24640,7 +34915,17 @@ export interface OpenAiClient {
     fileId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveFile200.Type, Config>,
+    WithOptionalResponse<typeof OpenAIFile.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Delete a file and remove it from all vector stores.
+   */
+  readonly "deleteFile": <Config extends OperationConfig>(
+    fileId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeleteFileResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24651,6 +34936,24 @@ export interface OpenAiClient {
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
     WithOptionalResponse<typeof DownloadFile200.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Run a grader.
+   */
+  readonly "runGrader": <Config extends OperationConfig>(
+    options: { readonly payload: typeof RunGraderRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RunGraderResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Validate a grader.
+   */
+  readonly "validateGrader": <Config extends OperationConfig>(
+    options: { readonly payload: typeof ValidateGraderRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ValidateGraderResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24665,7 +34968,35 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListFineTuningCheckpointPermissions200.Type, Config>,
+    WithOptionalResponse<typeof ListFineTuningCheckpointPermissionResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * **NOTE:** Calling this endpoint requires an [admin API key](../admin-api-keys).
+   *
+   * This enables organization owners to share fine-tuned models with other projects in their organization.
+   */
+  readonly "createFineTuningCheckpointPermission": <Config extends OperationConfig>(
+    fineTunedModelCheckpoint: string,
+    options: {
+      readonly payload: typeof CreateFineTuningCheckpointPermissionRequest.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ListFineTuningCheckpointPermissionResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * **NOTE:** This endpoint requires an [admin API key](../admin-api-keys).
+   *
+   * Organization owners can use this endpoint to delete a permission for a fine-tuned model checkpoint.
+   */
+  readonly "deleteFineTuningCheckpointPermission": <Config extends OperationConfig>(
+    fineTunedModelCheckpoint: string,
+    permissionId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeleteFineTuningCheckpointPermissionResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24677,7 +35008,20 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListPaginatedFineTuningJobs200.Type, Config>,
+    WithOptionalResponse<typeof ListPaginatedFineTuningJobsResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates a fine-tuning job which begins the process of creating a new model from a given dataset.
+   *
+   * Response includes details of the enqueued job including job status and the name of the fine-tuned models once complete.
+   *
+   * [Learn more about fine-tuning](https://platform.openai.com/docs/guides/model-optimization)
+   */
+  readonly "createFineTuningJob": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateFineTuningJobRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof FineTuningJob.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24689,7 +35033,17 @@ export interface OpenAiClient {
     fineTuningJobId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveFineTuningJob200.Type, Config>,
+    WithOptionalResponse<typeof FineTuningJob.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Immediately cancel a fine-tune job.
+   */
+  readonly "cancelFineTuningJob": <Config extends OperationConfig>(
+    fineTuningJobId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof FineTuningJob.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24702,7 +35056,7 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListFineTuningJobCheckpoints200.Type, Config>,
+    WithOptionalResponse<typeof ListFineTuningJobCheckpointsResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24715,7 +35069,54 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListFineTuningEvents200.Type, Config>,
+    WithOptionalResponse<typeof ListFineTuningJobEventsResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Pause a fine-tune job.
+   */
+  readonly "pauseFineTuningJob": <Config extends OperationConfig>(
+    fineTuningJobId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof FineTuningJob.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Resume a fine-tune job.
+   */
+  readonly "resumeFineTuningJob": <Config extends OperationConfig>(
+    fineTuningJobId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof FineTuningJob.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates an edited or extended image given one or more source images and a prompt. This endpoint supports GPT Image models (`gpt-image-1.5`, `gpt-image-1`, and `gpt-image-1-mini`) and `dall-e-2`.
+   */
+  readonly "createImageEdit": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateImageEditRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ImagesResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates an image given a prompt. [Learn more](https://platform.openai.com/docs/guides/images).
+   */
+  readonly "createImage": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateImageRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ImagesResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates a variation of a given image. This endpoint only supports `dall-e-2`.
+   */
+  readonly "createImageVariation": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateImageVariationRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ImagesResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24724,7 +35125,7 @@ export interface OpenAiClient {
   readonly "listModels": <Config extends OperationConfig>(
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListModels200.Type, Config>,
+    WithOptionalResponse<typeof ListModelsResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24733,8 +35134,25 @@ export interface OpenAiClient {
   readonly "retrieveModel": <Config extends OperationConfig>(
     model: string,
     options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<typeof Model.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Delete a fine-tuned model. You must have the Owner role in your organization to delete a model.
+   */
+  readonly "deleteModel": <Config extends OperationConfig>(
+    model: string,
+    options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveModel200.Type, Config>,
+    WithOptionalResponse<typeof DeleteModelResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Classifies if text and/or image inputs are potentially harmful. Learn
+   * more in the [moderation guide](https://platform.openai.com/docs/guides/moderation).
+   */
+  readonly "createModeration": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateModerationRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CreateModerationResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24746,7 +35164,16 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof AdminApiKeysList200.Type, Config>,
+    WithOptionalResponse<typeof ApiKeyList.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create an organization admin API key
+   */
+  readonly "adminApiKeysCreate": <Config extends OperationConfig>(
+    options: { readonly payload: typeof AdminApiKeysCreateRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof AdminApiKey.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24756,7 +35183,17 @@ export interface OpenAiClient {
     keyId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof AdminApiKeysGet200.Type, Config>,
+    WithOptionalResponse<typeof AdminApiKey.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Delete an organization admin API key
+   */
+  readonly "adminApiKeysDelete": <Config extends OperationConfig>(
+    keyId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof AdminApiKeysDelete200.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24767,7 +35204,7 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListAuditLogsParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListAuditLogs200.Type, Config>,
+    WithOptionalResponse<typeof ListAuditLogsResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24779,7 +35216,40 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListOrganizationCertificates200.Type, Config>,
+    WithOptionalResponse<typeof ListCertificatesResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Upload a certificate to the organization. This does **not** automatically activate the certificate.
+   *
+   * Organizations can upload up to 50 certificates.
+   */
+  readonly "uploadCertificate": <Config extends OperationConfig>(
+    options: { readonly payload: typeof UploadCertificateRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof Certificate.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Activate certificates at the organization level.
+   *
+   * You can atomically and idempotently activate up to 10 certificates at a time.
+   */
+  readonly "activateOrganizationCertificates": <Config extends OperationConfig>(
+    options: { readonly payload: typeof ToggleCertificatesRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ListCertificatesResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Deactivate certificates at the organization level.
+   *
+   * You can atomically and idempotently deactivate up to 10 certificates at a time.
+   */
+  readonly "deactivateOrganizationCertificates": <Config extends OperationConfig>(
+    options: { readonly payload: typeof ToggleCertificatesRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ListCertificatesResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24793,7 +35263,29 @@ export interface OpenAiClient {
       | { readonly params?: typeof GetCertificateParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetCertificate200.Type, Config>,
+    WithOptionalResponse<typeof Certificate.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Modify a certificate. Note that only the name can be modified.
+   */
+  readonly "modifyCertificate": <Config extends OperationConfig>(
+    certificateId: string,
+    options: { readonly payload: typeof ModifyCertificateRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof Certificate.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Delete a certificate from the organization.
+   *
+   * The certificate must be inactive for the organization and all projects.
+   */
+  readonly "deleteCertificate": <Config extends OperationConfig>(
+    certificateId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeleteCertificateResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24802,7 +35294,7 @@ export interface OpenAiClient {
   readonly "usageCosts": <Config extends OperationConfig>(
     options: { readonly params: typeof UsageCostsParams.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
-    WithOptionalResponse<typeof UsageCosts200.Type, Config>,
+    WithOptionalResponse<typeof UsageResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24813,7 +35305,36 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListGroupsParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListGroups200.Type, Config>,
+    WithOptionalResponse<typeof GroupListResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates a new group in the organization.
+   */
+  readonly "createGroup": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateGroupBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof GroupResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Updates a group's information.
+   */
+  readonly "updateGroup": <Config extends OperationConfig>(
+    groupId: string,
+    options: { readonly payload: typeof UpdateGroupBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof GroupResourceWithSuccess.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Deletes a group from the organization.
+   */
+  readonly "deleteGroup": <Config extends OperationConfig>(
+    groupId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof GroupDeletedResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24826,7 +35347,31 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListGroupRoleAssignments200.Type, Config>,
+    WithOptionalResponse<typeof RoleListResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Assigns an organization role to a group within the organization.
+   */
+  readonly "assignGroupRole": <Config extends OperationConfig>(
+    groupId: string,
+    options: {
+      readonly payload: typeof PublicAssignOrganizationGroupRoleBody.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof GroupRoleAssignment.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Unassigns an organization role from a group within the organization.
+   */
+  readonly "unassignGroupRole": <Config extends OperationConfig>(
+    groupId: string,
+    roleId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeletedRoleAssignmentResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24838,7 +35383,28 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListGroupUsersParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListGroupUsers200.Type, Config>,
+    WithOptionalResponse<typeof UserListResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Adds a user to a group.
+   */
+  readonly "addGroupUser": <Config extends OperationConfig>(
+    groupId: string,
+    options: { readonly payload: typeof CreateGroupUserBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof GroupUserAssignment.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Removes a user from a group.
+   */
+  readonly "removeGroupUser": <Config extends OperationConfig>(
+    groupId: string,
+    userId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof GroupUserDeletedResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24849,17 +35415,30 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListInvitesParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListInvites200.Type, Config>,
+    WithOptionalResponse<typeof InviteListResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
+  /**
+   * Create an invite for a user to the organization. The invite must be accepted by the user before they have access to the organization.
+   */
+  readonly "inviteUser": <Config extends OperationConfig>(
+    options: { readonly payload: typeof InviteRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof Invite.Type, Config>, HttpClientError.HttpClientError | SchemaError>
   /**
    * Retrieves an invite.
    */
   readonly "retrieveInvite": <Config extends OperationConfig>(
     inviteId: string,
     options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<typeof Invite.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Delete an invite. If the invite has already been accepted, it cannot be deleted.
+   */
+  readonly "deleteInvite": <Config extends OperationConfig>(
+    inviteId: string,
+    options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveInvite200.Type, Config>,
+    WithOptionalResponse<typeof InviteDeleteResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24870,18 +35449,31 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListProjectsParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListProjects200.Type, Config>,
+    WithOptionalResponse<typeof ProjectListResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
+  /**
+   * Create a new project in the organization. Projects can be created and archived, but cannot be deleted.
+   */
+  readonly "createProject": <Config extends OperationConfig>(
+    options: { readonly payload: typeof ProjectCreateRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof Project.Type, Config>, HttpClientError.HttpClientError | SchemaError>
   /**
    * Retrieves a project.
    */
   readonly "retrieveProject": <Config extends OperationConfig>(
     projectId: string,
     options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<typeof Project.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Modifies a project in the organization.
+   */
+  readonly "modifyProject": <Config extends OperationConfig>(
+    projectId: string,
+    options: { readonly payload: typeof ProjectUpdateRequest.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveProject200.Type, Config>,
-    HttpClientError.HttpClientError | SchemaError
+    WithOptionalResponse<typeof Project.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"ErrorResponse", typeof ErrorResponse.Type>
   >
   /**
    * Returns a list of API keys in the project.
@@ -24893,7 +35485,7 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListProjectApiKeys200.Type, Config>,
+    WithOptionalResponse<typeof ProjectApiKeyListResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24904,9 +35496,27 @@ export interface OpenAiClient {
     keyId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveProjectApiKey200.Type, Config>,
+    WithOptionalResponse<typeof ProjectApiKey.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
+  /**
+   * Deletes an API key from the project.
+   */
+  readonly "deleteProjectApiKey": <Config extends OperationConfig>(
+    projectId: string,
+    keyId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ProjectApiKeyDeleteResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"ErrorResponse", typeof ErrorResponse.Type>
+  >
+  /**
+   * Archives a project in the organization. Archived projects cannot be used or updated.
+   */
+  readonly "archiveProject": <Config extends OperationConfig>(
+    projectId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<typeof Project.Type, Config>, HttpClientError.HttpClientError | SchemaError>
   /**
    * List certificates for this project.
    */
@@ -24917,7 +35527,30 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListProjectCertificates200.Type, Config>,
+    WithOptionalResponse<typeof ListCertificatesResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Activate certificates at the project level.
+   *
+   * You can atomically and idempotently activate up to 10 certificates at a time.
+   */
+  readonly "activateProjectCertificates": <Config extends OperationConfig>(
+    projectId: string,
+    options: { readonly payload: typeof ToggleCertificatesRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ListCertificatesResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Deactivate certificates at the project level. You can atomically and
+   * idempotently deactivate up to 10 certificates at a time.
+   */
+  readonly "deactivateProjectCertificates": <Config extends OperationConfig>(
+    projectId: string,
+    options: { readonly payload: typeof ToggleCertificatesRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ListCertificatesResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24930,7 +35563,28 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListProjectGroups200.Type, Config>,
+    WithOptionalResponse<typeof ProjectGroupListResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Grants a group access to a project.
+   */
+  readonly "addProjectGroup": <Config extends OperationConfig>(
+    projectId: string,
+    options: { readonly payload: typeof InviteProjectGroupBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ProjectGroup.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Revokes a group's access to a project.
+   */
+  readonly "removeProjectGroup": <Config extends OperationConfig>(
+    projectId: string,
+    groupId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ProjectGroupDeletedResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24943,8 +35597,19 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListProjectRateLimits200.Type, Config>,
+    WithOptionalResponse<typeof ProjectRateLimitListResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Updates a project rate limit.
+   */
+  readonly "updateProjectRateLimits": <Config extends OperationConfig>(
+    projectId: string,
+    rateLimitId: string,
+    options: { readonly payload: typeof ProjectRateLimitUpdateRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ProjectRateLimit.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"ErrorResponse", typeof ErrorResponse.Type>
   >
   /**
    * Returns a list of service accounts in the project.
@@ -24956,10 +35621,21 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListProjectServiceAccounts200.Type, Config>,
-    | HttpClientError.HttpClientError
-    | SchemaError
-    | OpenAiClientError<"ListProjectServiceAccounts400", typeof ListProjectServiceAccounts400.Type>
+    WithOptionalResponse<typeof ProjectServiceAccountListResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"ErrorResponse", typeof ErrorResponse.Type>
+  >
+  /**
+   * Creates a new service account in the project. This also returns an unredacted API key for the service account.
+   */
+  readonly "createProjectServiceAccount": <Config extends OperationConfig>(
+    projectId: string,
+    options: {
+      readonly payload: typeof ProjectServiceAccountCreateRequest.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ProjectServiceAccountCreateResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"ErrorResponse", typeof ErrorResponse.Type>
   >
   /**
    * Retrieves a service account in the project.
@@ -24969,7 +35645,18 @@ export interface OpenAiClient {
     serviceAccountId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveProjectServiceAccount200.Type, Config>,
+    WithOptionalResponse<typeof ProjectServiceAccount.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Deletes a service account from the project.
+   */
+  readonly "deleteProjectServiceAccount": <Config extends OperationConfig>(
+    projectId: string,
+    serviceAccountId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ProjectServiceAccountDeleteResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -24982,10 +35669,18 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListProjectUsers200.Type, Config>,
-    | HttpClientError.HttpClientError
-    | SchemaError
-    | OpenAiClientError<"ListProjectUsers400", typeof ListProjectUsers400.Type>
+    WithOptionalResponse<typeof ProjectUserListResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"ErrorResponse", typeof ErrorResponse.Type>
+  >
+  /**
+   * Adds a user to the project. Users must already be members of the organization to be added to a project.
+   */
+  readonly "createProjectUser": <Config extends OperationConfig>(
+    projectId: string,
+    options: { readonly payload: typeof ProjectUserCreateRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ProjectUser.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"ErrorResponse", typeof ErrorResponse.Type>
   >
   /**
    * Retrieves a user in the project.
@@ -24995,8 +35690,30 @@ export interface OpenAiClient {
     userId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveProjectUser200.Type, Config>,
+    WithOptionalResponse<typeof ProjectUser.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Modifies a user's role in the project.
+   */
+  readonly "modifyProjectUser": <Config extends OperationConfig>(
+    projectId: string,
+    userId: string,
+    options: { readonly payload: typeof ProjectUserUpdateRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ProjectUser.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"ErrorResponse", typeof ErrorResponse.Type>
+  >
+  /**
+   * Deletes a user from the project.
+   */
+  readonly "deleteProjectUser": <Config extends OperationConfig>(
+    projectId: string,
+    userId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ProjectUserDeleteResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"ErrorResponse", typeof ErrorResponse.Type>
   >
   /**
    * Lists the roles configured for the organization.
@@ -25006,7 +35723,30 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListRolesParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListRoles200.Type, Config>,
+    WithOptionalResponse<typeof PublicRoleListResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates a custom role for the organization.
+   */
+  readonly "createRole": <Config extends OperationConfig>(
+    options: { readonly payload: typeof PublicCreateOrganizationRoleBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof Role.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Updates an existing organization role.
+   */
+  readonly "updateRole": <Config extends OperationConfig>(
+    roleId: string,
+    options: { readonly payload: typeof PublicUpdateOrganizationRoleBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof Role.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Deletes a custom role from the organization.
+   */
+  readonly "deleteRole": <Config extends OperationConfig>(
+    roleId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RoleDeletedResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25015,7 +35755,7 @@ export interface OpenAiClient {
   readonly "usageAudioSpeeches": <Config extends OperationConfig>(
     options: { readonly params: typeof UsageAudioSpeechesParams.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
-    WithOptionalResponse<typeof UsageAudioSpeeches200.Type, Config>,
+    WithOptionalResponse<typeof UsageResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25024,7 +35764,7 @@ export interface OpenAiClient {
   readonly "usageAudioTranscriptions": <Config extends OperationConfig>(
     options: { readonly params: typeof UsageAudioTranscriptionsParams.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
-    WithOptionalResponse<typeof UsageAudioTranscriptions200.Type, Config>,
+    WithOptionalResponse<typeof UsageResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25036,7 +35776,7 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     }
   ) => Effect.Effect<
-    WithOptionalResponse<typeof UsageCodeInterpreterSessions200.Type, Config>,
+    WithOptionalResponse<typeof UsageResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25045,7 +35785,7 @@ export interface OpenAiClient {
   readonly "usageCompletions": <Config extends OperationConfig>(
     options: { readonly params: typeof UsageCompletionsParams.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
-    WithOptionalResponse<typeof UsageCompletions200.Type, Config>,
+    WithOptionalResponse<typeof UsageResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25054,7 +35794,7 @@ export interface OpenAiClient {
   readonly "usageEmbeddings": <Config extends OperationConfig>(
     options: { readonly params: typeof UsageEmbeddingsParams.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
-    WithOptionalResponse<typeof UsageEmbeddings200.Type, Config>,
+    WithOptionalResponse<typeof UsageResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25063,7 +35803,7 @@ export interface OpenAiClient {
   readonly "usageImages": <Config extends OperationConfig>(
     options: { readonly params: typeof UsageImagesParams.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
-    WithOptionalResponse<typeof UsageImages200.Type, Config>,
+    WithOptionalResponse<typeof UsageResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25072,7 +35812,7 @@ export interface OpenAiClient {
   readonly "usageModerations": <Config extends OperationConfig>(
     options: { readonly params: typeof UsageModerationsParams.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
-    WithOptionalResponse<typeof UsageModerations200.Type, Config>,
+    WithOptionalResponse<typeof UsageResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25081,7 +35821,7 @@ export interface OpenAiClient {
   readonly "usageVectorStores": <Config extends OperationConfig>(
     options: { readonly params: typeof UsageVectorStoresParams.Encoded; readonly config?: Config | undefined }
   ) => Effect.Effect<
-    WithOptionalResponse<typeof UsageVectorStores200.Type, Config>,
+    WithOptionalResponse<typeof UsageResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25092,7 +35832,7 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListUsersParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListUsers200.Type, Config>,
+    WithOptionalResponse<typeof UserListResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25101,8 +35841,22 @@ export interface OpenAiClient {
   readonly "retrieveUser": <Config extends OperationConfig>(
     userId: string,
     options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<typeof User.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Modifies a user's role in the organization.
+   */
+  readonly "modifyUser": <Config extends OperationConfig>(
+    userId: string,
+    options: { readonly payload: typeof UserRoleUpdateRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof User.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Deletes a user from the organization.
+   */
+  readonly "deleteUser": <Config extends OperationConfig>(
+    userId: string,
+    options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveUser200.Type, Config>,
+    WithOptionalResponse<typeof UserDeleteResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25115,7 +35869,31 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListUserRoleAssignments200.Type, Config>,
+    WithOptionalResponse<typeof RoleListResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Assigns an organization role to a user within the organization.
+   */
+  readonly "assignUserRole": <Config extends OperationConfig>(
+    userId: string,
+    options: {
+      readonly payload: typeof PublicAssignOrganizationGroupRoleBody.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof UserRoleAssignment.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Unassigns an organization role from a user within the organization.
+   */
+  readonly "unassignUserRole": <Config extends OperationConfig>(
+    userId: string,
+    roleId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeletedRoleAssignmentResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25129,7 +35907,33 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListProjectGroupRoleAssignments200.Type, Config>,
+    WithOptionalResponse<typeof RoleListResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Assigns a project role to a group within a project.
+   */
+  readonly "assignProjectGroupRole": <Config extends OperationConfig>(
+    projectId: string,
+    groupId: string,
+    options: {
+      readonly payload: typeof PublicAssignOrganizationGroupRoleBody.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof GroupRoleAssignment.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Unassigns a project role from a group within a project.
+   */
+  readonly "unassignProjectGroupRole": <Config extends OperationConfig>(
+    projectId: string,
+    groupId: string,
+    roleId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeletedRoleAssignmentResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25142,7 +35946,33 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListProjectRoles200.Type, Config>,
+    WithOptionalResponse<typeof PublicRoleListResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates a custom role for a project.
+   */
+  readonly "createProjectRole": <Config extends OperationConfig>(
+    projectId: string,
+    options: { readonly payload: typeof PublicCreateOrganizationRoleBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof Role.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Updates an existing project role.
+   */
+  readonly "updateProjectRole": <Config extends OperationConfig>(
+    projectId: string,
+    roleId: string,
+    options: { readonly payload: typeof PublicUpdateOrganizationRoleBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof Role.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Deletes a custom role from a project.
+   */
+  readonly "deleteProjectRole": <Config extends OperationConfig>(
+    projectId: string,
+    roleId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RoleDeletedResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25156,9 +35986,129 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListProjectUserRoleAssignments200.Type, Config>,
+    WithOptionalResponse<typeof RoleListResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
+  /**
+   * Assigns a project role to a user within a project.
+   */
+  readonly "assignProjectUserRole": <Config extends OperationConfig>(
+    projectId: string,
+    userId: string,
+    options: {
+      readonly payload: typeof PublicAssignOrganizationGroupRoleBody.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof UserRoleAssignment.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Unassigns a project role from a user within a project.
+   */
+  readonly "unassignProjectUserRole": <Config extends OperationConfig>(
+    projectId: string,
+    userId: string,
+    roleId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeletedRoleAssignmentResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create a new Realtime API call over WebRTC and receive the SDP answer needed
+   * to complete the peer connection.
+   */
+  readonly "createRealtimeCall": <Config extends OperationConfig>(
+    options: { readonly payload: typeof RealtimeCallCreateRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Accept an incoming SIP call and configure the realtime session that will
+   * handle it.
+   */
+  readonly "acceptRealtimeCall": <Config extends OperationConfig>(
+    callId: string,
+    options: { readonly payload: typeof RealtimeSessionCreateRequestGA.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * End an active Realtime API call, whether it was initiated over SIP or
+   * WebRTC.
+   */
+  readonly "hangupRealtimeCall": <Config extends OperationConfig>(
+    callId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Transfer an active SIP call to a new destination using the SIP REFER verb.
+   */
+  readonly "referRealtimeCall": <Config extends OperationConfig>(
+    callId: string,
+    options: { readonly payload: typeof RealtimeCallReferRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Decline an incoming SIP call by returning a SIP status code to the caller.
+   */
+  readonly "rejectRealtimeCall": <Config extends OperationConfig>(
+    callId: string,
+    options: { readonly payload: typeof RealtimeCallRejectRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<void, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Create a Realtime client secret with an associated session configuration.
+   */
+  readonly "createRealtimeClientSecret": <Config extends OperationConfig>(
+    options: {
+      readonly payload: typeof RealtimeCreateClientSecretRequest.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RealtimeCreateClientSecretResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create an ephemeral API token for use in client-side applications with the
+   * Realtime API. Can be configured with the same session parameters as the
+   * `session.update` client event.
+   *
+   * It responds with a session object, plus a `client_secret` key which contains
+   * a usable ephemeral API token that can be used to authenticate browser clients
+   * for the Realtime API.
+   */
+  readonly "createRealtimeSession": <Config extends OperationConfig>(
+    options: { readonly payload: typeof RealtimeSessionCreateRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RealtimeSessionCreateResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create an ephemeral API token for use in client-side applications with the
+   * Realtime API specifically for realtime transcriptions.
+   * Can be configured with the same session parameters as the `transcription_session.update` client event.
+   *
+   * It responds with a session object, plus a `client_secret` key which contains
+   * a usable ephemeral API token that can be used to authenticate browser clients
+   * for the Realtime API.
+   */
+  readonly "createRealtimeTranscriptionSession": <Config extends OperationConfig>(
+    options: {
+      readonly payload: typeof RealtimeTranscriptionSessionCreateRequest.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof RealtimeTranscriptionSessionCreateResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Creates a model response. Provide [text](https://platform.openai.com/docs/guides/text) or
+   * [image](https://platform.openai.com/docs/guides/images) inputs to generate [text](https://platform.openai.com/docs/guides/text)
+   * or [JSON](https://platform.openai.com/docs/guides/structured-outputs) outputs. Have the model call
+   * your own [custom code](https://platform.openai.com/docs/guides/function-calling) or use built-in
+   * [tools](https://platform.openai.com/docs/guides/tools) like [web search](https://platform.openai.com/docs/guides/tools-web-search)
+   * or [file search](https://platform.openai.com/docs/guides/tools-file-search) to use your own data
+   * as input for the model's response.
+   */
+  readonly "createResponse": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateResponse.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof Response.Type, Config>, HttpClientError.HttpClientError | SchemaError>
   /**
    * Retrieves a model response with the given ID.
    */
@@ -25167,9 +36117,28 @@ export interface OpenAiClient {
     options:
       | { readonly params?: typeof GetResponseParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
+  ) => Effect.Effect<WithOptionalResponse<typeof Response.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Deletes a model response with the given ID.
+   */
+  readonly "deleteResponse": <Config extends OperationConfig>(
+    responseId: string,
+    options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetResponse200.Type, Config>,
-    HttpClientError.HttpClientError | SchemaError
+    WithOptionalResponse<void, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"Error", typeof Error.Type>
+  >
+  /**
+   * Cancels a model response with the given ID. Only responses created with
+   * the `background` parameter set to `true` can be cancelled.
+   * [Learn more](https://platform.openai.com/docs/guides/background).
+   */
+  readonly "cancelResponse": <Config extends OperationConfig>(
+    responseId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof Response.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError | OpenAiClientError<"Error", typeof Error.Type>
   >
   /**
    * Returns a list of input items for a given response.
@@ -25180,9 +36149,24 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListInputItemsParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListInputItems200.Type, Config>,
+    WithOptionalResponse<typeof ResponseItemList.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
+  /**
+   * Create a thread.
+   */
+  readonly "createThread": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateThreadRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ThreadObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create a thread and run it in one request.
+   */
+  readonly "createThreadAndRun": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateThreadAndRunRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof RunObject.Type, Config>, HttpClientError.HttpClientError | SchemaError>
   /**
    * Retrieves a thread.
    */
@@ -25190,7 +36174,27 @@ export interface OpenAiClient {
     threadId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetThread200.Type, Config>,
+    WithOptionalResponse<typeof ThreadObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Modifies a thread.
+   */
+  readonly "modifyThread": <Config extends OperationConfig>(
+    threadId: string,
+    options: { readonly payload: typeof ModifyThreadRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ThreadObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Delete a thread.
+   */
+  readonly "deleteThread": <Config extends OperationConfig>(
+    threadId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeleteThreadResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25202,7 +36206,17 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListMessagesParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListMessages200.Type, Config>,
+    WithOptionalResponse<typeof ListMessagesResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create a message.
+   */
+  readonly "createMessage": <Config extends OperationConfig>(
+    threadId: string,
+    options: { readonly payload: typeof CreateMessageRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof MessageObject.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25213,7 +36227,29 @@ export interface OpenAiClient {
     messageId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetMessage200.Type, Config>,
+    WithOptionalResponse<typeof MessageObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Modifies a message.
+   */
+  readonly "modifyMessage": <Config extends OperationConfig>(
+    threadId: string,
+    messageId: string,
+    options: { readonly payload: typeof ModifyMessageRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof MessageObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Deletes a message.
+   */
+  readonly "deleteMessage": <Config extends OperationConfig>(
+    threadId: string,
+    messageId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeleteMessageResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25225,9 +36261,20 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListRunsParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListRuns200.Type, Config>,
+    WithOptionalResponse<typeof ListRunsResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
+  /**
+   * Create a run.
+   */
+  readonly "createRun": <Config extends OperationConfig>(
+    threadId: string,
+    options: {
+      readonly params?: typeof CreateRunParams.Encoded | undefined
+      readonly payload: typeof CreateRunRequest.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<WithOptionalResponse<typeof RunObject.Type, Config>, HttpClientError.HttpClientError | SchemaError>
   /**
    * Retrieves a run.
    */
@@ -25235,7 +36282,23 @@ export interface OpenAiClient {
     threadId: string,
     runId: string,
     options: { readonly config?: Config | undefined } | undefined
-  ) => Effect.Effect<WithOptionalResponse<typeof GetRun200.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  ) => Effect.Effect<WithOptionalResponse<typeof RunObject.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Modifies a run.
+   */
+  readonly "modifyRun": <Config extends OperationConfig>(
+    threadId: string,
+    runId: string,
+    options: { readonly payload: typeof ModifyRunRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof RunObject.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Cancels a run that is `in_progress`.
+   */
+  readonly "cancelRun": <Config extends OperationConfig>(
+    threadId: string,
+    runId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<typeof RunObject.Type, Config>, HttpClientError.HttpClientError | SchemaError>
   /**
    * Returns a list of run steps belonging to a run.
    */
@@ -25246,7 +36309,7 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListRunStepsParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListRunSteps200.Type, Config>,
+    WithOptionalResponse<typeof ListRunStepsResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25260,7 +36323,71 @@ export interface OpenAiClient {
       | { readonly params?: typeof GetRunStepParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetRunStep200.Type, Config>,
+    WithOptionalResponse<typeof RunStepObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * When a run has the `status: "requires_action"` and `required_action.type` is `submit_tool_outputs`, this endpoint can be used to submit the outputs from the tool calls once they're all completed. All outputs must be submitted in a single request.
+   */
+  readonly "submitToolOuputsToRun": <Config extends OperationConfig>(
+    threadId: string,
+    runId: string,
+    options: { readonly payload: typeof SubmitToolOutputsRunRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof RunObject.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Creates an intermediate [Upload](https://platform.openai.com/docs/api-reference/uploads/object) object
+   * that you can add [Parts](https://platform.openai.com/docs/api-reference/uploads/part-object) to.
+   * Currently, an Upload can accept at most 8 GB in total and expires after an
+   * hour after you create it.
+   *
+   * Once you complete the Upload, we will create a
+   * [File](https://platform.openai.com/docs/api-reference/files/object) object that contains all the parts
+   * you uploaded. This File is usable in the rest of our platform as a regular
+   * File object.
+   *
+   * For certain `purpose` values, the correct `mime_type` must be specified.
+   * Please refer to documentation for the
+   * [supported MIME types for your use case](https://platform.openai.com/docs/assistants/tools/file-search#supported-files).
+   *
+   * For guidance on the proper filename extensions for each purpose, please
+   * follow the documentation on [creating a
+   * File](https://platform.openai.com/docs/api-reference/files/create).
+   */
+  readonly "createUpload": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateUploadRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof Upload.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Cancels the Upload. No Parts may be added after an Upload is cancelled.
+   */
+  readonly "cancelUpload": <Config extends OperationConfig>(
+    uploadId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<WithOptionalResponse<typeof Upload.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Completes the [Upload](https://platform.openai.com/docs/api-reference/uploads/object).
+   *
+   * Within the returned Upload object, there is a nested [File](https://platform.openai.com/docs/api-reference/files/object) object that is ready to use in the rest of the platform.
+   *
+   * You can specify the order of the Parts by passing in an ordered list of the Part IDs.
+   *
+   * The number of bytes uploaded upon completion must match the number of bytes initially specified when creating the Upload object. No Parts may be added after an Upload is completed.
+   */
+  readonly "completeUpload": <Config extends OperationConfig>(
+    uploadId: string,
+    options: { readonly payload: typeof CompleteUploadRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<WithOptionalResponse<typeof Upload.Type, Config>, HttpClientError.HttpClientError | SchemaError>
+  /**
+   * Adds a [Part](https://platform.openai.com/docs/api-reference/uploads/part-object) to an [Upload](https://platform.openai.com/docs/api-reference/uploads/object) object. A Part represents a chunk of bytes from the file you are trying to upload.
+   *
+   * Each Part can be at most 64 MB, and you can add Parts until you hit the Upload maximum of 8 GB.
+   *
+   * It is possible to add multiple Parts in parallel. You can decide the intended order of the Parts when you [complete the Upload](https://platform.openai.com/docs/api-reference/uploads/complete).
+   */
+  readonly "addUploadPart": <Config extends OperationConfig>(
+    uploadId: string,
+    options: { readonly payload: typeof AddUploadPartRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof UploadPart.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25272,7 +36399,16 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListVectorStores200.Type, Config>,
+    WithOptionalResponse<typeof ListVectorStoresResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create a vector store.
+   */
+  readonly "createVectorStore": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateVectorStoreRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VectorStoreObject.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25282,7 +36418,40 @@ export interface OpenAiClient {
     vectorStoreId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetVectorStore200.Type, Config>,
+    WithOptionalResponse<typeof VectorStoreObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Modifies a vector store.
+   */
+  readonly "modifyVectorStore": <Config extends OperationConfig>(
+    vectorStoreId: string,
+    options: { readonly payload: typeof UpdateVectorStoreRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VectorStoreObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Delete a vector store.
+   */
+  readonly "deleteVectorStore": <Config extends OperationConfig>(
+    vectorStoreId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeleteVectorStoreResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create a vector store file batch.
+   */
+  readonly "createVectorStoreFileBatch": <Config extends OperationConfig>(
+    vectorStoreId: string,
+    options: {
+      readonly payload: typeof CreateVectorStoreFileBatchRequest.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VectorStoreFileBatchObject.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25293,7 +36462,18 @@ export interface OpenAiClient {
     batchId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetVectorStoreFileBatch200.Type, Config>,
+    WithOptionalResponse<typeof VectorStoreFileBatchObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Cancel a vector store file batch. This attempts to cancel the processing of files in this batch as soon as possible.
+   */
+  readonly "cancelVectorStoreFileBatch": <Config extends OperationConfig>(
+    vectorStoreId: string,
+    batchId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VectorStoreFileBatchObject.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25307,7 +36487,7 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListFilesInVectorStoreBatch200.Type, Config>,
+    WithOptionalResponse<typeof ListVectorStoreFilesResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25320,7 +36500,17 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListVectorStoreFiles200.Type, Config>,
+    WithOptionalResponse<typeof ListVectorStoreFilesResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create a vector store file by attaching a [File](https://platform.openai.com/docs/api-reference/files) to a [vector store](https://platform.openai.com/docs/api-reference/vector-stores/object).
+   */
+  readonly "createVectorStoreFile": <Config extends OperationConfig>(
+    vectorStoreId: string,
+    options: { readonly payload: typeof CreateVectorStoreFileRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VectorStoreFileObject.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25331,7 +36521,32 @@ export interface OpenAiClient {
     fileId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetVectorStoreFile200.Type, Config>,
+    WithOptionalResponse<typeof VectorStoreFileObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Update attributes on a vector store file.
+   */
+  readonly "updateVectorStoreFileAttributes": <Config extends OperationConfig>(
+    vectorStoreId: string,
+    fileId: string,
+    options: {
+      readonly payload: typeof UpdateVectorStoreFileAttributesRequest.Encoded
+      readonly config?: Config | undefined
+    }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VectorStoreFileObject.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Delete a vector store file. This will remove the file from the vector store but the file itself will not be deleted. To delete the file, use the [delete file](https://platform.openai.com/docs/api-reference/files/delete) endpoint.
+   */
+  readonly "deleteVectorStoreFile": <Config extends OperationConfig>(
+    vectorStoreId: string,
+    fileId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeleteVectorStoreFileResponse.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25342,7 +36557,26 @@ export interface OpenAiClient {
     fileId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof RetrieveVectorStoreFileContent200.Type, Config>,
+    WithOptionalResponse<typeof VectorStoreFileContentResponse.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Search a vector store for relevant chunks based on a query and file attributes filter.
+   */
+  readonly "searchVectorStore": <Config extends OperationConfig>(
+    vectorStoreId: string,
+    options: { readonly payload: typeof VectorStoreSearchRequest.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VectorStoreSearchResultsPage.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create a conversation.
+   */
+  readonly "createConversation": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateConversationBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ConversationResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25352,7 +36586,27 @@ export interface OpenAiClient {
     conversationId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetConversation200.Type, Config>,
+    WithOptionalResponse<typeof ConversationResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Update a conversation
+   */
+  readonly "updateConversation": <Config extends OperationConfig>(
+    conversationId: string,
+    options: { readonly payload: typeof UpdateConversationBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ConversationResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Delete a conversation. Items in the conversation will not be deleted.
+   */
+  readonly "deleteConversation": <Config extends OperationConfig>(
+    conversationId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeletedConversationResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25363,7 +36617,16 @@ export interface OpenAiClient {
       | { readonly params?: typeof ListVideosParams.Encoded | undefined; readonly config?: Config | undefined }
       | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListVideos200.Type, Config>,
+    WithOptionalResponse<typeof VideoListResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create a video
+   */
+  readonly "createVideo": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateVideoBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VideoResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25373,7 +36636,17 @@ export interface OpenAiClient {
     videoId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetVideo200.Type, Config>,
+    WithOptionalResponse<typeof VideoResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Delete a video
+   */
+  readonly "DeleteVideo": <Config extends OperationConfig>(
+    videoId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeletedVideoResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25390,6 +36663,53 @@ export interface OpenAiClient {
     HttpClientError.HttpClientError | SchemaError
   >
   /**
+   * Create a video remix
+   */
+  readonly "CreateVideoRemix": <Config extends OperationConfig>(
+    videoId: string,
+    options: { readonly payload: typeof CreateVideoRemixBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof VideoResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Get input token counts
+   */
+  readonly "Getinputtokencounts": <Config extends OperationConfig>(
+    options: { readonly payload: typeof TokenCountsBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof TokenCountsResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Compact conversation
+   */
+  readonly "Compactconversation": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CompactResponseMethodPublicBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof CompactResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Cancel a ChatKit session
+   */
+  readonly "CancelChatSessionMethod": <Config extends OperationConfig>(
+    sessionId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ChatSessionResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Create a ChatKit session
+   */
+  readonly "CreateChatSessionMethod": <Config extends OperationConfig>(
+    options: { readonly payload: typeof CreateChatSessionBody.Encoded; readonly config?: Config | undefined }
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof ChatSessionResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
    * List ChatKit thread items
    */
   readonly "ListThreadItemsMethod": <Config extends OperationConfig>(
@@ -25399,7 +36719,7 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListThreadItemsMethod200.Type, Config>,
+    WithOptionalResponse<typeof ThreadItemListResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25409,7 +36729,17 @@ export interface OpenAiClient {
     threadId: string,
     options: { readonly config?: Config | undefined } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof GetThreadMethod200.Type, Config>,
+    WithOptionalResponse<typeof ThreadResource.Type, Config>,
+    HttpClientError.HttpClientError | SchemaError
+  >
+  /**
+   * Delete a ChatKit thread
+   */
+  readonly "DeleteThreadMethod": <Config extends OperationConfig>(
+    threadId: string,
+    options: { readonly config?: Config | undefined } | undefined
+  ) => Effect.Effect<
+    WithOptionalResponse<typeof DeletedThreadResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
   /**
@@ -25421,7 +36751,7 @@ export interface OpenAiClient {
       readonly config?: Config | undefined
     } | undefined
   ) => Effect.Effect<
-    WithOptionalResponse<typeof ListThreadsMethod200.Type, Config>,
+    WithOptionalResponse<typeof ThreadListResource.Type, Config>,
     HttpClientError.HttpClientError | SchemaError
   >
 }

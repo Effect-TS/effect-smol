@@ -59,6 +59,15 @@ export const make = Effect.gen(function*() {
         return current
       }
 
+      function getSchemaName(schema: any, fallbackName: string): string {
+        if ("$ref" in schema && typeof schema.$ref === "string") {
+          const ref = schema.$ref
+          const lastSlash = ref.lastIndexOf("/")
+          return lastSlash >= 0 ? ref.slice(lastSlash + 1) : ref
+        }
+        return generator.addSchema(fallbackName, schema)
+      }
+
       const operations: Array<ParsedOperation.ParsedOperation> = []
 
       function handlePath(path: string, methods: OpenAPISpecPathItem): void {
@@ -66,7 +75,7 @@ export const make = Effect.gen(function*() {
           const operation = methods[method]
 
           if (Predicate.isUndefined(operation)) {
-            return
+            continue
           }
 
           const id = operation.operationId
@@ -105,7 +114,7 @@ export const make = Effect.gen(function*() {
               }
 
               if (parameter.in === "path") {
-                return
+                continue
               }
 
               const paramSchema = parameter.schema
@@ -149,16 +158,16 @@ export const make = Effect.gen(function*() {
           }
 
           if (Predicate.isNotUndefined(operation.requestBody?.content?.["application/json"]?.schema)) {
-            op.payload = generator.addSchema(
-              `${schemaId}Request`,
-              operation.requestBody.content["application/json"].schema
+            op.payload = getSchemaName(
+              operation.requestBody.content["application/json"].schema,
+              `${schemaId}Request`
             )
           }
 
           if (Predicate.isNotUndefined(operation.requestBody?.content?.["multipart/form-data"]?.schema)) {
-            op.payload = generator.addSchema(
-              `${schemaId}Request`,
-              operation.requestBody.content["multipart/form-data"].schema
+            op.payload = getSchemaName(
+              operation.requestBody.content["multipart/form-data"].schema,
+              `${schemaId}Request`
             )
             op.payloadFormData = true
           }
@@ -173,20 +182,20 @@ export const make = Effect.gen(function*() {
             }
 
             if (Predicate.isNotUndefined(response.content?.["application/json"]?.schema)) {
-              const schemaName = generator.addSchema(
-                `${schemaId}${status}`,
-                response.content["application/json"].schema
+              const schemaName = getSchemaName(
+                response.content["application/json"].schema,
+                `${schemaId}${status}`
               )
 
               if (status === "default") {
                 defaultSchema = schemaName
-                return
+                continue
               }
 
               const statusLower = status.toLowerCase()
               const statusMajorNumber = Number(status[0])
               if (Number.isNaN(statusMajorNumber)) {
-                return
+                continue
               }
               if (statusMajorNumber < 4) {
                 op.successSchemas.set(statusLower, schemaName)
