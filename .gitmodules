@@ -1,3 +1,0 @@
-[submodule ".repos/effect-old"]
-	path = .repos/effect-old
-	url = https://github.com/Effect-TS/effect.git
