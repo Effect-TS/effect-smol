@@ -52,11 +52,6 @@ This is the Effect library repository, focusing on functional programming patter
 The `index.ts` files are automatically generated. Do not manually edit them. Use
 `pnpm codegen` to regenerate barrel files after adding or removing modules.
 
-## References
-
-- If you ever need to research the previous version of the Effect library, the
-  source code is available in `.agents/effect-old/`
-
 ## Testing
 
 Before writing tests, look at existing tests in the codebase for similar
