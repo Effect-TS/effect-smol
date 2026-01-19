@@ -206,8 +206,8 @@ describe("Tool", () => {
           Effect.flip
         )
 
-        assert.strictEqual(response._tag, "AiErrorWithReason")
-        if (response._tag === "AiErrorWithReason") {
+        assert.strictEqual(response._tag, "AiError")
+        if (response._tag === "AiError") {
           assert.strictEqual(response.reason._tag, "OutputParseError")
           if (response.reason._tag === "OutputParseError") {
             assert.strictEqual(response.reason.expectedSchema, "FailureModeReturn")
@@ -490,8 +490,8 @@ describe("Tool", () => {
           Effect.flip
         )
 
-        assert.strictEqual(response._tag, "AiErrorWithReason")
-        if (response._tag === "AiErrorWithReason") {
+        assert.strictEqual(response._tag, "AiError")
+        if (response._tag === "AiError") {
           assert.strictEqual(response.reason._tag, "OutputParseError")
           if (response.reason._tag === "OutputParseError") {
             assert.strictEqual(response.reason.expectedSchema, "HandlerRequired")

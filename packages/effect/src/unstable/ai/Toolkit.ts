@@ -289,7 +289,7 @@ const Proto = {
         const tool = tools[name]
         if (Predicate.isUndefined(tool)) {
           const toolNames = Object.keys(tools).join(",")
-          return yield* AiError.makeWithReason({
+          return yield* AiError.make({
             module: "Toolkit",
             method: `${name}.handle`,
             reason: new AiError.OutputParseError({
@@ -302,7 +302,7 @@ const Proto = {
         const decodedParams = yield* Effect.mapError(
           schemas.decodeParameters(params),
           (cause) =>
-            AiError.makeWithReason({
+            AiError.make({
               module: "Toolkit",
               method: `${name}.handle`,
               reason: new AiError.OutputParseError({
@@ -316,7 +316,7 @@ const Proto = {
           Effect.map((result) => ({ result, isFailure: false })),
           Effect.catch((error) => {
             // AiErrors are always failures
-            if (AiError.isAiError(error) || AiError.isAiErrorWithReason(error)) {
+            if (AiError.isAiError(error)) {
               return Effect.fail(error)
             }
             // If the tool handler failed, check the tool's failure mode to
@@ -328,7 +328,7 @@ const Proto = {
           Effect.updateServices((input) => ServiceMap.merge(schemas.services, input)),
           Effect.mapError((cause) =>
             Schema.isSchemaError(cause)
-              ? AiError.makeWithReason({
+              ? AiError.make({
                 module: "Toolkit",
                 method: `${name}.handle`,
                 reason: new AiError.InvalidRequestError({
@@ -343,7 +343,7 @@ const Proto = {
         const encodedResult = yield* Effect.mapError(
           schemas.encodeResult(result),
           (cause) =>
-            AiError.makeWithReason({
+            AiError.make({
               module: "Toolkit",
               method: `${name}.handle`,
               reason: new AiError.InvalidRequestError({

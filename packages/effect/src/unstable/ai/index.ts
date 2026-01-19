@@ -5,20 +5,28 @@
 // @barrel: Auto-generated exports. Do not edit manually.
 
 /**
- * The `AiError` module provides comprehensive error handling for AI operations.
+ * The `AiError` module provides comprehensive, provider-agnostic error handling
+ * for AI operations.
  *
- * This module defines a hierarchy of error types that can occur when working
- * with AI services, including HTTP request/response errors, input/output
- * validation errors, and general runtime errors. All errors follow Effect's
- * structured error patterns and provide detailed context for debugging.
+ * This module uses the `reason` pattern where `AiError` is a top-level
+ * wrapper error containing `module`, `method`, and a `reason` field that holds
+ * the semantic error. This design enables ergonomic error handling while
+ * preserving rich context about failures.
  *
- * ## Error Types
+ * ## Semantic Error Categories
  *
- * - **HttpRequestError**: Errors occurring during HTTP request processing
- * - **HttpResponseError**: Errors occurring during HTTP response processing
- * - **MalformedInput**: Errors when input data doesn't match expected format
- * - **MalformedOutput**: Errors when output data can't be parsed or validated
- * - **UnknownError**: Catch-all for unexpected runtime errors
+ * - **RateLimitError** - Request throttled (429s, provider-specific limits)
+ * - **QuotaExhaustedError** - Account/billing limits reached
+ * - **AuthenticationError** - Invalid/expired credentials
+ * - **ContentPolicyError** - Input/output violated content policy
+ * - **ModelUnavailableError** - Model not available/deprecated
+ * - **ContextLengthError** - Token limit exceeded
+ * - **InvalidRequestError** - Malformed request parameters
+ * - **ProviderInternalError** - Provider-side failures (5xx)
+ * - **AiTimeoutError** - Request timeout
+ * - **NetworkError** - Transport-level failures
+ * - **OutputParseError** - LLM output parsing failures
+ * - **AiUnknownError** - Catch-all for unknown errors
  *
  * @example
  * ```ts
@@ -26,54 +34,38 @@
  * import type { AiError } from "effect/unstable/ai"
  *
  * const handleAiError = Match.type<AiError.AiError>().pipe(
- *   Match.tag(
- *     "HttpRequestError",
- *     (err) => Effect.logError(`Request failed: ${err.message}`)
+ *   Match.when(
+ *     { reason: { _tag: "RateLimitError" } },
+ *     (err) => Effect.logWarning(`Rate limited, retry after ${err.retryAfter}`)
  *   ),
- *   Match.tag(
- *     "HttpResponseError",
- *     (err) =>
- *       Effect.logError(`Response error (${err.response.status}): ${err.message}`)
+ *   Match.when(
+ *     { reason: { _tag: "AuthenticationError" } },
+ *     (err) => Effect.logError(`Auth failed: ${err.reason.kind}`)
  *   ),
- *   Match.tag(
- *     "MalformedInput",
- *     (err) => Effect.logError(`Invalid input: ${err.message}`)
+ *   Match.when(
+ *     { reason: { isRetryable: true } },
+ *     (err) => Effect.logWarning(`Transient error, retrying: ${err.message}`)
  *   ),
- *   Match.tag(
- *     "MalformedOutput",
- *     (err) => Effect.logError(`Invalid output: ${err.message}`)
- *   ),
- *   Match.orElse((err) => Effect.logError(`Unknown error: ${err.message}`))
+ *   Match.orElse((err) => Effect.logError(`Permanent error: ${err.message}`))
  * )
  * ```
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Duration, Effect } from "effect"
  * import { AiError } from "effect/unstable/ai"
  *
- * const aiOperation = Effect.gen(function*() {
- *   // Some AI operation that might fail
- *   return yield* new AiError.HttpRequestError({
- *     module: "OpenAI",
- *     method: "completion",
- *     reason: "Transport",
- *     request: {
- *       method: "POST",
- *       url: "https://api.openai.com/v1/completions",
- *       urlParams: [],
- *       hash: undefined,
- *       headers: { "Content-Type": "application/json" }
- *     }
+ * const error = AiError.make({
+ *   module: "OpenAI",
+ *   method: "completion",
+ *   reason: new AiError.RateLimitError({
+ *     limit: "requests",
+ *     retryAfter: Duration.seconds(60)
  *   })
  * })
  *
- * const program = aiOperation.pipe(
- *   Effect.catchTag("HttpRequestError", (error) => {
- *     console.log("Request failed:", error.message)
- *     return Effect.succeed("fallback response")
- *   })
- * )
+ * console.log(error.isRetryable) // true
+ * console.log(error.message) // "OpenAI.completion: Rate limit exceeded (requests). Retry after 1 minute"
  * ```
  *
  * @since 4.0.0

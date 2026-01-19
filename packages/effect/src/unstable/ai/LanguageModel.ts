@@ -420,7 +420,7 @@ export class GenerateObjectResponse<Tools extends Record<string, Tool.Any>, A> e
 export type ExtractError<Options> = Options extends {
   readonly toolkit: Toolkit.WithHandler<infer _Tools>
   readonly disableToolCallResolution: true
-} ? AiError.AiError | AiError.AiErrorWithReason
+} ? AiError.AiError
   : Options extends {
     readonly toolkit: Effect.Yieldable<
       Toolkit.Toolkit<infer _Tools>,
@@ -429,10 +429,10 @@ export type ExtractError<Options> = Options extends {
       infer _R
     >
     readonly disableToolCallResolution: true
-  } ? AiError.AiError | AiError.AiErrorWithReason | _E
+  } ? AiError.AiError | _E
   : Options extends {
     readonly toolkit: Toolkit.WithHandler<infer _Tools>
-  } ? AiError.AiError | AiError.AiErrorWithReason | Tool.HandlerError<_Tools[keyof _Tools]>
+  } ? AiError.AiError | Tool.HandlerError<_Tools[keyof _Tools]>
   : Options extends {
     readonly toolkit: Effect.Yieldable<
       Toolkit.Toolkit<infer _Tools>,
@@ -440,8 +440,8 @@ export type ExtractError<Options> = Options extends {
       infer _E,
       infer _R
     >
-  } ? AiError.AiError | AiError.AiErrorWithReason | Tool.HandlerError<_Tools[keyof _Tools]> | _E :
-  AiError.AiError | AiError.AiErrorWithReason
+  } ? AiError.AiError | Tool.HandlerError<_Tools[keyof _Tools]> | _E :
+  AiError.AiError
 
 /**
  * Utility type that extracts the context requirements from LanguageModel options.
@@ -629,7 +629,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             return new GenerateTextResponse(content)
           },
           Effect.catchTag("SchemaError", (error) =>
-            Effect.fail(AiError.makeWithReason({
+            Effect.fail(AiError.make({
               module: "LanguageModel",
               method: "generateText",
               reason: AiError.OutputParseError.fromSchemaError({ error })
@@ -680,7 +680,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
             return new GenerateObjectResponse(value, content)
           },
           Effect.catchTag("SchemaError", (error) =>
-            Effect.fail(AiError.makeWithReason({
+            Effect.fail(AiError.make({
               module: "LanguageModel",
               method: "generateObject",
               reason: AiError.OutputParseError.fromSchemaError({ error })
@@ -740,7 +740,7 @@ export const make: (params: ConstructorParams) => Effect.Effect<Service> = Effec
       Stream.unwrap,
       Stream.mapError((error) =>
         Schema.isSchemaError(error)
-          ? AiError.makeWithReason({
+          ? AiError.make({
             module: "LanguageModel",
             method: "streamText",
             reason: AiError.OutputParseError.fromSchemaError({ error })
@@ -1095,7 +1095,7 @@ const resolveStructuredOutput = Effect.fnUntraced(
     }
 
     if (text.length === 0) {
-      return yield* AiError.makeWithReason({
+      return yield* AiError.make({
         module: "LanguageModel",
         method: "generateObject",
         reason: new AiError.OutputParseError({
@@ -1106,7 +1106,7 @@ const resolveStructuredOutput = Effect.fnUntraced(
 
     const decode = Schema.decodeEffect(Schema.fromJsonString(schema))
     return yield* Effect.mapError(decode(text.join("")), (cause) =>
-      AiError.makeWithReason({
+      AiError.make({
         module: "LanguageModel",
         method: "generateObject",
         reason: new AiError.OutputParseError({

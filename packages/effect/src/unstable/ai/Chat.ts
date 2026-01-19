@@ -169,7 +169,7 @@ export interface Service {
    * })
    * ```
    */
-  readonly exportJson: Effect.Effect<string, AiError.MalformedOutput>
+  readonly exportJson: Effect.Effect<string, AiError.AiError>
 
   /**
    * Generate text using a language model for the specified prompt.
@@ -337,22 +337,24 @@ export const empty: Effect.Effect<Service> = Effect.gen(function*() {
     export: Ref.get(history).pipe(
       Effect.flatMap(encodeHistory),
       Effect.catchTag("SchemaError", (error) =>
-        Effect.fail(AiError.MalformedOutput.fromSchemaError({
+        Effect.fail(AiError.make({
           module: "Chat",
-          method: "exportJson",
-          description: "Failed to encode chat history",
-          error
+          method: "export",
+          reason: AiError.OutputParseError.fromSchemaError({
+            error
+          })
         }))),
       Effect.withSpan("Chat.export")
     ),
     exportJson: Ref.get(history).pipe(
       Effect.flatMap(encodeHistoryJson),
       Effect.catchTag("SchemaError", (error) =>
-        Effect.fail(AiError.MalformedOutput.fromSchemaError({
+        Effect.fail(AiError.make({
           module: "Chat",
           method: "exportJson",
-          description: "Failed to encode chat history into JSON",
-          error
+          reason: AiError.OutputParseError.fromSchemaError({
+            error
+          })
         }))),
       Effect.withSpan("Chat.exportJson")
     ),
@@ -640,7 +642,7 @@ export declare namespace Persistence {
      */
     readonly getOrCreate: (chatId: string, options?: {
       readonly timeToLive?: Duration.DurationInput | undefined
-    }) => Effect.Effect<Persisted, AiError.MalformedOutput | PersistenceError>
+    }) => Effect.Effect<Persisted, AiError.AiError | PersistenceError>
   }
 }
 
@@ -663,7 +665,7 @@ export interface Persisted extends Service {
   /**
    * Saves the current chat history into the backing persistence store.
    */
-  readonly save: Effect.Effect<void, AiError.MalformedOutput | PersistenceError>
+  readonly save: Effect.Effect<void, AiError.AiError | PersistenceError>
 }
 
 /**

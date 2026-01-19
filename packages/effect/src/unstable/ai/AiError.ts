@@ -1,73 +1,72 @@
 /**
- * The `AiError` module provides comprehensive error handling for AI operations.
+ * The `AiError` module provides comprehensive, provider-agnostic error handling
+ * for AI operations.
  *
- * This module defines a hierarchy of error types that can occur when working
- * with AI services, including HTTP request/response errors, input/output
- * validation errors, and general runtime errors. All errors follow Effect's
- * structured error patterns and provide detailed context for debugging.
+ * This module uses the `reason` pattern where `AiError` is a top-level
+ * wrapper error containing `module`, `method`, and a `reason` field that holds
+ * the semantic error. This design enables ergonomic error handling while
+ * preserving rich context about failures.
  *
- * ## Error Types
+ * ## Semantic Error Categories
  *
- * - **HttpRequestError**: Errors occurring during HTTP request processing
- * - **HttpResponseError**: Errors occurring during HTTP response processing
- * - **MalformedInput**: Errors when input data doesn't match expected format
- * - **MalformedOutput**: Errors when output data can't be parsed or validated
- * - **UnknownError**: Catch-all for unexpected runtime errors
+ * - **RateLimitError** - Request throttled (429s, provider-specific limits)
+ * - **QuotaExhaustedError** - Account/billing limits reached
+ * - **AuthenticationError** - Invalid/expired credentials
+ * - **ContentPolicyError** - Input/output violated content policy
+ * - **ModelUnavailableError** - Model not available/deprecated
+ * - **ContextLengthError** - Token limit exceeded
+ * - **InvalidRequestError** - Malformed request parameters
+ * - **ProviderInternalError** - Provider-side failures (5xx)
+ * - **AiTimeoutError** - Request timeout
+ * - **NetworkError** - Transport-level failures
+ * - **OutputParseError** - LLM output parsing failures
+ * - **AiUnknownError** - Catch-all for unknown errors
+ *
+ * ## Retryability
+ *
+ * Each reason type has an `isRetryable` getter indicating whether the error is
+ * transient. Some errors also provide a `retryAfter` duration hint.
  *
  * @example
  * ```ts
  * import { Effect, Match } from "effect"
  * import type { AiError } from "effect/unstable/ai"
  *
+ * // Handle errors using Match on the reason
  * const handleAiError = Match.type<AiError.AiError>().pipe(
- *   Match.tag(
- *     "HttpRequestError",
- *     (err) => Effect.logError(`Request failed: ${err.message}`)
+ *   Match.when(
+ *     { reason: { _tag: "RateLimitError" } },
+ *     (err) => Effect.logWarning(`Rate limited, retry after ${err.retryAfter}`)
  *   ),
- *   Match.tag(
- *     "HttpResponseError",
- *     (err) =>
- *       Effect.logError(`Response error (${err.response.status}): ${err.message}`)
+ *   Match.when(
+ *     { reason: { _tag: "AuthenticationError" } },
+ *     (err) => Effect.logError(`Auth failed: ${err.reason.kind}`)
  *   ),
- *   Match.tag(
- *     "MalformedInput",
- *     (err) => Effect.logError(`Invalid input: ${err.message}`)
+ *   Match.when(
+ *     { reason: { isRetryable: true } },
+ *     (err) => Effect.logWarning(`Transient error, retrying: ${err.message}`)
  *   ),
- *   Match.tag(
- *     "MalformedOutput",
- *     (err) => Effect.logError(`Invalid output: ${err.message}`)
- *   ),
- *   Match.orElse((err) => Effect.logError(`Unknown error: ${err.message}`))
+ *   Match.orElse((err) => Effect.logError(`Permanent error: ${err.message}`))
  * )
  * ```
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
+ * import { Duration, Effect } from "effect"
  * import { AiError } from "effect/unstable/ai"
  *
- * const aiOperation = Effect.gen(function*() {
- *   // Some AI operation that might fail
- *   return yield* new AiError.HttpRequestError({
- *     module: "OpenAI",
- *     method: "completion",
- *     reason: "Transport",
- *     request: {
- *       method: "POST",
- *       url: "https://api.openai.com/v1/completions",
- *       urlParams: [],
- *       hash: undefined,
- *       headers: { "Content-Type": "application/json" }
- *     }
+ * // Create an AiError with a reason
+ * const error = AiError.make({
+ *   module: "OpenAI",
+ *   method: "completion",
+ *   reason: new AiError.RateLimitError({
+ *     limit: "requests",
+ *     retryAfter: Duration.seconds(60)
  *   })
  * })
  *
- * const program = aiOperation.pipe(
- *   Effect.catchTag("HttpRequestError", (error) => {
- *     console.log("Request failed:", error.message)
- *     return Effect.succeed("fallback response")
- *   })
- * )
+ * console.log(error.isRetryable) // true
+ * console.log(error.message) // "OpenAI.completion: Rate limit exceeded (requests). Retry after 1 minute"
  * ```
  *
  * @since 4.0.0
@@ -80,32 +79,7 @@ import { redact } from "../../Redactable.ts"
 import * as Schema from "../../Schema.ts"
 import type * as HttpClientError from "../http/HttpClientError.ts"
 
-const TypeId = "~effect/unstable/ai/AiError" as const
-
-/**
- * Type guard to check if a value is an AI error.
- *
- * @param u - The value to check
- * @returns `true` if the value is an `AiError`, `false` otherwise
- *
- * @example
- * ```ts
- * import { AiError } from "effect/unstable/ai"
- *
- * const someError = new Error("generic error")
- * const aiError = new AiError.UnknownError({
- *   module: "Test",
- *   method: "example"
- * })
- *
- * console.log(AiError.isAiError(someError)) // false
- * console.log(AiError.isAiError(aiError)) // true
- * ```
- *
- * @since 4.0.0
- * @category guards
- */
-export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, TypeId)
+const LegacyTypeId = "~effect/unstable/ai/AiError" as const
 
 // =============================================================================
 // Http Request Error
@@ -190,7 +164,7 @@ export class HttpRequestError extends Schema.ErrorClass<HttpRequestError>(
   /**
    * @since 4.0.0
    */
-  readonly [TypeId] = TypeId
+  readonly [LegacyTypeId] = LegacyTypeId
 
   /**
    * Creates an HttpRequestError from a platform HttpClientError.RequestError.
@@ -1034,10 +1008,10 @@ export const AiErrorReason: Schema.Union<[
 ])
 
 // =============================================================================
-// Top-Level AiErrorWithReason
+// Top-Level AiError
 // =============================================================================
 
-const ReasonTypeId = "~effect/unstable/ai/AiErrorWithReason" as const
+const TypeId = "~effect/unstable/ai/AiError/AiError" as const
 
 /**
  * Top-level AI error wrapper using the `reason` pattern.
@@ -1054,11 +1028,11 @@ const ReasonTypeId = "~effect/unstable/ai/AiErrorWithReason" as const
  * import { Effect } from "effect"
  * import { AiError } from "effect/unstable/ai"
  *
- * declare const aiOperation: Effect.Effect<string, AiError.AiErrorWithReason>
+ * declare const aiOperation: Effect.Effect<string, AiError.AiError>
  *
  * // Handle specific reason types
  * const handled = aiOperation.pipe(
- *   Effect.catchTag("AiErrorWithReason", (error) => {
+ *   Effect.catchTag("AiError", (error) => {
  *     if (error.reason._tag === "RateLimitError") {
  *       return Effect.succeed(`Retry after ${error.retryAfter}`)
  *     }
@@ -1070,10 +1044,10 @@ const ReasonTypeId = "~effect/unstable/ai/AiErrorWithReason" as const
  * @since 4.0.0
  * @category schemas
  */
-export class AiErrorWithReason extends Schema.ErrorClass<AiErrorWithReason>(
-  "effect/ai/AiError/AiErrorWithReason"
+export class AiError extends Schema.ErrorClass<AiError>(
+  "effect/ai/AiError/AiError"
 )({
-  _tag: Schema.tag("AiErrorWithReason"),
+  _tag: Schema.tag("AiError"),
   module: Schema.String,
   method: Schema.String,
   reason: AiErrorReason
@@ -1081,7 +1055,7 @@ export class AiErrorWithReason extends Schema.ErrorClass<AiErrorWithReason>(
   /**
    * @since 4.0.0
    */
-  readonly [ReasonTypeId] = ReasonTypeId
+  readonly [TypeId] = TypeId
 
   /**
    * Delegates to the underlying reason's `isRetryable` getter.
@@ -1107,25 +1081,40 @@ export class AiErrorWithReason extends Schema.ErrorClass<AiErrorWithReason>(
 }
 
 /**
- * Type guard to check if a value is an `AiErrorWithReason`.
+ * Type guard to check if a value is an `AiError`.
  *
  * @param u - The value to check
- * @returns `true` if the value is an `AiErrorWithReason`, `false` otherwise
+ * @returns `true` if the value is an `AiError`, `false` otherwise
+ *
+ * @example
+ * ```ts
+ * import { AiError } from "effect/unstable/ai"
+ *
+ * const someError = new Error("generic error")
+ * const aiError = AiError.make({
+ *   module: "Test",
+ *   method: "example",
+ *   reason: new AiError.RateLimitError({})
+ * })
+ *
+ * console.log(AiError.isAiError(someError)) // false
+ * console.log(AiError.isAiError(aiError)) // true
+ * ```
  *
  * @since 4.0.0
  * @category guards
  */
-export const isAiErrorWithReason = (u: unknown): u is AiErrorWithReason => Predicate.hasProperty(u, ReasonTypeId)
+export const isAiError = (u: unknown): u is AiError => Predicate.hasProperty(u, TypeId)
 
 /**
- * Creates an `AiErrorWithReason` with the given reason.
+ * Creates an `AiError` with the given reason.
  *
  * @example
  * ```ts
  * import { Duration } from "effect"
  * import { AiError } from "effect/unstable/ai"
  *
- * const error = AiError.makeWithReason({
+ * const error = AiError.make({
  *   module: "OpenAI",
  *   method: "completion",
  *   reason: new AiError.RateLimitError({
@@ -1141,11 +1130,11 @@ export const isAiErrorWithReason = (u: unknown): u is AiErrorWithReason => Predi
  * @since 4.0.0
  * @category constructors
  */
-export const makeWithReason = (params: {
+export const make = (params: {
   readonly module: string
   readonly method: string
   readonly reason: AiErrorReason
-}): AiErrorWithReason => new AiErrorWithReason(params)
+}): AiError => new AiError(params)
 
 /**
  * Maps HTTP status codes to semantic error reasons.
@@ -1248,7 +1237,7 @@ export class HttpResponseError extends Schema.ErrorClass<HttpResponseError>(
   /**
    * @since 4.0.0
    */
-  readonly [TypeId] = TypeId
+  readonly [LegacyTypeId] = LegacyTypeId
 
   /**
    * Creates an HttpResponseError from a platform HttpClientError.ResponseError.
@@ -1397,7 +1386,7 @@ export class MalformedInput extends Schema.ErrorClass<MalformedInput>(
   /**
    * @since 4.0.0
    */
-  readonly [TypeId] = TypeId
+  readonly [LegacyTypeId] = LegacyTypeId
 }
 
 // =============================================================================
@@ -1455,7 +1444,7 @@ export class MalformedOutput extends Schema.ErrorClass<MalformedOutput>(
   /**
    * @since 4.0.0
    */
-  readonly [TypeId] = TypeId
+  readonly [LegacyTypeId] = LegacyTypeId
 
   /**
    * Creates a MalformedOutput error from a Schema ParseError.
@@ -1555,7 +1544,7 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
   /**
    * @since 4.0.0
    */
-  readonly [TypeId] = TypeId
+  readonly [LegacyTypeId] = LegacyTypeId
 
   /**
    * @since 4.0.0
@@ -1567,96 +1556,6 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
       : `${moduleMethod}: ${this.description}`
   }
 }
-
-// =============================================================================
-// AiError
-// =============================================================================
-
-/**
- * Union type representing all possible AI operation errors.
- *
- * This type encompasses all error cases that can occur during AI operations,
- * providing a comprehensive error handling surface for applications.
- *
- * @example
- * ```ts
- * import { Match } from "effect"
- * import type { AiError } from "effect/unstable/ai"
- *
- * const handleAnyAiError = Match.type<AiError.AiError>().pipe(
- *   Match.tag("HttpRequestError", (err) => `Network error: ${err.reason}`),
- *   Match.tag(
- *     "HttpResponseError",
- *     (err) => `Server error: HTTP ${err.response.status}`
- *   ),
- *   Match.tag(
- *     "MalformedInput",
- *     (err) => `Invalid input: ${err.description || "Data validation failed"}`
- *   ),
- *   Match.tag(
- *     "MalformedOutput",
- *     (err) => `Invalid response: ${err.description || "Response parsing failed"}`
- *   ),
- *   Match.orElse((err) => `Unknown error: ${err.message}`)
- * )
- * ```
- *
- * @since 4.0.0
- * @category models
- */
-export type AiError =
-  | HttpRequestError
-  | HttpResponseError
-  | MalformedInput
-  | MalformedOutput
-  | UnknownError
-
-/**
- * Schema for validating and parsing AI errors.
- *
- * This schema can be used to decode unknown values into properly typed AI
- * errors, ensuring type safety when handling errors from external sources or
- * serialized data.
- *
- * @example
- * ```ts
- * import { Effect, Schema } from "effect"
- * import { AiError } from "effect/unstable/ai"
- *
- * const parseAiError = (data: unknown) =>
- *   Schema.decodeUnknownEffect(AiError.AiError)(data).pipe(
- *     Effect.map((error) => {
- *       console.log(`Parsed AI error: ${error._tag}`)
- *       return error
- *     }),
- *     Effect.catch(() =>
- *       Effect.succeed(
- *         new AiError.UnknownError({
- *           module: "Parser",
- *           method: "parseAiError",
- *           description: "Failed to parse error data"
- *         })
- *       )
- *     )
- *   )
- * ```
- *
- * @since 4.0.0
- * @category schemas
- */
-export const AiError: Schema.Union<[
-  typeof HttpRequestError,
-  typeof HttpResponseError,
-  typeof MalformedInput,
-  typeof MalformedOutput,
-  typeof UnknownError
-]> = Schema.Union([
-  HttpRequestError,
-  HttpResponseError,
-  MalformedInput,
-  MalformedOutput,
-  UnknownError
-])
 
 // =============================================================================
 // Utilities

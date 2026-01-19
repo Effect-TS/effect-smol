@@ -729,6 +729,7 @@ export const reasonFromHttpStatus = (params: {
 - `packages/effect/src/unstable/ai/AiError.ts`
 - `packages/effect/src/unstable/ai/LanguageModel.ts`
 - `packages/effect/src/unstable/ai/Toolkit.ts`
+- `packages/effect/src/unstable/ai/Chat.ts`
 
 **Tasks**:
 
@@ -740,6 +741,7 @@ export const reasonFromHttpStatus = (params: {
 - [x] **5.6** Update `LanguageModel.ts` to use new `AiError` with `reason`
 - [x] **5.7** Update `Toolkit.ts` to use new `AiError` with `reason`
 - [x] **5.8** Update `isAiError` checks throughout codebase
+- [x] **5.8.1** Update `Chat.ts` to use new `AiErrorWithReason` pattern
 - [x] **5.9** Run `pnpm lint-fix`
 - [x] **5.10** Run `pnpm check`
 
@@ -760,9 +762,9 @@ export const reasonFromHttpStatus = (params: {
 - [x] **6.3** Test `isRetryable` getter returns correct value for each reason type
 - [x] **6.4** Test `AiError.isRetryable` delegates to reason's `isRetryable`
 - [x] **6.5** Test `AiError.retryAfter` delegates to reason's `retryAfter` when present
-- [ ] **6.6** Test `Effect.catchReason("AiError", "<reason>", ...)` for all reasons (blocked: catchReason not implemented)
-- [ ] **6.7** Test `Effect.catchReasons("AiError", {...})` with multiple handlers (blocked: catchReasons not implemented)
-- [ ] **6.8** Test `Effect.unwrapReason("AiError")` promotes reason to error channel (blocked: unwrapReason not implemented)
+- [ ] **6.6** Test `Effect.catchReason("AiError", "<reason>", ...)` for all reasons (BLOCKED: awaiting `Effect.catchReason` API)
+- [ ] **6.7** Test `Effect.catchReasons("AiError", {...})` with multiple handlers (BLOCKED: awaiting `Effect.catchReasons` API)
+- [ ] **6.8** Test `Effect.unwrapReason("AiError")` promotes reason to error channel (BLOCKED: awaiting `Effect.unwrapReason` API)
 - [x] **6.9** Test `reasonFromHttpStatus` mapping
 - [x] **6.10** Test `OutputParseError.fromSchemaError` static method
 - [x] **6.11** Test `isAiError` type guard
@@ -781,13 +783,13 @@ export const reasonFromHttpStatus = (params: {
 
 **Tasks**:
 
-- [ ] **7.1** Add module-level JSDoc with overview, `reason` pattern usage, and examples
-- [ ] **7.2** Add JSDoc to `AiError` class with `@example` showing `catchReason` usage
-- [ ] **7.3** Add JSDoc to each reason class with `@example`, `@since`, `@category`
-- [ ] **7.4** Add JSDoc to supporting schemas
-- [ ] **7.5** Add JSDoc to utility functions
-- [ ] **7.6** Run `pnpm docgen` to verify examples compile
-- [ ] **7.7** Run `pnpm lint-fix`
+- [x] **7.1** Add module-level JSDoc with overview, `reason` pattern usage, and examples
+- [x] **7.2** Add JSDoc to `AiError` class with `@example` showing `catchReason` usage (already complete)
+- [x] **7.3** Add JSDoc to each reason class with `@example`, `@since`, `@category` (already complete)
+- [x] **7.4** Add JSDoc to supporting schemas (already complete)
+- [x] **7.5** Add JSDoc to utility functions (already complete)
+- [x] **7.6** Run `pnpm docgen` to verify examples compile
+- [x] **7.7** Run `pnpm lint-fix`
 
 **Verification**: `pnpm docgen` passes
 
