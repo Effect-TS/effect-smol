@@ -42,8 +42,8 @@ The spec should include these sections as appropriate:
 
 Use a table format for key decisions:
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
+| Decision       | Choice      | Rationale       |
+| -------------- | ----------- | --------------- |
 | **Decision 1** | Choice made | Why this choice |
 
 ### 4. Implementation Phases
@@ -85,9 +85,11 @@ Tasks should be:
 **Goal**: Create the domain types and schemas.
 
 **Files to create/modify**:
+
 - `packages/effect/src/MyFeature.ts` (new)
 
 **Tasks**:
+
 - [ ] **1.1** Create `MyFeatureId` branded type using `Schema.String.pipe(Schema.brand("MyFeatureId"))`
 - [ ] **1.2** Create `MyFeature` class extending `Schema.Class` with fields...
 - [ ] **1.3** Export from module
