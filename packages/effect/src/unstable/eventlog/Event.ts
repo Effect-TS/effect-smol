@@ -64,7 +64,7 @@ export interface Any {
   readonly [TypeId]: TypeId
   readonly tag: string
   readonly key: string
-  readonly primaryKey: (payload: Schema.Schema.Type<Schema.Top>) => string
+  readonly primaryKey: (payload: any) => string
   readonly payload: Schema.Top
   readonly payloadMsgPack: Msgpack.schema<Schema.Top>
   readonly success: Schema.Top

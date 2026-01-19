@@ -9,12 +9,10 @@ const UserPayload = Schema.Struct({
   id: Schema.String
 })
 
-const decodeUser = Schema.decodeUnknownSync(UserPayload)
-
 const UserGroup = EventGroup.empty.add({
   tag: "UserCreated",
-  primaryKey: (payload: unknown) => decodeUser(payload).id,
-  payload: Schema.Unknown
+  primaryKey: (payload) => payload.id,
+  payload: UserPayload
 })
 
 const schema = EventLog.schema(UserGroup)
@@ -23,8 +21,7 @@ const handlerLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
   EventLog.group(
     UserGroup,
     (handlers) =>
-      handlers.handle("UserCreated", ({ payload }) =>
-        Ref.update(handled, (values) => [...values, decodeUser(payload).id]))
+      handlers.handle("UserCreated", ({ payload }) => Ref.update(handled, (values) => [...values, payload.id]))
   )
 
 const logLayer = (handled: Ref.Ref<ReadonlyArray<string>>) =>
