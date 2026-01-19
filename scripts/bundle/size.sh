@@ -1,7 +1,7 @@
 #!/bin/bash
 function compute_bundle_size() {
   local filename="${1}"
-  pnpm rollup -c rollup.config.js "${filename}" | gzip | wc -c
+  pnpm rollup -c scripts/bundle/rollup.config.js "${filename}" | gzip | wc -c
 }
 output="| File Name | Current Size | Previous Size | Difference |"
 output+="\n|:----------|:------------:|:-------------:|:----------:|"

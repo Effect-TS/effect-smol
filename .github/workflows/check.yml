@@ -94,8 +94,8 @@ jobs:
           mkdir -p tmp/bundle-base
 
           for filename in bundle/*.ts; do
-            pnpm rollup -c rollup.config.js "${filename}" | gzip | wc -c > "tmp/bundle/$(basename "${filename}")" &
-            pnpm rollup -c rollup.config.js "base/${filename}" | gzip | wc -c > "tmp/bundle-base/$(basename "${filename}")" &
+            pnpm rollup -c scripts/bundle/rollup.config.js "${filename}" | gzip | wc -c > "tmp/bundle/$(basename "${filename}")" &
+            pnpm rollup -c scripts/bundle/rollup.config.js "base/${filename}" | gzip | wc -c > "tmp/bundle-base/$(basename "${filename}")" &
           done
           wait
 
