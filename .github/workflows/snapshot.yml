@@ -33,4 +33,4 @@ jobs:
         run: pnpm build:tsgo
       - name: Create snapshot
         id: snapshot
-        run: pnpx pkg-pr-new@0.0.28 publish --pnpm --comment=off ./packages/* ./packages/sql/* ./packages/tools/*
+        run: pnpx pkg-pr-new@0.0.62 publish --pnpm --comment=off ./packages/* ./packages/sql/* ./packages/tools/*
