@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
-import { ServiceMap } from "./index.ts"
 import type { PlatformError } from "./PlatformError.ts"
+import * as ServiceMap from "./ServiceMap.ts"
 import type * as Sink from "./Sink.ts"
 import type * as Stream from "./Stream.ts"
 
