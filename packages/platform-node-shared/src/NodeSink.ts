@@ -6,8 +6,6 @@ import * as Cause from "effect/Cause"
 import * as Channel from "effect/Channel"
 import * as Effect from "effect/Effect"
 import { identity, type LazyArg } from "effect/Function"
-import type { PlatformError } from "effect/PlatformError"
-import { SystemError } from "effect/PlatformError"
 import * as Pull from "effect/Pull"
 import * as Sink from "effect/Sink"
 import type { Writable } from "node:stream"
@@ -80,18 +78,3 @@ export const pullIntoWritable = <A, IE, E>(options: {
       }) :
       identity
   )
-
-/**
- * @category stdio
- * @since 1.0.0
- */
-export const stdout: Sink.Sink<void, string | Uint8Array, never, PlatformError> = fromWritable({
-  evaluate: () => process.stdout,
-  onError: (cause) =>
-    new SystemError({
-      module: "Stream",
-      method: "stdout",
-      reason: "Unknown",
-      cause
-    })
-})

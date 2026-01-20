@@ -12,8 +12,7 @@ import * as RcMap from "../../RcMap.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import type { Sink } from "../../Sink.ts"
-import type { Stream } from "../../Stream.ts"
+import type { Stdio } from "../../Stdio.ts"
 import type * as Types from "../../Types.ts"
 import * as FindMyWay from "../http/FindMyWay.ts"
 import * as Headers from "../http/Headers.ts"
@@ -500,17 +499,12 @@ export const layer = (options: {
  * @since 4.0.0
  * @category layers
  */
-export const layerStdio = <EIn, RIn, EOut, ROut>(options: {
+export const layerStdio = (options: {
   readonly name: string
   readonly version: string
-  readonly stdin: Stream<Uint8Array, EIn, RIn>
-  readonly stdout: Sink<void, Uint8Array | string, unknown, EOut, ROut>
-}): Layer.Layer<McpServer | McpServerClient, never, RIn | ROut> =>
+}): Layer.Layer<McpServer | McpServerClient, never, Stdio> =>
   layer(options).pipe(
-    Layer.provide(RpcServer.layerProtocolStdio({
-      stdin: options.stdin,
-      stdout: options.stdout
-    })),
+    Layer.provide(RpcServer.layerProtocolStdio),
     Layer.provide(RpcSerialization.layerNdJsonRpc())
   )
 
@@ -993,7 +987,7 @@ export const elicit: <S extends Schema.Codec<any, Record<string, unknown>, any, 
     case "cancel":
       return yield* Effect.interrupt
     case "decline":
-      return yield* Effect.fail(new ElicitationDeclined({ request }))
+      return yield* new ElicitationDeclined({ request })
   }
 }, Effect.scoped)
 

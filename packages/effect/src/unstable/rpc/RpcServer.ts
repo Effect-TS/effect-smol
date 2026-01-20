@@ -18,7 +18,7 @@ import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
 import * as ServiceMap from "../../ServiceMap.ts"
-import type * as Sink from "../../Sink.ts"
+import { Stdio } from "../../Stdio.ts"
 import * as Stream from "../../Stream.ts"
 import * as Tracer from "../../Tracer.ts"
 import type * as Types from "../../Types.ts"
@@ -1129,10 +1129,8 @@ export const toHttpEffectWebsocket: <Rpcs extends Rpc.Any>(
  * @since 4.0.0
  * @category protocol
  */
-export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROut>(options: {
-  readonly stdin: Stream.Stream<Uint8Array, EIn, RIn>
-  readonly stdout: Sink.Sink<void, Uint8Array | string, unknown, EOut, ROut>
-}) {
+export const makeProtocolStdio = Effect.gen(function*() {
+  const stdio = yield* Stdio
   const fiber = Fiber.getCurrent()!
   const serialization = yield* RpcSerialization.RpcSerialization
 
@@ -1140,7 +1138,7 @@ export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROu
     const queue = yield* Queue.make<Uint8Array | string, Cause.Done>()
     const parser = serialization.makeUnsafe()
 
-    yield* options.stdin.pipe(
+    yield* stdio.stdin.pipe(
       Stream.runForEach((data) => {
         const decoded = parser.decode(data) as ReadonlyArray<FromClientEncoded>
         if (decoded.length === 0) return Effect.void
@@ -1159,7 +1157,7 @@ export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROu
     )
 
     yield* Stream.fromQueue(queue).pipe(
-      Stream.run(options.stdout),
+      Stream.run(stdio.stdout),
       Effect.retry(Schedule.spaced(500)),
       Effect.forkScoped
     )
@@ -1191,11 +1189,11 @@ export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROu
  * @since 4.0.0
  * @category protocol
  */
-export const layerProtocolStdio = <EIn, EOut, RIn, ROut>(options: {
-  readonly stdin: Stream.Stream<Uint8Array, EIn, RIn>
-  readonly stdout: Sink.Sink<void, Uint8Array | string, unknown, EOut, ROut>
-}): Layer.Layer<Protocol, never, RpcSerialization.RpcSerialization | RIn | ROut> =>
-  Layer.effect(Protocol)(makeProtocolStdio(options))
+export const layerProtocolStdio: Layer.Layer<
+  Protocol,
+  never,
+  RpcSerialization.RpcSerialization | Stdio
+> = Layer.effect(Protocol, makeProtocolStdio)
 
 /**
  * @since 4.0.0

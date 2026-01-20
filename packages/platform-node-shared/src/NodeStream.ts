@@ -277,15 +277,6 @@ export const toUint8Array = <E = Cause.UnknownError>(
   }
 ): Effect.Effect<Uint8Array, E> => Effect.map(toArrayBuffer(readable, options), (buffer) => new Uint8Array(buffer))
 
-/**
- * @since 1.0.0
- * @category stdio
- */
-export const stdin: Stream.Stream<Uint8Array> = Stream.orDie(fromReadable({
-  evaluate: () => process.stdin,
-  closeOnDone: false
-}))
-
 // ----------------------------------------------------------------------------
 // internal
 // ----------------------------------------------------------------------------
