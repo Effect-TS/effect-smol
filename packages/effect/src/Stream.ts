@@ -3083,6 +3083,71 @@ export const partitionFilterEffect: {
 )
 
 /**
+ * Splits a stream into two substreams based on a predicate.
+ *
+ * The faster stream may advance up to `bufferSize` elements ahead of the slower
+ * one.
+ *
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const partition: {
+  <C extends A, B extends A, A = C>(
+    refinement: Refinement<NoInfer<A>, B>,
+    options?: { readonly bufferSize?: number | undefined }
+  ): <E, R>(
+    self: Stream<C, E, R>
+  ) => Effect.Effect<
+    [excluded: Stream<Exclude<C, B>, E>, satisfying: Stream<B, E>],
+    never,
+    R | Scope.Scope
+  >
+  <A>(
+    predicate: Predicate<NoInfer<A>>,
+    options?: { readonly bufferSize?: number | undefined }
+  ): <E, R>(
+    self: Stream<A, E, R>
+  ) => Effect.Effect<
+    [excluded: Stream<A, E>, satisfying: Stream<A, E>],
+    never,
+    R | Scope.Scope
+  >
+  <C extends A, E, R, B extends A, A = C>(
+    self: Stream<C, E, R>,
+    refinement: Refinement<A, B>,
+    options?: { readonly bufferSize?: number | undefined }
+  ): Effect.Effect<
+    [excluded: Stream<Exclude<C, B>, E>, satisfying: Stream<B, E>],
+    never,
+    R | Scope.Scope
+  >
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    predicate: Predicate<A>,
+    options?: { readonly bufferSize?: number | undefined }
+  ): Effect.Effect<
+    [excluded: Stream<A, E>, satisfying: Stream<A, E>],
+    never,
+    R | Scope.Scope
+  >
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    predicate: Predicate<NoInfer<A>>,
+    options?: { readonly bufferSize?: number | undefined }
+  ): Effect.Effect<
+    [excluded: Stream<A, E>, satisfying: Stream<A, E>],
+    never,
+    R | Scope.Scope
+  > =>
+    Effect.map(
+      partitionFilter(self, Filter.fromPredicate(predicate), { capacity: options?.bufferSize ?? 16 }),
+      ([passes, fails]) => [fails, passes] as const
+    )
+)
+
+/**
  * Returns the specified stream if the given condition is satisfied, otherwise
  * returns an empty stream.
  *

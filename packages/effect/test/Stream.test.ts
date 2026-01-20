@@ -2829,6 +2829,83 @@ describe("Stream", () => {
       }))
   })
 
+  describe("partition", () => {
+    it.effect("values", () =>
+      Effect.gen(function*() {
+        const { result1, result2 } = yield* pipe(
+          Stream.range(0, 5),
+          Stream.partition((n) => n % 2 === 0),
+          Effect.flatMap(([odds, evens]) =>
+            Effect.all({
+              result1: Stream.runCollect(evens),
+              result2: Stream.runCollect(odds)
+            })
+          ),
+          Effect.scoped
+        )
+        deepStrictEqual(result1, [0, 2, 4])
+        deepStrictEqual(result2, [1, 3, 5])
+      }))
+
+    it.effect("errors", () =>
+      Effect.gen(function*() {
+        const { result1, result2 } = yield* pipe(
+          Stream.make(0),
+          Stream.concat(Stream.fail("boom")),
+          Stream.partition((n) => n % 2 === 0),
+          Effect.flatMap(([odds, evens]) =>
+            Effect.all({
+              result1: Effect.flip(Stream.runCollect(evens)),
+              result2: Effect.flip(Stream.runCollect(odds))
+            })
+          ),
+          Effect.scoped
+        )
+        assert.strictEqual(result1, "boom")
+        assert.strictEqual(result2, "boom")
+      }))
+
+    it.effect("backpressure", () =>
+      Effect.gen(function*() {
+        const { result1, result2, result3 } = yield* pipe(
+          Stream.range(0, 5),
+          Stream.partition((n) => n % 2 === 0, { bufferSize: 1 }),
+          Effect.flatMap(([odds, evens]) =>
+            Effect.gen(function*() {
+              const ref = yield* Ref.make(Array.empty<number>())
+              const latch = yield* Deferred.make<void>()
+              const fiber = yield* pipe(
+                evens,
+                Stream.tap((n) =>
+                  pipe(
+                    Ref.update(ref, Array.prepend(n)),
+                    Effect.andThen(
+                      pipe(
+                        Deferred.succeed(latch, void 0),
+                        Effect.when(() => n === 2)
+                      )
+                    )
+                  )
+                ),
+                Stream.runDrain,
+                Effect.forkChild
+              )
+              yield* Deferred.await(latch)
+              const result1 = yield* Ref.get(ref)
+              const result2 = yield* Stream.runCollect(odds)
+              yield* Fiber.await(fiber)
+              const result3 = yield* Ref.get(ref)
+              return { result1, result2, result3 }
+            })
+          ),
+          Effect.scoped
+        )
+        deepStrictEqual(result1, [2, 0])
+        deepStrictEqual(result2, [1, 3, 5])
+        deepStrictEqual(result3, [4, 2, 0])
+      }))
+  })
+
   describe("partitionFilter", () => {
     it.effect("partitionFilterEffect - allows repeated runs without hanging", () =>
       Effect.gen(function*() {
