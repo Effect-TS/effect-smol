@@ -38,3 +38,8 @@ export * as EventLogRemote from "./EventLogRemote.ts"
  * @since 4.0.0
  */
 export * as EventLogServer from "./EventLogServer.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as SqlEventLogJournal from "./SqlEventLogJournal.ts"
