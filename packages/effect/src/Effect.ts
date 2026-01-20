@@ -1343,7 +1343,7 @@ export namespace gen {
   /**
    * @since 4.0.0
    */
-  export type Return<A, E = never, R = never> = Generator<Effect<any, E, R>, A, any>
+  export type Return<A, E = never, R = never> = Generator<Yieldable<any, any, E, R>, A, any>
 }
 
 /**
@@ -8141,7 +8141,7 @@ export namespace fn {
    * @since 3.19.0
    * @category Models
    */
-  export type Return<A, E = never, R = never> = Generator<Effect<any, E, R>, A, any>
+  export type Return<A, E = never, R = never> = Generator<Yieldable<any, any, E, R>, A, any>
 
   /**
    * @since 3.11.0
