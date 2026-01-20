@@ -202,9 +202,10 @@ function processAnnotation<Services, S, I>(
  *
  * **Options**
  *
- * - `additionalPropertiesStrategy`: Controls the handling of additional properties. Possible values are:
- *   - `"strict"`: Disallow additional properties (default behavior).
- *   - `"allow"`: Allow additional properties.
+ * - `additionalProperties`: Controls how additional properties are handled while resolving the JSON schema. Possible values include:
+ *   - `false`: Disallow additional properties (default)
+ *   - `true`: Allow additional properties
+ *   - `JsonSchema`: Use the provided JSON Schema for additional properties
  *
  * @category constructors
  * @since 4.0.0
@@ -212,7 +213,7 @@ function processAnnotation<Services, S, I>(
 export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   api: HttpApi.HttpApi<Id, Groups>,
   options?: {
-    readonly additionalProperties?: true | false | JsonSchema.JsonSchema | undefined
+    readonly additionalProperties?: boolean | JsonSchema.JsonSchema | undefined
   } | undefined
 ): OpenAPISpec => {
   const cached = apiCache.get(api)
@@ -447,7 +448,9 @@ export const fromApi = <Id extends string, Groups extends HttpApiGroup.Any>(
   if (Arr.isArrayNonEmpty(irOps)) {
     const multiDocument = SchemaRepresentation.fromASTs(Arr.map(irOps, ({ ast }) => ast))
     const jsonSchemaMultiDocument = JsonSchema.toMultiDocumentOpenApi3_1(
-      SchemaRepresentation.toJsonSchemaMultiDocument(multiDocument)
+      SchemaRepresentation.toJsonSchemaMultiDocument(multiDocument, {
+        additionalProperties: options?.additionalProperties
+      })
     )
     const patchOps: Array<JsonPatch.JsonPatchOperation> = irOps.map((op, i) => {
       const oppath = escapePath(op.path)
