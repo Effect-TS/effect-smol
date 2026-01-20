@@ -5,6 +5,13 @@
 // @barrel: Auto-generated exports. Do not edit manually.
 
 /**
+ * Node.js implementation of `ChildProcessSpawner`.
+ *
+ * @since 1.0.0
+ */
+export * as BunChildProcessSpawner from "./BunChildProcessSpawner.ts"
+
+/**
  * @since 1.0.0
  */
 export * as BunClusterHttp from "./BunClusterHttp.ts"
@@ -78,6 +85,11 @@ export * as BunSocket from "./BunSocket.ts"
  * @since 1.0.0
  */
 export * as BunSocketServer from "./BunSocketServer.ts"
+
+/**
+ * @since 1.0.0
+ */
+export * as BunStdio from "./BunStdio.ts"
 
 /**
  * @since 1.0.0

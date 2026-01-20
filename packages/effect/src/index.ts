@@ -2298,6 +2298,11 @@ export * as ServiceMap from "./ServiceMap.ts"
 export * as Sink from "./Sink.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as Stdio from "./Stdio.ts"
+
+/**
  * @since 2.0.0
  */
 export * as Stream from "./Stream.ts"

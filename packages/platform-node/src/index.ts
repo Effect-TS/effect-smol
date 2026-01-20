@@ -99,6 +99,11 @@ export * as NodeSocketServer from "./NodeSocketServer.ts"
 /**
  * @since 1.0.0
  */
+export * as NodeStdio from "./NodeStdio.ts"
+
+/**
+ * @since 1.0.0
+ */
 export * as NodeStream from "./NodeStream.ts"
 
 /**
