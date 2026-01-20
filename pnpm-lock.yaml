@@ -545,6 +545,40 @@ importers:
         specifier: ^25.0.2
         version: 25.0.7
 
+  packages/tools/bundle:
+    dependencies:
+      '@effect/platform-node':
+        specifier: workspace:^
+        version: link:../../platform-node
+      '@rollup/plugin-node-resolve':
+        specifier: ^16.0.3
+        version: 16.0.3(rollup@4.55.1)
+      '@rollup/plugin-replace':
+        specifier: ^6.0.3
+        version: 6.0.3(rollup@4.55.1)
+      '@rollup/plugin-terser':
+        specifier: ^0.4.4
+        version: 0.4.4(rollup@4.55.1)
+      effect:
+        specifier: workspace:^
+        version: link:../../effect
+      glob:
+        specifier: ^13.0.0
+        version: 13.0.0
+      rollup:
+        specifier: ^4.55.1
+        version: 4.55.1
+      rollup-plugin-esbuild:
+        specifier: ^6.2.1
+        version: 6.2.1(esbuild@0.27.2)(rollup@4.55.1)
+      rollup-plugin-visualizer:
+        specifier: ^6.0.5
+        version: 6.0.5(rollup@4.55.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^25.0.6
+        version: 25.0.7
+
   packages/tools/openapi-generator:
     dependencies:
       '@effect/platform-node':

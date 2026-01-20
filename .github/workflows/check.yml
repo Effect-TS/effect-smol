@@ -87,42 +87,7 @@ jobs:
           cd base && pnpm install && pnpm build:tsgo &
           wait
       - name: Compare bundle size
-        id: bundle
-        shell: bash
-        run: |
-          mkdir -p tmp/bundle
-          mkdir -p tmp/bundle-base
-
-          for filename in bundle/*.ts; do
-            pnpm rollup -c scripts/bundle/rollup.config.js "${filename}" | gzip | wc -c > "tmp/bundle/$(basename "${filename}")" &
-            pnpm rollup -c scripts/bundle/rollup.config.js "base/${filename}" | gzip | wc -c > "tmp/bundle-base/$(basename "${filename}")" &
-          done
-          wait
-
-          output="| File Name | Current Size | Previous Size | Difference |"
-          output+="\n|:----------|:------------:|:-------------:|:----------:|"
-          for filename in bundle/*.ts; do
-            current=$(cat "tmp/bundle/$(basename "${filename}")")
-            previous=$([[ -f "base/${filename}" ]] && cat "tmp/bundle-base/$(basename "${filename}")" || echo 0)
-            line="$(awk -v filename=${filename} -v current="${current}" -v previous="${previous}" '
-              BEGIN {
-                if (previous == 0) previous = current
-                diff = current - previous
-                diff_pct = (diff / previous) * 100
-                current_kb = sprintf("%\047.2f", current / 1000)
-                previous_kb = sprintf("%\047.2f", previous / 1000)
-                diff_kb = sprintf("%\047.2f", diff / 1000)
-                printf "| `%s` | %s KB | %s KB | %s%s KB (%s%.2f%%) |\n",
-                  filename,
-                  current_kb,
-                  previous_kb,
-                  (diff > 0 ? "+" : ""), diff_kb,
-                  (diff_pct > 0 ? "+" : ""), diff_pct
-            }')"
-            output+="\n${line}"
-          done
-
-          echo -e $output >> stats.txt
+        run: node ./packages/tools/bundle/src/bin.ts compare --base-dir base/packages/tools/bundle/fixtures
       - name: Upload stats artifact
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
