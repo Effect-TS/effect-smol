@@ -3,6 +3,7 @@
 ## Requirements
 
 ### Functional
+
 - Establish an explicit list of Effect and Stream exports that need “Previously Known As” updates and share it for review.
 - Add “Previously Known As” JSDoc sections for Effect and Stream APIs that are renamed relative to Effect 3.x.
 - Skip brand-new APIs that do not have a 3.x predecessor name.
@@ -13,6 +14,7 @@
 - Avoid duplicate or contradictory mappings when a “Previously Known As” section already exists.
 
 ### Non-functional
+
 - Keep documentation concise and aligned with existing Effect JSDoc conventions.
 - Do not modify `index.ts` barrel files directly.
 - Use ASCII-only text unless a non-ASCII character is already present in the surrounding docs.
@@ -35,13 +37,15 @@
 ## Review List (Initial)
 
 ### Effect
+
 Missing “Previously Known As”:
+
 - `Effect.catchFilter` <- `Effect.catchSome`
 - `Effect.catchCauseFilter` <- `Effect.catchSomeCause`
 - `Effect.tapCause` <- `Effect.tapErrorCause`
-Missing “Previously Known As” (confirmed):
+  Missing “Previously Known As” (confirmed):
 - `Effect.result` <- `Effect.either`
-Existing entries already present:
+  Existing entries already present:
 - `Effect.andThen` <- `Effect.zipRight`
 - `Effect.tap` <- `Effect.zipLeft`
 - `Effect.catch` <- `Effect.catchAll`
@@ -49,7 +53,9 @@ Existing entries already present:
 - `Effect.catchDefect` <- `Effect.catchAllDefect`
 
 ### Stream
+
 Missing “Previously Known As” (confirmed):
+
 - `Stream.bufferArray` <- `Stream.bufferChunks`
 - `Stream.callback` <- `Stream.async`, `Stream.asyncEffect`, `Stream.asyncPush`, `Stream.asyncScoped`
 - `Stream.catch` <- `Stream.catchAll`
