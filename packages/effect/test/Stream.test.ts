@@ -2829,12 +2829,12 @@ describe("Stream", () => {
       }))
   })
 
-  describe("partition", () => {
-    it.effect("partitionEffect - allows repeated runs without hanging", () =>
+  describe("partitionFilter", () => {
+    it.effect("partitionFilterEffect - allows repeated runs without hanging", () =>
       Effect.gen(function*() {
         const stream = pipe(
           Stream.fromIterable(Array.empty<number>()),
-          Stream.partitionEffect((n) => Effect.succeed(n % 2 === 0 ? n : Filter.fail(n))),
+          Stream.partitionFilterEffect((n) => Effect.succeed(n % 2 === 0 ? n : Filter.fail(n))),
           Effect.map(([evens, odds]) => pipe(evens, Stream.mergeResult(odds))),
           Effect.flatMap(Stream.runCollect),
           Effect.scoped
@@ -2846,11 +2846,11 @@ describe("Stream", () => {
         strictEqual(result, 0)
       }))
 
-    it.effect("partition - values", () =>
+    it.effect("partitionFilter - values", () =>
       Effect.gen(function*() {
         const { result1, result2 } = yield* pipe(
           Stream.range(0, 5),
-          Stream.partition((n) => n % 2 === 0 ? n : Filter.fail(n)),
+          Stream.partitionFilter((n) => n % 2 === 0 ? n : Filter.fail(n)),
           Effect.flatMap(([evens, odds]) =>
             Effect.all({
               result1: Stream.runCollect(evens),
@@ -2863,12 +2863,12 @@ describe("Stream", () => {
         deepStrictEqual(result2, [1, 3, 5])
       }))
 
-    it.effect("partition - errors", () =>
+    it.effect("partitionFilter - errors", () =>
       Effect.gen(function*() {
         const { result1, result2 } = yield* pipe(
           Stream.make(0),
           Stream.concat(Stream.fail("boom")),
-          Stream.partition((n) => n % 2 === 0 ? n : Filter.fail(n)),
+          Stream.partitionFilter((n) => n % 2 === 0 ? n : Filter.fail(n)),
           Effect.flatMap(([evens, odds]) =>
             Effect.all({
               result1: Effect.flip(Stream.runCollect(evens)),
@@ -2881,11 +2881,11 @@ describe("Stream", () => {
         assert.strictEqual(result2, "boom")
       }))
 
-    it.effect("partition - backpressure", () =>
+    it.effect("partitionFilter - backpressure", () =>
       Effect.gen(function*() {
         const { result1, result2, result3 } = yield* pipe(
           Stream.range(0, 5),
-          Stream.partition((n) => (n % 2 === 0 ? n : Filter.fail(n)), { capacity: 1 }),
+          Stream.partitionFilter((n) => (n % 2 === 0 ? n : Filter.fail(n)), { capacity: 1 }),
           Effect.flatMap(([evens, odds]) =>
             Effect.gen(function*() {
               const ref = yield* Ref.make(Array.empty<number>())
