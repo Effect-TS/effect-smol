@@ -29,6 +29,7 @@
  *
  * @since 2.0.0
  */
+import * as Cause from "./Cause.ts"
 import * as Cron from "./Cron.ts"
 import type * as DateTime from "./DateTime.ts"
 import * as Duration from "./Duration.ts"
@@ -1056,12 +1057,12 @@ export const bothWith: {
                 Duration.min(leftResult[1], rightResult[1])
               ] as [Output3, Duration.Duration]
             ),
-            Pull.catchDone((rightDone) => Pull.done(combine(leftResult[0], rightDone as Output2)))
+            Pull.catchDone((rightDone) => Cause.done(combine(leftResult[0], rightDone as Output2)))
           ),
         onDone: (leftDone) =>
           stepRight(now, input as Input2).pipe(
-            effect.flatMap((rightResult) => Pull.done(combine(leftDone, rightResult[0]))),
-            Pull.catchDone((rightDone) => Pull.done(combine(leftDone, rightDone as Output2)))
+            effect.flatMap((rightResult) => Cause.done(combine(leftDone, rightResult[0]))),
+            Pull.catchDone((rightDone) => Cause.done(combine(leftDone, rightDone as Output2)))
           ),
         onFailure: effect.failCause
       })
@@ -1567,7 +1568,7 @@ export const delays = <Out, In, E, R>(self: Schedule<Out, In, E, R>): Schedule<D
       (step) => (now, input) =>
         Pull.catchDone(
           effect.map(step(now, input), ([_, duration]) => [duration, duration]),
-          (_) => Pull.done(Duration.zero)
+          (_) => Cause.done(Duration.zero)
         )
     )
   )
@@ -1927,7 +1928,7 @@ export const eitherWith: {
                 Duration.Duration
               ]
             ),
-            Pull.catchDone((rightDone) => Pull.done(combine(leftDone, rightDone as Output2)))
+            Pull.catchDone((rightDone) => Cause.done(combine(leftDone, rightDone as Output2)))
           )
       })
   )))
@@ -2261,7 +2262,7 @@ export const map: {
     onFailure: effect.failCause<Error>,
     onDone: (output: Output) => {
       const mapper = f(output)
-      return isEffect(mapper) ? effect.flatMap(mapper, Pull.done) : Pull.done(mapper)
+      return isEffect(mapper) ? effect.flatMap(mapper, Cause.done) : Cause.done(mapper)
     }
   })
   return fromStep(effect.map(toStep(self), (step) => (now, input) => handle(step(now, input))))
@@ -2368,7 +2369,7 @@ export const passthrough = <Output, Input, Error, Env>(
     Pull.matchEffect(step(now, input), {
       onSuccess: (result) => effect.succeed([input, result[1]]),
       onFailure: effect.failCause,
-      onDone: () => Pull.done(input)
+      onDone: () => Cause.done(input)
     })))
 
 /**
@@ -2577,7 +2578,7 @@ export const reduce: {
         onFailure: effect.failCause,
         onDone: (output) => {
           const reduce = combine(state, output)
-          return isEffect(reduce) ? effect.flatMap(reduce, Pull.done) : Pull.done(reduce)
+          return isEffect(reduce) ? effect.flatMap(reduce, Cause.done) : Cause.done(reduce)
         }
       })
   })))
@@ -3109,8 +3110,8 @@ const while_: {
         const [output, duration] = result
         const check = predicate({ ...meta(now, input), output, duration })
         return isEffect(check)
-          ? effect.flatMap(check, (check) => (check ? effect.succeed(result) : Pull.done(output)))
-          : (check ? effect.succeed(result) : Pull.done(output))
+          ? effect.flatMap(check, (check) => (check ? effect.succeed(result) : Cause.done(output)))
+          : (check ? effect.succeed(result) : Cause.done(output))
       })
   })))
 
@@ -3322,3 +3323,4 @@ export const satisfiesServicesType = <T>() =>
 <Env extends T, Output = never, Input = unknown, Error = never>(
   self: Schedule<Output, Input, Error, Env>
 ): Schedule<Output, Input, Error, Env> => self
+

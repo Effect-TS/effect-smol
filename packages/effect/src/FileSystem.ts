@@ -37,12 +37,13 @@
  */
 import * as Arr from "./Array.ts"
 import * as Brand from "./Brand.ts"
+import * as Cause from "./Cause.ts"
 import * as Effect from "./Effect.ts"
 import { pipe } from "./Function.ts"
 import * as Layer from "./Layer.ts"
 import type { PlatformError } from "./PlatformError.ts"
 import { BadArgument, SystemError } from "./PlatformError.ts"
-import * as Pull from "./Pull.ts"
+import type * as Pull from "./Pull.ts"
 import type { Scope } from "./Scope.ts"
 import * as ServiceMap from "./ServiceMap.ts"
 import * as Sink from "./Sink.ts"
@@ -757,7 +758,7 @@ export const make = (
         Effect.flatMap(
           Effect.suspend((): Pull.Pull<Uint8Array | undefined, PlatformError> => {
             if (bytesToRead !== undefined && bytesToRead <= totalBytesRead) {
-              return Pull.doneVoid
+              return Cause.done()
             }
             const toRead = bytesToRead !== undefined && (bytesToRead - totalBytesRead) < chunkSize
               ? bytesToRead - totalBytesRead
@@ -765,7 +766,7 @@ export const make = (
             return file.readAlloc(toRead)
           }),
           (buf) => {
-            if (!buf) return Pull.doneVoid
+            if (!buf) return Cause.done()
             totalBytesRead += BigInt(buf.length)
             return Effect.succeed(Arr.of(buf))
           }
@@ -1254,3 +1255,4 @@ export declare namespace WatchEvent {
 export class WatchBackend extends ServiceMap.Service<WatchBackend, {
   readonly register: (path: string, stat: File.Info) => Stream.Stream<WatchEvent, PlatformError> | undefined
 }>()("effect/platform/FileSystem/WatchBackend") {}
+

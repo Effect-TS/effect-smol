@@ -597,7 +597,7 @@ export const fromIterator = <A, L>(iterator: LazyArg<Iterator<A, L>>): Channel<A
       const iter = iterator()
       return Effect.suspend(() => {
         const state = iter.next()
-        return state.done ? Pull.done(state.value) : Effect.succeed(state.value)
+        return state.done ? Cause.done(state.value) : Effect.succeed(state.value)
       })
     })
   )
@@ -619,7 +619,7 @@ export const fromIterator = <A, L>(iterator: LazyArg<Iterator<A, L>>): Channel<A
 export const fromArray = <A>(array: ReadonlyArray<A>): Channel<A> =>
   fromPull(Effect.sync(() => {
     let index = 0
-    return Effect.suspend(() => index >= array.length ? Pull.doneVoid : Effect.succeed(array[index++]))
+    return Effect.suspend(() => index >= array.length ? Cause.done() : Effect.succeed(array[index++]))
   }))
 
 /**
@@ -692,13 +692,13 @@ export const fromIteratorArray = <A, L>(
       const iter = iterator()
       let done = Option.none<L>()
       return Effect.suspend(() => {
-        if (done._tag === "Some") return Pull.done(done.value)
+        if (done._tag === "Some") return Cause.done(done.value)
         const buffer: Array<A> = []
         while (buffer.length < chunkSize) {
           const state = iter.next()
           if (state.done) {
             if (buffer.length === 0) {
-              return Pull.done(state.value)
+              return Cause.done(state.value)
             }
             done = Option.some(state.value)
             break
@@ -778,7 +778,7 @@ export const succeed = <A>(value: A): Channel<A> => fromEffect(Effect.succeed(va
  * @category constructors
  * @since 4.0.0
  */
-export const end = <A>(value: A): Channel<never, never, A> => fromPull(Effect.succeed(Pull.done(value)))
+export const end = <A>(value: A): Channel<never, never, A> => fromPull(Effect.succeed(Cause.done(value)))
 
 /**
  * Creates a `Channel` that immediately ends with the lazily evaluated value.
@@ -787,7 +787,7 @@ export const end = <A>(value: A): Channel<never, never, A> => fromPull(Effect.su
  * @since 4.0.0
  */
 export const endSync = <A>(evaluate: LazyArg<A>): Channel<never, never, A> =>
-  fromPull(Effect.sync(() => Pull.done(evaluate())))
+  fromPull(Effect.sync(() => Cause.done(evaluate())))
 
 /**
  * Creates a `Channel` that emits a single value computed by a lazy evaluation.
@@ -827,7 +827,7 @@ export const sync = <A>(evaluate: LazyArg<A>): Channel<A> => fromEffect(Effect.s
  * @since 2.0.0
  * @category constructors
  */
-export const empty: Channel<never> = fromPull(Effect.succeed(Pull.doneVoid))
+export const empty: Channel<never> = fromPull(Effect.succeed(Cause.done()))
 
 /**
  * Represents an Channel that never completes
@@ -1038,7 +1038,7 @@ export const fromEffect = <A, E, R>(
     Effect.sync(() => {
       let done = false
       return Effect.suspend((): Pull.Pull<A, E, void, R> => {
-        if (done) return Pull.doneVoid
+        if (done) return Cause.done()
         done = true
         return effect
       })
@@ -1052,10 +1052,7 @@ export const fromEffect = <A, E, R>(
 export const fromEffectDone = <A, E, R>(
   effect: Effect.Effect<A, E, R>
 ): Channel<never, Pull.ExcludeDone<E>, A, unknown, unknown, unknown, R> =>
-  fromPull(Effect.succeed(Effect.flatMap(
-    effect,
-    Pull.done
-  )))
+  fromPull(Effect.succeed(Effect.flatMap(effect, Cause.done)))
 
 /**
  * Use an effect and discard its result.
@@ -1065,7 +1062,7 @@ export const fromEffectDone = <A, E, R>(
  */
 export const fromEffectDrain = <A, E, R>(
   effect: Effect.Effect<A, E, R>
-): Channel<never, E, void, unknown, unknown, unknown, R> => fromPull(Effect.flatMap(effect, () => Pull.doneVoid)) as any
+): Channel<never, E, void, unknown, unknown, unknown, R> => fromPull(Effect.flatMap(effect, () => Cause.done())) as any
 
 /**
  * @since 4.0.0
@@ -1216,7 +1213,7 @@ export const identity = <Elem, Err, Done>(): Channel<Elem, Err, Done, Elem, Err,
  */
 export const fromSubscription = <A>(
   subscription: PubSub.Subscription<A>
-): Channel<A> => fromPull(Effect.succeed(Effect.onInterrupt(PubSub.take(subscription), Pull.doneVoid)))
+): Channel<A> => fromPull(Effect.succeed(Effect.onInterrupt(PubSub.take(subscription), Cause.done())))
 
 /**
  * Create a channel from a PubSub subscription that outputs arrays of values.
@@ -1324,7 +1321,7 @@ export const fromSubscription = <A>(
 export const fromSubscriptionArray = <A>(
   subscription: PubSub.Subscription<A>
 ): Channel<Arr.NonEmptyReadonlyArray<A>> =>
-  fromPull(Effect.succeed(Effect.onInterrupt(PubSub.takeAll(subscription), Pull.doneVoid)))
+  fromPull(Effect.succeed(Effect.onInterrupt(PubSub.takeAll(subscription), Cause.done())))
 
 /**
  * Create a channel from a PubSub that outputs individual values.
@@ -1599,7 +1596,7 @@ export const fromAsyncIterable = <A, D, E>(
         try: () => iter.next(),
         catch: onError
       }),
-      (result) => result.done ? Pull.done(result.value) : Effect.succeed(result.value)
+      (result) => result.done ? Cause.done(result.value) : Effect.succeed(result.value)
     )
   }))
 
@@ -1724,7 +1721,7 @@ export const mapDoneEffect: {
     transformPull(self, (pull) =>
       Effect.succeed(Pull.catchDone(
         pull,
-        (done) => Effect.flatMap(f(done as OutDone), Pull.done)
+        (done) => Effect.flatMap(f(done as OutDone), Cause.done)
       )))
 )
 
@@ -5092,7 +5089,7 @@ export const embedInput: {
     fromTransformBracket((upstream, scope, forkedScope) =>
       Effect.andThen(
         Effect.forkIn(input(upstream), forkedScope),
-        toTransform(self)(Pull.doneVoid, scope)
+        toTransform(self)(Cause.done(), scope)
       )
     )
 )
@@ -5217,7 +5214,7 @@ export const interruptWhen: {
 ): Channel<OutElem, OutErr | OutErr2, OutDone | OutDone2, InElem, InErr, InDone, Env2 | Env> =>
   merge(
     self,
-    fromPull(Effect.succeed(Effect.flatMap(effect, Pull.done))),
+    fromPull(Effect.succeed(Effect.flatMap(effect, Cause.done))),
     { haltStrategy: "either" }
   ))
 
@@ -5391,7 +5388,7 @@ export const onEnd: {
   transformPull(self, (pull) =>
     Effect.succeed(Pull.catchDone(
       pull,
-      (leftover) => Effect.flatMap(onEnd, () => Pull.done(leftover as OutDone))
+      (leftover) => Effect.flatMap(onEnd, () => Cause.done(leftover as OutDone))
     ))))
 
 /**
@@ -5452,7 +5449,7 @@ const runWith = <
 ): Effect.Effect<AH, Pull.ExcludeDone<EX> | EH, Env | RX | RH> =>
   Effect.suspend(() => {
     const scope = Scope.makeUnsafe()
-    const makePull = toTransform(self)(Pull.doneVoid, scope)
+    const makePull = toTransform(self)(Cause.done(), scope)
     return Pull.catchDone(Effect.flatMap(makePull, f), onHalt ? onHalt : Effect.succeed as any).pipe(
       Effect.onExit((exit) => Scope.close(scope, exit))
     ) as any
@@ -5994,7 +5991,7 @@ export const runForEachWhile: {
     runWith(self, (pull) =>
       pull.pipe(
         Effect.flatMap(f),
-        Effect.flatMap((cont) => (cont ? Effect.void : Pull.doneVoid)),
+        Effect.flatMap((cont) => (cont ? Effect.void : Cause.done())),
         Effect.forever({ autoYield: false })
       ))
 )
@@ -6054,7 +6051,7 @@ export const runHead = <OutElem, OutErr, OutDone, Env>(
         Effect.asSome,
         Effect.flatMap((head_) => {
           head = head_
-          return Pull.doneVoid
+          return Cause.done()
         })
       ), () => Effect.succeed(head))
   })
@@ -6217,7 +6214,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
     const semaphore = Effect.makeSemaphoreUnsafe(1)
     const context = yield* Effect.services<Env | Scope.Scope>()
     const scope = ServiceMap.get(context, Scope.Scope)
-    const pull = yield* toTransform(self)(Pull.doneVoid, scope)
+    const pull = yield* toTransform(self)(Cause.done(), scope)
     return pull.pipe(
       Effect.provideServices(context),
       semaphore.withPermits(1)
@@ -6255,7 +6252,7 @@ export const toPull: <OutElem, OutErr, OutDone, Env>(
 export const toPullScoped = <OutElem, OutErr, OutDone, Env>(
   self: Channel<OutElem, OutErr, OutDone, unknown, unknown, unknown, Env>,
   scope: Scope.Scope
-): Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone, Env>, never, Env> => toTransform(self)(Pull.doneVoid, scope)
+): Effect.Effect<Pull.Pull<OutElem, OutErr, OutDone, Env>, never, Env> => toTransform(self)(Cause.done(), scope)
 
 /**
  * @since 4.0.0
@@ -6705,3 +6702,4 @@ export const toPubSubTake: {
     return pubsub
   })
 )
+

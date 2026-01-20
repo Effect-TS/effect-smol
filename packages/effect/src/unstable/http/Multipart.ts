@@ -287,7 +287,7 @@ export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channe
           const pullChunks = Channel.fromPull(
             Effect.succeed(Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<Uint8Array>> {
               if (!Arr.isReadonlyArrayNonEmpty(chunks)) {
-                return finished ? Pull.doneVoid : Effect.flatMap(pump, loop)
+                return finished ? Cause.done() : Effect.flatMap(pump, loop)
               }
               const chunk = chunks
               chunks = []
@@ -624,3 +624,4 @@ export const MaxFileSize = ServiceMap.Reference<FileSystem.SizeInput | undefined
 export const FieldMimeTypes = ServiceMap.Reference<ReadonlyArray<string>>("effect/http/Multipart/FieldMimeTypes", {
   defaultValue: constant(["application/json"])
 })
+

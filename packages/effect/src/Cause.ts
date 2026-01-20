@@ -795,10 +795,13 @@ export declare namespace Done {
  * @category constructors
  * @since 4.0.0
  */
-export const Done: {
-  (): Done
-  <A>(value: A): Done<A>
-} = core.Done
+export const Done: <A = void>(value?: A) => Done<A> = core.Done
+
+/**
+ * @category constructors
+ * @since 4.0.0
+ */
+export const done: <A = void>(value?: A) => Effect.Effect<never, Done<A>> = core.done
 
 /**
  * @category errors

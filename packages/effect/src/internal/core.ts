@@ -648,21 +648,26 @@ export const isDone = (
   u: unknown
 ): u is Cause.Done => hasProperty(u, DoneTypeId)
 
-const doneVoid: Cause.Done<void> = {
+const DoneVoid: Cause.Done<void> = {
   [DoneTypeId]: DoneTypeId,
   _tag: "Done",
   value: undefined
 }
 
 /** @internal */
-export const Done: {
-  (): Cause.Done
-  <A>(value: A): Cause.Done<A>
-} = <A>(value?: A): Cause.Done<A> => {
-  if (value === undefined) return doneVoid as Cause.Done<A>
+export const Done = <A = void>(value?: A): Cause.Done<A> => {
+  if (value === undefined) return DoneVoid as Cause.Done<A>
   return {
     [DoneTypeId]: DoneTypeId,
     _tag: "Done",
     value
   }
+}
+
+const doneVoid = exitFail(DoneVoid)
+
+/** @internal */
+export const done = <A = void>(value?: A): Effect.Effect<never, Cause.Done<A>> => {
+  if (value === undefined) return doneVoid as any
+  return exitFail(Done(value))
 }

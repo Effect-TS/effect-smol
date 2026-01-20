@@ -2,7 +2,7 @@
  * @since 1.0.0
  */
 import type { NonEmptyReadonlyArray } from "effect/Array"
-import type * as Cause from "effect/Cause"
+import * as Cause from "effect/Cause"
 import * as Channel from "effect/Channel"
 import * as Effect from "effect/Effect"
 import { identity, type LazyArg } from "effect/Function"
@@ -71,10 +71,10 @@ export const pullIntoWritable = <A, IE, E>(options: {
     options.endOnDone !== false ?
       Pull.catchDone((_) => {
         if ("closed" in options.writable && options.writable.closed) {
-          return Pull.done(_)
+          return Cause.done(_)
         }
         return Effect.callback<never, E | Cause.Done<unknown>>((resume) => {
-          options.writable.once("finish", () => resume(Pull.done(_)))
+          options.writable.once("finish", () => resume(Cause.done(_)))
           options.writable.end()
         })
       }) :
@@ -95,3 +95,4 @@ export const stdout: Sink.Sink<void, string | Uint8Array, never, PlatformError> 
       cause
     })
 })
+

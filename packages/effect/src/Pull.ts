@@ -147,22 +147,6 @@ export const filterDoneLeftover: <E>(
 ) as any
 
 /**
- * Creates a Pull that completes with the specified leftover value.
- *
- * @since 4.0.0
- * @category Done
- */
-export const done = <L>(leftover: L): Effect<never, Cause.Done<L>> => internalEffect.fail(Cause.Done(leftover))
-
-/**
- * A pre-defined halt with void leftover, commonly used to signal completion.
- *
- * @since 4.0.0
- * @category Done
- */
-export const doneVoid: Effect<never, Cause.Done<void>> = internalEffect.fail(Cause.Done())
-
-/**
  * Converts a Cause into an Exit, extracting halt leftovers as success values.
  *
  * @since 4.0.0
@@ -180,7 +164,7 @@ export const doneExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Cause.Don
  * ```ts
  * import { Effect, Pull } from "effect"
  *
- * const pull = Pull.done("stream ended")
+ * const pull = Cause.done("stream ended")
  *
  * const result = Pull.matchEffect(pull, {
  *   onSuccess: (value) => Effect.succeed(`Got value: ${value}`),
@@ -215,3 +199,4 @@ export const matchEffect: {
       return !Filter.isFail(halt) ? options.onDone(halt.value as L) : options.onFailure(halt.fail)
     }
   }))
+

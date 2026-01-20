@@ -305,7 +305,7 @@ export const fromEffect = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<A, E
  * @category constructors
  */
 export const fromEffectDrain = <A, E, R>(effect: Effect.Effect<A, E, R>): Stream<never, E, R> =>
-  fromPull(Effect.succeed(Effect.flatMap(effect, () => Pull.doneVoid)))
+  fromPull(Effect.succeed(Effect.flatMap(effect, () => Cause.done())))
 
 /**
  * @since 4.0.0
@@ -920,7 +920,7 @@ export const fromReadableStream = <A, E>(
         try: () => reader.read(),
         catch: (reason) => options.onError(reason)
       }),
-      ({ done, value }) => done ? Pull.doneVoid : Effect.succeed(Arr.of(value))
+      ({ done, value }) => done ? Cause.done() : Effect.succeed(Arr.of(value))
     )
   })))
 
@@ -945,7 +945,7 @@ export const fromSchedule = <O, E, R>(schedule: Schedule.Schedule<O, unknown, E,
   fromPull(
     Effect.map(
       Schedule.toStepWithSleep(schedule),
-      (step) => Pull.catchDone(Effect.map(step(void 0), Arr.of), () => Pull.doneVoid)
+      (step) => Pull.catchDone(Effect.map(step(void 0), Arr.of), () => Cause.done())
     )
   )
 
@@ -1075,7 +1075,7 @@ export const unfold = <S, A, E, R>(
   fromPull(Effect.sync(() => {
     let state = s
     return Effect.flatMap(Effect.suspend(() => f(state)), (next) => {
-      if (next === undefined) return Pull.doneVoid
+      if (next === undefined) return Cause.done()
       state = next[1]
       return Effect.succeed(Arr.of(next[0]))
     })
@@ -1115,7 +1115,7 @@ export const paginate = <S, A, E = never, R = never>(
     let state = s
     let done = false
     return Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> {
-      if (done) return Pull.doneVoid
+      if (done) return Cause.done()
       const result = f(state)
       return Effect.flatMap(Effect.isEffect(result) ? result : Effect.succeed(result), ([a, s]) => {
         if (Option.isNone(s)) {
@@ -1180,7 +1180,7 @@ export const range = (
     let start = min
     let done = false
     return Effect.suspend(() => {
-      if (done) return Pull.doneVoid
+      if (done) return Cause.done()
       const remaining = max - start + 1
       if (remaining > chunkSize) {
         const chunk = Arr.range(start, start + chunkSize - 1)
@@ -1548,7 +1548,7 @@ export const tapSink: {
             if (!streamDone) upstreamLatch.closeUnsafe()
             return Effect.as(sinkLatch.open, arr)
           }
-          return Pull.doneVoid
+          return Cause.done()
         }))
 
         yield* Effect.suspend(() => sink.transform(sinkUpstream, scope)).pipe(
@@ -1573,7 +1573,7 @@ export const tapSink: {
             streamDone = true
             sinkLatch.closeUnsafe()
             upstreamLatch.openUnsafe()
-            return Effect.flatMap(sinkLatch.await, () => Pull.doneVoid)
+            return Effect.flatMap(sinkLatch.await, () => Cause.done())
           })
         )
 
@@ -1822,7 +1822,7 @@ export const timeout: {
     transformPull(self, (pull, _scope) =>
       Effect.succeed(Effect.timeoutOrElse(pull, {
         duration,
-        onTimeout: () => Pull.doneVoid
+        onTimeout: () => Cause.done()
       })))
 )
 
@@ -3747,13 +3747,13 @@ export const takeUntil: {
         let i = 0
         let done = false
         const pump: Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> = Effect.flatMap(
-          Effect.suspend(() => done ? Pull.doneVoid : pull),
+          Effect.suspend(() => done ? Cause.done() : pull),
           (chunk) => {
             const index = chunk.findIndex((a) => predicate(a, i++))
             if (index >= 0) {
               done = true
               const arr = chunk.slice(0, options?.excludeLast ? index : index + 1)
-              return Arr.isReadonlyArrayNonEmpty(arr) ? Effect.succeed(arr) : Pull.doneVoid
+              return Arr.isReadonlyArrayNonEmpty(arr) ? Effect.succeed(arr) : Cause.done()
             }
             return Effect.succeed(chunk)
           }
@@ -3805,13 +3805,13 @@ export const takeUntilEffect: {
       let i = 0
       let done = false
       return Effect.gen(function*() {
-        if (done) return yield* Pull.doneVoid
+        if (done) return yield* Cause.done()
         const chunk = yield* pull
         for (let j = 0; j < chunk.length; j++) {
           if (yield* predicate(chunk[j], i++)) {
             done = true
             const arr = chunk.slice(0, options?.excludeLast ? j : j + 1)
-            return Arr.isReadonlyArrayNonEmpty(arr) ? arr : yield* Pull.doneVoid
+            return Arr.isReadonlyArrayNonEmpty(arr) ? arr : yield* Cause.done()
           }
         }
         return chunk
@@ -4093,7 +4093,7 @@ export const rechunk: {
       let done = false
 
       return Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E, void, R> {
-        if (done) return Pull.doneVoid
+        if (done) return Cause.done()
         else if (current === undefined) {
           return Effect.flatMap(pull, (arr) => {
             if (chunk.length === 0 && arr.length === target) {
@@ -4119,7 +4119,7 @@ export const rechunk: {
         return loop()
       }).pipe(
         Pull.catchDone(() => {
-          if (chunk.length === 0) return Pull.doneVoid
+          if (chunk.length === 0) return Cause.done()
           const result = chunk
           done = true
           chunk = [] as any
@@ -5149,11 +5149,11 @@ export const groupAdjacentBy: {
         })
       )
       let done = false
-      return Pull.catchDone(Effect.suspend(() => done ? Pull.doneVoid : loop), () => {
+      return Pull.catchDone(Effect.suspend(() => done ? Cause.done() : loop), () => {
         done = true
         const out = group
         group = undefined
-        return out && Arr.isArrayNonEmpty(out) ? Effect.succeed(Arr.of([currentKey, out])) : Pull.doneVoid
+        return out && Arr.isArrayNonEmpty(out) ? Effect.succeed(Arr.of([currentKey, out])) : Cause.done()
       })
     })))
 
@@ -5191,7 +5191,7 @@ export const transduce = dual<
         }).pipe(
           Effect.catch((error) => {
             done = Exit.fail(error)
-            return Pull.doneVoid
+            return Cause.done()
           })
         )
         const pull = Effect.map(
@@ -5275,7 +5275,7 @@ export const aggregateWithin: {
     const stepToBuffer = Effect.suspend(() => step(lastOutput)).pipe(
       Effect.flatMap(() => Queue.offer(buffer, scheduleStep)),
       Effect.flatMap(() => Effect.never),
-      Pull.catchDone(() => Pull.doneVoid)
+      Pull.catchDone(() => Cause.done())
     )
 
     // buffer -> sink
@@ -5283,7 +5283,7 @@ export const aggregateWithin: {
       Arr.NonEmptyReadonlyArray<A>,
       E
     > = Queue.take(buffer).pipe(
-      Effect.flatMap((arr) => arr === scheduleStep ? Pull.doneVoid : Effect.succeed(arr))
+      Effect.flatMap((arr) => arr === scheduleStep ? Cause.done() : Effect.succeed(arr))
     )
 
     let leftover: Arr.NonEmptyReadonlyArray<A2> | undefined
@@ -5299,7 +5299,7 @@ export const aggregateWithin: {
     })
     const catchSinkHalt = Effect.flatMap(([value, leftover_]: Sink.End<B, A2>) => {
       // ignore the last output if the upsteam only pulled a halt
-      if (!hadChunk && buffer.state._tag === "Done") return Pull.doneVoid
+      if (!hadChunk && buffer.state._tag === "Done") return Cause.done()
       lastOutput = Option.some(value)
       leftover = leftover_
       return Effect.succeed(Arr.of(value))
@@ -5953,7 +5953,7 @@ export const interleaveWith: {
     return Effect.gen(function*() {
       while (true) {
         if (leftDone && rightDone) {
-          return yield* Pull.doneVoid
+          return yield* Cause.done()
         }
         const side = yield* pullDecider
         if (side && leftDone) continue
@@ -7160,3 +7160,4 @@ export const runIntoQueue: {
   self: Stream<A, E, R>,
   queue: Queue.Queue<A, E | Cause.Done>
 ): Effect.Effect<void, never, R> => Channel.runIntoQueueArray(self.channel, queue))
+

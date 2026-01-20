@@ -3,6 +3,7 @@
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Arr from "../../Array.ts"
+import * as Cause from "../../Cause.ts"
 import * as Channel from "../../Channel.ts"
 import * as ChannelSchema from "../../ChannelSchema.ts"
 import * as Data from "../../Data.ts"
@@ -284,9 +285,9 @@ export const encode = <IE, Done>(): Channel.Channel<
           done = true
           return Effect.succeed(Arr.of(encoder.write(retry)))
         }),
-        Pull.catchDone(() => Pull.doneVoid)
+        Pull.catchDone(() => Cause.done())
       ) as Pull.Pull<Arr.NonEmptyReadonlyArray<string>, IE>
-      return Effect.suspend(() => done ? Pull.doneVoid : pull)
+      return Effect.suspend(() => done ? Cause.done() : pull)
     })
   )
 
@@ -460,3 +461,4 @@ export const encoder: Encoder = {
     }
   }
 }
+
