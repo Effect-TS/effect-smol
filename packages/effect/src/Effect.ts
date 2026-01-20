@@ -2007,6 +2007,12 @@ export const tap: {
  * The resulting effect cannot fail directly because all recoverable failures
  * are represented inside the `Result` type.
  *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Effect.either`
+ *
  * @example
  * ```ts
  * import { Effect } from "effect"
@@ -2972,6 +2978,12 @@ export const catchIf: {
  * function doesn't alter the error type, so the resulting effect still carries
  * the original error type unless a type-guarding filter narrows the type.
  *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Effect.catchSome`
+ *
  * @example
  * ```ts
  * import { Effect, Filter } from "effect"
@@ -3008,6 +3020,12 @@ export const catchFilter: {
  * This function allows you to conditionally catch and recover from failures
  * that match a specific predicate. This is useful when you want to handle
  * only certain types of errors while letting others propagate.
+ *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Effect.catchSomeCause`
  *
  * @example
  * ```ts
@@ -3281,6 +3299,12 @@ export const tapErrorTag: {
  * error causes in your effects. It gives you access to the full error cause,
  * whether it's a failure, defect, or other exceptional conditions, without
  * altering the error or the overall result of the effect.
+ *
+ * **Previously Known As**
+ *
+ * This API replaces the following from Effect 3.x:
+ *
+ * - `Effect.tapErrorCause`
  *
  * @example
  * ```ts
