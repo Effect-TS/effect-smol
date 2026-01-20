@@ -368,7 +368,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
             step: constVoid
           })
         ),
-        Pull.catchHalt(() => Effect.void),
+        Pull.catchDone(() => Effect.void),
         Effect.scoped
       )
     }
@@ -907,7 +907,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
       isBinary ? Effect.map(request.arrayBuffer, (buf) => new Uint8Array(buf)) : request.text
     )
     const id = clientId++
-    const queue = yield* Queue.make<Uint8Array | FromServerEncoded, Queue.Done>()
+    const queue = yield* Queue.make<Uint8Array | FromServerEncoded, Cause.Done>()
     const parser = serialization.makeUnsafe()
 
     const offer = (data: Uint8Array | string) =>
@@ -977,7 +977,7 @@ export const makeProtocolWithHttpEffect: Effect.Effect<
     return HttpServerResponse.stream(
       Stream.fromArray(initialChunk).pipe(
         Stream.concat(
-          Stream.fromQueue(queue as Queue.Dequeue<Uint8Array, Queue.Done>)
+          Stream.fromQueue(queue as Queue.Dequeue<Uint8Array, Cause.Done>)
         )
       ),
       { contentType: serialization.contentType }
@@ -1137,7 +1137,7 @@ export const makeProtocolStdio = Effect.fnUntraced(function*<EIn, EOut, RIn, ROu
   const serialization = yield* RpcSerialization.RpcSerialization
 
   return yield* Protocol.make(Effect.fnUntraced(function*(writeRequest) {
-    const queue = yield* Queue.make<Uint8Array | string, Queue.Done>()
+    const queue = yield* Queue.make<Uint8Array | string, Cause.Done>()
     const parser = serialization.makeUnsafe()
 
     yield* options.stdin.pipe(

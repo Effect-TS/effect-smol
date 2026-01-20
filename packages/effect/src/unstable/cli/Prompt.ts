@@ -3,6 +3,7 @@
  */
 import * as Arr from "../../Array.ts"
 import type { NoSuchElementError } from "../../Cause.ts"
+import type * as Cause from "../../Cause.ts"
 import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as FileSystem from "../../FileSystem.ts"
@@ -1044,7 +1045,7 @@ const allTupled = <const T extends ArrayLike<Prompt<any>>>(arg: T): Prompt<
 const runWithInput = <Output>(
   prompt: Prompt<Output>,
   terminal: Terminal.Terminal,
-  input: Queue.Dequeue<Terminal.UserInput, Queue.Done>
+  input: Queue.Dequeue<Terminal.UserInput, Cause.Done>
 ): Effect.Effect<Output, NoSuchElementError, Environment> =>
   Effect.suspend(() => {
     const op = prompt as PromptPrimitive
@@ -1068,7 +1069,7 @@ const runLoop = Effect.fnUntraced(
   function*(
     loop: Loop,
     terminal: Terminal.Terminal,
-    input: Queue.Dequeue<Terminal.UserInput, Queue.Done>
+    input: Queue.Dequeue<Terminal.UserInput, Cause.Done>
   ) {
     let state = Effect.isEffect(loop.initialState) ? yield* loop.initialState : loop.initialState
     let action: Action<unknown, unknown> = Action.NextFrame({ state })

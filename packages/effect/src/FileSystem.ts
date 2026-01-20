@@ -757,7 +757,7 @@ export const make = (
         Effect.flatMap(
           Effect.suspend((): Pull.Pull<Uint8Array | undefined, PlatformError> => {
             if (bytesToRead !== undefined && bytesToRead <= totalBytesRead) {
-              return Pull.haltVoid
+              return Pull.doneVoid
             }
             const toRead = bytesToRead !== undefined && (bytesToRead - totalBytesRead) < chunkSize
               ? bytesToRead - totalBytesRead
@@ -765,7 +765,7 @@ export const make = (
             return file.readAlloc(toRead)
           }),
           (buf) => {
-            if (!buf) return Pull.haltVoid
+            if (!buf) return Pull.doneVoid
             totalBytesRead += BigInt(buf.length)
             return Effect.succeed(Arr.of(buf))
           }

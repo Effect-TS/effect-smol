@@ -7,42 +7,17 @@ import * as Exit from "./Exit.ts"
 import * as Filter from "./Filter.ts"
 import { dual } from "./Function.ts"
 import * as internalEffect from "./internal/effect.ts"
-import { hasProperty } from "./Predicate.ts"
 
 /**
- * A Pull is a specialized Effect that represents a pull-based stream operation.
- * It can either emit a value of type `A`, fail with an error of type `E`,
- * or halt with a value of type `Done`.
- *
- * @example
- * ```ts
- * import { Effect, Pull } from "effect"
- *
- * // A Pull that emits a single value
- * const pullValue: Pull.Pull<number> = Effect.succeed(42)
- *
- * // A Pull that fails with an error
- * const pullError: Pull.Pull<number, string> = Effect.fail("Error occurred")
- *
- * // A Pull that halts with a completion value
- * const pullHalt: Pull.Pull<number, never, string> = Pull.halt("completed")
- * ```
- *
  * @since 4.0.0
  * @category models
  */
-export interface Pull<out A, out E = never, out Done = void, out R = never> extends Effect<A, E | Halt<Done>, R> {}
+export interface Pull<out A, out E = never, out Done = void, out R = never>
+  extends Effect<A, E | Cause.Done<Done>, R>
+{}
 
 /**
  * Extracts the success type from a Pull type.
- *
- * @example
- * ```ts
- * import type { Pull } from "effect"
- *
- * type MyPull = Pull.Pull<number, string, void>
- * type SuccessType = Pull.Success<MyPull> // number
- * ```
  *
  * @since 4.0.0
  * @category type extractors
@@ -50,373 +25,167 @@ export interface Pull<out A, out E = never, out Done = void, out R = never> exte
 export type Success<P> = P extends Effect<infer _A, infer _E, infer _R> ? _A : never
 
 /**
- * Extracts the error type from a Pull type, excluding halt errors.
- *
- * @example
- * ```ts
- * import type { Pull } from "effect"
- *
- * type MyPull = Pull.Pull<number, string, void>
- * type ErrorType = Pull.Error<MyPull> // string
- * ```
+ * Extracts the error type from a Pull type, excluding Done errors.
  *
  * @since 4.0.0
  * @category type extractors
  */
-export type Error<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E extends Halt<infer _L> ? never : _E
+export type Error<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E extends Cause.Done<infer _L> ? never : _E
   : never
 
 /**
- * Extracts the leftover/halt type from a Pull type.
- *
- * @example
- * ```ts
- * import type { Pull } from "effect"
- *
- * type MyPull = Pull.Pull<number, string, number>
- * type LeftoverType = Pull.Leftover<MyPull> // number
- * ```
+ * Extracts the leftover type from a Pull type.
  *
  * @since 4.0.0
  * @category type extractors
  */
-export type Leftover<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E extends Halt<infer _L> ? _L : never
+export type Leftover<P> = P extends Effect<infer _A, infer _E, infer _R> ? _E extends Cause.Done<infer _L> ? _L : never
   : never
 
 /**
  * Extracts the service requirements (context) type from a Pull type.
  *
- * @example
- * ```ts
- * import type { Pull } from "effect"
- * import { ServiceMap } from "effect"
- *
- * interface MyService {
- *   readonly value: number
- * }
- * const MyService = ServiceMap.Service<MyService>("MyService")
- *
- * type MyPull = Pull.Pull<number, string, void, MyService>
- * type ServiceType = Pull.ServiceMap<MyPull> // MyService
- * ```
+ * @since 4.0.0
+ * @category type extractors
+ */
+export type Services<P> = P extends Effect<infer _A, infer _E, infer _R> ? _R : never
+
+/**
+ * Excludes done errors from an error type union.
  *
  * @since 4.0.0
  * @category type extractors
  */
-export type ServiceMap<P> = P extends Effect<infer _A, infer _E, infer _R> ? _R : never
-
-/**
- * Excludes halt errors from an error type union.
- *
- * @example
- * ```ts
- * import type { Pull } from "effect"
- *
- * type ErrorUnion = string | Pull.Halt<number> | Error
- * type WithoutHalt = Pull.ExcludeHalt<ErrorUnion> // string | Error
- * ```
- *
- * @since 4.0.0
- * @category type extractors
- */
-export type ExcludeHalt<E> = Exclude<E, Halt<any>>
+export type ExcludeDone<E> = Exclude<E, Cause.Done<any>>
 
 // -----------------------------------------------------------------------------
-// Halt
+// Done
 // -----------------------------------------------------------------------------
 
 /**
  * @since 4.0.0
- * @category Halt
+ * @category Done
  */
-export const HaltTypeId = "~effect/Pull/Halt"
-
-/**
- * Represents a halt error that carries a leftover value.
- * Used to signal the end of a Pull operation with a final value.
- *
- * @since 4.0.0
- * @category Halt
- */
-export class Halt<out L = void> {
-  /**
-   * @since 4.0.0
-   */
-  readonly [HaltTypeId] = HaltTypeId
-
-  readonly leftover: L
-
-  constructor(leftover: L) {
-    this.leftover = leftover
-  }
-}
-
-/**
- * Namespace containing utility types for working with Halt errors.
- *
- * @example
- * ```ts
- * import type { Pull } from "effect"
- *
- * // Extract leftover type from halt
- * type MyHalt = Pull.Halt<string>
- * type Leftover = Pull.Halt.Extract<MyHalt> // string
- *
- * // Filter only halt errors from union
- * type ErrorUnion = string | Pull.Halt<number>
- * type OnlyHalt = Pull.Halt.Only<ErrorUnion> // Pull.Halt<number>
- * ```
- *
- * @since 4.0.0
- * @category Halt
- */
-export declare namespace Halt {
-  /**
-   * Extracts the leftover type from a Halt error.
-   *
-   * @example
-   * ```ts
-   * import type { Pull } from "effect"
-   *
-   * type MyHalt = Pull.Halt<string>
-   * type Leftover = Pull.Halt.Extract<MyHalt> // string
-   * ```
-   *
-   * @since 4.0.0
-   * @category Halt
-   */
-  export type Extract<E> = E extends Halt<infer L> ? L : never
-
-  /**
-   * Filters a type union to only include Halt errors.
-   *
-   * @example
-   * ```ts
-   * import type { Pull } from "effect"
-   *
-   * type ErrorUnion = string | Pull.Halt<number>
-   * type OnlyHalt = Pull.Halt.Only<ErrorUnion> // Pull.Halt<number>
-   * ```
-   *
-   * @since 4.0.0
-   * @category Halt
-   */
-  export type Only<E> = E extends Halt<infer L> ? Halt<L> : never
-}
-
-/**
- * Catches halt errors and handles them with a recovery function.
- *
- * @example
- * ```ts
- * import { Effect, Pull } from "effect"
- *
- * const pullWithHalt = Pull.halt("stream ended")
- * const recovered = Pull.catchHalt(
- *   pullWithHalt,
- *   (leftover) => Effect.succeed(`Recovered from: ${leftover}`)
- * )
- * ```
- *
- * @since 4.0.0
- * @category Halt
- */
-export const catchHalt: {
-  <E, A2, E2, R2>(f: (leftover: Halt.Extract<E>) => Effect<A2, E2, R2>): <A, R>(
+export const catchDone: {
+  <E, A2, E2, R2>(f: (leftover: Cause.Done.Extract<E>) => Effect<A2, E2, R2>): <A, R>(
     self: Effect<A, E, R>
-  ) => Effect<A | A2, ExcludeHalt<E> | E2, R | R2>
+  ) => Effect<A | A2, ExcludeDone<E> | E2, R | R2>
   <A, R, E, A2, E2, R2>(
     self: Effect<A, E, R>,
-    f: (leftover: Halt.Extract<E>) => Effect<A2, E2, R2>
-  ): Effect<A | A2, ExcludeHalt<E> | E2, R | R2>
+    f: (leftover: Cause.Done.Extract<E>) => Effect<A2, E2, R2>
+  ): Effect<A | A2, ExcludeDone<E> | E2, R | R2>
 } = dual(2, <A, R, E, A2, E2, R2>(
   effect: Effect<A, E, R>,
-  f: (leftover: Halt.Extract<E>) => Effect<A2, E2, R2>
-): Effect<A | A2, ExcludeHalt<E> | E2, R | R2> =>
-  internalEffect.catchCauseFilter(effect, filterHaltLeftover, (l) => f(l)) as any)
+  f: (leftover: Cause.Done.Extract<E>) => Effect<A2, E2, R2>
+): Effect<A | A2, ExcludeDone<E> | E2, R | R2> =>
+  internalEffect.catchCauseFilter(effect, filterDoneLeftover, (l) => f(l)) as any)
 
 /**
- * Checks if a value is a Halt error.
- *
- * @example
- * ```ts
- * import { Pull } from "effect"
- *
- * const halt = new Pull.Halt("completed")
- * const regularError = new Error("failed")
- *
- * console.log(Pull.isHalt(halt)) // true
- * console.log(Pull.isHalt(regularError)) // false
- * ```
+ * Checks if a Cause contains any done errors.
  *
  * @since 4.0.0
- * @category Halt
+ * @category Done
  */
-export const isHalt = (u: unknown): u is Halt<unknown> => hasProperty(u, HaltTypeId)
+export const isDoneCause = <E>(cause: Cause.Cause<E>): boolean => cause.failures.some(isDoneFailure)
 
 /**
- * Checks if a Cause contains any halt errors.
- *
- * @example
- * ```ts
- * import { Cause, Pull } from "effect"
- *
- * const halt = new Pull.Halt("completed")
- * const causeWithHalt = Cause.fail(halt)
- * const regularCause = Cause.fail("regular error")
- *
- * console.log(Pull.isHaltCause(causeWithHalt)) // true
- * console.log(Pull.isHaltCause(regularCause)) // false
- * ```
+ * Checks if a Cause failure is a done error.
  *
  * @since 4.0.0
- * @category Halt
+ * @category Done
  */
-export const isHaltCause = <E>(cause: Cause.Cause<E>): boolean => cause.failures.some(isHaltFailure)
-
-/**
- * Checks if a Cause failure is a halt error.
- *
- * @example
- * ```ts
- * import { Cause, Pull } from "effect"
- *
- * const halt = new Pull.Halt("completed")
- * const haltCause = Cause.fail(halt)
- * const regularCause = Cause.fail("regular error")
- *
- * const haltFailure = haltCause.failures[0]
- * const regularFailure = regularCause.failures[0]
- *
- * console.log(Pull.isHaltFailure(haltFailure)) // true
- * console.log(Pull.isHaltFailure(regularFailure)) // false
- * ```
- *
- * @since 4.0.0
- * @category Halt
- */
-export const isHaltFailure = <E>(
+export const isDoneFailure = <E>(
   failure: Cause.Failure<E>
-): failure is Cause.Fail<E & Halt<any>> => failure._tag === "Fail" && isHalt(failure.error)
+): failure is Cause.Fail<E & Cause.Done<any>> => failure._tag === "Fail" && Cause.isDone(failure.error)
 
 /**
  * Filters a Cause to extract only halt errors.
  *
  * @since 4.0.0
- * @category Halt
+ * @category Done
  */
-export const filterHalt: <E>(input: Cause.Cause<E>) => Halt.Only<E> | Filter.fail<Cause.Cause<ExcludeHalt<E>>> = Filter
-  .composePassthrough(
-    Cause.filterError,
-    (e) => isHalt(e) ? e : Filter.fail(e)
-  ) as any
+export const filterDone: <E>(input: Cause.Cause<E>) => Cause.Done.Only<E> | Filter.fail<Cause.Cause<ExcludeDone<E>>> =
+  Filter
+    .composePassthrough(
+      Cause.filterError,
+      (e) => Cause.isDone(e) ? e : Filter.fail(e)
+    ) as any
 
 /**
+ * Filters a Cause to extract only halt errors.
+ *
  * @since 4.0.0
- * @category Halt
+ * @category Done
  */
-export const filterNoHalt: <E>(
+export const filterDoneVoid: <E extends Cause.Done>(
   input: Cause.Cause<E>
-) => Cause.Cause<ExcludeHalt<E>> | Filter.fail<Cause.Cause<E>> = Filter
-  .fromPredicate((cause: Cause.Cause<unknown>) => cause.failures.every((failure) => !isHaltFailure(failure))) as any
-
-/**
- * Filters a Cause to extract the leftover value from halt errors.
- *
- * @example
- * ```ts
- * import { Cause, Pull } from "effect"
- *
- * const halt = new Pull.Halt("stream completed")
- * const causeWithHalt = Cause.fail(halt)
- * const leftover = Pull.filterHaltLeftover(causeWithHalt)
- *
- * // leftover will be "stream completed" if halt is present
- * ```
- *
- * @since 4.0.0
- * @category Halt
- */
-export const filterHaltLeftover: <E>(
-  cause: Cause.Cause<E>
-) => Halt.Extract<E> | Filter.fail<Cause.Cause<ExcludeHalt<E>>> = Filter.composePassthrough(
+) => Cause.Done | Filter.fail<Cause.Cause<Exclude<E, Cause.Done>>> = Filter.composePassthrough(
   Cause.filterError,
-  (e) => isHalt(e) ? e.leftover : Filter.fail(e)
+  (e) => Cause.isDone(e) ? e : Filter.fail(e)
 ) as any
 
 /**
- * Creates a Pull that halts with the specified leftover value.
- *
- * @example
- * ```ts
- * import { Pull } from "effect"
- *
- * // Create a halt with a string leftover
- * const haltWithMessage = Pull.halt("operation completed")
- *
- * // Create a halt with a number leftover
- * const haltWithCount = Pull.halt(42)
- * ```
+ * @since 4.0.0
+ * @category Done
+ */
+export const filterNoDone: <E>(
+  input: Cause.Cause<E>
+) => Cause.Cause<ExcludeDone<E>> | Filter.fail<Cause.Cause<E>> = Filter
+  .fromPredicate((cause: Cause.Cause<unknown>) => cause.failures.every((failure) => !isDoneFailure(failure))) as any
+
+/**
+ * Filters a Cause to extract the leftover value from done errors.
  *
  * @since 4.0.0
- * @category Halt
+ * @category Done
  */
-export const halt = <L>(leftover: L): Effect<never, Halt<L>> => internalEffect.fail(new Halt(leftover))
+export const filterDoneLeftover: <E>(
+  cause: Cause.Cause<E>
+) => Cause.Done.Extract<E> | Filter.fail<Cause.Cause<ExcludeDone<E>>> = Filter.composePassthrough(
+  Cause.filterError,
+  (e) => Cause.isDone(e) ? e.value : Filter.fail(e)
+) as any
+
+/**
+ * Creates a Pull that completes with the specified leftover value.
+ *
+ * @since 4.0.0
+ * @category Done
+ */
+export const done = <L>(leftover: L): Effect<never, Cause.Done<L>> => internalEffect.fail(Cause.Done(leftover))
 
 /**
  * A pre-defined halt with void leftover, commonly used to signal completion.
  *
- * @example
- * ```ts
- * import { Pull } from "effect"
- *
- * // Use the pre-defined halt with void
- * const completePull = Pull.haltVoid
- *
- * // Equivalent to:
- * const samePull = Pull.halt(void 0)
- * ```
- *
  * @since 4.0.0
- * @category Halt
+ * @category Done
  */
-export const haltVoid: Effect<never, Halt<void>> = internalEffect.fail(new Halt(void 0))
+export const doneVoid: Effect<never, Cause.Done<void>> = internalEffect.fail(Cause.Done())
 
 /**
  * Converts a Cause into an Exit, extracting halt leftovers as success values.
  *
- * @example
- * ```ts
- * import { Cause, Pull } from "effect"
- *
- * const halt = new Pull.Halt("completed")
- * const causeWithHalt = Cause.fail(halt)
- * const exit = Pull.haltExitFromCause(causeWithHalt)
- *
- * // exit will be Exit.succeed("completed")
- * ```
- *
  * @since 4.0.0
- * @category Halt
+ * @category Done
  */
-export const haltExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Halt.Extract<E>, ExcludeHalt<E>> => {
-  const halt = filterHalt(cause)
-  return !Filter.isFail(halt) ? Exit.succeed(halt.leftover as any) : Exit.failCause(halt.fail)
+export const doneExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Cause.Done.Extract<E>, ExcludeDone<E>> => {
+  const halt = filterDone(cause)
+  return !Filter.isFail(halt) ? Exit.succeed(halt.value as any) : Exit.failCause(halt.fail)
 }
 
 /**
- * Pattern matches on a Pull, handling success, failure, and halt cases.
+ * Pattern matches on a Pull, handling success, failure, and done cases.
  *
  * @example
  * ```ts
  * import { Effect, Pull } from "effect"
  *
- * const pull = Pull.halt("stream ended")
+ * const pull = Pull.done("stream ended")
  *
  * const result = Pull.matchEffect(pull, {
  *   onSuccess: (value) => Effect.succeed(`Got value: ${value}`),
  *   onFailure: (cause) => Effect.succeed(`Got error: ${cause}`),
- *   onHalt: (leftover) => Effect.succeed(`Stream halted with: ${leftover}`)
+ *   onDone: (leftover) => Effect.succeed(`Stream halted with: ${leftover}`)
  * })
  * ```
  *
@@ -427,22 +196,22 @@ export const matchEffect: {
   <A, E, L, AS, ES, RS, AF, EF, RF, AH, EH, RH>(options: {
     readonly onSuccess: (value: A) => Effect<AS, ES, RS>
     readonly onFailure: (failure: Cause.Cause<E>) => Effect<AF, EF, RF>
-    readonly onHalt: (leftover: L) => Effect<AH, EH, RH>
+    readonly onDone: (leftover: L) => Effect<AH, EH, RH>
   }): <R>(self: Pull<A, E, L, R>) => Effect<AS | AF | AH, ES | EF | EH, R | RS | RF | RH>
   <A, E, L, R, AS, ES, RS, AF, EF, RF, AH, EH, RH>(self: Pull<A, E, L, R>, options: {
     readonly onSuccess: (value: A) => Effect<AS, ES, RS>
     readonly onFailure: (failure: Cause.Cause<E>) => Effect<AF, EF, RF>
-    readonly onHalt: (leftover: L) => Effect<AH, EH, RH>
+    readonly onDone: (leftover: L) => Effect<AH, EH, RH>
   }): Effect<AS | AF | AH, ES | EF | EH, R | RS | RF | RH>
 } = dual(2, <A, E, L, R, AS, ES, RS, AF, EF, RF, AH, EH, RH>(self: Pull<A, E, L, R>, options: {
   readonly onSuccess: (value: A) => Effect<AS, ES, RS>
   readonly onFailure: (failure: Cause.Cause<E>) => Effect<AF, EF, RF>
-  readonly onHalt: (leftover: L) => Effect<AH, EH, RH>
+  readonly onDone: (leftover: L) => Effect<AH, EH, RH>
 }): Effect<AS | AF | AH, ES | EF | EH, R | RS | RF | RH> =>
   internalEffect.matchCauseEffect(self, {
     onSuccess: options.onSuccess,
     onFailure: (cause): Effect<AS | AF | AH, ES | EF | EH, RS | RF | RH> => {
-      const halt = filterHalt(cause)
-      return !Filter.isFail(halt) ? options.onHalt(halt.leftover as L) : options.onFailure(halt.fail)
+      const halt = filterDone(cause)
+      return !Filter.isFail(halt) ? options.onDone(halt.value as L) : options.onFailure(halt.fail)
     }
   }))

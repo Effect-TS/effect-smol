@@ -48,7 +48,7 @@ export const fromReadableStream = <A, E>(
         { done, value }
       ): Pull.Pull<Arr.NonEmptyReadonlyArray<A>, E> {
         if (done) {
-          return Pull.haltVoid
+          return Pull.doneVoid
         } else if (!Arr.isReadonlyArrayNonEmpty(value)) {
           return Effect.flatMap(readMany, loop)
         }

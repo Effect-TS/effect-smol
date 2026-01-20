@@ -66,7 +66,7 @@ export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.Unknown
 ): Channel.Channel<Arr.NonEmptyReadonlyArray<O>, IE | E, void, Arr.NonEmptyReadonlyArray<I>, IE> =>
   Channel.fromTransform((upstream, scope) => {
     const duplex = options.evaluate()
-    const exit = MutableRef.make<Exit.Exit<never, IE | E | Pull.Halt<void>> | undefined>(undefined)
+    const exit = MutableRef.make<Exit.Exit<never, IE | E | Cause.Done> | undefined>(undefined)
 
     return pullIntoWritable({
       pull: upstream,
@@ -76,8 +76,8 @@ export const fromDuplex = <IE, I = Uint8Array, O = Uint8Array, E = Cause.Unknown
       encoding: options.encoding
     }).pipe(
       Effect.catchCause((cause) => {
-        if (Pull.isHaltCause(cause)) return Effect.void
-        exit.current = Exit.failCause(cause as Cause.Cause<IE | E | Pull.Halt<void>>)
+        if (Pull.isDoneCause(cause)) return Effect.void
+        exit.current = Exit.failCause(cause as Cause.Cause<IE | E | Cause.Done>)
         return Effect.void
       }),
       Effect.forkIn(scope),
@@ -292,7 +292,7 @@ export const stdin: Stream.Stream<Uint8Array> = Stream.orDie(fromReadable({
 
 const readableToPullUnsafe = <A, E>(options: {
   readonly scope: Scope.Scope
-  readonly exit?: MutableRef.MutableRef<Exit.Exit<never, E | Pull.Halt<void>> | undefined> | undefined
+  readonly exit?: MutableRef.MutableRef<Exit.Exit<never, E | Cause.Done> | undefined> | undefined
   readonly readable: Readable | NodeJS.ReadableStream
   readonly onError: (error: unknown) => E
   readonly chunkSize: number | undefined
@@ -310,7 +310,7 @@ const readableToPullUnsafe = <A, E>(options: {
     latch.openUnsafe()
   }
   function onEnd() {
-    exit.current = Exit.fail(new Pull.Halt(void 0))
+    exit.current = Exit.fail(Cause.Done())
     latch.openUnsafe()
   }
   readable.on("readable", onReadable)

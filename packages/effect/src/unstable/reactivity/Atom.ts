@@ -761,7 +761,7 @@ function makeStream<A, E>(
       }))
   ).pipe(
     Effect.catchCause((cause) => {
-      if (Pull.isHaltCause(cause)) {
+      if (Pull.isDoneCause(cause)) {
         pipe(
           ctx.self<AsyncResult.AsyncResult<A, E | Cause.NoSuchElementError>>(),
           Option.flatMap(AsyncResult.value),
@@ -1165,7 +1165,7 @@ const makeStreamPullEffect = <A, E>(
           { done: boolean; items: Arr.NonEmptyArray<A> },
           Cause.NoSuchElementError | E
         > {
-          if (Pull.isHaltCause(cause)) {
+          if (Pull.isDoneCause(cause)) {
             if (!Arr.isReadonlyArrayNonEmpty(acc)) {
               return Effect.fail(new Cause.NoSuchElementError(`Atom.pull: no items`))
             }

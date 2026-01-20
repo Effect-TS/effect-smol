@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
+import * as Cause from "../../Cause.ts"
 import * as Channel from "../../Channel.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
@@ -273,7 +274,7 @@ export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channe
   Channel.fromTransform((upstream) =>
     Effect.map(makeConfig(headers), (config) => {
       let partsBuffer: Array<Part> = []
-      let exit = Option.none<Exit.Exit<never, IE | MultipartError | Pull.Halt<void>>>()
+      let exit = Option.none<Exit.Exit<never, IE | MultipartError | Cause.Done>>()
 
       const parser = MP.make({
         ...config,
@@ -286,7 +287,7 @@ export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channe
           const pullChunks = Channel.fromPull(
             Effect.succeed(Effect.suspend(function loop(): Pull.Pull<Arr.NonEmptyReadonlyArray<Uint8Array>> {
               if (!Arr.isReadonlyArrayNonEmpty(chunks)) {
-                return finished ? Pull.haltVoid : Effect.flatMap(pump, loop)
+                return finished ? Pull.doneVoid : Effect.flatMap(pump, loop)
               }
               const chunk = chunks
               chunks = []
@@ -306,7 +307,7 @@ export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channe
           exit = Option.some(Exit.fail(convertError(error_)))
         },
         onDone() {
-          exit = Option.some(Exit.fail(new Pull.Halt(void 0)))
+          exit = Option.some(Exit.fail(Cause.Done()))
         }
       })
 
@@ -318,7 +319,7 @@ export const makeChannel = <IE>(headers: Record<string, string>): Channel.Channe
           return Effect.void
         }),
         Effect.catchCause((cause) => {
-          if (Pull.isHaltCause(cause)) {
+          if (Pull.isDoneCause(cause)) {
             parser.end()
           } else {
             exit = Option.some(Exit.failCause(cause)) as any

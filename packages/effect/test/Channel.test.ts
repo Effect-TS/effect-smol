@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { assertFailure, assertTrue } from "@effect/vitest/utils"
-import { Deferred, pipe, Ref } from "effect"
+import { type Cause, Deferred, pipe, Ref } from "effect"
 import * as Channel from "effect/Channel"
 import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
@@ -204,7 +204,7 @@ describe("Channel", () => {
     it.effect("merge - interrupts left side if halt strategy is set to 'right'", () =>
       Effect.gen(function*() {
         const latch = yield* Effect.makeLatch(false)
-        const leftQueue = yield* Queue.make<number, Queue.Done>()
+        const leftQueue = yield* Queue.make<number, Cause.Done>()
         const rightQueue = yield* Queue.make<number>()
         const left = Channel.fromQueue(rightQueue)
         const right = Channel.fromQueue(leftQueue).pipe(
@@ -224,7 +224,7 @@ describe("Channel", () => {
     it.effect("merge - interrupts right side if halt strategy is set to 'left'", () =>
       Effect.gen(function*() {
         const latch = yield* Effect.makeLatch(false)
-        const leftQueue = yield* Queue.make<number, Queue.Done>()
+        const leftQueue = yield* Queue.make<number, Cause.Done>()
         const rightQueue = yield* Queue.make<number>()
         const left = Channel.fromQueue(leftQueue).pipe(
           Channel.ensuring(latch.open)

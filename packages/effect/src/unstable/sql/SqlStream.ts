@@ -1,8 +1,8 @@
 /**
  * @since 4.0.0
  */
+import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
-import * as Exit from "../../Exit.ts"
 import * as Queue from "../../Queue.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
@@ -55,8 +55,8 @@ export const asyncPauseResume = <A, E = never, R = never>(
         register({
           single: (item) => offer([item]),
           array: (chunk) => offer(chunk),
-          fail: (error) => Queue.doneUnsafe(queue, Exit.fail(error)),
-          end: () => Queue.doneUnsafe(queue, Exit.void)
+          fail: (error) => Queue.failCauseUnsafe(queue as any, Cause.fail(error)),
+          end: () => Queue.endUnsafe(queue as any)
         }),
         (_) => {
           cbs = _

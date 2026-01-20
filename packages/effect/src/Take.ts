@@ -18,5 +18,5 @@ export type Take<A, E = never, Done = void> = NonEmptyReadonlyArray<A> | Exit.Ex
  */
 export const toPull = <A, E, Done>(take: Take<A, E, Done>): Pull.Pull<NonEmptyReadonlyArray<A>, E, Done> =>
   Exit.isExit(take)
-    ? Exit.isSuccess(take) ? Pull.halt(take.value) : (take as Exit.Exit<never, E>)
+    ? Exit.isSuccess(take) ? Pull.done(take.value) : (take as Exit.Exit<never, E>)
     : Effect.succeed(take)

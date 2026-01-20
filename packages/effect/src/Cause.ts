@@ -702,6 +702,105 @@ export interface NoSuchElementError extends YieldableError {
 export const NoSuchElementError: new(message?: string) => NoSuchElementError = core.NoSuchElementError
 
 /**
+ * Tests if a value is a `Done` error.
+ *
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * console.log(Cause.isDone(Cause.Done)) // true
+ * console.log(Cause.isDone("not an error")) // false
+ * ```
+ *
+ * @category guards
+ * @since 4.0.0
+ */
+export const isDone: (u: unknown) => u is Done<any> = core.isDone
+
+/**
+ * @since 4.0.0
+ * @category errors
+ */
+export const DoneTypeId: "~effect/Cause/Done" = core.DoneTypeId
+
+/**
+ * Represents a graceful completion signal for queues and streams.
+ *
+ * `Done` is used to signal that a queue or stream has completed normally
+ * and no more elements will be produced. This is distinct from an error
+ * or interruption - it represents successful completion.
+ *
+ * @example
+ * ```ts
+ * import { Cause, Effect } from "effect"
+ * import { Queue } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const queue = yield* Queue.bounded<number, Cause.Done>(10)
+ *
+ *   yield* Queue.offer(queue, 1)
+ *   yield* Queue.offer(queue, 2)
+ *
+ *   // Signal completion
+ *   yield* Queue.end(queue)
+ *
+ *   // Taking from ended queue fails with Done
+ *   const result = yield* Effect.flip(Queue.take(queue))
+ *   console.log(Cause.isDone(result)) // true
+ * })
+ * ```
+ *
+ * @since 4.0.0
+ * @category errors
+ */
+export interface Done<A = void> {
+  readonly [DoneTypeId]: typeof DoneTypeId
+  readonly _tag: "Done"
+  readonly value: A
+}
+
+/**
+ * @since 4.0.0
+ * @category Done
+ */
+export declare namespace Done {
+  /**
+   * Extracts the leftover type from a Done error.
+   *
+   * @since 4.0.0
+   * @category Done
+   */
+  export type Extract<E> = E extends Done<infer L> ? L : never
+
+  /**
+   * Filters a type union to only include Done errors.
+   *
+   * @since 4.0.0
+   * @category Done
+   */
+  export type Only<E> = E extends Done<infer L> ? Done<L> : never
+}
+
+/**
+ * Singleton instance of `Done` error to signal graceful completion.
+ *
+ * @example
+ * ```ts
+ * import { Cause } from "effect"
+ *
+ * console.log(Cause.Done._tag) // "Done"
+ * console.log(Cause.isDone(Cause.Done)) // true
+ * ```
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Done: {
+  (): Done
+  <A>(value: A): Done<A>
+} = core.Done
+
+/**
  * @category errors
  * @since 4.0.0
  */

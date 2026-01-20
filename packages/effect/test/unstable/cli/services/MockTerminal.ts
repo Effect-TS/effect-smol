@@ -1,4 +1,5 @@
 import * as Array from "effect/Array"
+import type * as Cause from "effect/Cause"
 import * as Console from "effect/Console"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -38,7 +39,7 @@ export const MockTerminal = ServiceMap.Service<Terminal.Terminal, MockTerminal>(
 
 export const make = Effect.gen(function*() {
   const queue = yield* Effect.acquireRelease(
-    Queue.make<Terminal.UserInput, Queue.Done>(),
+    Queue.make<Terminal.UserInput, Cause.Done>(),
     (queue) => Queue.shutdown(queue)
   )
 
@@ -88,7 +89,7 @@ export const columns: Effect.Effect<number, never, Terminal.Terminal> = Effect.f
 )
 
 export const readInput: Effect.Effect<
-  Queue.Dequeue<Terminal.UserInput, Queue.Done>,
+  Queue.Dequeue<Terminal.UserInput, Cause.Done>,
   never,
   Terminal.Terminal | Scope.Scope
 > = Effect.flatMap(MockTerminal.asEffect(), (terminal) => terminal.readInput)

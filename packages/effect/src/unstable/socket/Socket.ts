@@ -2,6 +2,7 @@
  * @since 4.0.0
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
+import type * as Cause from "../../Cause.ts"
 import * as Channel from "../../Channel.ts"
 import * as Data from "../../Data.ts"
 import * as Deferred from "../../Deferred.ts"
@@ -196,7 +197,7 @@ export const toChannelMap = <IE, A>(
   IE
 > =>
   Channel.fromTransform(Effect.fnUntraced(function*(upstream, scope) {
-    const queue = yield* Queue.make<A, SocketError | IE | Queue.Done>()
+    const queue = yield* Queue.make<A, SocketError | IE | Cause.Done>()
 
     const writeScope = yield* Scope.fork(scope)
     const write = yield* Scope.provide(self.writer, writeScope)
@@ -218,7 +219,7 @@ export const toChannelMap = <IE, A>(
       }),
       Effect.forever({ autoYield: false }),
       Effect.catchCauseFilter(
-        Pull.filterNoHalt,
+        Pull.filterNoDone,
         (cause) => Queue.failCause(queue, cause)
       ),
       Effect.ensuring(Scope.close(writeScope, Exit.void)),
@@ -232,7 +233,8 @@ export const toChannelMap = <IE, A>(
       Effect.forkIn(scope)
     )
 
-    return Queue.toPullArray(queue)
+    // @effect-diagnostics-next-line returnEffectInGen:off
+    return Queue.takeAll(queue)
   }))
 
 /**

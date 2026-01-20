@@ -1,8 +1,8 @@
 /**
  * @since 1.0.0
  */
+import type * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
-import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
 import * as PlatformError from "effect/PlatformError"
 import * as Predicate from "effect/Predicate"
@@ -49,7 +49,7 @@ export const make: (
 
     const readInput = Effect.gen(function*() {
       yield* RcRef.get(rlRef)
-      const queue = yield* Queue.make<Terminal.UserInput, Queue.Done>()
+      const queue = yield* Queue.make<Terminal.UserInput, Cause.Done>()
       const handleKeypress = (s: string | undefined, k: readline.Key) => {
         const userInput = {
           input: s,
@@ -57,12 +57,12 @@ export const make: (
         }
         Queue.offerUnsafe(queue, userInput)
         if (shouldQuit(userInput)) {
-          Queue.doneUnsafe(queue, Exit.void)
+          Queue.endUnsafe(queue)
         }
       }
       yield* Effect.addFinalizer(() => Effect.sync(() => stdin.off("keypress", handleKeypress)))
       stdin.on("keypress", handleKeypress)
-      return queue as Queue.Dequeue<Terminal.UserInput, Queue.Done>
+      return queue as Queue.Dequeue<Terminal.UserInput, Cause.Done>
     })
 
     const readLine = Effect.scoped(

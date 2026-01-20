@@ -2,6 +2,7 @@
  * @since 1.0.0
  */
 import type { NonEmptyReadonlyArray } from "effect/Array"
+import type * as Cause from "effect/Cause"
 import * as Channel from "effect/Channel"
 import * as Effect from "effect/Effect"
 import { identity, type LazyArg } from "effect/Function"
@@ -68,12 +69,12 @@ export const pullIntoWritable = <A, IE, E>(options: {
     }),
     Effect.forever({ autoYield: false }),
     options.endOnDone !== false ?
-      Pull.catchHalt((_) => {
+      Pull.catchDone((_) => {
         if ("closed" in options.writable && options.writable.closed) {
-          return Pull.halt(_)
+          return Pull.done(_)
         }
-        return Effect.callback<never, E | Pull.Halt<unknown>>((resume) => {
-          options.writable.once("finish", () => resume(Pull.halt(_)))
+        return Effect.callback<never, E | Cause.Done<unknown>>((resume) => {
+          options.writable.once("finish", () => resume(Pull.done(_)))
           options.writable.end()
         })
       }) :

@@ -284,9 +284,9 @@ export const encode = <IE, Done>(): Channel.Channel<
           done = true
           return Effect.succeed(Arr.of(encoder.write(retry)))
         }),
-        Pull.catchHalt(() => Pull.haltVoid)
+        Pull.catchDone(() => Pull.doneVoid)
       ) as Pull.Pull<Arr.NonEmptyReadonlyArray<string>, IE>
-      return Effect.suspend(() => done ? Pull.haltVoid : pull)
+      return Effect.suspend(() => done ? Pull.doneVoid : pull)
     })
   )
 

@@ -566,7 +566,7 @@ export const makeRpc: Effect.Effect<
                 Effect.forever,
                 Effect.catchTag("RpcClientError", Effect.die),
                 Effect.provideServices(message.services),
-                Effect.catchFilter(Queue.filterDone, (_) => Effect.void),
+                Effect.catchTag("Done", (_) => Effect.void),
                 Effect.catchDefect(() => Effect.fail(new RunnerUnavailable({ address })))
               )
             }),
