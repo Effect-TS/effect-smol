@@ -446,7 +446,7 @@ export const layer = (options: {
  *
  * @example
  * ```ts
- * import { NodeRuntime, NodeSink, NodeStream } from "@effect/platform-node"
+ * import { NodeRuntime, NodeStdio } from "@effect/platform-node"
  * import { Effect, Layer, Logger, Schema } from "effect"
  * import { McpSchema, McpServer } from "effect/unstable/ai"
  *
@@ -487,9 +487,8 @@ export const layer = (options: {
  *   Layer.provide(McpServer.layerStdio({
  *     name: "Demo Server",
  *     version: "1.0.0",
- *     stdin: NodeStream.stdin,
- *     stdout: NodeSink.stdout
  *   })),
+ *   Layer.provide(NodeStdio.layer),
  *   Layer.provide(Layer.succeed(Logger.LogToStderr)(true))
  * )
  *
