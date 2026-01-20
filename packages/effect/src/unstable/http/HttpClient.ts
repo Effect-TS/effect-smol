@@ -6,7 +6,7 @@ import * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import * as Exit from "../../Exit.ts"
 import type { Fiber } from "../../Fiber.ts"
-import { constFalse, constTrue, dual } from "../../Function.ts"
+import { constFalse, constTrue, dual, flow, identity } from "../../Function.ts"
 import * as Inspectable from "../../Inspectable.ts"
 import * as Layer from "../../Layer.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
@@ -819,42 +819,46 @@ export const retryTransient: {
   ): HttpClient.With<E | ES, R1 | R>
 } = dual(
   2,
-  <E extends E0, E0, R, B, ES = never, R1 = never>(
+  <
+    E,
+    R,
+    B,
+    ES = never,
+    R1 = never
+  >(
     self: HttpClient.With<E, R>,
     options: {
       readonly mode?: "errors-only" | "response-only" | "both" | undefined
-      readonly while?: Predicate.Predicate<HttpClientResponse.HttpClientResponse | NoInfer<E>>
-      readonly schedule?: Schedule.Schedule<B, HttpClientResponse.HttpClientResponse | NoInfer<E>, ES, R1>
+      readonly while?: Predicate.Predicate<any>
+      readonly schedule?: Schedule.Schedule<B, any, ES, R1>
       readonly times?: number
-    } | Schedule.Schedule<B, HttpClientResponse.HttpClientResponse | NoInfer<E>, ES, R1>
-  ): HttpClient.With<E | ES, R | R1> =>
-    transformResponse(self, (effect) => {
-      const isOnlySchedule = Schedule.isSchedule(options)
-      const mode = isOnlySchedule ? "both" : options.mode ?? "both"
-      const schedule = isOnlySchedule ? options : options.schedule
-      const passthroughSchedule = schedule && Schedule.passthrough(schedule)
-      const times = isOnlySchedule ? undefined : options.times
-      let result = effect
-      if (mode !== "errors-only") {
-        result = Effect.repeat(result, {
-          schedule: passthroughSchedule,
+    } | Schedule.Schedule<B, any, ES, R1>
+  ): HttpClient.With<E | ES, R1 | R> => {
+    const isOnlySchedule = Schedule.isSchedule(options)
+    const mode = isOnlySchedule ? "both" : options.mode ?? "both"
+    const schedule = isOnlySchedule ? options : options.schedule
+    const passthroughSchedule = schedule && Schedule.passthrough(schedule)
+    const times = isOnlySchedule ? undefined : options.times
+    return transformResponse(
+      self,
+      flow(
+        mode === "errors-only" ? identity : Effect.repeat({
+          schedule: passthroughSchedule!,
           times,
           while: isOnlySchedule || options.while === undefined
             ? isTransientResponse
             : Predicate.and(isTransientResponse, options.while)
-        })
-      }
-      if (mode !== "response-only") {
-        result = Effect.retry(result, {
+        }),
+        mode === "response-only" ? identity : Effect.retry({
           while: isOnlySchedule || options.while === undefined
             ? isTransientError
             : Predicate.or(isTransientError, options.while),
           schedule,
           times
         })
-      }
-      return result
-    }) as any
+      )
+    )
+  }
 )
 
 /**
