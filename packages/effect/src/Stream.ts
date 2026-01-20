@@ -515,16 +515,7 @@ export const toChannel = <A, E, R>(
  * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
  * ```
  *
- * **Previously Known As**
- *
- * This API replaces the following from Effect 3.x:
- *
- * - `Stream.async`
- * - `Stream.asyncEffect`
- * - `Stream.asyncPush`
- * - `Stream.asyncScoped`
- *
- * @since 2.0.0
+* @since 2.0.0
  * @category constructors
  */
 export const callback = <A, E = never, R = never>(
