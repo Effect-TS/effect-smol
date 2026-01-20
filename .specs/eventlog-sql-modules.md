@@ -3,6 +3,7 @@
 ## Requirements
 
 ### Functional
+
 - Add `SqlEventLogJournal` under `packages/effect/src/unstable/eventlog/SqlEventLogJournal.ts` that provides a SQL-backed `EventJournal` implementation with `make` and `layer` constructors.
 - Implement `entries`, `write`, `writeFromRemote`, `withRemoteUncommited`, `nextRemoteSequence`, `changes`, and `destroy` using `SqlClient` + `SqlSchema` and wrap `SqlError`/`SchemaError` failures in `EventJournalError`.
 - Add `SqlEventLogServer` under `packages/effect/src/unstable/eventlog/SqlEventLogServer.ts` that provides a SQL-backed `EventLogServer.Storage` with `makeStorage`, `layerStorage`, and `layerStorageSubtle`.
@@ -12,6 +13,7 @@
 - Add integration tests that exercise the SQL-backed journal and server storage using a real `SqlClient`.
 
 ### Non-functional
+
 - Follow existing Effect patterns (`Effect.gen`, `Layer`, `ServiceMap`) and keep implementations concise.
 - Use ASCII-only source unless a file already requires Unicode.
 - Preserve `@since 4.0.0` JSDoc blocks and avoid extra comments.
@@ -19,6 +21,7 @@
 ## Design
 
 ### Module layout and exports
+
 - `packages/effect/src/unstable/eventlog/SqlEventLogJournal.ts`
   - `make(options?)` -> `Effect.Effect<EventJournal.Service, SqlError, SqlClient>`
   - `layer(options?)` -> `Layer.Layer<EventJournal, SqlError, SqlClient>`
@@ -29,6 +32,7 @@
 - Run `pnpm codegen` to update `packages/effect/src/unstable/eventlog/index.ts`.
 
 ### Data model (SQL)
+
 - Event journal tables:
   - Entries table (default `effect_event_journal`): `id`, `event`, `primary_key`, `payload`, `timestamp`.
   - Remotes table (default `effect_event_remotes`): `remote_id`, `entry_id`, `sequence`, composite PK `(remote_id, entry_id)`.
@@ -44,6 +48,7 @@
   - Table name uses `EventLogEncryption.sha256String(publicKey).slice(0, 16)`.
 
 ### Behavior
+
 - Journal `write` uses `makeEntryIdUnsafe`, inserts the entry, runs the user effect inside `sql.withTransaction`, then publishes via `PubSub`.
 - Journal `writeFromRemote` runs inside `sql.withTransaction`, inserts entries/remotes, filters existing IDs, runs optional compaction, and computes conflicts via timestamped queries on `event` + `primary_key`.
 - Journal `nextRemoteSequence` returns `0` when no rows (use `COALESCE`/null checks), otherwise `max + 1`.
@@ -51,12 +56,14 @@
 - Server `changes` uses `Queue.make`, seeds with initial entries, forwards PubSub updates, and returns `Queue.asDequeue`.
 
 ### Testing
+
 - Add integration tests in `packages/sql/sqlite-node/test/SqlEventLogJournal.test.ts` and `packages/sql/sqlite-node/test/SqlEventLogServer.test.ts`.
 - Use `SqliteClient.make({ filename: ":memory:" })` with `Reactivity.layer` to avoid filesystem setup.
 - Journal tests: `write` persists entries; `writeFromRemote` respects compaction/conflicts; `withRemoteUncommited` filters by remote; `nextRemoteSequence` handles empty state.
 - Server tests: `makeStorage` persists `remote_id`; `write` returns ordered sequences and dedupes; `entries`/`changes` stream entries from a start sequence.
 
 ## Acceptance Criteria
+
 - `SqlEventLogJournal` and `SqlEventLogServer` compile in `packages/effect/src/unstable/eventlog/` with expected APIs.
 - SQL schemas match the effect-old dialect behavior and use current EventLog/EventJournal types and constructors.
 - Errors in `SqlEventLogJournal` are wrapped in `EventJournalError` with correct `method` labels.
