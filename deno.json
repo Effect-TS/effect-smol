@@ -1,8 +1,20 @@
 {
   "$schema": "https://raw.githubusercontent.com/denoland/deno/refs/heads/main/cli/schemas/config-file.v1.json",
   "nodeModulesDir": "manual",
-  "unstable": ["bare-node-builtins", "node-globals"],
-  "workspace": ["./packages/*"],
+  "unstable": [
+    "bare-node-builtins",
+    "node-globals"
+  ],
+  "workspace": [
+    "scratchpad",
+    "scripts",
+    "packages/*",
+    "packages/ai/*",
+    "packages/atom/*",
+    "packages/sql/*",
+    "packages/tools/*",
+    "examples/*"
+  ],
   "exclude": [
     "**/*.mjs",
     "**/*.cjs",
