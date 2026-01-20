@@ -150,14 +150,14 @@ export const make = Effect.gen(function*() {
 
           if (Predicate.isNotUndefined(operation.requestBody?.content?.["application/json"]?.schema)) {
             op.payload = generator.addSchema(
-              `${schemaId}Request`,
+              `${schemaId}RequestJson`,
               operation.requestBody.content["application/json"].schema
             )
           }
 
           if (Predicate.isNotUndefined(operation.requestBody?.content?.["multipart/form-data"]?.schema)) {
             op.payload = generator.addSchema(
-              `${schemaId}Request`,
+              `${schemaId}RequestFormData`,
               operation.requestBody.content["multipart/form-data"].schema
             )
             op.payloadFormData = true
