@@ -37,6 +37,8 @@ export function make() {
         dialect: "draft-2020-12",
         schemas,
         definitions
+      }, {
+        additionalProperties: false
       })
 
       const codeDocument = SchemaRepresentation.toCodeDocument(multiDocument)
