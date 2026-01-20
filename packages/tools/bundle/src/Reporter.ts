@@ -1,3 +1,6 @@
+/**
+ * @since 1.0.0
+ */
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -7,19 +10,35 @@ import { Fixtures } from "./Fixtures.ts"
 import type { BundleStats } from "./Rollup.ts"
 import { Rollup } from "./Rollup.ts"
 
+/**
+ * @since 1.0.0
+ * @category errors
+ */
 export class ReporterError extends Data.TaggedError("ReporterError")<{
   readonly cause: unknown
 }> {}
 
+/**
+ * @since 1.0.0
+ * @category models
+ */
 export interface ReportOptions {
   readonly baseDirectory: string
 }
 
+/**
+ * @since 1.0.0
+ * @category models
+ */
 export interface VisualizeOptions {
   readonly paths: ReadonlyArray<string>
   readonly outputDirectory: string
 }
 
+/**
+ * @since 1.0.0
+ * @category services
+ */
 export class Reporter extends ServiceMap.Service<Reporter>()(
   "@effect/bundle/Reporter",
   {

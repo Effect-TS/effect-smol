@@ -1,3 +1,6 @@
+/**
+ * @since 1.0.0
+ */
 import * as NodeStream from "@effect/platform-node/NodeStream"
 import * as Data from "effect/Data"
 import * as Effect from "effect/Effect"
@@ -10,27 +13,47 @@ import type { RollupOptions } from "rollup"
 import { rollup } from "rollup"
 import { createPlugins } from "./Plugins.ts"
 
+/**
+ * @since 1.0.0
+ * @category errors
+ */
 export class RollupError extends Data.TaggedError("RollupError")<{
   readonly cause: unknown
 }> {}
 
+/**
+ * @since 1.0.0
+ * @category models
+ */
 export class BundleStats extends Data.TaggedClass("BundleStats")<{
   readonly path: string
   readonly sizeInBytes: number
 }> {}
 
+/**
+ * @since 1.0.0
+ * @category models
+ */
 export interface BundleOptions {
   readonly path: string
   readonly visualize?: boolean | undefined
   readonly outputDirectory?: string | undefined
 }
 
+/**
+ * @since 1.0.0
+ * @category models
+ */
 export interface BundleAllOptions {
   readonly paths: ReadonlyArray<string>
   readonly visualize?: boolean | undefined
   readonly outputDirectory?: string | undefined
 }
 
+/**
+ * @since 1.0.0
+ * @category services
+ */
 export class Rollup extends ServiceMap.Service<Rollup>()(
   "@effect/bundle/Rollup",
   {

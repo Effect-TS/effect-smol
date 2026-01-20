@@ -1,3 +1,6 @@
+/**
+ * @since 1.0.0
+ */
 import { nodeResolve } from "@rollup/plugin-node-resolve"
 import replace from "@rollup/plugin-replace"
 import terser from "@rollup/plugin-terser"
@@ -11,6 +14,9 @@ const EFFECT_PACKAGE_REGEX = /^(@effect\/[\w-]+|effect)(\/.*)?$/
 
 /**
  * Options for configuring Rollup plugins.
+ *
+ * @since 1.0.0
+ * @category models
  */
 export interface PluginOptions {
   readonly nodeTarget?: string | undefined
@@ -46,6 +52,9 @@ const resolvePluginOptions = (options: PluginOptions): ResolvedPluginOptions => 
 /**
  * Creates a custom Rollup plugin that resolves Effect package imports to their
  * local dist directories.
+ *
+ * @since 1.0.0
+ * @category constructors
  */
 export const createResolveLocalPackageImports = (pathService: Path.Path): Plugin => ({
   name: "rollup-plugin-resolve-imports",
@@ -67,6 +76,9 @@ export const createResolveLocalPackageImports = (pathService: Path.Path): Plugin
 
 /**
  * Creates the full Rollup plugin pipeline for bundling.
+ *
+ * @since 1.0.0
+ * @category constructors
  */
 export const createPlugins = (pathService: Path.Path, options: PluginOptions = {}): Array<Plugin> => {
   const resolved = resolvePluginOptions(options)

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-
+/**
+ * @since 1.0.0
+ */
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime"
 import * as NodeServices from "@effect/platform-node/NodeServices"
 import * as Effect from "effect/Effect"

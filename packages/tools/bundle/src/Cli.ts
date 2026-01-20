@@ -1,3 +1,6 @@
+/**
+ * @since 1.0.0
+ */
 import * as Effect from "effect/Effect"
 import * as FileSystem from "effect/FileSystem"
 import * as Path from "effect/Path"
@@ -59,6 +62,10 @@ const visualize = Command.make("visualize", { outputDirectory }).pipe(
   }))
 )
 
+/**
+ * @since 1.0.0
+ * @category commands
+ */
 export const cli = Command.make("bundle").pipe(
   Command.withSubcommands([compare, visualize])
 )
