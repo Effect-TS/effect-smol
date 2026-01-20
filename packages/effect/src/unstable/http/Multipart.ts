@@ -624,4 +624,3 @@ export const MaxFileSize = ServiceMap.Reference<FileSystem.SizeInput | undefined
 export const FieldMimeTypes = ServiceMap.Reference<ReadonlyArray<string>>("effect/http/Multipart/FieldMimeTypes", {
   defaultValue: constant(["application/json"])
 })
-

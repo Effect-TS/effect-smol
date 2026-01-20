@@ -95,4 +95,3 @@ export const stdout: Sink.Sink<void, string | Uint8Array, never, PlatformError> 
       cause
     })
 })
-

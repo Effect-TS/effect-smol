@@ -530,4 +530,3 @@ interface PgJson extends Custom<"PgJson", unknown> {}
  * @since 1.0.0
  */
 const PgJson = Statement.custom<PgJson>("PgJson")
-

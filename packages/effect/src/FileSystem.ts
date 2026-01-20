@@ -1255,4 +1255,3 @@ export declare namespace WatchEvent {
 export class WatchBackend extends ServiceMap.Service<WatchBackend, {
   readonly register: (path: string, stat: File.Info) => Stream.Stream<WatchEvent, PlatformError> | undefined
 }>()("effect/platform/FileSystem/WatchBackend") {}
-

@@ -1757,4 +1757,3 @@ export const ensuring: {
   self: Sink<A, In, L, E, R>,
   effect: Effect.Effect<X, E2, R2>
 ): Sink<A, In, L, E | E2, R | R2> => onExit(self, () => effect))
-

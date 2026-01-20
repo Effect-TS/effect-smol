@@ -7160,4 +7160,3 @@ export const runIntoQueue: {
   self: Stream<A, E, R>,
   queue: Queue.Queue<A, E | Cause.Done>
 ): Effect.Effect<void, never, R> => Channel.runIntoQueueArray(self.channel, queue))
-
