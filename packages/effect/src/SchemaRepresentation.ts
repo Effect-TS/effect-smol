@@ -2162,12 +2162,14 @@ function toRuntimeRegExp(regExp: RegExp): string {
 /**
  * @since 4.0.0
  */
-export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020-12">): Document {
+export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020-12">, options?: {
+  readonly additionalProperties?: false | undefined
+}): Document {
   const { references, representations: schemas } = fromJsonSchemaMultiDocument({
     dialect: document.dialect,
     schemas: [document.schema],
     definitions: document.definitions
-  })
+  }, options)
   return {
     representation: schemas[0],
     references
@@ -2177,7 +2179,9 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
 /**
  * @since 4.0.0
  */
-export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"draft-2020-12">): MultiDocument {
+export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"draft-2020-12">, options?: {
+  readonly additionalProperties?: false | undefined
+}): MultiDocument {
   let visited: Set<string>
   const references: Record<string, Representation> = {}
 
@@ -2545,10 +2549,11 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
       }
     }
 
-    if (js.additionalProperties === undefined || js.additionalProperties === true) {
+    const additionalProperties = js.additionalProperties ?? options?.additionalProperties
+    if (additionalProperties === undefined || additionalProperties === true) {
       out.push({ parameter: string, type: unknown })
-    } else if (Predicate.isObject(js.additionalProperties)) {
-      out.push({ parameter: string, type: recur(js.additionalProperties) })
+    } else if (Predicate.isObject(additionalProperties)) {
+      out.push({ parameter: string, type: recur(additionalProperties) })
     }
 
     return out
