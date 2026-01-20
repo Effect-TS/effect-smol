@@ -2917,10 +2917,147 @@ export const filterMapEffect: {
 )
 
 /**
- * @since 2.0.0
+ * @since 4.0.0
  * @category Filtering
  */
 export const partition: {
+  <C extends A, B extends A, A = C>(
+    refinement: Refinement<NoInfer<A>, B>,
+    options?: {
+      readonly bufferSize?: number | undefined
+    }
+  ): <E, R>(
+    self: Stream<C, E, R>
+  ) => Effect.Effect<
+    [excluded: Stream<Exclude<C, B>, E>, satisfying: Stream<B, E>],
+    never,
+    R | Scope.Scope
+  >
+  <A>(
+    predicate: Predicate<NoInfer<A>>,
+    options?: {
+      readonly bufferSize?: number | undefined
+    }
+  ): <E, R>(
+    self: Stream<A, E, R>
+  ) => Effect.Effect<
+    [excluded: Stream<A, E>, satisfying: Stream<A, E>],
+    never,
+    Scope.Scope | R
+  >
+  <C extends A, E, R, B extends A, A = C>(
+    self: Stream<C, E, R>,
+    refinement: Refinement<A, B>,
+    options?: {
+      readonly bufferSize?: number | undefined
+    }
+  ): Effect.Effect<
+    [excluded: Stream<Exclude<C, B>, E>, satisfying: Stream<B, E>],
+    never,
+    R | Scope.Scope
+  >
+  <A, E, R>(
+    self: Stream<A, E, R>,
+    predicate: Predicate<A>,
+    options?: {
+      readonly bufferSize?: number | undefined
+    }
+  ): Effect.Effect<
+    [excluded: Stream<A, E>, satisfying: Stream<A, E>],
+    never,
+    Scope.Scope | R
+  >
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, B extends A>(
+    self: Stream<A, E, R>,
+    predicate: Predicate<A> | Refinement<A, B>,
+    options?: {
+      readonly bufferSize?: number | undefined
+    }
+  ): Effect.Effect<
+    [Stream<Exclude<A, B>, E>, Stream<B, E>],
+    never,
+    R | Scope.Scope
+  > =>
+    Effect.map(
+      partitionFilter(
+        self,
+        Filter.fromPredicate(predicate as Predicate<A>),
+        options?.bufferSize === undefined ? undefined : { capacity: options.bufferSize }
+      ),
+      ([satisfying, excluded]) => [excluded, satisfying] as const
+    ) as any
+)
+
+/**
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const partitionEffect: {
+  <A, A3, A2, E2, R2>(
+    predicate: (a: NoInfer<A>) => Effect.Effect<Result.Result<A3, A2>, E2, R2>,
+    options?: {
+      readonly bufferSize?: number | undefined
+      readonly concurrency?: number | "unbounded" | undefined
+    }
+  ): <E, R>(
+    self: Stream<A, E, R>
+  ) => Effect.Effect<
+    [left: Stream<A2, E | E2>, right: Stream<A3, E | E2>],
+    never,
+    Scope.Scope | R2 | R
+  >
+  <A, E, R, A3, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    predicate: (a: A) => Effect.Effect<Result.Result<A3, A2>, E2, R2>,
+    options?: {
+      readonly bufferSize?: number | undefined
+      readonly concurrency?: number | "unbounded" | undefined
+    }
+  ): Effect.Effect<
+    [left: Stream<A2, E | E2>, right: Stream<A3, E | E2>],
+    never,
+    Scope.Scope | R | R2
+  >
+} = dual(
+  (args) => isStream(args[0]),
+  <A, E, R, A3, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    predicate: (a: A) => Effect.Effect<Result.Result<A3, A2>, E2, R2>,
+    options?: {
+      readonly bufferSize?: number | undefined
+      readonly concurrency?: number | "unbounded" | undefined
+    }
+  ): Effect.Effect<
+    [Stream<A2, E | E2>, Stream<A3, E | E2>],
+    never,
+    Scope.Scope | R | R2
+  > => {
+    const partitionOptions = options === undefined ? undefined : {
+      capacity: options.bufferSize,
+      concurrency: options.concurrency
+    }
+    const filter: Filter.FilterEffect<A, A3, A2, E2, R2> = (a) =>
+      Effect.map(
+        predicate(a),
+        Result.match({
+          onFailure: (left: A2) => Filter.fail(left),
+          onSuccess: (right: A3) => right
+        })
+      )
+    return Effect.map(
+      partitionFilterEffect(self, filter, partitionOptions),
+      ([right, left]) => [left, right] as const
+    ) as any
+  }
+)
+
+/**
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const partitionFilter: {
   <A, B, X>(filter: Filter.Filter<A, B, X>, options?: {
     readonly capacity?: number | "unbounded" | undefined
   }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
@@ -2954,7 +3091,7 @@ export const partition: {
     R | Scope.Scope
   > =>
     Effect.map(
-      partitionQueue(filter, options)(self),
+      partitionFilterQueue(filter, options)(self),
       ([passes, fails]) => [fromQueue(passes), fromQueue(fails)] as const
     )
 )
@@ -2963,7 +3100,7 @@ export const partition: {
  * @since 4.0.0
  * @category Filtering
  */
-export const partitionQueue: {
+export const partitionFilterQueue: {
   <A, B, X>(filter: Filter.Filter<A, B, X>, options?: {
     readonly capacity?: number | "unbounded" | undefined
   }): <E, R>(self: Stream<A, E, R>) => Effect.Effect<
@@ -3040,7 +3177,7 @@ export const partitionQueue: {
  * @since 4.0.0
  * @category Filtering
  */
-export const partitionEffect: {
+export const partitionFilterEffect: {
   <A, B, X, EX, RX>(filter: Filter.FilterEffect<A, B, X, EX, RX>, options?: {
     readonly capacity?: number | "unbounded" | undefined
     readonly concurrency?: number | "unbounded" | undefined
@@ -3078,7 +3215,7 @@ export const partitionEffect: {
   > =>
     self.pipe(
       mapEffect(filter, options),
-      partition(identity, options)
+      partitionFilter(identity, options)
     )
 )
 
