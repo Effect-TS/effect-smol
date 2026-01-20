@@ -30,6 +30,18 @@ describe("Config", () => {
     deepStrictEqual(result, { STRING: "value" })
   })
 
+  describe("schema", () => {
+    it("should not leak any information about the value", async () => {
+      const provider = ConfigProvider.fromUnknown({})
+      await assertFailure(
+        Config.schema(Schema.Redacted(Schema.Literal("secret")), "a"),
+        provider,
+        `Invalid data <redacted>
+  at ["a"]`
+      )
+    })
+  })
+
   describe("constructors", () => {
     it("fail", async () => {
       await assertFailure(
@@ -139,7 +151,7 @@ describe("Config", () => {
       await assertFailure(
         Config.redacted("failure"),
         provider,
-        `Expected string, got undefined
+        `Invalid data <redacted>
   at ["failure"]`
       )
     })
@@ -845,13 +857,13 @@ describe("Config", () => {
       await assertFailure(
         config,
         ConfigProvider.fromEnv({ env: {} }),
-        `Expected string, got undefined
+        `Invalid data <redacted>
   at ["a"]`
       )
       await assertFailure(
         config,
         ConfigProvider.fromEnv({ env: { a: "1.1" } }),
-        `Expected an integer, got 1.1
+        `Invalid data <redacted>
   at ["a"]`
       )
     })
@@ -1147,7 +1159,7 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
       await assertFailure(
         config,
         ConfigProvider.fromUnknown({ a: "1.1" }),
-        `Expected an integer, got 1.1
+        `Invalid data <redacted>
   at ["a"]`
       )
     })

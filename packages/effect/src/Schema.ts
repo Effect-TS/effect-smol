@@ -5532,7 +5532,7 @@ export function Redacted<S extends Top>(value: S, options?: {
       expected: "Redacted",
       toCodecJson: ([value]) =>
         link<Redacted_.Redacted<S["Encoded"]>>()(
-          value,
+          redact(value),
           {
             decode: Getter.transform((e) => Redacted_.make(e, { label: options?.label })),
             encode: Getter.forbidden((oe) =>
@@ -5561,11 +5561,18 @@ export interface RedactedFromValue<S extends Top>
  * @category Redacted
  * @since 4.0.0
  */
+export function redact<S extends Top>(schema: S): middlewareDecoding<S, S["DecodingServices"]> {
+  return schema.pipe(middlewareDecoding(Effect.mapErrorEager(Issue.redact)))
+}
+
+/**
+ * @category Redacted
+ * @since 4.0.0
+ */
 export function RedactedFromValue<S extends Top>(value: S, options?: {
   readonly label?: string | undefined
 }): RedactedFromValue<S> {
-  return value.pipe(
-    middlewareDecoding(Effect.mapErrorEager(Issue.redact)),
+  return redact(value).pipe(
     decodeTo(Redacted(toType(value), options), {
       decode: Getter.transform((t) => Redacted_.make(t, { label: options?.label })),
       encode: Getter.forbidden((oe) =>

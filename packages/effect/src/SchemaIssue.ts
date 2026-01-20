@@ -697,21 +697,22 @@ export function redact(issue: Issue): Issue {
   switch (issue._tag) {
     case "MissingKey":
       return issue
+    case "Forbidden":
+      return new Forbidden(Option.map(issue.actual, Redacted.make), issue.annotations)
+    case "Filter":
+      return new Filter(Redacted.make(issue.actual), issue.filter, redact(issue.issue))
+    case "Pointer":
+      return new Pointer(issue.path, redact(issue.issue))
 
+    case "Encoding":
     case "InvalidType":
     case "InvalidValue":
-    case "Forbidden":
-    case "Encoding":
     case "Composite":
       return new InvalidValue(Option.map(issue.actual, Redacted.make))
 
-    case "UnexpectedKey":
-    case "OneOf":
-    case "Filter":
     case "AnyOf":
+    case "OneOf":
+    case "UnexpectedKey":
       return new InvalidValue(Option.some(Redacted.make(issue.actual)))
-
-    case "Pointer":
-      return new Pointer(issue.path, redact(issue.issue))
   }
 }
