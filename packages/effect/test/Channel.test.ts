@@ -6,6 +6,7 @@ import * as Chunk from "effect/Chunk"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
+import * as Filter from "effect/Filter"
 import * as Queue from "effect/Queue"
 
 describe("Channel", () => {
@@ -197,6 +198,28 @@ describe("Channel", () => {
         )
         assert.strictEqual(interrupts, 2)
         assert.deepStrictEqual(result, Exit.fail("boom"))
+      }))
+  })
+
+  describe("filtering", () => {
+    it.effect("filterMap", () =>
+      Effect.gen(function*() {
+        const filter = Filter.make((n: number) => n % 2 === 0 ? n * 2 : Filter.fail(n))
+        const result = yield* Channel.fromArray([1, 2, 3, 4]).pipe(
+          Channel.filterMap(filter),
+          Channel.runCollect
+        )
+        assert.deepStrictEqual(result, [4, 8])
+      }))
+
+    it.effect("filterMapEffect", () =>
+      Effect.gen(function*() {
+        const filter = Filter.makeEffect((n: number) => Effect.succeed(n > 2 ? n + 1 : Filter.fail(n)))
+        const result = yield* Channel.fromArray([1, 2, 3, 4]).pipe(
+          Channel.filterMapEffect(filter),
+          Channel.runCollect
+        )
+        assert.deepStrictEqual(result, [4, 5])
       }))
   })
 

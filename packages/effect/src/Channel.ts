@@ -3013,6 +3013,69 @@ export const filter: {
   ))
 
 /**
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const filterMap: {
+  <OutElem, B, X>(
+    filter: Filter.Filter<OutElem, B, X>
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    filter: Filter.Filter<OutElem, B, X>
+  ): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  filter: Filter.Filter<OutElem, B, X>
+): Channel<B, OutErr, OutDone, InElem, InErr, InDone, Env> =>
+  fromTransform((upstream, scope) =>
+    Effect.map(
+      toTransform(self)(upstream, scope),
+      (pull) =>
+        Effect.flatMap(pull, function loop(elem): Pull.Pull<B, OutErr, OutDone> {
+          const result = filter(elem)
+          return Filter.isFail(result) ? Effect.flatMap(pull, loop) : Effect.succeed(result)
+        })
+    )
+  ))
+
+/**
+ * @since 4.0.0
+ * @category Filtering
+ */
+export const filterMapEffect: {
+  <OutElem, B, X, EX, RX>(
+    filter: Filter.FilterEffect<OutElem, B, X, EX, RX>
+  ): <OutErr, OutDone, InElem, InErr, InDone, Env>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>
+  ) => Channel<B, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX>
+  <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X, EX, RX>(
+    self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+    filter: Filter.FilterEffect<OutElem, B, X, EX, RX>
+  ): Channel<B, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX>
+} = dual(2, <OutElem, OutErr, OutDone, InElem, InErr, InDone, Env, B, X, EX, RX>(
+  self: Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>,
+  filter: Filter.FilterEffect<OutElem, B, X, EX, RX>
+): Channel<B, OutErr | EX, OutDone, InElem, InErr, InDone, Env | RX> =>
+  fromTransform((upstream, scope) =>
+    Effect.map(
+      toTransform(self)(upstream, scope),
+      (pull) =>
+        Effect.flatMap(pull, function loop(elem): Pull.Pull<B, OutErr | EX, OutDone, RX> {
+          return Effect.flatMap(
+            filter(elem),
+            (result) =>
+              Filter.isFail(result)
+                ? Effect.flatMap(pull, loop)
+                : Effect.succeed(result)
+          )
+        })
+    )
+  ))
+
+/**
  * Filters arrays of elements emitted by a channel, applying the filter
  * to each element within the arrays and only emitting non-empty filtered arrays.
  *
