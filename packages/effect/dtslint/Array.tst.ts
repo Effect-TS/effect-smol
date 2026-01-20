@@ -1,4 +1,4 @@
-import { Array } from "effect"
+import { Array, Effect } from "effect"
 import { hole, pipe } from "effect/Function"
 import { describe, expect, it } from "tstyche"
 
@@ -47,5 +47,47 @@ describe("Array", () => {
       expect(pipe(iterableString, Array.window(negativeOne))).type.toBe<Array<never>>()
       expect(Array.window(negativeOne)(iterableString)).type.toBe<Array<never>>()
     })
+  })
+
+  it("flatten", () => {
+    // Mutable arrays
+    expect(Array.flatten(hole<Array<Array<number>>>())).type.toBe<Array<number>>()
+    expect(Array.flatten(hole<Array<Array.NonEmptyArray<number>>>())).type.toBe<Array<number>>()
+    expect(Array.flatten(hole<Array.NonEmptyArray<Array<number>>>())).type.toBe<Array<number>>()
+    expect(Array.flatten(hole<Array.NonEmptyReadonlyArray<Array.NonEmptyReadonlyArray<number>>>()))
+      .type.toBe<[number, ...Array<number>]>()
+
+    // Readonly arrays
+    expect(
+      hole<Effect.Effect<ReadonlyArray<ReadonlyArray<number>>>>().pipe(Effect.map((x) => {
+        expect(x).type.toBe<ReadonlyArray<ReadonlyArray<number>>>()
+        return Array.flatten(x)
+      }))
+    ).type.toBe<Effect.Effect<Array<number>, never, never>>()
+    expect(
+      hole<Effect.Effect<Array.NonEmptyReadonlyArray<Array.NonEmptyReadonlyArray<number>>>>().pipe(Effect.map((x) => {
+        expect(x).type.toBe<Array.NonEmptyReadonlyArray<Array.NonEmptyReadonlyArray<number>>>()
+        return Array.flatten(x)
+      }))
+    ).type.toBe<Effect.Effect<[number, ...Array<number>], never, never>>()
+
+    // distributive indexed access
+    interface Eff<R> {
+      readonly _R: (_: R) => void
+    }
+    interface R1 {
+      readonly _r1: unique symbol
+    }
+    interface R2 {
+      readonly _r2: unique symbol
+    }
+    interface R3 {
+      readonly _r3: unique symbol
+    }
+    const arg1 = hole<Eff<R1 | R2>>()
+    const arg2 = hole<Eff<R1 | R2 | R3>>()
+
+    expect(Array.flatten([[arg1], [arg2]])).type.toBe<Array.NonEmptyArray<Eff<R1 | R2> | Eff<R1 | R2 | R3>>>()
+    expect(Array.flatten([[arg2], [arg1]])).type.toBe<Array.NonEmptyArray<Eff<R1 | R2> | Eff<R1 | R2 | R3>>>()
   })
 })
