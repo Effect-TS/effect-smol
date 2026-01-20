@@ -2117,7 +2117,7 @@ export function applyToLastLink(f: (ast: AST) => AST) {
 }
 
 /** @internal */
-export function decodingMiddleware(
+export function middlewareDecoding(
   ast: AST,
   middleware: Transformation.Middleware<any, any, any, any, any, any>
 ): AST {
@@ -2125,7 +2125,7 @@ export function decodingMiddleware(
 }
 
 /** @internal */
-export function encodingMiddleware(
+export function middlewareEncoding(
   ast: AST,
   middleware: Transformation.Middleware<any, any, any, any, any, any>
 ): AST {

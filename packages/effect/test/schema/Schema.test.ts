@@ -2272,7 +2272,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
 
     it("Redacted(Finite)", async () => {
-      const schema = Schema.Redacted(Schema.Finite)
+      const schema = Schema.Redacted(Schema.Int)
       const asserts = new TestSchema.Asserts(schema)
 
       if (verifyGeneration) {
@@ -2288,6 +2288,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         `Invalid data <redacted>
   at ["value"]`
       )
+      await decoding.fail(
+        Redacted.make(1.2),
+        `Invalid data <redacted>
+  at ["value"]`
+      )
 
       const encoding = asserts.encoding()
       await encoding.succeed(Redacted.make(123))
@@ -2297,10 +2302,63 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         `Invalid data <redacted>
   at ["value"]`
       )
+      await encoding.fail(
+        Redacted.make(1.2),
+        `Invalid data <redacted>
+  at ["value"]`
+      )
+    })
+
+    it("Redacted(FiniteFromString)", async () => {
+      const schema = Schema.Redacted(Schema.FiniteFromString.check(Schema.isInt()))
+      const asserts = new TestSchema.Asserts(schema)
+
+      if (verifyGeneration) {
+        const arbitrary = asserts.arbitrary()
+        arbitrary.verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(Redacted.make("123"), Redacted.make(123))
+      await decoding.fail(null, `Expected Redacted, got null`)
+      await decoding.fail(
+        Redacted.make(null),
+        `Invalid data <redacted>
+  at ["value"]`
+      )
+      await decoding.fail(
+        Redacted.make("a"),
+        `Invalid data <redacted>
+  at ["value"]`
+      )
+      await decoding.fail(
+        Redacted.make("1.2"),
+        `Invalid data <redacted>
+  at ["value"]`
+      )
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(Redacted.make(123), Redacted.make("123"))
+      await encoding.fail(null, `Expected Redacted, got null`)
+      await encoding.fail(
+        Redacted.make(null),
+        `Invalid data <redacted>
+  at ["value"]`
+      )
+      await encoding.fail(
+        Redacted.make("a"),
+        `Invalid data <redacted>
+  at ["value"]`
+      )
+      await encoding.fail(
+        Redacted.make(1.2),
+        `Invalid data <redacted>
+  at ["value"]`
+      )
     })
 
     it("with label", async () => {
-      const schema = Schema.Redacted(Schema.String, { label: "password" })
+      const schema = Schema.Redacted(Schema.NonEmptyString, { label: "password" })
       const asserts = new TestSchema.Asserts(schema)
 
       const decoding = asserts.decoding()
@@ -2320,6 +2378,39 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         `Invalid data <redacted:password>
   at ["value"]`
       )
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(Redacted.make("a", { label: "password" }))
+      await encoding.fail(
+        Redacted.make("a", { label: "API key" }),
+        `Expected "password", got "API key"
+  at ["label"]`
+      )
+      await encoding.fail(
+        Redacted.make("", { label: "password" }),
+        `Invalid data <redacted:password>
+  at ["value"]`
+      )
+    })
+  })
+
+  describe("RedactedFromValue", () => {
+    it("should not leak any information about the value", async () => {
+      const schema = Schema.RedactedFromValue(Schema.Literal("secret"))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.fail(null, `Invalid data <redacted>`)
+    })
+
+    it("should decode a value", async () => {
+      const schema = Schema.RedactedFromValue(Schema.FiniteFromString.check(Schema.isInt()))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("123", Redacted.make(123))
+      await decoding.fail(null, `Invalid data <redacted>`)
+      await decoding.fail("1.2", `Invalid data <redacted>`)
     })
   })
 
