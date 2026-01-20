@@ -515,7 +515,7 @@ export const toChannel = <A, E, R>(
  * Effect.runPromise(Stream.runCollect(stream)).then(console.log)
  * ```
  *
-* @since 2.0.0
+ * @since 2.0.0
  * @category constructors
  */
 export const callback = <A, E = never, R = never>(
