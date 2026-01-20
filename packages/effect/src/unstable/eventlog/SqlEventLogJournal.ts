@@ -190,8 +190,8 @@ export const make = (options?: {
         Effect.map(toEntries),
         Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "entries" }))
       ),
-      write: ({ effect, event, payload, primaryKey }) =>
-        Effect.gen(function*() {
+      write: Effect.fnUntraced(
+        function*({ effect, event, payload, primaryKey }) {
           const entry = new EventJournal.Entry({
             id: EventJournal.makeEntryIdUnsafe(),
             event,
@@ -202,10 +202,10 @@ export const make = (options?: {
           const value = yield* effect(entry)
           yield* PubSub.publish(pubsub, entry)
           return value
-        }).pipe(
-          sql.withTransaction,
-          Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "write" }))
-        ),
+        },
+        sql.withTransaction,
+        Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "write" }))
+      ),
       writeFromRemote: (options) =>
         writeFromRemote(options).pipe(
           sql.withTransaction,
@@ -214,8 +214,8 @@ export const make = (options?: {
             (cause) => Effect.fail(new EventJournal.EventJournalError({ cause, method: "writeFromRemote" }))
           )
         ),
-      withRemoteUncommited: (remoteId, f) =>
-        Effect.gen(function*() {
+      withRemoteUncommited: Effect.fnUntraced(
+        function*(remoteId, f) {
           const entries = yield* sql`
             SELECT *
             FROM ${entryTableSql}
@@ -226,10 +226,10 @@ export const make = (options?: {
             Effect.map(toEntries)
           )
           return yield* f(entries)
-        }).pipe(
-          sql.withTransaction,
-          Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "withRemoteUncommited" }))
-        ),
+        },
+        sql.withTransaction,
+        Effect.mapError((cause) => new EventJournal.EventJournalError({ cause, method: "withRemoteUncommited" }))
+      ),
       nextRemoteSequence: (remoteId) =>
         sql<{ max: number | null }>`SELECT MAX(sequence) AS max FROM ${remotesTableSql} WHERE remote_id = ${remoteId}`
           .pipe(

@@ -74,60 +74,59 @@ export const makeStorage = (options?: {
     )
 
     const resources = yield* RcMap.make({
-      lookup: (publicKey: string) =>
-        Effect.gen(function*() {
-          const publicKeyHash = (yield* encryptions.sha256String(new TextEncoder().encode(publicKey))).slice(0, 16)
-          const table = `${tablePrefix}_${publicKeyHash}`
-          const tableSql = sql(table)
+      lookup: Effect.fnUntraced(function*(publicKey: string) {
+        const publicKeyHash = (yield* encryptions.sha256String(new TextEncoder().encode(publicKey))).slice(0, 16)
+        const table = `${tablePrefix}_${publicKeyHash}`
+        const tableSql = sql(table)
 
-          yield* sql.onDialectOrElse({
-            pg: () =>
-              sql`
+        yield* sql.onDialectOrElse({
+          pg: () =>
+            sql`
                 CREATE TABLE IF NOT EXISTS ${tableSql} (
                   sequence SERIAL PRIMARY KEY,
                   iv BYTEA NOT NULL,
                   entry_id BYTEA UNIQUE NOT NULL,
                   encrypted_entry BYTEA NOT NULL
                 )`,
-            mysql: () =>
-              sql`
+          mysql: () =>
+            sql`
                 CREATE TABLE IF NOT EXISTS ${tableSql} (
                   sequence INT AUTO_INCREMENT PRIMARY KEY,
                   iv BINARY(12) NOT NULL,
                   entry_id BINARY(16) UNIQUE NOT NULL,
                   encrypted_entry BLOB NOT NULL
                 )`,
-            mssql: () =>
-              sql`
+          mssql: () =>
+            sql`
                 CREATE TABLE IF NOT EXISTS ${tableSql} (
                   sequence INT IDENTITY(1,1) PRIMARY KEY,
                   iv VARBINARY(12) NOT NULL,
                   entry_id VARBINARY(16) UNIQUE NOT NULL,
                   encrypted_entry VARBINARY(MAX) NOT NULL
                 )`,
-            orElse: () =>
-              sql`
+          orElse: () =>
+            sql`
                 CREATE TABLE IF NOT EXISTS ${tableSql} (
                   sequence INTEGER PRIMARY KEY AUTOINCREMENT,
                   iv BLOB NOT NULL,
                   entry_id BLOB UNIQUE NOT NULL,
                   encrypted_entry BLOB NOT NULL
                 )`
-          })
+        })
 
-          const pubsub = yield* Effect.acquireRelease(
-            PubSub.unbounded<EventLogEncryption.EncryptedRemoteEntry>(),
-            PubSub.shutdown
-          )
-          return { pubsub, table } as const
-        }),
+        const pubsub = yield* Effect.acquireRelease(
+          PubSub.unbounded<EventLogEncryption.EncryptedRemoteEntry>(),
+          PubSub.shutdown
+        )
+        return { pubsub, table } as const
+      }),
       idleTimeToLive: "5 minutes"
     })
 
     return EventLogServer.Storage.of({
       getId: Effect.succeed(remoteId),
-      write: (publicKey, entries) =>
-        Effect.gen(function*() {
+      write: Effect.fnUntraced(
+        function*(publicKey, entries) {
           if (entries.length === 0) return []
           const { pubsub, table } = yield* RcMap.get(resources, publicKey)
           const forInsert: Array<{
@@ -167,38 +166,40 @@ export const makeStorage = (options?: {
             allEntries.push(...encryptedEntries)
           }
           return allEntries
-        }).pipe(
-          Effect.orDie,
-          Effect.scoped
-        ),
-      entries: (publicKey, startSequence) =>
-        Effect.gen(function*() {
+        },
+        Effect.orDie,
+        Effect.scoped
+      ),
+      entries: Effect.fnUntraced(
+        function*(publicKey, startSequence) {
           const { table } = yield* RcMap.get(resources, publicKey)
           return yield* sql`SELECT * FROM ${sql(table)} WHERE sequence >= ${startSequence} ORDER BY sequence ASC`.pipe(
             Effect.flatMap(decodeEntries)
           )
-        }).pipe(Effect.orDie, Effect.scoped),
-      changes: (publicKey, startSequence) =>
-        Effect.gen(function*() {
-          const { pubsub, table } = yield* RcMap.get(resources, publicKey)
-          const queue = yield* Queue.make<EventLogEncryption.EncryptedRemoteEntry>()
-          const subscription = yield* PubSub.subscribe(pubsub)
-          const initial = yield* sql`
+        },
+        Effect.orDie,
+        Effect.scoped
+      ),
+      changes: Effect.fnUntraced(function*(publicKey, startSequence) {
+        const { pubsub, table } = yield* RcMap.get(resources, publicKey)
+        const queue = yield* Queue.make<EventLogEncryption.EncryptedRemoteEntry>()
+        const subscription = yield* PubSub.subscribe(pubsub)
+        const initial = yield* sql`
             SELECT * FROM ${sql(table)} WHERE sequence >= ${startSequence} ORDER BY sequence ASC
           `.pipe(
-            Effect.flatMap(decodeEntries)
-          )
-          yield* Queue.offerAll(queue, initial)
-          yield* PubSub.takeAll(subscription).pipe(
-            Effect.flatMap((entries) =>
-              Queue.offerAll(queue, entries.filter((entry) => entry.sequence >= startSequence))
-            ),
-            Effect.forever,
-            Effect.forkScoped
-          )
-          yield* Effect.addFinalizer(() => Queue.shutdown(queue))
-          return Queue.asDequeue(queue)
-        }).pipe(Effect.orDie)
+          Effect.flatMap(decodeEntries)
+        )
+        yield* Queue.offerAll(queue, initial)
+        yield* PubSub.takeAll(subscription).pipe(
+          Effect.flatMap((entries) =>
+            Queue.offerAll(queue, entries.filter((entry) => entry.sequence >= startSequence))
+          ),
+          Effect.forever,
+          Effect.forkScoped
+        )
+        yield* Effect.addFinalizer(() => Queue.shutdown(queue))
+        return Queue.asDequeue(queue)
+      }, Effect.orDie)
     })
   })
 

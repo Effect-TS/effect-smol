@@ -91,42 +91,40 @@ export const makeEncryptionSubtle = (crypto: Crypto): Effect.Effect<EventLogEncr
       })
 
     return EventLogEncryption.of({
-      encrypt: (identity, entries) =>
-        Effect.gen(function*() {
-          const data = yield* Effect.orDie(Entry.encodeArray(entries))
-          const key = yield* getKey(identity)
-          const iv = crypto.getRandomValues(new Uint8Array(12))
-          const encryptedEntries = yield* Effect.promise(() =>
-            Promise.all(
-              data.map((entry) =>
-                crypto.subtle.encrypt(
-                  { name: "AES-GCM", iv: toBufferSource(iv), tagLength: 128 },
-                  key,
-                  toBufferSource(entry)
-                )
+      encrypt: Effect.fnUntraced(function*(identity, entries) {
+        const data = yield* Effect.orDie(Entry.encodeArray(entries))
+        const key = yield* getKey(identity)
+        const iv = crypto.getRandomValues(new Uint8Array(12))
+        const encryptedEntries = yield* Effect.promise(() =>
+          Promise.all(
+            data.map((entry) =>
+              crypto.subtle.encrypt(
+                { name: "AES-GCM", iv: toBufferSource(iv), tagLength: 128 },
+                key,
+                toBufferSource(entry)
               )
             )
           )
-          return {
-            iv,
-            encryptedEntries: encryptedEntries.map((entry) => new Uint8Array(entry))
-          }
-        }),
-      decrypt: (identity, entries) =>
-        Effect.gen(function*() {
-          const key = yield* getKey(identity)
-          const decryptedData = (yield* Effect.promise(() =>
-            Promise.all(entries.map((data) =>
-              crypto.subtle.decrypt(
-                { name: "AES-GCM", iv: toBufferSource(data.iv), tagLength: 128 },
-                key,
-                toBufferSource(data.encryptedEntry)
-              )
-            ))
-          )).map((buffer) => new Uint8Array(buffer))
-          const decoded = yield* Effect.orDie(Entry.decodeArray(decryptedData))
-          return decoded.map((entry, index) => new RemoteEntry({ remoteSequence: entries[index].sequence, entry }))
-        }),
+        )
+        return {
+          iv,
+          encryptedEntries: encryptedEntries.map((entry) => new Uint8Array(entry))
+        }
+      }),
+      decrypt: Effect.fnUntraced(function*(identity, entries) {
+        const key = yield* getKey(identity)
+        const decryptedData = (yield* Effect.promise(() =>
+          Promise.all(entries.map((data) =>
+            crypto.subtle.decrypt(
+              { name: "AES-GCM", iv: toBufferSource(data.iv), tagLength: 128 },
+              key,
+              toBufferSource(data.encryptedEntry)
+            )
+          ))
+        )).map((buffer) => new Uint8Array(buffer))
+        const decoded = yield* Effect.orDie(Entry.decodeArray(decryptedData))
+        return decoded.map((entry, index) => new RemoteEntry({ remoteSequence: entries[index].sequence, entry }))
+      }),
       sha256: (data) =>
         Effect.promise(() => crypto.subtle.digest("SHA-256", toArrayBuffer(data))).pipe(
           Effect.map((hash) => new Uint8Array(hash))

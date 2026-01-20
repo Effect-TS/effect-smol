@@ -1337,6 +1337,16 @@ export const gen: {
 } = internal.gen
 
 /**
+ * @since 4.0.0
+ */
+export namespace gen {
+  /**
+   * @since 4.0.0
+   */
+  export type Return<A, E = never, R = never> = Generator<Effect<any, E, R>, A, any>
+}
+
+/**
  * Creates an `Effect` that represents a recoverable error.
  *
  * **When to Use**
@@ -8125,15 +8135,6 @@ export const runSyncExitWith: <R>(
 /**
  * @since 3.12.0
  * @category Function
- * @example
- * ```ts
- * import type { Effect } from "effect"
- *
- * // fn namespace contains utilities for function-based effects
- * // This namespace provides utilities for creating function effects
- * declare const myFunction: Effect.Effect<string, never, never>
- * // Use this namespace for function-based effect utilities
- * ```
  */
 export namespace fn {
   /**

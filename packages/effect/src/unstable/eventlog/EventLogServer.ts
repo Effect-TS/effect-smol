@@ -59,7 +59,7 @@ export const makeHandler: Effect.Effect<
       >()
       let latestSequence = -1
 
-      function* writeGen(response: Schema.Schema.Type<typeof ProtocolResponse>) {
+      const write = Effect.fnUntraced(function*(response: Schema.Schema.Type<typeof ProtocolResponse>) {
         const data = yield* encodeResponse(response)
         if (response._tag !== "Changes" || data.byteLength <= constChunkSize) {
           return yield* writeRaw(data)
@@ -68,8 +68,7 @@ export const makeHandler: Effect.Effect<
         for (const part of ChunkedMessage.split(id, data)) {
           yield* writeRaw(yield* encodeResponse(part))
         }
-      }
-      const write = (response: Schema.Schema.Type<typeof ProtocolResponse>) => Effect.gen(() => writeGen(response))
+      })
 
       yield* Effect.forkChild(Effect.orDie(write(new Hello({ remoteId }))))
 
