@@ -3318,6 +3318,56 @@ export {
 }
 
 /**
+ * Recovers from specific errors based on a predicate.
+ *
+ * @example
+ * ```ts
+ * import { Stream } from "effect"
+ *
+ * class HttpError {
+ *   readonly _tag = "HttpError"
+ * }
+ *
+ * const stream = Stream.fail(new HttpError())
+ *
+ * const recovered = stream.pipe(
+ *   Stream.catchIf(
+ *     (error) => error._tag === "HttpError",
+ *     () => Stream.make("recovered")
+ *   )
+ * )
+ * ```
+ *
+ * @since 4.0.0
+ * @category Error handling
+ */
+export const catchIf: {
+  <E, EB extends E, A2, E2, R2>(
+    refinement: Refinement<NoInfer<E>, EB>,
+    f: (e: EB) => Stream<A2, E2, R2>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A2 | A, E2 | Exclude<E, EB>, R2 | R>
+  <E, A2, E2, R2>(
+    predicate: Predicate<NoInfer<E>>,
+    f: (e: NoInfer<E>) => Stream<A2, E2, R2>
+  ): <A, R>(self: Stream<A, E, R>) => Stream<A2 | A, E | E2, R2 | R>
+  <A, E, R, EB extends E, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    refinement: Refinement<E, EB>,
+    f: (e: EB) => Stream<A2, E2, R2>
+  ): Stream<A | A2, E2 | Exclude<E, EB>, R | R2>
+  <A, E, R, A2, E2, R2>(
+    self: Stream<A, E, R>,
+    predicate: Predicate<E>,
+    f: (e: E) => Stream<A2, E2, R2>
+  ): Stream<A | A2, E | E2, R | R2>
+} = dual(3, <A, E, R, EB extends E, A2, E2, R2>(
+  self: Stream<A, E, R>,
+  predicate: Predicate<E> | Refinement<E, EB>,
+  f: (e: EB) => Stream<A2, E2, R2>
+): Stream<A | A2, E | E2, R | R2> =>
+  catchFilter(self, Filter.fromPredicate(predicate as Predicate<E>), f as any) as any)
+
+/**
  * @since 4.0.0
  * @category Error handling
  */

@@ -258,6 +258,24 @@ describe("Stream", () => {
         assert.deepStrictEqual(results, [1, 2, 3, 4, 5, 6])
         assert.strictEqual(error, "boom")
       }))
+
+    it.effect("catchIf", () =>
+      Effect.gen(function*() {
+        interface ErrorA {
+          readonly _tag: "ErrorA"
+        }
+        interface ErrorB {
+          readonly _tag: "ErrorB"
+        }
+        const stream: Stream.Stream<never, ErrorA | ErrorB> = Stream.fail({ _tag: "ErrorB" as const })
+        const result = yield* pipe(
+          stream,
+          Stream.catchIf((error): error is ErrorA => error._tag === "ErrorA", () => Stream.succeed("ok")),
+          Stream.runCollect,
+          Effect.exit
+        )
+        assert.deepStrictEqual(result, Exit.fail({ _tag: "ErrorB" as const }))
+      }))
   })
 
   describe("scanning", () => {
