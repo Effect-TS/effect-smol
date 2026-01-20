@@ -617,12 +617,7 @@ export const offer: {
  *
  * @example
  * ```ts
-<<<<<<< HEAD:packages/effect/src/TxQueue.ts
  * import { Chunk, Effect, TxQueue } from "effect"
-=======
- * import { Effect } from "effect"
- * import { TxQueue } from "effect/stm"
->>>>>>> 03ae2d63 (align Queue/TxQueue):packages/effect/src/stm/TxQueue.ts
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* TxQueue.bounded<number>(10)
@@ -775,13 +770,7 @@ export const poll = <A, E>(self: TxDequeue<A, E>): Effect.Effect<Option.Option<A
  *
  * @example
  * ```ts
-<<<<<<< HEAD:packages/effect/src/TxQueue.ts
- * import { Effect, TxQueue } from "effect"
-=======
- * import { Effect } from "effect"
- * import { Array } from "effect/collections"
- * import { TxQueue } from "effect/stm"
->>>>>>> 03ae2d63 (align Queue/TxQueue):packages/effect/src/stm/TxQueue.ts
+ * import { Array, Effect, TxQueue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* TxQueue.bounded<number, string>(10)

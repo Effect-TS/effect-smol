@@ -162,7 +162,7 @@ export const doneExitFromCause = <E>(cause: Cause.Cause<E>): Exit.Exit<Cause.Don
  *
  * @example
  * ```ts
- * import { Effect, Pull } from "effect"
+ * import { Cause, Effect, Pull } from "effect"
  *
  * const pull = Cause.done("stream ended")
  *
@@ -199,4 +199,3 @@ export const matchEffect: {
       return !Filter.isFail(halt) ? options.onDone(halt.value as L) : options.onFailure(halt.fail)
     }
   }))
-

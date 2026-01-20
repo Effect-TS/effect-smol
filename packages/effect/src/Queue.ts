@@ -1103,7 +1103,7 @@ export const clear = <A, E>(self: Dequeue<A, E>): Effect<Array<A>, Pull.ExcludeD
  *
  * @example
  * ```ts
- * import { Effect, Queue } from "effect"
+ * import { Cause, Effect, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number, Cause.Done>(5)
@@ -1295,9 +1295,7 @@ export const take = <A, E>(self: Dequeue<A, E>): Effect<A, E> =>
  *
  * @example
  * ```ts
- * import { Effect } from "effect"
- * import { Option } from "effect/data"
- * import { Queue } from "effect"
+ * import { Effect, Option, Queue } from "effect"
  *
  * const program = Effect.gen(function*() {
  *   const queue = yield* Queue.bounded<number>(10)

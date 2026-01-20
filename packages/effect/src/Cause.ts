@@ -782,15 +782,7 @@ export declare namespace Done {
 }
 
 /**
- * Singleton instance of `Done` error to signal graceful completion.
- *
- * @example
- * ```ts
- * import { Cause } from "effect"
- *
- * console.log(Cause.Done._tag) // "Done"
- * console.log(Cause.isDone(Cause.Done)) // true
- * ```
+ * An error for signaling graceful completion with an optional value.
  *
  * @category constructors
  * @since 4.0.0
